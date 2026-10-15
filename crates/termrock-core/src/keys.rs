@@ -144,7 +144,7 @@ bitflags::bitflags! {
     }
 }
 
-/// The dispatch phase for a key stroke.
+/// The phase in which an application chord is matched (§3.3 steps 2 and 8).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum KeyPhase {
     /// Before dispatch; a bare `Char` chord is skipped while the focused

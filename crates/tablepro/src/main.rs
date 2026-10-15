@@ -2,7 +2,7 @@
 
 fn main() -> std::process::ExitCode {
     use std::io::Write as _;
-    match tablepro_ui::run() {
+    match tablepro_app::run() {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
             let _ = writeln!(std::io::stderr().lock(), "{error}");
@@ -12,13 +12,5 @@ fn main() -> std::process::ExitCode {
                 std::process::ExitCode::FAILURE
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_tablepro_binary_entry() {
-        // Sanity check verifying tablepro binary compiles and links.
     }
 }

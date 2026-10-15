@@ -179,9 +179,7 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the disabled colours. The stock `DisabledBg` binding resolves
-    /// surface-relatively (Q65-S5) and no longer reads `background`; the
-    /// token is retained for palette derivation and API compatibility.
+    /// Set the disabled colours.
     #[must_use]
     pub fn disabled(mut self, foreground: Color, background: Color) -> Self {
         self.theme.color.disabled_fg = foreground;
@@ -445,10 +443,7 @@ pub enum FadeOutcome {
 #[expect(clippy::float_cmp, reason = "edge rows use exact configured strengths")]
 pub fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome {
     let (Color::Rgb(fr, fg, fb), Color::Rgb(br, bg, bb)) = (fg, bg) else {
-        // A foreground that is already the row background has nothing to
-        // fade. Indexed colors cannot be blended, but marking an invisible
-        // cell DIM changes the reduced-color frame.
-        return if fg != bg && amount == 0.55 {
+        return if amount == 0.55 {
             FadeOutcome::ApplyDim
         } else {
             FadeOutcome::Unchanged
@@ -508,9 +503,6 @@ mod fade_tests {
                             mix(fb, bb, 0.55),
                         ))
                     );
-                } else if fg == bg {
-                    assert_eq!(fade_mix(fg, bg, 0.55), FadeOutcome::Unchanged);
-                    assert_eq!(fade_mix(fg, bg, 0.80), FadeOutcome::Unchanged);
                 } else {
                     assert_eq!(fade_mix(fg, bg, 0.55), FadeOutcome::ApplyDim);
                     assert_eq!(fade_mix(fg, bg, 0.80), FadeOutcome::Unchanged);

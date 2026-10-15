@@ -17,16 +17,7 @@ pub trait CellWriter {
     fn text(&mut self, s: &str);
 }
 
-/// Overwrite every byte in a `String` allocation before releasing it.
-pub fn wipe_string(value: String) {
-    let mut bytes = value.into_bytes();
-    let capacity = bytes.capacity();
-    bytes.resize(capacity, 0);
-    bytes.fill(0);
-    core::hint::black_box(&bytes);
-    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-    drop(bytes);
-}
+pub use termrock_core::secret::wipe_string;
 
 /// A secret string.
 #[derive(Default)]
@@ -89,6 +80,16 @@ impl Secret {
     }
 
     /// Overwrite every byte with zero, then release the buffer.
+/// Overwrite every byte with zero, then release the buffer.
+    ///
+    /// **Known limit of safe-Rust zeroization** (MA-13): the fill writes into
+    /// a buffer that is about to be dropped, and LLVM is permitted to remove
+    /// a dead store. `black_box` and a `SeqCst` fence make the write
+    /// observable to the optimiser, which is as far as `#![forbid(unsafe_code)]`
+    /// reaches — a guaranteed wipe needs `core::ptr::write_volatile`, which
+    /// this crate cannot use. What *is* guaranteed and is asserted by
+    /// `secret::zeroize_overwrites_before_drop` is that the buffer is released
+    /// and a fresh `expose()` is empty.
     pub fn zeroize(&mut self) {
         wipe_string(core::mem::take(&mut self.0));
         self.0 = String::new();
@@ -103,13 +104,13 @@ impl Drop for Secret {
 
 impl fmt::Debug for Secret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[REDACTED {} bytes]", self.0.len())
+        f.write_str("Secret([redacted])")
     }
 }
 
 impl fmt::Display for Secret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[REDACTED]")
+        f.write_str("Secret([redacted])")
     }
 }
 

@@ -65,27 +65,26 @@ impl LayoutFacts {
 
 /// Runtime-resolved interaction state at the start of the frame.
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Snapshot {
-    pub focus: Option<Id>,
-    pub focus_visible: bool,
-    pub hover: Option<(Id, PartRef)>,
-    pub hover_suppressed: bool,
-    pub pressed: Option<(Id, PartRef)>,
-    pub capture: Option<Id>,
+pub(crate) struct Snapshot {
+    pub(crate) focus: Option<Id>,
+    pub(crate) focus_visible: bool,
+    pub(crate) hover: Option<(Id, PartRef)>,
+    pub(crate) hover_suppressed: bool,
+    pub(crate) pressed: Option<(Id, PartRef)>,
+    pub(crate) capture: Option<Id>,
 }
 
 /// Last frame's facts: geometry, layout, declared flags and the snapshot.
 #[derive(Debug, Default, Clone)]
-pub struct LastFrame {
-    pub registry: Registry,
-    pub ring: FocusRing,
-    pub layout: Vec<(Id, LayoutFacts)>,
-    pub declared: Vec<(Id, StateFlags)>,
+pub(crate) struct LastFrame {
+    pub(crate) registry: Registry,
+    pub(crate) ring: FocusRing,
+    pub(crate) layout: Vec<(Id, LayoutFacts)>,
+    pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing: crate::runtime::typing::TypingResolved,
-    pub snapshot: Snapshot,
-    pub tick: u64,
+    pub(crate) snapshot: Snapshot,
 }
 
 impl LastFrame {
@@ -169,10 +168,6 @@ pub trait FrameRead {
     }
     /// LAST frame's layout facts for `id`.
     fn layout(&self, id: Id) -> Option<LayoutFacts>;
-    /// Current animation tick.
-    fn tick(&self) -> u64 {
-        0
-    }
 }
 
 /// A semantic traversal whose target must come from the next frame's ring.
@@ -184,12 +179,12 @@ pub(crate) struct DeferredFocus {
 
 /// Mutable services `Cx` exposes; owned by the runtime.
 #[derive(Debug, Default)]
-pub struct FrameServices {
+pub(crate) struct FrameServices {
     pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<(Id, LayerEvent)>,
-    pub focus_request: Option<Id>,
+    pub(crate) focus_request: Option<Id>,
     /// Provenance for only the newly opened top layer, until publication.
     /// Its target is read from the live spec; explicit focus supersedes it.
     pub(crate) initial_focus_layer: Option<LayerId>,
@@ -211,7 +206,6 @@ pub struct FrameServices {
     /// as the claim's `origin`, so `pos - origin` is the press offset inside
     /// the thumb rather than the offset from the region's top-left (MA-5).
     pub(crate) press_pos: Option<Position>,
-    pub(crate) tick: u64,
 }
 
 /// The update-phase context.
@@ -239,8 +233,8 @@ impl core::fmt::Debug for Cx<'_> {
 }
 
 impl<'f> Cx<'f> {
-    #[cfg(any(test, feature = "testing"))]
-    pub fn new(
+    #[cfg(test)]
+    pub(crate) fn new(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
         core: &'f mut UiCore,
@@ -259,7 +253,7 @@ impl<'f> Cx<'f> {
         )
     }
 
-    pub fn new_with_cause(
+    pub(crate) fn new_with_cause(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
         core: &'f mut UiCore,
@@ -293,16 +287,6 @@ impl<'f> Cx<'f> {
         self
     }
 
-    /// Current animation tick.
-    pub const fn tick(&self) -> u64 {
-        self.services.tick
-    }
-
-    /// Current animation tick.
-    pub const fn animation_tick(&self) -> u64 {
-        self.services.tick
-    }
-
     /// This owner's intents for the frame. Borrows only the frozen queue;
     /// an empty queue costs one `bool` check.
     pub fn intents(&self, id: Id) -> IntentIter<'f> {
@@ -334,7 +318,10 @@ impl<'f> Cx<'f> {
     /// Crate-private because cached values are implementation details, never
     /// semantic application state. Returning both borrows the frozen queue
     /// and the independent cache at once without allocating an intent copy.
-    pub fn intents_with_cache<T: Default + 'static>(&mut self, id: Id) -> (IntentIter<'f>, &mut T) {
+    pub fn intents_with_cache<T: Default + 'static>(
+        &mut self,
+        id: Id,
+    ) -> (IntentIter<'f>, &mut T) {
         (self.intents.iter(id), self.cache.get_mut::<T>(id))
     }
 
@@ -645,10 +632,6 @@ impl FrameRead for Cx<'_> {
 
     fn layout(&self, id: Id) -> Option<LayoutFacts> {
         self.last.layout_of(id)
-    }
-
-    fn tick(&self) -> u64 {
-        self.tick()
     }
 }
 

@@ -1,6 +1,6 @@
 //! `Note` — a draw-only wrapped help note (`docs/components/note.md`).
 //!
-//! Multi-line muted text under a control, where [`Field`](super::field::Field)'s
+//! Multi-line muted text under a control, where [`Field`](crate::field::Field)'s
 //! single truncated help row cannot carry the copy.
 
 use core::fmt;

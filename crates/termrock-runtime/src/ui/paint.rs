@@ -12,13 +12,13 @@ use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
-use super::{Target, Ui};
+use super::Ui;
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
 use crate::text::measure::graphemes;
 use crate::theme::builder::{FadeOutcome, fade_mix};
-use crate::theme::{ColorLevel, FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
+use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
     /// Paint graphemes at `pos`, refusing any grapheme wider than the clip.
@@ -125,55 +125,6 @@ impl Ui<'_> {
             *x = x.saturating_add(1);
         }
         *remaining != 0
-    }
-
-    /// Re-apply only the reduced-palette `DIM` cue on a scroll edge.
-    ///
-    /// A later fill resets modifiers, so a tree edge faded before a drawer
-    /// covers it loses the `DIM` the baseline `set_style` paint would have
-    /// kept. RGB cells are left alone: truecolor already blended, and
-    /// blending the covering paint would change a row that must stay solid.
-    pub fn scroll_edge_dim_only(&mut self, area: Rect, state: &ScrollState, keep: &[u16]) {
-        let area = area.intersection(self.clip);
-        if area.is_empty() || area.height < FADE_MIN_ROWS {
-            return;
-        }
-        let up = state.offset() > 0;
-        let down = state.viewport_len() > 0
-            && state.offset().saturating_add(state.viewport_len()) < state.content_len();
-        if !up && !down {
-            return;
-        }
-        // Do not require the current background to still be the container.
-        // A drawer paints over the faded row and changes some backgrounds
-        // while the baseline keeps the `DIM` the earlier fade applied.
-        // Cursor and selected rows stay undimmed, matching `scroll_edges_except`.
-        let mark = |ui: &mut Self, y: u16| {
-            let protected = keep.contains(&y)
-                || ui
-                    .frame
-                    .cursors
-                    .iter()
-                    .any(|cursor| cursor.pos.y == y && area.contains(cursor.pos));
-            if protected {
-                return;
-            }
-            for x in area.x..area.right() {
-                let pos = Position::new(x, y);
-                if let Some(cell) = ui.buffer().cell_mut(pos)
-                    && !cell.modifier.contains(Modifier::REVERSED)
-                    && !matches!(cell.fg, Color::Rgb(_, _, _))
-                {
-                    cell.modifier |= Modifier::DIM;
-                }
-            }
-        };
-        if up {
-            mark(self, area.y);
-        }
-        if down {
-            mark(self, area.bottom().saturating_sub(1));
-        }
     }
 
     /// Fade the viewport edge rows that conceal more scrollable content.
@@ -286,36 +237,7 @@ impl Ui<'_> {
         color
     }
 
-    /// True when the authored truecolor fade would change this cell.
-    ///
-    /// Limited palettes collapse distinct roles onto one color. The outer
-    /// scroll edge still marks that lost blend with `DIM`, and leaves a
-    /// foreground that was already the background alone.
-    fn semantic_outer_fade(&self, pos: Position) -> bool {
-        let roles = self.roles_at(pos);
-        let Some(role) = roles.fg else {
-            return false;
-        };
-        let Some(fg) = authored_rgb(self.theme, role, self.surface) else {
-            return false;
-        };
-        let bg = roles
-            .bg
-            .and_then(|role| authored_rgb(self.theme, role, self.surface))
-            .unwrap_or(Color::Rgb(0, 0, 0));
-        match fade_mix(fg, bg, FADE_OUTER_KEEP) {
-            FadeOutcome::Blended(color) => color != fg,
-            FadeOutcome::ApplyDim | FadeOutcome::Unchanged => false,
-        }
-    }
-
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
-        if let Target::Layer(i) = self.target
-            && let Some(d) = self.frame.layers.active_mut().get_mut(i)
-        {
-            d.fade_rows
-                .push((Rect::new(area.x, y, area.width, 1), keep, container));
-        }
         let outer = keep <= FADE_OUTER_KEEP;
         // Fading changes only physical cell attributes for this frame. Keep
         // semantic provenance intact for later composition (for example, a
@@ -325,13 +247,6 @@ impl Ui<'_> {
             if !self.cell_written(pos) {
                 continue;
             }
-            let fade = self.buffer().cell(pos).and_then(|cell| {
-                (cell.bg == container && !cell.modifier.contains(Modifier::REVERSED))
-                    .then_some(fade_mix(cell.fg, container, keep))
-            });
-            let semantic_dim = outer
-                && matches!(fade, Some(FadeOutcome::Unchanged))
-                && self.semantic_outer_fade(pos);
             if let Some(cell) = self.buffer().cell_mut(pos)
                 && cell.bg == container
                 && !cell.modifier.contains(Modifier::REVERSED)
@@ -339,19 +254,6 @@ impl Ui<'_> {
                 match fade_mix(cell.fg, container, keep) {
                     FadeOutcome::Blended(color) => cell.fg = color,
                     FadeOutcome::ApplyDim if outer => cell.modifier |= Modifier::DIM,
-                    // Tag `fade_row` sets DIM on every non-RGB outer cell,
-                    // including a gutter whose foreground equals the row
-                    // background. `fade_mix` leaves that pair Unchanged so
-                    // callers can tell a real blend from a blank; the outer
-                    // edge still has to record the modifier.
-                    FadeOutcome::Unchanged if outer && !matches!(cell.fg, Color::Rgb(_, _, _)) => {
-                        cell.modifier |= Modifier::DIM;
-                    }
-                    // Reduced-color text can collapse onto the row background.
-                    // Dim it when the authored RGB fade would have changed
-                    // the glyph. An already-black cell on an inner edge stays
-                    // undimmed.
-                    FadeOutcome::Unchanged if semantic_dim => cell.modifier |= Modifier::DIM,
                     FadeOutcome::Unchanged | FadeOutcome::ApplyDim => {}
                 }
             }
@@ -409,7 +311,7 @@ impl Ui<'_> {
                 if x >= area.right() {
                     break;
                 }
-                let mut st = base.add_modifier(sp.add).remove_modifier(sp.remove);
+                let mut st = base.add_modifier(sp.add);
                 if let Some(role) = sp.role {
                     st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
                 }
@@ -427,7 +329,7 @@ impl Ui<'_> {
         {
             let mut feed = ClusterFeed::new(&mut scratch);
             for sp in spans {
-                let mut st = base.add_modifier(sp.add).remove_modifier(sp.remove);
+                let mut st = base.add_modifier(sp.add);
                 if let Some(role) = sp.role {
                     st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
                 }
@@ -472,38 +374,11 @@ impl Ui<'_> {
         if area.is_empty() {
             return;
         }
-        let style = s.into_style();
         {
             let buf = self.buffer();
             for pos in area.positions() {
                 if let Some(c) = buf.cell_mut(pos) {
-                    c.set_symbol(" ").set_style(style);
-                    c.modifier = style.add_modifier;
-                }
-            }
-        }
-        self.mark_area(area, Some(s));
-    }
-
-    /// Fill `area` with spaces in `s`, preserving existing modifiers (tag
-    /// `ui::ctx::fill`: ratatui `set_style` inserts/removes modifiers but
-    /// never clears them). The plain [`fill`](Self::fill) resets modifiers,
-    /// which load-bearing paint orders (RowUi/Tabs over-fill, tablepro
-    /// matrices) rely on; use this only where the tag fills over
-    /// already-weighted cells, such as the hint bar painting modal hints
-    /// over the screen footer.
-    pub fn fill_keep_modifiers(&mut self, area: Rect, s: impl Into<PaintStyle>) {
-        let s = s.into();
-        let area = area.intersection(self.clip);
-        if area.is_empty() {
-            return;
-        }
-        let style = s.into_style();
-        {
-            let buf = self.buffer();
-            for pos in area.positions() {
-                if let Some(c) = buf.cell_mut(pos) {
-                    c.set_symbol(" ").set_style(style);
+                    c.set_symbol(" ").set_style(s.into_style());
                 }
             }
         }
@@ -573,59 +448,18 @@ impl Ui<'_> {
         (self.buffer(), clip)
     }
 
-    /// Run `paint` on the current buffer, then record each cell's colour as a
-    /// role. Unlike [`raw`](Self::raw), this does not clear roles first, and
-    /// it does not change the glyphs `paint` wrote.
-    pub fn paint_retained(&mut self, area: Rect, paint: impl FnOnce(&mut Buffer)) {
-        paint(self.buffer());
-        let theme = self.theme.clone();
-        let area = area.intersection(self.clip);
-        let samples: Vec<(ratatui_core::layout::Position, Color, Style)> = {
-            let buf: &Buffer = match self.target {
-                Target::Page => self.page,
-                Target::Layer(i) => match self.frame.layers.active().get(i) {
-                    Some(d) => &d.buf,
-                    None => self.page,
-                },
-            };
-            area.positions()
-                .filter_map(|pos| buf.cell(pos).map(|cell| (pos, cell.fg, cell.style())))
-                .collect()
-        };
-        for (pos, fg, style) in samples {
-            let recorded = crate::theme::PaintStyle::bound(
-                style,
-                Some(retained_fg_role(&theme, fg)),
-                Some(retained_bg_role(&theme, style.bg.unwrap_or(Color::Reset))),
-                crate::theme::Surface::Canvas,
-            );
-            self.mark(pos, Some(recorded));
-        }
-    }
-
-    /// Read-only access to the buffer and the current clip rect without
-    /// marking cells as written or erasing semantic roles.
-    pub fn peek(&self) -> (&Buffer, Rect) {
-        let clip = self.clip;
-        let buf: &Buffer = match self.target {
-            Target::Page => self.page,
-            Target::Layer(i) => match self.frame.layers.active().get(i) {
-                Some(d) => &d.buf,
-                None => self.page,
-            },
-        };
-        (buf, clip)
-    }
-
     /// Dim the page under a layer by walking the role recorded per painted
     /// cell and stepping it down the foreground ladder semantically
-    /// (§54, `docs/design/visual-contract.md` § Modal backdrops). `steps == 0` is identity:
+    /// (§54, `docs/reviews/laneC-app-tick.md` Q4). `steps == 0` is identity:
     /// not a restyle to the same colours, but no write at all, so the frame
-    /// is byte-identical. One step is `Fg(Secondary)`, two `Fg(Muted)`, three
-    /// `Fg(Faint)` and four or more erases the glyph into the resolved
+    /// is byte-identical. One step is `Fg(Muted)`, two `Fg(Faint)`, three
+    /// `Fg(Ghost)` and four or more erases the glyph into the resolved
     /// backdrop background; ladder roles start from their own rung and erase
-    /// once they step past `Ghost`. Backgrounds resolve from the recorded
-    /// background role. All modifiers are cleared. Walks only `area`.
+    /// once they step past `Ghost`; `Accent`/`AccentHover`/`AccentPressed`
+    /// walk the accent chain and erase past its end. Backgrounds resolve
+    /// from the recorded background role — never by colour identity, which
+    /// is exactly the reverse-lookup defect this replaces. Only `BOLD`
+    /// survives; every other modifier is cleared. Walks only `area`.
     pub fn dim_layer(&mut self, area: Rect, steps: u8) {
         if steps == 0 {
             return;
@@ -637,110 +471,32 @@ impl Ui<'_> {
         let backdrop_fill = crate::theme::resolve::bind_role(theme, Role::BackdropBg, surface);
         for pos in area.positions() {
             let roles = self.roles_at(pos);
-            let cell_bg = self.page().cell(pos).and_then(|c| c.style().bg);
-            let bg = match cell_bg {
-                Some(c)
-                    if c == theme.bg(Surface::Canvas)
-                        || c == theme.bg(Surface::Surface)
-                        || c == theme.bg(Surface::Elevated) =>
-                {
-                    Some(c)
+            let fg = match roles.fg {
+                // a ladder role steps from its own rung and erases past Ghost
+                Some(Role::Fg(step)) => ladder(theme, surface, step.index(), steps),
+                // the accent chain degrades through hover and pressed
+                Some(Role::Accent) => accent(theme, surface, 0, steps),
+                Some(Role::AccentHover) => accent(theme, surface, 1, steps),
+                Some(Role::AccentPressed) => accent(theme, surface, 2, steps),
+                // a background role recorded as a foreground carries no text
+                Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
+                    FadeResult::Fg(None)
                 }
-                Some(c) if c == theme.bg(Surface::Field) || c == theme.bg(Surface::FieldHover) => {
-                    Some(theme.bg(Surface::Elevated))
-                }
-                Some(_) => match roles.bg {
-                    Some(Role::Surface(s)) => Some(theme.bg(s)),
-                    Some(Role::CurrentSurface) => cell_bg,
-                    Some(Role::RaisedSurface) => Some(theme.bg(theme.raise(surface))),
-                    _ => Some(theme.bg(Surface::Overlay)),
-                },
-                None => backdrop_fill,
+                // every other semantic foreground: Muted, Faint, Ghost, erase
+                Some(_) => ladder(theme, surface, 1, steps),
+                None => FadeResult::Fg(backdrop_text),
             };
-            let fg = if (roles.fg.is_some() && roles.fg == roles.bg)
-                || self.page().cell(pos).is_some_and(|c| {
-                    (roles.fg.is_some() || roles.bg.is_some())
-                        && c.style().fg.is_some()
-                        && c.style().fg != Some(Color::Reset)
-                        && c.style().fg == c.style().bg
-                }) {
-                FadeResult::Fg(bg)
-            } else if theme.capability.color == ColorLevel::Mono {
-                let cell_fg = self.page().cell(pos).and_then(|c| c.style().fg);
-                match cell_fg {
-                    Some(c) if Some(c) == cell_bg => FadeResult::Fg(bg),
-                    Some(c)
-                        if c == theme.bg(Surface::Canvas)
-                            || c == theme.bg(Surface::Surface)
-                            || c == theme.color.surfaces[0]
-                            || c == theme.color.surfaces[1]
-                            || matches!(c, Color::Black | Color::Indexed(0)) =>
-                    {
-                        FadeResult::Fg(bg)
-                    }
-                    Some(c)
-                        if c == theme.color.fg[0]
-                            || c == theme.color.accent
-                            || c == theme.color.danger
-                            || c == theme.color.warning
-                            || matches!(
-                                c,
-                                Color::White | Color::Indexed(15) | Color::Gray | Color::Indexed(7)
-                            ) =>
-                    {
-                        FadeResult::Fg(Some(theme.color.fg[2]))
-                    }
-                    Some(c) if c == theme.color.fg[1] || c == theme.color.on_accent => {
-                        FadeResult::Fg(Some(theme.color.fg[3]))
-                    }
-                    _ => FadeResult::Fg(Some(theme.color.fg[4])),
+            let bg = match roles.bg {
+                Some(Role::Surface(s)) => {
+                    crate::theme::resolve::bind_role(theme, Role::Surface(s), surface)
                 }
-            } else {
-                let cell_fg = self.page().cell(pos).and_then(|c| c.style().fg);
-                let was_blended = match roles.fg {
-                    Some(Role::Fg(FgStep::Primary)) => {
-                        cell_fg.is_some_and(|c| c != theme.color.fg[0])
-                    }
-                    Some(Role::Fg(FgStep::Secondary)) => {
-                        cell_fg.is_some_and(|c| c != theme.color.fg[1])
-                    }
-                    Some(Role::Success) => cell_fg.is_some_and(|c| c != theme.color.success),
-                    Some(Role::Accent) => cell_fg.is_some_and(|c| c != theme.color.accent),
-                    Some(Role::Focus) => cell_fg.is_some_and(|c| c != theme.color.focus),
-                    Some(Role::Danger) => cell_fg.is_some_and(|c| c != theme.color.danger),
-                    Some(Role::Warning) => cell_fg.is_some_and(|c| c != theme.color.warning),
-                    _ => false,
-                };
-                if was_blended {
-                    FadeResult::Fg(Some(theme.color.fg[4]))
-                } else {
-                    match roles.fg {
-                        Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
-                            FadeResult::Fg(bg)
-                        }
-                        Some(
-                            Role::Fg(FgStep::Primary)
-                            | Role::Accent
-                            | Role::AccentHover
-                            | Role::AccentPressed
-                            | Role::Focus
-                            | Role::Danger
-                            | Role::DangerSoft
-                            | Role::Warning
-                            | Role::Success
-                            | Role::Info,
-                        ) => ladder(theme, surface, 0, steps),
-                        Some(Role::Fg(FgStep::Secondary) | Role::OnAccent | Role::OnDanger) => {
-                            ladder(theme, surface, 1, steps)
-                        }
-                        Some(Role::Fg(FgStep::Ghost)) => ladder(theme, surface, 4, steps),
-                        Some(_) => ladder(theme, surface, 2, steps),
-                        None => FadeResult::Fg(backdrop_text),
-                    }
-                }
+                Some(Role::CurrentSurface) => Some(theme.bg(Surface::Canvas)),
+                Some(Role::RaisedSurface) => Some(theme.bg(Surface::Surface)),
+                _ => backdrop_fill,
             };
             let page = self.page_mut();
             if let Some(c) = page.cell_mut(pos) {
+                let bold = c.modifier.intersection(Modifier::BOLD);
                 let mut st = Style::new();
                 st.fg = match fg {
                     FadeResult::Fg(f) => f,
@@ -753,81 +509,10 @@ impl Ui<'_> {
                 };
                 st.bg = bg;
                 c.set_style(st);
-                c.modifier = Modifier::empty();
+                c.modifier = bold;
             }
         }
     }
-}
-
-fn authored_rgb(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
-    let tokens = theme
-        .capability_palettes
-        .as_ref()
-        .map(|palettes| palettes.source)
-        .unwrap_or(theme.color);
-    let surface_bg = |surface: Surface| match surface {
-        Surface::Field => tokens.field,
-        Surface::FieldHover => tokens.field_hover,
-        ladder => tokens
-            .surfaces
-            .get(ladder.level().unwrap_or(0))
-            .copied()
-            .unwrap_or(Color::Reset),
-    };
-    Some(match role {
-        Role::Fg(step) => tokens.fg.get(step.index()).copied()?,
-        Role::CurrentSurface => surface_bg(surface),
-        Role::Surface(surface) => surface_bg(surface),
-        Role::RaisedSurface => surface_bg(theme.raise(surface)),
-        Role::BorderSubtle => tokens.border_subtle,
-        Role::BorderStrong => tokens.border_strong,
-        Role::Accent | Role::AccentHover | Role::AccentPressed => tokens.accent,
-        Role::Danger | Role::DangerSoft => tokens.danger,
-        Role::Warning => tokens.warning,
-        Role::Success => tokens.success,
-        Role::Focus | Role::FocusRing => tokens.focus,
-        Role::OnAccent => tokens.on_accent,
-        _ => return None,
-    })
-}
-
-fn retained_fg_role(theme: &crate::theme::Theme, fg: Color) -> crate::theme::Role {
-    if fg == theme.color.accent {
-        return crate::theme::Role::Accent;
-    }
-    // The phrase pill paints `on_accent` (`#19191c`), which is not on the
-    // ladder. Recording it as primary makes a later dim treat it as blended
-    // text and replace it with ghost.
-    if fg == theme.color.on_accent {
-        return crate::theme::Role::OnAccent;
-    }
-    match theme.color.fg.iter().position(|candidate| *candidate == fg) {
-        Some(0) => crate::theme::Role::Fg(FgStep::Primary),
-        Some(1) => crate::theme::Role::Fg(FgStep::Secondary),
-        Some(2) => crate::theme::Role::Fg(FgStep::Muted),
-        Some(3) => crate::theme::Role::Fg(FgStep::Faint),
-        Some(_) => crate::theme::Role::Fg(FgStep::Ghost),
-        None => crate::theme::Role::Fg(FgStep::Primary),
-    }
-}
-
-fn retained_bg_role(theme: &crate::theme::Theme, bg: Color) -> crate::theme::Role {
-    use crate::theme::{Role, Surface};
-    if bg == theme.color.accent {
-        return Role::Accent;
-    }
-    for surface in [
-        Surface::Canvas,
-        Surface::Surface,
-        Surface::Elevated,
-        Surface::Overlay,
-        Surface::Popover,
-    ] {
-        if bg == theme.bg(surface) {
-            return Role::Surface(surface);
-        }
-    }
-    Role::Surface(Surface::Canvas)
 }
 
 const FADE_OUTER_KEEP: f32 = 0.55;
@@ -855,6 +540,18 @@ fn ladder(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult
     }
 }
 
+/// Step the accent chain (`Accent`, `AccentHover`, `AccentPressed`) down by
+/// `steps` from `base`, erasing past its end.
+fn accent(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult {
+    let role = match base.saturating_add(usize::from(steps)) {
+        0 => Role::Accent,
+        1 => Role::AccentHover,
+        2 => Role::AccentPressed,
+        _ => return FadeResult::Erase,
+    };
+    FadeResult::Fg(crate::theme::resolve::bind_role(theme, role, surface))
+}
+
 const fn index_to_step(i: usize) -> FgStep {
     match i {
         0 => FgStep::Primary,
@@ -874,7 +571,7 @@ mod tests {
     use super::super::cx::LastFrame;
     use super::super::{FrameState, Ui, UiCore};
     use crate::scroll::ScrollState;
-    use crate::theme::{ColorLevel, FgStep, Role, Surface, Theme};
+    use crate::theme::{FgStep, Role, Surface, Theme};
 
     const SCREEN: Rect = Rect {
         x: 0,
@@ -927,85 +624,6 @@ mod tests {
         let edge = page.cell(Position::new(0, 0)).expect("edge cell");
         let middle = page.cell(Position::new(0, 1)).expect("middle cell");
         assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
-    }
-
-    #[test]
-    fn scroll_edge_dim_only_skips_the_kept_cursor_row() {
-        let theme = Theme::junie().downgrade(ColorLevel::Ansi256);
-        let area = Rect::new(0, 0, 4, 6);
-        let mut frame = FrameState::default();
-        frame.reset(1, area);
-        let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            let style = ui.paint_patch(
-                &crate::theme::StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .set_bg(Role::CurrentSurface),
-            );
-            for y in area.y..area.bottom() {
-                ui.paint_str(Rect::new(area.x, y, area.width, 1), "abcd", style);
-            }
-            let mut state = ScrollState::new(30);
-            state.set_viewport(usize::from(area.height));
-            // Index 10 lands on the last visible row once the viewport reveals it.
-            state.ensure_visible(10);
-            ui.scroll_edge_dim_only(area, &state, &[area.bottom() - 1]);
-        }
-        let bottom = page.cell(Position::new(0, 5)).expect("bottom");
-        let top = page.cell(Position::new(0, 0)).expect("top");
-        assert!(
-            !matches!(top.fg, Color::Rgb(_, _, _)),
-            "the probe must stay on a reduced palette"
-        );
-        assert!(
-            top.modifier.contains(Modifier::DIM),
-            "the revealed upper edge is still dimmed"
-        );
-        assert!(
-            !bottom.modifier.contains(Modifier::DIM),
-            "the cursor row on the lower edge stays undimmed"
-        );
-    }
-
-    #[test]
-    fn scroll_edge_dims_a_blank_reduced_color_gutter() {
-        let theme = Theme::junie().downgrade(ColorLevel::Ansi256);
-        let area = Rect::new(0, 0, 4, 6);
-        let mut frame = FrameState::default();
-        frame.reset(1, area);
-        let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            let style = ui.paint_patch(
-                &crate::theme::StylePatch::new()
-                    .set_fg(Role::CurrentSurface)
-                    .set_bg(Role::CurrentSurface),
-            );
-            ui.fill(area, style);
-            let mut state = ScrollState::new(20);
-            state.set_viewport(usize::from(area.height));
-            ui.scroll_edges(area, &state);
-        }
-        let edge = page.cell(Position::new(0, 5)).expect("outer edge");
-        let middle = page.cell(Position::new(0, 2)).expect("middle");
-        assert!(
-            !matches!(edge.fg, Color::Rgb(_, _, _)),
-            "the probe must stay on a reduced palette"
-        );
-        assert_eq!(edge.fg, edge.bg, "the gutter foreground matches its row");
-        assert!(
-            edge.modifier.contains(Modifier::DIM),
-            "a blank reduced-color gutter on the outer edge is dimmed"
-        );
-        assert!(
-            !middle.modifier.contains(Modifier::DIM),
-            "a blank cell off the outer edge stays undimmed"
-        );
     }
 
     /// Paint `symbol` at `(0, 0)` carrying `fg` as its recorded foreground
@@ -1073,60 +691,35 @@ mod tests {
         for theme in [Theme::junie(), Theme::paper()] {
             let backdrop_bg =
                 crate::theme::resolve::bind_role(&theme, Role::BackdropBg, Surface::Canvas);
-            // the four non-ladder tones: Secondary, Muted, Faint, Ghost, erase
+            // the four non-ladder tones: Muted, Faint, Ghost, erase
             for role in [Role::Success, Role::Warning, Role::Danger, Role::Info] {
-                for (steps, step) in [
-                    (1u8, FgStep::Secondary),
-                    (2, FgStep::Muted),
-                    (3, FgStep::Faint),
-                    (4, FgStep::Ghost),
-                ] {
+                for (steps, step) in [(1u8, FgStep::Muted), (2, FgStep::Faint), (3, FgStep::Ghost)]
+                {
                     let c = dimmed_cell(&theme, role, "x", Modifier::empty(), steps);
                     assert_eq!(c.fg, fg_of(&theme, step), "{role:?} at {steps}");
                     assert_eq!(c.symbol(), "x", "{role:?} at {steps} keeps its glyph");
                 }
-                for steps in [5u8, 6, 9] {
+                for steps in [4u8, 5, 9] {
                     let c = dimmed_cell(&theme, role, "x", Modifier::empty(), steps);
                     assert_eq!(c.symbol(), " ", "{role:?} erases at {steps}");
                     assert_eq!(c.fg, backdrop_bg.expect("backdrop"), "{role:?} at {steps}");
                 }
             }
-            // every other non-ladder foreground role uses base 2 (Faint at 1, Ghost at 2) —
+            // every other non-ladder foreground role uses the same rule —
             // `BorderSubtle` and `DisabledFg` are exactly the two the legacy
             // colour-identity lookup misclassified
-            for role in [Role::BorderSubtle, Role::DisabledFg] {
+            for role in [Role::BorderSubtle, Role::DisabledFg, Role::Focus] {
                 assert_eq!(
                     dimmed_cell(&theme, role, "x", Modifier::empty(), 1).fg,
-                    fg_of(&theme, FgStep::Faint),
+                    fg_of(&theme, FgStep::Muted),
                     "{role:?}"
                 );
                 assert_eq!(
-                    dimmed_cell(&theme, role, "x", Modifier::empty(), 2).fg,
-                    fg_of(&theme, FgStep::Ghost),
-                    "{role:?}"
-                );
-                assert_eq!(
-                    dimmed_cell(&theme, role, "x", Modifier::empty(), 3).symbol(),
+                    dimmed_cell(&theme, role, "x", Modifier::empty(), 4).symbol(),
                     " ",
                     "{role:?}"
                 );
             }
-            // `Role::Focus` starts at ladder 0 (matching legacy accent dimming)
-            assert_eq!(
-                dimmed_cell(&theme, Role::Focus, "x", Modifier::empty(), 1).fg,
-                fg_of(&theme, FgStep::Secondary),
-                "Role::Focus at 1"
-            );
-            assert_eq!(
-                dimmed_cell(&theme, Role::Focus, "x", Modifier::empty(), 2).fg,
-                fg_of(&theme, FgStep::Muted),
-                "Role::Focus at 2"
-            );
-            assert_eq!(
-                dimmed_cell(&theme, Role::Focus, "x", Modifier::empty(), 5).symbol(),
-                " ",
-                "Role::Focus at 5"
-            );
             // ladder roles step from their own rung, saturating at Ghost and
             // erasing only past it
             for (start, steps, want) in [
@@ -1149,20 +742,29 @@ mod tests {
                 assert_eq!(c.symbol(), " ", "{start:?} + {steps} erases past Ghost");
                 assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
             }
-            // accent degrades through the foreground ladder
+            // the accent chain
+            let accent_of = |r: Role| {
+                crate::theme::resolve::bind_role(&theme, r, Surface::Canvas).expect("accent")
+            };
             for (start, steps, want) in [
-                (Role::Accent, 1u8, FgStep::Secondary),
-                (Role::Accent, 2, FgStep::Muted),
-                (Role::Accent, 4, FgStep::Ghost),
+                (Role::Accent, 1u8, Role::AccentHover),
+                (Role::Accent, 2, Role::AccentPressed),
+                (Role::AccentHover, 1, Role::AccentPressed),
             ] {
                 let c = dimmed_cell(&theme, start, "x", Modifier::empty(), steps);
-                assert_eq!(c.fg, fg_of(&theme, want), "{start:?} + {steps}");
+                assert_eq!(c.fg, accent_of(want), "{start:?} + {steps}");
                 assert_eq!(c.symbol(), "x");
             }
-            let c = dimmed_cell(&theme, Role::Accent, "x", Modifier::empty(), 5);
-            assert_eq!(c.symbol(), " ", "Accent + 5 erases past the chain");
-            assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
-            // all modifiers are cleared
+            for (start, steps) in [
+                (Role::Accent, 3u8),
+                (Role::AccentHover, 2),
+                (Role::AccentPressed, 1),
+            ] {
+                let c = dimmed_cell(&theme, start, "x", Modifier::empty(), steps);
+                assert_eq!(c.symbol(), " ", "{start:?} + {steps} erases past the chain");
+                assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
+            }
+            // only BOLD survives
             let c = dimmed_cell(
                 &theme,
                 Role::Fg(FgStep::Primary),
@@ -1170,7 +772,7 @@ mod tests {
                 Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED,
                 1,
             );
-            assert_eq!(c.modifier, Modifier::empty());
+            assert_eq!(c.modifier, Modifier::BOLD);
             let c = dimmed_cell(
                 &theme,
                 Role::Fg(FgStep::Primary),
@@ -1183,24 +785,6 @@ mod tests {
             // never from the cell's colour
             let c = dimmed_cell(&theme, Role::Fg(FgStep::Primary), "x", Modifier::empty(), 1);
             assert_eq!(c.bg, theme.bg(Surface::Canvas));
-        }
-    }
-
-    #[test]
-    fn dim_layer_mono_preserves_baseline_backdrop_fg_resolution() {
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        for role in [
-            Role::Fg(FgStep::Primary),
-            Role::Fg(FgStep::Secondary),
-            Role::Fg(FgStep::Muted),
-            Role::Accent,
-            Role::Success,
-            Role::Warning,
-            Role::Danger,
-        ] {
-            let c = dimmed_cell(&theme, role, "x", Modifier::empty(), 2);
-            assert_eq!(c.fg, Color::Gray, "{role:?} must dim to Gray under Mono");
-            assert_eq!(c.symbol(), "x");
         }
     }
 }

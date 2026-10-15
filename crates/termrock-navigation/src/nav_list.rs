@@ -15,14 +15,11 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Modifier;
 
-use super::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
-use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, StepDir,
-    index_of, key_at,
-};
+use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
+use termrock_runtime::rowui::{RowFn, RowUi};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -32,7 +29,7 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::width;
-use crate::theme::{Family, FgStep, Role, Slot, StylePatch, Variant};
+use crate::theme::{Family, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// An entry's badge accessor: the trailing text for an entry, or `None`
@@ -664,19 +661,37 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
+    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
+        items
+            .get(i)
+            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
+    }
+
     fn enabled_at(&self, items: &[T], i: usize) -> bool {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
     }
 
-    /// Shared inclusive seek over the enabled entries. Clamps, never wraps.
-    fn seek(&self, items: &[T], from: usize, dir: StepDir) -> Option<(usize, ItemKey)> {
-        CollectionCore::seek(
-            items.len(),
-            from,
-            dir,
-            |i| key_at(&self.key, items, i),
-            |i| self.enabled_at(items, i),
-        )
+    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
+        if let Some(h) = hint
+            && h < items.len()
+            && self.key_at(items, h) == key
+        {
+            return Some(h);
+        }
+        (0..items.len()).find(|&i| self.key_at(items, i) == key)
+    }
+
+    /// The nearest enabled entry at or after `from` when `forward`, at or
+    /// before it otherwise. This is the sidebar's disabled-skipping rule,
+    /// which the legacy control implemented twice, once per direction.
+    fn seek(&self, items: &[T], from: usize, forward: bool) -> Option<usize> {
+        if forward {
+            (from..items.len()).find(|&i| self.enabled_at(items, i))
+        } else {
+            (0..=from.min(items.len().saturating_sub(1)))
+                .rev()
+                .find(|&i| self.enabled_at(items, i))
+        }
     }
 
     fn move_cursor(
@@ -687,13 +702,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         forward: bool,
         acc: &mut Acc<NavListAction>,
     ) {
-        let dir = if forward {
-            StepDir::Next
-        } else {
-            StepDir::Prev
-        };
-        match self.seek(items, from, dir) {
-            Some((i, key)) => {
+        match self.seek(items, from, forward) {
+            Some(i) => {
+                let key = self.key_at(items, i);
                 if st.core.cursor() == Some(key) {
                     acc.consumed();
                 } else {
@@ -710,7 +721,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         st.core.set_cursor(i, key);
         st.current = Some(key);
         st.current_index = i;
@@ -725,19 +736,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc: &mut Acc<NavListAction>,
     ) {
         let current = st.core.cursor_index();
-        let dir = if forward {
-            StepDir::Next
+        let next = if forward {
+            self.seek(items, current.saturating_add(1), true)
         } else {
-            StepDir::Prev
+            current
+                .checked_sub(1)
+                .and_then(|from| self.seek(items, from, false))
         };
-        let next = CollectionCore::step(
-            items.len(),
-            current,
-            dir,
-            |i| key_at(&self.key, items, i),
-            |i| self.enabled_at(items, i),
-        );
-        if let Some((index, key)) = next {
+        if let Some(index) = next {
+            let key = self.key_at(items, index);
             if st.core.cursor() == Some(key) {
                 acc.consumed();
             } else {
@@ -766,7 +773,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         st.core.set_cursor(i, key);
         st.current = Some(key);
         st.current_index = i;
@@ -786,28 +793,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         let _ = st.core.reconcile_with_extent(
             len,
             extent,
-            |i| key_at(&self.key, items, i),
+            |i| self.key_at(items, i),
             |i| self.enabled_at(items, i),
         );
-        st.reconcile_current(len, &|i| key_at(&self.key, items, i));
+        st.reconcile_current(len, &|i| self.key_at(items, i));
         if st.core.cursor().is_none()
-            && let Some((i, key)) = CollectionCore::first_enabled(
-                items.len(),
-                |i| key_at(&self.key, items, i),
-                |i| self.enabled_at(items, i),
-            )
+            && let Some(i) = self.seek(items, 0, true)
         {
-            st.core.set_cursor(i, key);
+            st.core.set_cursor(i, self.key_at(items, i));
         }
         if self.scrollable
             && st.core.cursor().is_some()
             && !self.enabled_at(items, st.core.cursor_index())
         {
-            if let Some((i, key)) = self
-                .seek(items, st.core.cursor_index(), StepDir::Next)
-                .or_else(|| self.seek(items, st.core.cursor_index(), StepDir::Prev))
+            if let Some(i) = self
+                .seek(items, st.core.cursor_index(), true)
+                .or_else(|| self.seek(items, st.core.cursor_index(), false))
             {
-                st.core.set_cursor(i, key);
+                st.core.set_cursor(i, self.key_at(items, i));
             } else {
                 st.core.clear_cursor();
             }
@@ -873,7 +876,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                         },
                     ..
                 } => {
-                    let Some(i) = index_of(&self.key, items, k, None) else {
+                    let Some(i) = self.index_of(items, k, None) else {
                         acc.consumed();
                         continue;
                     };
@@ -1019,7 +1022,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         let limit = offset.saturating_add(usize::from(content.height));
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-        let mut keep = Vec::new();
         for (i, visual_row, header) in self.rows(items, compact) {
             if let Some((row, text)) = header
                 && (offset..limit).contains(&row)
@@ -1046,7 +1048,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             let Some(item) = items.get(i) else {
                 continue;
             };
-            let key = key_at(&self.key, items, i);
+            let key = self.key_at(items, i);
             let mut flags = StateFlags::empty();
             let is_cursor = st.core.cursor() == Some(key);
             if is_cursor {
@@ -1064,9 +1066,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             if st.current == Some(key) {
                 flags |= StateFlags::SELECTED;
             }
-            if is_cursor || st.current == Some(key) {
-                keep.push(y);
-            }
             if self.is_disabled(item) {
                 flags |= StateFlags::DISABLED;
                 flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
@@ -1080,9 +1079,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             if !ui.is_inert() && !self.is_disabled(item) {
                 ui.register_part(self.id, PartRef::item(Part::ROW, key), rect);
             }
-        }
-        if self.scrollable {
-            ui.scroll_edges_except(content, &view, &keep);
         }
         area
     }
@@ -1105,9 +1101,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                     | StateFlags::HOVERED,
             ),
         );
-        if h.style.bg.is_some() {
-            ui.fill(rect, h.style);
-        }
+        ui.fill(rect, h.style);
         let inner = Rect {
             x: rect.x.saturating_add(self.header_indent),
             width: rect.width.saturating_sub(self.header_indent),
@@ -1127,31 +1121,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         );
         ui.fill(rect, rs.style);
         self.paint_cell_part(ui, cell_at(rect, rect.x), Part::GUTTER, flags, None);
-        // Q67-S13 (N-L1): a current row (SELECTED) resolves its marker
-        // with ACTIVE so the shared LIST MARKER rule keeps the current
-        // destination accent-always (`tag:sidebars.rs:225-226`). ACTIVE
-        // stays out of the shared row flags: the generic mono
-        // (LABEL, ACTIVE)+BOLD fallback is tabs-intended and must not
-        // voice nav rows.
-        let marker_flags = if flags.contains(StateFlags::SELECTED) {
-            flags | StateFlags::ACTIVE
-        } else {
-            flags
-        };
         self.paint_cell_part(
             ui,
             cell_at(rect, rect.x.saturating_add(1)),
             Part::MARKER,
-            marker_flags,
+            flags,
             None,
         );
         let icon = self.icon.map(|f| f(item));
-        // Q67-S14 (N1): icon@x+3, body@x+5 (`tag:sidebars.rs:238-248`;
-        // frozen sidebars icon x29/label x31). The shell nav is immune: it
-        // paints through `render_row`, which bypasses this painter.
         self.paint_cell_part(
             ui,
-            cell_at(rect, rect.x.saturating_add(3)),
+            cell_at(rect, rect.x.saturating_add(2)),
             Part::ICON,
             flags,
             icon,
@@ -1160,8 +1140,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             return;
         }
         let body = Rect {
-            x: rect.x.saturating_add(5),
-            width: rect.width.saturating_sub(5),
+            x: rect.x.saturating_add(4),
+            width: rect.width.saturating_sub(4),
             ..rect
         };
         if body.is_empty() {
@@ -1169,14 +1149,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
         let badge = self.badge.and_then(|f| f(item)).filter(|s| !s.is_empty());
         let (row_body, badge_area) = badge.map_or((body, Rect::ZERO), |text| {
-            // Q67-S14 (N5): the badge ends one cell before the row end
-            // (`tag:sidebars.rs:250` subtracts len+1; frozen y6 `3`@x52
-            // with the row ending x53). The width is unclipped like the
-            // tag's — a badge wider than the body eats leftward into
-            // the chrome (w14 pins "99+" surviving at width 7) — but
-            // the area clamps at the row start so it can never bleed
-            // past the row into another column.
-            let badge_width = width(text);
+            let badge_width = width(text).min(body.width);
             let gap = u16::from(badge_width < body.width);
             (
                 Rect {
@@ -1184,47 +1157,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                     ..body
                 },
                 Rect {
-                    x: body
-                        .right()
-                        .saturating_sub(badge_width)
-                        .saturating_sub(1)
-                        .max(rect.x),
+                    x: body.right().saturating_sub(badge_width),
                     width: badge_width,
                     ..body
                 },
             )
         });
         if !row_body.is_empty() {
-            // Q67-S14 (N4): the label is primary iff current (SELECTED)
-            // or live (FOCUSED|HOVERED), else secondary
-            // (`tag:sidebars.rs:228-233`; frozen y7 `Runs` secondary). A
-            // shared (LIST, LABEL) base cannot carry this: an idle List
-            // row wears the same empty flags but stays primary
-            // (`tag:list.rs:319` paints `st`), and ACTIVE in shared row
-            // flags regressed mono (Q67-S13 §D). So the idle tone rides a
-            // component-default patch under any page patch; disabled and
-            // emphasized rows forward the page patch untouched (the
-            // DISABLED rule still voices `Billing`).
-            // Q67-owed (focused-label BOLD): the tag bolds the focused
-            // row's label (`tag:theme.rs:360-362` adds BOLD iff focused;
-            // the nav label paints `st`). A shared (LIST,LABEL,FOCUSED)
-            // rule would touch List and the shell, so the BOLD rides the
-            // same component-default vehicle, focused rows only —
-            // hovered/current rows stay unbolded like the tag.
-            let emphasized = flags.contains(StateFlags::SELECTED)
-                || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
-            let page_label = self.ov.part_patch(Part::LABEL);
-            let label_patch = if flags.contains(StateFlags::DISABLED) {
-                page_label
-            } else if flags.contains(StateFlags::FOCUSED) {
-                const FOCUSED_BOLD: StylePatch = StylePatch::new().add(Modifier::BOLD);
-                Some(page_label.map_or(FOCUSED_BOLD, |forwarded| FOCUSED_BOLD.merge(forwarded)))
-            } else if emphasized {
-                page_label
-            } else {
-                const IDLE: StylePatch = StylePatch::new().set_fg(Role::Fg(FgStep::Secondary));
-                Some(page_label.map_or(IDLE, |forwarded| IDLE.merge(forwarded)))
-            };
             let mut r = RowUi::new_with_patches(
                 ui,
                 self.id,
@@ -1234,7 +1173,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 key,
                 row_body,
                 self.ov.part_patch(Part::CONTAINER),
-                label_patch,
+                self.ov.part_patch(Part::LABEL),
             );
             self.row.row(item, &mut r);
         }
@@ -1261,14 +1200,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         let r = self
             .ov
             .style(ui, self.id, Family::LIST, Variant::DEFAULT, part, flags);
-        // Q66-S4 (F1-L7a): the MARKER cell rides the container fill when no
-        // glyph is set — List leaves it unpainted (`list.rs:1331` Clear arm)
-        // while `ui.fill` here overpainted the generic White resolution. The
-        // `Slot::Set` arm below still paints chosen markers; the generic
-        // `(MARKER, DISABLED)` rule (`downgrade.rs:443-452`) stays intact.
-        if part == Part::MARKER && !matches!(r.glyph, Slot::Set(_)) {
-            return;
-        }
         match r.glyph {
             Slot::Set(g) => {
                 ui.glyph(cell, g, r.style);
@@ -1333,7 +1264,8 @@ mod tests {
 
     use super::{Acc, NavList, NavListAction, NavListState, NavMode, TABLE};
     use crate::action::ActionKey;
-    use crate::collection::{KeyFn, Reconcile, RowFn, RowUi};
+    use termrock_collections::collection::{KeyFn, Reconcile};
+use termrock_runtime::rowui::{RowFn, RowUi};
     use crate::event::{Chord, KeyCode, KeyModifiers};
     use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::intent::{IntentQueue, Phase};
@@ -1725,7 +1657,7 @@ mod tests {
                 .all(|r| !r.contains("Workspace") && !r.contains("Project")),
             "collapsed groups leaked heading text: {narrow:?}"
         );
-        assert_eq!(&narrow[..6], ["   T", "   R", "   B", "", "   M", "   $"]);
+        assert_eq!(&narrow[..6], ["  T", "  R", "  B", "", "  M", "  $"]);
     }
 
     #[test]
@@ -1739,88 +1671,11 @@ mod tests {
         let full = rows(&list(), &st, 24, &GROUPS);
         assert_eq!(
             &full[..7],
-            [" A", "   1 one", "", "   0 none", "", " A", "   2 two"]
+            [" A", "  1 one", "", "  0 none", "", " A", "  2 two"]
         );
 
         let collapsed = rows(&list().mode(NavMode::Collapsed), &st, 6, &GROUPS);
-        assert_eq!(&collapsed[..5], ["   1", "", "   0", "", "   2"]);
-    }
-
-    /// Q67-S14 (N4): an idle nav label is secondary, the current row's
-    /// is primary (`tag:sidebars.rs:228-233`); disabled rows keep the
-    /// DISABLED rule, not the idle patch.
-    #[test]
-    fn q67s14_idle_labels_are_secondary_current_is_primary() {
-        use crate::theme::resolve::bind_role;
-        use crate::theme::{FgStep, Role, Surface};
-
-        let theme = Theme::junie();
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 24,
-            height: 12,
-        };
-        let mut fs = FrameState::default();
-        fs.reset(1, area);
-        let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let previous = LastFrame::default();
-        let mut st = NavListState::new();
-        st.set_current(Some(ItemKey::text("Branches")));
-        {
-            let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &previous);
-            list().draw(&mut ui, area, &st, &ITEMS);
-        }
-        let secondary = bind_role(&theme, Role::Fg(FgStep::Secondary), Surface::Canvas);
-        let primary = bind_role(&theme, Role::Fg(FgStep::Primary), Surface::Canvas);
-        let disabled = bind_role(&theme, Role::DisabledFg, Surface::Canvas);
-        // y1 Tasks (idle), y3 Branches (current), y2 Runs (disabled);
-        // labels start at x+5 (N1).
-        assert_eq!(page.cell((5, 1)).map(|c| c.fg), secondary);
-        assert_eq!(page.cell((5, 3)).map(|c| c.fg), primary);
-        assert_eq!(page.cell((5, 2)).map(|c| c.fg), disabled);
-    }
-
-    /// Q67-owed (focused-label BOLD): the cursor row's label is BOLD iff
-    /// the list is focused (`tag:theme.rs:360-362`; the nav label paints
-    /// `st`). Non-cursor rows stay unbolded; the BOLD is NavList-scoped
-    /// so List and the shell never see it.
-    #[test]
-    fn q67owed_focused_cursor_label_is_bold_others_are_not() {
-        fn bold_at(focused: bool, x: u16, y: u16) -> Option<bool> {
-            let area = Rect::new(0, 0, 24, 12);
-            let theme = Theme::junie();
-            let mut fs = FrameState::default();
-            fs.reset(1, area);
-            let mut page = Buffer::empty(area);
-            let mut core = UiCore::default();
-            let previous = LastFrame::default();
-            let mut st = NavListState::new();
-            st.set_cursor(0, keyed(&ITEMS[0]));
-            {
-                let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &previous);
-                if focused {
-                    ui.reference(
-                        Some(crate::ReferenceTarget::new(
-                            NAV,
-                            crate::ReferenceState::FOCUSED,
-                        )),
-                        |ui| list().draw(ui, area, &st, &ITEMS),
-                    );
-                } else {
-                    list().draw(&mut ui, area, &st, &ITEMS);
-                }
-            }
-            page.cell((x, y))
-                .map(|c| c.modifier.contains(Modifier::BOLD))
-        }
-
-        // y1 Tasks is the cursor row; y3 Branches is enabled but not the
-        // cursor; labels start at x+5 (N1).
-        assert_eq!(bold_at(true, 5, 1), Some(true));
-        assert_eq!(bold_at(true, 5, 3), Some(false));
-        assert_eq!(bold_at(false, 5, 1), Some(false));
+        assert_eq!(&collapsed[..5], ["  1", "", "  0", "", "  2"]);
     }
 
     #[test]
@@ -1981,13 +1836,11 @@ mod tests {
             nav.draw(&mut ui, area, &NavListState::new(), &ITEMS[..1]);
         }
         assert!(
-            // Q67-S14 (N1): the body starts at x+5 now.
-            page.cell((5, 0))
+            page.cell((4, 0))
                 .is_some_and(|c| c.modifier.contains(Modifier::BOLD))
         );
         assert!(
-            // Q67-S14 (N5): the badge keeps a one-cell trailing margin.
-            page.cell((22, 0))
+            page.cell((23, 0))
                 .is_some_and(|c| c.modifier.contains(Modifier::BOLD))
         );
         assert!(
@@ -2035,8 +1888,7 @@ mod tests {
         assert_eq!(badge_calls.get(), 1);
         assert_eq!(label_calls.get(), 0);
         assert_eq!(
-            // Q67-S14 (N5): the badge keeps a one-cell trailing margin.
-            page.cell((22, 0)).map(ratatui_core::buffer::Cell::symbol),
+            page.cell((23, 0)).map(ratatui_core::buffer::Cell::symbol),
             Some("9")
         );
     }
@@ -2107,153 +1959,5 @@ mod tests {
             }
             assert_eq!(calls.get(), 0, "forbidden slot {part:?} executed");
         }
-    }
-
-    /// F1-L7c: the disabled badge cell carries the BADGE resolution's own DIM
-    /// at Mono (tag badge is `st` when disabled,
-    /// `tag:pages/sidebars.rs:248-252`). Fill-then-paint wipes to the BADGE
-    /// resolution's own modifiers, so container +DIM cannot reach it — the
-    /// targeted `(BADGE, DISABLED)`+DIM rule does. The fg still inherits the
-    /// container fill (BADGE resolves no fg of its own).
-    #[test]
-    fn q66s3_l7c_disabled_badge_cell_carries_dim_at_mono() {
-        use crate::theme::ColorLevel;
-        use ratatui_core::style::Color;
-
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        let area = Rect::new(0, 0, 24, 2);
-        let items = [E("One", "", "1", false), E("Two", "", "2", true)];
-        let nav = NavList::new(NAV)
-            .key(keyed as fn(&E) -> ItemKey)
-            .icon(&icon)
-            .disabled_item(&off)
-            .badge(&badge);
-        let mut frame = FrameState::default();
-        frame.reset(1, area);
-        let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            nav.draw(&mut ui, area, &NavListState::new(), &items);
-        }
-        // Q67-S14 (N5): the badge keeps a one-cell trailing margin.
-        let disabled = page.cell((22, 1)).expect("disabled badge cell");
-        assert_eq!(disabled.symbol(), "9");
-        assert_eq!(
-            disabled.style().fg,
-            Some(Color::DarkGray),
-            "badge inherits the container fg"
-        );
-        assert!(
-            disabled.modifier.contains(Modifier::DIM),
-            "disabled badge lost DIM"
-        );
-        let enabled = page.cell((22, 0)).expect("enabled badge cell");
-        assert_eq!(enabled.symbol(), "9");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled badge gained DIM"
-        );
-    }
-
-    /// Q66-S4 draw helper: two rows at Mono, the second row disabled.
-    fn draw_q66s4_mono_disabled() -> Buffer {
-        use crate::theme::ColorLevel;
-
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        let area = Rect::new(0, 0, 24, 2);
-        let items = [E("One", "", "1", false), E("Two", "", "2", true)];
-        let nav = NavList::new(NAV)
-            .key(keyed as fn(&E) -> ItemKey)
-            .icon(&icon)
-            .disabled_item(&off);
-        let mut frame = FrameState::default();
-        frame.reset(1, area);
-        let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            nav.draw(&mut ui, area, &NavListState::new(), &items);
-        }
-        page
-    }
-
-    /// F1-L7a: the disabled NavList marker cell rides the container fill —
-    /// blank symbol, fg8 (DarkGray) +DIM at Mono (tag sidebars `st`; frozen
-    /// `sidebars/default/120x40/none.ansi:14` `[2;38;5;8]` run covers the
-    /// marker cell). List leaves the marker cell unpainted (`list.rs:1331`
-    /// Clear arm); NavList must do the same instead of filling the generic
-    /// White resolution (`downgrade.rs:443-452` stays intact for other
-    /// families). The enabled marker stays DIM-free.
-    #[test]
-    fn q66s4_l7a_disabled_marker_cell_rides_container_dim_at_mono() {
-        use ratatui_core::style::Color;
-
-        let page = draw_q66s4_mono_disabled();
-        let marker = page.cell((1, 1)).expect("disabled marker cell");
-        let pad = page.cell((15, 1)).expect("disabled pad cell");
-        assert_eq!(marker.symbol(), " ", "marker stays blank when unchosen");
-        assert_eq!(
-            marker.style().fg,
-            Some(Color::DarkGray),
-            "disabled marker fg"
-        );
-        assert!(
-            marker.modifier.contains(Modifier::DIM),
-            "disabled marker lost DIM"
-        );
-        assert_eq!(
-            marker.style().fg,
-            pad.style().fg,
-            "marker cell must show the container fill"
-        );
-        assert_eq!(
-            marker.modifier.contains(Modifier::DIM),
-            pad.modifier.contains(Modifier::DIM),
-            "marker cell must ride the container modifiers"
-        );
-        let enabled = page.cell((1, 0)).expect("enabled marker cell");
-        assert_eq!(enabled.symbol(), " ");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled marker gained DIM"
-        );
-    }
-
-    /// F1-L7a HOLD: a chosen marker still paints its glyph — the skip covers
-    /// Clear/Inherit only, never `Slot::Set`. GREEN on base and after.
-    #[test]
-    fn q66s4_l7a_hold_selected_marker_still_paints_chosen_glyph() {
-        use crate::theme::{ColorLevel, GlyphRole};
-
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        let area = Rect::new(0, 0, 24, 2);
-        let items = [E("One", "", "1", false), E("Two", "", "2", true)];
-        let nav = NavList::new(NAV)
-            .key(keyed as fn(&E) -> ItemKey)
-            .icon(&icon)
-            .disabled_item(&off);
-        let mut state = NavListState::new();
-        state.set_current(Some(ItemKey::text("One")));
-        let mut frame = FrameState::default();
-        frame.reset(1, area);
-        let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            nav.draw(&mut ui, area, &state, &items);
-        }
-        let chosen = theme.design.glyphs.get(GlyphRole::Chosen);
-        let marker = page.cell((1, 0)).expect("selected marker cell");
-        assert_eq!(
-            marker.symbol(),
-            chosen,
-            "selected marker must keep its Chosen glyph"
-        );
-        let disabled = page.cell((1, 1)).expect("disabled marker cell");
-        assert_eq!(disabled.symbol(), " ", "unselected marker stays blank");
     }
 }

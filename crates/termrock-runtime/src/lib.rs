@@ -10,8 +10,12 @@ pub(crate) use termrock_core as diagnostics;
 pub(crate) use termrock_layout as layout;
 pub(crate) use termrock_layout as measure;
 pub(crate) use termrock_text as text;
+pub use termrock_text::secret;
 pub(crate) use termrock_theme as theme;
 
+pub use crate::support::{
+    Acc, PartStyle, SlotFn, cell_at, first_row, overlay_chrome, paint_pressed_bracket, shift,
+};
 pub mod author;
 pub mod capture;
 pub mod cursor;
@@ -24,6 +28,7 @@ pub mod keymap;
 pub mod layer;
 pub mod rowui;
 pub mod runtime;
+pub mod support;
 pub mod scroll_region;
 pub mod ui;
 
@@ -45,5 +50,3 @@ pub use termrock_core::intent::Intent;
 pub use ui::cx;
 pub use ui::*;
 
-#[cfg(any(test, feature = "testing"))]
-pub use runtime::stub;

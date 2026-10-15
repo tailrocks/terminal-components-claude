@@ -5,12 +5,11 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use super::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, shift};
-use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, KeySet, Reconcile, Reconciliation,
-    RowFn, RowUi, SelectMode, Status, StepDir, index_of, key_at,
-};
+use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, SelectMode};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::empty::{EmptyState, Status};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -20,7 +19,7 @@ use crate::layer::LayerSize;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a list reports; every item action carries the item's key.
@@ -351,11 +350,6 @@ impl Reconcile for ListState {
 /// ## Layout
 /// One row per item; an optional two-cell readiness rail, gutter, marker,
 /// then the renderer's row; a scrollbar column when the items overflow.
-/// `.bare(true)` drops the gutter/marker chrome so the row painter starts
-/// at `area.x` with the full row width (label/value rows inside dialogs and
-/// forms); selection, cursor, scroll and hit state are unchanged.
-/// `.bare_item(f)` drops the chrome per row (section headers inside an
-/// otherwise chromed list).
 /// `measure` is `(24…, items)`;
 /// `measured_size` is the same arithmetic as a [`LayerSize`] for a list used
 /// as popover content (§26 N1); `draw` returns `area`. `0×0` registers
@@ -388,6 +382,10 @@ impl Reconcile for ListState {
 /// ## Invariants
 /// `reconcile` runs before any action is emitted; only visible rows invoke
 /// the renderer; a frame allocates nothing per row.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "whole rows, boundary exit, click activation and bare row chrome are independent opt-ins"
+)]
 pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -396,16 +394,13 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     row_height: u16,
     row_gap: u16,
     whole_rows: bool,
-    bare: bool,
-    /// Foreground for an unselected blank marker. A chosen glyph keeps the
-    /// recipe color; only the empty marker cell is filled.
-    blank_marker: Option<Role>,
     select_mode: SelectMode,
     leave_at_boundary: bool,
     activate_focused_on_click: bool,
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     pointer_item: Option<&'a dyn Fn(&T) -> bool>,
+    bare: bool,
     bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
     /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
@@ -417,8 +412,6 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
-    focused: Option<bool>,
-    hovered_key: Option<ItemKey>,
     _t: PhantomData<fn(&T)>,
 }
 
@@ -461,21 +454,18 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             row_height: 1,
             row_gap: 0,
             whole_rows: false,
-            bare: false,
-            blank_marker: None,
             select_mode: SelectMode::Single,
             leave_at_boundary: false,
             activate_focused_on_click: false,
             empty: None,
             disabled_item: None,
             pointer_item: None,
+            bare: false,
             bare_item: None,
             status: Status::Ready,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
-            focused: None,
-            hovered_key: None,
             _t: PhantomData,
         }
     }
@@ -622,21 +612,18 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_height: self.row_height,
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
-            bare: self.bare,
-            blank_marker: self.blank_marker,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
+            bare: self.bare,
             bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
-            focused: self.focused,
-            hovered_key: self.hovered_key,
             _t: PhantomData,
         }
     }
@@ -651,21 +638,18 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_height: self.row_height,
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
-            bare: self.bare,
-            blank_marker: self.blank_marker,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
+            bare: self.bare,
             bare_item: self.bare_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
-            focused: self.focused,
-            hovered_key: self.hovered_key,
             _t: PhantomData,
         }
     }
@@ -691,24 +675,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         let mut list = self.row(|_: &T, _: &mut RowUi<'_>| {});
         list.render_row = Some(renderer);
         list
-    }
-
-    /// Drop the gutter/marker chrome: the row painter starts at `area.x`
-    /// with the full row width. Cursor, selection, scroll, readiness and
-    /// hit registration are unchanged; only the two chrome cells and the
-    /// trailing pad reservation go away.
-    #[must_use]
-    pub fn bare(mut self, yes: bool) -> Self {
-        self.bare = yes;
-        self
-    }
-
-    /// Fill the blank (unchosen) marker with `role`. The chosen glyph and
-    /// the focus gutter stay on the list recipe.
-    #[must_use]
-    pub const fn blank_marker(mut self, role: Role) -> Self {
-        self.blank_marker = Some(role);
-        self
     }
 
     /// The selection mode.
@@ -745,11 +711,19 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-    /// Which rows skip the gutter/marker chrome (section headers, provider
-    /// dividers): a bare row hands its full rect to the painter, exactly
-    /// like [`.bare(true)`](Self::bare), while sibling rows keep the
-    /// chrome. Defaults to no rows. Cursor, selection, scroll and hit
-    /// registration are unchanged.
+    /// Drop the gutter and marker chrome so the row painter starts at `area.x`.
+    ///
+    /// Cursor, selection, scroll, and hit registration stay. Only the two
+    /// chrome cells and the trailing pad reservation go away.
+    #[must_use]
+    pub fn bare(mut self, yes: bool) -> Self {
+        self.bare = yes;
+        self
+    }
+
+    /// Skip gutter and marker chrome on the rows `f` accepts.
+    ///
+    /// Sibling rows keep the chrome. Defaults to no rows.
     #[must_use]
     pub fn bare_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.bare_item = Some(f);
@@ -763,20 +737,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-    /// Override the visual focus state of the list.
-    #[must_use]
-    pub const fn focused(mut self, yes: bool) -> Self {
-        self.focused = Some(yes);
-        self
-    }
-
-    /// Override the hovered item key.
-    #[must_use]
-    pub const fn hovered_key(mut self, key: Option<ItemKey>) -> Self {
-        self.hovered_key = key;
-        self
-    }
-
     /// An instance patch over every part.
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -786,25 +746,17 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     }
 
     /// Per-part instance patches.
-    ///
-    /// Every named part must be a member of [`Self::PARTS`]; an unknown
-    /// part fails a `debug_assert`, and in testing builds it is recorded as
-    /// an `UnknownPart` diagnostic at resolve time instead of being applied.
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
-        self.ov = self.ov.declare(Self::PARTS).part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
     /// Replace one part's painting.
-    ///
-    /// `p` must be a member of [`Self::PARTS`]; an unknown part fails a
-    /// `debug_assert`, and in testing builds it is recorded as an
-    /// `UnknownPart` diagnostic at resolve time instead of being installed.
     #[must_use]
     pub fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
-        self.ov = self.ov.declare(Self::PARTS).slot(p, f);
+        self.ov = self.ov.slot(p, f);
         self
     }
 
@@ -842,13 +794,27 @@ impl<'a, T, K, R> List<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
+    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
+        items
+            .get(i)
+            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
+    }
+
     fn enabled_at(&self, items: &[T], i: usize) -> bool {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
     }
 
-    /// Shared clamped target resolution. The cursor lands on every row,
-    /// including disabled ones — only seeding, choosing, range-insert and
-    /// toggle-all skip disabled rows. Clamps, never wraps.
+    /// The index of `key` near `hint`, probing the hint before scanning.
+    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
+        if let Some(h) = hint
+            && h < items.len()
+            && self.key_at(items, h) == key
+        {
+            return Some(h);
+        }
+        (0..items.len()).find(|&i| self.key_at(items, i) == key)
+    }
+
     fn move_cursor(
         &self,
         st: &mut ListState,
@@ -862,23 +828,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             return;
         }
         let to = to.min(len.saturating_sub(1));
-        let Some((to, key)) = CollectionCore::seek(
-            len,
-            to,
-            StepDir::Next,
-            |i| key_at(&self.key, items, i),
-            |_| true,
-        ) else {
-            return;
-        };
+        let key = self.key_at(items, to);
         if extend && !matches!(self.select_mode, SelectMode::Single | SelectMode::None) {
             let from = st.core.cursor_index();
             let anchor_i = st
                 .anchor
-                .and_then(|a| index_of(&self.key, items, a, Some(from)))
+                .and_then(|a| self.index_of(items, a, Some(from)))
                 .unwrap_or(from);
             if st.anchor.is_none() {
-                st.anchor = Some(key_at(&self.key, items, from));
+                st.anchor = Some(self.key_at(items, from));
             }
             if self.select_mode == SelectMode::Range {
                 st.core.checked_mut().none();
@@ -886,7 +844,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             let (a, b) = (anchor_i.min(to), anchor_i.max(to));
             for i in a..=b {
                 if self.enabled_at(items, i) {
-                    st.core.checked_mut().insert(key_at(&self.key, items, i));
+                    st.core.checked_mut().insert(self.key_at(items, i));
                 }
             }
             st.core.set_cursor(to, key);
@@ -901,7 +859,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
     fn toggle_all(&self, st: &mut ListState, items: &[T], acc: &mut Acc<ListAction>) {
         let all = (0..items.len())
             .filter(|&i| self.enabled_at(items, i))
-            .all(|i| st.core.checked().contains(key_at(&self.key, items, i)));
+            .all(|i| st.core.checked().contains(self.key_at(items, i)));
         if all {
             st.core.checked_mut().none();
         } else {
@@ -909,7 +867,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             checked.all();
             for i in 0..items.len() {
                 if !self.enabled_at(items, i) {
-                    checked.remove(key_at(&self.key, items, i));
+                    checked.remove(self.key_at(items, i));
                 }
             }
         }
@@ -921,7 +879,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         match self.select_mode {
             SelectMode::Single => {
                 st.chosen = Some(key);
@@ -954,26 +912,27 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let _ = st.core.reconcile_with_extent(
             len,
             self.scroll_extent(len, st.core.scroll().viewport_len()),
-            |i| key_at(&self.key, items, i),
+            |i| self.key_at(items, i),
             |i| self.enabled_at(items, i),
         );
         if let Some(a) = st.anchor
-            && index_of(&self.key, items, a, Some(st.core.cursor_index())).is_none()
+            && self
+                .index_of(items, a, Some(st.core.cursor_index()))
+                .is_none()
         {
             st.anchor = None;
         }
         if let Some(c) = st.chosen
-            && index_of(&self.key, items, c, Some(st.core.cursor_index())).is_none()
+            && self
+                .index_of(items, c, Some(st.core.cursor_index()))
+                .is_none()
         {
             st.chosen = None;
         }
         if st.core.cursor().is_none()
-            && let Some((i, key)) = CollectionCore::first_enabled(
-                len,
-                |i| key_at(&self.key, items, i),
-                |i| self.enabled_at(items, i),
-            )
+            && let Some(i) = (0..len).find(|&i| self.enabled_at(items, i))
         {
+            let key = self.key_at(items, i);
             st.core.set_cursor(i, key);
         }
         if self.stride() > 1 && prior_index != st.core.cursor_index() && st.core.cursor().is_some()
@@ -1026,10 +985,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 }
                 Intent::Binding(action) => {
                     st.click_cursor = None;
-                    if len == 0 {
-                        // Baseline: an empty list ignores every key.
-                        continue;
-                    }
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
                         Some(ListCmd::Up)
@@ -1083,21 +1038,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         Some(ListCmd::Activate) => {
                             if self.enabled_at(items, cur) && len > 0 {
-                                // Enter commits the cursor row (chosen in
-                                // Single, idempotent check in
-                                // Multi/Range — Space/click toggle), then
-                                // reports it.
-                                let key = key_at(&self.key, items, cur);
-                                match self.select_mode {
-                                    SelectMode::Single => {
-                                        st.chosen = Some(key);
-                                    }
-                                    SelectMode::Multi | SelectMode::Range => {
-                                        st.core.checked_mut().insert(key);
-                                    }
-                                    SelectMode::None => {}
-                                }
-                                acc.action(ListAction::Activated(key));
+                                acc.action(ListAction::Activated(self.key_at(items, cur)));
                             } else {
                                 acc.consumed();
                             }
@@ -1130,7 +1071,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                                 .saturating_add(usize::from(pos.y.saturating_sub(a.y))),
                         )
                     });
-                    let Some(i) = index_of(&self.key, items, k, hint) else {
+                    let Some(i) = self.index_of(items, k, hint) else {
                         st.click_cursor = None;
                         acc.consumed();
                         continue;
@@ -1208,22 +1149,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         if !ui.is_inert() {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let live_flags = if let Some(yes) = self.focused {
-            if yes {
-                ui.state(self.id) | StateFlags::FOCUSED
-            } else {
-                ui.state(self.id).difference(StateFlags::FOCUSED)
-            }
-        } else {
-            ui.state(self.id)
-        };
-        let live = PartStyle::flags(live_flags, self.status.flags());
+        let live = PartStyle::flags(ui.state(self.id), self.status.flags());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }
         let ov = self.ov;
         let id = self.id;
-        let bare = self.bare;
         let container = ov.style(
             ui,
             id,
@@ -1262,16 +1193,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         }
                         Slot::Clear => ui.fill(icon_cell, icon.style),
                     },
-                    Status::Warning => match icon.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(icon_cell, glyph, icon.style);
-                        }
-                        Slot::Inherit => {
-                            ui.glyph(icon_cell, GlyphRole::WarningMark, icon.style);
-                        }
-                        Slot::Clear => ui.fill(icon_cell, icon.style),
-                    },
                     Status::Ready => {}
+                    // `Status` is `#[non_exhaustive]`: future statuses paint nothing.
+                    _ => {}
                 }
             }
         }
@@ -1288,17 +1212,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             if let Some(f) = ov.slot_for(Part::EMPTY) {
                 f(ui, mid);
             } else {
-                // The tag paints the empty message only
-                // (`tag:list.rs:250-259`): the blanks keep the
-                // container fill and the muted EMPTY TITLE recipe
-                // voices the message alone.
-                ui.fill(mid, container.style);
-                empty.draw(ui, mid, 0);
-            }
-            if !ui.is_inert() {
-                // An empty body is still a click target: it consumes,
-                // like the baseline `on_click` past the end.
-                ui.register_part(self.id, PartRef::of(Part::CONTAINER), content);
+                let inherited = ov
+                    .style(ui, id, Family::LIST, Variant::DEFAULT, Part::EMPTY, live)
+                    .style;
+                empty.draw_inherited(ui, mid, 0, inherited);
             }
             return area;
         }
@@ -1311,8 +1228,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         // colour is removed (§11.4, §16.2 case 9).
         let status = live
             & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
-        let mut keep = Vec::new();
-        let mut painted_bottom = content.y;
         for i in self.item_at_line(view.offset())..len {
             let row_i = i
                 .saturating_mul(self.stride())
@@ -1328,13 +1243,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             let key = self.key.key(item, i);
             let is_cursor = cursor == Some(key);
             let pointer_eligible = self.pointer_item.is_none_or(|f| f(item));
-            let row_bare = bare || self.bare_item.is_some_and(|f| f(item));
             let mut flags = status;
             if is_cursor {
                 flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
             }
             let row_part = PartRef::item(Part::ROW, key);
-            if pointer_eligible && (hovered == Some(row_part) || self.hovered_key == Some(key)) {
+            if pointer_eligible && hovered == Some(row_part) {
                 flags |= StateFlags::HOVERED;
             }
             if (pointer_eligible && pressed == Some(row_part))
@@ -1360,10 +1274,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 width: content.width,
                 height: self.row_height,
             };
-            painted_bottom = painted_bottom.max(row.bottom().min(content.bottom()));
-            if is_cursor {
-                keep.push(row.y);
-            }
             if let Some(renderer) = self.render_row {
                 if !row.intersection(ui.full()).is_empty() {
                     ui.with_area(content, |ui| {
@@ -1390,12 +1300,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     flags,
                 );
                 ui.fill(row, rs.style);
-                // Bare lists (and bare rows) hand the whole row to the
-                // painter: no gutter or marker cells, so label rows inside
-                // dialogs and forms start at the row origin instead of
-                // `+ 3`.
-                if !row_bare {
-                    // gutter
+                let bare = self.bare || self.bare_item.is_some_and(|f| f(item));
+                let rest = if bare {
+                    row
+                } else {
                     let gutter_cell = cell_at(row, row.x);
                     if let Some(f) = ov.slot_for(Part::GUTTER) {
                         f(ui, gutter_cell);
@@ -1409,64 +1317,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                             Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                         }
                     }
-                    // marker
                     let marker_cell = cell_at(row, row.x.saturating_add(1));
                     if let Some(f) = ov.slot_for(Part::MARKER) {
                         f(ui, marker_cell);
                     } else {
-                        // Q67-S13 (L-R1/L-R2): the tag keys the marker on
-                        // LIST-level focus (`tag:list.rs:244,297`: accent iff
-                        // focused||hovered) while the row flags only carry
-                        // FOCUSED on the cursor row. A selected row in a
-                        // focused list resolves with FOCUSED so a chosen row
-                        // the cursor has left behind (frozen `lists/moved`
-                        // y8) keeps its accent.
-                        let mut marker_flags = flags;
-                        if marker_flags.intersects(StateFlags::SELECTED | StateFlags::CHECKED) {
-                            marker_flags |= live & StateFlags::FOCUSED;
-                        }
-                        let m = ov.style(
-                            ui,
-                            id,
-                            Family::LIST,
-                            Variant::DEFAULT,
-                            Part::MARKER,
-                            marker_flags,
-                        );
+                        let m =
+                            ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::MARKER, flags);
                         match m.glyph {
                             Slot::Set(glyph) => {
                                 ui.glyph(marker_cell, glyph, m.style);
                             }
-                            // W12-06: a declared MARKER patch must voice the marker
-                            // cell even when the glyph slot is Clear; without a
-                            // patch the cell keeps riding the container fill
-                            // (F1-L4 mono-disabled DarkGray DIM).
-                            Slot::Inherit | Slot::Clear => {
-                                if ov.part_patch(Part::MARKER).is_some() {
-                                    ui.fill(marker_cell, m.style);
-                                } else if let Some(role) = self.blank_marker {
-                                    let patch = StylePatch::new().set_fg(role);
-                                    let style = ui
-                                        .style_patched(
-                                            Family::LIST,
-                                            Variant::DEFAULT,
-                                            Part::MARKER,
-                                            marker_flags,
-                                            &patch,
-                                        )
-                                        .style;
-                                    ui.fill(marker_cell, style);
-                                }
-                            }
+                            Slot::Inherit | Slot::Clear => ui.fill(marker_cell, m.style),
                         }
                     }
-                }
-                // Oracle row geometry (`tag:list.rs`): gutter + marker +
-                // gap take 3 left cells; the label runs to the row edge
-                // with no right reserve.
-                let rest = if row_bare {
-                    row
-                } else {
                     Rect {
                         x: row.x.saturating_add(3),
                         width: row.width.saturating_sub(3),
@@ -1474,17 +1337,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     }
                 };
                 if !rest.is_empty() {
-                    let mut r = RowUi::new_with_patches(
-                        ui,
-                        id,
-                        Family::LIST,
-                        Variant::DEFAULT,
-                        flags,
-                        key,
-                        rest,
-                        ov.part_patch(Part::CONTAINER),
-                        ov.part_patch(Part::LABEL),
-                    );
+                    let mut r =
+                        RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
                     self.row.row(item, &mut r);
                 }
             });
@@ -1497,22 +1351,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 ui.register_part(self.id, part, row.intersection(content));
             }
         }
-        if !ui.is_inert() {
-            // The unpainted tail of the body is one hit region (registered
-            // after the rows, so rows win): clicks past the last row route
-            // here and consume, like the baseline `on_click` past the end.
-            // A whole-area region cannot serve: the scroll layer's
-            // decorative region would shadow it.
-            let gap = Rect {
-                y: painted_bottom,
-                height: content.bottom().saturating_sub(painted_bottom),
-                ..content
-            };
-            if !gap.is_empty() {
-                ui.register_part(self.id, PartRef::of(Part::CONTAINER), gap);
-            }
-        }
-        ui.scroll_edges_except(content, &view, &keep);
         area
     }
 
@@ -1704,68 +1542,6 @@ mod tests {
         assert_eq!(seen.get(), Some(Rect::new(0, 0, 1, 1)));
     }
 
-    /// R8: a patch naming a part outside `List::PARTS` is rejected at the
-    /// builder instead of being silently dropped.
-    #[test]
-    #[should_panic(expected = "outside the component's PARTS")]
-    fn patch_part_on_undeclared_part_is_rejected() {
-        let bad = [(Part::TITLE, StylePatch::new().add(Modifier::BOLD))];
-        let _ = List::<&str>::new(ID).patch_part(&bad);
-    }
-
-    /// R8: a slot naming a part outside `List::PARTS` is rejected at the
-    /// builder instead of being silently dropped.
-    #[test]
-    #[should_panic(expected = "outside the component's PARTS")]
-    fn slot_on_undeclared_part_is_rejected() {
-        let paint = |_ui: &mut Ui<'_>, _area: Rect| {};
-        let _ = List::<&str>::new(ID).slot(Part::TITLE, &paint);
-    }
-
-    /// R8 conformance: a declared-part patch alters only that part. Every
-    /// other member of `List::PARTS` resolves identically with and without
-    /// the patch, so a leak into any sibling fails here. `ICON` under
-    /// `Status::Busy` is the patched part: the readiness rail test proves
-    /// it resolves and paints.
-    #[test]
-    fn declared_part_patch_alters_only_that_part() {
-        use crate::theme::Resolved;
-
-        fn draw(patches: &[(Part, StylePatch)]) -> (Buffer, Vec<(Part, Resolved)>) {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(AREA);
-            let state = ListState::default();
-            runtime
-                .draw_scene(AREA, &mut buffer, |ui, area| {
-                    List::new(ID).status(Status::Busy).patch_part(patches).draw(
-                        ui,
-                        area,
-                        &state,
-                        &["one"],
-                    );
-                })
-                .commit_presented();
-            let queries = List::<&str>::PARTS
-                .iter()
-                .map(|part| (*part, runtime.resolved(ID, *part)))
-                .collect();
-            (buffer, queries)
-        }
-
-        let (plain_buf, plain) = draw(&[]);
-        let icon = [(Part::ICON, StylePatch::new().add(Modifier::BOLD))];
-        let (patched_buf, patched) = draw(&icon);
-
-        assert_ne!(patched_buf, plain_buf, "the ICON patch must paint");
-        for ((part, before), (_, after)) in plain.iter().zip(patched.iter()) {
-            if *part == Part::ICON {
-                assert_ne!(after, before, "the ICON patch must resolve");
-            } else {
-                assert_eq!(after, before, "patching ICON leaked into {part:?}");
-            }
-        }
-    }
-
     #[test]
     fn chosen_marker_comes_only_from_semantic_state() {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
@@ -1800,313 +1576,21 @@ mod tests {
         );
     }
 
-    /// Q66-S3 draw helper: two rows at Mono, the second row disabled.
-    fn draw_q66s3_mono_disabled() -> Buffer {
-        use crate::theme::ColorLevel;
-
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        let mut runtime = Runtime::new(Stub::default(), theme);
-        let mut buffer = Buffer::empty(AREA);
-        let state = ListState::default();
-        let disabled = |item: &&str| *item == "two";
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID)
-                    .disabled_item(&disabled)
-                    .draw(ui, area, &state, &["one", "two"]);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    /// F1-L1: disabled pad cells are DarkGray+DIM at Mono (tag full-run
-    /// `fg8+DIM`, frozen `lists/hover/120x40/none` y10); enabled pads stay
-    /// DIM-free.
     #[test]
-    fn q66s3_l1_disabled_pad_cells_carry_dim_at_mono() {
-        use ratatui_core::style::Color;
-
-        let buf = draw_q66s3_mono_disabled();
-        let pad = buf.cell(Position::new(15, 1)).expect("pad cell");
-        assert_eq!(pad.symbol(), " ");
-        assert_eq!(pad.style().fg, Some(Color::DarkGray), "disabled pad fg");
-        assert!(
-            pad.modifier.contains(Modifier::DIM),
-            "disabled pad lost DIM"
-        );
-        let enabled = buf.cell(Position::new(15, 0)).expect("enabled pad cell");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled pad gained DIM"
-        );
-    }
-
-    /// F1-L3: the disabled gutter cell is surface-black+DIM at Mono (tag
-    /// `' ' fg=0 bg=0 DIM`, frozen y10 x60); the enabled gutter stays DIM-free.
-    #[test]
-    fn q66s3_l3_disabled_gutter_cell_carries_dim_at_mono() {
-        use ratatui_core::style::Color;
-
-        let buf = draw_q66s3_mono_disabled();
-        let gutter = buf.cell(Position::new(0, 1)).expect("gutter cell");
-        assert_eq!(gutter.symbol(), " ");
-        assert_eq!(gutter.style().fg, Some(Color::Black), "disabled gutter fg");
-        assert!(
-            gutter.modifier.contains(Modifier::DIM),
-            "disabled gutter lost DIM"
-        );
-        let enabled = buf.cell(Position::new(0, 0)).expect("enabled gutter cell");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled gutter gained DIM"
-        );
-    }
-
-    /// F1-L4: the disabled marker cell rides the container fill — blank
-    /// symbol, same fg as the pads, +DIM — with no paint of its own.
-    #[test]
-    fn q66s3_l4_disabled_marker_cell_rides_container_dim_at_mono() {
-        let buf = draw_q66s3_mono_disabled();
-        let marker = buf.cell(Position::new(1, 1)).expect("marker cell");
-        let pad = buf.cell(Position::new(15, 1)).expect("pad cell");
-        assert_eq!(marker.symbol(), " ", "marker stays blank when unchosen");
-        assert_eq!(
-            marker.style().fg,
-            pad.style().fg,
-            "marker cell must show the container fill"
-        );
-        assert!(
-            marker.modifier.contains(Modifier::DIM),
-            "marker cell lost the container DIM"
-        );
-    }
-
-    /// Q66-S7x draw helper: 20 rows in a 6-tall viewport (one outer fade
-    /// row per live edge: `MIN_ROWS <= 6 < DEEP_FROM`), cursor revealed at
-    /// `cursor`. Cursor 10 lands mid-list with both edges live and the
-    /// cursor on the bottom edge; cursor 2 sits at offset 0 with only the
-    /// bottom edge live.
-    fn draw_q66s7x_scrolled(theme: Theme, cursor: usize) -> Buffer {
-        const FADE_AREA: Rect = Rect::new(0, 0, 24, 6);
-        let mut runtime = Runtime::new(Stub::default(), theme);
-        let mut buffer = Buffer::empty(FADE_AREA);
-        let items: Vec<String> = (0..20).map(|i| format!("lang-{i:02}")).collect();
-        let mut state = ListState::default();
-        state.set_cursor(cursor, ItemKey::index(cursor));
-        runtime
-            .draw_scene(FADE_AREA, &mut buffer, |ui, area| {
-                List::new(ID).draw(ui, area, &state, &items);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    /// The `fade_mix` ramp at the outer-edge strength (`builder.rs`): the
-    /// test recomputes the blend from probed cells rather than trusting it.
-    fn q66s7x_mix(front: u8, back: u8) -> u8 {
-        (f32::from(front) * 0.55 + f32::from(back) * 0.45)
-            .round()
-            .clamp(0.0, 255.0) as u8
-    }
-
-    /// F1-L5: at TrueColor the top edge row blends fg×0.55 toward the
-    /// container (tag `OUTER_KEEP`, frozen lists y20 `(148,148,148)`); the
-    /// interior and the cursor row stay whole and DIM-free.
-    #[test]
-    fn q66s7x_tc_top_edge_blends_while_cursor_row_is_kept() {
-        use ratatui_core::style::Color;
-
-        let buf = draw_q66s7x_scrolled(Theme::junie(), 10);
-        let edge = buf.cell(Position::new(3, 0)).expect("edge label cell");
-        let middle = buf.cell(Position::new(3, 2)).expect("interior label cell");
-        let kept = buf.cell(Position::new(3, 5)).expect("cursor label cell");
-        assert_eq!(edge.symbol(), "l", "top edge shows item 5");
-        assert_eq!(middle.symbol(), "l", "interior shows item 7");
-        assert_eq!(kept.symbol(), "l", "bottom edge shows the cursor item 10");
-        assert_ne!(
-            edge.style().fg,
-            middle.style().fg,
-            "top edge never blended toward the container"
-        );
-        let (Some(Color::Rgb(fr, fg, fb)), Some(Color::Rgb(br, bg, bb))) =
-            (middle.style().fg, middle.style().bg)
-        else {
-            panic!("interior label must be RGB on RGB at TrueColor");
-        };
-        assert_eq!(
-            edge.style().fg,
-            Some(Color::Rgb(
-                q66s7x_mix(fr, br),
-                q66s7x_mix(fg, bg),
-                q66s7x_mix(fb, bb)
-            )),
-            "top edge must keep 0.55 of its contrast"
-        );
-        assert_eq!(
-            kept.style().fg,
-            middle.style().fg,
-            "cursor row must stay whole on a live edge"
-        );
-        for (name, cell) in [("edge", edge), ("middle", middle), ("kept", kept)] {
-            assert!(
-                !cell.modifier.contains(Modifier::DIM),
-                "{name} gained DIM at TrueColor"
-            );
-        }
-    }
-
-    /// F1-L5: at 256/16/Mono the outermost row carries +DIM, gutter
-    /// included (tag `fade.rs`, frozen none y20 x28–52 `fg15 DIM`);
-    /// interior and cursor rows stay DIM-free.
-    #[test]
-    fn q66s7x_dim_levels_outer_edge_carries_dim_incl_gutter() {
-        use crate::theme::ColorLevel;
-
-        for (name, level) in [
-            ("256", ColorLevel::Ansi256),
-            ("16", ColorLevel::Ansi16),
-            ("mono", ColorLevel::Mono),
-        ] {
-            let buf = draw_q66s7x_scrolled(Theme::junie().downgrade(level), 10);
-            for x in [0, 3, 15] {
-                let edge = buf.cell(Position::new(x, 0)).expect("edge cell");
-                assert!(
-                    edge.modifier.contains(Modifier::DIM),
-                    "{name} x{x} top edge lost DIM"
-                );
-                let middle = buf.cell(Position::new(x, 2)).expect("interior cell");
-                assert!(
-                    !middle.modifier.contains(Modifier::DIM),
-                    "{name} x{x} interior gained DIM"
-                );
-                let kept = buf.cell(Position::new(x, 5)).expect("cursor cell");
-                assert!(
-                    !kept.modifier.contains(Modifier::DIM),
-                    "{name} x{x} cursor row faded"
-                );
-            }
-        }
-    }
-
-    /// F1-L5 keep: the cursor row on a live edge stays whole while the
-    /// same edge fades without the cursor; at the boundary (offset 0) the
-    /// top edge never fades.
-    #[test]
-    fn q66s7x_cursor_row_on_edge_is_kept_and_boundary_never_fades() {
-        use crate::theme::ColorLevel;
-
-        let kept = draw_q66s7x_scrolled(Theme::junie().downgrade(ColorLevel::Mono), 10);
-        let faded = draw_q66s7x_scrolled(Theme::junie().downgrade(ColorLevel::Mono), 2);
-        let kept_bottom = kept.cell(Position::new(3, 5)).expect("cursor edge cell");
-        assert!(
-            !kept_bottom.modifier.contains(Modifier::DIM),
-            "cursor row on the bottom edge faded"
-        );
-        let faded_bottom = faded.cell(Position::new(3, 5)).expect("bare edge cell");
-        assert!(
-            faded_bottom.modifier.contains(Modifier::DIM),
-            "bare bottom edge lost DIM"
-        );
-        let kept_top = kept.cell(Position::new(3, 0)).expect("top edge cell");
-        assert!(
-            kept_top.modifier.contains(Modifier::DIM),
-            "bare top edge lost DIM"
-        );
-        let boundary_top = faded.cell(Position::new(3, 0)).expect("boundary top cell");
-        assert!(
-            !boundary_top.modifier.contains(Modifier::DIM),
-            "boundary top edge gained DIM"
-        );
-    }
-
-    /// Q67-JM1: `.bare(true)` hands the whole row to the painter — label
-    /// rows start at `area.x` and may use the full row width — while the
-    /// default keeps the gutter/marker chrome at `area.x + 3`.
-    #[test]
-    fn bare_list_paints_from_area_origin_with_full_width() {
-        let items = ["ab"];
-        for bare in [false, true] {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(AREA);
-            let state = ListState::default();
-            runtime
-                .draw_scene(AREA, &mut buffer, |ui, area| {
-                    List::new(ID).bare(bare).draw(ui, area, &state, &items);
-                })
-                .commit_presented();
-            let x0 = if bare { 0 } else { 3 };
-            assert_eq!(
-                buffer
-                    .cell(Position::new(x0, 0))
-                    .map(ratatui_core::buffer::Cell::symbol),
-                Some("a"),
-                "bare={bare}: row must start at x={x0}"
-            );
-            assert_eq!(
-                buffer
-                    .cell(Position::new(x0 + 1, 0))
-                    .map(ratatui_core::buffer::Cell::symbol),
-                Some("b"),
-                "bare={bare}: second cell"
-            );
-        }
-    }
-
-    /// Q67-JM1: bare mode preserves selection state — a chosen row keeps its
-    /// key (only the marker chrome goes away), so focus rings that reuse
-    /// the list state observe the same cursor/selection.
-    #[test]
-    fn bare_list_keeps_cursor_and_selection_state() {
+    fn bare_row_paints_the_label_at_the_row_origin() {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        let mut state = ListState::default();
-        state.set_cursor(0, ItemKey::index(0));
-        state.choose(Some(ItemKey::index(0)));
+        let state = ListState::default();
         runtime
             .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID).bare(true).draw(ui, area, &state, &["ab"]);
+                List::new(ID).bare(true).draw(ui, area, &state, &["one"]);
             })
             .commit_presented();
-        assert_eq!(state.cursor(), Some(ItemKey::index(0)));
         assert_eq!(
             buffer
                 .cell(Position::new(0, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some("a"),
-            "chosen bare row paints from the origin"
+            Some("o")
         );
-        assert_eq!(
-            buffer
-                .cell(Position::new(1, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("b"),
-            "no marker chrome displaces bare content"
-        );
-    }
-
-    /// Q67-JM1: `.bare_item` drops the chrome per row — the matching row
-    /// starts at the row origin while siblings keep `area.x + 3`.
-    #[test]
-    fn bare_item_applies_per_row() {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = ListState::default();
-        let bare_first = |item: &&str| *item == "hd";
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID)
-                    .bare_item(&bare_first)
-                    .draw(ui, area, &state, &["hd", "ab"]);
-            })
-            .commit_presented();
-        let at = |x, y| {
-            buffer
-                .cell(Position::new(x, y))
-                .map(ratatui_core::buffer::Cell::symbol)
-        };
-        assert_eq!(at(0, 0), Some("h"), "bare row starts at the origin");
-        assert_eq!(at(1, 0), Some("d"));
-        assert_eq!(at(3, 1), Some("a"), "chromed sibling keeps the offset");
-        assert_eq!(at(4, 1), Some("b"));
     }
 }

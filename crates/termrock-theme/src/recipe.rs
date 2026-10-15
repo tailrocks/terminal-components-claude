@@ -134,7 +134,7 @@ newtype_u16! {
     }
 }
 
-pub use termrock_core::Variant;
+pub use termrock_core::variant::Variant;
 
 /// A small sorted map keyed by [`Part`].
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -297,7 +297,7 @@ impl PartRecipe {
 ///
 /// Both slices are stored pre-sorted (`PartRecipe::when`), so this is a
 /// stable two-way merge: allocation-free and `O(n + m)`.
-pub(crate) fn merge_states(
+pub fn merge_states(
     acc: StylePatch,
     family: &[StateRule],
     variant: &[StateRule],
@@ -369,10 +369,10 @@ impl Recipe {
 
 /// A theme-level global override: family, optional variant, parts.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub(crate) struct GlobalOverride {
-    pub(crate) family: Family,
-    pub(crate) variant: Option<Variant>,
-    pub(crate) parts: PartMap<PartRecipe>,
+pub struct GlobalOverride {
+    pub family: Family,
+    pub variant: Option<Variant>,
+    pub parts: PartMap<PartRecipe>,
 }
 
 /// Every family's recipe plus the global overrides; built once at theme
@@ -516,7 +516,7 @@ impl Recipes {
         self.mono[i].1 = rules;
     }
 
-    pub(crate) fn overrides(&self) -> &[GlobalOverride] {
+    pub fn overrides(&self) -> &[GlobalOverride] {
         &self.overrides
     }
 

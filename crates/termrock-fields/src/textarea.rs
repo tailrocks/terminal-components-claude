@@ -5,14 +5,16 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::input::{
-    BlurPolicy, EditPhase, EditorDraft, ErrorState, TextAction, TextCmd, TextTarget, discard_error,
+use crate::input::{
+    BlurPolicy, EditPhase, EditorDraft, ErrorState, TextAction, TextCmd, TextTarget, byte_at_col,
+    discard_error,
 };
-use super::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::SecretPolicy;
-use crate::collection::CellUi;
-use crate::edit_keys::{edit_action_of, edit_bindings};
+use crate::action::ActionKey;
+use termrock_runtime::rowui::CellUi;
+use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -21,11 +23,232 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::text::measure::{byte_at_col, graphemes};
+use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
-use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
+
+const CTRL: KeyModifiers = KeyModifiers::CONTROL;
+const ALT: KeyModifiers = KeyModifiers::ALT;
+const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
+
+const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
+    Binding {
+        action: ActionKey::custom(label),
+        chord: Some(chord),
+        cmd,
+        label,
+        priority: 50,
+        visible,
+    }
+}
+
+/// The multi-line flavour of the shared edit table (the legacy
+/// `field_common::edit_key(key, multiline = true)`): `Enter` inserts a
+/// newline, `Esc` **commits** — a document is not cancelled by leaving it —
+/// and `↑`/`↓`/`PgUp`/`PgDn` move the cursor by line and by page.
+const BINDINGS: &[Binding<TextCmd>] = &[
+    b(Chord::key(KeyCode::Esc), TextCmd::Commit, "Done", true),
+    b(
+        Chord::key(KeyCode::Enter),
+        TextCmd::Newline,
+        "New line",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Left),
+        TextCmd::Move(Motion::Left, Extend::No),
+        "Left",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Right),
+        TextCmd::Move(Motion::Right, Extend::No),
+        "Right",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Up),
+        TextCmd::Move(Motion::Up, Extend::No),
+        "Up",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Down),
+        TextCmd::Move(Motion::Down, Extend::No),
+        "Down",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Left, SHIFT),
+        TextCmd::Move(Motion::Left, Extend::Select),
+        "Select left",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Right, SHIFT),
+        TextCmd::Move(Motion::Right, Extend::Select),
+        "Select right",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Up, SHIFT),
+        TextCmd::Move(Motion::Up, Extend::Select),
+        "Select up",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Down, SHIFT),
+        TextCmd::Move(Motion::Down, Extend::Select),
+        "Select down",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Left, CTRL),
+        TextCmd::Move(Motion::WordLeft, Extend::No),
+        "Word left",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Right, CTRL),
+        TextCmd::Move(Motion::WordRight, Extend::No),
+        "Word right",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Left, ALT),
+        TextCmd::Move(Motion::WordLeft, Extend::No),
+        "Word left (Alt+Left)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Right, ALT),
+        TextCmd::Move(Motion::WordRight, Extend::No),
+        "Word right (Alt+Right)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::PageUp),
+        TextCmd::PageUp,
+        "Page up",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::PageDown),
+        TextCmd::PageDown,
+        "Page down",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Home),
+        TextCmd::Move(Motion::Home, Extend::No),
+        "Line start",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::End),
+        TextCmd::Move(Motion::End, Extend::No),
+        "Line end",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Home, SHIFT),
+        TextCmd::Move(Motion::Home, Extend::Select),
+        "Select to line start",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::End, SHIFT),
+        TextCmd::Move(Motion::End, Extend::Select),
+        "Select to line end",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Home, CTRL),
+        TextCmd::Move(Motion::DocStart, Extend::No),
+        "Start",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::End, CTRL),
+        TextCmd::Move(Motion::DocEnd, Extend::No),
+        "End",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Backspace),
+        TextCmd::Backspace,
+        "Backspace",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Backspace, CTRL),
+        TextCmd::DeleteWordLeft,
+        "Delete word",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Backspace, ALT),
+        TextCmd::DeleteWordLeft,
+        "Delete word (Alt+Backspace)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Delete),
+        TextCmd::Delete,
+        "Delete",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('a'), CTRL),
+        TextCmd::Move(Motion::Home, Extend::No),
+        "Line start (Ctrl+A)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('e'), CTRL),
+        TextCmd::Move(Motion::End, Extend::No),
+        "Line end (Ctrl+E)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('u'), CTRL),
+        TextCmd::DeleteToLineStart,
+        "Delete to start",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('k'), CTRL),
+        TextCmd::DeleteToLineEnd,
+        "Delete to end",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('w'), CTRL),
+        TextCmd::DeleteWordLeft,
+        "Delete word (Ctrl+W)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('l'), CTRL),
+        TextCmd::SelectAll,
+        "Select all",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('b'), ALT),
+        TextCmd::Move(Motion::WordLeft, Extend::No),
+        "Word left (Alt+B)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('f'), ALT),
+        TextCmd::Move(Motion::WordRight, Extend::No),
+        "Word right (Alt+F)",
+        false,
+    ),
+];
 
 /// Durable state of a [`TextArea`]: the in-flight draft, the phase, the
 /// vertical scroll and the last validation error. `Debug` redacts the draft.
@@ -128,20 +351,6 @@ impl TextAreaState {
     /// The vertical scroll, mutably.
     pub const fn scroll_mut(&mut self) -> &mut ScrollState {
         &mut self.scroll
-    }
-
-    /// Current cursor position as (column, line).
-    pub fn cursor_pos(&self) -> Position {
-        let p = self.draft.cursor_pos();
-        Position::new(
-            p.col.min(usize::from(u16::MAX)) as u16,
-            p.line.min(usize::from(u16::MAX)) as u16,
-        )
-    }
-
-    /// Number of lines in the document.
-    pub fn line_count(&self) -> usize {
-        self.draft.line_count()
     }
 
     /// The last validation error.
@@ -415,7 +624,7 @@ pub struct TextArea<'a> {
     secret: Option<SecretPolicy>,
     read_only: bool,
     disabled: bool,
-    status: crate::collection::Status,
+    status: termrock_runtime::Status,
     ov: PartStyle<'a>,
 }
 
@@ -462,7 +671,7 @@ impl<'a> TextArea<'a> {
             secret: None,
             read_only: false,
             disabled: false,
-            status: crate::collection::Status::Ready,
+            status: termrock_runtime::Status::Ready,
             ov: PartStyle::new(),
         }
     }
@@ -534,7 +743,7 @@ impl<'a> TextArea<'a> {
 
     /// Data readiness.
     #[must_use]
-    pub const fn status(mut self, s: crate::collection::Status) -> Self {
+    pub const fn status(mut self, s: termrock_runtime::Status) -> Self {
         self.status = s;
         self
     }
@@ -582,7 +791,7 @@ impl<'a> TextArea<'a> {
 
     /// The owned scroll region.
     const fn scroll_region(&self) -> ScrollRegion<'a> {
-        ScrollRegion::new(self.id).fill_container(false)
+        ScrollRegion::new(self.id)
     }
 
     fn validator(&self) -> Dyn<'_> {
@@ -605,7 +814,7 @@ impl<'a> TextArea<'a> {
     /// error marker and the readiness spinner that share it never move the
     /// text (§29 Q1's geometry discipline).
     const fn inner_width(width: u16) -> u16 {
-        width.saturating_sub(4)
+        width.saturating_sub(3)
     }
 
     /// The update phase: drains this control's intents and drives the edit
@@ -626,12 +835,8 @@ impl<'a> TextArea<'a> {
         value: &mut T,
         inherited_disabled: bool,
     ) -> Response<TextAction> {
-        let field = self.with_inherited_disabled(inherited_disabled);
-        let focused = cx.state(field.id).contains(StateFlags::FOCUSED);
-        if focused && field.editable() {
-            st.begin(value.expose());
-        }
-        field.update_target(cx, st, value)
+        self.with_inherited_disabled(inherited_disabled)
+            .update_target(cx, st, value)
     }
 
     pub fn commit_in_form<T: TextTarget + ?Sized>(
@@ -671,30 +876,24 @@ impl<'a> TextArea<'a> {
             Some(scroll.prepare(cx, &mut st.scroll, lines))
         };
         let page = st.scroll.viewport_len().max(1);
-        let was_editing = st.is_editing();
-        let caret_before = st.draft.cursor_pos();
         for it in cx.intents(self.id) {
             if let Some(track_len) = track_len {
                 let bar = scroll.handle_intent(cx, &mut st.scroll, track_len, it);
                 acc.fold(&bar);
             }
             match it {
-                Intent::FocusIn { .. } => {}
+                Intent::FocusIn { .. } => {
+                    if editable {
+                        st.begin(value.expose());
+                    }
+                }
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
-                        // W11-04: pristine blur ends silently (input-arm
-                        // twin: transit past an untouched field reports
-                        // nothing).
-                        let dirty = st.draft.text() != value.expose();
                         let _ = st.blur_target(value, &self.validator(), policy);
                         match policy {
                             BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
-                                if dirty {
-                                    acc.action(TextAction::Committed);
-                                } else {
-                                    acc.consumed();
-                                }
+                                acc.action(TextAction::Committed);
                             }
                             BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
                             BlurPolicy::Keep => {}
@@ -702,15 +901,19 @@ impl<'a> TextArea<'a> {
                     }
                 }
                 Intent::Binding(action) if editable => {
-                    if let Some(cmd) = Binding::command(edit_bindings(true), action) {
+                    if let Some(cmd) = Binding::command(BINDINGS, action) {
+                        if !st.is_editing() && cmd != TextCmd::Commit {
+                            st.begin(value.expose());
+                        }
                         if st.is_editing() {
                             self.edit_command(st, value, cmd, page, &mut acc);
-                        } else {
-                            Self::nav_command(st, value, cmd, &mut acc);
                         }
                     }
                 }
-                Intent::Key(k) if editable && st.is_editing() => {
+                Intent::Key(k) if editable => {
+                    if !st.is_editing() {
+                        st.begin(value.expose());
+                    }
                     if let Some(c) = k.bare_char()
                         && st.apply(EditAction::Insert(c)).changed()
                     {
@@ -761,13 +964,7 @@ impl<'a> TextArea<'a> {
             let cur = st.draft.cursor_pos();
             if !self.disabled {
                 st.scroll.set_content(st.draft.line_count());
-                // W09-05: follow only when the caret moved (or the edit
-                // began this update) — a wheel offset holds past the
-                // caret until caret motion resumes the follow (the
-                // reference render gate: follow, moved cursor, resized).
-                if !was_editing || cur != caret_before {
-                    st.scroll.ensure_visible(cur.line);
-                }
+                st.scroll.ensure_visible(cur.line);
             }
             if let Some(a) = cx.area(self.id) {
                 st.draft.scroll_into_view(Self::inner_width(a.width));
@@ -779,51 +976,6 @@ impl<'a> TextArea<'a> {
     fn live_validate(&self, st: &mut TextAreaState) {
         if st.error.is_some() {
             let _ = st.finish_validation(self.validator().check(st.draft.text()));
-        }
-    }
-
-    /// Navigation-mode keys (reference `TextArea::on_key` while `!editing`):
-    /// Enter begins the edit without inserting; motion scrolls the view;
-    /// everything else — including typing — is ignored.
-    fn nav_command<T: TextTarget + ?Sized>(
-        st: &mut TextAreaState,
-        value: &mut T,
-        cmd: TextCmd,
-        acc: &mut Acc<TextAction>,
-    ) {
-        match cmd {
-            // W09-01: nav Enter begins only — the newline belongs to
-            // *edit* Enter.
-            TextCmd::Newline => {
-                st.begin(value.expose());
-                acc.changed();
-            }
-            // W09-03: nav motion scrolls the view without editing.
-            TextCmd::PageUp => {
-                st.scroll.page_up();
-                acc.changed();
-            }
-            TextCmd::PageDown => {
-                st.scroll.page_down();
-                acc.changed();
-            }
-            TextCmd::Move(Motion::Up, Extend::No) => {
-                st.scroll.scroll_by(-1);
-                acc.changed();
-            }
-            TextCmd::Move(Motion::Down, Extend::No) => {
-                st.scroll.scroll_by(1);
-                acc.changed();
-            }
-            TextCmd::Move(Motion::Home | Motion::DocStart, Extend::No) => {
-                st.scroll.jump_start();
-                acc.changed();
-            }
-            TextCmd::Move(Motion::End | Motion::DocEnd, Extend::No) => {
-                st.scroll.jump_end();
-                acc.changed();
-            }
-            _ => {}
         }
     }
 
@@ -863,7 +1015,23 @@ impl<'a> TextArea<'a> {
                         }
                         out
                     }
-                    other => st.apply(edit_action_of(other)),
+                    other => {
+                        let action = match other {
+                            TextCmd::Move(m, e) => EditAction::Move(m, e),
+                            TextCmd::Newline => EditAction::Newline,
+                            TextCmd::Backspace => EditAction::Backspace,
+                            TextCmd::Delete => EditAction::Delete,
+                            TextCmd::DeleteWordLeft => EditAction::DeleteWordLeft,
+                            TextCmd::DeleteToLineEnd => EditAction::DeleteToLineEnd,
+                            TextCmd::DeleteToLineStart => EditAction::DeleteToLineStart,
+                            TextCmd::SelectAll => EditAction::SelectAll,
+                            TextCmd::Cancel
+                            | TextCmd::Commit
+                            | TextCmd::PageUp
+                            | TextCmd::PageDown => EditAction::ClearSelection,
+                        };
+                        st.apply(action)
+                    }
                 };
                 match outcome {
                     EditOutcome::Changed => {
@@ -895,7 +1063,7 @@ impl<'a> TextArea<'a> {
         }
         let editing = st.is_editing();
         let validation_error = st.error.is_some();
-        let status_error = matches!(self.status, crate::collection::Status::Error);
+        let status_error = matches!(self.status, termrock_runtime::Status::Error);
         let error = validation_error || status_error;
         let focusability = if self.disabled {
             Focusability::Disabled
@@ -936,12 +1104,7 @@ impl<'a> TextArea<'a> {
         let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
             ov.style(ui, id, Family::TEXTAREA, Variant::DEFAULT, part, flags)
         };
-        let mut field = style(ui, Part::FIELD, live);
-        if !editing {
-            field.style = field
-                .style
-                .remove_modifier(ratatui_core::style::Modifier::UNDERLINED);
-        }
+        let field = style(ui, Part::FIELD, live);
         ui.fill(body, field.style);
         let shown = if editing {
             st.draft.text()
@@ -953,12 +1116,12 @@ impl<'a> TextArea<'a> {
         let inner = Rect {
             x: content.x.saturating_add(2),
             y: content.y,
-            width: Self::inner_width(body.width),
+            width: Self::inner_width(content.width),
             height: content.height,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         ui.register_editor(self.id, body, focusability, declared);
-        ui.publish_bindings(self.id, live, edit_bindings(true));
+        ui.publish_bindings(self.id, live, BINDINGS);
         // gutter: one cell per row, the focus bar when the recipe says so
         for row in content.rows() {
             let gutter_cell = cell_at(row, content.x);
@@ -970,16 +1133,7 @@ impl<'a> TextArea<'a> {
                     Slot::Set(glyph) => {
                         ui.glyph(gutter_cell, glyph, g.style);
                     }
-                    Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
-                        ui.glyph(
-                            gutter_cell,
-                            GlyphRole::FocusBar,
-                            g.style.with_bg_from(field.style),
-                        );
-                    }
-                    Slot::Inherit | Slot::Clear => {
-                        ui.fill(gutter_cell, field.style.with_fg_from_bg(field.style));
-                    }
+                    Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                 }
             }
         }
@@ -992,8 +1146,7 @@ impl<'a> TextArea<'a> {
                 match ov.slot_for(Part::PLACEHOLDER) {
                     Some(f) => f(ui, first_row(inner)),
                     None => {
-                        let text = crate::text::truncate(p, inner.width);
-                        ui.paint_str(first_row(inner), &text, ps.style);
+                        ui.paint_str(first_row(inner), p, ps.style);
                     }
                 }
             }
@@ -1039,13 +1192,10 @@ impl<'a> TextArea<'a> {
                         ui.paint_str(run, line.get(from..).unwrap_or(""), ts.style);
                     }
                     if overflow {
-                        let ellipsis_style = ts.style.patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
-                        );
                         ui.glyph(
                             cell_at(row, row.right().saturating_sub(1)),
                             GlyphRole::Ellipsis,
-                            ellipsis_style,
+                            ts.style,
                         );
                     }
                     if let Some(r) = &sel
@@ -1084,7 +1234,10 @@ impl<'a> TextArea<'a> {
         // accepts `.status(…)` to render. The error glyph and the spinner
         // share it, error winning, exactly as in `TextInput`; the spinner is
         // a *symbol*, so it survives `Mono` without a theme rule.
-        let trailing = cell_at(first_row(body), body.right().saturating_sub(2).max(body.x));
+        let trailing = cell_at(
+            first_row(content),
+            content.right().saturating_sub(1).max(content.x),
+        );
         if validation_error {
             if let Some(f) = ov.slot_for(Part::MARKER) {
                 f(ui, trailing);
@@ -1114,7 +1267,7 @@ impl<'a> TextArea<'a> {
             }
         } else if matches!(
             self.status,
-            crate::collection::Status::Busy | crate::collection::Status::Loading
+            termrock_runtime::Status::Busy | termrock_runtime::Status::Loading
         ) {
             if let Some(f) = ov.slot_for(Part::ICON) {
                 f(ui, trailing);
@@ -1125,13 +1278,6 @@ impl<'a> TextArea<'a> {
                 ui.paint_str(trailing, frame, is.style);
             }
         }
-        ui.scroll_edges(
-            Rect {
-                width: (body.right() - 1).saturating_sub(body.x),
-                ..body
-            },
-            &st.scroll,
-        );
         body
     }
 
@@ -1217,7 +1363,7 @@ impl Bindings for TextArea<'_> {
     type Cmd = TextCmd;
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<TextCmd>] {
-        edit_bindings(true)
+        BINDINGS
     }
 }
 
@@ -1605,7 +1751,7 @@ mod tests {
     }
 
     /// Draw a four-row text area at `status` over the stub screen.
-    fn draw_with(status: crate::collection::Status) -> Buffer {
+    fn draw_with(status: termrock_runtime::Status) -> Buffer {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         let st = TextAreaState::default();
@@ -1627,15 +1773,15 @@ mod tests {
 
     /// The columns of row 0 left of the reserved trailing pad.
     fn text_run(buf: &Buffer) -> String {
-        (0..SCREEN.width - 2)
+        (0..SCREEN.width - 1)
             .map(|x| symbol_at(buf, x, 0))
             .collect()
     }
 
     /// The trailing pad column of the first body row — the cell
-    /// `inner_width`'s `- 4` already reserves and the error marker already
+    /// `inner_width`'s `- 3` already reserves and the error marker already
     /// uses.
-    const READINESS_X: u16 = SCREEN.width - 2;
+    const READINESS_X: u16 = SCREEN.width - 1;
 
     /// §11.4: a component that accepts `.status(…)` must render readiness.
     /// `BUSY` and `LOADING` paint `design.motion.spinner_frames[0]` into the
@@ -1645,10 +1791,10 @@ mod tests {
     fn busy_and_loading_paint_the_readiness_spinner() {
         let design = Theme::junie().design;
         let frame = design.motion.spinner_frames.first().copied().unwrap();
-        let ready = draw_with(crate::collection::Status::Ready);
+        let ready = draw_with(termrock_runtime::Status::Ready);
         for status in [
-            crate::collection::Status::Busy,
-            crate::collection::Status::Loading,
+            termrock_runtime::Status::Busy,
+            termrock_runtime::Status::Loading,
         ] {
             let buf = draw_with(status);
             assert_eq!(
@@ -1669,7 +1815,7 @@ mod tests {
     #[test]
     fn status_error_paints_the_icon_fallback_in_the_readiness_cell() {
         let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
-        let buf = draw_with(crate::collection::Status::Error);
+        let buf = draw_with(termrock_runtime::Status::Error);
         assert_eq!(symbol_at(&buf, READINESS_X, 0), glyph);
     }
 
@@ -1681,7 +1827,7 @@ mod tests {
     #[test]
     fn ready_paints_no_readiness_affordance() {
         let design = Theme::junie().design;
-        let cell = symbol_at(&draw_with(crate::collection::Status::Ready), READINESS_X, 0);
+        let cell = symbol_at(&draw_with(termrock_runtime::Status::Ready), READINESS_X, 0);
         assert_ne!(cell, design.motion.spinner_frames.first().copied().unwrap());
         assert_ne!(cell, design.glyphs.get(GlyphRole::Error));
         assert_eq!(cell, " ", "the reserved pad column must stay blank");
@@ -1701,7 +1847,7 @@ mod tests {
         rt.draw_scene(SCREEN, &mut buf, |ui, a| {
             TextArea::new(ID, 4)
                 .value("hello")
-                .status(crate::collection::Status::Busy)
+                .status(termrock_runtime::Status::Busy)
                 .slot(Part::ICON, &icon)
                 .draw(ui, a, &st);
         })
@@ -1735,7 +1881,7 @@ mod tests {
         rt.draw_scene(SCREEN, &mut buf, |ui, area| {
             TextArea::new(ID, 4)
                 .value("hello")
-                .status(crate::collection::Status::Error)
+                .status(termrock_runtime::Status::Error)
                 .slot(Part::MARKER, &marker)
                 .draw(ui, area, &st);
         })
@@ -1748,7 +1894,7 @@ mod tests {
         rt.draw_scene(SCREEN, &mut buf, |ui, area| {
             TextArea::new(ID, 4)
                 .value("hello")
-                .status(crate::collection::Status::Error)
+                .status(termrock_runtime::Status::Error)
                 .slot(Part::ICON, &icon)
                 .draw(ui, area, &st);
         })

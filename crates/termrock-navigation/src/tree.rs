@@ -17,12 +17,11 @@ use std::sync::{Arc, Weak};
 
 use ratatui_core::layout::Rect;
 
-use super::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
-use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, KeySet, Reconcile, Reconciliation,
-    RowFn, RowUi,
-};
+use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::empty::{EmptyState};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -38,8 +37,7 @@ use crate::ui::{Cx, FrameRead, Ui};
 /// slice.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NodeKind {
-    /// No children; the reserved fold cell is blank unless the caller supplies
-    /// a leaf icon.
+    /// No children; the disclosure cell stays blank.
     #[default]
     Leaf,
     /// Children follow in the slice at a greater depth.
@@ -75,9 +73,6 @@ enum Engagement {
     Activate,
     Choose,
     Click,
-    /// First click under `activate_selected_on_click`: chooses, arming a
-    /// second click to activate. A default click activates at once.
-    ArmClick,
     SelectedClick,
 }
 
@@ -168,10 +163,9 @@ pub enum TreeAction {
     Expanded(ItemKey),
     /// A node was closed.
     Collapsed(ItemKey),
-    /// A leaf was chosen (Space, or a click on its blank fold cell). A
-    /// caller-painted leaf icon remains row body.
+    /// A leaf was chosen (Space, or a click on a leaf row).
     Chose(ItemKey),
-    /// A leaf was activated (Enter, a leaf row click, or a double-click).
+    /// A leaf was activated (Enter, or a double-click).
     Activated(ItemKey),
 }
 
@@ -198,7 +192,7 @@ pub enum TreeCmd {
     Activate,
     /// Choose the cursor leaf.
     Choose,
-    /// Open every branch (leaves stay unmarked, baseline `*`).
+    /// Open every node.
     ExpandAll,
     /// Close every node.
     CollapseAll,
@@ -480,19 +474,6 @@ impl TreeState {
         self.last_expansion = None;
     }
 
-    /// Open every branch key in `keys`, keeping pre-existing entries.
-    /// This is the baseline `*` behavior: branches open while leaves are
-    /// never added, so the expanded set keeps naming open branches only.
-    /// One expansion generation covers the whole batch.
-    pub fn expand_branches(&mut self, keys: impl IntoIterator<Item = ItemKey>) {
-        Self::prepare_lineage(&mut self.expansion_lineage);
-        for key in keys {
-            self.expanded.insert(key);
-        }
-        self.bump_expand_generation();
-        self.last_expansion = None;
-    }
-
     /// Close every node.
     pub fn collapse_all(&mut self) {
         if !self.expanded.is_empty() {
@@ -642,7 +623,7 @@ impl Reconcile for TreeState {
 ///
 /// ## Mouse
 /// `PartRef::item(Part::ROW, k)`: press moves the cursor, click toggles a
-/// branch or activates a leaf, double-click also activates a leaf. `branch_click`
+/// branch or chooses a leaf, double-click activates a leaf. `branch_click`
 /// can choose branches instead; `branch_activation` also applies to double-click.
 /// `PartRef::item(Part::ICON, k)` is a branch disclosure: press moves the
 /// cursor and click toggles that branch without choosing it. A leaf's blank
@@ -707,22 +688,15 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     icon: Option<TreeIconFn<'a, T>>,
     trailing_mark: Option<TreeTrailingMarkFn<'a, T>>,
     focused_patch: Option<&'a StylePatch>,
-    publish_keymap: bool,
     branch_activation: TreeBranchActivation,
     branch_click: TreeBranchClick,
     activate_selected_on_click: bool,
     gutter_gap: u16,
-    /// Cells reserved at the row's right for a trailing mark, including the
-    /// one-cell pad. The glyph is painted at `right - trailing_reserve`.
-    /// Two matches the default mark (`right - 2`). A wider reserve keeps
-    /// that pad and shifts the glyph left.
-    trailing_reserve: u16,
     disclosure_hit_width: u16,
     cursor_selected: bool,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     query: Option<TreeQuery<'a, T>>,
     disabled: bool,
-    focused: Option<bool>,
     empty: Option<EmptyState<'a>>,
     ov: PartStyle<'a>,
     /// The same three override channels again, kept because `PartStyle` has
@@ -736,9 +710,17 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
 }
 
 /// Borrowed tree icon callback.
+#[expect(
+    unreachable_pub,
+    reason = "named in Tree's public builders; the crate re-export is a later task"
+)]
 pub type TreeIconFn<'a, T> = &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>;
 
 /// Borrowed tree trailing-mark callback.
+#[expect(
+    unreachable_pub,
+    reason = "named in Tree's public builders; the crate re-export is a later task"
+)]
 pub type TreeTrailingMarkFn<'a, T> = &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>;
 
 type TreeRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
@@ -773,18 +755,15 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             icon: None,
             trailing_mark: None,
             focused_patch: None,
-            publish_keymap: true,
             branch_activation: TreeBranchActivation::Toggle,
             branch_click: TreeBranchClick::Toggle,
             activate_selected_on_click: false,
             gutter_gap: 0,
-            trailing_reserve: 2,
             disclosure_hit_width: 1,
             cursor_selected: false,
             disabled_item: None,
             query: None,
             disabled: false,
-            focused: None,
             empty: None,
             ov: PartStyle::new(),
             fwd_patch: None,
@@ -828,7 +807,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     ///
     /// `None` keeps the branch disclosure or the blank leaf and does not
     /// paint a second icon. `Some` paints that one-cell string with the
-    /// patch; a custom leaf icon keeps row-body activation.
+    /// patch; a custom leaf icon stays on the row-body hit.
     #[must_use]
     pub const fn icon(mut self, f: TreeIconFn<'a, T>) -> Self {
         self.icon = Some(f);
@@ -852,16 +831,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     #[must_use]
     pub const fn focused_patch(mut self, patch: &'a StylePatch) -> Self {
         self.focused_patch = Some(patch);
-        self
-    }
-
-    /// Publish the tree keymap while this control is focused.
-    ///
-    /// Defaults to true. Paint-only callers that still update through another
-    /// collection leave this false so draw does not replace that keymap.
-    #[must_use]
-    pub const fn publish_keymap(mut self, yes: bool) -> Self {
-        self.publish_keymap = yes;
         self
     }
 
@@ -898,17 +867,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-    /// How many right-edge cells a trailing mark reserves.
-    ///
-    /// The default is 2: the glyph sits at `right - 2` and the last cell
-    /// stays the row pad. A larger value shifts that glyph left by the
-    /// same amount and shortens only the marked row's label.
-    #[must_use]
-    pub const fn trailing_reserve(mut self, cells: u16) -> Self {
-        self.trailing_reserve = if cells < 2 { 2 } else { cells };
-        self
-    }
-
     /// Disclosure hit width, starting at its glyph and clipped to the row.
     /// Defaults to one; zero disables the disclosure hit without changing paint.
     #[must_use]
@@ -937,18 +895,15 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             icon: self.icon,
             trailing_mark: self.trailing_mark,
             focused_patch: self.focused_patch,
-            publish_keymap: self.publish_keymap,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
             gutter_gap: self.gutter_gap,
-            trailing_reserve: self.trailing_reserve,
             disclosure_hit_width: self.disclosure_hit_width,
             cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
-            focused: self.focused,
             empty: self.empty,
             ov: self.ov,
             fwd_patch: self.fwd_patch,
@@ -986,18 +941,15 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             icon: self.icon,
             trailing_mark: self.trailing_mark,
             focused_patch: self.focused_patch,
-            publish_keymap: self.publish_keymap,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
             activate_selected_on_click: self.activate_selected_on_click,
             gutter_gap: self.gutter_gap,
-            trailing_reserve: self.trailing_reserve,
             disclosure_hit_width: self.disclosure_hit_width,
             cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
-            focused: self.focused,
             empty: self.empty,
             ov: self.ov,
             fwd_patch: self.fwd_patch,
@@ -1030,13 +982,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
-        self
-    }
-
-    /// Explicit focus override for composite or backdrop rendering.
-    #[must_use]
-    pub const fn focused(mut self, yes: bool) -> Self {
-        self.focused = Some(yes);
         self
     }
 
@@ -1081,9 +1026,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
         if let Some((p, f)) = self.fwd_slot {
             s = s.slot(p, f);
-        }
-        if let Some(focused) = self.focused {
-            s = s.focused(focused);
         }
         s
     }
@@ -1380,13 +1322,6 @@ impl TreeIndex {
         }
     }
 
-    /// Stable keys of every branch row (parents and lazy nodes), for `*`.
-    fn branch_keys(&self) -> impl Iterator<Item = ItemKey> + '_ {
-        self.rows.iter().filter_map(|row| {
-            matches!(row.kind, NodeKind::Parent | NodeKind::Lazy).then_some(row.key)
-        })
-    }
-
     fn row(&self, display: usize) -> Option<FlatRef> {
         self.visible
             .get(display)
@@ -1402,24 +1337,6 @@ impl TreeIndex {
         }
         let source = *self.by_key.get(&key)?;
         self.visible.binary_search(&source).ok()
-    }
-
-    /// Display row of the nearest visible ancestor of `source`
-    /// (baseline `relocate`: a cursor hidden by a collapse climbs to its
-    /// nearest visible ancestor, never to an index-nearest stranger).
-    fn visible_ancestor_of(&self, source: usize) -> Option<usize> {
-        let mut want = self.rows.get(source)?.depth;
-        let mut s = source.checked_sub(1)?;
-        loop {
-            let row = self.rows.get(s)?;
-            if row.depth < want {
-                if let Ok(display) = self.visible.binary_search(&s) {
-                    return Some(display);
-                }
-                want = row.depth;
-            }
-            s = s.checked_sub(1)?;
-        }
     }
 
     fn has_visible_descendant(&self, display: usize) -> bool {
@@ -1554,9 +1471,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         let toggles_branch = match engagement {
             Engagement::Activate => self.branch_activation == TreeBranchActivation::Toggle,
             Engagement::Choose => true,
-            Engagement::Click | Engagement::ArmClick => {
-                self.branch_click == TreeBranchClick::Toggle
-            }
+            Engagement::Click => self.branch_click == TreeBranchClick::Toggle,
             Engagement::SelectedClick => false,
         };
         if self.node_of(it).has_children() && toggles_branch {
@@ -1565,11 +1480,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let key = row.key;
         st.chosen = Some(key);
-        let leaf_click =
-            matches!(engagement, Engagement::Click) && !self.node_of(it).has_children();
         acc.action(
-            if leaf_click || matches!(engagement, Engagement::Activate | Engagement::SelectedClick)
-            {
+            if matches!(engagement, Engagement::Activate | Engagement::SelectedClick) {
                 TreeAction::Activated(key)
             } else {
                 TreeAction::Chose(key)
@@ -1715,7 +1627,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 if index.query_active {
                     acc.consumed();
                 } else {
-                    st.expand_branches(index.branch_keys());
+                    st.expand_all();
                     index.sync(self, st, items);
                     acc.action(TreeAction::Moved);
                 }
@@ -1726,9 +1638,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 } else {
                     st.collapse_all();
                     index.sync(self, st, items);
-                    // Same-frame relocate: an event-driven host may not
-                    // run another update before draw (baseline flatten).
-                    Self::settle_cursor(st, index);
                     acc.action(TreeAction::Moved);
                 }
             }
@@ -1801,23 +1710,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
 
     /// Reconcile the cursor and the chosen leaf against the visible rows and
     /// seed the cursor when there is none. Returns the visible row count.
-    /// A cursor hidden by a collapse climbs to its nearest visible
-    /// ancestor (baseline `relocate`); vanished keys keep the generic
-    /// index-nearest fallback in reconcile.
-    fn settle_cursor(st: &mut TreeState, index: &TreeIndex) {
-        if let Some(cur) = st.core.cursor()
-            && index.display_of(cur, None).is_none()
-            && let Some(source) = index.by_key.get(&cur).copied()
-            && let Some(d) = index.visible_ancestor_of(source)
-            && let Some(row) = index.row(d)
-        {
-            st.core.set_cursor(d, row.key);
-        }
-    }
-
     fn reconcile(&self, st: &mut TreeState, items: &[T], index: &TreeIndex) -> usize {
         let len = index.visible.len();
-        Self::settle_cursor(st, index);
         {
             let (core, _) = st.parts_mut();
             let _ = core.reconcile_with(
@@ -1888,12 +1782,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let fold_is_disclosure = part.part != Part::ROW
+        let fold_is_disclosure = part.part == Part::ICON
             && index
                 .row(d)
                 .and_then(|row| items.get(row.source))
                 .is_some_and(|item| self.node_of(item).has_children());
-        if part.part == Part::ICON && fold_is_disclosure {
+        if fold_is_disclosure {
             match phase {
                 Phase::Press => {
                     st.core.set_cursor(d, key);
@@ -1938,7 +1832,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 let engagement = if st.click_cursor.take() == Some(key) {
                     Engagement::SelectedClick
                 } else {
-                    Engagement::ArmClick
+                    Engagement::Click
                 };
                 self.engage(st, index, items, d, engagement, acc);
             }
@@ -1964,22 +1858,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 },
             );
         }
-        let live_flags = if let Some(yes) = self.focused {
-            if yes {
-                ui.state(self.id) | StateFlags::FOCUSED
-            } else {
-                ui.state(self.id).difference(StateFlags::FOCUSED)
-            }
-        } else {
-            ui.state(self.id)
-        };
-        let live = PartStyle::flags(live_flags, self.derived());
+        let live = PartStyle::flags(ui.state(self.id), self.derived());
         let (len, foldable, query_active) = {
             let index = ui.cache::<TreeIndex>(self.id);
             index.sync(self, st, items);
             (index.visible.len(), index.foldable, index.query_active)
         };
-        if !ui.is_inert() && self.publish_keymap {
+        if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table_for(foldable && !query_active));
         }
         let container = self.ov.style(
@@ -1998,58 +1883,43 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let view = ScrollRegion::view(st.core.scroll(), content, len);
         let indent = ui.design().space.tree_indent;
-        // Metadata is a column: when any visible row drops its meta text,
-        // no row shows meta (baseline `show_meta`), via a veto repaint.
-        let mut paint = |suppress_meta: bool, keep: &mut Vec<u16>| -> bool {
-            let mut vetoed = false;
-            for (offset, d) in view.visible_range().enumerate() {
-                let Some(flat) = ui.cache::<TreeIndex>(self.id).row(d) else {
-                    break;
-                };
-                let Some(item) = items.get(flat.source) else {
-                    break;
-                };
-                let rect = Rect {
-                    x: content.x,
-                    y: content
-                        .y
-                        .saturating_add(offset.min(usize::from(u16::MAX)) as u16),
-                    width: content.width,
-                    height: 1,
-                };
-                let (query_active, has_visible_descendant) = {
-                    let index = ui.cache::<TreeIndex>(self.id);
-                    (index.query_active, index.has_visible_descendant(d))
-                };
-                let mut row = Self::row_of(
-                    st,
-                    RowContext {
-                        node: flat,
-                        live,
-                        rect,
-                        disabled: self.is_disabled(item),
-                        query_active,
-                        has_visible_descendant,
-                    },
-                );
-                if self.cursor_selected {
-                    row.flags
-                        .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
-                }
-                if st.core.cursor() == Some(row.key) || row.flags.contains(StateFlags::SELECTED) {
-                    keep.push(rect.y);
-                }
-                self.project_pointer_flags(ui, st, live, &mut row);
-                vetoed |= self.paint_row(ui, row, indent, item, suppress_meta);
+        for (offset, d) in view.visible_range().enumerate() {
+            let Some(flat) = ui.cache::<TreeIndex>(self.id).row(d) else {
+                break;
+            };
+            let Some(item) = items.get(flat.source) else {
+                break;
+            };
+            let rect = Rect {
+                x: content.x,
+                y: content
+                    .y
+                    .saturating_add(offset.min(usize::from(u16::MAX)) as u16),
+                width: content.width,
+                height: 1,
+            };
+            let (query_active, has_visible_descendant) = {
+                let index = ui.cache::<TreeIndex>(self.id);
+                (index.query_active, index.has_visible_descendant(d))
+            };
+            let mut row = Self::row_of(
+                st,
+                RowContext {
+                    node: flat,
+                    live,
+                    rect,
+                    disabled: self.is_disabled(item),
+                    query_active,
+                    has_visible_descendant,
+                },
+            );
+            if self.cursor_selected {
+                row.flags
+                    .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
             }
-            vetoed
-        };
-        let mut keep = Vec::new();
-        if paint(false, &mut keep) {
-            let mut discard = Vec::new();
-            paint(true, &mut discard);
+            self.project_pointer_flags(ui, st, live, &mut row);
+            self.paint_row(ui, row, indent, item);
         }
-        ui.scroll_edges_except(content, &view, &keep);
         area
     }
 
@@ -2151,16 +2021,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         );
     }
 
-    /// Paint one row; reports whether the row vetoes the meta column (it
-    /// carries meta text that did not fit, so no row may show meta).
-    fn paint_row(
-        &self,
-        ui: &mut Ui<'_>,
-        row: Row,
-        indent: u16,
-        item: &T,
-        suppress_meta: bool,
-    ) -> bool {
+    fn paint_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
         if let Some(renderer) = self.render_row {
             if !row.rect.intersection(ui.full()).is_empty() {
                 ui.with_area(row.rect, |ui| {
@@ -2168,69 +2029,54 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 });
             }
             self.register_row(ui, row, indent, false);
-            return false;
+            return;
         }
-        self.paint_default_row(ui, row, indent, item, suppress_meta)
+        self.paint_default_row(ui, row, indent, item);
     }
 
-    fn paint_default_row(
+    fn row_fill(
         &self,
         ui: &mut Ui<'_>,
-        row: Row,
-        indent: u16,
-        item: &T,
-        suppress_meta: bool,
-    ) -> bool {
-        let focus = row
-            .flags
-            .contains(StateFlags::FOCUSED)
-            .then(|| self.focused_patch.copied())
-            .flatten();
-        let rs = if let Some(focus) = focus {
+        flags: StateFlags,
+        focus: Option<StylePatch>,
+    ) -> crate::theme::PaintStyle {
+        if let Some(focus_patch) = focus {
             let patch = self
                 .ov
                 .part_patch(Part::CONTAINER)
-                .map(|part| part.merge(focus))
-                .unwrap_or(focus);
+                .map_or(focus_patch, |part| part.merge(focus_patch));
             ui.style_patched(
                 Family::TREE,
                 Variant::DEFAULT,
                 Part::CONTAINER,
-                row.flags,
+                flags,
                 &patch,
             )
+            .style
         } else {
-            self.ov.style(
-                ui,
-                self.id,
-                Family::TREE,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                row.flags,
-            )
-        };
-        ui.fill(row.rect, rs.style);
-        let gutter = cell_at(row.rect, row.rect.x);
-        if let Some(f) = self.ov.slot_for(Part::GUTTER) {
-            f(ui, gutter);
-        } else {
-            let g = self.ov.style(
-                ui,
-                self.id,
-                Family::TREE,
-                Variant::DEFAULT,
-                Part::GUTTER,
-                row.flags,
-            );
-            match g.glyph {
-                Slot::Set(glyph) => {
-                    ui.glyph(gutter, glyph, g.style);
-                }
-                Slot::Inherit | Slot::Clear => ui.fill(gutter, g.style),
-            }
+            self.ov
+                .style(
+                    ui,
+                    self.id,
+                    Family::TREE,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    flags,
+                )
+                .style
         }
-        let fold_x = self.fold_x(row, indent);
-        let fold = cell_at(row.rect, fold_x);
+    }
+
+    /// Paint the fold cell. A custom icon replaces the disclosure glyph and,
+    /// on a leaf, opts that cell out of the disclosure hit.
+    fn paint_fold(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Row,
+        item: &T,
+        fold: Rect,
+        row_style: crate::theme::PaintStyle,
+    ) -> bool {
         let custom_icon = self.icon.and_then(|paint| paint(item));
         let has_custom_icon = custom_icon.is_some();
         if let Some((text, patch)) = custom_icon {
@@ -2243,12 +2089,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     &patch,
                 )
                 .style;
-            // Paint over the row fill. A patch with no background keeps that
-            // fill, and `remove(BOLD)` can drop the fill's bold on this cell.
-            // A patch that does not set a background keeps the row fill,
-            // including a focused tint. Only the patched channels change.
+            // No explicit background keeps the row fill, including a focused tint.
             let style = if matches!(patch.bg, Slot::Inherit) {
-                style.with_bg_from(rs.style)
+                style.with_bg_from(row_style)
             } else {
                 style
             };
@@ -2273,7 +2116,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 // inherits the row, while an explicit ICON patch keeps the
                 // part independently styleable.
                 Slot::Inherit if row.disclosure.is_none() && !has_icon_patch => {
-                    ui.fill(fold, rs.style);
+                    ui.fill(fold, row_style);
                 }
                 // A branch keeps painting its disclosure glyph with the ICON
                 // recipe.
@@ -2287,13 +2130,72 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 Slot::Clear => ui.fill(fold, icon.style),
             }
         }
+        has_custom_icon
+    }
+
+    fn paint_trailing(
+        ui: &mut Ui<'_>,
+        row: Row,
+        role: GlyphRole,
+        patch: StylePatch,
+        reserve: u16,
+        row_style: crate::theme::PaintStyle,
+    ) {
+        let mark = cell_at(row.rect, row.rect.right().saturating_sub(reserve));
+        let style = ui
+            .style_patched(
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                row.flags,
+                &patch,
+            )
+            .style;
+        // No explicit background keeps the row fill, so a focused tint
+        // stays behind the mark.
+        let style = if matches!(patch.bg, Slot::Inherit) {
+            style.with_bg_from(row_style)
+        } else {
+            style
+        };
+        ui.glyph(mark, role, style);
+    }
+
+    fn paint_default_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
+        let focus = row
+            .flags
+            .contains(StateFlags::FOCUSED)
+            .then(|| self.focused_patch.copied())
+            .flatten();
+        let row_style = self.row_fill(ui, row.flags, focus);
+        ui.fill(row.rect, row_style);
+        let gutter = cell_at(row.rect, row.rect.x);
+        if let Some(f) = self.ov.slot_for(Part::GUTTER) {
+            f(ui, gutter);
+        } else {
+            let g = self.ov.style(
+                ui,
+                self.id,
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                row.flags,
+            );
+            match g.glyph {
+                Slot::Set(glyph) => {
+                    ui.glyph(gutter, glyph, g.style);
+                }
+                Slot::Inherit | Slot::Clear => ui.fill(gutter, g.style),
+            }
+        }
+        let fold_x = self.fold_x(row, indent);
+        let fold = cell_at(row.rect, fold_x);
+        let has_custom_icon = self.paint_fold(ui, row, item, fold, row_style);
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
         self.paint_marker(ui, row, marker);
         let trailing = self.trailing_mark.and_then(|paint| paint(item));
-        // The row area ends at the content edge: `RowUi::meta` paints
-        // the trailing word one cell before it (`tag:tree.rs:637`), so no
-        // extra pad is reserved here. A trailing mark takes two more cells
-        // from this row only.
+        // The content edge is already the row end. A trailing mark reserves
+        // two cells on this row only and does not add another pad.
         let mut rest = Rect {
             x: fold_x.saturating_add(2),
             width: row
@@ -2303,18 +2205,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .min(row.rect.width),
             ..row.rect
         };
-        let reserve = if trailing.is_some() {
-            self.trailing_reserve.max(2)
-        } else {
-            0
-        };
+        let reserve = if trailing.is_some() { 2 } else { 0 };
         if reserve > 0 {
             rest.width = rest.width.saturating_sub(reserve);
         }
-        let mut vetoed = false;
         if rest.width > 0 && rest.x < row.rect.right() {
-            let container_patch = merge_focus(self.ov.part_patch(Part::CONTAINER), focus);
-            let label_patch = merge_focus(self.ov.part_patch(Part::LABEL), focus);
             let mut r = RowUi::new_with_patches(
                 ui,
                 self.id,
@@ -2323,45 +2218,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 row.flags,
                 row.key,
                 rest,
-                container_patch,
-                label_patch,
+                merge_focus(self.ov.part_patch(Part::CONTAINER), focus),
+                merge_focus(self.ov.part_patch(Part::LABEL), focus),
             );
-            r.set_suppress_meta(suppress_meta);
             self.row.row(item, &mut r);
-            vetoed = !suppress_meta && r.meta_paint().is_some_and(|m| m.need > 0 && m.painted == 0);
-            // `label_end` covers the last cell so a trailing mark keeps a
-            // colored pad. With no mark, that pad is the row fill again.
-            // `label` puts its last glyph on the same cell, so leave it.
-            if trailing.is_none() && r.padded_tail() {
-                let edge = cell_at(rest, rest.right().saturating_sub(1));
-                ui.fill(edge, rs.style);
-            }
         }
         if let Some((role, patch)) = trailing {
-            let mark = cell_at(row.rect, row.rect.right().saturating_sub(reserve));
-            let style = ui
-                .style_patched(
-                    Family::TREE,
-                    Variant::DEFAULT,
-                    Part::CONTAINER,
-                    row.flags,
-                    &patch,
-                )
-                .style;
-            // No explicit background keeps the row fill, so a focused tint
-            // stays behind the mark.
-            let style = if matches!(patch.bg, Slot::Inherit) {
-                style.with_bg_from(rs.style)
-            } else {
-                style
-            };
-            ui.glyph(mark, role, style);
+            Self::paint_trailing(ui, row, role, patch, reserve, row_style);
         }
         if ui.is_inert() {
-            return vetoed;
+            return;
         }
         self.register_row(ui, row, indent, has_custom_icon);
-        vetoed
     }
 
     fn fold_x(&self, row: Row, indent: u16) -> u16 {
@@ -2452,11 +2320,11 @@ mod tests {
     use ratatui_core::layout::{Position, Rect};
 
     use super::{
-        Acc, PointerIntent, TABLE, Tree, TreeAction, TreeBranchClick, TreeIndex, TreeNode,
-        TreeState,
+        Acc, PointerIntent, TABLE, Tree, TreeAction, TreeBranchClick, TreeIconFn, TreeIndex,
+        TreeNode, TreeState, TreeTrailingMarkFn,
     };
     use crate::Phase;
-    use crate::collection::RowUi;
+    use termrock_runtime::rowui::RowUi;
     use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::response::StateFlags;
     use crate::runtime::Runtime;
@@ -2528,35 +2396,56 @@ mod tests {
         assert_eq!(acc.finish(TREE).action_ref(), Some(&TreeAction::Chose(key)));
     }
 
+    fn phases(tree: &Tree<'_, N>, st: &mut TreeState, items: &[N], part: PartRef) -> TreeAction {
+        let mut index = TreeIndex::default();
+        index.sync(tree, st, items);
+        let mut acc = Acc::new();
+        for phase in [Phase::Press, Phase::Release, Phase::Click] {
+            tree.pointer(
+                st,
+                &mut index,
+                items,
+                PointerIntent {
+                    phase,
+                    prior_cursor: None,
+                    part,
+                    hint: Some(0),
+                },
+                &mut acc,
+            );
+        }
+        acc.finish(TREE)
+            .action_ref()
+            .copied()
+            .expect("pointer click emits an action")
+    }
+
     #[test]
     fn branch_disclosure_click_never_chooses_or_activates() {
         let t = tree();
         let items = [N("branch", 0, true), N("leaf", 1, false)];
         let mut st = TreeState::new();
-        let mut index = TreeIndex::default();
-        index.sync(&t, &st, &items);
         let key = ItemKey::text("branch");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+        let fold = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("fold hit");
+        assert_eq!(fold.part, PartRef::item(Part::ICON, key));
 
-        for phase in [Phase::Press, Phase::Release, Phase::Click] {
-            let mut acc = Acc::<TreeAction>::new();
-            t.pointer(
-                &mut st,
-                &mut index,
-                &items,
-                PointerIntent {
-                    phase,
-                    prior_cursor: None,
-                    part: PartRef::item(Part::ICON, key),
-                    hint: Some(0),
-                },
-                &mut acc,
-            );
-            let response = acc.finish(TREE);
-            assert_ne!(response.action_ref(), Some(&TreeAction::Chose(key)));
-            assert_ne!(response.action_ref(), Some(&TreeAction::Activated(key)));
-        }
-
+        let action = phases(&t, &mut st, &items, fold.part);
+        assert_eq!(action, TreeAction::Expanded(key));
+        assert_ne!(action, TreeAction::Chose(key));
+        assert_ne!(action, TreeAction::Activated(key));
         assert!(st.is_expanded(key));
+        assert_eq!(st.chosen(), None);
     }
 
     #[test]
@@ -2564,64 +2453,25 @@ mod tests {
         let t = tree();
         let items = [N("leaf", 0, false)];
         let mut st = TreeState::new();
-        let mut index = TreeIndex::default();
-        index.sync(&t, &st, &items);
         let key = ItemKey::text("leaf");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                t.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
+        let fold = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("fold hit");
+        assert_eq!(fold.part, PartRef::item(Part::ICON, key));
 
-        for phase in [Phase::Press, Phase::Release, Phase::Click] {
-            let mut acc = Acc::<TreeAction>::new();
-            t.pointer(
-                &mut st,
-                &mut index,
-                &items,
-                PointerIntent {
-                    phase,
-                    prior_cursor: None,
-                    part: PartRef::item(Part::ICON, key),
-                    hint: Some(0),
-                },
-                &mut acc,
-            );
-            if phase == Phase::Click {
-                assert_eq!(acc.finish(TREE).action_ref(), Some(&TreeAction::Chose(key)));
-            }
-        }
-
-        assert_eq!(st.cursor(), Some(key));
-        assert_eq!(st.chosen(), Some(key));
-    }
-
-    #[test]
-    fn default_leaf_row_click_activates() {
-        let t = tree();
-        let items = [N("leaf", 0, false)];
-        let mut st = TreeState::new();
-        let mut index = TreeIndex::default();
-        index.sync(&t, &st, &items);
-        let key = ItemKey::text("leaf");
-
-        for phase in [Phase::Press, Phase::Release, Phase::Click] {
-            let mut acc = Acc::<TreeAction>::new();
-            t.pointer(
-                &mut st,
-                &mut index,
-                &items,
-                PointerIntent {
-                    phase,
-                    prior_cursor: None,
-                    part: PartRef::item(Part::ROW, key),
-                    hint: Some(0),
-                },
-                &mut acc,
-            );
-            if phase == Phase::Click {
-                assert_eq!(
-                    acc.finish(TREE).action_ref(),
-                    Some(&TreeAction::Activated(key))
-                );
-            }
-        }
-
+        assert_eq!(st.cursor(), None);
+        let action = phases(&t, &mut st, &items, fold.part);
+        assert_eq!(action, TreeAction::Chose(key));
+        assert_ne!(action, TreeAction::Activated(key));
         assert_eq!(st.cursor(), Some(key));
         assert_eq!(st.chosen(), Some(key));
     }
@@ -2633,37 +2483,38 @@ mod tests {
         let st = TreeState::new();
         let key = ItemKey::text("leaf");
         let area = Rect::new(0, 0, 12, 1);
-        let theme = Theme::junie();
-        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-
         runtime
             .draw_scene(area, &mut buffer, |ui, area| {
                 t.draw(ui, area, &st, &items);
             })
             .commit_presented();
 
-        let registry = runtime.registry();
-        let fold = registry.hit(Position::new(1, 0)).expect("fold hit");
+        let fold = runtime
+            .registry()
+            .hit(Position::new(1, 0))
+            .expect("fold hit");
         assert_eq!(fold.owner, TREE);
         assert_eq!(fold.part, PartRef::item(Part::ICON, key));
-
-        let body = registry.hit(Position::new(2, 0)).expect("body hit");
+        let body = runtime
+            .registry()
+            .hit(Position::new(2, 0))
+            .expect("body hit");
         assert_eq!(body.owner, TREE);
         assert_eq!(body.part, PartRef::item(Part::ROW, key));
     }
 
     #[test]
-    fn custom_leaf_icon_registers_as_row_body() {
-        let icon = |_: &N| Some(("★", StylePatch::new()));
+    fn custom_leaf_icon_click_is_row_body() {
+        let icon = |_: &N| Some(("*", StylePatch::new()));
         let t = Tree::new(TREE).node(&node).icon(&icon);
         let items = [N("leaf", 0, false)];
-        let st = TreeState::new();
+        let mut st = TreeState::new();
         let key = ItemKey::text("leaf");
         let area = Rect::new(0, 0, 12, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-
         runtime
             .draw_scene(area, &mut buffer, |ui, area| {
                 t.draw(ui, area, &st, &items);
@@ -2676,6 +2527,123 @@ mod tests {
             .expect("body hit");
         assert_eq!(hit.owner, TREE);
         assert_eq!(hit.part, PartRef::item(Part::ROW, key));
+        assert_ne!(hit.part.part, Part::ICON);
+
+        let action = phases(&t, &mut st, &items, hit.part);
+        assert_eq!(action, TreeAction::Chose(key));
+        assert_ne!(action, TreeAction::Activated(key));
+        assert!(!st.is_expanded(key));
+        assert_eq!(st.cursor(), Some(key));
+        assert_eq!(st.chosen(), Some(key));
+    }
+
+    #[test]
+    fn icon_trailing_mark_and_focused_patch_affect_paint() {
+        fn paint_icon(item: &N) -> Option<(&'static str, StylePatch)> {
+            (item.0 == "leaf").then_some(("◉", StylePatch::new().set_fg(Role::Accent)))
+        }
+        fn paint_mark(item: &N) -> Option<(GlyphRole, StylePatch)> {
+            (item.0 == "leaf")
+                .then_some((GlyphRole::Dirty, StylePatch::new().set_fg(Role::Warning)))
+        }
+        let icon: TreeIconFn<'_, N> = &paint_icon;
+        let trailing: TreeTrailingMarkFn<'_, N> = &paint_mark;
+        let focus = StylePatch::new().set_bg(Role::Danger);
+        let themed = Tree::new(TREE)
+            .node(&node)
+            .icon(icon)
+            .trailing_mark(trailing)
+            .focused_patch(&focus);
+        let plain = Tree::new(TREE).node(&node);
+        let items = [N("parent", 0, true), N("leaf", 1, false)];
+        let mut state = TreeState::new();
+        let parent = ItemKey::text("parent");
+        state.expand(parent);
+        state.set_cursor(0, parent);
+        let theme = Theme::junie();
+        let expanded = theme.design.glyphs.get(GlyphRole::Expanded);
+        let dirty = theme.design.glyphs.get(GlyphRole::Dirty);
+        let area = Rect::new(0, 0, 24, 2);
+        let painted = draw_focused(theme.clone(), &themed, &state, &items, area);
+        let unpatched = draw_focused(theme.clone(), &plain, &state, &items, area);
+
+        assert_eq!(
+            painted.cell(Position::new(1, 0)).map(BufferCell::symbol),
+            Some(expanded),
+            "parent icon None keeps the disclosure"
+        );
+        assert_eq!(
+            painted.cell(Position::new(3, 1)).map(BufferCell::symbol),
+            Some("◉"),
+            "a leaf icon paints the provided glyph"
+        );
+        assert_eq!(
+            painted.cell(Position::new(3, 1)).map(|cell| cell.fg),
+            Some(theme.color.accent),
+            "the leaf icon uses its patch"
+        );
+        let right_2 = 24u16.saturating_sub(2);
+        assert_eq!(
+            painted
+                .cell(Position::new(right_2, 1))
+                .map(BufferCell::symbol),
+            Some(dirty),
+            "trailing Dirty sits at right-2"
+        );
+        assert_eq!(
+            painted.cell(Position::new(right_2, 1)).map(|cell| cell.fg),
+            Some(theme.color.warning)
+        );
+        assert_ne!(
+            painted
+                .cell(Position::new(right_2, 0))
+                .map(BufferCell::symbol),
+            Some(dirty),
+            "trailing None does not paint a mark on the sibling row"
+        );
+        assert_eq!(
+            painted.cell(Position::new(20, 0)).map(|cell| cell.bg),
+            Some(theme.color.danger),
+            "focused_patch tints only the focused cursor row"
+        );
+        assert_ne!(
+            painted.cell(Position::new(20, 1)).map(|cell| cell.bg),
+            Some(theme.color.danger)
+        );
+        assert_ne!(
+            unpatched.cell(Position::new(20, 0)).map(|cell| cell.bg),
+            Some(theme.color.danger),
+            "without focused_patch the cursor row keeps the shared fill"
+        );
+    }
+
+    fn draw_focused<K, R>(
+        theme: Theme,
+        tree: &Tree<'_, N, K, R>,
+        state: &TreeState,
+        items: &[N],
+        area: Rect,
+    ) -> Buffer
+    where
+        K: termrock_collections::collection::key::KeyFn<N>,
+        R: termrock_runtime::rowui::RowFnRowFn<N>,
+    {
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        TREE,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| {
+                        tree.draw(ui, area, state, items);
+                    },
+                );
+            })
+            .commit_presented();
+        buffer
     }
 
     /// A forest with two roots, each with two children, the second of which
@@ -2827,8 +2795,8 @@ mod tests {
         }
     }
 
-    fn draw<R: crate::collection::RowFn<N>>(
-        t: &Tree<'_, N, crate::collection::ByIndex, R>,
+    fn draw<R: termrock_runtime::rowui::RowFnRowFn<N>>(
+        t: &Tree<'_, N, termrock_collections::collection::key::ByIndex, R>,
         st: &TreeState,
         items: &[N],
         area: Rect,
@@ -2843,7 +2811,7 @@ mod tests {
         t.draw(&mut ui, area, st, items);
     }
 
-    fn draw_cached<T, K: crate::collection::KeyFn<T>, R: crate::collection::RowFn<T>>(
+    fn draw_cached<T, K: termrock_collections::collection::key::KeyFn<T>, R: termrock_runtime::rowui::RowFnRowFn<T>>(
         t: &Tree<'_, T, K, R>,
         st: &TreeState,
         items: &[T],
@@ -2859,11 +2827,11 @@ mod tests {
         t.draw(&mut ui, area, st, items);
     }
 
-    fn render<T, K: crate::collection::KeyFn<T>, R: crate::collection::RowFn<T>>(
+    fn render<K: termrock_collections::collection::key::KeyFn<N>, R: termrock_runtime::rowui::RowFnRowFn<N>>(
         theme: Theme,
-        tree: &Tree<'_, T, K, R>,
+        tree: &Tree<'_, N, K, R>,
         state: &TreeState,
-        items: &[T],
+        items: &[N],
     ) -> Buffer {
         let area = Rect::new(0, 0, 24, items.len().max(1) as u16);
         let mut runtime = Runtime::new(Stub::default(), theme);
@@ -3341,36 +3309,6 @@ mod tests {
     }
 
     #[test]
-    fn label_that_fills_the_row_keeps_its_last_glyph() {
-        let name = "abcdefghijklmnopqrstu";
-        let items = [N(name, 0, false)];
-        let row = |n: &N, ui: &mut RowUi<'_>| ui.label(n.0);
-        let tree = Tree::new(TREE).node(&node).row(row);
-        let buffer = render(Theme::junie(), &tree, &TreeState::new(), &items);
-        assert_eq!(
-            buffer.cell(Position::new(23, 0)).map(BufferCell::symbol),
-            Some("u"),
-            "the last glyph of a full label must stay on the row"
-        );
-    }
-
-    #[test]
-    fn label_end_without_a_trailing_mark_restores_the_row_fill() {
-        let items = [N("short", 0, false)];
-        let row = |n: &N, ui: &mut RowUi<'_>| {
-            ui.label_end(n.0, &StylePatch::new().add(Modifier::BOLD));
-        };
-        let tree = Tree::new(TREE).node(&node).row(row);
-        let buffer = render(Theme::junie(), &tree, &TreeState::new(), &items);
-        let last = buffer.cell(Position::new(23, 0)).expect("last cell");
-        assert_eq!(last.symbol(), " ");
-        assert!(
-            !last.modifier.contains(Modifier::BOLD),
-            "a label pad with no trailing mark returns to the row fill"
-        );
-    }
-
-    #[test]
     fn mono_chosen_row_paints_marker_without_moving_the_label() {
         let items = [N("item", 0, false)];
         let mut state = TreeState::new();
@@ -3627,227 +3565,5 @@ mod tests {
                 "owner patch leaked into row-owned {symbol}"
             );
         }
-    }
-
-    /// Q66-S5 draw helper: two leaf nodes at Mono, the second disabled with
-    /// label+meta (probe-D shape at 24 columns: gutter x0, fold x1, marker
-    /// x2, label x3, meta right-aligned x17-22, container pad x23).
-    fn draw_q66s5_mono_disabled() -> Buffer {
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        let area = Rect::new(0, 0, 24, 2);
-        let items = [N("alpha", 0, false), N("beta", 0, false)];
-        let row = |item: &N, r: &mut RowUi<'_>| {
-            r.label(item.0);
-            r.meta("1.4 KB");
-        };
-        let tree = tree().row(&row).disabled_item(&off_q66s5);
-        let mut runtime = Runtime::new(Stub::default(), theme);
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                tree.draw(ui, area, &TreeState::new(), &items);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    fn off_q66s5(n: &N) -> bool {
-        n.0 == "beta"
-    }
-
-    /// F1-L6: disabled pad cells are DarkGray+DIM at Mono (LIST frozen pin
-    /// `lists/hover/120x40/none` y10, principle-only — tag tree never
-    /// disables); enabled pads stay DIM-free.
-    #[test]
-    fn q66s5_l6_disabled_pad_cells_carry_dim_at_mono() {
-        use ratatui_core::style::Color;
-
-        let buf = draw_q66s5_mono_disabled();
-        let pad = buf.cell(Position::new(10, 1)).expect("pad cell");
-        assert_eq!(pad.symbol(), " ");
-        assert_eq!(pad.style().fg, Some(Color::DarkGray), "disabled pad fg");
-        assert!(
-            pad.modifier.contains(Modifier::DIM),
-            "disabled pad lost DIM"
-        );
-        let enabled = buf.cell(Position::new(10, 0)).expect("enabled pad cell");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled pad gained DIM"
-        );
-    }
-
-    /// F1-L6: the disabled gutter cell is surface-black+DIM at Mono; the
-    /// enabled gutter stays DIM-free.
-    #[test]
-    fn q66s5_l6_disabled_gutter_cell_carries_dim_at_mono() {
-        use ratatui_core::style::Color;
-
-        let buf = draw_q66s5_mono_disabled();
-        let gutter = buf.cell(Position::new(0, 1)).expect("gutter cell");
-        assert_eq!(gutter.symbol(), " ");
-        assert_eq!(gutter.style().fg, Some(Color::Black), "disabled gutter fg");
-        assert!(
-            gutter.modifier.contains(Modifier::DIM),
-            "disabled gutter lost DIM"
-        );
-        let enabled = buf.cell(Position::new(0, 0)).expect("enabled gutter cell");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled gutter gained DIM"
-        );
-    }
-
-    /// F1-L6: disabled meta cells are Gray+DIM at Mono — +DIM per the LIST
-    /// mirror, fg Muted per M2 (tag tree meta is `st.fg(muted)`,
-    /// `tag:tree.rs:637-642`); enabled meta stays DIM-free.
-    #[test]
-    fn q66s5_l6_disabled_meta_cells_carry_dim_at_mono() {
-        use ratatui_core::style::Color;
-
-        let buf = draw_q66s5_mono_disabled();
-        let meta = buf.cell(Position::new(18, 1)).expect("meta cell");
-        assert_eq!(meta.symbol(), ".");
-        assert_eq!(
-            meta.style().fg,
-            Some(Color::Gray),
-            "disabled meta keeps the Muted fg"
-        );
-        assert!(
-            meta.modifier.contains(Modifier::DIM),
-            "disabled meta lost DIM"
-        );
-        let enabled = buf.cell(Position::new(18, 0)).expect("enabled meta cell");
-        assert_eq!(enabled.symbol(), ".");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled meta gained DIM"
-        );
-    }
-
-    /// F1-L6: the disabled marker cell rides the container fill — blank
-    /// symbol, same fg as the pads, +DIM — with no paint of its own
-    /// (`paint_marker` returns early unless selected, `tree.rs:2085-2087`).
-    #[test]
-    fn q66s5_l6_disabled_marker_cell_rides_container_dim_at_mono() {
-        let buf = draw_q66s5_mono_disabled();
-        let marker = buf.cell(Position::new(2, 1)).expect("marker cell");
-        let pad = buf.cell(Position::new(10, 1)).expect("pad cell");
-        assert_eq!(marker.symbol(), " ", "marker stays blank when unselected");
-        assert_eq!(
-            marker.style().fg,
-            pad.style().fg,
-            "marker cell must show the container fill"
-        );
-        assert!(
-            marker.modifier.contains(Modifier::DIM),
-            "marker cell lost the container DIM"
-        );
-    }
-
-    /// Caller icon `None` keeps disclosure. A leaf icon replaces that one
-    /// cell. Trailing `Dirty` is the cell at right-2 and is absent when the
-    /// callback returns `None`. `key` and `row` run after the callbacks so a
-    /// dropped field fails this draw.
-    #[test]
-    fn icon_none_keeps_disclosure_leaf_icon_and_trailing_dirty_at_right_minus_two() {
-        #[derive(Clone, Copy)]
-        struct Item {
-            name: &'static str,
-            depth: u16,
-            parent: bool,
-            icon: Option<&'static str>,
-            dirty: bool,
-        }
-        fn node(item: &Item) -> TreeNode {
-            let node = if item.parent {
-                TreeNode::parent(item.depth)
-            } else {
-                TreeNode::leaf(item.depth)
-            };
-            node.keyed(ItemKey::text(item.name))
-        }
-        fn icon(item: &Item) -> Option<(&'static str, StylePatch)> {
-            item.icon
-                .map(|glyph| (glyph, StylePatch::new().set_fg(Role::Accent)))
-        }
-        fn trailing(item: &Item) -> Option<(GlyphRole, StylePatch)> {
-            item.dirty
-                .then_some((GlyphRole::Dirty, StylePatch::new().set_fg(Role::Warning)))
-        }
-        fn row(item: &Item, ui: &mut RowUi<'_>) {
-            ui.label(item.name);
-        }
-        let items = [
-            Item {
-                name: "parent",
-                depth: 0,
-                parent: true,
-                icon: None,
-                dirty: false,
-            },
-            Item {
-                name: "leaf",
-                depth: 1,
-                parent: false,
-                icon: Some("◉"),
-                dirty: true,
-            },
-        ];
-        let tree = Tree::new(TREE)
-            .node(&node)
-            .icon(&icon)
-            .trailing_mark(&trailing)
-            .key(|item: &Item| ItemKey::text(item.name))
-            .row(row);
-        let theme = Theme::junie();
-        let collapsed_glyph = theme.design.glyphs.get(GlyphRole::Collapsed);
-        let expanded_glyph = theme.design.glyphs.get(GlyphRole::Expanded);
-        let dirty_glyph = theme.design.glyphs.get(GlyphRole::Dirty);
-        let collapsed = render(theme.clone(), &tree, &TreeState::new(), &items);
-        assert_eq!(
-            collapsed.cell(Position::new(1, 0)).map(BufferCell::symbol),
-            Some(collapsed_glyph),
-            "parent icon None keeps the collapsed disclosure"
-        );
-        assert_ne!(
-            collapsed.cell(Position::new(2, 0)).map(BufferCell::symbol),
-            Some(collapsed_glyph),
-            "a None icon must not paint a second disclosure"
-        );
-
-        let mut open = TreeState::new();
-        open.expand(ItemKey::text("parent"));
-        let buffer = render(theme, &tree, &open, &items);
-        assert_eq!(
-            buffer.cell(Position::new(1, 0)).map(BufferCell::symbol),
-            Some(expanded_glyph),
-            "parent icon None keeps the expanded disclosure"
-        );
-        assert_eq!(
-            buffer.cell(Position::new(3, 1)).map(BufferCell::symbol),
-            Some("◉"),
-            "a leaf icon paints the provided glyph"
-        );
-        assert_ne!(
-            buffer.cell(Position::new(4, 1)).map(BufferCell::symbol),
-            Some("◉"),
-            "the leaf icon occupies one cell"
-        );
-        let right_2 = 24u16.saturating_sub(2);
-        assert_eq!(
-            buffer
-                .cell(Position::new(right_2, 1))
-                .map(BufferCell::symbol),
-            Some(dirty_glyph),
-            "trailing Dirty sits at right-2"
-        );
-        assert_ne!(
-            buffer
-                .cell(Position::new(right_2, 0))
-                .map(BufferCell::symbol),
-            Some(dirty_glyph),
-            "trailing None does not paint a mark or shrink a sibling row"
-        );
     }
 }

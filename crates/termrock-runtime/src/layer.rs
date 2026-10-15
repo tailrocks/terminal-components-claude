@@ -7,10 +7,11 @@
 
 use ratatui_core::layout::{Constraint, Position, Rect};
 
+use crate::action::ActionKey;
+pub use termrock_core::layer_types::{DismissReason, LayerEvent, LayerId};
 use crate::focus::ScopeId;
 use crate::id::Id;
 
-pub use termrock_core::{DismissReason, LayerEvent, LayerId};
 
 /// What a layer traps.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -44,9 +45,9 @@ pub enum Anchor {
 /// Screen placement for `Anchor::Screen`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ScreenAlign {
-    /// Horizontally and vertically centred.
+    /// Horizontally centred, vertically in the optical centre (upper third).
     Center,
-    /// Horizontally centred, in the upper third.
+    /// Horizontally centred, near the top.
     UpperThird,
     /// Horizontally centred, at the bottom.
     Bottom,
@@ -270,6 +271,7 @@ impl LayerSpec {
     }
 }
 
+
 /// Resolve a layer's area: anchor, flip, then clamp (§9.1).
 ///
 /// [`LayerSize::Fill`] yields the whole screen. A `Fixed` size is clipped to
@@ -289,20 +291,11 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
     };
     let raw = match anchor {
         Anchor::Screen(align) => {
-            let max_h = if align == ScreenAlign::UpperThird && screen.height >= 3 {
-                screen.height.saturating_sub(2)
-            } else {
-                screen.height
-            };
-            let h = h.min(max_h);
             let x = screen.centered_horizontally(Constraint::Length(w)).x;
             let free = screen.height.saturating_sub(h);
             let y = match align {
-                ScreenAlign::Center => screen.centered_vertically(Constraint::Length(h)).y,
-                ScreenAlign::UpperThird => {
-                    let offset = if free > 0 { (free / 3).max(1) } else { 0 };
-                    screen.y.saturating_add(offset.min(free))
-                }
+                ScreenAlign::Center => screen.y.saturating_add(free / 3),
+                ScreenAlign::UpperThird => screen.y.saturating_add(free / 6),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
             Rect {
@@ -530,7 +523,6 @@ impl LayerStack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::action::ActionKey;
 
     const DLG: Id = Id::root("dlg");
     const PICK: Id = Id::root("pick");
@@ -662,14 +654,14 @@ mod tests {
     }
 
     #[test]
-    fn anchor_screen_center_is_centered() {
+    fn anchor_screen_center_sits_in_the_upper_third() {
         let screen = Rect::new(0, 0, 120, 40);
         let r = resolve_anchor(
             screen,
             Anchor::Screen(ScreenAlign::Center),
             LayerSize::Fixed(60, 12),
         );
-        assert_eq!(r, Rect::new(30, 14, 60, 12));
+        assert_eq!(r, Rect::new(30, 9, 60, 12));
         let b = resolve_anchor(
             screen,
             Anchor::Screen(ScreenAlign::Bottom),

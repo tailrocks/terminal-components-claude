@@ -4,7 +4,7 @@
 //! last frame's registry and focus ring (§3.3 steps 3–6) and files the
 //! resulting [`Intent`]s into a per-frame [`IntentQueue`] keyed by owner.
 //! The queue is frozen for the whole of `app.update`; a component drains
-//! its own bucket through `Cx::intents`, which
+//! its own bucket through [`Cx::intents`](crate::ui::Cx::intents), which
 //! borrows only the queue, so services on `Cx` stay usable inside the loop.
 
 use core::cell::Cell;
@@ -26,9 +26,7 @@ pub enum Intent<'f> {
     Binding(ActionKey),
     /// A key press delivered to the focused owner.
     Key(Key),
-    /// Pasted text delivered to the typing owner, else to the focused
-    /// editor — navigation-mode paste begins editing there (`text-input.md`
-    /// Paste). Non-editors never receive paste.
+    /// Pasted text delivered to the focused owner iff it declared `EDITING`.
     Paste(&'f str),
     /// A pointer phase over one of the owner's parts.
     Pointer {
@@ -116,6 +114,7 @@ impl fmt::Debug for Intent<'_> {
 }
 
 /// Pointer phases.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
     /// Pointer moved over the topmost live non-decorative part.
@@ -206,12 +205,6 @@ pub struct IntentQueue {
     /// measurement.
     #[cfg(feature = "testing")]
     probes: Cell<usize>,
-}
-
-impl Default for IntentQueue {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl IntentQueue {
@@ -358,7 +351,14 @@ impl IntentQueue {
         );
     }
 
-    pub fn wheel(&mut self, owner: Id, axis: Axis, delta: i16, part: PartRef, pos: Position) {
+    pub fn wheel(
+        &mut self,
+        owner: Id,
+        axis: Axis,
+        delta: i16,
+        part: PartRef,
+        pos: Position,
+    ) {
         self.push(
             owner,
             Stored::Wheel {
@@ -422,7 +422,7 @@ impl IntentQueue {
 
     /// Whether `owner` drained its bucket this pass.
     #[cfg(test)]
-    pub fn was_drained(&self, owner: Id) -> bool {
+    pub(crate) fn was_drained(&self, owner: Id) -> bool {
         self.bucket_index(owner)
             .and_then(|i| self.live().get(i))
             .is_some_and(|b| b.drained.get())
@@ -449,7 +449,11 @@ impl IntentQueue {
         }
     }
 
-    pub fn claim_binding_chord(&self, owner: Id, chord: crate::event::Chord) -> Option<ActionKey> {
+    pub fn claim_binding_chord(
+        &self,
+        owner: Id,
+        chord: crate::event::Chord,
+    ) -> Option<ActionKey> {
         let bucket = self.bucket_index(owner)?;
         let bucket = self.live().get(bucket)?;
         let claimed = bucket.items.iter().find_map(|stored| match stored {

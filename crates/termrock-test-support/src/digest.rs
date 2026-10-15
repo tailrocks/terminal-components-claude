@@ -188,7 +188,7 @@ impl Scene {
     /// ordinarily mutated while the binding remains usable.
     /// ```compile_fail,E0506
     /// use termrock::{App, Cx, Response, Ui, Theme, ColorLevel};
-    /// use termrock_testing::Scene;
+    /// use termrock_test_support::Scene;
     /// struct Model(u8);
     /// impl App for Model {
     ///     fn update(&mut self, _: &mut Cx<'_>) -> Response<()> { Response::ignored() }

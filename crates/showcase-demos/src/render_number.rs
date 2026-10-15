@@ -3,17 +3,17 @@
 /// Decimal `usize`, optionally followed by the fixed selection-count suffix.
 /// Thirty-two bytes hold every supported `usize` (at most 20 digits) plus 9 suffix bytes.
 #[derive(Debug)]
-pub struct RenderNumber {
+pub(crate) struct RenderNumber {
     bytes: [u8; 32],
     start: usize,
 }
 
 impl RenderNumber {
-    pub fn new(value: usize) -> Self {
+    pub(crate) fn new(value: usize) -> Self {
         Self::with_selected_suffix(value, false)
     }
 
-    pub fn selected(value: usize) -> Self {
+    pub(crate) fn selected(value: usize) -> Self {
         Self::with_selected_suffix(value, true)
     }
 
@@ -43,7 +43,7 @@ impl RenderNumber {
         result
     }
 
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         self.bytes
             .get(self.start..)
             .and_then(|bytes| core::str::from_utf8(bytes).ok())

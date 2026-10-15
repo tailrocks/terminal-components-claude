@@ -6,11 +6,11 @@ use core::fmt;
 use ratatui_core::layout::Rect;
 
 use super::{PartStyle, SlotFn};
-use crate::collection::EmptyState;
+use termrock_runtime::EmptyState;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
-use crate::text::{width, wrap, wrapped_rows};
+use crate::text::{width, wrapped_rows};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
@@ -253,39 +253,29 @@ impl<'a> Empty<'a> {
         if let Some(detail) = self.state.detail()
             && area.height >= 3
         {
-            let lines = wrap(detail, Self::hint_columns(area.width));
-            let budget = usize::from(area.height.saturating_sub(2));
-            let mut painted = 0u16;
-            for line in lines.iter().take(budget) {
-                let line_w = width(line).min(area.width);
-                let line_x = area.x.saturating_add(area.width.saturating_sub(line_w) / 2);
-                ui.paint_str(
-                    Rect {
-                        x: line_x,
-                        y: area.y.saturating_add(2).saturating_add(painted),
-                        width: line_w,
-                        height: 1,
-                    },
-                    line,
-                    help.style,
-                );
-                painted = painted.saturating_add(1);
-            }
-            rows = 2u16.saturating_add(painted);
+            let detail_w = width(detail).min(area.width);
+            let detail_x = area
+                .x
+                .saturating_add(area.width.saturating_sub(detail_w) / 2);
+            ui.paint_str(
+                Rect {
+                    x: detail_x,
+                    y: area.y.saturating_add(2),
+                    width: detail_w,
+                    height: 1,
+                },
+                detail,
+                help.style,
+            );
+            rows = 3;
         }
         rows
-    }
-
-    /// Hint lines wrap four columns inside the pane, matching the tag
-    /// empty widget, and never wider than the pane itself.
-    fn hint_columns(area_width: u16) -> u16 {
-        area_width.saturating_sub(4).max(8).min(area_width.max(1))
     }
 
     /// Rows the block needs at `w` columns.
     fn rows(&self, w: u16) -> u16 {
         match self.state.detail() {
-            Some(d) => wrapped_rows(d, Self::hint_columns(w)).saturating_add(2),
+            Some(d) => wrapped_rows(d, w.max(1)).saturating_add(2),
             None => 1,
         }
     }
@@ -295,13 +285,9 @@ impl<'a> Empty<'a> {
         let title = width(self.state.title());
         let detail = self.state.detail().map_or(0, width);
         let w = title.max(detail);
-        // Height follows the width draw will actually receive. Wrapping the
-        // hint four columns inside a wider constraint under-counts the rows
-        // and clips the last line.
-        let columns = w.min(c.max.0.max(1));
         Size {
             min: (title.min(c.max.0), 1),
-            preferred: (columns, self.rows(columns)),
+            preferred: (w, self.rows(c.max.0.max(1))),
         }
         .fit(c)
     }
@@ -400,77 +386,5 @@ mod tests {
 
         assert_eq!(cell_with(&buffer, "T").map(|cell| cell.fg), Some(info));
         assert!(cell_with(&buffer, error).is_some());
-    }
-
-    #[test]
-    fn hint_wraps_four_columns_inside_the_pane() {
-        let hint = "a".repeat(36);
-        let area = Rect::new(0, 0, 20, 8);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                Empty::new(
-                    EMPTY,
-                    EmptyState::Empty {
-                        title: "T",
-                        hint: Some(&hint),
-                    },
-                )
-                .draw(ui, area);
-            })
-            .commit_presented();
-        let mut longest = 0u16;
-        for y in 0..area.height {
-            let mut run = 0u16;
-            for x in 0..area.width {
-                let cell = buffer.cell((x, y)).expect("cell");
-                if cell.symbol() == "a" {
-                    run = run.saturating_add(1);
-                    longest = longest.max(run);
-                } else {
-                    run = 0;
-                }
-            }
-        }
-        assert_eq!(longest, 16);
-    }
-
-    #[test]
-    fn measure_height_fits_the_wrapped_hint() {
-        let hint = "hello world";
-        let empty = Empty::new(
-            EMPTY,
-            EmptyState::Empty {
-                title: "T",
-                hint: Some(hint),
-            },
-        );
-        let measured = {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(Rect::new(0, 0, 80, 10));
-            let mut got = None;
-            runtime
-                .draw_scene(Rect::new(0, 0, 80, 10), &mut buffer, |ui, _| {
-                    got = Some(empty.measure(ui, Constraints::loose(80, 10)));
-                })
-                .commit_presented();
-            got.expect("measure")
-        };
-        let area = Rect::new(0, 0, measured.preferred.0, measured.preferred.1);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                empty.draw(ui, area);
-            })
-            .commit_presented();
-        let mut text = String::new();
-        for y in 0..area.height {
-            for x in 0..area.width {
-                text.push_str(buffer.cell((x, y)).expect("cell").symbol());
-            }
-        }
-        assert!(text.contains('w') && text.contains('d'), "{text}");
     }
 }

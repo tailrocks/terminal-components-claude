@@ -1,37 +1,36 @@
 //! Application-owned grid metadata and the public adapter facade.
 
-use tablepro_domain::{ColType, Table, Value};
-use tablepro_sql::preview_sql;
-use termrock::{CellDecor, CellRef, GridModel, ItemKey};
+use tablepro_domain::domain::{ResultGrid, preview_sql};
 
-use crate::domain::ResultGrid;
+use tablepro_demo::db::{ColType, Table};
 
-/// Read/write result adapter used by table data grid.
+/// The read/write result adapter used by a table data grid.
 pub type TableGridModel = ResultGrid;
 
-/// Read-only result adapter used by query and table-result views.
+/// The read-only result adapter used by query and table-result views.
 pub type ResultGridModel = ResultGrid;
 
-/// Read-only structure metadata exposed through public grid contract.
+/// Read-only structure metadata exposed through the public grid contract.
 #[derive(Debug, Clone)]
 pub struct StructureModel {
     grid: ResultGrid,
 }
 
 impl StructureModel {
-    /// Build six-column structure model for one catalog table.
+    /// Build the six-column structure model for one catalog table.
+    #[must_use]
     pub fn from_table(table: &Table) -> Self {
-        let rows: Vec<Vec<Value>> = table
+        let rows: Vec<Vec<tablepro_demo::db::Value>> = table
             .columns
             .iter()
             .map(|column| {
                 vec![
-                    Value::Text(column.name.clone()),
-                    Value::Text(column.ty.sql().to_owned()),
-                    Value::Bool(column.nullable),
-                    Value::Bool(column.primary),
-                    Value::Text(column.default.clone().unwrap_or_default()),
-                    Value::Text(
+                    tablepro_demo::db::Value::Text(column.name.clone()),
+                    tablepro_demo::db::Value::Text(column.ty.sql().to_owned()),
+                    tablepro_demo::db::Value::Bool(column.nullable),
+                    tablepro_demo::db::Value::Bool(column.primary),
+                    tablepro_demo::db::Value::Text(column.default.clone().unwrap_or_default()),
+                    tablepro_demo::db::Value::Text(
                         column
                             .references
                             .as_ref()
@@ -41,7 +40,7 @@ impl StructureModel {
                 ]
             })
             .collect();
-        let result = tablepro_domain::ResultSet {
+        let result = tablepro_sql::sql::ResultSet {
             columns: vec![
                 ("name".to_owned(), ColType::Text),
                 ("type".to_owned(), ColType::Text),
@@ -62,26 +61,23 @@ impl StructureModel {
     }
 
     /// Explain why structure cells cannot be edited.
+    #[must_use]
     pub fn read_only_reason(&self) -> Option<&str> {
         Some("Structure metadata is read-only")
     }
 }
 
-impl GridModel for StructureModel {
+impl termrock::GridModel for StructureModel {
     fn row_count(&self) -> usize {
-        GridModel::row_count(&self.grid)
+        termrock::GridModel::row_count(&self.grid)
     }
 
-    fn row_key(&self, row: usize) -> ItemKey {
-        GridModel::row_key(&self.grid, row)
+    fn row_key(&self, row: usize) -> termrock::ItemKey {
+        termrock::GridModel::row_key(&self.grid, row)
     }
 
-    fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
-        GridModel::cell(&self.grid, row, col)
-    }
-
-    fn cell_decor(&self, row: usize, col: usize) -> CellDecor<'_> {
-        GridModel::cell_decor(&self.grid, row, col)
+    fn cell(&self, row: usize, col: usize) -> Option<termrock::CellRef<'_>> {
+        termrock::GridModel::cell(&self.grid, row, col)
     }
 
     fn read_only_reason(&self) -> Option<&str> {
@@ -89,8 +85,8 @@ impl GridModel for StructureModel {
     }
 }
 
-/// Column labels/types for generic grid.
-pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
+/// Column labels/types for the generic grid.
+pub(crate) fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
         .iter()
@@ -98,8 +94,12 @@ pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
         .collect()
 }
 
-/// Compact pending-change marker for status bar.
-pub fn pending_label(grid: &ResultGrid) -> String {
+/// Compact pending-change marker for the status bar.
+#[expect(
+    dead_code,
+    reason = "pending marker remains available to the private grid adapter"
+)]
+pub(crate) fn pending_label(grid: &ResultGrid) -> String {
     match grid.pending_total() {
         0 => String::new(),
         n => format!("• {n} pending"),

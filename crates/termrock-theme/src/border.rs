@@ -41,7 +41,7 @@ mod tests {
             s.horizontal_bottom,
         ] {
             assert!(g.is_ascii() && g.len() == 1, "{g:?}");
-            assert_eq!(unicode_width::UnicodeWidthStr::width(g), 1);
+            assert_eq!(crate::text::width(g), 1);
         }
     }
 }

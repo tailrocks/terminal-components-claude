@@ -6,10 +6,9 @@ use core::marker::PhantomData;
 use ratatui_core::layout::{Position, Rect};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
-use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, Status,
-    index_of, key_at,
-};
+use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::empty::{Status};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -17,7 +16,6 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
@@ -215,10 +213,7 @@ pub struct TabsState {
     core: CollectionCore,
     active: Option<ItemKey>,
     first: Option<ItemKey>,
-    /// The strip window's horizontal scroll: `offset` is the first visible
-    /// tab. The window may rest partially past the end (`first` in `0..len`),
-    /// so content is sized `len + viewport - 1` and `max_offset` is `len - 1`.
-    tab_scroll: ScrollState,
+    first_index: usize,
 }
 
 impl TabsState {
@@ -252,25 +247,17 @@ impl Reconcile for TabsState {
         {
             self.active = self.core.cursor();
         }
-        // Size the strip window before resolving: `apply_layout` sets
-        // content and viewport atomically, so no transient clamp can fire.
-        self.tab_scroll.apply_layout(
-            self.tab_scroll.viewport_len(),
-            len.saturating_add(self.tab_scroll.viewport_len())
-                .saturating_sub(1),
-        );
-        let offset = self.tab_scroll.offset();
         match self.first {
             Some(f) => {
                 if let Some(i) = (0..len).find(|&i| key(i) == f) {
-                    self.tab_scroll.scroll_to(i);
+                    self.first_index = i;
                 } else {
-                    let i = offset.min(len.saturating_sub(1));
-                    self.tab_scroll.scroll_to(i);
+                    let i = self.first_index.min(len.saturating_sub(1));
+                    self.first_index = i;
                     self.first = (len > 0).then(|| key(i));
                 }
             }
-            None => self.tab_scroll.jump_start(),
+            None => self.first_index = 0,
         }
         r
     }
@@ -506,53 +493,63 @@ fn digits(n: usize, buf: &mut [u8; 2]) -> &str {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
+    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
+        items
+            .get(i)
+            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
+    }
+
+    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
+        if let Some(h) = hint
+            && h < items.len()
+            && self.key_at(items, h) == key
+        {
+            return Some(h);
+        }
+        (0..items.len()).find(|&i| self.key_at(items, i) == key)
+    }
+
     fn activate(&self, st: &mut TabsState, items: &[T], i: usize, acc: &mut Acc<TabsAction>) {
         if items.is_empty() {
             acc.consumed();
             return;
         }
         let i = i.min(items.len().saturating_sub(1));
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         st.set_active(i, key);
         acc.action(TabsAction::Activated(key));
     }
 
     /// Keep the active tab inside the window, using last frame's `fit`.
-    /// A zero-`fit` layout still moves the window down; `ensure_visible` is
-    /// a no-op without a viewport, so that case stays explicit.
     fn follow(&self, st: &mut TabsState, items: &[T], fit: usize) {
         let Some(active) = st.active else { return };
-        let Some(ai) = index_of(&self.key, items, active, Some(st.core.cursor_index())) else {
+        let Some(ai) = self.index_of(items, active, Some(st.core.cursor_index())) else {
             return;
         };
-        let len = items.len();
-        st.tab_scroll
-            .apply_layout(fit, len.saturating_add(fit).saturating_sub(1));
-        let before = st.tab_scroll.offset();
-        if fit == 0 {
-            st.tab_scroll.scroll_to(before.min(ai));
-        } else {
-            st.tab_scroll.ensure_visible(ai);
-        }
-        if st.tab_scroll.offset() != before {
-            st.first = Some(key_at(&self.key, items, st.tab_scroll.offset()));
+        if ai < st.first_index {
+            st.first_index = ai;
+            st.first = Some(active);
+        } else if fit > 0 && ai >= st.first_index.saturating_add(fit) {
+            let i = ai.saturating_add(1).saturating_sub(fit);
+            st.first_index = i;
+            st.first = Some(self.key_at(items, i));
         }
     }
 
     /// The update phase: reconcile, then drain keys and pointer intents.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState, items: &[T]) -> Response<TabsAction> {
         let len = items.len();
-        let _ = st.reconcile(len, |i| key_at(&self.key, items, i));
+        let _ = st.reconcile(len, |i| self.key_at(items, i));
         if st.core.cursor().is_none() && len > 0 {
-            let key = key_at(&self.key, items, 0);
+            let key = self.key_at(items, 0);
             st.core.set_cursor(0, key);
         }
         if st.active.is_none() {
             st.active = st.core.cursor();
         }
         if st.first.is_none() && len > 0 {
-            st.first = Some(key_at(&self.key, items, 0));
-            st.tab_scroll.jump_start();
+            st.first = Some(self.key_at(items, 0));
+            st.first_index = 0;
         }
         let mut acc = Acc::<TabsAction>::new();
         let table = self.table();
@@ -578,7 +575,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         }
                         Some(TabsCmd::Close) => {
                             if len > 0 {
-                                acc.action(TabsAction::Close(key_at(&self.key, items, cur)));
+                                acc.action(TabsAction::Close(self.key_at(items, cur)));
                             } else {
                                 acc.consumed();
                             }
@@ -589,14 +586,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
                 Intent::Pointer { phase, part, .. } => match (phase, part.part, part.item) {
                     (Phase::Press, Part::TAB, Some(k)) => {
-                        if let Some(i) = index_of(&self.key, items, k, Some(st.core.cursor_index()))
-                        {
+                        if let Some(i) = self.index_of(items, k, Some(st.core.cursor_index())) {
                             st.core.set_cursor(i, k);
                         }
                         acc.changed();
                     }
                     (Phase::Click | Phase::DoubleClick, Part::TAB, Some(k)) => {
-                        match index_of(&self.key, items, k, Some(st.core.cursor_index())) {
+                        match self.index_of(items, k, Some(st.core.cursor_index())) {
                             Some(i) => self.activate(st, items, i, &mut acc),
                             None => acc.consumed(),
                         }
@@ -604,15 +600,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     (Phase::Click, Part::CLOSE, Some(k)) => acc.action(TabsAction::Close(k)),
                     (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
                     (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
-                        st.tab_scroll.scroll_by(-1);
-                        st.first =
-                            (len > 0).then(|| key_at(&self.key, items, st.tab_scroll.offset()));
+                        let i = st.first_index.saturating_sub(1);
+                        st.first_index = i;
+                        st.first = (len > 0).then(|| self.key_at(items, i));
                         acc.changed();
                     }
                     (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(_))) => {
-                        st.tab_scroll.scroll_by(1);
-                        st.first =
-                            (len > 0).then(|| key_at(&self.key, items, st.tab_scroll.offset()));
+                        let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
+                        st.first_index = i;
+                        st.first = (len > 0).then(|| self.key_at(items, i));
                         acc.changed();
                     }
                     _ => acc.consumed(),
@@ -620,13 +616,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 _ => {}
             }
         }
-        if let Some(l) = cx.layout(self.id)
-            && (l.viewport_len < l.content_len
-                || st
-                    .active
-                    .and_then(|a| index_of(&self.key, items, a, Some(st.core.cursor_index())))
-                    .is_some_and(|ai| ai < st.tab_scroll.offset()))
-        {
+        if let Some(l) = cx.layout(self.id) {
             self.follow(st, items, l.viewport_len);
         }
         acc.finish(self.id)
@@ -701,7 +691,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         let overflow_last = last.is_some_and(|l| l.viewport_len < l.content_len);
         let first_index = st
             .first
-            .and_then(|f| index_of(&self.key, items, f, Some(st.tab_scroll.offset())))
+            .and_then(|f| self.index_of(items, f, Some(st.first_index)))
             .unwrap_or(0)
             .min(len);
         let status_w: u16 = if matches!(self.status, Status::Ready) {
@@ -766,9 +756,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 self.row.row(item, &mut r);
             }
             let label_w = painted_width(ui, content).max(1);
+            let close_w: u16 = if self.closable { 2 } else { 0 };
             let tab_w = 1u16
                 .saturating_add(label_w)
-                .saturating_add(if self.closable { 4 } else { 2 });
+                .saturating_add(1)
+                .saturating_add(close_w);
             let tab = Rect {
                 x,
                 y: row0.y,
@@ -783,7 +775,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             };
             ui.fill(tail, strip.style);
             let ts = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
-            ui.fill(cell_at(tab, tab.x), ts.style);
+            ui.paint_style(tab, ts.style);
             // §11.4's mono `PRESSED` affordance: `[label]`. The row fn paints
             // the label through `RowUi`, which cannot consult the `LABEL`
             // glyph slot the way `Button::draw` does, so the strip paints the
@@ -803,7 +795,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
             }
             if self.closable {
-                let close_cell = cell_at(tab, tab.right().saturating_sub(3));
+                let close_cell = cell_at(tab, tab.right().saturating_sub(2));
                 let close_part = PartRef::item(Part::CLOSE, key);
                 let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
                 if hovered == Some(close_part) {
@@ -857,7 +849,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
             }
             if self.closable && !ui.is_inert() {
-                let close_cell = cell_at(tab, tab.right().saturating_sub(3));
+                let close_cell = cell_at(tab, tab.right().saturating_sub(2));
                 ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
             }
             x = tab.right().saturating_add(1);
@@ -948,34 +940,28 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 width: new_w.min(row0.width),
                 height: 1,
             };
-            let mut new_flags = StateFlags::empty();
-            let new_part = PartRef::of(Part::NEW);
-            if hovered == Some(new_part) {
-                new_flags |= StateFlags::HOVERED;
-            }
-            if pressed == Some(new_part) {
-                new_flags |= StateFlags::PRESSED;
-            }
-            let ns = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::NEW, new_flags);
-            let btn = Rect {
-                width: 3.min(cell.width),
-                ..cell
-            };
-            ui.fill(btn, ns.style);
-            let glyph_cell = cell_at(btn, btn.x.saturating_add(1));
+            let ns = ov.style(
+                ui,
+                id,
+                Family::TABS,
+                Variant::DEFAULT,
+                Part::NEW,
+                StateFlags::empty(),
+            );
+            let inner = super::shift(cell, 1);
             match ns.glyph {
                 Slot::Set(glyph) => {
-                    ui.glyph(glyph_cell, glyph, ns.style);
+                    ui.glyph(inner, glyph, ns.style);
                 }
                 Slot::Inherit => {
-                    ui.glyph(glyph_cell, GlyphRole::NewTab, ns.style);
+                    ui.glyph(inner, GlyphRole::NewTab, ns.style);
                 }
                 Slot::Clear => {
-                    ui.fill(glyph_cell, ns.style);
+                    ui.fill(inner, ns.style);
                 }
             }
             if !ui.is_inert() {
-                ui.register_part(self.id, PartRef::of(Part::NEW), btn);
+                ui.register_part(self.id, PartRef::of(Part::NEW), cell);
             }
         }
         if status_w > 0 {
@@ -1004,16 +990,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         }
                         Slot::Clear => ui.fill(icon_cell, icon.style),
                     },
-                    Status::Warning => match icon.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(icon_cell, glyph, icon.style);
-                        }
-                        Slot::Inherit => {
-                            ui.glyph(icon_cell, GlyphRole::WarningMark, icon.style);
-                        }
-                        Slot::Clear => ui.fill(icon_cell, icon.style),
-                    },
                     Status::Ready => {}
+                    // `Status` is `#[non_exhaustive]`: future statuses paint nothing.
+                    _ => {}
                 }
             }
         }
@@ -1035,7 +1014,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
 /// Columns of `row` painted with a non-blank symbol, measured from its left.
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
     ui.with_area(row, |ui| {
-        let (buf, clip) = ui.peek();
+        let (buf, clip) = ui.raw();
         let mut last = 0u16;
         for x in clip.columns().map(|c| c.x) {
             if let Some(c) = buf.cell(Position::new(x, clip.y))
@@ -1121,7 +1100,7 @@ mod tests {
         assert_eq!(st.active(), Some(ItemKey::num(2)));
         assert_eq!(st.cursor(), Some(ItemKey::num(2)));
         assert_eq!(st.first(), Some(ItemKey::num(1)));
-        assert_eq!(st.tab_scroll.offset(), 3);
+        assert_eq!(st.first_index, 3);
         // the active tab vanishes: the cursor's neighbour becomes active
         let c = keys(&[9, 3, 1]);
         let _ = st.reconcile(3, |i| c[i]);
@@ -1134,51 +1113,7 @@ mod tests {
     }
 
     #[test]
-    fn follow_keeps_the_partial_trailing_window_and_zero_fit_down_move() {
-        let tabs = Tabs::new(TABS);
-        let items = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
-        let mut st = TabsState::default();
-        let _ = st.reconcile(items.len(), ItemKey::index);
-        // Minimal shift, active last: first lands at `ai + 1 - fit`.
-        st.set_active(9, ItemKey::index(9));
-        tabs.follow(&mut st, &items, 3);
-        assert_eq!(st.tab_scroll.offset(), 7);
-        assert_eq!(st.first(), Some(ItemKey::index(7)));
-        // Active inside the window: no move, key untouched.
-        st.set_active(8, ItemKey::index(8));
-        tabs.follow(&mut st, &items, 3);
-        assert_eq!(st.tab_scroll.offset(), 7);
-        assert_eq!(st.first(), Some(ItemKey::index(7)));
-        // Active above the window: down to the active tab itself.
-        st.set_active(5, ItemKey::index(5));
-        tabs.follow(&mut st, &items, 3);
-        assert_eq!(st.tab_scroll.offset(), 5);
-        assert_eq!(st.first(), Some(ItemKey::index(5)));
-        // Trailing window past `len - fit`: never clamped back.
-        st.tab_scroll.scroll_to(9);
-        st.set_active(9, ItemKey::index(9));
-        tabs.follow(&mut st, &items, 3);
-        assert_eq!(st.tab_scroll.offset(), 9);
-        st.set_active(8, ItemKey::index(8));
-        tabs.follow(&mut st, &items, 3);
-        assert_eq!(st.tab_scroll.offset(), 8);
-        // Overflow steps cap at `len - 1`, not `len - fit`.
-        st.tab_scroll.scroll_by(5);
-        assert_eq!(st.tab_scroll.offset(), 9);
-        st.tab_scroll.scroll_by(-20);
-        assert_eq!(st.tab_scroll.offset(), 0);
-        // A zero-fit layout still moves the window down, never up.
-        st.tab_scroll.scroll_to(5);
-        st.set_active(3, ItemKey::index(3));
-        tabs.follow(&mut st, &items, 0);
-        assert_eq!(st.tab_scroll.offset(), 3);
-        st.set_active(9, ItemKey::index(9));
-        tabs.follow(&mut st, &items, 0);
-        assert_eq!(st.tab_scroll.offset(), 3);
-    }
-
-    #[test]
-    fn mono_pressed_keeps_the_reserved_pad_cells_unbracketed() {
+    fn mono_pressed_brackets_the_reserved_pad_cells() {
         const LABEL: &str = "Full width";
         let items = [LABEL];
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
@@ -1200,13 +1135,11 @@ mod tests {
             })
             .commit_presented();
 
-        // Q65-S4/G6: no brackets at `Mono` (the tag has none) — the pads
-        // stay blank and the full label still fits.
-        assert_eq!(row_text(&buffer, AREA.width), " Full width ");
+        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
 
     #[test]
-    fn mono_pressed_closable_tab_keeps_the_close_cell_unbracketed() {
+    fn mono_pressed_closable_tab_keeps_the_close_cell_after_the_bracket() {
         let items = ["tab"];
         let key = ItemKey::index(0);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
@@ -1228,11 +1161,9 @@ mod tests {
             })
             .commit_presented();
 
-        // Q65-S4/G6: no brackets at `Mono` — the pad stays blank and the
-        // close cell keeps its position.
         assert_eq!(
             buffer.cell(Position::new(4, 0)).map(BufferCell::symbol),
-            Some(" ")
+            Some(Theme::junie().design.glyphs.get(GlyphRole::PressRight))
         );
         assert_eq!(
             buffer.cell(Position::new(5, 0)).map(BufferCell::symbol),

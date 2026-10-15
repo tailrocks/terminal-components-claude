@@ -5,7 +5,7 @@
 //!
 //! ```ignore
 //! #[global_allocator]
-//! static GLOBAL: termrock_testing::perf::Counting = termrock_testing::perf::Counting;
+//! static GLOBAL: termrock_test_support::perf::Counting = termrock_test_support::perf::Counting;
 //! ```
 //!
 //! Allocation counters are per thread, so counts stay exact with any

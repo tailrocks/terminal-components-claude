@@ -6,7 +6,7 @@ use core::ops::Range;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
-use super::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;

@@ -13,7 +13,7 @@ use crate::event::{Chord, Key};
 use crate::id::Id;
 use crate::response::StateFlags;
 
-pub use termrock_core::KeyPhase;
+pub use termrock_core::keys::KeyPhase;
 
 /// The state a binding table is selected for. `Copy`, so a table is chosen
 /// by `match` in a `const fn`.
@@ -717,15 +717,6 @@ impl HintKey {
         match self {
             Self::Chord(chord) | Self::ChordWithCase { chord, .. } => Some(chord),
             Self::Label(_) => None,
-        }
-    }
-}
-
-impl core::fmt::Display for HintKey {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Chord(c) | Self::ChordWithCase { chord: c, .. } => write!(f, "{c}"),
-            Self::Label(s) => f.write_str(s),
         }
     }
 }

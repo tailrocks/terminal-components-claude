@@ -29,7 +29,7 @@ pub(crate) mod collection {
 }
 
 pub(crate) mod form {
-    pub use termrock_runtime::InheritedFormState;
+    pub use termrock_controls::choice::InheritedFormState;
 }
 
 pub(crate) mod button {

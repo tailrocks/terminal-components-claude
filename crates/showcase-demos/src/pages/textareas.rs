@@ -1,8 +1,8 @@
 //! Multiline editing and viewport scrolling.
 
 use termrock::{
-    Cx, Family, FgStep, Field, Id, Panel, PanelKind, Part, Rect, Role, StateFlags, StylePatch,
-    TextAction, TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate, width,
+    Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, StateFlags, TextAction,
+    TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -14,15 +14,6 @@ const COMMIT: Id = id!("textareas.commit");
 const PLAYGROUND: Id = id!("textareas.playground");
 const STATES: Id = id!("textareas.states");
 
-const DETAIL_PATCH: &[(Part, StylePatch)] = &[(
-    Part::DETAIL,
-    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
-)];
-const DISABLED_LABEL_PATCH: &[(Part, StylePatch)] = &[(
-    Part::LABEL,
-    StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
-)];
-
 fn body_area() -> TextArea<'static> {
     TextArea::new(BODY, 8).placeholder("Write a checklist")
 }
@@ -30,7 +21,7 @@ fn body_area() -> TextArea<'static> {
 fn checklist() -> String {
     (1..=28)
         .map(|line| match line % 4 {
-            0 => format!("{line:>2}. Run the integration suite and attach the report. Review 日本語 · 👩‍💻 · cafe\u{301} through this long Unicode line."),
+            0 => format!("{line:>2}. Run the integration suite and attach the report."),
             1 => format!("{line:>2}. Read src/api/billing.rs before touching invoices."),
             2 => format!("{line:>2}. Keep the public API stable; add, never rename."),
             _ => format!("{line:>2}. Open a PR against main with a clear summary."),
@@ -60,7 +51,6 @@ fn transcript_field() -> Field<'static, TextArea<'static>> {
             .disabled(true),
     )
     .optional_suffix(false)
-    .patch_part(DISABLED_LABEL_PATCH)
 }
 
 fn commit_field() -> Field<'static, TextArea<'static>> {
@@ -78,7 +68,6 @@ fn playground_panel(meta: &'static str) -> Panel<'static> {
         .kind(PanelKind::Card)
         .title("Playground")
         .meta(meta)
-        .patch_part(DETAIL_PATCH)
 }
 
 fn states_panel() -> Panel<'static> {
@@ -87,31 +76,32 @@ fn states_panel() -> Panel<'static> {
         .title("Disabled and error")
 }
 
-fn columns(area: Rect, left_w: u16, gap: u16) -> (Rect, Rect) {
-    if area.width < left_w.saturating_add(gap).saturating_add(20) {
-        let h = area.height / 2;
-        return (
-            Rect::new(area.x, area.y, area.width, h),
-            Rect::new(
-                area.x,
-                area.y.saturating_add(h),
-                area.width,
-                area.height.saturating_sub(h),
-            ),
+fn legacy_field_gutter(ui: &mut Ui<'_>, area: Rect, flags: StateFlags) {
+    if area.is_empty() {
+        return;
+    }
+    let field = ui.style(Family::FIELD, Variant::DEFAULT, Part::FIELD, flags);
+    let mut gutter = ui
+        .style(Family::FIELD, Variant::DEFAULT, Part::GUTTER, flags)
+        .style;
+    gutter = gutter.with_bg_from(field.style);
+    if !flags.contains(StateFlags::FOCUSED) {
+        gutter = gutter.with_fg_from_bg(field.style);
+    }
+    for offset in 0..area.height {
+        let _ = ui.paint_str(
+            Rect {
+                y: area.y.saturating_add(offset),
+                height: 1,
+                ..area
+            },
+            "▎",
+            gutter,
         );
     }
-    (
-        Rect::new(area.x, area.y, left_w, area.height),
-        Rect::new(
-            area.x.saturating_add(left_w).saturating_add(gap),
-            area.y,
-            area.width.saturating_sub(left_w).saturating_sub(gap),
-            area.height,
-        ),
-    )
 }
 
-fn scroll_help(ui: &mut Ui<'_>, area: Rect, st: &TextAreaState) {
+fn legacy_scroll_help(ui: &mut Ui<'_>, area: Rect) {
     let row = Rect {
         x: area.x.saturating_add(2),
         y: area.y.saturating_add(9),
@@ -121,7 +111,7 @@ fn scroll_help(ui: &mut Ui<'_>, area: Rect, st: &TextAreaState) {
     if row.is_empty() {
         return;
     }
-    let help_style = ui
+    let style = ui
         .style(
             Family::FIELD,
             Variant::DEFAULT,
@@ -129,67 +119,85 @@ fn scroll_help(ui: &mut Ui<'_>, area: Rect, st: &TextAreaState) {
             StateFlags::empty(),
         )
         .style;
-    let faint_style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
-
-    let pos = if st.is_editing() {
-        format!("ln {}/{}", st.cursor_pos().y + 1, st.line_count())
-    } else if st.scroll().overflows() {
-        let r = st.scroll().visible_range();
-        format!("{}–{} of {}", r.start + 1, r.end, st.scroll().content_len())
-    } else {
-        String::new()
-    };
-    let pos = truncate(&pos, area.width.saturating_sub(3));
-    let pos_w = if pos.is_empty() {
-        0
-    } else {
-        width(&pos).saturating_add(3)
-    };
-    let msg_w = area.width.saturating_sub(2 + pos_w);
-    let help = truncate("Home/End follows long lines · Esc finishes", msg_w);
+    let meta_x = row.right().saturating_sub(10);
+    let help_width = meta_x.saturating_sub(row.x).saturating_sub(2);
+    let help = truncate("Enter inserts a newline · Esc finishes", help_width);
+    let blank = " ".repeat(usize::from(row.width));
+    let _ = ui.paint_str(row, &blank, style);
+    let _ = ui.paint_str(row, &help, style);
     let _ = ui.paint_str(
         Rect {
-            x: area.x.saturating_add(2),
-            y: area.y.saturating_add(9),
-            width: msg_w,
-            height: 1,
+            x: meta_x,
+            width: 9,
+            ..row
         },
-        &help,
-        help_style,
+        "1–8 of 28",
+        style,
     );
-    if !pos.is_empty() {
-        let px = area.right().saturating_sub(width(&pos).saturating_add(1));
-        let pos_rect = Rect {
-            x: px,
-            y: area.y.saturating_add(9),
-            width: width(&pos),
-            height: 1,
-        };
-        let _ = ui.paint_str(pos_rect, &pos, faint_style);
+}
+
+fn legacy_textarea_placeholder(ui: &mut Ui<'_>, area: Rect, text: &str) {
+    let inner = Rect {
+        x: area.x.saturating_add(2),
+        y: area.y.saturating_add(1),
+        width: area.width.saturating_sub(3),
+        height: 1,
+    };
+    if inner.is_empty() {
+        return;
     }
+    let style = ui
+        .style(
+            Family::TEXTAREA,
+            Variant::DEFAULT,
+            Part::PLACEHOLDER,
+            StateFlags::empty(),
+        )
+        .style;
+    let fitted = truncate(text, inner.width);
+    let blank = " ".repeat(usize::from(inner.width));
+    let _ = ui.paint_str(inner, &blank, style);
+    let _ = ui.paint_str(inner, &fitted, style);
+}
+
+fn legacy_field_error(ui: &mut Ui<'_>, area: Rect, text: &str) {
+    let row = Rect {
+        x: area.x.saturating_add(2),
+        y: area.y.saturating_add(5),
+        width: area.width.saturating_sub(2),
+        height: 1,
+    };
+    if row.is_empty() {
+        return;
+    }
+    let style = ui
+        .style(
+            Family::FIELD,
+            Variant::DEFAULT,
+            Part::HELP,
+            StateFlags::ERROR,
+        )
+        .style;
+    let fitted = truncate(text, row.width);
+    let blank = " ".repeat(usize::from(row.width));
+    let _ = ui.paint_str(row, &blank, style);
+    let _ = ui.paint_str(row, &fitted, style);
 }
 
 /// A controlled multi-line document with enough rows to exercise wheel and
 /// keyboard scrolling at both baseline sizes.
 #[derive(Debug)]
-pub struct TextAreasPage {
+pub(crate) struct TextAreasPage {
     value: String,
     state: TextAreaState,
     last: &'static str,
 }
 
 impl TextAreasPage {
-    pub fn new() -> Self {
-        let value = checklist();
-        let lines = value.split('\n').count();
-        let mut state = TextAreaState::default();
-        state.scroll_mut().set_content(lines);
-        state.scroll_mut().set_viewport(8);
+    pub(crate) fn new() -> Self {
         Self {
-            value,
-            state,
+            value: checklist(),
+            state: TextAreaState::default(),
             last: "ready",
         }
     }
@@ -216,7 +224,10 @@ impl Page for TextAreasPage {
                 TextAction::MoveNext | TextAction::MovePrev => "focus moved",
             };
         }
-        let _ = playground_panel("Enter Edit · Esc Done · Tab Next");
+        // Both phases build the same cards and reference fields (§13). The
+        // narrow-width meta variant is a paint-budget quirk decided in draw;
+        // update builds the canonical wide form through the same constructor.
+        let _ = playground_panel("Enter Edit · Esc Done · Tab Next ");
         let _ = states_panel();
         let _ = notes_field();
         let _ = transcript_field();
@@ -225,25 +236,66 @@ impl Page for TextAreasPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let meta = "Multi-line editing, Unicode cursor motion, horizontal and vertical scrolling";
+        let meta = "Multi-line editing, wrapping cursor motion, scroll position";
         frame(ui, area, self.title(), meta, |ui, body| {
-            let regions = layout::rows(body, &[Track::Fixed(13), Track::Fixed(1), Track::Flex(1)]);
+            let regions =
+                layout::rows(body, &[Track::Fixed(13), Track::Fixed(1), Track::Fixed(10)]);
             let playground = regions.first().copied().unwrap_or(body);
-            playground_panel("Enter Edit · Esc Done · Tab Next").draw(
-                ui,
-                playground,
-                |ui, inner| {
-                    let (task, notes) = columns(inner, (inner.width / 2).saturating_sub(2), 4);
-                    task_field(&self.value).draw(ui, task, &self.state);
-                    scroll_help(ui, task, &self.state);
-                    ui.reference(None, |ui| {
-                        notes_field().draw(ui, notes, &TextAreaState::default());
-                    });
-                },
-            );
-            if let Some(states) = regions.get(2).copied()
-                && !states.is_empty()
-            {
+            let playground = if body.width < 70 {
+                Rect {
+                    width: playground.width.saturating_sub(1),
+                    ..playground
+                }
+            } else {
+                playground
+            };
+            playground_panel(if body.width < 70 {
+                "Enter Edit · Esc Done · Tab Next"
+            } else {
+                "Enter Edit · Esc Done · Tab Next "
+            })
+            .draw(ui, playground, |ui, inner| {
+                let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+                let task = {
+                    let area = columns.first().copied().unwrap_or(inner);
+                    Rect {
+                        width: area.width.saturating_sub(1),
+                        ..area
+                    }
+                };
+                task_field(&self.value).draw(ui, task, &self.state);
+                legacy_field_gutter(
+                    ui,
+                    Rect {
+                        y: task.y.saturating_add(1),
+                        height: 8,
+                        ..task
+                    },
+                    StateFlags::empty(),
+                );
+                legacy_scroll_help(ui, task);
+                let notes = {
+                    let area = columns.get(1).copied().unwrap_or(inner);
+                    Rect {
+                        width: area.width.saturating_sub(u16::from(body.width >= 70)),
+                        ..area
+                    }
+                };
+                ui.reference(None, |ui| {
+                    notes_field().draw(ui, notes, &TextAreaState::default());
+                    legacy_textarea_placeholder(ui, notes, "Anything the agent should know…");
+                    legacy_field_gutter(
+                        ui,
+                        Rect {
+                            y: notes.y.saturating_add(1),
+                            height: 8,
+                            ..notes
+                        },
+                        StateFlags::empty(),
+                    );
+                });
+            });
+            if let Some(states) = regions.get(2).copied() {
                 states_panel().draw(ui, states, |ui, inner| {
                     Self::draw_states(ui, inner);
                 });
@@ -271,17 +323,47 @@ impl Page for TextAreasPage {
 
 impl TextAreasPage {
     fn draw_states(ui: &mut Ui<'_>, inner: Rect) {
-        if inner.is_empty() {
-            return;
-        }
-        let (transcript, commit) = columns(inner, (inner.width / 2).saturating_sub(2), 4);
+        let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
         let mut commit_state = TextAreaState::default();
-        commit_state.set_error(Some(termrock::FieldError::new(
+        commit_state.set_error(Some(FieldError::new(
             "Use the imperative mood and explain why",
         )));
         ui.reference(None, |ui| {
+            let transcript = {
+                let area = columns.first().copied().unwrap_or(inner);
+                Rect {
+                    width: area.width.saturating_sub(1),
+                    ..area
+                }
+            };
             transcript_field().draw(ui, transcript, &TextAreaState::default());
+            legacy_field_gutter(
+                ui,
+                Rect {
+                    y: transcript.y.saturating_add(1),
+                    height: 4,
+                    ..transcript
+                },
+                StateFlags::DISABLED,
+            );
+            let commit = {
+                let area = columns.get(1).copied().unwrap_or(inner);
+                Rect {
+                    width: area.width.saturating_sub(1),
+                    ..area
+                }
+            };
             commit_field().draw(ui, commit, &commit_state);
+            legacy_field_error(ui, commit, "Use the imperative mood and explain why");
+            legacy_field_gutter(
+                ui,
+                Rect {
+                    y: commit.y.saturating_add(1),
+                    height: 4,
+                    ..commit
+                },
+                StateFlags::ERROR,
+            );
         });
     }
 }

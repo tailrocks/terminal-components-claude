@@ -11,16 +11,16 @@ use core::fmt;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
-use super::progress::Pct;
+use crate::progress::Pct;
 use super::{PartStyle, SlotFn, first_row};
-use crate::collection::Status;
+use termrock_runtime::Status;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{
-    Family, FgStep, GlyphRole, MeterRole, MeterThresholds, Modifier, Role, Slot, StyleDefaults,
-    StylePatch, Variant,
+    Family, FgStep, GlyphRole, MeterRole, MeterThresholds, Role, Slot, StyleDefaults, StylePatch,
+    Variant,
 };
 use crate::ui::{FrameRead, Ui};
 
@@ -109,8 +109,7 @@ pub enum MeterVisual {
 /// used when a ratio is set), `.tone(MeterTone)` (none — derived with
 /// [`MeterTone::from_ratio`] against `design.meter`), `.visual(MeterVisual)`
 /// (`Line`), `.status(Status)` (`Ready`), `.frame(usize)` (`0`),
-/// `.suffix_width(u16)` (floored at the two-cell suffix),
-/// `.leading_activity(bool)` (false), `.patch`,
+/// `.suffix_width(u16)` (minimum zero), `.leading_activity(bool)` (false), `.patch`,
 /// `.patch_part`, `.part_defaults`, `.slot`.
 ///
 /// ## Variants
@@ -135,11 +134,10 @@ pub enum MeterVisual {
 /// None.
 ///
 /// ## Layout
-/// `measure` returns `(design.size.meter_track + the value + the suffix, 1)`.
-/// `draw` uses the first row of `area`: the run, one gap cell, the value and
-/// the two-cell suffix in the run's fill style (blank, or the readiness glyph
-/// last). Below a six-cell track it reports the value alone. Returns the rect
-/// it painted; a degenerate rect paints nothing (R5).
+/// `measure` returns `(design.size.meter_track + the value + the glyph, 1)`.
+/// `draw` uses the first row of `area`; below a six-cell track it reports the
+/// value alone. Returns the rect it painted; a degenerate rect paints
+/// nothing (R5).
 ///
 /// ## Parts
 /// `TRACK` (the unfilled remainder), `THUMB` (the used share), `LABEL` (the
@@ -174,9 +172,7 @@ pub enum MeterVisual {
 ///
 /// The threshold mapping is unit-tested in this module by
 /// `tone_follows_the_design_thresholds_not_a_hard_coded_match` and
-/// `every_tone_names_a_meter_role`; the run/value/suffix geometry and the
-/// tone value-text colours by `line_paints_run_value_and_suffix` and
-/// `every_tone_reads_its_value_colour`.
+/// `every_tone_names_a_meter_role`.
 ///
 /// `tests/meter_defaults.rs` covers both visual modes and every tone, authored
 /// part defaults, theme/subtree/instance precedence, and unchanged default
@@ -229,10 +225,6 @@ impl<'a> Meter<'a> {
 
     /// The smallest run worth painting.
     const MIN_TRACK: u16 = 6;
-
-    /// The frozen trailing marker budget: every meter reserves and paints two
-    /// suffix cells after the value (blank, or the readiness glyph last).
-    const SUFFIX_CELLS: u16 = 2;
 
     /// A meter with no value.
     pub const fn new(id: Id) -> Self {
@@ -302,7 +294,7 @@ impl<'a> Meter<'a> {
     }
 
     /// Minimum trailing marker budget, including its leading gap. The
-    /// resolved glyph may enlarge it. Floored at the frozen two-cell suffix.
+    /// resolved glyph may enlarge it. Default zero retains dynamic width.
     #[must_use]
     pub const fn suffix_width(mut self, cells: u16) -> Self {
         self.suffix_width = cells;
@@ -386,15 +378,9 @@ impl<'a> Meter<'a> {
                 .get(self.frame.checked_rem(frames.len()).unwrap_or(0))
                 .copied();
         }
-        // Tag `Meter::palette`: an explicit domain tone carries its marker —
-        // Warning ends ` ▲`, Exhausted ends ` !` (S4 METER-DOMAIN-002). A
-        // derived grade paints no marker, matching the tag's blank suffix
-        // for graded levels.
         let g = match from_recipe {
             Slot::Set(g) => Some(g),
             Slot::Inherit if live.contains(StateFlags::ERROR) => Some(GlyphRole::Error),
-            Slot::Inherit if self.tone == Some(MeterTone::Medium) => Some(GlyphRole::WarningMark),
-            Slot::Inherit if self.tone == Some(MeterTone::High) => Some(GlyphRole::Error),
             Slot::Inherit | Slot::Clear => None,
         };
         g.map(|g| ui.glyph_str(g))
@@ -424,20 +410,13 @@ impl<'a> Meter<'a> {
         ui.paint_str(cell, glyph, style);
     }
 
-    /// The value text painted beside the run: the percentage when a ratio
-    /// is set, `—` for a valueless Unknown reading (tag `Meter::render`).
-    fn value_text<'p>(&self, pct: &'p Pct, tone: MeterTone) -> &'p str
+    /// The value text painted beside the run.
+    fn value_text<'p>(&self, pct: &'p Pct) -> &'p str
     where
         'a: 'p,
     {
-        if self.value.is_empty() {
-            if tone == MeterTone::Unknown {
-                "—"
-            } else if self.ratio.is_some() {
-                pct.as_str()
-            } else {
-                self.value
-            }
+        if self.value.is_empty() && self.ratio.is_some() {
+            pct.as_str()
         } else {
             self.value
         }
@@ -481,60 +460,17 @@ impl<'a> Meter<'a> {
     }
 
     fn readout(&self, ui: &Ui<'_>, value: &str, live: StateFlags) -> Readout {
-        // The domain marker reads in its run colour: warning amber for an
-        // explicit Medium, danger red for an explicit High (tag palette).
-        let icon_fg = match self.tone {
-            Some(MeterTone::Medium) => Role::Meter(MeterRole::Medium),
-            Some(MeterTone::High) => Role::Meter(MeterRole::High),
-            _ => Role::Accent,
-        };
-        let mut icon = self.resolve_part(ui, Part::ICON, live, StylePatch::new().set_fg(icon_fg));
-        if self.tone == Some(MeterTone::High) {
-            // Tag: the Exhausted marker is bold.
-            icon.style = icon.style.add_modifier(Modifier::BOLD);
-        }
+        let icon = self.resolve_part(ui, Part::ICON, live, StylePatch::new().set_fg(Role::Accent));
         let glyph = self.icon(ui, icon.glyph, live);
         let leading = self.leading_activity && self.busy();
         let glyph_width = glyph.map_or(0, |g| width(g).saturating_add(1));
-        let trailing = if leading { 0 } else { glyph_width };
         Readout {
             icon,
             glyph,
             leading,
             width: width(value).saturating_add(if leading { glyph_width } else { 0 }),
-            suffix: Self::SUFFIX_CELLS.max(self.suffix_width).max(trailing),
+            suffix: self.suffix_width.max(if leading { 0 } else { glyph_width }),
         }
-    }
-
-    /// The value-text colour for one tone (frozen `Meter::palette` text
-    /// column: graded tones read in their run colour, stale reads muted).
-    const fn value_role(tone: MeterTone) -> Role {
-        match tone {
-            MeterTone::Low => Role::Fg(FgStep::Primary),
-            MeterTone::Medium => Role::Meter(MeterRole::Medium),
-            MeterTone::High => Role::Meter(MeterRole::High),
-            MeterTone::Stale => Role::Fg(FgStep::Muted),
-            MeterTone::Unknown => Role::Fg(FgStep::Faint),
-            MeterTone::Series(n) => Role::Meter(MeterRole::Series(n)),
-        }
-    }
-
-    /// Paint the trailing suffix cells with the run's fill style. Runs before
-    /// the value and glyph so both paint over it; the suffix region sits past
-    /// everything the run painted, so it can only cover unpainted cells.
-    fn paint_suffix(ui: &mut Ui<'_>, area: Rect, suffix: u16, fill: PaintStyle) {
-        let start = area.right().saturating_sub(suffix).max(area.x);
-        if start >= area.right() {
-            return;
-        }
-        ui.fill(
-            Rect {
-                x: start,
-                width: area.right().saturating_sub(start),
-                ..area
-            },
-            fill,
-        );
     }
 
     fn paint_readout(
@@ -555,17 +491,6 @@ impl<'a> Meter<'a> {
             };
             self.paint_icon(ui, icon, glyph, readout.icon.style);
             lead = width(glyph).saturating_add(1).min(cell.width);
-            // the claimed separator behind the glyph is a painted space,
-            // never an inherited cell (S4 SPIN-DOMAIN-001 S2); the style
-            // inherits so a Block bar keeps its fill behind the gap
-            let sep = Rect {
-                x: icon.x.saturating_add(icon.width),
-                width: lead.saturating_sub(icon.width),
-                ..icon
-            };
-            if !sep.is_empty() {
-                ui.paint_str(sep, " ", PaintStyle::new());
-            }
             cell.x = cell.x.saturating_add(lead);
             cell.width = cell.width.saturating_sub(lead);
         }
@@ -588,14 +513,14 @@ impl<'a> Meter<'a> {
         let ov = self.ov;
         let tone = self.resolved_tone(ui);
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
-        let value = self.value_text(&pct, tone);
+        let value = self.value_text(&pct);
         let readout = self.readout(ui, value, live);
         let vw = readout.width;
         let label = self.part_style(
             ui,
             Part::LABEL,
             live,
-            StylePatch::new().set_fg(Self::value_role(tone)),
+            StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
         );
         let icon_style = readout.icon;
         ov.note(
@@ -611,15 +536,6 @@ impl<'a> Meter<'a> {
 
         let Some(ratio) = self.ratio else {
             // no run: the value and the marker only
-            let fill = self
-                .part_style(
-                    ui,
-                    Part::THUMB,
-                    live,
-                    StylePatch::new().set_fg(Role::Meter(tone.role())),
-                )
-                .style;
-            Self::paint_suffix(ui, area, readout.suffix, fill);
             let mut x = area.x;
             if vw > 0 {
                 let text = Rect {
@@ -627,23 +543,7 @@ impl<'a> Meter<'a> {
                     ..area
                 };
                 let used = self.paint_readout(ui, text, value, label.style, readout);
-                x = x.saturating_add(used);
-                // the separator ahead of a trailing glyph paints too (same
-                // class as the leading-activity gap)
-                if used > 0 {
-                    if x < area.right() {
-                        ui.paint_str(
-                            Rect {
-                                x,
-                                width: 1,
-                                ..area
-                            },
-                            " ",
-                            PaintStyle::new(),
-                        );
-                    }
-                    x = x.saturating_add(1);
-                }
+                x = x.saturating_add(used).saturating_add(u16::from(used > 0));
             }
             if let Some(g) = glyph {
                 let cell = Rect {
@@ -668,14 +568,6 @@ impl<'a> Meter<'a> {
                     width: track_w,
                     ..area
                 };
-                let fill = self
-                    .part_style(
-                        ui,
-                        Part::THUMB,
-                        live,
-                        StylePatch::new().set_fg(Role::Meter(tone.role())),
-                    )
-                    .style;
                 if let Some(f) = ov.slot_for(Part::TRACK) {
                     f(ui, track);
                 } else {
@@ -685,55 +577,32 @@ impl<'a> Meter<'a> {
                         live,
                         StylePatch::new().set_fg(Role::Meter(MeterRole::Track)),
                     );
-                    super::progress::run_of(ui, track, GlyphRole::RuleQuiet, rest.style);
+                    let fill = self
+                        .part_style(
+                            ui,
+                            Part::THUMB,
+                            live,
+                            StylePatch::new().set_fg(Role::Meter(tone.role())),
+                        )
+                        .style;
+                    crate::progress::run_of(ui, track, GlyphRole::RuleQuiet, rest.style);
                     let filled = Rect {
                         width: (f64::from(track_w) * ratio).round() as u16,
                         ..track
                     };
                     if !filled.is_empty() {
-                        super::progress::run_of(ui, filled, GlyphRole::RuleActive, fill);
+                        crate::progress::run_of(ui, filled, GlyphRole::RuleActive, fill);
                     }
                 }
-                Self::paint_suffix(ui, area, readout.suffix, fill);
-                // the separator between the track and the readout is a
-                // painted space, never an inherited cell (same class as
-                // the leading-activity gap: every claimed column paints)
-                let gap_x = track.x.saturating_add(track_w);
-                if gap_x < area.right() {
-                    ui.paint_str(
-                        Rect {
-                            x: gap_x,
-                            width: 1,
-                            ..track
-                        },
-                        " ",
-                        PaintStyle::new(),
-                    );
-                }
-                let mut x = gap_x.saturating_add(1);
+                let mut x = track.x.saturating_add(track_w).saturating_add(1);
                 let cell = Rect {
                     x,
                     width: area.right().saturating_sub(x),
                     ..area
                 };
                 let used = self.paint_readout(ui, cell, value, label.style, readout);
-                x = x.saturating_add(used);
+                x = x.saturating_add(used).saturating_add(1);
                 if let Some(g) = glyph {
-                    // the separator ahead of a trailing glyph paints too;
-                    // inside the suffix fill it is a no-op space over a
-                    // space, outside it (a clipped value) it closes the gap
-                    if x < area.right() {
-                        ui.paint_str(
-                            Rect {
-                                x,
-                                width: 1,
-                                ..area
-                            },
-                            " ",
-                            PaintStyle::new(),
-                        );
-                    }
-                    x = x.saturating_add(1);
                     let cell = Rect {
                         x,
                         width: area.right().saturating_sub(x),
@@ -752,15 +621,6 @@ impl<'a> Meter<'a> {
                     width: bar_w,
                     ..area
                 };
-                let fill = self
-                    .part_style(
-                        ui,
-                        Part::THUMB,
-                        live,
-                        StylePatch::new().set_fg(Role::Meter(tone.role())),
-                    )
-                    .style;
-                Self::paint_suffix(ui, area, readout.suffix, fill);
                 if let Some(f) = ov.slot_for(Part::TRACK) {
                     f(ui, bar);
                 } else {
@@ -788,23 +648,14 @@ impl<'a> Meter<'a> {
                         ..bar
                     };
                     if !filled.is_empty() {
-                        // Tag `Meter::render`: Stale fill text reads
-                        // secondary, every other tone reads canvas (S4
-                        // SPIN-DOMAIN-001 N2).
-                        let fill_fg = if tone == MeterTone::Stale {
-                            Role::Fg(FgStep::Secondary)
-                        } else {
-                            Role::OnAccent
-                        };
                         let on_fill = self
                             .part_style(
                                 ui,
                                 Part::THUMB,
                                 live,
                                 StylePatch::new()
-                                    .set_fg(fill_fg)
-                                    .set_bg(Role::Meter(tone.role()))
-                                    .add(Modifier::BOLD),
+                                    .set_fg(Role::OnAccent)
+                                    .set_bg(Role::Meter(tone.role())),
                             )
                             .style;
                         ui.paint_style(filled, on_fill);
@@ -829,7 +680,7 @@ impl<'a> Meter<'a> {
     /// A value-only meter has no minimum track budget.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
-        let value = self.value_text(&pct, self.resolved_tone(ui));
+        let value = self.value_text(&pct);
         let readout = self.readout(ui, value, self.status.flags());
         if self.ratio.is_none() {
             return Size::exact(readout.width.saturating_add(readout.suffix), 1).fit(c);
@@ -894,77 +745,5 @@ mod tests {
         assert_eq!(MeterTone::Stale.role(), MeterRole::Stale);
         assert_eq!(MeterTone::Unknown.role(), MeterRole::Unknown);
         assert_eq!(MeterTone::Series(3).role(), MeterRole::Series(3));
-    }
-
-    #[test]
-    fn every_tone_reads_its_value_colour() {
-        assert_eq!(Meter::value_role(MeterTone::Low), Role::Fg(FgStep::Primary));
-        assert_eq!(
-            Meter::value_role(MeterTone::Medium),
-            Role::Meter(MeterRole::Medium)
-        );
-        assert_eq!(
-            Meter::value_role(MeterTone::High),
-            Role::Meter(MeterRole::High)
-        );
-        assert_eq!(Meter::value_role(MeterTone::Stale), Role::Fg(FgStep::Muted));
-        assert_eq!(
-            Meter::value_role(MeterTone::Unknown),
-            Role::Fg(FgStep::Faint)
-        );
-        assert_eq!(
-            Meter::value_role(MeterTone::Series(3)),
-            Role::Meter(MeterRole::Series(3))
-        );
-    }
-
-    #[test]
-    fn line_paints_run_value_and_suffix() {
-        use ratatui_core::buffer::Buffer;
-        use ratatui_core::style::Color;
-
-        use crate::runtime::Runtime;
-        use crate::runtime::stub::Stub;
-        use crate::theme::Theme;
-
-        const AREA: Rect = Rect::new(0, 0, 17, 1);
-        for (ratio, tone, run) in [
-            (0.76, MeterTone::Stale, "━━━━━━━━───"),
-            (0.88, MeterTone::Stale, "━━━━━━━━━━─"),
-            (0.38, MeterTone::Low, "━━━━───────"),
-        ] {
-            let meter = Meter::new(Id::root("meter.suffix")).ratio(ratio).tone(tone);
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(AREA);
-            rt.draw_scene(AREA, &mut buf, |ui, area| {
-                meter.draw(ui, area);
-            })
-            .commit_presented();
-            let row: String = (0..AREA.width)
-                .map(|x| buf[(x, 0)].symbol().to_owned())
-                .collect();
-            let pct = format!("{}%", (ratio * 100.0).round() as u16);
-            assert_eq!(
-                row,
-                format!("{run} {pct}  "),
-                "a line meter paints the run, the value and the two-cell suffix"
-            );
-        }
-
-        // the stale run, value and suffix wear the frozen tones
-        let meter = Meter::new(Id::root("meter.suffix"))
-            .ratio(0.76)
-            .tone(MeterTone::Stale);
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(AREA);
-        rt.draw_scene(AREA, &mut buf, |ui, area| {
-            meter.draw(ui, area);
-        })
-        .commit_presented();
-        let fg = |x: u16| buf[(x, 0)].fg;
-        assert_eq!(fg(0), Color::Rgb(0x4d, 0x4d, 0x4d), "fill is stale");
-        assert_eq!(fg(8), Color::Rgb(0x26, 0x26, 0x26), "track is track");
-        assert_eq!(fg(12), Color::Rgb(0x80, 0x80, 0x80), "value is muted");
-        assert_eq!(fg(15), Color::Rgb(0x4d, 0x4d, 0x4d), "suffix wears fill");
     }
 }

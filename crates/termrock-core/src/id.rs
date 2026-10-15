@@ -28,7 +28,34 @@ const KIND_PART: u8 = 2;
 const KIND_ITEM: u8 = 3;
 const KIND_INDEX: u8 = 4;
 
-/// FNV-1a over a byte slice, continuing from `hash`.
+/// Monotonic content revision for externally prepared surfaces.
+///
+/// A `TerminalSource` bumps its revision when its prepared cells change;
+/// terminal interaction state keyed by an older revision is stale and is
+/// dropped instead of applied.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+pub struct Revision(pub u64);
+
+impl Revision {
+    /// The unset revision. Selections and interactions stamped with `zero()`
+    /// never match a live source and are ignored.
+    pub const fn zero() -> Self {
+        Self(0)
+    }
+
+    /// The next revision after `self`.
+    pub const fn next(self) -> Self {
+        Self(self.0.saturating_add(1))
+    }
+
+    /// The raw counter value.
+    pub const fn raw(self) -> u64 {
+        self.0
+    }
+}
+
+/// FNV-1a over a byte slice, continuing from `hash`; shared by identity
+/// hashing and custom-variant naming.
 pub const fn fnv1a(mut hash: u64, bytes: &[u8]) -> u64 {
     let mut i = 0;
     while i < bytes.len() {
@@ -64,7 +91,7 @@ pub const fn custom_hash16(name: &str) -> u16 {
 
 /// A stable component identity.
 ///
-/// Built from a `const` path by [`id!`](crate::id!) or [`Id::root`] and derived with
+/// Built from a `const` path by [`id!`](crate::id) or [`Id::root`] and derived with
 /// [`Id::sub`], [`Id::part`], [`Id::index`] and [`Id::item`]. Every
 /// derivation is a `const fn` except `item`, which takes a runtime key.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -371,8 +398,6 @@ parts! {
     CHANGE = 34,
     /// A source row number.
     ROW_NUMBER = 35,
-    /// A chip bar's leading affordance.
-    LEAD = 36,
 }
 
 impl Part {
@@ -429,68 +454,6 @@ impl PartRef {
             part: p,
             item: Some(k),
         }
-    }
-}
-
-/// Revision overflow error when counter exceeds `u64::MAX`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RevisionError {
-    Overflow,
-}
-
-impl core::fmt::Display for RevisionError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Overflow => write!(f, "revision counter overflow"),
-        }
-    }
-}
-
-impl std::error::Error for RevisionError {}
-
-/// Monotonic accepted source generation.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-pub struct Revision(pub u64);
-
-impl Revision {
-    /// Construct a new revision with a raw value.
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    /// Starting revision generation zero.
-    pub const fn zero() -> Self {
-        Self(0)
-    }
-
-    /// Advance to the next monotonic generation, failing closed on overflow.
-    pub fn next(&self) -> Result<Self, RevisionError> {
-        self.0
-            .checked_add(1)
-            .map(Self)
-            .ok_or(RevisionError::Overflow)
-    }
-
-    /// Check if this revision is older than `current`.
-    pub fn is_stale(&self, current: Revision) -> bool {
-        self.0 < current.0
-    }
-
-    /// Return the raw revision counter.
-    pub const fn as_u64(&self) -> u64 {
-        self.0
-    }
-}
-
-impl core::fmt::Debug for Revision {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Revision({})", self.0)
-    }
-}
-
-impl core::fmt::Display for Revision {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.0)
     }
 }
 
@@ -668,10 +631,9 @@ mod tests {
                 assert_eq!(a == b, i == j);
             }
         }
-        assert_eq!(all.len(), 37);
+        assert_eq!(all.len(), 36);
         assert_eq!(Part::CHANGE.raw(), 34);
         assert_eq!(Part::ROW_NUMBER.raw(), 35);
-        assert_eq!(Part::LEAD.raw(), 36);
     }
 
     #[cfg(debug_assertions)]

@@ -22,7 +22,7 @@ use crate::theme::PaintStyle;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
-use super::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -34,7 +34,7 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::measure::{grapheme_width, graphemes};
-use crate::theme::{Family, Role, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 /// Columns a tab expands to. A tab is a control character, so
@@ -916,9 +916,7 @@ fn shift(p: &mut CellPos, dropped: usize) {
 /// `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED` and `PRESSED` from the runtime; a
 /// live selection drag keeps `PRESSED`. Nothing is props-derived: the
 /// viewport takes no readiness prop, so it owes no §11.4 `Part::ICON`
-/// affordance and declares none. Focus is worn by the `THUMB` color ladder
-/// (legacy-exact: `FOCUSED` brightens the thumb to `Primary`, `HOVERED` to
-/// `Secondary`), not by `CONTAINER` or `TEXT`, which carry no state rules.
+/// affordance and declares none.
 ///
 /// ## Actions
 /// `Copy(String)`, `SelectionChanged`, `FollowChanged(bool)`. None carries an
@@ -945,28 +943,26 @@ fn shift(p: &mut CellPos, dropped: usize) {
 /// [`ScrollRegion`].
 ///
 /// ## Layout
-/// The text, then the scrollbar column. **A wrapped pane reserves the
-/// scrollbar column whether or not the bar is painted**, so the wrap layout
-/// is a function of `area` alone and is computed once — the legacy two-pass
-/// layout is what made `viewport_100k_lines_render` unreachable (P-A). An
-/// unwrapped pane whose lines all fit takes the full width instead: with one
-/// visual row per line the overflow decision needs no layout, so the width
-/// is still settled before the single layout pass. `measure` asks for the
-/// bar and twenty text columns. `draw` returns the text rect; `0×0`
-/// registers nothing (R5).
+/// One focus-gutter column at the left, then the text, then the scrollbar
+/// column. **The scrollbar column is reserved whether or not the bar is
+/// painted**, so the wrap layout is a function of `area` alone and is
+/// computed once — the legacy two-pass layout is what made
+/// `viewport_100k_lines_render` unreachable (P-A). `measure` asks for the
+/// gutter, the bar and twenty text columns. `draw` returns the text rect;
+/// `0×0` registers nothing (R5).
 ///
 /// ## Parts
 /// `CONTAINER` (the fill), `TEXT` (the runs, resolved a second time with
-/// `SELECTED` for selected cells), `TRACK` and `THUMB` (the embedded
-/// [`ScrollRegion`], composed under this component's own `Id` and therefore
-/// this component's parts, §33.2).
+/// `SELECTED` for selected cells), `GUTTER` (the focus bar), `TRACK` and
+/// `THUMB` (the embedded [`ScrollRegion`], composed under this component's
+/// own `Id` and therefore this component's parts, §33.2).
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach every part, including `Part::TRACK` and
 /// `Part::THUMB`, which are forwarded into the nested [`ScrollRegion`]
-/// rather than dropped (§45.1). `.slot` is honoured for `Part::TRACK` and
-/// `Part::THUMB`. `Part::CONTAINER` and `Part::TEXT` are **not**
-/// slot-addressable: the container is the plane the text is painted
+/// rather than dropped (§45.1). `.slot` is honoured for `Part::GUTTER`,
+/// `Part::TRACK` and `Part::THUMB`. `Part::CONTAINER` and `Part::TEXT` are
+/// **not** slot-addressable: the container is the plane the text is painted
 /// against, and the text is the component's whole subject.
 ///
 /// ## Identity
@@ -1008,7 +1004,13 @@ impl fmt::Debug for TextViewport<'_> {
 
 impl<'a> TextViewport<'a> {
     /// The parts this component styles.
-    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::TEXT, Part::TRACK, Part::THUMB];
+    pub const PARTS: &'static [Part] = &[
+        Part::CONTAINER,
+        Part::TEXT,
+        Part::GUTTER,
+        Part::TRACK,
+        Part::THUMB,
+    ];
 
     /// The width `measure` prefers for the text itself.
     pub const PREFERRED_TEXT_WIDTH: u16 = 20;
@@ -1131,27 +1133,10 @@ impl<'a> TextViewport<'a> {
         sr
     }
 
-    /// The text width for a container `width` columns wide: the text
-    /// starts at the container's left edge and one scrollbar column is
-    /// always reserved. Composite projections (which are built before the
-    /// viewport sees the line count) use this conservative width; the
-    /// viewport itself widens an unwrapped pane whose lines all fit (see
-    /// [`TextViewport::content_width`]).
-    pub const fn text_width(width: u16) -> u16 {
-        width.saturating_sub(1)
-    }
-
-    /// The text width for a `width`-wide area holding `lines` source lines
-    /// in `height` rows. An unwrapped pane whose lines all fit takes the
-    /// full width: with one visual row per line the overflow decision needs
-    /// no layout, so the width is still settled before the single layout
-    /// pass. Wrapped panes always reserve the column (finding P-A).
-    fn content_width(&self, width: u16, lines: usize, height: u16) -> u16 {
-        if !self.wrap && lines <= usize::from(height) {
-            width
-        } else {
-            width.saturating_sub(1)
-        }
+    /// The text width for a container `width` columns wide: one gutter
+    /// column and one scrollbar column, both always reserved.
+    const fn text_width(width: u16) -> u16 {
+        width.saturating_sub(2)
     }
 
     const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
@@ -1186,7 +1171,7 @@ impl<'a> TextViewport<'a> {
         let (li, row) = layout.row_start(lines, visual);
         let line = lines.get(li)?;
         let (start, end) = row_cols(line, key.width, self.wrap, row);
-        let dx = usize::from(pos.x.saturating_sub(area.x));
+        let dx = usize::from(pos.x.saturating_sub(area.x.saturating_add(1)));
         let last = end.min(line_cols(line));
         Some(CellPos {
             line: li,
@@ -1225,10 +1210,9 @@ impl<'a> TextViewport<'a> {
         lines: LineSet<'_>,
     ) -> Response<ViewportAction> {
         let area = cx.area(self.id).unwrap_or(Rect::ZERO);
-        let width = cx.layout(self.id).map_or_else(
-            || self.content_width(area.width, lines.len(), area.height),
-            |l| l.cols,
-        );
+        let width = cx
+            .layout(self.id)
+            .map_or_else(|| Self::text_width(area.width), |l| l.cols);
         let key = self.layout_key(st, width);
         let (total, indexed) = {
             let layout = cx.cache::<ViewportLayout>(self.id);
@@ -1348,6 +1332,9 @@ impl<'a> TextViewport<'a> {
             }
             Phase::Secondary => acc.consumed(),
             Phase::Move => {}
+        
+            // `Phase` is `#[non_exhaustive]`: unseen phases keep the viewport idle.
+            _ => {}
         }
     }
 
@@ -1443,7 +1430,7 @@ impl<'a> TextViewport<'a> {
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
         let live = PartStyle::flags(runtime, StateFlags::empty());
-        let text_w = self.content_width(area.width, lines.len(), area.height);
+        let text_w = Self::text_width(area.width);
         let key = self.layout_key(st, text_w);
         let (total, indexed) = {
             let lay = ui.cache::<ViewportLayout>(id);
@@ -1478,7 +1465,14 @@ impl<'a> TextViewport<'a> {
             live,
         );
         ui.fill(area, container.style);
-        let content = self.bar().draw(ui, area, &view, total);
+        self.gutter(ui, area, live, &ov);
+        let body = Rect {
+            x: area.x.saturating_add(1),
+            y: area.y,
+            width: area.width.saturating_sub(1),
+            height: area.height,
+        };
+        let content = self.bar().draw(ui, body, &view, total);
         let text = Rect {
             width: text_w.min(content.width),
             ..content
@@ -1508,7 +1502,6 @@ impl<'a> TextViewport<'a> {
             st.selection(),
             (base.style, selected.style),
         );
-        ui.scroll_edges(text, &view);
         self.caret(
             ui,
             text,
@@ -1561,6 +1554,41 @@ impl<'a> TextViewport<'a> {
         self.note_visible(visible);
     }
 
+    /// The focus gutter column.
+    fn gutter(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, ov: &PartStyle<'a>) {
+        let col = Rect {
+            x: area.x,
+            y: area.y,
+            width: 1,
+            height: area.height,
+        };
+        if let Some(f) = ov.slot_for(Part::GUTTER) {
+            f(ui, col);
+            return;
+        }
+        let g = ov.style(
+            ui,
+            self.id,
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            live,
+        );
+        match g.glyph {
+            Slot::Set(glyph) => {
+                for r in col.rows() {
+                    ui.glyph(r, glyph, g.style);
+                }
+            }
+            Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
+                for r in col.rows() {
+                    ui.glyph(r, GlyphRole::FocusBar, g.style);
+                }
+            }
+            Slot::Inherit | Slot::Clear => ui.fill(col, g.style),
+        }
+    }
+
     /// Request the hardware cursor for the caret when it is on screen.
     fn caret(
         &self,
@@ -1609,11 +1637,11 @@ impl<'a> TextViewport<'a> {
         );
     }
 
-    /// The natural size: the bar and twenty text columns.
+    /// The natural size: the gutter, the bar and twenty text columns.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
-            min: (2, 1),
-            preferred: (Self::PREFERRED_TEXT_WIDTH.saturating_add(1), c.max.1),
+            min: (3, 1),
+            preferred: (Self::PREFERRED_TEXT_WIDTH.saturating_add(2), c.max.1),
         }
         .fit(c)
     }
@@ -1655,7 +1683,6 @@ fn paint_row(
             text,
             role: if r.sel { None } else { role },
             add,
-            remove: Modifier::empty(),
         };
         let base = if r.sel { styles.1 } else { styles.0 };
         let w = ui.paint_spans(
@@ -1734,7 +1761,7 @@ mod tests {
     use crate::event::MouseKind;
     use crate::runtime::stub::{SCREEN, Stub, key, mouse};
     use crate::runtime::{App, Runtime};
-    use crate::theme::{ColorLevel, GlyphRole, Surface, Theme};
+    use crate::theme::{ColorLevel, Surface, Theme};
     use crate::{ReferenceState, ReferenceTarget};
 
     const ID: Id = Id::root("viewport.tests");
@@ -1835,10 +1862,10 @@ mod tests {
         app.lines = vec!["short", "target line"];
         app.state.invalidate();
 
-        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 0, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 1, 1));
         assert!(runtime.app().state.anchor.is_some(), "press did not anchor");
         assert_eq!(runtime.capture_owner(), Some(ID), "press did not capture");
-        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 3, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 4, 1));
 
         assert!(
             runtime.app().state.selection.is_some(),
@@ -1932,7 +1959,7 @@ mod tests {
         };
         assert_eq!(render(CellPos::new(0, 0)), None, "caret above viewport");
         assert_eq!(render(CellPos::new(20, 0)), None, "caret below viewport");
-        assert_eq!(render(CellPos::new(6, 1)), Some(Position::new(1, 1)));
+        assert_eq!(render(CellPos::new(6, 1)), Some(Position::new(2, 1)));
     }
 
     #[test]
@@ -2215,7 +2242,13 @@ mod tests {
     fn parts_match_the_exact_styling_surface() {
         assert_eq!(
             TextViewport::PARTS,
-            &[Part::CONTAINER, Part::TEXT, Part::TRACK, Part::THUMB,]
+            &[
+                Part::CONTAINER,
+                Part::TEXT,
+                Part::GUTTER,
+                Part::TRACK,
+                Part::THUMB,
+            ]
         );
     }
 
@@ -2417,11 +2450,9 @@ mod tests {
 
     /// Finding P-A: the legacy viewport laid the whole buffer out at `width`,
     /// discovered it overflowed, and laid it out **again** at `width − 1` for
-    /// the scrollbar. A wrapped pane reserves the column unconditionally, so
-    /// the layout stays a function of `area` alone and the text rect — and
-    /// therefore the wrap — is the same whether or not the bar is painted.
-    /// An unwrapped pane instead takes the full width when its lines all fit
-    /// (the overflow decision needs no layout at one row per line).
+    /// the scrollbar. Reserving the column unconditionally makes the layout a
+    /// function of `area` alone, so the text rect — and therefore the wrap —
+    /// is the same whether or not the bar is painted.
     #[test]
     fn the_text_width_does_not_depend_on_whether_the_bar_is_painted() {
         let area = Rect {
@@ -2432,54 +2463,37 @@ mod tests {
         };
         let short = [ViewportLine::Plain("one"), ViewportLine::Plain("two")];
         let long: Vec<ViewportLine<'_>> = (0..50).map(|_| ViewportLine::Plain("row")).collect();
-        let width_of = |wrap: bool, lines: &[ViewportLine<'_>]| {
+        let width_of = |lines: &[ViewportLine<'_>]| {
             let mut rt = Runtime::new(Stub::default(), Theme::junie());
             let mut buf = Buffer::empty(SCREEN);
             let st = ViewportState::default();
             let mut w = 0;
             rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                w = TextViewport::new(ID)
-                    .wrap(wrap)
-                    .draw(ui, area, &st, lines)
-                    .width;
+                w = TextViewport::new(ID).draw(ui, area, &st, lines).width;
             })
             .commit_presented();
             w
         };
-        assert_eq!(width_of(true, &short), width_of(true, &long));
-        assert_eq!(width_of(true, &short), TextViewport::text_width(area.width));
-        assert_eq!(width_of(true, &short), area.width.saturating_sub(1));
-        assert_eq!(width_of(false, &long), area.width.saturating_sub(1));
-        assert_eq!(width_of(false, &short), area.width);
+        assert_eq!(width_of(&short), width_of(&long));
+        assert_eq!(width_of(&short), TextViewport::text_width(area.width));
     }
 
-    /// The viewport is a focus stop and wears its focus on the scrollbar
-    /// thumb: the `VIEWPORT` recipe gives `CONTAINER` and `TEXT` no `FOCUSED`
-    /// rule at all, so the thumb ladder (`Muted` idle, `Primary` focused) is
-    /// the only focus affordance — the legacy `scrollbar_thumb` table,
-    /// including at `ColorLevel::Mono` where it survives as White-vs-Gray.
-    /// The thumb only paints on overflow, so a non-overflowing pane is
-    /// state-indistinguishable; that matches the legacy pane exactly (C6).
+    /// The viewport is a focus stop and paints a focus gutter, because the
+    /// `VIEWPORT` recipe gives `CONTAINER` and `TEXT` no `FOCUSED` rule at
+    /// all — without the gutter glyph a focused pane and an unfocused one are
+    /// the same cells at `ColorLevel::Mono` and conformance case 9 could
+    /// never pass for a `Caps::FOCUSABLE` component.
     #[test]
-    fn the_focused_thumb_is_the_focus_affordance() {
+    fn the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted() {
         let area = Rect {
             x: 0,
             y: 0,
             width: 20,
             height: 3,
         };
-        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
-        let thumb_glyph = Theme::junie().design.glyphs.get(GlyphRole::ScrollThumb);
-        // reference mode registers nothing, so the thumb is found by its
-        // glyph in the bar column.
-        let thumb_cell = |buf: &Buffer| {
-            (area.y..area.bottom())
-                .filter_map(|y| buf.cell(Position::new(area.right() - 1, y)))
-                .find(|cell| cell.symbol() == thumb_glyph)
-                .expect("the overflowing viewport must paint its thumb")
-                .clone()
-        };
-        let render = |state: ReferenceState| {
+        let lines = [ViewportLine::Plain("hello"), ViewportLine::Plain("world")];
+        let bar = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
+        let gutter = |state: ReferenceState| {
             let mut rt = Runtime::new(Stub::default(), Theme::junie());
             let mut buf = Buffer::empty(SCREEN);
             let st = ViewportState::default();
@@ -2489,39 +2503,11 @@ mod tests {
                 });
             })
             .commit_presented();
-            let cell = thumb_cell(&buf);
-            (buf, cell)
+            buf.cell(Position::new(0, 0))
+                .map_or_else(String::new, |c| c.symbol().to_owned())
         };
-        let (plain_buf, plain) = render(ReferenceState::default());
-        let (focused_buf, focused) = render(ReferenceState::FOCUSED);
-        assert_eq!(plain.symbol(), thumb_glyph);
-        assert_eq!(focused.symbol(), thumb_glyph);
-        assert_ne!(
-            focused.style(),
-            plain.style(),
-            "a focused pane and an unfocused one paint the same thumb"
-        );
-        let theme = Theme::junie();
-        let fg_of = |flags: StateFlags| {
-            theme
-                .resolve(
-                    Family::VIEWPORT,
-                    Variant::DEFAULT,
-                    Part::THUMB,
-                    flags,
-                    Surface::Canvas,
-                )
-                .style
-                .fg
-        };
-        assert_eq!(Some(plain.fg), fg_of(StateFlags::empty()));
-        assert_eq!(Some(focused.fg), fg_of(StateFlags::FOCUSED));
-        for (buf, name) in [(&plain_buf, "unfocused"), (&focused_buf, "focused")] {
-            let first = buf
-                .cell(Position::new(area.x, area.y))
-                .map_or_else(String::new, |c| c.symbol().to_owned());
-            assert_eq!(first, "r", "the {name} text does not start at area.x");
-        }
+        assert_eq!(gutter(ReferenceState::FOCUSED), bar);
+        assert_ne!(gutter(ReferenceState::default()), bar);
     }
 
     #[test]
@@ -2550,10 +2536,10 @@ mod tests {
                 })
                 .commit_presented();
 
-            let base_cell = buffer.cell(Position::new(0, 0));
-            let selected_cell = buffer.cell(Position::new(1, 0));
-            let selected_end = buffer.cell(Position::new(2, 0));
-            let after = buffer.cell(Position::new(3, 0));
+            let base_cell = buffer.cell(Position::new(1, 0));
+            let selected_cell = buffer.cell(Position::new(2, 0));
+            let selected_end = buffer.cell(Position::new(3, 0));
+            let after = buffer.cell(Position::new(4, 0));
             assert_ne!(selected_cell.map(Cell::style), base_cell.map(Cell::style));
             assert_eq!(
                 selected_end.map(Cell::style),
@@ -2587,7 +2573,7 @@ mod tests {
         let before = st.clone();
         // the first frame is discarded: it is the one that registers the focus
         // stop, so the runtime assigns focus *between* frames 1 and 2 and the
-        // thumb legitimately changes. Frames 2 and 3 differ only in that the
+        // gutter legitimately changes. Frames 2 and 3 differ only in that the
         // layout cache is warm.
         let mut frames = Vec::new();
         for f in 0..3 {
@@ -2680,11 +2666,10 @@ mod tests {
         }
     }
 
-    /// §45's Invariant R: `## Overrides` names `TRACK` and `THUMB` as
-    /// slot-addressable and `CONTAINER` and `TEXT` as not, and both
+    /// §45's Invariant R: `## Overrides` names `GUTTER`, `TRACK` and `THUMB`
+    /// as slot-addressable and `CONTAINER` and `TEXT` as not, and both
     /// directions are asserted. The `TRACK`/`THUMB` half is also §45.1's
     /// nested-component finding: a bare `ScrollRegion` would swallow them.
-    /// A `GUTTER` slot is silently ignored: the part is not declared.
     #[test]
     fn the_slot_addressable_parts_are_exactly_the_documented_ones() {
         let area = Rect {
@@ -2713,172 +2698,19 @@ mod tests {
             buf
         };
         let plain = render(None);
-        for part in [Part::TRACK, Part::THUMB] {
+        for part in [Part::GUTTER, Part::TRACK, Part::THUMB] {
             assert_ne!(
                 render(Some(part)),
                 plain,
                 "`## Overrides` grants a slot on {part:?} and it is dropped"
             );
         }
-        for part in [Part::CONTAINER, Part::TEXT, Part::GUTTER] {
+        for part in [Part::CONTAINER, Part::TEXT] {
             assert_eq!(
                 render(Some(part)),
                 plain,
                 "a slot on {part:?} changes cells, and `## Overrides` says it does not"
             );
         }
-    }
-
-    /// Left-edge parity with the frozen oracle: the legacy scroll pane
-    /// paints its first text cell at `area.x`, and so does this viewport —
-    /// including at a nonzero origin, where an `x + 1` slip would hide
-    /// behind a zero-origin fixture.
-    #[test]
-    fn text_starts_at_the_area_left_edge() {
-        let area = Rect::new(5, 2, 20, 3);
-        let lines = [ViewportLine::Plain("hello")];
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = ViewportState::default();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            TextViewport::new(ID).draw(ui, area, &st, &lines);
-        })
-        .commit_presented();
-        let first = buf
-            .cell(Position::new(area.x, area.y))
-            .map_or_else(String::new, |c| c.symbol().to_owned());
-        assert_eq!(first, "h");
-    }
-
-    /// The wrap width is the text width (`W − 1`): a 30-cell line in a
-    /// 24-wide overflowing pane breaks after 23 cells, the legacy `W − 1`
-    /// layout on overflow.
-    #[test]
-    fn wrapped_rows_use_the_full_text_width() {
-        let area = Rect::new(0, 0, 24, 4);
-        let line = "abcdefghijklmnopqrstuvwxyz0123";
-        assert_eq!(line.len(), 30);
-        let mut lines_many = vec![ViewportLine::Plain("row"); 30];
-        lines_many[0] = ViewportLine::Plain(line);
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let mut st = ViewportState::default();
-        st.set_follow(false);
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            TextViewport::new(ID)
-                .wrap(true)
-                .draw(ui, area, &st, &lines_many);
-        })
-        .commit_presented();
-        let row0: String = (0..23)
-            .map(|x| {
-                buf.cell(Position::new(x, 0))
-                    .map_or_else(String::new, |c| c.symbol().to_owned())
-            })
-            .collect();
-        let row1: String = (0..7)
-            .map(|x| {
-                buf.cell(Position::new(x, 1))
-                    .map_or_else(String::new, |c| c.symbol().to_owned())
-            })
-            .collect();
-        assert_eq!(row0, &line[..23]);
-        assert_eq!(row1, &line[23..]);
-    }
-
-    /// Click-column parity: a press on the left edge selects column 0
-    /// exactly, matching the legacy `pos.x − area.x` mapping.
-    #[test]
-    fn a_press_on_the_left_edge_selects_column_zero() {
-        let mut state = ViewportState::default();
-        state.set_follow(false);
-        let mut runtime = Runtime::new(
-            MutableViewportApp {
-                state,
-                lines: vec!["0123456789", "second line"],
-                area: Rect::new(0, 0, 12, 4),
-                wrap: false,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 0, 0));
-        assert_eq!(runtime.app().state.anchor, Some(CellPos::new(0, 0)));
-    }
-
-    /// Case-9 readiness: at `ColorLevel::Mono` a focused overflowing pane
-    /// differs from an unfocused one (thumb White vs Gray). The overflow is
-    /// a precondition, not a fixture accident — the thumb only paints on
-    /// overflow, so the future `TextViewportCase` fixture must overflow.
-    #[test]
-    fn mono_focused_and_unfocused_overflow_buffers_differ() {
-        use ratatui_core::style::Color;
-
-        let area = Rect::new(0, 0, 20, 3);
-        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
-        let thumb_glyph = Theme::junie().design.glyphs.get(GlyphRole::ScrollThumb);
-        let render = |state: ReferenceState| {
-            let theme = Theme::junie().downgrade(ColorLevel::Mono);
-            let mut rt = Runtime::new(Stub::default(), theme);
-            let mut buf = Buffer::empty(SCREEN);
-            let st = ViewportState::default();
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                ui.reference(Some(ReferenceTarget::new(ID, state)), |ui| {
-                    TextViewport::new(ID).draw(ui, area, &st, &lines);
-                });
-            })
-            .commit_presented();
-            // reference mode registers nothing, so the thumb is found by its
-            // glyph in the bar column.
-            let fg = (area.y..area.bottom())
-                .filter_map(|y| buf.cell(Position::new(area.right() - 1, y)))
-                .find(|cell| cell.symbol() == thumb_glyph)
-                .expect("the overflowing viewport must paint its thumb")
-                .fg;
-            (buf, fg)
-        };
-        let (plain_buf, plain_fg) = render(ReferenceState::default());
-        let (focused_buf, focused_fg) = render(ReferenceState::FOCUSED);
-        assert_ne!(
-            focused_buf, plain_buf,
-            "mono focused and unfocused panes paint the same buffer"
-        );
-        assert_eq!(plain_fg, Color::Gray);
-        assert_eq!(focused_fg, Color::White);
-    }
-
-    /// Contract parity (`docs/components/text-viewport.md`, `draw`): a
-    /// scrolled viewport dims its scroll edges through the shared fade
-    /// policy, while an unscrolled top edge paints at full strength.
-    #[test]
-    fn scrolled_edges_fade_through_the_shared_policy() {
-        let area = Rect::new(0, 0, 20, 12);
-        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
-        let render = |offset: usize| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            let mut st = ViewportState::default();
-            st.set_follow(false);
-            st.scroll.apply_layout(usize::from(area.height), 30);
-            st.scroll.scroll_to(offset);
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                TextViewport::new(ID).draw(ui, area, &st, &lines);
-            })
-            .commit_presented();
-            let fg = |y: u16| buf.cell(Position::new(0, y)).map(|cell| cell.fg);
-            (fg(area.y), fg(area.y + 5), fg(area.bottom() - 1))
-        };
-        let (top, mid, bottom) = render(10);
-        assert_ne!(top, mid, "a scrolled viewport must fade its top edge");
-        assert_ne!(bottom, mid, "a scrolled viewport must fade its bottom edge");
-        let (top, mid, bottom) = render(0);
-        assert_eq!(
-            top, mid,
-            "the top edge must stay full strength at offset 0, got {top:?} vs {mid:?}"
-        );
-        assert_ne!(bottom, mid, "content below must still fade the bottom edge");
     }
 }

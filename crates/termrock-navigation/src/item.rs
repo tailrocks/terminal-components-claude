@@ -1,11 +1,18 @@
-use ratatui::style::Modifier;
+//! Semantic item vocabulary shared by `FilterList`, `Picker` and
+//! `Completion`: borrowed item data, row layouts and the default row
+//! renderer. Canonical home; `termrock-overlays` re-exports it.
 
-use termrock_core::id::{ItemKey, Part};
+use core::marker::PhantomData;
+
+use ratatui_core::layout::Rect;
+use ratatui_core::style::Modifier;
+
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_core::id::{Id, ItemKey, Part};
 use termrock_core::response::StateFlags;
-use termrock_layout::Track;
-use termrock_runtime::{RowFn, RowUi};
 use termrock_text::width;
-use termrock_theme::{FgStep, Role, StylePatch};
+use termrock_theme::{Family, StylePatch, Surface, Variant};
+use termrock_layout::layout::Track;
 
 /// Borrowed semantic data shared by picker and completion rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -97,6 +104,16 @@ impl<'i> Item<'i> {
 }
 
 /// Convert a domain item to the borrowed semantic picker/completion view.
+///
+/// A custom row painter does not replace this semantic contract:
+///
+/// ```compile_fail
+/// use junie_tui::{AsItem, FilterList, Id};
+/// struct PaintedOnly;
+/// fn requires_semantics<T: AsItem>(_: &FilterList<'_, T>) {}
+/// let list = FilterList::<PaintedOnly>::new(Id::root("painted-only"));
+/// requires_semantics(&list);
+/// ```
 pub trait AsItem {
     /// Borrow this value as an item.
     fn as_item(&self) -> Item<'_>;
@@ -127,7 +144,7 @@ pub struct ItemColumns {
 }
 
 impl ItemColumns {
-    pub fn measure<'a>(items: impl Iterator<Item = Item<'a>>, row_width: u16) -> Self {
+    pub(crate) fn measure<'a>(items: impl Iterator<Item = Item<'a>>, row_width: u16) -> Self {
         let mut columns = Self::default();
         for item in items {
             columns.label = columns.label.max(width(item.label));
@@ -141,7 +158,7 @@ impl ItemColumns {
         columns
     }
 
-    pub fn paint(&self, item: Item<'_>, show_group: bool, row: &mut RowUi<'_>) {
+    pub(crate) fn paint(&self, item: Item<'_>, show_group: bool, row: &mut RowUi<'_>) {
         let focused = row.flags().contains(StateFlags::FOCUSED);
         row.gutter();
         let mut cells = row.columns_with_gap(
@@ -159,15 +176,16 @@ impl ItemColumns {
             ],
             0,
         );
+        // A focused list fills every row from the CONTAINER recipe, whose
+        // bold bleeds into painted text. Strip it only where the resolved
+        // part style did not author bold, so theme, overlay and instance
+        // part styles stay authoritative. Color hierarchy also stays in the
+        // theme recipes: a built-in painter never tones over the resolved
+        // part style.
         {
             let mut icon = cells.cell_part(0, Part::ICON);
             if !icon.authored_modifiers().contains(Modifier::BOLD) {
                 icon.remove_modifier(Modifier::BOLD);
-            }
-            if focused {
-                icon.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary)));
-            } else {
-                icon.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
             }
             icon.text(item.glyph);
         }
@@ -190,7 +208,6 @@ impl ItemColumns {
             if !tag.authored_modifiers().contains(Modifier::BOLD) {
                 tag.remove_modifier(Modifier::BOLD);
             }
-            tag.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
             tag.text(item.tag.unwrap_or(""));
         }
         if show_group {
@@ -198,7 +215,6 @@ impl ItemColumns {
             if !group.authored_modifiers().contains(Modifier::BOLD) {
                 group.remove_modifier(Modifier::BOLD);
             }
-            group.patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
             group.text(item.group.unwrap_or(""));
         }
     }
@@ -221,6 +237,6 @@ impl<T: AsItem> RowFn<T> for ItemRow {
         if !item.glyph.is_empty() {
             row.part(Part::ICON, 1).text(item.glyph);
         }
-        row.label_matched(item.label, item.matched);
+        row.label(item.label);
     }
 }

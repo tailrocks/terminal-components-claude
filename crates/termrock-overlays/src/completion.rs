@@ -4,13 +4,13 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use super::picker::{AsItem, Item, ItemRow};
-use super::scroll_region::ScrollRegion;
+use crate::picker::{AsItem, Item, ItemRow};
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
-use crate::collection::{
-    CollectionCore, EmptyState, Reconcile, RowFn, RowUi, index_of_with, key_at_with,
-};
+use termrock_collections::collection::{CollectionCore, Reconcile};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::empty::{EmptyState};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -424,6 +424,11 @@ impl<'a, T, R> Completion<'a, T, R> {
 }
 
 impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
+    fn key_at(items: &[T], i: usize) -> ItemKey {
+        items
+            .get(i)
+            .map_or(ItemKey::index(i), |item| item.as_item().key)
+    }
     fn move_to(
         state: &mut CompletionState,
         items: &[T],
@@ -435,7 +440,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             return;
         }
         let i = target.min(items.len().saturating_sub(1));
-        let key = key_at_with(items, i, |item| item.as_item().key);
+        let key = Self::key_at(items, i);
         if state.core.cursor() == Some(key) {
             acc.consumed();
             return;
@@ -546,13 +551,11 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             return Response::ignored();
         }
         state.owner = Some(owner);
-        let _ = state.core.reconcile(items.len(), |i| {
-            key_at_with(items, i, |item| item.as_item().key)
-        });
+        let _ = state
+            .core
+            .reconcile(items.len(), |i| Self::key_at(items, i));
         if state.core.cursor().is_none() && !items.is_empty() {
-            state
-                .core
-                .set_cursor(0, key_at_with(items, 0, |item| item.as_item().key));
+            state.core.set_cursor(0, Self::key_at(items, 0));
         }
         cx.resize_layer(self.id, self.measured_size(cx, items));
         cx.reanchor_layer(
@@ -587,7 +590,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                             item: Some(key),
                         },
                     ..
-                } => match index_of_with(items, key, None, |item| item.as_item().key) {
+                } => match items.iter().position(|item| item.as_item().key == key) {
                     Some(i) if !items.get(i).is_some_and(|item| item.as_item().disabled) => {
                         state.core.set_cursor(i, key);
                         acc.action(CompletionAction::Accepted(key));
@@ -693,64 +696,10 @@ impl<T, R> Bindings for Completion<'_, T, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use ratatui_core::buffer::Buffer;
 
-    use crate::focus::Focusability;
-    use crate::response::StateFlags;
-
-    struct CodeEditorState {
-        text: String,
-        cursor: usize,
-        editing: bool,
-    }
-
-    impl CodeEditorState {
-        fn new(text: &str) -> Self {
-            Self {
-                text: text.to_string(),
-                cursor: 0,
-                editing: false,
-            }
-        }
-        fn cursor_offset(&self) -> usize {
-            self.cursor
-        }
-        fn text(&self) -> &str {
-            &self.text
-        }
-    }
-
-    struct CodeEditor {
-        id: Id,
-    }
-
-    impl CodeEditor {
-        fn new(id: Id, _tab_width: usize) -> Self {
-            Self { id }
-        }
-        fn update(&self, cx: &mut Cx<'_>, state: &mut CodeEditorState) -> Response<()> {
-            let mut r = Response::ignored();
-            for it in cx.intents(self.id) {
-                if let Intent::Key(k) = it {
-                    if !state.editing {
-                        if k.code == KeyCode::Char('i') {
-                            state.editing = true;
-                            r |= Response::changed();
-                        }
-                    } else if let KeyCode::Char(c) = k.code {
-                        state.text.insert(state.cursor, c);
-                        state.cursor += c.len_utf8();
-                        r |= Response::changed();
-                    }
-                }
-            }
-            r
-        }
-        fn draw(&self, ui: &mut Ui<'_>, area: Rect, _state: &CodeEditorState) {
-            ui.register_editor(self.id, area, Focusability::Focusable, StateFlags::EDITING);
-        }
-    }
+    use super::*;
+    use crate::components::{CodeEditor, CodeEditorState};
     use crate::event::Input;
     use crate::keymap::KeyMap;
     use crate::runtime::stub::key;

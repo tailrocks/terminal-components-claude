@@ -210,23 +210,15 @@ pub(crate) fn luminance(rgb: (u8, u8, u8)) -> f64 {
     0.2126 * to_lin(rgb.0) + 0.7152 * to_lin(rgb.1) + 0.0722 * to_lin(rgb.2)
 }
 
-/// Mono: the tag's mean-based 4-rung grey ladder
-/// (`visual-baseline:src/theme.rs:603-608`): channel mean 0-40 Black,
-/// 41-110 DarkGray, 111-190 Gray, else White.
-///
-/// Q65-S6b: this replaced the luminance 3-way (`Y < 0.35 → Black`,
-/// `Y > 0.75 → White`, else `Reset`). The old `Reset` rung was
-/// load-bearing transparency for downstream `from_tokens` themes; it
-/// is retired deliberately — mid-tones are opaque rungs now — because
-/// the G8 manifest half needs a legible generic DisabledFg (DarkGray,
-/// not Black-on-Black) and the tag has no transparent rung. `Reset`
-/// survives only as input passthrough in [`downgrade_color`].
+/// Mono: `Y < 0.35 → Black`, `Y > 0.75 → White`, else `Reset`.
 fn mono(rgb: (u8, u8, u8)) -> Color {
-    match (u32::from(rgb.0) + u32::from(rgb.1) + u32::from(rgb.2)) / 3 {
-        0..=40 => Color::Black,
-        41..=110 => Color::DarkGray,
-        111..=190 => Color::Gray,
-        _ => Color::White,
+    let y = luminance(rgb);
+    if y < 0.35 {
+        Color::Black
+    } else if y > 0.75 {
+        Color::White
+    } else {
+        Color::Reset
     }
 }
 
@@ -403,14 +395,7 @@ impl Theme {
 pub type MonoRule = (Part, StateFlags, StylePatch);
 
 /// The immutable generic mono fallback manifest applied by the resolver.
-///
-/// There is deliberately no generic `PRESSED` rule for `CONTAINER` or
-/// `LABEL` (Q65-S4/G6): the tag has no mono layer, so pressed affordance at
-/// `Mono` is the recipe's own — PRIMARY keeps its pressed BOLD, every other
-/// button variant resolves plain, and nothing brackets (Q64 G6/G6b, S0(a)).
-/// A generic inverse or bracket here would override those recipe semantics
-/// for all 35 families after the recipes had spoken.
-fn mono_rules() -> [MonoRule; 13] {
+fn mono_rules() -> [MonoRule; 15] {
     let p = StylePatch::new;
     [
         (
@@ -418,9 +403,6 @@ fn mono_rules() -> [MonoRule; 13] {
             StateFlags::FOCUSED,
             p().set_glyph(GlyphRole::FocusBar),
         ),
-        // Unpressed focus only: `apply_mono_with_defaults` skips this rule
-        // while PRESSED is live, or it re-adds the BOLD the pressed recipes
-        // stripped (G6b). Every other rule below fires as declared.
         (Part::LABEL, StateFlags::FOCUSED, p().add(Modifier::BOLD)),
         (
             Part::MARKER,
@@ -431,6 +413,18 @@ fn mono_rules() -> [MonoRule; 13] {
             Part::MARKER,
             StateFlags::CHECKED,
             p().set_glyph(GlyphRole::Checked),
+        ),
+        (
+            Part::CONTAINER,
+            StateFlags::PRESSED,
+            p().set_bg(Role::Fg(FgStep::Primary))
+                .set_fg(Role::Surface(Surface::Canvas))
+                .add(Modifier::BOLD),
+        ),
+        (
+            Part::LABEL,
+            StateFlags::PRESSED,
+            p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
         ),
         (
             Part::GUTTER,
@@ -450,17 +444,10 @@ fn mono_rules() -> [MonoRule; 13] {
                     .remove(Modifier::all())
             },
         ),
-        // Q65-S6b (G8-manifest): DisabledFg, not Fg(Primary). The tag
-        // renders disabled labels DarkGray+DIM at Mono (Q64 G8 row;
-        // frozen `buttons/audit/120x40/none.ansi:29`); forcing Primary
-        // painted White+DIM. The FIELD/TEXT siblings already name
-        // DisabledFg — LABEL now matches them. MARKER keeps
-        // Fg(Primary): its glyph is Clear (a blank cell, so its fg is
-        // unobservable) and no oracle pins it.
         (
             Part::LABEL,
             StateFlags::DISABLED,
-            p().set_fg(Role::DisabledFg)
+            p().set_fg(Role::Fg(FgStep::Primary))
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
@@ -479,14 +466,18 @@ fn mono_rules() -> [MonoRule; 13] {
         (
             Part::FIELD,
             StateFlags::DISABLED,
-            p().set_fg(Role::DisabledFg)
+            // `Fg(Primary)`, NOT `Fg(Faint)`: `mono()` maps every step below
+            // `Y = 0.35` to `Black`, and both `disabled_fg` and `Fg(Faint)`
+            // are below it — on a `Black` canvas §11.4's prescribed faint
+            // foreground is invisible, not merely colourless.
+            p().set_fg(Role::Fg(FgStep::Primary))
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
         (
             Part::TEXT,
             StateFlags::DISABLED,
-            p().set_fg(Role::DisabledFg)
+            p().set_fg(Role::Fg(FgStep::Primary))
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
@@ -540,14 +531,13 @@ fn mono_rules_extra() -> [MonoRule; 5] {
         ),
         // §11.4 `PRESSED`, scrollbar half: the thumb wears `PRESSED` from a
         // live capture (`components/scroll_region.rs:36-38`). The generic
-        // manifest carries no pressed-container treatment at all (Q65-S4
-        // deleted it: pressed affordance is the recipe's own), so the
-        // thumb is the only bold part under a drag. The recipe's own
-        // `PRESSED` rule is `set_fg(Role::Accent)`, and colour alone is
-        // excluded from conformance case 9's comparison, so without this
-        // a dragged thumb is invisible at `Mono`. `BOLD` reserves no
-        // cell, so this keeps the "a mono fallback never changes geometry"
-        // guarantee.
+        // `CONTAINER` rule is excluded from `SCROLLBAR` below because this
+        // component fills that part across its whole area; the thumb must be
+        // the only bold part. The recipe's own `PRESSED` rule is
+        // `set_fg(Role::Accent)`, and colour alone is excluded from
+        // conformance case 9's comparison, so without this a dragged thumb is
+        // invisible at `Mono`. `BOLD` reserves no cell, so this keeps the
+        // "a mono fallback never changes geometry" guarantee.
         (Part::THUMB, StateFlags::PRESSED, p().add(Modifier::BOLD)),
     ]
 }
@@ -560,17 +550,17 @@ fn mono_rules_extra() -> [MonoRule; 5] {
 /// The name is historical and is **not** a per-family total: it is cited by
 /// name in §16.1 and §20.10 item 18, so it keeps it. Six built-in families
 /// declare targeted rules on top of these (`VIEWPORT` 1, `GRID` 2, `MENU` 2,
-/// `HELP` 2, `PICKER` 3, `SELECT` 3) — every targeted pair is disjoint from
-/// the generic set since Q65-S4 deleted the generic `(LABEL, PRESSED)` rule
-/// `PICKER`'s targeted rule used to retarget, so `PICKER` and `SELECT` each
-/// reach 21 `(part, state)` pairs — and a theme author can give any family —
+/// `HELP` 2, `PICKER` 3, `SELECT` 3) — `PICKER`'s `(LABEL, PRESSED)` retargets
+/// a pair the generic set already covers, so `PICKER` reaches 22 `(part,
+/// state)` pairs where `SELECT` reaches 23 — and a theme author can give any family —
 /// including a `Family::custom` one — its own targeted set through
 /// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules). The count
 /// that is constant across families is exactly this generic one; the total a
 /// given family applies is this number plus its targeted set's length.
-/// Every family answers the whole generic set: the old `SCROLLBAR` exclusion
-/// died with the generic `(CONTAINER, PRESSED)` rule it excluded (Q65-S4).
-pub const MONO_RULES_PER_FAMILY: usize = 18;
+/// `SCROLLBAR` is the one family that applies *fewer*: the generic
+/// `(CONTAINER, PRESSED)` rule is excluded for it (`apply_mono_fallback`), so
+/// its generic total is `MONO_RULES_PER_FAMILY - 1`.
+pub const MONO_RULES_PER_FAMILY: usize = 20;
 
 fn viewport_mono_rules() -> [MonoRule; 1] {
     [(
@@ -636,7 +626,7 @@ fn help_mono_rules() -> [MonoRule; 2] {
     ]
 }
 
-fn picker_mono_rules() -> [MonoRule; 7] {
+fn picker_mono_rules() -> [MonoRule; 3] {
     [
         (
             Part::GUTTER,
@@ -655,26 +645,6 @@ fn picker_mono_rules() -> [MonoRule; 7] {
                 .set_fg(Role::Surface(Surface::Canvas))
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD | Modifier::UNDERLINED),
-        ),
-        (
-            Part::GUTTER,
-            StateFlags::DISABLED,
-            StylePatch::new().add(Modifier::DIM),
-        ),
-        (
-            Part::META,
-            StateFlags::DISABLED,
-            StylePatch::new().add(Modifier::DIM),
-        ),
-        (
-            Part::CONTAINER,
-            StateFlags::DISABLED,
-            StylePatch::new().add(Modifier::DIM),
-        ),
-        (
-            Part::ICON,
-            StateFlags::DISABLED,
-            StylePatch::new().add(Modifier::DIM),
         ),
     ]
 }
@@ -752,19 +722,11 @@ pub(crate) fn apply_mono_with_defaults(
     // for that family, so a theme can retarget or silence it, and repeating
     // the call cannot accumulate duplicates.
     let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
-    // A pressed label is in pressed state, not focused state: the generic
-    // focus rule must not re-add the BOLD the pressed recipes stripped
-    // (Q65-S4/G6b). The skip is generic-only — an authored targeted rule
-    // stays the author's whole word for its family.
-    let pressed = live.contains(StateFlags::PRESSED);
-    for (rule_part, when, patch) in rules.iter().chain(extra.iter()) {
-        let focus_superseded = pressed && *rule_part == Part::LABEL && *when == StateFlags::FOCUSED;
-        if !focus_superseded && *rule_part == part && live.contains(*when) {
-            acc = acc.merge(*patch);
-        }
-    }
-    for (rule_part, when, patch) in targeted {
-        if *rule_part == part && live.contains(*when) {
+    for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
+        let applies = family != Family::SCROLLBAR
+            || *rule_part != Part::CONTAINER
+            || *when != StateFlags::PRESSED;
+        if applies && *rule_part == part && live.contains(*when) {
             acc = acc.merge(*patch);
         }
     }
@@ -791,47 +753,11 @@ mod tests {
         }
         let m = t.downgrade(ColorLevel::Mono);
         for c in m.color.colors() {
-            // Q65-S6b: the generic Mono output set is the tag's 4-rung
-            // ladder (`visual-baseline:src/theme.rs:603-608`), not the
-            // old luminance 3-way — Q64 G8 requires DarkGray to be
-            // expressible, and the retired `Reset` rung is the explicit
-            // F4 price (see `mono()`). Forced RED pre-migration
-            // (first offender: DarkGray).
             assert!(
-                matches!(
-                    c,
-                    Color::Black | Color::DarkGray | Color::Gray | Color::White
-                ),
+                matches!(c, Color::Black | Color::White | Color::Reset),
                 "{c:?}"
             );
         }
-        assert_eq!(m.capability.color, ColorLevel::Mono);
-    }
-
-    /// Q65-S6 HOLD: the authored junie Mono palette already IS the tag's
-    /// mean-based 4-rung ladder on every token, so the G8 palette remap
-    /// evaporates for junie (0 slots move). The live G8 render gap
-    /// (disabled labels resolve White+DIM, tag pins DarkGray+DIM) is owned
-    /// by the `(LABEL, DISABLED)` mono rule below, not by any palette, and
-    /// belongs to a follow-up manifest slice (landed as Q65-S6b). If this
-    /// test ever fails, the remap is live again and the S6 DEFER decision
-    /// must be re-opened.
-    /// Ladder: `visual-baseline:src/theme.rs:603-608` (mean 0-40 Black,
-    /// 41-110 DarkGray, 111-190 Gray, else White; non-Rgb passes through).
-    #[test]
-    fn q65s6_hold_junie_mono_is_tag_ladder() {
-        let tc = Theme::junie();
-        let m = tc.downgrade(ColorLevel::Mono);
-        let mut ladder = |c: Color| match c {
-            Color::Rgb(r, g, b) => match (u32::from(r) + u32::from(g) + u32::from(b)) / 3 {
-                0..=40 => Color::Black,
-                41..=110 => Color::DarkGray,
-                111..=190 => Color::Gray,
-                _ => Color::White,
-            },
-            other => other,
-        };
-        assert_eq!(m.color, tc.color.map_colors(&mut ladder));
         assert_eq!(m.capability.color, ColorLevel::Mono);
     }
 
@@ -878,16 +804,13 @@ mod tests {
             downgrade_color(Color::Rgb(255, 255, 255), ColorLevel::Mono),
             Color::White
         );
-        // Q65-S6b: tag mean-ladder rungs (means 128 and 179 land on
-        // Gray), not the old luminance pins (Black/Reset). Forced RED
-        // pre-migration (observed Gray vs Black on the first pin).
         assert_eq!(
             downgrade_color(Color::Rgb(0x80, 0x80, 0x80), ColorLevel::Mono),
-            Color::Gray
+            Color::Black
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0xb3, 0xb3, 0xb3), ColorLevel::Mono),
-            Color::Gray
+            Color::Reset
         );
         assert_eq!(
             downgrade_color(Color::Reset, ColorLevel::Mono),
@@ -996,14 +919,8 @@ mod tests {
             "for_level widened a deliberately downgraded theme"
         );
         for c in widened.color.colors() {
-            // Q65-S6b: same 4-rung set migration as
-            // `downgrade_maps_every_token_exhaustively` (forced RED
-            // pre-migration — DarkGray now populates the widened set).
             assert!(
-                matches!(
-                    c,
-                    Color::Black | Color::DarkGray | Color::Gray | Color::White
-                ),
+                matches!(c, Color::Black | Color::White | Color::Reset),
                 "{c:?} came back after a widening for_level"
             );
         }
@@ -1056,8 +973,6 @@ mod tests {
             &[],
         );
         assert_eq!(acc.glyph, Slot::Set(GlyphRole::Checked));
-        // Q65-S4/G6: no generic pressed-label rule remains — the tag has no
-        // brackets at `Mono`, and pressed BOLD is the recipe's own (S1).
         let pressed = crate::theme::resolve::accumulate(
             &m,
             Family::BUTTON,
@@ -1066,8 +981,8 @@ mod tests {
             StateFlags::PRESSED,
             &[],
         );
-        assert_eq!(pressed.glyph, Slot::Inherit);
-        assert!(!pressed.add.contains(Modifier::BOLD));
+        assert_eq!(pressed.glyph, Slot::Set(GlyphRole::PressLeft));
+        assert!(pressed.add.contains(Modifier::BOLD));
     }
 
     /// F1: static mono resolution must reach the neutral-backed path for
@@ -1124,12 +1039,11 @@ mod tests {
     }
 
     /// §11.4, `PRESSED`: a dragged scrollbar thumb must stay visible at
-    /// `Mono`, without any pressed-container treatment on the whole region
-    /// (the generic manifest carries none since Q65-S4). The sole authored
-    /// `PRESSED` rule on `SCROLLBAR` is `set_fg(Role::Accent)` — colour,
-    /// which conformance case 9 excludes from its comparison. The thumb
-    /// genuinely wears `PRESSED`: a live capture keeps it
-    /// (`components/scroll_region.rs:36-38`).
+    /// `Mono`, without applying the generic pressed-container treatment to
+    /// the whole region. The sole authored `PRESSED` rule on `SCROLLBAR` is
+    /// `set_fg(Role::Accent)` — colour, which conformance case 9 excludes from
+    /// its comparison. The thumb genuinely wears `PRESSED`: a live capture
+    /// keeps it (`components/scroll_region.rs:36-38`).
     #[test]
     fn mono_pressed_reaches_the_scrollbar_thumb() {
         for base in [Theme::junie(), Theme::paper()] {
@@ -1284,7 +1198,7 @@ mod tests {
         let help = help_mono_rules();
         let picker = picker_mono_rules();
         let select = select_mono_rules();
-        assert_eq!(rules.len(), 13);
+        assert_eq!(rules.len(), 15);
         assert_eq!(extra.len(), 5);
         assert!(extra.iter().any(|(part, when, patch)| {
             *part == Part::ICON
@@ -1295,7 +1209,7 @@ mod tests {
         assert_eq!(grid.len(), 2);
         assert_eq!(menu.len(), 2);
         assert_eq!(help.len(), 2);
-        assert_eq!(picker.len(), 7);
+        assert_eq!(picker.len(), 3);
         assert_eq!(select.len(), 3);
         assert!(grid.iter().any(|(part, when, patch)| {
             *part == Part::ROW && *when == StateFlags::PRESSED && patch.add.contains(Modifier::BOLD)
@@ -1333,10 +1247,8 @@ mod tests {
 
     /// §29 + §11.4: at `Mono` a disabled control must stay **readable**, not
     /// merely colourless. The rule that produced `Fg(Faint)` here resolved to
-    /// `Black` on a `Black` canvas — invisible — because the old `mono()`
-    /// collapsed every step below `Y = 0.35` onto the background. Q65-S6b
-    /// keeps the guarantee under the new mean-ladder + DisabledFg LABEL
-    /// rule (generic DisabledFg is DarkGray/Gray now, off every canvas).
+    /// `Black` on a `Black` canvas — invisible — because `mono()` collapses
+    /// every step below `Y = 0.35` onto the background.
     #[test]
     fn mono_disabled_is_dim_and_readable() {
         for base in [Theme::junie(), Theme::paper()] {
@@ -1399,9 +1311,9 @@ mod tests {
     }
 
     /// The constant counts the **generic** manifest only; a family's real
-    /// total is that plus its targeted set. Every targeted pair is disjoint
-    /// from the generic set, so nothing dedups. These are the numbers
-    /// `MONO_RULES_PER_FAMILY`'s documentation states.
+    /// total is that plus its targeted set, minus `SCROLLBAR`'s one exclusion
+    /// and minus any pair a targeted rule shares with the generic set. These
+    /// are the numbers `MONO_RULES_PER_FAMILY`'s documentation states.
     #[test]
     fn mono_rule_counts_match_the_documented_totals() {
         assert_eq!(
@@ -1415,23 +1327,21 @@ mod tests {
             responding_pairs(&r, Family::custom("seg")),
             MONO_RULES_PER_FAMILY
         );
-        // Q65-S4 deleted the generic `(CONTAINER, PRESSED)` rule, so the old
-        // `SCROLLBAR` exclusion died with it: the scrollbar answers the
-        // whole generic set, and only the thumb is bold under a drag
-        // because only the thumb has a rule.
+        // the one family that answers fewer: generic `(CONTAINER, PRESSED)`
+        // is excluded so only the thumb is bold under a drag
         assert_eq!(
             responding_pairs(&r, Family::SCROLLBAR),
-            MONO_RULES_PER_FAMILY
+            MONO_RULES_PER_FAMILY - 1
         );
         for (f, pairs) in [
-            (Family::VIEWPORT, 19),
-            (Family::GRID, 20),
-            (Family::MENU, 20),
-            (Family::HELP, 20),
-            // `PICKER`'s `(LABEL, PRESSED)` used to retarget a generic pair;
-            // since Q65-S4 deleted that generic rule it answers on its own
-            (Family::PICKER, 24),
-            (Family::SELECT, 21),
+            (Family::VIEWPORT, 21),
+            (Family::GRID, 22),
+            (Family::MENU, 22),
+            (Family::HELP, 22),
+            // `PICKER` declares three rules but one retargets `(LABEL,
+            // PRESSED)`, which the generic set already answers
+            (Family::PICKER, 22),
+            (Family::SELECT, 23),
         ] {
             assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");
         }
@@ -1600,500 +1510,4 @@ mod tests {
     }
 
     use crate::theme::recipe::{Family, Variant};
-
-    // Q65-S4 (G6): the tag has no mono layer — pressed affordance at `Mono`
-    // is the resolver's own (Q64 G6 row: no brackets; S0(a): PRIMARY
-    // pressed+focused BOLD; Q64 G6b: Cancel pressed+focused NONE; W01-02:
-    // the tag's pressed lockup recolors, it does not bracket). The generic
-    // pressed rules must go so the S1 recipe semantics (PRIMARY re-adds
-    // BOLD, every other variant strips it) show through, and the generic
-    // focus rule must not fire while PRESSED is live, or it re-adds the
-    // BOLD the recipes stripped. Unpressed focus is untouched.
-    const Q65S4_BUTTON_VARIANTS: [Variant; 8] = [
-        Variant::DEFAULT,
-        Variant::PRIMARY,
-        Variant::SECONDARY,
-        Variant::SUBTLE,
-        Variant::DANGER,
-        Variant::TOGGLE,
-        Variant::QUIET,
-        Variant::GHOST,
-    ];
-
-    /// S0(a): PRIMARY pressed+focused @Mono is BOLD with no brackets. The
-    /// BOLD rides the container (S1 re-add); the label resolve must be
-    /// modifier-empty — no add AND no remove — so the cells inherit it.
-    #[test]
-    fn q65s4_g6_primary_pressed_focused_bold_no_bracket() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        for live in [
-            StateFlags::PRESSED | StateFlags::FOCUSED,
-            StateFlags::HOVERED | StateFlags::PRESSED | StateFlags::FOCUSED,
-        ] {
-            let label = m.resolve(
-                Family::BUTTON,
-                Variant::PRIMARY,
-                Part::LABEL,
-                live,
-                Surface::Elevated,
-            );
-            assert_eq!(
-                label.glyph,
-                Slot::Inherit,
-                "PRIMARY label brackets at {live:?}"
-            );
-            assert!(
-                !label.style.add_modifier.contains(Modifier::BOLD),
-                "PRIMARY label adds BOLD at {live:?}"
-            );
-            assert!(
-                !label.style.sub_modifier.contains(Modifier::BOLD),
-                "PRIMARY label strips the container's BOLD at {live:?}"
-            );
-            let container = m.resolve(
-                Family::BUTTON,
-                Variant::PRIMARY,
-                Part::CONTAINER,
-                live,
-                Surface::Elevated,
-            );
-            assert!(
-                container.style.add_modifier.contains(Modifier::BOLD),
-                "PRIMARY container lost its S1 BOLD at {live:?}"
-            );
-        }
-    }
-
-    /// Q64 G6b: every other variant pressed @Mono is plain — no BOLD, no
-    /// brackets — whether or not FOCUSED is also live.
-    #[test]
-    fn q65s4_g6b_pressed_plain_for_other_variants() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        for v in Q65S4_BUTTON_VARIANTS {
-            if v == Variant::PRIMARY {
-                continue;
-            }
-            for live in [
-                StateFlags::PRESSED | StateFlags::FOCUSED,
-                StateFlags::PRESSED,
-            ] {
-                let label = m.resolve(Family::BUTTON, v, Part::LABEL, live, Surface::Elevated);
-                assert_eq!(
-                    label.glyph,
-                    Slot::Inherit,
-                    "{v:?} LABEL brackets at {live:?}"
-                );
-                assert!(
-                    !label.style.add_modifier.contains(Modifier::BOLD),
-                    "{v:?} LABEL adds BOLD at {live:?}"
-                );
-                assert!(
-                    !label.style.sub_modifier.contains(Modifier::BOLD),
-                    "{v:?} LABEL carries a BOLD strip at {live:?}"
-                );
-                let container =
-                    m.resolve(Family::BUTTON, v, Part::CONTAINER, live, Surface::Elevated);
-                assert!(
-                    !container.style.add_modifier.contains(Modifier::BOLD),
-                    "{v:?} CONTAINER adds BOLD at {live:?}"
-                );
-                assert!(
-                    container.style.sub_modifier.contains(Modifier::BOLD),
-                    "{v:?} CONTAINER lost its S1 BOLD strip at {live:?}"
-                );
-            }
-        }
-    }
-
-    /// The pressed container is the recipe's own colors, not the generic
-    /// inverse (fg Canvas on bg Primary): PRIMARY keeps AccentPressed,
-    /// DANGER keeps Danger. (`_`-arm variants genuinely resolve near the
-    /// old inverse from their own recipe, so they cannot discriminate.)
-    #[test]
-    fn q65s4_g6_pressed_container_is_recipe_not_inverse() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        let live = StateFlags::PRESSED | StateFlags::FOCUSED;
-        let primary = m.resolve(
-            Family::BUTTON,
-            Variant::PRIMARY,
-            Part::CONTAINER,
-            live,
-            Surface::Elevated,
-        );
-        assert_eq!(
-            primary.style.fg,
-            crate::theme::resolve::bind_role(&m, Role::OnAccent, Surface::Elevated)
-        );
-        assert_eq!(
-            primary.style.bg,
-            crate::theme::resolve::bind_role(&m, Role::AccentPressed, Surface::Elevated)
-        );
-        let danger = m.resolve(
-            Family::BUTTON,
-            Variant::DANGER,
-            Part::CONTAINER,
-            live,
-            Surface::Elevated,
-        );
-        assert_eq!(
-            danger.style.fg,
-            crate::theme::resolve::bind_role(&m, Role::OnDanger, Surface::Elevated)
-        );
-        assert_eq!(
-            danger.style.bg,
-            crate::theme::resolve::bind_role(&m, Role::Danger, Surface::Elevated)
-        );
-    }
-
-    /// Two generic pressed rules deleted: 15+5=20 becomes 13+5=18.
-    #[test]
-    fn q65s4_mono_rule_count_is_18() {
-        assert_eq!(MONO_RULES_PER_FAMILY, 18);
-        assert_eq!(mono_rules().len(), 13);
-        assert_eq!(mono_rules_extra().len(), 5);
-        assert_eq!(
-            MONO_RULES_PER_FAMILY,
-            mono_rules().len() + mono_rules_extra().len()
-        );
-    }
-
-    /// HOLD: unpressed focus keeps its BOLD everywhere — the exclusion only
-    /// bites while PRESSED is live.
-    #[test]
-    fn q65s4_hold_unpressed_focused_keeps_bold() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        for v in Q65S4_BUTTON_VARIANTS {
-            let label = m.resolve(
-                Family::BUTTON,
-                v,
-                Part::LABEL,
-                StateFlags::FOCUSED,
-                Surface::Elevated,
-            );
-            assert!(
-                label.style.add_modifier.contains(Modifier::BOLD),
-                "{v:?} LABEL lost focus BOLD"
-            );
-        }
-        for f in [Family::TABS, Family::LIST, Family::CHOICE, Family::CHIP] {
-            let label = m.resolve(
-                f,
-                Variant::DEFAULT,
-                Part::LABEL,
-                StateFlags::FOCUSED,
-                Surface::Canvas,
-            );
-            assert!(
-                label.style.add_modifier.contains(Modifier::BOLD),
-                "{f:?} LABEL lost focus BOLD"
-            );
-        }
-    }
-
-    /// PICKER's targeted `(LABEL, PRESSED)` survives the generic deletion:
-    /// the bracket glyph goes (it came from the generic rule) but the
-    /// targeted inverse + BOLD|UNDERLINED affordance stays.
-    #[test]
-    fn q65s4_picker_label_pressed_loses_bracket_keeps_affordance() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        let r = m.resolve(
-            Family::PICKER,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::PRESSED,
-            Surface::Canvas,
-        );
-        assert_eq!(r.glyph, Slot::Inherit);
-        assert!(r.style.add_modifier.contains(Modifier::BOLD));
-        assert!(r.style.add_modifier.contains(Modifier::UNDERLINED));
-    }
-
-    /// HOLD: MENU TITLE pressed keeps its brackets — they come from the
-    /// menu recipe plus the MENU targeted rule, neither of which moves.
-    #[test]
-    fn q65s4_hold_menu_title_pressed_keeps_bracket() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        let r = m.resolve(
-            Family::MENU,
-            Variant::DEFAULT,
-            Part::TITLE,
-            StateFlags::PRESSED,
-            Surface::Overlay,
-        );
-        assert_eq!(r.glyph, Slot::Set(GlyphRole::PressLeft));
-        assert!(r.style.add_modifier.contains(Modifier::BOLD));
-    }
-
-    /// HOLD: SELECT GUTTER pressed keeps its bracket — a targeted rule,
-    /// untouched by the generic deletion.
-    #[test]
-    fn q65s4_hold_select_gutter_pressed_keeps_bracket() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        let r = m.resolve(
-            Family::SELECT,
-            Variant::DEFAULT,
-            Part::GUTTER,
-            StateFlags::PRESSED,
-            Surface::Canvas,
-        );
-        assert_eq!(r.glyph, Slot::Set(GlyphRole::PressLeft));
-        assert!(r.style.add_modifier.contains(Modifier::BOLD));
-    }
-
-    /// HOLD: disabled styling is nowhere near this slice.
-    #[test]
-    fn q65s4_hold_disabled_dim_unchanged() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        for v in Q65S4_BUTTON_VARIANTS {
-            let r = m.resolve(
-                Family::BUTTON,
-                v,
-                Part::LABEL,
-                StateFlags::DISABLED,
-                Surface::Elevated,
-            );
-            assert!(
-                r.style.add_modifier.contains(Modifier::DIM),
-                "{v:?} LABEL lost DISABLED dim"
-            );
-        }
-    }
-
-    // Q65-S6b (G8-manifest, atomic ladder+manifest): the generic
-    // `(LABEL,DISABLED)` mono rule forced `Fg(Primary)` (White) + DIM
-    // after the recipes; the tag renders disabled labels DarkGray+DIM
-    // at `Mono` (Q64 G8 row + frozen
-    // `baselines/.../buttons/audit/120x40/none.ansi:29`). The rule now
-    // names `DisabledFg`, matching the `(FIELD/TEXT,DISABLED)`
-    // siblings — and generic `mono()` becomes the tag's mean-based
-    // 4-rung ladder in the same commit, or generic-path disabled
-    // labels render Black+DIM-on-Black = invisible.
-
-    /// Q64 G8: every button variant's disabled LABEL @Mono is
-    /// DarkGray+DIM (tag's own Dialog, forced-disabled; `none.ansi:29`
-    /// `[2;38;5;8;48;5;0m` on all four variants).
-    #[test]
-    fn q65s6b_g8_disabled_label_mono_is_darkgray_dim() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        let want = crate::theme::resolve::bind_role(&m, Role::DisabledFg, Surface::Elevated);
-        assert_eq!(want, Some(Color::DarkGray));
-        for v in Q65S4_BUTTON_VARIANTS {
-            let r = m.resolve(
-                Family::BUTTON,
-                v,
-                Part::LABEL,
-                StateFlags::DISABLED,
-                Surface::Elevated,
-            );
-            assert_eq!(r.style.fg, want, "{v:?} LABEL DISABLED fg");
-            assert!(
-                r.style.add_modifier.contains(Modifier::DIM),
-                "{v:?} LABEL lost DISABLED dim"
-            );
-        }
-    }
-
-    /// The manifest rule is generic: LIST rows (the unmasked consumer
-    /// in canonical matrices), CHOICE options, and FIELD labels resolve
-    /// the same DisabledFg+DIM as buttons.
-    #[test]
-    fn q65s6b_g8_disabled_label_mono_generic_families() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        for f in [Family::LIST, Family::CHOICE, Family::FIELD, Family::BUTTON] {
-            let r = m.resolve(
-                f,
-                Variant::DEFAULT,
-                Part::LABEL,
-                StateFlags::DISABLED,
-                Surface::Canvas,
-            );
-            assert_eq!(r.style.fg, Some(Color::DarkGray), "{f:?} LABEL DISABLED fg");
-            assert!(
-                r.style.add_modifier.contains(Modifier::DIM),
-                "{f:?} LABEL lost DISABLED dim"
-            );
-        }
-    }
-
-    /// Ladder half, generic path: `from_tokens` (Paper + downstream
-    /// custom themes, no authored palette) downgrades to the tag's
-    /// mean-based 4-rung ladder exhaustively — the S6 HOLD mirrored
-    /// onto the generic path. Gated by the manifest half's oracle
-    /// (not principle-only): it is the legibility prerequisite below.
-    #[test]
-    fn q65s6b_ladder_generic_mono_is_tag_4rung() {
-        let t = Theme::from_tokens(Theme::junie().color);
-        let m = t.downgrade(ColorLevel::Mono);
-        let mut ladder = |c: Color| match c {
-            Color::Rgb(r, g, b) => match (u32::from(r) + u32::from(g) + u32::from(b)) / 3 {
-                0..=40 => Color::Black,
-                41..=110 => Color::DarkGray,
-                111..=190 => Color::Gray,
-                _ => Color::White,
-            },
-            other => other,
-        };
-        assert_eq!(m.color, t.color.map_colors(&mut ladder));
-        assert_eq!(m.capability.color, ColorLevel::Mono);
-    }
-
-    /// Ladder half, rung boundaries verbatim from
-    /// `visual-baseline:src/theme.rs:603-608` (channel mean 0-40
-    /// Black, 41-110 DarkGray, 111-190 Gray, else White). Mid-tones
-    /// are opaque rungs now, never `Reset`: the old `Reset` rung was
-    /// load-bearing transparency for downstream themes (S6 F4), and
-    /// losing it is the explicit price of tag parity + the legibility
-    /// prerequisite — `Reset` survives only as input passthrough.
-    #[test]
-    fn q65s6b_ladder_rung_boundaries() {
-        let at = |r, g, b| downgrade_color(Color::Rgb(r, g, b), ColorLevel::Mono);
-        assert_eq!(at(0, 0, 0), Color::Black);
-        assert_eq!(at(40, 40, 40), Color::Black);
-        assert_eq!(at(41, 41, 41), Color::DarkGray);
-        assert_eq!(at(110, 110, 110), Color::DarkGray);
-        assert_eq!(at(111, 111, 111), Color::Gray);
-        assert_eq!(at(190, 190, 190), Color::Gray);
-        assert_eq!(at(191, 191, 191), Color::White);
-        assert_eq!(at(255, 255, 255), Color::White);
-        // mean, not luminance: saturated red is mid-ladder, not black
-        assert_eq!(at(205, 0, 0), Color::DarkGray);
-        // Reset stays transparent (input passthrough, not a rung)
-        assert_eq!(
-            downgrade_color(Color::Reset, ColorLevel::Mono),
-            Color::Reset
-        );
-        // the old 3-way's Black/Reset mid-tones are Gray now
-        assert_eq!(at(0x80, 0x80, 0x80), Color::Gray);
-        assert_eq!(at(0xb3, 0xb3, 0xb3), Color::Gray);
-    }
-
-    /// Ladder half, legibility prerequisite: generic-path DisabledFg
-    /// @Mono is DarkGray (off-canvas), exactly the authored junie
-    /// value — without this the manifest half renders generic-path
-    /// disabled labels Black+DIM-on-Black = invisible. Paper (no
-    /// oracle) is pinned theme-agnostically: some fg, off its canvas.
-    #[test]
-    fn q65s6b_ladder_generic_disabled_fg_legible() {
-        let g = Theme::from_tokens(Theme::junie().color).downgrade(ColorLevel::Mono);
-        assert_eq!(
-            crate::theme::resolve::bind_role(&g, Role::DisabledFg, Surface::Canvas),
-            Some(Color::DarkGray)
-        );
-        for base in [Theme::from_tokens(Theme::junie().color), Theme::paper()] {
-            let m = base.downgrade(ColorLevel::Mono);
-            let canvas = crate::theme::resolve::bind_role(
-                &m,
-                Role::Surface(Surface::Canvas),
-                Surface::Canvas,
-            );
-            let r = m.resolve(
-                Family::BUTTON,
-                Variant::DEFAULT,
-                Part::LABEL,
-                StateFlags::DISABLED,
-                Surface::Canvas,
-            );
-            assert!(
-                r.style.fg.is_some() && r.style.fg != canvas,
-                "generic-path DISABLED label fg {:?} is the canvas {canvas:?}",
-                r.style.fg
-            );
-        }
-    }
-
-    /// HOLD: `(MARKER,DISABLED)` is EXCLUDED from the manifest half —
-    /// no oracle backs it (Q64 G8 + `none.ansi:29` pin labels only;
-    /// the rule clears the glyph, so its fg paints a blank filled
-    /// cell and no render can observe it). Still White-forcing,
-    /// still glyph-Clear, still DIM-free.
-    #[test]
-    fn q65s6b_hold_marker_disabled_unchanged() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        let r = m.resolve(
-            Family::LIST,
-            Variant::DEFAULT,
-            Part::MARKER,
-            StateFlags::DISABLED,
-            Surface::Canvas,
-        );
-        assert_eq!(r.glyph, Slot::Clear);
-        assert_eq!(r.style.fg, Some(Color::White));
-        assert!(!r.style.add_modifier.contains(Modifier::DIM));
-    }
-
-    /// HOLD: TC/256/16 disabled labels are nowhere near this slice
-    /// (mono rules are Mono-gated). The BUTTON LABEL recipe is empty,
-    /// so the label resolve carries no fg and no DIM — cells inherit
-    /// the container fill (recipe DisabledFg) through paint.
-    #[test]
-    fn q65s6b_hold_disabled_label_tc_256_16_untouched() {
-        let tc = Theme::junie();
-        for (theme, want_fg) in [
-            (tc.clone(), Some(tc.color.disabled_fg)),
-            (
-                tc.downgrade(ColorLevel::Ansi256),
-                tc.downgrade(ColorLevel::Ansi256).color.disabled_fg.into(),
-            ),
-            (tc.downgrade(ColorLevel::Ansi16), Some(Color::DarkGray)),
-        ] {
-            let label = theme.resolve(
-                Family::BUTTON,
-                Variant::DEFAULT,
-                Part::LABEL,
-                StateFlags::DISABLED,
-                Surface::Elevated,
-            );
-            assert_eq!(label.style.fg, None);
-            assert!(!label.style.add_modifier.contains(Modifier::DIM));
-            let container = theme.resolve(
-                Family::BUTTON,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                StateFlags::DISABLED,
-                Surface::Elevated,
-            );
-            assert_eq!(container.style.fg, want_fg);
-        }
-    }
-
-    /// HOLD: FIELD/TEXT disabled already were DisabledFg+DIM — the
-    /// alignment target the LABEL rule now joins, not a behavior
-    /// this slice moves.
-    #[test]
-    fn q65s6b_hold_field_text_disabled_unchanged() {
-        for base in [Theme::junie(), Theme::paper()] {
-            let m = base.downgrade(ColorLevel::Mono);
-            for p in [Part::FIELD, Part::TEXT] {
-                let r = m.resolve(
-                    Family::INPUT,
-                    Variant::DEFAULT,
-                    p,
-                    StateFlags::DISABLED,
-                    Surface::Canvas,
-                );
-                assert_eq!(
-                    r.style.fg,
-                    crate::theme::resolve::bind_role(&m, Role::DisabledFg, Surface::Canvas),
-                    "{p:?} DISABLED fg moved"
-                );
-                assert!(
-                    r.style.add_modifier.contains(Modifier::DIM),
-                    "{p:?} DISABLED lost dim"
-                );
-            }
-        }
-    }
-
-    /// HOLD: the manifest half edits one rule in place — the generic
-    /// count is still 18 (13+5).
-    #[test]
-    fn q65s6b_hold_mono_rule_count_still_18() {
-        assert_eq!(MONO_RULES_PER_FAMILY, 18);
-        assert_eq!(mono_rules().len(), 13);
-        assert_eq!(mono_rules_extra().len(), 5);
-        assert_eq!(
-            MONO_RULES_PER_FAMILY,
-            mono_rules().len() + mono_rules_extra().len()
-        );
-    }
 }

@@ -13,16 +13,13 @@
 
 use core::fmt;
 use core::marker::PhantomData;
-use core::time::Duration;
 
 use ratatui_core::layout::Rect;
 
-use super::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
-use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, StepDir,
-    index_of, key_at,
-};
+use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
+use termrock_runtime::rowui::{RowFn, RowUi};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -102,10 +99,6 @@ impl StepState {
         }
     }
 }
-
-/// A step's meta accessor: the trailing text for a step, or `None` to
-/// keep the lifecycle word (`StepState::label`).
-pub type StepMetaFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
 
 /// What a navigable rail reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -348,7 +341,7 @@ impl Reconcile for StepsState {
 /// ## Layout
 /// One row per step: gutter, the one-cell state glyph, the component-owned
 /// lifecycle word at the far right, then the renderer's row in what remains.
-/// The renderer may add its own [`RowUi::meta`](crate::collection::RowUi::meta)
+/// The renderer may add its own [`RowUi::meta`](termrock_runtime::rowui::RowUi::meta)
 /// inside that remaining body. A scrollbar column appears when the steps
 /// overflow. `measure` is `(12…, offered height)`; `draw` returns `area`.
 /// `0×0` registers nothing (R5).
@@ -390,8 +383,6 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     step: Option<&'a dyn Fn(&T) -> StepState>,
-    meta: Option<StepMetaFn<'a, T>>,
-    numbered: bool,
     navigable: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -425,8 +416,6 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             step: None,
-            meta: None,
-            numbered: false,
             navigable: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -480,22 +469,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
-    /// The trailing-meta accessor. `Some` replaces the lifecycle word on
-    /// that row; `None` keeps it.
-    #[must_use]
-    pub const fn meta(mut self, f: StepMetaFn<'a, T>) -> Self {
-        self.meta = Some(f);
-        self
-    }
-
-    /// Prefix every row with its 1-based index (`01`, `02`, …) in the
-    /// META voice. Off by default.
-    #[must_use]
-    pub const fn numbered(mut self, yes: bool) -> Self {
-        self.numbered = yes;
-        self
-    }
-
     /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Steps<'a, T, K2, R> {
         Steps {
@@ -503,8 +476,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             key: k,
             row: self.row,
             step: self.step,
-            meta: self.meta,
-            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -522,8 +493,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             key: self.key,
             row: r,
             step: self.step,
-            meta: self.meta,
-            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -623,8 +592,8 @@ impl FrontierCache {
         items: &[T],
     ) -> Option<ItemKey> {
         let len = items.len();
-        let first = (!items.is_empty()).then(|| key_at(&steps.key, items, 0));
-        let last = (!items.is_empty()).then(|| key_at(&steps.key, items, len.saturating_sub(1)));
+        let first = (!items.is_empty()).then(|| steps.key_at(items, 0));
+        let last = (!items.is_empty()).then(|| steps.key_at(items, len.saturating_sub(1)));
         let stamp_matches = state.frontier_revision != u64::MAX
             && self.initialized
             && self.revision == state.frontier_revision
@@ -636,7 +605,7 @@ impl FrontierCache {
             match self.frontier_key {
                 Some(key)
                     if self.frontier_index < len
-                        && key_at(&steps.key, items, self.frontier_index) == key =>
+                        && steps.key_at(items, self.frontier_index) == key =>
                 {
                     let Some(item) = items.get(self.frontier_index) else {
                         return self.rebuild(steps, state, items, first, last, 0);
@@ -670,7 +639,7 @@ impl FrontierCache {
             .skip(start)
             .find(|(_, item)| !steps.state_of(item).terminal());
         let (frontier_index, frontier_key) = found.map_or((items.len(), None), |(index, _)| {
-            (index, Some(key_at(&steps.key, items, index)))
+            (index, Some(steps.key_at(items, index)))
         });
         *self = FrontierCache {
             initialized: true,
@@ -686,6 +655,12 @@ impl FrontierCache {
 }
 
 impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
+    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
+        items
+            .get(i)
+            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
+    }
+
     /// The first step that has not finished — the frontier. `None` when
     /// every step is terminal, which is how a caller knows the rail is done.
     /// This explicit query is O(n); [`Steps::draw`] uses the runtime cache.
@@ -693,30 +668,29 @@ impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
         items
             .iter()
             .position(|it| !self.state_of(it).terminal())
-            .map(|i| key_at(&self.key, items, i))
+            .map(|i| self.key_at(items, i))
     }
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
-    /// Shared clamped target resolution. Steps have no per-item disabled
-    /// state, so every stop is enabled. Clamps, never wraps; staying put is
-    /// consumed without an action.
+    /// The index of `key`, probing `hint` before scanning.
+    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
+        if let Some(h) = hint
+            && h < items.len()
+            && self.key_at(items, h) == key
+        {
+            return Some(h);
+        }
+        (0..items.len()).find(|&i| self.key_at(items, i) == key)
+    }
+
     fn move_cursor(&self, st: &mut StepsState, items: &[T], to: usize, acc: &mut Acc<StepsAction>) {
         if items.is_empty() {
             acc.consumed();
             return;
         }
         let to = to.min(items.len().saturating_sub(1));
-        let Some((to, key)) = CollectionCore::seek(
-            items.len(),
-            to,
-            StepDir::Next,
-            |i| key_at(&self.key, items, i),
-            |_| true,
-        ) else {
-            acc.consumed();
-            return;
-        };
+        let key = self.key_at(items, to);
         if st.core.cursor() == Some(key) {
             acc.consumed();
             return;
@@ -735,23 +709,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         if self.disabled {
             return Response::ignored();
         }
-        // W16-02: a running step animates (button precedent) — keep the
-        // tick cadence flowing at the theme's period while one runs.
-        if items
-            .iter()
-            .any(|item| self.state_of(item) == StepState::Running)
-        {
-            cx.request_repaint_after(Duration::from_millis(cx.design().motion.tick_ms));
-        }
         let mut acc = Acc::<StepsAction>::new();
         let len = items.len();
-        if let Reconciliation::CursorMoved(key) =
-            st.core.reconcile(len, |i| key_at(&self.key, items, i))
+        if let Reconciliation::CursorMoved(key) = st.core.reconcile(len, |i| self.key_at(items, i))
         {
             acc.action(StepsAction::Moved(key));
         }
         if self.navigable && st.core.cursor().is_none() && !items.is_empty() {
-            st.core.set_cursor(0, key_at(&self.key, items, 0));
+            st.core.set_cursor(0, self.key_at(items, 0));
         }
         let bar = self.scrollbar().update(cx, st.core.scroll_mut(), len);
         acc.fold(&bar);
@@ -780,7 +745,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                             if len == 0 {
                                 acc.consumed();
                             } else {
-                                acc.action(StepsAction::Activated(key_at(&self.key, items, cur)));
+                                acc.action(StepsAction::Activated(self.key_at(items, cur)));
                             }
                         }
                         None => {}
@@ -801,7 +766,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                         view.offset()
                             .saturating_add(usize::from(pos.y.saturating_sub(a.y)))
                     });
-                    let Some(i) = index_of(&self.key, items, k, hint) else {
+                    let Some(i) = self.index_of(items, k, hint) else {
                         acc.consumed();
                         continue;
                     };
@@ -873,7 +838,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         let pressed = ui.pressed_part(self.id);
         for (offset, i) in view.visible_range().enumerate() {
             let Some(item) = items.get(i) else { break };
-            let key = key_at(&self.key, items, i);
+            let key = self.key_at(items, i);
             let step = self.state_of(item);
             let mut flags = step.flags();
             if frontier == Some(key) {
@@ -904,15 +869,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 width: content.width,
                 height: 1,
             };
-            self.paint_row(ui, rect, flags, key, step, item, i);
+            self.paint_row(ui, rect, flags, key, step, item);
         }
         area
     }
 
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "the row painter threads the draw context, resolved row identity, lifecycle and index through one private call"
-    )]
     fn paint_row(
         &self,
         ui: &mut Ui<'_>,
@@ -921,7 +882,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         key: ItemKey,
         step: StepState,
         item: &T,
-        index: usize,
     ) {
         let row_style = self.ov.style(
             ui,
@@ -963,30 +923,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 Part::ICON,
                 flags,
             );
-            // W16-02: the running step cycles the theme's tick-driven
-            // spinner (reference `spinner_frame`); an explicit glyph
-            // override still wins.
-            let running = step == StepState::Running && matches!(icon.glyph, Slot::Inherit);
-            if running {
-                let frames = ui.design().motion.spinner_frames;
-                let frame = if frames.is_empty() {
-                    ""
-                } else {
-                    frames[ui.tick() as usize % frames.len()]
-                };
-                ui.paint_str(mark, frame, icon.style);
-            } else {
-                let glyph = match icon.glyph {
-                    Slot::Set(g) => Some(g),
-                    Slot::Inherit => step.glyph(),
-                    Slot::Clear => None,
-                };
-                match glyph {
-                    Some(g) => {
-                        ui.glyph(mark, g, icon.style);
-                    }
-                    None => ui.fill(mark, icon.style),
+            let glyph = match icon.glyph {
+                Slot::Set(g) => Some(g),
+                Slot::Inherit => step.glyph(),
+                Slot::Clear => None,
+            };
+            match glyph {
+                Some(g) => {
+                    ui.glyph(mark, g, icon.style);
                 }
+                None => ui.fill(mark, icon.style),
             }
         }
         let mut body = Rect {
@@ -994,34 +940,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
             width: rect.width.saturating_sub(3),
             ..rect
         };
-        // Numbered rails prefix the 1-based index and one gap cell; the
-        // number wears the META voice (faint, secondary while running).
-        if self.numbered && body.width >= 3 {
-            let n = index.saturating_add(1).min(99);
-            let num = [b'0' + (n / 10) as u8, b'0' + (n % 10) as u8];
-            let num_text = core::str::from_utf8(&num).unwrap_or("  ");
-            let style = self.ov.style(
-                ui,
-                self.id,
-                Family::STEPS,
-                Variant::DEFAULT,
-                Part::META,
-                flags,
-            );
-            ui.paint_str(Rect { width: 2, ..body }, num_text, style.style);
-            body.x = body.x.saturating_add(3);
-            body.width = body.width.saturating_sub(3);
-        }
-        // The trailing word is the caller's meta, else this row's lifecycle
-        // word. It renders only when the label keeps twelve cells past it,
-        // right-aligned with a two-cell gap and one trailing blank.
-        let state_text = self.meta.and_then(|f| f(item)).or(Some(step.label()));
-        let right = body.right();
-        let avail = right.saturating_sub(body.x.saturating_add(1));
-        let meta_width = state_text.map_or(0, crate::text::width);
-        if meta_width > 0 && usize::from(avail) >= usize::from(meta_width).saturating_add(12) {
+        let meta_width = crate::text::width(step.label());
+        if meta_width > 0 && meta_width.saturating_add(2) <= body.width {
             let meta = Rect {
-                x: right.saturating_sub(meta_width.saturating_add(1)),
+                x: body.right().saturating_sub(meta_width),
                 width: meta_width,
                 ..body
             };
@@ -1033,12 +955,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 Part::META,
                 flags,
             );
-            if let Some(state_text) = state_text {
-                ui.paint_str(meta, state_text, style.style);
-            }
-            body.width = avail.saturating_sub(meta_width.saturating_add(2));
-        } else {
-            body.width = avail;
+            ui.paint_str(meta, step.label(), style.style);
+            body.width = body.width.saturating_sub(meta_width.saturating_add(1));
         }
         if !body.is_empty() {
             let mut r = RowUi::new_with_patches(
@@ -1087,7 +1005,8 @@ mod tests {
 
     use super::{FrontierCache, StepState, Steps, StepsAction, StepsState};
     use crate::action::ActionKey;
-    use crate::collection::{Reconcile, Reconciliation, RowUi, key_at};
+    use termrock_collections::collection::{Reconcile, Reconciliation};
+use termrock_runtime::rowui::{RowUi};
     use crate::components::Acc;
     use crate::event::{Chord, KeyCode, KeyModifiers};
     use crate::id::{Id, ItemKey, Part, PartRef};
@@ -1261,8 +1180,6 @@ mod tests {
     /// symbol-carrying affordances are the `Part::ICON` glyph and the
     /// `Part::META` state word; `Queued` and `Skipped` share a blank glyph,
     /// so the word is the only thing separating them and it must be painted.
-    /// Every state carries its word as well, so no state depends on colour
-    /// or a caller-supplied meta for identification.
     #[test]
     fn every_lifecycle_state_paints_a_symbol_that_separates_it() {
         let items = [
@@ -1425,13 +1342,13 @@ mod tests {
         let mut state = StepsState::new();
         state.set_cursor(1, ItemKey::text("b"));
         assert_eq!(
-            state.reconcile(original.len(), |i| key_at(&rail.key, &original, i)),
+            state.reconcile(original.len(), |i| rail.key_at(&original, i)),
             Reconciliation::Unchanged
         );
 
         state.invalidate();
         assert_eq!(
-            state.reconcile(reordered.len(), |i| key_at(&rail.key, &reordered, i)),
+            state.reconcile(reordered.len(), |i| rail.key_at(&reordered, i)),
             Reconciliation::Unchanged,
             "a surviving cursor key is not a semantic move"
         );
@@ -1585,9 +1502,7 @@ mod tests {
             .step(&state)
             .row(row)
             .patch_part(&owner_parts);
-        // Queued carries a component-owned state word; Running shows none
-        // without a caller meta.
-        let items = [S("label", StepState::Queued)];
+        let items = [S("label", StepState::Running)];
         let area = Rect::new(0, 0, 40, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
@@ -1619,7 +1534,7 @@ mod tests {
                 "component-owned cell {x} did not receive owner patch"
             );
         }
-        for (text, x) in [("rm", 29), ("cu", 26), ("ce", 23)] {
+        for (text, x) in [("rm", 30), ("cu", 27), ("ce", 24)] {
             assert!(
                 buffer
                     .cell(Position::new(x, 0))

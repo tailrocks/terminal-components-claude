@@ -2,13 +2,11 @@
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::{Color, Modifier};
 
 use super::CellRoles;
 use crate::id::Id;
-use crate::layer::{LayerId, LayerKind, LayerSpec};
+use crate::layer::{LayerId, LayerSpec};
 use crate::theme::PaintStyle;
-use crate::theme::builder::{FadeOutcome, fade_mix};
 
 /// One open layer's draw target for the frame.
 #[derive(Debug, Clone)]
@@ -22,9 +20,7 @@ pub(crate) struct LayerDraw {
     pub(crate) buf: Buffer,
     pub(crate) written: Vec<bool>,
     roles: Vec<CellRoles>,
-    sub_modifiers: Vec<Modifier>,
     pub(crate) drawn: bool,
-    pub(crate) fade_rows: Vec<(Rect, f32, Color)>,
 }
 
 impl LayerDraw {
@@ -37,9 +33,7 @@ impl LayerDraw {
             buf: Buffer::empty(screen),
             written: vec![false; screen.area() as usize],
             roles: vec![CellRoles::default(); screen.area() as usize],
-            sub_modifiers: vec![Modifier::empty(); screen.area() as usize],
             drawn: false,
-            fade_rows: Vec::new(),
         }
     }
 
@@ -57,7 +51,6 @@ impl LayerDraw {
         self.spec = spec;
         self.area = area;
         self.drawn = false;
-        self.fade_rows.clear();
         if *self.buf.area() == screen {
             self.buf.reset();
         } else {
@@ -69,9 +62,6 @@ impl LayerDraw {
         self.roles.clear();
         self.roles
             .resize(screen.area() as usize, CellRoles::default());
-        self.sub_modifiers.clear();
-        self.sub_modifiers
-            .resize(screen.area() as usize, Modifier::empty());
     }
 
     fn index(&self, pos: Position) -> Option<usize> {
@@ -92,9 +82,6 @@ impl LayerDraw {
             *w = true;
             if let Some(roles) = self.roles.get_mut(i) {
                 *roles = roles.patch(style);
-            }
-            if let (Some(s), Some(sub)) = (style, self.sub_modifiers.get_mut(i)) {
-                *sub |= s.as_style().sub_modifier;
             }
         }
     }
@@ -139,50 +126,12 @@ impl LayerDraw {
                 continue;
             }
             if let (Some(src), Some(dst)) = (self.buf.cell(pos), page.cell_mut(pos)) {
-                dst.set_symbol(src.symbol());
-                if self.spec.kind == LayerKind::Popover {
-                    let sub = self
-                        .index(pos)
-                        .and_then(|i| self.sub_modifiers.get(i))
-                        .copied()
-                        .unwrap_or(Modifier::empty());
-                    dst.modifier = dst.modifier.difference(sub) | src.modifier;
-                } else {
-                    dst.modifier = src.modifier;
-                }
-                if src.fg != ratatui_core::style::Color::Reset
-                    && !(self.spec.kind == LayerKind::Popover
-                        && src.symbol() == " "
-                        && self.roles_at(pos).fg.is_none())
-                {
-                    dst.set_fg(src.fg);
-                }
-                if src.bg != ratatui_core::style::Color::Reset {
-                    dst.set_bg(src.bg);
-                }
+                *dst = src.clone();
                 let index = usize::from(pos.y.saturating_sub(screen.y))
                     .saturating_mul(usize::from(screen.width))
                     .saturating_add(usize::from(pos.x.saturating_sub(screen.x)));
                 if let Some(target) = roles.get_mut(index) {
                     *target = self.roles_at(pos);
-                }
-            }
-        }
-        for &(fade_rect, keep, container) in &self.fade_rows {
-            let row = fade_rect.intersection(area);
-            for pos in row.positions() {
-                if !self.is_written(pos) {
-                    continue;
-                }
-                let (Some(src), Some(dst)) = (self.buf.cell(pos), page.cell_mut(pos)) else {
-                    continue;
-                };
-                if src.symbol() != " " || src.fg != Color::Reset || dst.bg != container {
-                    continue;
-                }
-                if let FadeOutcome::Blended(color) = fade_mix(dst.fg, container, keep) {
-                    dst.set_fg(color);
-                    dst.modifier.remove(Modifier::DIM);
                 }
             }
         }
