@@ -38,6 +38,9 @@ pub mod screens {
 /// Domain re-exports (monolith `domain::` namespace).
 pub mod domain {
     pub use jackin_preview_domain::*;
+    // The fixture graph moved to `sim` (it projects `World` services);
+    // keep the monolith `domain::fixtures::` path working.
+    pub use jackin_preview_sim::fixtures;
 }
 /// Sim re-exports (monolith `sim::` namespace).
 pub mod sim {
