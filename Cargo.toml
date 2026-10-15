@@ -1,22 +1,59 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/tui",
-    "crates/tui-testing",
-    "xtask",
-    "tools/refactor-proof",
-    "apps/showcase",
-    "apps/tablepro",
-    "apps/jackin-preview",
-    "apps/holla",
+    "crates/termrock-core",
+    "crates/termrock-layout",
+    "crates/termrock-theme",
+    "crates/termrock-text",
+    "crates/termrock-render",
+    "crates/termrock-collections",
+    "crates/termrock-runtime",
+    "crates/termrock-controls",
+    "crates/termrock-fields",
+    "crates/termrock-feedback",
+    "crates/termrock-navigation",
+    "crates/termrock-viewport",
+    "crates/termrock-overlays",
+    "crates/termrock-grid",
+    "crates/termrock-editors",
+    "crates/termrock-forms",
+    "crates/termrock-terminal",
+    "crates/termrock-session",
+    "crates/termrock",
+    "crates/showcase-data",
+    "crates/showcase-demos",
+    "crates/showcase-ui",
+    "crates/showcase",
+    "crates/jackin-preview-domain",
+    "crates/jackin-preview-sim",
+    "crates/jackin-preview-presentation",
+    "crates/jackin-preview-host-ui",
+    "crates/jackin-preview-capsule-ui",
+    "crates/jackin-preview-app",
+    "crates/jackin-preview",
+    "crates/holla-domain",
+    "crates/holla-catalog",
+    "crates/holla-plan",
+    "crates/holla-sim",
+    "crates/holla-ui",
+    "crates/holla",
+    "crates/tablepro-domain",
+    "crates/tablepro-sql",
+    "crates/tablepro-demo",
+    "crates/tablepro-ui",
+    "crates/tablepro",
+    "crates/termrock-test-support",
+    "crates/termrock-conformance",
+    "crates/termrock-xtask",
+    "crates/termrock-visibility-publisher",
 ]
 default-members = [
-    "crates/tui",
-    "crates/tui-testing",
-    "apps/showcase",
-    "apps/tablepro",
-    "apps/jackin-preview",
-    "apps/holla",
+    "crates/termrock",
+    "crates/showcase",
+    "crates/jackin-preview",
+    "crates/holla",
+    "crates/tablepro",
+    "crates/termrock-conformance",
 ]
 
 [workspace.package]
@@ -24,56 +61,78 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
-repository = "https://github.com/donbeave/terminal-components-claude"
+repository = "https://github.com/tailrocks/terminal-components-claude"
 
 [workspace.dependencies]
-junie-tui = { path = "crates/tui", default-features = false }
-junie-tui-testing = { path = "crates/tui-testing" }
+termrock-core = { path = "crates/termrock-core" }
+termrock-layout = { path = "crates/termrock-layout" }
+termrock-theme = { path = "crates/termrock-theme" }
+termrock-text = { path = "crates/termrock-text" }
+termrock-render = { path = "crates/termrock-render" }
+termrock-collections = { path = "crates/termrock-collections" }
+termrock-runtime = { path = "crates/termrock-runtime" }
+termrock-controls = { path = "crates/termrock-controls" }
+termrock-fields = { path = "crates/termrock-fields" }
+termrock-feedback = { path = "crates/termrock-feedback" }
+termrock-navigation = { path = "crates/termrock-navigation" }
+termrock-viewport = { path = "crates/termrock-viewport" }
+termrock-overlays = { path = "crates/termrock-overlays" }
+termrock-grid = { path = "crates/termrock-grid" }
+termrock-editors = { path = "crates/termrock-editors" }
+termrock-forms = { path = "crates/termrock-forms" }
+termrock-terminal = { path = "crates/termrock-terminal" }
+termrock-session = { path = "crates/termrock-session" }
+termrock = { path = "crates/termrock" }
+
+showcase-data = { path = "crates/showcase-data" }
+showcase-demos = { path = "crates/showcase-demos" }
+showcase-ui = { path = "crates/showcase-ui" }
+showcase = { path = "crates/showcase" }
+
+jackin-preview-domain = { path = "crates/jackin-preview-domain" }
+jackin-preview-sim = { path = "crates/jackin-preview-sim" }
+jackin-preview-presentation = { path = "crates/jackin-preview-presentation" }
+jackin-preview-host-ui = { path = "crates/jackin-preview-host-ui" }
+jackin-preview-capsule-ui = { path = "crates/jackin-preview-capsule-ui" }
+jackin-preview-app = { path = "crates/jackin-preview-app" }
+jackin-preview = { path = "crates/jackin-preview" }
+
+holla-domain = { path = "crates/holla-domain" }
+holla-catalog = { path = "crates/holla-catalog" }
+holla-plan = { path = "crates/holla-plan" }
+holla-sim = { path = "crates/holla-sim" }
+holla-ui = { path = "crates/holla-ui" }
+holla = { path = "crates/holla" }
+
+tablepro-domain = { path = "crates/tablepro-domain" }
+tablepro-sql = { path = "crates/tablepro-sql" }
+tablepro-demo = { path = "crates/tablepro-demo" }
+tablepro-ui = { path = "crates/tablepro-ui" }
+tablepro = { path = "crates/tablepro" }
+
+termrock-test-support = { path = "crates/termrock-test-support" }
+termrock-conformance = { path = "crates/termrock-conformance" }
+termrock-xtask = { path = "crates/termrock-xtask" }
+
+clap = { version = "4.6", features = ["derive"] }
+ratatui = { version = "0.30", features = ["crossterm_0_29"] }
+unicode-width = "0.2"
+unicode-segmentation = "1"
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274", features = ["pty"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tempfile = "3"
+image = "0.25"
+sha2 = "0.10"
+rayon = "1.10"
 ratatui-core = { version = "0.1.2", default-features = false, features = ["std", "underline-color"] }
-ratatui-crossterm = { version = "0.1.2" } # default = crossterm_0_29 + underline-color
-unicode-width = "0.2.2"
-unicode-segmentation = "1.13"
+ratatui-crossterm = { version = "0.1.2" }
 bitflags = "2.13"
 trybuild = "1.0"
-
-[workspace.lints.rust]
-unsafe_code = "deny"                          # crates/tui raises to forbid at the crate root
-missing_docs = "warn"                         # crates/tui raises to deny at the crate root
-unreachable_pub = "warn"
-missing_debug_implementations = "warn"
-unused_qualifications = "warn"
-rust_2018_idioms = { level = "warn", priority = -1 }
-
-[workspace.lints.clippy]
-all = { level = "deny", priority = -1 }       # correctness + suspicious + style + complexity + perf
-pedantic = { level = "warn", priority = -1 }
-
-# denied individually — each maps to a stated invariant, not to taste
-panic = "deny"                                # goal §10 "no panics during normal interaction"
-indexing_slicing = "deny"                     # the structural fix for §1.3's ragged-row panics
-unwrap_used = "deny"
-expect_used = "deny"
-todo = "deny"                                 # goal §29 "no material TODO / stub"
-unimplemented = "deny"
-dbg_macro = "deny"
-print_stdout = "deny"                         # a TUI library must never write to stdout
-print_stderr = "deny"
-undocumented_unsafe_blocks = "deny"
-mem_forget = "deny"
-
-# warned, not denied — real signal, too noisy to block on
-arithmetic_side_effects = "warn"              # the rule is saturating_* (R5); deny would flood
-missing_panics_doc = "warn"
-missing_errors_doc = "warn"
-
-# allowed with reasons
-must_use_candidate = "allow"                  # noise; #[must_use] is applied deliberately (Response)
-module_name_repetitions = "allow"
-cast_possible_truncation = "allow"            # u16 terminal coordinates — ratatui itself allows these four
-cast_sign_loss = "allow"                      #   (ratatui-core-0.1.2/Cargo.toml:179-182); staying
-cast_precision_loss = "allow"                 #   consistent with the ecosystem we live inside
-cast_possible_wrap = "allow"
 
 [profile.release]
 lto = "thin"
 codegen-units = 1
+
+[profile.test.package."*"]
+opt-level = 3

@@ -26,6 +26,8 @@ SUBJECT_SCHEMA = "termrock-spec/parity-subject-manifest-v2"
 BUILDER_RECEIPT_SCHEMA = "termrock-spec/parity-subject-build-receipt-v1"
 TAG_BUILDER_RECEIPT_SCHEMA = "termrock-spec/visual-tag-holla-build-evidence-v1"
 TAG_BUILDER_RUN_SCHEMA = "termrock-spec/visual-tag-holla-build-run-v1"
+TAG_NORMALIZED_EXISTING_BUILD_MANIFEST_SCHEMA = "termrock-vis06-tag-four-binary-scoped-source-qualification-addendum/v1"
+TAG_NORMALIZED_EXISTING_BUILD_IDENTITY_SCHEMA = "termrock-spec/visual-tag-holla-normalized-existing-build-identity-v2"
 REFERENCE_TAG = "visual-baseline"
 REFERENCE_TAG_OBJECT = "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
 REFERENCE_ORACLE_COMMIT = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
@@ -1504,6 +1506,444 @@ def validate_frozen_tag_holla_bundle(
                 "Receipt consistency and source closure do not independently attest Cargo execution; "
                 "the Cargo cache contents and PATH-selected linker or other build tools are not bound."
             ),
+        },
+        "capture_status": "NOT_RUN",
+        "admission_status": "NOT_RUN",
+    }
+
+
+def validate_normalized_existing_tag_holla_build(
+    *, repository: Path, addendum_path: Path, expected_addendum_sha256: str
+) -> Dict[str, Any]:
+    """Validate the exact R6 build origin without recasting it as a new build receipt."""
+    _validate_digest(expected_addendum_sha256, "expected R6 source-qualification addendum SHA-256")
+    require(repository.is_absolute(), "tag validation repository path must be absolute")
+    repository_fd = _open_absolute_nofollow(repository, directory=True)
+    os.close(repository_fd)
+    require(addendum_path.is_absolute(), "R6 source-qualification addendum path must be absolute")
+    addendum_raw = _read_absolute_nofollow(addendum_path, maximum=2 * 1024 * 1024)
+    require(sha256_bytes(addendum_raw) == expected_addendum_sha256,
+            "R6 source-qualification addendum raw digest differs from caller pin")
+    addendum = _parse_json_object(addendum_raw, "R6 source-qualification addendum")
+    require(addendum.get("schema") == TAG_NORMALIZED_EXISTING_BUILD_MANIFEST_SCHEMA
+            and addendum.get("status") == "SCOPED_TAG_AND_LOCKED_CACHE_PAYLOAD_VERIFIED",
+            "R6 source-qualification addendum schema or status is unexpected")
+    bindings = _closed_object(addendum.get("bindings"), {
+        "build_plan", "build_runner", "original_build_result", "original_actual_result_review",
+        "source_cache_identity_addendum", "cache_manifest", "cache_copy_receipt",
+        "independent_cache_row_reconciliation", "independent_cache_row_review",
+    }, "R6 source-qualification bindings")
+
+    def read_bound(name: str, maximum: int) -> Tuple[Path, str, bytes, Dict[str, Any]]:
+        reference = _closed_object(bindings[name], {"path", "sha256"}, "R6 " + name)
+        path = Path(_require_text(reference["path"], "R6 " + name + " path", absolute=True))
+        digest = _validate_digest(reference["sha256"], "R6 " + name + " sha256")
+        raw = _read_absolute_nofollow(path, maximum=maximum)
+        require(sha256_bytes(raw) == digest, "R6 {} bytes differ from the reviewed binding".format(name))
+        payload = _parse_json_object(raw, "R6 " + name)
+        return path, digest, raw, payload
+
+    plan_path, plan_sha, _, plan = read_bound("build_plan", 8 * 1024 * 1024)
+    result_path, result_sha, _, result = read_bound("original_build_result", 16 * 1024 * 1024)
+    review_path, review_sha, _, result_review = read_bound("original_actual_result_review", 2 * 1024 * 1024)
+    cache_receipt_path, cache_receipt_sha, _, cache_receipt = read_bound("cache_copy_receipt", 16 * 1024 * 1024)
+    cache_review_path, cache_review_sha, _, cache_review = read_bound("independent_cache_row_review", 2 * 1024 * 1024)
+    source_addendum_path, source_addendum_sha, _, source_addendum = read_bound("source_cache_identity_addendum", 2 * 1024 * 1024)
+    cache_manifest_path, cache_manifest_sha, _, cache_manifest = read_bound("cache_manifest", 16 * 1024 * 1024)
+    cache_reconciliation_path, cache_reconciliation_sha, _, cache_reconciliation = read_bound(
+        "independent_cache_row_reconciliation", 16 * 1024 * 1024
+    )
+    runner_ref = _closed_object(bindings["build_runner"], {"path", "sha256"}, "R6 build runner")
+    runner_path = Path(_require_text(runner_ref["path"], "R6 build runner path", absolute=True))
+    runner_sha = _validate_digest(runner_ref["sha256"], "R6 build runner sha256")
+    require(_hash_absolute_nofollow(runner_path, algorithm="sha256", maximum=8 * 1024 * 1024) == runner_sha,
+            "R6 build runner bytes differ from the reviewed binding")
+    require(result["schema"] == "termrock-vis06-tag-four-binary-build-result/v1"
+            and result.get("run_id") == "tag-four-binary-r6-20261010"
+            and result.get("product_build", {}).get("status") == "PASS"
+            and result.get("protected_inputs", {}).get("environment_integrity") == "INCOMPLETE",
+            "R6 build result is not the pinned successful four-binary result")
+    require(result.get("capture_status") == "NOT_RUN"
+            and result.get("admission_status") == "NOT_RUN"
+            and result.get("oracle_qualification") == "BLOCKED",
+            "R6 result does not preserve blocked capture/admission/qualification")
+    process = _closed_object(result.get("cargo_process"), {
+        "pid", "close_observed", "exit_code", "signal", "timed_out", "interrupted_by",
+        "termination_reason", "stream_cap_exceeded", "capture_errors", "spawn_error",
+        "forced_close", "failure_record_reserve_path", "stdout", "stderr", "process_events", "cleanup",
+    }, "R6 Cargo process")
+    cleanup = _closed_object(process["cleanup"], {"owned_process_group_gone", "survivor_observed"}, "R6 cleanup")
+    require(process["close_observed"] is True and process["exit_code"] == 0 and process["signal"] is None
+            and process["timed_out"] is False and process["stream_cap_exceeded"] is False
+            and process["spawn_error"] is None and process["forced_close"] is False
+            and process["termination_reason"] is None and process["interrupted_by"] == []
+            and process["capture_errors"] == [] and cleanup == {
+                "owned_process_group_gone": True, "survivor_observed": False,
+            }, "R6 Cargo child did not close successfully without interruption or capture failure")
+    protected = _closed_object(result.get("protected_inputs"), {
+        "cache_postflight", "environment_integrity", "postflight_errors", "source_after",
+        "source_before", "source_unchanged", "tools_after", "tools_before", "tools_unchanged",
+    }, "R6 protected inputs")
+    cache_postflight = protected["cache_postflight"]
+    require(protected["source_unchanged"] is True
+            and protected["source_before"] == protected["source_after"]
+            and protected["tools_unchanged"] is True
+            and protected["tools_before"] == protected["tools_after"]
+            and protected["environment_integrity"] == "INCOMPLETE"
+            and protected["postflight_errors"] == []
+            and isinstance(cache_postflight, dict)
+            and cache_postflight.get("seed_files") == 841
+            and cache_postflight.get("seed_unchanged") is False
+            and cache_postflight.get("qualified_source_unchanged") is True
+            and cache_postflight.get("qualified_source_errors") == [],
+            "R6 protected-input states differ from the independently reviewed outcome")
+    command = _closed_object(result.get("command"), {
+        "executable", "argv", "cwd", "target_triple", "release", "locked", "offline", "jobs", "requested_binaries",
+    }, "R6 Cargo command")
+    invocation_path_text = _require_text(result.get("invocation_path"), "R6 invocation path", absolute=True)
+    invocation_sha = _validate_digest(result.get("invocation_sha256"), "R6 invocation sha256")
+    invocation_path = Path(invocation_path_text)
+    invocation_raw = _read_absolute_nofollow(invocation_path, maximum=1024 * 1024)
+    require(sha256_bytes(invocation_raw) == invocation_sha,
+            "R6 invocation bytes differ from the build result binding")
+    invocation = _parse_json_object(invocation_raw, "R6 invocation")
+    require(invocation.get("schema") == "termrock-vis06-tag-four-binary-invocation/v1"
+            and invocation.get("run_id") == result["run_id"]
+            and invocation.get("command") == command,
+            "R6 invocation does not match the original Cargo command")
+    plan_command = _closed_object(plan.get("command"), set(command), "R6 planned Cargo command")
+    require(plan.get("schema") == "termrock-vis06-immutable-tag-four-binary-build-plan/v1"
+            and plan_command == command and plan.get("run_id") == result["run_id"],
+            "R6 plan does not match the original Cargo command")
+    source = _closed_object(plan.get("tag_source"), {
+        "repository", "ref", "tag_object", "commit", "tree_oid", "source_root", "source_snapshot",
+        "r11_source_receipt", "r11_source_review", "package_root", "package",
+        "cargo_home_config_policy", "excluded_roots",
+    }, "R6 planned tag source")
+    source_snapshot = _closed_object(source["source_snapshot"], {
+        "recipe", "archive_sha256", "tracked_file_count", "included_file_count",
+        "included_entry_payload_total_bytes", "largest_regular_file_bytes",
+        "included_path_blob_map_sha256", "excluded_roots",
+    }, "R6 source snapshot")
+    require(source["ref"] == "refs/tags/visual-baseline"
+            and source["tag_object"] == REFERENCE_TAG_OBJECT
+            and source["commit"] == REFERENCE_ORACLE_COMMIT
+            and source["tree_oid"] == "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+            and source_snapshot["recipe"] == SNAPSHOT_RECIPE
+            and source_snapshot["included_file_count"] == 1415
+            and source_snapshot["included_path_blob_map_sha256"]
+                == "4e2cf9d17700833023c1c70b33f4b11e710ccb60fbc8c9c9d727c81745436bb4"
+            and source_snapshot["excluded_roots"] == list(ORACLE_EXCLUSIONS),
+            "R6 source snapshot does not match the immutable visual-baseline tag")
+    source_root = Path(_require_text(source["source_root"], "R6 source root", absolute=True))
+    command_argv = command.get("argv")
+    require(isinstance(command_argv, list) and len(command_argv) >= 2,
+            "R6 Cargo command argv must be a nonempty argument list")
+    target_dir = Path(_require_text(command_argv[-1], "R6 Cargo target directory", absolute=True))
+    artifact_root = target_dir / command["target_triple"] / "release"
+    require(source_root != artifact_root
+            and source_root not in artifact_root.parents
+            and artifact_root not in source_root.parents,
+            "R6 source snapshot and build artifact roots overlap")
+    source_root_fd = _open_absolute_nofollow(source_root, directory=True)
+    try:
+        source_root_stat = os.fstat(source_root_fd)
+        artifact_root_fd = _open_absolute_nofollow(artifact_root, directory=True)
+        try:
+            artifact_root_stat = os.fstat(artifact_root_fd)
+            require((source_root_stat.st_dev, source_root_stat.st_ino)
+                    != (artifact_root_stat.st_dev, artifact_root_stat.st_ino),
+                    "R6 source snapshot and build artifact roots identify one directory")
+        finally:
+            os.close(artifact_root_fd)
+    finally:
+        os.close(source_root_fd)
+    require(source_root == Path("/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/source/oracle")
+            and command["cwd"] == str(source_root)
+            and command["target_triple"] == "aarch64-apple-darwin"
+            and command["release"] is True and command["locked"] is True and command["offline"] is True
+            and command["jobs"] == 2
+            and command["requested_binaries"] == ["showcase", "tablepro", "jackin-preview", "holla"],
+            "R6 source/build roots or requested binary set differ from the reviewed run")
+    package = _closed_object(source["package"], {
+        "name", "version", "package_id", "manifest_sha256", "lock_sha256", "binary_targets",
+    }, "R6 package")
+    require(package["name"] == "junie-tui" and package["version"] == "0.1.0"
+            and package["binary_targets"] == command["requested_binaries"],
+            "R6 package metadata differs from the four requested binaries")
+    expected_argv = [
+        command["executable"], "build", "--release", "--locked", "--offline", "--jobs", "2",
+        "--color", "never", "--message-format=json-render-diagnostics", "--manifest-path",
+        str(source_root / "Cargo.toml"), "--package", "junie-tui@0.1.0",
+        "--bin", "showcase", "--bin", "tablepro", "--bin", "jackin-preview", "--bin", "holla",
+        "--target", "aarch64-apple-darwin", "--target-dir", str(target_dir),
+    ]
+    require(command["executable"] == plan.get("tools", {}).get("cargo", {}).get("path")
+            and command["argv"] == expected_argv,
+            "R6 Cargo argv is not the reviewed direct locked/offline four-binary build")
+
+    env_record = _closed_object(result.get("environment"), set(invocation["environment"]), "R6 environment")
+    require(env_record == invocation["environment"], "R6 environment differs between result and invocation")
+    stdout_ref = _closed_object(process["stdout"], {"path", "bytes_seen", "bytes_saved", "sha256"}, "R6 stdout")
+    stderr_ref = _closed_object(process["stderr"], {"path", "bytes_seen", "bytes_saved", "sha256"}, "R6 stderr")
+    events_ref = _closed_object(process["process_events"], {"path", "sha256"}, "R6 process events")
+    stdout_path = Path(_require_text(stdout_ref["path"], "R6 Cargo stdout path", absolute=True))
+    stderr_path = Path(_require_text(stderr_ref["path"], "R6 Cargo stderr path", absolute=True))
+    events_path = Path(_require_text(events_ref["path"], "R6 process events path", absolute=True))
+    stdout = _read_absolute_nofollow(stdout_path, maximum=256 * 1024 * 1024)
+    stderr = _read_absolute_nofollow(stderr_path, maximum=32 * 1024 * 1024)
+    events = _read_absolute_nofollow(events_path, maximum=8 * 1024 * 1024)
+    require(len(stdout) == stdout_ref["bytes_saved"] == stdout_ref["bytes_seen"]
+            and sha256_bytes(stdout) == stdout_ref["sha256"]
+            and len(stderr) == stderr_ref["bytes_saved"] == stderr_ref["bytes_seen"]
+            and sha256_bytes(stderr) == stderr_ref["sha256"]
+            and sha256_bytes(events) == events_ref["sha256"],
+            "R6 Cargo raw streams differ from their exact process bindings")
+    requested = command["requested_binaries"]
+    package_id = package["package_id"]
+    result_events = result.get("cargo_json", {}).get("compiler_artifact_events")
+    require(isinstance(result_events, list) and len(result_events) == len(requested),
+            "R6 result lacks exactly four compiler-artifact summaries")
+    require(result.get("cargo_json", {}).get("valid") is True
+            and result.get("cargo_json", {}).get("errors") == []
+            and result.get("cargo_json", {}).get("parse_errors") == []
+            and result.get("cargo_json", {}).get("build_finished_events") == [
+                {"reason": "build-finished", "success": True}
+            ], "R6 Cargo JSON does not contain one successful build-finished event")
+    artifact_paths: Dict[str, str] = {}
+    for binary_name in requested:
+        artifact_path = parse_compiler_artifact(stdout, package_id, binary_name, target_dir)
+        artifact_paths[binary_name] = str(artifact_path)
+        summaries = [event for event in result_events if isinstance(event, dict) and event.get("name") == binary_name]
+        require(len(summaries) == 1 and summaries[0].get("executable") == str(artifact_path)
+                and summaries[0].get("package_id") == package_id
+                and summaries[0].get("kind") == ["bin"],
+                "R6 Cargo artifact summary does not match raw compiler-artifact output")
+        output_summaries = [
+            item for item in result.get("cargo_json", {}).get("outputs", [])
+            if isinstance(item, dict) and item.get("target") == binary_name
+        ]
+        require(len(output_summaries) == 1 and output_summaries[0].get("path") == str(artifact_path),
+                "R6 output record does not match the raw compiler-artifact path")
+        artifact_sha = _hash_absolute_nofollow(
+            artifact_path, algorithm="sha256", maximum=1024 * 1024 * 1024, require_executable=True
+        )
+        artifact_size = artifact_path.stat().st_size
+        require(artifact_sha == output_summaries[0].get("sha256")
+                and artifact_size == output_summaries[0].get("bytes"),
+                "R6 executable bytes differ from the final output record")
+    holla_path = Path(artifact_paths["holla"])
+    holla_sha = _hash_absolute_nofollow(holla_path, algorithm="sha256", maximum=1024 * 1024 * 1024,
+                                        require_executable=True)
+    holla_size = holla_path.stat().st_size
+    outputs = result.get("cargo_json", {}).get("outputs")
+    require(isinstance(outputs, list) and len(outputs) == len(requested),
+            "R6 result lacks exactly four final executable output records")
+    holla_summaries = [item for item in outputs if isinstance(item, dict) and item.get("target") == "holla"]
+    require(len(holla_summaries) == 1, "R6 final outputs lack one Holla record")
+    holla_summary = holla_summaries[0]
+    require(holla_sha == holla_summary.get("sha256") and holla_size == holla_summary.get("bytes")
+            and holla_summary.get("path") == str(holla_path),
+            "R6 Holla executable bytes differ from Cargo artifact summary")
+
+    addendum_source = _closed_object(addendum.get("tag_source_payload"), {
+        "qualification", "repository", "ref", "tag_object", "commit", "tree_oid", "included_file_count",
+        "path_blob_map_sha256", "source_snapshot_before_after_identical", "qualification_basis", "root_directory_mtime",
+    }, "R6 tag source qualification")
+    addendum_cache = _closed_object(addendum.get("locked_cache_payload"), {
+        "qualification", "source_manifest_rows", "source_rows_verified", "copy_destination_rows",
+        "copy_destination_rows_verified", "row_check_digest_sha256", "unique_registry_package_versions",
+        "sparse_index_records", "git_dependencies", "source_manifest_total_bytes", "cargo_config_absent",
+        "copy_policy", "authorized_git_config_rewrites", "comparison_rule",
+    }, "R6 locked cache qualification")
+    require(addendum_source["qualification"] == "VERIFIED"
+            and addendum_source["repository"] == str(repository)
+            and addendum_source["ref"] == "refs/tags/" + REFERENCE_TAG
+            and addendum_source["tag_object"] == REFERENCE_TAG_OBJECT
+            and addendum_source["commit"] == REFERENCE_ORACLE_COMMIT
+            and addendum_source["tree_oid"] == source["tree_oid"]
+            and addendum_source["included_file_count"] == 1415
+            and addendum_source["path_blob_map_sha256"] == source_snapshot["included_path_blob_map_sha256"]
+            and addendum_source["source_snapshot_before_after_identical"] is True
+            and addendum_cache["qualification"] == "VERIFIED"
+            and addendum_cache["source_rows_verified"] == addendum_cache["source_manifest_rows"] == 841
+            and addendum_cache["copy_destination_rows_verified"] == addendum_cache["copy_destination_rows"] == 841
+            and addendum_cache["unique_registry_package_versions"] == 319
+            and addendum_cache["sparse_index_records"] == 290
+            and addendum_cache["git_dependencies"] == 2
+            and addendum_cache["source_manifest_total_bytes"] == 106767345
+            and addendum_cache["cargo_config_absent"] is True,
+            "R6 source/cache payload addendum does not report the reviewed scoped pass")
+    source_manifest_rows = source_addendum.get("manifest_rows")
+    require(source_addendum.get("schema") == "termrock-vis06-tag-cache-source-identity-addendum/v2"
+            and source_addendum.get("status") == "MANIFEST_ROWS_VALID_ROOT_MTIME_DRIFT"
+            and isinstance(source_manifest_rows, dict)
+            and source_manifest_rows.get("count") == 841
+            and source_manifest_rows.get("verified_count") == 841
+            and source_manifest_rows.get("total_bytes") == 106767345
+            and source_manifest_rows.get("expected_total_bytes") == 106767345
+            and source_manifest_rows.get("all_sha256_size_mode_device_inode_and_path_component_checks_pass") is True
+            and source_addendum.get("verification", {}).get("issues") == []
+            and source_addendum.get("source_cargo_home", {}).get("only_recorded_root_mtime_drift") is True
+            and source_addendum.get("source_cargo_home", {}).get("reason_for_drift") == "not established",
+            "R6 cache-source identity addendum is not the reviewed 841-row drift record")
+    require(cache_receipt.get("schema") == "termrock-vis06-tag-four-binary-cache-copy/v1"
+            and cache_receipt.get("status") == "PREPARED_NO_CARGO"
+            and cache_receipt.get("seed_file_count") == 841
+            and len(cache_receipt.get("seed_files", [])) == 841
+            and cache_receipt.get("source_rows_unchanged_during_copy") is True
+            and cache_receipt.get("cargo_or_rustc_or_linker_invoked") is False,
+            "R6 cache-copy receipt does not match the reviewed 841-row prebuild copy")
+    require(cache_manifest.get("schema") == "termrock-vis06-tag-holla-r4-private-cache-preparation-v1"
+            and cache_manifest.get("status") == "PREPARED_NO_CARGO_OR_NEXTEST"
+            and cache_manifest.get("cache_source", {}).get("path") == cache_receipt.get("source_cargo_home", {}).get("path")
+            and cache_manifest.get("registry_closure", {}).get("unique_lock_union_package_versions") == 319
+            and cache_manifest.get("registry_closure", {}).get("unique_sparse_index_records") == 290
+            and isinstance(cache_manifest.get("git_closure"), list)
+            and len(cache_manifest["git_closure"]) == 2,
+            "R6 cache manifest differs from the reviewed locked closure")
+    reconciliation = cache_reconciliation.get("cache_seed_reconciliation", {})
+    require(cache_reconciliation.get("status") == "PRODUCTION_BUILD_INPUTS_VERIFIED_WITH_ORIGINAL_ENVIRONMENT_STATUS_PRESERVED"
+            and cache_reconciliation.get("immutable_tag", {}).get("before_after_identical") is True
+            and cache_reconciliation.get("toolchain", {}).get("before_after_identical") is True
+            and reconciliation.get("source_manifest_rows") == 841
+            and reconciliation.get("source_rows_verified") == 841
+            and reconciliation.get("destination_copy_rows") == 841
+            and reconciliation.get("destination_rows_verified_against_copy_receipt") == 841
+            and reconciliation.get("source_root_current_matches_identity_addendum") is True
+            and reconciliation.get("corrected_reconciliation")
+            == "All 841 source rows matched the original manifest, and all 841 destination rows matched the cache-copy receipt. The two files flagged by the original postflight validator each match the receipt destination exactly; they differ from the original source rows only by the authorized origin rewrite.",
+            "R6 independent source/cache reconciliation does not report the exact reviewed closure")
+    require(cache_review.get("verdict") == "READY_RECONCILIATION_ONLY"
+            and cache_review.get("independent_checks", {}).get("manifest_rows_reconstructed") == 841
+            and cache_review.get("independent_checks", {}).get("source_rows_match_manifest_and_live_source_files") == 841
+            and cache_review.get("independent_checks", {}).get("destination_rows_match_copy_receipt_and_live_files") == 841
+            and cache_review.get("independent_checks", {}).get("reported_product_build_status") == "PASS"
+            and cache_review.get("independent_checks", {}).get("reported_environment_integrity") == "INCOMPLETE",
+            "R6 independent cache-row review does not match the exact 841-row result")
+    require(result_review.get("verdict") == "PRODUCT_BUILD_PASS_ENVIRONMENT_INTEGRITY_INCOMPLETE"
+            and result_review.get("pins", {}).get("result_sha256") == result_sha
+            and result_review.get("environment", {}).get("integrity_status") == "INCOMPLETE"
+            and result_review.get("scope", {}).get("oracle_qualification") == "BLOCKED",
+            "R6 independent actual-result review does not preserve the blocked qualification")
+    tag_ref_oid = _git_readonly(
+        repository, ["rev-parse", "--verify", "refs/tags/" + REFERENCE_TAG], maximum=1024
+    ).decode("ascii", "strict").strip()
+    tag_commit = _git_readonly(
+        repository, ["rev-parse", "--verify", "refs/tags/" + REFERENCE_TAG + "^{commit}"], maximum=1024
+    ).decode("ascii", "strict").strip()
+    tag_type = _git_readonly(
+        repository, ["cat-file", "-t", tag_ref_oid], maximum=1024
+    ).decode("ascii", "strict").strip()
+    require(tag_ref_oid == REFERENCE_TAG_OBJECT and tag_commit == REFERENCE_ORACLE_COMMIT
+            and tag_type == "tag", "repository tag ref does not resolve to the pinned annotated tag and commit")
+    original_status = _closed_object(addendum.get("original_r6_status_preserved"), {
+        "product_build", "environment_integrity", "capture_status", "admission_status",
+        "oracle_qualification", "original_result_or_logs_modified",
+    }, "R6 preserved original status")
+    require(original_status == {
+        "product_build": "PASS", "environment_integrity": "INCOMPLETE", "capture_status": "NOT_RUN",
+        "admission_status": "NOT_RUN", "oracle_qualification": "BLOCKED",
+        "original_result_or_logs_modified": False,
+    }, "R6 original build outcome was not preserved exactly")
+
+    git_tree_raw = _git_readonly(
+        repository, ["ls-tree", "-rz", "-r", "--full-tree", REFERENCE_ORACLE_COMMIT], maximum=128 * 1024 * 1024
+    )
+    tree_oid = _git_readonly(repository, ["rev-parse", "--verify", REFERENCE_ORACLE_COMMIT + "^{tree}"], maximum=1024)
+    require(tree_oid.decode("ascii", "strict").strip() == source["tree_oid"],
+            "R6 source tree differs from the immutable tag object")
+    entries = _git_tree_entries(git_tree_raw)
+    full_blobs = {path: values[2] for path, values in entries.items()}
+    included_blobs, _ = _partition_tracked_blob_ids(full_blobs)
+    require(len(included_blobs) == 1415
+            and _path_blob_map_sha256(included_blobs) == source_snapshot["included_path_blob_map_sha256"],
+            "R6 included Git path/blob map differs from the immutable tag")
+    actual_blobs = _snapshot_path_map(
+        source_root, {path: entry for path, entry in entries.items() if path in included_blobs}
+    )
+    _assert_no_ancestor_cargo_config(source_root)
+    require(actual_blobs == included_blobs, "R6 materialized source bytes differ from the immutable tag")
+    manifest_path = source_root / "Cargo.toml"
+    lock_path = source_root / "Cargo.lock"
+    require(_hash_absolute_nofollow(manifest_path, algorithm="sha256", maximum=16 * 1024 * 1024)
+            == package["manifest_sha256"]
+            and _hash_absolute_nofollow(lock_path, algorithm="sha256", maximum=64 * 1024 * 1024)
+            == package["lock_sha256"], "R6 manifest/lock hashes differ from the reviewed source")
+
+    return {
+        "schema": TAG_NORMALIZED_EXISTING_BUILD_IDENTITY_SCHEMA,
+        "run_id": result["run_id"],
+        "normalization_addendum": {"path": str(addendum_path), "sha256": expected_addendum_sha256},
+        "build_result": {"path": str(result_path), "sha256": result_sha},
+        "build_plan": {"path": str(plan_path), "sha256": plan_sha},
+        "invocation": {"path": str(invocation_path), "sha256": invocation_sha},
+        "cargo_stdout": {"path": str(stdout_path), "sha256": stdout_ref["sha256"]},
+        "cargo_stderr": {"path": str(stderr_path), "sha256": stderr_ref["sha256"]},
+        "process_events": {"path": str(events_path), "sha256": events_ref["sha256"]},
+        "cache_copy_receipt": {"path": str(cache_receipt_path), "sha256": cache_receipt_sha},
+        "cache_source_manifest": {"path": str(cache_manifest_path), "sha256": cache_manifest_sha},
+        "cache_row_reconciliation": {"path": str(cache_reconciliation_path), "sha256": cache_reconciliation_sha},
+        "cache_row_review": {"path": str(cache_review_path), "sha256": cache_review_sha},
+        "source_cache_identity_addendum": {"path": str(source_addendum_path), "sha256": source_addendum_sha},
+        "build_result_review": {"path": str(review_path), "sha256": review_sha},
+        "oracle_lineage": {
+            "tag_ref": "refs/tags/" + REFERENCE_TAG,
+            "tag_object": REFERENCE_TAG_OBJECT,
+            "tag_commit": REFERENCE_ORACLE_COMMIT,
+            "git_object_replacement_policy": "disabled-by-option-and-environment",
+            "git_lazy_fetch_policy": "disabled-by-environment",
+        },
+        "source_snapshot": {
+            "source_commit": REFERENCE_ORACLE_COMMIT,
+            "tree_oid": source["tree_oid"],
+            "materialized_root": str(source_root),
+            "included_path_blob_map_sha256": _path_blob_map_sha256(actual_blobs),
+            "included_file_count": len(actual_blobs),
+        },
+        "metadata_target": {
+            "package_id": package_id,
+            "package_name": package["name"],
+            "target_name": "holla",
+            "manifest_path": str(manifest_path),
+            "source_path": str(source_root / "src/bin/holla/main.rs"),
+        },
+        "build_artifact_root": str(artifact_root),
+        "build": {
+            "package_id": package_id,
+            "target_name": "holla",
+            "features": [],
+            "default_features": True,
+            "target_triple": command["target_triple"],
+            "toolchain": TOOLCHAIN,
+            "profile": "release",
+        },
+        "executable": {"path": str(holla_path), "sha256": holla_sha, "size_bytes": holla_size},
+        "build_inputs": {
+            "manifest_sha256": package["manifest_sha256"],
+            "lock_sha256": package["lock_sha256"],
+            "mise_config": {"present": (source_root / "mise.toml").is_file(),
+                             "path": "mise.toml" if (source_root / "mise.toml").is_file() else None,
+                             "sha256": _hash_absolute_nofollow(source_root / "mise.toml", algorithm="sha256", maximum=4 * 1024 * 1024)
+                             if (source_root / "mise.toml").is_file() else None},
+            "cargo_version": plan["tools"]["cargo"]["version"],
+            "rustc_version": plan["tools"]["rustc"]["version"],
+            "host_triple": command["target_triple"],
+            "executed_argv": command["argv"],
+        },
+        "build_environment": {
+            "origin_result_sha256": result_sha,
+            "origin_invocation_sha256": invocation_sha,
+            "environment": env_record,
+        },
+        "product_build": "PASS",
+        "source_payload": "VERIFIED",
+        "locked_cache_payload": "VERIFIED",
+        "environment_integrity": "INCOMPLETE",
+        "execution_anchor_status": "unverified",
+        "qualification": {
+            "status": "blocked",
+            "reason": "R6 build execution and source/cache payload are preserved as separate evidence; environment integrity remains incomplete, so no execution anchor or oracle qualification is established.",
         },
         "capture_status": "NOT_RUN",
         "admission_status": "NOT_RUN",
@@ -3024,8 +3464,35 @@ def _tag_validator_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _normalized_existing_tag_validator_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="subjects.py validate-normalized-existing-tag-holla",
+        description="Validate the exact R6 immutable-tag build origin without creating a v1 builder receipt",
+    )
+    parser.add_argument("--repository", type=Path, required=True,
+                        help="absolute Git object repository containing the immutable tag")
+    parser.add_argument("--addendum", type=Path, required=True,
+                        help="absolute R6 scoped source/cache qualification addendum")
+    parser.add_argument("--addendum-sha256", required=True,
+                        help="caller-pinned raw SHA-256 of the exact R6 addendum bytes")
+    return parser
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv and raw_argv[0] == "validate-normalized-existing-tag-holla":
+        args = _normalized_existing_tag_validator_parser().parse_args(raw_argv[1:])
+        try:
+            identity = validate_normalized_existing_tag_holla_build(
+                repository=args.repository,
+                addendum_path=args.addendum,
+                expected_addendum_sha256=args.addendum_sha256,
+            )
+        except (SubjectError, OSError, ValueError, TypeError, KeyError) as error:
+            print("subjects: {}".format(error), file=sys.stderr)
+            return 2
+        print(json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+        return 0
     if raw_argv and raw_argv[0] == "validate-frozen-tag-holla":
         args = _tag_validator_parser().parse_args(raw_argv[1:])
         try:
