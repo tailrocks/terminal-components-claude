@@ -247,6 +247,8 @@ def strip_code(text):
             i += 1
     return "".join(out)
 def mod_end(clean_lines, start):
+    # Returns (line, mixed): `mixed` is true when production code follows the
+    # closing brace on the same line, so the line is not provably test-only.
     depth = 0
     seen_open = False
     ln = start
@@ -265,7 +267,8 @@ def mod_end(clean_lines, start):
         elif ch == "}":
             depth -= 1
             if depth == 0:
-                return ln
+                rest = clean_lines[ln - 1].split("}", -1)[-1].strip()
+                return (ln, bool(rest))
     return None
 
 
@@ -285,7 +288,7 @@ def rust_test_ranges(lines):
             if MOD_RE.search(cand):
                 end = mod_end(clean, j)
                 if end is not None:
-                    ranges.append((i, end))
+                    ranges.append((i, end[0], end[1]))
                 break
             s = cand.strip()
             if s == "" or s.startswith("#"):
@@ -296,7 +299,9 @@ def rust_test_ranges(lines):
 
 
 def in_ranges(ln, ranges):
-    return any(a <= ln <= b for a, b in ranges)
+    # A line shared by a closing brace and following production code can hold
+    # both test and production text, so edits to it are rejected.
+    return any(a <= ln <= b and not (ln == b and mixed) for a, b, mixed in ranges)
 
 
 def cmd_rust(old_p, new_p, diff_p, label):
@@ -342,7 +347,24 @@ def toml_headers(lines):
 
 
 def toml_ok(header):
-    return header is not None and any(k in header.lower() for k in TOML_OK)
+    lowered = (header or "").lower()
+    if not lowered:
+        return False
+    if lowered in TOML_OK:
+        return True
+    # `dev-dependencies.build` inherits the dev allowance; a plain substring
+    # match would also admit production tables such as [dependencies.testdep],
+    # so compare dash/bracket-delimited tokens instead.
+    # Production dependency tables stay production no matter their name:
+    # [dependencies.testdep] must not inherit a test allowance.
+    if lowered.startswith("dependencies") or lowered.startswith("build-dependencies"):
+        return False
+    return (
+        lowered == "test"
+        or lowered.startswith("test.")
+        or lowered.startswith("dev-dependencies")
+        or lowered.startswith("tuiscotti")
+    )
 
 
 def cmd_toml(old_p, new_p, diff_p, label):
@@ -459,7 +481,7 @@ def indent_of(s):
     return len(s) - len(s.lstrip(" "))
 
 
-JOB_ID_RE = re.compile(r"^([A-Za-z0-9_.\-]+)\s*:")
+JOB_ID_RE = re.compile(r"^\"?([A-Za-z0-9_.\-]+)\"?\s*:")
 
 
 def wf_blocks(lines):

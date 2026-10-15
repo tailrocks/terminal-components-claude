@@ -4429,6 +4429,15 @@ def load_task_records(path: Path, queue_module: Any) -> Any:
     return queue_module.strict_json_loads(raw)
 
 
+
+def recorded_status_role(text):
+    """The `Local role` recorded in a generated STATUS.md, if any."""
+    for line in text.splitlines():
+        if line.startswith("| Local role |") and line.endswith("|"):
+            recorded = line[len("| Local role |"):-1].split()
+            return recorded[0].strip().lower() or None if recorded else None
+    return None
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     modes = parser.add_mutually_exclusive_group()
@@ -4444,9 +4453,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         queue_module = load_queue_module()
         task_records = load_task_records(TASKS_PATH, queue_module)
+        # `--check` without an explicit `--role` compares against the role the
+        # committed record states, so the documented check works on a fresh
+        # checkout of a reference-role STATUS.md.
+        role = args.role
+        explicit_role = "--role" in (sys.argv[1:] if argv is None else argv)
+        if args.check and not explicit_role and STATUS_PATH.exists():
+            recorded = recorded_status_role(STATUS_PATH.read_text(encoding="utf-8"))
+            if recorded is not None:
+                role = recorded
         output = render_status(
             load_source_facts(FACTS_PATH, queue_module), task_records,
-            role=args.role, queue_module=queue_module
+            role=role, queue_module=queue_module
         )
     except ValueError as error:
         print("status generation failed: {}".format(error), file=sys.stderr)
