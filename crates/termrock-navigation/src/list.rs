@@ -1,0 +1,2112 @@
+//! `List` (`COMPONENT_ARCHITECTURE.md` §12.2, §17.0 A7, Appendix A 4C).
+
+use core::fmt;
+use core::marker::PhantomData;
+
+use ratatui_core::layout::Rect;
+
+use super::scroll_region::ScrollRegion;
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row, shift};
+use crate::collection::{
+    ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, KeySet, Reconcile, Reconciliation,
+    RowFn, RowUi, SelectMode, Status, StepDir, index_of, key_at,
+};
+use crate::event::{Chord, KeyCode, KeyModifiers};
+use crate::focus::Focusability;
+use crate::id::{Id, ItemKey, Part, PartRef};
+use crate::intent::{Intent, Phase};
+use crate::keymap::{Binding, BindingState, Bindings};
+use crate::layer::LayerSize;
+use crate::measure::{Constraints, Size};
+use crate::response::{Response, StateFlags};
+use crate::scroll::ScrollState;
+use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::ui::{Cx, FrameRead, Ui};
+
+/// What a list reports; every item action carries the item's key.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ListAction {
+    /// The cursor moved.
+    Moved,
+    /// An item was chosen (`Single`).
+    Chose(ItemKey),
+    /// An item's check toggled (`Multi` / `Range`).
+    Toggled(ItemKey),
+    /// An item was activated (Enter or a double-click).
+    Activated(ItemKey),
+    /// Every enabled item was checked or unchecked.
+    ToggledAll,
+    /// Plain Up attempted to move before the first physical row (opt-in).
+    LeaveBackward,
+    /// Plain Down attempted to move after the last physical row (opt-in).
+    LeaveForward,
+}
+
+/// The const-constructible commands of the list keymap.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ListCmd {
+    /// Cursor up.
+    Up,
+    /// Cursor down.
+    Down,
+    /// Cursor up one viewport.
+    PageUp,
+    /// Cursor down one viewport.
+    PageDown,
+    /// Cursor to the first item.
+    Home,
+    /// Cursor to the last item.
+    End,
+    /// Cursor up, extending the checked range.
+    ExtendUp,
+    /// Cursor down, extending the checked range.
+    ExtendDown,
+    /// Choose / toggle the cursor item.
+    Choose,
+    /// Activate the cursor item.
+    Activate,
+    /// Toggle every enabled item.
+    ToggleAll,
+}
+
+const fn b(
+    action: &'static str,
+    chord: Chord,
+    cmd: ListCmd,
+    label: &'static str,
+    visible: bool,
+) -> Binding<ListCmd> {
+    Binding {
+        action: crate::ActionKey::custom(action),
+        chord: Some(chord),
+        cmd,
+        label,
+        priority: if visible { 60 } else { 10 },
+        visible,
+    }
+}
+
+const BASE: [Binding<ListCmd>; 11] = [
+    b("list.up", Chord::key(KeyCode::Up), ListCmd::Up, "Up", true),
+    b(
+        "list.down",
+        Chord::key(KeyCode::Down),
+        ListCmd::Down,
+        "Down",
+        true,
+    ),
+    b(
+        "list.up-vim",
+        Chord::key(KeyCode::Char('k')),
+        ListCmd::Up,
+        "Up",
+        false,
+    ),
+    b(
+        "list.down-vim",
+        Chord::key(KeyCode::Char('j')),
+        ListCmd::Down,
+        "Down",
+        false,
+    ),
+    b(
+        "list.page-up",
+        Chord::key(KeyCode::PageUp),
+        ListCmd::PageUp,
+        "Page up",
+        false,
+    ),
+    b(
+        "list.page-down",
+        Chord::key(KeyCode::PageDown),
+        ListCmd::PageDown,
+        "Page down",
+        false,
+    ),
+    b(
+        "list.home",
+        Chord::key(KeyCode::Home),
+        ListCmd::Home,
+        "First",
+        false,
+    ),
+    b(
+        "list.end",
+        Chord::key(KeyCode::End),
+        ListCmd::End,
+        "Last",
+        false,
+    ),
+    b(
+        "list.home-vim",
+        Chord::key(KeyCode::Char('g')),
+        ListCmd::Home,
+        "First",
+        false,
+    ),
+    b(
+        "list.end-vim",
+        Chord::key(KeyCode::Char('G')),
+        ListCmd::End,
+        "Last",
+        false,
+    ),
+    b(
+        "list.activate",
+        Chord::key(KeyCode::Enter),
+        ListCmd::Activate,
+        "Open",
+        true,
+    ),
+];
+
+const SINGLE: [Binding<ListCmd>; 12] = [
+    BASE[0],
+    BASE[1],
+    BASE[2],
+    BASE[3],
+    BASE[4],
+    BASE[5],
+    BASE[6],
+    BASE[7],
+    BASE[8],
+    BASE[9],
+    BASE[10],
+    b(
+        "list.choose",
+        Chord::key(KeyCode::Char(' ')),
+        ListCmd::Choose,
+        "Choose",
+        true,
+    ),
+];
+
+const MULTI: [Binding<ListCmd>; 15] = [
+    BASE[0],
+    BASE[1],
+    BASE[2],
+    BASE[3],
+    BASE[4],
+    BASE[5],
+    BASE[6],
+    BASE[7],
+    BASE[8],
+    BASE[9],
+    BASE[10],
+    b(
+        "list.toggle",
+        Chord::key(KeyCode::Char(' ')),
+        ListCmd::Choose,
+        "Toggle",
+        true,
+    ),
+    b(
+        "list.extend-up",
+        Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+        ListCmd::ExtendUp,
+        "Extend up",
+        false,
+    ),
+    b(
+        "list.extend-down",
+        Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
+        ListCmd::ExtendDown,
+        "Extend down",
+        false,
+    ),
+    b(
+        "list.toggle-all",
+        Chord::key(KeyCode::Char('a')),
+        ListCmd::ToggleAll,
+        "All",
+        false,
+    ),
+];
+
+const NONE: [Binding<ListCmd>; 11] = BASE;
+
+/// Durable state of a [`List`]: cursor key, chosen key, checked set,
+/// scroll and the reconcile stamp.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct ListState {
+    core: CollectionCore,
+    chosen: Option<ItemKey>,
+    anchor: Option<ItemKey>,
+    // Selection transaction; runtime still owns focus and feedback.
+    click_cursor: Option<ItemKey>,
+    // Last update configuration keeps explicit reconciliation in scroll units.
+    row_stride: usize,
+    row_gap: u16,
+}
+
+impl ListState {
+    /// The cursor key.
+    pub const fn cursor(&self) -> Option<ItemKey> {
+        self.core.cursor()
+    }
+
+    /// The chosen key (`Single`).
+    pub const fn chosen(&self) -> Option<ItemKey> {
+        self.chosen
+    }
+
+    /// The checked set (`Multi` / `Range`).
+    pub const fn checked(&self) -> &KeySet {
+        self.core.checked()
+    }
+
+    /// The checked set, mutably.
+    pub const fn checked_mut(&mut self) -> &mut KeySet {
+        self.core.checked_mut()
+    }
+
+    /// The scroll state in terminal lines. Multiline rows align offsets to
+    /// their stride; bounded trailing padding permits the final aligned view.
+    pub const fn scroll(&self) -> &ScrollState {
+        self.core.scroll()
+    }
+
+    /// Point the cursor at `(index, key)` and reveal it on the next layout.
+    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
+        self.core.set_cursor(index, key);
+    }
+
+    /// Choose `key` (`Single`).
+    pub fn choose(&mut self, key: Option<ItemKey>) {
+        self.chosen = key;
+    }
+}
+
+impl Reconcile for ListState {
+    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
+        let stride = self.row_stride.max(1);
+        let extent =
+            row_scroll_extent(len, stride, self.row_gap, self.core.scroll().viewport_len());
+        let r = self.core.reconcile_with_extent(len, extent, &key, |_| true);
+        if let Some(c) = self.chosen
+            && !(0..len).any(|i| key(i) == c)
+        {
+            self.chosen = None;
+        }
+        if let Some(a) = self.anchor
+            && !(0..len).any(|i| key(i) == a)
+        {
+            self.anchor = None;
+        }
+        r
+    }
+
+    fn invalidate(&mut self) {
+        self.core.invalidate();
+    }
+}
+
+/// A keyed, scrollable, single-focus-stop list over borrowed rows.
+///
+/// ## Construction
+/// `List::new(id)`; items are passed to each phase, never held.
+///
+/// ## Ownership
+/// The caller owns the items (`&[T]` per phase) and a [`ListState`]; the
+/// runtime owns focus, hover, press, wheel routing and the scrollbar
+/// capture.
+///
+/// ## Configuration
+/// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
+/// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.select_mode`
+/// (`Single`), `.empty(EmptyState)` (a default "Nothing here yet"),
+/// `.disabled_item(&dyn Fn(&T) -> bool)`, `.status`, `.patch`,
+/// `.patch_part`, `.slot`.
+///
+/// ## Variants
+/// `Family::LIST`, `DEFAULT` only.
+///
+/// ## States
+/// The list wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the
+/// runtime and `BUSY`/`LOADING`/`ERROR` from `.status`; the cursor row
+/// derives `FOCUSED`/`PRESSED`, a chosen row `SELECTED`, a checked row
+/// `CHECKED`, a disabled item `DISABLED`. The readiness flags reach every
+/// row as well as the container, so an errored or stale list is visible
+/// without colour.
+///
+/// ## Actions
+/// `Moved`, `Chose(k)` (Space / click, `Single`), `Toggled(k)` (Space /
+/// click, `Multi`/`Range`), `Activated(k)` (Enter / double-click),
+/// `ToggledAll` (`a`, `Multi`/`Range`). Opt-in `LeaveBackward`/`LeaveForward`
+/// report plain Up/Down attempts beyond the physical row boundaries.
+///
+/// ## Focus
+/// One `Focusable` stop for the whole list; does not swallow typing.
+///
+/// ## Keyboard
+/// `↑`/`k`, `↓`/`j`, `PgUp`, `PgDn`, `Home`/`g`, `End`/`G`, `Enter`
+/// activate, `Space` choose/toggle; `Multi`/`Range` add `Shift+↑`/`Shift+↓`
+/// (extend) and `a` (toggle all).
+///
+/// ## Mouse
+/// `PartRef::item(Part::ROW, k)`: press moves the cursor, click chooses /
+/// toggles, double-click activates. `TRACK`/`THUMB` and the wheel go to the
+/// embedded [`ScrollRegion`].
+///
+/// ## Layout
+/// One row per item; an optional two-cell readiness rail, gutter, marker,
+/// then the renderer's row; a scrollbar column when the items overflow.
+/// `.bare(true)` drops the gutter/marker chrome so the row painter starts
+/// at `area.x` with the full row width (label/value rows inside dialogs and
+/// forms); selection, cursor, scroll and hit state are unchanged.
+/// `.bare_item(f)` drops the chrome per row (section headers inside an
+/// otherwise chromed list).
+/// `measure` is `(24…, items)`;
+/// `measured_size` is the same arithmetic as a [`LayerSize`] for a list used
+/// as popover content (§26 N1); `draw` returns `area`. `0×0` registers
+/// nothing (R5).
+///
+/// ## Parts
+/// `CONTAINER`, `ICON`, `GUTTER`, `MARKER`, `LABEL`, `META`, `TRACK`,
+/// `THUMB`, `EMPTY`, `ROW` (hit regions only).
+///
+/// ## Overrides
+/// `.patch` and `.patch_part` on any part; `.slot` on exactly `ICON`,
+/// `GUTTER`, `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `TRACK` and `THUMB` are the
+/// embedded [`ScrollRegion`]'s, which paints them under this list's own
+/// `Id`, so all three overrides are forwarded to it. `CONTAINER`, `LABEL`,
+/// `META` and `ROW` are not slot-addressable: `CONTAINER` is the list's own
+/// fill, `LABEL` and `META` are painted by the `.row(…)` painter the caller
+/// already supplies, and `ROW` is a hit region rather than a painted part.
+///
+/// ## Identity
+/// `.key` supplies stable keys; `ByIndex` is unstable under
+/// insert/remove/reorder. Every action carries an `ItemKey`.
+///
+/// ## Testing
+/// `ListCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS |
+/// REPORTS_STATUS`;
+/// `render::components::list::*`. `CAPTURES` belongs to the embedded
+/// [`ScrollRegion`], whose thumb claims the capture, and is declared by
+/// `ScrollRegionCase`.
+///
+/// ## Invariants
+/// `reconcile` runs before any action is emitted; only visible rows invoke
+/// the renderer; a frame allocates nothing per row.
+pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
+    id: Id,
+    key: K,
+    row: R,
+    render_row: Option<ListRowRenderer<'a, T>>,
+    row_height: u16,
+    row_gap: u16,
+    whole_rows: bool,
+    bare: bool,
+    /// Foreground for an unselected blank marker. A chosen glyph keeps the
+    /// recipe color; only the empty marker cell is filled.
+    blank_marker: Option<Role>,
+    select_mode: SelectMode,
+    leave_at_boundary: bool,
+    activate_focused_on_click: bool,
+    empty: Option<EmptyState<'a>>,
+    disabled_item: Option<&'a dyn Fn(&T) -> bool>,
+    pointer_item: Option<&'a dyn Fn(&T) -> bool>,
+    bare_item: Option<&'a dyn Fn(&T) -> bool>,
+    status: Status,
+    /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
+    /// caller's own overrides. `PartStyle` reads back only the slot, and a
+    /// scrollbar the container constructs bare drops the container's
+    /// `.patch` and `.patch_part` on `TRACK` and `THUMB` — a drop
+    /// `Invariant P` cannot see, because the scrollbar styles those parts
+    /// under *this* list's `Id` (§45.7 obligation 2).
+    patch: Option<&'a StylePatch>,
+    parts: &'a [(Part, StylePatch)],
+    ov: PartStyle<'a>,
+    focused: Option<bool>,
+    hovered_key: Option<ItemKey>,
+    _t: PhantomData<fn(&T)>,
+}
+
+fn row_scroll_extent(len: usize, stride: usize, gap: u16, viewport: usize) -> usize {
+    let extent =
+        len.saturating_mul(stride)
+            .saturating_sub(if len == 0 { 0 } else { usize::from(gap) });
+    let excess = extent.saturating_sub(viewport);
+    if excess == 0 {
+        extent
+    } else {
+        excess
+            .div_ceil(stride)
+            .saturating_mul(stride)
+            .saturating_add(viewport)
+    }
+}
+
+type ListRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
+
+impl<T, K, R> fmt::Debug for List<'_, T, K, R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("List")
+            .field("id", &self.id)
+            .field("select_mode", &self.select_mode)
+            .field("empty", &self.empty)
+            .field("status", &self.status)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<T> List<'_, T, ByIndex, DefaultRow> {
+    /// A list keyed by index and painted through `Display`.
+    pub const fn new(id: Id) -> Self {
+        List {
+            id,
+            key: ByIndex,
+            row: DefaultRow,
+            render_row: None,
+            row_height: 1,
+            row_gap: 0,
+            whole_rows: false,
+            bare: false,
+            blank_marker: None,
+            select_mode: SelectMode::Single,
+            leave_at_boundary: false,
+            activate_focused_on_click: false,
+            empty: None,
+            disabled_item: None,
+            pointer_item: None,
+            bare_item: None,
+            status: Status::Ready,
+            patch: None,
+            parts: &[],
+            ov: PartStyle::new(),
+            focused: None,
+            hovered_key: None,
+            _t: PhantomData,
+        }
+    }
+}
+
+impl<'a, T, K, R> List<'a, T, K, R> {
+    /// The parts this component styles.
+    pub const PARTS: &'static [Part] = &[
+        Part::CONTAINER,
+        Part::ICON,
+        Part::GUTTER,
+        Part::MARKER,
+        Part::LABEL,
+        Part::META,
+        Part::TRACK,
+        Part::THUMB,
+        Part::EMPTY,
+    ];
+
+    /// The width `measure` prefers and `measured_size` clamps into the
+    /// design's popup band.
+    pub const PREFERRED_WIDTH: u16 = 24;
+
+    /// The id.
+    pub const fn id(&self) -> Id {
+        self.id
+    }
+
+    /// Report plain Up/Down attempts beyond the physical first/last row.
+    ///
+    /// Defaults to `false` (clamp and consume). An exit does not move the
+    /// cursor or change selection. Disabled items remain navigable, as in
+    /// ordinary List movement; an empty or disabled control never exits.
+    /// Vim aliases, Home/End, page and range-extension commands are unchanged.
+    #[must_use]
+    pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
+        self.leave_at_boundary = leave;
+        self
+    }
+
+    /// Activate a clicked row only when it was already the cursor and this
+    /// list already owned focus before pointer press.
+    ///
+    /// Defaults to false. When enabled, single and double clicks follow this
+    /// semantic rule independently of the double-click deadline. A click that
+    /// acquires owner focus or selects another row follows the selection mode.
+    /// Disclosure-free body hits, dragging, focus loss and canceled presses
+    /// never activate a row. Keyboard activation remains unchanged.
+    #[must_use]
+    pub const fn activate_focused_on_click(mut self, enabled: bool) -> Self {
+        self.activate_focused_on_click = enabled;
+        self
+    }
+
+    /// Painted lines per item; zero is normalized to one. Defaults to one.
+    /// Rows scroll at item boundaries, preserving their logical rect. Wheel
+    /// deltas already normalized by the runtime count items; thumb movement
+    /// snaps in its movement direction. The scrollbar includes only enough
+    /// trailing blank space to reach the last aligned viewport. A shorter
+    /// viewport clips a row unless [`Self::whole_rows`] is enabled.
+    #[must_use]
+    pub const fn row_height(mut self, height: u16) -> Self {
+        self.row_height = if height == 0 { 1 } else { height };
+        self
+    }
+
+    /// Blank, non-item lines between rows. Defaults to zero; no trailing gap.
+    #[must_use]
+    pub const fn row_gap(mut self, gap: u16) -> Self {
+        self.row_gap = gap;
+        self
+    }
+
+    /// Omit rows that do not fit the logical viewport completely.
+    /// Defaults to false (bottom rows may be clipped). If the viewport is
+    /// shorter than a row, true paints no items until it grows; selection and
+    /// scrolling remain available. Ancestor clipping never shifts row content.
+    #[must_use]
+    pub const fn whole_rows(mut self, enabled: bool) -> Self {
+        self.whole_rows = enabled;
+        self
+    }
+
+    fn stride(&self) -> usize {
+        usize::from(self.row_height).saturating_add(usize::from(self.row_gap))
+    }
+
+    fn item_at_line(&self, line: usize) -> usize {
+        line.checked_div(self.stride()).unwrap_or(0)
+    }
+
+    fn extent(&self, len: usize) -> usize {
+        len.saturating_mul(self.stride())
+            .saturating_sub(if len == 0 {
+                0
+            } else {
+                usize::from(self.row_gap)
+            })
+    }
+
+    // Pad only enough to represent the final row-aligned viewport. Padding
+    // never becomes an item or a painted row.
+    fn scroll_extent(&self, len: usize, viewport: usize) -> usize {
+        row_scroll_extent(len, self.stride(), self.row_gap, viewport)
+    }
+
+    fn scroll_view(&self, st: &ListState, len: usize, viewport: usize) -> ScrollState {
+        let mut scroll = *st.core.scroll();
+        if viewport == 0 {
+            scroll.set_content(self.extent(len));
+            return scroll;
+        }
+        let reveal = scroll.pending_reveal().or_else(|| {
+            (self.stride() > 1 && scroll.viewport_len() != viewport && st.core.cursor().is_some())
+                .then_some(st.core.cursor_index())
+        });
+        let start = reveal.map(|i| i.saturating_mul(self.stride()));
+        if let Some(start) = start {
+            scroll.ensure_visible_on_next_layout(
+                start.saturating_add(usize::from(self.row_height).min(viewport).saturating_sub(1)),
+            );
+        }
+        scroll.apply_layout(viewport, self.scroll_extent(len, viewport));
+        if let Some(start) = start {
+            scroll.ensure_visible(start);
+        }
+        let offset = scroll.offset();
+        let aligned = if start.is_some_and(|start| start >= offset) {
+            offset.div_ceil(self.stride()).saturating_mul(self.stride())
+        } else {
+            self.item_at_line(offset).saturating_mul(self.stride())
+        };
+        scroll.scroll_to(aligned);
+        scroll
+    }
+
+    /// A stable key accessor.
+    pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> List<'a, T, K2, R> {
+        List {
+            id: self.id,
+            key: k,
+            row: self.row,
+            render_row: self.render_row,
+            row_height: self.row_height,
+            row_gap: self.row_gap,
+            whole_rows: self.whole_rows,
+            bare: self.bare,
+            blank_marker: self.blank_marker,
+            select_mode: self.select_mode,
+            leave_at_boundary: self.leave_at_boundary,
+            activate_focused_on_click: self.activate_focused_on_click,
+            empty: self.empty,
+            disabled_item: self.disabled_item,
+            pointer_item: self.pointer_item,
+            bare_item: self.bare_item,
+            status: self.status,
+            patch: self.patch,
+            parts: self.parts,
+            ov: self.ov,
+            focused: self.focused,
+            hovered_key: self.hovered_key,
+            _t: PhantomData,
+        }
+    }
+
+    /// A row painter.
+    pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> List<'a, T, K, R2> {
+        List {
+            id: self.id,
+            key: self.key,
+            row: r,
+            render_row: self.render_row,
+            row_height: self.row_height,
+            row_gap: self.row_gap,
+            whole_rows: self.whole_rows,
+            bare: self.bare,
+            blank_marker: self.blank_marker,
+            select_mode: self.select_mode,
+            leave_at_boundary: self.leave_at_boundary,
+            activate_focused_on_click: self.activate_focused_on_click,
+            empty: self.empty,
+            disabled_item: self.disabled_item,
+            pointer_item: self.pointer_item,
+            bare_item: self.bare_item,
+            status: self.status,
+            patch: self.patch,
+            parts: self.parts,
+            ov: self.ov,
+            focused: self.focused,
+            hovered_key: self.hovered_key,
+            _t: PhantomData,
+        }
+    }
+
+    /// Replace the entire visible row's painting, including its chrome.
+    ///
+    /// The borrowed callback receives the authoritative logical row, final
+    /// interaction flags, stable key and borrowed item. List retains scrolling,
+    /// reconciliation, input and hit registration. Writes are clipped to the
+    /// row and ancestor clip without shifting logical content alignment. Rows
+    /// wholly outside that clip do not invoke the callback. No default painter runs
+    /// first. Instance part patches and slots apply to the default painter;
+    /// custom painters resolve their own semantic parts, as with `NavList`.
+    ///
+    /// Items need not implement `Display`. Installing this renderer replaces
+    /// the default row capability; subsequent `key` and `row` builders retain
+    /// the full-row renderer, and no builder can remove it.
+    #[must_use]
+    pub fn render_row(self, renderer: ListRowRenderer<'a, T>) -> List<'a, T, K, impl RowFn<T>> {
+        // The full-row callback below is installed before this value escapes.
+        // All type-changing builders preserve it and there is no unset API,
+        // so this zero-sized fallback can never paint a row.
+        let mut list = self.row(|_: &T, _: &mut RowUi<'_>| {});
+        list.render_row = Some(renderer);
+        list
+    }
+
+    /// Drop the gutter/marker chrome: the row painter starts at `area.x`
+    /// with the full row width. Cursor, selection, scroll, readiness and
+    /// hit registration are unchanged; only the two chrome cells and the
+    /// trailing pad reservation go away.
+    #[must_use]
+    pub fn bare(mut self, yes: bool) -> Self {
+        self.bare = yes;
+        self
+    }
+
+    /// Fill the blank (unchosen) marker with `role`. The chosen glyph and
+    /// the focus gutter stay on the list recipe.
+    #[must_use]
+    pub const fn blank_marker(mut self, role: Role) -> Self {
+        self.blank_marker = Some(role);
+        self
+    }
+
+    /// The selection mode.
+    #[must_use]
+    pub fn select_mode(mut self, m: SelectMode) -> Self {
+        self.select_mode = m;
+        self
+    }
+
+    /// What to paint when there are no items.
+    #[must_use]
+    pub fn empty(mut self, e: EmptyState<'a>) -> Self {
+        self.empty = Some(e);
+        self
+    }
+
+    /// Which items are disabled.
+    #[must_use]
+    pub fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
+        self.disabled_item = Some(f);
+        self
+    }
+
+    /// Which rows accept pointer selection and activation.
+    ///
+    /// Defaults to every row. Ineligible rows retain keyboard traversal and
+    /// activation, but publish an owner-only `Part::BODY` hit instead of a
+    /// keyed row hit and ignore stale row-pointer intents. This keeps the
+    /// list focusable at their coordinates without selecting a row; owner
+    /// hover/press feedback is independent of row hover/press feedback.
+    #[must_use]
+    pub fn pointer_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
+        self.pointer_item = Some(f);
+        self
+    }
+
+    /// Which rows skip the gutter/marker chrome (section headers, provider
+    /// dividers): a bare row hands its full rect to the painter, exactly
+    /// like [`.bare(true)`](Self::bare), while sibling rows keep the
+    /// chrome. Defaults to no rows. Cursor, selection, scroll and hit
+    /// registration are unchanged.
+    #[must_use]
+    pub fn bare_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
+        self.bare_item = Some(f);
+        self
+    }
+
+    /// Data readiness.
+    #[must_use]
+    pub fn status(mut self, s: Status) -> Self {
+        self.status = s;
+        self
+    }
+
+    /// Override the visual focus state of the list.
+    #[must_use]
+    pub const fn focused(mut self, yes: bool) -> Self {
+        self.focused = Some(yes);
+        self
+    }
+
+    /// Override the hovered item key.
+    #[must_use]
+    pub const fn hovered_key(mut self, key: Option<ItemKey>) -> Self {
+        self.hovered_key = key;
+        self
+    }
+
+    /// An instance patch over every part.
+    #[must_use]
+    pub fn patch(mut self, p: &'a StylePatch) -> Self {
+        self.patch = Some(p);
+        self.ov = self.ov.global(p);
+        self
+    }
+
+    /// Per-part instance patches.
+    ///
+    /// Every named part must be a member of [`Self::PARTS`]; an unknown
+    /// part fails a `debug_assert`, and in testing builds it is recorded as
+    /// an `UnknownPart` diagnostic at resolve time instead of being applied.
+    #[must_use]
+    pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
+        self.parts = ps;
+        self.ov = self.ov.declare(Self::PARTS).part(ps);
+        self
+    }
+
+    /// Replace one part's painting.
+    ///
+    /// `p` must be a member of [`Self::PARTS`]; an unknown part fails a
+    /// `debug_assert`, and in testing builds it is recorded as an
+    /// `UnknownPart` diagnostic at resolve time instead of being installed.
+    #[must_use]
+    pub fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
+        self.ov = self.ov.declare(Self::PARTS).slot(p, f);
+        self
+    }
+
+    /// The embedded scrollbar, wearing this list's own overrides.
+    ///
+    /// The scrollbar paints `TRACK` and `THUMB` under the **list's** `Id`,
+    /// so a caller's `.patch`, `.patch_part` and `.slot` on those two parts
+    /// are the list's to forward; constructing it bare dropped all three
+    /// (§45.1, §45.7 obligation 2).
+    fn scrollbar(&self) -> ScrollRegion<'a> {
+        let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
+        if let Some(p) = self.patch {
+            sr = sr.patch(p);
+        }
+        if let Some(f) = self.ov.slot_for(Part::TRACK) {
+            sr = sr.slot(Part::TRACK, f);
+        } else if let Some(f) = self.ov.slot_for(Part::THUMB) {
+            sr = sr.slot(Part::THUMB, f);
+        }
+        sr
+    }
+
+    /// Showcase / fixture use only (A11).
+    fn table(&self) -> &'static [Binding<ListCmd>] {
+        match self.select_mode {
+            SelectMode::Single => &SINGLE,
+            SelectMode::Multi | SelectMode::Range => &MULTI,
+            SelectMode::None => &NONE,
+        }
+    }
+
+    fn is_disabled(&self, item: &T) -> bool {
+        self.disabled_item.is_some_and(|f| f(item))
+    }
+}
+
+impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
+    fn enabled_at(&self, items: &[T], i: usize) -> bool {
+        items.get(i).is_some_and(|it| !self.is_disabled(it))
+    }
+
+    /// Shared clamped target resolution. The cursor lands on every row,
+    /// including disabled ones — only seeding, choosing, range-insert and
+    /// toggle-all skip disabled rows. Clamps, never wraps.
+    fn move_cursor(
+        &self,
+        st: &mut ListState,
+        items: &[T],
+        to: usize,
+        extend: bool,
+        acc: &mut Acc<ListAction>,
+    ) {
+        let len = items.len();
+        if len == 0 {
+            return;
+        }
+        let to = to.min(len.saturating_sub(1));
+        let Some((to, key)) = CollectionCore::seek(
+            len,
+            to,
+            StepDir::Next,
+            |i| key_at(&self.key, items, i),
+            |_| true,
+        ) else {
+            return;
+        };
+        if extend && !matches!(self.select_mode, SelectMode::Single | SelectMode::None) {
+            let from = st.core.cursor_index();
+            let anchor_i = st
+                .anchor
+                .and_then(|a| index_of(&self.key, items, a, Some(from)))
+                .unwrap_or(from);
+            if st.anchor.is_none() {
+                st.anchor = Some(key_at(&self.key, items, from));
+            }
+            if self.select_mode == SelectMode::Range {
+                st.core.checked_mut().none();
+            }
+            let (a, b) = (anchor_i.min(to), anchor_i.max(to));
+            for i in a..=b {
+                if self.enabled_at(items, i) {
+                    st.core.checked_mut().insert(key_at(&self.key, items, i));
+                }
+            }
+            st.core.set_cursor(to, key);
+            acc.action(ListAction::Toggled(key));
+        } else {
+            st.anchor = None;
+            st.core.set_cursor(to, key);
+            acc.action(ListAction::Moved);
+        }
+    }
+
+    fn toggle_all(&self, st: &mut ListState, items: &[T], acc: &mut Acc<ListAction>) {
+        let all = (0..items.len())
+            .filter(|&i| self.enabled_at(items, i))
+            .all(|i| st.core.checked().contains(key_at(&self.key, items, i)));
+        if all {
+            st.core.checked_mut().none();
+        } else {
+            let checked = st.core.checked_mut();
+            checked.all();
+            for i in 0..items.len() {
+                if !self.enabled_at(items, i) {
+                    checked.remove(key_at(&self.key, items, i));
+                }
+            }
+        }
+        acc.action(ListAction::ToggledAll);
+    }
+
+    fn choose(&self, st: &mut ListState, items: &[T], i: usize, acc: &mut Acc<ListAction>) {
+        if !self.enabled_at(items, i) {
+            acc.consumed();
+            return;
+        }
+        let key = key_at(&self.key, items, i);
+        match self.select_mode {
+            SelectMode::Single => {
+                st.chosen = Some(key);
+                acc.action(ListAction::Chose(key));
+            }
+            SelectMode::Multi | SelectMode::Range => {
+                st.core.checked_mut().toggle(key);
+                acc.action(ListAction::Toggled(key));
+            }
+            SelectMode::None => acc.consumed(),
+        }
+    }
+
+    /// The update phase: reconcile, then drain keys, pointer and wheel.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the keymap dispatch and the pointer phases in one drain loop"
+    )]
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut ListState, items: &[T]) -> Response<ListAction> {
+        st.row_stride = self.stride();
+        st.row_gap = self.row_gap;
+        let prior_index = st.core.cursor_index();
+        let prior_cursor = st.core.cursor();
+        let prior_focus = self.activate_focused_on_click
+            && cx.state(self.id).contains(StateFlags::FOCUSED)
+            && !cx
+                .intents(self.id)
+                .any(|intent| matches!(intent, Intent::FocusIn { .. }));
+        let len = items.len();
+        let _ = st.core.reconcile_with_extent(
+            len,
+            self.scroll_extent(len, st.core.scroll().viewport_len()),
+            |i| key_at(&self.key, items, i),
+            |i| self.enabled_at(items, i),
+        );
+        if let Some(a) = st.anchor
+            && index_of(&self.key, items, a, Some(st.core.cursor_index())).is_none()
+        {
+            st.anchor = None;
+        }
+        if let Some(c) = st.chosen
+            && index_of(&self.key, items, c, Some(st.core.cursor_index())).is_none()
+        {
+            st.chosen = None;
+        }
+        if st.core.cursor().is_none()
+            && let Some((i, key)) = CollectionCore::first_enabled(
+                len,
+                |i| key_at(&self.key, items, i),
+                |i| self.enabled_at(items, i),
+            )
+        {
+            st.core.set_cursor(i, key);
+        }
+        if self.stride() > 1 && prior_index != st.core.cursor_index() && st.core.cursor().is_some()
+        {
+            let index = st.core.cursor_index();
+            st.core.scroll_mut().ensure_visible_on_next_layout(index);
+        }
+        let mut acc = Acc::<ListAction>::new();
+        let viewport = cx
+            .layout(self.id)
+            .map_or(st.core.scroll().viewport_len(), |l| l.viewport_len);
+        *st.core.scroll_mut() = self.scroll_view(st, len, viewport);
+        let extent = self.scroll_extent(len, viewport);
+        let before_scroll = st.core.scroll().offset();
+        let region = ScrollRegion::new(self.id);
+        let track_len = region.prepare(cx, st.core.scroll_mut(), extent);
+        let mut bar = Response::ignored();
+        for intent in cx.intents(self.id) {
+            if let Intent::Wheel { delta, .. } = intent {
+                let scroll = st.core.scroll_mut();
+                let before = scroll.offset();
+                scroll.scroll_by(isize::from(delta).saturating_mul(self.stride() as isize));
+                bar |= if scroll.offset() == before {
+                    Response::consumed()
+                } else {
+                    Response::changed()
+                };
+            } else {
+                bar |= region.handle_intent(cx, st.core.scroll_mut(), track_len, intent);
+            }
+        }
+        if self.stride() > 1 {
+            let scroll = st.core.scroll_mut();
+            let offset = scroll.offset();
+            let aligned = if offset > before_scroll {
+                offset.div_ceil(self.stride()).saturating_mul(self.stride())
+            } else {
+                self.item_at_line(offset).saturating_mul(self.stride())
+            };
+            scroll.scroll_to(aligned);
+        }
+        acc.fold(&bar);
+        let viewport = self.item_at_line(st.core.scroll().viewport_len()).max(1);
+        let table = self.table();
+        let mut released = false;
+        for it in cx.intents(self.id) {
+            match it {
+                Intent::FocusOut { .. } | Intent::Cancel => {
+                    st.click_cursor = None;
+                }
+                Intent::Binding(action) => {
+                    st.click_cursor = None;
+                    if len == 0 {
+                        // Baseline: an empty list ignores every key.
+                        continue;
+                    }
+                    let cur = st.core.cursor_index();
+                    match Binding::command(table, action) {
+                        Some(ListCmd::Up)
+                            if self.leave_at_boundary
+                                && action == crate::ActionKey::custom("list.up")
+                                && len > 0
+                                && cur == 0
+                                && !cx.state(self.id).contains(StateFlags::DISABLED) =>
+                        {
+                            acc.action(ListAction::LeaveBackward);
+                        }
+                        Some(ListCmd::Up) => {
+                            self.move_cursor(st, items, cur.saturating_sub(1), false, &mut acc);
+                        }
+                        Some(ListCmd::Down)
+                            if self.leave_at_boundary
+                                && action == crate::ActionKey::custom("list.down")
+                                && len > 0
+                                && cur == len.saturating_sub(1)
+                                && !cx.state(self.id).contains(StateFlags::DISABLED) =>
+                        {
+                            acc.action(ListAction::LeaveForward);
+                        }
+                        Some(ListCmd::Down) => {
+                            self.move_cursor(st, items, cur.saturating_add(1), false, &mut acc);
+                        }
+                        Some(ListCmd::PageUp) => self.move_cursor(
+                            st,
+                            items,
+                            cur.saturating_sub(viewport),
+                            false,
+                            &mut acc,
+                        ),
+                        Some(ListCmd::PageDown) => self.move_cursor(
+                            st,
+                            items,
+                            cur.saturating_add(viewport),
+                            false,
+                            &mut acc,
+                        ),
+                        Some(ListCmd::Home) => self.move_cursor(st, items, 0, false, &mut acc),
+                        Some(ListCmd::End) => {
+                            self.move_cursor(st, items, usize::MAX, false, &mut acc);
+                        }
+                        Some(ListCmd::ExtendUp) => {
+                            self.move_cursor(st, items, cur.saturating_sub(1), true, &mut acc);
+                        }
+                        Some(ListCmd::ExtendDown) => {
+                            self.move_cursor(st, items, cur.saturating_add(1), true, &mut acc);
+                        }
+                        Some(ListCmd::Choose) => self.choose(st, items, cur, &mut acc),
+                        Some(ListCmd::Activate) => {
+                            if self.enabled_at(items, cur) && len > 0 {
+                                // Enter commits the cursor row (chosen in
+                                // Single, idempotent check in
+                                // Multi/Range — Space/click toggle), then
+                                // reports it.
+                                let key = key_at(&self.key, items, cur);
+                                match self.select_mode {
+                                    SelectMode::Single => {
+                                        st.chosen = Some(key);
+                                    }
+                                    SelectMode::Multi | SelectMode::Range => {
+                                        st.core.checked_mut().insert(key);
+                                    }
+                                    SelectMode::None => {}
+                                }
+                                acc.action(ListAction::Activated(key));
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        Some(ListCmd::ToggleAll) => {
+                            self.toggle_all(st, items, &mut acc);
+                        }
+                        None => {}
+                    }
+                }
+                Intent::Pointer {
+                    phase,
+                    part:
+                        PartRef {
+                            part: Part::ROW,
+                            item: Some(k),
+                        },
+                    pos,
+                    ..
+                } => {
+                    released |= phase == Phase::Release;
+                    if matches!(phase, Phase::DragStart | Phase::Drag | Phase::DragEnd) {
+                        st.click_cursor = None;
+                    }
+                    // the row index from the pointer row and last frame's view
+                    let hint = cx.area(self.id).map(|a| {
+                        let view = self.scroll_view(st, len, usize::from(a.height));
+                        self.item_at_line(
+                            view.offset()
+                                .saturating_add(usize::from(pos.y.saturating_sub(a.y))),
+                        )
+                    });
+                    let Some(i) = index_of(&self.key, items, k, hint) else {
+                        st.click_cursor = None;
+                        acc.consumed();
+                        continue;
+                    };
+                    if !items
+                        .get(i)
+                        .is_some_and(|item| self.pointer_item.is_none_or(|f| f(item)))
+                    {
+                        st.click_cursor = None;
+                        acc.consumed();
+                        continue;
+                    }
+                    if self.activate_focused_on_click && !self.enabled_at(items, i) {
+                        st.click_cursor = None;
+                        acc.consumed();
+                        continue;
+                    }
+                    match phase {
+                        Phase::Press => {
+                            st.click_cursor = prior_cursor.filter(|cursor| {
+                                self.activate_focused_on_click && prior_focus && *cursor == k
+                            });
+                            st.anchor = None;
+                            st.core.set_cursor(i, k);
+                            acc.changed();
+                        }
+                        Phase::Click | Phase::DoubleClick if self.activate_focused_on_click => {
+                            if st.click_cursor.take() == Some(k) {
+                                acc.action(ListAction::Activated(k));
+                            } else {
+                                self.choose(st, items, i, &mut acc);
+                            }
+                        }
+                        Phase::Click => self.choose(st, items, i, &mut acc),
+                        Phase::DoubleClick => {
+                            if self.enabled_at(items, i) {
+                                acc.action(ListAction::Activated(k));
+                            }
+                        }
+                        _ => acc.consumed(),
+                    }
+                }
+                Intent::Pointer { phase, .. } => {
+                    if matches!(
+                        phase,
+                        Phase::Press
+                            | Phase::Release
+                            | Phase::DragStart
+                            | Phase::Drag
+                            | Phase::DragEnd
+                    ) {
+                        st.click_cursor = None;
+                    }
+                    acc.consumed();
+                }
+                _ => {}
+            }
+        }
+        if released {
+            st.click_cursor = None;
+        }
+        acc.finish(self.id)
+    }
+
+    /// The draw phase.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one pass over the visible rows with gutter, marker and renderer"
+    )]
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &ListState, items: &[T]) -> Rect {
+        if area.is_empty() {
+            return area;
+        }
+        let len = items.len();
+        if !ui.is_inert() {
+            ui.register_control(self.id, area, Focusability::Focusable);
+        }
+        let live_flags = if let Some(yes) = self.focused {
+            if yes {
+                ui.state(self.id) | StateFlags::FOCUSED
+            } else {
+                ui.state(self.id).difference(StateFlags::FOCUSED)
+            }
+        } else {
+            ui.state(self.id)
+        };
+        let live = PartStyle::flags(live_flags, self.status.flags());
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, self.table());
+        }
+        let ov = self.ov;
+        let id = self.id;
+        let bare = self.bare;
+        let container = ov.style(
+            ui,
+            id,
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
+        );
+        ui.fill(area, container.style);
+        let view = self.scroll_view(st, len, usize::from(area.height));
+        let surface = self.scrollbar().draw(ui, area, &view, view.content_len());
+        let has_readiness = !matches!(self.status, Status::Ready);
+        let content = if has_readiness {
+            shift(surface, 2)
+        } else {
+            surface
+        };
+        if has_readiness {
+            let icon_cell = cell_at(first_row(surface), surface.x);
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, icon_cell);
+            } else {
+                let icon = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::ICON, live);
+                match self.status {
+                    Status::Busy | Status::Loading => {
+                        let frames = ui.design().motion.spinner_frames;
+                        let frame = frames.first().copied().unwrap_or("");
+                        ui.paint_str(icon_cell, frame, icon.style);
+                    }
+                    Status::Error => match icon.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(icon_cell, glyph, icon.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(icon_cell, GlyphRole::Error, icon.style);
+                        }
+                        Slot::Clear => ui.fill(icon_cell, icon.style),
+                    },
+                    Status::Warning => match icon.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(icon_cell, glyph, icon.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(icon_cell, GlyphRole::WarningMark, icon.style);
+                        }
+                        Slot::Clear => ui.fill(icon_cell, icon.style),
+                    },
+                    Status::Ready => {}
+                }
+            }
+        }
+        if len == 0 {
+            let empty = self.empty.unwrap_or(EmptyState::Empty {
+                title: "Nothing here yet",
+                hint: None,
+            });
+            let mid = Rect {
+                y: area.y.saturating_add(area.height / 2),
+                height: area.height.saturating_sub(area.height / 2),
+                ..content
+            };
+            if let Some(f) = ov.slot_for(Part::EMPTY) {
+                f(ui, mid);
+            } else {
+                // The tag paints the empty message only
+                // (`tag:list.rs:250-259`): the blanks keep the
+                // container fill and the muted EMPTY TITLE recipe
+                // voices the message alone.
+                ui.fill(mid, container.style);
+                empty.draw(ui, mid, 0);
+            }
+            if !ui.is_inert() {
+                // An empty body is still a click target: it consumes,
+                // like the baseline `on_click` past the end.
+                ui.register_part(self.id, PartRef::of(Part::CONTAINER), content);
+            }
+            return area;
+        }
+        let cursor = st.core.cursor();
+        let hovered = ui.hovered_part(self.id);
+        let pressed = ui.pressed_part(self.id);
+        // Data readiness is a property of the whole list, but the rows are the
+        // only surface it has: a list whose `.status` is `Error` must say so in
+        // the row chrome, or it is indistinguishable from a healthy one once
+        // colour is removed (§11.4, §16.2 case 9).
+        let status = live
+            & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
+        let mut keep = Vec::new();
+        let mut painted_bottom = content.y;
+        for i in self.item_at_line(view.offset())..len {
+            let row_i = i
+                .saturating_mul(self.stride())
+                .saturating_sub(view.offset());
+            if row_i >= usize::from(content.height)
+                || (self.whole_rows
+                    && row_i.saturating_add(usize::from(self.row_height))
+                        > usize::from(content.height))
+            {
+                break;
+            }
+            let Some(item) = items.get(i) else { break };
+            let key = self.key.key(item, i);
+            let is_cursor = cursor == Some(key);
+            let pointer_eligible = self.pointer_item.is_none_or(|f| f(item));
+            let row_bare = bare || self.bare_item.is_some_and(|f| f(item));
+            let mut flags = status;
+            if is_cursor {
+                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+            }
+            let row_part = PartRef::item(Part::ROW, key);
+            if pointer_eligible && (hovered == Some(row_part) || self.hovered_key == Some(key)) {
+                flags |= StateFlags::HOVERED;
+            }
+            if (pointer_eligible && pressed == Some(row_part))
+                || (pressed.is_none() && is_cursor && live.contains(StateFlags::PRESSED))
+            {
+                flags |= StateFlags::PRESSED;
+            }
+            if st.chosen == Some(key) {
+                flags |= StateFlags::SELECTED;
+            }
+            if st.core.checked().contains(key) {
+                flags |= StateFlags::CHECKED;
+            }
+            if self.is_disabled(item) || live.contains(StateFlags::DISABLED) {
+                flags |= StateFlags::DISABLED;
+                flags = flags.difference(StateFlags::PRESSED);
+            }
+            let row = Rect {
+                x: content.x,
+                y: content
+                    .y
+                    .saturating_add(row_i.min(usize::from(u16::MAX)) as u16),
+                width: content.width,
+                height: self.row_height,
+            };
+            painted_bottom = painted_bottom.max(row.bottom().min(content.bottom()));
+            if is_cursor {
+                keep.push(row.y);
+            }
+            if let Some(renderer) = self.render_row {
+                if !row.intersection(ui.full()).is_empty() {
+                    ui.with_area(content, |ui| {
+                        ui.with_area(row, |ui| renderer(ui, row, flags, key, item));
+                    });
+                }
+                if !ui.is_inert() {
+                    let part = if pointer_eligible {
+                        PartRef::item(Part::ROW, key)
+                    } else {
+                        PartRef::of(Part::BODY)
+                    };
+                    ui.register_part(self.id, part, row.intersection(content));
+                }
+                continue;
+            }
+            ui.with_area(content, |ui| {
+                let rs = ov.style(
+                    ui,
+                    id,
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    flags,
+                );
+                ui.fill(row, rs.style);
+                // Bare lists (and bare rows) hand the whole row to the
+                // painter: no gutter or marker cells, so label rows inside
+                // dialogs and forms start at the row origin instead of
+                // `+ 3`.
+                if !row_bare {
+                    // gutter
+                    let gutter_cell = cell_at(row, row.x);
+                    if let Some(f) = ov.slot_for(Part::GUTTER) {
+                        f(ui, gutter_cell);
+                    } else {
+                        let g =
+                            ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
+                        match g.glyph {
+                            Slot::Set(glyph) => {
+                                ui.glyph(gutter_cell, glyph, g.style);
+                            }
+                            Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
+                        }
+                    }
+                    // marker
+                    let marker_cell = cell_at(row, row.x.saturating_add(1));
+                    if let Some(f) = ov.slot_for(Part::MARKER) {
+                        f(ui, marker_cell);
+                    } else {
+                        // Q67-S13 (L-R1/L-R2): the tag keys the marker on
+                        // LIST-level focus (`tag:list.rs:244,297`: accent iff
+                        // focused||hovered) while the row flags only carry
+                        // FOCUSED on the cursor row. A selected row in a
+                        // focused list resolves with FOCUSED so a chosen row
+                        // the cursor has left behind (frozen `lists/moved`
+                        // y8) keeps its accent.
+                        let mut marker_flags = flags;
+                        if marker_flags.intersects(StateFlags::SELECTED | StateFlags::CHECKED) {
+                            marker_flags |= live & StateFlags::FOCUSED;
+                        }
+                        let m = ov.style(
+                            ui,
+                            id,
+                            Family::LIST,
+                            Variant::DEFAULT,
+                            Part::MARKER,
+                            marker_flags,
+                        );
+                        match m.glyph {
+                            Slot::Set(glyph) => {
+                                ui.glyph(marker_cell, glyph, m.style);
+                            }
+                            // W12-06: a declared MARKER patch must voice the marker
+                            // cell even when the glyph slot is Clear; without a
+                            // patch the cell keeps riding the container fill
+                            // (F1-L4 mono-disabled DarkGray DIM).
+                            Slot::Inherit | Slot::Clear => {
+                                if ov.part_patch(Part::MARKER).is_some() {
+                                    ui.fill(marker_cell, m.style);
+                                } else if let Some(role) = self.blank_marker {
+                                    let patch = StylePatch::new().set_fg(role);
+                                    let style = ui
+                                        .style_patched(
+                                            Family::LIST,
+                                            Variant::DEFAULT,
+                                            Part::MARKER,
+                                            marker_flags,
+                                            &patch,
+                                        )
+                                        .style;
+                                    ui.fill(marker_cell, style);
+                                }
+                            }
+                        }
+                    }
+                }
+                // Oracle row geometry (`tag:list.rs`): gutter + marker +
+                // gap take 3 left cells; the label runs to the row edge
+                // with no right reserve.
+                let rest = if row_bare {
+                    row
+                } else {
+                    Rect {
+                        x: row.x.saturating_add(3),
+                        width: row.width.saturating_sub(3),
+                        ..row
+                    }
+                };
+                if !rest.is_empty() {
+                    let mut r = RowUi::new_with_patches(
+                        ui,
+                        id,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        key,
+                        rest,
+                        ov.part_patch(Part::CONTAINER),
+                        ov.part_patch(Part::LABEL),
+                    );
+                    self.row.row(item, &mut r);
+                }
+            });
+            if !ui.is_inert() {
+                let part = if pointer_eligible {
+                    PartRef::item(Part::ROW, key)
+                } else {
+                    PartRef::of(Part::BODY)
+                };
+                ui.register_part(self.id, part, row.intersection(content));
+            }
+        }
+        if !ui.is_inert() {
+            // The unpainted tail of the body is one hit region (registered
+            // after the rows, so rows win): clicks past the last row route
+            // here and consume, like the baseline `on_click` past the end.
+            // A whole-area region cannot serve: the scroll layer's
+            // decorative region would shadow it.
+            let gap = Rect {
+                y: painted_bottom,
+                height: content.bottom().saturating_sub(painted_bottom),
+                ..content
+            };
+            if !gap.is_empty() {
+                ui.register_part(self.id, PartRef::of(Part::CONTAINER), gap);
+            }
+        }
+        ui.scroll_edges_except(content, &view, &keep);
+        area
+    }
+
+    /// The natural size: 24 columns, using the offered viewport height.
+    pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
+        Size {
+            min: (12, 1),
+            preferred: (Self::PREFERRED_WIDTH, c.max.1),
+        }
+        .fit(c)
+    }
+
+    /// The layer size this list wants as popover content (§26 N1): its
+    /// natural width clamped into the design's popup band, and the configured
+    /// visual row extent up to `popup_max_rows` terminal lines.
+    ///
+    /// The list does not own the layer — whoever opened it does — so the
+    /// opener passes this to `LayerSpec::size` and, if the item slice can
+    /// change while the popover is open, re-asserts it every frame with
+    /// [`Cx::resize_layer`].
+    pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
+        let d = cx.design();
+        let w = Self::PREFERRED_WIDTH.clamp(d.size.popup_min_width, d.size.popup_max_width);
+        let h = self
+            .extent(items.len())
+            .min(usize::from(d.size.popup_max_rows))
+            .max(1)
+            .min(usize::from(u16::MAX)) as u16;
+        LayerSize::Fixed(w, h)
+    }
+}
+
+impl<T, K, R> Bindings for List<'_, T, K, R> {
+    type Cmd = ListCmd;
+
+    fn bindings(&self, _s: BindingState) -> &'static [Binding<ListCmd>] {
+        self.table()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::cell::Cell;
+
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+    use ratatui_core::style::Modifier;
+
+    use super::*;
+    use crate::action::ActionKey;
+    use crate::intent::IntentQueue;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::Stub;
+    use crate::theme::Theme;
+    use crate::ui::UiCore;
+    use crate::ui::cx::{FrameServices, LastFrame};
+
+    const ID: Id = Id::root("list.status.tests");
+    const AREA: Rect = Rect::new(0, 0, 16, 2);
+
+    #[test]
+    fn range_selection_uses_the_anchor() {
+        let items = ["zero", "one", "two", "three"];
+        let list = List::new(ID).select_mode(SelectMode::Range);
+        let mut state = ListState::default();
+        state.set_cursor(2, ItemKey::index(2));
+
+        let mut acc = Acc::<ListAction>::new();
+        list.move_cursor(&mut state, &items, 0, true, &mut acc);
+        assert_eq!(state.anchor, Some(ItemKey::index(2)));
+        assert!(
+            (0..=2).all(|i| state.checked().contains(ItemKey::index(i))),
+            "the first extension must select the anchor-to-cursor range"
+        );
+        assert!(!state.checked().contains(ItemKey::index(3)));
+
+        let mut acc = Acc::<ListAction>::new();
+        list.move_cursor(&mut state, &items, 1, true, &mut acc);
+        assert_eq!(state.cursor(), Some(ItemKey::index(1)));
+        assert!(state.checked().contains(ItemKey::index(1)));
+        assert!(state.checked().contains(ItemKey::index(2)));
+        assert!(
+            !state.checked().contains(ItemKey::index(0)),
+            "moving the cursor back must contract around the original anchor"
+        );
+        assert!(!state.checked().contains(ItemKey::index(3)));
+    }
+
+    #[test]
+    fn select_all_selects_only_enabled_items() {
+        let disabled = |item: &u8| matches!(*item, 1 | 3);
+        let list = List::new(ID)
+            .select_mode(SelectMode::Multi)
+            .disabled_item(&disabled);
+        let items = [0_u8, 1, 2, 3, 4];
+        let mut state = ListState::default();
+        let action = ActionKey::custom("list.toggle-all");
+        let mut intents = IntentQueue::new();
+        intents.binding(ID, action, Chord::key(KeyCode::Char('a')));
+        let mut services = FrameServices::default();
+        let mut core = UiCore::default();
+        let last_frame = LastFrame::default();
+        let response = {
+            let theme = Theme::junie();
+            let mut cx = Cx::new(
+                &intents,
+                &mut services,
+                &mut core,
+                &last_frame,
+                &theme,
+                None,
+            );
+            list.update(&mut cx, &mut state, &items)
+        };
+
+        assert_eq!(response.action_ref(), Some(&ListAction::ToggledAll));
+        for (index, item) in items.iter().enumerate() {
+            assert_eq!(
+                state.checked().contains(ItemKey::index(index)),
+                !disabled(item),
+                "row {item} selection did not follow its enabled state"
+            );
+        }
+        assert_eq!(state.checked().len_in(items.len()), 3);
+    }
+
+    fn draw(status: Status) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .status(status)
+                    .draw(ui, area, &state, &["one", "two"]);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    #[test]
+    fn readiness_rail_is_conditional_root_owned_and_patchable() {
+        assert!(List::<&str>::PARTS.contains(&Part::ICON));
+        assert_eq!(draw(Status::Ready), draw(Status::Ready));
+        let busy = draw(Status::Busy);
+        let frame = Theme::junie()
+            .design
+            .motion
+            .spinner_frames
+            .first()
+            .copied()
+            .unwrap_or("");
+        assert_eq!(
+            busy.cell(Position::new(0, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(frame)
+        );
+
+        let seen = Cell::new(None);
+        let slot = |_ui: &mut Ui<'_>, area: Rect| seen.set(Some(area));
+        let patch = [(Part::ICON, StylePatch::new().add(Modifier::UNDERLINED))];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).status(Status::Busy).patch_part(&patch).draw(
+                    ui,
+                    area,
+                    &state,
+                    &["one"],
+                );
+            })
+            .commit_presented();
+        assert!(
+            buffer
+                .cell(Position::new(0, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+        );
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .status(Status::Error)
+                    .patch_part(&patch)
+                    .slot(Part::ICON, &slot)
+                    .draw(ui, area, &state, &["one"]);
+            })
+            .commit_presented();
+        assert_eq!(seen.get(), Some(Rect::new(0, 0, 1, 1)));
+    }
+
+    /// R8: a patch naming a part outside `List::PARTS` is rejected at the
+    /// builder instead of being silently dropped.
+    #[test]
+    #[should_panic(expected = "outside the component's PARTS")]
+    fn patch_part_on_undeclared_part_is_rejected() {
+        let bad = [(Part::TITLE, StylePatch::new().add(Modifier::BOLD))];
+        let _ = List::<&str>::new(ID).patch_part(&bad);
+    }
+
+    /// R8: a slot naming a part outside `List::PARTS` is rejected at the
+    /// builder instead of being silently dropped.
+    #[test]
+    #[should_panic(expected = "outside the component's PARTS")]
+    fn slot_on_undeclared_part_is_rejected() {
+        let paint = |_ui: &mut Ui<'_>, _area: Rect| {};
+        let _ = List::<&str>::new(ID).slot(Part::TITLE, &paint);
+    }
+
+    /// R8 conformance: a declared-part patch alters only that part. Every
+    /// other member of `List::PARTS` resolves identically with and without
+    /// the patch, so a leak into any sibling fails here. `ICON` under
+    /// `Status::Busy` is the patched part: the readiness rail test proves
+    /// it resolves and paints.
+    #[test]
+    fn declared_part_patch_alters_only_that_part() {
+        use crate::theme::Resolved;
+
+        fn draw(patches: &[(Part, StylePatch)]) -> (Buffer, Vec<(Part, Resolved)>) {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(AREA);
+            let state = ListState::default();
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    List::new(ID).status(Status::Busy).patch_part(patches).draw(
+                        ui,
+                        area,
+                        &state,
+                        &["one"],
+                    );
+                })
+                .commit_presented();
+            let queries = List::<&str>::PARTS
+                .iter()
+                .map(|part| (*part, runtime.resolved(ID, *part)))
+                .collect();
+            (buffer, queries)
+        }
+
+        let (plain_buf, plain) = draw(&[]);
+        let icon = [(Part::ICON, StylePatch::new().add(Modifier::BOLD))];
+        let (patched_buf, patched) = draw(&icon);
+
+        assert_ne!(patched_buf, plain_buf, "the ICON patch must paint");
+        for ((part, before), (_, after)) in plain.iter().zip(patched.iter()) {
+            if *part == Part::ICON {
+                assert_ne!(after, before, "the ICON patch must resolve");
+            } else {
+                assert_eq!(after, before, "patching ICON leaked into {part:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn chosen_marker_comes_only_from_semantic_state() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).draw(ui, area, &state, &["one"]);
+            })
+            .commit_presented();
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(" ")
+        );
+
+        let selected = ListState {
+            chosen: Some(ItemKey::index(0)),
+            ..ListState::default()
+        };
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).draw(ui, area, &selected, &["one"]);
+            })
+            .commit_presented();
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::Chosen))
+        );
+    }
+
+    /// Q66-S3 draw helper: two rows at Mono, the second row disabled.
+    fn draw_q66s3_mono_disabled() -> Buffer {
+        use crate::theme::ColorLevel;
+
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        let disabled = |item: &&str| *item == "two";
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .disabled_item(&disabled)
+                    .draw(ui, area, &state, &["one", "two"]);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    /// F1-L1: disabled pad cells are DarkGray+DIM at Mono (tag full-run
+    /// `fg8+DIM`, frozen `lists/hover/120x40/none` y10); enabled pads stay
+    /// DIM-free.
+    #[test]
+    fn q66s3_l1_disabled_pad_cells_carry_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s3_mono_disabled();
+        let pad = buf.cell(Position::new(15, 1)).expect("pad cell");
+        assert_eq!(pad.symbol(), " ");
+        assert_eq!(pad.style().fg, Some(Color::DarkGray), "disabled pad fg");
+        assert!(
+            pad.modifier.contains(Modifier::DIM),
+            "disabled pad lost DIM"
+        );
+        let enabled = buf.cell(Position::new(15, 0)).expect("enabled pad cell");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled pad gained DIM"
+        );
+    }
+
+    /// F1-L3: the disabled gutter cell is surface-black+DIM at Mono (tag
+    /// `' ' fg=0 bg=0 DIM`, frozen y10 x60); the enabled gutter stays DIM-free.
+    #[test]
+    fn q66s3_l3_disabled_gutter_cell_carries_dim_at_mono() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s3_mono_disabled();
+        let gutter = buf.cell(Position::new(0, 1)).expect("gutter cell");
+        assert_eq!(gutter.symbol(), " ");
+        assert_eq!(gutter.style().fg, Some(Color::Black), "disabled gutter fg");
+        assert!(
+            gutter.modifier.contains(Modifier::DIM),
+            "disabled gutter lost DIM"
+        );
+        let enabled = buf.cell(Position::new(0, 0)).expect("enabled gutter cell");
+        assert!(
+            !enabled.modifier.contains(Modifier::DIM),
+            "enabled gutter gained DIM"
+        );
+    }
+
+    /// F1-L4: the disabled marker cell rides the container fill — blank
+    /// symbol, same fg as the pads, +DIM — with no paint of its own.
+    #[test]
+    fn q66s3_l4_disabled_marker_cell_rides_container_dim_at_mono() {
+        let buf = draw_q66s3_mono_disabled();
+        let marker = buf.cell(Position::new(1, 1)).expect("marker cell");
+        let pad = buf.cell(Position::new(15, 1)).expect("pad cell");
+        assert_eq!(marker.symbol(), " ", "marker stays blank when unchosen");
+        assert_eq!(
+            marker.style().fg,
+            pad.style().fg,
+            "marker cell must show the container fill"
+        );
+        assert!(
+            marker.modifier.contains(Modifier::DIM),
+            "marker cell lost the container DIM"
+        );
+    }
+
+    /// Q66-S7x draw helper: 20 rows in a 6-tall viewport (one outer fade
+    /// row per live edge: `MIN_ROWS <= 6 < DEEP_FROM`), cursor revealed at
+    /// `cursor`. Cursor 10 lands mid-list with both edges live and the
+    /// cursor on the bottom edge; cursor 2 sits at offset 0 with only the
+    /// bottom edge live.
+    fn draw_q66s7x_scrolled(theme: Theme, cursor: usize) -> Buffer {
+        const FADE_AREA: Rect = Rect::new(0, 0, 24, 6);
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(FADE_AREA);
+        let items: Vec<String> = (0..20).map(|i| format!("lang-{i:02}")).collect();
+        let mut state = ListState::default();
+        state.set_cursor(cursor, ItemKey::index(cursor));
+        runtime
+            .draw_scene(FADE_AREA, &mut buffer, |ui, area| {
+                List::new(ID).draw(ui, area, &state, &items);
+            })
+            .commit_presented();
+        buffer
+    }
+
+    /// The `fade_mix` ramp at the outer-edge strength (`builder.rs`): the
+    /// test recomputes the blend from probed cells rather than trusting it.
+    fn q66s7x_mix(front: u8, back: u8) -> u8 {
+        (f32::from(front) * 0.55 + f32::from(back) * 0.45)
+            .round()
+            .clamp(0.0, 255.0) as u8
+    }
+
+    /// F1-L5: at TrueColor the top edge row blends fg×0.55 toward the
+    /// container (tag `OUTER_KEEP`, frozen lists y20 `(148,148,148)`); the
+    /// interior and the cursor row stay whole and DIM-free.
+    #[test]
+    fn q66s7x_tc_top_edge_blends_while_cursor_row_is_kept() {
+        use ratatui_core::style::Color;
+
+        let buf = draw_q66s7x_scrolled(Theme::junie(), 10);
+        let edge = buf.cell(Position::new(3, 0)).expect("edge label cell");
+        let middle = buf.cell(Position::new(3, 2)).expect("interior label cell");
+        let kept = buf.cell(Position::new(3, 5)).expect("cursor label cell");
+        assert_eq!(edge.symbol(), "l", "top edge shows item 5");
+        assert_eq!(middle.symbol(), "l", "interior shows item 7");
+        assert_eq!(kept.symbol(), "l", "bottom edge shows the cursor item 10");
+        assert_ne!(
+            edge.style().fg,
+            middle.style().fg,
+            "top edge never blended toward the container"
+        );
+        let (Some(Color::Rgb(fr, fg, fb)), Some(Color::Rgb(br, bg, bb))) =
+            (middle.style().fg, middle.style().bg)
+        else {
+            panic!("interior label must be RGB on RGB at TrueColor");
+        };
+        assert_eq!(
+            edge.style().fg,
+            Some(Color::Rgb(
+                q66s7x_mix(fr, br),
+                q66s7x_mix(fg, bg),
+                q66s7x_mix(fb, bb)
+            )),
+            "top edge must keep 0.55 of its contrast"
+        );
+        assert_eq!(
+            kept.style().fg,
+            middle.style().fg,
+            "cursor row must stay whole on a live edge"
+        );
+        for (name, cell) in [("edge", edge), ("middle", middle), ("kept", kept)] {
+            assert!(
+                !cell.modifier.contains(Modifier::DIM),
+                "{name} gained DIM at TrueColor"
+            );
+        }
+    }
+
+    /// F1-L5: at 256/16/Mono the outermost row carries +DIM, gutter
+    /// included (tag `fade.rs`, frozen none y20 x28–52 `fg15 DIM`);
+    /// interior and cursor rows stay DIM-free.
+    #[test]
+    fn q66s7x_dim_levels_outer_edge_carries_dim_incl_gutter() {
+        use crate::theme::ColorLevel;
+
+        for (name, level) in [
+            ("256", ColorLevel::Ansi256),
+            ("16", ColorLevel::Ansi16),
+            ("mono", ColorLevel::Mono),
+        ] {
+            let buf = draw_q66s7x_scrolled(Theme::junie().downgrade(level), 10);
+            for x in [0, 3, 15] {
+                let edge = buf.cell(Position::new(x, 0)).expect("edge cell");
+                assert!(
+                    edge.modifier.contains(Modifier::DIM),
+                    "{name} x{x} top edge lost DIM"
+                );
+                let middle = buf.cell(Position::new(x, 2)).expect("interior cell");
+                assert!(
+                    !middle.modifier.contains(Modifier::DIM),
+                    "{name} x{x} interior gained DIM"
+                );
+                let kept = buf.cell(Position::new(x, 5)).expect("cursor cell");
+                assert!(
+                    !kept.modifier.contains(Modifier::DIM),
+                    "{name} x{x} cursor row faded"
+                );
+            }
+        }
+    }
+
+    /// F1-L5 keep: the cursor row on a live edge stays whole while the
+    /// same edge fades without the cursor; at the boundary (offset 0) the
+    /// top edge never fades.
+    #[test]
+    fn q66s7x_cursor_row_on_edge_is_kept_and_boundary_never_fades() {
+        use crate::theme::ColorLevel;
+
+        let kept = draw_q66s7x_scrolled(Theme::junie().downgrade(ColorLevel::Mono), 10);
+        let faded = draw_q66s7x_scrolled(Theme::junie().downgrade(ColorLevel::Mono), 2);
+        let kept_bottom = kept.cell(Position::new(3, 5)).expect("cursor edge cell");
+        assert!(
+            !kept_bottom.modifier.contains(Modifier::DIM),
+            "cursor row on the bottom edge faded"
+        );
+        let faded_bottom = faded.cell(Position::new(3, 5)).expect("bare edge cell");
+        assert!(
+            faded_bottom.modifier.contains(Modifier::DIM),
+            "bare bottom edge lost DIM"
+        );
+        let kept_top = kept.cell(Position::new(3, 0)).expect("top edge cell");
+        assert!(
+            kept_top.modifier.contains(Modifier::DIM),
+            "bare top edge lost DIM"
+        );
+        let boundary_top = faded.cell(Position::new(3, 0)).expect("boundary top cell");
+        assert!(
+            !boundary_top.modifier.contains(Modifier::DIM),
+            "boundary top edge gained DIM"
+        );
+    }
+
+    /// Q67-JM1: `.bare(true)` hands the whole row to the painter — label
+    /// rows start at `area.x` and may use the full row width — while the
+    /// default keeps the gutter/marker chrome at `area.x + 3`.
+    #[test]
+    fn bare_list_paints_from_area_origin_with_full_width() {
+        let items = ["ab"];
+        for bare in [false, true] {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(AREA);
+            let state = ListState::default();
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    List::new(ID).bare(bare).draw(ui, area, &state, &items);
+                })
+                .commit_presented();
+            let x0 = if bare { 0 } else { 3 };
+            assert_eq!(
+                buffer
+                    .cell(Position::new(x0, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("a"),
+                "bare={bare}: row must start at x={x0}"
+            );
+            assert_eq!(
+                buffer
+                    .cell(Position::new(x0 + 1, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("b"),
+                "bare={bare}: second cell"
+            );
+        }
+    }
+
+    /// Q67-JM1: bare mode preserves selection state — a chosen row keeps its
+    /// key (only the marker chrome goes away), so focus rings that reuse
+    /// the list state observe the same cursor/selection.
+    #[test]
+    fn bare_list_keeps_cursor_and_selection_state() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let mut state = ListState::default();
+        state.set_cursor(0, ItemKey::index(0));
+        state.choose(Some(ItemKey::index(0)));
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).bare(true).draw(ui, area, &state, &["ab"]);
+            })
+            .commit_presented();
+        assert_eq!(state.cursor(), Some(ItemKey::index(0)));
+        assert_eq!(
+            buffer
+                .cell(Position::new(0, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("a"),
+            "chosen bare row paints from the origin"
+        );
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("b"),
+            "no marker chrome displaces bare content"
+        );
+    }
+
+    /// Q67-JM1: `.bare_item` drops the chrome per row — the matching row
+    /// starts at the row origin while siblings keep `area.x + 3`.
+    #[test]
+    fn bare_item_applies_per_row() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        let bare_first = |item: &&str| *item == "hd";
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .bare_item(&bare_first)
+                    .draw(ui, area, &state, &["hd", "ab"]);
+            })
+            .commit_presented();
+        let at = |x, y| {
+            buffer
+                .cell(Position::new(x, y))
+                .map(ratatui_core::buffer::Cell::symbol)
+        };
+        assert_eq!(at(0, 0), Some("h"), "bare row starts at the origin");
+        assert_eq!(at(1, 0), Some("d"));
+        assert_eq!(at(3, 1), Some("a"), "chromed sibling keeps the offset");
+        assert_eq!(at(4, 1), Some("b"));
+    }
+}

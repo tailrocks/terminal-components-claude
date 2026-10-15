@@ -1,0 +1,17 @@
+[package]
+name = "termrock-theme"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+testing = []
+
+[dependencies]
+termrock-core.workspace = true
+ratatui-core.workspace = true
+
+[dev-dependencies]
+unicode-width.workspace = true
