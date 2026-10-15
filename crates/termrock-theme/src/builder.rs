@@ -327,7 +327,7 @@ impl ThemeBuilder {
     /// theme is actually at [`ColorLevel::Mono`](super::ColorLevel::Mono).
     ///
     /// ```
-    /// use junie_tui::{
+    /// use termrock_theme::{
     ///     ColorLevel, Family, GlyphRole, Part, Slot, StateFlags, StylePatch, Surface, Theme,
     ///     Variant,
     /// };

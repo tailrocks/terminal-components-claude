@@ -2,31 +2,7 @@
 //! on a deterministic tick timeline, a bounded build log, typed failure,
 //! and the credential stage's account resolution.
 
-/// Status of a simulated launch step.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum StepState {
-    #[default]
-    Queued,
-    Running,
-    Done,
-    Skipped,
-    Failed,
-    Blocked,
-}
-
-impl StepState {
-    /// Return the display label for this step state.
-    pub const fn label(&self) -> &'static str {
-        match self {
-            Self::Queued => "queued",
-            Self::Running => "running",
-            Self::Done => "done",
-            Self::Skipped => "skipped",
-            Self::Failed => "failed",
-            Self::Blocked => "blocked",
-        }
-    }
-}
+use termrock::StepState;
 
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::instance::RunId;
@@ -206,25 +182,6 @@ pub struct LaunchRun {
     pub cancelled: bool,
 }
 
-impl LaunchRun {
-    /// Whether the Construct stage has published the container name.
-    ///
-    /// The name is chosen when the run is created. The info dialog shows it
-    /// only after the tag's `ContainerReady` event, which fires six ticks
-    /// into Construct.
-    pub fn container_ready(&self) -> bool {
-        let construct = Stage::Construct.index();
-        if self
-            .states
-            .get(construct)
-            .is_some_and(|state| matches!(state, StepState::Done | StepState::Skipped))
-        {
-            return true;
-        }
-        self.current == Some(construct) && self.tick.saturating_sub(self.stage_start) >= 6
-    }
-}
-
 /// Fixture Docker build output (ANSI-like markup handled by the viewer).
 pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",
@@ -274,6 +231,23 @@ pub const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
+    /// Whether the Construct stage has published the container name.
+    ///
+    /// The name is chosen when the run is created. The debug-info dialog
+    /// shows it only after six ticks of Construct, matching the source
+    /// `ContainerReady` event.
+    pub fn container_ready(&self) -> bool {
+        let construct = Stage::Construct.index();
+        if self
+            .states
+            .get(construct)
+            .is_some_and(|state| matches!(state, StepState::Done | StepState::Skipped))
+        {
+            return true;
+        }
+        self.current == Some(construct) && self.tick.saturating_sub(self.stage_start) >= 6
+    }
+
     /// Construct a run at virtual tick zero.
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
         // durations in ticks (33 ms)

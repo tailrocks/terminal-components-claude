@@ -130,7 +130,7 @@ fn columns(area: Rect) -> [Rect; 3] {
 /// Each viewport receives its own state and source projection. No scroll
 /// state is shared across the three panes.
 #[derive(Debug)]
-pub(crate) struct ScrollingPage {
+pub struct ScrollingPage {
     prose: Vec<ViewportLine<'static>>,
     list: Vec<ViewportLine<'static>>,
     log: Vec<String>,
@@ -143,7 +143,7 @@ pub(crate) struct ScrollingPage {
 }
 
 impl ScrollingPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut prose = Vec::new();
         for _ in 0..3 {
             prose.extend(PROSE.lines().map(ViewportLine::Plain));

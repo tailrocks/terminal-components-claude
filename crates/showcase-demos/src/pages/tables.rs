@@ -440,7 +440,7 @@ fn checks_panel() -> Panel<'static> {
 /// The grid owns only cursor state; the adapter owns row order and domain
 /// comparison, preserving keyed identity through every sort request.
 #[derive(Debug)]
-pub(crate) struct TablesPage {
+pub struct TablesPage {
     model: TableModel,
     state: GridState,
     last: String,
@@ -448,7 +448,7 @@ pub(crate) struct TablesPage {
 }
 
 impl TablesPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             model: TableModel::new(),
             state: GridState::default(),

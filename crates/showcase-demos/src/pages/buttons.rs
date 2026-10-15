@@ -115,7 +115,7 @@ fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
 
 /// Application-owned state for the button demonstrations.
 #[derive(Debug)]
-pub(crate) struct ButtonsPage {
+pub struct ButtonsPage {
     checked: [Option<bool>; 9],
     clicks: u32,
     last: Option<String>,
@@ -123,7 +123,7 @@ pub(crate) struct ButtonsPage {
 }
 
 impl ButtonsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut page = Self {
             checked: [None; 9],
             clicks: 0,

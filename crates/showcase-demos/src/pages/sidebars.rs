@@ -146,14 +146,14 @@ fn sidebar(
 
 /// The sidebar cursor is independent from the shell's page navigation.
 #[derive(Debug, Default)]
-pub(crate) struct SidebarsPage {
+pub struct SidebarsPage {
     state: NavListState,
     selected: &'static str,
     collapsed: bool,
 }
 
 impl SidebarsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             state: NavListState::default(),
             selected: "Tasks",

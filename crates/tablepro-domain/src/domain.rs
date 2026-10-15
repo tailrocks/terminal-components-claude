@@ -5,6 +5,8 @@
 //! SQL preview generation. The split is deliberate: the library never knows
 //! about databases, while the app never reaches into runtime internals.
 
+#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
+
 use termrock::{
     CellDecor, CellRef, ColumnKey, EditIntent, FgStep, FieldError, GlyphRole, GridEditor,
     GridModel, ItemKey, Role, RowDecor, RowTotal, SortDir, StateFlags,
@@ -235,7 +237,7 @@ impl PendingEdits {
 }
 
 /// Quote a database value for the deterministic SQL preview.
-pub(crate) fn sql_literal(value: &Value) -> String {
+pub fn sql_literal(value: &Value) -> String {
     match value {
         Value::Null => "NULL".to_owned(),
         Value::Default => "DEFAULT".to_owned(),
@@ -248,7 +250,7 @@ pub(crate) fn sql_literal(value: &Value) -> String {
 }
 
 /// Build the statements `TablePro` would send for pending result edits.
-pub(crate) fn preview_sql(
+pub fn preview_sql(
     table: &Table,
     columns: &[(String, ColType)],
     pending: &PendingEdits,
@@ -475,7 +477,7 @@ impl ResultGrid {
     }
 
     /// Insert schema-derived DEFAULT/NULL values as one undoable operation.
-    pub(crate) fn insert_row_with_defaults(&mut self, defaults: &[bool]) -> Option<usize> {
+    pub fn insert_row_with_defaults(&mut self, defaults: &[bool]) -> Option<usize> {
         if !self.editable || defaults.len() != self.types.len() {
             return None;
         }

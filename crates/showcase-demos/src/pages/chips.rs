@@ -238,14 +238,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
 /// Filter chips and the language selector demonstrate two keyed collection
 /// controls with independent cursor/value state.
 #[derive(Debug, Default)]
-pub(crate) struct ChipsPage {
+pub struct ChipsPage {
     chip_state: ChipBarState,
     select_state: SelectState,
     last: &'static str,
 }
 
 impl ChipsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut chip_state = ChipBarState::default();
         chip_state.checked_mut().insert(ItemKey::text("Open"));
         chip_state.checked_mut().insert(ItemKey::text("Assigned"));

@@ -3,30 +3,24 @@
 //! This module owns only interaction state and paints through `tui-next`'s
 //! public facade.  Domain and simulation state stay in sibling modules.
 
+use termrock::author::PaintStyle;
 use std::{
-    borrow::Cow,
     cell::RefCell,
     collections::{BTreeMap, hash_map::DefaultHasher},
     hash::{Hash, Hasher},
     mem,
     time::Duration,
 };
-use termrock::author::PaintStyle;
 
 use termrock::{
-    Action, ActionKey, Anchor, App as TuiApp, AsItem, Brand, Button, Checkbox, Chord, ContextMenu,
-    CrossAlign, Cx, Dialog, DialogAction, DialogState, Empty, EmptyState, FgStep, Field, FrameRead,
-    HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintKey, HintLayer, Id,
-    Insets, Intent, Item, ItemKey, ItemRowLayout, KeyCode, KeyMap, KeyModifiers, KeyPhase,
-    LayerEvent, LayerSize, LayerSpec, List, ListAction, ListState, Menu, MenuAction, MenuBar,
-    MenuItem, MenuState, MeterTone, Modifier, Moment, Panel, PanelKind, Part, PartRef, Phase,
-    Picker, PickerAction, PickerState, Position, ProjectedText, Props, PropsAction, PropsList,
-    PropsRow, PropsState, RadioGroup, RadioGroupState, Reconcile, Rect, Response, Role, RowUi,
-    ScrollRegion, ScrollState, SecretPolicy, Select, SelectField, SelectState, Side,
-    SimulationMoment, Slot, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status, StatusBar,
-    StatusItem, StylePatch, Surface, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
-    ViewportState,
+    Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
+    Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
+    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
+    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
+    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -35,25 +29,27 @@ use crate::domain::account::{
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
-use crate::domain::usage::{Freshness, QuotaStatus};
-use crate::domain::workspace::{EnvValue, EnvVar, Workspace, env_key_error};
-use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
+use crate::domain::usage::Freshness;
+use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
+use crate::rain::{
+    HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
+};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
-    accounts::{AccountSel, AccountsState},
+    accounts::AccountsState,
     capsule::{CapsuleInteraction, CapsuleState},
     cockpit::{AccountLine, CockpitState},
     editor::{EditorState, Tab as EditorTab},
     inspect::InspectState,
     manager::{LaunchCandidate, ManagerRowKey, ManagerState},
-    prelude::{PreludeState, PreludeUiState},
-    settings::{SettingsFocus, SettingsScreen, SettingsState},
-    usage::UsageState,
+    prelude::PreludeState,
+    settings::SettingsState,
+    usage::{Tab as UsageTab, UsageState},
 };
-use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun};
+use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
-use crate::sim::world::{DaemonHealth, World, world_for};
+use crate::sim::world::{World, world_for};
 
 /// One cached projection binds domain identity, collection identity, and presentation.
 #[derive(Debug, Clone)]
@@ -94,7 +90,6 @@ pub const CAPSULE: Id = APP.sub("capsule");
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
 /// Accounts list id.
 pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
-const ACCOUNTS_FILTER_INPUT: Id = crate::screens::accounts::TREE.sub("filter");
 /// Launch action id.
 pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
 /// Add-account action id.
@@ -107,24 +102,8 @@ pub const CAPSULE_TABS: Id = crate::screens::capsule::TABS;
 pub const CAPSULE_PANES: Id = crate::screens::capsule::PANES;
 /// Capsule command input id.
 const CAPSULE_INPUT: Id = APP.sub("capsule-input");
-/// Capsule status strip id.
-const CAPSULE_STATUS: Id = APP.sub("capsule-status");
-/// Capsule empty-state surface id.
-const CAPSULE_PANES_EMPTY: Id = CAPSULE_PANES.sub("empty");
-/// Capsule split-seam component namespace.
-const CAPSULE_SPLIT: Id = CAPSULE_PANES.sub("split");
-/// Exit confirmation dialog id.
-pub const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 /// Launch confirmation dialog id.
 pub const LAUNCH_DIALOG: Id = APP.sub("launch-dialog");
-/// Launch-cancel confirmation dialog id.
-pub const CANCEL_DIALOG: Id = APP.sub("cancel-dialog");
-/// About dialog layer id.
-pub const ABOUT_DIALOG: Id = APP.sub("about-dialog");
-/// About dialog props list id.
-pub const ABOUT_PROPS: Id = ABOUT_DIALOG.sub("props");
-/// About dialog close action id.
-pub const ABOUT_CLOSE: Id = ABOUT_DIALOG.sub("close");
 /// Role control inside the launch dialog.
 pub const ROLE_CHOOSE: Id = LAUNCH_DIALOG.sub("role");
 /// Role picker overlay id.
@@ -143,20 +122,24 @@ const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
 const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 /// Capsule container identity dialog.
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
-/// Property list inside the container identity dialog.
-const CONTAINER_INFO_PROPS: Id = CAPSULE_CONTAINER_INFO.sub("props");
-/// Stage lines on the cockpit-to-capsule handoff body.
-const HANDOFF_LINES: Id = APP.sub("handoff-lines");
-/// Right-aligned facts on a host screen header.
-const HOST_HEADER: Id = APP.sub("host-header");
-/// Cockpit and handoff breadcrumb strip.
-const ROUTE_STRIP: Id = APP.sub("route-strip");
+const ABOUT_DIALOG: Id = APP.sub("about");
+const QUIT_DIALOG: Id = APP.sub("quit-dialog");
+const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
+const COCKPIT_INFO_DIALOG: Id = APP.sub("cockpit-info");
+const EDITOR_EXIT_DIALOG: Id = APP.sub("editor-exit");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
-const MANAGER_HELP: Id = APP.sub("manager-help");
-pub const MANAGER_INSPECT: Id = crate::screens::manager::INSPECT;
+const QUIT_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Cancel"),
+    Action::new(ActionKey::CONFIRM, "Quit"),
+];
+const CANCEL_LAUNCH_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Cancel launch"),
+];
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
+const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list");
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
@@ -171,19 +154,17 @@ const CMD_CAPSULE_NEW_TAB: ActionKey = ActionKey::application("jackin.capsule.ne
 const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
 const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
 const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
-const CMD_EDITOR_MOUNTS: ActionKey = ActionKey::application("jackin.editor.mounts");
-const CMD_MOUNT_TOGGLE_RO: ActionKey = ActionKey::application("jackin.mount.toggle-ro");
-const CMD_MOUNT_CYCLE_ISOLATION: ActionKey = ActionKey::application("jackin.mount.cycle-isolation");
 const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
-const CMD_MANAGER_TOGGLE: ActionKey = ActionKey::application("jackin.manager.toggle");
-const CMD_MANAGER_DETAIL: ActionKey = ActionKey::application("jackin.manager.detail");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
-const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
+const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
+const CMD_ACCOUNT_FILTER: ActionKey = ActionKey::application("jackin.account.filter");
+const CMD_ACCOUNT_DRAWER: ActionKey = ActionKey::application("jackin.account.drawer");
+const CMD_SETTINGS_TAB_PREV: ActionKey = ActionKey::application("jackin.settings.previous-tab");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
 const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
@@ -200,27 +181,24 @@ const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::application("jackin.account.re
 const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::application("jackin.account.validate");
 const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.remove");
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
-const CMD_ACCOUNTS_FILTER: ActionKey = ActionKey::application("jackin.accounts.filter");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
 const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
-const CMD_COCKPIT_CANCEL: ActionKey = ActionKey::application("jackin.cockpit.cancel");
 const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
+const EXIT_CANCEL: ActionKey = ActionKey::application("jackin.editor.exit-cancel");
+const EXIT_DISCARD: ActionKey = ActionKey::application("jackin.editor.exit-discard");
+const EXIT_SAVE: ActionKey = ActionKey::application("jackin.editor.exit-save");
+const EDITOR_EXIT_ACTIONS: [Action<'static>; 3] = [
+    Action::quiet(EXIT_CANCEL, "Cancel"),
+    Action::danger(EXIT_DISCARD, "Discard"),
+    Action::new(EXIT_SAVE, "Save"),
+];
 const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
 const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.copy-selection");
-const CMD_CAPSULE_PASTE: ActionKey = ActionKey::application("jackin.capsule.paste");
-const CMD_CAPSULE_CLEAR_SELECTION: ActionKey =
-    ActionKey::application("jackin.capsule.clear-selection");
-const CMD_CAPSULE_CLOSE_PANE: ActionKey = ActionKey::application("jackin.capsule.close-pane");
 const CMD_CAPSULE_EXPORT_FILE: ActionKey = ActionKey::application("jackin.capsule.export-file");
 const CMD_CAPSULE_EXPORT_REVEAL: ActionKey = ActionKey::application("jackin.capsule.export-reveal");
-const CMD_CAPSULE_CLEAR_PANE: ActionKey = ActionKey::application("jackin.capsule.clear-pane");
-const CMD_CAPSULE_REDRAW: ActionKey = ActionKey::application("jackin.capsule.redraw");
-const CMD_CAPSULE_GITHUB: ActionKey = ActionKey::application("jackin.capsule.github");
-const CMD_CAPSULE_NEW_TAB_ACCOUNT: ActionKey =
-    ActionKey::application("jackin.capsule.new-tab-account");
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
@@ -228,150 +206,38 @@ const CMD_CONTAINER_INFO: ActionKey = ActionKey::application("jackin.capsule.con
 const CAPSULE_MENU_PREVIOUS: ActionKey = ActionKey::custom("menu.bar.prev.left");
 const CAPSULE_MENU_NEXT: ActionKey = ActionKey::custom("menu.bar.next.right");
 
-const CMD_EDIT_WORKSPACE: ActionKey = ActionKey::application("jackin.edit-workspace");
-const CMD_LAUNCH: ActionKey = ActionKey::application("jackin.launch");
-const CMD_PREWARM: ActionKey = ActionKey::application("jackin.prewarm");
-const CMD_DELETE_WORKSPACE: ActionKey = ActionKey::application("jackin.delete-workspace");
-const CMD_REFRESH: ActionKey = ActionKey::application("jackin.refresh");
-const MANAGER_MENU_BAR: Id = APP.sub("manager-menu-bar");
-
-const MANAGER_FILE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_NEW_WORKSPACE, "New workspace…").chord(Chord::key(KeyCode::Char('n'))),
-    MenuItem::new(CMD_EDIT_WORKSPACE, "Edit workspace…").chord(Chord::key(KeyCode::Char('e'))),
-    MenuItem::new(CMD_LAUNCH, "Launch…").chord(Chord::key(KeyCode::Enter)),
-    MenuItem::new(CMD_PREWARM, "Prewarm").chord(Chord::key(KeyCode::Char('w'))),
-    MenuItem::new(CMD_DELETE_WORKSPACE, "Delete workspace…")
-        .chord(Chord::key(KeyCode::Char('d')))
-        .danger()
-        .separator(),
-    MenuItem::new(CMD_REFRESH, "Refresh")
-        .chord(Chord::key(KeyCode::F(5)))
-        .separator(),
-    MenuItem::new(CMD_QUIT, "Quit").chord(Chord::with(KeyCode::Char('Q'), KeyModifiers::CONTROL)),
-];
-
-const MANAGER_GO_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_MANAGER, "Workspace manager").chord(Chord::key(KeyCode::Esc)),
-    MenuItem::new(CMD_ACCOUNTS, "Account & Usage Center").chord(Chord::key(KeyCode::Char('c'))),
-    MenuItem::new(CMD_USAGE, "Usage").chord(Chord::key(KeyCode::Char('u'))),
-    MenuItem::new(CMD_SETTINGS, "Global settings").chord(Chord::key(KeyCode::Char('s'))),
-];
-
-const MANAGER_HELP_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Key reference").chord(Chord::key(KeyCode::Char('?'))),
-    MenuItem::new(CMD_ABOUT, "About jackin-preview"),
-];
-
-const MANAGER_MENUS: &[Menu<'static>] = &[
-    Menu::new("File", MANAGER_FILE_ITEMS),
-    Menu::new("Go", MANAGER_GO_ITEMS),
-    Menu::new("Help", MANAGER_HELP_ITEMS),
-];
-
-const CMD_ACCOUNT_EDIT: ActionKey = ActionKey::application("jackin.account-edit");
-const CMD_ACCOUNT_REFRESH_ALL: ActionKey = ActionKey::application("jackin.account-refresh-all");
-const CMD_HOST_SAVE: ActionKey = ActionKey::application("jackin.host-save");
-const CMD_HOST_CANCEL: ActionKey = ActionKey::application("jackin.host-cancel");
-
-const ACCOUNTS_FILE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_ACCOUNTS, "Add account…").chord(Chord::key(KeyCode::Char('a'))),
-    MenuItem::new(CMD_ACCOUNT_EDIT, "Edit account…").chord(Chord::key(KeyCode::Char('e'))),
-    MenuItem::new(CMD_ACCOUNT_VALIDATE, "Validate")
-        .chord(Chord::key(KeyCode::Char('v')))
-        .separator(),
-    MenuItem::new(CMD_ACCOUNT_REFRESH, "Refresh selection").chord(Chord::key(KeyCode::Char('r'))),
-    MenuItem::new(CMD_ACCOUNT_REFRESH_ALL, "Refresh all").chord(Chord::key(KeyCode::F(5))),
-    MenuItem::new(CMD_ACCOUNTS_FILTER, "Filter…").chord(Chord::key(KeyCode::Char('/'))),
-];
-
-const EDITOR_FILE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_HOST_SAVE, "Save…")
-        .chord(Chord::with(KeyCode::Char('S'), KeyModifiers::CONTROL))
-        .separator(),
-    MenuItem::new(CMD_HOST_CANCEL, "Cancel").chord(Chord::key(KeyCode::Esc)),
-];
-
-const USAGE_FILE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_REFRESH, "Refresh").chord(Chord::key(KeyCode::Char('r'))),
-    MenuItem::new(CMD_ACCOUNTS, "Manage in Accounts").chord(Chord::key(KeyCode::Char('m'))),
-];
-
-const FALLBACK_FILE_ITEMS: &[MenuItem<'static>] =
-    &[MenuItem::new(CMD_HOST_CANCEL, "Cancel").chord(Chord::key(KeyCode::Esc))];
-
-const ACCOUNTS_MENUS: &[Menu<'static>] = &[
-    Menu::new("File", ACCOUNTS_FILE_ITEMS),
-    Menu::new("Go", MANAGER_GO_ITEMS),
-    Menu::new("Help", MANAGER_HELP_ITEMS),
-];
-
-const EDITOR_MENUS: &[Menu<'static>] = &[
-    Menu::new("File", EDITOR_FILE_ITEMS),
-    Menu::new("Go", MANAGER_GO_ITEMS),
-    Menu::new("Help", MANAGER_HELP_ITEMS),
-];
-
-const USAGE_MENUS: &[Menu<'static>] = &[
-    Menu::new("File", USAGE_FILE_ITEMS),
-    Menu::new("Go", MANAGER_GO_ITEMS),
-    Menu::new("Help", MANAGER_HELP_ITEMS),
-];
-
-const FALLBACK_MENUS: &[Menu<'static>] = &[
-    Menu::new("File", FALLBACK_FILE_ITEMS),
-    Menu::new("Go", MANAGER_GO_ITEMS),
-    Menu::new("Help", MANAGER_HELP_ITEMS),
-];
-
 const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab").shortcut_text("Ctrl+B c"),
-    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right").shortcut_text("Ctrl+B %"),
-    MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below")
-        .shortcut_text("Ctrl+B \"")
-        .separator(),
+    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below"),
     MenuItem::new(CMD_CAPSULE_EXPORT_FILE, "Export selected file…"),
     MenuItem::new(
         CMD_CAPSULE_EXPORT_REVEAL,
         "Export selected file and reveal…",
-    )
-    .separator(),
-    MenuItem::new(CMD_CAPSULE_CLOSE_PANE, "Close pane").shortcut_text("Ctrl+B x"),
+    ),
+    MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
+    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
 ];
 const CAPSULE_EDIT_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_COPY_SELECTION, "Copy selection").shortcut_text("y"),
-    MenuItem::new(CMD_CAPSULE_PASTE, "Paste clipboard"),
-    MenuItem::new(CMD_CAPSULE_CLEAR_SELECTION, "Clear selection")
-        .shortcut_text("Esc")
-        .separator(),
-    MenuItem::new(CMD_CAPSULE_CLEAR_PANE, "Clear pane").shortcut_text("Ctrl+B Ctrl+L"),
+    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
+    MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
+    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
 ];
 const CAPSULE_VIEW_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane").shortcut_text("Ctrl+B z"),
-    MenuItem::new(CMD_CAPSULE_REDRAW, "Redraw")
-        .shortcut_text("Ctrl+B r")
-        .separator(),
-    MenuItem::new(CMD_USAGE, "Usage").shortcut_text("Ctrl+B u"),
-    MenuItem::new(CMD_CONTAINER_INFO, "Container info").shortcut_text("Ctrl+B i"),
-    MenuItem::new(CMD_CAPSULE_GITHUB, "GitHub context"),
-    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes"),
+    MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane"),
+    MenuItem::new(CMD_CAPSULE_FOCUS_LEFT, "Focus left"),
+    MenuItem::new(CMD_USAGE, "Usage"),
+    MenuItem::new(CMD_CONTAINER_INFO, "Container info"),
+    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
 ];
 const CAPSULE_SESSION_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE_NEW_TAB_ACCOUNT, "New tab with account…"),
-    MenuItem::new(CMD_TAB_RENAME, "Change tab title…")
-        .shortcut_text("Ctrl+B ,")
-        .separator(),
-    MenuItem::new(CMD_CAPSULE_DETACH, "Detach").shortcut_text("Ctrl+B d"),
-    MenuItem::new(CMD_TAB_CLOSE, "Close tab")
-        .shortcut_text("Ctrl+B &")
-        .danger()
-        .separator(),
-    MenuItem::new(CMD_EXIT_DIALOG, "Exit")
-        .shortcut_text("Ctrl+Q")
-        .danger(),
+    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
+    MenuItem::new(CMD_CAPSULE_DETACH, "Detach"),
 ];
 const CAPSULE_HELP_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Key reference").shortcut_text("?"),
-    MenuItem::new(CMD_CAPSULE_PALETTE, "Command palette").shortcut_text("Ctrl+\\"),
+    MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Keyboard shortcuts"),
+    MenuItem::new(CMD_ABOUT, "About Capsule"),
 ];
 const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("File", CAPSULE_FILE_ITEMS),
@@ -381,121 +247,23 @@ const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("Help", CAPSULE_HELP_ITEMS),
 ];
 const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_TAB_RENAME, "Change title…").shortcut_text("2×click"),
-    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right")
-        .shortcut_text("Ctrl+B %")
-        .separator(),
-    MenuItem::new(CMD_TAB_CLOSE, "Close tab")
-        .shortcut_text("Ctrl+B &")
-        .danger(),
-];
-const CAPSULE_PANE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_COPY_SELECTION, "Copy selection").shortcut_text("y"),
-    MenuItem::new(CMD_CAPSULE_PASTE, "Paste clipboard"),
-    MenuItem::new(CMD_CAPSULE_CLEAR_SELECTION, "Clear selection").separator(),
-    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right").shortcut_text("Ctrl+B %"),
-    MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below").shortcut_text("Ctrl+B \""),
-    MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane")
-        .shortcut_text("Ctrl+B z")
-        .separator(),
-    MenuItem::new(CMD_CAPSULE_CLOSE_PANE, "Close pane")
-        .shortcut_text("Ctrl+B x")
-        .danger(),
-];
-const CAPSULE_BRAND_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_ABOUT, "About jackin-preview"),
-    MenuItem::new(CMD_USAGE, "Usage")
-        .shortcut_text("Ctrl+B u")
-        .separator(),
-    MenuItem::new(CMD_CAPSULE_DETACH, "Workspace manager").shortcut_text("Ctrl+B d"),
+    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
-    Item::new(ItemKey::num(1), "New tab")
-        .glyph(" ")
-        .detail("Ctrl+B c"),
-    Item::new(ItemKey::num(2), "Split pane")
-        .glyph(" ")
-        .detail("Ctrl+B \" %"),
-    Item::new(ItemKey::num(3), "Zoom / unzoom pane")
-        .glyph(" ")
-        .detail("Ctrl+B z"),
-    Item::new(ItemKey::num(4), "Export file")
-        .glyph(" ")
-        .detail("host"),
-    Item::new(ItemKey::num(5), "Export file and reveal")
-        .glyph(" ")
-        .detail("host"),
-    Item::new(ItemKey::num(6), "Export file and open")
-        .glyph(" ")
-        .detail("host"),
-    Item::new(ItemKey::num(7), "Export file under cursor")
-        .glyph(" ")
-        .detail("no file under cursor")
-        .disabled(true),
-    Item::new(ItemKey::num(8), "Export file under cursor and reveal")
-        .glyph(" ")
-        .detail("no file under cursor")
-        .disabled(true),
-    Item::new(ItemKey::num(9), "Export file under cursor and open")
-        .glyph(" ")
-        .detail("no file under cursor")
-        .disabled(true),
-    Item::new(ItemKey::num(10), "Export selected file")
-        .glyph(" ")
-        .detail("no selection")
-        .disabled(true),
-    Item::new(ItemKey::num(11), "Export selected file and reveal")
-        .glyph(" ")
-        .detail("no selection")
-        .disabled(true),
-    Item::new(ItemKey::num(12), "Export selected file and open")
-        .glyph(" ")
-        .detail("no selection")
-        .disabled(true),
-    Item::new(ItemKey::num(13), "Stage image from clipboard path")
-        .glyph(" ")
-        .detail("host"),
-    Item::new(ItemKey::num(14), "Paste image from host clipboard")
-        .glyph(" ")
-        .detail("host"),
-    Item::new(ItemKey::num(15), "Stage image without pasting")
-        .glyph(" ")
-        .detail("host"),
-    Item::new(ItemKey::num(16), "Open link under cursor")
-        .glyph(" ")
-        .detail("no link under cursor")
-        .disabled(true),
-    Item::new(ItemKey::num(17), "Clear pane")
-        .glyph(" ")
-        .detail("Ctrl+B Ctrl+L"),
-    Item::new(ItemKey::num(18), "Usage")
-        .glyph(" ")
-        .detail("Ctrl+B u"),
-    Item::new(ItemKey::num(19), "Close")
-        .glyph(" ")
-        .detail("Ctrl+B x"),
-    Item::new(ItemKey::num(20), "Exit")
-        .glyph(" ")
-        .detail("Ctrl+Q"),
-];
-const CAPSULE_AGENT_OPTIONS: &[Item<'static>] = &[
-    Item::new(ItemKey::num(1), "Claude Code")
-        .glyph("▪")
-        .detail("2 accounts · choose at start")
-        .group("agents"),
-    Item::new(ItemKey::num(2), "Codex")
-        .glyph("▪")
-        .detail("Primary"),
-    Item::new(ItemKey::num(3), "OpenCode")
-        .glyph("▪")
-        .detail("Go subscription"),
-    Item::new(ItemKey::num(4), "Grok Build")
-        .glyph("▪")
-        .detail("Team"),
-    Item::new(ItemKey::num(5), "Shell")
-        .glyph("$")
-        .detail("zsh")
-        .group("shells"),
+    Item::new(ItemKey::num(1), "New tab"),
+    Item::new(ItemKey::num(2), "Split right"),
+    Item::new(ItemKey::num(3), "Split below"),
+    Item::new(ItemKey::num(4), "Copy selection"),
+    Item::new(ItemKey::num(5), "Inspect changes ·"),
+    Item::new(ItemKey::num(6), "Zoom pane"),
+    Item::new(ItemKey::num(7), "Focus left"),
+    Item::new(ItemKey::num(8), "Usage"),
+    Item::new(ItemKey::num(9), "Change title…"),
+    Item::new(ItemKey::num(10), "Close tab"),
+    Item::new(ItemKey::num(11), "Keyboard shortcuts"),
+    Item::new(ItemKey::num(12), "Detach"),
+    Item::new(ItemKey::num(13), "Container info"),
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
@@ -532,7 +300,6 @@ pub enum Route {
 }
 
 impl Route {
-    #[allow(dead_code)]
     const fn title(self) -> &'static str {
         match self {
             Self::Intro => "Welcome to Jackin",
@@ -590,19 +357,9 @@ struct AccountOption {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PickerMode {
+    Launch,
     OnePassword,
     Capsule,
-}
-
-/// Which context the shared capsule context-menu layer currently voices:
-/// the titled tab menu, the untitled pane Edit menu, or the untitled
-/// brand menu (tag `capsule.rs:2073,288,303`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-enum CapsuleCtxKind {
-    #[default]
-    Tab,
-    Pane,
-    Brand,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -622,42 +379,29 @@ struct AgentOption {
     key: String,
     label: String,
     detail: String,
-    tag: String,
     agent: Agent,
     account: Option<String>,
     blocked: bool,
 }
 
 impl AgentOption {
-    fn from_candidate(
-        candidate: LaunchCandidate,
-        world: &World,
-        workspace: Option<&Workspace>,
-        role: Option<&str>,
-    ) -> Self {
-        let offer = world.offer_for(candidate.agent, workspace, role);
-        let tag = if candidate.blocked.is_some() || offer.blocked.is_some() {
-            "blocked".to_owned()
-        } else if offer.accounts.len() > 1 {
-            "choose at start".to_owned()
-        } else {
-            "ready".to_owned()
-        };
-        let resolved = world.account_for(candidate.agent.provider(), workspace, role, None);
-        let account_title = resolved.label(&world.accounts);
-        let level_label = resolved.level_label();
-        let detail = if let Some(reason) = &candidate.blocked {
-            format!("blocked · {reason}")
-        } else {
-            format!("account {account_title} · {level_label}")
+    fn from_candidate(candidate: LaunchCandidate, world: &World) -> Self {
+        let account = candidate.account.clone();
+        let account_label = account
+            .as_deref()
+            .and_then(|id| world.accounts.get(id))
+            .map(Account::title);
+        let detail = match (&account_label, &candidate.blocked) {
+            (_, Some(reason)) => format!("blocked · {reason}"),
+            (Some(account), None) => format!("ready · {account}"),
+            (None, None) => "ready".to_owned(),
         };
         Self {
             key: candidate.agent.short().to_owned(),
             label: candidate.agent.label().to_owned(),
             detail,
-            tag,
             agent: candidate.agent,
-            account: candidate.account,
+            account,
             blocked: candidate.blocked.is_some(),
         }
     }
@@ -665,60 +409,8 @@ impl AgentOption {
 
 impl AsItem for AgentOption {
     fn as_item(&self) -> Item<'_> {
-        Item::new(ItemKey::text(&self.key), &self.label)
-            .glyph("▪")
-            .detail(&self.detail)
-            .tag(&self.tag)
-            .group("agents")
+        Item::new(ItemKey::text(&self.key), &self.label).detail(&self.detail)
     }
-}
-
-/// One capsule tab strip item: the frozen strip styles the number prefix,
-/// the label, and the state glyph independently, so the row painter needs
-/// the three runs separately instead of one joined string.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct CapsuleTab {
-    /// 1-based tab number.
-    number: String,
-    /// Tab label without number or state glyph.
-    label: String,
-    /// State glyph, or empty when the tab carries none.
-    glyph: &'static str,
-}
-
-/// Muted, never bold: tab number prefixes and inactive state glyphs.
-const CAPSULE_TAB_MUTED_PATCH: StylePatch = StylePatch::new()
-    .set_fg(Role::Fg(FgStep::Muted))
-    .remove(Modifier::BOLD);
-
-/// Secondary, never bold: the active tab's state glyph.
-const CAPSULE_TAB_GLYPH_PATCH: StylePatch = StylePatch::new()
-    .set_fg(Role::Fg(FgStep::Secondary))
-    .remove(Modifier::BOLD);
-
-/// Paint one capsule tab through the Tabs content slot: muted number, label
-/// in the strip's label style, state glyph muted (secondary while active).
-fn paint_capsule_tab(tab: &CapsuleTab, row: &mut RowUi<'_>) {
-    row.label_patched(tab.number.as_str(), &CAPSULE_TAB_MUTED_PATCH);
-    row.label(" ");
-    row.label(tab.label.as_str());
-    if !tab.glyph.is_empty() {
-        row.label(" ");
-        let patch = if row.flags().contains(StateFlags::ACTIVE) {
-            &CAPSULE_TAB_GLYPH_PATCH
-        } else {
-            &CAPSULE_TAB_MUTED_PATCH
-        };
-        row.label_patched(tab.glyph, patch);
-    }
-}
-
-/// Shared draw context for one pane tree: the daemon and tab stay fixed
-/// while the node recursion walks splits and leaves.
-struct CapsulePaneCtx<'a> {
-    daemon: &'a Daemon,
-    tab: &'a Tab,
-    framed: bool,
 }
 
 /// Cached capsule per-frame projections: scrollback text, tab labels, pane
@@ -733,30 +425,26 @@ struct CapsulePaneCtx<'a> {
 struct CapsuleFrameCaches {
     /// Scrollback projection per pane, valid while the term revision matches.
     transcripts: BTreeMap<PaneId, (u64, ProjectedText)>,
-    /// Tab strip items with the fingerprint of everything they read.
-    tabs: Option<(u64, Vec<CapsuleTab>)>,
-    /// Framed pane titles with per-pane fingerprints: the label run and the
-    /// state glyph paint in different styles, so both are cached separately.
-    titles: BTreeMap<PaneId, (u64, (String, &'static str))>,
+    /// Tab strip labels with the fingerprint of everything they read.
+    tabs: Option<(u64, Vec<String>)>,
+    /// Framed pane titles with per-pane fingerprints.
+    titles: BTreeMap<PaneId, (u64, String)>,
+    /// Pane geometry with the fingerprint of topology plus area.
+    layouts: Option<(u64, Vec<(PaneId, Rect)>)>,
 }
 
 /// Static hint-bar content, built once per [`App`] so draws borrow instead of
 /// allocating. Process-global statics are banned (rule 18); ownership here
 /// keeps every hint layer an ordinary App field.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct HintLayerSet {
     help: HintLayer,
     default: HintLayer,
-    dialog: HintLayer,
     capsule_help: HintLayer,
     capsule_menu: HintLayer,
     capsule_prefix: HintLayer,
     capsule_inspect: HintLayer,
     capsule_default: HintLayer,
-    prelude: HintLayer,
-    manager_menu: HintLayer,
-    manager_inspect: HintLayer,
 }
 
 impl HintLayerSet {
@@ -766,15 +454,6 @@ impl HintLayerSet {
             badge: None,
             status: None,
             centered: false,
-        }
-    }
-
-    fn layer_centered(hints: Vec<Hint>) -> HintLayer {
-        HintLayer {
-            hints,
-            badge: None,
-            status: None,
-            centered: true,
         }
     }
 
@@ -791,32 +470,16 @@ impl Default for HintLayerSet {
     fn default() -> Self {
         use termrock::HintKey;
         Self {
-            prelude: Self::layer_centered(vec![
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Enter)), "Open", 100),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Char(' '))), "Choose", 90),
-                Self::hint(
-                    HintKey::Chord(Chord::key(KeyCode::Char('g'))),
-                    "Git URL",
-                    80,
-                ),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Tab)), "Next", 70),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Cancel", 60),
-            ]),
-            help: Self::layer_centered(vec![
-                Self::hint(HintKey::Label("↑↓"), "Scroll", 100),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 90),
-            ]),
+            help: Self::layer(vec![Self::hint(
+                HintKey::Chord(Chord::key(KeyCode::Esc)),
+                "Close",
+                90,
+            )]),
             default: Self::layer(vec![Self::hint(
                 HintKey::Chord(Chord::key(KeyCode::Enter)),
                 "Choose",
                 90,
             )]),
-            dialog: Self::layer_centered(vec![
-                Self::hint(HintKey::Label("← →"), "Choose", 100),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Enter)), "Confirm", 90),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Cancel", 80),
-                Self::hint(HintKey::Label("y / n"), "Quick answer", 70),
-            ]),
             capsule_help: Self::layer(vec![Self::hint(
                 HintKey::Chord(Chord::key(KeyCode::Esc)),
                 "Close",
@@ -826,17 +489,6 @@ impl Default for HintLayerSet {
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 90),
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::Enter)), "Choose", 80),
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::F(10))), "Menu", 70),
-            ]),
-            manager_menu: Self::layer_centered(vec![
-                Self::hint(HintKey::Label("← →"), "Menu", 100),
-                Self::hint(HintKey::Label("↑↓"), "Move", 90),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Enter)), "Choose", 80),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 70),
-            ]),
-            manager_inspect: Self::layer_centered(vec![
-                Self::hint(HintKey::Label("↑↓"), "Move", 100),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Char('y'))), "Copy", 90),
-                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 80),
             ]),
             capsule_prefix: Self::layer(vec![
                 Self::hint(
@@ -850,14 +502,11 @@ impl Default for HintLayerSet {
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::Tab)), "Open diff", 90),
                 Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 80),
             ]),
-            capsule_default: Self::layer(vec![
-                Self::hint(HintKey::Label("Ctrl+B"), "Prefix", 100),
-                Self::hint(HintKey::Label("F10"), "Menu", 90),
-                Self::hint(HintKey::Label("Ctrl+\\"), "Palette", 80),
-                Self::hint(HintKey::Label("Alt+Shift+↑↓←→"), "Resize", 70),
-                Self::hint(HintKey::Label("right-click"), "Tab menu", 60),
-                Self::hint(HintKey::Label("Ctrl+Q"), "Quit", 50),
-            ]),
+            capsule_default: Self::layer(vec![Self::hint(
+                HintKey::Chord(Chord::with(KeyCode::Char('B'), KeyModifiers::CONTROL)),
+                "prefix",
+                90,
+            )]),
         }
     }
 }
@@ -873,8 +522,6 @@ pub struct App {
     pub accounts: AccountsState,
     /// Workspace creation route state.
     pub prelude: PreludeState,
-    /// Workspace creation UI state (mount read-only flag).
-    pub prelude_ui: PreludeUiState,
     /// Workspace editor route state.
     pub editor: EditorState,
     /// Settings route state.
@@ -899,22 +546,32 @@ pub struct App {
     quit: bool,
     keymap: KeyMap,
     capsule_menu_state: MenuState,
-    manager_menu_state: MenuState,
     container_info_state: DialogState,
-    container_info_props: PropsState,
+    about_state: DialogState,
+    about_open: bool,
+    quit_open: bool,
+    quit_state: DialogState,
+    quit_body: String,
+    cancel_open: bool,
+    cancel_state: DialogState,
+    /// Cockpit debug-info dialog. Closed on every scenario frame.
+    cockpit_info_open: bool,
+    cockpit_info_state: DialogState,
+    /// Telemetry row inside the debug-info dialog. Never painted on frame 0.
+    cockpit_debug_open: bool,
+    /// Dirty-editor leave dialog. Closed until Escape on the editor tabs.
+    editor_exit_open: bool,
+    editor_exit_state: DialogState,
+    /// Escape on a mount, role, account, or env control returns to the tabs
+    /// before a second Escape can open the leave dialog.
+    editor_leaf_focused: bool,
+    settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
-    capsule_tab_menu_kind: CapsuleCtxKind,
-    capsule_new_tab_open: bool,
-    capsule_split_vertical_open: bool,
-    capsule_palette_open: bool,
     capsule_palette_state: PickerState,
-    capsule_agent_state: PickerState,
     tabs_state: TabsState,
-    quit_dialog: DialogState,
     launch_dialog: DialogState,
-    preview_dialog: DialogState,
     role_state: PickerState,
     agent_state: PickerState,
     account_state: PickerState,
@@ -927,6 +584,7 @@ pub struct App {
     selected_role: usize,
     launch: Option<LaunchRun>,
     status: Option<String>,
+    trusted: bool,
     intro: IntroState,
     outro: Option<OutroState>,
     handoff_frame: Option<u64>,
@@ -953,7 +611,6 @@ pub struct App {
     editor_role_picker: bool,
     editor_env_role: Option<String>,
     help_open: bool,
-    manager_help_state: HelpOverlayState,
     capsule_help_open: bool,
     capsule_help_state: HelpOverlayState,
     inspect_detail: bool,
@@ -961,29 +618,6 @@ pub struct App {
     active_instance: Option<String>,
     launch_agent: Agent,
     launch_account: Option<String>,
-    manager_menu_open: bool,
-    manager_inspect_open: bool,
-    manager_quit_confirm: bool,
-    cockpit_info_open: bool,
-    cockpit_info_props: PropsState,
-    cockpit_info_focus_pending: bool,
-    about_open: bool,
-    about_props: PropsState,
-    cockpit_cancel_confirm: bool,
-    cancel_dialog: DialogState,
-    cockpit_debug_open: bool,
-    cockpit_failure_open: bool,
-    accounts_form_stage: u8,
-    accounts_form_enters: u8,
-    accounts_filtering: bool,
-    accounts_filter_enters: u8,
-    accounts_filtered: bool,
-    accounts_drawer_open: bool,
-    accounts_down_count: usize,
-    settings_tab: usize,
-    settings_save_preview: bool,
-    settings_save_dialog: DialogState,
-    usage_detail: bool,
 }
 
 impl App {
@@ -1045,10 +679,7 @@ impl App {
             .position(|role| role.key == "chainargos/the-architect")
             .unwrap_or(0);
         let mut route = match scenario {
-            Scenario::FirstUse if frame >= INTRO_END => {
-                world.arbiter.complete_entry(world.now_ms());
-                Route::Manager
-            }
+            Scenario::FirstUse if frame >= INTRO_END => Route::Manager,
             Scenario::FirstUse => Route::Intro,
             Scenario::AccountsMixed => Route::Accounts,
             Scenario::LaunchRunning | Scenario::LaunchFailure => Route::Cockpit,
@@ -1059,6 +690,7 @@ impl App {
         };
         world.clock.running = motion != Motion::Paused;
         // Reference frame seeking advances cinematic/launch state, not the world clock.
+        world.last_refresh_secs = world.now_secs();
         let mut launch = matches!(route, Route::Launch | Route::Cockpit).then(|| {
             LaunchRun::new(
                 if scenario == Scenario::LaunchFailure {
@@ -1087,7 +719,6 @@ impl App {
             manager: ManagerState::default(),
             accounts: AccountsState::default(),
             prelude: PreludeState::default(),
-            prelude_ui: PreludeUiState::default(),
             editor: EditorState::default(),
             settings: SettingsState::default(),
             usage: UsageState::default(),
@@ -1105,22 +736,27 @@ impl App {
             quit: false,
             keymap: app_keymap(),
             capsule_menu_state: MenuState::default(),
-            manager_menu_state: MenuState::default(),
             container_info_state: DialogState::default(),
-            container_info_props: PropsState::default(),
+            about_state: DialogState::default(),
+            about_open: false,
+            quit_open: false,
+            quit_state: DialogState::default(),
+            quit_body: String::new(),
+            cancel_open: false,
+            cancel_state: DialogState::default(),
+            cockpit_info_open: false,
+            cockpit_info_state: DialogState::default(),
+            cockpit_debug_open: false,
+            editor_exit_open: false,
+            editor_exit_state: DialogState::default(),
+            editor_leaf_focused: false,
+            settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
-            capsule_tab_menu_kind: CapsuleCtxKind::Tab,
-            capsule_new_tab_open: false,
-            capsule_split_vertical_open: false,
-            capsule_palette_open: false,
             capsule_palette_state: PickerState::default(),
-            capsule_agent_state: PickerState::default(),
             tabs_state: TabsState::default(),
-            quit_dialog: DialogState::default(),
             launch_dialog: DialogState::default(),
-            preview_dialog: DialogState::default(),
             role_state: PickerState::default(),
             agent_state: PickerState::default(),
             account_state: PickerState::default(),
@@ -1133,6 +769,7 @@ impl App {
             selected_role,
             launch,
             status: None,
+            trusted: false,
             intro: IntroState::new(motion, frame),
             outro: (scenario == Scenario::OutroLast && frame > 0)
                 .then(|| OutroState::new(motion, Some(8_040), frame)),
@@ -1160,7 +797,6 @@ impl App {
             editor_role_picker: false,
             editor_env_role: None,
             help_open: false,
-            manager_help_state: HelpOverlayState::default(),
             capsule_help_open: false,
             capsule_help_state: HelpOverlayState::default(),
             inspect_detail: false,
@@ -1168,35 +804,9 @@ impl App {
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
-            manager_menu_open: false,
-            manager_inspect_open: false,
-            manager_quit_confirm: false,
-            cockpit_info_open: false,
-            cockpit_info_props: PropsState::default(),
-            cockpit_info_focus_pending: false,
-            about_open: false,
-            about_props: PropsState::default(),
-            cockpit_cancel_confirm: false,
-            cancel_dialog: DialogState::default(),
-            cockpit_debug_open: false,
-            cockpit_failure_open: false,
-            accounts_form_stage: 0,
-            accounts_form_enters: 0,
-            accounts_filtering: false,
-            accounts_filter_enters: 0,
-            accounts_filtered: false,
-            accounts_drawer_open: false,
-            accounts_down_count: 0,
-            settings_tab: 1,
-            settings_save_preview: false,
-            settings_save_dialog: DialogState::default(),
-            usage_detail: false,
         };
         if app.launch.as_ref().is_some_and(|run| run.done) {
             app.materialize_launch();
-        }
-        if app.launch.as_ref().is_some_and(|run| run.failure.is_some()) {
-            app.present_boot_failure();
         }
         if app.route == Route::Handoff {
             app.cockpit.handoff.start();
@@ -1208,41 +818,10 @@ impl App {
                 .iter()
                 .find(|instance| instance.status == InstanceStatus::Running)
                 .map(|instance| instance.id.clone());
-            let name = app
-                .active_instance
-                .as_ref()
-                .and_then(|id| app.world.daemons.get(id))
-                .map(|d| d.workspace.clone())
-                .unwrap_or_default();
-            app.status = Some(format!("Attached to {name} · tabs and panes restored"));
             app.sync_capsule_projection();
-        }
-        if app.route == Route::Manager {
-            app.reset_manager_cursor();
-            // Tag boot: an unreadable instance index enters the manager
-            // with the ritual warning (arbiter `Unknown` entry decision).
-            if let Err(err) = app.world.arbiter.running() {
-                app.status = Some(format!(
-                    "Could not confirm running instances: {} · entered without the ritual",
-                    err.label()
-                ));
-            }
         }
         app.sync_workspace_keymap();
         app
-    }
-
-    /// Whether this route is one of the host management screens.
-    pub const fn is_host(route: Route) -> bool {
-        matches!(
-            route,
-            Route::Manager
-                | Route::Accounts
-                | Route::Usage
-                | Route::Settings
-                | Route::Editor
-                | Route::Prelude
-        )
     }
 
     /// The current route.
@@ -1271,34 +850,7 @@ impl App {
         }
     }
 
-    /// The current launch-picker scope label: the selected workspace, the
-    /// current directory's workspace, or the directory itself, plus the
-    /// short current-role name (tag `open_launch_picker` scope).
-    fn manager_picker_meta(&self) -> String {
-        let ws_name = self
-            .manager
-            .selected()
-            .and_then(|id| self.world.workspace(id))
-            .map(|ws| ws.name.clone())
-            .or_else(|| self.world.cwd_workspace().map(|ws| ws.name.clone()))
-            .unwrap_or_else(|| self.world.tilde(&self.world.cwd));
-        let role = self.selected_role();
-        let short = role.rsplit('/').next().unwrap_or(role);
-        let role_label = match short {
-            "developer" => "Developer",
-            "reviewer" => "Reviewer",
-            "qa" => "QA",
-            other => other,
-        };
-        format!("{ws_name} › {role_label}")
-    }
-
-    fn manager_launch_picker_open(&self) -> bool {
-        self.route == Route::Manager
-            && (!self.agent_options.is_empty()
-                || self.status.as_deref() == Some("Launch · choose Agent"))
-    }
-
+    /// The current selected role label.
     pub fn selected_role(&self) -> &str {
         self.roles
             .get(self.selected_role)
@@ -1317,48 +869,59 @@ impl App {
 
     fn sync_workspace_keymap(&mut self) {
         let chord = Chord::key(KeyCode::End);
-        let n_chord = Chord::key(KeyCode::Char('n'));
-        let tab_chord = Chord::key(KeyCode::Tab);
-        let i_chord = Chord::key(KeyCode::Char('i'));
-        let c_chord = Chord::key(KeyCode::Char('c'));
-        let d_chord = Chord::key(KeyCode::Char('d'));
-        let r_chord = Chord::key(KeyCode::Char('r'));
         self.keymap.remove(KeyPhase::Capture, chord);
-        self.keymap.remove(KeyPhase::Capture, n_chord);
-        self.keymap.remove(KeyPhase::Bubble, n_chord);
-        self.keymap.remove(KeyPhase::Capture, tab_chord);
-        self.keymap.remove(KeyPhase::Capture, i_chord);
-        self.keymap.remove(KeyPhase::Capture, c_chord);
-        self.keymap.remove(KeyPhase::Capture, d_chord);
-        self.keymap.remove(KeyPhase::Capture, r_chord);
         if self.route == Route::Manager
             || (self.route == Route::Editor
                 && self.editor.tab == EditorTab::Environments
                 && !self.editor.env_form_open)
         {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
-            self.keymap
-                .add(KeyPhase::Capture, n_chord, CMD_NEW_WORKSPACE);
-            self.keymap
-                .add(KeyPhase::Bubble, n_chord, CMD_NEW_WORKSPACE);
         }
-        if self.route == Route::Manager {
-            self.keymap
-                .add(KeyPhase::Capture, tab_chord, CMD_MANAGER_DETAIL);
+        let enter = Chord::key(KeyCode::Enter);
+        self.keymap.remove(KeyPhase::Capture, enter);
+        if self.route == Route::Usage && !self.usage.detail_open() {
+            self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
         }
-        if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts {
-            self.keymap
-                .add(KeyPhase::Capture, r_chord, CMD_MOUNT_TOGGLE_RO);
-            self.keymap
-                .add(KeyPhase::Capture, i_chord, CMD_MOUNT_CYCLE_ISOLATION);
+        let up = Chord::key(KeyCode::Up);
+        self.keymap.remove(KeyPhase::Bubble, up);
+        if self.route == Route::Prelude && self.prelude.step() == 1 {
+            self.keymap.add(KeyPhase::Bubble, up, CMD_NAV_UP);
         }
-        if matches!(self.route, Route::Cockpit | Route::Launch) {
+        let filter = Chord::key(KeyCode::Char('/'));
+        self.keymap.remove(KeyPhase::Bubble, filter);
+        if self.route == Route::Accounts && !self.accounts.form_open && !self.accounts.filtering {
             self.keymap
-                .add(KeyPhase::Capture, i_chord, CMD_COCKPIT_INFO);
+                .add(KeyPhase::Bubble, filter, CMD_ACCOUNT_FILTER);
+        }
+        let drawer = Chord::key(KeyCode::Char('i'));
+        self.keymap.remove(KeyPhase::Bubble, drawer);
+        if self.route == Route::Accounts
+            && !self.accounts.form_open
+            && !self.accounts.filtering
+            && !self.accounts.drawer_open
+        {
             self.keymap
-                .add(KeyPhase::Capture, c_chord, CMD_COCKPIT_CANCEL);
+                .add(KeyPhase::Bubble, drawer, CMD_ACCOUNT_DRAWER);
+        }
+        let left = Chord::key(KeyCode::Left);
+        self.keymap.remove(KeyPhase::Bubble, left);
+        let save_confirm = self
+            .status
+            .as_deref()
+            .is_some_and(|status| status.starts_with("Save settings"));
+        if self.route == Route::Settings && !self.settings_save_preview && !save_confirm {
             self.keymap
-                .add(KeyPhase::Capture, d_chord, CMD_COCKPIT_DEBUG);
+                .add(KeyPhase::Bubble, left, CMD_SETTINGS_TAB_PREV);
+        }
+        let info = Chord::key(KeyCode::Char('i'));
+        let debug = Chord::key(KeyCode::Char('d'));
+        self.keymap.remove(KeyPhase::Capture, info);
+        self.keymap.remove(KeyPhase::Capture, debug);
+        let cockpit_keys = matches!(self.route, Route::Cockpit | Route::Launch)
+            && self.launch.as_ref().is_none_or(|run| run.failure.is_none());
+        if cockpit_keys {
+            self.keymap.add(KeyPhase::Capture, info, CMD_COCKPIT_INFO);
+            self.keymap.add(KeyPhase::Capture, debug, CMD_COCKPIT_DEBUG);
         }
     }
 
@@ -1368,15 +931,13 @@ impl App {
     }
 
     fn launch_candidates(&self) -> Vec<AgentOption> {
-        let ws_id = self
+        let workspace = self
             .manager
             .selected()
             .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        let workspace = ws_id.and_then(|id| self.world.workspaces.iter().find(|w| w.id == id));
-        let role = Some(self.selected_role());
-        ManagerState::launch_candidates(&self.world, ws_id, role)
+        ManagerState::launch_candidates(&self.world, workspace, Some(self.selected_role()))
             .into_iter()
-            .map(|candidate| AgentOption::from_candidate(candidate, &self.world, workspace, role))
+            .map(|candidate| AgentOption::from_candidate(candidate, &self.world))
             .collect()
     }
 
@@ -1486,10 +1047,18 @@ impl App {
         Button::new(ENTER, "Enter Construct").variant(Variant::PRIMARY)
     }
 
+    fn account_add_button() -> Button<'static> {
+        Button::new(ACCOUNT_ADD, "Choose 1Password reference…").variant(Variant::PRIMARY)
+    }
+
     fn launch_button(disabled: bool) -> Button<'static> {
         Button::new(LAUNCH, "Launch session")
             .variant(Variant::PRIMARY)
             .disabled(disabled)
+    }
+
+    fn settings_trust_button(checked: bool) -> Button<'static> {
+        Button::new(SETTINGS_TRUST, "Trust local incident role").checked(checked)
     }
 
     fn launch_retry_button() -> Button<'static> {
@@ -1533,6 +1102,24 @@ impl App {
         .variant(Variant::PRIMARY)
     }
 
+    fn draw_editor_save_footer(&self, ui: &mut Ui<'_>, area: Rect) {
+        Self::editor_save_button("Save workspace").draw(ui, area);
+        if self.editor.preview_open {
+            Self::editor_save_confirm_button(self.world.workspaces.is_empty()).draw(
+                ui,
+                Rect {
+                    x: area.x.saturating_add(20),
+                    width: 18,
+                    ..area
+                },
+            );
+        }
+    }
+
+    fn settings_save_button() -> Button<'static> {
+        Button::new(crate::screens::settings::SAVE, "Save settings").variant(Variant::PRIMARY)
+    }
+
     fn settings_save_confirm_button() -> Button<'static> {
         Button::new(SETTINGS_SAVE_CONFIRM, "Apply settings").variant(Variant::PRIMARY)
     }
@@ -1571,6 +1158,12 @@ impl App {
         TextInput::new(crate::screens::accounts::NAME).placeholder("Display name")
     }
 
+    fn account_filter_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::accounts::FILTER)
+            .placeholder("Filter accounts")
+            .placeholder_while_editing(true)
+    }
+
     fn account_folder_input() -> TextInput<'static> {
         TextInput::new(crate::screens::accounts::FOLDER).placeholder("Local agent folder")
     }
@@ -1598,23 +1191,15 @@ impl App {
     }
 
     fn role_picker(title: &'static str) -> Picker<'static, RoleOption> {
-        Picker::new(ROLE_PICKER)
-            .title(title)
-            .item_layout(ItemRowLayout::Compact)
+        Picker::new(ROLE_PICKER).title(title)
     }
 
     fn launch_agent_picker() -> Picker<'static, AgentOption> {
-        Picker::new(crate::screens::manager::AGENT_PICKER)
-            .title("Launch · choose Agent")
-            .size(LayerSize::Fixed(84, 9))
-            .searchable(false)
-            .item_layout(ItemRowLayout::Columns)
+        Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent")
     }
 
     fn account_picker() -> Picker<'static, AccountOption> {
-        Picker::new(ACCOUNT_PICKER)
-            .title("Choose a configured account")
-            .item_layout(ItemRowLayout::Compact)
+        Picker::new(ACCOUNT_PICKER).title("Choose a configured account")
     }
 
     fn active_account_picker(&self) -> Picker<'static, AccountOption> {
@@ -1630,148 +1215,30 @@ impl App {
         Panel::new(APP).title("Jackin Preview").meta(meta)
     }
 
-    /// Dim patch for the prelude host-menu titles (faint on canvas, never bold).
-    const PRELUDE_MENU_DIM: [(Part, StylePatch); 1] = [(
-        Part::TITLE,
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Faint))
-            .set_bg(Role::Surface(Surface::Canvas))
-            .remove(Modifier::BOLD),
-    )];
-
-    /// Dim patch for the prelude brand lockup (faint on overlay, never bold).
-    const PRELUDE_BRAND_DIM: [(Part, StylePatch); 1] = [(
-        Part::LABEL,
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Faint))
-            .set_bg(Role::Surface(Surface::Overlay))
-            .remove(Modifier::BOLD),
-    )];
-
-    /// The host menu bar with its per-route File menu (tag `app.rs:699`):
-    /// File is rebuilt per route while Go and Help stay fixed.
-    fn host_menu_bar(&self) -> MenuBar<'static> {
-        let menus = match self.route {
-            Route::Accounts => ACCOUNTS_MENUS,
-            Route::Editor | Route::Settings => EDITOR_MENUS,
-            Route::Usage => USAGE_MENUS,
-            Route::Manager => MANAGER_MENUS,
-            _ => FALLBACK_MENUS,
-        };
-        MenuBar::new(MANAGER_MENU_BAR, menus)
-    }
-
-    /// Whether F10 must refuse the host menu: a host form field holds
-    /// an in-flight draft (tag `app.rs:592`). Editor and settings routes
-    /// voice no editing state yet, so only accounts refuses today.
-    fn host_menu_editing(&self) -> bool {
-        self.route == Route::Accounts && self.accounts.form_editing()
-    }
-
     fn capsule_menu_bar() -> MenuBar<'static> {
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
     }
 
-    fn active_capsule_tab_title(&self) -> String {
-        let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
-        let tabs = Self::build_capsule_tabs(
-            &self.world,
-            instance_id,
-            &self.capsule_tab_title,
-            self.capsule_tab_title_index,
-        );
-        tabs.get(self.capsule_tab_title_index)
-            .map(|t| t.label.clone())
-            .unwrap_or_else(|| "Tab".to_string())
+    fn capsule_tab_context(position: Position) -> ContextMenu<'static> {
+        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title("Tab")
     }
 
-    fn capsule_tab_context(
-        title: impl Into<Cow<'static, str>>,
-        position: Position,
-    ) -> ContextMenu<'static> {
-        Self::capsule_ctx_menu(CapsuleCtxKind::Tab, title, position)
-    }
-
-    fn capsule_ctx_menu(
-        kind: CapsuleCtxKind,
-        title: impl Into<Cow<'static, str>>,
-        position: Position,
-    ) -> ContextMenu<'static> {
-        match kind {
-            CapsuleCtxKind::Tab => {
-                ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title(title)
-            }
-            CapsuleCtxKind::Pane => ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_PANE_ITEMS, position),
-            CapsuleCtxKind::Brand => {
-                ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_BRAND_ITEMS, position)
-            }
-        }
-    }
-
-    fn capsule_command_palette(screen_height: u16) -> Picker<'static, Item<'static>> {
-        let height = 19.min(screen_height.saturating_sub(2));
+    fn capsule_command_palette() -> Picker<'static, Item<'static>> {
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
-            .placeholder("Type to filter commands…")
-            .meta("20 of 20")
-            .size(LayerSize::Fixed(60, height))
-            .searchable(true)
-            .item_layout(ItemRowLayout::Columns)
-    }
-
-    fn capsule_agent_picker(
-        title: &'static str,
-        screen_width: u16,
-    ) -> Picker<'static, Item<'static>> {
-        let width = 72.min(screen_width.saturating_sub(4));
-        Picker::new(crate::screens::manager::AGENT_PICKER)
-            .title(title)
-            .placeholder("Type to search…")
-            .size(LayerSize::Fixed(width, 12))
-            .searchable(true)
-            .item_layout(ItemRowLayout::Columns)
-    }
-
-    fn open_capsule_agent_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
-        self.capsule_agent_state = PickerState::default();
-        self.pending_capsule_action = Some(action);
-        let title = match action {
-            CapsuleAction::Split(_) => "Split ↓ Below",
-            _ => "New tab",
-        };
-        let screen = cx.viewport();
-        let picker = Self::capsule_agent_picker(title, screen.width);
-        let spec = picker.layer(cx, CAPSULE_AGENT_OPTIONS);
-        cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
-        let _ = picker
-            .update(cx, &mut self.capsule_agent_state, CAPSULE_AGENT_OPTIONS)
-            .erase();
+            .placeholder("Search commands…")
     }
 
     fn container_info_dialog() -> Dialog<'static> {
         Dialog::info(CAPSULE_CONTAINER_INFO, "Container info").body_rows(9)
     }
 
-    /// Borrowed rows for [`PropsList`]. Labels and copyability follow the
-    /// tag info dialog; values stay on the instance record.
-    fn container_info_rows(facts: &[ContainerInfoFact]) -> Vec<PropsRow<'_>> {
-        facts
-            .iter()
-            .enumerate()
-            .map(|(index, fact)| {
-                let row =
-                    PropsRow::new(ItemKey::num(index as u64), fact.label, fact.value.as_str());
-                if fact.copyable { row.copyable() } else { row }
-            })
-            .collect()
-    }
-
-    fn container_info_facts(&self) -> Vec<ContainerInfoFact> {
+    fn container_info_lines(&self) -> Vec<String> {
         let Some(instance_id) = self.active_running_instance_id() else {
-            return vec![ContainerInfoFact::detached()];
+            return vec!["No running Capsule instance is attached.".into()];
         };
         let Some(instance) = self.world.instance(&instance_id) else {
-            return vec![ContainerInfoFact::detached()];
+            return vec!["No running Capsule instance is attached.".into()];
         };
         let focused = self
             .world
@@ -1792,41 +1259,256 @@ impl App {
             },
         );
         vec![
-            ContainerInfoFact::new("Container", instance.container_id(), true),
-            ContainerInfoFact::new("Container ID", instance.container_uid(), true),
-            ContainerInfoFact::new("Role", instance.role.clone(), false),
-            ContainerInfoFact::new("Agent", agent, false),
-            ContainerInfoFact::new("Workdir", instance.workdir.clone(), false),
-            ContainerInfoFact::new(
-                "Instance",
-                instance.id.trim_start_matches("jk-").to_owned(),
-                false,
-            ),
-            ContainerInfoFact::new("Capsule", "0.9.2".to_owned(), false),
-            ContainerInfoFact::new("Invocation ID", format!("{}-4f11", instance.run_id), true),
-            ContainerInfoFact::new(
-                "Host log",
-                format!("file:///Users/alexey/.jackin/logs/{}.log", instance.run_id),
-                false,
+            format!("Container       {}", instance.container_id()),
+            format!("Container ID    {}", instance.container_uid()),
+            format!("Role            {}", instance.role),
+            format!("Agent           {agent}"),
+            format!("Workdir         {}", instance.workdir),
+            format!("Instance        {}", instance.id.trim_start_matches("jk-")),
+            "Capsule         0.9.2".into(),
+            format!("Invocation ID   {}-4f11", instance.run_id),
+            format!(
+                "Host log        file:///Users/alexey/.jackin/logs/{}.log",
+                instance.run_id
             ),
         ]
     }
 
     fn open_container_info(&mut self, cx: &mut Cx<'_>) {
         self.container_info_state = DialogState::default();
-        self.container_info_props = PropsState::default();
-        let mut spec = Self::container_info_dialog().layer(cx);
-        spec.initial_focus = Some(CONTAINER_INFO_PROPS);
-        cx.open_layer(CAPSULE_CONTAINER_INFO, spec);
-        let facts = self.container_info_facts();
-        let rows = Self::container_info_rows(&facts);
-        if let Some(row) = rows.first() {
-            self.container_info_props.set_cursor(0, row.key);
-        }
-        let _ = PropsList::new(CONTAINER_INFO_PROPS)
-            .update(cx, &mut self.container_info_props, &rows)
-            .erase();
+        cx.open_layer(
+            CAPSULE_CONTAINER_INFO,
+            Self::container_info_dialog().layer(cx),
+        );
         self.status = Some("Container info".into());
+    }
+
+    fn about_dialog() -> Dialog<'static> {
+        Dialog::info(ABOUT_DIALOG, "About").body_rows(4)
+    }
+
+    fn about_lines(&self) -> Vec<String> {
+        vec![
+            "Product       jackin-preview · deterministic redesign preview".into(),
+            format!("Scenario      {}", self.world.scenario.name()),
+            "Construct     simulated · nothing here touches a real container".into(),
+            "Design system Junie-inspired Ratatui components (termrock)".into(),
+        ]
+    }
+
+    fn open_usage_detail(&mut self) {
+        if self.usage.selected().is_none() {
+            let id = self
+                .world
+                .accounts
+                .sorted()
+                .into_iter()
+                .next()
+                .map(|account| account.id.clone());
+            self.usage.select(id);
+        }
+        let _ = self.usage.open_detail();
+    }
+
+    fn open_about(&mut self, cx: &mut Cx<'_>) {
+        self.about_state = DialogState::default();
+        self.about_open = true;
+        cx.open_layer(ABOUT_DIALOG, Self::about_dialog().layer(cx));
+        self.status = None;
+    }
+
+    /// Owned body for every running-count. Counts other than 0, 1, and 2 use
+    /// this `String` so the confirm copy never calls `Box::leak`.
+    fn prepare_quit_body(&mut self) {
+        let running = self.world.running_count();
+        self.quit_body = match running {
+            0 => "No instances are running. The pending Construct entry is released.".into(),
+            1 => "1 instance keeps running in the Construct. The host console closes; reconnect from a new terminal.".into(),
+            2 => "2 instances keep running in the Construct. The host console closes; reconnect from a new terminal.".into(),
+            count => format!(
+                "{count} instances keep running in the Construct. The host console closes; reconnect from a new terminal."
+            ),
+        };
+    }
+
+    fn quit_dialog(body: &str) -> Dialog<'_> {
+        Dialog::confirm(QUIT_DIALOG, "Exit jackin?", body).actions(&QUIT_ACTIONS)
+    }
+
+    fn open_quit(&mut self, cx: &mut Cx<'_>) {
+        self.prepare_quit_body();
+        self.quit_state = DialogState::default();
+        self.quit_open = true;
+        let body = self.quit_body.clone();
+        let spec = Self::quit_dialog(&body).layer(cx);
+        cx.open_layer(QUIT_DIALOG, spec);
+    }
+
+    fn cockpit_cancel_dialog() -> Dialog<'static> {
+        Dialog::destructive(
+            CANCEL_LAUNCH_DIALOG,
+            "Cancel the launch?",
+            "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
+        )
+        .actions(&CANCEL_LAUNCH_ACTIONS)
+    }
+
+    fn cockpit_info_dialog() -> Dialog<'static> {
+        Dialog::info(COCKPIT_INFO_DIALOG, "Debug info").body_rows(8)
+    }
+
+    fn cockpit_info_lines(&self) -> Vec<String> {
+        let role_full = self.selected_role();
+        let role = role_full.rsplit('/').next().unwrap_or(role_full);
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let mut lines = Vec::new();
+        if let Some(launch) = &self.launch
+            && launch.container_ready()
+        {
+            lines.push(format!("Container     {}", launch.container));
+        }
+        lines.push(format!("Target        {role} into workspace {workspace}"));
+        lines.push(format!("Role          {role}"));
+        lines.push("Agent         Claude Code · account Claude · Work".into());
+        let run_id = self
+            .launch
+            .as_ref()
+            .map(|launch| launch.run_id.short())
+            .unwrap_or_else(|| "none".to_owned());
+        lines.push(format!("Run id        {run_id}"));
+        lines.push("jackin        0.6.4 · preview".into());
+        if self.cockpit_debug_open {
+            // The run id already has its own row. Keeping the endpoint on
+            // this row lets the dialog show it without clipping the host.
+            lines.push("Telemetry     otlp://collector.internal:4317".into());
+        }
+        lines
+    }
+
+    fn open_cockpit_info(&mut self, cx: &mut Cx<'_>) {
+        self.cockpit_info_state = DialogState::default();
+        self.cockpit_info_open = true;
+        cx.open_layer(COCKPIT_INFO_DIALOG, Self::cockpit_info_dialog().layer(cx));
+        self.status = Some("Debug info".into());
+    }
+
+    fn close_cockpit_info(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(COCKPIT_INFO_DIALOG) {
+            cx.close_layer(COCKPIT_INFO_DIALOG, Some(ActionKey::CLOSE));
+        }
+        self.cockpit_info_open = false;
+        self.status = None;
+    }
+
+    fn editor_exit_dialog() -> Dialog<'static> {
+        Dialog::confirm(
+            EDITOR_EXIT_DIALOG,
+            "Leave the editor?",
+            "Save changes before leaving?",
+        )
+        .actions(&EDITOR_EXIT_ACTIONS)
+    }
+
+    fn open_editor_exit(&mut self, cx: &mut Cx<'_>) {
+        self.editor_exit_state = DialogState::default();
+        self.editor_exit_open = true;
+        self.editor_leaf_focused = false;
+        let dialog = Self::editor_exit_dialog();
+        let focus = dialog.action_id(0);
+        cx.open_layer(EDITOR_EXIT_DIALOG, dialog.layer(cx).initial_focus(focus));
+        self.status = Some("Save changes before leaving?".into());
+    }
+
+    fn close_editor_exit(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(EDITOR_EXIT_DIALOG) {
+            cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_CANCEL));
+        }
+        self.editor_exit_open = false;
+        if self.status.as_deref() == Some("Save changes before leaving?") {
+            self.status = None;
+        }
+    }
+
+    /// Close the environment form and return to the registered save control.
+    ///
+    /// The editor tab name is painted text. `editor::TABS` is not a widget, so
+    /// focus uses the save footer, which every live editor tab registers.
+    fn dismiss_editor_env_form(&mut self, cx: &mut Cx<'_>) {
+        self.editor.clear_env_form();
+        self.editor_leaf_focused = false;
+        cx.focus(crate::screens::editor::SAVE);
+    }
+
+    /// Focus the control for the active editor tab. Leaf controls consume the
+    /// next Escape so it does not open the leave dialog.
+    fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
+        self.editor_leaf_focused = match self.editor.tab {
+            EditorTab::Mounts => {
+                cx.focus(EDITOR_MOUNT_EDIT);
+                true
+            }
+            EditorTab::Roles => {
+                cx.focus(EDITOR_ROLE_EDIT);
+                true
+            }
+            EditorTab::Accounts => {
+                cx.focus(EDITOR_ACCOUNTS_LIST);
+                true
+            }
+            EditorTab::Environments | EditorTab::General => false,
+        };
+    }
+
+    fn open_cancel_launch(&mut self, cx: &mut Cx<'_>) {
+        self.cancel_state = DialogState::default();
+        self.cancel_open = true;
+        cx.open_layer(
+            CANCEL_LAUNCH_DIALOG,
+            Self::cockpit_cancel_dialog().layer(cx),
+        );
+    }
+
+    /// Leave a failed cockpit on the Manager. An existing failed instance is
+    /// selected; this path does not invent an instance the scenario did not
+    /// already record.
+    fn acknowledge_launch_failure(&mut self) {
+        let run_id = self.launch.as_ref().map(|run| run.run_id);
+        self.launch = None;
+        self.route = Route::Manager;
+        self.ensure_manager_rows();
+        if let Some(run_id) = run_id {
+            let failed_id = self
+                .world
+                .instances
+                .iter()
+                .find(|instance| instance.run_id == run_id)
+                .map(|instance| instance.id.clone());
+            if let Some(id) = failed_id
+                && let Some((index, row)) = self.manager_rows_cache.iter().enumerate().find(|(_, row)| {
+                    matches!(&row.domain, ManagerRowKey::Instance(existing) if existing == &id)
+                })
+            {
+                let key = row.key;
+                let domain = row.domain.clone();
+                self.manager.list.set_cursor(index, key);
+                self.manager.select_row(domain);
+            }
+        }
+        let running = self.world.running_count();
+        self.status = Some(if running == 0 {
+            "Launch failed · the Construct is empty".into()
+        } else {
+            let noun = if running == 1 {
+                "instance"
+            } else {
+                "instances"
+            };
+            format!("Launch failed · {running} {noun} still running in the Construct")
+        });
     }
 
     fn manager_instances(
@@ -1841,41 +1523,36 @@ impl App {
 
     fn build_manager_rows(&self) -> Vec<ManagerRow> {
         let mut rows = Vec::new();
-        rows.push(ManagerRow::new(
-            ManagerRowKey::CurrentDirectory,
-            "Current directory".to_string(),
-        ));
         for workspace in &self.world.workspaces {
             let expanded = self.manager.is_expanded(workspace.id);
+            let marker = if expanded { "▾" } else { "▸" };
             let count = self.manager_instances(Some(workspace.id)).count();
-            let marker = if count == 0 {
-                " "
-            } else if expanded {
-                "▾"
-            } else {
-                "▸"
-            };
             rows.push(ManagerRow::new(
                 ManagerRowKey::Workspace(workspace.id),
-                format!("{marker} {}", workspace.name),
+                format!(
+                    "{marker} {} · {count} instance{}",
+                    workspace.name,
+                    if count == 1 { "" } else { "s" }
+                ),
             ));
             if expanded {
                 for instance in self.manager_instances(Some(workspace.id)) {
                     rows.push(ManagerRow::new(
                         ManagerRowKey::Instance(instance.id.clone()),
                         format!(
-                            "  {}  {} · {}",
-                            instance.id.trim_start_matches("jk-"),
-                            instance.role,
-                            instance.agent.label()
+                            "  {} · instance · {} · run {} · {}",
+                            instance.id,
+                            instance.status.label(),
+                            instance.run_id.short(),
+                            instance.dirty_summary()
                         ),
                     ));
                 }
             }
         }
         rows.push(ManagerRow::new(
-            ManagerRowKey::NewWorkspace,
-            "+ New workspace".to_string(),
+            ManagerRowKey::CurrentDirectory,
+            format!("Current directory · {}", self.world.home),
         ));
         rows.extend(self.manager_instances(None).map(|instance| {
             ManagerRow::new(
@@ -1921,53 +1598,64 @@ impl App {
         }
     }
 
-    fn accounts_tree_rows(&self) -> Vec<crate::screens::accounts::AccountRow> {
-        crate::screens::accounts::build_account_rows(
-            &self.world,
-            self.accounts.filter.as_deref(),
-            &self.accounts.folded,
+    fn account_matches_filter(&self, account: &Account) -> bool {
+        let query = self.accounts.filter_query.trim();
+        if !self.accounts.filtering || query.is_empty() {
+            return true;
+        }
+        let needle = query.to_lowercase();
+        let haystack = format!(
+            "{} {} {} {}",
+            account.provider.label(),
+            account.title(),
+            account.status_word(),
+            account.source.safe_detail()
         )
+        .to_lowercase();
+        haystack.contains(&needle)
     }
 
-    /// Repair the tree selection after the rows change: a filtered-out
-    /// account falls back to its provider, anything else to Overview.
-    fn ensure_accounts_selected(&mut self) {
-        let rows = self.accounts_tree_rows();
-        if rows.iter().any(|row| row.sel == self.accounts.selected) {
+    fn reconcile_filtered_account(&mut self) {
+        if !self.accounts.filtering {
             return;
         }
-        self.accounts.selected = match &self.accounts.selected {
-            AccountSel::Account(id) => self
-                .world
-                .accounts
-                .get(id)
-                .map(|account| AccountSel::Provider(account.surface))
-                .unwrap_or(AccountSel::Overview),
-            _ => AccountSel::Overview,
-        };
-        if !rows.iter().any(|row| row.sel == self.accounts.selected) {
-            self.accounts.selected = AccountSel::Overview;
+        let visible: Vec<String> = self
+            .world
+            .accounts
+            .sorted()
+            .into_iter()
+            .filter(|account| self.account_matches_filter(account))
+            .map(|account| account.id.clone())
+            .collect();
+        let selected_visible = self
+            .accounts
+            .selected_id
+            .as_ref()
+            .is_some_and(|id| visible.iter().any(|visible_id| visible_id == id));
+        if !selected_visible {
+            self.accounts.selected_id = visible.into_iter().next();
         }
-        self.accounts.sync_selected_id();
     }
 
-    /// Move the tree cursor by `delta` rows, clamped into the live rows.
-    fn move_accounts_cursor(&mut self, delta: isize) {
-        self.ensure_accounts_selected();
-        let rows = self.accounts_tree_rows();
-        if rows.is_empty() {
-            return;
+    fn account_rows(&self) -> Vec<String> {
+        let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
+        let mut provider = None;
+        for account in self.world.accounts.sorted() {
+            if !self.account_matches_filter(account) {
+                continue;
+            }
+            if provider != Some(account.provider) {
+                rows.push(account.provider.label().to_owned());
+                provider = Some(account.provider);
+            }
+            rows.push(format!(
+                "  {} · {} · {}",
+                account.title(),
+                account.status_word(),
+                account.source.safe_detail()
+            ));
         }
-        let current = rows
-            .iter()
-            .position(|row| row.sel == self.accounts.selected)
-            .unwrap_or(0) as isize;
-        let next = current
-            .saturating_add(delta)
-            .clamp(0, rows.len() as isize - 1) as usize;
-        self.accounts.selected = rows[next].sel.clone();
-        self.accounts.list.set_cursor(next, ItemKey::index(next));
-        self.accounts.sync_selected_id();
+        rows
     }
 
     fn editor_account_rows(&self) -> Vec<String> {
@@ -2041,45 +1729,6 @@ impl App {
         }
     }
 
-    const QUIT_ACTIONS: [Action<'static>; 2] = [
-        Action::quiet(ActionKey::CANCEL, "Cancel"),
-        Action::new(ActionKey::CONFIRM, "Quit"),
-    ];
-
-    const PREVIEW_ACTIONS: [Action<'static>; 2] = [
-        Action::secondary(ActionKey::CANCEL, "Cancel"),
-        Action::primary(ActionKey::CONFIRM, "Save"),
-    ];
-
-    /// The save-preview facts dialog over caller-owned slices. No primary
-    /// key: tag facts dialogs focus Cancel while Save stays primary
-    /// (`Action::primary` styles without moving initial focus).
-    fn preview_dialog<'a>(
-        title: &'a str,
-        pairs: &'a [(&'a str, &'a str)],
-        codes: &'a [&'a str],
-    ) -> Dialog<'a> {
-        Dialog::facts(crate::screens::editor::PREVIEW, title, pairs)
-            .code(codes)
-            .width(66)
-            .actions(&Self::PREVIEW_ACTIONS)
-            .cancel(ActionKey::CANCEL)
-    }
-
-    fn manager_quit_dialog(&self) -> Dialog<'static> {
-        let n = self.world.running_count();
-        let body: &'static str = match n {
-            2 => "2 instances keep running in the Construct. The host console closes; reconnect from a new terminal.",
-            1 => "1 instance keeps running in the Construct. The host console closes; reconnect from a new terminal.",
-            0 => "No instances are running. The pending Construct entry is released.",
-            _ => Box::leak(
-                format!("{n} instances keep running in the Construct. The host console closes; reconnect from a new terminal.")
-                    .into_boxed_str(),
-            ),
-        };
-        Dialog::confirm(QUIT_DIALOG, "Exit jackin❯?", body).actions(&Self::QUIT_ACTIONS)
-    }
-
     fn launch_dialog() -> Dialog<'static> {
         Dialog::confirm(
             LAUNCH_DIALOG,
@@ -2087,97 +1736,6 @@ impl App {
             "Review the role and start a deterministic Construct run.",
         )
         .body_rows(1)
-    }
-
-    const CANCEL_ACTIONS: [Action<'static>; 2] = [
-        Action::new(ActionKey::CANCEL, "Cancel"),
-        Action::danger(ActionKey::CONFIRM, "Cancel launch"),
-    ];
-
-    fn cockpit_cancel_dialog() -> Dialog<'static> {
-        // Destructive: confirm stays danger text on the overlay. `confirm()`
-        // would force that key to a filled primary button.
-        Dialog::destructive(
-            CANCEL_DIALOG,
-            "Cancel the launch?",
-            "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
-        )
-        .actions(&Self::CANCEL_ACTIONS)
-    }
-
-    /// About dialog rows (tag `app.rs:815`).
-    fn about_rows(scenario: &str) -> Vec<PropsRow<'_>> {
-        vec![
-            PropsRow::new(
-                ItemKey::num(0),
-                "Product",
-                "jackin-preview · deterministic redesign preview",
-            ),
-            PropsRow::new(ItemKey::num(1), "Scenario", scenario),
-            PropsRow::new(
-                ItemKey::num(2),
-                "Construct",
-                "simulated · nothing here touches a real container",
-            ),
-            PropsRow::new(
-                ItemKey::num(3),
-                "Design system",
-                "Junie-inspired Ratatui components (junie_tui)",
-            ),
-        ]
-    }
-
-    fn update_about(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if !self.about_open {
-            return Response::ignored();
-        }
-        for intent in cx.intents(ABOUT_DIALOG) {
-            if matches!(intent, Intent::Layer(LayerEvent::Dismissed(_))) {
-                self.about_open = false;
-                self.status = None;
-                return Response::changed();
-            }
-        }
-        if !cx.is_open(ABOUT_DIALOG) {
-            self.about_open = false;
-            self.status = None;
-            return Response::changed();
-        }
-        let rows = Self::about_rows(self.world.scenario.name());
-        let response = PropsList::new(ABOUT_PROPS).update(cx, &mut self.about_props, &rows);
-        let mut result = response.erase();
-        let close = Button::new(ABOUT_CLOSE, "Close").update(cx);
-        let closed = close.activated();
-        result |= close.erase();
-        if closed {
-            cx.close_layer(ABOUT_DIALOG, Some(ActionKey::CLOSE));
-            self.about_open = false;
-            self.status = None;
-            result |= Response::changed();
-        }
-        result
-    }
-
-    fn draw_about_dialog(&self, ui: &mut Ui<'_>, area: Rect) {
-        Panel::new(ABOUT_DIALOG.sub("frame"))
-            .kind(PanelKind::Framed)
-            .title("About")
-            .draw(ui, area, |ui, body| {
-                let rows = Self::about_rows(self.world.scenario.name());
-                PropsList::new(ABOUT_PROPS).draw(
-                    ui,
-                    Rect::new(body.x, body.y, body.width, body.height.saturating_sub(1)),
-                    &self.about_props,
-                    &rows,
-                );
-                let close_area = Rect::new(
-                    body.right().saturating_sub(9),
-                    body.bottom().saturating_sub(1),
-                    7,
-                    1,
-                );
-                Button::new(ABOUT_CLOSE, "Close").draw(ui, close_area);
-            });
     }
 
     fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
@@ -2190,12 +1748,6 @@ impl App {
         let picker = Self::launch_agent_picker();
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
-        // The layer spec's initial focus already stages AGENT_PICKER; an
-        // explicit focus call here would only cancel the provisional
-        // focus-layer mechanism. Reconcile the replaced projection before
-        // the first draw so the cursor row paints focused (`Picker::
-        // reconcile` contract; no update runs between open and draw).
-        picker.reconcile(&mut self.agent_state, &self.agent_options);
         self.status = Some("Launch · choose Agent".into());
     }
 
@@ -2211,6 +1763,14 @@ impl App {
         let picker = Self::role_picker("Add role override");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
+    }
+
+    fn open_account_picker(&mut self, cx: &mut Cx<'_>) {
+        let picker = Self::account_picker();
+        self.picker_mode = Some(PickerMode::Launch);
+        self.account_state = PickerState::default();
+        let spec = picker.layer(cx, &self.account_options);
+        cx.open_layer(ACCOUNT_PICKER, spec);
     }
 
     fn open_capsule_account_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
@@ -2410,7 +1970,7 @@ impl App {
         let now_secs = self.world.now_secs();
         // A fresh launch starts one session.  The richer two-tab snapshot is
         // reserved for reconnecting to an already-running Capsule.
-        let snapshot = match crate::sim::fixtures::live_capsule() {
+        let snapshot = match crate::domain::fixtures::live_capsule() {
             DaemonSnapshot::Tabs(mut tabs) => {
                 tabs.truncate(1);
                 if let Some(tab) = tabs.first_mut() {
@@ -2433,7 +1993,7 @@ impl App {
             pane.boot_all();
         }
 
-        let mut instance = crate::sim::fixtures::fixture_instance(
+        let mut instance = crate::domain::fixtures::fixture_instance(
             InstanceStatus::Running,
             run_id,
             now_secs,
@@ -2459,120 +2019,8 @@ impl App {
         self.manager_rows_cache.clear();
     }
 
-    /// Present a failure the boot seek already reached.
-    ///
-    /// `LaunchRun::seek` advances the pipeline without emitting events, so a
-    /// frozen failure frame (the `launch-failure` scenario) would otherwise
-    /// boot onto a running cockpit with no failure visible. The failed-setup
-    /// instance record and the open failure dialog match the live `Failed`
-    /// event path; Escape acknowledges back to the Manager.
-    fn present_boot_failure(&mut self) {
-        let Some(run) = self.launch.as_ref() else {
-            return;
-        };
-        if run.failure.is_none() {
-            return;
-        }
-        let run_id = run.run_id;
-        if !self
-            .world
-            .instances
-            .iter()
-            .any(|instance| instance.run_id == run_id)
-        {
-            let agent = run.agent;
-            let container = run.container.clone();
-            let role = self.selected_role().to_owned();
-            let workspace = self.world.workspaces.first().cloned();
-            let now_secs = self.world.now_secs();
-            let mut instance = crate::sim::fixtures::fixture_instance(
-                InstanceStatus::FailedSetup,
-                run_id,
-                now_secs,
-                DaemonSnapshot::Unavailable,
-            );
-            instance.id = self.world.new_instance_id();
-            instance.container = container;
-            instance.workspace = workspace.as_ref().map(|workspace| workspace.id);
-            instance.workdir = workspace
-                .as_ref()
-                .map_or_else(String::new, |workspace| workspace.workdir.clone());
-            instance.role = role;
-            instance.agent = agent;
-            instance.created_secs = now_secs;
-            instance.last_seen_secs = now_secs;
-            self.world.instances.push(instance);
-            self.world.sync_arbiter();
-            self.manager_rows_cache.clear();
-        }
-        self.cockpit_failure_open = true;
-    }
-
-    /// Acknowledge the launch-failure dialog: tear down the cockpit and
-    /// return to the Manager with the failed instance selected.
-    fn acknowledge_launch_failure(&mut self) {
-        self.cockpit_failure_open = false;
-        let failed_id = self.launch.as_ref().and_then(|run| {
-            self.world
-                .instances
-                .iter()
-                .find(|instance| instance.run_id == run.run_id)
-                .map(|instance| instance.id.clone())
-        });
-        self.launch = None;
-        let running = self.world.running_count();
-        if running > 0 {
-            self.route = Route::Manager;
-            self.ensure_manager_rows();
-            if let Some(id) = failed_id
-                && let Some(index) = self
-                    .manager_rows_cache
-                    .iter()
-                    .position(|row| row.domain == ManagerRowKey::Instance(id.clone()))
-            {
-                let key = self.manager_rows_cache[index].key;
-                let domain = self.manager_rows_cache[index].domain.clone();
-                self.manager.list.set_cursor(index, key);
-                self.manager.select_row(domain);
-            }
-            let noun = if running == 1 {
-                "instance"
-            } else {
-                "instances"
-            };
-            self.status = Some(format!(
-                "Launch failed · {running} {noun} still running in the Construct"
-            ));
-        } else {
-            self.status = Some("Launch failed · the Construct is empty".into());
-            self.route = Route::Outro;
-            self.outro = Some(OutroState::new(self.motion, None, 0));
-        }
-    }
-
-    /// Tag-format run label for the failure dialog: `run-{stamp12}-{suffix}`
-    /// from the world clock plus the failed instance's id suffix (tag
-    /// `CockpitScreen::new`). The typed `RunId` stays the run identity;
-    /// this is the display projection the dialog owns.
-    fn failure_run_label(&self, run: &LaunchRun) -> String {
-        let stamp = crate::domain::clock::Clock::stamp(self.world.now_secs())
-            .replace([' ', ':'], "-")
-            .replace('-', "");
-        let stamp12 = stamp.get(..12).unwrap_or(&stamp);
-        let suffix = self
-            .world
-            .instances
-            .iter()
-            .find(|instance| instance.run_id == run.run_id)
-            .map(|instance| instance.id.trim_start_matches("jk-"))
-            .unwrap_or("0000");
-        format!("run-{stamp12}-{suffix}")
-    }
-
     fn capsule_input() -> TextInput<'static> {
-        // Inline and placeholder-free: the frozen input row is a blank field
-        // row. No frozen frame shows a placeholder here.
-        TextInput::new(CAPSULE_INPUT).inline(true)
+        TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
     }
 
     fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
@@ -2581,265 +2029,6 @@ impl App {
 
     fn role_choose_button(&self) -> Button<'_> {
         Button::new(ROLE_CHOOSE, self.selected_role())
-    }
-
-    fn with_manager_help<R>(f: impl FnOnce(&[HelpSection<'_>]) -> R) -> R {
-        let workspaces = HintLayer {
-            hints: vec![
-                Hint {
-                    key: termrock::HintKey::Label("↑↓ j k"),
-                    label: "move",
-                    priority: 100,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("←→ h l"),
-                    label: "collapse / expand",
-                    priority: 95,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Space"),
-                    label: "fold workspace",
-                    priority: 90,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Enter"),
-                    label: "launch",
-                    priority: 85,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("e"),
-                    label: "edit workspace",
-                    priority: 80,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("n"),
-                    label: "new workspace",
-                    priority: 75,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("d"),
-                    label: "delete…",
-                    priority: 70,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("w"),
-                    label: "prewarm",
-                    priority: 65,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("o"),
-                    label: "open in GitHub",
-                    priority: 60,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("* -"),
-                    label: "expand / collapse all",
-                    priority: 55,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Tab"),
-                    label: "details",
-                    priority: 50,
-                },
-            ],
-            badge: None,
-            status: None,
-            centered: false,
-        };
-
-        let instances = HintLayer {
-            hints: vec![
-                Hint {
-                    key: termrock::HintKey::Label("Enter r"),
-                    label: "reconnect / restore",
-                    priority: 100,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("a"),
-                    label: "new session",
-                    priority: 90,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("x"),
-                    label: "open shell",
-                    priority: 80,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("i"),
-                    label: "inspect container",
-                    priority: 70,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("t"),
-                    label: "stop",
-                    priority: 60,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("p"),
-                    label: "purge…",
-                    priority: 50,
-                },
-            ],
-            badge: None,
-            status: None,
-            centered: false,
-        };
-
-        let everywhere = HintLayer {
-            hints: vec![
-                Hint {
-                    key: termrock::HintKey::Label("Tab Shift+Tab"),
-                    label: "next / previous",
-                    priority: 100,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Esc"),
-                    label: "back one level",
-                    priority: 95,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("u"),
-                    label: "Usage overlay",
-                    priority: 90,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("c"),
-                    label: "Accounts & Usage",
-                    priority: 85,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("s"),
-                    label: "Settings",
-                    priority: 80,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("F5"),
-                    label: "refresh now",
-                    priority: 75,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("?"),
-                    label: "this help",
-                    priority: 70,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("q"),
-                    label: "back / quit",
-                    priority: 65,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Ctrl+Q"),
-                    label: "quit with confirmation",
-                    priority: 60,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Ctrl+C"),
-                    label: "quit immediately",
-                    priority: 55,
-                },
-            ],
-            badge: None,
-            status: None,
-            centered: false,
-        };
-
-        let editor_settings = HintLayer {
-            hints: vec![
-                Hint {
-                    key: termrock::HintKey::Label("←→ 1–5 [ ]"),
-                    label: "switch tab",
-                    priority: 100,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Ctrl+S"),
-                    label: "save (preview first)",
-                    priority: 90,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("Space"),
-                    label: "toggle / cycle",
-                    priority: 80,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("a e d"),
-                    label: "add / edit / remove",
-                    priority: 70,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("m p s"),
-                    label: "mask · 1Password · scope",
-                    priority: 60,
-                },
-            ],
-            badge: None,
-            status: None,
-            centered: false,
-        };
-
-        let mouse = HintLayer {
-            hints: vec![
-                Hint {
-                    key: termrock::HintKey::Label("click"),
-                    label: "select · 2× activates",
-                    priority: 100,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("wheel"),
-                    label: "scroll under pointer",
-                    priority: 90,
-                },
-                Hint {
-                    key: termrock::HintKey::Label("drag"),
-                    label: "seam · scrollbar thumb",
-                    priority: 80,
-                },
-            ],
-            badge: None,
-            status: None,
-            centered: false,
-        };
-
-        let sections = [
-            HelpSection::new("Workspaces", &workspaces),
-            HelpSection::new("Instances", &instances),
-            HelpSection::new("Everywhere", &everywhere),
-            HelpSection::new("Editor and Settings", &editor_settings),
-            HelpSection::new("Mouse", &mouse),
-        ];
-        f(&sections)
-    }
-
-    const HELP_PARTS: [(Part, StylePatch); 1] =
-        [(Part::BORDER, StylePatch::new().remove(Modifier::BOLD))];
-
-    fn manager_help_overlay<'a>(
-        sections: &'a [HelpSection<'a>],
-        w: u16,
-        h: u16,
-    ) -> HelpOverlay<'a> {
-        HelpOverlay::new(MANAGER_HELP, "Workspaces", sections)
-            .size(w, h)
-            .patch_part(&Self::HELP_PARTS)
-    }
-
-    fn open_manager_help(&mut self, cx: &mut Cx<'_>) {
-        self.help_open = true;
-        self.manager_help_state = HelpOverlayState::default();
-        let screen = cx.viewport();
-        let (w, h) = (
-            screen.width.saturating_sub(4),
-            screen.height.saturating_sub(3),
-        );
-        Self::with_manager_help(|sections| {
-            let help = Self::manager_help_overlay(sections, w, h);
-            let mut spec = help.layer(cx);
-            spec.anchor = Anchor::Rect {
-                rect: Rect::new(0, 0, screen.width, 1),
-                side: Side::Below,
-                align: CrossAlign::Center,
-            };
-            cx.open_layer(MANAGER_HELP, spec);
-        });
     }
 
     fn with_capsule_help<R>(f: impl FnOnce(&[HelpSection<'_>]) -> R) -> R {
@@ -3016,44 +2205,20 @@ impl App {
             self.capsule_prefix = false;
             self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
-            self.capsule_tab_menu_kind = CapsuleCtxKind::Tab;
             self.capsule_tab_menu_state = MenuState::default();
-            self.capsule_tab_menu_pos = Position::new(1, 2);
-            let title = self.active_capsule_tab_title();
+            self.capsule_tab_menu_pos = Position::new(8, 2);
             cx.open_layer(
                 CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(title, self.capsule_tab_menu_pos).layer(cx),
+                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
             );
             return Response::changed();
         }
-        if key == 'c' {
-            self.capsule_prefix = false;
-            self.capsule_new_tab_open = true;
-            self.open_capsule_agent_picker(cx, CapsuleAction::NewTab);
-            return Response::changed();
-        }
-        if key == '"' {
-            self.capsule_prefix = false;
-            self.capsule_split_vertical_open = true;
-            self.open_capsule_agent_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
-            return Response::changed();
-        }
-        if key == ' ' || key == ':' {
-            self.capsule_prefix = false;
-            self.capsule_palette_open = true;
-            self.capsule_palette_state = PickerState::default();
-            let screen = cx.viewport();
-            let palette = Self::capsule_command_palette(screen.height);
-            cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
-            let _ = palette
-                .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
-                .erase();
-            return Response::changed();
-        }
         let command = match key {
+            'c' => Some(CMD_CAPSULE),
             'd' => Some(CMD_CAPSULE_DETACH),
             'i' => Some(CMD_CONTAINER_INFO),
             '%' => Some(CMD_CAPSULE_SPLIT_RIGHT),
+            '"' => Some(CMD_CAPSULE_SPLIT_BELOW),
             'z' => Some(CMD_CAPSULE_ZOOM),
             'h' => Some(CMD_CAPSULE_FOCUS_LEFT),
             'u' => Some(CMD_USAGE),
@@ -3144,39 +2309,20 @@ impl App {
         }
     }
 
-    /// Map one terminal tone to its presentation role.
-    ///
-    /// The mapping mirrors the frozen capsule transcript: success spans
-    /// render in the accent green, which is also the junie `Success` role.
-    fn term_tone_role(tone: crate::sim::pty::Tone) -> Role {
-        match tone {
-            crate::sim::pty::Tone::Normal => Role::Fg(FgStep::Primary),
-            crate::sim::pty::Tone::Muted => Role::Fg(FgStep::Muted),
-            crate::sim::pty::Tone::Secondary => Role::Fg(FgStep::Secondary),
-            crate::sim::pty::Tone::Success => Role::Success,
-            crate::sim::pty::Tone::Error => Role::Danger,
-            crate::sim::pty::Tone::Warning => Role::Warning,
-        }
-    }
-
     /// Project one terminal transcript into owned viewport text.
     ///
-    /// One run per transcript span preserves the per-span tones; the caller
-    /// keeps the projection while the term revision matches.
+    /// One single-run line per transcript line renders exactly like the
+    /// previous per-frame `ViewportLine::Plain` join; the caller keeps the
+    /// projection while the term revision matches.
     fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
         out.clear();
-        for line in term.lines.iter() {
-            out.push_line(line.iter().map(|span| {
-                (
-                    span.text.as_str(),
-                    Some(Self::term_tone_role(span.tone)),
-                    if span.bold {
-                        Modifier::BOLD
-                    } else {
-                        Modifier::empty()
-                    },
-                )
-            }));
+        let mut joined = String::new();
+        for line in &term.lines {
+            joined.clear();
+            for span in line {
+                joined.push_str(span.text.as_str());
+            }
+            out.push_line([(joined.as_str(), None, Modifier::empty())]);
         }
     }
 
@@ -3193,6 +2339,39 @@ impl App {
             let mut text = ProjectedText::default();
             Self::project_term(&pane.term, &mut text);
             caches.transcripts.insert(pane.id, (revision, text));
+        }
+    }
+
+    /// Hash one pane-tree topology: structure, splits and leaf ids in visual
+    /// order. Allocation-free; covers everything [`PaneNode::layout`] reads.
+    fn hash_topology(hasher: &mut DefaultHasher, node: &PaneNode) {
+        match node {
+            PaneNode::Leaf(id) => {
+                hasher.write_u8(0);
+                hasher.write_u64(*id);
+            }
+            PaneNode::Split {
+                dir,
+                split,
+                first,
+                second,
+            } => {
+                hasher.write_u8(1);
+                hasher.write_u8(match dir {
+                    SplitDir::Horizontal => 0,
+                    SplitDir::Vertical => 1,
+                });
+                hasher.write_u16(split.percent);
+                hasher.write_u16(split.min_first);
+                hasher.write_u16(split.min_second);
+                hasher.write_u8(match split.maximized {
+                    Maximized::None => 0,
+                    Maximized::First => 1,
+                    Maximized::Second => 2,
+                });
+                Self::hash_topology(hasher, first);
+                Self::hash_topology(hasher, second);
+            }
         }
     }
 
@@ -3276,60 +2455,59 @@ impl App {
         hasher.finish()
     }
 
-    /// Build the tab strip items. Pure in its inputs; see
+    /// Build the tab strip labels. Pure in its inputs; see
     /// [`Self::capsule_tabs_fingerprint`] for the cached equivalent.
-    ///
-    /// Every tab carries its own state glyph: the frozen strip shows one on
-    /// inactive tabs (`3 docs ●`) as well as on the active tab.
     fn build_capsule_tabs(
         world: &World,
         instance_id: Option<&str>,
         tab_title: &str,
         tab_title_index: usize,
-    ) -> Vec<CapsuleTab> {
+    ) -> Vec<String> {
         let mut dynamic = instance_id
             .and_then(|id| world.daemons.get(id))
             .map(|daemon| {
                 daemon
                     .tabs
                     .iter()
-                    .map(|tab| {
-                        let label = daemon.tab_label(tab, &|pane| {
+                    .enumerate()
+                    .map(|(index, tab)| {
+                        let mut label = daemon.tab_label(tab, &|pane| {
                             pane.proc
                                 .account
                                 .as_ref()
                                 .and_then(|id| world.accounts.get(id))
                                 .map(|account| account.display_name.clone())
                         });
-                        let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
-                        (label, glyph)
+                        if index == daemon.active {
+                            let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
+                            if !glyph.is_empty() {
+                                label.push(' ');
+                                label.push_str(glyph);
+                            }
+                        }
+                        label
                     })
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
         if dynamic.is_empty() {
-            dynamic.push(("Mix (3)".into(), "●"));
+            dynamic.push("Mix (3) ●".into());
         }
         if dynamic.len() < 2 {
-            dynamic.push(("Shell".into(), ""));
+            dynamic.push("Shell".into());
         }
         if !tab_title.is_empty()
-            && let Some((label, glyph)) = dynamic.get_mut(tab_title_index)
+            && let Some(label) = dynamic.get_mut(tab_title_index)
         {
             *label = tab_title.to_owned();
-            *glyph = "";
         }
         if dynamic.len() < 3 {
-            dynamic.push(("docs".into(), "●"));
+            dynamic.push("docs ●".into());
         }
         dynamic
             .into_iter()
             .enumerate()
-            .map(|(index, (label, glyph))| CapsuleTab {
-                number: (index.saturating_add(1)).to_string(),
-                label,
-                glyph,
-            })
+            .map(|(index, label)| format!("{} {label}", index.saturating_add(1)))
             .collect()
     }
 
@@ -3379,10 +2557,8 @@ impl App {
         hasher.finish()
     }
 
-    /// Build one framed pane title: the label run (with its surrounding
-    /// blanks) and the state glyph, which paints in its own style. The frozen
-    /// run carries no trailing blank after the glyph (`●─`, not `● ─`).
-    fn build_pane_title(accounts: &AccountRegistry, pane: &Pane) -> (String, &'static str) {
+    /// Build one framed pane title from its label and state glyph.
+    fn build_pane_title(accounts: &AccountRegistry, pane: &Pane) -> String {
         let label = pane
             .proc
             .account
@@ -3393,7 +2569,11 @@ impl App {
                 |account| format!("{} ({})", pane.label(), account.display_name),
             );
         let glyph = Self::pane_state_glyph(pane.state());
-        (format!(" {label} "), glyph)
+        if glyph.is_empty() {
+            format!(" {label} ")
+        } else {
+            format!(" {label} {glyph} ")
+        }
     }
 
     /// Ensure one cached pane title, rebuilding only when its inputs changed.
@@ -3408,6 +2588,49 @@ impl App {
                 pane.id,
                 (fingerprint, Self::build_pane_title(accounts, pane)),
             );
+        }
+    }
+
+    /// Fingerprint of pane geometry: topology, zoom and container area.
+    fn pane_layouts_fingerprint(tab: &Tab, area: Rect) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        Self::hash_topology(&mut hasher, &tab.root);
+        match tab.zoomed {
+            None => hasher.write_u8(0),
+            Some(id) => {
+                hasher.write_u8(1);
+                hasher.write_u64(id);
+            }
+        }
+        hasher.write_u16(area.x);
+        hasher.write_u16(area.y);
+        hasher.write_u16(area.width);
+        hasher.write_u16(area.height);
+        hasher.finish()
+    }
+
+    /// Build leaf pane geometry for a container area.
+    fn build_pane_layouts(tab: &Tab, area: Rect) -> Vec<(PaneId, Rect)> {
+        let mut layouts = Vec::new();
+        if let Some(zoomed) = tab.zoomed {
+            layouts.push((zoomed, area));
+        } else {
+            tab.root
+                .layout(area, &mut layouts, &mut Vec::new(), &mut Vec::new());
+        }
+        layouts
+    }
+
+    /// Ensure cached pane geometry, rebuilding only when topology, zoom or
+    /// area changed.
+    fn ensure_pane_layouts(caches: &mut CapsuleFrameCaches, tab: &Tab, area: Rect) {
+        let fingerprint = Self::pane_layouts_fingerprint(tab, area);
+        let fresh = caches
+            .layouts
+            .as_ref()
+            .is_some_and(|(cached, _)| *cached == fingerprint);
+        if !fresh {
+            caches.layouts = Some((fingerprint, Self::build_pane_layouts(tab, area)));
         }
     }
 
@@ -3517,12 +2740,7 @@ impl App {
             if previous_revision.is_some_and(|previous| previous != revision) {
                 state.invalidate();
             }
-            state.set_caret(
-                focused
-                    .then_some(caret)
-                    .flatten()
-                    .map(|c| termrock::CellPos::new(c.row, c.col)),
-            );
+            state.set_caret(focused.then_some(caret).flatten());
             let frame = self.capsule_frame.borrow();
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
@@ -3563,39 +2781,6 @@ impl App {
 
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
-        result |= self.update_about(cx);
-
-        if self.manager_inspect_open {
-            let close = Button::new(crate::screens::manager::INSPECT_CLOSE, "Close")
-                .variant(Variant::SECONDARY)
-                .update(cx);
-            if close.activated() || !cx.is_open(MANAGER_INSPECT) {
-                if cx.is_open(MANAGER_INSPECT) {
-                    cx.close_layer(MANAGER_INSPECT, None);
-                }
-                self.manager_inspect_open = false;
-                self.status = None;
-                result |= Response::changed();
-            }
-        }
-
-        if self.help_open {
-            let screen = cx.viewport();
-            let (w, h) = (
-                screen.width.saturating_sub(4),
-                screen.height.saturating_sub(3),
-            );
-            Self::with_manager_help(|sections| {
-                let help = Self::manager_help_overlay(sections, w, h);
-                let response = help.update(cx, &mut self.manager_help_state);
-                let closed = matches!(response.action_ref(), Some(HelpAction::Closed(_)));
-                result |= response.erase();
-                if closed {
-                    self.help_open = false;
-                    self.status = None;
-                }
-            });
-        }
 
         // The help overlay is the only `CAPSULE_HELP` opener and clears this
         // flag on its Closed action, so a closed overlay has no update work:
@@ -3619,22 +2804,163 @@ impl App {
             self.status = None;
         }
         result |= response.erase();
-        if cx.is_open(CAPSULE_CONTAINER_INFO) {
-            let facts = self.container_info_facts();
-            let rows = Self::container_info_rows(&facts);
-            let props = PropsList::new(CONTAINER_INFO_PROPS).update(
-                cx,
-                &mut self.container_info_props,
-                &rows,
-            );
-            if let Some(PropsAction::Copy(key)) = props.action_ref().copied()
-                && let Some(row) = rows.iter().find(|row| row.key == key)
-                && let Some(text) = row.value.text()
-            {
-                self.world.clipboard = Some(text.to_owned());
-                self.status = Some("Copied to the preview clipboard".into());
+
+        if self.about_open {
+            let about = Self::about_dialog();
+            let response = about.update(cx, &mut self.about_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_)) => {
+                    self.about_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(key)) => {
+                    if cx.is_open(ABOUT_DIALOG) {
+                        cx.close_layer(ABOUT_DIALOG, Some(key));
+                    }
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(ABOUT_DIALOG) => {
+                    self.about_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                None => {}
             }
-            result |= props.erase();
+        }
+
+        if self.quit_open {
+            let body = self.quit_body.clone();
+            let quit = Self::quit_dialog(&body);
+            let response = quit.update(cx, &mut self.quit_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    if cx.is_open(QUIT_DIALOG) {
+                        cx.close_layer(QUIT_DIALOG, Some(ActionKey::CONFIRM));
+                    }
+                    self.quit_open = false;
+                    self.quit = true;
+                    cx.quit();
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                    if cx.is_open(QUIT_DIALOG) {
+                        cx.close_layer(QUIT_DIALOG, Some(ActionKey::CANCEL));
+                    }
+                    self.quit_open = false;
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(QUIT_DIALOG) => {
+                    self.quit_open = false;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
+        if self.cancel_open {
+            let dialog = Self::cockpit_cancel_dialog();
+            let response = dialog.update(cx, &mut self.cancel_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    if cx.is_open(CANCEL_LAUNCH_DIALOG) {
+                        cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CONFIRM));
+                    }
+                    self.cancel_open = false;
+                    self.launch = None;
+                    self.route = Route::Manager;
+                    self.status = Some("Launch cancelled · nothing was attached".into());
+                    cx.focus(MANAGER_LIST);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                    if cx.is_open(CANCEL_LAUNCH_DIALOG) {
+                        cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
+                    }
+                    self.cancel_open = false;
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(CANCEL_LAUNCH_DIALOG) => {
+                    self.cancel_open = false;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
+        if self.cockpit_info_open {
+            let info = Self::cockpit_info_dialog();
+            let response = info.update(cx, &mut self.cockpit_info_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_)) => {
+                    self.cockpit_info_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(key)) => {
+                    if cx.is_open(COCKPIT_INFO_DIALOG) {
+                        cx.close_layer(COCKPIT_INFO_DIALOG, Some(key));
+                    }
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(COCKPIT_INFO_DIALOG) => {
+                    self.cockpit_info_open = false;
+                    self.status = None;
+                    result |= Response::changed();
+                }
+                None => {}
+            }
+        }
+
+        if self.editor_exit_open {
+            let dialog = Self::editor_exit_dialog();
+            let response = dialog.update(cx, &mut self.editor_exit_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(EXIT_SAVE)) => {
+                    if cx.is_open(EDITOR_EXIT_DIALOG) {
+                        cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_SAVE));
+                    }
+                    self.editor_exit_open = false;
+                    self.editor.mark_dirty();
+                    self.editor.open_preview();
+                    cx.focus(crate::screens::editor::SAVE);
+                    self.status = Some("Save workspace · preview changes before commit".into());
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(EXIT_DISCARD)) => {
+                    if cx.is_open(EDITOR_EXIT_DIALOG) {
+                        cx.close_layer(EDITOR_EXIT_DIALOG, Some(EXIT_DISCARD));
+                    }
+                    self.editor_exit_open = false;
+                    self.editor.discard_draft();
+                    self.route = Route::Manager;
+                    cx.focus(MANAGER_LIST);
+                    self.status = Some("Discarded 1 change".into());
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(EXIT_CANCEL) | DialogAction::Dismissed(_)) => {
+                    self.close_editor_exit(cx);
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(EDITOR_EXIT_DIALOG) => {
+                    self.editor_exit_open = false;
+                    if self.status.as_deref() == Some("Save changes before leaving?") {
+                        self.status = None;
+                    }
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
         }
 
         // Drain the dialog and its body control while a child picker is
@@ -3668,69 +2994,6 @@ impl App {
             result |= Response::changed();
         }
 
-        let quit_dialog = self.manager_quit_dialog();
-        let response = quit_dialog.update(cx, &mut self.quit_dialog);
-        let action = response.action_ref().copied();
-        result |= response.erase();
-        if let Some(action) = action {
-            match action {
-                DialogAction::Action(ActionKey::CONFIRM) if cx.is_open(QUIT_DIALOG) => {
-                    cx.close_layer(QUIT_DIALOG, Some(ActionKey::CONFIRM));
-                    self.quit = true;
-                    cx.quit();
-                }
-                DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_) => {
-                    if cx.is_open(QUIT_DIALOG) {
-                        cx.close_layer(QUIT_DIALOG, Some(ActionKey::CANCEL));
-                    }
-                    self.manager_quit_confirm = false;
-                    self.status = None;
-                }
-                DialogAction::Action(_) => {}
-            }
-            result |= Response::changed();
-        }
-
-        {
-            let (title, facts, code) =
-                crate::screens::editor::EditorScreen::preview_parts(&self.editor, &self.world);
-            let pairs: Vec<(&str, &str)> = facts
-                .iter()
-                .map(|(label, value, _)| (label.as_str(), value.as_str()))
-                .collect();
-            let codes: Vec<&str> = code.iter().map(String::as_str).collect();
-            let dialog = Self::preview_dialog(&title, &pairs, &codes);
-            let response = dialog.update(cx, &mut self.preview_dialog);
-            let action = response.action_ref().copied();
-            result |= response.erase();
-            if let Some(action) = action {
-                match action {
-                    DialogAction::Action(ActionKey::CONFIRM)
-                        if cx.is_open(crate::screens::editor::PREVIEW) =>
-                    {
-                        cx.close_layer(crate::screens::editor::PREVIEW, Some(ActionKey::CONFIRM));
-                        self.commit_editor_save();
-                    }
-                    DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_) => {
-                        if cx.is_open(crate::screens::editor::PREVIEW) {
-                            cx.close_layer(
-                                crate::screens::editor::PREVIEW,
-                                Some(ActionKey::CANCEL),
-                            );
-                        }
-                        self.editor.close_preview();
-                        // Tag `editor.preview` modal result: any non-save
-                        // dismissal keeps the draft and reports it; focus
-                        // returns to the Save button.
-                        self.status = Some("Not saved · keep editing".into());
-                        cx.focus(crate::screens::editor::SAVE);
-                    }
-                    DialogAction::Action(_) => {}
-                }
-                result |= Response::changed();
-            }
-        }
-
         let picker = Self::role_picker(if self.editor_role_picker {
             "Add role override"
         } else {
@@ -3759,6 +3022,7 @@ impl App {
                 self.editor_role_picker = false;
                 self.editor_env_role = Some(role.clone());
                 self.editor.open_env_form();
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 self.status = Some(format!("Add role override · {}", self.role_label(&role)));
             } else {
@@ -3768,71 +3032,28 @@ impl App {
             result |= Response::changed();
         }
 
-        if self.route == Route::Capsule {
-            let title = match self.pending_capsule_action {
-                Some(CapsuleAction::Split(_)) => "Split ↓ Below",
-                _ => "New tab",
-            };
-            let screen = cx.viewport();
-            let agent_picker = Self::capsule_agent_picker(title, screen.width);
-            let response =
-                agent_picker.update(cx, &mut self.capsule_agent_state, CAPSULE_AGENT_OPTIONS);
-            let action = response.action_ref().copied();
-            result |= response.erase();
-            if cx.is_open(crate::screens::manager::AGENT_PICKER) {
-                if let Some(PickerAction::Chosen(_key)) = action {
-                    cx.close_layer(
-                        crate::screens::manager::AGENT_PICKER,
-                        Some(ActionKey::CONFIRM),
-                    );
-                    if let Some(action) = self.pending_capsule_action.take() {
-                        self.open_capsule_account_picker(cx, action);
-                    }
-                    result |= Response::changed();
-                }
+        let agent_picker = Self::launch_agent_picker();
+        let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
+        let action = response.action_ref().copied();
+        result |= response.erase();
+        if cx.is_open(crate::screens::manager::AGENT_PICKER)
+            && let Some(PickerAction::Chosen(key)) = action
+            && let Some(option) = self
+                .agent_options
+                .iter()
+                .find(|option| ItemKey::text(&option.key) == key)
+                .cloned()
+        {
+            cx.close_layer(
+                crate::screens::manager::AGENT_PICKER,
+                Some(ActionKey::CONFIRM),
+            );
+            if option.blocked {
+                self.status = Some(format!("{} unavailable · {}", option.label, option.detail));
             } else {
-                self.pending_capsule_action = None;
-                self.capsule_new_tab_open = false;
-                self.capsule_split_vertical_open = false;
+                self.begin_launch_with(option.agent, option.account);
             }
-        } else {
-            let agent_picker = Self::launch_agent_picker();
-            let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
-            let action = response.action_ref().copied();
-            result |= response.erase();
-            if cx.is_open(crate::screens::manager::AGENT_PICKER)
-                && let Some(PickerAction::Chosen(key)) = action
-                && let Some(option) = self
-                    .agent_options
-                    .iter()
-                    .find(|option| ItemKey::text(&option.key) == key)
-                    .cloned()
-            {
-                cx.close_layer(
-                    crate::screens::manager::AGENT_PICKER,
-                    Some(ActionKey::CONFIRM),
-                );
-                if option.blocked {
-                    self.status = Some(format!("{} unavailable · {}", option.label, option.detail));
-                } else {
-                    self.begin_launch_with(option.agent, option.account);
-                }
-                result |= Response::changed();
-            }
-            // A closed launch layer with pending options means the picker
-            // was dismissed (Esc) or resolved to a status-only choice:
-            // consume the pending options so the tree footer comes back
-            // (tag clears pending_launch on cancel, take()s it on choice).
-            if self.route == Route::Manager
-                && !cx.is_open(crate::screens::manager::AGENT_PICKER)
-                && !self.agent_options.is_empty()
-            {
-                self.agent_options.clear();
-                if self.status.as_deref() == Some("Launch · choose Agent") {
-                    self.status = None;
-                }
-                result |= Response::changed();
-            }
+            result |= Response::changed();
         }
 
         let picker = self.active_account_picker();
@@ -3936,101 +3157,22 @@ impl App {
     fn enter_intro(&mut self) {
         if self.intro.is_done() {
             self.route = Route::Manager;
-            self.reset_manager_cursor();
             self.world.arbiter.complete_entry(self.world.now_ms());
         } else {
             self.intro.skip();
             if self.intro.is_done() {
                 self.route = Route::Manager;
-                self.reset_manager_cursor();
                 self.world.arbiter.complete_entry(self.world.now_ms());
             }
         }
     }
 
-    fn update_host_menu_bar(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut result = Response::ignored();
-        // Host brand opens About directly (tag `app.rs:586`); the capsule
-        // route owns its own brand click.
-        if Self::is_host(self.route) && !cx.is_open(ABOUT_DIALOG) {
-            let brand = Brand::new(APP.sub("brand"), "jackin❯")
-                .clickable(true)
-                .update(cx);
-            let brand_chosen = brand.activated();
-            result |= brand.erase();
-            if brand_chosen && let Some(response) = self.update_command(cx, CMD_ABOUT) {
-                result |= response;
-            }
-        }
-        let manager_menu = self.host_menu_bar();
-        let manager_menu_intents = cx.intents(MANAGER_MENU_BAR).collect::<Vec<_>>();
-        // A closed host menu is pointer-only: F10 opens it (tag
-        // `app.rs:593`) while arrows belong to the screen behind it. The
-        // bar can hold ring focus at boot (no screen control is
-        // registered on historical viewports), so feeding it keyboard
-        // would swallow the screen's own arrows. Drained intents keep the
-        // bubble pass running for the screen.
-        let menu_live =
-            self.manager_menu_state.open_menu().is_some() || cx.is_open(MANAGER_MENU_BAR);
-        let pointer_pending = manager_menu_intents
-            .iter()
-            .any(|intent| matches!(intent, Intent::Pointer { .. }));
-        if !menu_live && !pointer_pending {
-            return result;
-        }
-        let manager_menu_state_before = self.manager_menu_state.clone();
-        let manager_menu_response = manager_menu.update(cx, &mut self.manager_menu_state);
-        if let Some(open) = manager_menu_state_before.open_menu()
-            && self.manager_menu_state.open_menu() == Some(open)
-        {
-            let count = MANAGER_MENUS.len();
-            let next = manager_menu_intents.iter().find_map(|intent| match intent {
-                Intent::Binding(action) if *action == CAPSULE_MENU_PREVIOUS => Some(if open == 0 {
-                    count.saturating_sub(1)
-                } else {
-                    open - 1
-                }),
-                Intent::Binding(action) if *action == CAPSULE_MENU_NEXT => {
-                    Some(open.saturating_add(1) % count)
-                }
-                _ => None,
-            });
-            if let Some(index) = next {
-                result |= manager_menu
-                    .open_menu(cx, &mut self.manager_menu_state, index)
-                    .erase();
-            }
-        }
-        if let Some(action) = manager_menu_response.action_ref().copied() {
-            match action {
-                MenuAction::Chosen(action) => {
-                    if let Some(response) = self.update_command(cx, action) {
-                        result |= response;
-                    }
-                    self.manager_menu_state = MenuState::default();
-                    self.manager_menu_open = false;
-                    cx.close_layer(MANAGER_MENU_BAR, None);
-                }
-                MenuAction::Closed(_) => {
-                    self.manager_menu_state = MenuState::default();
-                    self.manager_menu_open = false;
-                    self.status = None;
-                    cx.close_layer(MANAGER_MENU_BAR, None);
-                }
-                _ => {}
-            }
-        }
-        result |= manager_menu_response.erase();
-        result
-    }
-
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut result = self.update_host_menu_bar(cx);
         self.ensure_manager_rows();
         let list =
             Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
-        result |= list.erase();
+        let mut result = list.erase();
         let selected_key = match list_action {
             Some(ListAction::Activated(key) | ListAction::Chose(key)) => Some(key),
             _ => self.manager.list.cursor(),
@@ -4051,13 +3193,6 @@ impl App {
                 {
                     self.active_instance = Some(instance_id);
                     self.route = Route::Capsule;
-                    let name = self
-                        .active_instance
-                        .as_ref()
-                        .and_then(|id| self.world.daemons.get(id))
-                        .map(|d| d.workspace.clone())
-                        .unwrap_or_default();
-                    self.status = Some(format!("Attached to {name} · tabs and panes restored"));
                     self.capsule_interaction.focus_pane();
                     self.sync_capsule_projection();
                 } else if matches!(
@@ -4070,17 +3205,16 @@ impl App {
                 }
                 result |= Response::changed();
             }
-            Some(ListAction::Chose(key)) => {
-                let target = self
-                    .manager_rows_cache
-                    .iter()
-                    .find(|row| row.key == key)
-                    .map(|row| row.domain.clone())
-                    .unwrap_or_else(|| self.manager.selected_row().clone());
-                if let ManagerRowKey::Workspace(workspace) = target {
-                    self.manager.toggle(workspace);
-                    self.ensure_manager_rows();
-                }
+            Some(ListAction::Chose(_)) => {
+                self.manager.set_detail_open(true);
+                self.status = match self.manager.selected_row() {
+                    ManagerRowKey::Workspace(id) => self
+                        .world
+                        .workspace(*id)
+                        .map(|workspace| format!("Workspaces › {}", workspace.name)),
+                    ManagerRowKey::Instance(id) => Some(format!("Instance › {id}")),
+                    ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => None,
+                };
                 result |= Response::changed();
             }
             _ => {}
@@ -4108,40 +3242,40 @@ impl App {
     }
 
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if self.accounts_filtering {
-            let input = TextInput::new(ACCOUNTS_FILTER_INPUT).update(
+        if self.accounts.filtering && !self.accounts.form_open {
+            let filter = Self::account_filter_input().update(
                 cx,
                 &mut self.accounts.filter_input,
-                &mut self.accounts.filter_draft,
+                &mut self.accounts.filter_query,
             );
-            let committed = input
+            let cancelled = filter
                 .action_ref()
-                .is_some_and(|action| *action == TextAction::Committed);
-            let mut result = input.erase();
-            if committed && !self.accounts.filter_draft.is_empty() {
-                self.accounts.filter = Some(self.accounts.filter_draft.clone());
-                self.accounts_filtered = true;
-                self.accounts_filtering = false;
-                self.ensure_accounts_selected();
-                cx.focus(ACCOUNTS_LIST);
+                .is_some_and(|action| *action == TextAction::Cancelled);
+            let mut result = filter.erase();
+            // Controlled text writes the caller string only on commit. A live
+            // filter has to follow the draft on each key.
+            if let Some(draft) = self.accounts.filter_input.draft_text()
+                && self.accounts.filter_query != draft
+            {
+                self.accounts.filter_query = draft.to_owned();
+                self.reconcile_filtered_account();
+                result |= Response::changed();
+            }
+            if cancelled {
+                self.accounts.filtering = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input = TextInputState::default();
                 result |= Response::changed();
             }
             return result;
         }
-
         if self.accounts.form_open {
             if !self.accounts.started {
                 let start = Self::account_start_button().update(cx);
                 let chosen = start.activated();
                 let mut result = start.erase();
                 if chosen {
-                    self.accounts_form_enters = self.accounts_form_enters.saturating_add(1);
                     self.accounts.started = true;
-                    // The opener hands the name field an in-flight draft, so
-                    // the form voices EDIT (tag `modals.rs:1053`) and Esc
-                    // reverts before any Cancel can fire.
-                    let draft = self.accounts.draft_name.clone();
-                    self.accounts.name_input.begin(&draft);
                     cx.focus(crate::screens::accounts::NAME);
                     result |= Response::changed();
                 }
@@ -4153,9 +3287,6 @@ impl App {
                 &mut self.accounts.name_input,
                 &mut self.accounts.draft_name,
             );
-            if cx.update_cause() == UpdateCause::Event {
-                self.accounts_form_enters = 2;
-            }
             let mut result = name.erase();
 
             // Keep the agent choice explicit in the tab order.  The current
@@ -4271,37 +3402,35 @@ impl App {
             return result;
         }
 
-        self.ensure_accounts_selected();
-        let rows = self.accounts_tree_rows();
-        let labels: Vec<String> = rows.iter().map(|row| row.label.clone()).collect();
-        let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &labels);
+        let rows = self.account_rows();
+        let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &rows);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
-        if matches!(
-            list_action,
-            Some(ListAction::Moved | ListAction::Activated(_))
-        ) && let Some(ItemKey::Index(index)) = self.accounts.list.cursor()
-            && let Some(row) = rows.get(index)
-        {
-            self.accounts.selected = row.sel.clone();
-            self.accounts.sync_selected_id();
-        }
-        if matches!(list_action, Some(ListAction::Moved)) {
-            self.accounts_down_count += 1;
-        }
-        if matches!(list_action, Some(ListAction::Activated(_))) {
-            if self.accounts_filtering {
-                self.accounts_filter_enters += 1;
-                result |= Response::changed();
-            } else if self.accounts_down_count >= 4 {
-                self.accounts_drawer_open = true;
-                self.accounts.drawer_open = true;
-                result |= Response::changed();
-            }
+        let previous = self.accounts.selected_id.clone();
+        self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
+            self.status = self
+                .accounts
+                .selected_id
+                .as_deref()
+                .and_then(|id| self.world.accounts.get(id))
+                .map(|account| {
+                    format!(
+                        "Accounts › {} › {}",
+                        account.surface.surface_name(),
+                        account.display_name
+                    )
+                });
         }
         if matches!(list_action, Some(ListAction::Chose(_))) {
             self.set_selected_account_default();
             result |= Response::changed();
+        }
+        let add = Self::account_add_button().update(cx);
+        let chosen = add.activated();
+        result |= add.erase();
+        if chosen {
+            self.open_account_picker(cx);
         }
         result
     }
@@ -4433,12 +3562,7 @@ impl App {
         self.world.accounts.insert(account);
         let selected_id = id.clone();
         self.accounts.selected_id = Some(id);
-        self.accounts.selected = AccountSel::Account(selected_id.clone());
-        if let Some(index) = self
-            .accounts_tree_rows()
-            .iter()
-            .position(|row| row.sel == AccountSel::Account(selected_id.clone()))
-        {
+        if let Some(index) = account_row_index(&self.world, &selected_id) {
             self.accounts.list.set_cursor(index, ItemKey::index(index));
         }
         self.account_options = self
@@ -4466,113 +3590,49 @@ impl App {
         });
     }
 
-    /// Pending settings edits (tag `change_count`): only the Trust tab is
-    /// editable while the other tabs render from stored frames.
-    fn settings_change_count(&self) -> usize {
-        self.settings.trust_change_count(&self.world.global.trust)
-    }
-
-    /// Apply the pending trust edits to the world (on a confirmed save).
-    fn apply_settings_trust(&mut self) {
-        for (index, pending) in self.settings.trust_overrides.clone() {
-            if let Some(row) = self.world.global.trust.get_mut(index) {
-                row.trusted = pending;
-            }
-        }
-    }
-
-    /// Open the save preview when the draft holds edits (tag
-    /// `open_preview`); otherwise report that there is nothing to save.
-    fn request_settings_save(&mut self, cx: &mut Cx<'_>) {
-        if self.settings_change_count() == 0 {
-            self.status = Some("Nothing to save".into());
-            return;
-        }
-        self.settings_save_preview = true;
-        self.settings_save_dialog = DialogState::default();
-        cx.focus(crate::screens::settings::PREVIEW_CANCEL);
-        if self.status.is_none() {
-            self.status = Some("Save settings · choose a confirmation action".into());
-        }
-    }
-
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let cancel = Button::new(crate::screens::settings::CANCEL, "Cancel").update(cx);
-        let cancel_chosen = cancel.activated();
-        let mut result = cancel.erase();
-        let save = Button::new(crate::screens::settings::SAVE, "Save…").update(cx);
+        let button = Self::settings_trust_button(self.trusted).update(cx);
+        let chosen = button.activated();
+        let mut result = button.erase();
+        if chosen {
+            self.trusted = !self.trusted;
+            if self.settings.dirty {
+                self.settings.mark_dirty();
+            } else {
+                self.settings.begin_draft();
+            }
+            result |= Response::changed();
+        }
+        let save = Self::settings_save_button().update(cx);
         let save_chosen = save.activated();
         result |= save.erase();
         let confirm = Self::settings_save_confirm_button().update(cx);
         let confirm_chosen = confirm.activated();
         result |= confirm.erase();
-        if cancel_chosen && !self.settings_save_preview {
+        if save_chosen {
             if self.settings.dirty {
-                self.status = Some("Save settings before leaving?".into());
+                cx.focus(SETTINGS_SAVE_CONFIRM);
+                self.status = Some("Save settings · choose a confirmation action".into());
+                result |= Response::changed();
             } else {
+                self.status = Some("No settings changes".into());
+            }
+        }
+        if confirm_chosen && self.settings.dirty {
+            self.settings_save_preview = false;
+            let keep = self.settings.attempt_save(self.world.refresh_fails);
+            if keep {
+                self.status = self.settings.save_error.clone();
+            } else {
+                if let Some(trust) = self.world.global.trust.first_mut() {
+                    trust.trusted = self.trusted;
+                }
+                self.status = Some("Settings saved".into());
                 self.route = Route::Manager;
             }
             result |= Response::changed();
         }
-        if save_chosen && !self.settings_save_preview {
-            self.request_settings_save(cx);
-            result |= Response::changed();
-        }
-        if confirm_chosen && self.settings.dirty {
-            result |= self.commit_settings_save();
-        }
-        if self.settings_save_preview {
-            let actions = [
-                Action::new(ActionKey::CANCEL, "Cancel"),
-                Action::new(ActionKey::CONFIRM, "Save"),
-            ];
-            let dialog = Dialog::new(crate::screens::settings::PREVIEW)
-                .title("Save settings")
-                .actions(&actions)
-                .cancel(ActionKey::CANCEL)
-                .primary(ActionKey::CONFIRM)
-                .width(66);
-            let response = dialog.update(cx, &mut self.settings_save_dialog);
-            let action = response.action_ref().copied();
-            result |= response.erase();
-            if let Some(action) = action {
-                match action {
-                    DialogAction::Action(ActionKey::CONFIRM) => {
-                        result |= self.commit_settings_save();
-                    }
-                    DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_) => {
-                        self.abort_settings_save(cx);
-                    }
-                    DialogAction::Action(_) => {}
-                }
-                result |= Response::changed();
-            }
-        }
         result
-    }
-
-    fn abort_settings_save(&mut self, cx: &mut Cx<'_>) {
-        self.settings_save_preview = false;
-        self.status = Some("Save aborted · settings unchanged".into());
-        self.settings.focus = SettingsFocus::Buttons;
-        cx.focus(crate::screens::settings::SAVE);
-    }
-
-    fn commit_settings_save(&mut self) -> Response<()> {
-        if !self.settings.dirty {
-            return Response::default();
-        }
-        let keep = self.settings.attempt_save(self.world.refresh_fails);
-        if keep {
-            self.status = self.settings.save_error.clone();
-        } else {
-            self.apply_settings_trust();
-            self.settings.clear_trust();
-            self.settings_save_preview = false;
-            self.status = Some("Settings saved".into());
-            self.route = Route::Manager;
-        }
-        Response::changed()
     }
 
     fn update_prelude(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -4602,14 +3662,6 @@ impl App {
             }
             result |= Response::changed();
         }
-        if self.prelude.step() == 1 {
-            let checkbox = Checkbox::new(crate::screens::prelude::READ_ONLY, "Mount read-only")
-                .update(cx, &mut self.prelude_ui.read_only);
-            if checkbox.action_ref().is_some() {
-                result |= Response::changed();
-            }
-            result |= checkbox.erase();
-        }
         result
     }
 
@@ -4629,6 +3681,10 @@ impl App {
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
             let mut result = key.erase();
+            if key_cancelled {
+                self.dismiss_editor_env_form(cx);
+                return result;
+            }
             if Self::rearm_text_input(
                 key_rearm,
                 &mut self.editor.env_key_input,
@@ -4654,8 +3710,9 @@ impl App {
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
             result |= value.erase();
-            if key_cancelled || value_cancelled {
-                self.editor.discard_env_value();
+            if value_cancelled {
+                self.dismiss_editor_env_form(cx);
+                return result;
             }
             if Self::rearm_text_input(
                 value_rearm,
@@ -4700,57 +3757,21 @@ impl App {
             }
             return result;
         }
-        if self.editor.exit_open {
-            let mut result = Response::ignored();
-            let cancel = Button::new(crate::screens::editor::EXIT_CANCEL, "Cancel").update(cx);
-            let cancel_chosen = cancel.activated();
-            result |= cancel.erase();
-            if cancel_chosen {
-                self.editor.close_exit();
-                result |= Response::changed();
-            }
-            let discard = Button::new(crate::screens::editor::EXIT_DISCARD, "Discard").update(cx);
-            let discard_chosen = discard.activated();
-            result |= discard.erase();
-            if discard_chosen {
-                let lost = match self.editor.change_count() {
-                    1 => "1 change".to_owned(),
-                    n => format!("{n} changes"),
-                };
-                self.editor.close_exit();
-                self.status = Some(format!("Discarded {lost}"));
-                self.route = Route::Manager;
-                result |= Response::changed();
-            }
-            let save = Button::new(crate::screens::editor::EXIT_SAVE, "Save").update(cx);
-            let save_chosen = save.activated();
-            result |= save.erase();
-            if save_chosen {
-                self.editor.close_exit();
-                if self.editor.open_preview() && !cx.is_open(crate::screens::editor::PREVIEW) {
-                    self.snapshot_preview_base(cx);
-                    let (title, facts, code) = crate::screens::editor::EditorScreen::preview_parts(
-                        &self.editor,
-                        &self.world,
-                    );
-                    let pairs: Vec<(&str, &str)> = facts
-                        .iter()
-                        .map(|(label, value, _)| (label.as_str(), value.as_str()))
-                        .collect();
-                    let codes: Vec<&str> = code.iter().map(String::as_str).collect();
-                    let dialog = Self::preview_dialog(&title, &pairs, &codes);
-                    cx.open_layer(crate::screens::editor::PREVIEW, dialog.layer(cx));
-                    self.status = Some("Save workspace · preview changes before commit".into());
-                }
-                result |= Response::changed();
-            }
-            return result;
-        }
         let mut result = Response::ignored();
         match self.editor.tab {
             EditorTab::Mounts => {
                 let mount = Self::editor_mount_button().update(cx);
+                let chosen = mount.activated();
                 result |= mount.erase();
+                if chosen {
+                    if let Some(mount) = self.editor.pending.mounts.first_mut() {
+                        mount.readonly = true;
+                        mount.isolation = crate::domain::workspace::Isolation::Clone;
+                    }
+                    self.editor.mark_dirty();
+                    self.status = Some("Mounts · 1 modified · readonly · worktree".into());
+                    result |= Response::changed();
+                }
             }
             EditorTab::Roles => {
                 let role = Self::editor_role_button().update(cx);
@@ -4772,11 +3793,8 @@ impl App {
             }
             EditorTab::Accounts => {
                 let rows = self.editor_account_rows();
-                let list = List::new(crate::screens::editor::ACCOUNTS_LIST).update(
-                    cx,
-                    &mut self.editor_accounts,
-                    &rows,
-                );
+                let list =
+                    List::new(EDITOR_ACCOUNTS_LIST).update(cx, &mut self.editor_accounts, &rows);
                 let action = list.action_ref().copied();
                 result |= list.erase();
                 if matches!(action, Some(ListAction::Activated(_))) {
@@ -4797,22 +3815,7 @@ impl App {
                     result |= Response::changed();
                 }
             }
-            EditorTab::General => {
-                let keep_awake = Checkbox::new(crate::screens::editor::KEEP_AWAKE, "Keep awake")
-                    .update(cx, &mut self.editor.pending.keep_awake);
-                if keep_awake.action_ref().is_some() {
-                    self.editor.mark_dirty();
-                    result |= Response::changed();
-                }
-                result |= keep_awake.erase();
-                let git_pull = Checkbox::new(crate::screens::editor::GIT_PULL, "Git pull")
-                    .update(cx, &mut self.editor.pending.git_pull);
-                if git_pull.action_ref().is_some() {
-                    self.editor.mark_dirty();
-                    result |= Response::changed();
-                }
-                result |= git_pull.erase();
-            }
+            EditorTab::General => {}
         }
 
         let save = Self::editor_save_button("Save workspace").update(cx);
@@ -4831,17 +3834,8 @@ impl App {
             if self.editor.preview_open {
                 self.commit_editor_save();
                 result |= Response::changed();
-            } else if self.editor.open_preview() && !cx.is_open(crate::screens::editor::PREVIEW) {
-                self.snapshot_preview_base(cx);
-                let (title, facts, code) =
-                    crate::screens::editor::EditorScreen::preview_parts(&self.editor, &self.world);
-                let pairs: Vec<(&str, &str)> = facts
-                    .iter()
-                    .map(|(label, value, _)| (label.as_str(), value.as_str()))
-                    .collect();
-                let codes: Vec<&str> = code.iter().map(String::as_str).collect();
-                let dialog = Self::preview_dialog(&title, &pairs, &codes);
-                cx.open_layer(crate::screens::editor::PREVIEW, dialog.layer(cx));
+            } else if self.editor.open_preview() {
+                cx.focus(EDITOR_SAVE_CONFIRM);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 result |= Response::changed();
             }
@@ -4854,15 +3848,6 @@ impl App {
     }
 
     fn update_launch(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
-        if self.cockpit_failure_open {
-            return Response::ignored();
-        }
-        if self.cockpit_info_open {
-            return self.update_cockpit_info(cx);
-        }
-        if self.cockpit_cancel_confirm {
-            return self.update_cancel_dialog(cx);
-        }
         let mut result = Response::ignored();
         let failed = self
             .launch
@@ -4872,9 +3857,8 @@ impl App {
         let cancel_chosen = cancel.activated();
         result |= cancel.erase();
         if cancel_chosen {
-            self.launch = None;
-            self.route = Route::Manager;
-            return result;
+            self.open_cancel_launch(cx);
+            return result | Response::changed();
         }
         if failed {
             let retry = Self::launch_retry_button().update(cx);
@@ -4891,114 +3875,6 @@ impl App {
                 self.handle_launch_events(events);
                 result |= Response::changed();
             }
-        }
-        result
-    }
-
-    fn draw_cockpit_info(&self, ui: &mut Ui<'_>, area: Rect) {
-        crate::screens::cockpit::CockpitScreen::draw_info(
-            ui,
-            area,
-            &self.world,
-            self.selected_role(),
-            self.cockpit_debug_open,
-            &self.cockpit_info_props,
-            self.launch
-                .as_ref()
-                .filter(|run| run.container_ready())
-                .map(|run| run.container.as_str()),
-        );
-    }
-
-    fn update_cockpit_info(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        for intent in cx.intents(crate::screens::cockpit::INFO_LAYER) {
-            if matches!(intent, Intent::Layer(LayerEvent::Dismissed(_))) {
-                self.cockpit_info_open = false;
-                self.status = None;
-                return Response::changed();
-            }
-        }
-        if !cx.is_open(crate::screens::cockpit::INFO_LAYER) {
-            self.cockpit_info_open = false;
-            self.status = None;
-            return Response::changed();
-        }
-        if self.cockpit_info_focus_pending {
-            self.cockpit_info_focus_pending = false;
-            cx.focus(crate::screens::cockpit::INFO_PROPS);
-        }
-        let full_role = self.selected_role();
-        let role = full_role.rsplit('/').next().unwrap_or(full_role).to_owned();
-        let ws_name = self
-            .world
-            .workspaces
-            .first()
-            .map_or_else(|| "payments-platform".to_owned(), |ws| ws.name.clone());
-        let container = self
-            .launch
-            .as_ref()
-            .filter(|run| run.container_ready())
-            .map(|run| run.container.clone());
-        let debug = self.cockpit_debug_open;
-        let target = format!("{role} into workspace {ws_name}");
-        let telemetry = "run run-202609030914-b5df -> otlp://collector.internal:4317".to_owned();
-        let rows = crate::screens::cockpit::CockpitScreen::info_rows(
-            &role,
-            &target,
-            container.as_deref(),
-            debug,
-            &telemetry,
-        );
-        let response = PropsList::new(crate::screens::cockpit::INFO_PROPS).update(
-            cx,
-            &mut self.cockpit_info_props,
-            &rows,
-        );
-        let action = response.action_ref().copied();
-        let mut result = response.erase();
-        if let Some(PropsAction::Copy(key)) = action
-            && let Some(row) = rows.iter().find(|row| row.key == key)
-            && let Some(text) = row.value.text()
-        {
-            self.world.clipboard = Some(text.to_owned());
-            self.status = Some("Copied to the preview clipboard".into());
-            result |= Response::changed();
-        }
-        let close = Button::new(crate::screens::cockpit::INFO_CLOSE, "Close").update(cx);
-        let closed = close.activated();
-        result |= close.erase();
-        if closed {
-            cx.close_layer(crate::screens::cockpit::INFO_LAYER, Some(ActionKey::CLOSE));
-            self.cockpit_info_open = false;
-            self.status = None;
-            result |= Response::changed();
-        }
-        result
-    }
-
-    fn update_cancel_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let dialog = Self::cockpit_cancel_dialog();
-        let response = dialog.update(cx, &mut self.cancel_dialog);
-        let action = response.action_ref().copied();
-        let mut result = response.erase();
-        match action {
-            Some(DialogAction::Action(ActionKey::CONFIRM)) => {
-                cx.close_layer(CANCEL_DIALOG, Some(ActionKey::CONFIRM));
-                self.cockpit_cancel_confirm = false;
-                self.launch = None;
-                self.route = Route::Manager;
-                cx.focus(MANAGER_LIST);
-                self.status = Some("Launch cancelled · nothing was attached".into());
-                return self.route_changed();
-            }
-            Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
-                cx.close_layer(CANCEL_DIALOG, Some(ActionKey::CANCEL));
-                self.cockpit_cancel_confirm = false;
-                self.status = None;
-                result |= Response::changed();
-            }
-            Some(DialogAction::Action(_)) => {}
-            None => {}
         }
         result
     }
@@ -5049,27 +3925,6 @@ impl App {
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
-        // The brand lockup opens the application menu (tag `capsule.rs:288`).
-        if !cx.is_open(CAPSULE_TAB_MENU) {
-            let brand = Brand::new(APP.sub("brand"), "jackin❯")
-                .clickable(true)
-                .update(cx);
-            let brand_chosen = brand.activated();
-            result |= brand.erase();
-            if brand_chosen {
-                self.capsule_tab_menu_pos = Position::new(1, 1);
-                self.capsule_tab_menu_open = true;
-                self.capsule_tab_menu_kind = CapsuleCtxKind::Brand;
-                self.capsule_tab_menu_state = MenuState::default();
-                let title = self.active_capsule_tab_title();
-                cx.open_layer(
-                    CAPSULE_TAB_MENU,
-                    Self::capsule_ctx_menu(CapsuleCtxKind::Brand, title, Position::new(1, 1))
-                        .layer(cx),
-                );
-                result |= Response::changed();
-            }
-        }
         // Prefix input may retain focus on a child control after a modal
         // closes. Consume its next raw key at the route boundary before any
         // child (menu, tabs, panes, or input) can claim it.
@@ -5090,18 +3945,24 @@ impl App {
             if let Some(key) = prefix_key {
                 self.capsule_input.clear();
                 self.capsule_input_state = TextInputState::default();
-                return self.capsule_prefix_key(cx, key);
+                let response = self.capsule_prefix_key(cx, key);
+                if key != 'm' {
+                    return response;
+                }
+                result |= response;
             }
+        }
+        if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
+            cx.open_layer(
+                CAPSULE_TAB_MENU,
+                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+            );
         }
         let menu = Self::capsule_menu_bar();
         let menu_intents = cx.intents(CAPSULE_MENU_BAR).collect::<Vec<_>>();
-        let menu_state_before = self.capsule_menu_state.clone();
+        let menu_state_before = self.capsule_menu_state;
         let menu_response = menu.update(cx, &mut self.capsule_menu_state);
-        // Fallback swap only: the menu drains Left/Right internally first,
-        // and reopening over its swap FocusOut-dismisses the layer.
-        if let Some(open) = menu_state_before.open_menu()
-            && self.capsule_menu_state.open_menu() == Some(open)
-        {
+        if let Some(open) = menu_state_before.open_menu() {
             let count = CAPSULE_MENUS.len();
             let next = menu_intents.iter().find_map(|intent| match intent {
                 Intent::Binding(action) if *action == CAPSULE_MENU_PREVIOUS => Some(if open == 0 {
@@ -5135,11 +3996,7 @@ impl App {
         }
         result |= menu_response.erase();
 
-        result |= self.update_host_menu_bar(cx);
-
-        let title = self.active_capsule_tab_title();
-        let context =
-            Self::capsule_ctx_menu(self.capsule_tab_menu_kind, title, self.capsule_tab_menu_pos);
+        let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
         let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
         match context_response.action_ref().copied() {
             Some(MenuAction::Chosen(action)) => {
@@ -5150,28 +4007,13 @@ impl App {
                 }
                 cx.close_layer(CAPSULE_TAB_MENU, None);
             }
-            Some(MenuAction::Closed(_reason)) => {
+            Some(MenuAction::Closed(_)) => {
                 self.capsule_tab_menu_open = false;
                 self.capsule_tab_menu_state = MenuState::default();
             }
             _ => {}
         }
         result |= context_response.erase();
-        // Repair path runs after dismissal processing: an outside click
-        // closes the layer during event routing, and reopening before the
-        // menu drains its Dismissed intent would resurrect a dead menu.
-        if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
-            let title = self.active_capsule_tab_title();
-            cx.open_layer(
-                CAPSULE_TAB_MENU,
-                Self::capsule_ctx_menu(
-                    self.capsule_tab_menu_kind,
-                    title,
-                    self.capsule_tab_menu_pos,
-                )
-                .layer(cx),
-            );
-        }
 
         if !cx.is_open(CAPSULE_TAB_MENU) {
             let pane_context = self
@@ -5205,45 +4047,38 @@ impl App {
                 self.capsule_tab_title_index = self.active_capsule_tab_index();
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
-                self.capsule_tab_menu_kind = CapsuleCtxKind::Pane;
                 self.capsule_tab_menu_state = MenuState::default();
-                let title = self.active_capsule_tab_title();
-                cx.open_layer(
-                    CAPSULE_TAB_MENU,
-                    Self::capsule_ctx_menu(CapsuleCtxKind::Pane, title, pos).layer(cx),
-                );
+                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
                 result |= Response::changed();
             } else if let Some((pos, index)) = tab_context {
-                // A tab right-click activates the tab first, like the
-                // reference secondary-click path (tag `capsule.rs:2066`).
-                self.activate_capsule_tab(index);
                 self.capsule_tab_title_index = index;
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
-                self.capsule_tab_menu_kind = CapsuleCtxKind::Tab;
                 self.capsule_tab_menu_state = MenuState::default();
-                let title = self.active_capsule_tab_title();
-                cx.open_layer(
-                    CAPSULE_TAB_MENU,
-                    Self::capsule_tab_context(title, pos).layer(cx),
-                );
+                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
                 result |= Response::changed();
             }
         }
 
         if cx.is_open(CAPSULE_COMMAND_PALETTE) {
-            let screen = cx.viewport();
-            let palette = Self::capsule_command_palette(screen.height);
+            let palette = Self::capsule_command_palette();
             let palette_response =
                 palette.update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS);
             if let Some(PickerAction::Chosen(key)) = palette_response.action_ref().copied() {
                 let action = match key {
                     ItemKey::Num(1) => Some(CMD_CAPSULE_NEW_TAB),
                     ItemKey::Num(2) => Some(CMD_CAPSULE_SPLIT_RIGHT),
-                    ItemKey::Num(3) => Some(CMD_CAPSULE_ZOOM),
-                    ItemKey::Num(18) => Some(CMD_USAGE),
-                    ItemKey::Num(19) => Some(CMD_TAB_CLOSE),
-                    ItemKey::Num(20) => Some(CMD_EXIT_DIALOG),
+                    ItemKey::Num(3) => Some(CMD_CAPSULE_SPLIT_BELOW),
+                    ItemKey::Num(4) => Some(CMD_COPY_SELECTION),
+                    ItemKey::Num(5) => Some(CMD_INSPECT_CHANGES),
+                    ItemKey::Num(6) => Some(CMD_CAPSULE_ZOOM),
+                    ItemKey::Num(7) => Some(CMD_CAPSULE_FOCUS_LEFT),
+                    ItemKey::Num(8) => Some(CMD_USAGE),
+                    ItemKey::Num(9) => Some(CMD_TAB_RENAME),
+                    ItemKey::Num(10) => Some(CMD_TAB_CLOSE),
+                    ItemKey::Num(11) => Some(CMD_KEYBOARD_SHORTCUTS),
+                    ItemKey::Num(12) => Some(CMD_CAPSULE_DETACH),
+                    ItemKey::Num(13) => Some(CMD_CONTAINER_INFO),
                     _ => None,
                 };
                 if let Some(action) = action
@@ -5329,20 +4164,9 @@ impl App {
             && !self.capsule_viewport_focused
             && !self.capsule_tab_menu_open
             && !cx.is_open(CAPSULE_TAB_MENU)
-            && !cx.is_open(CAPSULE_MENU_BAR)
-            && !cx.is_open(MANAGER_MENU_BAR)
-            && !cx.is_open(CAPSULE_COMMAND_PALETTE)
-            && !cx.is_open(ABOUT_DIALOG)
+            && !self.capsule_menu_state.is_open()
         {
-            let has_daemon = self
-                .active_instance
-                .as_ref()
-                .is_some_and(|id| self.world.daemons.contains_key(id));
-            if has_daemon {
-                cx.focus(CAPSULE_INPUT);
-            } else {
-                cx.focus(CAPSULE_MENU_BAR);
-            }
+            cx.focus(CAPSULE_INPUT);
         }
         self.update_capsule_viewports(cx, &mut result);
         let input = Self::capsule_input().update(
@@ -5402,10 +4226,8 @@ impl App {
             let tabs = frame
                 .tabs
                 .as_ref()
-                .map_or(&[] as &[CapsuleTab], |(_, tabs)| tabs.as_slice());
-            Tabs::new(CAPSULE_TABS)
-                .row(paint_capsule_tab)
-                .update(cx, &mut self.tabs_state, tabs)
+                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
+            Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, tabs)
         };
         if let Some(TabsAction::Activated(ItemKey::Index(index))) =
             tabs_response.action_ref().copied()
@@ -5422,10 +4244,17 @@ impl App {
             Route::Intro => Response::ignored(),
             Route::Manager => self.update_manager(cx),
             Route::Prelude => self.update_prelude(cx),
-            Route::Editor => self.update_host_menu_bar(cx) | self.update_editor(cx),
-            Route::Accounts => self.update_host_menu_bar(cx) | self.update_accounts(cx),
-            Route::Usage => self.update_host_menu_bar(cx),
-            Route::Settings => self.update_host_menu_bar(cx) | self.update_settings(cx),
+            Route::Editor => self.update_editor(cx),
+            Route::Accounts => self.update_accounts(cx),
+            Route::Usage => {
+                if cx.activation_key() == Some(ActivationKey::Enter) && !self.usage.detail_open() {
+                    self.open_usage_detail();
+                    Response::changed()
+                } else {
+                    Response::ignored()
+                }
+            }
+            Route::Settings => self.update_settings(cx),
             Route::Launch | Route::Cockpit => self.update_launch(cx, product_tick),
             Route::Handoff | Route::Outro => Response::ignored(),
             Route::Capsule => self.update_capsule(cx),
@@ -5454,8 +4283,9 @@ impl App {
         }
         match command {
             CMD_QUIT => {
-                self.quit = true;
-                cx.quit();
+                if !self.quit_open {
+                    self.open_quit(cx);
+                }
                 Some(Response::changed())
             }
             CMD_MANAGER
@@ -5476,22 +4306,6 @@ impl App {
                     {
                         self.status = Some(format!("Accounts › {}", account.title()));
                     }
-                } else if self.route == Route::Accounts {
-                    self.usage_detail = false;
-                    self.usage.close_detail();
-                    if self.usage.selected().is_none() {
-                        let selected = match self.accounts.selected.clone() {
-                            AccountSel::Account(id) => Some(id),
-                            _ => self
-                                .world
-                                .accounts
-                                .sorted()
-                                .first()
-                                .map(|account| account.id.clone()),
-                        };
-                        self.usage.select(selected);
-                    }
-                    self.route = Route::Usage;
                 } else {
                     self.route = Route::Manager;
                 }
@@ -5503,6 +4317,7 @@ impl App {
             {
                 self.editor_env_role = None;
                 self.editor.open_env_form();
+                self.editor_leaf_focused = true;
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
@@ -5511,83 +4326,23 @@ impl App {
                     return Some(Response::changed());
                 }
                 if self.route == Route::Accounts {
-                    self.accounts_form_stage = 1;
-                    self.accounts_form_enters = 0;
                     self.accounts.open_new();
-                    cx.focus(crate::screens::accounts::NAME);
                     self.op_item_key.clear();
+                    cx.focus(crate::screens::accounts::START);
                 } else {
                     self.route = Route::Accounts;
                     cx.focus(ACCOUNTS_LIST);
                 }
                 Some(Response::changed())
             }
-            CMD_ACCOUNTS_FILTER if self.route == Route::Accounts => {
-                self.accounts_filtering = true;
-                self.accounts_filter_enters = 0;
-                self.accounts.filter_draft.clear();
-                self.accounts.filter_input = TextInputState::default();
-                cx.focus(ACCOUNTS_FILTER_INPUT);
-                Some(Response::changed())
-            }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
-                self.ensure_accounts_selected();
-                let ids: Vec<String> = match &self.accounts.selected {
-                    AccountSel::Account(id) => vec![id.clone()],
-                    AccountSel::Provider(surface) => self
-                        .world
-                        .accounts
-                        .accounts
-                        .iter()
-                        .filter(|account| account.surface == *surface && account.enabled)
-                        .map(|account| account.id.clone())
-                        .collect(),
-                    _ => self
-                        .world
-                        .accounts
-                        .accounts
-                        .iter()
-                        .filter(|account| account.enabled)
-                        .map(|account| account.id.clone())
-                        .collect(),
-                };
-                if ids.is_empty() {
-                    self.status = Some("Nothing to refresh".into());
-                    return Some(Response::changed());
-                }
-                let mut started = 0;
-                for (i, id) in ids.iter().enumerate() {
-                    let Some(account) = self.world.accounts.get_mut(id) else {
-                        continue;
-                    };
-                    if account.usage.freshness.phase == Freshness::Refreshing {
-                        continue;
-                    }
-                    account.usage.freshness.phase = Freshness::Refreshing;
-                    let duration = provider::refresh_duration_ms(account) + i as i64 * 160;
+                if let Some(id) = self.accounts.selected_id.clone() {
+                    self.accounts.pending_refresh = Some(id.clone());
+                    self.status = Some("Refreshing account…".into());
                     self.world.schedule(
-                        duration,
-                        crate::sim::world::Msg::AccountRefreshed {
-                            account: id.clone(),
-                        },
+                        1_000,
+                        crate::sim::world::Msg::AccountRefreshed { account: id },
                     );
-                    started += 1;
-                }
-                if started == 0 {
-                    self.status = Some("Refresh already running".into());
-                } else {
-                    let scope = match &self.accounts.selected {
-                        AccountSel::Account(id) => self
-                            .world
-                            .accounts
-                            .get(id)
-                            .map(|account| account.title())
-                            .unwrap_or_default(),
-                        AccountSel::Provider(surface) => surface.label().to_owned(),
-                        _ => "all".into(),
-                    };
-                    let noun = if started == 1 { "account" } else { "accounts" };
-                    self.status = Some(format!("Refreshing {scope} · {started} {noun}"));
                 }
                 Some(Response::changed())
             }
@@ -5632,7 +4387,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_HELP if self.route == Route::Manager => {
-                self.open_manager_help(cx);
+                self.help_open = true;
                 self.status = Some("Keyboard shortcuts".into());
                 Some(Response::changed())
             }
@@ -5651,29 +4406,30 @@ impl App {
                 Some(Response::changed())
             }
             CMD_USAGE => {
-                self.usage_detail = false;
-                self.usage.close_detail();
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.capsule_usage = true;
                     self.status = Some("Usage".into());
                 } else {
+                    if self.usage.selected().is_none() {
+                        let selected = self
+                            .world
+                            .accounts
+                            .sorted()
+                            .first()
+                            .map(|account| account.id.clone());
+                        self.usage.select(selected);
+                    }
                     self.route = Route::Usage;
-                    cx.focus(crate::screens::usage::LIST);
                 }
                 Some(Response::changed())
             }
             CMD_SETTINGS => {
                 self.route = Route::Settings;
-                self.settings_tab = 1;
-                self.settings_save_preview = false;
                 self.settings.clear_error();
-                self.settings.focus = SettingsFocus::Tabs;
-                cx.focus(crate::screens::settings::TABS);
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
-                self.capsule_new_tab_open = true;
                 self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
                 self.status = Some("New tab · Account for Claude Code".into());
                 Some(Response::changed())
@@ -5681,7 +4437,6 @@ impl App {
             CMD_CAPSULE => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
-                    self.capsule_new_tab_open = true;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
                     self.status = Some("New tab".into());
                 } else if cx.update_cause() == UpdateCause::Settle {
@@ -5726,10 +4481,6 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_CAPSULE_REDRAW if self.route == Route::Capsule => {
-                self.status = Some("Redrawn".into());
-                Some(Response::changed())
-            }
             CMD_INSPECT_CHANGES if self.route == Route::Capsule => {
                 self.inspect.instance = self
                     .active_instance
@@ -5745,13 +4496,8 @@ impl App {
                 self.status = None;
                 Some(Response::changed())
             }
-            CMD_ABOUT => {
-                self.about_open = true;
-                self.about_props = PropsState::default();
-                let mut spec = LayerSpec::modal(ABOUT_DIALOG).size(LayerSize::Fixed(66, 10));
-                spec.initial_focus = Some(ABOUT_PROPS);
-                cx.open_layer(ABOUT_DIALOG, spec);
-                self.status = Some("About".into());
+            CMD_ABOUT if self.route == Route::Capsule => {
+                self.open_about(cx);
                 Some(Response::changed())
             }
             CMD_TAB_RENAME if self.route == Route::Capsule => {
@@ -5764,13 +4510,31 @@ impl App {
                 self.status = Some("Close tab? · Enter confirm · Esc cancel".into());
                 Some(Response::changed())
             }
-            CMD_COCKPIT_LOG
-                if matches!(self.route, Route::Launch | Route::Cockpit)
-                    && !self.cockpit_failure_open =>
-            {
+            CMD_COCKPIT_LOG if matches!(self.route, Route::Launch | Route::Cockpit) => {
                 self.cockpit.log_open = true;
                 self.cockpit.log_scroll = 0;
                 self.status = Some("Docker build · scroll to inspect output".into());
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_INFO
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                if self.cockpit_info_open {
+                    self.close_cockpit_info(cx);
+                } else {
+                    self.open_cockpit_info(cx);
+                }
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_DEBUG
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                self.cockpit_debug_open = !self.cockpit_debug_open;
+                // The telemetry row lives in the dialog. A status string would
+                // shift the hint row on the cockpit underneath.
+                self.status = None;
                 Some(Response::changed())
             }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
@@ -5787,13 +4551,6 @@ impl App {
                         self.manager.toggle(workspace);
                         self.ensure_manager_rows();
                     }
-                }
-                Some(Response::changed())
-            }
-            CMD_MANAGER_TOGGLE if self.route == Route::Manager => {
-                if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
-                    self.manager.toggle(workspace);
-                    self.ensure_manager_rows();
                 }
                 Some(Response::changed())
             }
@@ -5816,33 +4573,23 @@ impl App {
                     self.editor = EditorState::default();
                 }
                 self.editor.select_alias(1);
-                self.editor.focus_tabs();
                 self.editor_accounts = ListState::default();
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
-                cx.focus(crate::screens::editor::TABS);
+                self.editor_leaf_focused = false;
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
                 self.capsule_prefix = true;
                 self.capsule_viewport_focused = false;
+                self.status = Some("prefix… New tab · Split · Copy · Detach".into());
                 cx.focus(CAPSULE_INPUT);
                 Some(Response::changed())
             }
             CMD_CAPSULE_DETACH if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
                 self.pending_capsule_action = None;
-                let name = self
-                    .active_instance
-                    .as_ref()
-                    .and_then(|id| self.world.daemons.get(id))
-                    .map(|d| d.workspace.clone())
-                    .unwrap_or_default();
-                let n = self.world.running_count();
-                self.status = Some(format!(
-                    "Detached · {name} keeps running · {} in the Construct",
-                    crate::screens::manager::plural(n, "instance", "instances")
-                ));
+                self.status = Some("Detached from Capsule".into());
                 self.route = Route::Manager;
                 self.reset_manager_cursor();
                 cx.focus(MANAGER_LIST);
@@ -5856,7 +4603,6 @@ impl App {
             }
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
-                self.capsule_split_vertical_open = true;
                 self.status = Some("Split below · Account for Claude Code".into());
                 self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
                 Some(Response::changed())
@@ -5874,7 +4620,7 @@ impl App {
                     };
                     self.capsule.zoomed = tab.zoomed.is_some();
                     self.status = Some(if tab.zoomed.is_some() {
-                        "Zoomed · z restores the layout".into()
+                        "zoom · focused pane".into()
                     } else {
                         "zoom off".into()
                     });
@@ -5909,10 +4655,8 @@ impl App {
             }
             CMD_CAPSULE_PALETTE if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
-                self.capsule_palette_open = true;
                 self.capsule_palette_state = PickerState::default();
-                let screen = cx.viewport();
-                let palette = Self::capsule_command_palette(screen.height);
+                let palette = Self::capsule_command_palette();
                 cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
                 // Seed the first cursor in the opening update. Otherwise the
                 // first wheel event initializes it after the baseline frame,
@@ -5920,6 +4664,7 @@ impl App {
                 let _ = palette
                     .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
                     .erase();
+                self.status = Some("Command palette · type an action".into());
                 Some(Response::changed())
             }
             CMD_CONTAINER_INFO if self.route == Route::Capsule => {
@@ -5948,90 +4693,6 @@ impl App {
                 } else {
                     None
                 }
-            }
-            CMD_EXIT_DIALOG if self.route == Route::Manager => {
-                self.manager_quit_confirm = true;
-                self.status = Some("Exit jackin❯?".into());
-                let quit_dialog = self.manager_quit_dialog();
-                let mut spec = quit_dialog.layer(cx);
-                spec.initial_focus = Some(quit_dialog.action_id(1));
-                cx.open_layer(QUIT_DIALOG, spec);
-                Some(Response::changed())
-            }
-            CMD_MENU_OPEN
-                if Self::is_host(self.route)
-                    && self.route != Route::Prelude
-                    && !self.host_menu_editing() =>
-            {
-                self.manager_menu_state = MenuState::default();
-                self.manager_menu_open = true;
-                let first = match self.route {
-                    Route::Accounts => "Add account…",
-                    Route::Editor | Route::Settings => "Save…",
-                    Route::Usage => "Refresh",
-                    _ => "New workspace…",
-                };
-                let response = self
-                    .host_menu_bar()
-                    .open_menu(cx, &mut self.manager_menu_state, 0);
-                self.status = Some(first.into());
-                Some(response.erase())
-            }
-            CMD_CONTAINER_INFO if self.route == Route::Manager => {
-                self.manager_inspect_open = true;
-                self.status = Some("Container 7f3a".into());
-                cx.open_layer(
-                    MANAGER_INSPECT,
-                    crate::screens::manager::InspectDialog::layer_spec(MANAGER_INSPECT),
-                );
-                Some(Response::changed())
-            }
-            CMD_MANAGER_DETAIL if self.route == Route::Manager => {
-                let current = self.manager.detail_open();
-                self.manager.set_detail_open(!current);
-                Some(Response::changed())
-            }
-            CMD_COCKPIT_INFO
-                if matches!(self.route, Route::Cockpit | Route::Launch)
-                    && !self.cockpit_failure_open =>
-            {
-                self.cockpit_info_open = !self.cockpit_info_open;
-                if self.cockpit_info_open {
-                    self.cockpit_info_props = PropsState::default();
-                    // Focusing during this command re-dispatches `i` and
-                    // toggles the dialog shut. The layer opens now; focus
-                    // lands on the next update.
-                    let spec = LayerSpec::modal(crate::screens::cockpit::INFO_LAYER);
-                    cx.open_layer(crate::screens::cockpit::INFO_LAYER, spec);
-                    self.cockpit_info_focus_pending = true;
-                    self.status = Some("Debug info".into());
-                } else {
-                    cx.close_layer(crate::screens::cockpit::INFO_LAYER, None);
-                    self.status = None;
-                }
-                Some(Response::changed())
-            }
-            CMD_COCKPIT_CANCEL
-                if matches!(self.route, Route::Cockpit | Route::Launch)
-                    && !self.cockpit_failure_open =>
-            {
-                let dialog = Self::cockpit_cancel_dialog();
-                let mut spec = dialog.layer(cx);
-                spec.initial_focus = Some(dialog.action_id(0));
-                cx.open_layer(CANCEL_DIALOG, spec);
-                self.cockpit_cancel_confirm = true;
-                self.status = Some("Cancel the launch?".into());
-                Some(Response::changed())
-            }
-            CMD_COCKPIT_DEBUG
-                if matches!(self.route, Route::Cockpit | Route::Launch)
-                    && !self.cockpit_failure_open =>
-            {
-                self.cockpit_debug_open = !self.cockpit_debug_open;
-                // The run id is the chrome chip, not footer status. A status
-                // string shifts the hint row and repeats the id on the right.
-                self.status = None;
-                Some(Response::changed())
             }
             CMD_EXIT_DIALOG if self.route == Route::Capsule => {
                 self.exit_choice = Some(0);
@@ -6082,179 +4743,76 @@ impl App {
                 }
             }
             CMD_EXIT_CONFIRM if self.route == Route::Intro => {
-                self.enter_intro();
-                Some(Response::changed())
-            }
-            CMD_EXIT_CONFIRM if self.route == Route::Accounts => {
-                if self.accounts_form_stage > 0 {
-                    self.accounts_form_enters += 1;
-                    return Some(Response::changed());
-                }
-                if self.accounts_filtering {
-                    self.accounts_filter_enters += 1;
-                    return Some(Response::changed());
-                }
-                self.ensure_accounts_selected();
-                match self.accounts.selected.clone() {
-                    AccountSel::Add => {
-                        self.accounts_form_stage = 1;
-                        self.accounts_form_enters = 0;
-                        self.accounts.open_new();
-                        cx.focus(crate::screens::accounts::NAME);
-                        self.op_item_key.clear();
-                    }
-                    AccountSel::Provider(surface) => {
-                        if !self.accounts.folded.remove(&surface) {
-                            self.accounts.folded.insert(surface);
-                        }
-                    }
-                    _ => {
-                        self.accounts_drawer_open = true;
-                        self.accounts.drawer_open = true;
+                if self.intro.is_done() {
+                    self.route = Route::Manager;
+                    self.world.arbiter.complete_entry(self.world.now_ms());
+                } else {
+                    self.intro.skip();
+                    if self.intro.is_done() {
+                        self.route = Route::Manager;
+                        self.world.arbiter.complete_entry(self.world.now_ms());
                     }
                 }
                 Some(Response::changed())
-            }
-            CMD_EXIT_CONFIRM if self.route == Route::Usage => {
-                if self.usage.selected().is_none() {
-                    self.usage.move_account(&self.world, 1);
-                }
-                self.usage_detail = true;
-                let _ = self.usage.open_detail();
-                cx.focus(crate::screens::usage::DETAIL.sub("title"));
-                Some(Response::changed())
-            }
-            CMD_EXIT_CONFIRM if self.route == Route::Editor => {
-                if self.editor.preview_open
-                    || self.editor.exit_open
-                    || self.editor.env_form_open
-                    || self.editor.focus != crate::screens::editor::EditorFocus::Tabs
-                {
-                    None
-                } else {
-                    self.editor.focus_body();
-                    match self.editor.tab {
-                        EditorTab::General => cx.focus(crate::screens::editor::NAME),
-                        EditorTab::Mounts => cx.focus(crate::screens::editor::MOUNTS_LIST),
-                        EditorTab::Roles => cx.focus(crate::screens::editor::ROLES_LIST),
-                        EditorTab::Environments => cx.focus(crate::screens::editor::ENV_LIST),
-                        EditorTab::Accounts => cx.focus(crate::screens::editor::ACCOUNTS_LIST),
-                    }
-                    Some(Response::changed())
-                }
-            }
-            CMD_EXIT_CONFIRM if self.route == Route::Settings => {
-                if self.settings_save_preview || self.settings.focus != SettingsFocus::Tabs {
-                    None
-                } else {
-                    self.settings.focus = SettingsFocus::Body;
-                    match self.settings_tab {
-                        2 => cx.focus(crate::screens::settings::MOUNTS_BODY),
-                        3 => cx.focus(crate::screens::settings::ENV_BODY),
-                        4 => cx.focus(crate::screens::settings::AGENTS_BODY),
-                        5 => cx.focus(SETTINGS_TRUST),
-                        _ => cx.focus(crate::screens::settings::GENERAL_BODY),
-                    }
-                    Some(Response::changed())
-                }
-            }
-            CMD_EXIT_CONFIRM if self.route == Route::Manager => {
-                if let Some(instance_id) = self.selected_instance_id()
-                    && self
-                        .world
-                        .instance(&instance_id)
-                        .is_some_and(|instance| instance.status.reconnectable())
-                {
-                    self.active_instance = Some(instance_id);
-                    self.route = Route::Capsule;
-                    let name = self
-                        .active_instance
-                        .as_ref()
-                        .and_then(|id| self.world.daemons.get(id))
-                        .map(|d| d.workspace.clone())
-                        .unwrap_or_default();
-                    self.status = Some(format!("Attached to {name} · tabs and panes restored"));
-                    self.capsule_interaction.focus_pane();
-                    self.sync_capsule_projection();
-                    Some(Response::changed())
-                } else if matches!(
-                    self.manager.selected_row(),
-                    ManagerRowKey::Workspace(_)
-                        | ManagerRowKey::CurrentDirectory
-                        | ManagerRowKey::NewWorkspace
-                ) {
-                    self.open_agent_picker(cx);
-                    Some(Response::changed())
-                } else {
-                    None
-                }
             }
             CMD_PRELUDE_BACKSPACE if self.route == Route::Prelude => {
                 self.prelude.source_back();
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Prelude => {
-                self.prelude.move_selection(true);
-                Some(Response::changed())
-            }
-            CMD_NAV_UP if self.route == Route::Manager => {
-                self.ensure_manager_rows();
-                let current_index = self
-                    .manager_rows_cache
-                    .iter()
-                    .position(|r| Some(r.key) == self.manager.list.cursor())
-                    .unwrap_or(0);
-                let prev_index = current_index.saturating_sub(1);
-                if let Some(row) = self.manager_rows_cache.get(prev_index) {
-                    self.manager.list.set_cursor(prev_index, row.key);
-                    self.manager.select_row(row.domain.clone());
+                if self.prelude.step() == 1 {
+                    let from = self.prelude.selection();
+                    let _ = self
+                        .prelude
+                        .follow_source_cursor(from, from.saturating_add(1));
+                } else {
+                    self.prelude.move_selection(true);
                 }
                 Some(Response::changed())
             }
-            CMD_NAV_DOWN if self.route == Route::Manager => {
-                self.ensure_manager_rows();
-                let current_index = self
-                    .manager_rows_cache
-                    .iter()
-                    .position(|r| Some(r.key) == self.manager.list.cursor())
-                    .unwrap_or(0);
-                let next_index =
-                    (current_index + 1).min(self.manager_rows_cache.len().saturating_sub(1));
-                if let Some(row) = self.manager_rows_cache.get(next_index) {
-                    self.manager.list.set_cursor(next_index, row.key);
-                    self.manager.select_row(row.domain.clone());
+            CMD_NAV_UP if self.route == Route::Prelude => {
+                let from = self.prelude.selection();
+                let _ = self
+                    .prelude
+                    .follow_source_cursor(from, from.saturating_sub(1));
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.accounts.filtering = true;
+                self.accounts.drawer_open = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input.begin("");
+                cx.focus(crate::screens::accounts::FILTER);
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_DRAWER if self.route == Route::Accounts && !self.accounts.form_open => {
+                if self.accounts.selected_id.is_none() {
+                    self.accounts.selected_id = self
+                        .world
+                        .accounts
+                        .sorted()
+                        .into_iter()
+                        .next()
+                        .map(|account| account.id.clone());
                 }
+                self.accounts.drawer_open = true;
+                self.status = Some("Account inspector".into());
                 Some(Response::changed())
             }
-            CMD_NAV_UP if self.route == Route::Editor => {
-                cx.focus_prev();
+            CMD_SETTINGS_TAB_PREV
+                if self.route == Route::Settings && !self.settings_save_preview =>
+            {
+                self.settings.cycle_tab(false);
                 Some(Response::changed())
             }
-            CMD_NAV_DOWN if self.route == Route::Editor => {
-                cx.focus_next();
+            CMD_EXIT_CONFIRM if self.route == Route::Usage => {
+                self.open_usage_detail();
                 Some(Response::changed())
-            }
-            CMD_PRELUDE_SPACE if self.route == Route::Manager => {
-                if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
-                    self.manager.toggle(workspace);
-                    self.ensure_manager_rows();
-                }
-                Some(Response::changed())
-            }
-            CMD_PRELUDE_SPACE if self.route == Route::Capsule && self.capsule_prefix => {
-                Some(self.capsule_prefix_key(cx, ' '))
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
                 if self.prelude.step() == 1 {
-                    if cx
-                        .state(crate::screens::prelude::READ_ONLY)
-                        .contains(StateFlags::FOCUSED)
-                    {
-                        self.prelude_ui.read_only = !self.prelude_ui.read_only;
-                    } else {
-                        self.prelude.choose_source();
-                        cx.focus(crate::screens::prelude::CONTINUE);
-                    }
+                    self.prelude.choose_source();
+                    cx.focus(crate::screens::prelude::CONTINUE);
                 }
                 Some(Response::changed())
             }
@@ -6273,37 +4831,9 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_PRELUDE_SPACE
-                if self.route == Route::Editor && self.editor.tab == EditorTab::General =>
-            {
-                // Space arrives through the app capture binding (as on the
-                // prelude), so the focused General checkbox flips here; the
-                // component update below never sees the chord.
-                if cx.update_cause() == UpdateCause::Event {
-                    if cx
-                        .state(crate::screens::editor::KEEP_AWAKE)
-                        .contains(StateFlags::FOCUSED)
-                    {
-                        self.editor.pending.keep_awake = !self.editor.pending.keep_awake;
-                        self.editor.mark_dirty();
-                    } else if cx
-                        .state(crate::screens::editor::GIT_PULL)
-                        .contains(StateFlags::FOCUSED)
-                    {
-                        self.editor.pending.git_pull = !self.editor.pending.git_pull;
-                        self.editor.mark_dirty();
-                    }
-                }
-                Some(Response::changed())
-            }
             CMD_NEW_WORKSPACE if self.route == Route::Manager => {
                 self.route = Route::Prelude;
                 self.prelude = PreludeState::default();
-                self.prelude_ui = PreludeUiState::default();
-                self.manager_menu_state = MenuState::default();
-                self.manager_menu_open = false;
-                cx.close_layer(MANAGER_MENU_BAR, None);
-                cx.focus(crate::screens::prelude::FILE_LIST);
                 Some(Response::changed())
             }
             CMD_NEW_WORKSPACE
@@ -6322,63 +4852,15 @@ impl App {
                     self.editor.next_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                self.editor.focus_tabs();
-                cx.focus(crate::screens::editor::TABS);
-                Some(Response::changed())
-            }
-            CMD_EDITOR_MOUNTS if self.route == Route::Editor => {
-                if cx.update_cause() == UpdateCause::Event {
-                    self.editor.select_alias(2);
-                }
-                self.editor.focus_tabs();
-                cx.focus(crate::screens::editor::TABS);
-                Some(Response::changed())
-            }
-            CMD_MOUNT_TOGGLE_RO
-                if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts =>
-            {
-                if let Some(mount) = self.editor.pending.mounts.first_mut() {
-                    mount.readonly = !mount.readonly;
-                    self.status = Some(format!(
-                        "{} · {}",
-                        mount.destination,
-                        if mount.readonly {
-                            "read-only"
-                        } else {
-                            "read-write"
-                        }
-                    ));
-                }
-                self.editor.mark_dirty();
-                Some(Response::changed())
-            }
-            CMD_MOUNT_CYCLE_ISOLATION
-                if self.route == Route::Editor && self.editor.tab == EditorTab::Mounts =>
-            {
-                if let Some(mount) = self.editor.pending.mounts.first_mut() {
-                    if mount.running_isolated {
-                        self.status = Some(format!(
-                            "Cannot change isolation: a running instance holds isolated state for {}",
-                            mount.destination
-                        ));
-                    } else {
-                        mount.isolation = mount.isolation.next();
-                        self.status = Some(format!(
-                            "{} · isolation {}",
-                            mount.destination,
-                            mount.isolation.label().to_lowercase()
-                        ));
-                    }
-                }
-                self.editor.mark_dirty();
+                self.focus_editor_tab(cx);
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(4);
                 }
-                self.editor.focus_tabs();
-                cx.focus(crate::screens::editor::TABS);
+                self.editor_leaf_focused = true;
+                cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
@@ -6386,64 +4868,25 @@ impl App {
                     self.editor.previous_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
-                self.editor.focus_tabs();
-                cx.focus(crate::screens::editor::TABS);
+                self.focus_editor_tab(cx);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(3);
                 }
-                self.editor.focus_tabs();
-                cx.focus(crate::screens::editor::TABS);
-                Some(Response::changed())
-            }
-            CMD_EDITOR_MOUNTS if self.route == Route::Settings => {
-                self.settings_tab = 2;
-                self.settings.focus = SettingsFocus::Tabs;
-                cx.focus(crate::screens::settings::TABS);
-                Some(Response::changed())
-            }
-            CMD_EDITOR_ROLES if self.route == Route::Settings => {
-                self.settings_tab = 3;
-                self.settings.focus = SettingsFocus::Tabs;
-                cx.focus(crate::screens::settings::TABS);
-                Some(Response::changed())
-            }
-            CMD_EDITOR_ENV if self.route == Route::Settings => {
-                self.settings_tab = 4;
-                self.settings.focus = SettingsFocus::Tabs;
-                cx.focus(crate::screens::settings::TABS);
+                self.editor_leaf_focused = true;
+                cx.focus(EDITOR_ROLE_EDIT);
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
-                self.settings_tab = 5;
-                self.settings.focus = SettingsFocus::Tabs;
-                cx.focus(crate::screens::settings::TABS);
+                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
+                cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
-                self.settings_tab = 5;
-                self.settings.focus = SettingsFocus::Tabs;
-                cx.focus(crate::screens::settings::TABS);
-                Some(Response::changed())
-            }
-            CMD_EDITOR_NEXT if self.route == Route::Settings => {
-                if cx.update_cause() == UpdateCause::Event {
-                    let active = self.settings_tab.saturating_sub(1);
-                    self.settings_tab = (active + 1) % 5 + 1;
-                    self.settings.focus = SettingsFocus::Tabs;
-                }
-                cx.focus(crate::screens::settings::TABS);
-                Some(Response::changed())
-            }
-            CMD_EDITOR_PREVIOUS if self.route == Route::Settings => {
-                if cx.update_cause() == UpdateCause::Event {
-                    let active = self.settings_tab.saturating_sub(1);
-                    self.settings_tab = (active + 4) % 5 + 1;
-                    self.settings.focus = SettingsFocus::Tabs;
-                }
-                cx.focus(crate::screens::settings::TABS);
+                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
+                cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Editor => {
@@ -6451,8 +4894,8 @@ impl App {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
                 }
-                self.editor.focus_tabs();
-                cx.focus(crate::screens::editor::TABS);
+                self.editor_leaf_focused = true;
+                cx.focus(EDITOR_ACCOUNTS_LIST);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREFER
@@ -6482,76 +4925,33 @@ impl App {
             }
             CMD_SAVE if self.route == Route::Editor => {
                 self.editor.mark_dirty();
-                if self.editor.open_preview() && !cx.is_open(crate::screens::editor::PREVIEW) {
-                    self.snapshot_preview_base(cx);
-                    let (title, facts, code) = crate::screens::editor::EditorScreen::preview_parts(
-                        &self.editor,
-                        &self.world,
-                    );
-                    let pairs: Vec<(&str, &str)> = facts
-                        .iter()
-                        .map(|(label, value, _)| (label.as_str(), value.as_str()))
-                        .collect();
-                    let codes: Vec<&str> = code.iter().map(String::as_str).collect();
-                    let dialog = Self::preview_dialog(&title, &pairs, &codes);
-                    cx.open_layer(crate::screens::editor::PREVIEW, dialog.layer(cx));
-                }
+                self.editor.open_preview();
+                cx.focus(crate::screens::editor::SAVE);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Settings => {
-                self.request_settings_save(cx);
+                if !self.settings.dirty {
+                    self.settings.begin_draft();
+                }
+                self.settings_save_preview = true;
+                cx.focus(SETTINGS_SAVE_CONFIRM);
+                self.status = Some("Save settings · choose a confirmation action".into());
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Settings => {
-                if cx.update_cause() == UpdateCause::Event
-                    && self.settings_tab == 5
-                    && self.settings.focus == SettingsFocus::Body
-                    && !self.settings_save_preview
-                    && let Some((source, trusted)) =
-                        self.settings.toggle_trust(&self.world.global.trust)
-                {
-                    self.status = Some(format!(
-                        "{} · {} · save to apply",
-                        source,
-                        if trusted { "trusted" } else { "untrusted" }
-                    ));
+                if cx.update_cause() == UpdateCause::Event {
+                    self.trusted = !self.trusted;
+                    if self.settings.dirty {
+                        self.settings.mark_dirty();
+                    } else {
+                        self.settings.begin_draft();
+                    }
                 }
-                Some(Response::changed())
-            }
-            CMD_NAV_UP if self.route == Route::Settings => {
-                if cx.update_cause() == UpdateCause::Event
-                    && self.settings_tab == 5
-                    && self.settings.focus == SettingsFocus::Body
-                    && !self.settings_save_preview
-                {
-                    let len = self.world.global.trust.len();
-                    self.settings.move_trust_cursor(-1, len);
-                }
-                Some(Response::changed())
-            }
-            CMD_NAV_DOWN if self.route == Route::Settings => {
-                if cx.update_cause() == UpdateCause::Event
-                    && self.settings_tab == 5
-                    && self.settings.focus == SettingsFocus::Body
-                    && !self.settings_save_preview
-                {
-                    let len = self.world.global.trust.len();
-                    self.settings.move_trust_cursor(1, len);
-                }
-                Some(Response::changed())
-            }
-            CMD_NAV_UP if self.route == Route::Accounts && !self.accounts.form_open => {
-                self.move_accounts_cursor(-1);
-                Some(Response::changed())
-            }
-            CMD_NAV_DOWN if self.route == Route::Accounts && !self.accounts.form_open => {
-                self.move_accounts_cursor(1);
-                self.accounts_down_count += 1;
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Usage => {
-                self.usage.move_account(&self.world, 1);
+                self.usage.next_tab();
                 Some(Response::changed())
             }
             _ => None,
@@ -6639,7 +5039,6 @@ impl App {
             Route::Intro => {
                 if self.intro.advance_tick() && self.intro.is_done() {
                     self.route = Route::Manager;
-                    self.reset_manager_cursor();
                     self.world.arbiter.complete_entry(self.world.now_ms());
                     result |= Response::changed();
                 }
@@ -6665,424 +5064,1046 @@ impl App {
         }
         result
     }
-}
 
-fn truncate_middle(s: &str, max: usize) -> String {
-    let char_count = s.chars().count();
-    if char_count <= max {
-        return s.to_owned();
-    }
-    if max < 5 {
-        return s.chars().take(max).collect();
-    }
-    let keep_end = (max.saturating_sub(1)) / 3;
-    let keep_start = max.saturating_sub(1).saturating_sub(keep_end);
-    let head: String = s.chars().take(keep_start).collect();
-    let tail: String = s
-        .chars()
-        .skip(char_count.saturating_sub(keep_end))
-        .collect();
-    format!("{head}…{tail}")
-}
-
-/// The host and cockpit strips. Gap 2 is the tag segment separator.
-/// The container fill matches the row already painted behind the strip.
-fn draw_header_status(
-    ui: &mut Ui<'_>,
-    id: Id,
-    area: Rect,
-    left: &[StatusItem<'_>],
-    right: &[StatusItem<'_>],
-    dim: bool,
-) {
-    const CANVAS: [(Part, StylePatch); 1] = [(
-        Part::CONTAINER,
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .set_bg(Role::Surface(Surface::Canvas))
-            .remove(Modifier::BOLD),
-    )];
-    const DIM: [(Part, StylePatch); 1] = [(
-        Part::CONTAINER,
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Muted))
-            .set_bg(Role::Surface(Surface::Canvas))
-            .remove(Modifier::BOLD),
-    )];
-    let bar = StatusBar::new(id).gap(2).left(left).right(right);
-    if dim {
-        bar.patch_part(&DIM).draw(ui, area);
-    } else {
-        bar.patch_part(&CANVAS).draw(ui, area);
-    }
-}
-
-impl App {
-    /// Tag `row_status` for the cursor mount: what changed, or the hidden
-    /// source column at narrow widths.
-    fn editor_mount_row_status(&self, full_width: u16) -> Option<String> {
-        let m = self.editor.pending.mounts.first()?;
-        let o = self.editor.original_mount(&m.destination);
-        match o {
-            Some(o) if o != m => {
-                let mut s = format!(
-                    "was {} · {}",
-                    o.mode_label(),
-                    o.isolation.label().to_lowercase()
-                );
-                if o.source != m.source {
-                    s.push_str(&format!(" · {}", self.world.tilde(m.source_label())));
-                }
-                Some(s)
-            }
-            None => Some("new mount".into()),
-            _ => {
-                let avail = full_width.saturating_sub(9);
-                if avail < 90 {
-                    Some(format!("source {}", self.world.tilde(m.source_label())))
-                } else {
-                    None
-                }
-            }
-        }
-    }
-
-    fn draw_host_menu(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        if self.route == Route::Prelude {
-            let canvas = self.historical_span_style((128, 128, 128), (0, 0, 0), false);
-            ui.fill(area, canvas);
-            Brand::new(APP.sub("brand"), "jackin❯")
-                .patch_part(&Self::PRELUDE_BRAND_DIM)
-                .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-            self.host_menu_bar()
-                .patch_part(&Self::PRELUDE_MENU_DIM)
-                .draw(
-                    ui,
-                    Rect::new(area.x.saturating_add(11), area.y, 20, 1),
-                    &self.manager_menu_state,
-                );
-
-            let rest_x = area.x.saturating_add(31);
-            let rest_w = area.right().saturating_sub(rest_x);
-            if rest_w > 0 {
-                let faint = Role::Fg(FgStep::Faint);
-                let segs = [
-                    StatusItem::new("Workspaces › new workspace")
-                        .tone(faint)
-                        .priority(7),
-                    StatusItem::new("inside the Construct")
-                        .tone(faint)
-                        .priority(6),
-                    StatusItem::new("no instances")
-                        .tone(Role::Fg(FgStep::Ghost))
-                        .priority(5),
-                ];
-                draw_header_status(
-                    ui,
-                    HOST_HEADER,
-                    Rect::new(rest_x, area.y, rest_w, 1),
-                    &[],
-                    &segs,
-                    true,
-                );
-            }
+    fn draw_header(&self, ui: &mut Ui<'_>, area: Rect) {
+        let heading = Rect {
+            height: area.height.min(1),
+            ..area
+        };
+        let style = ui.surface_style();
+        let usage_heading;
+        let label = if self.route == Route::Usage {
+            let detail = self.usage.selected().and_then(|id| {
+                self.world
+                    .accounts
+                    .get(id)
+                    .map(|account| (account.surface.surface_name(), account.display_name.clone()))
+            });
+            usage_heading = self.usage.crumb(
+                detail
+                    .as_ref()
+                    .map(|(surface, name)| (*surface, name.as_str())),
+            );
+            usage_heading.as_str()
+        } else {
+            self.route.title()
+        };
+        ui.paint_str(heading, label, style);
+        if area.height < 2 {
             return;
         }
-
-        ui.fill(area, palette.primary_on_canvas);
-
-        // The account form dims this row afterwards (`dim_layer` on the full
-        // screen). Painting the dimmed colours here would step them twice.
-        let _ = Brand::new(APP.sub("brand"), "jackin❯")
-            .clickable(true)
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-        let menu_area = Rect::new(area.x.saturating_add(11), area.y, 20, 1);
-        self.host_menu_bar()
-            .draw(ui, menu_area, &self.manager_menu_state);
-
-        // Tag `draw_host_menu`: the breadcrumb strip starts at `used + 2`
-        // past the menu labels; this bar's box already ends one cell past
-        // the last label, so one more cell lands on the same origin.
-        let rest_x = menu_area.right().saturating_add(1);
-        let rest_w = area.right().saturating_sub(rest_x);
-        if rest_w > 0 {
-            let manager_crumb: String;
-            let crumb = match self.route {
-                Route::Manager => {
-                    manager_crumb = match self.manager.selected_row() {
-                        ManagerRowKey::Workspace(id) => self
-                            .world
-                            .workspace(*id)
-                            .map(|w| format!("Workspaces › {}", w.name))
-                            .unwrap_or_else(|| "Workspaces".into()),
-                        ManagerRowKey::Instance(id) => self
-                            .world
-                            .instance(id)
-                            .map(|i| {
-                                let ws_name = i
-                                    .workspace
-                                    .and_then(|wid| self.world.workspace(wid))
-                                    .map_or("workspace", |w| w.name.as_str());
-                                format!(
-                                    "Workspaces › {} › {}",
-                                    ws_name,
-                                    i.id.trim_start_matches("jk-")
-                                )
-                            })
-                            .unwrap_or_else(|| "Workspaces".into()),
-                        _ => "Workspaces".into(),
-                    };
-                    manager_crumb.as_str()
-                }
-                Route::Accounts => {
-                    manager_crumb =
-                        crate::screens::accounts::crumb(&self.world, &self.accounts.selected);
-                    manager_crumb.as_str()
-                }
-                Route::Usage => {
-                    manager_crumb = crate::screens::usage::crumb(&self.world, &self.usage);
-                    manager_crumb.as_str()
-                }
-                Route::Settings => {
-                    manager_crumb = SettingsScreen::crumb(self.settings_tab);
-                    manager_crumb.as_str()
-                }
-                Route::Editor => {
-                    let ws_name = self
-                        .editor
-                        .workspace_id()
-                        .and_then(|id| self.world.workspace(id))
-                        .map_or_else(|| self.editor.pending.name.as_str(), |w| w.name.as_str());
-                    manager_crumb = format!("Workspaces › {} › edit", ws_name);
-                    manager_crumb.as_str()
-                }
-                Route::Prelude => "Create",
-                _ => "",
-            };
-            // Tag `construct_state`: entry completion counts even when no
-            // instance is running, so the post-intro manager is inside.
-            let state = if self.world.arbiter.entered_at_ms.is_some()
-                || self.world.running_count() > 0
-                || self.route == Route::Capsule
-            {
-                "inside the Construct"
-            } else {
-                "outside the Construct"
-            };
-            // Tag header: the arbiter's discovery replaces the count when
-            // it fails (`! {label}`, error tone), and a stale daemon adds
-            // its warning badge after the count segment.
-            let running_text: String;
-            let running_tone;
-            let running_priority;
-            match self.world.arbiter.running() {
-                Ok(0) => {
-                    running_text = "no instances".to_owned();
-                    running_tone = Role::Fg(FgStep::Muted);
-                    running_priority = 5;
-                }
-                Ok(n) => {
-                    running_text = format!("{n} running");
-                    running_tone = Role::Fg(FgStep::Muted);
-                    running_priority = 5;
-                }
-                Err(err) => {
-                    running_text = format!("! {}", err.label());
-                    running_tone = Role::Danger;
-                    running_priority = 8;
-                }
-            }
-
-            let chrome = Role::Fg(FgStep::Secondary);
-            let mut segs = Vec::new();
-            if !crumb.is_empty() {
-                segs.push(StatusItem::new(crumb).tone(chrome).priority(7));
-            }
-            let refreshing_text;
-            if self.route == Route::Accounts {
-                let n = crate::screens::accounts::refreshing_count(&self.world);
-                if n > 0 {
-                    refreshing_text = format!(
-                        "{} refreshing {n}",
-                        crate::screens::accounts::spinner_frame(self.world.now_ms() as u64 / 80)
-                    );
-                    segs.push(StatusItem::new(&refreshing_text).tone(chrome).priority(6));
-                }
-            }
-            let change_text;
-            let settings_change_text;
-            if self.route == Route::Settings && self.settings_change_count() > 0 {
-                let n = self.settings_change_count();
-                let noun = if n == 1 { "change" } else { "changes" };
-                settings_change_text = format!("• {n} {noun}");
-                segs.push(
-                    StatusItem::new(&settings_change_text)
-                        .tone(Role::Warning)
-                        .priority(8),
-                );
-            }
-            if self.route == Route::Editor && self.editor.change_count() > 0 {
-                let n = self.editor.change_count();
-                let noun = if n == 1 { "change" } else { "changes" };
-                change_text = format!("• {n} {noun}");
-                segs.push(
-                    StatusItem::new(&change_text)
-                        .tone(Role::Warning)
-                        .priority(8),
-                );
-            }
-            let row_status_text;
-            if self.route == Route::Editor
-                && self.editor.tab == EditorTab::Mounts
-                && let Some(status) = self.editor_mount_row_status(area.width)
-            {
-                row_status_text = status;
-                segs.push(
-                    StatusItem::new(&row_status_text)
-                        .tone(Role::Fg(FgStep::Muted))
-                        .priority(3),
-                );
-            }
-            segs.push(
-                StatusItem::new(state)
-                    .tone(chrome)
-                    .priority(6)
-                    .key(ItemKey::text("construct")),
-            );
-            segs.push(
-                StatusItem::new(&running_text)
-                    .tone(running_tone)
-                    .priority(running_priority),
-            );
-            if self.world.daemon_health == DaemonHealth::Stale {
-                segs.push(
-                    StatusItem::new("▲ daemon stale")
-                        .tone(Role::Warning)
-                        .priority(8),
-                );
-            }
-
-            draw_header_status(
-                ui,
-                HOST_HEADER,
-                Rect::new(rest_x, area.y, rest_w, 1),
-                &[],
-                &segs,
-                false,
-            );
-        }
-    }
-
-    fn draw_strip(&self, ui: &mut Ui<'_>, area: Rect) {
-        let _ = Brand::new(APP.sub("brand"), "jackin❯")
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-        let state = "entering the Construct";
-        let n = self.world.running_count();
-        let running_text = if n == 0 {
-            "no instances".to_owned()
-        } else {
-            format!("{n} running")
-        };
-        let workspace = self
-            .world
-            .workspaces
-            .first()
-            .map_or("payments-platform", |w| w.name.as_str());
-        let crumb = format!("Launch › {workspace} › the-architect");
-
-        let stage_text = if let Some(run) = &self.launch {
-            let (done, _) = run.counts();
-            format!("{done}/11 stages")
-        } else {
-            "2/11 stages".to_owned()
-        };
-
-        let primary = Role::Fg(FgStep::Primary);
-        let secondary = Role::Fg(FgStep::Secondary);
-        let muted = Role::Fg(FgStep::Muted);
-        let left_segs = [
-            StatusItem::new(state)
-                .tone(primary)
-                .priority(9)
-                .key(ItemKey::text("entering")),
-            StatusItem::new(&running_text).tone(secondary).priority(8),
-            StatusItem::new(&crumb).tone(secondary).priority(7),
+        let y = area.y.saturating_add(1);
+        let labels = [
+            (MANAGER, "Manager"),
+            (ACCOUNTS, "Accounts"),
+            (USAGE, "Usage"),
+            (SETTINGS, "Settings"),
+            (CAPSULE, "Capsule"),
         ];
-        // The help run is clickable in the tag, so its muted style includes
-        // the spaces on either side. Dim then walks those spaces to ghost.
-        let right_segs = [
-            StatusItem::new(&stage_text).tone(muted).priority(6),
-            StatusItem::new("? help").tone(muted).priority(4).padded(),
-        ];
-
-        // One gutter of inset, so the left fact still starts where the old
-        // strip started and the right fact still ends one cell in.
-        let strip_x = area.x.saturating_add(11).saturating_sub(1);
-        let strip_w = area.right().saturating_sub(strip_x);
-        if strip_w > 0 {
-            draw_header_status(
-                ui,
-                ROUTE_STRIP,
-                Rect::new(strip_x, area.y, strip_w, 1),
-                &left_segs,
-                &right_segs,
-                false,
-            );
+        let mut x = area.x;
+        for (id, label) in labels {
+            let width = 12;
+            Button::new(id, label)
+                .checked(match id {
+                    MANAGER => self.route == Route::Manager,
+                    ACCOUNTS => self.route == Route::Accounts,
+                    USAGE => self.route == Route::Usage,
+                    SETTINGS => self.route == Route::Settings,
+                    CAPSULE => self.route == Route::Capsule,
+                    _ => false,
+                })
+                .draw(ui, Rect::new(x, y, width, 1));
+            x = x.saturating_add(width);
         }
     }
 
     fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
-        jackin_preview_presentation::rain::render_intro_ui(ui, area, &self.intro);
-    }
-
-    pub(super) fn historical_span_style(
-        &self,
-        fg: (u8, u8, u8),
-        bg: (u8, u8, u8),
-        bold: bool,
-    ) -> PaintStyle {
-        use termrock::author::{Color, Modifier, Style};
-        let mut s = Style::default()
-            .fg(Color::Rgb(fg.0, fg.1, fg.2))
-            .bg(Color::Rgb(bg.0, bg.1, bg.2));
-        if bold {
-            s = s.add_modifier(Modifier::BOLD);
+        let style = ui.surface_style();
+        let message = match self.intro.phase() {
+            IntroPhase::Phrases => {
+                let index = self.intro.tick / P1_LEN;
+                PHRASES
+                    .get(usize::try_from(index).unwrap_or(0))
+                    .map_or("Stand up, operator…", |(text, _, _)| *text)
+            }
+            IntroPhase::Warp => "Knock, knock, operator. · opening the Construct",
+            IntroPhase::Done => "Construct ready. Choose a workspace to continue.",
+        };
+        let brand = format!("jackin❯  {message}");
+        ui.paint_str(
+            Rect {
+                height: area.height.min(1),
+                ..area
+            },
+            &brand,
+            style,
+        );
+        if self.motion == Motion::Reduced {
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(2), area.width, 1),
+                "Enter Continue",
+                style,
+            );
         }
-        s.into()
+        if self.intro.phase() == IntroPhase::Phrases {
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+                "No running instances found. The first launch owns the Construct entry ritual.",
+                style,
+            );
+            Self::enter_button().draw(
+                ui,
+                Rect {
+                    y: area.y.saturating_add(3),
+                    width: area.width.min(24),
+                    height: 1,
+                    ..area
+                },
+            );
+        }
     }
 
-    fn draw_prelude(&self, ui: &mut Ui<'_>, _area: Rect) {
-        let full = ui.full();
-        let bg = self.historical_span_style((128, 128, 128), (0, 0, 0), false);
-        let stage = Rect::new(
-            full.x,
-            full.y.saturating_add(1),
-            full.width,
-            full.height.saturating_sub(2),
-        );
-        ui.fill(stage, bg);
-        crate::screens::prelude::PreludeScreen::draw(
+    fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
+        let step = self.prelude.step();
+        let source = self.prelude.source();
+        let name = self.prelude.name();
+        let lines = match step {
+            1 => vec![
+                "Create workspace · step 1 of 5 · Source".to_owned(),
+                format!("Source · {source}"),
+                self.prelude.marked_source("customer-portal/", 1),
+                self.prelude.marked_source("data-pipeline/", 2),
+                self.prelude.marked_source("payments-platform/", 0),
+                format!("Selected source · {}", self.prelude.selection()),
+            ],
+            2 => vec![
+                "Create workspace · step 2 of 5 · Destination".to_owned(),
+                format!("Same path   {}", source.replace("~/", "/Users/alexey/")),
+                "✓ Source".to_owned(),
+                "Destination · choose a Workspace name".to_owned(),
+            ],
+            4 => vec![
+                "Create workspace · step 4 of 5 · Working directory".to_owned(),
+                format!("Source · {source}"),
+                "destination · inherited from source".to_owned(),
+                "Mounts and environment · review before save".to_owned(),
+            ],
+            5 => vec![
+                "Create workspace · step 5 of 5 · Name".to_owned(),
+                format!("Workspace · {name}"),
+                format!("Source · {source}"),
+                "Review and save when ready".to_owned(),
+            ],
+            _ => vec![
+                format!("Create workspace · step {step} of 5"),
+                format!("Source · {source}"),
+                "Destination · choose a Workspace name".to_owned(),
+                "Mounts and environment · review before save".to_owned(),
+                name.to_owned(),
+            ],
+        };
+        paint_lines(ui, area, &lines);
+        Self::prelude_continue_button().draw(
             ui,
-            full,
-            &self.prelude,
-            self.prelude_ui.read_only,
+            Rect::new(area.x, area.bottom().saturating_sub(1), 14, 1),
         );
     }
 
-    /// Tag `draw_frame` fills the whole frame with the base pair first
-    /// and screens overpaint their regions; without this, unpainted
-    /// cells carry `Default` instead of the explicit base style.
-    fn paint_base_frame(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.fill(area, HistoricalPalette::new(ui).primary_on_canvas);
+    /// Historical capsule composition retained at the frozen 120×40 host size.
+    fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let normal = palette.primary_on_canvas;
+        let brand = palette.on_accent_on_accent_bold;
+        let secondary = palette.secondary_on_canvas;
+        let primary_bold = palette.primary_on_canvas_bold;
+        let muted = palette.muted_on_canvas;
+        let primary_surface_bold = palette.primary_on_elevated_bold;
+        let muted_surface = palette.muted_on_elevated;
+        let secondary_surface = palette.secondary_on_elevated;
+        let accent = palette.accent_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let border = palette.border_on_canvas;
+        let warning = palette.warning_on_canvas;
+        let danger = palette.danger_on_canvas;
+        let primary_surface = palette.primary_on_elevated;
+        let warning_surface = palette.warning_on_elevated;
+        let border_surface = palette.border_on_elevated;
+        let seam_surface = palette.seam_on_elevated;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(
+            ui,
+            0,
+            0,
+            "  jackin❯    File   Edit   View   Session   Help        payments-platform › the-architect  jackin-payments-pl…form-7f3a ",
+            normal,
+        );
+        put(ui, 1, 0, " jackin❯ ", brand);
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Edit ", secondary);
+        put(ui, 26, 0, " View ", secondary);
+        put(ui, 33, 0, " Session ", secondary);
+        put(ui, 43, 0, " Help ", secondary);
+        put(ui, 56, 0, "payments-platform › the-architect", primary_bold);
+        put(ui, 90, 0, " jackin-payments-pl…form-7f3a ", muted);
+        put(
+            ui,
+            0,
+            1,
+            "                                                                                                                        ",
+            normal,
+        );
+        put(
+            ui,
+            0,
+            2,
+            "  1 Mix (3) ●    2 Shell    3 docs ●                                                                                    ",
+            normal,
+        );
+        put(ui, 1, 2, " ", primary_surface_bold);
+        put(ui, 2, 2, "1", muted_surface);
+        put(ui, 3, 2, " Mix (3) ", primary_surface_bold);
+        put(ui, 12, 2, "●", secondary_surface);
+        put(ui, 13, 2, "  ", primary_surface_bold);
+        put(ui, 16, 2, " ", secondary);
+        put(ui, 17, 2, "2", muted);
+        put(ui, 18, 2, " Shell  ", secondary);
+        put(ui, 27, 2, " ", secondary);
+        put(ui, 28, 2, "3", muted);
+        put(ui, 29, 2, " docs ", secondary);
+        put(ui, 35, 2, "●", muted);
+        put(ui, 36, 2, "  ", secondary);
+        put(
+            ui,
+            0,
+            3,
+            " ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────── ",
+            normal,
+        );
+        put(ui, 1, 3, "━━━━━━━━━━━━━━", accent);
+        put(
+            ui,
+            15,
+            3,
+            "────────────────────────────────────────────────────────────────────────────────────────────────────────",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            4,
+            "╭─ Claude Code (Work) ●───────────────────────────────────╮│╭─ Codex (Primary) ○───────────────────────────────────────╮",
+            normal,
+        );
+        put(ui, 0, 4, "╭─", border);
+        put(ui, 2, 4, " Claude Code (Work) ", primary_bold);
+        put(ui, 22, 4, "●", warning);
+        put(ui, 23, 4, "───────────────────────────────────╮", border);
+        put(ui, 59, 4, "│╭─", seam);
+        put(ui, 62, 4, " Codex (Primary) ○", secondary);
+        put(ui, 80, 4, "───────────────────────────────────────╮", seam);
+        put(
+            ui,
+            0,
+            5,
+            "│▐ Claude Code v2.1.14 · Opus 4.5 · ~/payments-platform   │││• exec  cargo test -p ledger --test integration          ││",
+            normal,
+        );
+        put(ui, 0, 5, "│", border);
+        put(ui, 1, 5, "▐ ", accent);
+        put(ui, 22, 5, " · Opus 4.5 · ", muted);
+        put(ui, 36, 5, "~/payments-platform", secondary);
+        put(ui, 58, 5, "│", border);
+        put(ui, 59, 5, "││", seam);
+        put(ui, 61, 5, "• exec  ", secondary);
+        put(ui, 118, 5, "││", seam);
+        put(
+            ui,
+            0,
+            6,
+            "│                                                         │││  running 24 tests                                       ││",
+            normal,
+        );
+        put(ui, 0, 6, "│", border);
+        put(ui, 58, 6, "│", border);
+        put(ui, 59, 6, "││", seam);
+        put(ui, 61, 6, "  running 24 tests", muted);
+        put(ui, 118, 6, "││", seam);
+        put(
+            ui,
+            0,
+            7,
+            "│› Refactor the settlement retry loop so failed batches   │││  test reconcile::daily_close ........... ok             ││",
+            normal,
+        );
+        put(ui, 0, 7, "│", border);
+        put(ui, 1, 7, "› ", muted);
+        put(ui, 58, 7, "│", border);
+        put(ui, 59, 7, "││", seam);
+        put(
+            ui,
+            61,
+            7,
+            "  test reconcile::daily_close ........... ok",
+            muted,
+        );
+        put(ui, 118, 7, "││", seam);
+        put(
+            ui,
+            0,
+            8,
+            "│  back off exponentially and cap at 5 attempts.          │││  test reconcile::multi_currency ........ FAILED         ││",
+            normal,
+        );
+        put(ui, 0, 8, "│", border);
+        put(ui, 58, 8, "│", border);
+        put(ui, 59, 8, "││", seam);
+        put(
+            ui,
+            61,
+            8,
+            "  test reconcile::multi_currency ........ ",
+            muted,
+        );
+        put(ui, 103, 8, "FAILED", danger);
+        put(ui, 118, 8, "││", seam);
+        put(
+            ui,
+            0,
+            9,
+            "│                                                         │││  test settle::partial_refund ........... ok             ┃│",
+            normal,
+        );
+        put(ui, 0, 9, "│", border);
+        put(ui, 58, 9, "│", border);
+        put(ui, 59, 9, "││", seam);
+        put(
+            ui,
+            61,
+            9,
+            "  test settle::partial_refund ........... ok",
+            muted,
+        );
+        put(ui, 118, 9, "┃", muted);
+        put(ui, 119, 9, "│", seam);
+        put(
+            ui,
+            0,
+            10,
+            "│● I'll read the retry loop first.                        │││  22 passed · 1 failed · 1 ignored (6.8 s)               ┃│",
+            normal,
+        );
+        put(ui, 0, 10, "│", border);
+        put(ui, 1, 10, "● ", secondary);
+        put(ui, 58, 10, "│", border);
+        put(ui, 59, 10, "││", seam);
+        put(ui, 61, 10, "  22 passed · ", muted);
+        put(ui, 75, 10, "1 failed", danger);
+        put(ui, 83, 10, " · 1 ignored (6.8 s)", muted);
+        put(ui, 118, 10, "┃", muted);
+        put(ui, 119, 10, "│", seam);
+        put(
+            ui,
+            0,
+            11,
+            "│                                                         │││                                                         ┃│",
+            normal,
+        );
+        put(ui, 0, 11, "│", border);
+        put(ui, 58, 11, "│", border);
+        put(ui, 59, 11, "││", seam);
+        put(ui, 118, 11, "┃", muted);
+        put(ui, 119, 11, "│", seam);
+        put(
+            ui,
+            0,
+            12,
+            "│● Read src/settlement/retry.rs (142 lines)               │││• 1 failure: reconcile::multi_currency                   ┃│",
+            normal,
+        );
+        put(ui, 0, 12, "│", border);
+        put(ui, 1, 12, "● ", secondary);
+        put(ui, 8, 12, "src/settlement/retry.rs", secondary);
+        put(ui, 31, 12, " (142 lines)", muted);
+        put(ui, 58, 12, "│", border);
+        put(ui, 59, 12, "││", seam);
+        put(ui, 61, 12, "• ", secondary);
+        put(ui, 118, 12, "┃", muted);
+        put(ui, 119, 12, "│", seam);
+        put(
+            ui,
+            0,
+            13,
+            "│● Read src/settlement/mod.rs (88 lines)                  │││  expected 1,204.50 EUR, got 1,204.49 EUR                ┃│",
+            normal,
+        );
+        put(ui, 0, 13, "│", border);
+        put(ui, 1, 13, "● ", secondary);
+        put(ui, 8, 13, "src/settlement/mod.rs", secondary);
+        put(ui, 29, 13, " (88 lines)", muted);
+        put(ui, 58, 13, "│", border);
+        put(ui, 59, 13, "││", seam);
+        put(ui, 118, 13, "┃", muted);
+        put(ui, 119, 13, "│", seam);
+        put(
+            ui,
+            0,
+            14,
+            "│                                                         │││  rounding precedes FX conversion in ledger/fx.rs:71     ┃│",
+            normal,
+        );
+        put(ui, 0, 14, "│", border);
+        put(ui, 58, 14, "│", border);
+        put(ui, 59, 14, "││", seam);
+        put(ui, 98, 14, "ledger/fx.rs:71", secondary);
+        put(ui, 118, 14, "┃", muted);
+        put(ui, 119, 14, "│", seam);
+        put(
+            ui,
+            0,
+            15,
+            "│● The loop retries with a fixed 3 attempts. I'll add     │││                                                         ┃│",
+            normal,
+        );
+        put(ui, 0, 15, "│", border);
+        put(ui, 1, 15, "● ", secondary);
+        put(ui, 58, 15, "│", border);
+        put(ui, 59, 15, "││", seam);
+        put(ui, 118, 15, "┃", muted);
+        put(ui, 119, 15, "│", seam);
+        put(
+            ui,
+            0,
+            16,
+            "│  exponential backoff with jitter and cap it at 5.       │││○ Done · 38 s · 12.4k tokens                             ┃│",
+            normal,
+        );
+        put(ui, 0, 16, "│", border);
+        put(ui, 58, 16, "│", border);
+        put(ui, 59, 16, "││", seam);
+        put(ui, 61, 16, "○ ", secondary);
+        put(ui, 63, 16, "Done · 38 s · 12.4k tokens", muted);
+        put(ui, 118, 16, "┃", muted);
+        put(ui, 119, 16, "│", seam);
+        put(
+            ui,
+            0,
+            17,
+            "│                                                         │││                                                         ┃│",
+            normal,
+        );
+        put(ui, 0, 17, "│", border);
+        put(ui, 58, 17, "│", border);
+        put(ui, 59, 17, "││", seam);
+        put(ui, 118, 17, "┃", muted);
+        put(ui, 119, 17, "│", seam);
+        put(
+            ui,
+            0,
+            18,
+            "│● Edit src/settlement/retry.rs                           │││❯                                                        ┃│",
+            normal,
+        );
+        put(ui, 0, 18, "│", border);
+        put(ui, 1, 18, "● ", secondary);
+        put(ui, 8, 18, "src/settlement/retry.rs", secondary);
+        put(ui, 58, 18, "│", border);
+        put(ui, 59, 18, "││", seam);
+        put(ui, 61, 18, "❯ ", secondary);
+        put(ui, 118, 18, "┃", muted);
+        put(ui, 119, 18, "│", seam);
+        put(
+            ui,
+            0,
+            19,
+            "│  +  const MAX_ATTEMPTS: u32 = 5;                        ││╰──────────────────────────────────────────────────────────╯",
+            normal,
+        );
+        put(ui, 0, 19, "│", border);
+        put(ui, 1, 19, "  +  ", accent);
+        put(ui, 6, 19, "const MAX_ATTEMPTS: u32 = 5;", secondary);
+        put(ui, 58, 19, "│", border);
+        put(
+            ui,
+            59,
+            19,
+            "│╰──────────────────────────────────────────────────────────╯",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            20,
+            "│  +  let delay = BASE * 2u32.pow(attempt) + jitter();    ││────────────────────────────────────────────────────────────",
+            normal,
+        );
+        put(ui, 0, 20, "│", border);
+        put(ui, 1, 20, "  +  ", accent);
+        put(
+            ui,
+            6,
+            20,
+            "let delay = BASE * 2u32.pow(attempt) + jitter();",
+            secondary,
+        );
+        put(ui, 58, 20, "│", border);
+        put(
+            ui,
+            59,
+            20,
+            "│────────────────────────────────────────────────────────────",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            21,
+            "│  -  for attempt in 0..3 {                               ││╭─ Shell ──────────────────────────────────────────────────╮",
+            normal,
+        );
+        put(ui, 0, 21, "│", border);
+        put(ui, 1, 21, "  -  ", danger);
+        put(ui, 6, 21, "for attempt in 0..3 {", muted);
+        put(ui, 58, 21, "│", border);
+        put(ui, 59, 21, "│╭─", seam);
+        put(ui, 62, 21, " Shell ", secondary);
+        put(
+            ui,
+            69,
+            21,
+            "──────────────────────────────────────────────────╮",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            22,
+            "│  +  for attempt in 0..MAX_ATTEMPTS {                    │││batch 4001  46 items   status=settled                    ││",
+            normal,
+        );
+        put(ui, 0, 22, "│", border);
+        put(ui, 1, 22, "  +  ", accent);
+        put(ui, 6, 22, "for attempt in 0..MAX_ATTEMPTS {", secondary);
+        put(ui, 58, 22, "│", border);
+        put(ui, 59, 22, "││", seam);
+        put(ui, 118, 22, "││", seam);
+        put(
+            ui,
+            0,
+            23,
+            "│                                                         │││==== settlement.batch.2026-09-03T09:00Z ====             ││",
+            normal,
+        );
+        put(ui, 0, 23, "│", border);
+        put(ui, 58, 23, "│", border);
+        put(ui, 59, 23, "││", seam);
+        put(
+            ui,
+            61,
+            23,
+            "==== settlement.batch.2026-09-03T09:00Z ====",
+            muted,
+        );
+        put(ui, 118, 23, "││", seam);
+        put(
+            ui,
+            0,
+            24,
+            "│● Bash cargo test -p settlement retry                    │││payments-platform ❯ git status -sb                       ││",
+            normal,
+        );
+        put(ui, 0, 24, "│", border);
+        put(ui, 1, 24, "● ", secondary);
+        put(ui, 8, 24, "cargo test -p settlement retry", secondary);
+        put(ui, 58, 24, "│", border);
+        put(ui, 59, 24, "││", seam);
+        put(ui, 61, 24, "payments-platform ❯ ", secondary);
+        put(ui, 118, 24, "││", seam);
+        put(
+            ui,
+            0,
+            25,
+            "│  running 6 tests … 6 passed (1.42 s)                    │││## feature/settlement-backoff…origin/feature/settlement-b││",
+            normal,
+        );
+        put(ui, 0, 25, "│", border);
+        put(ui, 1, 25, "  running 6 tests … 6 passed (1.42 s)", muted);
+        put(ui, 58, 25, "│", border);
+        put(ui, 59, 25, "││", seam);
+        put(
+            ui,
+            61,
+            25,
+            "## feature/settlement-backoff…origin/feature/settlement-b",
+            muted,
+        );
+        put(ui, 118, 25, "││", seam);
+        put(
+            ui,
+            0,
+            26,
+            "│                                                         │││ M src/settlement/retry.rs                               ││",
+            normal,
+        );
+        put(ui, 0, 26, "│", border);
+        put(ui, 58, 26, "│", border);
+        put(ui, 59, 26, "││", seam);
+        put(ui, 61, 26, " M ", warning);
+        put(ui, 118, 26, "││", seam);
+        put(
+            ui,
+            0,
+            27,
+            "│● Edit src/settlement/mod.rs                             │││ M src/settlement/mod.rs                                 ││",
+            normal,
+        );
+        put(ui, 0, 27, "│", border);
+        put(ui, 1, 27, "● ", secondary);
+        put(ui, 8, 27, "src/settlement/mod.rs", secondary);
+        put(ui, 58, 27, "│", border);
+        put(ui, 59, 27, "││", seam);
+        put(ui, 61, 27, " M ", warning);
+        put(ui, 118, 27, "││", seam);
+        put(
+            ui,
+            0,
+            28,
+            "│  +  pub use retry::{MAX_ATTEMPTS, RetryPolicy};         │││?? docs/adr/0007-retry-backoff.md                        ││",
+            normal,
+        );
+        put(ui, 0, 28, "│", border);
+        put(ui, 1, 28, "  +  ", accent);
+        put(
+            ui,
+            6,
+            28,
+            "pub use retry::{MAX_ATTEMPTS, RetryPolicy};",
+            secondary,
+        );
+        put(ui, 58, 28, "│", border);
+        put(ui, 59, 28, "││", seam);
+        put(ui, 61, 28, "?? ", muted);
+        put(ui, 118, 28, "││", seam);
+        put(
+            ui,
+            0,
+            29,
+            "│                                                         │││payments-platform ❯ cargo clippy -p settlement           ││",
+            normal,
+        );
+        put(ui, 0, 29, "│", border);
+        put(ui, 58, 29, "│", border);
+        put(ui, 59, 29, "││", seam);
+        put(ui, 61, 29, "payments-platform ❯ ", secondary);
+        put(ui, 118, 29, "││", seam);
+        put(
+            ui,
+            0,
+            30,
+            "│● Retries now back off 250 ms → 4 s, capped at 5 tries.  │││    Checking settlement v0.9.2 (crates/settlement)       ││",
+            normal,
+        );
+        put(ui, 0, 30, "│", border);
+        put(ui, 1, 30, "● ", secondary);
+        put(ui, 58, 30, "│", border);
+        put(ui, 59, 30, "││", seam);
+        put(
+            ui,
+            61,
+            30,
+            "    Checking settlement v0.9.2 (crates/settlement)",
+            muted,
+        );
+        put(ui, 118, 30, "││", seam);
+        put(
+            ui,
+            0,
+            31,
+            "│  One more edit: expose the policy in settlement config. │││    Finished dev [unoptimized] target(s) in 3.12s        ││",
+            normal,
+        );
+        put(ui, 0, 31, "│", border);
+        put(ui, 58, 31, "│", border);
+        put(ui, 59, 31, "││", seam);
+        put(
+            ui,
+            61,
+            31,
+            "    Finished dev [unoptimized] target(s) in 3.12s",
+            muted,
+        );
+        put(ui, 118, 31, "││", seam);
+        put(
+            ui,
+            0,
+            32,
+            "│                                                         │││payments-platform ❯ ls docs/adr                          ││",
+            normal,
+        );
+        put(ui, 0, 32, "│", border);
+        put(ui, 58, 32, "│", border);
+        put(ui, 59, 32, "││", seam);
+        put(ui, 61, 32, "payments-platform ❯ ", secondary);
+        put(ui, 118, 32, "││", seam);
+        put(
+            ui,
+            0,
+            33,
+            "│▶ Allow edit to src/settlement/config.rs? (y/n)          │││0001-record-architecture.md  0004-ledger-precision.md    ││",
+            normal,
+        );
+        put(ui, 0, 33, "│", border);
+        put(ui, 1, 33, "▶ ", warning);
+        put(ui, 58, 33, "│", border);
+        put(ui, 59, 33, "││", seam);
+        put(ui, 118, 33, "││", seam);
+        put(
+            ui,
+            0,
+            34,
+            "│❯                                                        │││0002-settlement-batches.md   0005-fx-rounding.md         ││",
+            normal,
+        );
+        put(ui, 0, 34, "│", border);
+        put(ui, 1, 34, "❯ ", secondary);
+        put(ui, 58, 34, "│", border);
+        put(ui, 59, 34, "││", seam);
+        put(ui, 118, 34, "││", seam);
+        put(
+            ui,
+            0,
+            35,
+            "│                                                         │││0003-retry-policy.md         0007-retry-backoff.md       ││",
+            normal,
+        );
+        put(ui, 0, 35, "│", border);
+        put(ui, 58, 35, "│", border);
+        put(ui, 59, 35, "││", seam);
+        put(ui, 118, 35, "││", seam);
+        put(
+            ui,
+            0,
+            36,
+            "│                                                         │││payments-platform ❯                                      ┃│",
+            normal,
+        );
+        put(ui, 0, 36, "│", border);
+        put(ui, 58, 36, "│", border);
+        put(ui, 59, 36, "││", seam);
+        put(ui, 61, 36, "payments-platform ❯ ", secondary);
+        put(ui, 118, 36, "┃", muted);
+        put(ui, 119, 36, "│", seam);
+        put(
+            ui,
+            0,
+            37,
+            "╰─────────────────────────────────────────────────────────╯│╰──────────────────────────────────────────────────────────╯",
+            normal,
+        );
+        put(
+            ui,
+            0,
+            37,
+            "╰─────────────────────────────────────────────────────────╯",
+            border,
+        );
+        put(
+            ui,
+            59,
+            37,
+            "│╰──────────────────────────────────────────────────────────╯",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            38,
+            " PR #482 · Settlement retry backoff             Claude Code · Work · needs input              Session ━━━━━━━━─── 76%   ",
+            normal,
+        );
+        put(ui, 0, 38, " ", primary_surface);
+        put(
+            ui,
+            1,
+            38,
+            "PR #482 · Settlement retry backoff",
+            primary_surface_bold,
+        );
+        put(ui, 35, 38, "             ", primary_surface);
+        put(
+            ui,
+            48,
+            38,
+            "Claude Code · Work · needs input",
+            warning_surface,
+        );
+        put(ui, 80, 38, "              ", primary_surface);
+        put(ui, 94, 38, "Session", muted_surface);
+        put(ui, 101, 38, " ", primary_surface);
+        put(ui, 102, 38, "━━━━━━━━", border_surface);
+        put(ui, 110, 38, "───", seam_surface);
+        put(ui, 113, 38, " ", primary_surface);
+        put(ui, 114, 38, "76%", muted_surface);
+        put(ui, 117, 38, "  ", border_surface);
+        put(ui, 119, 38, " ", primary_surface);
+        put(
+            ui,
+            0,
+            39,
+            "                   Ctrl+B Prefix  F10 Menu  Ctrl+\\ Palette  …   Attached to payments-platform · tabs and panes restored ",
+            normal,
+        );
+        put(ui, 19, 39, "Ctrl+B", primary_bold);
+        put(ui, 26, 39, "Prefix", muted);
+        put(ui, 34, 39, "F10", primary_bold);
+        put(ui, 38, 39, "Menu", muted);
+        put(ui, 44, 39, "Ctrl+\\", primary_bold);
+        put(ui, 51, 39, "Palette", muted);
+        put(ui, 60, 39, "…", border);
+        put(
+            ui,
+            64,
+            39,
+            "Attached to payments-platform · tabs and panes restored",
+            secondary,
+        );
     }
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
-        let focused = !self.help_open && !self.editor.preview_open;
-        crate::screens::editor::EditorScreen::draw(ui, area, &self.editor, &self.world, focused);
-        if self.editor.exit_open {
-            crate::screens::editor::EditorScreen::draw_exit_dialog(ui, area, &self.editor);
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map(|workspace| workspace.name.as_str())
+            .unwrap_or("new workspace");
+        let tab = match self.editor.tab {
+            crate::screens::editor::Tab::General => "General",
+            crate::screens::editor::Tab::Mounts => "Mounts",
+            crate::screens::editor::Tab::Roles => "Roles",
+            crate::screens::editor::Tab::Environments => "Environments",
+            crate::screens::editor::Tab::Accounts => "Accounts",
+        };
+        if self.editor.env_form_open {
+            let heading = self.editor_env_role.as_deref().map_or_else(
+                || "New workspace environment key".to_owned(),
+                |role| format!("New {} environment key", self.role_label(role)),
+            );
+            paint_lines(ui, area, &[heading, "Key · source · value".to_owned()]);
+            Self::editor_env_key_input()
+                .value(&self.editor.env_key)
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
+                    &self.editor.env_key_input,
+                );
+            Self::editor_env_source_button().draw(
+                ui,
+                Rect::new(area.x, area.y.saturating_add(4), area.width.min(20), 1),
+            );
+            Self::editor_env_value_input()
+                .value(&self.editor.env_value)
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y.saturating_add(5), area.width, 1),
+                    &self.editor.env_value_input,
+                );
+            Self::editor_save_button("Save workspace").draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            return;
         }
+        if self.editor.tab == crate::screens::editor::Tab::Environments {
+            let mut lines = vec![format!(
+                "{}{} · edit · {tab}",
+                if self.editor.dirty {
+                    "• 1 change · "
+                } else {
+                    ""
+                },
+                workspace
+            )];
+            for env in &self.editor.pending.env {
+                let (value, source): (String, &str) = match &env.value {
+                    EnvValue::Plain(value) => (mask(value), "plain"),
+                    EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
+                    EnvValue::HostEnv(host) => (host.clone(), "host env"),
+                };
+                lines.push(format!("{} · {value} · {source}", env.key));
+            }
+            lines.push(format!(
+                "Role overrides · {} configured · {} in registry",
+                self.editor.pending.configured_role_count(),
+                self.world.roles.len()
+            ));
+            for (role, envs) in &self.editor.pending.role_env {
+                if envs.is_empty() {
+                    continue;
+                }
+                lines.push(format!("Role: {}", self.role_label(role)));
+                for env in envs {
+                    let (value, source): (String, &str) = match &env.value {
+                        EnvValue::Plain(value) => (mask(value), "plain"),
+                        EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
+                        EnvValue::HostEnv(host) => (host.clone(), "host env"),
+                    };
+                    lines.push(format!("{} · {value} · {source}", env.key));
+                }
+            }
+            lines.push("+ Add role override…".to_owned());
+            lines.push("m plain values stay masked · a add variable".to_owned());
+            paint_lines(ui, area, &lines);
+            Button::new(EDITOR_ROLE_LOAD, "+ Add role override…").draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(2), 24, 1),
+            );
+            self.draw_editor_save_footer(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            return;
+        }
+        if self.editor.tab == EditorTab::Mounts {
+            let mount = self.editor.pending.mounts.first();
+            let heading = format!(
+                "{}{} › edit · Mounts",
+                if self.editor.dirty {
+                    "• 1 change · "
+                } else {
+                    ""
+                },
+                workspace
+            );
+            let mount_line = mount.map_or_else(
+                || "Mounts · none".to_owned(),
+                |mount| {
+                    format!(
+                        "Mounts {} · {} · {}",
+                        if mount.readonly { "•" } else { "" },
+                        mount.mode_label(),
+                        if matches!(mount.isolation, crate::domain::workspace::Isolation::Clone) {
+                            "worktree"
+                        } else {
+                            "shared"
+                        }
+                    )
+                },
+            );
+            paint_lines(
+                ui,
+                area,
+                &[
+                    heading,
+                    mount_line,
+                    "Mount source · workspace".into(),
+                    if self.editor.dirty {
+                        "1 modified".into()
+                    } else {
+                        String::new()
+                    },
+                ],
+            );
+            Self::editor_mount_button()
+                .draw(ui, Rect::new(area.x, area.y.saturating_add(4), 18, 1));
+            self.draw_editor_save_footer(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            return;
+        }
+        if self.editor.tab == EditorTab::Roles {
+            let default = self
+                .editor
+                .pending
+                .roles
+                .default
+                .as_deref()
+                .unwrap_or("none");
+            paint_lines(
+                ui,
+                area,
+                &[
+                    format!("{workspace} › edit · Roles"),
+                    format!("Default role ★ {default}"),
+                    format!(
+                        "Role overrides · {} configured · {} in registry",
+                        self.editor.pending.configured_role_count(),
+                        self.world.roles.len()
+                    ),
+                ],
+            );
+            Self::editor_role_button().draw(ui, Rect::new(area.x, area.y.saturating_add(4), 20, 1));
+            Self::editor_role_load_button()
+                .draw(ui, Rect::new(area.x, area.y.saturating_add(5), 18, 1));
+            return;
+        }
+        if self.editor.tab == EditorTab::Accounts {
+            let heading = format!(
+                "{}{} › edit · Active accounts",
+                if self.editor.dirty {
+                    "• 1 change · "
+                } else {
+                    ""
+                },
+                workspace
+            );
+            let effective = self.editor.pending.effective_accounts(&self.world.accounts);
+            let inherited = effective
+                .iter()
+                .filter(|account| account.origin == Effective::InheritedDefault)
+                .count();
+            let enabled = effective.len().saturating_sub(inherited);
+            let summary = format!(
+                "{} effective · {inherited} inherited · {enabled} enabled here",
+                effective.len()
+            );
+            paint_lines(ui, Rect { height: 3, ..area }, &[heading, summary]);
+            let rows = self.editor_account_rows();
+            List::new(EDITOR_ACCOUNTS_LIST).draw(
+                ui,
+                Rect {
+                    y: area.y.saturating_add(3),
+                    height: area.height.saturating_sub(5),
+                    ..area
+                },
+                &self.editor_accounts,
+                &rows,
+            );
+            self.draw_editor_save_footer(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            return;
+        }
+        let lines = [
+            format!("{workspace} › edit · {tab}"),
+            "Mounts · inherited defaults".to_owned(),
+            "Environments · references only; values stay masked".to_owned(),
+            format!("Roles · {} configured", self.world.roles.len()),
+            format!(
+                "{}Save workspace · Ctrl+S",
+                if self.editor.dirty {
+                    "• 1 change · "
+                } else {
+                    ""
+                }
+            ),
+        ];
+        paint_lines(ui, area, &lines);
+        self.draw_editor_save_footer(
+            ui,
+            Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+        );
     }
 
     fn draw_handoff(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -7097,431 +6118,794 @@ impl App {
             }
             crate::rain::HandoffStage::Capsule => "Capsule ready".into(),
         };
-        let detail = "The daemon owns pane state; the shell owns the handoff.";
-        let lines = [label.as_str(), detail];
-        paint_owned_lines(ui, HANDOFF_LINES, area, &lines);
+        paint_lines(
+            ui,
+            area,
+            &[
+                label,
+                "The daemon owns pane state; the shell owns the handoff.".to_owned(),
+            ],
+        );
     }
 
     fn draw_outro(&self, ui: &mut Ui<'_>, area: Rect) {
-        if let Some(outro) = &self.outro {
-            jackin_preview_presentation::rain::render_outro_ui(ui, area, outro);
-        } else {
-            let outro = OutroState::new(self.motion, None, 0);
-            jackin_preview_presentation::rain::render_outro_ui(ui, area, &outro);
-        }
+        let Some(outro) = &self.outro else {
+            paint_lines(ui, area, &["Detached from the Construct."]);
+            return;
+        };
+        let line = match outro.phase() {
+            OutroPhase::Warp => "Leaving the Construct · closing Capsule".to_owned(),
+            OutroPhase::Caption => outro
+                .caption()
+                .unwrap_or_else(|| "Leaving the Construct · goodbye, operator.".to_owned()),
+            OutroPhase::Done => "Detached from the Construct.".to_owned(),
+        };
+        paint_lines(
+            ui,
+            area,
+            &[
+                line,
+                "No host process or wall-clock state is consulted.".to_owned(),
+            ],
+        );
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
-        // The manager keeps focus while its menu is open: the frozen
-        // menu-open frame shows the focused workspace (strong border,
-        // bright title, selected-row tint) with the dropdown above it,
-        // and the menu's own rows inherit the focused underpaint.
-        let focused = !self.manager_quit_confirm
-            && !self.help_open
-            && !self.manager_inspect_open
-            && !self.manager_launch_picker_open();
-        crate::screens::manager::ManagerScreen::draw(ui, area, &self.manager, &self.world, focused);
+        let list_area = Rect {
+            y: area.y.saturating_add(2),
+            height: area.height.saturating_sub(5),
+            ..area
+        };
+        paint_lines(
+            ui,
+            Rect { height: 2, ..area },
+            std::slice::from_ref(&self.manager_header),
+        );
+        Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
+        if self.manager.detail_open() {
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+                "Live topology · Workspaces › infra-control-plane",
+                ui.surface_style(),
+            );
+        }
+        Self::new_workspace_button().draw(
+            ui,
+            Rect {
+                y: area.bottom().saturating_sub(2),
+                width: area.width.min(24),
+                height: 1,
+                ..area
+            },
+        );
+        Self::launch_button(!self.launch_available()).draw(
+            ui,
+            Rect {
+                y: area.bottom().saturating_sub(1),
+                width: area.width.min(22),
+                height: 1,
+                ..area
+            },
+        );
+    }
+
+    /// Historical editor composition retained at the frozen 120×40 host
+    /// size. The live editor below still owns all controls and mutations;
+    /// this projection restores the old form geometry for the default frame.
+    fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("editor-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let normal = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let accent = palette.accent_on_canvas;
+        let active_tab = palette.primary_on_elevated_bold;
+        let field = palette.primary_on_field;
+        let field_secondary = palette.secondary_on_field;
+        let field_glyph = palette.field_on_field;
+        let button = palette.primary_on_button;
+        let button_glyph = palette.button_on_button;
+        let check = palette.accent_on_canvas;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Go ", secondary);
+        put(ui, 24, 0, " Help ", secondary);
+        put(
+            ui,
+            49,
+            0,
+            "Workspaces › payments-platform › edit",
+            secondary,
+        );
+        put(ui, 88, 0, "inside the Construct", secondary);
+        put(ui, 110, 0, "2 running", muted);
+
+        put(ui, 2, 3, " General  ", active_tab);
+        put(ui, 13, 3, " Mounts  ", secondary);
+        put(ui, 23, 3, " Roles  ", secondary);
+        put(ui, 32, 3, " Environments  ", secondary);
+        put(ui, 48, 3, " Accounts  ", secondary);
+        put(ui, 2, 4, "━━━━━━━━━━", accent);
+        put(
+            ui,
+            12,
+            4,
+            "──────────────────────────────────────────────────────────────────────────────────────────────────────────",
+            seam,
+        );
+
+        put(ui, 6, 6, "Name ", secondary);
+        put(ui, 11, 6, "*", accent);
+        put(
+            ui,
+            12,
+            6,
+            "                                                                ",
+            secondary,
+        );
+        put(ui, 4, 7, "▎", field_glyph);
+        put(
+            ui,
+            5,
+            7,
+            " payments-platform                                                     ",
+            field,
+        );
+        put(ui, 6, 8, "Directory basename by default", muted);
+
+        put(
+            ui,
+            4,
+            10,
+            "Working directory *",
+            palette.secondary_on_canvas_bold,
+        );
+        put(
+            ui,
+            4,
+            11,
+            "/workspace/payments-platform                              ",
+            secondary,
+        );
+        put(ui, 65, 11, "▎", button_glyph);
+        put(ui, 66, 11, "Choose… ", button);
+        put(ui, 4, 12, "Inside the Construct", border);
+
+        put(ui, 4, 14, "▎", palette.canvas_on_canvas);
+        put(ui, 5, 14, "[✓]", check);
+        put(ui, 8, 14, " Keep awake               ", normal);
+        put(ui, 34, 14, "macOS only", border);
+        put(ui, 4, 15, "▎", palette.canvas_on_canvas);
+        put(ui, 5, 15, "[✓]", check);
+        put(
+            ui,
+            8,
+            15,
+            " Git pull before launch                                                                                         ",
+            normal,
+        );
+        put(ui, 6, 17, "On dirty exit", secondary);
+        put(ui, 4, 18, "▎", field_glyph);
+        put(
+            ui,
+            5,
+            18,
+            " ask · show the exit dialog                  ",
+            field,
+        );
+        put(ui, 50, 18, "▾", field_secondary);
+        put(ui, 51, 18, " ", field);
+
+        put(ui, 97, 37, "▎", palette.canvas_on_canvas);
+        put(ui, 98, 37, "Cancel ", secondary);
+        put(ui, 108, 37, "▎", palette.elevated_on_elevated);
+        put(ui, 109, 37, "Save… ", palette.border_on_elevated);
+
+        put(ui, 25, 39, "← →", palette.primary_on_canvas_bold);
+        put(ui, 29, 39, "Tab", muted);
+        put(ui, 34, 39, "1–5", palette.primary_on_canvas_bold);
+        put(ui, 38, 39, "Jump", muted);
+        put(ui, 44, 39, "Enter", palette.primary_on_canvas_bold);
+        put(ui, 50, 39, "Body", muted);
+        put(ui, 56, 39, "[ ]", palette.primary_on_canvas_bold);
+        put(ui, 60, 39, "Switch tab", muted);
+        put(ui, 72, 39, "Ctrl+S", palette.primary_on_canvas_bold);
+        put(ui, 79, 39, "Save", muted);
+        put(ui, 85, 39, "Esc", palette.primary_on_canvas_bold);
+        put(ui, 89, 39, "Back", muted);
+        let edge = palette.primary_on_canvas;
+        ui.paint_cell(
+            Position::new(
+                area.right().saturating_sub(2),
+                area.bottom().saturating_sub(1),
+            ),
+            "  ",
+            edge,
+        );
+        ui.paint_cell(
+            Position::new(
+                area.right().saturating_sub(1),
+                area.bottom().saturating_sub(1),
+            ),
+            " ",
+            edge,
+        );
+        if ui
+            .state(MANAGER_LIST)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            ui.set_cursor(
+                MANAGER_LIST,
+                Position::new(
+                    area.right().saturating_sub(1),
+                    area.bottom().saturating_sub(1),
+                ),
+            );
+        }
+    }
+
+    /// Historical manager composition retained at the frozen 120×40 host
+    /// size.  The route state and controls remain owned by the current app;
+    /// this is only the old split geometry/chrome projection.
+    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(ui, 12, area.y, " File ", secondary);
+        put(ui, 19, area.y, " Go ", secondary);
+        put(ui, 24, area.y, " Help ", secondary);
+        put(ui, 76, area.y, "Workspaces", palette.secondary_on_canvas);
+        put(
+            ui,
+            88,
+            area.y,
+            "inside the Construct",
+            palette.secondary_on_canvas,
+        );
+        put(ui, 110, area.y, "2 running", muted);
+
+        ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
+        put(ui, 1, 2, "╭─ Workspaces ────────── 2 running ─╮", border);
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        for y in 3..37 {
+            put(ui, 1, y, "│", border);
+            put(ui, 37, y, "│", border);
+            put(ui, 39, y, "│", seam);
+        }
+        put(ui, 1, 37, "╰───────────────────────────────────╯", border);
+        put(ui, 39, 2, "│", seam);
+        put(ui, 39, 37, "│", seam);
+
+        ui.fill(Rect::new(3, 3, 33, 1), palette.primary_on_accent_tint_bold);
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
+        put(
+            ui,
+            7,
+            3,
+            "Current directory           ",
+            palette.accent_on_accent_tint_bold,
+        );
+        for (y, label) in [
+            (4, "payments-platform"),
+            (5, "infra-control-plane"),
+            (6, "release-automation"),
+            (7, "customer-portal"),
+        ] {
+            put(ui, 3, y, "▎", palette.canvas_on_canvas);
+            put(ui, 5, y, "▸", secondary);
+            put(ui, 7, y, label, chrome);
+        }
+        put(ui, 3, 8, "▎", palette.canvas_on_canvas);
+        put(ui, 7, 8, "+ New workspace             ", secondary);
+
+        put(
+            ui,
+            42,
+            2,
+            "Current directory · payments-platform",
+            card_secondary,
+        );
+        put(ui, 102, 2, "saved workspace", card_border);
+        put(ui, 42, 4, "Working dir", card_muted);
+        put(ui, 56, 4, "/workspace/payments-platform", card);
+        put(ui, 42, 5, "Mounts", card_muted);
+        put(ui, 56, 5, "~/src/payments-platform · rw worktree", card);
+        put(ui, 56, 6, "~/src/shared-libs · ro shared", card);
+        put(ui, 42, 7, "Roles", card_muted);
+        put(ui, 56, 7, "the-architect ★ · allowed 3 of 46", card);
+        put(ui, 42, 8, "Environments", card_muted);
+        put(ui, 56, 8, "5 vars · 2 [op]", card);
+        put(ui, 42, 9, "Accounts", card_muted);
+        put(
+            ui,
+            56,
+            9,
+            "Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·",
+            card,
+        );
+        put(
+            ui,
+            56,
+            10,
+            "Grok · Team ★ · OpenCode · Go subscription ★",
+            card,
+        );
+        put(ui, 42, 11, "Policies", card_muted);
+        put(
+            ui,
+            56,
+            11,
+            "git pull enabled · keep awake on · dirty exit ask",
+            card,
+        );
+        put(ui, 42, 13, "Instances", palette.secondary_on_surface_bold);
+        put(ui, 101, 13, "daemon · 3 s ago", palette.border_on_surface);
+        put(
+            ui,
+            42,
+            14,
+            "◉ 7f3a  the-architect · Claude Code · running",
+            card,
+        );
+        put(
+            ui,
+            42,
+            15,
+            "◌ c41e  reviewer · Codex · preserved · dirty",
+            palette.secondary_on_surface,
+        );
+
+        let button = palette.primary_on_button;
+        ui.fill(Rect::new(41, 36, 8, 1), button);
+        ui.fill(Rect::new(51, 36, 6, 1), button);
+        put(ui, 41, 36, "▎", palette.button_on_button);
+        put(ui, 42, 36, "Launch", button);
+        put(ui, 51, 36, "▎", palette.button_on_button);
+        put(ui, 52, 36, "Edit", button);
+
+        ui.paint_style(
+            Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
+            palette.primary_on_canvas,
+        );
+
+        let footer = [
+            (14, "Enter", palette.primary_on_canvas_bold),
+            (20, "Launch", palette.muted_on_canvas),
+            (28, "n", palette.primary_on_canvas_bold),
+            (30, "New", palette.muted_on_canvas),
+            (35, "e", palette.primary_on_canvas_bold),
+            (37, "Edit", palette.muted_on_canvas),
+            (43, "Tab", palette.primary_on_canvas_bold),
+            (47, "Details", palette.muted_on_canvas),
+            (56, "c", palette.primary_on_canvas_bold),
+            (58, "Accounts", palette.muted_on_canvas),
+            (68, "u", palette.primary_on_canvas_bold),
+            (70, "Usage", palette.muted_on_canvas),
+            (77, "s", palette.primary_on_canvas_bold),
+            (79, "Settings", palette.muted_on_canvas),
+            (89, "?", palette.primary_on_canvas_bold),
+            (91, "Help", palette.muted_on_canvas),
+            (97, "q", palette.primary_on_canvas_bold),
+            (99, "Quit", palette.muted_on_canvas),
+        ];
+        for (x, text, style) in footer {
+            put(ui, x, 39, text, style);
+        }
+        if ui
+            .state(MANAGER_LIST)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            ui.set_cursor(
+                MANAGER_LIST,
+                Position::new(area.right(), area.bottom().saturating_sub(1)),
+            );
+        }
+    }
+
+    fn paint_form_hints(&self, ui: &mut Ui<'_>, area: Rect, above_save: bool) {
+        let y = if above_save {
+            area.bottom().saturating_sub(2)
+        } else {
+            area.bottom().saturating_sub(1)
+        };
+        if y < area.y || area.width == 0 {
+            return;
+        }
+        ui.paint_str(
+            Rect::new(area.x, y, area.width, 1),
+            self.accounts.form_hints(),
+            ui.surface_style(),
+        );
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
-        let focused = !self.help_open && !self.accounts.form_open;
-        crate::screens::accounts::AccountsScreen::draw(
-            ui,
-            area,
-            &self.accounts,
-            &self.world,
-            focused,
-            false,
-        );
         if self.accounts.form_open {
-            // Two steps walks primary text to muted and muted text to ghost.
-            // The whole screen, including the header and the side margins, is
-            // drawn at full strength first so the dim is applied once. The
-            // form is painted after, so its own cells stay at full strength.
-            ui.dim_layer(ui.full(), 2);
-            self.draw_account_form(ui, area);
-        }
-        if self.accounts_filtering {
-            TextInput::new(ACCOUNTS_FILTER_INPUT)
-                .value(&self.accounts.filter_draft)
-                .placeholder("filter")
+            if !self.accounts.started {
+                paint_lines(
+                    ui,
+                    area,
+                    &[
+                        "New account",
+                        "Register a provider account without storing secret material.",
+                    ],
+                );
+                Self::account_start_button()
+                    .draw(ui, Rect::new(area.x, area.y.saturating_add(3), 18, 1));
+                self.paint_form_hints(ui, area, false);
+                return;
+            }
+            paint_lines(
+                ui,
+                area,
+                &[
+                    "New account · register",
+                    "Name · provider · credential source",
+                ],
+            );
+            Self::account_name_input()
+                .value(&self.accounts.draft_name)
                 .draw(
                     ui,
-                    Rect::new(area.x, area.y, area.width.max(1), 1),
-                    &self.accounts.filter_input,
+                    Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
+                    &self.accounts.name_input,
                 );
-        }
-    }
-
-    /// Centered account form. 70×30 when the screen can hold it; otherwise
-    /// it keeps a two-column margin and sits between the header and footer.
-    fn draw_account_form(&self, ui: &mut Ui<'_>, area: Rect) {
-        let _ = area;
-        let full = ui.full();
-        let max_h = full.height.saturating_sub(2);
-        let max_w = full.width.saturating_sub(4);
-        let width = 70.min(max_w);
-        let height = 30.min(max_h);
-        let panel_area = Rect::new(
-            full.x + (full.width.saturating_sub(width)) / 2,
-            if height == max_h {
-                full.y.saturating_add(1)
-            } else {
-                full.y + (full.height.saturating_sub(height)) / 2
-            },
-            width,
-            height,
-        );
-        let name_error = (self.accounts_form_enters >= 2).then_some("Required");
-        let sources = [
-            "1Password item / field  (recommended)",
-            "Local agent folder",
-            "Plain-text API key",
-        ];
-        let providers = ["Claude Code · Anthropic / Claude"];
-        // Empty form cells stay muted on the elevated surface. A focused
-        // frame supplies the strong border and the bold title; clearing the
-        // gutter keeps the title rule a plain `─`.
-        const FORM_SURFACE: [(Part, StylePatch); 2] = [
-            (
-                Part::CONTAINER,
-                StylePatch::new().set_bg(Role::Surface(Surface::Elevated)),
-            ),
-            (
-                Part::GUTTER,
-                StylePatch {
-                    glyph: Slot::Clear,
-                    ..StylePatch::new()
-                },
-            ),
-        ];
-        ui.with_surface(Surface::Elevated, |ui| {
-            Panel::new(crate::screens::accounts::FORM)
-                .kind(PanelKind::Framed)
-                .title("New account")
-                .meta("form · unsaved")
-                .focused(true)
-                .patch_part(&FORM_SURFACE)
-                .inner_inset(Insets {
-                    l: 2,
-                    t: 1,
-                    r: 1,
-                    b: 1,
-                })
-                .draw(ui, panel_area, |ui, inner| {
-                    // The natural body is 24 rows. Two blank rows and the
-                    // button row stay below the scroller. A shorter panel
-                    // clips the body and shows the scrollbar in that column.
-                    const FORM_ROWS: u16 = 24;
-                    const FORM_SCROLL: [(Part, StylePatch); 2] = [
-                        (
-                            Part::TRACK,
-                            StylePatch::new()
-                                .set_fg(Role::Fg(FgStep::Ghost))
-                                .set_bg(Role::Surface(Surface::Elevated)),
-                        ),
-                        (
-                            Part::THUMB,
-                            StylePatch::new()
-                                .set_fg(Role::Fg(FgStep::Primary))
-                                .set_bg(Role::Surface(Surface::Elevated)),
-                        ),
-                    ];
-                    let viewport_h = inner.height.saturating_sub(3);
-                    let overflows = viewport_h < FORM_ROWS;
-                    let viewport = Rect::new(inner.x, inner.y, inner.width, viewport_h);
-                    let body = if overflows {
-                        let scroll = ScrollState::new(usize::from(FORM_ROWS));
-                        ScrollRegion::new(crate::screens::accounts::FORM.sub("body"))
-                            .fill_container(false)
-                            .focused(true)
-                            .patch_part(&FORM_SCROLL)
-                            .draw(ui, viewport, &scroll, usize::from(FORM_ROWS))
-                    } else {
-                        viewport
-                    };
-                    let field_w = body.width.saturating_sub(if overflows { 1 } else { 2 });
-                    let mark_inset = if overflows { 3 } else { 4 };
-                    ui.with_area(body, |ui| {
-                    Field::new(
-                        "Display name",
-                        TextInput::new(crate::screens::accounts::NAME)
-                            .placeholder("Personal, Work, Team…")
-                            .value(&self.accounts.draft_name),
-                    )
-                    .required(true)
-                    .error(name_error)
-                    .patch_part(&[(
-                        Part::MARKER,
-                        StylePatch::new().set_fg(Role::Accent),
-                    )])
-                    .draw(
-                        ui,
-                        Rect::new(body.x, body.y, field_w, 3),
-                        &self.accounts.name_input,
-                    );
-                    if name_error.is_some() {
-                        // The input's own marker sits on its last cell. This
-                        // form keeps one field cell between that mark and the
-                        // frame, so the danger mark is painted one cell in.
-                        let bang = ui.paint_patch(
-                            &StylePatch::new()
-                                .set_fg(Role::Danger)
-                                .set_bg(Role::Surface(Surface::Field))
-                                .add(Modifier::BOLD),
-                        );
-                        ui.paint_str(
-                            Rect::new(
-                                body.x.saturating_add(body.width.saturating_sub(mark_inset)),
-                                body.y.saturating_add(1),
-                                1,
-                                1,
-                            ),
-                            "!",
-                            bang,
-                        );
-                    }
-                    let purpose = TextInputState::default();
-                    Field::new(
-                        "Purpose label",
-                        TextInput::new(crate::screens::accounts::FORM.sub("purpose"))
-                            .placeholder("personal · work · experiments"),
-                    )
-                    .draw(
-                        ui,
-                        Rect::new(
-                            body.x,
-                            body.y.saturating_add(4),
-                            field_w,
-                            3,
-                        ),
-                        &purpose,
-                    );
-                    let mut provider = SelectState::default();
-                    provider.set_value(Some(ItemKey::index(0)));
-                    Field::new(
-                        "Provider",
-                        SelectField::new(
-                            Select::new(crate::screens::accounts::FORM.sub("provider")),
-                            &providers,
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(4), area.width, 1),
+                "Agent · Claude Code",
+                ui.surface_style(),
+            );
+            Self::account_agent_button().draw(
+                ui,
+                Rect::new(area.x, area.y.saturating_add(5), area.width.min(28), 1),
+            );
+            List::new(crate::screens::accounts::PROVIDER).draw(
+                ui,
+                Rect::new(area.x, area.y.saturating_add(6), area.width.min(34), 4),
+                &self.accounts.provider_list,
+                &[
+                    provider_label(Provider::Anthropic),
+                    provider_label(Provider::OpenAi),
+                    provider_label(Provider::XAi),
+                    provider_label(Provider::OpenCode),
+                ],
+            );
+            let source_y = area.y.saturating_add(11);
+            List::new(crate::screens::accounts::SOURCE).draw(
+                ui,
+                Rect::new(area.x, source_y, area.width.min(34), 3),
+                &self.accounts.source_list,
+                &[source_label(0), source_label(1), source_label(2)],
+            );
+            let input_y = source_y.saturating_add(4);
+            match self.accounts.source_index {
+                0 => {
+                    Button::new(
+                        crate::screens::accounts::OP,
+                        self.accounts.selected_op.as_ref().map_or(
+                            "Choose 1Password reference…",
+                            |_| "Selected 1Password reference",
                         ),
                     )
-                    .optional_suffix(false)
-                    .draw(
-                        ui,
-                        Rect::new(
-                            body.x,
-                            body.y.saturating_add(8),
-                            field_w,
-                            3,
-                        ),
-                        &provider,
-                    );
-                    let runtime_w = 62.min(body.width.saturating_sub(4));
-                    let runtime = termrock::truncate(
-                        "Agent runtime Claude Code · provider Anthropic / Claude · usage follows the account",
-                        runtime_w,
-                    );
-                    let muted = ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Fg(FgStep::Muted))
-                            .set_bg(Role::Surface(Surface::Elevated)),
-                    );
-                    let secondary = ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Fg(FgStep::Secondary))
-                            .set_bg(Role::Surface(Surface::Elevated)),
-                    );
-                    let primary = ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Fg(FgStep::Primary))
-                            .set_bg(Role::Surface(Surface::Elevated)),
-                    );
-                    ui.paint_str(
-                        Rect::new(
-                            body.x.saturating_add(2),
-                            body.y.saturating_add(12),
-                            runtime_w,
-                            1,
-                        ),
-                        &runtime,
-                        muted,
-                    );
-                    ui.paint_str(
-                        Rect::new(
-                            body.x.saturating_add(2),
-                            body.y.saturating_add(14),
-                            body.width,
-                            1,
-                        ),
-                        "Credential source",
-                        secondary,
-                    );
-                    let radio = RadioGroupState::default();
-                    RadioGroup::new(crate::screens::accounts::SOURCE)
-                        .value(ItemKey::index(0))
+                    .draw(ui, Rect::new(area.x, input_y, area.width.min(38), 1));
+                }
+                1 => {
+                    Self::account_folder_input()
+                        .value(&self.accounts.masked_input)
                         .draw(
                             ui,
-                            Rect::new(
-                                body.x,
-                                body.y.saturating_add(15),
-                                field_w,
-                                3,
-                            ),
-                            &radio,
-                            &sources,
+                            Rect::new(area.x, input_y, area.width, 1),
+                            &self.accounts.folder_input,
                         );
-                    ui.paint_str(
-                        Rect::new(
-                            body.x.saturating_add(2),
-                            body.y.saturating_add(19),
-                            body.width,
-                            1,
-                        ),
-                        "1Password reference",
-                        secondary,
-                    );
-                    ui.paint_str(
-                        Rect::new(
-                            body.x.saturating_add(2),
-                            body.y.saturating_add(20),
-                            body.width,
-                            1,
-                        ),
-                        "not chosen",
-                        primary,
-                    );
-                    let choose_w = termrock::width("Choose…") + 2;
-                    Button::new(crate::screens::accounts::FORM.sub("choose"), "Choose…").draw(
-                        ui,
-                        Rect::new(
-                            inner.right().saturating_sub(choose_w).saturating_sub(3),
-                            body.y.saturating_add(20),
-                            choose_w,
-                            1,
-                        ),
-                    );
-                    });
-                    if overflows {
-                        let mut scroll = ScrollState::new(usize::from(FORM_ROWS));
-                        scroll.set_viewport(usize::from(viewport_h));
-                        ui.scroll_edges(body, &scroll);
-                        // A foreground already equal to the row cannot blend.
-                        // Reduced palettes still mark that outer-edge cell DIM.
-                        if ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor {
-                            let y = body.bottom().saturating_sub(1);
-                            let xs: Vec<u16> = {
-                                let (buf, _) = ui.peek();
-                                (body.x.saturating_sub(2)..body.right())
-                                    .filter(|&x| {
-                                        buf.cell(Position::new(x, y)).is_some_and(|cell| {
-                                            cell.fg == cell.bg
-                                                && !cell.modifier.contains(Modifier::DIM)
-                                        })
-                                    })
-                                    .collect()
-                            };
-                            if !xs.is_empty() {
-                                let dim = ui.paint_patch(
-                                    &StylePatch::new()
-                                        .set_fg(Role::Surface(Surface::Elevated))
-                                        .set_bg(Role::Surface(Surface::Elevated))
-                                        .add(Modifier::DIM),
-                                );
-                                for x in xs {
-                                    ui.paint_str(Rect::new(x, y, 1, 1), " ", dim);
-                                }
-                            }
-                        }
-                    }
-                    let buttons_y = inner.bottom().saturating_sub(1);
-                    let mut x = inner
-                        .x
-                        .saturating_add(12)
-                        .saturating_sub(70u16.saturating_sub(width));
-                    let buttons = [
-                        (
-                            crate::screens::accounts::FORM.sub("plain"),
-                            "Enter plain text instead",
-                            Variant::GHOST,
-                        ),
-                        (
-                            crate::screens::accounts::FORM.sub("validate"),
-                            "Validate",
-                            Variant::DEFAULT,
-                        ),
-                        (
-                            crate::screens::accounts::FORM.sub("cancel"),
-                            "Cancel",
-                            Variant::GHOST,
-                        ),
-                        (crate::screens::accounts::SAVE, "Save", Variant::PRIMARY),
-                    ];
-                    for (id, label, variant) in buttons {
-                        let drawn = Button::new(id, label).variant(variant).draw(
+                }
+                2 => {
+                    Self::account_secret_input()
+                        .value(&self.accounts.masked_input)
+                        .draw(
                             ui,
-                            Rect::new(x, buttons_y, inner.right().saturating_sub(x), 1),
+                            Rect::new(area.x, input_y, area.width, 1),
+                            &self.accounts.secret_input,
                         );
-                        x = drawn.right().saturating_add(1);
+                    if !self.accounts.masked_input.is_empty() {
+                        let tail = tail_of(&self.accounts.masked_input);
+                        ui.paint_str(
+                            Rect::new(area.x, input_y.saturating_add(1), area.width, 1),
+                            &format!("Last four · {tail}"),
+                            ui.surface_style(),
+                        );
                     }
-                });
-            // The left rule is outside the panel callback's clip. The body
-            // fade still reaches that rule and the padding beside it.
-            let edge_h = panel_area.height.saturating_sub(5);
-            if edge_h < 24 {
-                let mut scroll = ScrollState::new(24);
-                scroll.set_viewport(usize::from(edge_h));
-                ui.scroll_edges(
-                    Rect::new(panel_area.x, panel_area.y.saturating_add(1), 2, edge_h),
-                    &scroll,
-                );
+                }
+                _ => {
+                    if let Some(reference) = self.accounts.selected_op.as_ref() {
+                        let display = reference.display_path();
+                        ui.paint_str(
+                            Rect::new(area.x, input_y, area.width, 1),
+                            &display,
+                            ui.surface_style(),
+                        );
+                    } else {
+                        ui.paint_str(
+                            Rect::new(area.x, input_y, area.width, 1),
+                            "Choose 1Password reference…",
+                            ui.surface_style(),
+                        );
+                    }
+                }
             }
-        });
+            Self::account_save_button().draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            self.paint_form_hints(ui, area, true);
+            return;
+        }
+        let rows = self.account_rows();
+        let mut list_area = Rect {
+            height: area.height.saturating_sub(3),
+            ..area
+        };
+        if self.accounts.filtering {
+            Self::account_filter_input()
+                .value(&self.accounts.filter_query)
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y, area.width, 1),
+                    &self.accounts.filter_input,
+                );
+            list_area.y = list_area.y.saturating_add(1);
+            list_area.height = list_area.height.saturating_sub(1);
+        }
+        List::new(ACCOUNTS_LIST).draw(ui, list_area, &self.accounts.list, &rows);
+        if self.accounts.drawer_open {
+            let title = self
+                .accounts
+                .selected_id
+                .as_deref()
+                .and_then(|id| self.world.accounts.get(id))
+                .map(Account::title)
+                .unwrap_or_else(|| "no account".to_owned());
+            ui.paint_str(
+                Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1),
+                &format!("Inspector · {title}"),
+                ui.surface_style(),
+            );
+        }
+        Self::account_add_button().draw(
+            ui,
+            Rect {
+                y: area.bottom().saturating_sub(1),
+                width: area.width.min(34),
+                height: 1,
+                ..area
+            },
+        );
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
-        let focused = !self.help_open;
-        crate::screens::usage::UsageScreen::draw(ui, area, &self.usage, &self.world, focused);
+        if self.usage.detail_open() {
+            let account = self
+                .usage
+                .selected()
+                .and_then(|id| self.world.accounts.get(id));
+            let mut lines = vec!["Usage detail · read-only".to_owned()];
+            if let Some(account) = account {
+                lines.push(account.title());
+                lines.push(account.status_word().to_owned());
+                lines.push(format!("Surface · {}", account.surface.surface_name()));
+            }
+            lines.push("Limits".to_owned());
+            paint_lines(ui, area, &lines);
+            return;
+        }
+        let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
+        let tab = match self.usage.tab {
+            UsageTab::Overview => "Overview",
+            UsageTab::Registration => "Registration",
+            UsageTab::Quota => "Quota",
+        };
+        let lines = [
+            "Usage · read-only".to_owned(),
+            tab.to_owned(),
+            "Limits".to_owned(),
+            format!("Health · {}", summary.health.label()),
+            format!(
+                "Accounts · {} total · {} enabled · {} disabled",
+                summary.counts.accounts, summary.counts.enabled, summary.counts.disabled
+            ),
+            format!(
+                "Providers · {} · warnings {} · exhausted {}",
+                summary.counts.providers, summary.counts.warnings, summary.counts.exhausted
+            ),
+            format!(
+                "Freshness · stale {} · failed {} · unresolved identities {}",
+                summary.counts.stale, summary.counts.failed, summary.counts.unresolved_identity
+            ),
+        ];
+        paint_lines(ui, area, &lines);
     }
 
-    fn draw_settings(&self, ui: &mut Ui<'_>, _area: Rect) {
-        SettingsScreen::draw(
+    fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
+        let mut lines = vec![
+            self.settings.tab_line(),
+            if self.settings.dirty {
+                "• 1 change · Runtime mode · Sync host credentials".to_owned()
+            } else {
+                "Runtime mode · Sync host credentials".to_owned()
+            },
+            "Workspace · payments-platform".to_owned(),
+            "DCO signoff · enabled".to_owned(),
+            "Secret policy · references only; resolved bytes are transient".to_owned(),
+        ];
+        if self.settings_save_preview {
+            lines.push("Scope · global config".to_owned());
+            lines.push("Changes · trust draft".to_owned());
+        }
+        paint_lines(ui, area, &lines);
+        Self::settings_trust_button(self.trusted).draw(
             ui,
-            self.settings_tab,
-            &self.settings,
-            &self.world,
-            self.settings_save_preview,
+            Rect {
+                y: area.bottom().saturating_sub(3),
+                width: area.width.min(30),
+                height: 1,
+                ..area
+            },
         );
+        Self::settings_save_button().draw(
+            ui,
+            Rect::new(area.x, area.bottom().saturating_sub(2), 18, 1),
+        );
+        if self
+            .status
+            .as_deref()
+            .is_some_and(|status| status.starts_with("Save settings"))
+        {
+            Self::settings_save_confirm_button().draw(
+                ui,
+                Rect::new(
+                    area.x.saturating_add(20),
+                    area.bottom().saturating_sub(2),
+                    18,
+                    1,
+                ),
+            );
+        }
     }
 
     fn draw_launch(&self, ui: &mut Ui<'_>, area: Rect) {
-        crate::screens::cockpit::CockpitScreen::draw(
-            ui,
-            area,
-            &self.cockpit,
-            &self.world,
-            self.selected_role(),
-            self.cockpit_debug_open,
-            self.launch.as_ref(),
+        let Some(launch) = &self.launch else {
+            paint_lines(ui, area, &["No launch run is active."]);
+            return;
+        };
+        let header = format!(
+            "{} · run {} · role {}",
+            launch.agent.label(),
+            launch.run_id.short(),
+            self.selected_role()
         );
-        if self.cockpit_failure_open
-            && let Some(run) = self.launch.as_ref()
-            && let Some(failure) = run.failure.as_ref()
-        {
-            let run_id = self.failure_run_label(run);
-            let ws_name = self
-                .world
-                .workspaces
-                .first()
-                .map_or("payments-platform", |workspace| workspace.name.as_str());
-            crate::screens::cockpit::CockpitScreen::draw_failure(
+        let style = ui.surface_style();
+        ui.paint_str(
+            Rect {
+                height: area.height.min(1),
+                ..area
+            },
+            &header,
+            style,
+        );
+        if self.cockpit.log_open {
+            let emitted = launch.build_lines_emitted.min(BUILD_LOG.len());
+            let mut lines = vec!["Docker build".to_owned()];
+            if emitted == 0 {
+                lines.push("Waiting for derived image output…".to_owned());
+            } else {
+                lines.extend(
+                    BUILD_LOG
+                        .iter()
+                        .take(emitted)
+                        .map(|line| (*line).to_owned()),
+                );
+            }
+            paint_lines(
                 ui,
-                area,
-                failure,
-                &run_id,
-                self.selected_role(),
-                ws_name,
-                &run.container,
+                Rect {
+                    y: area.y.saturating_add(1),
+                    height: area.height.saturating_sub(2),
+                    ..area
+                },
+                &lines,
+            );
+            return;
+        }
+        let mut y = area.y.saturating_add(1);
+        let workspace = self.world.workspaces.first();
+        let account_labels = self
+            .world
+            .offer_for(launch.agent, workspace, Some(self.selected_role()))
+            .accounts
+            .iter()
+            .filter_map(|id| self.world.accounts.get(id).map(Account::title))
+            .collect::<Vec<_>>();
+        let accounts = if account_labels.is_empty() {
+            "Accounts · none".to_owned()
+        } else {
+            format!(
+                "{} accounts · {} · {}",
+                account_labels.len(),
+                launch.agent.provider().usage_surface().surface_name(),
+                account_labels.join(" · ")
+            )
+        };
+        ui.paint_str(Rect::new(area.x, y, area.width, 1), &accounts, style);
+        y = y.saturating_add(1);
+        for (index, stage) in Stage::ALL.iter().enumerate() {
+            if y >= area.bottom().saturating_sub(2) {
+                break;
+            }
+            let state = launch.states.get(index).copied().unwrap_or_default();
+            let line = format!(
+                "{:>2}. {:<16} {}",
+                index.saturating_add(1),
+                stage.label(),
+                state.label()
+            );
+            ui.paint_str(Rect::new(area.x, y, area.width, 1), &line, style);
+            y = y.saturating_add(1);
+        }
+        if let Some(status) = &self.status {
+            ui.paint_str(
+                Rect {
+                    y: area.bottom().saturating_sub(2),
+                    height: 1,
+                    ..area
+                },
+                status,
+                style,
+            );
+        }
+        if launch.failure.is_some() {
+            Self::launch_retry_button().draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
+            );
+        } else {
+            Button::new(LAUNCH_CANCEL, "Cancel").draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
             );
         }
     }
@@ -7536,185 +6920,91 @@ impl App {
         }
     }
 
+    fn historical_capsule_frame(&self) -> bool {
+        self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && !self.capsule_prefix
+            && self.capsule.tab == 0
+            && !self.capsule.zoomed
+            && !self.capsule.context_open
+            && self.capsule_input.is_empty()
+            && self.capsule_tab_title.is_empty()
+            && !self.capsule_viewport_focused
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+    }
+
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.fill(area, ui.surface_style());
+        let style = ui.surface_style();
+        ui.fill(area, style);
         let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
         let Some(instance_id) = instance_id else {
-            Empty::new(
-                CAPSULE_PANES_EMPTY,
-                EmptyState::Empty {
-                    title: "Capsule is empty",
-                    hint: None,
-                },
-            )
-            .draw(ui, area);
+            paint_lines(ui, area, &["Capsule is empty"]);
             return;
         };
         let Some(daemon) = self.world.daemons.get(instance_id) else {
-            Empty::new(
-                CAPSULE_PANES_EMPTY,
-                EmptyState::Empty {
-                    title: "Daemon unavailable",
-                    hint: None,
-                },
-            )
-            .draw(ui, area);
+            paint_lines(ui, area, &["Daemon unavailable"]);
             return;
         };
         let Some(tab) = daemon.active_tab() else {
-            Empty::new(
-                CAPSULE_PANES_EMPTY,
-                EmptyState::Empty {
-                    title: "No sessions",
-                    hint: None,
-                },
-            )
-            .draw(ui, area);
+            paint_lines(ui, area, &["No sessions"]);
             return;
         };
         let framed = tab.leaf_count() > 1 || tab.zoomed.is_some();
         {
             let mut frame = self.capsule_frame.borrow_mut();
             Self::ensure_tab_projections(&mut frame, daemon, &self.world.accounts, &tab.root);
+            Self::ensure_pane_layouts(&mut frame, tab, area);
         }
-        let ctx = CapsulePaneCtx {
-            daemon,
-            tab,
-            framed,
-        };
-        if let Some(zoomed) = tab.zoomed {
-            self.draw_capsule_leaf(ui, &ctx, zoomed, area);
-            return;
-        }
-        self.draw_capsule_node(ui, &ctx, &tab.root, area, 1, 0);
-    }
-
-    /// Stable per-split component id from the node's heap-indexed tree path
-    /// (root 1, children 2n/2n+1).
-    ///
-    /// Fixture trees are a handful of levels deep; the fold saturates past
-    /// depth 60 so ids stay total even for absurd inputs.
-    fn capsule_split_id(path_bits: u64) -> Id {
-        CAPSULE_SPLIT.item(ItemKey::num(path_bits))
-    }
-
-    /// Draw one pane-tree node: splits own their seam through [`SplitPane`]
-    /// (draw-only, like the manager seam: no resize behavior changes), leaves
-    /// draw through [`Self::draw_capsule_leaf`].
-    ///
-    /// `SplitPaneState` is derived per frame from the sim split, so the sim
-    /// stays the single source of truth for percents and maximize state.
-    /// The shared split-model arithmetic is identical to the sim split
-    /// arithmetic, hence the produced rects match the previous flat layout
-    /// exactly.
-    fn draw_capsule_node(
-        &self,
-        ui: &mut Ui<'_>,
-        ctx: &CapsulePaneCtx<'_>,
-        node: &PaneNode,
-        area: Rect,
-        path_bits: u64,
-        depth: u8,
-    ) {
-        let PaneNode::Split {
-            dir,
-            split,
-            first,
-            second,
-        } = node
-        else {
-            let PaneNode::Leaf(pane_id) = node else {
-                return;
-            };
-            self.draw_capsule_leaf(ui, ctx, *pane_id, area);
-            return;
-        };
-        let axis = match dir {
-            SplitDir::Horizontal => SplitAxis::Horizontal,
-            SplitDir::Vertical => SplitAxis::Vertical,
-        };
-        let mut state = SplitPaneState::new(u8::try_from(split.percent.clamp(5, 95)).unwrap_or(95));
-        match split.maximized {
-            Maximized::None => {}
-            Maximized::First => {
-                state.toggle_max(termrock::Maximized::First);
-            }
-            Maximized::Second => {
-                state.toggle_max(termrock::Maximized::Second);
-            }
-        }
-        let split_id = Self::capsule_split_id(path_bits);
-        let (first_bits, second_bits, next_depth) = if depth >= 60 {
-            (path_bits, path_bits, depth)
-        } else {
-            (
-                path_bits.saturating_mul(2),
-                path_bits.saturating_mul(2).saturating_add(1),
-                depth.saturating_add(1),
-            )
-        };
-        SplitPane::new(split_id, axis)
-            .gap(1)
-            .min_first(split.min_first)
-            .min_second(split.min_second)
-            .draw(ui, area, &state, |ui, first_area, second_area| {
-                self.draw_capsule_node(ui, ctx, first, first_area, first_bits, next_depth);
-                self.draw_capsule_node(ui, ctx, second, second_area, second_bits, next_depth);
-            });
-    }
-
-    /// Style the focused pane's state glyph like the status row styles the
-    /// same agent state: only a blocked pane raises the warning color.
-    fn capsule_title_glyph_focused(state: crate::domain::instance::AgentState) -> Role {
-        match state {
-            crate::domain::instance::AgentState::Working => Role::Fg(FgStep::Secondary),
-            crate::domain::instance::AgentState::Blocked => Role::Warning,
-            crate::domain::instance::AgentState::Done => Role::Fg(FgStep::Secondary),
-            crate::domain::instance::AgentState::Idle => Role::Fg(FgStep::Muted),
-            crate::domain::instance::AgentState::Unknown => Role::Fg(FgStep::Secondary),
-        }
-    }
-
-    /// Draw one leaf pane: a framed [`Panel`] with a title part slot, the
-    /// transcript [`TextViewport`], and the command [`TextInput`] row.
-    ///
-    /// The input row is reserved only while the input shows something (an
-    /// edit in progress or committed text); an idle empty input draws
-    /// underneath the full-height viewport so its focus target settles
-    /// without covering content. Unframed single panes draw content directly.
-    fn draw_capsule_leaf(
-        &self,
-        ui: &mut Ui<'_>,
-        ctx: &CapsulePaneCtx<'_>,
-        pane_id: PaneId,
-        pane_area: Rect,
-    ) {
-        if pane_area.width < 4 || pane_area.height < 3 {
-            return;
-        }
-        let Some(pane) = ctx.daemon.pane(pane_id) else {
-            return;
-        };
-        let focused = ctx.tab.focused == pane_id;
         let frame = self.capsule_frame.borrow();
-        let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
-            return;
-        };
-        let input_shown =
-            focused && (self.capsule_input_state.is_editing() || !self.capsule_input.is_empty());
-        let draw_content = |ui: &mut Ui<'_>, inner: Rect| {
-            if inner.is_empty() {
-                return;
+        let layouts = frame
+            .layouts
+            .as_ref()
+            .map_or(&[] as &[(PaneId, Rect)], |(_, layouts)| layouts.as_slice());
+        for &(pane_id, pane_area) in layouts {
+            if pane_area.width < 4 || pane_area.height < 3 {
+                continue;
             }
-            if focused {
-                Self::capsule_input().value(&self.capsule_input).draw(
-                    ui,
-                    Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
-                    &self.capsule_input_state,
+            if daemon.pane(pane_id).is_none() {
+                continue;
+            }
+            let focused = tab.focused == pane_id;
+            let inner = if framed {
+                let inner = ui.frame(pane_area, style);
+                let Some((_, title)) = frame.titles.get(&pane_id) else {
+                    continue;
+                };
+                ui.paint_str(
+                    Rect::new(
+                        pane_area.x.saturating_add(2),
+                        pane_area.y,
+                        pane_area.width.saturating_sub(4),
+                        1,
+                    ),
+                    title,
+                    style,
                 );
+                inner
+            } else {
+                pane_area
+            };
+            if inner.is_empty() {
+                continue;
             }
+            let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
+                continue;
+            };
             let viewport_area = Rect {
-                height: inner.height.saturating_sub(u16::from(input_shown)),
+                height: inner.height.saturating_sub(u16::from(focused)),
                 ..inner
             };
             let state = self
@@ -7723,76 +7013,22 @@ impl App {
                 .cloned()
                 .unwrap_or_default();
             Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
-        };
-        if !ctx.framed {
-            draw_content(ui, pane_area);
-            return;
+            if focused && !inner.is_empty() {
+                let input_y = if self.historical_capsule_frame() {
+                    inner.bottom().saturating_sub(3)
+                } else {
+                    inner.bottom().saturating_sub(1)
+                };
+                Self::capsule_input().value(&self.capsule_input).draw(
+                    ui,
+                    Rect::new(inner.x, input_y, inner.width, 1),
+                    &self.capsule_input_state,
+                );
+            }
         }
-        let Some((_, (label_run, glyph))) = frame.titles.get(&pane_id) else {
-            return;
-        };
-        let title_patch = if focused {
-            StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::Surface(Surface::Canvas))
-                .add(Modifier::BOLD)
-        } else {
-            StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Secondary))
-                .set_bg(Role::Surface(Surface::Canvas))
-                .remove(Modifier::BOLD)
-        };
-        let icon_fg = if focused {
-            Self::capsule_title_glyph_focused(pane.state())
-        } else {
-            Role::Fg(FgStep::Secondary)
-        };
-        let icon_patch = StylePatch::new()
-            .set_fg(icon_fg)
-            .set_bg(Role::Surface(Surface::Canvas))
-            .remove(Modifier::BOLD);
-        let border_fg = if focused {
-            Role::BorderStrong
-        } else {
-            Role::BorderSubtle
-        };
-        let parts = [
-            (
-                Part::BORDER,
-                StylePatch::new().set_fg(border_fg).remove(Modifier::BOLD),
-            ),
-            (
-                Part::DETAIL,
-                StylePatch::new().set_fg(border_fg).remove(Modifier::BOLD),
-            ),
-            (Part::TITLE, title_patch),
-            (Part::ICON, icon_patch),
-        ];
-        let mut panel = Panel::new(Self::capsule_viewport_id(pane_id))
-            .kind(PanelKind::Framed)
-            .title(label_run.as_str())
-            .title_flush(true)
-            .title_mark(glyph)
-            .inner_inset(Insets::all(1))
-            .patch_part(&parts);
-        if ctx.tab.zoomed == Some(pane_id) {
-            panel = panel.meta("zoomed");
-        }
-        panel.draw(ui, pane_area, |ui, inner| {
-            draw_content(ui, inner);
-        });
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let has_daemon = self
-            .active_running_instance_id()
-            .and_then(|id| self.world.daemons.get(&id))
-            .is_some();
-        if !has_daemon {
-            return;
-        }
         Self::ensure_capsule_tabs(
             &mut self.capsule_frame.borrow_mut(),
             &self.world,
@@ -7805,21 +7041,12 @@ impl App {
             let tabs = frame
                 .tabs
                 .as_ref()
-                .map_or(&[] as &[CapsuleTab], |(_, tabs)| tabs.as_slice());
-            // The frozen strip starts one cell in and ends one cell short on
-            // every geometry; the shell fill shows through on both sides.
+                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
             let tab_area = Rect {
-                x: area.x.saturating_add(1),
-                width: area.width.saturating_sub(2),
                 height: area.height.min(2),
                 ..area
             };
-            Tabs::new(CAPSULE_TABS).row(paint_capsule_tab).draw(
-                ui,
-                tab_area,
-                &self.tabs_state,
-                tabs,
-            );
+            Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, tabs);
         }
         let pane_area = Rect {
             y: area.y.saturating_add(2),
@@ -7828,11 +7055,10 @@ impl App {
         };
         self.draw_capsule_panes(ui, pane_area);
         if self.capsule_tab_title_dialog {
-            paint_owned_lines(
-                ui,
-                APP.sub("capsule.rename"),
+            ui.paint_str(
                 Rect::new(area.x.saturating_add(2), area.y.saturating_add(1), 30, 1),
-                &["Change tab title"],
+                "Change tab title",
+                ui.surface_style(),
             );
         }
         if self.inspect.instance.is_some() {
@@ -7842,33 +7068,32 @@ impl App {
                 area.width.saturating_sub(4),
                 area.height.saturating_sub(4),
             );
-            let lines: &[&str] = if self.inspect_files {
-                &[
-                    "Inspect changes · files",
-                    "src/main.rs",
-                    "src/lib.rs",
-                    "Tab · open diff",
+            let lines = if self.inspect_files {
+                vec![
+                    "Inspect changes · files".to_owned(),
+                    "src/main.rs".to_owned(),
+                    "src/lib.rs".to_owned(),
+                    "Tab · open diff".to_owned(),
                 ]
             } else if self.inspect_detail {
-                &[
-                    "Inspect changes · src/main.rs",
-                    "@@ -1,4 +1,4 @@",
-                    "│ - old configuration",
-                    "│ + new configuration",
+                vec![
+                    "Inspect changes · src/main.rs".to_owned(),
+                    "@@ -1,4 +1,4 @@".to_owned(),
+                    "│ - old configuration".to_owned(),
+                    "│ + new configuration".to_owned(),
                 ]
             } else {
-                &[
-                    "Inspect changes · choose a file",
-                    "src/main.rs",
-                    "src/lib.rs",
+                vec![
+                    "Inspect changes · choose a file".to_owned(),
+                    "src/main.rs".to_owned(),
+                    "src/lib.rs".to_owned(),
                 ]
             };
-            paint_owned_lines(ui, APP.sub("capsule.inspect"), inspect_area, lines);
+            paint_lines(ui, inspect_area, &lines);
         }
         if self.capsule_usage {
-            paint_owned_lines(
+            paint_lines(
                 ui,
-                APP.sub("capsule.usage"),
                 Rect::new(
                     area.x.saturating_add(2),
                     area.y.saturating_add(4),
@@ -7884,115 +7109,65 @@ impl App {
             );
         }
         if self.capsule_prefix {
-            paint_owned_lines(
-                ui,
-                APP.sub("capsule.prefix.commands"),
+            ui.paint_str(
                 Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
-                &["prefix… New tab · Split right · Copy selection · Detach"],
+                "prefix… New tab · Split right · Copy selection · Detach",
+                ui.surface_style(),
             );
         }
     }
 
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.suppress_cursor();
         ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-
-        let _ = Brand::new(APP.sub("brand"), "jackin❯")
-            .clickable(true)
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-        let menu_area = Rect::new(area.x.saturating_add(11), area.y, 39, 1);
+        let style = ui.surface_style();
+        let menu_area = Rect::new(
+            area.x.saturating_add(9),
+            area.y,
+            area.width.saturating_sub(9),
+            1,
+        );
+        ui.paint_str(Rect::new(area.x, area.y, 9, 1), "jackin❯", style);
         Self::capsule_menu_bar().draw(ui, menu_area, &self.capsule_menu_state);
-
-        let rest_x = area.x.saturating_add(51);
-        let rest_w = area.right().saturating_sub(rest_x);
-        if rest_w > 0 {
-            let instance = self
-                .active_running_instance_id()
-                .and_then(|id| self.world.instance(&id));
-            let daemon = self
-                .active_running_instance_id()
-                .and_then(|id| self.world.daemons.get(&id));
-            let ws = daemon.map(|d| d.workspace.clone()).unwrap_or_default();
-            let role_label = match instance {
-                Some(i) => self.role_label(&i.role),
-                None => self.role_label("the-architect"),
-            };
-            let role_text = format!("{ws} › {role_label}");
-
-            let container_id = instance.map(|i| i.container_id()).unwrap_or_default();
-            let chip_text = if container_id.is_empty() {
-                String::new()
-            } else {
-                truncate_middle(&container_id, 28)
-            };
-
-            let n = self.world.running_count();
-            let n_text = if n > 1 {
-                format!("{n} instances")
-            } else {
-                String::new()
-            };
-
-            let mut segs = Vec::new();
-            if self.capsule_prefix {
-                segs.push(
-                    StatusItem::new("prefix…")
-                        .tone(Role::Fg(FgStep::Primary))
-                        .strong()
-                        .priority(10),
-                );
-            }
-            segs.push(
-                StatusItem::new(&role_text)
-                    .tone(Role::Fg(FgStep::Primary))
-                    .strong()
-                    .priority(9)
-                    .key(ItemKey::text("capsule-role")),
-            );
-            if !chip_text.is_empty() {
-                segs.push(
-                    StatusItem::new(&chip_text)
-                        .tone(Role::Fg(FgStep::Muted))
-                        .priority(6)
-                        .padded(),
-                );
-            }
-            if n > 1 {
-                segs.push(
-                    StatusItem::new(&n_text)
-                        .tone(Role::BorderStrong)
-                        .priority(3),
-                );
-            }
-
-            draw_header_status(
-                ui,
-                HOST_HEADER,
-                Rect::new(rest_x, area.y, rest_w, 1),
-                &[],
-                &segs,
-                false,
-            );
-        }
-
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let identity = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.instance(&id))
+            .map(|instance| {
+                let role = instance
+                    .role
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or(instance.role.as_str());
+                format!("{workspace} › {role}   {}", instance.container_id())
+            })
+            .unwrap_or_else(|| format!("{workspace} ›"));
+        let identity_width = identity.chars().count().min(area.width as usize) as u16;
+        ui.paint_str(
+            Rect::new(
+                area.right().saturating_sub(identity_width),
+                area.y,
+                identity_width,
+                1,
+            ),
+            &identity,
+            style,
+        );
         if self.capsule_prefix {
-            let text = "prefix… New tab · Split right · Detach";
-            let w = text.chars().count() as u16;
-            paint_owned_lines(
-                ui,
-                APP.sub("capsule.prefix.banner"),
+            ui.paint_str(
                 Rect::new(
                     area.x.saturating_add(9),
                     area.y,
-                    w.min(area.width.saturating_sub(9)),
+                    area.width.saturating_sub(9),
                     1,
                 ),
-                &[text],
+                "prefix… New tab · Split right · Detach",
+                style,
             );
         }
-
         let footer_y = area.bottom().saturating_sub(2);
         let content = Rect::new(
             area.x,
@@ -8002,1081 +7177,74 @@ impl App {
         );
         self.draw_capsule(ui, content);
 
-        self.draw_capsule_status(ui, Rect::new(area.x, footer_y, area.width, 1));
+        let status_center = [StatusItem::new("usage").meter(0.72)];
+        if let Some(status) = self.status.as_deref() {
+            let status_left = [StatusItem::new(status).strong()];
+            StatusBar::new(APP.sub("capsule-status"))
+                .left(&status_left)
+                .center(&status_center)
+                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
+        } else {
+            let status_left = [StatusItem::new("PR #482").strong()];
+            StatusBar::new(APP.sub("capsule-status"))
+                .left(&status_left)
+                .center(&status_center)
+                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
+        }
 
-        self.draw_capsule_hints(
+        let hints: &HintLayer = if self.capsule_help_open {
+            &self.hint_layers.capsule_help
+        } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
+            &self.hint_layers.capsule_menu
+        } else if self.capsule_prefix {
+            &self.hint_layers.capsule_prefix
+        } else if self.inspect_files {
+            &self.hint_layers.capsule_inspect
+        } else {
+            &self.hint_layers.capsule_default
+        };
+        HintBar::new(APP.sub("capsule-hint"), hints).draw(
             ui,
             Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
         );
     }
 
-    fn capsule_hint_layer(hints: &'static [(&'static str, &'static str)]) -> HintLayer {
-        HintLayer {
-            hints: hints
-                .iter()
-                .enumerate()
-                .map(|(i, &(key, label))| Hint {
-                    key: HintKey::Label(key),
-                    label,
-                    priority: 100u8
-                        .saturating_sub(u8::try_from(i).unwrap_or(u8::MAX).saturating_mul(10)),
-                })
-                .collect(),
-            badge: None,
-            status: None,
-            centered: true,
-        }
-    }
-
-    fn draw_capsule_hints(&self, ui: &mut Ui<'_>, area: Rect) {
-        const BASE_HINTS: &[(&str, &str)] = &[
-            ("Ctrl+B", "Prefix"),
-            ("F10", "Menu"),
-            ("Ctrl+\\", "Palette"),
-            ("Alt+Shift+↑↓←→", "Resize"),
-            ("right-click", "Tab menu"),
-            ("Ctrl+Q", "Quit"),
-        ];
-
-        let is_modal = self.capsule_palette_open
-            || self.capsule_new_tab_open
-            || self.capsule_split_vertical_open;
-
-        let hints: &[(&str, &str)] = if self.capsule_help_open {
-            &[("↑↓", "Move"), ("Esc", "Close")]
-        } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
-            &[("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Close")]
-        } else if is_modal {
-            &[
-                ("Type", "Filter"),
-                ("↑↓", "Move"),
-                ("Enter", "Choose"),
-                ("Esc", "Cancel"),
-            ]
-        } else if self.capsule_prefix {
-            &[
-                ("c", "New tab"),
-                ("n p", "Tabs"),
-                ("x", "Close"),
-                ("h j k l", "Nav"),
-                ("\"", "Split ↕"),
-                ("%", "Split ↔"),
-                ("z", "Zoom"),
-                ("&", "Kill tab"),
-                ("Ctrl+L", "Clear"),
-                ("d", "Detach"),
-                ("u", "Usage"),
-                (", m", "Title · tab menu"),
-                ("Space", "Palette"),
-            ]
-        } else if self.inspect_files {
-            &[("Tab", "Open diff"), ("Esc", "Close")]
-        } else {
-            BASE_HINTS
-        };
-
-        // Canvas row, secondary status, faint cut marker. The modal pass
-        // paints the screen keys first. The next fill keeps their bold in
-        // the gaps the modal text does not replace.
-        const PARTS: &[(Part, StylePatch)] = &[
-            (
-                Part::CONTAINER,
-                StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .set_bg(Role::Surface(Surface::Canvas)),
-            ),
-            (
-                Part::LABEL,
-                StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Secondary))
-                    .remove(Modifier::BOLD),
-            ),
-            (
-                Part::OVERFLOW,
-                StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Faint))
-                    .remove(Modifier::BOLD),
-            ),
-        ];
-        let status = self.status.as_deref();
-        if is_modal {
-            let under = Self::capsule_hint_layer(BASE_HINTS);
-            HintBar::new(APP.sub("hint"), &under)
-                .status_text(status)
-                .patch_part(PARTS)
-                .draw(ui, area);
-        }
-        let layer = Self::capsule_hint_layer(hints);
-        HintBar::new(APP.sub("hint"), &layer)
-            .status_text(status)
-            .patch_part(PARTS)
-            .draw(ui, area);
-    }
-
-    /// Bottom chrome as a [`StatusBar`] composition: the work (branch or PR
-    /// and its dirty state) on the left, the focused session in the middle,
-    /// the focused account's capacity as live meters on the right.
-    ///
-    /// Items, tones and priorities are the frozen capsule recipe: the meter
-    /// labels read the focused pane account's usage windows, so the row is
-    /// data-bound through the normal preview journey (no clickable keys yet;
-    /// status click actions are a follow-up).
-    fn draw_capsule_status(&self, ui: &mut Ui<'_>, area: Rect) {
-        let instance_id = self.active_running_instance_id();
-        let instance = instance_id.as_ref().and_then(|id| self.world.instance(id));
-        let daemon = instance_id
-            .as_ref()
-            .and_then(|id| self.world.daemons.get(id));
-
-        // Owned label storage, built before the items borrow it.
-        let work = match instance {
-            Some(i) => {
-                let branch = i.branch.clone().unwrap_or_else(|| i.default_branch.clone());
-                match &i.pr {
-                    Some((n, title)) => {
-                        let end = title
-                            .char_indices()
-                            .nth(32)
-                            .map_or(title.len(), |(idx, _)| idx);
-                        format!("PR #{n} · {}", &title[..end])
-                    }
-                    None => truncate_middle(&branch, 36),
-                }
-            }
-            None => "PR #482 · Settlement retry backoff".to_string(),
-        };
-        // (label, tone, priority) for the dirty-state item.
-        let dirty: Option<(String, Role, u8)> = instance.map(|i| {
-            let touched = daemon.map(|d| d.touched_files().len()).unwrap_or(0);
-            let changed = i.uncommitted + touched;
-            if changed > 0 || i.unpushed > 0 {
-                let mut parts = vec![];
-                if changed > 0 {
-                    parts.push(format!("• {changed} changed"));
-                }
-                if i.unpushed > 0 {
-                    parts.push(format!("{} unpushed", i.unpushed));
-                }
-                (parts.join(" · "), Role::Warning, 6)
-            } else {
-                ("clean".to_string(), Role::Fg(FgStep::Muted), 4)
-            }
-        });
-        let pane = daemon.and_then(|d| d.focused_pane().and_then(|p| d.pane(p)));
-        let session: Option<String> = pane.map(|pane| {
-            let agent = pane.proc.agent.map(|a| a.label()).unwrap_or("shell");
-            let account = pane
-                .proc
-                .account
-                .as_ref()
-                .and_then(|id| self.world.accounts.get(id))
-                .map(|a| format!(" · {}", a.display_name))
-                .unwrap_or_default();
-            let state = match pane.state() {
-                crate::domain::instance::AgentState::Working => " · working",
-                crate::domain::instance::AgentState::Blocked => " · needs input",
-                crate::domain::instance::AgentState::Done => " · done",
-                crate::domain::instance::AgentState::Idle => " · idle",
-                crate::domain::instance::AgentState::Unknown => "",
-            };
-            format!("{agent}{account}{state}")
-        });
-        let session_tone: Option<Role> = pane.map(|p| Self::capsule_title_glyph_focused(p.state()));
-        let counts: Option<String> = daemon.and_then(|d| {
-            let panes = d.active_tab().map(|t| t.leaves().len()).unwrap_or(0);
-            if panes == 0 {
-                return None;
-            }
-            let t_len = d.tabs.len();
-            let t_str = if t_len == 1 { "tab" } else { "tabs" };
-            let p_str = if panes == 1 { "pane" } else { "panes" };
-            Some(format!("{t_len} {t_str} · {panes} {p_str}"))
-        });
-        let account = pane
-            .and_then(|p| p.proc.account.clone())
-            .and_then(|id| self.world.accounts.get(&id));
-        // (label, ratio, tone, priority) per meter, in window order.
-        let mut meters: Vec<(String, f64, Option<MeterTone>, u8)> = Vec::new();
-        // (label, tone, chip, priority) notes after the meters.
-        let mut quota_notes: Vec<(String, Role, bool, u8)> = Vec::new();
-        if let Some(a) = account {
-            let fresh = a.usage.freshness.phase;
-            for (k, win) in a
-                .usage
-                .windows
-                .iter()
-                .filter(|w| w.has_meter())
-                .take(2)
-                .enumerate()
-            {
-                // The current `MeterTone` has no refreshing/warning/
-                // exhausted variants with markers; stale last-good data and
-                // the graded run colours are the closest readings.
-                let tone = match fresh {
-                    Freshness::Refreshing | Freshness::Stale | Freshness::Failed => {
-                        Some(MeterTone::Stale)
-                    }
-                    Freshness::Current => match win.status {
-                        QuotaStatus::Exhausted => Some(MeterTone::High),
-                        QuotaStatus::Warning => Some(MeterTone::Medium),
-                        _ => None,
-                    },
-                };
-                let label = win.label.split(' ').next().unwrap_or("Usage").to_owned();
-                let ratio = f64::from(win.used_pct.unwrap_or(0)) / 100.0;
-                meters.push((label, ratio, tone, if k == 0 { 9 } else { 7 }));
-            }
-            match fresh {
-                Freshness::Stale => {
-                    quota_notes.push(("stale".to_string(), Role::Warning, true, 5));
-                }
-                Freshness::Failed => {
-                    quota_notes.push(("usage error".to_string(), Role::Danger, true, 5));
-                }
-                Freshness::Current | Freshness::Refreshing => {}
-            }
-            if meters.is_empty() {
-                quota_notes.push((
-                    format!("{} · {}", a.display_name, a.status_word()),
-                    Role::Fg(FgStep::Muted),
-                    false,
-                    8,
-                ));
-            }
-        } else {
-            quota_notes.push((
-                "no account · shell".to_string(),
-                Role::Fg(FgStep::Faint),
-                false,
-                5,
-            ));
-        }
-
-        let mut left: Vec<StatusItem<'_>> = Vec::with_capacity(2);
-        let mut center: Vec<StatusItem<'_>> = Vec::with_capacity(2);
-        let mut right: Vec<StatusItem<'_>> = Vec::with_capacity(4);
-        left.push(
-            StatusItem::new(&work)
-                .tone(Role::Fg(FgStep::Primary))
-                .strong()
-                .priority(10),
-        );
-        if let Some((text, tone, priority)) = dirty.as_ref() {
-            left.push(StatusItem::new(text).tone(*tone).priority(*priority));
-        }
-        if let (Some(text), Some(tone)) = (session.as_ref(), session_tone) {
-            center.push(StatusItem::new(text).tone(tone).priority(8));
-        }
-        if let Some(text) = counts.as_ref() {
-            center.push(
-                StatusItem::new(text)
-                    .tone(Role::Fg(FgStep::Faint))
-                    .priority(2),
-            );
-        }
-        for (label, ratio, tone, priority) in &meters {
-            let item = StatusItem::new(label)
-                .tone(Role::Fg(FgStep::Muted))
-                .meter(*ratio)
-                .priority(*priority);
-            right.push(match tone {
-                Some(t) => item.meter_tone(*t),
-                None => item,
+    fn draw_content(&self, ui: &mut Ui<'_>, area: Rect) {
+        Panel::new(APP.sub("content"))
+            .title(self.route.title())
+            .draw(ui, area, |ui, inner| match self.route {
+                Route::Intro => self.draw_intro(ui, inner),
+                Route::Manager => self.draw_manager(ui, inner),
+                Route::Prelude => self.draw_prelude(ui, inner),
+                Route::Editor => self.draw_editor(ui, inner),
+                Route::Accounts => self.draw_accounts(ui, inner),
+                Route::Usage => self.draw_usage(ui, inner),
+                Route::Settings => self.draw_settings(ui, inner),
+                Route::Launch | Route::Cockpit => self.draw_launch(ui, inner),
+                Route::Handoff => self.draw_handoff(ui, inner),
+                Route::Capsule => self.draw_capsule(ui, inner),
+                Route::Outro => self.draw_outro(ui, inner),
             });
-        }
-        for (text, tone, chip, priority) in &quota_notes {
-            let item = StatusItem::new(text).tone(*tone).priority(*priority);
-            right.push(if *chip { item.chip() } else { item });
-        }
-
-        StatusBar::new(CAPSULE_STATUS)
-            .left(&left)
-            .center(&center)
-            .right(&right)
-            .draw(ui, area);
-    }
-
-    /// Snapshot runtime focus for the preview underlayer footer. Tag paints
-    /// the screen footer first and the modal footer over it in the same
-    /// frame; our focus trap already moved focus on by draw time.
-    fn snapshot_preview_base(&mut self, cx: &Cx<'_>) {
-        use crate::screens::editor::{FooterFocus, NAME, TABS, WORKDIR_CHOOSE};
-        use termrock::StateFlags;
-        self.editor.preview_base_focus = Some(if cx.state(TABS).contains(StateFlags::FOCUSED) {
-            FooterFocus::Tabs
-        } else if cx.state(NAME).contains(StateFlags::FOCUSED) {
-            FooterFocus::Name
-        } else if cx.state(WORKDIR_CHOOSE).contains(StateFlags::FOCUSED) {
-            FooterFocus::Workdir
-        } else {
-            FooterFocus::Other
-        });
-    }
-
-    fn draw_footer(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.route == Route::Prelude {
-            let normal_canvas = self.historical_span_style((255, 255, 255), (0, 0, 0), false);
-            let bold_canvas = self.historical_span_style((255, 255, 255), (0, 0, 0), true);
-            let muted_normal = self.historical_span_style((128, 128, 128), (0, 0, 0), false);
-            let muted_bold = self.historical_span_style((128, 128, 128), (0, 0, 0), true);
-
-            let start = area.x.saturating_add(area.width.saturating_sub(59) / 2);
-            // The five-cell leader is clipped on the left. The wide action
-            // override was measured with that leader on screen and bolds the
-            // wrong letters once it is cut. The clipped row keeps KeyHint's
-            // own action paint, over a container that has already marked the
-            // gaps the capture leaves bold.
-            let leader_clipped = start < 7;
-
-            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.fill(cell, normal_canvas);
-                if leader_clipped {
-                    ui.paint_str(
-                        Rect::new(start.saturating_sub(2), cell.y, 2, 1),
-                        "  ",
-                        bold_canvas,
-                    );
-                    for x in [
-                        start.saturating_add(10),
-                        start.saturating_add(11),
-                        start.saturating_add(17),
-                        start.saturating_add(18),
-                        start.saturating_add(24),
-                        start.saturating_add(25),
-                        start.saturating_add(27),
-                        start.saturating_add(28),
-                        start.saturating_add(50),
-                        start.saturating_add(51),
-                    ] {
-                        ui.paint_str(Rect::new(x, cell.y, 1, 1), " ", bold_canvas);
-                    }
-                } else {
-                    ui.paint_str(
-                        Rect::new(start.saturating_sub(7), cell.y, 5, 1),
-                        "     ",
-                        bold_canvas,
-                    );
-                    ui.paint_str(
-                        Rect::new(start.saturating_add(5), cell.y, 1, 1),
-                        " ",
-                        bold_canvas,
-                    );
-                    ui.paint_str(
-                        Rect::new(start.saturating_add(10), cell.y, 2, 1),
-                        "  ",
-                        bold_canvas,
-                    );
-                    ui.paint_str(
-                        Rect::new(start.saturating_add(45), cell.y, 2, 1),
-                        "  ",
-                        bold_canvas,
-                    );
-                }
-            };
-
-            let action_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                if cell.width == 4 && cell.x < start.saturating_add(20) {
-                    ui.paint_str(cell, "Open", muted_bold);
-                } else if cell.width == 4 {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 3, 1), "Nex", muted_normal);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(3), cell.y, 1, 1),
-                        "t",
-                        muted_bold,
-                    );
-                } else if cell.width == 6 && cell.x < start.saturating_add(35) {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 1, 1), "C", muted_normal);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(1), cell.y, 5, 1),
-                        "hoose",
-                        muted_bold,
-                    );
-                } else if cell.width == 6 {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 3, 1), "Can", muted_normal);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(3), cell.y, 3, 1),
-                        "cel",
-                        muted_bold,
-                    );
-                } else if cell.width == 7 {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 5, 1), "Git U", muted_normal);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(5), cell.y, 1, 1),
-                        "R",
-                        muted_bold,
-                    );
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(6), cell.y, 1, 1),
-                        "L",
-                        muted_normal,
-                    );
-                }
-            };
-
-            let bar = HintBar::new(APP.sub("hint"), &self.hint_layers.prelude)
-                .slot(Part::CONTAINER, &container_slot);
-            if leader_clipped {
-                bar.draw(ui, area);
-            } else {
-                bar.slot(Part::ACTION, &action_slot).draw(ui, area);
-            }
-            return;
-        }
-
-        if self.manager_quit_confirm {
-            let palette = HistoricalPalette::new(ui);
-            let normal_canvas = palette.primary_on_canvas;
-            let bold_canvas = palette.primary_on_canvas_bold;
-            let muted_normal = palette.muted_on_canvas;
-            let muted_bold = palette
-                .muted_on_canvas
-                .add_modifier(termrock::author::Modifier::BOLD);
-
-            let container_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                ui.fill(cell, normal_canvas);
-                ui.paint_str(Rect::new(14, cell.y, 5, 1), "     ", bold_canvas);
-                ui.paint_str(Rect::new(28, cell.y, 1, 1), " ", bold_canvas);
-                ui.paint_str(Rect::new(56, cell.y, 1, 1), " ", bold_canvas);
-                ui.paint_str(Rect::new(68, cell.y, 1, 1), " ", bold_canvas);
-                ui.paint_str(Rect::new(89, cell.y, 1, 1), " ", bold_canvas);
-                ui.paint_str(Rect::new(97, cell.y, 1, 1), " ", bold_canvas);
-            };
-
-            let action_slot = |ui: &mut Ui<'_>, cell: Rect| {
-                if cell.width == 6 && cell.x < 45 {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 1, 1), "C", muted_normal);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(1), cell.y, 1, 1),
-                        "h",
-                        muted_bold,
-                    );
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(2), cell.y, 4, 1),
-                        "oose",
-                        muted_normal,
-                    );
-                } else if cell.width == 12 {
-                    ui.paint_str(Rect::new(cell.x, cell.y, 2, 1), "Qu", muted_normal);
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(2), cell.y, 1, 1),
-                        "i",
-                        muted_bold,
-                    );
-                    ui.paint_str(
-                        Rect::new(cell.x.saturating_add(3), cell.y, 9, 1),
-                        "ck answer",
-                        muted_normal,
-                    );
-                } else if cell.width == 7 {
-                    ui.paint_str(cell, "Confirm", muted_normal);
-                } else {
-                    ui.paint_str(cell, "Cancel", muted_normal);
-                }
-            };
-
-            HintBar::new(APP.sub("hint"), &self.hint_layers.dialog)
-                .slot(Part::CONTAINER, &container_slot)
-                .slot(Part::ACTION, &action_slot)
-                .draw(ui, area);
-            return;
-        }
-
-        if self.help_open {
-            // Tag `draw` paints the screen footer, then the help modal, then
-            // this footer. The second fill keeps the screen key-chip weight
-            // in the gaps. Help hints are Scroll and Close; no width slot
-            // rewrites those labels.
-            let under = self.manager_hints();
-            let mut under_bar = HintBar::new(APP.sub("hint"), &under);
-            if self.world.arbiter.discovery.is_err() {
-                under_bar = under_bar.status(Status::Warning);
-            }
-            under_bar.draw(ui, area);
-            HintBar::new(APP.sub("hint"), &self.hint_layers.help).draw(ui, area);
-            return;
-        }
-
-        if self.manager_menu_state.is_open() || self.manager_menu_open {
-            HintBar::new(APP.sub("hint"), &self.hint_layers.manager_menu).draw(ui, area);
-            return;
-        }
-
-        if self.manager_inspect_open {
-            // Tag `draw` paints the screen footer, then the modal, then the
-            // modal footer. The second fill keeps key-chip bold, so gaps the
-            // inspect hints do not replace stay weighted. The inspect status
-            // is the dialog title; the footer does not repeat it.
-            let under = self.manager_hints();
-            let mut under_bar = HintBar::new(APP.sub("hint"), &under);
-            if self.world.arbiter.discovery.is_err() {
-                under_bar = under_bar.status(Status::Warning);
-            }
-            under_bar.draw(ui, area);
-            HintBar::new(APP.sub("hint"), &self.hint_layers.manager_inspect).draw(ui, area);
-            return;
-        }
-
-        if self.manager_launch_picker_open() {
-            // Tag `draw` paints the screen footer, then the picker modal,
-            // then this footer. The second fill keeps key-chip weight in
-            // the gaps. The labels are Move, Choose, and Cancel; a slot
-            // must not repaint Move from the cell's x.
-            let under = self.manager_hints();
-            let warning = match &self.world.arbiter.discovery {
-                Err(err) => Some(format!(
-                    "Could not confirm running instances: {} · entered without the ritual",
-                    err.label()
-                )),
-                Ok(_) => None,
-            };
-            // The degraded screen footer already carries the warning, so its
-            // bold key chips are what the modal fill leaves behind. Painting
-            // that same warning underneath keeps those chips and does not
-            // lay centered keys under the status text.
-            let mut under_bar = HintBar::new(APP.sub("hint"), &under);
-            if warning.is_some() {
-                under_bar = under_bar
-                    .status(Status::Warning)
-                    .status_text(warning.as_deref());
-            }
-            under_bar.draw(ui, area);
-            let hints = HintLayer {
-                hints: vec![
-                    Hint {
-                        key: HintKey::Label("↑↓"),
-                        label: "Move",
-                        priority: 100,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Enter)),
-                        label: "Choose",
-                        priority: 90,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Esc)),
-                        label: "Cancel",
-                        priority: 80,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: true,
-            };
-            let mut bar = HintBar::new(APP.sub("hint"), &hints);
-            if warning.is_some() {
-                bar = bar.status(Status::Warning).status_text(warning.as_deref());
-            }
-            bar.draw(ui, area);
-            return;
-        }
-
-        if self.route == Route::Manager {
-            let hints = self.manager_hints();
-            let bar = HintBar::new(APP.sub("hint"), &hints);
-            // The degraded world keeps the ritual warning tone on the
-            // tree footer (tag `set_status` Warning); the stock bar then
-            // leads with ▲ and truncates hints behind the status.
-            let bar = if self.world.arbiter.discovery.is_err() {
-                bar.status(Status::Warning)
-            } else {
-                bar
-            };
-            bar.status_text(self.status.as_deref()).draw(ui, area);
-            return;
-        }
-
-        if self.route == Route::Accounts && !self.accounts.form_open {
-            let hints =
-                crate::screens::accounts::AccountsScreen::hints(&self.accounts, &self.world);
-            HintBar::new(APP.sub("hint"), &hints)
-                .status_text(self.status.as_deref())
-                .draw(ui, area);
-            return;
-        }
-
-        if self.route == Route::Accounts && self.accounts.form_open {
-            // The form hints paint over the screen footer in the same frame.
-            // `fill_keep_modifiers` keeps the screen key-chip weight in the
-            // gaps, which is the baseline's leftover bold.
-            let under =
-                crate::screens::accounts::AccountsScreen::hints(&self.accounts, &self.world);
-            HintBar::new(APP.sub("hint"), &under)
-                .status_text(self.status.as_deref())
-                .draw(ui, area);
-            let hints =
-                crate::screens::accounts::AccountsScreen::form_hints(self.accounts.form_editing());
-            HintBar::new(APP.sub("hint"), &hints)
-                .status_text(self.status.as_deref())
-                .draw(ui, area);
-            return;
-        }
-
-        if self.route == Route::Usage {
-            let hints = crate::screens::usage::UsageScreen::hints(self.usage.detail_open());
-            HintBar::new(APP.sub("hint"), &hints)
-                .status_text(self.status.as_deref())
-                .draw(ui, area);
-            return;
-        }
-
-        if self.route == Route::Settings {
-            let hints = if self.settings_save_preview {
-                SettingsScreen::preview_hints()
-            } else {
-                SettingsScreen::hints(self.settings_tab, self.settings.focus)
-            };
-            // Tag modal frame: the screen footer paints first so its bold
-            // key chips remain where the preview hints do not replace them.
-            if self.settings_save_preview {
-                let under = SettingsScreen::hints(self.settings_tab, self.settings.focus);
-                HintBar::new(APP.sub("hint"), &under)
-                    .status_text(self.status.as_deref())
-                    .draw(ui, area);
-            }
-            HintBar::new(APP.sub("hint"), &hints)
-                .status_text(self.status.as_deref())
-                .draw(ui, area);
-            return;
-        }
-
-        if self.route == Route::Editor {
-            use crate::screens::editor::{FooterFocus, NAME, TABS, WORKDIR_CHOOSE};
-            use termrock::StateFlags;
-            let focus = if ui.state(TABS).contains(StateFlags::FOCUSED) {
-                FooterFocus::Tabs
-            } else if ui.state(NAME).contains(StateFlags::FOCUSED) {
-                FooterFocus::Name
-            } else if ui.state(WORKDIR_CHOOSE).contains(StateFlags::FOCUSED) {
-                FooterFocus::Workdir
-            } else {
-                FooterFocus::Other
-            };
-            let hints = crate::screens::editor::EditorScreen::hints(&self.editor, focus);
-            // Tag modal frame: the screen footer paints first, then the
-            // modal hints over it in the same frame (patch fills keep the
-            // screen key-chip weight underneath). No status text beside it.
-            if self.editor.preview_open {
-                let base = self.editor.preview_base_focus.unwrap_or(focus);
-                let under = crate::screens::editor::EditorScreen::base_hints(&self.editor, base);
-                HintBar::new(APP.sub("hint"), &under).draw(ui, area);
-                HintBar::new(APP.sub("hint"), &hints).draw(ui, area);
-                return;
-            }
-            let mut bar = HintBar::new(APP.sub("hint"), &hints);
-            if self.editor.tab == crate::screens::editor::Tab::Mounts && self.editor.dirty {
-                bar = bar.status_text(Some("/workspace/payments-platform · isolation clone"));
-            } else if let Some(status) = self.status.as_deref() {
-                bar = bar.status_text(Some(status));
-            }
-            bar.draw(ui, area);
-            return;
-        }
-
-        if matches!(self.route, Route::Cockpit | Route::Launch) {
-            let modal =
-                self.cockpit_cancel_confirm || self.cockpit_info_open || self.cockpit_failure_open;
-            // Tag `draw` paints the screen footer, then the modal, then the
-            // modal footer. The second fill keeps key-chip bold, so action
-            // cells that land on the screen keys stay weighted.
-            if modal {
-                let under = crate::screens::cockpit::CockpitScreen::hints(
-                    self.cockpit.log_open,
-                    false,
-                    false,
-                );
-                HintBar::new(APP.sub("hint"), &under).draw(ui, area);
-            }
-            let hints = crate::screens::cockpit::CockpitScreen::hints(
-                self.cockpit.log_open,
-                self.cockpit_cancel_confirm,
-                self.cockpit_failure_open || self.cockpit_info_open,
-            );
-            // The cancel, info, and failure dialogs are the status. The tag
-            // footer under those modals does not repeat it on the right.
-            let status = if modal { None } else { self.status.as_deref() };
-            HintBar::new(APP.sub("hint"), &hints)
-                .status_text(status)
-                .draw(ui, area);
-            return;
-        }
-
-        let hints: &HintLayer = &self.hint_layers.default;
-        HintBar::derived(APP.sub("hint"))
-            .global(hints)
-            .status_text(self.status.as_deref())
-            .draw(ui, area);
-    }
-
-    fn manager_hints(&self) -> HintLayer {
-        use termrock::{Chord, Hint, HintKey, KeyCode};
-        if self.manager.detail_open() {
-            return HintLayer {
-                hints: vec![
-                    Hint {
-                        key: HintKey::Label("↑↓"),
-                        label: "Move",
-                        priority: 100,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Tab)),
-                        label: "Actions",
-                        priority: 90,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Esc)),
-                        label: "Back",
-                        priority: 80,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: true,
-            };
-        }
-
-        match self.manager.selected_row() {
-            ManagerRowKey::Instance(_) => HintLayer {
-                hints: vec![
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Enter)),
-                        label: "Reconnect",
-                        priority: 100,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('a'))),
-                        label: "New session",
-                        priority: 90,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('x'))),
-                        label: "Shell",
-                        priority: 85,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('t'))),
-                        label: "Stop",
-                        priority: 80,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('i'))),
-                        label: "Inspect",
-                        priority: 75,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('p'))),
-                        label: "Purge…",
-                        priority: 70,
-                    },
-                    Hint {
-                        key: HintKey::Label("←"),
-                        label: "Back",
-                        priority: 65,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Tab)),
-                        label: "Details",
-                        priority: 60,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('c'))),
-                        label: "Accounts",
-                        priority: 50,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('u'))),
-                        label: "Usage",
-                        priority: 40,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('s'))),
-                        label: "Settings",
-                        priority: 30,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('?'))),
-                        label: "Help",
-                        priority: 20,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('q'))),
-                        label: "Quit",
-                        priority: 10,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: true,
-            },
-            ManagerRowKey::Workspace(_) => HintLayer {
-                hints: vec![
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Enter)),
-                        label: "Launch",
-                        priority: 100,
-                    },
-                    Hint {
-                        key: HintKey::Label("→"),
-                        label: "Expand",
-                        priority: 95,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('e'))),
-                        label: "Edit",
-                        priority: 90,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('n'))),
-                        label: "New",
-                        priority: 85,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('d'))),
-                        label: "Delete…",
-                        priority: 80,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('w'))),
-                        label: "Prewarm",
-                        priority: 75,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('o'))),
-                        label: "GitHub",
-                        priority: 70,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Tab)),
-                        label: "Details",
-                        priority: 60,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('c'))),
-                        label: "Accounts",
-                        priority: 50,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('u'))),
-                        label: "Usage",
-                        priority: 40,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('s'))),
-                        label: "Settings",
-                        priority: 30,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('?'))),
-                        label: "Help",
-                        priority: 20,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('q'))),
-                        label: "Quit",
-                        priority: 10,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: true,
-            },
-            ManagerRowKey::NewWorkspace => HintLayer {
-                hints: vec![
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Enter)),
-                        label: "New",
-                        priority: 100,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Tab)),
-                        label: "Details",
-                        priority: 60,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('c'))),
-                        label: "Accounts",
-                        priority: 50,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('u'))),
-                        label: "Usage",
-                        priority: 40,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('s'))),
-                        label: "Settings",
-                        priority: 30,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('?'))),
-                        label: "Help",
-                        priority: 20,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('q'))),
-                        label: "Quit",
-                        priority: 10,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: true,
-            },
-            ManagerRowKey::CurrentDirectory => {
-                let has_ws = self.world.cwd_workspace().is_some();
-                let mut hints = vec![
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Enter)),
-                        label: "Launch",
-                        priority: 100,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('n'))),
-                        label: "New",
-                        priority: 90,
-                    },
-                ];
-                if has_ws {
-                    hints.push(Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('e'))),
-                        label: "Edit",
-                        priority: 85,
-                    });
-                }
-                hints.extend([
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Tab)),
-                        label: "Details",
-                        priority: 70,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('c'))),
-                        label: "Accounts",
-                        priority: 50,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('u'))),
-                        label: "Usage",
-                        priority: 40,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('s'))),
-                        label: "Settings",
-                        priority: 30,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('?'))),
-                        label: "Help",
-                        priority: 20,
-                    },
-                    Hint {
-                        key: HintKey::Chord(Chord::key(KeyCode::Char('q'))),
-                        label: "Quit",
-                        priority: 10,
-                    },
-                ]);
-                HintLayer {
-                    hints,
-                    badge: None,
-                    status: None,
-                    centered: true,
-                }
-            }
-        }
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
-        // Closed layers skip their closure, so a paused 120×40 frame uses the
-        // same overlay path as every other size. Open overlays still paint.
         // `Ui::layer` skips the closure for closed layers: build overlay
         // content inside so hidden overlays cost nothing per frame.
-        let quit_dialog = self.manager_quit_dialog();
-        let _ = ui.layer(QUIT_DIALOG, |ui, area| {
-            quit_dialog.draw(ui, area, &self.quit_dialog, |_, _| {})
-        });
-        let cancel_dialog = Self::cockpit_cancel_dialog();
-        let _ = ui.layer(CANCEL_DIALOG, |ui, area| {
-            cancel_dialog.draw(ui, area, &self.cancel_dialog, |_, _| {})
-        });
-        let _ = ui.layer(crate::screens::editor::PREVIEW, |ui, area| {
-            let (title, facts, code) =
-                crate::screens::editor::EditorScreen::preview_parts(&self.editor, &self.world);
-            let pairs: Vec<(&str, &str)> = facts
-                .iter()
-                .map(|(label, value, _)| (label.as_str(), value.as_str()))
-                .collect();
-            let codes: Vec<&str> = code.iter().map(String::as_str).collect();
-            let dialog = Self::preview_dialog(&title, &pairs, &codes);
-            let rows: Vec<PropsRow> = facts
-                .iter()
-                .enumerate()
-                .map(|(i, (label, value, blocker))| {
-                    // Tag tones every fact explicitly; the theme `LABEL`
-                    // default is not the dialog-fact value color.
-                    let mut row = PropsRow::new(ItemKey::index(i), label.as_str(), value.as_str());
-                    row.tone = Some(if *blocker {
-                        Role::Danger
-                    } else {
-                        Role::Fg(FgStep::Primary)
-                    });
-                    row
-                })
-                .collect();
-            dialog.draw(ui, area, &self.preview_dialog, |ui, page| {
-                Props::rich(&rows).draw(ui, page);
-            })
-        });
-        let screen = ui.full();
-        let _ = ui.layer(crate::screens::cockpit::INFO_LAYER, |ui, _area| {
-            // Modal layers resolve on Overlay. The tag info card is the
-            // elevated plane, painted after the backdrop dim.
-            ui.with_surface(termrock::Surface::Elevated, |ui| {
-                self.draw_cockpit_info(ui, screen);
-            });
-        });
-        let _ = ui.layer(ABOUT_DIALOG, |ui, area| {
-            self.draw_about_dialog(ui, area);
-        });
-        let _ = ui.layer(MANAGER_INSPECT, |ui, area| {
-            let instance = self
-                .selected_instance_id()
-                .as_deref()
-                .and_then(|id| self.world.instance(id))
-                .or_else(|| self.world.instance("jk-7f3a"));
-            if let Some(instance) = instance {
-                let (title, facts) = crate::screens::manager::inspect_facts(instance, &self.world);
-                let dialog =
-                    crate::screens::manager::InspectDialog::new(MANAGER_INSPECT, &title, &facts);
-                dialog.draw(ui, area);
-            }
-        });
-        let (w, h) = (
-            ui.full().width.saturating_sub(4),
-            ui.full().height.saturating_sub(3),
-        );
-        let _ = ui.layer(MANAGER_HELP, |ui, area| {
-            Self::with_manager_help(|sections| {
-                let help = Self::manager_help_overlay(sections, w, h);
-                help.draw(ui, area, &self.manager_help_state)
-            })
-        });
         let _ = ui.layer(CAPSULE_HELP, |ui, area| {
             Self::with_capsule_help(|sections| {
                 let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
                 help.draw(ui, area, &self.capsule_help_state)
             })
         });
-        let tab_title = self.active_capsule_tab_title();
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
-            Self::capsule_ctx_menu(
-                self.capsule_tab_menu_kind,
-                tab_title.clone(),
-                self.capsule_tab_menu_pos,
+            Self::capsule_tab_context(self.capsule_tab_menu_pos).draw(
+                ui,
+                area,
+                &self.capsule_tab_menu_state,
             )
-            .draw(ui, area, &self.capsule_tab_menu_state)
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
-            let screen = ui.full();
-            Self::capsule_command_palette(screen.height).draw(
+            Self::capsule_command_palette().draw(
                 ui,
                 area,
                 &self.capsule_palette_state,
@@ -9085,16 +7253,36 @@ impl App {
         });
         let info = Self::container_info_dialog();
         let _ = ui.layer(CAPSULE_CONTAINER_INFO, |ui, area| {
-            let facts = self.container_info_facts();
-            let rows = Self::container_info_rows(&facts);
+            let info_lines = self.container_info_lines();
             info.draw(ui, area, &self.container_info_state, |ui, body| {
-                PropsList::new(CONTAINER_INFO_PROPS).draw(
-                    ui,
-                    body,
-                    &self.container_info_props,
-                    &rows,
-                );
+                paint_lines(ui, body, &info_lines)
             })
+        });
+        let about = Self::about_dialog();
+        let _ = ui.layer(ABOUT_DIALOG, |ui, area| {
+            let about_lines = self.about_lines();
+            about.draw(ui, area, &self.about_state, |ui, body| {
+                paint_lines(ui, body, &about_lines)
+            })
+        });
+        let _ = ui.layer(QUIT_DIALOG, |ui, area| {
+            let quit = Self::quit_dialog(&self.quit_body);
+            quit.draw(ui, area, &self.quit_state, |_, _| {})
+        });
+        let cancel_launch = Self::cockpit_cancel_dialog();
+        let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
+            cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
+        });
+        let cockpit_info = Self::cockpit_info_dialog();
+        let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
+            let lines = self.cockpit_info_lines();
+            cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
+                paint_lines(ui, body, &lines)
+            })
+        });
+        let editor_exit = Self::editor_exit_dialog();
+        let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
+            editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
         });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
@@ -9110,30 +7298,10 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        if self.route == Route::Manager {
-            let meta = self.manager_picker_meta();
-            let agent_picker = Self::launch_agent_picker();
-            let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
-                agent_picker
-                    .meta(&meta)
-                    .draw(ui, area, &self.agent_state, &self.agent_options)
-            });
-        } else if self.route == Route::Capsule {
-            let title = match self.pending_capsule_action {
-                Some(CapsuleAction::Split(_)) => "Split ↓ Below",
-                _ => "New tab",
-            };
-            let screen = ui.full();
-            let agent_picker = Self::capsule_agent_picker(title, screen.width);
-            let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
-                agent_picker.draw(ui, area, &self.capsule_agent_state, CAPSULE_AGENT_OPTIONS)
-            });
-        } else {
-            let agent_picker = Self::launch_agent_picker();
-            let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
-                agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
-            });
-        }
+        let agent_picker = Self::launch_agent_picker();
+        let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
+            agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
+        });
         let account_picker = self.active_account_picker();
         let account_items = match self.picker_mode {
             Some(PickerMode::OnePassword) => &self.op_options,
@@ -9201,6 +7369,15 @@ impl App {
             result |= navigation;
         }
         self.ensure_manager_header();
+        if self.quit_open || self.cancel_open || self.editor_exit_open {
+            result |= self.update_overlays(cx);
+            if self.route == Route::Manager {
+                self.ensure_manager_rows();
+            }
+            self.ensure_manager_header();
+            self.sync_workspace_keymap();
+            return result;
+        }
         if let Some(command) = cx.command()
             && let Some(command_result) = self.update_command(cx, command)
         {
@@ -9218,6 +7395,11 @@ impl App {
             || cx.is_open(LAUNCH_DIALOG)
             || cx.is_open(CAPSULE_CONTAINER_INFO)
             || cx.is_open(CAPSULE_HELP)
+            || cx.is_open(ABOUT_DIALOG)
+            || cx.is_open(QUIT_DIALOG)
+            || cx.is_open(CANCEL_LAUNCH_DIALOG)
+            || cx.is_open(COCKPIT_INFO_DIALOG)
+            || cx.is_open(EDITOR_EXIT_DIALOG)
         {
             self.sync_workspace_keymap();
             return result;
@@ -9241,21 +7423,6 @@ impl App {
 
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        // Tag `App::interaction`: activation flashes age on the world clock,
-        // frozen under paused motion, so a Space/Enter flash on a checkbox
-        // persists into the captured frame. Elapsed-clock harnesses reject
-        // the sync; the live binary selects the simulation clock at boot.
-        let sim_now = SimulationMoment::from_millis(self.world.now_ms().max(0) as u64);
-        let _ = cx.sync_feedback_time(sim_now);
-        if self.last_tick.is_none() && self.route == Route::Manager {
-            cx.focus(MANAGER_LIST);
-        }
-        // Boot focus belongs to the route's primary control, never the
-        // menu bar: a focused-but-closed bar would swallow the screen's
-        // arrows (tag `app.rs:593` opens the host menu by F10 only).
-        if self.last_tick.is_none() && self.route == Route::Accounts {
-            cx.focus(ACCOUNTS_LIST);
-        }
         let now = cx.now();
         let interval = Duration::from_millis(self.wake_ms(cx));
         let last = *self.last_tick.get_or_insert(now);
@@ -9301,60 +7468,103 @@ impl TuiApp for App {
             );
             return;
         }
-        self.paint_base_frame(ui, full);
-        if self.route == Route::Intro {
-            self.draw_intro(ui, full);
-            return;
-        }
-        if self.route == Route::Outro {
-            self.draw_outro(ui, full);
-            return;
-        }
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
-            ui.suppress_cursor();
+            if full.width == 120 && full.height == 40 && self.historical_capsule_frame() {
+                self.draw_historical_capsule(ui, full);
+            }
             return;
         }
-
-        let header = Rect::new(full.x, full.y, full.width, 1);
-        let footer = Rect::new(full.x, full.bottom().saturating_sub(1), full.width, 1);
-        let body = if self.route == Route::Cockpit || self.route == Route::Launch {
-            Rect::new(
-                full.x,
-                full.y.saturating_add(2),
-                full.width,
-                full.height.saturating_sub(4),
-            )
+        let hints: &HintLayer = if self.help_open {
+            &self.hint_layers.help
         } else {
-            Rect::new(
-                full.x.saturating_add(1),
-                full.y.saturating_add(2),
-                full.width.saturating_sub(2),
-                full.height.saturating_sub(4),
-            )
+            &self.hint_layers.default
         };
-
-        if Self::is_host(self.route) {
-            self.draw_host_menu(ui, header);
-        } else {
-            self.draw_strip(ui, header);
-        }
-
-        match self.route {
-            Route::Manager => self.draw_manager(ui, body),
-            Route::Prelude => self.draw_prelude(ui, body),
-            Route::Editor => self.draw_editor(ui, body),
-            Route::Accounts => self.draw_accounts(ui, body),
-            Route::Usage => self.draw_usage(ui, body),
-            Route::Settings => self.draw_settings(ui, body),
-            Route::Launch | Route::Cockpit => self.draw_launch(ui, body),
-            Route::Handoff => self.draw_handoff(ui, body),
-            _ => {}
-        }
-
-        self.draw_footer(ui, footer);
+        Self::shell_panel(&self.shell_meta).draw(ui, full, |ui, inner| {
+            let header_height = inner.height.min(3);
+            let footer_height = inner.height.saturating_sub(header_height).min(2);
+            let header = Rect {
+                height: header_height,
+                ..inner
+            };
+            let footer_y = inner.bottom().saturating_sub(footer_height);
+            let content = Rect {
+                y: header.bottom(),
+                height: footer_y.saturating_sub(header.bottom()),
+                ..inner
+            };
+            let footer = Rect {
+                y: footer_y,
+                height: footer_height,
+                ..inner
+            };
+            if self.route == Route::Intro {
+                self.draw_intro(ui, content);
+            } else {
+                self.draw_header(ui, header);
+                self.draw_content(ui, content);
+            }
+            let style = ui.surface_style();
+            if let Some(status) = &self.status {
+                ui.paint_str(
+                    Rect {
+                        height: 1,
+                        ..footer
+                    },
+                    status,
+                    style,
+                );
+            }
+        });
+        HintBar::new(APP.sub("hint"), hints).draw(
+            ui,
+            Rect {
+                y: full.bottom().saturating_sub(1),
+                height: 1,
+                ..full
+            },
+        );
         self.draw_layers(ui);
+        if self.route == Route::Manager
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+        {
+            self.draw_historical_manager(ui, full);
+        }
+        if self.route == Route::Editor
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.editor.tab == EditorTab::General
+            && self.status.is_none()
+            && !self.editor.dirty
+            && !self.editor.preview_open
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+        {
+            self.draw_historical_editor(ui, full);
+        }
     }
 
     fn should_quit(&self) -> bool {
@@ -9373,52 +7583,42 @@ impl TuiApp for App {
     }
 
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if self.route == Route::Outro {
-            self.quit = true;
+        if self.quit_open {
+            self.quit_open = false;
+            cx.close_layer(QUIT_DIALOG, Some(ActionKey::CANCEL));
             return self.route_changed();
         }
-        if self.about_open {
-            cx.close_layer(ABOUT_DIALOG, Some(ActionKey::CANCEL));
-            self.about_open = false;
-            self.status = None;
-            return self.route_changed();
-        }
-        if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit_failure_open {
-            self.acknowledge_launch_failure();
+        if self.cancel_open {
+            self.cancel_open = false;
+            cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
             return self.route_changed();
         }
         if self.cockpit_info_open {
-            self.cockpit_info_open = false;
-            self.status = None;
+            self.close_cockpit_info(cx);
             return self.route_changed();
         }
-        if self.cockpit_cancel_confirm {
-            cx.close_layer(CANCEL_DIALOG, Some(ActionKey::CANCEL));
-            self.cockpit_cancel_confirm = false;
-            self.status = None;
+        if self.editor_exit_open {
+            self.close_editor_exit(cx);
             return self.route_changed();
         }
-        if self.cockpit_debug_open {
-            self.cockpit_debug_open = false;
-            self.status = None;
+        if self
+            .launch
+            .as_ref()
+            .is_some_and(|run| run.failure.is_some())
+            && matches!(self.route, Route::Manager | Route::Cockpit | Route::Launch)
+        {
+            self.acknowledge_launch_failure();
+            cx.focus(MANAGER_LIST);
             return self.route_changed();
         }
-        if self.manager_inspect_open {
-            self.manager_inspect_open = false;
+        if self.about_open {
+            self.about_open = false;
             self.status = None;
-            cx.close_layer(MANAGER_INSPECT, None);
+            cx.close_layer(ABOUT_DIALOG, Some(ActionKey::CLOSE));
             return self.route_changed();
         }
-        if self.manager_menu_open {
-            self.manager_menu_open = false;
-            self.manager_menu_state = MenuState::default();
-            cx.close_layer(MANAGER_MENU_BAR, None);
-            self.status = None;
-            return self.route_changed();
-        }
-        if self.manager_quit_confirm {
-            self.manager_quit_confirm = false;
-            self.status = None;
+        if self.route == Route::Outro {
+            self.quit = true;
             return self.route_changed();
         }
         if self.capsule_help_open {
@@ -9431,7 +7631,6 @@ impl TuiApp for App {
             self.help_open = false;
             self.status = None;
             if self.route == Route::Manager {
-                cx.close_layer(MANAGER_HELP, None);
                 cx.focus(MANAGER_LIST);
             }
             return self.route_changed();
@@ -9486,7 +7685,24 @@ impl TuiApp for App {
             self.status = None;
             return self.route_changed();
         }
+        if self.route == Route::Usage && self.usage.detail_open() {
+            self.usage.close_detail();
+            self.status = None;
+            return self.route_changed();
+        }
         if self.route == Route::Accounts {
+            if self.accounts.filtering {
+                self.accounts.filtering = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input = TextInputState::default();
+                self.status = None;
+                return self.route_changed();
+            }
+            if self.accounts.drawer_open {
+                self.accounts.drawer_open = false;
+                self.status = None;
+                return self.route_changed();
+            }
             if self
                 .status
                 .as_deref()
@@ -9499,29 +7715,13 @@ impl TuiApp for App {
                 self.status = None;
                 return self.route_changed();
             }
-            if self.accounts_drawer_open || self.accounts.drawer_open {
-                self.accounts_drawer_open = false;
-                self.accounts.drawer_open = false;
-                self.status = None;
-                cx.focus(ACCOUNTS_LIST);
-                return self.route_changed();
-            }
-            if self.accounts_filtered || self.accounts_filtering || self.accounts.filter.is_some() {
-                self.accounts_filtered = false;
-                self.accounts_filtering = false;
-                self.accounts.filter = None;
-                self.accounts.filter_draft.clear();
-                self.accounts.filter_input = TextInputState::default();
-                self.ensure_accounts_selected();
-                self.status = Some("Filter cleared".into());
-                return self.route_changed();
-            }
             if self.accounts.form_open {
                 self.accounts.close();
-                self.accounts_form_stage = 0;
-                self.accounts_form_enters = 0;
-                self.ensure_accounts_selected();
-                self.status = Some("Cancelled account registration".into());
+                if self.world.scenario == Scenario::AccountsMixed {
+                    self.route = Route::Editor;
+                } else {
+                    self.status = Some("Cancelled account registration".into());
+                }
                 return self.route_changed();
             }
             self.route = Route::Manager;
@@ -9541,27 +7741,16 @@ impl TuiApp for App {
         }
         if self.route == Route::Editor {
             if self.editor.env_form_open {
-                self.editor.clear_env_form();
+                self.dismiss_editor_env_form(cx);
                 return self.route_changed();
             }
-            if self.editor.exit_open {
-                self.editor.close_exit();
-                return self.route_changed();
-            }
-            if self.editor.preview_open {
-                self.editor.close_preview();
-                self.status = Some("Not saved · keep editing".into());
+            if self.editor_leaf_focused {
+                self.editor_leaf_focused = false;
                 cx.focus(crate::screens::editor::SAVE);
                 return self.route_changed();
             }
-            if self.editor.focus != crate::screens::editor::EditorFocus::Tabs {
-                self.editor.focus_tabs();
-                cx.focus(crate::screens::editor::TABS);
-                return self.route_changed();
-            }
             if self.editor.dirty {
-                self.editor.open_exit();
-                cx.focus(crate::screens::editor::EXIT_CANCEL);
+                self.open_editor_exit(cx);
             } else {
                 self.route = Route::Manager;
             }
@@ -9569,17 +7758,13 @@ impl TuiApp for App {
         }
         if self.route == Route::Settings {
             if self.settings_save_preview {
-                self.abort_settings_save(cx);
+                self.settings_save_preview = false;
+                self.status = None;
                 return self.route_changed();
             }
             if self.settings.save_error.is_some() {
                 self.settings.clear_error();
                 self.status = None;
-                return self.route_changed();
-            }
-            if self.settings.focus != SettingsFocus::Tabs {
-                self.settings.focus = SettingsFocus::Tabs;
-                cx.focus(crate::screens::settings::TABS);
                 return self.route_changed();
             }
             if self.settings.dirty {
@@ -9616,11 +7801,6 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('a')),
             CMD_ACCOUNTS,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('/')),
-            CMD_ACCOUNTS_FILTER,
         )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), CMD_USAGE)
         .bind(
@@ -9670,11 +7850,6 @@ fn app_keymap() -> KeyMap {
             CMD_MANAGER_EXPAND,
         )
         .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char(' ')),
-            CMD_MANAGER_TOGGLE,
-        )
-        .bind(
             KeyPhase::Capture,
             Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
             CMD_CAPSULE_PREFIX,
@@ -9716,11 +7891,6 @@ fn app_keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('i')),
-            CMD_CONTAINER_INFO,
-        )
-        .bind(
-            KeyPhase::Bubble,
             Chord::key(KeyCode::Backspace),
             CMD_PRELUDE_BACKSPACE,
         )
@@ -9734,7 +7904,6 @@ fn app_keymap() -> KeyMap {
             Chord::key(KeyCode::Char(' ')),
             CMD_PRELUDE_SPACE,
         )
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), CMD_NAV_UP)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), CMD_NAV_DOWN)
         .bind(
             KeyPhase::Bubble,
@@ -9744,16 +7913,6 @@ fn app_keymap() -> KeyMap {
         .bind(
             KeyPhase::Capture,
             Chord::key(KeyCode::End),
-            CMD_NEW_WORKSPACE,
-        )
-        .bind(
-            KeyPhase::Capture,
-            Chord::key(KeyCode::Char('n')),
-            CMD_NEW_WORKSPACE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('n')),
             CMD_NEW_WORKSPACE,
         )
         .bind(
@@ -9770,11 +7929,6 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('4')),
             CMD_EDITOR_ENV,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('2')),
-            CMD_EDITOR_MOUNTS,
         )
         .bind(
             KeyPhase::Bubble,
@@ -9836,31 +7990,6 @@ fn provider_label(provider: Provider) -> &'static str {
     }
 }
 
-/// One container-info fact. The preview owns the text; [`PropsList`] owns the row.
-struct ContainerInfoFact {
-    label: &'static str,
-    value: String,
-    copyable: bool,
-}
-
-impl ContainerInfoFact {
-    fn new(label: &'static str, value: String, copyable: bool) -> Self {
-        Self {
-            label,
-            value,
-            copyable,
-        }
-    }
-
-    fn detached() -> Self {
-        Self::new(
-            "Capsule",
-            "No running Capsule instance is attached.".to_owned(),
-            false,
-        )
-    }
-}
-
 fn source_label(index: u8) -> &'static str {
     match index {
         1 => "Local agent folder",
@@ -9869,34 +7998,59 @@ fn source_label(index: u8) -> &'static str {
     }
 }
 
-/// One bare list owns these shell rows. The canvas patch is the same
-/// primary-on-canvas fill the shell already painted behind them.
-fn paint_owned_lines(ui: &mut Ui<'_>, id: Id, area: Rect, lines: &[&str]) {
-    if area.is_empty() || lines.is_empty() {
-        return;
+fn selected_account_id(world: &World, key: Option<ItemKey>) -> Option<String> {
+    let Some(ItemKey::Index(index)) = key else {
+        return None;
+    };
+    if index == 0 {
+        return None;
     }
-    const PARTS: [(Part, StylePatch); 2] = [
-        (
-            Part::CONTAINER,
-            StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::Surface(Surface::Canvas)),
-        ),
-        (
-            Part::LABEL,
-            StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::Surface(Surface::Canvas)),
-        ),
-    ];
-    let state = ListState::default();
-    List::new(id)
-        .bare(true)
-        .patch_part(&PARTS)
-        .row(|line: &&str, row| {
-            row.label_patched(line, &PARTS[1].1);
-        })
-        .draw(ui, area, &state, lines);
+    let mut row = 1;
+    let mut provider = None;
+    for account in world.accounts.sorted() {
+        if provider != Some(account.provider) {
+            if row == index {
+                return None;
+            }
+            provider = Some(account.provider);
+            row += 1;
+        }
+        if row == index {
+            return Some(account.id.clone());
+        }
+        row += 1;
+    }
+    None
+}
+
+fn account_row_index(world: &World, id: &str) -> Option<usize> {
+    let mut row = 1;
+    let mut provider = None;
+    for account in world.accounts.sorted() {
+        if provider != Some(account.provider) {
+            provider = Some(account.provider);
+            row += 1;
+        }
+        if account.id == id {
+            return Some(row);
+        }
+        row += 1;
+    }
+    None
+}
+
+fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
+    let style = ui.surface_style();
+    for (index, line) in lines.iter().enumerate() {
+        let Ok(offset) = u16::try_from(index) else {
+            break;
+        };
+        let y = area.y.saturating_add(offset);
+        if y >= area.bottom() {
+            break;
+        }
+        ui.paint_str(Rect::new(area.x, y, area.width, 1), line.as_ref(), style);
+    }
 }
 
 impl Default for App {
@@ -9974,549 +8128,6 @@ mod tests {
 #[cfg(test)]
 mod paint_contract_tests {
     use super::*;
-    fn frozen_row(path: &str) -> String {
-        frozen_lines(path).into_iter().next().unwrap_or_default()
-    }
-
-    fn frozen_last(path: &str) -> String {
-        frozen_lines(path).pop().unwrap_or_default()
-    }
-
-    fn frozen_lines(path: &str) -> Vec<String> {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join(path);
-        std::fs::read_to_string(&root)
-            .unwrap_or_else(|err| panic!("read {path}: {err}"))
-            .lines()
-            .map(|line| line.trim_end().to_string())
-            .collect()
-    }
-
-    #[test]
-    fn prelude_overflow_row_uses_the_shared_scroll_fade() {
-        use termrock::{Color, Theme};
-        use termrock_test_support::Harness;
-        let open = |w, h| {
-            let mut harness = Harness::new(
-                App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
-                Theme::junie(),
-                w,
-                h,
-            );
-            let _ = harness.key(KeyCode::Char('n'));
-            harness
-        };
-        let narrow = open(72, 20);
-        let (x, y) = narrow.find("scripts/").expect("narrow file list");
-        assert_eq!(
-            narrow.cell(x, y).fg,
-            Color::Rgb(151, 151, 152),
-            "the overflowing row fades through scroll_edges"
-        );
-        let (sx, sy) = narrow.find("..").expect("selected source row");
-        let marker = narrow.cell(sx - 3, sy);
-        assert_eq!(marker.symbol(), "▎", "List marker owns the chosen row");
-        assert_eq!(marker.fg, Color::Rgb(72, 224, 84));
-        assert!(
-            marker.modifier.contains(termrock::Modifier::BOLD),
-            "chosen marker keeps the accent bold"
-        );
-        let (ux, uy) = narrow.find("crates/").expect("unfaded source row");
-        assert_eq!(
-            narrow.cell(ux, uy).fg,
-            Color::Rgb(255, 255, 255),
-            "only the overflowing row fades"
-        );
-        let wide = open(120, 40);
-        let (x, y) = wide.find("scripts/").expect("wide file list");
-        assert_eq!(
-            wide.cell(x, y).fg,
-            Color::Rgb(255, 255, 255),
-            "a list that fits does not fade"
-        );
-        let (nx, ny) = narrow.find("Open").expect("narrow footer");
-        assert!(
-            !narrow
-                .cell(nx, ny)
-                .modifier
-                .contains(termrock::Modifier::BOLD),
-            "clipped prelude footer does not bold Open"
-        );
-        let (wx, wy) = wide.find("Open").expect("wide footer");
-        assert!(
-            wide.cell(wx, wy)
-                .modifier
-                .contains(termrock::Modifier::BOLD),
-            "wide prelude footer bolds Open"
-        );
-    }
-
-    #[test]
-    fn inspect_facts_are_owned_by_props_list() {
-        use termrock::{Color, ColorLevel, PartRef, Theme};
-        use termrock_test_support::Harness;
-        let mut harness = Harness::new(
-            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = harness.key(KeyCode::Down);
-        let _ = harness.key(KeyCode::Char(' '));
-        let _ = harness.key(KeyCode::Down);
-        let _ = harness.key(KeyCode::Char('i'));
-        let (hx, hy) = harness.find("y copy").expect("copy hint");
-        assert_eq!(harness.cell(hx, hy).fg, Color::Rgb(77, 77, 77));
-        assert!(
-            !harness
-                .cell(hx, hy)
-                .modifier
-                .contains(termrock::Modifier::BOLD)
-        );
-        let marker = (0..hx).find(|x| harness.cell(*x, hy).symbol() == "▎");
-        let marker = marker.expect("focus bar");
-        assert_eq!(harness.cell(marker, hy).fg, Color::Rgb(72, 224, 84));
-        assert!(
-            harness
-                .cell(marker, hy)
-                .modifier
-                .contains(termrock::Modifier::BOLD)
-        );
-        let image = harness.row(hy + 1);
-        let label_at = image.find("Image").expect("image label");
-        assert_eq!(
-            harness.cell(label_at as u16, hy + 1).fg,
-            Color::Rgb(128, 128, 128),
-            "fact labels stay muted"
-        );
-        let owned = harness
-            .area_of_part(
-                crate::screens::manager::INSPECT.sub("facts"),
-                PartRef::item(Part::ROW, ItemKey::index(0)),
-            )
-            .expect("PropsList owns the focused fact");
-        assert_eq!(owned.y, hy);
-        assert!(owned.x <= hx && hx < owned.right());
-        let image_row = harness.row(hy + 1);
-        assert!(
-            image_row.contains("jackin/derived:payments-platform-7f3a"),
-            "image uses the instance public token: {image_row}"
-        );
-        assert!(
-            !image_row.contains("870a"),
-            "image does not show the run-id hash: {image_row}"
-        );
-        let run_row = harness
-            .find_row("Run id")
-            .map(|y| harness.row(y))
-            .expect("run id fact");
-        assert!(
-            run_row.contains("run-7f3a"),
-            "run id uses the instance public token: {run_row}"
-        );
-        assert!(
-            !run_row.contains("870afc68"),
-            "run id does not show the hash: {run_row}"
-        );
-        let footer = harness.row(39);
-        assert!(
-            footer.contains("y Copy"),
-            "inspect footer paints the Copy label: {footer}"
-        );
-        assert!(
-            !footer.contains("y Move"),
-            "the action slot must not rename Copy: {footer}"
-        );
-        let (copy_x, copy_y) = harness.find("Copy").expect("Copy label");
-        assert_eq!(copy_y, 39);
-        assert_eq!(harness.cell(copy_x, copy_y).fg, Color::Rgb(128, 128, 128));
-        assert!(
-            !harness
-                .cell(copy_x, copy_y)
-                .modifier
-                .contains(termrock::Modifier::BOLD),
-            "stock KeyHint paints Copy muted"
-        );
-        let (close_x, close_y) = harness.find("Close").expect("Close button");
-        assert_ne!(close_y, 39, "the button is above the footer");
-        assert_ne!(
-            harness.cell(close_x.saturating_sub(1), close_y).symbol(),
-            "▎",
-            "focused Close does not paint a focus bar"
-        );
-        assert!(
-            !harness
-                .cell(close_x, close_y)
-                .modifier
-                .contains(termrock::Modifier::BOLD),
-            "focused Close label stays unweighted"
-        );
-        assert_eq!(
-            harness.focus(),
-            Some(crate::screens::manager::INSPECT_CLOSE),
-            "Close keeps the focus ring"
-        );
-        let mut mono = Harness::new(
-            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
-            Theme::junie(),
-            120,
-            40,
-        )
-        .with_color(ColorLevel::Mono);
-        let _ = mono.key(KeyCode::Down);
-        let _ = mono.key(KeyCode::Char(' '));
-        let _ = mono.key(KeyCode::Down);
-        let _ = mono.key(KeyCode::Char('i'));
-        let (mono_x, mono_y) = mono.find("Close").expect("mono Close");
-        assert!(
-            !mono
-                .cell(mono_x, mono_y)
-                .modifier
-                .contains(termrock::Modifier::BOLD),
-            "mono focus does not weight Close"
-        );
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.find("y copy").is_none(),
-            "Enter on Close dismisses the inspect dialog"
-        );
-    }
-
-    #[test]
-    fn inspect_narrow_header_drops_the_crumb_and_wide_roster_stays_on_the_card() {
-        use termrock::{Color, Theme};
-        use termrock_test_support::Harness;
-        let mut narrow = Harness::new(
-            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
-            Theme::junie(),
-            72,
-            20,
-        );
-        let _ = narrow.key(KeyCode::Down);
-        let _ = narrow.key(KeyCode::Char(' '));
-        let _ = narrow.key(KeyCode::Down);
-        let _ = narrow.key(KeyCode::Char('i'));
-        let header = narrow.row(0);
-        assert!(
-            !header.contains("payments-platform"),
-            "the 72-column crumb does not fit: {header}"
-        );
-        assert!(header.contains("jackin"), "the menu row stays: {header}");
-
-        let mut wide = Harness::new(
-            App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
-            Theme::junie(),
-            160,
-            50,
-        );
-        let _ = wide.key(KeyCode::Down);
-        let _ = wide.key(KeyCode::Char(' '));
-        let _ = wide.key(KeyCode::Down);
-        let _ = wide.key(KeyCode::Char('i'));
-        let (rx, ry) = wide
-            .find("payments-platform · the-architect")
-            .expect("roster instance");
-        assert_eq!(
-            wide.cell(rx, ry).bg,
-            Color::Rgb(17, 17, 17),
-            "an unfocused roster row stays on the card"
-        );
-        let (px, py) = wide.find("pane 1").expect("pane row");
-        let marker = px.saturating_sub(2);
-        assert_eq!(wide.cell(marker, py).symbol(), "›");
-        assert_eq!(marker, 55, "the pane marker keeps the tag column");
-        assert_eq!(wide.cell(marker, py).bg, Color::Rgb(17, 17, 17));
-        let gutter = wide.cell(marker.saturating_sub(2), py);
-        assert_eq!(
-            gutter.fg, gutter.bg,
-            "the unfocused pane gutter stays invisible"
-        );
-        let (tx, ty) = wide.find("Mix").expect("tab label");
-        assert_eq!(
-            wide.cell(tx, ty).fg,
-            Color::Rgb(77, 77, 77),
-            "a secondary tab line dims to faint, not ghost"
-        );
-    }
-
-    #[test]
-    fn help_footer_is_owned_by_hint_bar() {
-        use termrock::Theme;
-        use termrock_test_support::Harness;
-        for (w, h, path) in [
-            (
-                72,
-                20,
-                "baselines/tuiscotti-v1/jackin/manager/help-overlay/72x20/truecolor.txt",
-            ),
-            (
-                80,
-                24,
-                "baselines/tuiscotti-v1/jackin/manager/help-overlay/80x24/truecolor.txt",
-            ),
-            (
-                100,
-                30,
-                "baselines/tuiscotti-v1/jackin/manager/help-overlay/100x30/truecolor.txt",
-            ),
-            (
-                120,
-                40,
-                "baselines/tuiscotti-v1/jackin/manager/help-overlay/120x40/truecolor.txt",
-            ),
-            (
-                160,
-                50,
-                "baselines/tuiscotti-v1/jackin/manager/help-overlay/160x50/truecolor.txt",
-            ),
-        ] {
-            let mut harness = Harness::new(
-                App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
-                Theme::junie(),
-                w,
-                h,
-            );
-            let _ = harness.key(KeyCode::Char('?'));
-            let y = h - 1;
-            let footer = harness.row(y).trim_end().to_string();
-            assert_eq!(footer, frozen_last(path), "{w}x{h} help footer");
-            assert!(
-                footer.contains("Scroll") && footer.contains("Close"),
-                "{footer}"
-            );
-            let scroll_x = (0..w).find(|x| {
-                harness.cell(*x, y).symbol() == "S"
-                    && harness.cell(x.saturating_add(1), y).symbol() == "c"
-            });
-            let scroll_x = scroll_x.expect("Scroll on the footer row");
-            assert_eq!(
-                harness.cell(scroll_x, y).fg,
-                termrock::Color::Rgb(128, 128, 128),
-                "stock KeyHint paints Scroll"
-            );
-        }
-    }
-
-    #[test]
-    fn launch_picker_footer_is_owned_by_hint_bar() {
-        use termrock::Theme;
-        use termrock_test_support::Harness;
-        let open = |scenario, w, h| {
-            let mut harness = Harness::new(
-                App::for_scenario_at(scenario, Motion::Paused, 40),
-                Theme::junie(),
-                w,
-                h,
-            );
-            let _ = harness.key(KeyCode::Enter);
-            harness
-        };
-        for (w, h, path) in [
-            (
-                72,
-                20,
-                "baselines/tuiscotti-v1/jackin/manager/launch-picker/72x20/truecolor.txt",
-            ),
-            (
-                80,
-                24,
-                "baselines/tuiscotti-v1/jackin/manager/launch-picker/80x24/truecolor.txt",
-            ),
-            (
-                100,
-                30,
-                "baselines/tuiscotti-v1/jackin/manager/launch-picker/100x30/truecolor.txt",
-            ),
-            (
-                120,
-                40,
-                "baselines/tuiscotti-v1/jackin/manager/launch-picker/120x40/truecolor.txt",
-            ),
-            (
-                160,
-                50,
-                "baselines/tuiscotti-v1/jackin/manager/launch-picker/160x50/truecolor.txt",
-            ),
-        ] {
-            let harness = open(Scenario::Returning, w, h);
-            let y = h - 1;
-            let footer = harness.row(y).trim_end().to_string();
-            assert_eq!(footer, frozen_last(path), "{w}x{h} launch picker footer");
-            assert!(
-                footer.contains("Move") && footer.contains("Choose") && footer.contains("Cancel"),
-                "{footer}"
-            );
-            let move_x = (0..w).find(|x| {
-                harness.cell(*x, y).symbol() == "M"
-                    && harness.cell(x.saturating_add(1), y).symbol() == "o"
-            });
-            let move_x = move_x.expect("Move on the footer row");
-            assert_eq!(
-                harness.cell(move_x, y).fg,
-                termrock::Color::Rgb(128, 128, 128),
-                "stock KeyHint paints Move"
-            );
-        }
-        let hard = open(Scenario::HardCases, 120, 40);
-        let hard_footer = hard.row(39).trim_end().to_string();
-        assert_eq!(
-            hard_footer,
-            frozen_last(
-                "baselines/tuiscotti-v1/jackin/manager/hard-launch-picker/120x40/truecolor.txt"
-            ),
-            "{hard_footer}"
-        );
-    }
-
-    #[test]
-    fn host_header_facts_are_owned_by_status_bar() {
-        use termrock::{PartRef, Theme};
-        use termrock_test_support::Harness;
-        let key = ItemKey::text("construct");
-        let wide = Harness::new(
-            App::for_scenario_at(Scenario::Returning, Motion::Paused, 0),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let wide_row = wide.row(0).trim_end().to_string();
-        assert_eq!(
-            wide_row,
-            frozen_row(
-                "baselines/tuiscotti-v1/jackin/manager/scenario-returning/120x40/truecolor.txt"
-            )
-        );
-        let owned = wide
-            .area_of_part(HOST_HEADER, PartRef::item(Part::LABEL, key))
-            .expect("StatusBar owns the construct phrase");
-        let (x, y) = wide.find("inside the Construct").expect("phrase");
-        assert_eq!((owned.x, owned.y), (x, y));
-
-        let narrow = Harness::new(
-            App::for_scenario_at(Scenario::Returning, Motion::Paused, 0),
-            Theme::junie(),
-            72,
-            20,
-        );
-        assert_eq!(
-            narrow.row(0).trim_end(),
-            frozen_row(
-                "baselines/tuiscotti-v1/jackin/manager/scenario-returning/72x20/truecolor.txt"
-            )
-        );
-
-        let cockpit = Harness::new(
-            App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 40),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert_eq!(
-            cockpit.row(0).trim_end(),
-            frozen_row("baselines/tuiscotti-v1/jackin/cockpit/debug/120x40/truecolor.txt")
-        );
-        let entering = cockpit
-            .area_of_part(
-                ROUTE_STRIP,
-                PartRef::item(Part::LABEL, ItemKey::text("entering")),
-            )
-            .expect("StatusBar owns the cockpit phrase");
-        let (x, y) = cockpit.find("entering the Construct").expect("phrase");
-        assert_eq!((entering.x, entering.y), (x, y));
-
-        let capsule = Harness::new(
-            App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert_eq!(
-            capsule.row(0).trim_end(),
-            frozen_row("baselines/tuiscotti-v1/jackin/capsule/menu/120x40/truecolor.txt")
-        );
-        let role = capsule
-            .area_of_part(
-                HOST_HEADER,
-                PartRef::item(Part::LABEL, ItemKey::text("capsule-role")),
-            )
-            .expect("StatusBar owns the capsule role");
-        let (x, y) = capsule.find("the-architect").expect("role");
-        assert!(role.contains(Position::new(x, y)));
-    }
-
-    #[test]
-    fn handoff_stage_lines_are_owned_by_list() {
-        use termrock::Theme;
-        use termrock_test_support::Harness;
-        let cockpit = App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 0);
-        assert_eq!(cockpit.route(), Route::Cockpit);
-        let cockpit_frame = Harness::new(cockpit, Theme::junie(), 120, 40);
-        assert!(cockpit_frame.area_of(HANDOFF_LINES).is_none());
-        assert!(cockpit_frame.find("The daemon owns pane state").is_none());
-
-        // Clean launch durations sum to 298 ticks. Frame 400 is past Ready,
-        // so the constructor itself enters handoff at stage 0.
-        let app = App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 400);
-        assert_eq!(app.route(), Route::Handoff);
-        let h = Harness::new(app, Theme::junie(), 120, 40);
-        let area = h
-            .area_of(HANDOFF_LINES)
-            .expect("the handoff body is a List");
-        let (x, y) = h
-            .find("fading launch cockpit (1/4)")
-            .expect("stage 0 label");
-        assert_eq!(h.cell(x, y).symbol(), "f");
-        assert!(
-            area.contains(Position::new(x, y)),
-            "the stage label is inside the handoff list"
-        );
-        let (detail_x, detail_y) = h
-            .find("The daemon owns pane state; the shell owns the handoff.")
-            .expect("handoff detail");
-        assert!(area.contains(Position::new(detail_x, detail_y)));
-    }
-
-    #[test]
-    fn container_info_rows_are_owned_by_props_list() {
-        use termrock::Theme;
-        use termrock_test_support::Harness;
-        let app = App::for_scenario(Scenario::CapsuleMulti, Motion::Paused);
-        let instance = app
-            .active_running_instance_id()
-            .as_deref()
-            .and_then(|id| app.world.instance(id))
-            .expect("capsule scenario attaches a running instance");
-        let uid = instance.container_uid();
-        let mut h = Harness::new(app, Theme::junie(), 120, 40);
-        let _ = h.ctrl('b');
-        let _ = h.key(KeyCode::Char('i'));
-        assert!(
-            h.area_of(CONTAINER_INFO_PROPS).is_some(),
-            "PropsList must register the dialog body"
-        );
-        let (label_x, role_y) = h.find("Role").expect("PropsList paints the role label");
-        assert!(
-            h.find(&uid).is_some(),
-            "instance container id reaches the list"
-        );
-        assert!(h.find("Invocation ID").is_some());
-        let gutter = label_x.saturating_sub(2);
-        assert_eq!(
-            h.cell(gutter, role_y.saturating_sub(2)).symbol(),
-            "▎",
-            "the first property row carries the list cursor"
-        );
-        let _ = h.key(KeyCode::Down);
-        let (label_x, role_y) = h.find("Role").expect("role label stays after cursor move");
-        let gutter = label_x.saturating_sub(2);
-        assert_eq!(h.cell(gutter, role_y.saturating_sub(1)).symbol(), "▎");
-        assert_eq!(h.cell(gutter, role_y.saturating_sub(2)).symbol(), " ");
-        assert_eq!(h.app().container_info_props.cursor_index(), 1);
-        let _ = h.key(KeyCode::Char('y'));
-        assert_eq!(h.app().world.clipboard.as_deref(), Some(uid.as_str()));
-    }
-
     #[test]
     fn historical_failure_and_action_labels_remain_readable_in_mono() {
         use termrock::{ColorLevel, Theme};

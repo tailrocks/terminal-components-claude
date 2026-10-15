@@ -3,6 +3,8 @@
 //! in-memory engine evaluates the SQL subset the workbench needs, so every
 //! interaction is real while results stay reproducible.
 
+#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
+
 #![allow(
     clippy::arithmetic_side_effects,
     clippy::indexing_slicing,
@@ -13,21 +15,21 @@
 // ------------------------------------------------------------------ catalog
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Engine {
+pub enum Engine {
     Postgres,
     MySql,
     Sqlite,
 }
 
 impl Engine {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Engine::Postgres => "PostgreSQL",
             Engine::MySql => "MySQL",
             Engine::Sqlite => "SQLite",
         }
     }
-    pub(crate) fn short(self) -> &'static str {
+    pub fn short(self) -> &'static str {
         match self {
             Engine::Postgres => "pg",
             Engine::MySql => "mysql",
@@ -55,7 +57,7 @@ pub enum SafeMode {
 }
 
 impl SafeMode {
-    pub(crate) const ALL: [SafeMode; 6] = [
+    pub const ALL: [SafeMode; 6] = [
         SafeMode::Silent,
         SafeMode::Alert,
         SafeMode::AlertFull,
@@ -64,7 +66,7 @@ impl SafeMode {
         SafeMode::ReadOnly,
     ];
 
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             SafeMode::Silent => "Silent",
             SafeMode::Alert => "Alert",
@@ -76,7 +78,7 @@ impl SafeMode {
     }
 
     /// Short token for the identity strip.
-    pub(crate) fn token(self) -> &'static str {
+    pub fn token(self) -> &'static str {
         match self {
             SafeMode::Silent => "silent",
             SafeMode::Alert => "alert",
@@ -87,7 +89,7 @@ impl SafeMode {
         }
     }
 
-    pub(crate) fn description(self) -> &'static str {
+    pub fn description(self) -> &'static str {
         match self {
             SafeMode::Silent => "Writes run without asking. Destructive statements still confirm.",
             SafeMode::Alert => "Every write asks for confirmation before it runs.",
@@ -100,19 +102,19 @@ impl SafeMode {
         }
     }
 
-    pub(crate) fn requires_confirmation(self) -> bool {
+    pub fn requires_confirmation(self) -> bool {
         !matches!(self, SafeMode::Silent | SafeMode::ReadOnly)
     }
-    pub(crate) fn requires_authentication(self) -> bool {
+    pub fn requires_authentication(self) -> bool {
         matches!(self, SafeMode::Safe | SafeMode::SafeFull)
     }
-    pub(crate) fn applies_to_all_queries(self) -> bool {
+    pub fn applies_to_all_queries(self) -> bool {
         matches!(self, SafeMode::AlertFull | SafeMode::SafeFull)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Environment {
+pub enum Environment {
     Local,
     Development,
     Staging,
@@ -120,7 +122,7 @@ pub(crate) enum Environment {
 }
 
 impl Environment {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Environment::Local => "local",
             Environment::Development => "development",
@@ -133,30 +135,30 @@ impl Environment {
 /// One configured database connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connection {
-    pub(crate) name: String,
-    pub(crate) engine: Engine,
-    pub(crate) host: String,
-    pub(crate) port: u16,
-    pub(crate) database: String,
-    pub(crate) user: String,
-    pub(crate) environment: Environment,
-    pub(crate) safe_mode: SafeMode,
-    pub(crate) ssl: bool,
-    pub(crate) ssh: Option<String>,
-    pub(crate) group: String,
-    pub(crate) last_used: String,
+    pub name: String,
+    pub engine: Engine,
+    pub host: String,
+    pub port: u16,
+    pub database: String,
+    pub user: String,
+    pub environment: Environment,
+    pub safe_mode: SafeMode,
+    pub ssl: bool,
+    pub ssh: Option<String>,
+    pub group: String,
+    pub last_used: String,
     /// Simulated behaviour when connecting.
-    pub(crate) outcome: ConnectOutcome,
+    pub outcome: ConnectOutcome,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ConnectOutcome {
+pub enum ConnectOutcome {
     Ok,
     AuthFailed,
     Unreachable,
 }
 
-pub(crate) fn connections() -> Vec<Connection> {
+pub fn connections() -> Vec<Connection> {
     vec![
         Connection {
             name: "Local PostgreSQL".into(),
@@ -275,7 +277,7 @@ pub enum ColType {
 }
 
 impl ColType {
-    pub(crate) fn sql(self) -> &'static str {
+    pub fn sql(self) -> &'static str {
         match self {
             ColType::Uuid => "uuid",
             ColType::Text | ColType::Enum => "text",
@@ -290,49 +292,49 @@ impl ColType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Column {
-    pub(crate) name: String,
-    pub(crate) ty: ColType,
-    pub(crate) nullable: bool,
-    pub(crate) default: Option<String>,
-    pub(crate) primary: bool,
-    pub(crate) references: Option<(String, String)>,
-    pub(crate) enum_values: Vec<&'static str>,
-    pub(crate) generated: bool,
+pub struct Column {
+    pub name: String,
+    pub ty: ColType,
+    pub nullable: bool,
+    pub default: Option<String>,
+    pub primary: bool,
+    pub references: Option<(String, String)>,
+    pub enum_values: Vec<&'static str>,
+    pub generated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Index {
-    pub(crate) name: String,
-    pub(crate) columns: Vec<String>,
-    pub(crate) unique: bool,
-    pub(crate) method: &'static str,
+pub struct Index {
+    pub name: String,
+    pub columns: Vec<String>,
+    pub unique: bool,
+    pub method: &'static str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Constraint {
-    pub(crate) name: String,
-    pub(crate) kind: &'static str,
-    pub(crate) definition: String,
+pub struct Constraint {
+    pub name: String,
+    pub kind: &'static str,
+    pub definition: String,
 }
 
 /// Catalog table metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
-    pub(crate) schema: String,
+    pub schema: String,
     /// Stable unqualified table name.
     pub name: String,
-    pub(crate) kind: ObjectKind,
-    pub(crate) columns: Vec<Column>,
-    pub(crate) indexes: Vec<Index>,
-    pub(crate) constraints: Vec<Constraint>,
-    pub(crate) triggers: Vec<String>,
-    pub(crate) row_count: usize,
-    pub(crate) comment: Option<String>,
+    pub kind: ObjectKind,
+    pub columns: Vec<Column>,
+    pub indexes: Vec<Index>,
+    pub constraints: Vec<Constraint>,
+    pub triggers: Vec<String>,
+    pub row_count: usize,
+    pub comment: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ObjectKind {
+pub enum ObjectKind {
     Table,
     View,
     Function,
@@ -340,15 +342,15 @@ pub(crate) enum ObjectKind {
 }
 
 impl Table {
-    pub(crate) fn qualified(&self) -> String {
+    pub fn qualified(&self) -> String {
         format!("{}.{}", self.schema, self.name)
     }
-    pub(crate) fn column(&self, name: &str) -> Option<&Column> {
+    pub fn column(&self, name: &str) -> Option<&Column> {
         self.columns
             .iter()
             .find(|c| c.name.eq_ignore_ascii_case(name))
     }
-    pub(crate) fn primary_key(&self) -> Vec<&Column> {
+    pub fn primary_key(&self) -> Vec<&Column> {
         self.columns.iter().filter(|c| c.primary).collect()
     }
 }
@@ -408,9 +410,9 @@ fn idx(name: &str, cols: &[&str], unique: bool) -> Index {
 /// Deterministic database catalog used by the application.
 #[derive(Debug, Clone)]
 pub struct Catalog {
-    pub(crate) database: String,
-    pub(crate) schemas: Vec<String>,
-    pub(crate) tables: Vec<Table>,
+    pub database: String,
+    pub schemas: Vec<String>,
+    pub tables: Vec<Table>,
 }
 
 impl Catalog {
@@ -756,7 +758,7 @@ impl Catalog {
         dead_code,
         reason = "schema browsing remains available to the private catalog adapter"
     )]
-    pub(crate) fn tables_in(&self, schema: &str, kind: ObjectKind) -> impl Iterator<Item = &Table> {
+    pub fn tables_in(&self, schema: &str, kind: ObjectKind) -> impl Iterator<Item = &Table> {
         self.tables
             .iter()
             .filter(move |t| t.schema == schema && t.kind == kind)
@@ -785,7 +787,7 @@ pub enum Value {
 }
 
 impl Value {
-    pub(crate) fn display(&self) -> String {
+    pub fn display(&self) -> String {
         match self {
             Value::Null => "NULL".into(),
             Value::Default => "DEFAULT".into(),
@@ -802,7 +804,7 @@ impl Value {
             Value::Json(j) => j.clone(),
         }
     }
-    pub(crate) fn as_f64(&self) -> Option<f64> {
+    pub fn as_f64(&self) -> Option<f64> {
         match self {
             Value::Int(i) => Some(*i as f64),
             Value::Num(n) => Some(*n),
@@ -954,7 +956,7 @@ fn date(r: &mut Rng, year: i32) -> String {
 }
 
 /// Generate deterministic rows for a table. `n` rows starting at `offset`.
-pub(crate) fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
+pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
     let mut out = Vec::with_capacity(n);
     for i in offset..offset + n {
         let mut r =

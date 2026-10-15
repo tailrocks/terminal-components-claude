@@ -1,16 +1,6 @@
-//! Plan dependency rules, activity/output lifecycle, cancellation and target-bound safety decisions.
-#![forbid(unsafe_code)]
+//! Plan: a compound intent as a reviewable DAG, split out of the domain
+//! fixture model. `holla_domain::plan` re-exports this module.
 
-pub use holla_domain::activity::*;
-pub use holla_domain::plan::*;
+pub mod plan;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_step_state_labels() {
-        assert_eq!(StepState::Ready.label(), "ready");
-        assert_eq!(StepState::Succeeded.label(), "succeeded");
-    }
-}
+pub use plan::*;

@@ -54,7 +54,7 @@ enum OpenDialog {
 
 /// Dialog launchers and their durable prompt states.
 #[derive(Debug)]
-pub(crate) struct DialogsPage {
+pub struct DialogsPage {
     open: OpenDialog,
     confirm_state: DialogState,
     prompt_state: DialogState,
@@ -63,7 +63,7 @@ pub(crate) struct DialogsPage {
 }
 
 impl DialogsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             open: OpenDialog::None,
             confirm_state: DialogState::default(),

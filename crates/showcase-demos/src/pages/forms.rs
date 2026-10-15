@@ -11,7 +11,7 @@ use termrock::{
 use super::{Page, PageUpdate, frame};
 
 /// Application-level submit chord consumed by the shell and forwarded here.
-pub(crate) const SUBMIT: ActionKey = ActionKey::application("showcase.form.submit");
+pub const SUBMIT: ActionKey = ActionKey::application("showcase.form.submit");
 
 const SUMMARY: Id = id!("forms.summary");
 const DETAILS: Id = id!("forms.details");
@@ -212,7 +212,7 @@ fn legacy_choice_label(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, text: &st
 
 /// A composed form owns each field's controlled value and validation state.
 #[derive(Debug)]
-pub(crate) struct FormsPage {
+pub struct FormsPage {
     summary: String,
     details: String,
     summary_state: TextInputState,
@@ -227,7 +227,7 @@ pub(crate) struct FormsPage {
 }
 
 impl FormsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut priority = SelectState::default();
         priority.set_value(Some(ItemKey::index(0)));
         Self {

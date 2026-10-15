@@ -50,3 +50,5 @@ pub use termrock_core::intent::Intent;
 pub use ui::cx;
 pub use ui::*;
 
+#[cfg(any(test, feature = "testing"))]
+pub use runtime::stub;

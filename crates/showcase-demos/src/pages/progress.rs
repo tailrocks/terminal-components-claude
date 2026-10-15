@@ -104,7 +104,7 @@ fn sync_meter() -> Meter<'static> {
 /// Live progress owns only values and animation state; controls remain public
 /// facade components so focus and activation are still runtime-owned.
 #[derive(Debug)]
-pub(crate) struct ProgressPage {
+pub struct ProgressPage {
     frame: usize,
     build: f64,
     paused: bool,
@@ -112,7 +112,7 @@ pub(crate) struct ProgressPage {
 }
 
 impl ProgressPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             frame: 0,
             build: 0.0,

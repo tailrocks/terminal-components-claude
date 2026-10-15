@@ -25,7 +25,7 @@ use crate::response::StateFlags;
 /// Direct mutation cannot leave semantic metadata describing an old colour:
 ///
 /// ```compile_fail
-/// use junie_tui::theme::PaintStyle;
+/// use termrock_theme::theme::PaintStyle;
 /// use ratatui_core::style::Color;
 /// let mut style = PaintStyle::new();
 /// style.bg = Some(Color::Red);

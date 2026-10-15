@@ -221,7 +221,7 @@ fn empty_list(title: &'static str) -> List<'static, &'static str> {
 /// Two independent keyed list states; selecting a row never relies on its
 /// position after reconciliation.
 #[derive(Debug, Default)]
-pub(crate) struct ListsPage {
+pub struct ListsPage {
     single: ListState,
     multi: ListState,
     empty: ListState,
@@ -230,7 +230,7 @@ pub(crate) struct ListsPage {
 }
 
 impl ListsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut single = ListState::default();
         let mut multi = ListState::default();
         if let Some(file) = FILES.first() {
@@ -282,8 +282,13 @@ impl Page for ListsPage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let chosen = self
             .chosen
-            .and_then(|key| LANGUAGES.iter().find(|value| language_key(value) == key))
-            .map(|value| *value)
+            .map(|key| {
+                LANGUAGES
+                    .iter()
+                    .copied()
+                    .find(|value| language_key(value) == key)
+                    .unwrap_or("none")
+            })
             .unwrap_or("none");
         let detail = ui
             .style(

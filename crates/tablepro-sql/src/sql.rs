@@ -2,6 +2,8 @@
 //! autocomplete, split statements, classify danger, evaluate the subset of
 //! SELECT the demo needs, and synthesize believable EXPLAIN plans.
 
+#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
+
 #![allow(
     clippy::arithmetic_side_effects,
     clippy::indexing_slicing,
@@ -14,7 +16,7 @@ use tablepro_demo::db::{Catalog, ColType, Table, Value};
 // ------------------------------------------------------------- tokenizer
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TokKind {
+pub enum TokKind {
     Keyword,
     Ident,
     Number,
@@ -26,13 +28,13 @@ pub(crate) enum TokKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Token {
-    pub(crate) kind: TokKind,
-    pub(crate) start: usize,
-    pub(crate) end: usize,
+pub struct Token {
+    pub kind: TokKind,
+    pub start: usize,
+    pub end: usize,
 }
 
-pub(crate) const KEYWORDS: &[&str] = &[
+pub const KEYWORDS: &[&str] = &[
     "SELECT",
     "FROM",
     "WHERE",
@@ -125,7 +127,7 @@ pub(crate) const KEYWORDS: &[&str] = &[
     "REINDEX",
 ];
 
-pub(crate) const FUNCTIONS: &[&str] = &[
+pub const FUNCTIONS: &[&str] = &[
     "count",
     "sum",
     "avg",
@@ -146,12 +148,12 @@ pub(crate) const FUNCTIONS: &[&str] = &[
     "gen_random_uuid",
 ];
 
-pub(crate) fn is_keyword(word: &str) -> bool {
+pub fn is_keyword(word: &str) -> bool {
     let up = word.to_ascii_uppercase();
     KEYWORDS.contains(&up.as_str())
 }
 
-pub(crate) fn tokenize(src: &str) -> Vec<Token> {
+pub fn tokenize(src: &str) -> Vec<Token> {
     let b = src.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
@@ -230,7 +232,7 @@ pub(crate) fn tokenize(src: &str) -> Vec<Token> {
 }
 
 /// Byte ranges of the individual statements (split on `;` outside strings).
-pub(crate) fn split_statements(src: &str) -> Vec<(usize, usize)> {
+pub fn split_statements(src: &str) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut start = 0;
     for t in tokenize(src) {
@@ -260,7 +262,7 @@ fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
 }
 
 /// The statement containing byte `cursor` (or the nearest one before it).
-pub(crate) fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
+pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
     let stmts = split_statements(src);
     stmts
         .iter()
@@ -768,13 +770,13 @@ fn parse_select(w: &mut Words<'_>) -> Result<Select, ParseError> {
 //               level asks for it; Safe Mode levels add a deliberate step.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum Tier {
+pub enum Tier {
     Safe,
     Write,
     Destructive,
 }
 
-pub(crate) fn tier(stmt: &Statement) -> Tier {
+pub fn tier(stmt: &Statement) -> Tier {
     match stmt {
         Statement::Select(_) => Tier::Safe,
         Statement::Explain { inner, .. } => tier(inner),
@@ -788,7 +790,7 @@ pub(crate) fn tier(stmt: &Statement) -> Tier {
 }
 
 /// `TablePro`'s `isDangerousQuery`: destructive, or DELETE with no WHERE.
-pub(crate) fn is_dangerous(stmt: &Statement) -> bool {
+pub fn is_dangerous(stmt: &Statement) -> bool {
     match stmt {
         Statement::Explain { inner, .. } => is_dangerous(inner),
         _ => {
@@ -836,16 +838,16 @@ pub fn gate(level: tablepro_demo::db::SafeMode, stmt: &Statement) -> Decision {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Risk {
-    pub(crate) tier: Tier,
-    pub(crate) dangerous: bool,
-    pub(crate) action: String,
-    pub(crate) scope: String,
-    pub(crate) summary: String,
-    pub(crate) reversible: &'static str,
+pub struct Risk {
+    pub tier: Tier,
+    pub dangerous: bool,
+    pub action: String,
+    pub scope: String,
+    pub summary: String,
+    pub reversible: &'static str,
 }
 
-pub(crate) fn fmt_rows(n: usize) -> String {
+pub fn fmt_rows(n: usize) -> String {
     if n >= 1_000_000 {
         format!("{:.1} M", n as f64 / 1e6)
     } else if n >= 1000 {
@@ -855,7 +857,7 @@ pub(crate) fn fmt_rows(n: usize) -> String {
     }
 }
 
-pub(crate) fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
+pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
     let rows = table.map_or(0, |t| t.row_count);
     let t = tier(stmt);
     let dangerous = is_dangerous(stmt);
@@ -980,15 +982,15 @@ pub struct ResultSet {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct ExecError {
-    pub(crate) message: String,
-    pub(crate) detail: Option<String>,
+pub struct ExecError {
+    pub message: String,
+    pub detail: Option<String>,
     /// Byte offset within the statement, when known.
-    pub(crate) at: Option<usize>,
+    pub at: Option<usize>,
 }
 
 /// Maximum rows materialised for a single result.
-pub(crate) const ROW_CAP: usize = 500;
+pub const ROW_CAP: usize = 500;
 
 fn matches(pred: &Predicate, table: &Table, row: &[Value]) -> bool {
     let Some(ci) = table
@@ -1035,7 +1037,7 @@ fn matches(pred: &Predicate, table: &Table, row: &[Value]) -> bool {
     }
 }
 
-pub(crate) fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
+pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
     match (a, b) {
         (Value::Null, Value::Null) => std::cmp::Ordering::Equal,
         (Value::Null, _) => std::cmp::Ordering::Greater,
@@ -1054,7 +1056,7 @@ pub(crate) fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
 ///
 /// Returns an [`ExecError`] when the relation, projected column, predicate,
 /// or order column is not present in the catalog.
-pub(crate) fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
+pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
         .ok_or_else(|| ExecError {
@@ -1198,16 +1200,16 @@ pub(crate) fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecE
 // ------------------------------------------------------------- EXPLAIN
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct PlanNode {
-    pub(crate) op: String,
-    pub(crate) relation: Option<String>,
-    pub(crate) detail: Vec<(String, String)>,
-    pub(crate) cost: (f64, f64),
-    pub(crate) rows: usize,
-    pub(crate) actual_ms: Option<f64>,
-    pub(crate) loops: usize,
-    pub(crate) warning: Option<String>,
-    pub(crate) children: Vec<PlanNode>,
+pub struct PlanNode {
+    pub op: String,
+    pub relation: Option<String>,
+    pub detail: Vec<(String, String)>,
+    pub cost: (f64, f64),
+    pub rows: usize,
+    pub actual_ms: Option<f64>,
+    pub loops: usize,
+    pub warning: Option<String>,
+    pub children: Vec<PlanNode>,
 }
 
 /// Build a deterministic PostgreSQL-style plan for a SELECT.
@@ -1215,7 +1217,7 @@ pub(crate) struct PlanNode {
 /// # Errors
 ///
 /// Returns an [`ExecError`] when the relation is not present in the catalog.
-pub(crate) fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, ExecError> {
+pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
         .ok_or_else(|| ExecError {
@@ -1416,7 +1418,7 @@ fn cmp_sym(c: &Cmp) -> &'static str {
     }
 }
 
-pub(crate) fn fmt_int(n: usize) -> String {
+pub fn fmt_int(n: usize) -> String {
     let s = n.to_string();
     let mut out = String::new();
     for (i, ch) in s.chars().enumerate() {
@@ -1430,7 +1432,7 @@ pub(crate) fn fmt_int(n: usize) -> String {
 
 /// Render a plan as PostgreSQL-style text lines.
 #[cfg(test)]
-pub(crate) fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
+pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
     let indent = "  ".repeat(depth);
     let arrow = if depth == 0 { "" } else { "->  " };
     let rel = node

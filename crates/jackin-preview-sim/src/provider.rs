@@ -1,7 +1,6 @@
 //! Deterministic provider operations: validate a credential source and
 //! refresh an account's usage. Secret material never leaves the call.
 
-use crate::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, classify_plain};
 use jackin_preview_domain::account::{
     Account, AccountIdentity, Confidence, CredentialSource, DetectedKind, IdentitySubject,
     IssueCode, Lifecycle, Recoverability, RecoverableIssue, ValidationLevel,
@@ -10,6 +9,7 @@ use jackin_preview_domain::agent::Provider;
 use jackin_preview_domain::usage::{
     AccountUsage, FreshnessInfo, QuotaStatus, QuotaWindow, WindowCategory, WindowUnit,
 };
+use crate::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, classify_plain};
 
 /// Three-level validation result.
 #[derive(Debug, Clone, PartialEq, Eq)]

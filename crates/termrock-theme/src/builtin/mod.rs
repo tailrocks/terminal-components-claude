@@ -888,8 +888,8 @@ mod tests {
             let open = theme.design.glyphs.get(GlyphRole::SelectOpen);
             assert_eq!(closed, "▾");
             assert_eq!(open, "▴");
-            assert_eq!(crate::text::width(closed), 1);
-            assert_eq!(crate::text::width(open), 1);
+            assert_eq!(unicode_width::UnicodeWidthStr::width(closed), 1);
+            assert_eq!(unicode_width::UnicodeWidthStr::width(open), 1);
         }
     }
 

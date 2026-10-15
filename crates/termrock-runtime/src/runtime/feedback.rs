@@ -7,7 +7,7 @@ use crate::id::{Id, PartRef};
 /// Absolute monotonic simulation time, distinct from elapsed driver time.
 ///
 /// ```compile_fail
-/// use junie_tui::{Cx, Moment};
+/// use termrock_runtime::{Cx, Moment};
 /// fn synchronize(cx: &mut Cx<'_>, elapsed: Moment) {
 ///     let _ = cx.sync_feedback_time(elapsed);
 /// }

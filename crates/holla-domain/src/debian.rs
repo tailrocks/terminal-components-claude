@@ -2,16 +2,16 @@
 //! upgrades, how many are security, held-back packages, reboot flag.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DebianState {
-    pub orphaned_packages: Vec<OrphanPackage>,
-    pub pending: u32,
-    pub security: u32,
-    pub held: u32,
-    pub reboot_required: bool,
+pub(crate) struct DebianState {
+    pub(crate) orphaned_packages: Vec<OrphanPackage>,
+    pub(crate) pending: u32,
+    pub(crate) security: u32,
+    pub(crate) held: u32,
+    pub(crate) reboot_required: bool,
 }
 
 impl DebianState {
-    pub fn validate(&self) -> Result<(), super::accounting::InventoryError> {
+    pub(crate) fn validate(&self) -> Result<(), super::accounting::InventoryError> {
         use super::accounting::{InventoryError, bytes, identities};
         identities(
             self.orphaned_packages
@@ -33,7 +33,7 @@ impl DebianState {
         Ok(())
     }
 
-    pub fn summary(&self) -> String {
+    pub(crate) fn summary(&self) -> String {
         let mut s = format!(
             "{} upgrades pending · {} security",
             self.pending, self.security
@@ -52,7 +52,7 @@ impl DebianState {
 
 /// Explicit simulated orphan package accounting; no package manager is invoked.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OrphanPackage {
-    pub id: String,
-    pub size_bytes: u64,
+pub(crate) struct OrphanPackage {
+    pub(crate) id: String,
+    pub(crate) size_bytes: u64,
 }

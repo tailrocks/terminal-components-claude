@@ -8,13 +8,13 @@
 use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
 
 /// Product intent returned to the shell, which owns its display lifetime.
-pub(crate) struct PageStatus(pub(crate) String);
+pub struct PageStatus(pub String);
 
 /// A page preserves the component response metadata while returning any
 /// status change from the same update; no later outbox drain is required.
-pub(crate) struct PageUpdate {
-    pub(crate) response: Response<()>,
-    pub(crate) status: Option<PageStatus>,
+pub struct PageUpdate {
+    pub response: Response<()>,
+    pub status: Option<PageStatus>,
 }
 
 impl From<Response<()>> for PageUpdate {
@@ -27,7 +27,7 @@ impl From<Response<()>> for PageUpdate {
 }
 
 /// A stateful screen in the showcase.
-pub(crate) trait Page: Send {
+pub trait Page: Send {
     /// Stable navigation title.
     fn title(&self) -> &'static str;
     /// Drain this screen's runtime intents.
@@ -55,7 +55,7 @@ pub(crate) trait Page: Send {
 }
 
 /// Draw a screen frame and hand its inset body to the page.
-pub(crate) fn frame(
+pub fn frame(
     ui: &mut Ui<'_>,
     area: Rect,
     title: &'static str,
@@ -132,7 +132,7 @@ fn paint_clipped_meta(
 }
 
 /// Paint a set of lines with one-cell spacing, clipping at the body edge.
-pub(crate) fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     let style = ui.surface_style();
     for (offset, line) in text.iter().enumerate() {
         let Ok(offset) = u16::try_from(offset) else {
@@ -150,29 +150,29 @@ pub(crate) fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     }
 }
 
-pub(crate) mod author;
-pub(crate) mod buttons;
-pub(crate) mod chips;
-pub(crate) mod chrome;
-pub(crate) mod dialogs;
-pub(crate) mod editable;
-pub(crate) mod editor;
-pub(crate) mod forms;
-pub(crate) mod grid;
-pub(crate) mod inputs;
-pub(crate) mod lists;
-pub(crate) mod overview;
-pub(crate) mod panels;
-pub(crate) mod pickers;
-pub(crate) mod progress;
-pub(crate) mod scrolling;
-pub(crate) mod settings;
-pub(crate) mod sidebars;
-pub(crate) mod tables;
-pub(crate) mod taskrunner;
-pub(crate) mod terminal;
-pub(crate) mod textareas;
-pub(crate) mod trees;
+pub mod author;
+pub mod buttons;
+pub mod chips;
+pub mod chrome;
+pub mod dialogs;
+pub mod editable;
+pub mod editor;
+pub mod forms;
+pub mod grid;
+pub mod inputs;
+pub mod lists;
+pub mod overview;
+pub mod panels;
+pub mod pickers;
+pub mod progress;
+pub mod scrolling;
+pub mod settings;
+pub mod sidebars;
+pub mod tables;
+pub mod taskrunner;
+pub mod terminal;
+pub mod textareas;
+pub mod trees;
 
 #[cfg(test)]
 mod clipping_tests {

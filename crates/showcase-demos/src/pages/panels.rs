@@ -429,7 +429,7 @@ fn paint_card_meta(ui: &mut Ui<'_>, area: Rect, text: &str) {
 /// Static panel surfaces still exercise the live theme, nested collection,
 /// scroll ownership, and per-instance patch precedence.
 #[derive(Debug)]
-pub(crate) struct PanelsPage {
+pub struct PanelsPage {
     prose: Vec<ViewportLine<'static>>,
     log: Vec<String>,
     prose_state: ViewportState,
@@ -439,7 +439,7 @@ pub(crate) struct PanelsPage {
 }
 
 impl PanelsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut prose_state = ViewportState::default();
         prose_state.set_follow(false);
         let mut log_state = ViewportState::default();

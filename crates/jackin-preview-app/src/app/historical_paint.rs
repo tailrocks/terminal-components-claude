@@ -8,7 +8,6 @@ use termrock::{
 
 const FAMILY: Family = Family::custom("jackin.historical");
 
-#[allow(dead_code)]
 pub(super) struct HistoricalPalette {
     pub(super) accent_on_accent_tint_bold: PaintStyle,
     pub(super) accent_on_canvas: PaintStyle,
@@ -23,7 +22,6 @@ pub(super) struct HistoricalPalette {
     pub(super) muted_on_canvas: PaintStyle,
     pub(super) muted_on_elevated: PaintStyle,
     pub(super) muted_on_surface: PaintStyle,
-    pub(super) muted_on_accent_tint: PaintStyle,
     pub(super) on_accent_on_accent_bold: PaintStyle,
     pub(super) primary_on_accent_tint_bold: PaintStyle,
     pub(super) primary_on_button: PaintStyle,
@@ -45,7 +43,7 @@ pub(super) struct HistoricalPalette {
     pub(super) warning_on_elevated: PaintStyle,
 }
 
-const SPECS: [(Part, StylePatch); 33] = [
+const SPECS: [(Part, StylePatch); 32] = [
     (
         Part::custom("jackin.historical.accent_on_accent_tint_bold"),
         StylePatch::new()
@@ -135,13 +133,6 @@ const SPECS: [(Part, StylePatch); 33] = [
         StylePatch::new()
             .set_fg(Role::Fg(FgStep::Muted))
             .set_bg(Role::Surface(Surface::Surface))
-            .remove(Modifier::BOLD),
-    ),
-    (
-        Part::custom("jackin.historical.muted_on_accent_tint"),
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Muted))
-            .set_bg(Role::AccentTint)
             .remove(Modifier::BOLD),
     ),
     (
@@ -283,52 +274,47 @@ const MONO_RULES: &[MonoRule] = &[
     (
         Part::custom("jackin.historical.accent_on_accent_tint_bold"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.accent_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.border_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::BorderStrong),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.border_on_elevated"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::BorderStrong),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.border_on_surface"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::BorderStrong),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.danger_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.muted_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.muted_on_elevated"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.muted_on_surface"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
-    ),
-    (
-        Part::custom("jackin.historical.muted_on_accent_tint"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.on_accent_on_accent_bold"),
@@ -355,9 +341,7 @@ const MONO_RULES: &[MonoRule] = &[
     (
         Part::custom("jackin.historical.primary_on_canvas_bold"),
         StateFlags::empty(),
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .add(Modifier::BOLD),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.primary_on_elevated"),
@@ -382,49 +366,56 @@ const MONO_RULES: &[MonoRule] = &[
     (
         Part::custom("jackin.historical.seam_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::BorderSubtle),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.seam_on_elevated"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::BorderSubtle),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.secondary_on_canvas"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.secondary_on_canvas_bold"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.secondary_on_elevated"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.secondary_on_field"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.secondary_on_surface"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.secondary_on_surface_bold"),
         StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
-    // No warning override: the tag mean-based ladder degrades warning to
-    // the dim rung, matching the direct-patch path. Forcing Primary here
-    // brightens mono `•` markers against the baseline.
+    (
+        Part::custom("jackin.historical.warning_on_canvas"),
+        StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
+    (
+        Part::custom("jackin.historical.warning_on_elevated"),
+        StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
 ];
 
-fn resolve_pairs(ui: &Ui<'_>) -> [PaintStyle; 33] {
+fn resolve_pairs(ui: &Ui<'_>) -> [PaintStyle; 32] {
     SPECS.map(|(part, base)| {
         ui.style_defaults(
             FAMILY,
@@ -454,7 +445,6 @@ impl HistoricalPalette {
             muted_on_canvas,
             muted_on_elevated,
             muted_on_surface,
-            muted_on_accent_tint,
             on_accent_on_accent_bold,
             primary_on_accent_tint_bold,
             primary_on_button,
@@ -489,7 +479,6 @@ impl HistoricalPalette {
             muted_on_canvas,
             muted_on_elevated,
             muted_on_surface,
-            muted_on_accent_tint,
             on_accent_on_accent_bold,
             primary_on_accent_tint_bold,
             primary_on_button,
@@ -552,11 +541,6 @@ mod tests {
                         style.fg, style.bg,
                         "intentional fill must stay hidden: {part:?}"
                     );
-                } else if part == Part::custom("jackin.historical.seam_on_canvas")
-                    || part == Part::custom("jackin.historical.seam_on_elevated")
-                {
-                    // Subtle seams collapse to surface background in dark mono themes (e.g. Junie).
-                    continue;
                 } else {
                     assert_ne!(
                         style.fg, style.bg,

@@ -15,7 +15,7 @@ use ratatui_core::style::Color;
 /// caller's token mutation.
 ///
 /// ```
-/// use junie_tui::{CapabilityPalettes, ColorLevel, Theme};
+/// use termrock_theme::{CapabilityPalettes, ColorLevel, Theme};
 /// use ratatui_core::style::Color;
 /// let base = Theme::from_tokens(Theme::junie().color);
 /// let mut mono = base.downgrade(ColorLevel::Mono).color;

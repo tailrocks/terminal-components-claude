@@ -15,20 +15,20 @@ const AUTHOR_PATCH: StylePatch = StylePatch::new().set_fg(Role::Accent);
 const AUTHOR_PARTS: &[(Part, StylePatch)] = &[(Part::LABEL, AUTHOR_PATCH)];
 
 #[derive(Debug)]
-pub(crate) struct AuthorBadge {
+pub struct AuthorBadge {
     id: Id,
     selected: bool,
 }
 
 impl AuthorBadge {
-    pub(crate) const fn new(id: Id) -> Self {
+    pub const fn new(id: Id) -> Self {
         Self {
             id,
             selected: false,
         }
     }
 
-    pub(crate) fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    pub fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         for intent in cx.intents(self.id) {
             if let Intent::Pointer {
@@ -43,7 +43,7 @@ impl AuthorBadge {
         response
     }
 
-    pub(crate) fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         if area.is_empty() {
             return;
         }

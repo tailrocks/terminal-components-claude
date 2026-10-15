@@ -266,7 +266,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
 /// Member records are app state; tabs, list cursor and modal draft are
 /// component state owned by this screen.
 #[derive(Debug)]
-pub(crate) struct SettingsPage {
+pub struct SettingsPage {
     tabs: TabsState,
     members: Vec<Member>,
     member_state: ListState,
@@ -277,7 +277,7 @@ pub(crate) struct SettingsPage {
 }
 
 impl SettingsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             tabs: TabsState::default(),
             members: INITIAL_MEMBERS.to_vec(),
