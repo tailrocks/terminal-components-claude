@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+    ╭──────────────────────────────────────────────────────────────╮
+  ≡ │  Add filter                                                  │+
+ ───│                                                              │───
+ ╭─ │   Column                        Operator                     │ ─╮
+ │  │   id                      ▾     =                        ▾   │  │
+ │  │                                 Operators that fit the col…  │─ │
+ │  │   Value                                                      │  │
+ │  │ ▎ value                                                      │  │
+ │  │                                                              │┃ │
+ │  │                                                              ││ │
+ │  │  WHERE id = ''                                               ││ │
+ │  │                                                              ││ │
+ │  │                                                              ││ │
+ │  │                                        Cancel   Add filter   ││ │
+ │  ╰──────────────────────────────────────────────────────────────╯│ │
+ │   rows 1–7 of 500 loaded · 1,203,338 total · cols 1–2 of 14        │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ Tab Next field  Enter Apply  Esc Cancel        Connected to Production

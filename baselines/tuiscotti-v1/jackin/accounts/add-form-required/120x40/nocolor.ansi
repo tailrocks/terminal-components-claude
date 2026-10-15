@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                      Accounts › Overview  ⠋ refreshing 1  inside the Construct  2 running [0m
+                                                                                                                        [0m
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Overview                                        12 accounts · 8 providers   [0m
+ │     Overview                        │ │                                                                              [0m
+ │   ▾ Claude                      !   │ │  Health        degraded · 4 warnings · 1 exhausted · 2 stale · 1         ┃   [0m
+ │     ★ Personal        ╭─[0m[1m New account [0m───────────────────────────────────── form · unsaved ─╮isible · 2 identities┃   [0m
+ │       Archived contrac│   [0m[1mDisplay name *                                                 [0m  │                     ┃   [0m
+ │       Work            │ ▎ Personal, Work, Team…                                        [0m[1m![0m   │ · 8 providers       ┃   [0m
+ │   ▾ Codex             │   Required                                                         │rd available         ┃   [0m
+ │     ★ Primary         │                                                                    │                     ┃   [0m
+ │       Experiments     │   Purpose label  optional                                          │, window and unit onl┃   [0m
+ │   ▾ Amp               │   personal · work · experiments                                    │remaining (1 last    ┃   [0m
+ │       discovered      │                                                                    │                     ┃   [0m
+ │   ▾ Grok              │                                                                    │7% remaining (1 last ┃   [0m
+ │     ★ Team            │   Provider                                                         │                     ┃   [0m
+ │   ▾ Z.AI              │   Claude Code · Anthropic / Claude                             ▾   │ining (1 last good)  ┃   [0m
+ │       discovered      │                                                                    │ last good)          ┃   [0m
+ │   ▾ Kimi              │                                                                    │aining (1 last good) ┃   [0m
+ │       discovered      │   Agent runtime Claude Code · provider Anthropic / Claude · usa…   │ning (1 last good)   ┃   [0m
+ │   ▾ MiniMax           │                                                                    │                     ┃   [0m
+ │       discovered      │   Credential source                                                │                     ┃   [0m
+ │   ▾ OpenCode          │  (●) 1Password item / field  (recommended)                         │ngle account or      ┃   [0m
+ │     ★ Go subscription │  ( ) Local agent folder                                            │ent windows) ·       ┃   [0m
+ │       ci-bot · discove│  ( ) Plain-text API key                                            │nCode (single        ┃   [0m
+ │     Unsupported       │                                                                    │                     ┃   [0m
+ │     + Add account…    │   1Password reference                                              │                     ┃   [0m
+ │                       │   not chosen                                            Choose…    │                     ┃   [0m
+ │                       │                                                                    │s in 1 h 5 min       ┃   [0m
+ │                       │                                                                    │sets Sun 19:14       │   [0m
+ │                       │                                                                    │Sun 19:14            │   [0m
+ │                       │                                                                    │                     │   [0m
+ │                       │                                                                    │sets in 10 h         │   [0m
+ │                       │                                                                    │09:14                │   [0m
+ │                       │              Enter plain text instead   Validate   Cancel   [0m[1mSave [0m  │                     │   [0m
+ │                       ╰────────────────────────────────────────────────────────────────────╯has no api key       │   [0m
+ │                                     │ │                                                                              [0m
+ │                                     │ │  Refresh all    Add account…                                                 [0m
+ ╰─────────────────────────────────────╯ │                                                                              [0m
+                                                                                                                        [0m
+                          [0m[1m     [0m     [0m[1mTab[0m N[0m[1me[0mxt field  [0m[1mEnter[0m Edit /[0m[1m [0mSave  [0m[1mEsc [0mCancel  [0m[1m   [0m                                  [0m

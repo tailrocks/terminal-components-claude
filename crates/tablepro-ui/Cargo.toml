@@ -1,0 +1,19 @@
+[package]
+name = "tablepro-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+tablepro-demo.workspace = true
+tablepro-domain.workspace = true
+tablepro-sql.workspace = true
+termrock.workspace = true
+
+[dev-dependencies]
+termrock-test-support.workspace = true
+
+[lints]
+workspace = true

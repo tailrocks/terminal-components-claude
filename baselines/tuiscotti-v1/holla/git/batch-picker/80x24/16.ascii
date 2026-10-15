@@ -1,0 +1,24 @@
+  holla?    File   Go   Help            repos . project collection  mbp . local
+
+  Here    pull alpha v x
+ --------?????????????????-----------------------------------------------------
+  pull alpha . succeeded . 0 s . exit 0       child . ~/work/repos/alpha . mbp
+  $ g+--------------------------------------------------------------------+po.
+     | Activities                                                  0 live |
+ +- o| ?v pull alpha  succeeded . child . 0 s                 activities  |g -+
+ |  $|  v pull beta   succeeded . child . 0 s                             |   |
+ |  F|  ! pull delta  failed . child . 0 s                                |   |
+ |   |  ! pull gamma  failed . child . 0 s                                |   |
+ |  U|                                                                    |   |
+ |  F|                                                                    |   |
+ |   +--------------------------------------------------------------------+   |
+ |                                                                            |
+ |                                                                            |
+ |                                                                            |
+ |                                                                            |
+ |                                                                            |
+ |                                                                            |
+ +----------------------------------------------------------------------------+
+
+ ~/work/repos                 succeeded . 0 s                 16 colors . 80x24
+     ^v Move  .   ! Pull 4 sibling repositories . 2 ok . 2 failed . 0 cancelled

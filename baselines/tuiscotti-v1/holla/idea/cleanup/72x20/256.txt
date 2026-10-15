@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+
+  Here › Cleanup › idea.clean
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────
+  Cleanup · IntelliJ metadata
+  1 category · 44.0 KiB · 4 selected (44.0 KiB) · Trash
+
+ ▎[✓] ▾ IntelliJ metadata         44.0 KiB  review first…
+    [✓] ~/work/ide/.idea               32.0 KiB  3 d
+    [✓] ~/work/ide/a/b/c/d/e/deep.i…    4.0 KiB  3 d
+    [✓] ~/work/ide/app.iml              4.0 KiB  3 d
+    [✓] ~/work/ide/mod/mod.iml          4.0 KiB  3 d
+
+    mode Trash (recoverable until emptied) · live · m toggles the mode…
+
+
+
+
+ ~/work/ide          4 selected · 44.0 KiB           256 colors · 72×20
+  ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  …

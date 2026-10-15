@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 3692102155661434718,
+  "legacy_name": "jackin/manager/menu_open/160x50/truecolor",
+  "name": "jackin/manager/menu-open/160x50/truecolor",
+  "non_empty_cells": 1381,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

@@ -1,0 +1,30 @@
+{
+  "actual": {
+    "ansi_sha256": "77d6d5362cee83ba319ca9a46910c68aa66903bff9947b15159412b6b3af80f9",
+    "frame_sha256": "d2d020c797ebc1992dec61cbaf76ec9abd5b4e7fa4137e42031fd1c9cd2166cc",
+    "html_sha256": "f2330955b9a1ace0fa13a3aaee97f1534bcab3639707f9f6b113dcf4b99349f9",
+    "png_sha256": "81ea7477c11aba27f0480b7e6d8fd0365f4d779b37a80e1e34acd6b61dddb80b",
+    "txt_sha256": "b76d81afe4e4718926e87bc24ba34ba055c3e885c25a8df28b9da1279cde2e3a"
+  },
+  "ansi_match": true,
+  "approved": {
+    "ansi_sha256": "77d6d5362cee83ba319ca9a46910c68aa66903bff9947b15159412b6b3af80f9",
+    "html_sha256": "56c8863ad2f85b996ebd4875d1e29c7bcff607448c8c307718b62bc6ae26b359",
+    "png_sha256": "087242e1c3857e352efcbbdf3306600390a23554b9f48cbebf7340d9c3fc9627",
+    "txt_sha256": "b76d81afe4e4718926e87bc24ba34ba055c3e885c25a8df28b9da1279cde2e3a"
+  },
+  "checks_performed": [
+    "ansi-byte-gate",
+    "txt-byte-gate",
+    "html-byte-gate",
+    "png-pixel-gate"
+  ],
+  "digest_actual": "82768e15a742b582",
+  "html_match": false,
+  "name": "neg8ap/cursor-y/80x24/truecolor",
+  "note": "html differs (render-level gate): first difference at byte 482 (approved line 1); approved 49286 bytes, actual 49402 bytes",
+  "pixel_score": 0.9842933334694923,
+  "pixel_threshold": 1.0,
+  "status": "pixels-differ",
+  "txt_match": true
+}

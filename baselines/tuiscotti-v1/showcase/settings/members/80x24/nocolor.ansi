@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Settings               i Inspector   ? Help  [0m
+                                                                                [0m
+[0m[2m   Inputs         [0m│  [0m[1mProject settings[0m  Composed: tabs, form, editable table, l… [0m
+   Text areas     │                                                             [0m
+   Forms          ┃   General   [0m[1m Members  [0m  Environment                         [0m
+   Lists          ┃  ───────────━━━━━━━━━━──────────────────────────────────────[0m
+   Trees          ┃                                                             [0m
+   Tables         ┃   ▎[0m[1mMembers[0m                                       6 members  [0m
+   Editable tabl… ┃                                                             [0m
+   Panels         ┃       Name                  Email               Role     …  [0m
+   Sidebars       ┃       Mira Okafor           mira@acme.dev       Owner       [0m
+   Dialogs        ┃    [0m[1m▎  Jonas Weber           jonas@acme.dev      Admin     [0m  [0m
+   Progress       ┃       Ana Costa             ana@acme.dev        Member      [0m
+   Scrolling      ┃       Kai Tanaka            kai@acme.dev        Member      [0m
+   Terminal       ┃       Sofia Rossi           sofia@acme.dev      Viewer      [0m
+   Code editor    ┃       deploy-bot            bot@acme.dev        Member      [0m
+   Diff           ┃                                                             [0m
+   Data grid      ┃     Invite    Remove…   cursor: Jonas Weber                 [0m
+   Chips & selec… ┃                                                             [0m
+   Pickers        ┃                                                             [0m
+   Chrome         ┃                                                             [0m
+[0m[2m › Settings       [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓ ← →[0m Cell  [0m[1mEnter[0m Edit  [0m[1ms[0m Sort  [0m[1mTab[0m Next                                     [0m

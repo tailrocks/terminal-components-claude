@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                            no project  [0m[1mmbp · local[0m [0m
+                                                                                [0m
+ [0m[1m Here › Upgrade everything  [0m  brew update ✓ ×                                  [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────── [0m
+  [0m[1mUpgrade everything[0m · mbp            9 steps · 9 included · 0 excluded · ~9 s  [0m
+  upgrade every detected manager on mbp: Homebrew, mise, amp, Oh My Zsh         [0m
+                                                                                [0m
+         step                 needs           lane  note                        [0m
+ [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m brew update          [0m–             [0m[1m  [0ma   [0m[1m                             [0m [0m
+  [✓] 02 brew upgrade         01              a                                 [0m
+  [✓] 03 brew cleanup         02              a     optional                    [0m
+  [✓] 04 brew doctor          03              a     optional                    [0m
+  [✓] 05 brew upgrade --cask  01              b                                 [0m
+  [✓] 06 mise upgrade         –               b                                 [0m
+  [✓] 07 amp update           –               c                                 [0m
+  [✓] 08 omz update           –               d                                 [0m
+  [✓] 09 Re-probe managers    01 04 05 06 0…  join                              [0m
+                                                                                [0m
+    7 required · 2 optional · 4 branches run in parallel where independent      [0m
+                                                                                [0m
+                                                       Cancel    [0m[1mConfirm plan [0m  [0m
+                                                                                [0m
+ [0m[1m~[0m           review · 9 steps · 4 branches parallel            no color · 80×24 [0m
+       [0m[1m↑↓[0m Step  …   [0m[1m![0m Upgrade Homebrew packages · 4 ok · 1 failed · 0 cancelled [0m

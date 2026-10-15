@@ -1,0 +1,20 @@
+  jackin?    File   Go   Help
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ----------------------------------------------???????????-----------
+
+    Active accounts  5 effective . 4 inherited . 1 enabled here
+    Anthropic / Claude            2 active . picker at session start ?
+  ??   [v] Personal                     *  inherited default       . ?
+       [ ] Archived contractor laptop .    available               . ?
+       [v] Work                            enabled here            . ?
+    OpenAI                                                  1 active |
+       [v] Primary                      *  inherited default       . |
+       [ ] Experiments                     available               . |
+    Amp                                                  none active |
+       [ ] host login                      discovered on host      . |
+
+                                                  Cancel     Save.
+
+   Space Enable / disable  p Prefer  / Filter  c Manage accounts  .

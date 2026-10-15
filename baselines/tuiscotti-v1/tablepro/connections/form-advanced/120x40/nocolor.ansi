@@ -1,0 +1,40 @@
+ ▪  [0m[1mTablePro[0m  Connections  6 saved                                                            no color · 120×40  ? help [0m
+                                                                                                                        [0m
+                                            New connection                                                Ctrl+S Save   [0m
+                                                                                                                        [0m
+                                             Basic   [0m[1m Advanced  [0m                                                        [0m
+                                            ─────────━━━━━━━━━━━─────────────────────────────────────────────────────   [0m
+                                                                                                                        [0m
+                                             ○── Use SSL / TLS off                        Startup commands              [0m
+                                                                                          SET statement_timeout = …     [0m
+                                             ○── SSH tunnel off                                                         [0m
+                                              SSH host  optional                                                        [0m
+                                            [0m[2m  bastion.example.com                   [0m      Run after every connect, o…   [0m
+                                                                                                                        [0m
+                                              SSH user  optional                          External clients: read only   [0m
+                                            [0m[2m  deploy                                [0m                                    [0m
+                                                                                                                        [0m
+                                             ○── Local only (no iCloud sync) off                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                             Test connection    Cancel    Save    [0m[1mSave & connect [0m                       [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1mEnter[0m Edit  [0m[1m← →[0m Basic / Advanced  [0m[1mCtrl+S[0m Save  [0m[1mTab[0m Next                                                                [0m

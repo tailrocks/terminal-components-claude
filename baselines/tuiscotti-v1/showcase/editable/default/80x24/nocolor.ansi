@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Editable tables     i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mEditable tables[0m  Navigation is reversed cell; editing is … [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Tasks                              0 edits · 1–10 of 14  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃       ID     Task                              Owner    …   [0m
+   Lists          ┃       #1040  Add rate limiting to auth endpo…  mira      ┃  [0m
+   Trees          ┃       #1041  Migrate sessions table to UUID …  jonas     ┃  [0m
+   Tables         ┃       #1042  Fix flaky checkout integration …  ana       ┃  [0m
+[0m[1m▎› Editable tabl… [0m┃       #1043  Write release notes for 3.2       mira      ┃  [0m
+   Panels         ┃       #1044  Replace deprecated Vue mixins     kai       ┃  [0m
+   Sidebars       ┃       #1045  Upgrade Postgres driver to 0.9    jonas     ┃  [0m
+   Dialogs        ┃       #1046  Extract billing service module    sofia     ┃  [0m
+   Progress       ┃       #1047  Add OpenTelemetry tracing spans   kai       │  [0m
+   Scrolling      ┃       #1048  Remove legacy feature flags       ana       │  [0m
+   Terminal       ┃    [0m[2m   #1049  Generate API client from OpenAPI  sofia     [0m│  [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │  reversed  cell cursor (navigation)                         [0m
+   Chips & selec… │  ▁         editing cursor + accent underline                [0m
+[0m[2m   Pickers        [0m│  !         validation error                                 [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

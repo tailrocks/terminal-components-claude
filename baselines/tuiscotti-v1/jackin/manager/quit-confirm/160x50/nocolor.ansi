@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                                                       Workspaces  inside the Construct  2 running [0m
+                                                                                                                                                                [0m
+ ╭─ Workspaces ────────────────────── 2 running ─╮ │  Current directory · payments-platform saved workspace      Running                          2 instances   [0m
+ │     Current …ory  saved as payments-platform  │ │                                                                                                            [0m
+ │   ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…   [0m
+ │   ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes       [0m
+ │   ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal                   [0m
+ │   ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 46                                                           [0m
+ │     + New workspace                           │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex      [0m
+ │                                               │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane             [0m
+ │                                               │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments                 [0m
+ │                                               │ │                OpenCode · Go subscription ★                                                                [0m
+ │                                               │ │  Policies      git pull enabled · keep awake on · dir…                                                     [0m
+ │                                               │ │                                                             Preserved                          3 records   [0m
+ │                                               │ │  Instances                            daemon · 3 s ago      ◌ c41e  payments-platform · reviewer · pres…   [0m
+ │                                               │ │  ◉ 7f3a  the-architect · Claude Code · running              ◌ a1c0  release-automation · backend · rest…   [0m
+ │                                               │ │  ◌ c41e  reviewer · Codex · preserved · dirty               ◌ 04d7  infra-control-plane · sre · preserv…   [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                             Daemon                     healthy · 3 s ago   [0m
+ │                                               │ │                                                             Refresh      throttled · every 5 s             [0m
+ │                                               │ │ ╭────────────────────────────────────────────────────╮      Usage        degraded · 4 warnings · 1 exha…   [0m
+ │                                               │ │ │                                                    │                                                     [0m
+ │                                               │ │ │  [0m[1mExit jackin❯?[0m                                     │                                                     [0m
+ │                                               │ │ │                                                    │                                                     [0m
+ │                                               │ │ │  2 instances keep running in the Construct. The    │                                                     [0m
+ │                                               │ │ │  host console closes; reconnect from a new         │                                                     [0m
+ │                                               │ │ │  terminal.                                         │                                                     [0m
+ │                                               │ │ │                                                    │                                                     [0m
+ │                                               │ │ │                                    Cancel  ▎[0m[1mQuit [0m  │                                                     [0m
+ │                                               │ │ │                                                    │                                                     [0m
+ │                                               │ │ ╰────────────────────────────────────────────────────╯                                                     [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │  Launch    Edit                                                                                            [0m
+ ╰───────────────────────────────────────────────╯ │                                                                                                            [0m
+                                                                                                                                                                [0m
+                                  [0m[1m     [0m         [0m[1m [0m [0m[1m← →[0m C[0m[1mh[0moose  [0m[1mEnter[0m Confirm [0m[1m Esc[0m Cancel [0m[1m y / n[0m Qu[0m[1mi[0mck answer  [0m[1m [0m       [0m[1m [0m                                          [0m

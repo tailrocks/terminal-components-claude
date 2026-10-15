@@ -1,0 +1,22 @@
+{
+  "cell_count": 3000,
+  "cols": 100,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 6750875262911575868,
+  "legacy_name": "tablepro/resize/workbench_grown/100x30/nocolor",
+  "name": "tablepro/workbench/resize-grown/100x30/nocolor",
+  "non_empty_cells": 661,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 30
+}

@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Foundations / Overview           i Inspector   ? Help  [0m
+                                                                                [0m
+ › Overview       ┃  Overview  Tokens and principles behind every component     [0m
+   Bu╭────────────────────────────────────────────────────────────────────╮     [0m
+   In│                                                                    │     [0m
+   Te│  [0m[1mKeyboard & mouse[0m                                                  │     [0m
+   Fo│                                                                    │     [0m
+   Li│  Tab / Shift+Tab   move keyboard focus                             │     [0m
+   Tr│  ↑ ↓ ← →           move inside the focused control                 │     [0m
+   Ta│  Enter / Space     activate · start editing                        │     [0m
+   Ed│  Esc               cancel editing · back to navigation             │     [0m
+   Pa│  [ ]               previous / next page                            │     [0m
+   Si│  0                 jump to navigation                              │     [0m
+   Di│  i                 toggle state inspector                          │     [0m
+   Pr│  q                 quit                                            │     [0m
+   Sc│                                                                    │     [0m
+   Te│  Mouse: hover to preview, click to focus and activate, wheel to    │     [0m
+   Co│  scroll, drag the scrollbar thumb.                                 │     [0m
+   Di│                                                                    │     [0m
+   Da│                                                           ▎[0m[1mClose [0m  │     [0m
+   Ch│                                                                    │     [0m
+   Pi╰────────────────────────────────────────────────────────────────────╯     [0m
+                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                          [0m

@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Panels              i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an e… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Titled card      surface    ╭─ Framed · s…   1–7 of 41 ─╮[0m
+   Text areas     ┃                                │  Junie works through a  ┃ │[0m
+   Forms          ┃    A card is a filled          │  task the way a careful │ │[0m
+   Lists          ┃    surface. Its title sits     │  engineer would: it     │ │[0m
+   Trees          ┃    in the top-left and         │  reads the relevant     │ │[0m
+   Tables         ┃    metadata on the right.      │  code, forms a plan,    │ │[0m
+   Editable tabl… ┃                                │  makes focused changes, │ │[0m
+[0m[1m▎› Panels         [0m┃                                │  [0m[2mruns the tests, and    [0m│ │[0m
+   Sidebars       ┃                                ╰───────────────────────────╯[0m
+   Dialogs        ┃    Untitled card. Same                                      [0m
+   Progress       ┃    surface, content starts       Card · scrolla… 1–5 of 60  [0m
+   Scrolling      ┃    at the padding edge.                                     [0m
+   Terminal       ┃                                     0.00s  info   Resol… ┃  [0m
+   Code editor    ┃                                     0.37s  info   Fetch… │  [0m
+   Diff           ┃                                     0.74s  info   Compi… │  [0m
+   Data grid      │    Nested                           1.11s  info   Compi… │  [0m
+   Chips & selec… │                                  [0m[2m   1.48s  warn   unuse… [0m│  [0m
+[0m[2m   Pickers        [0m│    Target                                                   [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
