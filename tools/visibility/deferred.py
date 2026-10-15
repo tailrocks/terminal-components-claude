@@ -21,7 +21,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 ROOT = Path(__file__).resolve().parents[2]
 TASKS_PATH = ROOT / "docs/implementation/visibility/tasks.json"
 DEFERRED_REGISTRY_PATH = ROOT / "crates/termrock-e2e/cases/deferred-obligations.json"
-HISTORICAL_REASONS_PATH = ROOT / "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json"
+HISTORICAL_REASONS_PATH = ROOT / "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred-reasons-9deb66b.json"
 CONTROL_STATES_PATH = ROOT / "crates/termrock-conformance/tests/control_states.rs"
 OWNERSHIP_PATH = ROOT / "component-ownership.json"
 CASE_REGISTRY_PATH = ROOT / "tests/conformance/required_cases.json"
@@ -779,7 +779,7 @@ def relevant_input_digest(root: Path = ROOT) -> str:
         root / "component-ownership.json",
         root / "tests/conformance/required_cases.json",
         root / "crates/termrock-e2e/cases/deferred-obligations.json",
-        root / "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+        root / "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred-reasons-9deb66b.json",
         root / "crates/termrock-visibility-tests/tests/deferred.rs",
         root / "crates/termrock-conformance/tests/parity_burndown.rs",
         root / "crates/termrock-conformance/tests/control_states.rs",
