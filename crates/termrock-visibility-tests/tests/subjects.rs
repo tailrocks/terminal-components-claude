@@ -4252,8 +4252,8 @@ fn real_build_unix_millis() -> u128 {
 /// registry/git roots, but does not copy or clean the caller's cache.
 #[cfg(unix)]
 #[test]
+// Real Holla pair build: requires accepted source facts and an assigned build slot.
 #[ignore = "branch-scoped evidence gate: builds synthetic subjects from the refs/remotes/origin/{visual-baseline,termrock-implementation} fixtures that the two-branch consolidation removed; preserved with the recovery refs and bundle (ledger R-41/R-47)"]
-#[ignore = "real Holla pair build; requires accepted source facts and an assigned build slot"]
 fn supervises_real_holla_pair_build() {
     const REFERENCE_COMMIT: &str = "b274dd57f4dd078ade6e424d546d83efbd2e8526";
     const CANDIDATE_COMMIT: &str = "1d797d41c8141fcbdc3f69d7f11eb8875ab54712";
@@ -5067,8 +5067,8 @@ fn supervises_real_holla_pair_build() {
 /// reviewed producer digest. Run with process-group timeout and an external Cargo slot.
 #[cfg(unix)]
 #[test]
+// Actual immutable-tag Holla build: requires a root-granted build slot.
 #[ignore = "branch-scoped evidence gate: builds synthetic subjects from the refs/remotes/origin/{visual-baseline,termrock-implementation} fixtures that the two-branch consolidation removed; preserved with the recovery refs and bundle (ledger R-41/R-47)"]
-#[ignore = "actual immutable-tag Holla build; requires a root-granted build slot"]
 fn supervises_real_frozen_tag_holla_build() {
     const OUTER_TIMEOUT: Duration = Duration::from_secs(1200);
     const TAG_BUILDER_COMMAND: &str = "build-frozen-tag-holla";

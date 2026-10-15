@@ -5,11 +5,10 @@
 //!    .ansi, .html, .png, .ascii, .txt, .frame.json) plus loss/fidelity sidecars.
 //! 2. Companion format invariant validators (assert_seven_bit, assert_no_escapes,
 //!    assert_normalized_sgr, assert_opaque_rgb, assert_static_offline, parse_canonical).
-//! 3. PTY Session launch via Tui -> input/press -> wait_stable -> snapshot -> Frame -> capture_all.
+//! 3. PTY session lifecycle qualification lives beside the showcase binary
+//!    (crates/showcase/tests/tuiscotti_qualification.rs).
 //! 4. GroupedStore checking and scratch output handling.
 //! 5. Negative comparison: cell mutation, pixel mutation, and missing approval detection.
-
-use std::time::Duration;
 
 use tuiscotti::Profile;
 use tuiscotti::VENDORED_FACES;
@@ -21,7 +20,6 @@ use tuiscotti::grouped::GroupedStore;
 use tuiscotti::ratatui::{EdgePolicy, render_screen};
 use tuiscotti::render::frame_from_screen;
 use tuiscotti::snapshot::Status;
-use tuiscotti::tui::Tui;
 
 #[test]
 fn qualify_pure_ratatui_capture_and_six_formats() {
