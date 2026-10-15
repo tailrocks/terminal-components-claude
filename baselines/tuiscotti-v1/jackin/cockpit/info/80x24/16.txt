@@ -1,0 +1,24 @@
+  jackin❯  entering the Construct  2 running
+
+                                                                {
+                                    jackin❯                     s
+             Loading the-architect into workspace payments-platform
+   Claude Code · Anthropic / Claude · account Claude · Work (session choice)
+       ╭─ Debug info ─────────────────────────────────────── read-only ─╮
+       │ ▎ Target  the-architect into workspace payments-platform       │
+       │   Role    the-architect                                        │
+       │   Agent   Claude Code · account Claude · Work                  │
+       │   Run id  run-202609030914-b5df                                │
+       │   jackin  0.6.4 · preview                                      │
+       │                                                                │
+       │                                                                │
+       │                                                                │
+       │                                                        Close   │
+       ╰────────────────────────────────────────────────────────────────╯
+                     10 Capsule                        queued
+                     11 Hardline                       queued
+
+ ⠋ Resolving credentials…
+
+
+                          ↑↓ Move  y Copy  Esc Close

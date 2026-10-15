@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                    big · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here › Disk › Usage  [0m                                                                                                                                         [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mDisk usage · ~/work/big[0m                                                                                                                                       [0m
+  scan complete · 2.3 MiB allocated · 21 entries · 1 selected (176.0 KiB)                                                                                       [0m
+                                                                                                                                                                [0m
+    Filesystems                                                                                                                                                 [0m
+    /                       ━━━━━━━━━━━━────── 66%    611 of 926 GB                                                                                             [0m
+                                                                                                                                                                [0m
+    largest first · allocated · noise folded                                                                   noise                                directory   [0m
+  ▾ ◐ big                                                                                   2.3 MiB · 100%                                                      [0m
+        target                                                                     2.0 MiB ·  85% · folded     Path       ~/work/big/noise                      [0m
+ [0m[1m▎  ▸ [0m✓[0m[1m noise                                                                             176.0 KiB ·   7% [0m    Allocated  176.0 KiB                             [0m
+        vm.img                                                                            160.0 KiB ·   7%     Apparent   112.0 KiB · block rounding            [0m
+    ▸   docs                                                                                8.0 KiB ·   0%     Entries    15 · hardlinks counted once           [0m
+    ▸   src                                                                                 8.0 KiB ·   0%     Modified   2026-08-11 08:41                      [0m
+        Cargo.toml                                                                          4.0 KiB ·   0%     Freshness  live · complete                       [0m
+                                                                                                               Selection  selected · Space unselects            [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/big[0m                                                      1 selected · 176.0 KiB                                                       no color · 160×50 [0m
+   [0m[1m↑↓[0m Move  [0m[1m← →[0m Fold / open  [0m[1mSpace[0m Select  [0m[1ms[0m Sort  [0m[1mf[0m Fold noise  [0m[1md[0m Delete…  [0m[1mc[0m Artifact plan  [0m[1mr[0m Rescan  [0m[1mx[0m Cancel scan  …   1 item selected · 176.0 KiB estimated [0m

@@ -1,0 +1,15 @@
+{
+  "schema": "termrock-reference-status-publication/v1",
+  "commit": "28c694037ee06e093a23de2ec0e0f6ed3f7f5569",
+  "parent": "48e67af8511d4883759c97e384080fcb2b112c7a",
+  "tree": "ca4ee5c1f0a8108566852269e6d060450147c2cf",
+  "paths": 89,
+  "commit_tool": "0086df",
+  "postcommit_review_sha256": "626c45a62f1671159a771054c4c388387594cdb3fe577cdd0713546e549849e8",
+  "push": "504f6c/session35358/5ceeb6",
+  "remote_readback": "260f56",
+  "tag_unchanged": true,
+  "paired_reference_run": "NOT_RUN",
+  "visibility": "INCOMPLETE",
+  "refactor": "NOT_READY"
+}

@@ -1,0 +1,15 @@
+[package]
+name = "tablepro-domain"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+tablepro-demo.workspace = true
+tablepro-sql.workspace = true
+termrock.workspace = true
+
+[lints]
+workspace = true

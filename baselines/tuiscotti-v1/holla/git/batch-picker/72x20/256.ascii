@@ -1,0 +1,20 @@
+  holla?    File   Go   Help      repos . project .lection  mbp . local
+
+  Here    pull alpha v x
+ -+------------------------------------------------------------------+-
+  | Activities                                                0 live |
+  | ?v pull alpha  succeeded . child . 0 s               activities  |
+  |  v pull beta   succeeded . child . 0 s                           |
+ +|  ! pull delta  failed . child . 0 s                              |+
+ ||  ! pull gamma  failed . child . 0 s                              ||
+ ||                                                                  ||
+ ||                                                                  ||
+ |+------------------------------------------------------------------+|
+ |  Fast-forward                                                      |
+ |   6 files changed, 39 insertions(+)                                |
+ |                                                                    |
+ |                                                                    |
+ +--------------------------------------------------------------------+
+
+ ~/work/repos            succeeded . 0 s             256 colors . 72x20
+      .   ! Pull 4 sibling repositories . 2 ok . 2 failed . 0 cancelled

@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                poly · Node project · yarn  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ yarn                                                                             scope ‹ here ›
+
+    Results · 31                                                                                  ┃
+  › yarn dev                script   here  package.json here                                      ┃
+    yarn s00                script   here  package.json here                                      ┃
+    yarn s01                script   here  package.json here                                      ┃
+    yarn s02                script   here  package.json here                                      ┃
+    yarn s03                script   here  package.json here                                      ┃
+    yarn s04                script   here  package.json here                                      ┃
+    yarn s05                script   here  package.json here                                      ┃
+    yarn s06                script   here  package.json here                                      ┃
+    yarn s07                script   here  package.json here                                      ┃
+    yarn s08                script   here  package.json here                                      ┃
+    yarn s09                script   here  package.json here                                      │
+    yarn s10                script   here  package.json here                                      │
+    yarn s11                script   here  package.json here                                      │
+    yarn s12                script   here  package.json here                                      │
+    yarn s13                script   here  package.json here                                      │
+    yarn s14                script   here  package.json here                                      │
+    yarn s15                script   here  package.json here                                      │
+    yarn s16                script   here  package.json here                                      │
+
+    → yarn run dev · here · mutating
+
+ ~/work/poly                                                                     16 colors · 100×30
+      Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

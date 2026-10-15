@@ -1,0 +1,11 @@
+[package]
+name = "holla-sim"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+holla-domain.workspace = true
+holla-catalog.workspace = true
+holla-plan.workspace = true

@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help               Workspaces  ! instance index unreadable  ▲ daemon stale
+
+ ╭─ Workspaces ─────────────────────────────────────────────────────────────────────── 3 running ─╮
+ │     Current directory                                              saved as payments-platform  │
+ │   ▸ payments-platform                                                               1 running  │
+ │   ▸ infra-control-plane                                                             1 running  │
+ │   ▸ release-automation                                                               ! failed  │
+ │   ▸ c╭──────────────────────────────────────────────────────────────────────────────────╮iled  │
+ │   ▸ d│ Launch · choose Agent                          payments-platform › the-architect │ning  │
+ │   ▸ d│ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │cord  │
+ │     a│  ▪ Codex        account Codex · Primary · provider def… ready                    │idle  │
+ │     g│  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │idle  │
+ │     m│  ▪ Grok Build   account Grok · Team · provider default  ready                    │idle  │
+ │     m│                                                                                  │idle  │
+ │     s│                                                                                  │idle  │
+ │     s╰──────────────────────────────────────────────────────────────────────────────────╯idle  │
+ │     billing-reconciliation-service-with-a-very-long-name-for-truncation                  idle  │
+ │     legacy-monolith                                                                      idle  │
+ │     + New workspace                                                                            │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+   Current directory                                                                  Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+   ◉ 7f3a  the-architect · Claude Code · running
+
+
+  …   ▲ Could not confirm running instances: instance index unreadable · entered without the ritual

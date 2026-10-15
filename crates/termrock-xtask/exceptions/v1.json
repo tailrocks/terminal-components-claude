@@ -1,0 +1,698 @@
+{
+  "exceptions": [
+    {
+      "max": 10,
+      "path": "crates/holla-sim/src/fixtures.rs",
+      "reason": "Paused/scenario switches in Holla domain/sim fixtures; reviewed, ratcheted pending FIX-005.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/app.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/holla-ui/src/app.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 5,
+      "path": "crates/holla-ui/src/screens/activity.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/screens/activity.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 26,
+      "path": "crates/holla-ui/src/screens/plan.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 11,
+      "path": "crates/holla-ui/src/screens/plan.rs",
+      "reason": "Legacy ratatui painters pending FIX-005 Holla audit; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 127,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 13,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 16,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/jackin-preview-presentation/src/rain.rs",
+      "reason": "Raw-buffer rain effect pending component replacement (FIX-005 scope); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-01"
+    },
+    {
+      "max": 10,
+      "path": "crates/jackin-preview-presentation/src/rain.rs",
+      "reason": "Raw-buffer rain effect pending component replacement (FIX-005 scope); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 4,
+      "path": "crates/jackin-preview-sim/src/fixtures/pinned.rs",
+      "reason": "Scenario/size switches in deterministic sim fixtures; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 7,
+      "path": "crates/jackin-preview-sim/src/world.rs",
+      "reason": "Scenario/size switches in deterministic sim fixtures; reviewed, ratcheted. Q67-J1d: +1 for the global-config richness switch (FirstUse ships no global mounts/env), same fixture class.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/author.rs",
+      "reason": "Downstream-authoring teaching demo: paints through the public termrock::author API by design.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/buttons.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 4,
+      "path": "crates/showcase-demos/src/pages/buttons.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/buttons.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/chips.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/chips.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/chips.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/dialogs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/editable.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/editor.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/editor.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 26,
+      "path": "crates/showcase-demos/src/pages/forms.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 19,
+      "path": "crates/showcase-demos/src/pages/forms.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 7,
+      "path": "crates/showcase-demos/src/pages/forms.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/inputs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 15,
+      "path": "crates/showcase-demos/src/pages/inputs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/inputs.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/lists.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 4,
+      "path": "crates/showcase-demos/src/pages/lists.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/lists.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/mod.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/mod.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/overview.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 5,
+      "path": "crates/showcase-demos/src/pages/overview.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 4,
+      "path": "crates/showcase-demos/src/pages/overview.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 18,
+      "path": "crates/showcase-demos/src/pages/panels.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 10,
+      "path": "crates/showcase-demos/src/pages/panels.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 13,
+      "path": "crates/showcase-demos/src/pages/panels.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 23,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-09"
+    },
+    {
+      "max": 5,
+      "path": "crates/showcase-demos/src/pages/progress.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/scrolling.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/settings.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/settings.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/settings.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/tables.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 13,
+      "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/textareas.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/textareas.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/textareas.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/trees.rs",
+      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 25,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 10,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-09"
+    },
+    {
+      "max": 6,
+      "path": "crates/showcase-ui/src/app.rs",
+      "reason": "Shell chrome painters plus paused/time/size controls; reviewed, ratcheted.",
+      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 100,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "WI-TABLEPRO-FORM-RADIO: form radios through stock RadioGroup+Note (was 107)",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 18,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "WI-TABLEPRO-FORM-RADIO: form radios through stock RadioGroup+Note (was 12)",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 17,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "reason": "Table painters, raw escape, and responsive switches pending FIX-005; ratcheted G1 corpus.",
+      "review": "WI-TABLEPRO-FORM-RADIO: form radios through stock RadioGroup+Note (was 20)",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/termrock-runtime/src/ui/derived.rs",
+      "reason": "The one allowed production expect: the TypeId-keyed derived-cache slot invariant, stated next to the code that establishes it.",
+      "review": "Q16: reviewed permanent allowance; see file docs and OWN-14",
+      "rule": "OWN-14"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-sim/src/catalogue.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 1,
+      "path": "crates/holla-ui/src/dispatch.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 11,
+      "path": "crates/holla-ui/src/screens/home.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 2,
+      "path": "crates/holla-ui/src/screens/home.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 26,
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 12,
+      "path": "crates/showcase-demos/src/pages/chrome.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 24,
+      "path": "crates/showcase-demos/src/pages/chrome.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/chrome.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/dialogs.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/dialogs.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/editable.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/editable.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/editor.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/grid.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 11,
+      "path": "crates/showcase-demos/src/pages/grid.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/grid.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/mod.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 24,
+      "path": "crates/showcase-demos/src/pages/pickers.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 23,
+      "path": "crates/showcase-demos/src/pages/pickers.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/pickers.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/scrolling.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 7,
+      "path": "crates/showcase-demos/src/pages/scrolling.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 7,
+      "path": "crates/showcase-demos/src/pages/sidebars.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/sidebars.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/sidebars.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 3,
+      "path": "crates/showcase-demos/src/pages/tables.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 8,
+      "path": "crates/showcase-demos/src/pages/tables.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 9,
+      "path": "crates/showcase-demos/src/pages/terminal.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 4,
+      "path": "crates/showcase-demos/src/pages/terminal.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/terminal.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/trees.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-04"
+    },
+    {
+      "max": 3,
+      "path": "tools/refactor-proof/src/compare.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-10"
+    },
+    {
+      "max": 1,
+      "path": "tools/refactor-proof/src/json_util.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-14"
+    }
+  ],
+  "schema": "termrock-ownership-exceptions/v1"
+}

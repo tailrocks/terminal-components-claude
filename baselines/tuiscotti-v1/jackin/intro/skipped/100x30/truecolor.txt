@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                        Workspaces  inside the Construct  no instances
+
+ ╭─ Workspaces ──────────────────────────────────────────────────────────────────── no instances ─╮
+ │ ▎   Current directory                                                 ~/src/payments-platform  │
+ │     + New workspace                                                                            │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+   Current directory                                                                  Tab details
+
+   ~/src/payments-platform · not saved · Enter launches, n creates a workspace
+
+
+
+
+        Enter Launch  n New  Tab Details  c Accounts  u Usage  s Settings  ? Help  q Quit

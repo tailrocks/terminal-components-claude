@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Code editor i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mCode editor[0m  Blocks, tones, diagnostics and compl… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃   ▎[0m[1mretry.rs[0m                                running  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃       16 }                                       │  [0m
+   Lists          ┃       17                                         ┃  [0m
+   Trees          ┃    ▎⠋ [0m[1m18[0m [0m[1mfn[0m client() -> Client {                 │  [0m
+   Tables         ┃                                  ln 18/26 · col 1   [0m
+   Editable tabl… ┃                                                     [0m
+   Panels         ┃    State                                            [0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        │    Mode         navigating                          [0m
+   Progress       │    Cursor       ln 18 · col 1                       [0m
+   Scrolling      │    Block        2 of 3                              [0m
+   Terminal       │    Runs         0                                   [0m
+ › Code editor    │                                                     [0m
+                                                                        [0m
+ [0m[1mi[0m Edit  [0m[1mCtrl+R[0m Run block  [0m[1m{ }[0m Blocks  [0m[1m/[0m Find  [0m[1mTab[0m Next                 [0m

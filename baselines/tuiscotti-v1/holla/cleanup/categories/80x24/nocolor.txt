@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help             web · Node project · pnpm  mbp · local
+
+  Here › Cleanup
+ ━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────
+  Cleanup review
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash
+
+ ▎[–] ▸ Xcode DerivedData           810.0 MiB  rebuilt on demand…             ┃
+                                                                              ┃
+  [✓] ▸ Xcode device support          2.4 GiB  safe if old · 2 candidates…    ┃
+                                                                              ┃
+  [ ] ▸ Xcode archives              300.0 MiB  review first · 1 candidate…    ┃
+                                                                              │
+  [✓] ▸ Simulator caches            900.0 MiB  rebuilt on demand…             │
+                                                                              │
+  [✓] ▸ Homebrew cache              100.0 MiB  rebuilt on demand…             │
+                                                                              │
+  [✓] ▸ npm cache                   201.0 MiB  rebuilt on demand…             │
+                                                                              │
+  [✓] ▸ pnpm store                    2.1 GiB  safe if old · 1 candidate…     │
+                                                                              │
+
+ ~/Projects/web             19 selected · 12.4 GiB             no color · 80×24
+      ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  …

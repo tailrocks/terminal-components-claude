@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                 engine · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mcargo clean[0m                                                                                                                                  scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Results · 3                                                                                                  cargo clean · 900.0 MiB       cleanup · here   [0m
+ [0m[1m › cargo clean · 900.0 MiB           [0mcleanup[0m[1m  [0mhere[0m[1m  [0m900.0 MiB of generated artifacts[0m[1m            [0mdestructive[0m[1m [0m                                                   [0m
+    [0m[1mcargo[0m clean dry run               cargo    here  read-only                                                   Does       remove the resolved target          [0m
+    [0m[1mClean[0m Cargo registry cache · 0 B  cleanup  host  safe if old · all platforms                                            directory ~/work/engine/target ·    [0m
+                                                                                                                            2 files · tool-native permanent     [0m
+                                                                                                                            removal, not Trash · rebuilt by     [0m
+                                                                                                                            the next build                      [0m
+                                                                                                                 Runs       cargo clean                         [0m
+                                                                                                                 In         ~/work/engine                       [0m
+                                                                                                                 Host       mbp · local                         [0m
+                                                                                                                 Scope      here                                [0m
+                                                                                                                 Why        900.0 MiB of generated artifacts    [0m
+                                                                                                                 Changes    900.0 MiB freed by cargo itself     [0m
+                                                                                                                            · permanent · next build            [0m
+                                                                                                                            recompiles everything · shared      [0m
+                                                                                                                            target:                             [0m
+                                                                                                                            /Users/alex/work/engine-wt loses    [0m
+                                                                                                                            its artifacts too                   [0m
+                                                                                                                 Risk       destructive                         [0m
+                                                                                                                 Data       live · 2 s ago                      [0m
+                                                                                                                 Gate       one confirmation                    [0m
+                                                                                                                 Alt+Enter  Show what clean would remove        [0m
+                                                                                                                            (dry run) · Pin · Alias · Why       [0m
+                                                                                                                            here?                               [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/engine[0m   main                                                                                                                         no color · 160×50 [0m
+                                 [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear                                    [0m

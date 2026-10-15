@@ -1,0 +1,24 @@
+  jackin❯  entering the Construct  2 running                                    [0m
+     ╭─[0m[1m ! Launch failed [0m────────────── run id is the only copyable value ─╮     [0m
+     │  The Construct network could not be attached                       │     [0m
+     │  Loading the-architect into workspace payments-platform            │     [0m
+     │                                                                    │     [0m
+   Cl│ [0m[1m▎ [0mStage[0m[1m      Network                                             [0m  │)    [0m
+     │   Run id     run-202609030914-b5df                                 │     [0m
+     │   Next step  Check that Docker's jackin-net bridge exists (dock…   │     [0m
+     │   Container  jackin-payments-platform-b5df                         │     [0m
+     │                                                                    │     [0m
+     │  network: attach jackin-net to jackin-payments-platform-7f3a      ┃│     [0m
+     │  docker: Error response from daemon: network jackin-net not       ┃│     [0m
+     │  found                                                            ┃│     [0m
+     │  retry 1/3 after 400 ms: network jackin-net not found             ┃│     [0m
+     │  retry 2/3 after 800 ms: network jackin-net not found             ┃│     [0m
+     │  retry 3/3 after 1600 ms: network jackin-net not found            ┃│     [0m
+     │  sidecar: not started (network stage failed)                      ┃│     [0m
+     │  capsule: not started                                             ┃│     [0m
+     │  cleanup: container jackin-payments-platform-7f3a kept for        ││     [0m
+     [0m[2m│  inspection                                                       [0m││     [0m
+ ! Ne│                                                                    │5df  [0m
+ 44 l│                                                            Close   │     [0m
+     ╰────────────────────────────────────────────────────────────────────╯     [0m
+           [0m[1m [0m            [0m[1m [0m [0m[1m↑↓[0m Move  [0m[1my[0m Copy [0m[1m Esc C[0mlose   [0m[1m      [0m                   [0m

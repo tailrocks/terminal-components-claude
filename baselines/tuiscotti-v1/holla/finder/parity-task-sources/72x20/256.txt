@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      poly · Node proj… · yarn  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › just build    recipe   here  .justfile here                       ┃
+    just lint     recipe   here  .justfile here                       ┃
+    just test     recipe   here  .justfile here                       ┃
+    make all      target   here  Makefile here                        ┃
+    make build    target   here  Makefile here                        ┃
+                                                                      │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → just build · here · mutating
+
+ ~/work/poly                                         256 colors · 72×20
+    Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …

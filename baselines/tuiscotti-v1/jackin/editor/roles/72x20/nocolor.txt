@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ─────────────────────━━━━━━━━───────────────────────────────────────
+
+    Allowed roles  3 of 46                   default ★ the-architect
+  ▎›   [✓] the-architect ★  registry · trusted · Full-stack design … ┃
+       [✓] backend          registry · trusted · Rust and Postgres … │
+       [✓] reviewer         registry · trusted · Read-mostly code r… │
+       [ ] sre              registry · trusted · Infrastructure, Te… │
+       [ ] data-eng         ! load error · trust required            │
+       [ ] writer           ~/roles/writer · not in registry         │
+       [ ] svc-001          registry · trusted · ledger service age… │
+       [ ] svc-002          registry · trusted · search service age… │
+       [ ] svc-003          registry · trusted · notify service age… │
+
+                                                  Cancel     Save…
+
+       Space Allow  Enter Set default  a Load role…  / Filter  …

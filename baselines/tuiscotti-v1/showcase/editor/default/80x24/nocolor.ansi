@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Code editor         i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; t… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    retry.rs                                       3 blocks  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     ›  1 [0m[3m// Retry a request with exponential backoff.[0m    ┃  [0m
+   Lists          ┃        2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Result<Body, E…│  [0m
+   Trees          ┃        3     [0m[1mlet[0m [0m[1mmut[0m delay = 200;                        │  [0m
+   Tables         ┃        4     [0m[1mfor[0m attempt [0m[1min[0m 1..=5 {                      │  [0m
+   Editable tabl… ┃    [0m[2m    5         [0m[1;2mmatch[0m[2m client().get(url).[0m[1;2mawait[0m[2m {         [0m│  [0m
+   Panels         ┃                                                 1–5 of 26   [0m
+   Sidebars       ┃                                                             [0m
+   Dialogs        ┃    State                                                    [0m
+   Progress       ┃                                                             [0m
+   Scrolling      ┃    Mode         navigating                                  [0m
+   Terminal       ┃    Cursor       ln 1 · col 1                                [0m
+[0m[1m▎› Code editor    [0m┃    Block        1 of 3                                      [0m
+   Diff           ┃    Runs         0                                           [0m
+   Data grid      │    Last run     —                                           [0m
+   Chips & selec… │    Diagnostics  0                                           [0m
+[0m[2m   Pickers        [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

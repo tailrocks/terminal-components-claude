@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                    svc · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+  Here   [0m[1m pull with merge ! ×  [0m                                                                                                                                 [0m
+ ────────━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mpull with merge[0m · failed · 0 s · exit 1                                                                                            parent · ~/work/svc · mbp  [0m
+  $ git -C /Users/alex/work/svc pull --no-rebase · started by Pull with merge                                                                                   [0m
+                                                                                                                                                                [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ [0m
+ │  $ git -C /Users/alex/work/svc pull --no-rebase                                                                                                            │ [0m
+ │  [0m[1merror: Your local changes to the following files would be overwritten by merge:[0m                                                                           │ [0m
+ │  [0m[1m        src/api/mod.rs[0m                                                                                                                                    │ [0m
+ │  [0m[1mPlease commit your changes or stash them before you merge.[0m                                                                                                │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/svc/src/api[0m   feature/x   ↓2 ↑1 • 1                                          ! exit 1 · 0 s                                           no color · 160×50 [0m
+                                              [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  [0m[1mr[0m Restart  [0m[1mx[0m Close  [0m[1mEsc[0m Here               [0m[1m![0m pull with merge failed · exit 1 [0m

@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      payments · s…eckout  ◆ prod-eu-1 · production
+  ╭──────────────────────────────────────────────────────────────────────────╮
+  │                                                                          │
+ ━│  Restart payments · gate 2 of 2                                          │─
+  │                                                                          │
+  │  Action   systemctl restart payments on prod-eu-1 · production ·         │
+  │           in-flight requests are dropped                                 │
+  │  Host     prod-eu-1 · production                                         │
+  │  In       prod-eu-1 · host-wide                                          │
+  │  Scope    on prod-eu-1                                                   │
+  │  Changes  payments restarts · brief outage on prod-eu-1                  │
+  │  Risk     privileged                                                     │
+  │                                                                          │
+  │  sudo systemctl restart payments                                         │
+  │  systemctl status payments                                               │
+ ╭│                                                                          │╮
+ ││   Type RESTART PAYMENTS ON prod-eu-1 to confirm                          ││
+ ││ ▎                                                                        ││
+ ╰│                                                                          │╯
+  │                                                                          │
+  │                                                       Cancel   Execute   │
+  │                                                                          │
+ /╰──────────────────────────────────────────────────────────────────────────╯4
+                    ← → Choose  Enter Confirm  Esc Cancel

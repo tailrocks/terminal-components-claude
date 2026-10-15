@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "e7de7cc0632d34056dfed1070fb7647b3998f819680f705b303c4ee36de02d0c",
+  "artifacts": {
+    "ansi": {
+      "bytes": 9431,
+      "file": "jackin/manager/scenario-first-use/160x50/none.ansi",
+      "sha256": "e7de7cc0632d34056dfed1070fb7647b3998f819680f705b303c4ee36de02d0c"
+    },
+    "ascii": {
+      "bytes": 379,
+      "file": "jackin/manager/scenario-first-use/160x50/none.ascii",
+      "sha256": "8e8a2f73421ea667ffa875cbf221b9fa5a96eb87a1db4fb7ca3deb3117205fde"
+    },
+    "ascii_loss_json": {
+      "bytes": 258,
+      "file": "jackin/manager/scenario-first-use/160x50/none.ascii.loss.json",
+      "sha256": "92c46e079e931c8b264b8883fc33512851a4976a4d740ab3e93e816cc866149b"
+    },
+    "frame_json": {
+      "bytes": 1865110,
+      "file": "jackin/manager/scenario-first-use/160x50/none.frame.json",
+      "sha256": "cac138b0e4f09427488e82ce06e2a054fd65d3a5696bf17715f664dbd243cf5e"
+    },
+    "html": {
+      "bytes": 173302,
+      "file": "jackin/manager/scenario-first-use/160x50/none.html",
+      "sha256": "0cf812799c5918dc25492622c4d20abfe83d7557c8b4241709e275769cb44f32"
+    },
+    "observations_json": {
+      "bytes": 464,
+      "file": "jackin/manager/scenario-first-use/160x50/none.observations.json",
+      "sha256": "d85e64013edc696c71ea940db52d8ff3a827d3bdb1808d6aa132a1826032c5e5"
+    },
+    "png": {
+      "bytes": 120130,
+      "file": "jackin/manager/scenario-first-use/160x50/none.png",
+      "sha256": "879c0c80ef4c2f506d2e649b82bac63637de32846f4eab8a37b98b5c30513436"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/manager/scenario-first-use/160x50/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 383,
+      "file": "jackin/manager/scenario-first-use/160x50/none.txt",
+      "sha256": "ed8945c32b7e597a94cbea9f514007091acf1f4ce62fab4ff651c1587512d451"
+    }
+  },
+  "ascii_substitutions_count": 2,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 5442754352886866651,
+  "frame_sha256": "cac138b0e4f09427488e82ce06e2a054fd65d3a5696bf17715f664dbd243cf5e",
+  "generation": "a44a28a93b99cb31fb69150842f4981ec6ac54f9e81cfaae972ad6e00a14d677",
+  "html_sha256": "0cf812799c5918dc25492622c4d20abfe83d7557c8b4241709e275769cb44f32",
+  "legacy_name": "jackin/scenarios/first-use/160x50/none",
+  "name": "jackin/manager/scenario-first-use/160x50/none",
+  "png_sha256": "879c0c80ef4c2f506d2e649b82bac63637de32846f4eab8a37b98b5c30513436",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:23Z",
+  "txt_sha256": "ed8945c32b7e597a94cbea9f514007091acf1f4ce62fab4ff651c1587512d451"
+}

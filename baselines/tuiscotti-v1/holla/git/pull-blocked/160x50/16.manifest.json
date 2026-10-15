@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "f44720bf04c86e2fa994070708c726c4086a218893389938a77791e44c2f4c71",
+  "artifacts": {
+    "ansi": {
+      "bytes": 12280,
+      "file": "holla/git/pull-blocked/160x50/16.ansi",
+      "sha256": "f44720bf04c86e2fa994070708c726c4086a218893389938a77791e44c2f4c71"
+    },
+    "ascii": {
+      "bytes": 3327,
+      "file": "holla/git/pull-blocked/160x50/16.ascii",
+      "sha256": "b17cf319881be889f7fee94958e7ccde88c032e14a562dbf9831e01e30a05fc0"
+    },
+    "ascii_loss_json": {
+      "bytes": 17532,
+      "file": "holla/git/pull-blocked/160x50/16.ascii.loss.json",
+      "sha256": "65eac23c718563bc8a2d22c79638953b985bdf82a999c6b8935c67f727275778"
+    },
+    "frame_json": {
+      "bytes": 1864866,
+      "file": "holla/git/pull-blocked/160x50/16.frame.json",
+      "sha256": "ff8274bc3c5fd7202564f529d266237469dcfc4f14ed4b6b43cd549e32290e50"
+    },
+    "html": {
+      "bytes": 531271,
+      "file": "holla/git/pull-blocked/160x50/16.html",
+      "sha256": "b8559921bbed9f7020df7f749efecbd81efc654057ebfa4c966b2d1f7d1a287f"
+    },
+    "observations_json": {
+      "bytes": 453,
+      "file": "holla/git/pull-blocked/160x50/16.observations.json",
+      "sha256": "62fc7d84aabc24cc704a1d520b3a979d473bed4dacca46b7e6cfdf7bbf81a880"
+    },
+    "png": {
+      "bytes": 379276,
+      "file": "holla/git/pull-blocked/160x50/16.png",
+      "sha256": "f8d04f467402700be47e4d1d039240bfbea302705c78a4c245c97ca442956b62"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/git/pull-blocked/160x50/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3687,
+      "file": "holla/git/pull-blocked/160x50/16.txt",
+      "sha256": "dd652d9929439e3d2b5d4567395e6a92ed1c40e094c8ec974404088a483b6948"
+    }
+  },
+  "ascii_substitutions_count": 189,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 11960091687751482421,
+  "frame_sha256": "ff8274bc3c5fd7202564f529d266237469dcfc4f14ed4b6b43cd549e32290e50",
+  "generation": "ba83696db3122f9b985a046bf925e49494849ae387539328a7f179bccab92a66",
+  "html_sha256": "b8559921bbed9f7020df7f749efecbd81efc654057ebfa4c966b2d1f7d1a287f",
+  "legacy_name": "holla/flows/git/pull_blocked/160x50/16",
+  "name": "holla/git/pull-blocked/160x50/16",
+  "png_sha256": "f8d04f467402700be47e4d1d039240bfbea302705c78a4c245c97ca442956b62",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:53Z",
+  "txt_sha256": "dd652d9929439e3d2b5d4567395e6a92ed1c40e094c8ec974404088a483b6948"
+}

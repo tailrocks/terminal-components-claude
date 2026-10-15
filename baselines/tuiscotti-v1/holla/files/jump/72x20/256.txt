@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+
+  Here › Files › site
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────
+  ╭──────────────────────────────────────────────────────────────────╮
+  │ Go to path                                           ~/work/site │
+  │ ▎ path · ~/… · relative to this folder                           │
+  │                                                                  │┃
+  │                      type a path or a name                       │┃
+  │                                                                  │┃
+  │                                                                  │┃
+  ╰──────────────────────────────────────────────────────────────────╯┃
+    café.txt                              11 B  2026-09-09 08:41      ┃
+    café.txt                              12 B  2026-09-09 08:41      │
+    control.txt                           13 B  2026-09-07 08:41      │
+  → current                                0 B  2026-09-09 08:41      │
+    empty.txt                              0 B  2026-09-09 08:41      │
+
+ ~/work/site        ~/work/site · hidden off         256 colors · 72×20
+            Type Filter  ↑↓ Move  Enter Switch  Esc Cancel

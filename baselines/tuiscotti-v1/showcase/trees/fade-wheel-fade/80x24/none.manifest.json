@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "31cbab542c8f1793fb59624dedfb4b055f4c6fe6dea4d71e7c6963cdfbc2f24e",
+  "artifacts": {
+    "ansi": {
+      "bytes": 6892,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.ansi",
+      "sha256": "31cbab542c8f1793fb59624dedfb4b055f4c6fe6dea4d71e7c6963cdfbc2f24e"
+    },
+    "ascii": {
+      "bytes": 1269,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.ascii",
+      "sha256": "9ad805843024618d3ae691075837cfcb7931e41e54a9d25147168bb9a985343b"
+    },
+    "ascii_loss_json": {
+      "bytes": 4606,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.ascii.loss.json",
+      "sha256": "27504e86afb0e2a439a6f2e1c66b6fab5475649b185cf278896ce239879c4b99"
+    },
+    "frame_json": {
+      "bytes": 445963,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.frame.json",
+      "sha256": "2fb3fbfb2391ef777fdf045d2be9ed83ed7a1546115fba314e8d8eaf6b6dce9c"
+    },
+    "html": {
+      "bytes": 368870,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.html",
+      "sha256": "2dfcde7521e85fb69fcf1c5681032686405169fed088028d65d29a5d4e827342"
+    },
+    "observations_json": {
+      "bytes": 464,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.observations.json",
+      "sha256": "3aeacd21dfa2f8bff6a97d455100f3f53769b9c75ef2750c29b94732c21baec1"
+    },
+    "png": {
+      "bytes": 261950,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.png",
+      "sha256": "850221093f7d2fdbad37b96d4eb436368865358aaccd17fe52709297fd02e805"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1367,
+      "file": "showcase/trees/fade-wheel-fade/80x24/none.txt",
+      "sha256": "92c05735703ebc575f9569d9d197ca88614d974206cb378433b58c4eb477b7af"
+    }
+  },
+  "ascii_substitutions_count": 49,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 11555930631140890122,
+  "frame_sha256": "2fb3fbfb2391ef777fdf045d2be9ed83ed7a1546115fba314e8d8eaf6b6dce9c",
+  "generation": "94948b6596477ad26ec386f95288eee0249a8f59082bd21e1b9cb05fb3c4347f",
+  "html_sha256": "2dfcde7521e85fb69fcf1c5681032686405169fed088028d65d29a5d4e827342",
+  "legacy_name": "showcase/fade/trees/wheel-fade/80x24/none",
+  "name": "showcase/trees/fade-wheel-fade/80x24/none",
+  "png_sha256": "850221093f7d2fdbad37b96d4eb436368865358aaccd17fe52709297fd02e805",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:21Z",
+  "txt_sha256": "92c05735703ebc575f9569d9d197ca88614d974206cb378433b58c4eb477b7af"
+}

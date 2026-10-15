@@ -1,0 +1,20 @@
+  jackin❯  entering the Construct  2 running
+
+
+                                jackin❯
+   ╭─ Debug info ─────────────────────────────────────── read-only ─╮
+Cla│ ▎ Target  the-architect into workspace payments-platform       │ic…
+   │   Role    the-architect                                        │
+   │   Agent   Claude Code · account Claude · Work                  │
+   │   Run id  run-202609030914-b5df                                │
+   │   jackin  0.6.4 · preview                                      │
+   │                                                                │
+   │                                                                │
+   │                                                                │
+   │                                                        Close   │
+   ╰────────────────────────────────────────────────────────────────╯
+
+ ⠋ Resolving credentials…
+
+
+                      ↑↓ Move  y Copy  Esc Close

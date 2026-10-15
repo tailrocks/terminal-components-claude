@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                   no project  devbox · development
+  ╭──────────────────────────────────────────────────────────────────────────╮
+  │                                                                          │
+ ━│  Start upgrade everything?                                               │─
+  │                                                                          │
+  │  Plan       Upgrade everything · upgrade Debian packages and global      │
+  │             mise tools on devbox                                         │
+  │  Host       devbox                                                       │
+  │  Steps      7 included · 1 excluded · ~16 s                              │
+  │  Privilege  sudo · cached for this session                               │
+  │  Debian     14 upgradable · 2 security                                   │
+  │  mise       4 outdated global tools · go excluded                        │
+  │                                                                          │
+  │  cat /etc/os-release                                                     │
+  │  sudo -n true                                                            │
+  │  fuser /var/lib/dpkg/lock-frontend                                       │
+  │  df -h /                                                                 │
+  │  test -f /var/run/reboot-required                                        │
+  │  sudo apt-get update … 8 more                                            │
+  │                                                                          │
+  │                                                   ▎Cancel   Start plan   │
+  │                                                                          │
+ ~╰──────────────────────────────────────────────────────────────────────────╯4
+          ← → Choose  Enter Confirm  Esc Cancel    06 excluded · 08 now blocked

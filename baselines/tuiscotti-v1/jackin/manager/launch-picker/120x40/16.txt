@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                                               Workspaces  inside the Construct  2 running
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  Current directory · payments-platform                       saved workspace
+ │     Current directory             │ │
+ │   ▸ payments-platform             │ │  Working dir   /workspace/payments-platform
+ │   ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree
+ │   ▸ release-automation            │ │                ~/src/shared-libs · ro shared
+ │   ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 46
+ │     + New workspace               │ │  Environments  5 vars · 2 [op]
+ │                                   │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·
+ │                ╭──────────────────────────────────────────────────────────────────────────────────╮
+ │                │ Launch · choose Agent                          payments-platform › the-architect │ask
+ │                │ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │
+ │                │  ▪ Codex        account Codex · Primary · provider def… ready                    │aemon · 3 s ago
+ │                │  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │
+ │                │  ▪ Grok Build   account Grok · Team · provider default  ready                    │
+ │                │                                                                                  │
+ │                │                                                                                  │
+ │                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │  Launch    Edit
+ ╰───────────────────────────────────╯ │
+
+                                          ↑↓ Move  Enter Choose  Esc Cancel
