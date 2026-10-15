@@ -2,9 +2,9 @@
 //! only receive controlled values and generic grid adapters.
 
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
-use tablepro_domain::domain::ResultGrid;
+use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
-use tablepro_domain::model::{History, HistoryEntry};
+use crate::model::{History, HistoryEntry};
 use tablepro_sql::sql::{self, PlanNode};
 use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
 

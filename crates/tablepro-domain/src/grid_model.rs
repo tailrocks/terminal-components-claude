@@ -1,6 +1,6 @@
 //! Application-owned grid metadata and the public adapter facade.
 
-use tablepro_domain::domain::{ResultGrid, preview_sql};
+use crate::domain::{ResultGrid, preview_sql};
 
 use tablepro_demo::db::{ColType, Table};
 
