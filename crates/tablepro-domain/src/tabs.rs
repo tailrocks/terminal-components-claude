@@ -1,6 +1,11 @@
 //! `TablePro` tab models. Each tab owns product state; terminal components
 //! only receive controlled values and generic grid adapters.
 
+#![allow(
+    missing_docs,
+    reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
+)]
+
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
@@ -113,7 +118,7 @@ impl core::ops::Deref for GridView {
 
 /// Table tab body.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TableMode {
+pub enum TableMode {
     /// Data grid mode.
     Data,
     /// Structure grid mode.
@@ -126,7 +131,7 @@ pub struct TableTab {
     /// Catalog table.
     pub table: Table,
     /// Current mode.
-    pub(crate) mode: TableMode,
+    pub mode: TableMode,
     /// Data result adapter.
     pub result: GridView,
     /// Independent, read-only schema grid; switching modes never replaces data.
@@ -255,7 +260,7 @@ pub struct QueryTab {
     /// Last execution error.
     pub error: Option<String>,
     /// Last explain plan.
-    pub(crate) plan: Option<PlanNode>,
+    pub plan: Option<PlanNode>,
     /// Whether execution is in flight.
     pub running: bool,
 }
@@ -346,7 +351,7 @@ pub struct HistoryTab {
     /// Selected entry index.
     pub selected: usize,
     /// Filtered entries.
-    pub(crate) entries: Vec<HistoryEntry>,
+    pub entries: Vec<HistoryEntry>,
 }
 
 impl HistoryTab {
@@ -388,7 +393,7 @@ pub enum Tab {
 
 impl Tab {
     /// Current grid and its stable control identity.
-    pub(crate) fn grid(&self, key: TabKey) -> Option<(Id, &GridView)> {
+    pub fn grid(&self, key: TabKey) -> Option<(Id, &GridView)> {
         match self {
             Self::Table(tab) if tab.is_structure() => {
                 Some((key.control("structure"), &tab.structure))
@@ -402,7 +407,7 @@ impl Tab {
         }
     }
     /// Current grid mutably, with no mirrored model or interaction state.
-    pub(crate) fn grid_mut(&mut self, key: TabKey) -> Option<(Id, &mut GridView)> {
+    pub fn grid_mut(&mut self, key: TabKey) -> Option<(Id, &mut GridView)> {
         match self {
             Self::Table(tab) => {
                 if tab.is_structure() {
@@ -455,25 +460,25 @@ pub struct TabRecord {
 }
 
 impl TabRecord {
-    pub(crate) fn new(key: TabKey, payload: Tab) -> Self {
+    pub fn new(key: TabKey, payload: Tab) -> Self {
         Self {
             key,
             payload,
             generation: Some(0),
         }
     }
-    pub(crate) fn payload_mut(&mut self) -> &mut Tab {
+    pub fn payload_mut(&mut self) -> &mut Tab {
         self.generation = self
             .generation
             .and_then(|generation| generation.checked_add(1));
         &mut self.payload
     }
-    pub(crate) const fn generation(&self) -> Option<u64> {
+    pub const fn generation(&self) -> Option<u64> {
         self.generation
     }
     // Only Workbench's private component lifecycle iterator uses this borrow.
     // Modal routing prevents user edits while a destructive scope is captured.
-    pub(crate) fn lifecycle_payload_mut(&mut self) -> &mut Tab {
+    pub fn lifecycle_payload_mut(&mut self) -> &mut Tab {
         &mut self.payload
     }
 
@@ -519,13 +524,13 @@ pub struct ExplorerItem {
     /// Object name.
     pub name: String,
     /// Catalog object kind.
-    pub(crate) kind: tablepro_demo::db::ObjectKind,
+    pub kind: tablepro_demo::db::ObjectKind,
     /// Estimated row count.
     pub rows: usize,
 }
 
 /// Build explorer rows from a catalog.
-pub(crate) fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
+pub fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
     catalog
         .tables
         .iter()

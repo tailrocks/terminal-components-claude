@@ -1170,7 +1170,8 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
     w.sync_arbiter();
 }
 
-pub(crate) fn refresh_snapshots(w: &mut World) {
+/// Re-seed snapshot-carrying domain records against a refreshed world.
+pub fn refresh_snapshots(w: &mut World) {
     let snaps: Vec<(String, DaemonSnapshot)> = w
         .daemons
         .iter()

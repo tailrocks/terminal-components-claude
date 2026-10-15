@@ -5,7 +5,7 @@
 /// Context ring an action belongs to (CONCEPT.md §5: Here → Project →
 /// Workspace → Host → Personal, cwd primary).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum Scope {
+pub enum Scope {
     /// Under the launch directory.
     Here,
     /// The enclosing project / repository.
@@ -19,7 +19,7 @@ pub(crate) enum Scope {
 }
 
 impl Scope {
-    pub(crate) const ORDER: [Scope; 5] = [
+    pub const ORDER: [Scope; 5] = [
         Scope::Here,
         Scope::Project,
         Scope::Workspace,
@@ -27,7 +27,7 @@ impl Scope {
         Scope::Personal,
     ];
 
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Scope::Here => "here",
             Scope::Project => "project",
@@ -38,7 +38,7 @@ impl Scope {
     }
 
     /// Ring weight: closer scopes rank higher.
-    pub(crate) fn weight(self) -> i32 {
+    pub fn weight(self) -> i32 {
         match self {
             Scope::Here => 100,
             Scope::Project => 80,
@@ -52,7 +52,7 @@ impl Scope {
 /// How much damage a run could do; risk changes treatment, never
 /// availability (CONCEPT.md §10).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum Risk {
+pub enum Risk {
     /// Inspects only; runs directly.
     ReadOnly,
     /// Mutates a bounded, named target; asks once.
@@ -62,7 +62,7 @@ pub(crate) enum Risk {
 }
 
 impl Risk {
-    pub(crate) fn confirmation(self) -> &'static str {
+    pub fn confirmation(self) -> &'static str {
         match self {
             Risk::ReadOnly => "runs directly",
             Risk::Bounded => "asks once before changing anything",
@@ -73,7 +73,7 @@ impl Risk {
 
 /// Whether the action can run right now.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Availability {
+pub enum Availability {
     Ready,
     /// A mise task file that must be trusted first (exact path).
     NeedsTrust(String),
@@ -83,7 +83,7 @@ pub(crate) enum Availability {
 
 /// What family the action belongs to (ordering tiebreak + preview wording).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum ActionKind {
+pub enum ActionKind {
     Task,
     Git,
     Plan,
@@ -95,7 +95,7 @@ pub(crate) enum ActionKind {
 
 /// Effect identity is independent of the row that presents it.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ActionIntent {
+pub enum ActionIntent {
     Canonical(String),
     FixtureCommand(FixtureCommand),
     Unavailable,
@@ -104,7 +104,7 @@ pub(crate) enum ActionIntent {
 /// Explicit simulation-only commands present in accepted ranking fixtures.
 /// These are data labels, never executable process arguments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FixtureCommand {
+pub enum FixtureCommand {
     MakeTest,
     CargoBuild,
     CargoTest,
@@ -113,7 +113,7 @@ pub(crate) enum FixtureCommand {
 }
 
 impl FixtureCommand {
-    pub(crate) fn command(self) -> &'static str {
+    pub fn command(self) -> &'static str {
         match self {
             Self::MakeTest => "make test",
             Self::CargoBuild => "cargo build",
@@ -125,30 +125,30 @@ impl FixtureCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Action {
+pub struct Action {
     intent: ActionIntent,
     /// Stable identity for focus, pins and modal tags (`task:test`,
     /// `git.pull`, `docker.cleanup`).
-    pub(crate) id: String,
-    pub(crate) title: String,
-    pub(crate) kind: ActionKind,
-    pub(crate) scope: Scope,
+    pub id: String,
+    pub title: String,
+    pub kind: ActionKind,
+    pub scope: Scope,
     /// Where the scope shows up as a place (`apps/frontend`, `prod-eu-1`).
-    pub(crate) scope_label: String,
+    pub scope_label: String,
     /// Why this is recommended — the fact, not marketing.
-    pub(crate) reason: String,
-    pub(crate) risk: Risk,
-    pub(crate) availability: Availability,
+    pub reason: String,
+    pub risk: Risk,
+    pub availability: Availability,
     /// The path/host/service the run acts on.
-    pub(crate) target: String,
+    pub target: String,
     /// The operation, previewable before any run (CONCEPT.md §6.7).
-    pub(crate) command: String,
+    pub command: String,
     /// Effective working directory of the run.
-    pub(crate) workdir: String,
+    pub workdir: String,
     /// Long-running work starts a named activity instead of a one-shot.
-    pub(crate) long_running: bool,
+    pub long_running: bool,
     /// Extra search haystack, never displayed (a task's real command line).
-    pub(crate) keywords: String,
+    pub keywords: String,
 }
 
 impl Action {
@@ -156,7 +156,7 @@ impl Action {
         clippy::too_many_arguments,
         reason = "fixture constructor mirrors the full scan record"
     )]
-    pub(crate) fn new(
+    pub fn new(
         id: &str,
         title: &str,
         kind: ActionKind,
@@ -184,11 +184,11 @@ impl Action {
         }
     }
 
-    pub(crate) fn intent(&self) -> &ActionIntent {
+    pub fn intent(&self) -> &ActionIntent {
         &self.intent
     }
 
-    pub(crate) fn intent_id(&self) -> Option<&str> {
+    pub fn intent_id(&self) -> Option<&str> {
         match &self.intent {
             ActionIntent::Canonical(id) => Some(id),
             _ => None,
@@ -196,7 +196,7 @@ impl Action {
     }
 
     /// Preserve effect policy while presenting a separate stable memory row.
-    pub(crate) fn remembered(mut self, row_id: String, reason: String, pinned: bool) -> Self {
+    pub fn remembered(mut self, row_id: String, reason: String, pinned: bool) -> Self {
         self.id = row_id;
         self.title = self.command.clone();
         self.kind = ActionKind::Task;
@@ -206,7 +206,7 @@ impl Action {
         self
     }
 
-    pub(crate) fn fixture_memory(command: FixtureCommand, cwd: &str) -> Self {
+    pub fn fixture_memory(command: FixtureCommand, cwd: &str) -> Self {
         let mut action = Self::new(
             command.command(),
             command.command(),
@@ -221,7 +221,7 @@ impl Action {
         action
     }
 
-    pub(crate) fn unavailable_memory(command: &str, cwd: &str) -> Self {
+    pub fn unavailable_memory(command: &str, cwd: &str) -> Self {
         let mut action = Self::new(
             command,
             command,
@@ -239,7 +239,7 @@ impl Action {
     }
 
     /// What changes when this runs — the preview's "What will change" row.
-    pub(crate) fn changes(&self) -> String {
+    pub fn changes(&self) -> String {
         match self.risk {
             Risk::ReadOnly => "nothing · inspection only".to_owned(),
             Risk::Bounded => format!("changes {} on this host", self.target),

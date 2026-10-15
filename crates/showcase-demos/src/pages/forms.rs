@@ -5,7 +5,7 @@ use termrock::{
     FieldRef, FieldSpec, Form, FormData, FormState, FrameRead, Id, ItemKey, Panel, PanelKind, Part,
     RadioGroup, RadioGroupState, Rect, Response, RowAlign, Select, SelectState, StateFlags,
     TextArea, TextAreaState, TextInput, TextInputState, Toggle, Track, Ui, Variant, Wizard,
-    WizardState, WizardStep, id, layout, truncate,
+    WizardState, WizardStep, layout, truncate,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -13,24 +13,24 @@ use super::{Page, PageUpdate, frame};
 /// Application-level submit chord consumed by the shell and forwarded here.
 pub const SUBMIT: ActionKey = ActionKey::application("showcase.form.submit");
 
-const SUMMARY: Id = id!("forms.summary");
-const DETAILS: Id = id!("forms.details");
-const PRIORITY: Id = id!("forms.priority");
-const CONFIRM: Id = id!("forms.confirm");
-const SAVE: Id = id!("forms.save");
-const REVIEWER: Id = id!("forms.reviewer");
-const MODE: Id = id!("forms.mode");
-const RUN_TESTS: Id = id!("forms.run_tests");
-const OPEN_PR: Id = id!("forms.open_pr");
-const AUTO_APPROVE: Id = id!("forms.auto_approve");
-const NOTIFY: Id = id!("forms.notify");
-const RESET: Id = id!("forms.reset");
-const FLOW: Id = id!("forms.flow");
-const DEPLOY_FORM: Id = id!("forms.deploy.form");
-const DEPLOY_PANEL: Id = id!("forms.deploy.panel");
-const DEPLOY_STAGE: Id = id!("forms.deploy.stage");
-const DEPLOY_REGION: Id = id!("forms.deploy.region");
-const DEPLOY_NOTES: Id = id!("forms.deploy.notes");
+const SUMMARY: Id = termrock::Id::root("showcase_ui::pages::forms::forms.summary");
+const DETAILS: Id = termrock::Id::root("showcase_ui::pages::forms::forms.details");
+const PRIORITY: Id = termrock::Id::root("showcase_ui::pages::forms::forms.priority");
+const CONFIRM: Id = termrock::Id::root("showcase_ui::pages::forms::forms.confirm");
+const SAVE: Id = termrock::Id::root("showcase_ui::pages::forms::forms.save");
+const REVIEWER: Id = termrock::Id::root("showcase_ui::pages::forms::forms.reviewer");
+const MODE: Id = termrock::Id::root("showcase_ui::pages::forms::forms.mode");
+const RUN_TESTS: Id = termrock::Id::root("showcase_ui::pages::forms::forms.run_tests");
+const OPEN_PR: Id = termrock::Id::root("showcase_ui::pages::forms::forms.open_pr");
+const AUTO_APPROVE: Id = termrock::Id::root("showcase_ui::pages::forms::forms.auto_approve");
+const NOTIFY: Id = termrock::Id::root("showcase_ui::pages::forms::forms.notify");
+const RESET: Id = termrock::Id::root("showcase_ui::pages::forms::forms.reset");
+const FLOW: Id = termrock::Id::root("showcase_ui::pages::forms::forms.flow");
+const DEPLOY_FORM: Id = termrock::Id::root("showcase_ui::pages::forms::forms.deploy.form");
+const DEPLOY_PANEL: Id = termrock::Id::root("showcase_ui::pages::forms::forms.deploy.panel");
+const DEPLOY_STAGE: Id = termrock::Id::root("showcase_ui::pages::forms::forms.deploy.stage");
+const DEPLOY_REGION: Id = termrock::Id::root("showcase_ui::pages::forms::forms.deploy.region");
+const DEPLOY_NOTES: Id = termrock::Id::root("showcase_ui::pages::forms::forms.deploy.notes");
 const APPLY: ActionKey = ActionKey::custom("showcase.form.apply");
 const ACCOUNT: ItemKey = ItemKey::index(0);
 const REVIEW: ItemKey = ItemKey::index(1);
@@ -522,7 +522,7 @@ impl FormsPage {
             height: card_body.height.min(24),
             ..card_body
         };
-        let panel = Panel::new(id!("forms.new_task"))
+        let panel = Panel::new(termrock::Id::root("showcase_ui::pages::forms::forms.new_task"))
             .kind(PanelKind::Card)
             .title("New task")
             .meta(if card_body.width < 70 {

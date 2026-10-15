@@ -11,12 +11,14 @@
 //! - Repeating a message (claim, release, complete, exit) is idempotent.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Discovery failure modes for remaining-instance lookup.
 pub enum DiscoveryError {
     /// The daemon index could not be read.
     IndexUnreadable,
 }
 
 impl DiscoveryError {
+    /// Human-readable label for the failure.
     pub fn label(self) -> &'static str {
         match self {
             DiscoveryError::IndexUnreadable => "instance index unreadable",
@@ -25,11 +27,16 @@ impl DiscoveryError {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Outcome of an entry request.
 pub enum EntryDecision {
     /// Zero running instances and no other claim: play the intro.
     PlayIntro,
     /// The Construct is active with `running` instances: join without replay.
-    JoinActive { running: usize },
+    /// Join the active Construct with `running` attached instances.
+    JoinActive {
+        /// Instances currently attached.
+        running: usize,
+    },
     /// Another client already holds the pending entry claim.
     Duplicate,
     /// Discovery failed: enter without the ritual and report the failure.
@@ -37,11 +44,20 @@ pub enum EntryDecision {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Outcome of an exit request.
 pub enum ExitDecision {
     /// This client consumed the exit token: play the rich outro.
-    Outro { elapsed_secs: Option<u64> },
+    /// Rich outro, with the elapsed session time if known.
+    Outro {
+        /// Elapsed session time, if known.
+        elapsed_secs: Option<u64>,
+    },
     /// Other instances remain: compact still-inside feedback.
-    StillInside { remaining: usize },
+    /// Compact feedback: `remaining` instances are still attached.
+    StillInside {
+        /// Instances still attached after this exit.
+        remaining: usize,
+    },
     /// Somebody else already played the outro for this Construct.
     AlreadyEnded,
     /// Discovery failed: fail closed, no rich outro.
@@ -49,18 +65,22 @@ pub enum ExitDecision {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Deterministic entry/exit boundary state for one Construct.
 pub struct Arbiter {
     /// What remaining-instance discovery reports; scenarios seed it.
     pub discovery: Result<usize, DiscoveryError>,
     /// Another (simulated) client already entering the empty Construct.
     pub foreign_claim: bool,
+    /// Whether a client currently holds the pending entry claim.
     pending_entry: bool,
     /// Fixture instant (virtual ms) at which the Construct was entered.
     pub entered_at_ms: Option<i64>,
+    /// Whether the single exit token has been consumed.
     exit_consumed: bool,
 }
 
 impl Arbiter {
+    /// Seed the arbiter with `running` discovered instances.
     pub fn new(running: usize) -> Self {
         Self {
             discovery: Ok(running),
@@ -72,14 +92,17 @@ impl Arbiter {
     }
 
     #[cfg(test)]
+    /// Test probe for the pending entry claim.
     pub fn pending_entry(&self) -> bool {
         self.pending_entry
     }
 
+    /// Current discovered instance count.
     pub fn running(&self) -> Result<usize, DiscoveryError> {
         self.discovery
     }
 
+    /// Override the discovered instance count.
     pub fn set_running(&mut self, n: usize) {
         self.discovery = Ok(n);
     }

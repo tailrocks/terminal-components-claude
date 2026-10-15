@@ -1,5 +1,5 @@
 //! Ranked action surface. Shared controls own text editing and row interaction.
-use junie_tui::{
+use termrock::{
     BlurPolicy, Chord, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
     StateFlags, StylePatch, TextAction, TextInput, TextInputState, TypingPolicy, Ui, Variant,
@@ -77,7 +77,7 @@ impl HomeState {
         let key = |code| HintKey::Chord(Chord::key(code));
         let ctrl = |character| HintKey::ChordWithCase {
             chord: Chord::with(KeyCode::Char(character), KeyModifiers::CONTROL),
-            case: junie_tui::ChordCase::UppercaseAscii,
+            case: termrock::ChordCase::UppercaseAscii,
         };
         let entries: &[(HintKey, &str)] = if rows_focused {
             &[
@@ -192,7 +192,7 @@ impl HomeState {
         let scope_label = self.scope.map(|scope| format!("scope: {}", scope.label()));
         let scope_width = scope_label
             .as_ref()
-            .map_or(0, |label| junie_tui::width(label).saturating_add(3));
+            .map_or(0, |label| termrock::width(label).saturating_add(3));
         let field = ui
             .style(
                 Family::INPUT,
@@ -343,7 +343,7 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
     ui.paint_str(Rect::new(area.x, area.y, 1, 1), "▎", gutter);
     let action = &row.action;
     let mut x = area.x.saturating_add(2);
-    let title_width = junie_tui::width(&action.title);
+    let title_width = termrock::width(&action.title);
     if x.saturating_add(title_width) < area.right() {
         ui.paint_str(Rect::new(x, area.y, title_width, 1), &action.title, style);
         x = x.saturating_add(title_width);
@@ -351,7 +351,7 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
         let budget = area.right().saturating_sub(x).saturating_sub(1);
         ui.paint_str(
             Rect::new(x, area.y, budget, 1),
-            &junie_tui::truncate(&action.title, budget),
+            &termrock::truncate(&action.title, budget),
             style,
         );
         return;
@@ -361,13 +361,13 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
             .paint_patch(
                 &StylePatch::new()
                     .set_fg(Role::Warning)
-                    .add(junie_tui::Modifier::BOLD),
+                    .add(termrock::Modifier::BOLD),
             )
             .with_bg_from(style);
         ui.paint_str(Rect::new(x.saturating_add(1), area.y, 1, 1), "▲", warning);
         x = x.saturating_add(2);
     }
-    let reason_width = junie_tui::width(&action.reason);
+    let reason_width = termrock::width(&action.reason);
     let reason_x = if area.width > reason_width.saturating_add(24)
         && area.right() > x.saturating_add(2).saturating_add(reason_width)
     {
@@ -388,7 +388,7 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
                 .with_bg_from(style);
             ui.paint_str(
                 Rect::new(x.saturating_add(1), area.y, budget, 1),
-                &junie_tui::truncate_middle(&tag, budget),
+                &termrock::truncate_middle(&tag, budget),
                 faint,
             );
         }
@@ -415,8 +415,8 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
 mod tests {
     use super::*;
     use crate::{domain::fixtures, scenario::Scenario};
-    use junie_tui::{App, KeyCode, Theme};
-    use junie_tui_testing::Harness;
+    use termrock::{App, KeyCode, Theme};
+    use termrock_test_support::Harness;
 
     struct HomeFixture {
         home: HomeState,
@@ -492,7 +492,7 @@ mod tests {
         };
         let _ = mouse.click_part(
             ROWS,
-            junie_tui::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
+            termrock::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
         );
         assert_eq!(
             mouse.app().invoked.as_ref().map(|action| &action.id),

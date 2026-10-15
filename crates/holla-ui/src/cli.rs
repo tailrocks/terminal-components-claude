@@ -4,7 +4,7 @@ use std::ffi::OsStr;
 use crate::scenario::{Motion, Scenario};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ColorChoice {
+pub enum ColorChoice {
     TrueColor,
     Ansi256,
     Ansi16,
@@ -12,21 +12,21 @@ pub(crate) enum ColorChoice {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Options {
-    pub(crate) color: Option<ColorChoice>,
-    pub(crate) scenario: Scenario,
-    pub(crate) motion: Motion,
-    pub(crate) frame: u64,
+pub struct Options {
+    pub color: Option<ColorChoice>,
+    pub scenario: Scenario,
+    pub motion: Motion,
+    pub frame: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ParseOutcome {
+pub enum ParseOutcome {
     Run(Options),
     Help,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum CliError {
+pub enum CliError {
     Color,
     Scenario,
     Motion,
@@ -51,7 +51,7 @@ impl std::fmt::Display for CliError {
 }
 impl std::error::Error for CliError {}
 
-pub(crate) const HELP: &str = "holla — context-adaptive action launcher (deterministic simulation)\n\n\
+pub const HELP: &str = "holla — context-adaptive action launcher (deterministic simulation)\n\n\
 USAGE: holla [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
 Scenarios: first-use, rust-dirty, monorepo-root, monorepo-child, docker-cleanup,\n\
 \x20          disk-cleanup, upgrade-plan, activities-multi, remote-host, launch-failure, hard-cases\n\
@@ -60,7 +60,7 @@ Frame:     with --motion paused, the exact fixture tick to render\n\n\
 Keys: type to filter · ↑↓ move · Enter run · Ctrl+O actions · Ctrl+P preview · F10 menu · F1 help · q quit\n\
 Everything is simulated in memory; mise, git, docker and friends are never executed.";
 
-pub(crate) fn parse(
+pub fn parse(
     args: impl IntoIterator<Item = String>,
     no_motion_env: Option<&OsStr>,
 ) -> Result<ParseOutcome, CliError> {

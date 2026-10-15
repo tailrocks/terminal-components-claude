@@ -6,15 +6,15 @@ use std::{cmp::Ordering, time::Duration};
 use termrock::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,
     Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Surface, Track,
-    Ui, Variant, id, layout, width,
+    Ui, Variant, layout, width,
 };
 
 use super::{Page, PageUpdate, frame};
 
-const RUN: Id = id!("taskrunner.run");
-const CANCEL: Id = id!("taskrunner.cancel");
-const STEPS: Id = id!("taskrunner.steps");
-const CANCEL_DIALOG: Id = id!("taskrunner.cancel.dialog");
+const RUN: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.run");
+const CANCEL: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.cancel");
+const STEPS: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.steps");
+const CANCEL_DIALOG: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.cancel.dialog");
 pub const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]

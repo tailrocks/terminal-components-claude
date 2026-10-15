@@ -2,7 +2,7 @@
 //! images, containers, volumes, builder cache. Cleanup reads these numbers.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ContainerState {
+pub enum ContainerState {
     Running,
     Exited,
     Restarting,
@@ -10,7 +10,7 @@ pub(crate) enum ContainerState {
 }
 
 impl ContainerState {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             ContainerState::Running => "running",
             ContainerState::Exited => "exited",
@@ -21,14 +21,14 @@ impl ContainerState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Health {
+pub enum Health {
     Healthy,
     Unhealthy,
     Starting,
 }
 
 impl Health {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Health::Healthy => "healthy",
             Health::Unhealthy => "unhealthy",
@@ -38,43 +38,43 @@ impl Health {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Container {
-    pub(crate) size_bytes: u64,
-    pub(crate) name: String,
-    pub(crate) image: String,
-    pub(crate) state: ContainerState,
-    pub(crate) health: Option<Health>,
+pub struct Container {
+    pub size_bytes: u64,
+    pub name: String,
+    pub image: String,
+    pub state: ContainerState,
+    pub health: Option<Health>,
 }
 
 /// One deterministic Docker resource. Aggregate counts and bytes are derived
 /// from the same inventory that cleanup mutates.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Resource {
-    pub(crate) id: String,
-    pub(crate) size_bytes: u64,
-    pub(crate) unused: bool,
+pub struct Resource {
+    pub id: String,
+    pub size_bytes: u64,
+    pub unused: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct DockerState {
-    pub(crate) containers: Vec<Container>,
-    pub(crate) image_inventory: Vec<Resource>,
-    pub(crate) network_inventory: Vec<Resource>,
-    pub(crate) volume_inventory: Vec<Resource>,
-    pub(crate) cache_bytes: u64,
+pub struct DockerState {
+    pub containers: Vec<Container>,
+    pub image_inventory: Vec<Resource>,
+    pub network_inventory: Vec<Resource>,
+    pub volume_inventory: Vec<Resource>,
+    pub cache_bytes: u64,
 }
 
 /// Accepted aggregate fixture facts, expanded once into explicit resources.
 /// This constructor is fixture data preparation, never live discovery.
-pub(crate) struct DockerFixture {
-    pub(crate) containers: Vec<Container>,
-    pub(crate) images: u32,
-    pub(crate) networks: u32,
-    pub(crate) volumes: u32,
-    pub(crate) image_bytes: u64,
-    pub(crate) container_bytes: u64,
-    pub(crate) volume_bytes: u64,
-    pub(crate) build_cache_bytes: u64,
+pub struct DockerFixture {
+    pub containers: Vec<Container>,
+    pub images: u32,
+    pub networks: u32,
+    pub volumes: u32,
+    pub image_bytes: u64,
+    pub container_bytes: u64,
+    pub volume_bytes: u64,
+    pub build_cache_bytes: u64,
 }
 
 impl DockerFixture {
@@ -82,7 +82,7 @@ impl DockerFixture {
         clippy::arithmetic_side_effects,
         reason = "Each partition is bounded by its input total; exited is at most container count and stopped size is at most total divided by exited"
     )]
-    pub(crate) fn into_state(mut self) -> DockerState {
+    pub fn into_state(mut self) -> DockerState {
         let exited = self
             .containers
             .iter()
@@ -166,29 +166,29 @@ fn resources(prefix: &str, count: usize, bytes: u64, unused: bool) -> Vec<Resour
 }
 
 impl DockerState {
-    pub(crate) fn running(&self) -> usize {
+    pub fn running(&self) -> usize {
         self.containers
             .iter()
             .filter(|c| c.state == ContainerState::Running)
             .count()
     }
-    pub(crate) fn unhealthy(&self) -> Vec<&Container> {
+    pub fn unhealthy(&self) -> Vec<&Container> {
         self.containers
             .iter()
             .filter(|c| c.health == Some(Health::Unhealthy))
             .collect()
     }
-    pub(crate) fn images(&self) -> usize {
+    pub fn images(&self) -> usize {
         self.image_inventory.len()
     }
-    pub(crate) fn volumes(&self) -> usize {
+    pub fn volumes(&self) -> usize {
         self.volume_inventory.len()
     }
-    pub(crate) fn networks(&self) -> usize {
+    pub fn networks(&self) -> usize {
         self.network_inventory.len()
     }
-    pub(crate) fn validate(&self) -> Result<(), super::accounting::InventoryError> {
-        use super::accounting::identities;
+    pub fn validate(&self) -> Result<(), crate::accounting::InventoryError> {
+        use crate::accounting::identities;
         identities(self.containers.iter().map(|item| item.name.as_str()))?;
         for inventory in [
             &self.image_inventory,
@@ -199,42 +199,42 @@ impl DockerState {
         }
         self.total_bytes().map(|_| ())
     }
-    pub(crate) fn image_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
-        super::accounting::bytes(self.image_inventory.iter().map(|item| item.size_bytes))
+    pub fn image_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
+        crate::accounting::bytes(self.image_inventory.iter().map(|item| item.size_bytes))
     }
-    pub(crate) fn container_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
-        super::accounting::bytes(self.containers.iter().map(|item| item.size_bytes))
+    pub fn container_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
+        crate::accounting::bytes(self.containers.iter().map(|item| item.size_bytes))
     }
-    pub(crate) fn volume_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
-        super::accounting::bytes(self.volume_inventory.iter().map(|item| item.size_bytes))
+    pub fn volume_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
+        crate::accounting::bytes(self.volume_inventory.iter().map(|item| item.size_bytes))
     }
-    pub(crate) fn build_cache_bytes(&self) -> u64 {
+    pub fn build_cache_bytes(&self) -> u64 {
         self.cache_bytes
     }
     // Docker system df models network counts, not network storage. Reject
     // unsupported byte claims before either presentation or reviewed effects.
-    fn validate_network_bytes(&self) -> Result<(), super::accounting::InventoryError> {
+    fn validate_network_bytes(&self) -> Result<(), crate::accounting::InventoryError> {
         if self
             .network_inventory
             .iter()
             .any(|item| item.size_bytes != 0)
         {
-            return Err(super::accounting::InventoryError::NetworkBytes);
+            return Err(crate::accounting::InventoryError::NetworkBytes);
         }
         Ok(())
     }
-    pub(crate) fn total_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+    pub fn total_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
         self.validate_network_bytes()?;
-        super::accounting::bytes([
+        crate::accounting::bytes([
             self.image_bytes()?,
             self.container_bytes()?,
             self.volume_bytes()?,
             self.cache_bytes,
         ])
     }
-    pub(crate) fn reclaimable_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+    pub fn reclaimable_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
         self.validate_network_bytes()?;
-        super::accounting::bytes(
+        crate::accounting::bytes(
             std::iter::once(self.cache_bytes)
                 .chain(
                     self.containers

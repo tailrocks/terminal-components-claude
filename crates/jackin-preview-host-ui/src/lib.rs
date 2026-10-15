@@ -7,10 +7,4 @@
 
 #![forbid(unsafe_code)]
 
-pub mod accounts;
-pub mod cockpit;
-pub mod editor;
-pub mod manager;
-pub mod manager_actions;
-pub mod settings;
-pub mod usage;
+pub mod screens;

@@ -3,7 +3,7 @@
 use termrock::{
     Cx, EmptyState, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListAction, ListState,
     Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track,
-    Ui, Variant, id, layout,
+    Ui, Variant, layout,
 };
 
 use showcase_data::LANGUAGES;
@@ -40,9 +40,9 @@ fn paint_chosen(ui: &mut Ui<'_>, inner: Rect, chosen: &str, style: termrock::aut
         style,
     );
 }
-const SINGLE: Id = id!("lists.single");
-const MULTI: Id = id!("lists.multi");
-const EMPTY: Id = id!("lists.empty");
+const SINGLE: Id = termrock::Id::root("showcase_ui::pages::lists::lists.single");
+const MULTI: Id = termrock::Id::root("showcase_ui::pages::lists::lists.multi");
+const EMPTY: Id = termrock::Id::root("showcase_ui::pages::lists::lists.empty");
 const LIST_GUTTER: &[(Part, StylePatch)] = &[(
     Part::GUTTER,
     StylePatch::new().set_glyph(GlyphRole::FocusBar),
@@ -314,7 +314,7 @@ impl Page for ListsPage {
                     height,
                     ..language_column
                 };
-                Panel::new(id!("lists.language"))
+                Panel::new(termrock::Id::root("showcase_ui::pages::lists::lists.language"))
                     .kind(PanelKind::Card)
                     .title("Language")
                     .patch_part(PANEL_PARTS)
@@ -343,7 +343,7 @@ impl Page for ListsPage {
                     height,
                     ..search_column
                 };
-                Panel::new(id!("lists.search"))
+                Panel::new(termrock::Id::root("showcase_ui::pages::lists::lists.search"))
                     .kind(PanelKind::Card)
                     .title("Search results")
                     .patch_part(PANEL_PARTS)
@@ -408,7 +408,7 @@ impl ListsPage {
         };
         let selected = RenderNumber::selected(self.multi.checked().len_in(FILES.len()));
         let mut files_panel =
-            Panel::new(id!("lists.files"))
+            Panel::new(termrock::Id::root("showcase_ui::pages::lists::lists.files"))
                 .kind(PanelKind::Card)
                 .title(if body.width < 70 {
                     "Files to incl…"

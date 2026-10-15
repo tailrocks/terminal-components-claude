@@ -5,7 +5,7 @@
 //! `sim::onepassword` and are exposed to provider code through its
 //! secret-free closure.
 
-pub(crate) mod pinned;
+pub mod pinned;
 
 use std::collections::BTreeSet;
 

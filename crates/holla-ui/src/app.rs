@@ -14,7 +14,7 @@ use crate::{
     },
     sim::{pg, world::World},
 };
-use junie_tui::{
+use termrock::{
     ActionKey, Binding, Brand, Chord, Constraints, Cx, Dialog, FgStep, Focusability, FrameRead,
     HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu, MenuAction, MenuBar,
     MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusAction, StatusBar,
@@ -82,7 +82,7 @@ const GLOBAL: &[Binding<ActionKey>] = &[
         action: QUIT,
         chord: Some(Chord::with(
             KeyCode::Char('q'),
-            junie_tui::KeyModifiers::CONTROL,
+            termrock::KeyModifiers::CONTROL,
         )),
         cmd: QUIT,
         label: "Quit",
@@ -93,7 +93,7 @@ const GLOBAL: &[Binding<ActionKey>] = &[
         action: NEXT_ACTIVITY,
         chord: Some(Chord::with(
             KeyCode::Char('a'),
-            junie_tui::KeyModifiers::CONTROL,
+            termrock::KeyModifiers::CONTROL,
         )),
         cmd: NEXT_ACTIVITY,
         label: "Activities",
@@ -104,7 +104,7 @@ const GLOBAL: &[Binding<ActionKey>] = &[
         action: SCOPE,
         chord: Some(Chord::with(
             KeyCode::Char('s'),
-            junie_tui::KeyModifiers::CONTROL,
+            termrock::KeyModifiers::CONTROL,
         )),
         cmd: SCOPE,
         label: "Scope",
@@ -115,7 +115,7 @@ const GLOBAL: &[Binding<ActionKey>] = &[
         action: PREVIEW,
         chord: Some(Chord::with(
             KeyCode::Char('p'),
-            junie_tui::KeyModifiers::CONTROL,
+            termrock::KeyModifiers::CONTROL,
         )),
         cmd: PREVIEW,
         label: "Preview",
@@ -126,7 +126,7 @@ const GLOBAL: &[Binding<ActionKey>] = &[
         action: ACTIONS,
         chord: Some(Chord::with(
             KeyCode::Char('o'),
-            junie_tui::KeyModifiers::CONTROL,
+            termrock::KeyModifiers::CONTROL,
         )),
         cmd: ACTIONS,
         label: "Actions",
@@ -149,7 +149,7 @@ enum Overlay {
 
 /// Holla's deterministic launcher application. External commands remain fixture data.
 ///
-/// Run with [`junie_tui::FeedbackClock::Simulation`] initialized to
+/// Run with [`termrock::FeedbackClock::Simulation`] initialized to
 /// [`Self::fixture_time_ms`]. An incompatible feedback clock pauses simulation
 /// with a visible diagnostic before advancing any fixture state.
 pub struct App {
@@ -165,7 +165,7 @@ pub struct App {
     keymap: KeyMap,
     status: Option<String>,
     status_until_ms: Option<i64>,
-    last_step_at: Option<junie_tui::Moment>,
+    last_step_at: Option<termrock::Moment>,
     quit: bool,
 }
 impl std::fmt::Debug for App {
@@ -182,7 +182,7 @@ fn menu_bar() -> MenuBar<'static> {
     // call, so every configured row keeps exactly one construction site (§13).
     const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
         KeyCode::Char('q'),
-        junie_tui::KeyModifiers::CONTROL,
+        termrock::KeyModifiers::CONTROL,
     ))];
     const GO: &[MenuItem<'static>] = &[MenuItem::new(HOME, "Home")];
     const HELP_MENU: &[MenuItem<'static>] = &[
@@ -194,7 +194,7 @@ fn menu_bar() -> MenuBar<'static> {
         Menu::new("Go", GO),
         Menu::new("Help", HELP_MENU),
     ];
-    MenuBar::new(MENU, MENUS).chord_case(junie_tui::ChordCase::UppercaseAscii)
+    MenuBar::new(MENU, MENUS).chord_case(termrock::ChordCase::UppercaseAscii)
 }
 
 fn brand() -> Brand<'static> {
@@ -236,7 +236,7 @@ impl App {
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), PREVIOUS)
             .bind(
                 KeyPhase::Capture,
-                Chord::with(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL),
+                Chord::with(KeyCode::Char('c'), termrock::KeyModifiers::CONTROL),
                 INTERRUPT,
             )
             .bind(KeyPhase::Capture, Chord::key(KeyCode::F(2)), TOP_FILES)
@@ -395,7 +395,7 @@ impl App {
                 if self.route == Route::Plan
                     && cx
                         .state(plan::STEPS)
-                        .contains(junie_tui::StateFlags::FOCUSED) =>
+                        .contains(termrock::StateFlags::FOCUSED) =>
             {
                 if let Some(plan) = &mut self.plan {
                     let message = plan.toggle_selected();
@@ -588,7 +588,7 @@ impl App {
                 index.saturating_add(1),
                 activity.name
             );
-            let width = junie_tui::width(&label).min(area.right().saturating_sub(x));
+            let width = termrock::width(&label).min(area.right().saturating_sub(x));
             if width == 0 {
                 break;
             }
@@ -661,11 +661,11 @@ impl App {
             ),
         };
         let available = area.width.saturating_sub(used);
-        let reserved = junie_tui::width(&identity)
-            .saturating_add(junie_tui::width(&level))
-            .saturating_add(junie_tui::width("? help"))
+        let reserved = termrock::width(&identity)
+            .saturating_add(termrock::width(&level))
+            .saturating_add(termrock::width("? help"))
             .saturating_add(10);
-        let crumb = junie_tui::truncate_middle(&crumb, available.saturating_sub(reserved));
+        let crumb = termrock::truncate_middle(&crumb, available.saturating_sub(reserved));
         let mut items = Vec::new();
         if available.saturating_sub(reserved) >= 8 {
             items.push(
@@ -739,7 +739,7 @@ impl App {
             HomeState::hints(
                 &self.world,
                 ui.state(home::ROWS)
-                    .contains(junie_tui::StateFlags::FOCUSED),
+                    .contains(termrock::StateFlags::FOCUSED),
             )
         });
         let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);
@@ -763,7 +763,7 @@ impl App {
     }
     fn synchronize_feedback(&mut self, cx: &mut Cx<'_>, clock: crate::clock::Clock) -> bool {
         let synchronized = u64::try_from(clock.now_ms).is_ok_and(|now| {
-            cx.sync_feedback_time(junie_tui::SimulationMoment::from_millis(now))
+            cx.sync_feedback_time(termrock::SimulationMoment::from_millis(now))
                 .is_ok()
         });
         if !synchronized {
@@ -784,7 +784,7 @@ impl App {
             self.keymap.add(KeyPhase::Bubble, enter, CONTINUE);
             if cx
                 .state(plan::STEPS)
-                .contains(junie_tui::StateFlags::FOCUSED)
+                .contains(termrock::StateFlags::FOCUSED)
             {
                 self.keymap.add(KeyPhase::Capture, space, TOGGLE);
             }
@@ -894,7 +894,7 @@ impl App {
                     Overlay::Clone(picker) => picker.update(cx).0,
                     Overlay::Actions(picker) => picker.update(cx).0,
                 });
-            if cx.update_cause() == junie_tui::UpdateCause::Event && cx.command() == Some(INTERRUPT)
+            if cx.update_cause() == termrock::UpdateCause::Event && cx.command() == Some(INTERRUPT)
             {
                 self.quit = true;
             }
@@ -914,7 +914,7 @@ impl App {
         }
         if let Some(command @ (INTERRUPT | QUIT)) = cx
             .command()
-            .filter(|_| cx.update_cause() == junie_tui::UpdateCause::Event)
+            .filter(|_| cx.update_cause() == termrock::UpdateCause::Event)
         {
             self.command(command, cx);
             return controls | menu.erase() | brand.erase() | header.erase() | Response::changed();
@@ -928,7 +928,7 @@ impl App {
         }
         if let Some(command) = cx
             .command()
-            .filter(|_| cx.update_cause() == junie_tui::UpdateCause::Event)
+            .filter(|_| cx.update_cause() == termrock::UpdateCause::Event)
         {
             self.command(command, cx);
             return controls | menu.erase() | brand.erase() | header.erase() | Response::changed();
@@ -959,7 +959,7 @@ impl App {
         controls | menu.erase() | brand.erase() | header.erase() | strip
     }
 }
-impl junie_tui::App for App {
+impl termrock::App for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut clock_response = Response::ignored();
         let synchronized = self.synchronize_feedback(cx, self.world.clock);
@@ -970,7 +970,7 @@ impl junie_tui::App for App {
             let cadence = self.cadence(cx);
             let anchor = *self.last_step_at.get_or_insert(cx.now());
             let due = anchor.saturating_add(std::time::Duration::from_millis(cadence));
-            if cx.update_cause() == junie_tui::UpdateCause::Tick && cx.now() >= due {
+            if cx.update_cause() == termrock::UpdateCause::Tick && cx.now() >= due {
                 // Validate the exact next clock before advancing any discovery state.
                 let mut next_clock = self.world.clock;
                 next_clock.advance(cadence as i64);
@@ -1001,7 +1001,7 @@ impl junie_tui::App for App {
                 && !self.menu.is_open()
                 && cx
                     .state(plan::STEPS)
-                    .contains(junie_tui::StateFlags::FOCUSED)
+                    .contains(termrock::StateFlags::FOCUSED)
                 && let Some(step) = self.plan.as_ref().and_then(PlanState::selected)
             {
                 cx.flash_activation_part(
@@ -1094,17 +1094,17 @@ fn too_small(area: Rect) -> bool {
 mod tests {
     use super::*;
     use crate::sim::catalogue;
-    use junie_tui::{Dialog, Theme};
-    use junie_tui_testing::Harness;
+    use termrock::{Dialog, Theme};
+    use termrock_test_support::Harness;
     fn harness(app: App, theme: Theme, width: u16, height: u16) -> Harness<App> {
         let initial =
-            junie_tui::SimulationMoment::from_millis(u64::try_from(app.fixture_time_ms()).unwrap());
+            termrock::SimulationMoment::from_millis(u64::try_from(app.fixture_time_ms()).unwrap());
         Harness::new_with_feedback_clock(
             app,
             theme,
             width,
             height,
-            junie_tui::FeedbackClock::Simulation { initial },
+            termrock::FeedbackClock::Simulation { initial },
         )
     }
     fn app(scenario: Scenario) -> Harness<App> {
@@ -2109,9 +2109,9 @@ mod tests {
             )
         };
         for clock in [
-            junie_tui::FeedbackClock::Elapsed,
-            junie_tui::FeedbackClock::Simulation {
-                initial: junie_tui::SimulationMoment::from_millis(5_000),
+            termrock::FeedbackClock::Elapsed,
+            termrock::FeedbackClock::Simulation {
+                initial: termrock::SimulationMoment::from_millis(5_000),
             },
         ] {
             let app = App::for_scenario(Scenario::HardCases, Motion::Full, 4_000);
@@ -2222,13 +2222,13 @@ mod independent_draw_review {
 
     struct Borrowed<'a>(&'a App);
 
-    impl junie_tui::App for Borrowed<'_> {
+    impl termrock::App for Borrowed<'_> {
         fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
             Response::ignored()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            junie_tui::App::draw(self.0, ui);
+            termrock::App::draw(self.0, ui);
         }
     }
 
@@ -2274,14 +2274,14 @@ mod independent_draw_review {
                 let before = fingerprint(&app);
                 for (cols, rows) in [(71, 19), (72, 20), (120, 40)] {
                     for color in [
-                        junie_tui::ColorLevel::TrueColor,
-                        junie_tui::ColorLevel::Ansi256,
-                        junie_tui::ColorLevel::Ansi16,
-                        junie_tui::ColorLevel::Mono,
+                        termrock::ColorLevel::TrueColor,
+                        termrock::ColorLevel::Ansi256,
+                        termrock::ColorLevel::Ansi16,
+                        termrock::ColorLevel::Mono,
                     ] {
-                        let mut scene = junie_tui_testing::Harness::new(
+                        let mut scene = termrock_test_support::Harness::new(
                             Borrowed(&app),
-                            junie_tui::Theme::junie().downgrade(color),
+                            termrock::Theme::junie().downgrade(color),
                             cols,
                             rows,
                         );

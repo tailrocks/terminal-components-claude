@@ -3,36 +3,36 @@
 //! these facts surface as reasons (`used 6 times in this project`).
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Pin {
-    pub(crate) path: String,
-    pub(crate) command: String,
+pub struct Pin {
+    pub path: String,
+    pub command: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Alias {
-    pub(crate) alias: String,
-    pub(crate) expansion: String,
+pub struct Alias {
+    pub alias: String,
+    pub expansion: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Usage {
-    pub(crate) path: String,
-    pub(crate) command: String,
-    pub(crate) count: u32,
+pub struct Usage {
+    pub path: String,
+    pub command: String,
+    pub count: u32,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct Memory {
-    pub(crate) pins: Vec<Pin>,
+pub struct Memory {
+    pub pins: Vec<Pin>,
     aliases: Vec<Alias>,
-    pub(crate) usage: Vec<Usage>,
+    pub usage: Vec<Usage>,
     /// Rows the user hid at a path (same shape as a pin; reset restores).
-    pub(crate) hides: Vec<Pin>,
+    pub hides: Vec<Pin>,
 }
 
 impl Memory {
     /// Seed deterministic ranking facts while normalizing alias ownership.
-    pub(crate) fn seeded(
+    pub fn seeded(
         pins: Vec<Pin>,
         aliases: Vec<Alias>,
         usage: Vec<Usage>,
@@ -55,7 +55,7 @@ impl Memory {
         memory
     }
 
-    pub(crate) fn aliases(&self) -> &[Alias] {
+    pub fn aliases(&self) -> &[Alias] {
         &self.aliases
     }
 
@@ -63,7 +63,7 @@ impl Memory {
     ///
     /// # Errors
     /// Refuses an empty name or a name already owned by a different command.
-    pub(crate) fn set_alias(&mut self, name: &str, command: &str) -> Result<(), AliasError> {
+    pub fn set_alias(&mut self, name: &str, command: &str) -> Result<(), AliasError> {
         let name = name.trim();
         if name.is_empty() {
             return Err(AliasError::Empty);
@@ -83,7 +83,7 @@ impl Memory {
         Ok(())
     }
 
-    pub(crate) fn usage_at(&self, path: &str, command: &str) -> u32 {
+    pub fn usage_at(&self, path: &str, command: &str) -> u32 {
         self.usage
             .iter()
             .filter(|u| u.path == path && u.command == command)
@@ -91,19 +91,19 @@ impl Memory {
             .fold(0, u32::saturating_add)
     }
 
-    pub(crate) fn pin_at(&self, path: &str, command: &str) -> bool {
+    pub fn pin_at(&self, path: &str, command: &str) -> bool {
         self.pins
             .iter()
             .any(|p| p.path == path && p.command == command)
     }
 
-    pub(crate) fn hidden_at(&self, path: &str, command: &str) -> bool {
+    pub fn hidden_at(&self, path: &str, command: &str) -> bool {
         self.hides
             .iter()
             .any(|p| p.path == path && p.command == command)
     }
 
-    pub(crate) fn alias(&self, name: &str) -> Option<&str> {
+    pub fn alias(&self, name: &str) -> Option<&str> {
         self.aliases
             .iter()
             .find(|a| alias_key(&a.alias) == alias_key(name))
@@ -111,7 +111,7 @@ impl Memory {
     }
 
     /// The alias pointing at a command, for reason annotation (`alias gs`).
-    pub(crate) fn alias_for(&self, command: &str) -> Option<&str> {
+    pub fn alias_for(&self, command: &str) -> Option<&str> {
         self.aliases
             .iter()
             .find(|a| a.expansion == command)
@@ -120,7 +120,7 @@ impl Memory {
 
     /// Reset pin/hide at this path and the command’s global alias. Usage history
     /// stays intact, matching the accepted P5 ranking-reset scope.
-    pub(crate) fn reset_at(&mut self, path: &str, command: &str) {
+    pub fn reset_at(&mut self, path: &str, command: &str) {
         self.pins
             .retain(|p| !(p.path == path && p.command == command));
         self.hides
@@ -130,12 +130,12 @@ impl Memory {
 }
 
 /// Shared alias comparison follows the query's Unicode lowercase grammar.
-pub(crate) fn alias_key(name: &str) -> String {
+pub fn alias_key(name: &str) -> String {
     name.trim().to_lowercase()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum AliasError {
+pub enum AliasError {
     Empty,
     NameOwned,
 }

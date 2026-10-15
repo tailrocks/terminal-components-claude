@@ -1970,7 +1970,7 @@ impl App {
         let now_secs = self.world.now_secs();
         // A fresh launch starts one session.  The richer two-tab snapshot is
         // reserved for reconnecting to an already-running Capsule.
-        let snapshot = match crate::domain::fixtures::live_capsule() {
+        let snapshot = match crate::sim::fixtures::live_capsule() {
             DaemonSnapshot::Tabs(mut tabs) => {
                 tabs.truncate(1);
                 if let Some(tab) = tabs.first_mut() {
@@ -1993,7 +1993,7 @@ impl App {
             pane.boot_all();
         }
 
-        let mut instance = crate::domain::fixtures::fixture_instance(
+        let mut instance = crate::sim::fixtures::fixture_instance(
             InstanceStatus::Running,
             run_id,
             now_secs,

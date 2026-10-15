@@ -4,16 +4,16 @@ use termrock::author::PaintStyle;
 use termrock::{
     Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
     ListState, Modifier, Part, Rect, Response, RowUi, StateFlags, Surface, Tabs, TabsAction,
-    TabsState, Ui, Variant, id, width,
+    TabsState, Ui, Variant, width,
 };
 
 use super::{Page, PageUpdate, frame};
 
-const TAB: Id = id!("settings.tabs");
-const MEMBERS: Id = id!("settings.members");
-const INVITE: Id = id!("settings.invite");
-const REMOVE: Id = id!("settings.remove");
-const REMOVE_DIALOG: Id = id!("settings.remove.dialog");
+const TAB: Id = termrock::Id::root("showcase_ui::pages::settings::settings.tabs");
+const MEMBERS: Id = termrock::Id::root("showcase_ui::pages::settings::settings.members");
+const INVITE: Id = termrock::Id::root("showcase_ui::pages::settings::settings.invite");
+const REMOVE: Id = termrock::Id::root("showcase_ui::pages::settings::settings.remove");
+const REMOVE_DIALOG: Id = termrock::Id::root("showcase_ui::pages::settings::settings.remove.dialog");
 const TABS: &[&str] = &["General", "Members", "Security"];
 
 #[derive(Clone, Debug, PartialEq, Eq)]

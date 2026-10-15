@@ -2,20 +2,20 @@
 
 use termrock::{
     BlurPolicy, Cx, Family, Field, FieldError, FrameRead, Id, Panel, PanelKind, Part, Rect,
-    Response, StateFlags, Status, TextAction, TextInput, TextInputState, Track, Ui, Variant, id,
+    Response, StateFlags, Status, TextAction, TextInput, TextInputState, Track, Ui, Variant,
     layout, truncate,
 };
 
 use super::{Page, PageUpdate, frame};
 
-const NAME: Id = id!("inputs.name");
-const BRANCH: Id = id!("inputs.branch");
-const CARD: Id = id!("inputs.card");
-const OWNER: Id = id!("inputs.owner");
-const TOKEN: Id = id!("inputs.token");
-const SEARCH: Id = id!("inputs.search");
-const API_KEY: Id = id!("inputs.api_key");
-const STATE_REFERENCE: Id = id!("inputs.state_reference");
+const NAME: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.name");
+const BRANCH: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.branch");
+const CARD: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.card");
+const OWNER: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.owner");
+const TOKEN: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.token");
+const SEARCH: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.search");
+const API_KEY: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.api_key");
+const STATE_REFERENCE: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.state_reference");
 
 fn email(value: &str) -> Result<(), FieldError> {
     if value.contains('@') && value.contains('.') {

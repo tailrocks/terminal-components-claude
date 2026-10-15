@@ -3,15 +3,15 @@
 use termrock::{
     Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
     GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role, RowDecor,
-    RowTotal, StylePatch, Ui, id,
+    RowTotal, StylePatch, Ui
 };
 
 use showcase_data::{TASKS, TaskRow, TaskStatus};
 
 use super::{Page, PageUpdate, frame};
 
-const TABLE: Id = id!("editable.table");
-const TASKS_PANEL: Id = id!("editable.tasks.panel");
+const TABLE: Id = termrock::Id::root("showcase_ui::pages::editable::editable.table");
+const TASKS_PANEL: Id = termrock::Id::root("showcase_ui::pages::editable::editable.tasks.panel");
 const PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()

@@ -2,14 +2,14 @@
 
 use termrock::{
     Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Role, RowUi,
-    StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, layout,
+    StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, layout,
 };
 
 use showcase_data::{TREE, TREE_LABELS};
 
 use super::{Page, PageUpdate, frame};
 
-const PROJECT: Id = id!("trees.project");
+const PROJECT: Id = termrock::Id::root("showcase_ui::pages::trees::trees.project");
 const TREE_GUTTER: &[(Part, StylePatch)] = &[(
     Part::GUTTER,
     StylePatch::new().set_glyph(GlyphRole::FocusBar),
@@ -245,7 +245,7 @@ impl Page for TreesPage {
                     height: body.height.min(10),
                     ..columns.get(1).copied().unwrap_or(body)
                 };
-                Panel::new(id!("trees.selection"))
+                Panel::new(termrock::Id::root("showcase_ui::pages::trees::trees.selection"))
                     .kind(PanelKind::Card)
                     .title("Selection")
                     .patch_part(PANEL_PARTS)

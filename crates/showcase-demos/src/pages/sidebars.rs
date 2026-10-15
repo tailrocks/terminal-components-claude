@@ -2,14 +2,14 @@
 
 use termrock::{
     Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
-    Surface, Ui, Variant, id,
+    Surface, Ui, Variant
 };
 
 use super::{Page, PageUpdate, frame, lines};
 
-const NAV: Id = id!("sidebars.nav");
-const SIDE_PANEL: Id = id!("sidebars.panel");
-const CONTENT_PANEL: Id = id!("sidebars.content");
+const NAV: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.nav");
+const SIDE_PANEL: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.panel");
+const CONTENT_PANEL: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.content");
 
 /// The one side-panel constructor (§13), shared by update and draw.
 fn side_panel() -> Panel<'static> {
@@ -20,7 +20,7 @@ fn side_panel() -> Panel<'static> {
 fn content_panel(title: &'static str) -> Panel<'static> {
     Panel::new(CONTENT_PANEL).title(title)
 }
-const COLLAPSE: Id = id!("sidebars.collapse");
+const COLLAPSE: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.collapse");
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct SidebarItem {

@@ -4,24 +4,24 @@ use std::time::Duration;
 
 use termrock::{
     Button, Constraints, Cx, Id, Meter, MeterTone, MeterVisual, Moment, Panel, ProgressBar, Rect,
-    Response, Spinner, Status, Ui, Variant, id, layout,
+    Response, Spinner, Status, Ui, Variant, layout,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
 
-const LIVE_PANEL: Id = id!("progress.live.panel");
-const STATES_PANEL: Id = id!("progress.states.panel");
-const BUILD: Id = id!("progress.build");
-const RESOLVING: Id = id!("progress.resolving");
-const WAITING: Id = id!("progress.waiting");
-const FILES: Id = id!("progress.files");
-const RESTART: Id = id!("progress.restart");
-const PAUSE: Id = id!("progress.pause");
-const QUEUED: Id = id!("progress.queued");
-const HALFWAY: Id = id!("progress.halfway");
-const QUOTA_METER: Id = id!("progress.meter.quota");
-const LATENCY_METER: Id = id!("progress.meter.latency");
-const SYNC_METER: Id = id!("progress.meter.sync");
+const LIVE_PANEL: Id = termrock::Id::root("showcase_ui::pages::progress::progress.live.panel");
+const STATES_PANEL: Id = termrock::Id::root("showcase_ui::pages::progress::progress.states.panel");
+const BUILD: Id = termrock::Id::root("showcase_ui::pages::progress::progress.build");
+const RESOLVING: Id = termrock::Id::root("showcase_ui::pages::progress::progress.resolving");
+const WAITING: Id = termrock::Id::root("showcase_ui::pages::progress::progress.waiting");
+const FILES: Id = termrock::Id::root("showcase_ui::pages::progress::progress.files");
+const RESTART: Id = termrock::Id::root("showcase_ui::pages::progress::progress.restart");
+const PAUSE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.pause");
+const QUEUED: Id = termrock::Id::root("showcase_ui::pages::progress::progress.queued");
+const HALFWAY: Id = termrock::Id::root("showcase_ui::pages::progress::progress.halfway");
+const QUOTA_METER: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meter.quota");
+const LATENCY_METER: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meter.latency");
+const SYNC_METER: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meter.sync");
 
 fn restart_button() -> Button<'static> {
     Button::new(RESTART, "Restart").variant(Variant::SECONDARY)

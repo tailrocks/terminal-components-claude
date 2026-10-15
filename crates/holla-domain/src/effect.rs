@@ -6,7 +6,7 @@ use super::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Mutation {
+pub enum Mutation {
     RemoveContainers(Vec<Container>),
     RemoveImages(Vec<Resource>),
     RemoveVolumes(Vec<Resource>),
@@ -23,7 +23,7 @@ pub(crate) enum Mutation {
         branch: String,
         commits: u32,
     },
-    RemoveOrphanPackages(Vec<super::debian::OrphanPackage>),
+    RemoveOrphanPackages(Vec<crate::debian::OrphanPackage>),
     UpgradeDebian {
         upgraded: u32,
         security: u32,
@@ -38,8 +38,8 @@ pub(crate) enum Mutation {
 }
 
 impl Mutation {
-    pub(crate) fn reclaimed_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
-        use super::accounting::bytes;
+    pub fn reclaimed_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
+        use crate::accounting::bytes;
         match self {
             Self::RemoveContainers(items) => bytes(items.iter().map(|item| item.size_bytes)),
             Self::RemoveImages(items)
@@ -52,7 +52,7 @@ impl Mutation {
         }
     }
 
-    pub(crate) fn lines(&self, partial: bool) -> Vec<String> {
+    pub fn lines(&self, partial: bool) -> Vec<String> {
         let amount = match self.reclaimed_bytes() {
             Ok(bytes) => human_bytes(bytes),
             Err(error) => return vec![error.to_string()],

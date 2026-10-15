@@ -1,5 +1,5 @@
 //! Switcher projections retain typed destination identity across tab changes.
-use tablepro_app::{SwitchTarget, Tab, TableProApp};
+use tablepro_ui::{SwitchTarget, Tab, TableProApp};
 
 #[test]
 fn captured_open_tab_target_survives_reorder_but_never_retargets_after_removal()
@@ -22,7 +22,7 @@ fn captured_open_tab_target_survives_reorder_but_never_retargets_after_removal()
         .workbench
         .tabs()
         .iter()
-        .map(tablepro_app::TabRecord::key)
+        .map(tablepro_ui::TabRecord::key)
         .collect::<Vec<_>>();
     keys.reverse();
     assert!(app.workbench.reorder_tabs(&keys));

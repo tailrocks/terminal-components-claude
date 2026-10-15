@@ -161,14 +161,14 @@ impl World {
     }
 
     /// Allocate a world-lifetime operation token, independent of screen replacement.
-    pub(crate) fn next_manager_operation(&mut self) -> Option<u64> {
+    pub fn next_manager_operation(&mut self) -> Option<u64> {
         let next = self.manager_operation_sequence.checked_add(1)?;
         self.manager_operation_sequence = next;
         Some(next)
     }
 
     /// Consume a review once, invalidating older UI contexts without shared clone state.
-    pub(crate) fn consume_manager_review(&mut self, review: u64) -> bool {
+    pub fn consume_manager_review(&mut self, review: u64) -> bool {
         if review <= self.manager_review_watermark || review > self.manager_operation_sequence {
             return false;
         }
@@ -177,7 +177,7 @@ impl World {
     }
 
     /// Admit a captured write; UI callbacks never supply its completion payload.
-    pub(crate) fn begin_editor_write(
+    pub fn begin_editor_write(
         &mut self,
         expected: Option<&Workspace>,
         mut proposed: Workspace,

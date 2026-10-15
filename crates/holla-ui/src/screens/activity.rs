@@ -1,7 +1,7 @@
 //! Retained activity output composed with the shared text viewport.
 use crate::domain::activity::{Activity, ActivityState};
 use crate::sim::world::World;
-use junie_tui::{
+use termrock::{
     Cx, FgStep, Id, ItemKey, Modifier, Props, Rect, Response, Role, Span, StylePatch, TextViewport,
     Ui, ViewportLine, ViewportState,
 };
@@ -72,7 +72,7 @@ impl Activities {
                 area.width.saturating_sub(4),
                 1,
             ),
-            &junie_tui::truncate(&activity.name, area.width.saturating_sub(4)),
+            &termrock::truncate(&activity.name, area.width.saturating_sub(4)),
             title,
         );
         let state_label = format!(
@@ -119,7 +119,7 @@ impl Activities {
                 offset.saturating_add(visible).min(activity.lines.len()),
                 activity.lines.len()
             );
-            let width = junie_tui::width(&label);
+            let width = termrock::width(&label);
             if width.saturating_add(2) < area.width {
                 let faint = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
                 ui.paint_str(
@@ -188,7 +188,7 @@ fn service_labels(activity: &Activity) -> Vec<String> {
         .iter()
         .map(|line| {
             line.split_once(" | ")
-                .map_or_else(String::new, |(service, _)| junie_tui::truncate(service, 12))
+                .map_or_else(String::new, |(service, _)| termrock::truncate(service, 12))
         })
         .collect()
 }
@@ -215,8 +215,8 @@ fn output_spans<'a>(activity: &'a Activity, services: &'a [String]) -> Vec<Vec<S
 mod tests {
     use super::*;
     use crate::{domain::fixtures, scenario::Scenario};
-    use junie_tui::{App, KeyCode, Theme};
-    use junie_tui_testing::Harness;
+    use termrock::{App, KeyCode, Theme};
+    use termrock_test_support::Harness;
     struct Fixture {
         screen: Activities,
         world: World,

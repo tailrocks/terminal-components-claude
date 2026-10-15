@@ -4,9 +4,9 @@
 //! the same tick the capture matrix freezes), so the matrix is stable across
 //! machines and can only change with an authored render change.
 
-use holla_app::{App, Motion, Scenario};
-use junie_tui::{ColorLevel, FeedbackClock, SimulationMoment, Theme};
-use junie_tui_testing::{Baseline, Harness};
+use holla_ui::{App, Motion, Scenario};
+use termrock::{ColorLevel, FeedbackClock, SimulationMoment, Theme};
+use termrock_test_support::{Baseline, Harness};
 
 const BASELINE: Baseline = Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),

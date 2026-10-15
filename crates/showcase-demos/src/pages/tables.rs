@@ -3,15 +3,15 @@
 use termrock::{
     Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
     GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Role, RowDecor, RowTotal,
-    SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
+    SortDir, StateFlags, StylePatch, Track, Ui, Variant, layout,
 };
 
 use showcase_data::{TASKS, TaskRow, TaskStatus};
 
 use super::{Page, PageUpdate, frame};
 
-const TABLE: Id = id!("tables.tasks");
-const CHECKS: Id = id!("tables.checks");
+const TABLE: Id = termrock::Id::root("showcase_ui::pages::tables::tables.tasks");
+const CHECKS: Id = termrock::Id::root("showcase_ui::pages::tables::tables.checks");
 const LABEL_PATCH: StylePatch = StylePatch::new().set_fg(Role::Info);
 const PART_PATCH: &[(Part, StylePatch)] = &[(Part::HEADER, LABEL_PATCH)];
 const PANEL_PARTS: &[(Part, StylePatch)] = &[(
@@ -519,7 +519,7 @@ impl Page for TablesPage {
             } else {
                 self.last.clone()
             };
-            Panel::new(id!("tables.tasks_panel"))
+            Panel::new(termrock::Id::root("showcase_ui::pages::tables::tables.tasks_panel"))
                 .kind(PanelKind::Card)
                 .title("Tasks")
                 .meta(&task_meta)

@@ -1,7 +1,7 @@
 //! Compound review: caller-owned inclusion, shared scrolling, no draw effects.
 use crate::domain::plan::{Plan, PlanStep, StepState};
 use crate::sim::plans::ReviewedPlan;
-use junie_tui::{
+use termrock::{
     Cx, Family, FgStep, Id, ItemKey, List, ListAction, ListState, Modifier, Part, Props, Rect,
     Response, Role, SelectMode, StateFlags, StylePatch, Ui, Variant,
 };
@@ -98,7 +98,7 @@ impl PlanState {
                 None
             }
             Some(ListAction::Activated(_))
-                if cx.activation_key() == Some(junie_tui::ActivationKey::Enter) =>
+                if cx.activation_key() == Some(termrock::ActivationKey::Enter) =>
             {
                 Some(self.continuation())
             }
@@ -117,15 +117,15 @@ impl PlanState {
                 .add(Modifier::BOLD),
         );
         let faint = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
-        let title = junie_tui::truncate(plan.title(), area.width);
+        let title = termrock::truncate(plan.title(), area.width);
         ui.paint_str(Rect::new(area.x, area.y, area.width, 1), &title, primary);
         let posture = if plan.ran() {
             format!("ran · {}", plan.summary())
         } else {
             "review · Space excludes · dependents recalculate · nothing runs yet".into()
         };
-        let posture_width = junie_tui::width(&posture);
-        if junie_tui::width(&title)
+        let posture_width = termrock::width(&posture);
+        if termrock::width(&title)
             .saturating_add(2)
             .saturating_add(posture_width)
             < area.width
@@ -186,7 +186,7 @@ impl PlanState {
             let label = format!("Output — {} · ${}", step.title, step.command);
             ui.paint_str(
                 Rect::new(area.x, top, area.width, 1),
-                &junie_tui::truncate(&label, area.width),
+                &termrock::truncate(&label, area.width),
                 faint,
             );
             let secondary = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
@@ -195,7 +195,7 @@ impl PlanState {
             {
                 ui.paint_str(
                     Rect::new(area.x, line, area.width, 1),
-                    &junie_tui::truncate(text, area.width),
+                    &termrock::truncate(text, area.width),
                     secondary,
                 );
             }
@@ -238,15 +238,15 @@ fn paint_step(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row
         step.title.clone()
     };
     let x = area.x.saturating_add(4);
-    let width = junie_tui::width(&title).min(46);
+    let width = termrock::width(&title).min(46);
     ui.paint_str(
         Rect::new(x, area.y, area.right().saturating_sub(x).min(46), 1),
-        &junie_tui::truncate(&title, 46),
+        &termrock::truncate(&title, 46),
         style,
     );
     let mut x = x.saturating_add(width);
     let branch = format!("· {}", step.branch);
-    if x.saturating_add(junie_tui::width(&branch))
+    if x.saturating_add(termrock::width(&branch))
         .saturating_add(26)
         < area.right()
     {
@@ -254,13 +254,13 @@ fn paint_step(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row
             .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))
             .with_bg_from(style);
         ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, junie_tui::width(&branch), 1),
+            Rect::new(x.saturating_add(1), area.y, termrock::width(&branch), 1),
             &branch,
             faint,
         );
         x = x
             .saturating_add(1)
-            .saturating_add(junie_tui::width(&branch));
+            .saturating_add(termrock::width(&branch));
     }
     let (note, role) = if let Some(dependency) = &row.blocked {
         (format!("needs {dependency}"), Role::Warning)
@@ -275,7 +275,7 @@ fn paint_step(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row
             StepState::Failed(why) => (why.clone(), Role::Danger),
         }
     };
-    let width = junie_tui::width(&note);
+    let width = termrock::width(&note);
     if area.width > width.saturating_add(30)
         && area.right().saturating_sub(width.saturating_add(1)) > x.saturating_add(2)
     {
@@ -303,8 +303,8 @@ fn paint_step(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row
 mod tests {
     use super::*;
     use crate::{domain::fixtures, scenario::Scenario, sim::plans};
-    use junie_tui::{App, KeyCode, Theme};
-    use junie_tui_testing::Harness;
+    use termrock::{App, KeyCode, Theme};
+    use termrock_test_support::Harness;
     struct Fixture {
         plan: PlanState,
         gate_requested: bool,
@@ -346,7 +346,7 @@ mod tests {
             harness
                 .area_of_part(
                     STEPS,
-                    junie_tui::PartRef::item(Part::ROW, ItemKey::text(&last))
+                    termrock::PartRef::item(Part::ROW, ItemKey::text(&last))
                 )
                 .is_some()
         );

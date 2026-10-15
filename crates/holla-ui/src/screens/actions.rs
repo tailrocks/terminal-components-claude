@@ -1,7 +1,7 @@
 //! Structured alternatives for one retained action identity.
 use super::context::Context;
 use crate::{domain::action::Action, sim::world::World};
-use junie_tui::{
+use termrock::{
     Chord, Cx, Hint, HintKey, HintLayer, Id, Item, ItemKey, KeyCode, Picker, PickerAction,
     PickerState, Response, Ui,
 };

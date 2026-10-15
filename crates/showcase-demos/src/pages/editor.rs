@@ -5,16 +5,16 @@ use std::ops::Range;
 use termrock::{
     CodeAction, CodeEditor, CodeEditorState, Completion, CompletionState, Cx, DiffView,
     DiffViewState, Id, Item, ItemKey, Panel, Part, Props, Rect, StateFlags, Surface, SyntaxRole,
-    TabBehavior, Ui, Variant, id, layout,
+    TabBehavior, Ui, Variant, layout,
 };
 
 use super::{Page, PageUpdate, frame};
 
-const EDITOR: Id = id!("editor.code");
-const EDITOR_PANEL: Id = id!("editor.code.panel");
-const STATE_PANEL: Id = id!("editor.state.panel");
-const COMPLETION: Id = id!("editor.completion");
-const DIFF: Id = id!("editor.diff");
+const EDITOR: Id = termrock::Id::root("showcase_ui::pages::editor::editor.code");
+const EDITOR_PANEL: Id = termrock::Id::root("showcase_ui::pages::editor::editor.code.panel");
+const STATE_PANEL: Id = termrock::Id::root("showcase_ui::pages::editor::editor.state.panel");
+const COMPLETION: Id = termrock::Id::root("showcase_ui::pages::editor::editor.completion");
+const DIFF: Id = termrock::Id::root("showcase_ui::pages::editor::editor.diff");
 const SUGGESTIONS: &[Item<'static>] = &[
     Item::new(ItemKey::Num(101), "fn").detail("function keyword"),
     Item::new(ItemKey::Num(102), "let").detail("binding keyword"),

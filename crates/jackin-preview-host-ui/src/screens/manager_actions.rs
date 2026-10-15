@@ -6,7 +6,7 @@
 use jackin_preview_domain::{
     account::AccountId,
     agent::Agent,
-    fixtures,
+
     instance::{DaemonSnapshot, Instance, InstanceStatus, RunId},
     workspace::{Workspace, WorkspaceId},
 };
@@ -267,7 +267,7 @@ impl ManagerActions {
             world.daemon_health = DaemonHealth::Stale;
             world.schedule(0, Msg::Refreshed { ok: false });
         } else {
-            fixtures::pinned::refresh_snapshots(world);
+            jackin_preview_sim::fixtures::pinned::refresh_snapshots(world);
             let now = world.now_secs();
             for instance in &mut world.instances {
                 if instance.status.is_live() {
@@ -484,7 +484,7 @@ impl ManagerActions {
                 }
                 world.daemons.remove(&id);
                 if action == Action::Stop {
-                    fixtures::pinned::refresh_snapshots(world);
+                    jackin_preview_sim::fixtures::pinned::refresh_snapshots(world);
                 }
                 world.sync_arbiter();
                 Effect::Status(if action == Action::Stop {
@@ -580,7 +580,7 @@ fn reconnect(captured: CapturedInstance, world: &mut World) -> Effect {
             let mut daemon = Daemon::new(captured.0.workdir.trim_start_matches("/workspace/"));
             daemon.new_tab(Some(captured.0.agent), None, world.now_ms(), false);
             world.daemons.insert(id.clone(), daemon);
-            fixtures::pinned::refresh_snapshots(world);
+            jackin_preview_sim::fixtures::pinned::refresh_snapshots(world);
             world.sync_arbiter();
             Effect::Attach {
                 target,

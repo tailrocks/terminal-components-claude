@@ -5,9 +5,9 @@
 
 /// A review fact expressed as domain text; the application view chooses its UI.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct PlanFact {
-    pub(crate) label: String,
-    pub(crate) value: String,
+pub struct PlanFact {
+    pub label: String,
+    pub value: String,
 }
 
 impl PlanFact {
@@ -22,7 +22,7 @@ impl PlanFact {
 /// Where a step stands. `Pending` becomes a terminal state on `run()`;
 /// `Excluded` is the reviewer's choice and recalculates dependents.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum StepState {
+pub enum StepState {
     Pending,
     /// Excluded in review; dependents become blocked.
     Excluded,
@@ -35,7 +35,7 @@ pub(crate) enum StepState {
 }
 
 impl StepState {
-    pub(crate) fn glyph(&self) -> &'static str {
+    pub fn glyph(&self) -> &'static str {
         match self {
             StepState::Pending => "·",
             StepState::Excluded | StepState::PolicySkipped(_) | StepState::Skipped(_) => "−",
@@ -46,29 +46,29 @@ impl StepState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct PlanStep {
-    pub(crate) success_effects: Vec<super::effect::Mutation>,
-    pub(crate) failure_effects: Vec<super::effect::Mutation>,
-    pub(crate) id: String,
-    pub(crate) title: String,
-    pub(crate) command: String,
+pub struct PlanStep {
+    pub success_effects: Vec<holla_domain::effect::Mutation>,
+    pub failure_effects: Vec<holla_domain::effect::Mutation>,
+    pub id: String,
+    pub title: String,
+    pub command: String,
     /// Parallel branches share a label (`apt`, `mise`, `builder`).
-    pub(crate) branch: String,
+    pub branch: String,
     /// Indexes of steps that must succeed first (always earlier indexes).
-    pub(crate) deps: Vec<usize>,
+    pub deps: Vec<usize>,
     /// The reviewer may exclude optional steps; exclusion cascades.
-    pub(crate) optional: bool,
+    pub optional: bool,
     /// Deterministic failure reason when the step runs, if any.
-    pub(crate) fails: Option<String>,
-    pub(crate) ok_lines: Vec<String>,
-    pub(crate) fail_lines: Vec<String>,
-    pub(crate) state: StepState,
+    pub fails: Option<String>,
+    pub ok_lines: Vec<String>,
+    pub fail_lines: Vec<String>,
+    pub state: StepState,
     /// Output lines after the run (empty while pending).
-    pub(crate) lines: Vec<String>,
+    pub lines: Vec<String>,
 }
 
 impl PlanStep {
-    pub(crate) fn new(id: &str, title: &str, command: &str, branch: &str, deps: &[usize]) -> Self {
+    pub fn new(id: &str, title: &str, command: &str, branch: &str, deps: &[usize]) -> Self {
         Self {
             success_effects: Vec::new(),
             failure_effects: Vec::new(),
@@ -86,24 +86,24 @@ impl PlanStep {
         }
     }
 
-    pub(crate) fn succeeds_with(mut self, effects: Vec<super::effect::Mutation>) -> Self {
+    pub fn succeeds_with(mut self, effects: Vec<holla_domain::effect::Mutation>) -> Self {
         self.ok_lines = effects
             .iter()
             .flat_map(|effect| effect.lines(false))
             .collect();
         if effects
             .iter()
-            .any(|effect| matches!(effect, super::effect::Mutation::UpgradeTool { .. }))
+            .any(|effect| matches!(effect, holla_domain::effect::Mutation::UpgradeTool { .. }))
         {
             self.ok_lines.push("shims reshimmed".into());
         }
         self.success_effects = effects;
         self
     }
-    pub(crate) fn fails_after(
+    pub fn fails_after(
         mut self,
         reason: &str,
-        effects: Vec<super::effect::Mutation>,
+        effects: Vec<holla_domain::effect::Mutation>,
         error_line: &str,
     ) -> Self {
         self.fails = Some(reason.into());
@@ -116,20 +116,20 @@ impl PlanStep {
         self
     }
 
-    pub(crate) fn required(mut self) -> Self {
+    pub fn required(mut self) -> Self {
         self.optional = false;
         self
     }
-    pub(crate) fn fails_with(mut self, reason: &str, lines: &[&str]) -> Self {
+    pub fn fails_with(mut self, reason: &str, lines: &[&str]) -> Self {
         self.fails = Some(reason.into());
         self.fail_lines = lines.iter().map(ToString::to_string).collect();
         self
     }
-    pub(crate) fn lines(mut self, lines: &[&str]) -> Self {
+    pub fn lines(mut self, lines: &[&str]) -> Self {
         self.ok_lines = lines.iter().map(ToString::to_string).collect();
         self
     }
-    pub(crate) fn policy_skipped(mut self, reason: &str) -> Self {
+    pub fn policy_skipped(mut self, reason: &str) -> Self {
         self.optional = false;
         self.state = StepState::PolicySkipped(reason.into());
         self
@@ -140,7 +140,7 @@ impl PlanStep {
 /// what the plan claimed to change is changed. Payloads stay markers; the
 /// apply step reads which steps actually succeeded.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum PlanEffect {
+pub enum PlanEffect {
     /// A restarted container becomes Running + Healthy.
     RestartContainer(String),
     /// Prune what succeeded: cache bytes, removed exited containers.
@@ -154,20 +154,20 @@ pub(crate) enum PlanEffect {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct PlanSpec {
+pub struct PlanSpec {
     /// The catalogue action this plan reviews (`docker.cleanup`).
-    pub(crate) action_id: String,
-    pub(crate) title: String,
-    pub(crate) host: String,
+    pub action_id: String,
+    pub title: String,
+    pub host: String,
     /// The gate-2 typed phrase, bound to the target host.
-    pub(crate) phrase: String,
-    pub(crate) will_change: String,
-    pub(crate) steps: Vec<PlanStep>,
-    pub(crate) effect: Option<PlanEffect>,
+    pub phrase: String,
+    pub will_change: String,
+    pub steps: Vec<PlanStep>,
+    pub effect: Option<PlanEffect>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Plan {
+pub struct Plan {
     /// The catalogue action this plan reviews (`docker.cleanup`).
     action_id: String,
     title: String,
@@ -182,7 +182,7 @@ pub(crate) struct Plan {
 
 /// Invalid plan declarations and review transitions fail before execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum PlanError {
+pub enum PlanError {
     DuplicateId,
     InvalidInventory,
     InvalidDependency,
@@ -213,16 +213,16 @@ impl Plan {
     /// # Errors
     /// Rejects duplicate/empty IDs, non-earlier dependencies, and pre-executed
     /// states. Earlier-only edges guarantee acyclic, bounded traversal.
-    pub(crate) fn try_new(spec: PlanSpec) -> Result<Self, PlanError> {
+    pub fn try_new(spec: PlanSpec) -> Result<Self, PlanError> {
         let mut ids = std::collections::BTreeSet::new();
         for (index, step) in spec.steps.iter().enumerate() {
             for effects in [&step.success_effects, &step.failure_effects] {
                 let amounts: Result<Vec<_>, _> = effects
                     .iter()
-                    .map(super::effect::Mutation::reclaimed_bytes)
+                    .map(holla_domain::effect::Mutation::reclaimed_bytes)
                     .collect();
                 let amounts = amounts.map_err(|_| PlanError::InvalidInventory)?;
-                super::accounting::bytes(amounts).map_err(|_| PlanError::InvalidInventory)?;
+                holla_domain::accounting::bytes(amounts).map_err(|_| PlanError::InvalidInventory)?;
             }
 
             if step.id.is_empty() || !ids.insert(&step.id) {
@@ -252,33 +252,33 @@ impl Plan {
         })
     }
 
-    pub(crate) fn action_id(&self) -> &str {
+    pub fn action_id(&self) -> &str {
         &self.action_id
     }
-    pub(crate) fn title(&self) -> &str {
+    pub fn title(&self) -> &str {
         &self.title
     }
-    pub(crate) fn host(&self) -> &str {
+    pub fn host(&self) -> &str {
         &self.host
     }
-    pub(crate) fn phrase(&self) -> &str {
+    pub fn phrase(&self) -> &str {
         &self.phrase
     }
-    pub(crate) fn will_change(&self) -> &str {
+    pub fn will_change(&self) -> &str {
         &self.will_change
     }
-    pub(crate) fn steps(&self) -> &[PlanStep] {
+    pub fn steps(&self) -> &[PlanStep] {
         &self.steps
     }
-    pub(crate) fn ran(&self) -> bool {
+    pub fn ran(&self) -> bool {
         self.ran
     }
-    pub(crate) fn effect(&self) -> Option<&PlanEffect> {
+    pub fn effect(&self) -> Option<&PlanEffect> {
         self.effect.as_ref()
     }
 
     /// Included = not excluded and not policy-skipped.
-    pub(crate) fn included_count(&self) -> usize {
+    pub fn included_count(&self) -> usize {
         self.steps
             .iter()
             .filter(|s| !matches!(s.state, StepState::Excluded | StepState::PolicySkipped(_)))
@@ -292,7 +292,7 @@ impl Plan {
         clippy::indexing_slicing,
         reason = "Requested row is checked first; private validated dependency indexes are earlier rows and prefix length is at most the allocated vector length"
     )]
-    pub(crate) fn blocked_by_exclusion(&self, i: usize) -> Option<String> {
+    pub fn blocked_by_exclusion(&self, i: usize) -> Option<String> {
         if !matches!(self.steps.get(i)?.state, StepState::Pending) {
             return None;
         }
@@ -309,7 +309,7 @@ impl Plan {
     }
 
     /// Space on a row: toggle exclusion of an optional, not-yet-run step.
-    pub(crate) fn toggle(&mut self, i: usize) -> Result<String, PlanError> {
+    pub fn toggle(&mut self, i: usize) -> Result<String, PlanError> {
         let s = self.steps.get_mut(i).ok_or(PlanError::MissingStep)?;
         if self.ran {
             return Err(PlanError::AlreadyRan);
@@ -334,7 +334,7 @@ impl Plan {
         clippy::indexing_slicing,
         reason = "Private Plan construction validates every dependency as an earlier row; execution changes only states and never indexes or vector length"
     )]
-    pub(crate) fn run(&mut self) -> Result<(), PlanError> {
+    pub fn run(&mut self) -> Result<(), PlanError> {
         if self.ran {
             return Err(PlanError::AlreadyRan);
         }
@@ -367,7 +367,7 @@ impl Plan {
         Ok(())
     }
 
-    pub(crate) fn summary(&self) -> String {
+    pub fn summary(&self) -> String {
         let count =
             |pred: fn(&StepState) -> bool| self.steps.iter().filter(|s| pred(&s.state)).count();
         let ok = count(|s| matches!(s, StepState::Succeeded));
@@ -384,7 +384,7 @@ impl Plan {
     }
 
     /// Gate-1 review facts (the full-body surface shows these plus the DAG).
-    pub(crate) fn facts(&self) -> Vec<PlanFact> {
+    pub fn facts(&self) -> Vec<PlanFact> {
         vec![
             PlanFact::new("Target", format!("host {}", self.host)),
             PlanFact::new("Will change", &self.will_change),

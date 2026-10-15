@@ -5,19 +5,19 @@ use termrock::{
     ActionKey, Button, ContextMenu, Cx, Family, FilterList, FilterListState, FrameRead, GlyphRole,
     Id, Item, ItemKey, LayerSize, Menu, MenuBar, MenuItem, MenuState, Modifier, Part, Picker,
     PickerAction, PickerChain, PickerChainState, PickerStage, PickerState, Position, Rect,
-    Response, ScreenAlign, ScrollState, StateFlags, Surface, Ui, Variant, id, width,
+    Response, ScreenAlign, ScrollState, StateFlags, Surface, Ui, Variant, width,
 };
 
 use super::{Page, PageUpdate, frame};
 
-const OPEN_QUICK: Id = id!("pickers.open.quick");
-const OPEN_TABS: Id = id!("pickers.open.tabs");
-const OPEN_LEVEL: Id = id!("pickers.open.level");
-const PICKER: Id = id!("pickers.layer");
-const FILTER: Id = id!("pickers.filter");
-const CHAIN: Id = id!("pickers.chain");
-const MENU: Id = id!("pickers.menu");
-const CONTEXT: Id = id!("pickers.context");
+const OPEN_QUICK: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.quick");
+const OPEN_TABS: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.tabs");
+const OPEN_LEVEL: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.level");
+const PICKER: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.layer");
+const FILTER: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.filter");
+const CHAIN: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.chain");
+const MENU: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.menu");
+const CONTEXT: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.context");
 const SCOPES: &[termrock::ScopeKey] = &[
     termrock::ScopeKey::new(1),
     termrock::ScopeKey::new(2),

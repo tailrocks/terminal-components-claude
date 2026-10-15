@@ -6,12 +6,8 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
-holla-domain.workspace = true
 holla-ui.workspace = true
-holla-sim.workspace = true
-termrock-session.workspace = true
-clap.workspace = true
-ratatui.workspace = true
+termrock.workspace = true
 
 [[test]]
 name = "holla_pty"

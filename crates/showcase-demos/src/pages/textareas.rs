@@ -2,17 +2,17 @@
 
 use termrock::{
     Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, StateFlags, TextAction,
-    TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate,
+    TextArea, TextAreaState, Track, Ui, Variant, layout, truncate,
 };
 
 use super::{Page, PageUpdate, frame};
 
-const BODY: Id = id!("textareas.body");
-const NOTES: Id = id!("textareas.notes");
-const TRANSCRIPT: Id = id!("textareas.transcript");
-const COMMIT: Id = id!("textareas.commit");
-const PLAYGROUND: Id = id!("textareas.playground");
-const STATES: Id = id!("textareas.states");
+const BODY: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.body");
+const NOTES: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.notes");
+const TRANSCRIPT: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.transcript");
+const COMMIT: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.commit");
+const PLAYGROUND: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.playground");
+const STATES: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.states");
 
 fn body_area() -> TextArea<'static> {
     TextArea::new(BODY, 8).placeholder("Write a checklist")

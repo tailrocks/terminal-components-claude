@@ -2,48 +2,48 @@
 //! first-class; the primary branch is resolved per repo, never hard-coded.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Worktree {
-    pub(crate) path: String,
-    pub(crate) branch: String,
+pub struct Worktree {
+    pub path: String,
+    pub branch: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct GitRepo {
-    pub(crate) root: String,
+pub struct GitRepo {
+    pub root: String,
     /// `None` when detached; `detached_sha` then carries the commit.
-    pub(crate) branch: Option<String>,
-    pub(crate) detached_sha: Option<String>,
-    pub(crate) upstream: Option<String>,
-    pub(crate) ahead: u32,
-    pub(crate) behind: u32,
-    pub(crate) modified: u32,
-    pub(crate) staged: u32,
-    pub(crate) untracked: u32,
+    pub branch: Option<String>,
+    pub detached_sha: Option<String>,
+    pub upstream: Option<String>,
+    pub ahead: u32,
+    pub behind: u32,
+    pub modified: u32,
+    pub staged: u32,
+    pub untracked: u32,
     /// Resolved primary branch for THIS repo (`trunk`, `main`, …).
-    pub(crate) primary_branch: String,
-    pub(crate) worktrees: Vec<Worktree>,
+    pub primary_branch: String,
+    pub worktrees: Vec<Worktree>,
     /// Submodules: children tracked by this repo.
-    pub(crate) submodules: Vec<String>,
+    pub submodules: Vec<String>,
     /// Nested independent repositories that are NOT submodules — each a
     /// full repo so bulk plans resolve per-child primary branches.
-    pub(crate) children: Vec<GitRepo>,
+    pub children: Vec<GitRepo>,
 }
 
 impl GitRepo {
-    pub(crate) fn dirty(&self) -> bool {
+    pub fn dirty(&self) -> bool {
         self.modified != 0 || self.staged != 0 || self.untracked != 0
     }
 
-    pub(crate) fn detached(&self) -> bool {
+    pub fn detached(&self) -> bool {
         self.branch.is_none()
     }
 
-    pub(crate) fn diverged(&self) -> bool {
+    pub fn diverged(&self) -> bool {
         self.ahead > 0 && self.behind > 0
     }
 
     /// Short truth for reasons: `3 commits behind`, `4 modified files`.
-    pub(crate) fn summary(&self) -> Vec<String> {
+    pub fn summary(&self) -> Vec<String> {
         let mut out = vec![];
         if self.detached() {
             out.push(format!(

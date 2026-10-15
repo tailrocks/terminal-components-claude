@@ -6,13 +6,13 @@ use crate::domain::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Operation {
+pub enum Operation {
     Cancel,
     Terminate,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ReviewError {
+pub enum ReviewError {
     NoBlocker,
     InvalidInventory,
     StaleTarget,
@@ -32,17 +32,17 @@ impl std::error::Error for ReviewError {}
 
 /// Owned review is consumed on confirmation or cancellation. Activity duration
 /// is display-only; PID, query, user and wait relationship identify the target.
-pub(crate) struct Review {
+pub struct Review {
     target: PgSession,
     operation: Operation,
     host: (String, HostKind, Environment),
     revision: u64,
 }
 
-pub(crate) struct Report {
-    pub(crate) pid: u32,
-    pub(crate) resumed: usize,
-    pub(crate) operation: Operation,
+pub struct Report {
+    pub pid: u32,
+    pub resumed: usize,
+    pub operation: Operation,
 }
 impl std::fmt::Display for Report {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -69,7 +69,7 @@ fn valid_sessions(sessions: &[PgSession]) -> bool {
 }
 
 impl Review {
-    pub(crate) fn new(world: &World, operation: Operation) -> Result<Self, ReviewError> {
+    pub fn new(world: &World, operation: Operation) -> Result<Self, ReviewError> {
         let sessions = world.pg.as_ref().ok_or(ReviewError::NoBlocker)?;
         if !valid_sessions(sessions) {
             return Err(ReviewError::InvalidInventory);
@@ -86,15 +86,15 @@ impl Review {
             revision: world.effect_revision,
         })
     }
-    pub(crate) fn operation(&self) -> Operation {
+    pub fn operation(&self) -> Operation {
         self.operation
     }
 
-    pub(crate) fn target(&self) -> &PgSession {
+    pub fn target(&self) -> &PgSession {
         &self.target
     }
 
-    pub(crate) fn execute(self, world: &mut World) -> Result<Report, ReviewError> {
+    pub fn execute(self, world: &mut World) -> Result<Report, ReviewError> {
         if world.effect_revision != self.revision
             || self.host != (world.host.name.clone(), world.host.kind, world.host.env)
         {

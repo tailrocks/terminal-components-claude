@@ -3,10 +3,7 @@
 
 #![forbid(unsafe_code)]
 
-pub mod capsule;
-pub mod file_browser;
-pub mod inspect;
-pub mod op_flow;
+pub mod screens;
 
-pub use file_browser::{FileBrowserAction, FileBrowserEntry, FileBrowserState};
-pub use op_flow::{OpFlowAction, OpFlowStage, OpFlowState, OpFlowStatus};
+pub use screens::{FileBrowserAction, FileBrowserEntry, FileBrowserState};
+pub use screens::op_flow::{OpFlowAction, OpFlowStage, OpFlowState, OpFlowStatus};
