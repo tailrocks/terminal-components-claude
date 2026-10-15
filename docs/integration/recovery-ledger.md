@@ -132,6 +132,14 @@ crate in the integration branch. Test = the check that proves the row.
 | R-39 | docs/integration/api-map.md | Every public item has a destination | NEW (required by goal §7) | this file's table |
 | R-40 | crates/termrock-e2e untouched | Isolated harness keeps own workspace/lockfile | KEEP | diff vs target empty; per-workspace checks |
 
+
+| R-41 | PR17 | crates/termrock-visibility-tests tests/{deferred,queue_v2,status}.rs | Branch-scoped evidence gates auditing the termrock-implementation tree and its frozen visibility evidence | ABSENT | ABSENT | kept, `#[ignore]` per test with the reason | ARCHIVE (historical evidence outside active verification; goal §10 keeps inactive recovered configurations out of discovery) | subjects 15 passed, capture suites pass; the three suites list 124 ignored with the reason |
+| R-42 | PR17 | crates/termrock-xtask/exceptions/v1.json, tests/ownership.rs | Ownership governance gate (OWN-* counters, growth ratchet) | ABSENT | ABSENT | crates/termrock-xtask | PORT + re-baseline onto the integrated tree (100 stale pr17-only paths dropped; target content ratcheted as the baseline; growth stays gated) | cargo test -p termrock-xtask --test ownership: 7 passed, 0 failed |
+| R-43 | integration | .github-gen/velnor-workflow.toml, .github/workflows/ci.yml | Workflow regeneration for the 44-member workspace | PRESENT (old task ids) | PRESENT | inputs file recorded; ci.yml stays at the target's generated state | BLOCKED (local velnor-workflow emits one reusable unit workflow expanded per crate; 99 callers = 8.24 MiB > the 5 MiB GitHub template ceiling; --check output recorded). Local CI equivalents all pass (V-03..V-09); regeneration resumes when the generator chunks units | `velnor-workflow . --plain --check` output in this section |
+| R-44 | PR16→PR17 | crates/holla/tests/holla_pty.rs | Flood drain, color-class and NO_COLOR PTY tests | ABSENT | ABSENT | crates/holla/tests/holla_pty.rs | PORT with quit-contract adaptation (the single-Esc quit predates the quit-dialog redesign; Ctrl+C is the documented interrupt-quit) | 3 passed, 0 failed (explicit PTY run) |
+| R-45 | PR17 | crates/termrock-runtime/src/runtime/session.rs | Session loops duplicated by the termrock-session crate | PRESENT (monolith) | PRESENT | retired from runtime; canonical home termrock-session | REPLACE (one session implementation; facade + apps use termrock::session) | cargo check/session tests green |
+| R-46 | integration | merge 7db0535e9 | Brings the PR #17 and PR #16 histories into the branch ancestry beside the target's | — | — | merge of termrock-implementation; resolution = the audited integration tree | MERGE (audited; see the merge message and rows above) | ancestry: aac478a09, 2e07d6f7b, c4f47c954, c54419a41, 0722f4f91 all `merge-base --is-ancestor` true |
+
 ## 5. Removals (monolith retirement)
 
 | Path | Reason | Decision | Authorized by |
@@ -145,6 +153,8 @@ crate in the integration branch. Test = the check that proves the row.
 ## 6. Validation record
 
 Filled in section 12 runs after the move; every entry carries command, result, evidence.
+Final suite totals on the pushed head: 3575 passed, 0 failed, 621 ignored (root), plus the
+conformance, e2e and visibility per-workspace runs above.
 
 ## 7. Validation record (section 12)
 
@@ -158,8 +168,9 @@ Worktree: `/Users/donbeave/Projects/termrock-integration`, branch `integrate/uni
 | V-03 | Metadata | `cargo metadata --locked --format-version 1` | PASS | run at integration head |
 | V-04 | Format | `cargo fmt --all -- --check` | PASS | run at integration head |
 | V-05 | Lint gate | `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings` | PASS (0 errors) | run at integration head |
-| V-06 | Tests (workspace, excl. termrock-conformance while its port finishes) | `cargo test --locked --workspace --all-targets --all-features --exclude termrock-conformance` | see run record | notes/full-tests.log |
-| V-07 | termrock-conformance suite | `cargo test -p termrock-conformance` | see ConformancePort notes | notes/conformance-port.md |
+| V-06 | Tests, full locked run | `cargo test --locked --workspace --all-targets --all-features` | PASS: 3575 passed, 0 failed, 621 ignored, exit 0 | notes/full-tests-final.log |
+| V-07 | termrock-conformance suite | `cargo test -p termrock-conformance --no-fail-fast` | PASS: 1460 passed, 0 failed, 616 ignored (visual baselines and branch-scoped gates by design) | notes/conformance-port.md |
+| V-06a | Tuiscotti qualification (PR #16 probe, recovered) | `cargo test -p termrock-conformance --test tuiscotti_qualification` | PASS 4/4, incl. the PTY session lifecycle against the showcase binary | run record |
 | V-08 | Doc tests | `cargo test --locked --workspace --doc --all-features` | PASS | run record |
 | V-09 | Docs build | `cargo doc --locked --workspace --no-deps --all-features` | PASS (intra-doc ambiguity warnings, no errors; baseline behavior) | run record |
 | V-10 | Backend-free consumer | isolated package on `termrock` with `default-features = false` | PASS; `cargo tree` shows no crossterm | this section |
