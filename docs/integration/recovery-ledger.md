@@ -140,6 +140,9 @@ crate in the integration branch. Test = the check that proves the row.
 | R-45 | PR17 | crates/termrock-runtime/src/runtime/session.rs | Session loops duplicated by the termrock-session crate | PRESENT (monolith) | PRESENT | retired from runtime; canonical home termrock-session | REPLACE (one session implementation; facade + apps use termrock::session) | cargo check/session tests green |
 | R-46 | integration | merge 7db0535e9 | Brings the PR #17 and PR #16 histories into the branch ancestry beside the target's | — | — | merge of termrock-implementation; resolution = the audited integration tree | MERGE (audited; see the merge message and rows above) | ancestry: aac478a09, 2e07d6f7b, c4f47c954, c54419a41, 0722f4f91 all `merge-base --is-ancestor` true |
 
+
+| R-47 | integration | remote + local branch refs | Branch consolidation per the closing instruction: only `main` and `integrate/unique-0722f4f9` remain | — | — | deleted: `termrock-refactor`, `termrock-implementation` (heads are ancestors of the pushed head via 7db0535e); `visual-baseline`, `integrate/goal-ef2fa1ea4`, `integrate/goal-reconcile-41ccfd59` (work dispositioned in R-12/R-13/R-15..R-17; heads preserved at `refs/recovery/*` and in the final bundle) | CONSOLIDATE | branch listing shows two remote and two local branches; ancestry checks in this section; bundle `termrock-recovery-final.bundle` verified complete |
+
 ## 5. Removals (monolith retirement)
 
 | Path | Reason | Decision | Authorized by |
