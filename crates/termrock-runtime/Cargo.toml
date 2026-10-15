@@ -6,9 +6,9 @@ rust-version.workspace = true
 license.workspace = true
 
 [features]
-default = ["testing"]
+default = ["crossterm"]
 testing = ["termrock-core/testing", "termrock-theme/testing"]
-crossterm = []
+crossterm = ["dep:ratatui-crossterm"]
 
 [dependencies]
 termrock-core.workspace = true
@@ -21,6 +21,7 @@ unicode-width.workspace = true
 unicode-segmentation.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
+ratatui-crossterm = { workspace = true, optional = true }
 
 [dev-dependencies]
 termrock.workspace = true
@@ -28,4 +29,3 @@ termrock-test-support.workspace = true
 termrock-viewport.workspace = true
 termrock-controls.workspace = true
 termrock-session.workspace = true
-ratatui-crossterm.workspace = true

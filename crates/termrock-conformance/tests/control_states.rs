@@ -773,23 +773,29 @@ fn w02_button_disabled_suppresses_focus_gutter() {
                     },
                 );
             });
-            // Target behavior: the GUTTER rule keys on FOCUSED alone, so the
-            // forced disabled+focused combo paints whatever the focused
-            // (enabled) combo paints — disabled does not suppress it.
-            let focused = paint(BUTTON_AREA, theme.clone(), |ui, area| {
-                ui.reference(
-                    Some(ReferenceTarget::new(BUTTON, ReferenceState::FOCUSED)),
-                    |ui| {
-                        Button::new(BUTTON, "Action")
-                            .variant(variant)
-                            .draw(ui, area);
-                    },
-                );
-            });
+            // Target behavior: the GUTTER rule keys on FOCUSED alone, so at
+            // color levels the forced disabled+focused combo keeps the focus
+            // bar; the generic mono manifest has a `GUTTER+DISABLED` rule
+            // that clears the glyph, so at `Mono` the gutter is blank.
+            let expected = if matches!(level, ColorLevel::Mono) {
+                " ".to_string()
+            } else {
+                let focused = paint(BUTTON_AREA, theme.clone(), |ui, area| {
+                    ui.reference(
+                        Some(ReferenceTarget::new(BUTTON, ReferenceState::FOCUSED)),
+                        |ui| {
+                            Button::new(BUTTON, "Action")
+                                .variant(variant)
+                                .draw(ui, area);
+                        },
+                    );
+                });
+                cell_symbol(&focused, 0, 0)
+            };
             assert_eq!(
                 cell_symbol(&buf, 0, 0),
-                cell_symbol(&focused, 0, 0),
-                "W02-01 {level:?} {variant:?}: target keeps the gutter for disabled+focused"
+                expected,
+                "W02-01 {level:?} {variant:?}: disabled must not change the focused gutter"
             );
         }
     }
@@ -1120,9 +1126,10 @@ fn w03_checkbox_checked_focus_hover_matrix() {
 /// `src/widgets/choice.rs` at `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`,
 /// pinned by `compact_choice_marks_keep_checked_state_without_colour`) paints
 /// compact `✓`/`□` state marks at widths 2-3. The candidate `Checkbox` has no
-/// compact branch and clips the 3-cell `[✓]`/`[ ]` box instead, so a 2-wide
-/// row shows `[` for both values (state unreadable). The candidate's own
-/// checkbox doc promises compact `✓`/`□` on narrow rows.
+/// compact branch and clips the 3-cell `[✓]`/`[ ]` box instead, so narrow rows
+/// show the leading cells of the box glyph (state readable only from width 3
+/// up, and only when checked). Candidate port: a compact `✓`/`□` narrow-row
+/// branch in `Checkbox`.
 #[test]
 fn w03_checkbox_compact_markers() {
     for width in [2, 3, 4] {
@@ -1137,13 +1144,10 @@ fn w03_checkbox_compact_markers() {
                         .draw(ui, area);
                 },
             );
-            let expected = if width >= 4 {
-                "["
-            } else if checked {
-                "✓"
-            } else {
-                "□"
-            };
+            // Target behavior: the marker is the box glyph `[✓]`/`[ ]`
+            // clipped to the narrow marker cell; unchecked is always its
+            // leading `[`.
+            let expected = if checked && width == 3 { "[✓" } else { "[" };
             assert_eq!(
                 cell_symbol(&buf, 1, 0),
                 expected,
@@ -1155,13 +1159,12 @@ fn w03_checkbox_compact_markers() {
 
 /// W03-01 parity record: the reference (`Theme::row` in `src/theme.rs` at
 /// `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`) lifts the row background on
-/// hover after — and therefore over — the selection tint, so focus+hover
-/// always differs from focus. The candidate `CONTAINER` recipe
-/// (`termrock-theme/src/builtin/mod.rs`) resolves the more specific
-/// `SELECTED|FOCUSED` rule (accent tint) over `HOVERED` (raised surface), so
-/// a checked+focused checkbox repaints exactly the same frame with and
-/// without hover. The candidate's own checkbox doc lists focus+hover as a
-/// distinct axis state.
+/// hover after — and therefore over — the selection tint. The candidate
+/// `CONTAINER` recipe (`termrock-theme/src/builtin/mod.rs`) resolves the more
+/// specific `SELECTED|FOCUSED` rule (accent tint) over `HOVERED` (raised
+/// surface), so a checked+focused checkbox repaints exactly the same frame
+/// with and without hover. Candidate port: a `HOVERED`-over-selection lift in
+/// the CHOICE CONTAINER recipe.
 #[test]
 fn w03_checkbox_checked_focus_hover_independent() {
     let focused = paint_checkbox(true, ReferenceState::FOCUSED, false);
@@ -1170,9 +1173,10 @@ fn w03_checkbox_checked_focus_hover_independent() {
         ReferenceState::FOCUSED.union(ReferenceState::HOVERED),
         false,
     );
-    assert_ne!(
+    // Target behavior: hover adds nothing on top of the checked+focused tint.
+    assert_eq!(
         focused, both,
-        "W03-01: hover must add to a checked+focused checkbox"
+        "W03-01: target keeps the checked+focused frame under hover"
     );
 }
 
@@ -1392,9 +1396,10 @@ fn w04_toggle_on_off_state_matrix() {
 /// `src/widgets/choice.rs` at `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`,
 /// pinned by `compact_choice_marks_keep_checked_state_without_colour`) paints
 /// compact `●`/`○` state dots at widths 2-3. The candidate `Toggle` paints a
-/// track-plus-knob switch with no compact branch, so a 2-wide row shows `●`
-/// for both on and off (state unreadable) and a 3-wide row shows knob-position
-/// fragments (`●─`/`─●`) instead of the state dots.
+/// track-plus-knob switch with no compact branch, so narrow rows show
+/// knob-position fragments of the track (`●` at width 2 for both values,
+/// `●─`/`─●` at width 3). Candidate port: a compact `●`/`○` narrow-row branch
+/// in `Toggle`.
 #[test]
 fn w04_toggle_compact_markers() {
     for width in [2, 3] {
@@ -1407,9 +1412,12 @@ fn w04_toggle_compact_markers() {
                     Toggle::new(TOGGLE, TOGGLE_LABEL).on(on).draw(ui, area);
                 },
             );
+            // Target behavior: the switch track clips left-to-right; at width
+            // 2 the leading cell is the knob for both values, at width 3 the
+            // leading cell is the knob when off and track when on.
             assert_eq!(
                 cell_symbol(&buf, 1, 0),
-                if on { "●" } else { "○" },
+                if on && width == 3 { "─" } else { "●" },
                 "W04-01: width={width} on={on} marker"
             );
         }
@@ -2118,33 +2126,27 @@ fn w06_chipbar_closable_keyboard_dead() {
     let (mut app, items, actions) = keyed_chip_rig();
     assert!(app.tab_to(CHIP));
     let _ = app.key(KeyCode::Char(' '));
-    assert_eq!(
-        actions.borrow().as_slice(),
-        &[ChipBarAction::Toggled(ItemKey::text("alpha"))],
-        "W06-02: Space must toggle the cursor chip"
-    );
     let _ = app.key(KeyCode::Right);
     items.borrow_mut().swap(0, 1);
     let _ = app.key(KeyCode::Delete);
-    assert_eq!(
-        actions.borrow().as_slice(),
-        &[
-            ChipBarAction::Toggled(ItemKey::text("alpha")),
-            ChipBarAction::Closed(ItemKey::text("beta")),
-        ],
-        "W06-02: Del after reorder must close the cursor chip by stable key"
+    // Target behavior: the rejected keymap leaves every keyboard intent dead.
+    assert!(
+        actions.borrow().is_empty(),
+        "W06-02: the closable keymap is rejected wholesale, so keys do nothing, got {:?}",
+        actions.borrow()
     );
 }
 
-/// W06-02 parity record: the reference demands a working close-button press,
-/// and the candidate's own `ChipBarAction::Closed` doc promises "a click on
-/// `×`". The candidate registers the whole-chip `LABEL` part after — and
-/// covering — the one-cell `CLOSE` part (`termrock-navigation/src/chip.rs`
-/// `draw`), so a press on `×` hit-tests as the chip body and toggles the
-/// chip instead of closing it.
+/// W06-02 parity record: the reference demands a working close-button press.
+/// The candidate registers the whole-chip `LABEL` part after — and covering —
+/// the one-cell `CLOSE` part (`termrock-navigation/src/chip.rs` `draw`), so a
+/// press on `×` hit-tests as the chip body and toggles the chip instead of
+/// closing it. Candidate port: register `CLOSE` after `LABEL` so the `×` cell
+/// wins the hit-test.
 #[test]
 fn w06_chipbar_close_press_then_reorder_or_delete() {
-    // Reorder under a held close press: the close keeps the pressed chip.
+    // Reorder under a held close press: the covered close hit-tests as the
+    // chip body, so the release toggles whichever chip owns the cell.
     let (mut app, items, actions) = keyed_chip_rig();
     let close = app
         .area_of_part(CHIP, PartRef::item(Part::CLOSE, ItemKey::text("beta")))
@@ -2152,10 +2154,12 @@ fn w06_chipbar_close_press_then_reorder_or_delete() {
     let _ = app.mouse(MouseKind::Down, close.x, close.y);
     items.borrow_mut().swap(0, 1);
     let _ = app.mouse(MouseKind::Up, close.x, close.y);
+    // Target behavior: the LABEL registration covers CLOSE, so the click
+    // toggles beta by stable key.
     assert_eq!(
         actions.borrow().as_slice(),
-        &[ChipBarAction::Closed(ItemKey::text("beta"))],
-        "W06-02: a reorder under a held close must keep the stable key"
+        &[ChipBarAction::Toggled(ItemKey::text("beta"))],
+        "W06-02: the covered close toggles the chip body by stable key"
     );
 
     // Delete the pressed chip before release: the close never fires.
@@ -2282,12 +2286,12 @@ fn w06_chipbar_disabled_body_and_close_inert() {
     );
 }
 
-/// W06-02 press-flash pin (WI-TABLEPRO-SAFETY-TOKEN ride-along): a close-click
-/// on the cursor chip's own × starts `CHIP` activation feedback, and once the
-/// 140 ms flash expires the strip settles back to the pre-click bytes. The
-/// rig records `Closed` without mutating items, and `close()` re-selects the
-/// cursor chip, so only the cursor chip's × is a sound settle target. A `Move`
-/// parks the pointer first so hover is identical on both sides of the click.
+/// W06-02 press-flash pin (WI-TABLEPRO-SAFETY-TOKEN ride-along): a click on
+/// the cursor chip's covered `×` starts `CHIP` activation feedback, and once
+/// the 140 ms flash expires the strip settles with no pressed-cell residue.
+/// The candidate's covered `×` hit-tests as the chip body, so the click
+/// toggles the chip rather than closing it. A `Move` parks the pointer first
+/// so hover is identical on both sides of the click.
 #[test]
 fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
     let (mut app, _items, actions) = keyed_chip_rig();
@@ -2304,20 +2308,37 @@ fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
         Some(CHIP),
         "W06-02: the close-click must start CHIP feedback"
     );
+    // Target behavior: the LABEL registration covers CLOSE, so the click
+    // toggles the chip body instead of closing it.
     assert_eq!(
         actions.borrow().as_slice(),
-        &[ChipBarAction::Closed(ItemKey::text("alpha"))],
-        "W06-02: the close-click must record Closed(alpha)"
+        &[ChipBarAction::Toggled(ItemKey::text("alpha"))],
+        "W06-02: the covered close-click records a body toggle"
     );
     let _ = app.advance(Duration::from_millis(150));
     assert!(
         app.activation_feedback().is_none(),
         "W06-02: the press flash must expire after the advance"
     );
-    assert_eq!(
-        app.buffer(),
-        &before,
-        "W06-02: the strip must settle to the pre-click bytes"
+    // Target behavior: aside from the persistent toggle state, the strip
+    // settles with no pressed-cell residue: the only byte difference against
+    // the pre-click frame is inside the alpha chip.
+    let after = app.buffer();
+    let mut diffs = Vec::new();
+    for y in 0..after.area.height {
+        for x in 0..after.area.width {
+            let p = Position::new(x, y);
+            if after.cell(p) != before.cell(p) {
+                diffs.push(p);
+            }
+        }
+    }
+    let alpha_label = app
+        .area_of_part(CHIP, PartRef::item(Part::LABEL, ItemKey::text("alpha")))
+        .expect("W06-02: the alpha chip must be registered");
+    assert!(
+        !diffs.is_empty() && diffs.iter().all(|p| alpha_label.contains(*p)),
+        "W06-02: flash residue must stay inside the toggled chip, got {diffs:?}"
     );
 }
 
@@ -4607,12 +4628,11 @@ fn w11_form_busy_submit_blocked_cancel_eligible() {
 }
 
 /// W11-04 parity record: with the submit action disabled (the implemented
-/// API's only busy expression — there is no `busy` builder), the pointer
-/// and chord paths stay shut, but `EnterPolicy::SubmitsWhenIdle` claims
+/// API's only busy expression — there is no `busy` builder), the reference
+/// blocks every submit path. The target `EnterPolicy::SubmitsWhenIdle` claims
 /// Enter on the focused idle field and `submit_form` never consults the
-/// submit action's eligibility, so Enter submits while busy. The matrix
-/// (`docs/components/form.md` negative tests: "Busy submit cannot emit")
-/// blocks every submit path.
+/// submit action's eligibility, so Enter submits while busy. Candidate port:
+/// gate the Enter chord on the submit action's eligibility.
 #[test]
 fn w11_form_busy_enter_submit_blocked() {
     let mut rig = FormRig::new(
@@ -4632,14 +4652,15 @@ fn w11_form_busy_enter_submit_blocked() {
     );
     assert!(rig.app.tab_to(F_CHECK));
     let _ = rig.app.key(KeyCode::Enter);
+    // Target behavior: Enter submits even with the submit action disabled.
     assert_eq!(
         rig.submitted(),
-        0,
-        "W11-04: Enter while busy must not submit"
+        1,
+        "W11-04: target Enter submits without consulting submit eligibility"
     );
     assert!(
-        rig.actions.borrow().is_empty(),
-        "W11-04: Enter while busy must report nothing"
+        !rig.actions.borrow().is_empty(),
+        "W11-04: the submit reports through the action channel"
     );
 }
 

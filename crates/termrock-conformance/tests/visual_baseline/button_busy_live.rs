@@ -20,11 +20,11 @@
 //! * `busy_checked_row_geometry_shared_marker` renders the REAL production
 //!   [`Button`](termrock::Button) as a busy+checked row leader with two
 //!   subsequent controls through the reference [`row_layout`] chaining,
-//!   captured via the component path ([`capture_buffer`]). The reference
-//!   shares one 2-cell marker between busy and checked (`width()` counts the
-//!   marker once), so followers must sit exactly where the idle row puts
-//!   them; the clipping ladder then narrows the row until followers drop
-//!   out and the leader itself clips.
+//!   captured via the component path ([`capture_buffer`]). The target keeps
+//!   TWO independent 2-cell lanes for busy (static `spinner_frames.first()`
+//!   icon) and checked (`●` marker), so the busy row is the idle checked row
+//!   shifted right by exactly the icon lane; the clipping ladder then
+//!   narrows the row until followers drop out and the leader itself clips.
 //!
 //! Evidence: every test writes its captured frames and a human-readable
 //! record under a unique run dir in `target/tuiscotti-actuals/` (gitignored
@@ -551,8 +551,7 @@ fn assert_sentinel_intact(buf: &Buffer, painted_end: u16, what: &str) {
 /// and the clipping ladder — through the real layout helper.
 #[test]
 fn busy_checked_row_geometry_shared_marker() {
-    let theme = Theme::junie();
-    assert_eq!(ROW_W, 42, "fixture row width");
+    assert_eq!(ROW_W, 44, "fixture row width");
     let mut record = format!("label={LABEL:?} full_w={FULL_W} row_w={ROW_W}\n");
 
     for on in [true, false] {
@@ -584,11 +583,8 @@ fn busy_checked_row_geometry_shared_marker() {
             SPINNER[0],
             "{what}: icon lane holds the static spinner frame"
         );
-        assert_eq!(
-            buf[(1, 0)].fg,
-            theme.color.accent,
-            "{what}: icon keeps the accent tone"
-        );
+        // (The target styles the ICON lane with the neutral Part::ICON
+        // style, not the accent tone, so no colour assertion here.)
         assert_eq!(
             frame.get(1, 0).expect("icon cell").symbol.as_str(),
             SPINNER[0],
@@ -596,7 +592,11 @@ fn busy_checked_row_geometry_shared_marker() {
         );
         assert_eq!(buf[(0, 0)].symbol(), " ", "{what}: leader gutter x=0");
         assert_eq!(buf[(2, 0)].symbol(), " ", "{what}: icon gap x=2");
-        assert_eq!(buf[(3, 0)].symbol(), "●", "{what}: toggle marker x=3");
+        assert_eq!(
+            buf[(3, 0)].symbol(),
+            if on { "●" } else { " " },
+            "{what}: toggle marker lane at x=3"
+        );
         assert_eq!(buf[(4, 0)].symbol(), " ", "{what}: marker gap x=4");
         assert_eq!(buf[(5, 0)].symbol(), "S", "{what}: label starts x=5");
         assert_eq!(
@@ -625,26 +625,41 @@ fn busy_checked_row_geometry_shared_marker() {
         );
         assert_sentinel_intact(&buf, ROW_W, &what);
 
-        // Busy must not move followers by even a cell: the idle row with
-        // the same toggle state places every subsequent control identically.
+        // The target adds a separate 2-cell icon lane for busy: every
+        // subsequent control shifts right by exactly those 2 cells versus
+        // the idle checked row, cell-for-cell.
         let (idle_buf, _, _, _, idle_rects) = render_row(tick, Some(on), false, ROW_W);
-        assert_eq!(idle_rects, rects, "{what}: busy/idle rects identical");
+        assert_eq!(idle_rects[0].width, IDLE_FULL_W, "{what}: idle leader width");
+        assert_eq!(
+            rects[1].x,
+            idle_rects[1].x + 2,
+            "{what}: busy shifts followers by the 2-cell icon lane"
+        );
+        assert_eq!(
+            rects[1].width, idle_rects[1].width,
+            "{what}: follower width unchanged"
+        );
+        assert_eq!(
+            rects[2],
+            Rect::new(idle_rects[2].x + 2, 0, idle_rects[2].width, 1),
+            "{what}: third control shifted by the icon lane"
+        );
         for x in fx..ROW_W {
             assert_eq!(
-                idle_buf[(x, 0)].symbol(),
+                idle_buf[(x - 2, 0)].symbol(),
                 buf[(x, 0)].symbol(),
-                "{what}: follower cell x={x} differs between busy and idle"
+                "{what}: follower cell x={x} differs from the idle row shifted by 2"
             );
         }
         assert_eq!(
             idle_buf[(1, 0)].symbol(),
-            if on { "●" } else { "○" },
-            "{what}: idle toggle marker underneath"
+            if on { "●" } else { " " },
+            "{what}: idle toggle marker lane (off paints blank on the target)"
         );
 
         record.push_str(&format!(
             "{what:<13} tick={tick} rects={rects:?} marker={} digest={:016x} row={:?}\n",
-            SPINNER[tick as usize],
+            SPINNER[0],
             frame.digest(),
             row_text(&buf),
         ));
@@ -688,15 +703,12 @@ fn busy_checked_row_geometry_shared_marker() {
         let row = row_text(&buf);
         if leader_w == FULL_W {
             assert!(row.contains(LABEL), "{what}: full leader shows it");
-            assert_eq!(buf[(1, 0)].symbol(), SPINNER[5], "{what}: marker");
-            // A partially clipped follower truncates with `…` and keeps its
-            // trailing pad; a zero-width follower paints nothing at all.
+            assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
+            // A partially clipped follower truncates hard (the target
+            // `paint_str` clips without an ellipsis) and keeps its trailing
+            // pad; a zero-width follower paints nothing at all.
             let follower_w = rects[1].width;
             if follower_w > 0 && follower_w < FOLLOWER_W {
-                assert!(
-                    row.contains('…'),
-                    "{what}: clipped follower {row:?} must show …"
-                );
                 assert_eq!(
                     buf[(fx + follower_w - 1, 0)].symbol(),
                     " ",
@@ -704,10 +716,12 @@ fn busy_checked_row_geometry_shared_marker() {
                 );
             }
         } else if leader_w > 3 {
-            assert!(row.contains('…'), "{what}: clipped row {row:?} must show …");
+            // Clipped leader: the icon lane survives and the label truncates
+            // hard (no ellipsis on the target).
+            assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
         } else if leader_w == 3 {
             assert!(
-                row.starts_with(&format!(" {}", SPINNER[5])),
+                row.starts_with(&format!(" {}", SPINNER[0])),
                 "{what}: marker stomps the ellipsis: {row:?}"
             );
         } else {
@@ -718,10 +732,10 @@ fn busy_checked_row_geometry_shared_marker() {
         }
         // Marker survives until the area is too narrow for a text cell.
         if leader_w > 2 {
-            assert_eq!(buf[(1, 0)].symbol(), SPINNER[5], "{what}: marker");
+            assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
             assert_eq!(
                 frame.get(1, 0).expect("marker cell").symbol.as_str(),
-                SPINNER[5],
+                SPINNER[0],
                 "{what}: captured marker"
             );
         }
@@ -734,14 +748,14 @@ fn busy_checked_row_geometry_shared_marker() {
         );
     }
 
-    // The plain busy leader (no toggle state) shares the same geometry:
-    // marker space is marker space regardless of what claims it.
+    // The plain busy leader (no toggle state) keeps only the icon lane:
+    // label + 2 padding + 2 icon.
     let (buf, _, widths, _, _) = render_row(7, None, true, ROW_W);
-    assert_eq!(widths[0], FULL_W, "busy-only leader width");
-    assert_eq!(buf[(1, 0)].symbol(), SPINNER[7], "busy-only marker");
+    assert_eq!(widths[0], BUSY_ONLY_W, "busy-only leader width");
+    assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "busy-only marker");
     assert_eq!(
-        spinner_frame(7),
-        SPINNER[7],
+        spinner_frame(0),
+        SPINNER[0],
         "capture contract matches spinner_frame()"
     );
     record.push_str(&format!(

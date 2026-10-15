@@ -234,7 +234,6 @@ impl core::fmt::Debug for Cx<'_> {
 
 impl<'f> Cx<'f> {
     #[cfg(test)]
-    #[cfg(any(test, feature = "testing"))]
     pub fn new(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
@@ -254,7 +253,6 @@ impl<'f> Cx<'f> {
         )
     }
 
-    #[cfg(any(test, feature = "testing"))]
     pub fn new_with_cause(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
