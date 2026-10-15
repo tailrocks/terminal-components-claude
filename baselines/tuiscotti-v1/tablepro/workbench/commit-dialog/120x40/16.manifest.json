@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "6bccc686b4d54f2a5bf037affe8f588967f945d8a2d74718b7e20f9f660e2cbe",
+  "artifacts": {
+    "ansi": {
+      "bytes": 19019,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.ansi",
+      "sha256": "6bccc686b4d54f2a5bf037affe8f588967f945d8a2d74718b7e20f9f660e2cbe"
+    },
+    "ascii": {
+      "bytes": 4559,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.ascii",
+      "sha256": "7af11f2c3fb56f477831c983bda568dd398e1ec17c3f8dbb3e8753bfc8a409f1"
+    },
+    "ascii_loss_json": {
+      "bytes": 70698,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.ascii.loss.json",
+      "sha256": "12aeb05f08b43bea9497c979f11ed148b8fa32b5fa2bbb957b3cd0a7554423b3"
+    },
+    "frame_json": {
+      "bytes": 1114817,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.frame.json",
+      "sha256": "71506080fe031981085c49faf5e4daa6dbd559ae7967092e8fa496f6e605b06f"
+    },
+    "html": {
+      "bytes": 824994,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.html",
+      "sha256": "b968db7f00fbf6e22ddc052edfb670d03c561bdbf7ddb9f000cb03af443070f2"
+    },
+    "observations_json": {
+      "bytes": 468,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.observations.json",
+      "sha256": "25da7cc9b975722de22513b8a0f03a0bab820b62afe5d4cfcdeacc91b18308df"
+    },
+    "png": {
+      "bytes": 577648,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.png",
+      "sha256": "a995a17bf5bc3bdb0e9545d80cce8c2173859d104088b4862f48a1270488ddf3"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 6070,
+      "file": "tablepro/workbench/commit-dialog/120x40/16.txt",
+      "sha256": "f8b22ec5f7fab909c06a059d36de703a3df93d5b70b86126fb0101e30c9f5335"
+    }
+  },
+  "ascii_substitutions_count": 762,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 12691658159489692544,
+  "frame_sha256": "71506080fe031981085c49faf5e4daa6dbd559ae7967092e8fa496f6e605b06f",
+  "generation": "0dc0eea6ec627f418ed1f0e10d3916b0c4ccebedb0ff9fca134e39fb60497ebf",
+  "html_sha256": "b968db7f00fbf6e22ddc052edfb670d03c561bdbf7ddb9f000cb03af443070f2",
+  "legacy_name": "tablepro/workbench/commit_dialog/120x40/16",
+  "name": "tablepro/workbench/commit-dialog/120x40/16",
+  "png_sha256": "a995a17bf5bc3bdb0e9545d80cce8c2173859d104088b4862f48a1270488ddf3",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:19Z",
+  "txt_sha256": "f8b22ec5f7fab909c06a059d36de703a3df93d5b70b86126fb0101e30c9f5335"
+}

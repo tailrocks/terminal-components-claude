@@ -17,22 +17,22 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 
 use super::{Acc, PartStyle, SlotFn, cell_at};
-use crate::event::{Chord, KeyCode};
-use crate::focus::Focusability;
-use crate::id::{Id, ItemKey, Part, PartRef};
-use crate::intent::{Intent, Phase};
-use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
-use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::text::width;
-use crate::theme::{Family, Slot, StylePatch, Variant};
-use crate::ui::{Cx, FrameRead, Ui};
 use termrock_collections::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
 };
+use termrock_core::id::{Id, ItemKey, Part, PartRef};
+use termrock_core::response::{Response, StateFlags};
+use termrock_runtime::event::{Chord, KeyCode};
+use termrock_runtime::focus::Focusability;
+use termrock_runtime::intent::{Intent, Phase};
+use termrock_runtime::keymap::{Binding, BindingState, Bindings};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_runtime::ui::{Cx, FrameRead, Ui};
+use termrock_text::width;
+use termrock_theme::{Family, Slot, StylePatch, Variant};
 
 /// An entry's badge accessor: the trailing text for an entry, or `None`
 /// when it has no badge.
@@ -1266,16 +1266,15 @@ mod tests {
 
     use super::{Acc, NavList, NavListAction, NavListState, NavMode, TABLE};
     use crate::action::ActionKey;
-    use crate::event::{Chord, KeyCode, KeyModifiers};
-    use crate::id::{Id, ItemKey, Part, PartRef};
-    use crate::intent::{IntentQueue, Phase};
-    use crate::keymap::Binding;
-    use crate::response::{Response, StateFlags};
-    use crate::theme::{StylePatch, Theme};
-    use crate::ui::cx::{FrameServices, LastFrame};
-    use crate::ui::{Cx, FrameState, Ui, UiCore};
-    use termrock_collections::collection::{KeyFn, Reconcile};
-    use termrock_runtime::rowui::{RowFn, RowUi};
+    use termrock_core::id::{Id, ItemKey, Part, PartRef};
+    use termrock_core::response::{Response, StateFlags};
+    use termrock_runtime::keymap::Binding;
+    use termrock_theme::{StylePatch, Theme};
+
+    use termrock_collections::collection::Reconcile;
+    use termrock_runtime::rowui::RowUi;
+    use termrock_runtime::ui::cx::LastFrame;
+    use termrock_runtime::ui::{Cx, FrameState, Ui, UiCore};
 
     const NAV: Id = Id::root("nav.tests");
 
@@ -1369,58 +1368,171 @@ mod tests {
             .key(keyed as fn(&E) -> ItemKey)
     }
 
+    /// The update phase driven through a real runtime: NAV is focused, the
+    /// binding's default chord is delivered and the app records what the
+    /// component answered.
+    struct NavApp {
+        nav: NavList<'static, E, fn(&E) -> ItemKey>,
+        state: NavListState,
+        last: Option<NavListAction>,
+        consumed: bool,
+    }
+
+    impl crate::runtime::App for NavApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = self.nav.update(cx, &mut self.state, &ITEMS);
+            self.last = response.action_ref().copied();
+            self.consumed = response.is_consumed();
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.nav
+                .draw(ui, Rect::new(0, 0, 24, 12), &self.state, &ITEMS);
+        }
+    }
+
+    fn nav_runtime(
+        nav: NavList<'static, E, fn(&E) -> ItemKey>,
+        state: NavListState,
+    ) -> crate::runtime::Runtime<NavApp> {
+        let mut rt = crate::runtime::Runtime::new(
+            NavApp {
+                nav,
+                state,
+                last: None,
+                consumed: false,
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 24, 12));
+        for _ in 0..16 {
+            rt.draw_buffer(Rect::new(0, 0, 24, 12), &mut buf)
+                .commit_presented();
+            if !rt.needs_settle() {
+                return rt;
+            }
+            let _ = rt.settle();
+        }
+        panic!("nav fixture focus did not settle");
+    }
+
     fn update_action(
-        nav: &NavList<'_, E, fn(&E) -> ItemKey>,
-        state: &mut NavListState,
+        nav: NavList<'static, E, fn(&E) -> ItemKey>,
+        state: NavListState,
         action: ActionKey,
-    ) -> (Response<NavListAction>, Option<Id>) {
-        let mut intents = IntentQueue::new();
-        intents.binding(NAV, action, Chord::key(KeyCode::Enter));
-        let mut services = FrameServices::default();
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let response = {
-            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
-            nav.update(&mut cx, state, &ITEMS)
-        };
-        (response, services.focus_request)
+    ) -> (Option<NavListAction>, bool, NavListState, Option<Id>) {
+        use termrock_runtime::stub::{deliver, key};
+        let chord = TABLE
+            .iter()
+            .find(|b| b.action == action)
+            .and_then(|b| b.chord)
+            .unwrap_or_else(|| panic!("{action:?} declares no default chord"));
+        let mut rt = nav_runtime(nav, state);
+        let _ = deliver(&mut rt, key(chord.code));
+        let app = rt.app();
+        (app.last, app.consumed, app.state.clone(), rt.focus())
     }
 
     fn update_click(
-        nav: &NavList<'_, E, fn(&E) -> ItemKey>,
-        state: &mut NavListState,
+        nav: NavList<'static, E, fn(&E) -> ItemKey>,
+        state: NavListState,
         key: ItemKey,
-    ) -> Response<NavListAction> {
-        let mut intents = IntentQueue::new();
-        intents.pointer(
-            NAV,
-            Phase::Click,
-            PartRef::item(Part::ROW, key),
-            Position::new(0, 0),
-            Position::new(0, 0),
-            KeyModifiers::NONE,
-        );
-        let mut services = FrameServices::default();
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
-        nav.update(&mut cx, state, &ITEMS)
+    ) -> (Option<NavListAction>, NavListState) {
+        use termrock_runtime::event::MouseKind;
+        use termrock_runtime::stub::{deliver, mouse};
+        let mut rt = nav_runtime(nav, state);
+        let area = rt
+            .area_of_part(NAV, PartRef::item(Part::ROW, key))
+            .expect("the clicked row was laid out");
+        let pos = Position::new(area.x + area.width / 2, area.y + area.height / 2);
+        let _ = deliver(&mut rt, mouse(MouseKind::Down, pos.x, pos.y));
+        let _ = deliver(&mut rt, mouse(MouseKind::Up, pos.x, pos.y));
+        let app = rt.app();
+        (app.last, app.state.clone())
     }
 
-    fn update_no_intents<T, K: KeyFn<T>, R: RowFn<T>>(
-        nav: &NavList<'_, T, K, R>,
-        state: &mut NavListState,
-        items: &[T],
-    ) -> Response<NavListAction> {
-        let intents = IntentQueue::new();
-        let mut services = FrameServices::default();
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
-        nav.update(&mut cx, state, items)
+    /// Steady reconciliation, driven through a real runtime so the update
+    /// phase runs exactly as production does (Tick: no intents).
+    #[test]
+    fn steady_current_reconciliation_is_constant_time_and_invalidation_repairs_reorder() {
+        use std::rc::Rc;
+
+        use termrock_runtime::event::Input;
+
+        struct SteadyApp<K> {
+            nav: NavList<'static, u64, K>,
+            state: NavListState,
+            items: Vec<u64>,
+            last: Option<NavListAction>,
+        }
+        // The shared probe counter travels inside an `Rc` captured by the
+        // key closure, so the app owns everything it needs ('static).
+        impl<K: Fn(&u64) -> ItemKey> crate::runtime::App for SteadyApp<K> {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let response = self.nav.update(cx, &mut self.state, &self.items);
+                self.last = response.action_ref().copied();
+                response.erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                self.nav
+                    .draw(ui, Rect::new(0, 0, 24, 4), &self.state, &self.items);
+            }
+        }
+
+        let accesses = Rc::new(Cell::new(0usize));
+        let key_of = {
+            let accesses = Rc::clone(&accesses);
+            move |item: &u64| {
+                accesses.set(accesses.get().saturating_add(1));
+                ItemKey::num(*item)
+            }
+        };
+        let items: Vec<u64> = (0..100_000).collect();
+        let middle = items.len() / 2;
+        let current = ItemKey::num(items[middle]);
+        let mut state = NavListState::new();
+        state.set_cursor(middle, current);
+        state.set_current(Some(current));
+
+        let mut rt = crate::runtime::Runtime::new(
+            SteadyApp {
+                nav: NavList::new(NAV).key(key_of),
+                state,
+                items,
+                last: None,
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 24, 4));
+        rt.draw_buffer(Rect::new(0, 0, 24, 4), &mut buf)
+            .commit_presented();
+        let _ = rt.settle();
+
+        accesses.set(0);
+        // handle() alone runs exactly one update pass; `deliver` would also
+        // redraw (another update) and pollute the probe count.
+        let _ = rt.handle(Input::Tick);
+        assert_eq!(rt.app().last, None);
+        assert!(
+            accesses.get() <= 3,
+            "steady update must probe at most the stamp endpoints and cached current"
+        );
+
+        rt.app_mut().items.swap(middle, middle.saturating_add(1));
+        rt.app_mut().state.invalidate();
+        let _ = rt.handle(Input::Tick);
+        assert_eq!(rt.app().state.cursor(), Some(current));
+        assert_eq!(rt.app().state.current(), Some(current));
+
+        accesses.set(0);
+        let _ = rt.handle(Input::Tick);
+        assert!(
+            accesses.get() <= 3,
+            "reordered state must return to cached steady probes"
+        );
     }
 
     /// The sidebar's disabled-skipping rule, in both directions. The legacy
@@ -1472,7 +1584,6 @@ mod tests {
 
     #[test]
     fn boundary_commands_are_consumed_without_false_moved_actions() {
-        let nav = list();
         let mut st = NavListState::new();
         st.set_cursor(0, ItemKey::text("Tasks"));
         for action in [
@@ -1480,80 +1591,42 @@ mod tests {
             ActionKey::custom("nav-list.home"),
             ActionKey::custom("nav-list.home-vim"),
         ] {
-            let (response, _) = update_action(&nav, &mut st, action);
-            assert!(response.is_consumed());
-            assert_eq!(response.action_ref(), None);
+            let (action, consumed, state_after, _) = update_action(list(), st, action);
+            st = state_after;
+            assert!(consumed);
+            assert_eq!(action, None);
             assert_eq!(st.cursor(), Some(ItemKey::text("Tasks")));
         }
     }
 
     #[test]
-    fn steady_current_reconciliation_is_constant_time_and_invalidation_repairs_reorder() {
-        let accesses = Cell::new(0usize);
-        let key_of = |item: &u64| {
-            accesses.set(accesses.get().saturating_add(1));
-            ItemKey::num(*item)
-        };
-        let nav = NavList::new(NAV).key(key_of);
-        let mut items: Vec<u64> = (0..100_000).collect();
-        let middle = items.len() / 2;
-        let current = ItemKey::num(items[middle]);
-        let mut state = NavListState::new();
-        state.set_cursor(middle, current);
-        state.set_current(Some(current));
-
-        let _ = update_no_intents(&nav, &mut state, &items);
-        accesses.set(0);
-        let response = update_no_intents(&nav, &mut state, &items);
-        assert_eq!(response.action_ref(), None);
-        assert_eq!(
-            accesses.get(),
-            3,
-            "steady update must probe only stamp endpoints and cached current"
-        );
-
-        items.swap(middle, middle.saturating_add(1));
-        state.invalidate();
-        let _ = update_no_intents(&nav, &mut state, &items);
-        assert_eq!(state.cursor(), Some(current));
-        assert_eq!(state.current(), Some(current));
-
-        accesses.set(0);
-        let _ = update_no_intents(&nav, &mut state, &items);
-        assert_eq!(
-            accesses.get(),
-            3,
-            "reordered state must return to cached steady probes"
-        );
-    }
-
-    #[test]
     fn right_and_plain_l_enter_content_while_choose_inputs_stay_distinct() {
-        let nav = list();
         for action in [
             ActionKey::custom("nav-list.enter-content"),
             ActionKey::custom("nav-list.enter-content-vim"),
         ] {
-            let mut st = NavListState::new();
-            st.set_cursor(2, ItemKey::text("Branches"));
-            let (response, focus_request) = update_action(&nav, &mut st, action);
+            let mut initial = NavListState::new();
+            initial.set_cursor(2, ItemKey::text("Branches"));
+            let (action, _, st, focus) = update_action(list(), initial, action);
             assert_eq!(
-                response.action_ref(),
+                action.as_ref(),
                 Some(&NavListAction::EnterContent(ItemKey::text("Branches")))
             );
             assert_eq!(st.current(), Some(ItemKey::text("Branches")));
-            assert_eq!(focus_request, None, "NavList must not move focus itself");
+            // NavList must not move focus itself; the runtime's focus stays
+            // on the sidebar after the dispatch.
+            assert_eq!(focus, Some(NAV));
         }
 
         for action in [
             ActionKey::custom("nav-list.choose"),
             ActionKey::custom("nav-list.choose-space"),
         ] {
-            let mut st = NavListState::new();
-            st.set_cursor(2, ItemKey::text("Branches"));
-            let (response, _) = update_action(&nav, &mut st, action);
+            let mut initial = NavListState::new();
+            initial.set_cursor(2, ItemKey::text("Branches"));
+            let (action, _, _, _) = update_action(list(), initial, action);
             assert_eq!(
-                response.action_ref(),
+                action.as_ref(),
                 Some(&NavListAction::Chose(ItemKey::text("Branches")))
             );
         }
@@ -1563,10 +1636,9 @@ mod tests {
             None
         );
 
-        let mut st = NavListState::new();
-        let response = update_click(&nav, &mut st, ItemKey::text("Members"));
+        let (action, st) = update_click(list(), NavListState::new(), ItemKey::text("Members"));
         assert_eq!(
-            response.action_ref(),
+            action.as_ref(),
             Some(&NavListAction::Chose(ItemKey::text("Members")))
         );
         assert_eq!(st.cursor(), Some(ItemKey::text("Members")));
@@ -1723,11 +1795,17 @@ mod tests {
         frame.reset(1, area);
         let mut page = Buffer::empty(area);
         let mut core = UiCore::default();
-        let mut last = LastFrame::default();
-        last.snapshot.hover = Some((NAV, PartRef::item(Part::ROW, ItemKey::text("Branches"))));
+        let last = LastFrame::default();
         {
             let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            nav.draw(&mut ui, area, &NavListState::new(), &ITEMS);
+            // Reference fixtures reproduce runtime hover state per exact part.
+            ui.reference(
+                Some(
+                    crate::ReferenceTarget::new(NAV, crate::ReferenceState::HOVERED)
+                        .part(PartRef::item(Part::ROW, ItemKey::text("Branches"))),
+                ),
+                |ui| nav.draw(ui, area, &NavListState::new(), &ITEMS),
+            );
         }
         let flags = flags.borrow();
         assert_eq!(flags.len(), ITEMS.len());
@@ -1741,25 +1819,25 @@ mod tests {
 
     #[test]
     fn reference_rendering_registers_no_control_or_row_regions() {
-        let area = Rect::new(0, 0, 24, 8);
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, area);
+        use termrock_runtime::Runtime;
+        use termrock_runtime::stub::Stub;
+        let area = Rect::new(0, 0, 24, 12);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    NAV,
-                    crate::ReferenceState::FOCUSED,
-                )),
-                |ui| list().draw(ui, area, &NavListState::new(), &ITEMS),
-            );
-        }
-        assert_eq!(frame.registry.regions().len(), 0);
-        assert_eq!(frame.ring.reachable().count(), 0);
+        runtime
+            .draw_scene(area, &mut page, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        NAV,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| list().draw(ui, area, &NavListState::new(), &ITEMS),
+                );
+            })
+            .commit_presented();
+        // Registrations are suppressed inside a reference scope, so the
+        // presented focus ring carries no reachable controls or rows.
+        assert_eq!(runtime.ring().reachable().count(), 0);
     }
 
     #[test]

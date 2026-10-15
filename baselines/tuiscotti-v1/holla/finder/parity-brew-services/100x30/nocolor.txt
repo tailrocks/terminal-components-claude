@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                    scope ‹ here ›
+
+
+    Recent here
+    nothing used here yet
+
+    Explore
+ ▎  ›Tasks   Git   Files   Disk   Services   System
+    System · mbp  explore  host  available on this host
+
+
+
+
+
+
+
+
+
+
+
+
+
+    → opens inside holla · here · read-only
+
+ ~/work                                                                           no color · 100×30
+ Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

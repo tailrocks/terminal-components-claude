@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "da016e5ff7fe7aa14338f8045564a1f0105423338d662341b2d9851a03b3a296",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4125,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.ansi",
+      "sha256": "da016e5ff7fe7aa14338f8045564a1f0105423338d662341b2d9851a03b3a296"
+    },
+    "ascii": {
+      "bytes": 905,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.ascii",
+      "sha256": "77c1a3ec0ef9b1fd0151d4c724f64469bc0a51587d7bc90433ae053d3d203586"
+    },
+    "ascii_loss_json": {
+      "bytes": 8254,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.ascii.loss.json",
+      "sha256": "37f2c71feba0708adb1ecf4118861df19ddeb7c6062b06b0757f3e4793b68522"
+    },
+    "frame_json": {
+      "bytes": 334817,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.frame.json",
+      "sha256": "56065695ae75bdd3464d839fb52fe4221b4db1ed7ffc1e3dee47d254f68701eb"
+    },
+    "html": {
+      "bytes": 336566,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.html",
+      "sha256": "be97fb5806feee480185368e6efa929b7a28feda048096626c743b6a7fe5f550"
+    },
+    "observations_json": {
+      "bytes": 463,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.observations.json",
+      "sha256": "33de81b2ad7281709708c05b9f2032b0040edfd714c6182ebd4f5261ab6f2bd9"
+    },
+    "png": {
+      "bytes": 243325,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.png",
+      "sha256": "bbb4dcced1ca3d81bb39f45ec6a6ffe375fc733de278f3268be8de1a229973c6"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1077,
+      "file": "holla/finder/concept-docker-cleanup/72x20/16.txt",
+      "sha256": "fefced2dfb31cfccf5c043e4d623222862dbfe95edfe2e26ff8d52fdc2e1f377"
+    }
+  },
+  "ascii_substitutions_count": 89,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 16693211284549815272,
+  "frame_sha256": "56065695ae75bdd3464d839fb52fe4221b4db1ed7ffc1e3dee47d254f68701eb",
+  "generation": "368af2e63e13e34a9c02d201899f17317a13f841afde1082b9ac37982c14c4e0",
+  "html_sha256": "be97fb5806feee480185368e6efa929b7a28feda048096626c743b6a7fe5f550",
+  "legacy_name": "holla/concept/docker-cleanup/72x20/16",
+  "name": "holla/finder/concept-docker-cleanup/72x20/16",
+  "png_sha256": "bbb4dcced1ca3d81bb39f45ec6a6ffe375fc733de278f3268be8de1a229973c6",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:47Z",
+  "txt_sha256": "fefced2dfb31cfccf5c043e4d623222862dbfe95edfe2e26ff8d52fdc2e1f377"
+}

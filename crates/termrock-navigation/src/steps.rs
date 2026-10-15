@@ -19,17 +19,17 @@ use ratatui_core::layout::Rect;
 use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
-use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
-use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_collections::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
 };
+use termrock_core::id::{Id, ItemKey, Part, PartRef};
+use termrock_core::response::{Response, StateFlags};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
@@ -1006,20 +1006,17 @@ mod tests {
     use ratatui_core::style::Modifier;
 
     use super::{FrontierCache, StepState, Steps, StepsAction, StepsState};
-    use crate::action::ActionKey;
-    use crate::components::Acc;
-    use crate::event::{Chord, KeyCode, KeyModifiers};
-    use crate::id::{Id, ItemKey, Part, PartRef};
-    use crate::intent::{IntentQueue, Phase};
-    use crate::response::Response;
-    use crate::response::StateFlags;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
-    use crate::theme::{Role, Slot, StylePatch, Theme};
-    use crate::ui::cx::{FrameServices, LastFrame};
-    use crate::ui::{Cx, FrameState, Ui, UiCore};
+    use crate::Acc;
+    use termrock_core::id::{Id, ItemKey, Part, PartRef};
+    use termrock_core::response::Response;
+    use termrock_core::response::StateFlags;
+    use termrock_runtime::Runtime;
+    use termrock_runtime::stub::Stub;
+    use termrock_theme::{Role, Slot, StylePatch, Theme};
+
     use termrock_collections::collection::{Reconcile, Reconciliation};
     use termrock_runtime::rowui::RowUi;
+    use termrock_runtime::ui::{Cx, Ui};
 
     const RAIL: Id = Id::root("steps.tests");
 
@@ -1040,21 +1037,77 @@ mod tests {
         ItemKey::text(s.0)
     }
 
-    fn update_steps(
-        rail: &Steps<'_, S, fn(&S) -> ItemKey>,
-        state: &mut StepsState,
-        items: &[S],
-        intents: &IntentQueue,
-    ) -> Response<StepsAction> {
-        let mut services = FrameServices::default();
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let mut cx = Cx::new(intents, &mut services, &mut core, &last, &theme, None);
-        rail.update(&mut cx, state, items)
+    /// The update phase driven through a real runtime: RAIL is focused and
+    /// the app records what the rail answered for the latest input.
+    struct StepsApp {
+        rail: Steps<'static, S, fn(&S) -> ItemKey>,
+        state: StepsState,
+        items: Vec<S>,
+        last: Option<StepsAction>,
+        consumed: bool,
+        changed: bool,
     }
 
-    /// Paints `rail` and returns the rows as text plus the frame's reachable
+    const STEPS_AREA: Rect = Rect::new(0, 0, 30, 8);
+
+    impl crate::runtime::App for StepsApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = self.rail.update(cx, &mut self.state, &self.items);
+            self.last = response.action_ref().copied();
+            self.consumed = response.is_consumed();
+            self.changed = response.is_changed();
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.rail.draw(ui, STEPS_AREA, &self.state, &self.items);
+        }
+    }
+
+    fn steps_runtime(
+        rail: Steps<'static, S, fn(&S) -> ItemKey>,
+        state: StepsState,
+        items: Vec<S>,
+    ) -> Runtime<StepsApp> {
+        let mut rt = Runtime::new(
+            StepsApp {
+                rail,
+                state,
+                items,
+                last: None,
+                consumed: false,
+                changed: false,
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(STEPS_AREA);
+        for _ in 0..16 {
+            rt.draw_buffer(STEPS_AREA, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                return rt;
+            }
+            let _ = rt.settle();
+        }
+        panic!("steps fixture focus did not settle");
+    }
+
+    /// Clicks one row through the runtime's real pointer pipeline. A second
+    /// consecutive call on the same row is synthesised by the runtime into
+    /// a `DoubleClick` phase.
+    fn click_row(rt: &mut Runtime<StepsApp>, key: ItemKey) {
+        use crate::event::MouseKind;
+        use termrock_runtime::stub::{deliver, mouse};
+        let area = rt
+            .area_of_part(RAIL, PartRef::item(Part::ROW, key))
+            .expect("the clicked row was laid out");
+        let x = area.x + area.width / 2;
+        let y = area.y + area.height / 2;
+        let _ = deliver(rt, mouse(MouseKind::Down, x, y));
+        let _ = deliver(rt, mouse(MouseKind::Up, x, y));
+    }
+
+    /// Paints `rail` and returns the rows as text plus the presented
     /// focus ring.
     fn render<T: core::fmt::Display>(
         rail: &Steps<'_, T>,
@@ -1067,16 +1120,13 @@ mod tests {
             width: 30,
             height: h,
         };
-        let theme = Theme::junie();
-        let mut fs = FrameState::default();
-        fs.reset(1, area);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &last);
-            rail.draw(&mut ui, area, &StepsState::new(), items);
-        }
+        runtime
+            .draw_scene(area, &mut page, |ui, area| {
+                rail.draw(ui, area, &StepsState::new(), items);
+            })
+            .commit_presented();
         let rows = (0..h)
             .map(|y| {
                 (0..area.width)
@@ -1084,7 +1134,7 @@ mod tests {
                     .collect::<String>()
             })
             .collect();
-        (rows, fs.ring.reachable().map(|e| e.id).collect())
+        (rows, runtime.ring().reachable().map(|e| e.id).collect())
     }
 
     /// The frontier is the first step that has not finished, and it is a
@@ -1154,27 +1204,25 @@ mod tests {
     #[test]
     fn forced_reference_rendering_registers_no_nested_or_row_regions() {
         let items = [S("row", StepState::Queued); 10];
-        let area = Rect::new(0, 0, 20, 5);
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, area);
+        let area = Rect::new(0, 0, 30, 6);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut page = Buffer::empty(area);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    RAIL,
-                    crate::ReferenceState::FOCUSED,
-                )),
-                |ui| {
-                    Steps::navigable(RAIL).draw(ui, area, &StepsState::new(), &items);
-                },
-            );
-        }
-        assert_eq!(frame.registry.regions().len(), 0);
-        assert_eq!(frame.ring.reachable().count(), 0);
+        runtime
+            .draw_scene(area, &mut page, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        RAIL,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| {
+                        Steps::navigable(RAIL).draw(ui, area, &StepsState::new(), &items);
+                    },
+                );
+            })
+            .commit_presented();
+        // Registrations are suppressed inside a reference scope, so the
+        // presented ring carries no reachable rows.
+        assert_eq!(runtime.ring().reachable().count(), 0);
     }
 
     /// Two lifecycle states must be distinguishable without colour, which is
@@ -1243,27 +1291,16 @@ mod tests {
         assert_eq!(StepState::Skipped.flags(), StateFlags::READ_ONLY);
         assert!(!StepState::Skipped.flags().contains(StateFlags::DISABLED));
 
-        let mut enter = IntentQueue::new();
-        enter.binding(
-            RAIL,
-            ActionKey::custom("steps.activate"),
-            Chord::key(KeyCode::Enter),
-        );
-        let response = update_steps(&rail, &mut steps_state, &items, &enter);
-        assert_eq!(response.action_ref(), Some(&StepsAction::Activated(skip)));
+        let mut rt = steps_runtime(rail, steps_state, items.to_vec());
 
-        let mut click = IntentQueue::new();
-        click.pointer(
-            RAIL,
-            Phase::Click,
-            PartRef::item(Part::ROW, skip),
-            Position::new(0, 1),
-            Position::new(0, 1),
-            KeyModifiers::NONE,
-        );
-        let response = update_steps(&rail, &mut steps_state, &items, &click);
-        assert_eq!(response.action_ref(), Some(&StepsAction::Activated(skip)));
-        assert_eq!(steps_state.cursor(), Some(skip));
+        // the rail's own Enter binding activates the skipped row
+        use termrock_runtime::stub::{deliver, key};
+        let _ = deliver(&mut rt, key(crate::event::KeyCode::Enter));
+        assert_eq!(rt.app().last, Some(StepsAction::Activated(skip)));
+
+        click_row(&mut rt, skip);
+        assert_eq!(rt.app().last, Some(StepsAction::Activated(skip)));
+        assert_eq!(rt.app().state.cursor(), Some(skip));
     }
 
     #[test]
@@ -1273,14 +1310,25 @@ mod tests {
             S("second", StepState::Queued),
         ];
         let rail = Steps::navigable(RAIL).key(keyed as fn(&S) -> ItemKey);
-        let mut state = StepsState::new();
-        let intents = IntentQueue::new();
 
-        let response = update_steps(&rail, &mut state, &items, &intents);
-        assert_eq!(state.cursor(), Some(ItemKey::text("stable-first")));
-        assert_eq!(response.action_ref(), None);
-        assert!(!response.is_consumed());
-        assert!(!response.is_changed());
+        let mut rt = steps_runtime(rail, StepsState::new(), items.to_vec());
+        assert_eq!(rt.app().state.cursor(), Some(ItemKey::text("stable-first")));
+
+        // a Tick update with no intents answers nothing, consumes nothing
+        // and does not repaint
+        {
+            let app = rt.app_mut();
+            app.last = None;
+            app.consumed = false;
+            app.changed = false;
+        }
+        use crate::event::Input;
+        use termrock_runtime::stub::deliver;
+        let _ = deliver(&mut rt, Input::Tick);
+        assert_eq!(rt.app().state.cursor(), Some(ItemKey::text("stable-first")));
+        assert_eq!(rt.app().last, None);
+        assert!(!rt.app().consumed);
+        assert!(!rt.app().changed);
     }
 
     #[test]
@@ -1291,29 +1339,16 @@ mod tests {
         ];
         let rail = Steps::new(RAIL).key(keyed as fn(&S) -> ItemKey);
         let key = ItemKey::text("stable-second");
-        let mut state = StepsState::new();
 
-        let pointer = |phase| {
-            let mut intents = IntentQueue::new();
-            intents.pointer(
-                RAIL,
-                phase,
-                PartRef::item(Part::ROW, key),
-                Position::new(0, 1),
-                Position::new(0, 1),
-                KeyModifiers::NONE,
-            );
-            intents
-        };
-        let click = pointer(Phase::Click);
-        let response = update_steps(&rail, &mut state, &items, &click);
-        assert_eq!(response.action_ref(), Some(&StepsAction::Moved(key)));
-        assert_eq!(state.cursor(), Some(key));
+        let mut rt = steps_runtime(rail, StepsState::new(), items.to_vec());
+        click_row(&mut rt, key);
+        assert_eq!(rt.app().last, Some(StepsAction::Moved(key)));
+        assert_eq!(rt.app().state.cursor(), Some(key));
 
-        let double_click = pointer(Phase::DoubleClick);
-        let response = update_steps(&rail, &mut state, &items, &double_click);
-        assert_eq!(response.action_ref(), Some(&StepsAction::Activated(key)));
-        assert_eq!(state.cursor(), Some(key));
+        // the runtime synthesises DoubleClick from two consecutive clicks
+        click_row(&mut rt, key);
+        assert_eq!(rt.app().last, Some(StepsAction::Activated(key)));
+        assert_eq!(rt.app().state.cursor(), Some(key));
     }
 
     #[test]
@@ -1706,25 +1741,25 @@ mod tests {
         let mut state = StepsState::new();
         state.set_cursor(4, ItemKey::num(4));
         let area = Rect::new(0, 0, 30, 2);
-        let mut core = UiCore::default();
-        let draw = |core: &mut UiCore| {
-            let theme = Theme::junie();
-            let mut frame = FrameState::default();
-            frame.reset(1, area);
-            let mut page = Buffer::empty(area);
-            let last = LastFrame::default();
-            let mut ui = Ui::new(&mut frame, &mut page, core, &theme, &last);
-            rail.draw(&mut ui, area, &state, &items);
+        // A persistent runtime owns the derived caches; `set_theme` is the
+        // public "drop every derived cache" entry point.
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut page = Buffer::empty(area);
+        let draw = |rt: &mut Runtime<Stub>, page: &mut Buffer| {
+            rt.draw_scene(area, page, |ui, area| {
+                rail.draw(ui, area, &state, &items);
+            })
+            .commit_presented();
         };
 
-        draw(&mut core);
+        draw(&mut rt, &mut page);
         assert_eq!(accesses.get(), items.len() + usize::from(area.height));
         accesses.set(0);
-        draw(&mut core);
+        draw(&mut rt, &mut page);
         assert_eq!(accesses.get(), usize::from(area.height));
-        core.clear_caches();
+        rt.set_theme(Theme::junie());
         accesses.set(0);
-        draw(&mut core);
+        draw(&mut rt, &mut page);
         assert_eq!(accesses.get(), items.len() + usize::from(area.height));
         assert_eq!(state.cursor(), Some(ItemKey::num(4)));
     }

@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "0562594e96f91677bf159429e52b6dbfbb0a0844615353968f5eb8f02cc8b32c",
+  "artifacts": {
+    "ansi": {
+      "bytes": 10047,
+      "file": "showcase/chips/default/120x40/none.ansi",
+      "sha256": "0562594e96f91677bf159429e52b6dbfbb0a0844615353968f5eb8f02cc8b32c"
+    },
+    "ascii": {
+      "bytes": 2001,
+      "file": "showcase/chips/default/120x40/none.ascii",
+      "sha256": "33177e0b1ad57aa2cf66c068556c2f7d4c054e13b1bc21938c9efeef5c493a31"
+    },
+    "ascii_loss_json": {
+      "bytes": 2011,
+      "file": "showcase/chips/default/120x40/none.ascii.loss.json",
+      "sha256": "e83324c34c5b8cecf8c993195e8552e8312e3e03980e1e66f888201e79600a4e"
+    },
+    "frame_json": {
+      "bytes": 1116613,
+      "file": "showcase/chips/default/120x40/none.frame.json",
+      "sha256": "5f444ef10f500c37270b88ea1931153852103e11d6ca47a0abdd150cd7e6b934"
+    },
+    "html": {
+      "bytes": 642699,
+      "file": "showcase/chips/default/120x40/none.html",
+      "sha256": "8ce80973936d0fe1eb982666f2f8b165fc8d39a00dff0f0f7796db1b85b0abd9"
+    },
+    "observations_json": {
+      "bytes": 448,
+      "file": "showcase/chips/default/120x40/none.observations.json",
+      "sha256": "c4bf24e944f97244e9755665db9cd018878f4c99d6655b3100931656b9a07479"
+    },
+    "png": {
+      "bytes": 464026,
+      "file": "showcase/chips/default/120x40/none.png",
+      "sha256": "966557da4ad22c4192aa0e67970f80275cd5103fbf7f5ce3918135928ca9c65b"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/chips/default/120x40/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2036,
+      "file": "showcase/chips/default/120x40/none.txt",
+      "sha256": "7662214e73f99fe55e2d3418d21f1586bc38fa0525f93068c5cdbd83a248700f"
+    }
+  },
+  "ascii_substitutions_count": 21,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 4534467340824520378,
+  "frame_sha256": "5f444ef10f500c37270b88ea1931153852103e11d6ca47a0abdd150cd7e6b934",
+  "generation": "b026e0b91f1ef046ee4b261f4338ba503119cd405dba6c7371fb90e33ac5cb50",
+  "html_sha256": "8ce80973936d0fe1eb982666f2f8b165fc8d39a00dff0f0f7796db1b85b0abd9",
+  "legacy_name": "showcase/pages/chips/120x40/none",
+  "name": "showcase/chips/default/120x40/none",
+  "png_sha256": "966557da4ad22c4192aa0e67970f80275cd5103fbf7f5ce3918135928ca9c65b",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:14Z",
+  "txt_sha256": "7662214e73f99fe55e2d3418d21f1586bc38fa0525f93068c5cdbd83a248700f"
+}

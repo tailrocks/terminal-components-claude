@@ -6,20 +6,20 @@ use ratatui_core::layout::Rect;
 
 use super::{Acc, PartStyle, SlotFn, shift};
 use crate::action::ActionKey;
-use crate::event::{Chord, KeyCode, KeyModifiers};
-use crate::focus::Focusability;
-use crate::id::{Id, ItemKey, Part, PartRef};
-use crate::intent::{Intent, Phase};
 pub use crate::item::AsItem;
-use crate::keymap::{Binding, BindingState, Bindings};
-use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
-use crate::ui::{Cx, FrameRead, Ui};
 use termrock_collections::collection::{CollectionCore, Reconcile, Reconciliation};
+use termrock_core::id::{Id, ItemKey, Part, PartRef};
+use termrock_core::response::{Response, StateFlags};
 use termrock_runtime::empty::{EmptyState, Status};
+use termrock_runtime::event::{Chord, KeyCode, KeyModifiers};
+use termrock_runtime::focus::Focusability;
+use termrock_runtime::intent::{Intent, Phase};
+use termrock_runtime::keymap::{Binding, BindingState, Bindings};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_runtime::ui::{Cx, FrameRead, Ui};
+use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
 /// Events produced by a [`FilterList`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -949,16 +949,17 @@ impl<T, R> Bindings for FilterList<'_, T, R> {
 #[cfg(test)]
 mod tests {
     use super::{FilterList, FilterListAction, FilterListState, contains_folded};
-    use crate::components::Acc;
-    use crate::id::{Id, ItemKey, Part};
-    use crate::response::StateFlags;
-    use crate::theme::Theme;
-    use crate::ui::cx::LastFrame;
-    use crate::ui::{FrameState, Ui, UiCore};
+    use crate::Acc;
+    use termrock_core::id::{Id, ItemKey, Part};
+    use termrock_core::response::StateFlags;
+    use termrock_theme::Theme;
+
+    use crate::item::{AsItem, Item, ItemRow};
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
-    use crate::item::{AsItem, Item, ItemRow};
     use termrock_runtime::Status;
+    use termrock_runtime::ui::cx::LastFrame;
+    use termrock_runtime::ui::{FrameState, Ui, UiCore};
 
     const AREA: Rect = Rect::new(2, 1, 20, 4);
 

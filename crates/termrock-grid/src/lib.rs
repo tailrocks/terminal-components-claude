@@ -16,27 +16,6 @@ pub(crate) use termrock_runtime as keymap;
 pub(crate) use termrock_text as text;
 pub(crate) use termrock_theme as theme;
 
-pub(crate) mod collection {
-    pub use termrock_collections::*;
-    pub use termrock_runtime::{CellDecor, CellUi, EmptyState, RowDecor, RowTotal};
-}
-
-pub(crate) mod input {
-    pub use termrock_fields::{BlurPolicy, TextAction, TextInput, TextInputState};
-}
-
-pub(crate) mod controls {
-    pub use termrock_controls::Button;
-}
-
-pub(crate) mod progress {
-    pub use termrock_feedback::Spinner;
-}
-
-pub(crate) mod scroll_region {
-    pub use termrock_runtime::ScrollRegion;
-}
-
 pub use termrock_core::action::ActionKey;
 pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion};
 pub use termrock_text::{Secret, SecretPolicy};

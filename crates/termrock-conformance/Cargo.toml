@@ -24,6 +24,7 @@ rayon.workspace = true
 ratatui.workspace = true
 
 [dev-dependencies]
+unicode-segmentation.workspace = true
 unicode-width.workspace = true
 
 [[test]]

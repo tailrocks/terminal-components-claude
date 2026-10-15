@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Lists  i Inspector · on   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mLists[0m  Single and multiple selection, disabled it… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃    Lan… 7–15 o…      Fil… 2 sele…      Search res…  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃    Chosen: Rust      Space toggl…                   [0m
+[0m[1m▎› Lists          [0m┃                                                     [0m
+   Trees          ┃    [0m[2m   Swift   [0m│       ✓ src/api…┃                   [0m
+   Tables         ┃       C#      │       ✓ src/api…┃                   [0m
+   Editable tabl… ┃       Ruby    │      [0m[2m   src/db/…[0m┃                   [0m
+   Panels         ┃       Scala   ┃         tests/c…┃      No results…  [0m
+   Sidebars       ┃       Elixir  ┃      [0m[2m   Cargo.l…[0m┃                   [0m
+   Dialogs        │       Haskell ┃         docs/we…┃                   [0m
+   Progress       │       Zig     ┃         src/wor…│                   [0m
+   Scrolling      │       Dart    │         src/con…│                   [0m
+   Terminal       │    [0m[2m   PHP     [0m│      [0m[2m   README.…[0m│                   [0m
+[0m[2m   Code editor    [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

@@ -1,0 +1,78 @@
+{
+  "lossy": true,
+  "substitutions": [
+    {
+      "original": "▪",
+      "replacement": "#",
+      "x": 1,
+      "y": 0
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 87,
+      "y": 0
+    },
+    {
+      "original": "×",
+      "replacement": "x",
+      "x": 92,
+      "y": 0
+    },
+    {
+      "original": "…",
+      "replacement": ".",
+      "x": 117,
+      "y": 8
+    },
+    {
+      "original": "—",
+      "replacement": "?",
+      "x": 44,
+      "y": 15
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 52,
+      "y": 17
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 61,
+      "y": 17
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 75,
+      "y": 17
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 0,
+      "y": 24
+    },
+    {
+      "original": "›",
+      "replacement": "?",
+      "x": 1,
+      "y": 24
+    },
+    {
+      "original": "↑",
+      "replacement": "^",
+      "x": 1,
+      "y": 39
+    },
+    {
+      "original": "↓",
+      "replacement": "v",
+      "x": 3,
+      "y": 39
+    }
+  ],
+  "substitutions_count": 12
+}

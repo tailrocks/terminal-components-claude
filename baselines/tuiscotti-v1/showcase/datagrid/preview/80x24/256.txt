@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Data grid           i Inspector   ? Help
+
+   Overview       ┃  Data grid  Typed cells, a pending-change queue, paging an…
+   Buttons        ┃
+   Inputs         ┃    cus… rows 1–12 of 40 loaded · ~4,812 total · cols 3–6 …
+   Text╭────────────────────────────────────────────────────────────────╮
+   Form│                                                                │ 2›
+   List│  Pending changes                                               │    ┃
+   Tree│                                                                │    ┃
+   Tabl│  Statements  2                                                 │    ┃
+   Edit│  Rows        2 changed · 0 inserted · 0 deleted                │    │
+   Pane│  Target      customers                                         │    │
+   Side│                                                                │    │
+   Dial│  UPDATE customers SET seats = 600 WHERE id = 1001;             │    │
+   Prog│  UPDATE customers SET seats = 12 WHERE id = 1002;              │    │
+   Scro│                                                                │    │
+   Term│                                           ▎Cancel   Copy SQL   │    │
+   Code│                                                                │    │
+   Diff╰────────────────────────────────────────────────────────────────╯    │
+ › Data grid      │
+   Chips & selec… │     • 2 pending · 2 upda…   Preview SQL   Discard   Save
+   Pickers        │
+
+ ← → Choose  Enter Confirm  Esc Cancel                                2 pending

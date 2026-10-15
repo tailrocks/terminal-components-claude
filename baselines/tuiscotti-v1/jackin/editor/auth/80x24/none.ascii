@@ -1,0 +1,24 @@
+  jackin?    File   Go   Help             Workspaces ? payments-platform ? edit
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ----------------------------------------------???????????-------------------
+
+    Active accounts  5 effective . 4 inherited . 1 enabled here
+    Anthropic / Claude                    2 active . picker at session start ?
+  ??   [v] Personal                     *  inherited default       ready     ?
+       [ ] Archived contractor laptop .    available               disabled. ?
+       [v] Work                            enabled here            ready     ?
+    OpenAI                                                          1 active ?
+       [v] Primary                      *  inherited default       ready     ?
+       [ ] Experiments                     available               ready     ?
+    Amp                                                          none active ?
+       [ ] host login                      discovered on host      ready     |
+    xAI / Grok                                                      1 active |
+       [v] Team                         *  inherited default       ready     |
+    OpenCode                                                        1 active |
+       [v] Go subscription              *  inherited default       ready     |
+
+                                                          Cancel     Save.
+
+       Space Enable / disable  p Prefer  / Filter  c Manage accounts  .

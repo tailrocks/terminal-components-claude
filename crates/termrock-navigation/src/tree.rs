@@ -18,22 +18,22 @@ use std::sync::{Arc, Weak};
 use ratatui_core::layout::Rect;
 
 use super::{Acc, PartStyle, SlotFn, cell_at};
-use crate::event::{Chord, KeyCode};
-use crate::focus::Focusability;
-use crate::id::{Id, ItemKey, Part, PartRef};
-use crate::intent::{Intent, Phase};
-use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
-use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
-use crate::ui::{Cx, FrameRead, Ui};
 use termrock_collections::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation,
 };
+use termrock_core::id::{Id, ItemKey, Part, PartRef};
+use termrock_core::response::{Response, StateFlags};
 use termrock_runtime::empty::EmptyState;
+use termrock_runtime::event::{Chord, KeyCode};
+use termrock_runtime::focus::Focusability;
+use termrock_runtime::intent::{Intent, Phase};
+use termrock_runtime::keymap::{Binding, BindingState, Bindings};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_runtime::ui::{Cx, FrameRead, Ui};
+use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
 /// Whether a node can be opened, and whether its children are already in the
 /// slice.
@@ -712,17 +712,9 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
 }
 
 /// Borrowed tree icon callback.
-#[expect(
-    unreachable_pub,
-    reason = "named in Tree's public builders; the crate re-export is a later task"
-)]
 pub type TreeIconFn<'a, T> = &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>;
 
 /// Borrowed tree trailing-mark callback.
-#[expect(
-    unreachable_pub,
-    reason = "named in Tree's public builders; the crate re-export is a later task"
-)]
 pub type TreeTrailingMarkFn<'a, T> = &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>;
 
 type TreeRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
@@ -2326,14 +2318,15 @@ mod tests {
         TreeNode, TreeState, TreeTrailingMarkFn,
     };
     use crate::Phase;
-    use crate::id::{Id, ItemKey, Part, PartRef};
-    use crate::response::StateFlags;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
-    use crate::theme::{ColorLevel, GlyphRole, Modifier, Role, Slot, StylePatch, Theme};
-    use crate::ui::cx::LastFrame;
-    use crate::ui::{FrameState, Ui, UiCore};
+    use termrock_core::id::{Id, ItemKey, Part, PartRef};
+    use termrock_core::response::StateFlags;
+    use termrock_runtime::Runtime;
+    use termrock_runtime::stub::Stub;
+    use termrock_theme::{ColorLevel, GlyphRole, Modifier, Role, Slot, StylePatch, Theme};
+
     use termrock_runtime::rowui::RowUi;
+    use termrock_runtime::ui::cx::LastFrame;
+    use termrock_runtime::ui::{FrameState, Ui, UiCore};
 
     const TREE: Id = Id::root("tree.tests");
 
@@ -2813,26 +2806,6 @@ mod tests {
         t.draw(&mut ui, area, st, items);
     }
 
-    fn draw_cached<
-        T,
-        K: termrock_collections::collection::key::KeyFn<T>,
-        R: termrock_runtime::rowui::RowFn<T>,
-    >(
-        t: &Tree<'_, T, K, R>,
-        st: &TreeState,
-        items: &[T],
-        area: Rect,
-        core: &mut UiCore,
-    ) {
-        let theme = Theme::junie();
-        let mut fs = FrameState::default();
-        fs.reset(1, area);
-        let mut page = Buffer::empty(area);
-        let last = LastFrame::default();
-        let mut ui = Ui::new(&mut fs, &mut page, core, &theme, &last);
-        t.draw(&mut ui, area, st, items);
-    }
-
     fn render<
         K: termrock_collections::collection::key::KeyFn<N>,
         R: termrock_runtime::rowui::RowFn<N>,
@@ -2973,9 +2946,30 @@ mod tests {
     /// the source walk nor the first phase's work.
     #[test]
     fn tree_100k_nodes_render() {
-        use crate::intent::IntentQueue;
-        use crate::ui::Cx;
-        use crate::ui::cx::FrameServices;
+        use std::rc::Rc;
+
+        use termrock_collections::collection::KeyFn;
+        use termrock_core::response::Response;
+        use termrock_runtime::event::Input;
+        use termrock_runtime::stub::deliver;
+        use termrock_runtime::ui::Cx;
+
+        struct TreeApp<'a, K, R> {
+            tree: Tree<'a, CountedNode, K, R>,
+            state: TreeState,
+            items: Vec<CountedNode>,
+        }
+        impl<K: KeyFn<CountedNode>, R: Fn(&CountedNode, &mut RowUi<'_>)> crate::runtime::App
+            for TreeApp<'_, K, R>
+        {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                self.tree.update(cx, &mut self.state, &self.items).erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                self.tree
+                    .draw(ui, Rect::new(0, 0, 30, 6), &self.state, &self.items);
+            }
+        }
 
         let mut items = Vec::with_capacity(100_000);
         items.push(CountedNode {
@@ -2988,43 +2982,61 @@ mod tests {
             depth: 1,
             parent: false,
         }));
-        let node_accesses = Cell::new(0usize);
-        let painted = Cell::new(0usize);
-        let node = |item: &CountedNode| {
-            node_accesses.set(node_accesses.get().saturating_add(1));
-            if item.parent {
-                TreeNode::parent(item.depth)
-            } else {
-                TreeNode::leaf(item.depth)
+        let node_accesses = Rc::new(Cell::new(0usize));
+        let painted = Rc::new(Cell::new(0usize));
+        let node = {
+            let node_accesses = Rc::clone(&node_accesses);
+            move |item: &CountedNode| {
+                node_accesses.set(node_accesses.get().saturating_add(1));
+                if item.parent {
+                    TreeNode::parent(item.depth)
+                } else {
+                    TreeNode::leaf(item.depth)
+                }
+                .keyed(ItemKey::num(item.key))
             }
-            .keyed(ItemKey::num(item.key))
         };
-        let row = |_item: &CountedNode, _ui: &mut RowUi<'_>| {
-            painted.set(painted.get().saturating_add(1));
+        let row = {
+            let painted = Rc::clone(&painted);
+            move |_item: &CountedNode, _ui: &mut RowUi<'_>| {
+                painted.set(painted.get().saturating_add(1));
+            }
         };
-        let tree = Tree::new(TREE).node(&node).row(row);
         let mut state = TreeState::new();
         state.expand(ItemKey::num(0));
-        let mut core = UiCore::default();
-        let intents = IntentQueue::new();
-        let mut services = FrameServices::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        {
-            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
-            let _ = tree.update(&mut cx, &mut state, &items);
-        }
-        assert_eq!(node_accesses.get(), items.len());
-        node_accesses.set(0);
-
         let area = Rect::new(0, 0, 30, 6);
-        draw_cached(&tree, &state, &items, area, &mut core);
-        assert_eq!(node_accesses.get(), 0, "draw rebuilt update's index");
-        assert_eq!(painted.get(), 6);
-        painted.set(0);
-        draw_cached(&tree, &state, &items, area, &mut core);
-        assert_eq!(node_accesses.get(), 0, "unchanged draw scanned the source");
-        assert_eq!(painted.get(), 6);
+
+        // The tree borrows its node/row callbacks, so the runtime lives in
+        // the same scope as them.
+        {
+            let mut rt = Runtime::new(
+                TreeApp {
+                    tree: Tree::new(TREE).node(&node).row(row),
+                    state,
+                    items,
+                },
+                Theme::junie(),
+            );
+            let _ = rt.initialize();
+            let mut page = Buffer::empty(area);
+            rt.draw_buffer(area, &mut page).commit_presented();
+            let _ = rt.settle();
+            // Warm-up (bootstrap update plus its publication draws) walked
+            // the whole source once to build the runtime-owned index.
+            assert!(node_accesses.get() >= rt.app().items.len());
+            node_accesses.set(0);
+            painted.set(0);
+
+            rt.draw_buffer(area, &mut page).commit_presented();
+            assert_eq!(node_accesses.get(), 0, "draw rebuilt update's index");
+            assert_eq!(painted.get(), 6);
+
+            let _ = deliver(&mut rt, Input::Tick);
+            painted.set(0);
+            rt.draw_buffer(area, &mut page).commit_presented();
+            assert_eq!(node_accesses.get(), 0, "unchanged draw scanned the source");
+            assert_eq!(painted.get(), 6);
+        }
     }
 
     #[test]
@@ -3139,20 +3151,29 @@ mod tests {
         let mut state = TreeState::new();
         state.expand(ItemKey::text("alpha"));
         state.choose(Some(ItemKey::text("a1")));
-        let mut core = UiCore::default();
         let area = Rect::new(0, 0, 30, 6);
+        // A persistent runtime owns the derived caches; `set_theme` is the
+        // public "drop every derived cache" entry point.
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut page = Buffer::empty(area);
+        let draw = |rt: &mut Runtime<Stub>, page: &mut Buffer, state: &TreeState| {
+            rt.draw_scene(area, page, |ui, area| {
+                tree.draw(ui, area, state, &FOREST);
+            })
+            .commit_presented();
+        };
 
-        draw_cached(&tree, &state, &FOREST, area, &mut core);
+        draw(&mut rt, &mut page, &state);
         assert_eq!(accesses.get(), FOREST.len());
         accesses.set(0);
-        draw_cached(&tree, &state, &FOREST, area, &mut core);
+        draw(&mut rt, &mut page, &state);
         assert_eq!(accesses.get(), 0);
         state.invalidate();
-        draw_cached(&tree, &state, &FOREST, area, &mut core);
+        draw(&mut rt, &mut page, &state);
         assert_eq!(accesses.get(), FOREST.len());
         accesses.set(0);
-        core.clear_caches();
-        draw_cached(&tree, &state, &FOREST, area, &mut core);
+        rt.set_theme(Theme::junie());
+        draw(&mut rt, &mut page, &state);
         assert_eq!(accesses.get(), FOREST.len());
         assert!(state.is_expanded(ItemKey::text("alpha")));
         assert_eq!(state.chosen(), Some(ItemKey::text("a1")));

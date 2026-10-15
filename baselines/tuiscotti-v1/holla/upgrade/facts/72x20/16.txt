@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           no project  devbox · development
+
+  Here › Upgrade everything
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────
+  Upgrade everything · devbox
+  upgrade Debian packages and global mise tools on devbox
+
+  ▎01 Preflight                                              required
+
+   Runs       cat /etc/os-release                                   ┃
+              sudo -n true                                          │
+              fuser /var/lib/dpkg/lock-frontend                     │
+
+
+    6 required · 2 optional · 2 branches run in parallel where indepe…
+
+                                               Cancel    Confirm plan
+
+ ~       review · 8 steps · 2 branches parallel       16 colors · 72×20
+                        ↑↓ Scroll  Esc Outline

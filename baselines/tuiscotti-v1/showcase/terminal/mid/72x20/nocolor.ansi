@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Terminal    i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mTerminal[0m  Viewport with scrollback, selection and… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃  ╭─ V… ─ 21 lines · followi… ─╮ │  Ste… 2 of 7 · …  [0m
+   Text areas     ┃  │  [0m[2m  layer 06/12   80%     [0m│ │ │                   [0m
+   Forms          ┃  │    layer 07/12   96%     │ │ │   ✓ 01 Resolve…   [0m
+   Lists          ┃  │  ✓ Pull base image       │ │ │   ✓ 02 Pull ba…   [0m
+   Trees          ┃  │  [0m[1m▶ Build container[0m       │ │ │   ⠋ 03 [0m[1mBuild c…[0m   [0m
+   Tables         ┃  │    #1 RUN apt-get install│ │ │     04 Mount s…   [0m
+   Editable tabl… ┃  │    #2 COPY rust-toolchain│ │ │     05 Resolve…   [0m
+   Panels         ┃  │    #3 RUN cargo fetch --l┃ │ │     06 Start a…   [0m
+   Sidebars       ┃  │    #4 RUN cargo build --r┃ │ │     07 Ready      [0m
+   Dialogs        │  │    #5 RUN apt-get install┃ │ │                   [0m
+   Progress       │  │    #6 COPY rust-toolchain┃ │ │                   [0m
+   Scrolling      │  │    #7 RUN cargo fetch --l┃ │ │                   [0m
+[0m[1m▎› Terminal       [0m│  │    #8 RUN cargo build --r┃ │ │   [0m[1mRun [0m   Run w…   [0m
+[0m[2m   Code editor    [0m│  ╰────────────────────────────╯ │                   [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

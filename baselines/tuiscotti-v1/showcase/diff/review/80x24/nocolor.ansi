@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Diff                i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mDiff viewer[0m  Unified or old / new review · narrow panes u… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃  ▎[0m[1m● Review [0m   ○ Empty                                       [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃  ╭─ Diff ──────────────────────────────────────────────────╮[0m
+   Lists          ┃  │  [0m[1mM[0m [0m[1mconfig/service.toml[0m  +10 −5 · 5 hunks · review     ┃ │[0m
+   Trees          ┃  │  Old                       │ New                      ┃ │[0m
+   Tables         ┃  │  @@ -1,6 +1,7 @@                                      ┃ │[0m
+   Editable tabl… ┃  │    1 [service.worker_0]    │   1 [service.worker_0]   ┃ │[0m
+   Panels         ┃  │    2 attempts = [0m[1m3[0m          │   2 attempts = [0m[1m5[0m         │ │[0m
+   Sidebars       ┃  │                            │   3 backoff = "exponenti…│ │[0m
+   Dialogs        ┃  │    3 region = "東京"       │   4 region = "東京"      │ │[0m
+   Progress       ┃  │    4 label = "café ☕"     │   5 label = "café ☕"    │ │[0m
+   Scrolling      ┃  │    5 endpoint = "https://… │   6 endpoint = "https://…│ │[0m
+   Terminal       ┃  │    6 enabled = true        │   7 enabled = true       │ │[0m
+   Code editor    ┃  │  ─────────────────────────────────────────────────────│ │[0m
+ › Diff           ┃  │  @@ -9,6 +10,7 @@                                     │ │[0m
+   Data grid      │  │    9 [service.worker_1]    │  10 [service.worker_1]   │ │[0m
+   Chips & selec… │  │  [0m[2m 10 attempts = [0m[1;2m3[0m[2m          │  11 attempts = [0m[1;2m5[0m[2m         [0m│ │[0m
+[0m[2m   Pickers        [0m│  ╰─────────────────────────────────────────────────────────╯[0m
+                                                                                [0m
+ [0m[1mEnter[0m Toggle  [0m[1mTab[0m Next control                                                 [0m

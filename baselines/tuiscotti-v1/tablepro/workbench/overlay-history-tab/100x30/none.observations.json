@@ -1,0 +1,22 @@
+{
+  "cell_count": 3000,
+  "cols": 100,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 10523032817163595574,
+  "legacy_name": "tablepro/overlays/history_tab/100x30/none",
+  "name": "tablepro/workbench/overlay-history-tab/100x30/none",
+  "non_empty_cells": 1006,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 30
+}

@@ -2729,7 +2729,6 @@ fn s4_dialog_prompt() {
     capture_isolated(&dir, "dialog-destructive", app.buffer());
     // N2 (click half): clicking the prompt input focuses without finishing.
     let (rig, log) = DialogRig::rig(S4_PROMPT, DialogKind::Prompt);
-    let pst = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     // (No `DialogState::set_draft` on target: prefill by pasting into the
     // focused input.)
@@ -2908,8 +2907,10 @@ struct MenuRig {
 impl MenuRig {
     fn file_items() -> Vec<MenuItem<'static>> {
         vec![
-            MenuItem::new(ActionKey::custom("new-tab"), "New tab").chord(Chord::key(KeyCode::Char('c'))),
-            MenuItem::new(ActionKey::custom("split-right"), "Split right").chord(Chord::key(KeyCode::Char('%'))),
+            MenuItem::new(ActionKey::custom("new-tab"), "New tab")
+                .chord(Chord::key(KeyCode::Char('c'))),
+            MenuItem::new(ActionKey::custom("split-right"), "Split right")
+                .chord(Chord::key(KeyCode::Char('%'))),
             MenuItem::new(ActionKey::custom("export"), "Export…").separator(),
             MenuItem::new(ActionKey::custom("close-tab"), "Close tab")
                 .chord(Chord::key(KeyCode::Char('&')))
@@ -2919,11 +2920,13 @@ impl MenuRig {
 
     fn view_items() -> Vec<MenuItem<'static>> {
         vec![
-            MenuItem::new(ActionKey::custom("zoom-pane"), "Zoom pane").chord(Chord::key(KeyCode::Char('z'))),
+            MenuItem::new(ActionKey::custom("zoom-pane"), "Zoom pane")
+                .chord(Chord::key(KeyCode::Char('z'))),
             MenuItem::new(ActionKey::custom("redraw"), "Redraw")
                 .chord(Chord::key(KeyCode::Char('r')))
                 .separator(),
-            MenuItem::new(ActionKey::custom("usage"), "Usage").chord(Chord::key(KeyCode::Char('u'))),
+            MenuItem::new(ActionKey::custom("usage"), "Usage")
+                .chord(Chord::key(KeyCode::Char('u'))),
             MenuItem::new(ActionKey::custom("inspect"), "Inspect changes").disabled(true),
         ]
     }
@@ -3035,11 +3038,7 @@ fn s4_menu_open() {
         "Down wraps past the disabled tail"
     );
     let _ = app.key(KeyCode::Up);
-    assert_eq!(
-        mst.borrow().cursor(),
-        2,
-        "Up wraps, skipping disabled"
-    );
+    assert_eq!(mst.borrow().cursor(), 2, "Up wraps, skipping disabled");
     let _ = app.key(KeyCode::End);
     assert_eq!(
         mst.borrow().cursor(),
@@ -3057,11 +3056,7 @@ fn s4_menu_open() {
     let fst = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
     let _ = app.key(KeyCode::End);
-    assert_eq!(
-        fst.borrow().cursor(),
-        3,
-        "End lands on the danger row"
-    );
+    assert_eq!(fst.borrow().cursor(), 3, "End lands on the danger row");
     let area = app.layer_area(S4_FILEMENU).expect("popover layer placed");
     assert_eq!(area.x, 2, "popover left-aligns under the anchor");
     assert!(area.y > 1, "popover sits below the anchor");
@@ -3321,7 +3316,8 @@ fn s4_ctxmenu_anchor() {
     let danger = t.color.highlight_danger_bg;
     fn session_items(row: usize, len: usize) -> Vec<MenuItem<'static>> {
         vec![
-            MenuItem::new(ActionKey::custom("change-title"), "Change title…").chord(Chord::key(KeyCode::Char('r'))),
+            MenuItem::new(ActionKey::custom("change-title"), "Change title…")
+                .chord(Chord::key(KeyCode::Char('r'))),
             MenuItem::new(ActionKey::custom("move-left"), "Move left").disabled(row == 0),
             MenuItem::new(ActionKey::custom("move-right"), "Move right")
                 .disabled(row + 1 == len)
@@ -3379,25 +3375,31 @@ fn s4_ctxmenu_anchor() {
     );
     capture_isolated(&dir, "ctxmenu-anchor", buf);
     // N1: a disabled edge row can never be chosen by key or click.
-    let (rig, log, mst) = session_rig(0, 4);
+    // (No `MenuState::set_cursor` on target: Down from the top skips the
+    // disabled edge, proving it can never take the cursor; Enter then
+    // chooses the row it skipped to.)
+    let (rig, log, _mst) = session_rig(0, 4);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
-    mst.borrow_mut().set_cursor(1, ItemKey::index(1));
     log.borrow_mut().clear();
+    let _ = app.key(KeyCode::Down);
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "N1: Enter applies");
     assert!(
-        log.borrow().is_empty(),
-        "N1: Enter on the disabled edge chooses nothing"
+        log.borrow()
+            .contains(&MenuAction::Chosen(ActionKey::custom("move-right"))),
+        "N1: Down skipped the disabled edge, choosing the next enabled row"
     );
     let ey = (0..24)
         .find(|y| buf_row_text(app.buffer(), *y).contains("Move left"))
         .expect("edge row renders");
     let ex = char_col(&buf_row_text(app.buffer(), ey), "Move left") + 1;
+    let (rig, log, _mst) = session_rig(0, 4);
+    let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     log.borrow_mut().clear();
     let _ = app.click(ex, ey);
     assert!(log.borrow().is_empty(), "N1: disabled clicks miss");
-    // Presence: the enabled rows resolve through the same paths.
-    mst.borrow_mut().set_cursor(0, ItemKey::index(0));
+    // Presence: the enabled rows resolve through the same paths (the cursor
+    // starts on the first row, so no staging is needed).
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "presence applies");
@@ -3564,11 +3566,15 @@ static S4_BAR_FILE: [MenuItem<'static>; 2] = [
         .danger(),
 ];
 static S4_BAR_VIEW: [MenuItem<'static>; 2] = [
-    MenuItem::new(ActionKey::custom("zoom-pane"), "Zoom pane").chord(Chord::key(KeyCode::Char('z'))),
+    MenuItem::new(ActionKey::custom("zoom-pane"), "Zoom pane")
+        .chord(Chord::key(KeyCode::Char('z'))),
     MenuItem::new(ActionKey::custom("inspect"), "Inspect changes").disabled(true),
 ];
 static S4_BAR_HELP: [MenuItem<'static>; 1] =
-    [MenuItem::new(ActionKey::custom("key-reference"), "Key reference").chord(Chord::key(KeyCode::Char('?')))];
+    [
+        MenuItem::new(ActionKey::custom("key-reference"), "Key reference")
+            .chord(Chord::key(KeyCode::Char('?'))),
+    ];
 static S4_BAR_MENUS: [Menu<'static>; 3] = [
     Menu::new("File", &S4_BAR_FILE),
     Menu::new("View", &S4_BAR_VIEW),
@@ -3803,7 +3809,10 @@ fn s4_menubar_shell() {
     assert!(narrow.tab_to(S4_MENUBAR), "navigating focus");
     let nrow = buf_row_text(narrow.buffer(), 1);
     assert!(!nrow.contains("Help"), "N2: unfitting labels do not paint");
-    nst.borrow_mut().set_cursor(2, ItemKey::index(2));
+    // (No `MenuState::set_cursor` on target: Right steps the cursor to the
+    // unfitted Help label.)
+    let _ = narrow.key(KeyCode::Right);
+    let _ = narrow.key(KeyCode::Right);
     nlog.borrow_mut().clear();
     let _ = narrow.key(KeyCode::Enter);
     assert!(

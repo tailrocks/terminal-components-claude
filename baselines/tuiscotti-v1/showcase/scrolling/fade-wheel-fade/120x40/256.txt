@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Scrolling                             256 colors · 120×40   i Inspector   ? Help
+
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are…
+   Overview
+                            Wrapped text   1–31 of 120      Long list      1–31 of 120      Log      1964–1994 of 2000
+   Components
+   Buttons                  Junie works through a    ┃         Row 001               ┃       726.31s  info   test a… │
+   Inputs                   task the way a careful   ┃         Row 002               ┃       726.68s  info   test d… │
+   Text areas               engineer would: it reads ┃         Row 003               ┃       727.05s  error  test c… │
+   Forms                    the relevant code, forms ┃         Row 004               ┃       727.42s  info   test w… │
+   Lists                    a plan, makes focused    ┃         Row 005               ┃       727.79s  info   Linkin… │
+   Trees                    changes, runs the tests, ┃         Row 006               ┃       728.16s  info   Resolv… │
+   Tables                   and reports back with a  ┃         Row 007       flagged ┃       728.53s  info   Fetchi… │
+   Editable tables          summary you can review   ┃         Row 008               ┃       728.90s  info   Compil… │
+   Panels                   before anything is       │         Row 009               │       729.27s  info   Compil… │
+   Sidebars                 merged.                  │         Row 010               │       729.64s  warn   unused… │
+   Dialogs                                           │         Row 011               │       730.01s  info   Compil… │
+   Progress                 Each step is visible.    │         Row 012               │       730.38s  info   Runnin… │
+▎› Scrolling                You can pause, redirect, │         Row 013               │       730.75s  info   test a… │
+   Terminal                 or take over at any      │         Row 014       flagged │       731.12s  info   test d… │
+   Code editor              point, and every change  │         Row 015               │       731.49s  error  test c… │
+   Diff                     lands as an ordinary     │         Row 016               │       731.86s  info   test w… │
+   Data grid                diff in your working     │         Row 017               │       732.23s  info   Linkin… │
+   Chips & selects          tree.                    │         Row 018               │       732.60s  info   Resolv… │
+   Pickers                                           │         Row 019               │       732.97s  info   Fetchi… │
+   Chrome                   The design system in     │         Row 020               │       733.34s  info   Compil… │
+                            this prototype exists so │         Row 021       flagged │       733.71s  info   Compil… │
+   Screens                  that the terminal        │         Row 022               │       734.08s  warn   unused… │
+   Settings                 version of that          │         Row 023               │       734.45s  info   Compil… │
+   Task runner              experience feels as      │         Row 024               │       734.82s  info   Runnin… │
+                            deliberate as the web    │         Row 025               │       735.19s  info   test a… │
+                            version: quiet surfaces, │         Row 026               │       735.56s  info   test d… │
+                            one accent, clear focus, │         Row 027               │       735.93s  error  test c… │
+                            and no decoration that   │         Row 028       flagged │       736.30s  info   test w… │
+                            does not carry           │         Row 029               │       736.67s  info   Linkin… │
+                            information.             │         Row 030               │       737.04s  info   Resolv… │
+                                                     │         Row 031               │       737.41s  info   Fetchi… ┃
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

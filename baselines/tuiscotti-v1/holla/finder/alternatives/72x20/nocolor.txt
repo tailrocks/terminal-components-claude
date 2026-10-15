@@ -1,0 +1,20 @@
+  holla╭────────────────────────────────────────╮t project  mbp · local
+       │  Inspect 12 GB of generated artifacts  │
+  Here │  Open                            Enter │
+ ━━━━━━│  Copy command                        y │──────────────────────
+   Sear│  Insert into shell                     │       scope ‹ here ›
+       │ ────────────────────────────────────── │
+    Sug│  Pin here                              │                     ┃
+  › Ins│  Set alias…                            │B generated artifac… ┃
+    Pul│  Hide here                             │ch is 3 commits beh… ┃
+    Rev│  Reset ranking                         │dified · 1 untracked ┃
+    Run│ ────────────────────────────────────── │les changed since t… ┃
+    Who│  Why is this here?                     │ssions blocked for … ┃
+       ╰────────────────────────────────────────╯                     │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → 'holla disk analyze --artifacts' · here · read-only
+
+ ~/work/holla   main   ↓3 • 5                          no color · 72×20
+                   ↑↓ Move  Enter Choose  Esc Close

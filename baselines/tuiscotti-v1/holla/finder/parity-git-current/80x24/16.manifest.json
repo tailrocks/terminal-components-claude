@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "a01aafc9a37b7008f372baac962f44d4bc2246075a2ed3c0e34332a738372988",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4565,
+      "file": "holla/finder/parity-git-current/80x24/16.ansi",
+      "sha256": "a01aafc9a37b7008f372baac962f44d4bc2246075a2ed3c0e34332a738372988"
+    },
+    "ascii": {
+      "bytes": 826,
+      "file": "holla/finder/parity-git-current/80x24/16.ascii",
+      "sha256": "0c879a4bcd2e594a203e8a55ff266aace81601a882a4c2b77a7956e023669fbd"
+    },
+    "ascii_loss_json": {
+      "bytes": 9451,
+      "file": "holla/finder/parity-git-current/80x24/16.ascii.loss.json",
+      "sha256": "d0fd97090c78db5fafa352112eb21c0db0c60c92982d785b66ce0232113abb6a"
+    },
+    "frame_json": {
+      "bytes": 446200,
+      "file": "holla/finder/parity-git-current/80x24/16.frame.json",
+      "sha256": "717bf45957dadddcba388b13271272449b4aefa7f539a63ef90702c7d3fb137d"
+    },
+    "html": {
+      "bytes": 318870,
+      "file": "holla/finder/parity-git-current/80x24/16.html",
+      "sha256": "47d1ad49da88c91463a9f4b23f1d6a0e7a74f8c44b12246ffc9ea5f756d90da5"
+    },
+    "observations_json": {
+      "bytes": 455,
+      "file": "holla/finder/parity-git-current/80x24/16.observations.json",
+      "sha256": "63a49e73a1964a00c43cc5ccd86a9a3ee8de9c3eac634d6b3c9de5a510eb4834"
+    },
+    "png": {
+      "bytes": 229948,
+      "file": "holla/finder/parity-git-current/80x24/16.png",
+      "sha256": "21cd9e08e588dfcf83fedf26a7a21b2a682f6be096cf0b27349b8853b3bc424d"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/parity-git-current/80x24/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1021,
+      "file": "holla/finder/parity-git-current/80x24/16.txt",
+      "sha256": "c5d1b65af21965fc1841ee1cc1bd4d89fbc0f8cb64cc49e492cba6d5f0d9884a"
+    }
+  },
+  "ascii_substitutions_count": 102,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 13545222215292240926,
+  "frame_sha256": "717bf45957dadddcba388b13271272449b4aefa7f539a63ef90702c7d3fb137d",
+  "generation": "ee72b0804ef1dae56d8f0d50042b4b159e7d2a94ab69103fcc2ba563537bcdd2",
+  "html_sha256": "47d1ad49da88c91463a9f4b23f1d6a0e7a74f8c44b12246ffc9ea5f756d90da5",
+  "legacy_name": "holla/parity/git-current/80x24/16",
+  "name": "holla/finder/parity-git-current/80x24/16",
+  "png_sha256": "21cd9e08e588dfcf83fedf26a7a21b2a682f6be096cf0b27349b8853b3bc424d",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:25Z",
+  "txt_sha256": "c5d1b65af21965fc1841ee1cc1bd4d89fbc0f8cb64cc49e492cba6d5f0d9884a"
+}

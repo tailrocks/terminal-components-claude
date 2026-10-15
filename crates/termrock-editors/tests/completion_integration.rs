@@ -4,17 +4,17 @@
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
 
+use termrock_editors::code::{CodeEditor, CodeEditorState};
 use termrock_overlays::completion::{
     Completion, CompletionAction, CompletionController, CompletionState, Item,
 };
-use termrock_runtime::event::Input;
+use termrock_runtime::action::ActionKey;
+use termrock_runtime::event::{Input, KeyModifiers, Mouse, MouseKind};
 use termrock_runtime::keymap::KeyMap;
 use termrock_runtime::runtime::stub::key;
 use termrock_runtime::runtime::{App, Runtime};
+use termrock_runtime::{Chord, Cx, Id, ItemKey, KeyCode, Position, Response, TextBuffer, Ui};
 use termrock_theme::Theme;
-use termrock_editors::code::{CodeEditor, CodeEditorState};
-use termrock_runtime::action::ActionKey;
-use termrock_runtime::{Chord, Cx, Id, ItemKey, KeyCode, Response, TextBuffer, Ui};
 
 const MOVE_DOWN: ActionKey = ActionKey::custom("completion.down");
 
@@ -46,19 +46,20 @@ impl App for RoutingApp {
             );
             self.open_next = false;
         }
-        let completion = Completion::<Item<'_>>::new(POPUP).update_for(
-            EDITOR,
-            cx,
+        let (completion, accepted, dismissed) = (
             &mut self.completion,
-            ITEMS,
+            &mut self.accepted,
+            &mut self.dismissed,
         );
-        match completion.action_ref() {
-            Some(CompletionAction::Accepted(key)) => self.accepted = Some(key),
-            Some(CompletionAction::Dismissed) => self.dismissed = true,
-            Some(CompletionAction::Moved) | None => {}
-        }
+        let completion_update = Completion::<Item<'_>>::new(POPUP)
+            .update_for(EDITOR, cx, completion, ITEMS)
+            .on_action(|action| match action {
+                CompletionAction::Accepted(key) => *accepted = Some(key),
+                CompletionAction::Dismissed => *dismissed = true,
+                CompletionAction::Moved => {}
+            });
         let editor = CodeEditor::new(EDITOR, 4).update(cx, &mut self.editor);
-        completion.erase() | editor.erase()
+        completion_update.erase() | editor.erase()
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
@@ -107,19 +108,25 @@ struct ControllerApp {
     request: bool,
     accept: bool,
     editor_motion: bool,
+    items: &'static [Item<'static>],
 }
 
 impl App for ControllerApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.request {
-            self.controller
-                .request(cx, &mut self.completion, Rect::new(2, 1, 1, 1), 3, ITEMS);
+            self.controller.request(
+                cx,
+                &mut self.completion,
+                Rect::new(2, 1, 1, 1),
+                3,
+                self.items,
+            );
             self.request = false;
         }
         if self.accept {
             let _ =
                 self.controller
-                    .accept(cx, &mut self.completion, &mut self.buffer, ITEMS[0]);
+                    .accept(cx, &mut self.completion, &mut self.buffer, self.items[0]);
             self.accept = false;
         }
         if self.editor_motion {
@@ -149,6 +156,7 @@ fn controller_runtime() -> Runtime<ControllerApp> {
             request: false,
             accept: false,
             editor_motion: false,
+            items: ITEMS,
         },
         Theme::junie(),
     );
@@ -192,20 +200,32 @@ fn completion_controller_dismisses_on_editor_motion() {
     assert!(!runtime.is_open(POPUP));
 }
 
+/// `CompletionController::splice` is internal; the observable splice contract
+/// is `accept`, which splices the item's insertion text and dismisses in one
+/// committed update.
+fn splice_via_accept(items: &'static [Item<'static>]) -> Runtime<ControllerApp> {
+    let mut runtime = controller_runtime();
+    runtime.app_mut().items = items;
+    runtime.app_mut().request = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime.app_mut().accept = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime
+}
+
 #[test]
 fn distinct_insert_text_is_spliced() {
-    let mut buffer = TextBuffer::single("SEL cou");
-    let item = Item::new(ItemKey::num(1), "count").insert("COUNT(");
-    assert!(CompletionController::splice(&mut buffer, 3, item));
-    assert_eq!(buffer.text(), "SEL COUNT(");
+    const COUNT: &[Item<'static>] = &[Item::new(ItemKey::num(1), "count").insert("COUNT(")];
+    let runtime = splice_via_accept(COUNT);
+    assert_eq!(runtime.app().buffer.text(), "SEL COUNT(");
+    assert!(!runtime.app().completion.is_open());
 }
 
 #[test]
 fn none_insert_uses_label() {
-    let mut buffer = TextBuffer::single("SEL cou");
-    let item = Item::new(ItemKey::num(1), "count");
-    assert!(CompletionController::splice(&mut buffer, 3, item));
-    assert_eq!(buffer.text(), "SEL count");
+    const COUNT: &[Item<'static>] = &[Item::new(ItemKey::num(1), "count")];
+    let runtime = splice_via_accept(COUNT);
+    assert_eq!(runtime.app().buffer.text(), "SEL count");
 }
 
 #[test]
@@ -263,8 +283,32 @@ fn editor_owned_completion_binding_honours_remap_and_remove() {
 }
 
 #[test]
-fn pressed_part_targets_only_its_popup_row() {
-    let pressed = Some(PartRef::item(Part::ROW, SECOND));
-    assert!(!Completion::<Item<'static>>::pressed_target(pressed, FIRST,));
-    assert!(Completion::<Item<'static>>::pressed_target(pressed, SECOND,));
+fn pointer_click_accepts_only_the_clicked_popup_row() {
+    // `pressed_target` is internal; the observable contract is that a click
+    // resolves to the semantic row under the pointer, and only that row.
+    fn click(runtime: &mut Runtime<RoutingApp>, y: u16) {
+        for kind in [MouseKind::Down, MouseKind::Up] {
+            let _ = termrock_runtime::stub::deliver(
+                runtime,
+                Input::Mouse(Mouse {
+                    kind,
+                    pos: Position::new(4, y),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+        }
+    }
+    // The popover anchors below Rect::new(2, 1, 1, 1); after its border the
+    // rows sit at y = 3 (alpha) and y = 4 (beta).
+    let (mut runtime, _) = routing_runtime();
+    click(&mut runtime, 4);
+    assert_eq!(runtime.app().accepted, Some(SECOND));
+
+    let (mut runtime, _) = routing_runtime();
+    click(&mut runtime, 3);
+    assert_eq!(runtime.app().accepted, Some(FIRST));
+
+    let (mut runtime, _) = routing_runtime();
+    click(&mut runtime, 2);
+    assert_eq!(runtime.app().accepted, None);
 }

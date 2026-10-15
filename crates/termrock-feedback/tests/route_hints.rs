@@ -5,17 +5,13 @@
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 
-use termrock_feedback::HintBar;
 use termrock_core::keys::KeyPhase;
 use termrock_core::layer_types::LayerId;
-use termrock_runtime::stub::{deliver, key, mouse, runtime, step, Control, Stub, SCREEN};
-use termrock_runtime::ui::cx::LastFrame;
+use termrock_runtime::stub::{Control, SCREEN, Stub, deliver, key, mouse, runtime, step};
 use termrock_runtime::ui::FrameRead;
-use termrock_runtime::ui::{FrameState, UiCore};
 use termrock_runtime::{
-    ActionKey, App, Binding, Chord, Cx, Focusability, Id, Intent, Invalidate, Key, KeyCode,
-    Diagnostic, Input, IntentIter, KeyModifiers, KeyMap, LayerSpec, Mouse, MouseKind, Part,
-    PartRef, Response, Runtime, StateFlags, Theme, Ui, UpdateCause,
+    ActionKey, App, Cx, Diagnostic, Focusability, Id, Input, Invalidate, KeyCode, KeyMap,
+    LayerSpec, MouseKind, Response, Runtime, StateFlags, Theme, Ui,
 };
 
 const A: Id = Id::root("a");
@@ -306,7 +302,6 @@ fn bubble_followup_does_not_redeliver_raw_key() {
     assert_eq!(runtime.app().raw_keys, vec![(A, KeyCode::F(6))]);
 }
 
-
 #[test]
 fn map_replacement_invalidates_focused_hints() {
     let (mut runtime, mut buffer) = route_runtime(RouteApp::default());
@@ -373,7 +368,6 @@ fn three() -> Stub {
 
 #[test]
 fn derived_cache_is_fresh_when_component_reappears_after_a_frame_gap() {
-
     #[derive(Default)]
     struct GapCache(u32);
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
@@ -885,7 +879,6 @@ fn layer_scope_is_armed_at_open_and_the_cursor_is_kept_on_the_top_layer() {
 /// `Layer(Dismissed)` the runtime addressed to the owner are dropped.
 /// Before the guard was widened this loss was **silent**, because
 /// `Registry::delivers_to` requires a `Control` or `Part` region.
-
 /// The other half of the same rule (§21 item 13): widening the guard for
 /// runtime-addressed intents must not start diagnosing a decorative
 /// container for a **pointer** intent. It cannot: `deliverable` never
@@ -1014,6 +1007,8 @@ fn initial_focus_into_a_layer_that_has_never_drawn_is_still_admitted() {
         Some(OK),
         "the named target holds focus before the layer has ever drawn"
     );
+}
+
 #[test]
 fn same_flags_table_switch_invalidates_focused_hints() {
     let (mut runtime, mut buffer) = route_runtime(RouteApp::default());
@@ -1025,5 +1020,4 @@ fn same_flags_table_switch_invalidates_focused_hints() {
         .commit_presented();
     assert!(hint_row(&buffer).contains("Alternate"));
     assert_eq!(runtime.focused_hints_capacity(), capacity);
-}
 }

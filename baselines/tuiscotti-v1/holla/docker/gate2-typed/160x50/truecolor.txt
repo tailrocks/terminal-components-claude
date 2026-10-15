@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                   no project  devbox · development
+
+  Here › Clean Docker completely › Review
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Review · Clean Docker completely · gate 1 of 2 · review the resolved facts, then continue deliberately
+
+  Action             remove all user-removable Docker state on devbox
+  Host               devbox · development · over SSH
+  In                 /work/scratch
+  Steps              7 included · 0 excluded · 4 branches parallel · ~11 s
+  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7 volumes 4.1 GB · build cache 6.1 GB
+  Reclaimable        ~18.4 GB
+  Recoverable        no · images, contain╭────────────────────────────────────────────────────────────────────────────╮
+  Not touched        the Docker daemon it│                                                                            │
+  Privilege          none                │  Clean Docker completely · gate 2 of 2                                     │
+  Uncertainty        named volumes hold d│                                                                            │
+  Provenance         resolved by holla fr│  Action             remove all user-removable Docker state on devbox       │
+  Gate               second gate types th│  Host               devbox                                                 │
+                                         │  Steps              7 included                                             │
+ ╭─ Sequence · 8 commands ───────────────│  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7       │──────────────────────────── y copies ─╮
+ │  01  docker stop acme-api-1 acme-worke│                     volumes 4.1 GB · build cache 6.1 GB                    │                                       │
+ │  02  docker rm acme-api-1 acme-worker-│  Reclaimable        ~18.4 GB                                               │shell tmp-shell-2 pgadmin grafana loki │
+ │  03  docker image prune -a --force    │  Recoverable        no · images, containers and volumes are permanent      │                                       │
+ │  04  docker network prune --force     │                                                                            │                                       │
+ │  05  docker volume prune -a --force   │  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…  │                                       │
+ │  06  docker builder prune -a --force  │  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redi…  │                                       │
+ │      docker buildx prune -a --force   │  docker image prune -a --force                                             │                                       │
+ │  07  docker system df                 │  docker network prune --force                                              │                                       │
+ │                                       │  docker volume prune -a --force                                            │                                       │
+ │                                       │  docker builder prune -a --force … 2 more                                  │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │   Type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm           │                                       │
+ │                                       │ ▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox                           │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │                                                         Cancel   Execute   │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       ╰────────────────────────────────────────────────────────────────────────────╯                                       │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                                                          Cancel    Continue…
+
+ /work/scratch                                                     review · gate 1 of 2                                                      truecolor · 160×50
+  EDIT                                                       Type Phrase  Enter Next  Esc Cancel

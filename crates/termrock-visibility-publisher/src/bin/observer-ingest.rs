@@ -18,7 +18,11 @@ Collect one trusted GitHub Actions observer report using read-only API requests.
 const RECEIPT_SCHEMA_VERSION: u16 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// The external cli fixture constructs the binding; the binary only validates it.
+#[allow(dead_code)]
 pub(crate) enum GithubShaBinding {
+    /// The run must bind to the caller's head SHA (validated at check time).
+    /// The run must bind to the caller's head SHA (validated at check time).
     RunHead,
 }
 

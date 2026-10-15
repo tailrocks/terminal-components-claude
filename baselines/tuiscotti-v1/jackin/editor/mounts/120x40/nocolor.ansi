@@ -1,0 +1,40 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                    Workspaces › payments-platform › edit  inside the Construct  2 running [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+   General   [0m[1m Mounts  [0m  Roles    Environments    Accounts                                                               [0m
+  ───────────━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+                                                                                                                        [0m
+        Destination                           Mode  Isolation  Kind    Source                                           [0m
+  [0m[1m▎›    /workspace/payments-platform          rw    worktree   host    ~/src/payments-platform                        [0m  [0m
+        /workspace/libs                       ro    shared     host    ~/src/shared-libs                                [0m
+        + Add mount                                                                                                     [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                  Cancel     [0m[2mSave… [0m     [0m
+                                                                                                                        [0m
+ [0m[1mEnter[0m Edit…  [0m[1mr[0m Read-only  [0m[1mi[0m Isolation  [0m[1mo[0m Open source  [0m[1md[0m Remove  [0m[1ma[0m Add mount…  [0m[1m[ ][0m Switch tab  [0m[1mCtrl+S[0m Save  [0m[1mEsc[0m Back    [0m

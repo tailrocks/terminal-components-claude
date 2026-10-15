@@ -168,6 +168,10 @@ fn request() -> IngestRequest {
     }
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "one fixture builder feeds every status shape"
+)]
 fn run_json(
     id: u64,
     run_number: u64,

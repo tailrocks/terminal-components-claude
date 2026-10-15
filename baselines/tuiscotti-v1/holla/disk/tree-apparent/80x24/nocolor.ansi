@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                    big · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                [0m
+ [0m[1m Here › Disk › Usage  [0m                                                         [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────── [0m
+  [0m[1mDisk usage · ~/work/big[0m                                                       [0m
+  scan complete · 2.3 MiB allocated · 21 entries · 0 selected (0 B)             [0m
+                                                                                [0m
+    largest first · apparent · noise folded                                     [0m
+ [0m[1m▎▾ [0m [0m[1m big                                                       5.6 MiB · 100% [0m [0m
+        vm.img                                                  3.5 MiB ·   7%  [0m
+        target                                         2.0 MiB ·  85% · folded  [0m
+    ▸   noise                                                 112.0 KiB ·   7%  [0m
+    ▸   docs                                                    4.0 KiB ·   0%  [0m
+    ▸   src                                                     4.0 KiB ·   0%  [0m
+        Cargo.toml                                                 10 B ·   0%  [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+ [0m[1m~/work/big[0m                  0 selected · 0 B                  no color · 80×24 [0m
+         [0m[1m↑↓[0m Move  …   Sorted by apparent size · rows still show allocated bytes [0m

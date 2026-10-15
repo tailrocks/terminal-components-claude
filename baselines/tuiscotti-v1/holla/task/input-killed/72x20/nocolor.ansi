@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help      app · ser…kout  [0m[1m◆ devbox · production[0m [0m
+                                                                        [0m
+  Here    deploy the release ! ×   [0m[1m the stubborn worker [0m○[0m[1m ×  [0m           [0m
+ ──────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━────────── [0m
+  [0m[1mthe stubborn worker[0m · stopped · 1 s · exit 137                        [0m
+  $ ./stubborn · started by Run the stubborn worker                     [0m
+                                                                        [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────── following ─╮ [0m
+ │  $ ./stubborn                                                      │ [0m
+ │  ignoring SIGTERM…                                                 │ [0m
+ │  stop requested by holla · SIGTERM to the process group            │ [0m
+ │  no exit after SIGTERM for 750 ms · SIGKILL to the process group   │ [0m
+ │  killed (SIGKILL) · descendants reaped                             │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1m/srv/app[0m                stopped · 1 s                 no color · 72×20 [0m
+        [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  …   the stubborn worker stopped · exit 137 [0m

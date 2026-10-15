@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+   Search actions and resources…                                                    scope ‹ here ›
+
+    Suggested here
+    Analyze disk usage     disk     here  / is 91% full
+    Open btm   ╭────────────────────────────────────────────────────────────────────╮
+  › Show system│ Activities                                                  0 live │
+               │                    Nothing has been started yet                    │
+    Recent here│                                                                    │
+    nothing use│                                                                    │
+               ╰────────────────────────────────────────────────────────────────────╯
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp           explore  host  available on this host
+
+
+
+
+
+
+
+
+
+    → 'holla snapshot system' · host · read-only
+
+ ~/scratch                                                 / ━━━━━━━━━━─ 91%     16 colors · 100×30
+                                ↑↓ Move  Enter Switch  Esc Cancel

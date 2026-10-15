@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help             Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale
+
+ ╭─ Workspaces ────────── 3 running ─╮ │  Current directory · payments-platform                       saved workspace
+ │     Current directory             │ │
+ │   ▸ payments-platform             │ │  Working dir   /workspace/payments-platform
+ │   ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree
+ │   ▸ release-automation            │ │                ~/src/shared-libs · ro shared
+ │   ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 126
+ │   ▸ data-pipeline                 │ │  Environments  5 vars · 2 [op]
+ │   ▸ docs-site                     │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·
+ │     auth-servic╭──────────────────────────────────────────────────────────────────────────────────╮
+ │     gateway    │ Launch · choose Agent                          payments-platform › the-architect │ask
+ │     mobile-app │ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │
+ │     ml-notebook│  ▪ Codex        account Codex · Primary · provider def… ready                    │stale · 3 s ago
+ │     search-inde│  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │
+ │     staging-env│  ▪ Grok Build   account Grok · Team · provider default  ready                    │
+ │     billing-rec│                                                                                  │
+ │     legacy-mono│                                                                                  │
+ │     + New works╰──────────────────────────────────────────────────────────────────────────────────╯
+ │                                   │ │  ◌ b333  reviewer · Codex · restore available
+ │                                   │ │  ◌ b444  reviewer · Codex · exited
+ │                                   │ │  ◌ b555  reviewer · Codex · restore available
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │  Launch    Edit
+ ╰───────────────────────────────────╯ │
+
+             ↑↓ Move  …   ▲ Could not confirm running instances: instance index unreadable · entered without the ritual
