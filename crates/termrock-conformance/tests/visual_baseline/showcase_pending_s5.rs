@@ -825,10 +825,7 @@ fn s5_keyhint_status() {
     // Busy/Loading a spinner frame. (pr17's `Warning ▲` is dropped — the
     // target `Status` has no Warning variant.)
     let spinner: &str = t.design.motion.spinner_frames[0];
-    for (status, mark) in [
-        (Status::Error, Some("!")),
-        (Status::Ready, None),
-    ] {
+    for (status, mark) in [(Status::Error, Some("!")), (Status::Ready, None)] {
         let layer = toned("msg");
         let buf = render_isolated(60, 1, 0, None, |ui, _| {
             HintBar::new(Id::root("s5.hint"), &layer)
@@ -1623,21 +1620,6 @@ impl S5GridModel {
         u + i + d
     }
 
-    fn pending_label(&self) -> String {
-        let (u, i, d) = self.counts();
-        let mut parts = Vec::new();
-        if u > 0 {
-            parts.push(format!("{u} update{}", if u == 1 { "" } else { "s" }));
-        }
-        if i > 0 {
-            parts.push(format!("{i} insert{}", if i == 1 { "" } else { "s" }));
-        }
-        if d > 0 {
-            parts.push(format!("{d} delete{}", if d == 1 { "" } else { "s" }));
-        }
-        parts.join(" · ")
-    }
-
     fn row_state(&self, row: usize) -> S5RowState {
         let Some(id) = self.id_at(row) else {
             return S5RowState::Clean;
@@ -2302,7 +2284,11 @@ fn s5_grid_pending() {
     // such actions) — the pending bar is page-owned. The queue facts the
     // bar reported are asserted on the concrete model instead.
     model.record_cell(0, 3, S5Cell::plain("600"));
-    assert_eq!(model.counts(), (1, 0, 0), "V1: the queue the bar would count");
+    assert_eq!(
+        model.counts(),
+        (1, 0, 0),
+        "V1: the queue the bar would count"
+    );
     // A1: `u` undoes one queued change: drive through the model queue the
     // page's `u` binding owns (unit correlate).
     let mut queued = S5GridModel::with_rows(3, RowTotal::Exact(3), false);

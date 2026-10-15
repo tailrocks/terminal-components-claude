@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "90193824f8bbec38632359d1818971ae134447b55894cb54c1a48e55e7126df8",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5371,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.ansi",
+      "sha256": "90193824f8bbec38632359d1818971ae134447b55894cb54c1a48e55e7126df8"
+    },
+    "ascii": {
+      "bytes": 2630,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.ascii",
+      "sha256": "9e0171f4b223dff04df0126e68ce81100fc593539260dbf8cf17c48b76273148"
+    },
+    "ascii_loss_json": {
+      "bytes": 13818,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.ascii.loss.json",
+      "sha256": "f8e0ab60b531e7b5c39162ae8088a679bff58e9b90e44e5e6f8eeeb78119664b"
+    },
+    "frame_json": {
+      "bytes": 1074873,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.frame.json",
+      "sha256": "df53b624ee875f482742ff3effcb00310d6f5a50de63e6fd2f0a0b426856ac35"
+    },
+    "html": {
+      "bytes": 443633,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.html",
+      "sha256": "053a6c03c026b2b370dc958fa54517d929d10d45ce56f79a50eeb95a6fcca415"
+    },
+    "observations_json": {
+      "bytes": 470,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.observations.json",
+      "sha256": "0789be822c33a860c77aa8b916e380d390e9758671a96320bdcfe3c2e1b74e5e"
+    },
+    "png": {
+      "bytes": 323245,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.png",
+      "sha256": "ad00b5c77aae881ffa64af540db6b222fe49ef0ae5ffd4ba4de37dfd28ae941f"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2917,
+      "file": "jackin/cockpit/cancel-confirm/120x40/nocolor.txt",
+      "sha256": "6befec52a861a742874c752c3fea48d8528fe3f45422f2d47f92a0659af62294"
+    }
+  },
+  "ascii_substitutions_count": 148,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 4368826425569620987,
+  "frame_sha256": "df53b624ee875f482742ff3effcb00310d6f5a50de63e6fd2f0a0b426856ac35",
+  "generation": "ccc48edfb0ae1520ea31d9c1937b052ce2df80027d763e8eeed71a1b4eff49ff",
+  "html_sha256": "053a6c03c026b2b370dc958fa54517d929d10d45ce56f79a50eeb95a6fcca415",
+  "legacy_name": "jackin/cockpit/cancel_confirm/120x40/nocolor",
+  "name": "jackin/cockpit/cancel-confirm/120x40/nocolor",
+  "png_sha256": "ad00b5c77aae881ffa64af540db6b222fe49ef0ae5ffd4ba4de37dfd28ae941f",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:29Z",
+  "txt_sha256": "6befec52a861a742874c752c3fea48d8528fe3f45422f2d47f92a0659af62294"
+}

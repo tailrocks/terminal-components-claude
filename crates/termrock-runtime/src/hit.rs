@@ -562,7 +562,6 @@ mod runtime_tests {
     use crate::id::Id;
     use crate::layer::LayerSpec;
     use crate::runtime::stub::{Control, Stub, key, mouse, runtime, step};
-    pub use termrock_core::geometry::{Axes, Headroom};
 
     const PAGE_A: Id = Id::root("page.a");
     const DLG: Id = Id::root("dlg");

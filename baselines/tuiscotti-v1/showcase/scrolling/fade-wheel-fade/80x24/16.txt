@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Scrolling           i Inspector   ? Help
+
+   Overview       ┃  Scrolling  Wheel under the pointer, keys on the focused c…
+   Buttons        ┃
+   Inputs         ┃    Wra… 1–15 of …      Lon… 1–15 of …      Log 1980–1994 …
+   Text areas     ┃
+   Forms          ┃    Junie works  ┃         Row 001   ┃       732.23s  in… │
+   Lists          ┃    through a    │         Row 002   │       732.60s  in… │
+   Trees          ┃    task the way │         Row 003   │       732.97s  in… │
+   Tables         ┃    a careful    │         Row 004   │       733.34s  in… │
+   Editable tabl… ┃    engineer     │         Row 005   │       733.71s  in… │
+   Panels         ┃    would: it    │         Row 006   │       734.08s  wa… │
+   Sidebars       ┃    reads the    │         Row 007   │       734.45s  in… │
+   Dialogs        ┃    relevant     │         Row 008   │       734.82s  in… │
+   Progress       ┃    code, forms  │         Row 009   │       735.19s  in… │
+▎› Scrolling      ┃    a plan,      │         Row 010   │       735.56s  in… │
+   Terminal       ┃    makes        │         Row 011   │       735.93s  er… │
+   Code editor    ┃    focused      │         Row 012   │       736.30s  in… │
+   Diff           ┃    changes,     │         Row 013   │       736.67s  in… │
+   Data grid      │    runs the     │         Row 014   │       737.04s  in… │
+   Chips & selec… │    tests, and   │         Row 015   │       737.41s  in… ┃
+   Pickers        │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

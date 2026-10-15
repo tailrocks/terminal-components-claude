@@ -73,7 +73,9 @@ fn row_contains_save(symbols: &[&str]) -> bool {
 
 #[test]
 fn ex01_disabled_save_without_input_paints_label() {
-    assert!(!CAN_SAVE, "this case is the disabled button");
+    const {
+        assert!(!CAN_SAVE, "this case is the disabled button");
+    }
     assert!(!SAVE_AREA.is_empty(), "draw_save requires a non-empty rect");
 
     let mut runtime = Runtime::new(

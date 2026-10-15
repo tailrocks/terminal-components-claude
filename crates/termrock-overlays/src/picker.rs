@@ -3,12 +3,10 @@
 use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn, overlay_chrome};
 use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
-use crate::layout::Track;
 use crate::response::{Response, StateFlags};
 use crate::text::width;
 use crate::theme::{Family, StylePatch, Surface, Variant};
@@ -580,10 +578,7 @@ pub type CommandPalette<'a, T, R = ItemRow> = Picker<'a, T, R>;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::intent::IntentQueue;
     use crate::theme::Theme;
-    use crate::ui::UiCore;
-    use crate::ui::cx::{FrameServices, LastFrame};
 
     struct Domain {
         id: u64,
@@ -618,25 +613,48 @@ mod tests {
     }
 
     #[test]
-    fn query_change_emits_query_changed() {
+    fn query_change_is_visible_through_state_query() {
+        // `push_query_char` is internal; the public surface is `set_query`.
         let mut state = FilterListState::default();
-        let action = state.push_query_char('a');
-        assert_eq!(action, FilterListAction::QueryChanged);
+        state.set_query("a");
         assert_eq!(state.query(), "a");
     }
 
+    /// `Cx` has no public constructor, so sizes are observed through a minimal
+    /// app whose update calls `measured_size` inside a real frame.
     fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
-        let picker = Picker::<Domain>::new(Id::root("picker.fixed-width")).size(size);
-        let intents = IntentQueue::new();
-        let mut services = FrameServices {
-            viewport: Rect::new(0, 0, viewport_width, 1),
-            ..FrameServices::default()
-        };
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
-        picker.measured_size(&cx, &[])
+        struct MeasureApp {
+            size: LayerSize,
+            measured: Option<LayerSize>,
+        }
+        impl termrock_runtime::runtime::App for MeasureApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                self.measured = Some(
+                    Picker::<Domain>::new(Id::root("picker.fixed-width"))
+                        .size(self.size)
+                        .measured_size(cx, &[]),
+                );
+                Response::ignored()
+            }
+
+            fn draw(&self, _ui: &mut Ui<'_>) {}
+        }
+        let area = Rect::new(0, 0, viewport_width, 9);
+        let mut runtime = termrock_runtime::runtime::Runtime::new(
+            MeasureApp {
+                size,
+                measured: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::event::Input::Tick,
+        );
+        runtime.app().measured.expect("measured_size ran")
     }
 
     #[test]

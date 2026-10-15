@@ -12,25 +12,13 @@ pub(crate) use termrock_runtime as ui;
 pub(crate) use termrock_runtime as runtime;
 pub(crate) use termrock_runtime as focus;
 pub(crate) use termrock_runtime as keymap;
-pub(crate) use termrock_runtime as layer;
 pub(crate) use termrock_text as text;
 pub(crate) use termrock_theme as theme;
-
-pub(crate) mod collection {
-    pub use termrock_collections::*;
-    pub use termrock_runtime::{EmptyState, RowFn, RowUi, Status};
-}
 
 pub use termrock_core::action::ActionKey;
 pub use termrock_core::intent::Phase;
 pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion};
 pub use termrock_text::{Secret, SecretPolicy};
-
-#[cfg(test)]
-pub(crate) mod components {
-    pub(crate) use super::picker;
-    pub(crate) use termrock_runtime::Acc;
-}
 
 pub(crate) use termrock_runtime::{
     Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift,
@@ -44,14 +32,6 @@ pub mod nav_list;
 pub mod steps;
 pub mod tabs;
 pub mod tree;
-
-pub(crate) mod picker {
-    pub use super::item::*;
-}
-
-pub(crate) mod scroll_region {
-    pub use termrock_runtime::ScrollRegion;
-}
 
 pub use chip::{ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, LabelChips};
 pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy};

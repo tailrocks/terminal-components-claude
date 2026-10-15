@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Settings               no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mProject settings[0m  Composed: tabs, form, editable table, list, dialogs          [0m
+   Buttons                                                                                          [0m
+   Inputs             General   [0m[1m Members  [0m  Environment                                             [0m
+   Text areas        ───────────━━━━━━━━━━──────────────────────────────────────────────────────────[0m
+   Forms                                                                                            [0m
+   Lists              ▎[0m[1mMembers[0m                                                           6 members  [0m
+   Trees                                                                                            [0m
+   Tables                 Name                         Email               Role      Last active    [0m
+   Editable tables        Mira Okafor                  mira@acme.dev       Owner           today    [0m
+   Panels              [0m[1m▎  Jonas Weber                  jonas@acme.dev      Admin         2 h ago  [0m  [0m
+   Sidebars               Ana Costa                    ana@acme.dev        Member      yesterday    [0m
+   Dialogs                Kai Tanaka                   kai@acme.dev        Member        3 d ago    [0m
+   Progress               Sofia Rossi                  sofia@acme.dev      Viewer          never    [0m
+   Scrolling              deploy-bot                   bot@acme.dev        Member        1 m ago    [0m
+   Terminal                                                                                         [0m
+   Code editor          Invite    Remove…   cursor: Jonas Weber                                     [0m
+   Diff                                                                                             [0m
+   Data grid                                                                                        [0m
+   Chips & selects                                                                                  [0m
+   Pickers                                                                                          [0m
+   Chrome                                                                                           [0m
+ › Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓ ← →[0m Cell  [0m[1mEnter[0m Edit  [0m[1ms[0m Sort  [0m[1mTab[0m Next                                                         [0m

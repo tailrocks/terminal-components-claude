@@ -2381,21 +2381,14 @@ pub mod stub {
 
 #[cfg(test)]
 mod tests {
-    use super::stub::{Control, SCREEN, Stub, deliver, key, mouse, runtime, step};
+    use super::stub::{Control, SCREEN, Stub, deliver, key, runtime, step};
     use super::*;
     use crate::event::MouseKind;
     use crate::focus::Focusability;
     use crate::layer::LayerSpec;
-    use crate::ui::FrameRead;
 
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
-    const C: Id = Id::root("c");
-    const ROUTE_PUBLISH: u8 = 1 << 0;
-    const ROUTE_ALTERNATE: u8 = 1 << 1;
-    const ROUTE_SECOND: u8 = 1 << 2;
-    const ROUTE_CONSUME_RAW: u8 = 1 << 3;
-    const ROUTE_TAB: u8 = 1 << 4;
 
     #[derive(Default)]
     struct BootstrapProbe {
@@ -2624,50 +2617,47 @@ mod tests {
         assert!(runtime.diagnostics().is_empty());
     }
 
-    #[derive(Default)]
-    struct GapCache(u32);
-
-#[test]
-fn a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it() {
-    let dlg = Id::root("dlg");
-    let mut s = Stub {
-        page: vec![Control::new(A, Rect::new(0, 0, 10, 1))],
-        ..Stub::default()
-    };
-    s.layers.push((
-        dlg,
-        vec![Control {
-            decor: true,
-            ..Control::new(dlg, Rect::new(5, 5, 10, 3))
-        }],
-    ));
-    s.skip_drain = Some(dlg);
-    let (mut rt, mut buf) = runtime(s);
-    rt.app_mut().open_request = Some((dlg, LayerSpec::modal(dlg)));
-    let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-    assert!(rt.is_open(dlg));
-    assert!(
-        !rt.last.registry.delivers_to(dlg),
-        "the owner must register decoration only, as a Dialog does"
-    );
-    let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
-    assert!(!rt.is_open(dlg));
-    let undelivered: Vec<Id> = rt
-        .diagnostics()
-        .iter()
-        .filter_map(|d| match d {
-            Diagnostic::UndeliveredIntent { owner } => Some(*owner),
-            _ => None,
-        })
-        .collect();
-    // the guard runs per *pass*, and the dismissal re-runs `update` while
-    // the focus restore settles, so the owner is named once per pass; what
-    // the invariant claims is that it is named, and that nobody else is.
-    assert!(!undelivered.is_empty(), "the dismissal was lost in silence");
-    assert!(
-        undelivered.iter().all(|o| *o == dlg),
-        "{:?}",
-        rt.diagnostics()
-    );
-}
+    #[test]
+    fn a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it() {
+        let dlg = Id::root("dlg");
+        let mut s = Stub {
+            page: vec![Control::new(A, Rect::new(0, 0, 10, 1))],
+            ..Stub::default()
+        };
+        s.layers.push((
+            dlg,
+            vec![Control {
+                decor: true,
+                ..Control::new(dlg, Rect::new(5, 5, 10, 3))
+            }],
+        ));
+        s.skip_drain = Some(dlg);
+        let (mut rt, mut buf) = runtime(s);
+        rt.app_mut().open_request = Some((dlg, LayerSpec::modal(dlg)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert!(rt.is_open(dlg));
+        assert!(
+            !rt.last.registry.delivers_to(dlg),
+            "the owner must register decoration only, as a Dialog does"
+        );
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
+        assert!(!rt.is_open(dlg));
+        let undelivered: Vec<Id> = rt
+            .diagnostics()
+            .iter()
+            .filter_map(|d| match d {
+                Diagnostic::UndeliveredIntent { owner } => Some(*owner),
+                _ => None,
+            })
+            .collect();
+        // the guard runs per *pass*, and the dismissal re-runs `update` while
+        // the focus restore settles, so the owner is named once per pass; what
+        // the invariant claims is that it is named, and that nobody else is.
+        assert!(!undelivered.is_empty(), "the dismissal was lost in silence");
+        assert!(
+            undelivered.iter().all(|o| *o == dlg),
+            "{:?}",
+            rt.diagnostics()
+        );
+    }
 }

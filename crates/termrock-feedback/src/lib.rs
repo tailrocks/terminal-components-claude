@@ -16,10 +16,6 @@ pub use termrock_core::action::ActionKey;
 
 pub(crate) use termrock_runtime::{PartStyle, SlotFn, first_row, shift};
 
-pub(crate) mod collection {
-    pub use termrock_runtime::Status;
-}
-
 pub mod hintbar;
 pub mod keyhint;
 pub mod meter;

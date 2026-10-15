@@ -1,0 +1,22 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 488262874236845243,
+  "legacy_name": "holla/parity/browser/72x20/none",
+  "name": "holla/finder/parity-browser/72x20/none",
+  "non_empty_cells": 447,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                     web · Node project · pnpm  mbp · local
+
+  Here › Cleanup
+ ━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────
+  Cleanup review
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash
+
+                                                                        │    Xcode DerivedData               category
+  [ ] ▸ Xcode archives            300.0 MiB  review first…              │
+                                                                        │    Safety     rebuilt on demand
+  [✓] ▸ Simulator caches          900.0 MiB  rebuilt on demand…         ┃    Age rule   any age
+                                                                        ┃    Platform   macOS only
+  [✓] ▸ Homebrew cache            100.0 MiB  rebuilt on demand…         ┃    Roots      ~/Library/Developer/Xcode/Der
+                                                                        ┃               ivedData
+  [✓] ▸ npm cache                 201.0 MiB  rebuilt on demand…         ┃    Why        rebuilt by the next build
+                                                                        ┃    Size       810.0 MiB
+  [✓] ▸ pnpm store                  2.1 GiB  safe if old · 1 candidate… ┃    Guard      Xcode is running · candidates
+                                                                        ┃               are skipped
+  [✓] ▸ Yarn cache                 50.0 MiB  rebuilt on demand…         ┃    Selection  0 of 1 candidates eligible ·
+                                                                        ┃               0 checked
+  [✓] ▸ Bun cache                  60.0 MiB  rebuilt on demand…         ┃
+                                                                        ┃
+  [✓] ▸ Cargo registry cache        4.8 GiB  safe if old…               ┃
+                                                                        ┃
+  [✓] ▸ Gradle caches               1.5 GiB  safe if old…               ┃
+                                                                        ┃
+  [ ] ▸ Maven repository          700.0 MiB  review first…              ┃
+                                                                        ┃
+  [✓] ▸ pip cache                 150.0 MiB  rebuilt on demand…         ┃
+                                                                        ┃
+  [✓] ▸ uv cache                  300.0 MiB  rebuilt on demand…         ┃
+                                                                        ┃
+  [~] ▸ User caches                 1.9 GiB  review first…              ┃
+                                                                        ┃
+  [✓] ▸ User logs                  30.0 MiB  rebuilt on demand…         │
+                                                                        │
+  [✓] ▸ JetBrains logs             30.0 MiB  rebuilt on demand…         │
+
+ ~/Projects/web                                19 selected · 12.4 GiB                                16 colors · 120×40
+        ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  Esc Back

@@ -1,0 +1,40 @@
+ ▪  TablePro  Connections  6 saved                                                           16 colors · 120×40  ? help
+
+ ╭─ Connections ─────────────────── 6 ─╮    Local PostgreSQL
+ │                                     │
+ │ ▎ stag                              │    Engine       PostgreSQL
+ │  ▾ Acme                             │    Host         localhost:5432
+ │      ◇ Staging                  pg  │    Database     acme_dev
+ │                                     │    User         postgres
+ │                                     │    Environment  local
+ │                                     │    Safe Mode    Silent · Writes run without asking. Destructive
+ │                                     │                 statements still confirm.
+ │                                     │    SSL / SSH    off / off
+ │                                     │    Last used    2 minutes ago
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │     Connect    Edit    Duplicate    Delete…
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ ╰─────────────────────────────────────╯
+
+  EDIT   Type Filter  ↓ Into list  Esc Clear

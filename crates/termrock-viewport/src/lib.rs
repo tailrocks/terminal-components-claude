@@ -11,12 +11,8 @@ pub(crate) use termrock_runtime as ui;
 pub(crate) use termrock_runtime as runtime;
 pub(crate) use termrock_runtime as focus;
 pub(crate) use termrock_runtime as keymap;
-pub(crate) use termrock_text as text;
-pub(crate) use termrock_theme as theme;
-
-pub(crate) mod scroll_region {
-    pub use termrock_runtime::ScrollRegion;
-}
+pub use termrock_text as text;
+pub use termrock_theme as theme;
 
 pub use termrock_core::action::ActionKey;
 pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion};

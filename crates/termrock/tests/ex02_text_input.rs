@@ -101,7 +101,9 @@ fn row_contains_name(symbols: &[&str]) -> bool {
 
 #[test]
 fn ex02_idle_name_without_input_paints_value() {
-    assert!(!LOCKED, "this case is an editable field");
+    const {
+        assert!(!LOCKED, "this case is an editable field");
+    }
     assert!(!NAME_AREA.is_empty(), "draw_name requires a non-empty rect");
     assert_eq!(NAME, "ab");
 

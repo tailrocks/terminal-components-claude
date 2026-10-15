@@ -1,0 +1,22 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 9490316058067559642,
+  "legacy_name": "jackin/capsule/split_vertical/72x20/nocolor",
+  "name": "jackin/capsule/split-vertical/72x20/nocolor",
+  "non_empty_cells": 646,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

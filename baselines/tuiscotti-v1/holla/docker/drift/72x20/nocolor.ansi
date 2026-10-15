@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help           no project  [0m[1mdevbox · development[0m [0m
+                                                                        [0m
+ [0m[1m Here › Clean Docker completely › Review  [0m                             [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────── [0m
+  [0m[1mReview · Clean Docker completely[0m · gate 1 of 2 · review the resolve…  [0m
+                                                                        [0m
+  Action             remove all user-removable Docker state on devbox   [0m
+  Host               devbox · development · over SSH                    [0m
+  In                 /work/scratch                                      [0m
+  Steps              7 included · 0 excluded · 4 branches parallel · …  [0m
+  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7   [0m
+                     volumes 4.1 GB · build cache 6.1 GB                [0m
+                                                                        [0m
+ ╭─ Sequence · 8 commands ───────────────────────────────── y copies ─╮ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+                                                 ▎[0m[1mCancel [0m   Continue…   [0m
+                                                                        [0m
+ [0m[1m/work/scratch[0m          review · gate 1 of 2           no color · 72×20 [0m
+ …   [0m[1m![0m Plan changed · a new container (tmp-shell-3) appeared · confirm… [0m

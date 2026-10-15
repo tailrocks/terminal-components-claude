@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "5156a01dac5804b4545751852b1ecf6a8d5342da6cd0cd7374165c8d253ec436",
+  "artifacts": {
+    "ansi": {
+      "bytes": 2398,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.ansi",
+      "sha256": "5156a01dac5804b4545751852b1ecf6a8d5342da6cd0cd7374165c8d253ec436"
+    },
+    "ascii": {
+      "bytes": 948,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.ascii",
+      "sha256": "5f6c221b09e71e60f9b9343e5f7bf7663ba22a93a05d460da61950e93e28769b"
+    },
+    "ascii_loss_json": {
+      "bytes": 9171,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.ascii.loss.json",
+      "sha256": "d963bc84df220c4fc44351d507a9dd75b5909b00112bea986528a9dbf5a01686"
+    },
+    "frame_json": {
+      "bytes": 429349,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.frame.json",
+      "sha256": "6d49978bed41b1bbc5f5cfcf8ebe698b2f51254f56035c3d53079adb53bafead"
+    },
+    "html": {
+      "bytes": 341534,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.html",
+      "sha256": "38186502a919bc4468229633e036f7c04aa3c6a5bb3bc66209feb2ecd6b6ae68"
+    },
+    "observations_json": {
+      "bytes": 472,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.observations.json",
+      "sha256": "dbf57e192d0d6dea01fb8048311f3c60d82335f26c52f3e37d4bbbe7056d9fdd"
+    },
+    "png": {
+      "bytes": 250229,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.png",
+      "sha256": "5be120fcad81708d32cea57987d88646af78d986d52afd46126f323225f68c8a"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1138,
+      "file": "holla/finder/parity-disk-navigation/80x24/nocolor.txt",
+      "sha256": "2ea0aad97e1db000766e754f32d412e4c655ae2b1cd58e2b22de82c5445e4182"
+    }
+  },
+  "ascii_substitutions_count": 99,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 6414348170849293800,
+  "frame_sha256": "6d49978bed41b1bbc5f5cfcf8ebe698b2f51254f56035c3d53079adb53bafead",
+  "generation": "76e585d3303c06fb8500a6c84547bf60eae1fba3a5e4f3b469e2845a21d41892",
+  "html_sha256": "38186502a919bc4468229633e036f7c04aa3c6a5bb3bc66209feb2ecd6b6ae68",
+  "legacy_name": "holla/parity/disk-navigation/80x24/nocolor",
+  "name": "holla/finder/parity-disk-navigation/80x24/nocolor",
+  "png_sha256": "5be120fcad81708d32cea57987d88646af78d986d52afd46126f323225f68c8a",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:54Z",
+  "txt_sha256": "2ea0aad97e1db000766e754f32d412e4c655ae2b1cd58e2b22de82c5445e4182"
+}

@@ -19,3 +19,8 @@ termrock-feedback.workspace = true
 unicode-width.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
+
+[dev-dependencies]
+termrock-test-support.workspace = true
+unicode-segmentation.workspace = true
+termrock-overlays.workspace = true

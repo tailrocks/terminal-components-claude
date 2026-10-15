@@ -1,0 +1,22 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 291337524415741369,
+  "legacy_name": "tablepro/table/data/72x20/16",
+  "name": "tablepro/table/data/72x20/16",
+  "non_empty_cells": 776,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

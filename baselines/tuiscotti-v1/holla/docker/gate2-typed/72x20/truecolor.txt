@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           no project  devbox · development
+  ╭──────────────────────────────────────────────────────────────────╮
+  │                                                                  │
+ ━│  Clean Docker completely · gate 2 of 2                           │─
+  │                                                                  │
+  │                                                                  │
+  │  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db…  │
+  │  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1…  │
+  │  docker image prune -a --force                                   │
+  │  docker network prune --force                                    │
+  │  docker volume prune -a --force                                  │
+  │  docker builder prune -a --force … 2 more                        │
+  │                                                                  │
+ ╭│   Type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confi…  │╮
+ ╰│ ▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox                 │╯
+  │                                                                  │
+  │                                               Cancel   Execute   │
+  │                                                                  │
+ /╰──────────────────────────────────────────────────────────────────╯0
+  EDIT           Type Phrase  Enter Next  Esc Cancel

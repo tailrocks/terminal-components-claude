@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Pickers     i Inspector   ? Help  [0m
+                                                                        [0m
+   Forms          │  Pickers  One modal list for files, tabs and level… [0m
+   Lists    ╭──────────────────────────────────────────────╮            [0m
+   Trees    │ [0m[1mOpen tabs[0m                                    │            [0m
+   Tables   │ ▎ Filter tabs…                               │            [0m
+   Editable │                                              │ a level    [0m
+   Panels   │ [0m[1m▎[0m≡[0m[1m Query 1      [0mquery[0m[1m             [0mOpen tabs[0m[1m [0m │            [0m
+   Sidebars │  T orders       public ·… active             │b cycles …  [0m
+   Dialogs  │  T order_items  public ·…                    │            [0m
+   Progress │  T History      public ·…                    │            [0m
+   Scrolling│                                              │            [0m
+   Terminal │ ↑↓ Move · Enter Switch · Delete Close tab ·… │            [0m
+   Code edit╰──────────────────────────────────────────────╯            [0m
+   Diff           ┃    Chosen          nothing yet                      [0m
+   Data grid      ┃    Detail          —                                [0m
+   Chips & selec… │    Level           Safe Mode                        [0m
+ › Pickers        │                                                     [0m
+                                                                        [0m
+ [0m[1mEsc[0m Close  [0m[1mTab[0m Next                                                    [0m

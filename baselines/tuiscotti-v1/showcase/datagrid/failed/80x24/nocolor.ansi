@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Data grid           i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mData grid[0m  Typed cells, a pending-change queue, paging an… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃   ▎[0m[1mcus… rows[0m 1–12 of 40 loaded · ~4,812 total · cols 3–6 …  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     ‹2   plan          seats      mrr  active         2›    [0m
+   Lists          ┃      [0m[1m![0m 1 enterprise      600    57.00  true              ┃  [0m
+   Trees          ┃    [0m[1m▎ •[0m 2[0m[1m team             12  1920.00  true              [0m┃  [0m
+   Tables         ┃        3 pro              12   348.00  true              ┃  [0m
+   Editable tabl… ┃        4 free              1     0.00  false             │  [0m
+   Panels         ┃        5 enterprise       40   760.00  true              │  [0m
+   Sidebars       ┃        6 team              5   120.00  true              │  [0m
+   Dialogs        ┃        7 pro             150  4350.00  true              │  [0m
+   Progress       ┃        8 free             25     0.00  true              │  [0m
+   Scrolling      ┃        9 enterprise        3    57.00  false             │  [0m
+   Terminal       ┃       10 team             80  1920.00  true              │  [0m
+   Code editor    ┃       11 pro              12   348.00  true              │  [0m
+   Diff           ┃    [0m[2m   12 free              1     0.00  true              [0m│  [0m
+ › Data grid      │                                                             [0m
+   Chips & selec… │     • 2 pending · 2 upda…   Preview SQL   Discard   [0m[1mSave [0m   [0m
+[0m[2m   Pickers        [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1ms[0m Sort  …               Save failed · the row is marked [0m

@@ -1,0 +1,20 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                                           [0m
+                                                                        [0m
+                                                                        [0m
+   General    Mounts   [0m[1m Roles  [0m  Environments    Accounts               [0m
+  ─────────────────────━━━━━━━━───────────────────────────────────────  [0m
+                                                                        [0m
+    [0m[1mAllowed roles  3 of 46[0m                   default ★ the-architect    [0m
+  [0m[1m▎›   [✓] the-architect ★  registry · trusted · Full-stack design … [0m┃  [0m
+       [✓] backend          registry · trusted · Rust and Postgres … │  [0m
+       [✓] reviewer         registry · trusted · Read-mostly code r… │  [0m
+       [ ] sre              registry · trusted · Infrastructure, Te… │  [0m
+       [ ] data-eng         ! load error · trust required            │  [0m
+       [ ] writer           ~/roles/writer · not in registry         │  [0m
+       [ ] svc-001          registry · trusted · ledger service age… │  [0m
+       [ ] svc-002          registry · trusted · search service age… │  [0m
+  [0m[2m     [ ] svc-003          registry · trusted · notify service age… [0m│  [0m
+                                                                        [0m
+                                                  Cancel     [0m[2mSave… [0m     [0m
+                                                                        [0m
+       [0m[1mSpace[0m Allow  [0m[1mEnter[0m Set default  [0m[1ma[0m Load role…  [0m[1m/[0m Filter  …        [0m

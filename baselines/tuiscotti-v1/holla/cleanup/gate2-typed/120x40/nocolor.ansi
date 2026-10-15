@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           safe · Rust project  mbp · local [0m
+                                                                                                                        [0m
+  Here › Disk › Usage › Review                                                                                          [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────── [0m
+  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then continue deliberately                           [0m
+                                                                                                                        [0m
+  Action        move to Trash 1 item under ~/Projects/safe                                                              [0m
+  Host          mbp ·╭────────────────────────────────────────────────────────────────────────────╮                     [0m
+  Mode          Trash│                                                                            │                     [0m
+  Estimate      1000.│  [0m[1mTrash 1 items · gate 2 of 2[0m                                               │ free-space          [0m
+                guara│                                                                            │                     [0m
+  Denied        none │  Action        move to Trash 1 item under ~/Projects/safe                  │                     [0m
+  Revision      68c21│  Host          mbp · local                                                 │                     [0m
+  Threat model  an un│  Mode          Trash · native macOS Trash · space returns after the Trash  │ the final path      [0m
+                canno│                is emptied                                                  │                     [0m
+  Paths         ~/Pro│  Estimate      1000.0 MiB allocated · APFS clones may overcount ·          │                     [0m
+  Recoverable   yes ·│                purgeable space excluded · not a free-space guarantee       │                     [0m
+  Provenance    holla│  Denied        none · every path passed the lexical, protected-root,       │                     [0m
+  Gate          secon│                user-data and symlink rules                                 │                     [0m
+                     │  Revision      68c21e8eb8ed0a71 · any change to paths, mode or dry run     │                     [0m
+ ╭─ Sequence · 1 comm│                voids this review                                           │──────── y copies ─╮ [0m
+ │  01  trash /Users/│  Threat model  an unprivileged user · ancestors are re-resolved at commit  │                   │ [0m
+ │                   │                · a concurrent rename of the final path cannot be excluded  │                   │ [0m
+ │                   │  Paths         ~/Projects/safe/target                                      │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │  /Users/alex/Projects/safe/target                                          │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │   [0m[1mType TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm         [0m  │                   │ [0m
+ │                   │ ▎ [0m[4mTRASH 1 UNDER /Users/alex/Projects/safe ON mbp[0m                           │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │                                                         Cancel   Execute   │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+                                                                                                  Cancel    Continue…   [0m
+                                                                                                                        [0m
+ ~/Projects/safe                                 review · gate 1 of 2                                 no color · 120×40 [0m
+ [0m[1m EDIT [0m     [0m[1m   [0m         [0m[1m     [0m           [0m[1m Type[0m Phra[0m[1ms[0me  [0m[1mEnter[0m Next  [0m[1mEsc [0mCancel     1 item selected · 1000.0 MiB estimated [0m

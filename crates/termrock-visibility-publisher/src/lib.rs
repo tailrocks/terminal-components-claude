@@ -52,6 +52,10 @@ pub mod transport {
 
     #[cfg(test)]
     #[derive(Clone, Debug, Default)]
+    #[expect(
+        dead_code,
+        reason = "diagnostic record mirrors the error shape; read at failure sites only"
+    )]
     struct TestReqwestError {
         timeout: bool,
         connect: bool,
@@ -914,15 +918,15 @@ pub mod transport {
                 "only consumed response headers were returned"
             );
             assert!(
-                response.headers.get("location").is_some(),
+                response.headers.contains_key("location"),
                 "Location was preserved"
             );
             assert!(
-                response.headers.get("retry-after").is_some(),
+                response.headers.contains_key("retry-after"),
                 "Retry-After was preserved"
             );
             assert!(
-                response.headers.get("x-ratelimit-remaining").is_some(),
+                response.headers.contains_key("x-ratelimit-remaining"),
                 "rate limit header was preserved"
             );
 
@@ -1028,8 +1032,7 @@ pub mod transport {
             barrier.wait();
             let all_succeeded = workers
                 .into_iter()
-                .map(|worker| worker.join().is_ok_and(|succeeded| succeeded))
-                .fold(true, |all_ok, succeeded| all_ok && succeeded);
+                .all(|worker| worker.join().is_ok_and(|succeeded| succeeded));
             assert!(
                 all_succeeded,
                 "concurrent provider initialization succeeded"
@@ -1891,14 +1894,14 @@ fn validate_observer_report(
         || report
             .workflow_source_blob_sha
             .as_deref()
-            .map_or(true, |value| !is_sha1(value))
-        || report.workflow_source_bytes.map_or(true, |bytes| {
-            bytes == 0 || bytes > api::MAX_WORKFLOW_FILE_BYTES
-        })
+            .is_none_or(|value| !is_sha1(value))
+        || report
+            .workflow_source_bytes
+            .is_none_or(|bytes| bytes == 0 || bytes > api::MAX_WORKFLOW_FILE_BYTES)
         || report
             .workflow_source_sha256
             .as_deref()
-            .map_or(true, |value| !is_sha256(value))
+            .is_none_or(|value| !is_sha256(value))
         || report.artifacts_count.is_none()
         || report.error.is_some()
     {

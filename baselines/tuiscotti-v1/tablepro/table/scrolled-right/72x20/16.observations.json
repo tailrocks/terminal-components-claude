@@ -1,0 +1,22 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 12561362565234045764,
+  "legacy_name": "tablepro/table/scrolled_right/72x20/16",
+  "name": "tablepro/table/scrolled-right/72x20/16",
+  "non_empty_cells": 688,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

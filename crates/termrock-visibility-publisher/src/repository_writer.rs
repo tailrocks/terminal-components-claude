@@ -778,12 +778,11 @@ fn publish_git_tree(
         run_attempt: observation.target.run_attempt,
         source_sha: observation.target.head_sha.clone(),
     };
-    if let Some(previous) = existing_cursor.as_ref() {
-        if previous.last_published.workflow_id != target_tuple.workflow_id
-            || !run_cursor_is_newer(&target_tuple, &previous.last_published)
-        {
-            return Err(PublishError::StaleRunCursor);
-        }
+    if let Some(previous) = existing_cursor.as_ref()
+        && (previous.last_published.workflow_id != target_tuple.workflow_id
+            || !run_cursor_is_newer(&target_tuple, &previous.last_published))
+    {
+        return Err(PublishError::StaleRunCursor);
     }
 
     let cursor = PublicationCursor {
@@ -1325,7 +1324,7 @@ pub fn read_policy_from_test_environment() -> Result<TrustedPublisherPolicy, Pub
             return Err(PublishError::LivePublishingDisabled);
         }
         let bytes = bounded_file(&required_env(TEST_POLICY_ENV)?, 64 * 1024)?;
-        return parse_policy(&bytes);
+        parse_policy(&bytes)
     }
     #[cfg(not(debug_assertions))]
     {

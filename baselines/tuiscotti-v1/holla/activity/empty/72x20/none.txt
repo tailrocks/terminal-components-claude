@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+  ╭──────────────────────────────────────────────────────────────────╮
+  │ Activities                                                0 live │
+  │                   Nothing has been started yet                   │┃
+  │                                                                  │┃
+  │                                                                  │┃
+  ╰──────────────────────────────────────────────────────────────────╯┃
+                                                                      ┃
+    Recent here                                                       ┃
+    nothing used here yet                                             ┃
+                                                                      │
+    Explore                                                           │
+
+    → 'holla snapshot system' · host · read-only
+
+ ~/scratch                       / ━━━━━━━━━━─ 91%     no color · 72×20
+                  ↑↓ Move  Enter Switch  Esc Cancel

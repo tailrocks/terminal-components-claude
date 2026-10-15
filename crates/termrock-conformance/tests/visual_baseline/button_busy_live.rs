@@ -77,8 +77,12 @@ use crate::support;
 const LABEL: &str = "Start long job";
 /// Display width of [`LABEL`] (all ASCII).
 const LABEL_W: u16 = 14;
-/// Full busy-button width: label + 2 padding + 2 shared marker cells.
-const FULL_W: u16 = LABEL_W + 2 + 2;
+/// Busy+checked leader width: label + 2 padding + 2 icon + 2 marker lanes.
+const FULL_W: u16 = LABEL_W + 2 + 2 + 2;
+/// Busy-only leader width: label + 2 padding + 2 icon lane.
+const BUSY_ONLY_W: u16 = LABEL_W + 2 + 2;
+/// Idle checked leader width: label + 2 padding + 2 marker lane.
+const IDLE_FULL_W: u16 = LABEL_W + 2 + 2;
 /// The reference ten-frame braille cycle (`spinner_frame`, `progress.rs`):
 /// the oracle every marker glyph below is compared against.
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -556,7 +560,8 @@ fn busy_checked_row_geometry_shared_marker() {
         let what = format!("busy+on={on}");
         let (buf, frame, widths, _, rects) = render_row(tick, Some(on), true, ROW_W);
 
-        // Shared marker space: busy+checked is label + 2 pad + 2 marker.
+        // Two independent lanes: busy icon at x=1, checked marker at x=3,
+        // label at x=5; widths label + 2 pad + 2 + 2.
         assert_eq!(widths[0], FULL_W, "{what}: leader width");
         assert_eq!(widths[1], FOLLOWER_W, "{what}: follower width");
         assert_eq!(widths[2], THIRD_W, "{what}: third width");
@@ -564,7 +569,7 @@ fn busy_checked_row_geometry_shared_marker() {
         assert_eq!(
             rects[1],
             Rect::new(FULL_W + GAP, 0, FOLLOWER_W, 1),
-            "{what}: follower must start exactly past the shared marker"
+            "{what}: follower starts past both leader lanes"
         );
         assert_eq!(
             rects[2],
@@ -572,25 +577,28 @@ fn busy_checked_row_geometry_shared_marker() {
             "{what}: third control position"
         );
 
-        // Marker precedence: the spinner wins over the toggle dot at x = 1.
+        // Lane precedence: the static spinner icon at x = 1, the toggle
+        // dot in its own lane at x = 3, label at x = 5.
         assert_eq!(
             buf[(1, 0)].symbol(),
-            SPINNER[tick as usize],
-            "{what}: marker"
+            SPINNER[0],
+            "{what}: icon lane holds the static spinner frame"
         );
         assert_eq!(
             buf[(1, 0)].fg,
             theme.color.accent,
-            "{what}: marker keeps the accent tone"
+            "{what}: icon keeps the accent tone"
         );
         assert_eq!(
-            frame.get(1, 0).expect("marker cell").symbol.as_str(),
-            SPINNER[tick as usize],
-            "{what}: captured marker"
+            frame.get(1, 0).expect("icon cell").symbol.as_str(),
+            SPINNER[0],
+            "{what}: captured icon"
         );
         assert_eq!(buf[(0, 0)].symbol(), " ", "{what}: leader gutter x=0");
-        assert_eq!(buf[(2, 0)].symbol(), " ", "{what}: gap x=2");
-        assert_eq!(buf[(3, 0)].symbol(), "S", "{what}: label starts x=3");
+        assert_eq!(buf[(2, 0)].symbol(), " ", "{what}: icon gap x=2");
+        assert_eq!(buf[(3, 0)].symbol(), "●", "{what}: toggle marker x=3");
+        assert_eq!(buf[(4, 0)].symbol(), " ", "{what}: marker gap x=4");
+        assert_eq!(buf[(5, 0)].symbol(), "S", "{what}: label starts x=5");
         assert_eq!(
             buf[(FULL_W - 1, 0)].symbol(),
             " ",

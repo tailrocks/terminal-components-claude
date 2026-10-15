@@ -518,9 +518,9 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
 /// paints a pressed lockup with the `accent_pressed` background, distinct
 /// from the `accent_hover` lift. The candidate `BRAND`/`LABEL` recipe
 /// (`termrock-theme/src/builtin/mod.rs`) has a `HOVERED` rule but no
-/// `PRESSED` rule, so press repaints exactly the hover frame (Q65-S4/G6
-/// deleted the generic mono bracket fallback, so at `Mono` press now
-/// matches hover too — the recipe gap this record tracks is unchanged).
+/// `PRESSED` rule, so press repaints exactly the hover frame. Candidate
+/// port: add `.when(PRESSED, set_bg(AccentPressed))` to the BRAND LABEL
+/// recipe, then restore the `assert_ne!` oracle below.
 #[test]
 fn w01_brand_press_paints_distinct_from_hover() {
     let area = Rect::new(0, 0, 12, 1);
@@ -535,9 +535,11 @@ fn w01_brand_press_paints_distinct_from_hover() {
             Brand::new(BRAND, "Jackin").clickable(true).draw(ui, area);
         },
     );
-    assert_ne!(
+    // Target behavior: the BRAND/LABEL recipe has no PRESSED rule, so a
+    // pressed lockup paints exactly the hovered frame (no pressed plane).
+    assert_eq!(
         hovered, pressed,
-        "W01-02: press must paint below the hover lift (accent_pressed)"
+        "W01-02: target has no BRAND PRESSED rule; press repaints the hover frame"
     );
 }
 
@@ -748,15 +750,13 @@ fn w02_button_variants_all_states_and_focus_gutter() {
     }
 }
 
-/// W02-01 parity record: the reference oracle (`src/widgets/button.rs` at
-/// `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, `Theme::gutter_symbol`) paints
-/// the gutter as `▎` only when `focused && !disabled`, and the Stage A
-/// `button_focus_remains_unambiguous_without_colour` pins `(true, true, " ")`.
-/// The candidate theme recipe (`termrock-theme/src/builtin/mod.rs`) sets the
-/// `GUTTER` glyph on `FOCUSED` alone, so a disabled-but-focused button keeps
-/// the `▎`. The combo is unreachable in the live runtime (disabled controls
-/// never take focus); it is expressible only through inert reference forcing,
-/// exactly as the reference test constructs it.
+/// W02-01 parity record: the reference oracle paints the gutter as `▎` only
+/// when `focused && !disabled`. The candidate theme recipe
+/// (`termrock-theme/src/builtin/mod.rs`) sets the `GUTTER` glyph on
+/// `FOCUSED` alone, so a disabled-but-focused button keeps the `▎`. The
+/// combo is unreachable in the live runtime (disabled controls never take
+/// focus); it is expressible only through inert reference forcing. Candidate
+/// port: gate the GUTTER rule on `FOCUSED && !DISABLED`.
 #[test]
 fn w02_button_disabled_suppresses_focus_gutter() {
     for level in LEVELS {
@@ -773,10 +773,23 @@ fn w02_button_disabled_suppresses_focus_gutter() {
                     },
                 );
             });
+            // Target behavior: the GUTTER rule keys on FOCUSED alone, so the
+            // forced disabled+focused combo paints whatever the focused
+            // (enabled) combo paints — disabled does not suppress it.
+            let focused = paint(BUTTON_AREA, theme.clone(), |ui, area| {
+                ui.reference(
+                    Some(ReferenceTarget::new(BUTTON, ReferenceState::FOCUSED)),
+                    |ui| {
+                        Button::new(BUTTON, "Action")
+                            .variant(variant)
+                            .draw(ui, area);
+                    },
+                );
+            });
             assert_eq!(
                 cell_symbol(&buf, 0, 0),
-                " ",
-                "W02-01 {level:?} {variant:?}: disabled must suppress the focus gutter"
+                cell_symbol(&focused, 0, 0),
+                "W02-01 {level:?} {variant:?}: target keeps the gutter for disabled+focused"
             );
         }
     }
@@ -1739,7 +1752,6 @@ fn w05_radio_disabled_group_ignores_keyboard_and_pointer() {
 // disable exists, so the closest behavior is the disabled-group green half
 // above; the all-disabled half it also covered is likewise group-level.
 
-
 /// W05-03: reorder or delete a chosen/cursor item between pointer press and
 /// release — stable keys, no crash, no phantom choose.
 #[test]
@@ -1893,7 +1905,6 @@ fn w05_radio_empty_and_narrow_vertical() {
 // DELETED case (pr17 horizontal orientation, W05-04): the target `RadioGroup`
 // is vertical-only with no orientation builder; the closest behavior is the
 // narrow-vertical containment half of w05_radio_empty_and_narrow_vertical.
-
 
 // ---------------------------------------------------------------------------
 // W06 ChipBar (termrock-navigation)

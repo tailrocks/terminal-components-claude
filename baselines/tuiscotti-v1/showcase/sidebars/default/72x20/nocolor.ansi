@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Sidebars    i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mSidebars[0m  Sections, current item, focus cursor, h… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃                                  Tasks              [0m
+   Text areas     ┃     Workspace               ┃                       [0m
+   Forms          ┃   › T Tasks               3 ┃    One focus stop. ↑  [0m
+   Lists          ┃     R Runs                  ┃    ↓ move the         [0m
+   Trees          ┃     B Branches              ┃    cursor, Enter      [0m
+   Tables         ┃                             ┃    opens.             [0m
+   Editable tabl… ┃     Project                 ┃                       [0m
+   Panels         ┃     M Members               ┃    ›  current item ·  [0m
+[0m[1m▎› Sidebars       [0m┃     E Environment           │    persists when      [0m
+   Dialogs        │  [0m[2m   $ Billing               [0m│    focus leaves       [0m
+   Progress       │  [0m[2m                           [0m│    ▎  keyboard        [0m
+   Scrolling      │                                  cursor · only      [0m
+   Terminal       │    Collapse                      while focused      [0m
+[0m[2m   Code editor    [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

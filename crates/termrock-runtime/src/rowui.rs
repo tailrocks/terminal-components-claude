@@ -821,6 +821,16 @@ fn format_money(cents: i64, buf: &mut [u8; 32]) -> &str {
     core::str::from_utf8(buf.get(i..).unwrap_or(&[])).unwrap_or("")
 }
 
+impl termrock_text::secret::CellWriter for CellUi<'_> {
+    fn glyphs(&mut self, mask: crate::theme::GlyphRole, n: usize) {
+        self.glyphs(mask, n);
+    }
+
+    fn text(&mut self, s: &str) {
+        self.text(s);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ratatui_core::buffer::Buffer;
@@ -1131,15 +1141,5 @@ mod tests {
         assert_eq!(format_money(-123_456, &mut m), "-1,234.56");
         assert_eq!(format_money(5, &mut m), "0.05");
         assert_eq!(format_money(100_000_000, &mut m), "1,000,000.00");
-    }
-}
-
-impl termrock_text::secret::CellWriter for CellUi<'_> {
-    fn glyphs(&mut self, mask: crate::theme::GlyphRole, n: usize) {
-        self.glyphs(mask, n);
-    }
-
-    fn text(&mut self, s: &str) {
-        self.text(s);
     }
 }

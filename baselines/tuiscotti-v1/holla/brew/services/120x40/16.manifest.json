@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "692cf86b461c63014f7e3eb96cf0d4a798b6888f2f73164fec25cd917971128c",
+  "artifacts": {
+    "ansi": {
+      "bytes": 10440,
+      "file": "holla/brew/services/120x40/16.ansi",
+      "sha256": "692cf86b461c63014f7e3eb96cf0d4a798b6888f2f73164fec25cd917971128c"
+    },
+    "ascii": {
+      "bytes": 3803,
+      "file": "holla/brew/services/120x40/16.ascii",
+      "sha256": "f7696b00c3fabd555242c1752b26933b9c6765eb3d7a3b1c4a93737b07ab23bb"
+    },
+    "ascii_loss_json": {
+      "bytes": 37878,
+      "file": "holla/brew/services/120x40/16.ascii.loss.json",
+      "sha256": "b0eb7fda0b3fcd42c2b11720e6cfb5f80f5efa5b2f8500b5791ae9c024c15bde"
+    },
+    "frame_json": {
+      "bytes": 1117330,
+      "file": "holla/brew/services/120x40/16.frame.json",
+      "sha256": "f582dfedab494f1d8bf329abefd7bedc6e0f864056afb196fb7fab38b7b0053d"
+    },
+    "html": {
+      "bytes": 568782,
+      "file": "holla/brew/services/120x40/16.html",
+      "sha256": "97b6e00e35315007cb389f2ce7d5de175bacff7c12006c7fcc07b3fae324f17c"
+    },
+    "observations_json": {
+      "bytes": 448,
+      "file": "holla/brew/services/120x40/16.observations.json",
+      "sha256": "c93f106acfbcce42013ec6c1cea6da2d5057509b42cf5d925673f3fe7daf3806"
+    },
+    "png": {
+      "bytes": 406981,
+      "file": "holla/brew/services/120x40/16.png",
+      "sha256": "1c72838709202f539771de9704e2cb1a02c518a1623f7c22faa4136a3378a731"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/brew/services/120x40/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 4584,
+      "file": "holla/brew/services/120x40/16.txt",
+      "sha256": "2e96ff228ba1107172fc2ead739fd1f87222fd6fcb26a85556190803e00d9c03"
+    }
+  },
+  "ascii_substitutions_count": 408,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 12988991453114543356,
+  "frame_sha256": "f582dfedab494f1d8bf329abefd7bedc6e0f864056afb196fb7fab38b7b0053d",
+  "generation": "f8db702c1d6bc13c515ce7f74f41c25dc03906c618beec5f97060bb1fa295185",
+  "html_sha256": "97b6e00e35315007cb389f2ce7d5de175bacff7c12006c7fcc07b3fae324f17c",
+  "legacy_name": "holla/flows/brew/services/120x40/16",
+  "name": "holla/brew/services/120x40/16",
+  "png_sha256": "1c72838709202f539771de9704e2cb1a02c518a1623f7c22faa4136a3378a731",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:08:29Z",
+  "txt_sha256": "2e96ff228ba1107172fc2ead739fd1f87222fd6fcb26a85556190803e00d9c03"
+}

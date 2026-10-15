@@ -406,7 +406,7 @@ fn run_command(server: &TestServer, input: &Value, policy: &Value) -> CommandRes
     }
 }
 
-fn read_log_bounded(mut stream: impl Read) -> Vec<u8> {
+fn read_log_bounded(stream: impl Read) -> Vec<u8> {
     let mut bytes = Vec::new();
     stream
         .take((MAX_COMMAND_LOG_BYTES + 1) as u64)
@@ -495,6 +495,10 @@ fn publisher_workflow_bytes() -> &'static [u8] {
     b"trusted publisher workflow"
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "one fixture builder feeds every status shape"
+)]
 fn run_json(
     id: u64,
     run_number: u64,

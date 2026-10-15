@@ -20,3 +20,6 @@ ratatui-core.workspace = true
 
 [features]
 testing = []
+
+[dev-dependencies]
+termrock-test-support.workspace = true

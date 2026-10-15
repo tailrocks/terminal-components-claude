@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "8c80494d92b6d254413755393d612323e96d07283ad1f907436165f96bf86d19",
+  "artifacts": {
+    "ansi": {
+      "bytes": 7469,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.ansi",
+      "sha256": "8c80494d92b6d254413755393d612323e96d07283ad1f907436165f96bf86d19"
+    },
+    "ascii": {
+      "bytes": 2229,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.ascii",
+      "sha256": "c1a48aa8f9515c012c0e83aa7f80be2716a6fe7ad84e0c4e2e5a01a47c9b7da5"
+    },
+    "ascii_loss_json": {
+      "bytes": 16719,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.ascii.loss.json",
+      "sha256": "a2db9d4dfa8b23b09144d1f23d5f9af3b520e7ee7efe05af8655815a7c22ed4d"
+    },
+    "frame_json": {
+      "bytes": 695699,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.frame.json",
+      "sha256": "fdfcbadb74df093fa6ea70af3934ef7fb5de340d6bbb14b2fd0e671eb9aa4a8c"
+    },
+    "html": {
+      "bytes": 252424,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.html",
+      "sha256": "5dee32b70fe8de43f707e5b7d8757ac1b95c8f61a80ce813f4ab76bb2bd4be7b"
+    },
+    "observations_json": {
+      "bytes": 475,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.observations.json",
+      "sha256": "ac5191054591bc2b5391de558ace617fb9e6486ef6a0b147a9c8b79b93021939"
+    },
+    "png": {
+      "bytes": 174053,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.png",
+      "sha256": "75c8a7583e98ecc85adb963743bdcca0dbbfce7539109851c5d3d6e98b4e4659"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2583,
+      "file": "jackin/manager/new-workspace-prelude/100x30/16.txt",
+      "sha256": "2805f05243f19ca080a109129984d7eca540851bbfeb4345f648223dc75aa23c"
+    }
+  },
+  "ascii_substitutions_count": 180,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 16650553141213688446,
+  "frame_sha256": "fdfcbadb74df093fa6ea70af3934ef7fb5de340d6bbb14b2fd0e671eb9aa4a8c",
+  "generation": "6236b7264f3ff42ae44668f55f217e3b48f4fac3e92a938cac20b0a8d2f1cfb5",
+  "html_sha256": "5dee32b70fe8de43f707e5b7d8757ac1b95c8f61a80ce813f4ab76bb2bd4be7b",
+  "legacy_name": "jackin/manager/new_workspace_prelude/100x30/16",
+  "name": "jackin/manager/new-workspace-prelude/100x30/16",
+  "png_sha256": "75c8a7583e98ecc85adb963743bdcca0dbbfce7539109851c5d3d6e98b4e4659",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:28Z",
+  "txt_sha256": "2805f05243f19ca080a109129984d7eca540851bbfeb4345f648223dc75aa23c"
+}

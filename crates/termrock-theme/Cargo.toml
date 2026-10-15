@@ -15,3 +15,12 @@ ratatui-core.workspace = true
 
 [dev-dependencies]
 unicode-width.workspace = true
+termrock-controls.workspace = true
+termrock-core.workspace = true
+termrock-grid.workspace = true
+termrock-layout.workspace = true
+termrock-navigation.workspace = true
+termrock-overlays.workspace = true
+termrock-runtime.workspace = true
+termrock-test-support.workspace = true
+termrock-text.workspace = true

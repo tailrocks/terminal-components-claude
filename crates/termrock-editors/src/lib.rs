@@ -14,16 +14,6 @@ pub(crate) use termrock_runtime as keymap;
 pub(crate) use termrock_text as text;
 pub(crate) use termrock_theme as theme;
 
-pub(crate) mod viewport {
-    pub use termrock_viewport::{
-        ProjectedText, TextViewport, ViewportAction, ViewportCmd, ViewportState,
-    };
-}
-
-pub(crate) mod scroll_region {
-    pub use termrock_runtime::ScrollRegion;
-}
-
 pub use termrock_core::action::ActionKey;
 pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion};
 pub use termrock_text::{Secret, SecretPolicy};
