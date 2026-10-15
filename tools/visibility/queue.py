@@ -108,9 +108,6 @@ TASK_IDENTITY_FIELDS = {"repository_id", "worktree_id"}
 CLAIM_SNAPSHOT_V2_FIELDS = CLAIM_SNAPSHOT_FIELDS | TASK_IDENTITY_FIELDS
 IDENTITY_MAP_SCHEMA = "termrock-visibility-identity-map/v1"
 MIGRATION_PREVIEW_SCHEMA = "termrock-visibility-migration-preview/v1"
-MIGRATION_BRANCH_SCOPE_ERROR = (
-    "tasks[0].branch_scopes is a schema-v1 claim extension"
-)
 REGISTRY_ID = re.compile(r"^[a-z][a-z0-9-]*$")
 WORKTREE_MODES = {"branch", "source-pin", "scratch"}
 WORKTREE_ROLES = {
@@ -754,84 +751,6 @@ def transition_record(
     return records
 
 
-def append_evidence_record(
-    records_value: Any,
-    work_id: str,
-    claim_token: str,
-    evidence: str,
-    expected_revision: int,
-) -> dict[str, Any]:
-    records = copy.deepcopy(validate_records(records_value))
-    _ensure_revision(records, expected_revision)
-    _text(claim_token, "claim token")
-    _text(evidence, "evidence")
-    task = next((item for item in records["tasks"] if item["work_id"] == work_id), None)
-    require(task is not None, "unknown work ID {}".format(work_id))
-    require(task["state"] in ACTIVE_STATES,
-            "evidence can only be appended to an active claim")
-    require(_task_token(task) == claim_token,
-            "claim token does not match the current task claim")
-    highest = highest_open_priority(records)
-    require(highest is not None and task["priority"] == highest,
-            "cannot append evidence for lower priority {} while {} remains open".format(
-                task["priority"], highest or "no priority"
-            ))
-    require(evidence not in task["evidence"], "evidence entry already exists")
-    task["evidence"].append(evidence)
-    records["queue_revision"] += 1
-    validate_records(records)
-    return records
-
-
-def reviewer_handoff_record(
-    records_value: Any,
-    work_id: str,
-    claim_token: str,
-    expected_reviewer: str,
-    new_reviewer: str,
-    evidence: str,
-    expected_revision: int,
-) -> dict[str, Any]:
-    records = copy.deepcopy(validate_records(records_value))
-    _ensure_revision(records, expected_revision)
-    _text(claim_token, "claim token")
-    _text(expected_reviewer, "expected reviewer")
-    _text(new_reviewer, "new reviewer")
-    require(not any(character.isspace() or character == "\x00" for character in new_reviewer),
-            "new reviewer must be a single-line identity")
-    _text(evidence, "reviewer handoff evidence")
-    task = next((item for item in records["tasks"] if item["work_id"] == work_id), None)
-    require(task is not None, "unknown work ID {}".format(work_id))
-    require(task["state"] in {"claimed", "in_progress", "blocked"},
-            "reviewer handoff requires a claimed, in-progress, or blocked task")
-    require(_task_token(task) == claim_token,
-            "claim token does not match the current task claim")
-    require(task["reviewer"] == expected_reviewer,
-            "assigned reviewer does not match expected reviewer")
-    require(new_reviewer != expected_reviewer,
-            "new reviewer must differ from assigned reviewer")
-    require(new_reviewer != task["owner"],
-            "new reviewer must differ from current owner")
-    require(task.get("review_subject_sha256") is None
-            and task.get("review_record") is None
-            and task.get("review_record_sha256") is None,
-            "reviewer handoff cannot change an active review subject")
-    prior_reason = "; " + evidence
-    require(evidence not in task["evidence"] and not any(
-        item.startswith("reviewer handoff at queue revision ") and item.endswith(prior_reason)
-        for item in task["evidence"]
-    ), "reviewer handoff evidence entry already exists")
-
-    next_revision = records["queue_revision"] + 1
-    task["reviewer"] = new_reviewer
-    audit_entry = "reviewer handoff at queue revision {}: {} -> {}; {}".format(
-        next_revision, expected_reviewer, new_reviewer, evidence
-    )
-    return append_evidence_record(
-        records, work_id, claim_token, audit_entry, expected_revision
-    )
-
-
 def bind_review_subject_record(
     records_value: Any,
     work_id: str,
@@ -948,7 +867,7 @@ def amend_branch_scope_record(
     _exact_keys(
         amendment_value,
         {"expected_primary", "branch_scopes", "authorization_evidence", "plan_sha256", "review_sha256"},
-        {"current_branch_scopes"},
+        set(),
         "branch-scope amendment",
     )
     expected_primary = amendment_value["expected_primary"]
@@ -967,7 +886,7 @@ def amend_branch_scope_record(
     _exact_keys(
         accepted_plan,
         {"expected_primary", "branch_scopes", "authorization_evidence"},
-        {"work_id", "current_branch_scopes"},
+        {"work_id"},
         "accepted branch-scope plan request",
     )
     if "work_id" not in accepted_plan:
@@ -976,23 +895,6 @@ def amend_branch_scope_record(
     else:
         require(accepted_plan["work_id"] == work_id,
                 "accepted VIS-10 plan request work_id differs from the target task")
-
-    declared_current_scopes: list[dict[str, Any]] | None = None
-    operational_current_scopes: list[dict[str, Any]] | None = None
-    if "current_branch_scopes" in accepted_plan:
-        declared_current_scopes = _validated_branch_scopes(
-            accepted_plan["current_branch_scopes"], "accepted VIS-10 plan", work_id,
-        )
-        require("current_branch_scopes" in amendment_value,
-                "branch-scope amendment must declare current_branch_scopes")
-        operational_current_scopes = _validated_branch_scopes(
-            amendment_value["current_branch_scopes"], "branch-scope amendment", work_id,
-        )
-        require(operational_current_scopes == declared_current_scopes,
-                "current_branch_scopes differs from the accepted VIS-10 plan")
-    else:
-        require("current_branch_scopes" not in amendment_value,
-                "current_branch_scopes is unsupported without an accepted plan declaration")
 
     replacement = _validated_branch_scopes(amendment_value["branch_scopes"], work_id, work_id)
     accepted_scopes = _validated_branch_scopes(accepted_plan["branch_scopes"], work_id, work_id)
@@ -1023,12 +925,8 @@ def amend_branch_scope_record(
         require(task.get(field) == value,
                 "{} {} differs from the accepted primary assignment".format(work_id, field))
     current_scopes = _validated_branch_scopes(task.get("branch_scopes", []), work_id, work_id)
-    if declared_current_scopes is None:
-        require(current_scopes in ([], accepted_scopes),
-                "existing visual-baseline grant differs from the accepted VIS-10 plan")
-    else:
-        require(current_scopes == declared_current_scopes,
-                "existing visual-baseline grant differs from the accepted VIS-10 plan")
+    require(current_scopes in ([], accepted_scopes),
+            "existing visual-baseline grant differs from the accepted VIS-10 plan")
     require(replacement != current_scopes, "branch-scope amendment is a no-op")
 
     authorization_evidence = _text(
@@ -2562,19 +2460,7 @@ def migration_preview(
 
     tasks_raw = _safe_read(tasks_path, "accepted task records")
     view_raw = _safe_read(queue_path, "generated WORK_QUEUE.md")
-    source_value = strict_json_loads(tasks_raw)
-    tasks = source_value.get("tasks") if isinstance(source_value, dict) else []
-    for task in tasks if isinstance(tasks, list) else []:
-        if not isinstance(task, dict):
-            continue
-        if "branch_scopes" in task:
-            require(False, MIGRATION_BRANCH_SCOPE_ERROR)
-        history = task.get("claim_history")
-        for history_entry in history if isinstance(history, list) else []:
-            claim = history_entry.get("claim") if isinstance(history_entry, dict) else None
-            if isinstance(claim, dict) and "branch_scopes" in claim:
-                require(False, MIGRATION_BRANCH_SCOPE_ERROR)
-    source_records = validate_records(source_value)
+    source_records = validate_records(strict_json_loads(tasks_raw))
     expected_v1_view = render_queue(source_records)
     try:
         source_view = view_raw.decode("utf-8")
@@ -2959,24 +2845,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="trusted caller's SHA-256 of the exact external review file bytes",
     )
 
-    append_evidence = subparsers.add_parser(
-        "append-evidence", help="append claim evidence through revision compare-and-swap"
-    )
-    append_evidence.add_argument("work_id")
-    append_evidence.add_argument("--expected-revision", required=True, type=int)
-    append_evidence.add_argument("--claim-token", required=True)
-    append_evidence.add_argument("--evidence", required=True)
-
-    reviewer_handoff = subparsers.add_parser(
-        "reviewer-handoff", help="change only an active claim's assigned reviewer through revision CAS"
-    )
-    reviewer_handoff.add_argument("work_id")
-    reviewer_handoff.add_argument("--expected-revision", required=True, type=int)
-    reviewer_handoff.add_argument("--claim-token", required=True)
-    reviewer_handoff.add_argument("--expected-reviewer", required=True)
-    reviewer_handoff.add_argument("--new-reviewer", required=True)
-    reviewer_handoff.add_argument("--evidence", required=True)
-
     bind_subject = subparsers.add_parser(
         "bind-review-subject", help="bind the current review scope through revision compare-and-swap"
     )
@@ -3123,33 +2991,6 @@ def run(args: Sequence[str] | None = None) -> int:
                 repo_root=root, subject_reader=lambda: _git_subject(root),
             )
             print("updated {} at queue revision {}".format(options.work_id, changed["queue_revision"]))
-        elif options.command == "append-evidence":
-            changed = _mutate(
-                options.expected_revision,
-                lambda current, _branch, _head: append_evidence_record(
-                    current, options.work_id, options.claim_token,
-                    options.evidence, options.expected_revision,
-                ),
-                tasks_path=tasks_path, queue_path=queue_path,
-                repo_root=root, subject_reader=lambda: _git_subject(root),
-            )
-            print("appended evidence for {} at queue revision {}".format(
-                options.work_id, changed["queue_revision"]
-            ))
-        elif options.command == "reviewer-handoff":
-            changed = _mutate(
-                options.expected_revision,
-                lambda current, _branch, _head: reviewer_handoff_record(
-                    current, options.work_id, options.claim_token,
-                    options.expected_reviewer, options.new_reviewer, options.evidence,
-                    options.expected_revision,
-                ),
-                tasks_path=tasks_path, queue_path=queue_path,
-                repo_root=root, subject_reader=lambda: _git_subject(root),
-            )
-            print("updated reviewer for {} at queue revision {}".format(
-                options.work_id, changed["queue_revision"]
-            ))
         elif options.command == "bind-review-subject":
             def update_review_subject(current: Mapping[str, Any], _branch: str, _head: str) -> dict[str, Any]:
                 task = next((item for item in current["tasks"] if item["work_id"] == options.work_id), None)

@@ -2,7 +2,7 @@
 
 Source-facts schema version 2 preserves the original source pair and its
 CI/DCO observations, then records later source observations and the local
-checkout separately. `source_observation_history` retains the seven
+checkout separately. `source_observation_history` retains the five
 previous source snapshots in order, including their exact CI captures or an
 explicit `null` when no capture exists. CI and DCO checks apply only to their
 recorded head SHAs. Source observations, repository gates, and product results
@@ -94,57 +94,38 @@ observation is source-only and has an explicit `current_ci_observation: null`.
   workflow-size annotation. This capture applies only to this historical pair
   (fetch record SHA-256
   `367121e3eb643453d46d33b598388752c41b1c5fa23e9c099e751c280e0568aa`).
-- Candidate `1d797d41c8141fcbdc3f69d7f11eb8875ab54712` / reference
-  `b274dd57f4dd078ade6e424d546d83efbd2e8526`, observed at
-  `2026-10-08T23:25:02Z`; superseded at `2026-10-10T06:44:23Z`. Its normalized
-  source record and the 2026-10-09 current-status/publication records remain
-  preserved, while the 1d/b274 CI snapshot is retained separately as a
-  historical snapshot. It has no current product qualification.
 
 The 931 record retains the earlier candidate tip
 `b07540df4f7a97fcca8c4d3396102651be459503`, which was relayed without a
 retained fetch time or API response. It carries no test or product
 qualification.
 
-## Current source pair and CI/DCO snapshot
+## Current fixed source pair and CI/DCO snapshot
 
-The current comparison pair is candidate
-`14d0e0e5aa569868f519fc9ca91e55a02589d72a` and reference
-`4b473a98a8641a9dae8dbf9c31c0c94b15465496`, observed at
-`2026-10-10T09:48:16Z` through read-only GitHub branch APIs. The API supplied
-commit heads and committer timestamps but no branch-update timestamp. The
-candidate commit date is `2026-10-10T09:30:58Z`; the reference commit date is
-`2026-10-09T18:51:08Z`. Commit dates are metadata, not branch-update times.
+The selected comparison pair is candidate
+`1d797d41c8141fcbdc3f69d7f11eb8875ab54712` and reference
+`b274dd57f4dd078ade6e424d546d83efbd2e8526`, observed at
+`2026-10-08T23:25:02Z`. The branch API supplied the commit heads and committer
+timestamps; it did not supply branch-update timestamps. A later HTTPS refs
+fetch was reported to verify that both local remote-tracking refs matched this
+pair at `2026-10-08T23:30:54Z`. The fetch output was not preserved, and the
+branch last-update time remains unknown. Commit committer dates are metadata,
+not branch-update times. The source-facts record is
+`/private/tmp/termrock-vis06-current-source-facts-20261008T233054Z-luna.json`
+(SHA-256 `fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d`).
+This is a fixed comparison snapshot, not a claim that these refs remain the
+latest remote branch tips.
 
-The latest push CI run is
-[38041666323](https://github.com/tailrocks/terminal-components-claude/actions/runs/38041666323),
-created at `2026-10-10T09:31:04Z`. It is completed/failure with zero jobs and
-zero artifacts. Its workflow remains 537,470 bytes with SHA-256
-`607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24`; the run
-page records the 500 KB workflow-size annotation. The raw page SHA-256 is
-`790a75751944a97745fa93ec5a46c33e98f219ce9ea0277c94ab1234f9e7dc82`, and the
-ephemeral capture-manifest SHA-256 is
-`8902e3f6c80c88e6a93b6a62dc3f424d0d85290e89869336a8f0c740b6d462cb`. Raw API and
-page bodies were not archived. The reference Actions query returned zero
-matching runs. Candidate DCO check `114182994503` passed; reference DCO check
-`113974968877` is action_required with 14 reported commits. These are
-repository observations only.
-
-PR #17 is an open draft at the current candidate head with base `main` at
-`81a8bf15cd3042f80649e2b48fed479829518dbd`. GitHub reports `mergeable=false`
-and no merge-state value. No conflict resolution, merge, rebase, reset, or
-readiness inference is included.
-
-The latest local checkout is the published commit above, tree
-`8a4d09c3d29eb28e0f9cdf5a084c6546dbbced2d`, signature status `N`, and the exact
-required DCO trailer. The shared worktree is dirty from another workstream.
-Those dirty files are outside this measurement and are not qualified. The 766
-and f61 local checkout observations remain in local history.
-
-Visibility / Complete, Refactor / Ready, Reference / Qualified, Command /
-Ready, Evidence freshness, paired product execution, visual parity, interaction
-parity, API adoption, ownership proof, and admission all remain NOT_RUN. Zero
-CI jobs and the package-only control below cannot promote any of those states.
+The exact-head CI/DCO snapshot was captured at
+`2026-10-08T23:30:54Z`. Candidate run
+[37858314774](https://github.com/tailrocks/terminal-components-claude/actions/runs/37858314774)
+failed with zero jobs. Artifact count was not queried and is UNKNOWN; the
+failure cause was not captured. The exact-head reference Actions query
+succeeded and returned zero matching runs. Candidate DCO check `113587796998`
+reported two sign-off problems; reference DCO is NOT_CAPTURED. Product
+execution remains NOT_RUN. The captured source-facts record did not preserve
+the raw GitHub response bodies, so these results are local observations rather
+than a portable API capture.
 
 ## Report publication observations
 
@@ -214,10 +195,16 @@ repository. Their hashes identify the reviewed local inputs, but the files are
 provisional until archived and are not CI-portable by those paths. Later branch
 observations remain separate and do not silently advance the selected pair.
 
-The current local checkout observation is described in “Current source pair and
-CI/DCO snapshot.” The 766 and f61 checkout/DCO observations are retained in
-local checkout history. They are distinct from remote CI/DCO checks and do not
-qualify the dirty worktree.
+The latest local checkout observation is commit
+`766ae1e925e32b4b28aa9100bb3fde5279aa223b` with tree
+`b5701830ac45f93620b2f55da71862aacc549cd6`. `git show -s --format='%G?' HEAD`
+returned `N`, meaning no Git cryptographic signature was recorded. Separately,
+the read-only trailer parser found the exact
+`Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` line in that commit
+message. Publication status is NOT_RECORDED; the observation does not assert a
+clean worktree or index. The earlier f61 checkout and its DCO observation are
+retained in local checkout history. These observations are separate from the
+remote CI/DCO checks above.
 
 ## Local package and reporter controls
 
@@ -230,15 +217,6 @@ the Holla journey. The historical Holla receipt uses suite SHA-256
 `a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0`, which
 differs from f307. The f307 Holla product result remains NOT_RUN.
 
-The current package-only observation binds commit
-`14d0e0e5aa569868f519fc9ca91e55a02589d72a`, 29 files, revision
-`termrock-e2e-2026-10-09.2`, and package SHA-256
-`9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6`. A focused
-`cargo nextest` digest-control run (`0266dbb7-5fbc-4c83-8021-f5c9af2b65ca`)
-passed 1/1. This checks compiled/current digest sensitivity only. It is not a
-product execution, not a paired run, and does not qualify the globally dirty
-checkout.
-
 The status reporter control observation reconciles 35 unique test identities
 as 26 + 7 + 1 + 1 across the reviewed R4/R6/R7/R9 source revisions and exact
 failed-test reruns. Those outcomes are not one full green run and are not
@@ -248,33 +226,6 @@ records remain local-only until their evidence files are accepted and archived.
 The reporter does not fetch GitHub. It verifies the pinned execution JSON
 records when rendering local partial observations; it does not rehash the
 artifact files named inside the paired Holla receipt.
-
-## Typed execution attempt history
-
-An optional top-level `execution_attempt_history` object uses
-`termrock-status-execution-attempt-history/v1`. The `attempts` array is ordered
-by contiguous sequence number and unique attempt ID. Each row binds to a
-candidate commit, candidate/reference pair, immutable visual tag, or tool
-source, and declares `CURRENT` or `HISTORICAL`. `CURRENT` is accepted only when
-the binding matches the latest recorded source observation; an older or
-unrelated source must remain `HISTORICAL`.
-
-Every row pins its evidence files by repository-relative path, format, and
-SHA-256. Non-provider lanes include a pinned
-`termrock-status-attempt-result/v1` JSON record whose attempt ID, lane, source
-binding, reconciled counts, and outcome states must equal the row. The
-`ci_provider` lane instead validates the captured run, failed check suite,
-suite-specific check-runs response, jobs, artifacts, and failed-log CLI output.
-When that CLI reports “log not found” without a captured HTTP response, the
-record must say `diagnostic.status=NOT_EXPOSED` and `http_status=NOT_CAPTURED`;
-the reporter does not infer a provider cause or HTTP code.
-
-Counts reconcile inventory, selection, filtered cases, started tests, terminal
-results, and incomplete tests. Test, child process, wrapper, collector,
-postflight, cleanup, capture, qualification, and admission outcomes render in
-separate columns. Attempt history is informational: it cannot qualify a
-product result, admit data, or change readiness. It also does not replace the
-existing paired product observations.
 
 ## Published report and provider evidence
 
@@ -295,59 +246,14 @@ b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d and common
 package tree c962085b9c9e6b80ddba31d8c82e01c8d2e97179. Paired execution remains
 NOT_RUN and the corpus remains NOT_ADMITTED. The product comparison pair stays
 1d797d41c8141fcbdc3f69d7f11eb8875ab54712 /
-b274dd57f4dd078ade6e424d546d83efbd2e8526. Both the package identity and those
-report records are historical; neither qualifies current product behavior.
+b274dd57f4dd078ade6e424d546d83efbd2e8526. The package identity does not
+qualify product behavior.
 
 The source evidence archive contains 70 raw members and 6,171,844 bytes. Its
 manifest pins each file by repository-relative path, byte count, and SHA-256.
 For --role reference, the report links checklist and source-instructions files
 at the immutable candidate report commit because those files are absent from
 the reference tree.
-
-## Current source-facts refresh
-
-At `2026-10-11T03:58:22Z`, the measured candidate/reference pair is
-`9b11039bace9333a40f578c71e2e997e1182e415` /
-`2ae351dd27f0ee7d7d52ff6093208b0a57f62698`. The local checkout records the same
-candidate commit and tree, while its globally dirty working tree remains outside
-that identity. The frozen tag object/commit remain unchanged.
-
-CI run `38108486387` completed as a failure. Its workflow source was
-115,446 bytes (SHA-256
-`664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f`), so the
-earlier workflow-size failure no longer applies. No correlated provider run-page
-annotation states the final failure cause. The terminal job snapshot has 51
-jobs: 37 successful, 13 failed, and 1 skipped. The failures include
-`Required` and these Rust package jobs: `jackin-preview-app`, `jackin-preview`,
-`termrock-conformance`, `termrock-e2e`, `termrock`, `tablepro`,
-`termrock-visibility-publisher`, `tablepro-ui`, `jackin-preview-host-ui`,
-`termrock-xtask`, `termrock-visibility-tests`, and `termrock-viewport`.
-`Publish baseline` was skipped. The run produced 49 non-expired artifacts.
-These are repository workflow observations, not product results.
-
-Candidate DCO check `114378959885` passed with no sign-off findings. Reference
-DCO check `114328215608` was `action_required` with 14 sign-off findings. The
-reference Actions query returned no matching runs. PR #17 remained an open draft
-with `mergeable=false`, merge state `dirty`, and no provider merge-state value.
-
-The `crates/termrock-e2e` Git subtree is
-`140d74e6552b7cec6db30dd4c32c3e5cbc675aef` in both measured commits. That
-structural parity is not visual, interaction, API, ownership, or product
-readiness. The current 29-file package SHA-256 remains
-`9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6`; its
-historical focused Nextest digest control remains 1/1 and unpaired.
-
-Historical snapshots are retained in `superseded_current_observations`. The
-first preserves source pair
-`14d0e0e5aa569868f519fc9ca91e55a02589d72a` /
-`4b473a98a8641a9dae8dbf9c31c0c94b15465496`, CI run `38041666323` (failure with
-zero jobs and artifacts, the 537,470-byte workflow-size condition), both DCO
-results, PR state, and the bound local E2E package observation. The second
-preserves this same pair's partial queued run capture (49 jobs, 2 known
-failures, 7 queued, and 21 artifacts) before the terminal refresh. The former
-current `d7c03139d0131157f1bd40eaf379d46c2e3814f8` observation and completed
-run `38090751977` are now retained as the seventh ordered source-history row.
-The other normalized historical evidence records remain unchanged.
 
 ## Generate and check
 
@@ -363,8 +269,7 @@ Run the black-box CLI contract tests with Rust nextest:
 The `--role reference` option changes the local-role presentation and uses
 immutable candidate links for files that are absent from the reference tree.
 Each branch reads its checked-in task record. The archived revision-59 and
-revision-56 records remain historical snapshots; the active accepted queue is
-revision 78.
+revision-56 records remain historical snapshots.
 The default role is `candidate`; `--write` writes the role selected for the
 current checkout.
 
@@ -379,10 +284,8 @@ writes only `STATUS.md` when called with `--write`.
 
 ## Current limits
 
-The reporter does not validate an accepted complete case registry or active
-required set, enforce monotonic receipt freshness across product runs, calculate
-trends, produce component checkpoint pages, or publish reports. Those results
-remain incomplete until their records and evidence are accepted.
-Current CI's final job snapshot includes 13 failures, but no CI job result is a
-product result and no paired product run exists. The current package digest
-control is local and unpaired. All product readiness conclusions remain NOT_RUN.
+This increment reads only the two pinned, reviewed execution record shapes
+listed above. It does not validate an accepted complete case registry or active
+required set, enforce monotonic receipt freshness, calculate trends, produce
+component checkpoint pages, or publish reports. Those results remain
+incomplete until their records and evidence are accepted.
