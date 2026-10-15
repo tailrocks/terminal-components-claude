@@ -12,13 +12,13 @@ use core::fmt;
 use ratatui_core::layout::{Position, Rect};
 
 use super::{PartStyle, SlotFn, first_row, shift};
-use termrock_runtime::Status;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
+use termrock_runtime::Status;
 
 /// Columns the percentage column occupies: `"100%"` is the widest value.
 pub(crate) const PCT_COLUMNS: u16 = 4;

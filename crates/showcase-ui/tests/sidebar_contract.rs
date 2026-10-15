@@ -1,7 +1,7 @@
 //! Coordinates derived from pinned Holla app.rs `draw_sidebar`, not candidate regions.
+use showcase_ui::{App, NAV_ENTRIES, PageId};
 use termrock::{Color, Id, ItemKey, KeyCode, Modifier, MouseKind, Part, PartRef, Rect, Theme};
 use termrock_test_support::Harness;
-use showcase_ui::{App, NAV_ENTRIES, PageId};
 
 const NAV: Id = Id::root("showcase_ui::app::navigation");
 

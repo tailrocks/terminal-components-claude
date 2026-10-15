@@ -10,16 +10,16 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use crate::keyhint::KeyHint;
 use super::{PartStyle, SlotFn, first_row, shift};
-use termrock_runtime::Status;
 use crate::id::{Id, Part};
+use crate::keyhint::KeyHint;
 use crate::keymap::HintLayer;
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{ColorLevel, Family, GlyphRole, Slot, StateRule, StylePatch, Theme, Variant};
 use crate::ui::{FrameRead, Ui};
+use termrock_runtime::Status;
 
 #[derive(Clone, Copy, Debug, Default)]
 enum MetadataOverride<'a> {

@@ -3,7 +3,6 @@
 //! This module owns only interaction state and paints through `tui-next`'s
 //! public facade.  Domain and simulation state stay in sibling modules.
 
-use termrock::author::PaintStyle;
 use std::{
     cell::RefCell,
     collections::{BTreeMap, hash_map::DefaultHasher},
@@ -11,6 +10,7 @@ use std::{
     mem,
     time::Duration,
 };
+use termrock::author::PaintStyle;
 
 use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,

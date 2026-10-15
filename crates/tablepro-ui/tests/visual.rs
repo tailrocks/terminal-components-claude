@@ -1,8 +1,8 @@
 //! `TablePro`'s 21-surface × 2-size deterministic visual matrix.
 
+use tablepro_ui::{Surface, TableProApp};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{Surface, TableProApp};
 
 const BASELINE: termrock_test_support::Baseline = termrock_test_support::Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),

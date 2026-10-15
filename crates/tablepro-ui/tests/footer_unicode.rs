@@ -1,7 +1,7 @@
 //! Editable connection names retain whole-run grapheme boundaries in the footer.
+use tablepro_ui::{CONNECTION_NAME, TableProApp};
 use termrock::{Id, KeyCode, Part, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{CONNECTION_NAME, TableProApp};
 #[test]
 fn connection_form_names_preserve_footer_grapheme_boundaries() {
     for name in [

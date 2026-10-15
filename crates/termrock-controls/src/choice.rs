@@ -14,8 +14,6 @@ use ratatui_core::layout::Rect;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
-use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
-use termrock_runtime::{RowFn, RowUi};
 use crate::event::{Chord, KeyCode};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
@@ -27,6 +25,10 @@ use crate::response::{Activated, Response, StateFlags};
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, Ui};
+use termrock_collections::collection::{
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
+};
+use termrock_runtime::{RowFn, RowUi};
 
 /// What a radio group reports; the cursor moving is **not** an action —
 /// cursor and value are separate (§15, §20.10 item 3).

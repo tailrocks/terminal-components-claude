@@ -1,7 +1,7 @@
 //! A cancellable task runner using the public lifecycle rail.
 
-use termrock::author::PaintStyle;
 use std::{cmp::Ordering, time::Duration};
+use termrock::author::PaintStyle;
 
 use termrock::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,
@@ -14,7 +14,8 @@ use super::{Page, PageUpdate, frame};
 const RUN: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.run");
 const CANCEL: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.cancel");
 const STEPS: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.steps");
-const CANCEL_DIALOG: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.cancel.dialog");
+const CANCEL_DIALOG: Id =
+    termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.cancel.dialog");
 pub const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]

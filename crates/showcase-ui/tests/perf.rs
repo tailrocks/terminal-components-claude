@@ -1,9 +1,9 @@
 //! Focused performance smoke tests for the migrated app.
 use std::hint::black_box;
 
+use showcase_ui::{App, PageId};
 use termrock::{Axis, KeyCode, Theme};
 use termrock_test_support::{Harness, perf};
-use showcase_ui::{App, PageId};
 
 #[global_allocator]
 static GLOBAL: perf::Counting = perf::Counting;

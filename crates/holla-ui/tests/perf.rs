@@ -135,10 +135,11 @@ fn production_workload_measurements() {
 fn perf_holla_baseline() {
     let _guard = lock();
     let mut harness = fixture(Scenario::FirstUse).with_auto_draw(false);
-    let stats = termrock_test_support::perf::bench(2, termrock_test_support::perf::iters(100), &mut || {
-        harness.draw();
-        std::hint::black_box(harness.focus());
-    });
+    let stats =
+        termrock_test_support::perf::bench(2, termrock_test_support::perf::iters(100), &mut || {
+            harness.draw();
+            std::hint::black_box(harness.focus());
+        });
     termrock_test_support::perf::report_to(
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
         "frame_holla_first_use_120x40",

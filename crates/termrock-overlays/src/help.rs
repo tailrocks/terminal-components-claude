@@ -5,8 +5,6 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use termrock_feedback::keyhint::HintText;
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, first_row, shift};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -19,6 +17,8 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::theme::{Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_feedback::keyhint::HintText;
+use termrock_runtime::scroll_region::ScrollRegion;
 
 /// One titled group, borrowing the same derived binding metadata a
 /// [`crate::components::HintBar`] consumes.

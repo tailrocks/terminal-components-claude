@@ -3,9 +3,9 @@
 
 use std::time::Duration;
 
+use showcase_ui::{App, PageId};
 use termrock::{KeyCode, Theme};
 use termrock_test_support::Harness;
-use showcase_ui::{App, PageId};
 
 #[expect(
     clippy::panic,

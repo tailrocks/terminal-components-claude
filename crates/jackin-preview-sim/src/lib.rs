@@ -2,7 +2,6 @@
 //! operations, and the launch pipeline.
 
 #![forbid(unsafe_code)]
-
 #![expect(
     clippy::pedantic,
     reason = "fixture and rendering code favors explicit deterministic data"

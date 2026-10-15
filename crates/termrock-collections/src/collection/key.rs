@@ -4,7 +4,6 @@ use core::cell::Cell;
 
 use crate::id::ItemKey;
 
-
 /// Selection behaviour of a collection.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum SelectMode {

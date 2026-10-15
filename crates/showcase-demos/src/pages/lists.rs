@@ -6,8 +6,8 @@ use termrock::{
     Ui, Variant, layout,
 };
 
-use showcase_data::LANGUAGES;
 use crate::render_number::RenderNumber;
+use showcase_data::LANGUAGES;
 
 use super::{Page, PageUpdate, frame};
 
@@ -314,23 +314,25 @@ impl Page for ListsPage {
                     height,
                     ..language_column
                 };
-                Panel::new(termrock::Id::root("showcase_ui::pages::lists::lists.language"))
-                    .kind(PanelKind::Card)
-                    .title("Language")
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, language, |ui, inner| {
-                        paint_chosen(ui, inner, chosen, detail);
-                        single_list().draw(
-                            ui,
-                            Rect {
-                                y: inner.y.saturating_add(2),
-                                height: inner.height.saturating_sub(2),
-                                ..inner
-                            },
-                            &self.single,
-                            LANGUAGES,
-                        );
-                    });
+                Panel::new(termrock::Id::root(
+                    "showcase_ui::pages::lists::lists.language",
+                ))
+                .kind(PanelKind::Card)
+                .title("Language")
+                .patch_part(PANEL_PARTS)
+                .draw(ui, language, |ui, inner| {
+                    paint_chosen(ui, inner, chosen, detail);
+                    single_list().draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.single,
+                        LANGUAGES,
+                    );
+                });
                 self.draw_files(ui, body, &columns, height, detail);
                 let search_column = columns.get(2).copied().unwrap_or(body);
                 let search = Rect {
@@ -343,32 +345,34 @@ impl Page for ListsPage {
                     height,
                     ..search_column
                 };
-                Panel::new(termrock::Id::root("showcase_ui::pages::lists::lists.search"))
-                    .kind(PanelKind::Card)
-                    .title("Search results")
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, search, |ui, inner| {
-                        empty_list(if body.width < 70 {
-                            "No results for…"
-                        } else if body.width < 90 {
-                            "No results for “retr…"
-                        } else {
-                            "No results for “retry”"
-                        })
-                        .draw(ui, inner, &self.empty, &[] as &[&str]);
-                        if body.width < 70 {
-                            let _ = ui.paint_str(
-                                Rect {
-                                    x: inner.x.saturating_add(inner.width.saturating_sub(1)),
-                                    y: inner.y.saturating_add(inner.height / 2),
-                                    width: 1,
-                                    height: 1,
-                                },
-                                "…",
-                                ui.surface_style(),
-                            );
-                        }
-                    });
+                Panel::new(termrock::Id::root(
+                    "showcase_ui::pages::lists::lists.search",
+                ))
+                .kind(PanelKind::Card)
+                .title("Search results")
+                .patch_part(PANEL_PARTS)
+                .draw(ui, search, |ui, inner| {
+                    empty_list(if body.width < 70 {
+                        "No results for…"
+                    } else if body.width < 90 {
+                        "No results for “retr…"
+                    } else {
+                        "No results for “retry”"
+                    })
+                    .draw(ui, inner, &self.empty, &[] as &[&str]);
+                    if body.width < 70 {
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: inner.x.saturating_add(inner.width.saturating_sub(1)),
+                                y: inner.y.saturating_add(inner.height / 2),
+                                width: 1,
+                                height: 1,
+                            },
+                            "…",
+                            ui.surface_style(),
+                        );
+                    }
+                });
             },
         );
     }

@@ -1,6 +1,6 @@
 //! Row identity, original values and undo must remain one owned record.
-use termrock::{ColumnKey, GridEditor, GridModel, ItemKey, SortDir};
 use tablepro_ui::{ColType, GridView, ResultGrid, ResultSet, Tab, TableProApp, Value};
+use termrock::{ColumnKey, GridEditor, GridModel, ItemKey, SortDir};
 
 fn result() -> ResultSet {
     ResultSet {
@@ -140,9 +140,9 @@ fn undo_insert_does_not_reuse_its_key_and_discard_is_undoable() {
 
 #[test]
 fn real_grid_header_sort_then_keyboard_undo_preserves_identity_and_order() {
+    use tablepro_ui::Surface;
     use termrock::{KeyCode, Part, PartRef, Theme};
     use termrock_test_support::Harness;
-    use tablepro_ui::Surface;
     let mut app = TableProApp::default();
     app.set_surface(Surface::TableGrid);
     let Some(table) = app.workbench.active_table_mut() else {
@@ -180,9 +180,9 @@ fn real_grid_header_sort_then_keyboard_undo_preserves_identity_and_order() {
 
 #[test]
 fn runtime_undo_restores_sorted_insert_delete_and_discard_records() {
+    use tablepro_ui::Surface;
     use termrock::{KeyCode, Theme};
     use termrock_test_support::Harness;
-    use tablepro_ui::Surface;
     for operation in ["insert", "delete", "discard"] {
         let mut app = TableProApp::default();
         app.set_surface(Surface::TableGrid);

@@ -18,10 +18,10 @@ mod tests {
     use super::*;
     use crate::id::Part;
     use crate::response::StateFlags;
-    use termrock_theme::PartMetrics;
-    use termrock_theme::{Family, GlyphRole, Role, Slot, StylePatch, Surface, Theme, Variant};
     use crate::ui::cx::{FrameRead, LastFrame};
     use crate::ui::{FrameState, UiCore};
+    use termrock_theme::PartMetrics;
+    use termrock_theme::{Family, GlyphRole, Role, Slot, StylePatch, Surface, Theme, Variant};
 
     const SCREEN: Rect = Rect {
         x: 0,

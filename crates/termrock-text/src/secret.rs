@@ -80,7 +80,7 @@ impl Secret {
     }
 
     /// Overwrite every byte with zero, then release the buffer.
-/// Overwrite every byte with zero, then release the buffer.
+    /// Overwrite every byte with zero, then release the buffer.
     ///
     /// **Known limit of safe-Rust zeroization** (MA-13): the fill writes into
     /// a buffer that is about to be dropped, and LLVM is permitted to remove

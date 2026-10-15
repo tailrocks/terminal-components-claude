@@ -1,7 +1,7 @@
 //! Destructive authorization belongs to reviewed content, not only its tab key.
+use tablepro_ui::{QueryTab, Screen, Tab, TableProApp, Value};
 use termrock::{App, GridEditor, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{QueryTab, Screen, Tab, TableProApp, Value};
 
 fn pending() -> TableProApp {
     let mut app = TableProApp::default();

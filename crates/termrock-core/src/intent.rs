@@ -357,14 +357,7 @@ impl IntentQueue {
         );
     }
 
-    pub fn wheel(
-        &mut self,
-        owner: Id,
-        axis: Axis,
-        delta: i16,
-        part: PartRef,
-        pos: Position,
-    ) {
+    pub fn wheel(&mut self, owner: Id, axis: Axis, delta: i16, part: PartRef, pos: Position) {
         self.push(
             owner,
             Stored::Wheel {
@@ -455,11 +448,7 @@ impl IntentQueue {
         }
     }
 
-    pub fn claim_binding_chord(
-        &self,
-        owner: Id,
-        chord: crate::event::Chord,
-    ) -> Option<ActionKey> {
+    pub fn claim_binding_chord(&self, owner: Id, chord: crate::event::Chord) -> Option<ActionKey> {
         let bucket = self.bucket_index(owner)?;
         let bucket = self.live().get(bucket)?;
         let claimed = bucket.items.iter().find_map(|stored| match stored {

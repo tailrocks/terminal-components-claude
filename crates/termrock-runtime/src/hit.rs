@@ -42,8 +42,6 @@ pub struct Hit {
     pub local: Position,
 }
 
-
-
 /// One registered region.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Region {
@@ -562,9 +560,9 @@ mod runtime_tests {
 
     use crate::event::{KeyCode, MouseKind};
     use crate::id::Id;
-pub use termrock_core::geometry::{Axes, Headroom};
     use crate::layer::LayerSpec;
     use crate::runtime::stub::{Control, Stub, key, mouse, runtime, step};
+    pub use termrock_core::geometry::{Axes, Headroom};
 
     const PAGE_A: Id = Id::root("page.a");
     const DLG: Id = Id::root("dlg");

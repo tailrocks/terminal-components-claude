@@ -24,13 +24,13 @@ pub mod cli;
 /// Route-owned screens, split across the host and capsule UI crates and
 /// re-united here under the monolith's `screens::` namespace.
 pub mod screens {
-    pub use jackin_preview_capsule_ui::screens::{capsule, file_browser, inspect, op_flow};
-    pub use jackin_preview_host_ui::screens::{
-        accounts, cockpit, editor, manager, manager_actions, settings, usage,
-    };
     pub use jackin_preview_capsule_ui::screens::{
         FileBrowserAction, FileBrowserEntry, FileBrowserState, OpFlowAction, OpFlowStage,
         OpFlowState, OpFlowStatus,
+    };
+    pub use jackin_preview_capsule_ui::screens::{capsule, file_browser, inspect, op_flow};
+    pub use jackin_preview_host_ui::screens::{
+        accounts, cockpit, editor, manager, manager_actions, settings, usage,
     };
     pub use jackin_preview_presentation::prelude;
 }

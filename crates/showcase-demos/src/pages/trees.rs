@@ -245,56 +245,58 @@ impl Page for TreesPage {
                     height: body.height.min(10),
                     ..columns.get(1).copied().unwrap_or(body)
                 };
-                Panel::new(termrock::Id::root("showcase_ui::pages::trees::trees.selection"))
-                    .kind(PanelKind::Card)
-                    .title("Selection")
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, selection, |ui, inner| {
-                        let label = self.state.chosen().and_then(path_for);
-                        let selection = label.as_deref().unwrap_or("Nothing selected");
-                        let hint = "Enter on a file selects it";
-                        let cursor = format!("cursor  {}", label_for(self.state.cursor()));
-                        let visible = format!("visible {} rows", self.state.scroll().content_len());
-                        let open = format!(
-                            "open    {} folders",
-                            self.state.expanded().len_in(TREE.len())
-                        );
-                        let detail = ui
-                            .style(
-                                Family::PANEL,
-                                Variant::DEFAULT,
-                                Part::DETAIL,
-                                StateFlags::empty(),
-                            )
-                            .style;
-                        let primary = ui.surface_style().patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
-                        );
-                        let faint = ui.surface_style().patch(
-                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
-                        );
-                        for (offset, (text, style)) in [
-                            (selection, primary),
-                            (hint, faint),
-                            ("", detail),
-                            (cursor.as_str(), detail),
-                            (visible.as_str(), detail),
-                            (open.as_str(), detail),
-                        ]
-                        .into_iter()
-                        .enumerate()
-                        {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            let row = Rect {
-                                y: inner.y.saturating_add(offset),
-                                height: 1,
-                                ..inner
-                            };
-                            let _ = ui.paint_str(row, text, style);
-                        }
-                    });
+                Panel::new(termrock::Id::root(
+                    "showcase_ui::pages::trees::trees.selection",
+                ))
+                .kind(PanelKind::Card)
+                .title("Selection")
+                .patch_part(PANEL_PARTS)
+                .draw(ui, selection, |ui, inner| {
+                    let label = self.state.chosen().and_then(path_for);
+                    let selection = label.as_deref().unwrap_or("Nothing selected");
+                    let hint = "Enter on a file selects it";
+                    let cursor = format!("cursor  {}", label_for(self.state.cursor()));
+                    let visible = format!("visible {} rows", self.state.scroll().content_len());
+                    let open = format!(
+                        "open    {} folders",
+                        self.state.expanded().len_in(TREE.len())
+                    );
+                    let detail = ui
+                        .style(
+                            Family::PANEL,
+                            Variant::DEFAULT,
+                            Part::DETAIL,
+                            StateFlags::empty(),
+                        )
+                        .style;
+                    let primary = ui.surface_style().patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+                    );
+                    let faint = ui
+                        .surface_style()
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+                    for (offset, (text, style)) in [
+                        (selection, primary),
+                        (hint, faint),
+                        ("", detail),
+                        (cursor.as_str(), detail),
+                        (visible.as_str(), detail),
+                        (open.as_str(), detail),
+                    ]
+                    .into_iter()
+                    .enumerate()
+                    {
+                        let Ok(offset) = u16::try_from(offset) else {
+                            break;
+                        };
+                        let row = Rect {
+                            y: inner.y.saturating_add(offset),
+                            height: 1,
+                            ..inner
+                        };
+                        let _ = ui.paint_str(row, text, style);
+                    }
+                });
                 let hint_style = ui
                     .style(
                         Family::PANEL,

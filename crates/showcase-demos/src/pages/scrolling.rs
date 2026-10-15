@@ -15,7 +15,8 @@ const LOG_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrollin
 const PROSE_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.prose.panel");
 const LIST_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.list.panel");
 const LOG_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.log.panel");
-const REGION_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.region.panel");
+const REGION_PANEL: Id =
+    termrock::Id::root("showcase_ui::pages::scrolling::scrolling.region.panel");
 const REGION: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.region");
 const REGION_LEN: usize = 48;
 

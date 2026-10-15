@@ -1,6 +1,9 @@
 //! Query-history, completion and quick-switcher models.
 
-#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
+#![allow(
+    missing_docs,
+    reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
+)]
 
 use termrock::{AsItem, FuzzyBoundary, Item, ItemKey, fuzzy_with_boundary};
 
@@ -358,7 +361,8 @@ fn context(source: &str, cursor: usize) -> (&str, Clause, Option<&str>) {
     if let Some(qualifier) = preceding.strip_suffix('.') {
         return (word, Clause::Member, qualifier.get(word_start(qualifier)..));
     }
-    let statement_start = tablepro_sql::sql::statement_at(source, cursor).map_or(0, |(start, _)| start);
+    let statement_start =
+        tablepro_sql::sql::statement_at(source, cursor).map_or(0, |(start, _)| start);
     let preceding = source.get(statement_start..start).unwrap_or_default();
     let mut clause = Clause::Start;
     for token in tokenize(preceding)
@@ -535,7 +539,11 @@ fn member_candidates(
             pool.push(
                 kind_of(t),
                 &t.name,
-                format!("{} · {}", t.schema, tablepro_sql::sql::fmt_rows(t.row_count)),
+                format!(
+                    "{} · {}",
+                    t.schema,
+                    tablepro_sql::sql::fmt_rows(t.row_count)
+                ),
                 None,
                 0,
             );
@@ -557,7 +565,11 @@ fn relation_candidates(cat: &Catalog, pool: &mut CompletionPool<'_>) {
             pool.push(
                 kind_of(t),
                 &t.name,
-                format!("{} · {} rows", t.schema, tablepro_sql::sql::fmt_rows(t.row_count)),
+                format!(
+                    "{} · {} rows",
+                    t.schema,
+                    tablepro_sql::sql::fmt_rows(t.row_count)
+                ),
                 insert,
                 boost,
             );
@@ -866,7 +878,8 @@ impl SwitcherIndex {
                     schema: table.schema.clone(),
                     name: table.name.clone(),
                 },
-                tablepro_demo::db::ObjectKind::Function | tablepro_demo::db::ObjectKind::Sequence => continue,
+                tablepro_demo::db::ObjectKind::Function
+                | tablepro_demo::db::ObjectKind::Sequence => continue,
             };
             let open=tabs.iter().any(|record|matches!(record.payload(),crate::tabs::Tab::Table(tab) if tab.table.schema==table.schema && tab.table.name==table.name));
             index.push(

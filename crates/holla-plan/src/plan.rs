@@ -222,7 +222,8 @@ impl Plan {
                     .map(holla_domain::effect::Mutation::reclaimed_bytes)
                     .collect();
                 let amounts = amounts.map_err(|_| PlanError::InvalidInventory)?;
-                holla_domain::accounting::bytes(amounts).map_err(|_| PlanError::InvalidInventory)?;
+                holla_domain::accounting::bytes(amounts)
+                    .map_err(|_| PlanError::InvalidInventory)?;
             }
 
             if step.id.is_empty() || !ids.insert(&step.id) {

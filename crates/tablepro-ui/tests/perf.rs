@@ -4,9 +4,9 @@
 //! public application facade and domain adapter. Allocation budgets belong to
 //! a separate harness because the old backend is outside this package.
 
+use tablepro_ui::{ColType, QueryOutcome, ResultGrid, ResultSet, TableProApp, Value};
 use termrock::{Axis, ColumnKey, GridModel, ItemKey, KeyCode, Part, PartRef, SortDir, Theme};
 use termrock_test_support::{Harness, perf};
-use tablepro_ui::{ColType, QueryOutcome, ResultGrid, ResultSet, TableProApp, Value};
 
 #[global_allocator]
 static GLOBAL: perf::Counting = perf::Counting;

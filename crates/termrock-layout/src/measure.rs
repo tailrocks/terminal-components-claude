@@ -1,6 +1,5 @@
 //! Measurement (`COMPONENT_ARCHITECTURE.md` §10).
 
-
 /// A measured size: the minimum a component can use and what it prefers.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Size {
@@ -65,4 +64,3 @@ impl Size {
         }
     }
 }
-

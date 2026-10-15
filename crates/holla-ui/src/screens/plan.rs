@@ -258,9 +258,7 @@ fn paint_step(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row
             &branch,
             faint,
         );
-        x = x
-            .saturating_add(1)
-            .saturating_add(termrock::width(&branch));
+        x = x.saturating_add(1).saturating_add(termrock::width(&branch));
     }
     let (note, role) = if let Some(dependency) = &row.blocked {
         (format!("needs {dependency}"), Role::Warning)

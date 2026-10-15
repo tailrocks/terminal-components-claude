@@ -3,7 +3,7 @@
 use termrock::{
     Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
     GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role, RowDecor,
-    RowTotal, StylePatch, Ui
+    RowTotal, StylePatch, Ui,
 };
 
 use showcase_data::{TASKS, TaskRow, TaskStatus};

@@ -2,7 +2,7 @@
 
 use termrock::{
     Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
-    Surface, Ui, Variant
+    Surface, Ui, Variant,
 };
 
 use super::{Page, PageUpdate, frame, lines};

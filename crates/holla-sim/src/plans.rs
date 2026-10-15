@@ -41,10 +41,7 @@ impl ReviewedPlan {
         Arc::ptr_eq(&self.target, &binding.target) && self.plan == binding.plan
     }
 
-    pub fn toggle(
-        &mut self,
-        index: usize,
-    ) -> Result<String, crate::domain::plan::PlanError> {
+    pub fn toggle(&mut self, index: usize) -> Result<String, crate::domain::plan::PlanError> {
         self.plan.toggle(index)
     }
 

@@ -1,6 +1,9 @@
 //! Connection list and the app-owned 15-field connection draft.
 
-#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
+#![allow(
+    missing_docs,
+    reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
+)]
 
 use termrock::{
     Action, ActionKey, Checkbox, Chord, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec,
@@ -51,8 +54,7 @@ pub mod field {
 /// Test action.
 pub const TEST: ActionKey = ActionKey::application("tablepro.connections.test");
 /// Save-and-connect action.
-pub const SAVE_CONNECT: ActionKey =
-    ActionKey::application("tablepro.connections.save-connect");
+pub const SAVE_CONNECT: ActionKey = ActionKey::application("tablepro.connections.save-connect");
 
 /// Engine option labels.
 pub const ENGINES: &[&str] = &["PostgreSQL", "MySQL", "SQLite"];

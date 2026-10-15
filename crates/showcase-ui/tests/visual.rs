@@ -1,7 +1,7 @@
 //! Visual digest matrix for the migrated showcase shell.
+use showcase_ui::{App, PageId};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
-use showcase_ui::{App, PageId};
 
 const BASELINE: termrock_test_support::Baseline = termrock_test_support::Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),

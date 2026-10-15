@@ -5,9 +5,9 @@
 //! baseline. Acquisition hashes live in the external Showcase fidelity
 //! evidence manifest. These rows are independent of animated page bodies.
 
+use showcase_ui::{App, PageId};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
-use showcase_ui::{App, PageId};
 
 #[test]
 fn all_page_headings_match_the_reference_capture_matrix() -> Result<(), Box<dyn std::error::Error>>

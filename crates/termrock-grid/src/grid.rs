@@ -22,15 +22,8 @@ use core::fmt;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
-use termrock_fields::input::{BlurPolicy, TextAction, TextInput, TextInputState};
-use termrock_feedback::progress::Spinner;
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
-use termrock_collections::collection::{CollectionCore, KeySet, Reconcile, Reconciliation, SelectMode};
-use termrock_runtime::rowui::{CellUi};
-use termrock_runtime::empty::{EmptyState, RowTotal};
-use termrock_runtime::decor::{CellDecor, RowDecor};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef, custom_hash16};
@@ -43,6 +36,15 @@ use crate::theme::{
     Align, Family, FgStep, GlyphRole, Modifier, Role, StyleDefaults, StylePatch, Variant,
 };
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_collections::collection::{
+    CollectionCore, KeySet, Reconcile, Reconciliation, SelectMode,
+};
+use termrock_feedback::progress::Spinner;
+use termrock_fields::input::{BlurPolicy, TextAction, TextInput, TextInputState};
+use termrock_runtime::decor::{CellDecor, RowDecor};
+use termrock_runtime::empty::{EmptyState, RowTotal};
+use termrock_runtime::rowui::CellUi;
+use termrock_runtime::scroll_region::ScrollRegion;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;

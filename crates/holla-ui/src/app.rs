@@ -738,8 +738,7 @@ impl App {
         .then(|| {
             HomeState::hints(
                 &self.world,
-                ui.state(home::ROWS)
-                    .contains(termrock::StateFlags::FOCUSED),
+                ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
             )
         });
         let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);

@@ -14,17 +14,17 @@ use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Modifier;
 
-use crate::meter::{Meter, MeterTone};
-use crate::progress::{PCT_COLUMNS, spinner_glyph};
 use super::{PartStyle, SlotFn, first_row, shift};
-use termrock_runtime::Status;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
+use crate::meter::{Meter, MeterTone};
+use crate::progress::{PCT_COLUMNS, spinner_glyph};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_runtime::Status;
 
 /// Items per group laid out without allocating.
 ///

@@ -1,12 +1,12 @@
 //! Termrock Runtime: context, interaction ownership, hit mapping, and layer stacking.
 
 pub(crate) use termrock_collections as scroll;
-pub(crate) use termrock_core as id;
-pub(crate) use termrock_core as event;
-pub(crate) use termrock_core as response;
-pub(crate) use termrock_core as action;
-pub(crate) use termrock_core as intent;
-pub(crate) use termrock_core as diagnostics;
+pub use termrock_core as id;
+pub use termrock_core as event;
+pub use termrock_core as response;
+pub use termrock_core as action;
+pub use termrock_core as intent;
+pub use termrock_core as diagnostics;
 pub(crate) use termrock_text as text;
 pub use termrock_text::secret;
 pub(crate) use termrock_theme as theme;
@@ -28,8 +28,8 @@ pub mod keymap;
 pub mod layer;
 pub mod rowui;
 pub mod runtime;
-pub mod support;
 pub mod scroll_region;
+pub mod support;
 pub mod ui;
 
 // Re-exports

@@ -14,7 +14,6 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
-
 /// What a layer traps.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerKind {
@@ -272,7 +271,6 @@ impl LayerSpec {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
 }
-
 
 /// Resolve a layer's area: anchor, flip, then clamp (§9.1).
 ///

@@ -8,13 +8,13 @@
     clippy::panic
 )]
 
-use termrock::{Axis, GridEditor, KeyCode, Theme};
-use termrock_test_support::Harness;
 use tablepro_ui::{
     CONNECTION_NAME, Catalog, Decision, Filter, FilterOp, History, HistoryTab, PendingEdits,
     QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
     form_fields, gate, parse, preview_for,
 };
+use termrock::{Axis, GridEditor, KeyCode, Theme};
+use termrock_test_support::Harness;
 
 fn connected() -> TableProApp {
     let mut app = TableProApp::default();

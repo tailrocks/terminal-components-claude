@@ -264,7 +264,8 @@ fn mixed_children_expand_and_enter_first_visible_record() -> Result<(), Box<dyn 
     let selected = h.app().manager.selected().ok_or("workspace")?;
     let mut visible = h.app().world.instances.first().ok_or("instance")?.clone();
     visible.workspace = Some(selected);
-    let expected = jackin_preview_app::screens::manager::ManagerRowKey::Instance(visible.id.clone());
+    let expected =
+        jackin_preview_app::screens::manager::ManagerRowKey::Instance(visible.id.clone());
     let mut hidden = visible.clone();
     hidden.id = "hidden-first".into();
     hidden.status = InstanceStatus::Purged;

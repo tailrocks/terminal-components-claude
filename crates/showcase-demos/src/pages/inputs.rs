@@ -15,7 +15,8 @@ const OWNER: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.owner")
 const TOKEN: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.token");
 const SEARCH: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.search");
 const API_KEY: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.api_key");
-const STATE_REFERENCE: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.state_reference");
+const STATE_REFERENCE: Id =
+    termrock::Id::root("showcase_ui::pages::inputs::inputs.state_reference");
 
 fn email(value: &str) -> Result<(), FieldError> {
     if value.contains('@') && value.contains('.') {

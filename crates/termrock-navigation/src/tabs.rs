@@ -6,9 +6,6 @@ use core::marker::PhantomData;
 use ratatui_core::layout::{Position, Rect};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
-use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
-use termrock_runtime::rowui::{RowFn, RowUi};
-use termrock_runtime::empty::{Status};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -18,6 +15,11 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
+use termrock_collections::collection::{
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
+};
+use termrock_runtime::empty::Status;
+use termrock_runtime::rowui::{RowFn, RowUi};
 
 /// What a tab strip reports; every tab action carries the tab's key.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

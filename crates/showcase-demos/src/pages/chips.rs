@@ -3,8 +3,8 @@
 use termrock::author::PaintStyle;
 use termrock::{
     ChipBar, ChipBarAction, ChipBarState, Cx, FrameRead, Id, ItemKey, Modifier, Part, Rect,
-    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant,
-    layout, width,
+    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant, layout,
+    width,
 };
 
 use showcase_data::LANGUAGES;

@@ -1,8 +1,8 @@
 //! Product ticks are coalesced wakes, not elapsed-time or input-count units.
 use jackin_preview_app::{App, Motion, Scenario};
+use std::time::Duration;
 use termrock::{KeyCode, Theme};
 use termrock_test_support::Harness;
-use std::time::Duration;
 fn session(scenario: Scenario, motion: Motion) -> Harness<App> {
     Harness::new(App::for_scenario(scenario, motion), Theme::junie(), 100, 30)
 }
@@ -103,9 +103,10 @@ fn pending_job_accelerates_idle_wake_then_returns_to_idle_interval() {
     app.world.jobs.clear();
     let mut h = Harness::new(app, Theme::junie(), 100, 30);
     let _ = h.advance(Duration::from_millis(50));
-    h.app_mut()
-        .world
-        .schedule(80, jackin_preview_app::sim::world::Msg::Refreshed { ok: true });
+    h.app_mut().world.schedule(
+        80,
+        jackin_preview_app::sim::world::Msg::Refreshed { ok: true },
+    );
     let _ = h.key(KeyCode::Null);
     let _ = h.advance(Duration::from_millis(29));
     assert_eq!(h.app().world.now_ms(), 0);
@@ -122,8 +123,10 @@ fn dismissed_animation_does_not_admit_the_old_early_deadline() {
     let mut app = App::for_scenario(Scenario::Returning, Motion::Full);
     app.world.daemons.clear();
     app.world.jobs.clear();
-    app.world
-        .schedule(800, jackin_preview_app::sim::world::Msg::Refreshed { ok: true });
+    app.world.schedule(
+        800,
+        jackin_preview_app::sim::world::Msg::Refreshed { ok: true },
+    );
     let mut h = Harness::new(app, Theme::junie(), 100, 30);
     let _ = h.advance(Duration::from_millis(50));
     h.app_mut().world.jobs.clear();

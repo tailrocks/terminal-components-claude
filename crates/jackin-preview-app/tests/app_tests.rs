@@ -933,7 +933,9 @@ fn complete_jackin_flow_keyboard_first() {
         .world
         .instances
         .iter()
-        .find(|instance| instance.status == jackin_preview_app::domain::instance::InstanceStatus::Running)
+        .find(|instance| {
+            instance.status == jackin_preview_app::domain::instance::InstanceStatus::Running
+        })
         .map(|instance| instance.id.clone())
         .expect("running instance");
     // 24 second session with a different account
@@ -1061,7 +1063,9 @@ fn complete_jackin_flow_keyboard_first() {
         .world
         .instances
         .iter()
-        .find(|instance| instance.status == jackin_preview_app::domain::instance::InstanceStatus::Running)
+        .find(|instance| {
+            instance.status == jackin_preview_app::domain::instance::InstanceStatus::Running
+        })
         .expect("one instance remains running")
         .id
         .clone();
@@ -1294,7 +1298,10 @@ fn cockpit_resolves_every_effective_account_for_the_container() {
     let mut h = H::new(Scenario::LaunchRunning, Motion::Reduced, 0, 120, 40);
     assert_eq!(h.app().route(), Route::Cockpit);
     let c = h.app().launch().expect("launch run");
-    assert_eq!(c.agent, jackin_preview_app::domain::agent::Agent::ClaudeCode);
+    assert_eq!(
+        c.agent,
+        jackin_preview_app::domain::agent::Agent::ClaudeCode
+    );
     let mut seen = false;
     for _ in 0..80 {
         h.ticks(5);
@@ -1328,7 +1335,9 @@ fn cockpit_resolves_every_effective_account_for_the_container() {
         .world
         .instances
         .iter()
-        .find(|instance| instance.status == jackin_preview_app::domain::instance::InstanceStatus::Running)
+        .find(|instance| {
+            instance.status == jackin_preview_app::domain::instance::InstanceStatus::Running
+        })
         .map(|instance| instance.id.clone())
         .expect("running instance");
     let i = h.app().world.instance(&inst).unwrap();

@@ -10,15 +10,15 @@ use termrock::{
     Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
 
-use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
-use tablepro_demo::db::{
-    self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
-};
-use tablepro_domain::domain::ResultGrid;
-use tablepro_domain::model::SwitchTarget;
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
+use tablepro_demo::db::{
+    self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
+};
+use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
+use tablepro_domain::domain::ResultGrid;
+use tablepro_domain::model::SwitchTarget;
 
 /// Minimum terminal width.
 pub const MIN_WIDTH: u16 = 72;

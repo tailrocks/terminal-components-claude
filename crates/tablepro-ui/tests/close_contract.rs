@@ -1,7 +1,7 @@
 //! Closing a tab requires one explicit, stable-target destructive intent.
+use tablepro_ui::{Surface, Tab, TableProApp};
 use termrock::{App, Id, ItemKey, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{Surface, Tab, TableProApp};
 const STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 fn dirty_table() -> TableProApp {
     let mut app = TableProApp::default();

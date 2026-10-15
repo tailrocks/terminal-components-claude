@@ -5,17 +5,8 @@ use std::borrow::Cow;
 
 use ratatui_core::layout::Rect;
 
-use termrock_controls::button::Button;
-use termrock_navigation::chip::{ChipBarState, LabelChips};
-use termrock_controls::choice::{Checkbox, LabelRadio, RadioGroupAction, RadioGroupState, Toggle};
-use termrock_fields::input::{ErrorState, TextAction, TextInput, TextInputState, discard_error};
-use termrock_feedback::keyhint::ChordText;
-use termrock_runtime::scroll_region::ScrollRegion;
-use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
-use termrock_fields::textarea::{TextArea, TextAreaState};
 use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
-use termrock_collections::collection::key::KeySet;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef, fnv1a};
@@ -28,6 +19,15 @@ use crate::text::width;
 use crate::theme::{DesignTokens, Family, Role, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 use crate::validate::FieldError;
+use termrock_collections::collection::key::KeySet;
+use termrock_controls::button::Button;
+use termrock_controls::choice::{Checkbox, LabelRadio, RadioGroupAction, RadioGroupState, Toggle};
+use termrock_feedback::keyhint::ChordText;
+use termrock_fields::input::{ErrorState, TextAction, TextInput, TextInputState, discard_error};
+use termrock_fields::textarea::{TextArea, TextAreaState};
+use termrock_navigation::chip::{ChipBarState, LabelChips};
+use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
+use termrock_runtime::scroll_region::ScrollRegion;
 
 /// Width participation in a two-column form.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

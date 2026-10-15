@@ -10,7 +10,7 @@ pub enum Environment {
     /// Remote development host.
     Dev,
     /// Remote staging host.
-        Staging,
+    Staging,
     /// Remote production host: strongest confirmation treatment.
     Production,
 }

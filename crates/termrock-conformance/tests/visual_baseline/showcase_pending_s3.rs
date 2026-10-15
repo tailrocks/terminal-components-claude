@@ -4119,7 +4119,7 @@ impl QueryApp {
         Picker::new(S3_PICKQUERY)
             .title("Open quickly")
             .placeholder("Files and tasks…")
-            .meta("All · Tab scope")
+            // (No `meta` subtitle builder on the target Picker.)
             .width(76)
             .scopes(&self.scopes)
     }
@@ -4138,14 +4138,12 @@ impl App for QueryApp {
             Picker::new(S3_PICKQUERY)
                 .title("Open quickly")
                 .placeholder("Files and tasks…")
-                .meta("All · Tab scope")
                 .width(76)
                 .scopes(&scopes)
                 .reconcile(&mut self.st, &self.items);
             let spec = Picker::new(S3_PICKQUERY)
                 .title("Open quickly")
                 .placeholder("Files and tasks…")
-                .meta("All · Tab scope")
                 .width(76)
                 .scopes(&scopes)
                 .layer(cx, &self.items);
@@ -4154,7 +4152,6 @@ impl App for QueryApp {
         let r = Picker::new(S3_PICKQUERY)
             .title("Open quickly")
             .placeholder("Files and tasks…")
-            .meta("All · Tab scope")
             .width(76)
             .scopes(&scopes)
             .update(cx, &mut self.st, &self.items)

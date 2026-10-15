@@ -4,8 +4,6 @@
 use core::fmt;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, paint_pressed_bracket};
-use termrock_collections::collection::{Reconcile, Reconciliation};
-use termrock_runtime::rowui::CellUi;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -22,6 +20,8 @@ use crate::theme::PaintStyle;
 use crate::theme::{Family, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use ratatui_core::layout::Rect;
+use termrock_collections::collection::{Reconcile, Reconciliation};
+use termrock_runtime::rowui::CellUi;
 
 /// A borrowed value displayed by an interactive property row.
 ///

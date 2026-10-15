@@ -6,7 +6,6 @@ use ratatui_core::layout::Rect;
 
 use super::{PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
-use termrock_runtime::Status;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part};
@@ -17,6 +16,7 @@ use crate::response::{Activated, Response, StateFlags};
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_runtime::Status;
 
 /// The const-constructible command a button chord maps to.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -328,11 +328,7 @@ impl<'a> Button<'a> {
         }
     }
 
-    pub fn update_in_form(
-        &self,
-        cx: &mut Cx<'_>,
-        inherited_disabled: bool,
-    ) -> Response<Activated> {
+    pub fn update_in_form(&self, cx: &mut Cx<'_>, inherited_disabled: bool) -> Response<Activated> {
         self.with_inherited_disabled(inherited_disabled).update(cx)
     }
 
@@ -511,12 +507,7 @@ impl<'a> Button<'a> {
         area
     }
 
-    pub fn draw_in_form(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        inherited_disabled: bool,
-    ) -> Rect {
+    pub fn draw_in_form(&self, ui: &mut Ui<'_>, area: Rect, inherited_disabled: bool) -> Rect {
         self.with_inherited_disabled(inherited_disabled)
             .draw(ui, area)
     }

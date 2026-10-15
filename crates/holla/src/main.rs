@@ -29,15 +29,14 @@ fn main() -> std::process::ExitCode {
             return std::process::ExitCode::from(2);
         }
     };
-    let color =
-        options
-            .color
-            .map_or_else(termrock::ColorLevel::detect, |color| match color {
-                holla_ui::cli::ColorChoice::TrueColor => termrock::ColorLevel::TrueColor,
-                holla_ui::cli::ColorChoice::Ansi256 => termrock::ColorLevel::Ansi256,
-                holla_ui::cli::ColorChoice::Ansi16 => termrock::ColorLevel::Ansi16,
-                holla_ui::cli::ColorChoice::Mono => termrock::ColorLevel::Mono,
-            });
+    let color = options
+        .color
+        .map_or_else(termrock::ColorLevel::detect, |color| match color {
+            holla_ui::cli::ColorChoice::TrueColor => termrock::ColorLevel::TrueColor,
+            holla_ui::cli::ColorChoice::Ansi256 => termrock::ColorLevel::Ansi256,
+            holla_ui::cli::ColorChoice::Ansi16 => termrock::ColorLevel::Ansi16,
+            holla_ui::cli::ColorChoice::Mono => termrock::ColorLevel::Mono,
+        });
     let app = holla_ui::App::for_scenario(options.scenario, options.motion, options.frame);
     let Ok(frame) = u64::try_from(app.fixture_time_ms()) else {
         eprintln!("holla: fixture clock precedes its simulation epoch");

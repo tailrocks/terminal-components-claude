@@ -4,13 +4,13 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use crate::select::{Select, SelectState};
-use termrock_collections::collection::{KeyFn};
-use termrock_runtime::rowui::{RowFn};
-use termrock_runtime::field_control::FieldControl;
 use crate::id::Id;
 use crate::measure::{Constraints, Size};
+use crate::select::{Select, SelectState};
 use crate::ui::Ui;
+use termrock_collections::collection::KeyFn;
+use termrock_runtime::field_control::FieldControl;
+use termrock_runtime::rowui::RowFn;
 
 /// A `Field` control over a fully-built [`Select`] and its items.
 ///
@@ -60,11 +60,11 @@ mod tests {
     use ratatui_core::layout::Position;
 
     use super::*;
-    use termrock_fields::fieldfield::Field;
     use crate::id::ItemKey;
     use crate::runtime::Runtime;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::theme::{GlyphRole, Theme};
+    use termrock_fields::field::Field;
 
     const SEL: Id = Id::root("select_field.tests");
 
