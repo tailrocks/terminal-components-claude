@@ -1,0 +1,30 @@
+[package]
+name = "termrock-test-support"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+termrock = { workspace = true, features = ["testing"] }
+ratatui-core.workspace = true
+bitflags.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# Integration-test-only dependencies for the ported perf suites
+# (tests/perf.rs, tests/perf_collections.rs); not part of the shipped surface.
+[dev-dependencies]
+termrock-collections.workspace = true
+termrock-controls.workspace = true
+termrock-core.workspace = true
+termrock-editors.workspace = true
+termrock-feedback.workspace = true
+termrock-forms.workspace = true
+termrock-grid.workspace = true
+termrock-navigation.workspace = true
+termrock-overlays.workspace = true
+termrock-runtime.workspace = true
+termrock-text.workspace = true
+termrock-theme.workspace = true
+termrock-viewport.workspace = true
