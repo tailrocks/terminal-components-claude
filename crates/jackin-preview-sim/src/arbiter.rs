@@ -159,6 +159,7 @@ impl Arbiter {
     }
 
     #[cfg(test)]
+    /// Test probe for the exit token.
     pub fn exit_consumed(&self) -> bool {
         self.exit_consumed
     }

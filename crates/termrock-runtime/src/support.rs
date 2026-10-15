@@ -128,6 +128,12 @@ pub struct Acc<A> {
     action: Option<A>,
 }
 
+impl<A: Default> Default for Acc<A> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<A> Acc<A> {
     pub const fn new() -> Self {
         Acc {

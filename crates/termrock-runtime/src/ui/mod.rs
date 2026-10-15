@@ -68,7 +68,7 @@ impl CellRoles {
 
 /// Per-frame output the runtime consumes after `app.draw` (§3.3 steps 12–15).
 #[derive(Debug, Default)]
-pub(crate) struct FrameState {
+pub struct FrameState {
     pub(crate) registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
@@ -187,7 +187,7 @@ struct ReferenceScope {
 }
 
 impl FrameState {
-    pub(crate) fn reset(&mut self, generation: u32, screen: Rect) {
+    pub fn reset(&mut self, generation: u32, screen: Rect) {
         self.registry.reset(generation);
         self.ring.reset();
         self.layers.begin();
@@ -227,7 +227,7 @@ impl FrameState {
 /// State that outlives a frame: the derived cache, the style memo and the
 /// overlay stack (§20.9-2 P4: constructed once per runtime, reused).
 #[derive(Default)]
-pub(crate) struct UiCore {
+pub struct UiCore {
     cache: DerivedCache,
     reference_cache: DerivedCache,
     pub(crate) style_cache: StyleCache,

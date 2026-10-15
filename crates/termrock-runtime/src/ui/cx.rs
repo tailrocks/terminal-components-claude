@@ -76,7 +76,7 @@ pub(crate) struct Snapshot {
 
 /// Last frame's facts: geometry, layout, declared flags and the snapshot.
 #[derive(Debug, Default, Clone)]
-pub(crate) struct LastFrame {
+pub struct LastFrame {
     pub(crate) registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,

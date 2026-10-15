@@ -7,8 +7,10 @@
 
 use ratatui_core::layout::{Constraint, Position, Rect};
 
-use crate::action::ActionKey;
 pub use termrock_core::layer_types::{DismissReason, LayerEvent, LayerId};
+
+#[cfg(test)]
+use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 

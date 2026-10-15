@@ -7,8 +7,6 @@ pub(crate) use termrock_core as response;
 pub(crate) use termrock_core as action;
 pub(crate) use termrock_core as intent;
 pub(crate) use termrock_core as diagnostics;
-pub(crate) use termrock_layout as layout;
-pub(crate) use termrock_layout as measure;
 pub(crate) use termrock_text as text;
 pub use termrock_text::secret;
 pub(crate) use termrock_theme as theme;
@@ -16,6 +14,8 @@ pub(crate) use termrock_theme as theme;
 pub use crate::support::{
     Acc, PartStyle, SlotFn, cell_at, first_row, overlay_chrome, paint_pressed_bracket, shift,
 };
+pub use termrock_layout as layout;
+pub use termrock_layout as measure;
 pub mod author;
 pub mod capture;
 pub mod cursor;
@@ -37,7 +37,6 @@ pub use author::*;
 pub use capture::*;
 pub use decor::*;
 pub use empty::*;
-pub use field_control::*;
 pub use focus::*;
 pub use hit::*;
 pub use keymap::*;
