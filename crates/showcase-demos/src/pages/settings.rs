@@ -13,7 +13,8 @@ const TAB: Id = termrock::Id::root("showcase_ui::pages::settings::settings.tabs"
 const MEMBERS: Id = termrock::Id::root("showcase_ui::pages::settings::settings.members");
 const INVITE: Id = termrock::Id::root("showcase_ui::pages::settings::settings.invite");
 const REMOVE: Id = termrock::Id::root("showcase_ui::pages::settings::settings.remove");
-const REMOVE_DIALOG: Id = termrock::Id::root("showcase_ui::pages::settings::settings.remove.dialog");
+const REMOVE_DIALOG: Id =
+    termrock::Id::root("showcase_ui::pages::settings::settings.remove.dialog");
 const TABS: &[&str] = &["General", "Members", "Security"];
 
 #[derive(Clone, Debug, PartialEq, Eq)]

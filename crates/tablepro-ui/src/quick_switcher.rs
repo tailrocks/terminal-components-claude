@@ -1,6 +1,6 @@
 //! Application-owned switcher projection over the shared Picker.
-use tablepro_domain::model::{SwitchItem, SwitchTarget, SwitcherIndex};
 use crate::workbench::Workbench;
+use tablepro_domain::model::{SwitchItem, SwitchTarget, SwitcherIndex};
 use termrock::{FilterPolicy, Id, ItemRowLayout, Picker, PickerState, ScopeKey};
 
 pub(crate) const ID: Id = Id::root("tablepro.quick-switcher");

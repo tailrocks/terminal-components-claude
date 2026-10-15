@@ -8,8 +8,6 @@ use ratatui_core::layout::{Position, Rect};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
-use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, SelectMode};
-use termrock_runtime::rowui::{RowFn, RowUi};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -19,6 +17,10 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
+use termrock_collections::collection::{
+    ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, SelectMode,
+};
+use termrock_runtime::rowui::{RowFn, RowUi};
 
 /// What a chip bar reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

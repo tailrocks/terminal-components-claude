@@ -3,8 +3,10 @@
 //! in-memory engine evaluates the SQL subset the workbench needs, so every
 //! interaction is real while results stay reproducible.
 
-#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
-
+#![allow(
+    missing_docs,
+    reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
+)]
 #![allow(
     clippy::arithmetic_side_effects,
     clippy::indexing_slicing,

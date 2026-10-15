@@ -3,7 +3,6 @@
 //! Shared screen prelude state and deterministic atmosphere rendering.
 
 #![forbid(unsafe_code)]
-
 #![expect(
     clippy::pedantic,
     reason = "fixture and rendering code favors explicit deterministic data"

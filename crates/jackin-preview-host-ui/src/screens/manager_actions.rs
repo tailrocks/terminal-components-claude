@@ -6,7 +6,6 @@
 use jackin_preview_domain::{
     account::AccountId,
     agent::Agent,
-
     instance::{DaemonSnapshot, Instance, InstanceStatus, RunId},
     workspace::{Workspace, WorkspaceId},
 };

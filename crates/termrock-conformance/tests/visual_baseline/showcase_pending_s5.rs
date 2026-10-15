@@ -794,23 +794,8 @@ fn s5_keyhint_status() {
     );
     assert_surround_intact(&buf, area, "V1: containment");
     capture_isolated(&dir, "keyhint-error", &buf);
-    let buf = render_isolated(60, 3, 0, None, |ui, _| {
-        HintBar::new(Id::root("s5.hint"), &layer)
-            .status(Status::Warning)
-            .draw(ui, Rect::new(0, 1, 60, 1));
-    });
-    let row = buf_row_text(&buf, 1);
-    assert!(
-        row.contains("▲ disk low"),
-        "V1: warning mark + message\n{row:?}"
-    );
-    let mark_x = char_col(&row, "▲");
-    assert!(buf_is_bold(&buf, mark_x, 1), "V1: the warning mark is bold");
-    assert_eq!(
-        buf[(mark_x, 1)].fg,
-        t.color.warning,
-        "V1: the warning mark takes warning"
-    );
+    // The pr17 `Status::Warning` "▲ disk low" case is dropped: the target
+    // `Status` has no Warning variant (Ready/Busy/Loading/Error only).
     // V2 + N1: a plain secondary status renders unmarked in its tone and
     // never carries ▲ or !.
     let layer = toned("last: View › Zoom pane");
@@ -836,12 +821,12 @@ fn s5_keyhint_status() {
         (status_x..60).all(|x| !buf_is_bold(&buf, x, 1)),
         "N2: no bold anywhere in a plain status"
     );
-    // S1: the mark follows the readiness: Error !, Warning ▲, Ready none,
-    // Busy/Loading a spinner frame.
+    // S1: the mark follows the readiness: Error !, Ready none,
+    // Busy/Loading a spinner frame. (pr17's `Warning ▲` is dropped — the
+    // target `Status` has no Warning variant.)
     let spinner: &str = t.design.motion.spinner_frames[0];
     for (status, mark) in [
         (Status::Error, Some("!")),
-        (Status::Warning, Some("▲")),
         (Status::Ready, None),
     ] {
         let layer = toned("msg");
@@ -1247,13 +1232,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Left,
         min_width: 9,
         max_width: 9,
-        flex: 0,
         sortable: true,
         editable: false,
         sticky: false,
         prefix_glyph: Some(GlyphRole::PrimaryKey),
         badge: None,
-        filtered: false,
     },
     Column {
         key: ColumnKey::num(1),
@@ -1262,13 +1245,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Left,
         min_width: 25,
         max_width: 25,
-        flex: 0,
         sortable: true,
         editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
-        filtered: false,
     },
     Column {
         key: ColumnKey::num(2),
@@ -1277,13 +1258,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Left,
         min_width: 10,
         max_width: 10,
-        flex: 0,
         sortable: true,
         editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
-        filtered: false,
     },
     Column {
         key: ColumnKey::num(3),
@@ -1292,13 +1271,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Right,
         min_width: 7,
         max_width: 7,
-        flex: 0,
         sortable: true,
         editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
-        filtered: false,
     },
     Column {
         key: ColumnKey::num(4),
@@ -1307,13 +1284,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Right,
         min_width: 7,
         max_width: 7,
-        flex: 0,
         sortable: true,
         editable: false,
         sticky: false,
         prefix_glyph: None,
         badge: None,
-        filtered: false,
     },
     Column {
         key: ColumnKey::num(5),
@@ -1322,13 +1297,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Left,
         min_width: 8,
         max_width: 8,
-        flex: 0,
         sortable: true,
         editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
-        filtered: false,
     },
     Column {
         key: ColumnKey::num(6),
@@ -1337,13 +1310,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Left,
         min_width: 12,
         max_width: 12,
-        flex: 0,
         sortable: true,
         editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
-        filtered: false,
     },
     Column {
         key: ColumnKey::num(7),
@@ -1352,13 +1323,11 @@ const S5_COLUMNS: [Column<'static>; 8] = [
         align: Align::Left,
         min_width: 27,
         max_width: 27,
-        flex: 0,
         sortable: false,
         editable: true,
         sticky: false,
         prefix_glyph: None,
         badge: None,
-        filtered: false,
     },
 ];
 
@@ -1760,18 +1729,9 @@ impl GridModel for S5GridModel {
         self.more
     }
 
-    fn pending_count(&self) -> usize {
-        self.pending_total()
-    }
-
-    fn pending_breakdown(&self) -> String {
-        self.pending_label()
-    }
-
-    fn row_error(&self, row: usize) -> Option<&str> {
-        self.id_at(row)
-            .and_then(|id| self.row_errors.get(&id).map(String::as_str))
-    }
+    // pr17's `pending_count`/`pending_breakdown`/`row_error` are not in the
+    // target `GridModel`; the queue facts stay on the concrete model and the
+    // owning page composes them.
 }
 
 fn s5_validate_cell(col: usize, text: &str) -> Result<S5Cell, FieldError> {
@@ -1993,11 +1953,15 @@ fn s5_grid_edit() {
     // estimated total.
     let model = S5GridModel::with_rows(40, RowTotal::Estimated(4_812), true);
     let state = GridState::default();
-    assert_eq!(
-        s5_grid().rows_label_for(&state, &model, Rect::new(0, 0, 80, 41)),
-        "rows 1–40 of 40 loaded · ~4,812 total",
-        "V1: estimated-total position label"
-    );
+    // Target API: `rows_label` is a frame-phase helper over a `FrameRead`
+    // (`rows_label_for` does not exist), so it composes inside a render.
+    let _buf = render_isolated(80, 12, 0, None, |ui, _| {
+        assert_eq!(
+            s5_grid().rows_label(ui, &state, &model),
+            "rows 1–40 of 40 loaded · ~4,812 total",
+            "V1: estimated-total position label"
+        );
+    });
     let mut app = Harness::new(
         S5GridApp::new(
             S5GridModel::with_rows(40, RowTotal::Estimated(4_812), true),
@@ -2295,10 +2259,12 @@ fn s5_grid_edit() {
 ///
 /// Isolated path drives a page-shaped [`Grid`]: `record_cell` queuing
 /// with revert-to-stored clearing, inserted-row deletion removing the
-/// row entirely, undo/discard queue ops, the three bar buttons emitting
-/// `PreviewRequested`/`DiscardRequested`/`CommitRequested`, and discard
-/// clearing only the queue. (`p`/`u`/`U` are page-keymap bindings over
-/// these component facts; the live path proves the keys.) Live path
+/// row entirely, undo/discard queue ops, and discard clearing only the
+/// queue. (The pr17 Grid's pending bar and its
+/// `PreviewRequested`/`DiscardRequested`/`CommitRequested` actions are not
+/// in the target Grid — the bar is page-owned — so the bar-button checks
+/// are asserted as model queue facts; `p`/`u`/`U` are page-keymap
+/// bindings, proven live.) Live path
 /// replays the matrix `GRID_EDITS` (seats 600/12), inserts and deletes a
 /// row, previews the SQL dialog, undoes one change, and discards the rest.
 #[test]
@@ -2330,66 +2296,21 @@ fn s5_grid_pending() {
     model.toggle_delete(len);
     assert_eq!(model.len(), len, "S2: the inserted row is gone entirely");
     assert_eq!(model.pending_total(), 0, "S2: no delete queues");
-    // V1 headless: the pending bar shows its three buttons as separate stops.
+    // V1/A1/A2 headless adapted: pr17's Grid rendered a pending bar and
+    // emitted `PreviewRequested`/`DiscardRequested`/`CommitRequested`; the
+    // target Grid has none of those (no preview_id/discard_id/save_id, no
+    // such actions) — the pending bar is page-owned. The queue facts the
+    // bar reported are asserted on the concrete model instead.
     model.record_cell(0, 3, S5Cell::plain("600"));
-    let ids = [
-        s5_grid().preview_id(),
-        s5_grid().discard_id(),
-        s5_grid().save_id(),
-    ];
-    assert!(
-        ids[0] != ids[1] && ids[1] != ids[2] && ids[0] != ids[2],
-        "V1: three separate bar stops"
-    );
-    let mut app = Harness::new(S5GridApp::new(model, 80, 22), Theme::junie(), 80, 22);
-    assert!(app.tab_to(S5_GRID), "V1: the grid takes focus");
-    let bar = app.text();
-    assert!(
-        bar.contains("Preview SQL") && bar.contains("Discard") && bar.contains("Save"),
-        "V1: Preview SQL, Discard and Save render\n{bar}"
-    );
-    assert!(bar.contains("1 pending"), "V1: the bar counts the queue");
-    // A1: Preview SQL emits PreviewRequested; u undoes one queued change;
-    // Discard emits DiscardRequested (the `p`/`u`/`U` component facts; the
-    // page keymap binds the keys, proven live).
-    let before = app.app().actions.len();
-    let _ = app.click_id(ids[0]);
-    assert_eq!(
-        &app.app().actions[before..],
-        &[GridAction::PreviewRequested],
-        "A1: Preview SQL emits PreviewRequested"
-    );
-    // Two queued changes, then `u` undoes one: drive through the model
-    // queue the page's `u` binding owns (unit correlate).
+    assert_eq!(model.counts(), (1, 0, 0), "V1: the queue the bar would count");
+    // A1: `u` undoes one queued change: drive through the model queue the
+    // page's `u` binding owns (unit correlate).
     let mut queued = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     queued.record_cell(0, 3, S5Cell::plain("600"));
     queued.record_cell(1, 3, S5Cell::plain("12"));
     assert_eq!(queued.pending_total(), 2, "A1: two changes queue");
     assert!(queued.undo(), "A1: u runs");
     assert_eq!(queued.pending_total(), 1, "A1: u undoes one queued change");
-    let mut app = Harness::new(S5GridApp::new(queued, 80, 22), Theme::junie(), 80, 22);
-    assert!(app.tab_to(S5_GRID), "A1: the grid takes focus");
-    let before = app.app().actions.len();
-    let _ = app.click_id(ids[1]);
-    assert_eq!(
-        &app.app().actions[before..],
-        &[GridAction::DiscardRequested],
-        "A1: Discard emits DiscardRequested"
-    );
-    // A2: the bar buttons emit PreviewRequested/DiscardRequested/CommitRequested.
-    let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
-    model.record_cell(0, 3, S5Cell::plain("600"));
-    let mut app = Harness::new(S5GridApp::new(model, 80, 22), Theme::junie(), 80, 22);
-    assert!(app.tab_to(S5_GRID), "A2: the grid takes focus");
-    for (id, want, what) in [
-        (ids[0], GridAction::PreviewRequested, "Preview SQL"),
-        (ids[1], GridAction::DiscardRequested, "Discard"),
-        (ids[2], GridAction::CommitRequested, "Save"),
-    ] {
-        let before = app.app().actions.len();
-        let _ = app.click_id(id);
-        assert_eq!(&app.app().actions[before..], &[want], "A2: {what} emits");
-    }
     // N2: discard clears only the queue — committed rows are untouched.
     let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     model.record_cell(0, 3, S5Cell::plain("600"));
@@ -2512,11 +2433,12 @@ fn s5_grid_pending() {
 /// GRID-COMMIT-003 (`showcase/flows/datagrid/failed`, 80x24): the commit
 /// round-trip plus the row-level error.
 ///
-/// Isolated path drives a page-shaped [`Grid`]: `CommitRequested` from
-/// the Save button (the `Ctrl+S` component fact; the page binds the key,
-/// proven live), the `Loading rows` empty-grid form, the commit
+/// Isolated path drives a page-shaped [`Grid`]: the `Loading rows`
+/// empty-grid form, the commit
 /// rejection marking exactly one row with its error, the pending queue
-/// surviving failure, and the clean-commit fold. Live path replays the
+/// surviving failure, and the clean-commit fold. (The pr17 Save button's
+/// `CommitRequested` has no target Grid correlate — the save affordance is
+/// page-owned — so that headless check is dropped.) Live path replays the
 /// matrix failed-save flow (seats 600/12), rides the 4-tick saving
 /// window, proves the `!` mark plus the error text, and proves a clean
 /// queue reports `Nothing to save`.
@@ -2525,19 +2447,10 @@ fn s5_grid_pending() {
 fn s5_grid_commit() {
     let dir = s5_dir("s5_grid_commit");
 
-    // A1 headless: the Save button emits CommitRequested (the Ctrl+S
-    // component fact; the page binds the key, proven live).
-    let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
-    model.record_cell(0, 3, S5Cell::plain("600"));
-    let mut app = Harness::new(S5GridApp::new(model, 80, 22), Theme::junie(), 80, 22);
-    assert!(app.tab_to(S5_GRID), "A1: the grid takes focus");
-    let before = app.app().actions.len();
-    let _ = app.click_id(s5_grid().save_id());
-    assert_eq!(
-        &app.app().actions[before..],
-        &[GridAction::CommitRequested],
-        "A1: Save emits CommitRequested"
-    );
+    // A1 headless removed: pr17's Grid rendered a Save button emitting
+    // `CommitRequested`; the target Grid has neither — the save affordance
+    // and its `Ctrl+S` binding are page-owned, proven on the live path.
+
     // V1 headless, empty grid: the loading form with its label.
     let model = S5GridModel::with_rows(0, RowTotal::Exact(0), false);
     let state = GridState::default();

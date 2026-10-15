@@ -21,8 +21,8 @@ pub use world::World;
 // Compatibility view; the simulation code keeps its historical
 // `crate::domain` paths (plan and ranking live in their own crates).
 pub mod domain {
+    pub use crate::fixtures;
     pub use holla_catalog::ranking;
     pub use holla_domain::*;
     pub use holla_plan::plan;
-    pub use crate::fixtures;
 }

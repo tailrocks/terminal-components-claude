@@ -40,7 +40,9 @@ impl ChordText {
     }
 
     pub fn with_case(mut c: Chord, case: ChordCase) -> Self {
-        if let (ChordCase::UppercaseAscii, crate::event::KeyCode::Char(character)) = (case, &mut c.code) {
+        if let (ChordCase::UppercaseAscii, crate::event::KeyCode::Char(character)) =
+            (case, &mut c.code)
+        {
             *character = character.to_ascii_uppercase();
         }
         let mut t = ChordText {

@@ -1,7 +1,7 @@
 //! Replacement entry points refuse pending work before changing state.
+use tablepro_ui::{QueryOutcome, Tab, TableProApp};
 use termrock::{App, GridEditor, KeyCode, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{QueryOutcome, Tab, TableProApp};
 fn pending_query() -> TableProApp {
     let mut app = TableProApp::default();
     assert!(app.connect(0));

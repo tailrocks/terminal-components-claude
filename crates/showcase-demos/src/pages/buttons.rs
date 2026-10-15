@@ -8,8 +8,7 @@ use std::time::Duration;
 
 use termrock::{
     Button, Constraints, Cx, Family, FrameRead, Id, Moment, Panel, PanelKind, Part, PartRef, Rect,
-    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant,
-    layout,
+    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, layout,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};

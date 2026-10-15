@@ -6,7 +6,6 @@ use core::ops::Range;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
@@ -20,6 +19,7 @@ use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_runtime::scroll_region::ScrollRegion;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;

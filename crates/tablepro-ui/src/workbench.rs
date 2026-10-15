@@ -1,9 +1,9 @@
 //! `TablePro` workbench state: explorer, tabs, history and query routing.
 
-use tablepro_demo::db::{Catalog, Connection, ObjectKind};
 use crate::filter_editor::Filter;
-use tablepro_domain::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
 use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
+use tablepro_demo::db::{Catalog, Connection, ObjectKind};
+use tablepro_domain::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
 
 /// Workbench state for one active connection.
 #[derive(Debug)]

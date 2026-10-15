@@ -4,12 +4,12 @@
 //! assertions check rendered evidence, focus, keyed regions, and durable
 //! state transitions; a missing control is a test failure, never a skip.
 
+use showcase_ui::{App, NAV_ENTRIES, PageId};
 use termrock::{
     Axis, Color, ColorLevel, Id, ItemKey, KeyCode, LayerId, Modifier, MouseKind, Part, PartRef,
     Rect, StateFlags, Theme,
 };
 use termrock_test_support::Harness;
-use showcase_ui::{App, NAV_ENTRIES, PageId};
 
 const FORM_SUMMARY: Id = Id::root("showcase_ui::pages::forms::forms.summary");
 const SCROLL_LIST: Id = Id::root("showcase_ui::pages::scrolling::scrolling.list");

@@ -28,9 +28,7 @@ pub fn bytes(values: impl IntoIterator<Item = u64>) -> Result<u64, InventoryErro
     })
 }
 
-pub fn identities<'a>(
-    values: impl IntoIterator<Item = &'a str>,
-) -> Result<(), InventoryError> {
+pub fn identities<'a>(values: impl IntoIterator<Item = &'a str>) -> Result<(), InventoryError> {
     let mut seen = std::collections::BTreeSet::new();
     for value in values {
         if value.is_empty() || !seen.insert(value) {

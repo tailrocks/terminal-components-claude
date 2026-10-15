@@ -15,5 +15,5 @@ pub use editor::{EditAction, EditOutcome, Extend, Motion, TextEditorCore};
 pub use fuzzy::{FuzzyBoundary, fuzzy, fuzzy_with_boundary};
 pub use measure::{truncate, truncate_middle, width, wrap, wrapped_rows};
 pub use secret::{CellWriter, Secret, SecretPolicy};
-pub use termrock_core::secret::wipe_string;
 pub use span::Span;
+pub use termrock_core::secret::wipe_string;

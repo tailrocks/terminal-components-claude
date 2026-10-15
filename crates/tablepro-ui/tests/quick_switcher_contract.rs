@@ -1,7 +1,7 @@
 //! Real keyboard switcher and current-schema selection contracts.
+use tablepro_ui::{Surface, Tab, TableProApp};
 use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{Surface, Tab, TableProApp};
 const PICKER: Id = Id::root("tablepro.quick-switcher");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 fn connected() -> Harness<TableProApp> {

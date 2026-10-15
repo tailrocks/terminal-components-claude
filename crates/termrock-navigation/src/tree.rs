@@ -17,11 +17,7 @@ use std::sync::{Arc, Weak};
 
 use ratatui_core::layout::Rect;
 
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
-use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation};
-use termrock_runtime::rowui::{RowFn, RowUi};
-use termrock_runtime::empty::{EmptyState};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -32,6 +28,12 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_collections::collection::{
+    ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation,
+};
+use termrock_runtime::empty::EmptyState;
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::scroll_region::ScrollRegion;
 
 /// Whether a node can be opened, and whether its children are already in the
 /// slice.
@@ -2324,7 +2326,6 @@ mod tests {
         TreeNode, TreeState, TreeTrailingMarkFn,
     };
     use crate::Phase;
-    use termrock_runtime::rowui::RowUi;
     use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::response::StateFlags;
     use crate::runtime::Runtime;
@@ -2332,6 +2333,7 @@ mod tests {
     use crate::theme::{ColorLevel, GlyphRole, Modifier, Role, Slot, StylePatch, Theme};
     use crate::ui::cx::LastFrame;
     use crate::ui::{FrameState, Ui, UiCore};
+    use termrock_runtime::rowui::RowUi;
 
     const TREE: Id = Id::root("tree.tests");
 
@@ -2626,7 +2628,7 @@ mod tests {
     ) -> Buffer
     where
         K: termrock_collections::collection::key::KeyFn<N>,
-        R: termrock_runtime::rowui::RowFnRowFn<N>,
+        R: termrock_runtime::rowui::RowFn<N>,
     {
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(area);
@@ -2795,7 +2797,7 @@ mod tests {
         }
     }
 
-    fn draw<R: termrock_runtime::rowui::RowFnRowFn<N>>(
+    fn draw<R: termrock_runtime::rowui::RowFn<N>>(
         t: &Tree<'_, N, termrock_collections::collection::key::ByIndex, R>,
         st: &TreeState,
         items: &[N],
@@ -2811,7 +2813,11 @@ mod tests {
         t.draw(&mut ui, area, st, items);
     }
 
-    fn draw_cached<T, K: termrock_collections::collection::key::KeyFn<T>, R: termrock_runtime::rowui::RowFnRowFn<T>>(
+    fn draw_cached<
+        T,
+        K: termrock_collections::collection::key::KeyFn<T>,
+        R: termrock_runtime::rowui::RowFn<T>,
+    >(
         t: &Tree<'_, T, K, R>,
         st: &TreeState,
         items: &[T],
@@ -2827,7 +2833,10 @@ mod tests {
         t.draw(&mut ui, area, st, items);
     }
 
-    fn render<K: termrock_collections::collection::key::KeyFn<N>, R: termrock_runtime::rowui::RowFnRowFn<N>>(
+    fn render<
+        K: termrock_collections::collection::key::KeyFn<N>,
+        R: termrock_runtime::rowui::RowFn<N>,
+    >(
         theme: Theme,
         tree: &Tree<'_, N, K, R>,
         state: &TreeState,

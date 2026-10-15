@@ -6,7 +6,6 @@ use ratatui_core::layout::Rect;
 use ratatui_core::style::Modifier;
 
 use super::SlotFn;
-use termrock_viewport::viewport::{ProjectedText, TextViewport, ViewportAction, ViewportCmd, ViewportState};
 use crate::id::{Id, Part};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
@@ -14,6 +13,9 @@ use crate::response::Response;
 use crate::text::truncate;
 use crate::theme::{FgStep, Role, StylePatch};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_viewport::viewport::{
+    ProjectedText, TextViewport, ViewportAction, ViewportCmd, ViewportState,
+};
 
 /// Kind of one source line.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

@@ -1,7 +1,7 @@
 //! Structural tab records keep identity outside cloneable/replaced payloads.
+use tablepro_ui::{QueryTab, Surface, Tab, TableProApp};
 use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{QueryTab, Surface, Tab, TableProApp};
 #[test]
 fn cloned_payload_receives_fresh_identity_and_clean_close_keeps_dirty_owner() {
     let mut app = TableProApp::default();

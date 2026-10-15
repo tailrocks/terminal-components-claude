@@ -519,14 +519,16 @@ impl Page for TablesPage {
             } else {
                 self.last.clone()
             };
-            Panel::new(termrock::Id::root("showcase_ui::pages::tables::tables.tasks_panel"))
-                .kind(PanelKind::Card)
-                .title("Tasks")
-                .meta(&task_meta)
-                .patch_part(PANEL_PARTS)
-                .draw(ui, tasks, |ui, inner| {
-                    self.draw_tasks(ui, inner, body.width);
-                });
+            Panel::new(termrock::Id::root(
+                "showcase_ui::pages::tables::tables.tasks_panel",
+            ))
+            .kind(PanelKind::Card)
+            .title("Tasks")
+            .meta(&task_meta)
+            .patch_part(PANEL_PARTS)
+            .draw(ui, tasks, |ui, inner| {
+                self.draw_tasks(ui, inner, body.width);
+            });
             paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
                 checks_panel().draw(ui, checks, |ui, inner| {

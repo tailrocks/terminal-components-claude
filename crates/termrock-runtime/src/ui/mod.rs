@@ -69,7 +69,7 @@ impl CellRoles {
 /// Per-frame output the runtime consumes after `app.draw` (§3.3 steps 12–15).
 #[derive(Debug, Default)]
 pub struct FrameState {
-    pub(crate) registry: Registry,
+    pub registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) cursors: Vec<CursorRequest>,
@@ -349,7 +349,7 @@ impl core::fmt::Debug for Ui<'_> {
 }
 
 impl<'f> Ui<'f> {
-    pub(crate) fn new(
+    pub fn new(
         frame: &'f mut FrameState,
         page: &'f mut Buffer,
         core: &'f mut UiCore,
@@ -1347,7 +1347,6 @@ mod tests {
         CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget, Ui, UiCore,
     };
     use crate::action::ActionKey;
-    use crate::rowui::RowUi;
     use crate::event::{Chord, KeyCode};
     use crate::focus::Focusability;
     use crate::hit::{Axes, Headroom};
@@ -1355,6 +1354,7 @@ mod tests {
     use crate::keymap::Binding;
     use crate::layer::{LayerId, LayerSpec};
     use crate::response::StateFlags;
+    use crate::rowui::RowUi;
     use crate::theme::{
         Family, FgStep, Overlay, OverlayRule, Role, StylePatch, Surface, Theme, Variant,
     };

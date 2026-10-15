@@ -184,7 +184,9 @@ pub use crate::text::{
     wrapped_rows,
 };
 // collections
-pub use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation};
+pub use termrock_collections::collection::{
+    ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation,
+};
 // bindings and hints
 pub use crate::action::{Action, ActionKey};
 pub use crate::keymap::{

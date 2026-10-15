@@ -36,13 +36,7 @@ pub struct Activity {
 }
 
 impl Activity {
-    pub fn new(
-        id: u32,
-        name: &str,
-        scope: &str,
-        state: ActivityState,
-        started_ms: i64,
-    ) -> Self {
+    pub fn new(id: u32, name: &str, scope: &str, state: ActivityState, started_ms: i64) -> Self {
         Self {
             id,
             name: name.to_owned(),

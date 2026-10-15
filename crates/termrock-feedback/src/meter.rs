@@ -11,11 +11,10 @@ use core::fmt;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
-use crate::progress::Pct;
 use super::{PartStyle, SlotFn, first_row};
-use termrock_runtime::Status;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
+use crate::progress::Pct;
 use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{
@@ -23,6 +22,7 @@ use crate::theme::{
     Variant,
 };
 use crate::ui::{FrameRead, Ui};
+use termrock_runtime::Status;
 
 /// What a meter's run says about the value it reports.
 ///

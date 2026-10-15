@@ -1,7 +1,7 @@
 //! Canonical tab state survives logical navigation through the real runtime.
+use tablepro_ui::{Surface, Tab, TabKey, TableProApp, Value};
 use termrock::{App, GridEditor, GridModel, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{Surface, Tab, TabKey, TableProApp, Value};
 
 fn activate(h: &mut Harness<TableProApp>, key: TabKey) {
     assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));

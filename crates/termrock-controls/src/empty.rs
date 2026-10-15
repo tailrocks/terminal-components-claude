@@ -6,13 +6,13 @@ use core::fmt;
 use ratatui_core::layout::Rect;
 
 use super::{PartStyle, SlotFn};
-use termrock_runtime::EmptyState;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::{width, wrapped_rows};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
+use termrock_runtime::EmptyState;
 
 /// A pane with nothing to show: a quiet title, an optional hint, never a big
 /// glyph.

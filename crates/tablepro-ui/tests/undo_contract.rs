@@ -1,7 +1,7 @@
 //! The pinned grid's plain-u undo remains scoped to a focused, nonediting grid.
+use tablepro_ui::{Surface, Tab, TableProApp, TableTab, Value};
 use termrock::{GridEditor, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{Surface, Tab, TableProApp, TableTab, Value};
 
 fn replace_currency(h: &mut Harness<TableProApp>, text: &str) {
     let Some(id) = h.app().result_id() else {

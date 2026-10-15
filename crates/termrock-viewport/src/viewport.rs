@@ -22,7 +22,6 @@ use crate::theme::PaintStyle;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -36,6 +35,7 @@ use crate::text::Span;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
+use termrock_runtime::scroll_region::ScrollRegion;
 
 /// Columns a tab expands to. A tab is a control character, so
 /// [`crate::text::width`] gives it zero columns; a terminal pane needs it to
@@ -1332,7 +1332,7 @@ impl<'a> TextViewport<'a> {
             }
             Phase::Secondary => acc.consumed(),
             Phase::Move => {}
-        
+
             // `Phase` is `#[non_exhaustive]`: unseen phases keep the viewport idle.
             _ => {}
         }

@@ -522,14 +522,16 @@ impl FormsPage {
             height: card_body.height.min(24),
             ..card_body
         };
-        let panel = Panel::new(termrock::Id::root("showcase_ui::pages::forms::forms.new_task"))
-            .kind(PanelKind::Card)
-            .title("New task")
-            .meta(if card_body.width < 70 {
-                "Ctrl+S Submit"
-            } else {
-                "Ctrl+S Submit "
-            });
+        let panel = Panel::new(termrock::Id::root(
+            "showcase_ui::pages::forms::forms.new_task",
+        ))
+        .kind(PanelKind::Card)
+        .title("New task")
+        .meta(if card_body.width < 70 {
+            "Ctrl+S Submit"
+        } else {
+            "Ctrl+S Submit "
+        });
         let panel_inner = panel.inner(ui, panel_area);
         panel.draw(ui, panel_area, |ui, inner| {
             let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);

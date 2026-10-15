@@ -4,22 +4,22 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-pub use crate::item::AsItem;
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, shift};
 use crate::action::ActionKey;
-use termrock_collections::collection::{CollectionCore, Reconcile, Reconciliation};
-use termrock_runtime::rowui::{RowFn, RowUi};
-use termrock_runtime::empty::{EmptyState, Status};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
+pub use crate::item::AsItem;
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_collections::collection::{CollectionCore, Reconcile, Reconciliation};
+use termrock_runtime::empty::{EmptyState, Status};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::scroll_region::ScrollRegion;
 
 /// Events produced by a [`FilterList`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -949,9 +949,7 @@ impl<T, R> Bindings for FilterList<'_, T, R> {
 #[cfg(test)]
 mod tests {
     use super::{FilterList, FilterListAction, FilterListState, contains_folded};
-    use termrock_runtime::Status;
     use crate::components::Acc;
-    use termrock_overlays::pickerpicker::{AsItem, Item, ItemRow};
     use crate::id::{Id, ItemKey, Part};
     use crate::response::StateFlags;
     use crate::theme::Theme;
@@ -959,6 +957,8 @@ mod tests {
     use crate::ui::{FrameState, Ui, UiCore};
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
+    use crate::item::{AsItem, Item, ItemRow};
+    use termrock_runtime::Status;
 
     const AREA: Rect = Rect::new(2, 1, 20, 4);
 

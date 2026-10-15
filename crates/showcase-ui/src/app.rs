@@ -940,12 +940,7 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
         .style
         .with_bg_from(row_background);
     let label = ui
-        .style(
-            termrock::Family::LIST,
-            Variant::DEFAULT,
-            Part::LABEL,
-            flags,
-        )
+        .style(termrock::Family::LIST, Variant::DEFAULT, Part::LABEL, flags)
         .style
         .with_bg_from(row_background);
     let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags)

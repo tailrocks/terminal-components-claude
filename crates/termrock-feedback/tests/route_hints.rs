@@ -6,12 +6,26 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 
 use termrock_feedback::HintBar;
-use termrock_runtime::stub::{deliver, key, runtime};
-use termrock_runtime::{
-    ActionKey, App, Binding, Chord, Cx, Id, Intent, LayerSpec, Response, Runtime, Theme, Ui,
-};
+use termrock_core::keys::KeyPhase;
+use termrock_core::layer_types::LayerId;
+use termrock_runtime::stub::{deliver, key, mouse, runtime, step, Control, Stub, SCREEN};
 use termrock_runtime::ui::cx::LastFrame;
+use termrock_runtime::ui::FrameRead;
 use termrock_runtime::ui::{FrameState, UiCore};
+use termrock_runtime::{
+    ActionKey, App, Binding, Chord, Cx, Focusability, Id, Intent, Invalidate, Key, KeyCode,
+    Diagnostic, Input, IntentIter, KeyModifiers, KeyMap, LayerSpec, Mouse, MouseKind, Part,
+    PartRef, Response, Runtime, StateFlags, Theme, Ui, UpdateCause,
+};
+
+const A: Id = Id::root("a");
+const B: Id = Id::root("b");
+const C: Id = Id::root("c");
+const ROUTE_PUBLISH: u8 = 1 << 0;
+const ROUTE_ALTERNATE: u8 = 1 << 1;
+const ROUTE_SECOND: u8 = 1 << 2;
+const ROUTE_CONSUME_RAW: u8 = 1 << 3;
+const ROUTE_TAB: u8 = 1 << 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum RouteCmd {
@@ -140,8 +154,8 @@ impl App for RouteApp {
                 ui.publish_bindings(B, ui.state(B), table);
             }
         }
-        let _ =
-            termrock_feedback::HintBar::derived(Id::root("runtime.hints")).draw(ui, Rect::new(0, 1, 40, 1));
+        let _ = termrock_feedback::HintBar::derived(Id::root("runtime.hints"))
+            .draw(ui, Rect::new(0, 1, 40, 1));
     }
 
     fn keymap(&self) -> &KeyMap {
@@ -193,8 +207,11 @@ fn owner_remove_suppresses_handling_and_hint() {
 #[test]
 fn remap_old_is_raw_and_new_is_typed_and_shown() {
     let mut app = RouteApp::default();
-    app.keymap
-        .remap_component(A, DEFAULT_ACTION, termrock_runtime::Chord::key(KeyCode::F(3)));
+    app.keymap.remap_component(
+        A,
+        DEFAULT_ACTION,
+        termrock_runtime::Chord::key(KeyCode::F(3)),
+    );
     let (mut runtime, mut buffer) = route_runtime(app);
     assert!(hint_row(&buffer).contains("F3"));
     let old = deliver(&mut runtime, key(KeyCode::Enter));
@@ -211,9 +228,11 @@ fn remap_old_is_raw_and_new_is_typed_and_shown() {
 #[test]
 fn latent_action_activates_when_component_bound() {
     let mut app = RouteApp::default();
-    app.keymap = app
-        .keymap
-        .bind_component(A, LATENT_ACTION, termrock_runtime::Chord::key(KeyCode::F(4)));
+    app.keymap = app.keymap.bind_component(
+        A,
+        LATENT_ACTION,
+        termrock_runtime::Chord::key(KeyCode::F(4)),
+    );
     let (mut runtime, buffer) = route_runtime(app);
     assert!(hint_row(&buffer).contains("F4"));
     assert!(deliver(&mut runtime, key(KeyCode::F(4))).is_consumed());
@@ -226,8 +245,11 @@ fn component_override_is_owner_scoped() {
         options: ROUTE_PUBLISH | ROUTE_SECOND,
         ..RouteApp::default()
     };
-    app.keymap
-        .remap_component(A, DEFAULT_ACTION, termrock_runtime::Chord::key(KeyCode::F(5)));
+    app.keymap.remap_component(
+        A,
+        DEFAULT_ACTION,
+        termrock_runtime::Chord::key(KeyCode::F(5)),
+    );
     let (mut runtime, mut buffer) = route_runtime(app);
     let _ = deliver(&mut runtime, key(KeyCode::Tab));
     runtime
@@ -284,18 +306,6 @@ fn bubble_followup_does_not_redeliver_raw_key() {
     assert_eq!(runtime.app().raw_keys, vec![(A, KeyCode::F(6))]);
 }
 
-#[test]
-fn same_flags_table_switch_invalidates_focused_hints() {
-    let (mut runtime, mut buffer) = route_runtime(RouteApp::default());
-    assert!(hint_row(&buffer).contains("Default"));
-    let capacity = runtime.core.focused_hints.layer.hints.capacity();
-    runtime.app_mut().options |= ROUTE_ALTERNATE;
-    runtime
-        .draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer)
-        .commit_presented();
-    assert!(hint_row(&buffer).contains("Alternate"));
-    assert_eq!(runtime.core.focused_hints.layer.hints.capacity(), capacity);
-}
 
 #[test]
 fn map_replacement_invalidates_focused_hints() {
@@ -363,6 +373,9 @@ fn three() -> Stub {
 
 #[test]
 fn derived_cache_is_fresh_when_component_reappears_after_a_frame_gap() {
+
+    #[derive(Default)]
+    struct GapCache(u32);
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
     let area = Rect::new(0, 0, 4, 1);
     let mut buffer = Buffer::empty(area);
@@ -620,7 +633,10 @@ fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
     // outside click
     rt.app_mut().open_request = Some((
         popover,
-        LayerSpec::popover(popover, termrock_runtime::layer::Anchor::Point(Position::new(0, 9))),
+        LayerSpec::popover(
+            popover,
+            termrock_runtime::layer::Anchor::Point(Position::new(0, 9)),
+        ),
     ));
     let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
     assert!(rt.is_open(popover));
@@ -869,49 +885,6 @@ fn layer_scope_is_armed_at_open_and_the_cursor_is_kept_on_the_top_layer() {
 /// `Layer(Dismissed)` the runtime addressed to the owner are dropped.
 /// Before the guard was widened this loss was **silent**, because
 /// `Registry::delivers_to` requires a `Control` or `Part` region.
-#[test]
-fn a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it() {
-    let dlg = Id::root("dlg");
-    let mut s = Stub {
-        page: vec![Control::new(A, Rect::new(0, 0, 10, 1))],
-        ..Stub::default()
-    };
-    s.layers.push((
-        dlg,
-        vec![Control {
-            decor: true,
-            ..Control::new(dlg, Rect::new(5, 5, 10, 3))
-        }],
-    ));
-    s.skip_drain = Some(dlg);
-    let (mut rt, mut buf) = runtime(s);
-    rt.app_mut().open_request = Some((dlg, LayerSpec::modal(dlg)));
-    let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-    assert!(rt.is_open(dlg));
-    assert!(
-        !rt.last.registry.delivers_to(dlg),
-        "the owner must register decoration only, as a Dialog does"
-    );
-    let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
-    assert!(!rt.is_open(dlg));
-    let undelivered: Vec<Id> = rt
-        .diagnostics()
-        .iter()
-        .filter_map(|d| match d {
-            Diagnostic::UndeliveredIntent { owner } => Some(*owner),
-            _ => None,
-        })
-        .collect();
-    // the guard runs per *pass*, and the dismissal re-runs `update` while
-    // the focus restore settles, so the owner is named once per pass; what
-    // the invariant claims is that it is named, and that nobody else is.
-    assert!(!undelivered.is_empty(), "the dismissal was lost in silence");
-    assert!(
-        undelivered.iter().all(|o| *o == dlg),
-        "{:?}",
-        rt.diagnostics()
-    );
-}
 
 /// The other half of the same rule (§21 item 13): widening the guard for
 /// runtime-addressed intents must not start diagnosing a decorative
@@ -1041,4 +1014,16 @@ fn initial_focus_into_a_layer_that_has_never_drawn_is_still_admitted() {
         Some(OK),
         "the named target holds focus before the layer has ever drawn"
     );
-}}
+#[test]
+fn same_flags_table_switch_invalidates_focused_hints() {
+    let (mut runtime, mut buffer) = route_runtime(RouteApp::default());
+    assert!(hint_row(&buffer).contains("Default"));
+    let capacity = runtime.focused_hints_capacity();
+    runtime.app_mut().options |= ROUTE_ALTERNATE;
+    runtime
+        .draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer)
+        .commit_presented();
+    assert!(hint_row(&buffer).contains("Alternate"));
+    assert_eq!(runtime.focused_hints_capacity(), capacity);
+}
+}

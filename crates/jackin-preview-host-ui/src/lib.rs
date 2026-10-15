@@ -6,7 +6,6 @@
 //! a selection or copy credential material out of a provider operation.
 
 #![forbid(unsafe_code)]
-
 #![expect(
     clippy::pedantic,
     reason = "fixture and rendering code favors explicit deterministic data"

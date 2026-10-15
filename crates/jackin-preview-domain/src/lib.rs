@@ -2,7 +2,6 @@
 //! sessions, accounts, Usage. Plain data; no rendering, no services.
 
 #![forbid(unsafe_code)]
-
 #![expect(
     clippy::pedantic,
     reason = "fixture and rendering code favors explicit deterministic data"

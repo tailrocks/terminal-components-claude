@@ -8,13 +8,8 @@ use core::marker::PhantomData;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
-use termrock_controls::choice::InheritedFormState;
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
-use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
-use termrock_runtime::rowui::{RowFn, RowUi};
-use termrock_runtime::empty::{EmptyState};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -25,6 +20,13 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_collections::collection::{
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
+};
+use termrock_controls::choice::InheritedFormState;
+use termrock_runtime::empty::EmptyState;
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::scroll_region::ScrollRegion;
 
 /// What a select reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -1163,13 +1165,13 @@ impl<T, K, R> Bindings for Select<'_, T, K, R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use termrock_runtime::rowui::RowUi;
     use crate::event::{Input, Key, KeyModifiers};
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::runtime::{App, Runtime};
     use crate::theme::{ColorLevel, Role, Theme};
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Position;
+    use termrock_runtime::rowui::RowUi;
 
     const SEL: Id = Id::root("select.tests");
     const OTHER: Id = Id::root("select.tests.other");

@@ -1,10 +1,10 @@
 //! Guarded exit through the real runtime and production dialog.
+use tablepro_ui::{Catalog, ColType, QueryTab, ResultSet, Surface, Tab, TableProApp, Value};
 use termrock::{
     App, Cx, Dialog, DialogState, GridEditor, Id, Input, KeyCode, KeyMap, LayerId, Response, Theme,
     Ui,
 };
 use termrock_test_support::Harness;
-use tablepro_ui::{Catalog, ColType, QueryTab, ResultSet, Surface, Tab, TableProApp, Value};
 
 fn begin_query_edit(h: &mut Harness<TableProApp>) {
     let Some(query) = h.app().query_id() else {

@@ -5,12 +5,12 @@ use core::fmt;
 use ratatui_core::layout::Rect;
 
 use crate::choice::{RadioGroup, RadioGroupState};
-use termrock_collections::collection::KeyFn;
-use termrock_runtime::rowui::RowFn;
 use crate::field_control::FieldControl;
 use crate::id::Id;
 use crate::measure::{Constraints, Size};
 use crate::ui::Ui;
+use termrock_collections::collection::KeyFn;
+use termrock_runtime::rowui::RowFn;
 
 /// A `Field` control over a fully-built [`RadioGroup`] and its items.
 ///

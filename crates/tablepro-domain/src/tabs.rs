@@ -6,10 +6,10 @@
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
 )]
 
-use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
+use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use tablepro_sql::sql::{self, PlanNode};
 use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
 

@@ -5,7 +5,6 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use termrock_feedback::keyhint::ChordText;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
 use crate::event::{Chord, KeyCode};
@@ -20,6 +19,7 @@ use crate::response::{Response, StateFlags};
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_feedback::keyhint::ChordText;
 
 /// One command row. Its optional [`Chord`] is both painted and handled; no
 /// parallel display-only shortcut string exists.

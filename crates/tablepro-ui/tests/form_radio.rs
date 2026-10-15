@@ -5,9 +5,9 @@
 //! reject the card coordinates, the `( )` off marker, the clipped description,
 //! the invisible focus gutter, the `e` binding, and `is_editing`.
 
+use tablepro_ui::{TableProApp, form_fields};
 use termrock::{GlyphRole, Id, KeyCode, Modifier, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{TableProApp, form_fields};
 
 const NAME: Id = Id::root("tablepro.connections.form.name");
 const DATABASE: Id = Id::root("tablepro.connections.form.database");

@@ -7,12 +7,12 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Modifier;
 
-use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_core::id::{Id, ItemKey, Part};
 use termrock_core::response::StateFlags;
+use termrock_layout::layout::Track;
+use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_text::width;
 use termrock_theme::{Family, StylePatch, Surface, Variant};
-use termrock_layout::layout::Track;
 
 /// Borrowed semantic data shared by picker and completion rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

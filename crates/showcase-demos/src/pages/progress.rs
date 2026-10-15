@@ -20,7 +20,8 @@ const PAUSE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.pau
 const QUEUED: Id = termrock::Id::root("showcase_ui::pages::progress::progress.queued");
 const HALFWAY: Id = termrock::Id::root("showcase_ui::pages::progress::progress.halfway");
 const QUOTA_METER: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meter.quota");
-const LATENCY_METER: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meter.latency");
+const LATENCY_METER: Id =
+    termrock::Id::root("showcase_ui::pages::progress::progress.meter.latency");
 const SYNC_METER: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meter.sync");
 
 fn restart_button() -> Button<'static> {

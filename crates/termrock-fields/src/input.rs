@@ -7,8 +7,6 @@ use ratatui_core::layout::{Position, Rect};
 
 use super::{PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::action::ActionKey;
-use termrock_runtime::rowui::CellUi;
-use termrock_runtime::Status;
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
@@ -23,6 +21,8 @@ use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
+use termrock_runtime::Status;
+use termrock_runtime::rowui::CellUi;
 
 mod text_target {
     pub(crate) trait Sealed {}

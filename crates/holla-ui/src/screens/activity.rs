@@ -1,11 +1,11 @@
 //! Retained activity output composed with the shared text viewport.
 use crate::domain::activity::{Activity, ActivityState};
 use crate::sim::world::World;
+use std::collections::BTreeMap;
 use termrock::{
     Cx, FgStep, Id, ItemKey, Modifier, Props, Rect, Response, Role, Span, StylePatch, TextViewport,
     Ui, ViewportLine, ViewportState,
 };
-use std::collections::BTreeMap;
 
 #[derive(Default)]
 pub(crate) struct Activities {

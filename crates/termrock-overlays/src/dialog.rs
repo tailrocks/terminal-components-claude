@@ -5,10 +5,6 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use termrock_controls::button::Button;
-use termrock_fields::field::Field;
-use termrock_fields::input::{TextAction, TextInput, TextInputState, redacted_text};
-use termrock_feedback::keyhint::ChordText;
 use super::{Acc, PartStyle, overlay_chrome};
 use crate::action::{Action, ActionKey};
 use crate::event::{Chord, KeyCode};
@@ -23,6 +19,10 @@ use crate::secret::{Secret, SecretPolicy};
 use crate::text::{width, wrap, wrapped_rows};
 use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_controls::button::Button;
+use termrock_feedback::keyhint::ChordText;
+use termrock_fields::field::Field;
+use termrock_fields::input::{TextAction, TextInput, TextInputState, redacted_text};
 
 /// What a dialog reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

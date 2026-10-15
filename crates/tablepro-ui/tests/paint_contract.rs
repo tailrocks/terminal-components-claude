@@ -1,7 +1,7 @@
 //! Connection actions retain readable semantic pairs at every color level.
+use tablepro_ui::{Surface, TableProApp};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
-use tablepro_ui::{Surface, TableProApp};
 
 #[test]
 fn all_connection_action_labels_keep_distinct_foreground_and_background() {

@@ -5,7 +5,10 @@
 //! SQL preview generation. The split is deliberate: the library never knows
 //! about databases, while the app never reaches into runtime internals.
 
-#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
+#![allow(
+    missing_docs,
+    reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
+)]
 
 use termrock::{
     CellDecor, CellRef, ColumnKey, EditIntent, FgStep, FieldError, GlyphRole, GridEditor,

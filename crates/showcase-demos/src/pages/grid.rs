@@ -2,7 +2,7 @@
 
 use termrock::{
     Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
-    Modifier, NavUnit, Part, Rect, Role, RowDecor, StateFlags, Surface, Ui, Variant
+    Modifier, NavUnit, Part, Rect, Role, RowDecor, StateFlags, Surface, Ui, Variant,
 };
 
 use super::{Page, PageUpdate, frame};

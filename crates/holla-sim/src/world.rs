@@ -29,7 +29,7 @@ pub enum Domain {
 }
 
 impl Domain {
-        pub const ALL: [Domain; 7] = [
+    pub const ALL: [Domain; 7] = [
         Domain::Mise,
         Domain::Git,
         Domain::Ssh,

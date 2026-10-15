@@ -2,8 +2,10 @@
 //! autocomplete, split statements, classify danger, evaluate the subset of
 //! SELECT the demo needs, and synthesize believable EXPLAIN plans.
 
-#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
-
+#![allow(
+    missing_docs,
+    reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
+)]
 #![allow(
     clippy::arithmetic_side_effects,
     clippy::indexing_slicing,

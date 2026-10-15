@@ -16,10 +16,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
-use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
-use termrock_runtime::rowui::{RowFn, RowUi};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -30,6 +27,11 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_collections::collection::{
+    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
+};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::scroll_region::ScrollRegion;
 
 /// Where one step is in its lifecycle.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1005,8 +1007,6 @@ mod tests {
 
     use super::{FrontierCache, StepState, Steps, StepsAction, StepsState};
     use crate::action::ActionKey;
-    use termrock_collections::collection::{Reconcile, Reconciliation};
-use termrock_runtime::rowui::{RowUi};
     use crate::components::Acc;
     use crate::event::{Chord, KeyCode, KeyModifiers};
     use crate::id::{Id, ItemKey, Part, PartRef};
@@ -1018,6 +1018,8 @@ use termrock_runtime::rowui::{RowUi};
     use crate::theme::{Role, Slot, StylePatch, Theme};
     use crate::ui::cx::{FrameServices, LastFrame};
     use crate::ui::{Cx, FrameState, Ui, UiCore};
+    use termrock_collections::collection::{Reconcile, Reconciliation};
+    use termrock_runtime::rowui::RowUi;
 
     const RAIL: Id = Id::root("steps.tests");
 

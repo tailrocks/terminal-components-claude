@@ -178,7 +178,8 @@ fn new_save_reservations_do_not_collide_and_external_insert_is_not_overwritten()
     second.open_preview();
     let b = second.begin_save(&mut world).unwrap();
     assert_eq!((a.workspace, b.workspace), (100, 101));
-    let external = jackin_preview_app::domain::workspace::Workspace::new(100, "external", "/external");
+    let external =
+        jackin_preview_app::domain::workspace::Workspace::new(100, "external", "/external");
     world.workspaces.push(external.clone());
     world.tick(900);
     assert!(matches!(
