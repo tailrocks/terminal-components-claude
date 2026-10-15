@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                            Workspaces › new workspace  inside the Construct  no instances [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                  ╭─[0m[1m New workspace · step 1 of 5 · Source [0m───────────────────────────────────────────╮                  [0m
+                  │  Source · Destination · Edit · Working dir · Name                                │                  [0m
+                  │                                                                                  │                  [0m
+                  │   Path                                                                           │                  [0m
+                  │   ~/src/payments-platform                                                        │                  [0m
+                  │                                                                                  │                  [0m
+                  │ [0m[1m▎  ..                                                                   parent [0m  │                  [0m
+                  │    crates/                                                             6 items   │                  [0m
+                  │    docs/                                                                   adr   │                  [0m
+                  │    scripts/                                                            3 items   │                  [0m
+                  │ [0m[2m   Cargo.toml                                                              1 h [0m  │                  [0m
+                  │ [0m[2m   README.md                                                               3 d [0m  │                  [0m
+                  │                                                                                  │                  [0m
+                  │                                                                                  │                  [0m
+                  │                                                                                  │                  [0m
+                  │                                                                                  │                  [0m
+                  │                                                                                  │                  [0m
+                  │  [ ] Mount read-only                                                             │                  [0m
+                  │                                                                                  │                  [0m
+                  │                                                                                  │                  [0m
+                  │                                                     Git URL…   Cancel   [0m[1mChoose [0m  │                  [0m
+                  ╰──────────────────────────────────────────────────────────────────────────────────╯                  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                       [0m[1m     [0m  [0m[1mEnter Open  Space[0m C[0m[1mhoose[0m  [0m[1mg[0m Git U[0m[1mR[0mL  [0m[1mTab[0m Nex[0m[1mt  Esc[0m Can[0m[1mcel[0m                                 [0m

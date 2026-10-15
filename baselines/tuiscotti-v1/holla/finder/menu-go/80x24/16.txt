@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  holla · Rust project  mbp · local
+                  ╭───────────────────────────╮
+  Here            │  Here               Alt+0 │
+ ━━━━━━━──────────│  Activities…       Ctrl+G │────────────────────────────────
+ ▎ Search actions │ ───────────────────────── │                 scope ‹ here ›
+                  │  Parent scope      Ctrl+↑ │
+    Suggested here│  Children scope    Ctrl+↓ │
+  › Inspect 12 GB │  System scope             │ 12 GB generated artifacts
+    Pull          │ ───────────────────────── │ branch is 3 commits behind
+    Review 5 modif│  Tasks                    │ 4 modified · 1 untracked
+    Run tests     │  Git                      │ 5 files changed since the las…
+    Who is blockin│  Files                    │ 2 sessions blocked for 4 min
+                  │  Disk                     │
+    Recent here   │  Services                 │
+    nothing used h│  System                   │
+                  ╰───────────────────────────╯
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp                explore   host  available on this host
+
+    → 'holla disk analyze --artifacts' · here · read-only
+
+ ~/work/holla   main   ↓3 • 5                                 16 colors · 80×24
+                  ← → Menu  ↑↓ Move  Enter Choose  Esc Close

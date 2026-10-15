@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "519451969b94ad703a25d8e2ca3c86ef52c0d0a99e7edf36e6040a7505a1452b",
+  "artifacts": {
+    "ansi": {
+      "bytes": 11126,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.ansi",
+      "sha256": "519451969b94ad703a25d8e2ca3c86ef52c0d0a99e7edf36e6040a7505a1452b"
+    },
+    "ascii": {
+      "bytes": 3178,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.ascii",
+      "sha256": "83712a7a91608cecec15e8ab43ba0cd3016a170978ea140faadf4b57c1c8db8c"
+    },
+    "ascii_loss_json": {
+      "bytes": 19074,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.ascii.loss.json",
+      "sha256": "5153f4506aa14181ca955dcf366d7651607c7f715412ebf72c2cf960214ac746"
+    },
+    "frame_json": {
+      "bytes": 1117175,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.frame.json",
+      "sha256": "05d5fbaa1b22521199ce321158519e546bb236e99d42d08ab597b65a7fee71bd"
+    },
+    "html": {
+      "bytes": 703937,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.html",
+      "sha256": "9cfc41c678af3bba8c8c40826615406e774081d0c42d8059f8c4a334fc74b93a"
+    },
+    "observations_json": {
+      "bytes": 469,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.observations.json",
+      "sha256": "7521e82f00cc4dcaa4512cc4450bcd095dbc6bae13ed58cb91661168bdec0104"
+    },
+    "png": {
+      "bytes": 506871,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.png",
+      "sha256": "f54a2d9ae16ab73c4d7609aedb630c1f22206c87f85ba9d7b5f23965b4dd9592"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3578,
+      "file": "holla/finder/fade-cleanup-list-wheel/120x40/16.txt",
+      "sha256": "dff49d0e61a7dce6d1ee0fd8ab4a4ed9b231724eb6fa5d2471153065145754de"
+    }
+  },
+  "ascii_substitutions_count": 206,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 11562695169872007036,
+  "frame_sha256": "05d5fbaa1b22521199ce321158519e546bb236e99d42d08ab597b65a7fee71bd",
+  "generation": "c88d18f7a22337ed807c8a2b7831576a1cfb8c2a3c50d5731c47a4247aca33ac",
+  "html_sha256": "9cfc41c678af3bba8c8c40826615406e774081d0c42d8059f8c4a334fc74b93a",
+  "legacy_name": "holla/fade/cleanup_list_wheel/120x40/16",
+  "name": "holla/finder/fade-cleanup-list-wheel/120x40/16",
+  "png_sha256": "f54a2d9ae16ab73c4d7609aedb630c1f22206c87f85ba9d7b5f23965b4dd9592",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:13Z",
+  "txt_sha256": "dff49d0e61a7dce6d1ee0fd8ab4a4ed9b231724eb6fa5d2471153065145754de"
+}

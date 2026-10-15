@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "54e27fbafbcd9fb46f3f9e6970a23a2dd69021c94cf3f1dcca58512633298f36",
+  "artifacts": {
+    "ansi": {
+      "bytes": 10665,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.ansi",
+      "sha256": "54e27fbafbcd9fb46f3f9e6970a23a2dd69021c94cf3f1dcca58512633298f36"
+    },
+    "ascii": {
+      "bytes": 2646,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.ascii",
+      "sha256": "fe27454d40fa612f674fe4a1ff5ed5d93eed8b8d5ff86d04091cebcf7d50bb40"
+    },
+    "ascii_loss_json": {
+      "bytes": 13804,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.ascii.loss.json",
+      "sha256": "cf1dc54b629787c9578590d077c653777715d2c8e2b1ccc45707c402849b3acd"
+    },
+    "frame_json": {
+      "bytes": 1128720,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.frame.json",
+      "sha256": "2666a7ec3815009c5d5d7f19bb6a3b3d2d8e2ae494df19faca9ad72626cfd982"
+    },
+    "html": {
+      "bytes": 589230,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.html",
+      "sha256": "03bfafea6a7303ba493804d8211b18efc07eecb3da01728ae1731ae8768fce69"
+    },
+    "observations_json": {
+      "bytes": 471,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.observations.json",
+      "sha256": "5910de2f4f42212a98c9f5664c9f5519e9efdb79f70bc8eee10536cd6fb4a434"
+    },
+    "png": {
+      "bytes": 419648,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.png",
+      "sha256": "77017820db84021a72253ef5d9b2121bba717d7e4955a7a097f4259cde8e8de0"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2930,
+      "file": "holla/finder/resize-rust-dirty-shrunk/120x40/256.txt",
+      "sha256": "e558ea1c7b72684618cf7accd4fd7050363e9ed7c6ccda85714421e0d204b0b9"
+    }
+  },
+  "ascii_substitutions_count": 149,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 7438429017653137775,
+  "frame_sha256": "2666a7ec3815009c5d5d7f19bb6a3b3d2d8e2ae494df19faca9ad72626cfd982",
+  "generation": "13ef910b35df726f72fe81b8f9324cc61885a9e17cd98080e3b383eebccc4b40",
+  "html_sha256": "03bfafea6a7303ba493804d8211b18efc07eecb3da01728ae1731ae8768fce69",
+  "legacy_name": "holla/resize/rust-dirty_shrunk/120x40/256",
+  "name": "holla/finder/resize-rust-dirty-shrunk/120x40/256",
+  "png_sha256": "77017820db84021a72253ef5d9b2121bba717d7e4955a7a097f4259cde8e8de0",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:17Z",
+  "txt_sha256": "e558ea1c7b72684618cf7accd4fd7050363e9ed7c6ccda85714421e0d204b0b9"
+}

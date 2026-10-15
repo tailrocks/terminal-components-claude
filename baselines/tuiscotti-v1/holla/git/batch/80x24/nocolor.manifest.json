@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "c1e9bb7d6fbd4ba20a4298ba5b15daa9ee9d5b6a16b893380d6d48f8f36d4edb",
+  "artifacts": {
+    "ansi": {
+      "bytes": 2653,
+      "file": "holla/git/batch/80x24/nocolor.ansi",
+      "sha256": "c1e9bb7d6fbd4ba20a4298ba5b15daa9ee9d5b6a16b893380d6d48f8f36d4edb"
+    },
+    "ascii": {
+      "bytes": 1625,
+      "file": "holla/git/batch/80x24/nocolor.ascii",
+      "sha256": "95771bb5b75e888435a30d5853145588369123c260ddc0e12ad02e3310dc2ca3"
+    },
+    "ascii_loss_json": {
+      "bytes": 24051,
+      "file": "holla/git/batch/80x24/nocolor.ascii.loss.json",
+      "sha256": "947179847a580f9644e5dada75337b3f79491232dda8cf264711c44f243de58e"
+    },
+    "frame_json": {
+      "bytes": 429714,
+      "file": "holla/git/batch/80x24/nocolor.frame.json",
+      "sha256": "18f576bf185c767c249e4fa5da048353b7ea4af9fd477b20ca83e4aaf2b83063"
+    },
+    "html": {
+      "bytes": 313323,
+      "file": "holla/git/batch/80x24/nocolor.html",
+      "sha256": "276897e7a0077d727764fede4f8584986e71a2fa701cdbc64592017403ce3ba4"
+    },
+    "observations_json": {
+      "bytes": 446,
+      "file": "holla/git/batch/80x24/nocolor.observations.json",
+      "sha256": "e6118bb419b7e344f4d2ed4f313a3925fe0b57829062c21644137c3fb65705d0"
+    },
+    "png": {
+      "bytes": 228682,
+      "file": "holla/git/batch/80x24/nocolor.png",
+      "sha256": "436622639afb33aeb498c910ad28bc3f0264b034b71743e62c12f26c4f383712"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/git/batch/80x24/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2130,
+      "file": "holla/git/batch/80x24/nocolor.txt",
+      "sha256": "0d05eccbede4bf1a7d4a833d49ee808da7b71b6566275f95a5207cc211fa3b47"
+    }
+  },
+  "ascii_substitutions_count": 260,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 14095145140078659447,
+  "frame_sha256": "18f576bf185c767c249e4fa5da048353b7ea4af9fd477b20ca83e4aaf2b83063",
+  "generation": "7a99322978d9298eac4acf98215b415336973ddc5efb77a40d11452726c775f8",
+  "html_sha256": "276897e7a0077d727764fede4f8584986e71a2fa701cdbc64592017403ce3ba4",
+  "legacy_name": "holla/flows/git/batch/80x24/nocolor",
+  "name": "holla/git/batch/80x24/nocolor",
+  "png_sha256": "436622639afb33aeb498c910ad28bc3f0264b034b71743e62c12f26c4f383712",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:13Z",
+  "txt_sha256": "0d05eccbede4bf1a7d4a833d49ee808da7b71b6566275f95a5207cc211fa3b47"
+}

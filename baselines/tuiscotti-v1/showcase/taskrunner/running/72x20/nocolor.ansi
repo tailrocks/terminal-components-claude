@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Task runner    i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Tables         [0m│  [0m[1mTask runner[0m  Composed: tree, live progress, follo… [0m
+   Editable tabl… │                                                     [0m
+   Panels         │    Targets                                          [0m
+   Sidebars       │                                                     [0m
+   Dialogs        │     ▾ payments-gateway                           ┃  [0m
+   Progress       ┃       ▾ build                                    │  [0m
+   Scrolling      ┃           compile                                │  [0m
+   Terminal       ┃    [0m[2m       lint                                   [0m│  [0m
+   Code editor    ┃                                                     [0m
+   Diff           ┃    Pipeline · running                  0 of 6 done  [0m
+   Data grid      ┃                                                     [0m
+   Chips & selec… ┃    compile       queued                             [0m
+   Pickers        ┃    lint          queued                             [0m
+   Chrome         ┃    Overall     ───────────────────────────────────  [0m
+   Settings       ┃     [0m[2mRun pipeline [0mqu Cancel                          [0m
+[0m[1m▎› Task runner    [0m┃                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit           Pipeline running [0m

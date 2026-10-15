@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                          holla · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Arguments  [0m                                                                                                    [0m
+ ━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mFind the process on a port… · arguments[0m                                                                               [0m
+  field name, expected value, default and validation · secrets stay masked                                              [0m
+                                                                                                                        [0m
+   [0m[1mport *                                                [0m                                                               [0m
+ ▎ 5173                                                                                                                 [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+   Command                                                                                                              [0m
+                                                                                                                        [0m
+   lsof -nP '-iTCP:5173' -sTCP:LISTEN                                                                                   [0m
+                                                                                                                        [0m
+                                                                                                        Cancel    [0m[1mRun [0m  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/holla[0m   main   ↓3 • 5                                                                         no color · 120×40 [0m
+                                     [0m[1mEnter[0m Edit  [0m[1mTab[0m Next  [0m[1mCtrl+S[0m Run  [0m[1mEsc[0m Cancel                                       [0m

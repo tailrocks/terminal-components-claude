@@ -1,0 +1,24 @@
+  holla?    File   Go   Help                  holla . Rust project  mbp . local
+  +--------------------------------------------------------------------------+
+  |                                                                          |
+ ?|  Key reference                                                     Here  |-
+  |                                                                          |
+  |  Finder                                                               ?  |
+  |  Type             search actions and resources together . @parent     ?  |
+  |                   @children @system @all narrow the scope             ?  |
+  |  ^v               move . PgUp PgDn Home End                           ?  |
+  |  Enter            primary action . destructive rows open a review     ?  |
+  |                   instead                                             ?  |
+  |  Alt+Enter        alternatives . run, copy, insert, arguments, pin,   ?  |
+  |                   alias, hide, why                                    |  |
+  |  Tab              preview ? tab strip ? finder                        |  |
+  |  Ctrl+^ / Ctrl+v  scope outward (parent, system) / inward (children)  |  |
+  |  Esc              clear query ? scope back to here ? back a page ? qu.|  |
+  |  Aliases          gp pull . du disk usage . test the test task here ..|  |
+  |                   then u . dc docker cleanup                          |  |
+  |                                                                       |  |
+  |  Pages                                                                |  |
+  |                                                                          |
+  +--------------------------------------------------------------------------+
+ ~/work/holla   main   v3 ? 5                                256 colors . 80x24
+                             ^v Scroll  Esc Close

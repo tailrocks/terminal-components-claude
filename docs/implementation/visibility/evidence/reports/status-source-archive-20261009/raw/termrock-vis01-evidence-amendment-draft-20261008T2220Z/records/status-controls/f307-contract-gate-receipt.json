@@ -1,0 +1,1564 @@
+{
+  "schema": "termrock-e2e/affected-holla-f307-rust-gate-result-v1",
+  "status": "PASS",
+  "run_root": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1",
+  "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+  "expected_stages": [
+    "list-holla",
+    "list-shared",
+    "contract"
+  ],
+  "completed_stages": [
+    "list-holla",
+    "list-shared",
+    "contract"
+  ],
+  "start_utc": "2026-10-08T21:45:49.897Z",
+  "end_utc": "2026-10-08T21:46:01.724Z",
+  "group_elapsed_ms": 11827,
+  "group_deadline_ms": 1200000,
+  "source_review": {
+    "path": "/private/tmp/termrock-vis02-holla-compat-20261009/technical-review.json",
+    "sha256": "7d21bba49d9881047cc36df0adfe1fe6b31793b9c8e14cd14542acc4619a9acc",
+    "verdict": "READY",
+    "patch_path": "/private/tmp/termrock-vis02-holla-compat-20261009/holla-compat.patch",
+    "patch_sha256": "d1001f52aea34ea0d082703855b1dfb373d8634acdd48613bc0a9e7c69c6c397"
+  },
+  "cache": {
+    "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+    "receipt_path": "/private/tmp/termrock-rust-tool-test-execution/holla-cache-copy-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/cache-copy-postflight.json",
+    "receipt_sha256": "5fcf5b7874094e5f23f36a1a5fc0418817aa7d8eb3dd278b8ea2b1b9f12d2d0c",
+    "receipt_status": "PREPARED_ONLY_NO_CARGO_OR_BUILD",
+    "registry_manifest_sha256": "e2b3a1050ca7e5c3a63e3359d9768134166fcd385c94458e21d558f4451cf973",
+    "git_manifest_sha256": "80b95487c0187284d8a91dd46fe2b7ef4c9e29efe4d85ca5932adc902a67bbb5",
+    "checked_registry_entries": 100595,
+    "checked_git_entries": 2323,
+    "cargo_config_credentials_absent_paths": [
+      "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config",
+      "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config.toml",
+      "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/credentials",
+      "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/credentials.toml",
+      "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config/credentials",
+      "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/config/credentials.toml",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e/.cargo/config",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e/.cargo/config.toml",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/.cargo/config",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/.cargo/config.toml",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/.cargo/config",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/.cargo/config.toml",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/.cargo/config",
+      "/private/tmp/termrock-vis02-holla-compat-20261009/.cargo/config.toml",
+      "/private/tmp/.cargo/config",
+      "/private/tmp/.cargo/config.toml",
+      "/private/.cargo/config",
+      "/private/.cargo/config.toml",
+      "/.cargo/config",
+      "/.cargo/config.toml"
+    ],
+    "cache_source_caveat": "the accepted copy receipt states that the prior source cache was not rehashed; destination registry/git copies were verified against the recorded manifests"
+  },
+  "target_cache_reuse": {
+    "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target",
+    "prior_reviewed_identity": {
+      "receipt_path": "/private/tmp/termrock-4app-run03-controls-86ed82-20261009-attempt-r3-1/final-receipt.json",
+      "receipt_sha256": "ddbae1bed01a170548aba53c4d49c1ecab8f8846c04b3c234e3857925f772fde",
+      "review_path": "/private/tmp/termrock-4app-run03-controls-86ed82-20261009-actual-evidence-review.json",
+      "review_sha256": "2b761974db3f1dd20444cf61cd2bdc013440a59e785c37594120611b5050e043",
+      "suite_sha256": "86ed825275221ad002a6098fbe20f96e7b84071a128c71b8430709d9ec57e0a3",
+      "run_id": "60cbdfc3-d6f8-409d-bced-927f0e3d713e",
+      "target_cache_compiled_identity": {
+        "expected_suite_sha256": "86ed825275221ad002a6098fbe20f96e7b84071a128c71b8430709d9ec57e0a3",
+        "build_script_outputs": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/build/termrock-e2e-782e392adc52a292/output",
+            "sha256": "84d817a80d774e50480c4ec4197a1bfc1ea1f4171d818b4294d26602c39c4526",
+            "suite_sha256": "86ed825275221ad002a6098fbe20f96e7b84071a128c71b8430709d9ec57e0a3"
+          }
+        ],
+        "compiled_library_artifacts": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/libtermrock_e2e-414fb51c3d5b79bf.rlib",
+            "sha256": "ce7f0208aad9e8b3f0b3d2ce4d90617e1b101ba6fb3301975940265b7268da5e",
+            "bytes": 24097008,
+            "embeds_expected_suite_sha256": true
+          }
+        ]
+      }
+    }
+  },
+  "source_final": {
+    "label": "final",
+    "at_utc": "2026-10-08T21:46:01.724Z",
+    "package_root": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+    "file_count": 21,
+    "files": [
+      {
+        "path": "Cargo.lock",
+        "bytes": 50065,
+        "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+        "mode": 420
+      },
+      {
+        "path": "Cargo.toml",
+        "bytes": 668,
+        "sha256": "ab0bcd4123f16ebf235fe3fbe6a612b0ae5e4828022d50b64cdf70b419d8ef94",
+        "mode": 420
+      },
+      {
+        "path": "README.md",
+        "bytes": 11024,
+        "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785",
+        "mode": 420
+      },
+      {
+        "path": "build.rs",
+        "bytes": 2198,
+        "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+        "mode": 420
+      },
+      {
+        "path": "cases/deferred-obligations.json",
+        "bytes": 3675,
+        "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+        "mode": 420
+      },
+      {
+        "path": "cases/registry.json",
+        "bytes": 13602,
+        "sha256": "aa8181fae93b4606ce927c7507386d0145b86a770167dd37429fa732defa186a",
+        "mode": 420
+      },
+      {
+        "path": "profile.json",
+        "bytes": 1043,
+        "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+        "mode": 420
+      },
+      {
+        "path": "schemas/expected-generation-v1.schema.json",
+        "bytes": 17088,
+        "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+        "mode": 420
+      },
+      {
+        "path": "schemas/receipt-v1.schema.json",
+        "bytes": 11270,
+        "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb",
+        "mode": 420
+      },
+      {
+        "path": "schemas/receipt-v2.schema.json",
+        "bytes": 22643,
+        "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f",
+        "mode": 420
+      },
+      {
+        "path": "schemas/receipt-v3.schema.json",
+        "bytes": 37672,
+        "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8",
+        "mode": 420
+      },
+      {
+        "path": "schemas/subject-manifest-v1.schema.json",
+        "bytes": 6026,
+        "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+        "mode": 420
+      },
+      {
+        "path": "schemas/subject-manifest-v2.schema.json",
+        "bytes": 9807,
+        "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+        "mode": 420
+      },
+      {
+        "path": "schemas/trust-record-v1.schema.json",
+        "bytes": 2535,
+        "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+        "mode": 420
+      },
+      {
+        "path": "schemas/trust-record-v2.schema.json",
+        "bytes": 4418,
+        "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+        "mode": 420
+      },
+      {
+        "path": "src/lib.rs",
+        "bytes": 324083,
+        "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a",
+        "mode": 420
+      },
+      {
+        "path": "src/visual.rs",
+        "bytes": 60248,
+        "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835",
+        "mode": 420
+      },
+      {
+        "path": "tests/command_lane.rs",
+        "bytes": 117658,
+        "sha256": "c32868f832937c8735462f4b155385ba283f2584f7fdcbb8ff6416289ca6ef1b",
+        "mode": 420
+      },
+      {
+        "path": "tests/contract.rs",
+        "bytes": 38104,
+        "sha256": "2780702faaf76021b0604a6f9a9820fa882a6537cfba8df6fd07a1a20908d51f",
+        "mode": 420
+      },
+      {
+        "path": "tests/holla_help_overlay.rs",
+        "bytes": 1729,
+        "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+        "mode": 420
+      },
+      {
+        "path": "tests/shared_journeys.rs",
+        "bytes": 1529,
+        "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+        "mode": 420
+      }
+    ],
+    "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+  },
+  "test_results": [
+    {
+      "stage": "list-holla",
+      "action": "list",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "list",
+        "--manifest-path",
+        "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e/Cargo.toml",
+        "--test",
+        "holla_help_overlay",
+        "--locked",
+        "--offline",
+        "--profile",
+        "default",
+        "--build-jobs",
+        "2",
+        "--user-config-file",
+        "none",
+        "--run-ignored",
+        "all"
+      ],
+      "cwd": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+      "start_utc": "2026-10-08T21:45:50.366Z",
+      "end_utc": "2026-10-08T21:45:57.464Z",
+      "elapsed_ms": 7098,
+      "group_timeout_ms": 1200000,
+      "timed_out": false,
+      "exit_code": 0,
+      "signal": null,
+      "spawn_error": null,
+      "nextest_run_id": null,
+      "source_before": {
+        "label": "list-holla-before",
+        "at_utc": "2026-10-08T21:45:50.140Z",
+        "package_root": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+        "file_count": 21,
+        "files": [
+          {
+            "path": "Cargo.lock",
+            "bytes": 50065,
+            "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+            "mode": 420
+          },
+          {
+            "path": "Cargo.toml",
+            "bytes": 668,
+            "sha256": "ab0bcd4123f16ebf235fe3fbe6a612b0ae5e4828022d50b64cdf70b419d8ef94",
+            "mode": 420
+          },
+          {
+            "path": "README.md",
+            "bytes": 11024,
+            "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785",
+            "mode": 420
+          },
+          {
+            "path": "build.rs",
+            "bytes": 2198,
+            "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+            "mode": 420
+          },
+          {
+            "path": "cases/deferred-obligations.json",
+            "bytes": 3675,
+            "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+            "mode": 420
+          },
+          {
+            "path": "cases/registry.json",
+            "bytes": 13602,
+            "sha256": "aa8181fae93b4606ce927c7507386d0145b86a770167dd37429fa732defa186a",
+            "mode": 420
+          },
+          {
+            "path": "profile.json",
+            "bytes": 1043,
+            "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+            "mode": 420
+          },
+          {
+            "path": "schemas/expected-generation-v1.schema.json",
+            "bytes": 17088,
+            "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v1.schema.json",
+            "bytes": 11270,
+            "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v2.schema.json",
+            "bytes": 22643,
+            "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v3.schema.json",
+            "bytes": 37672,
+            "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v1.schema.json",
+            "bytes": 6026,
+            "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v2.schema.json",
+            "bytes": 9807,
+            "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v1.schema.json",
+            "bytes": 2535,
+            "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v2.schema.json",
+            "bytes": 4418,
+            "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+            "mode": 420
+          },
+          {
+            "path": "src/lib.rs",
+            "bytes": 324083,
+            "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a",
+            "mode": 420
+          },
+          {
+            "path": "src/visual.rs",
+            "bytes": 60248,
+            "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835",
+            "mode": 420
+          },
+          {
+            "path": "tests/command_lane.rs",
+            "bytes": 117658,
+            "sha256": "c32868f832937c8735462f4b155385ba283f2584f7fdcbb8ff6416289ca6ef1b",
+            "mode": 420
+          },
+          {
+            "path": "tests/contract.rs",
+            "bytes": 38104,
+            "sha256": "2780702faaf76021b0604a6f9a9820fa882a6537cfba8df6fd07a1a20908d51f",
+            "mode": 420
+          },
+          {
+            "path": "tests/holla_help_overlay.rs",
+            "bytes": 1729,
+            "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+            "mode": 420
+          },
+          {
+            "path": "tests/shared_journeys.rs",
+            "bytes": 1529,
+            "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+            "mode": 420
+          }
+        ],
+        "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+      },
+      "source_after": {
+        "label": "list-holla-after",
+        "at_utc": "2026-10-08T21:45:57.226Z",
+        "package_root": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+        "file_count": 21,
+        "files": [
+          {
+            "path": "Cargo.lock",
+            "bytes": 50065,
+            "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+            "mode": 420
+          },
+          {
+            "path": "Cargo.toml",
+            "bytes": 668,
+            "sha256": "ab0bcd4123f16ebf235fe3fbe6a612b0ae5e4828022d50b64cdf70b419d8ef94",
+            "mode": 420
+          },
+          {
+            "path": "README.md",
+            "bytes": 11024,
+            "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785",
+            "mode": 420
+          },
+          {
+            "path": "build.rs",
+            "bytes": 2198,
+            "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+            "mode": 420
+          },
+          {
+            "path": "cases/deferred-obligations.json",
+            "bytes": 3675,
+            "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+            "mode": 420
+          },
+          {
+            "path": "cases/registry.json",
+            "bytes": 13602,
+            "sha256": "aa8181fae93b4606ce927c7507386d0145b86a770167dd37429fa732defa186a",
+            "mode": 420
+          },
+          {
+            "path": "profile.json",
+            "bytes": 1043,
+            "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+            "mode": 420
+          },
+          {
+            "path": "schemas/expected-generation-v1.schema.json",
+            "bytes": 17088,
+            "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v1.schema.json",
+            "bytes": 11270,
+            "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v2.schema.json",
+            "bytes": 22643,
+            "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v3.schema.json",
+            "bytes": 37672,
+            "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v1.schema.json",
+            "bytes": 6026,
+            "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v2.schema.json",
+            "bytes": 9807,
+            "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v1.schema.json",
+            "bytes": 2535,
+            "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v2.schema.json",
+            "bytes": 4418,
+            "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+            "mode": 420
+          },
+          {
+            "path": "src/lib.rs",
+            "bytes": 324083,
+            "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a",
+            "mode": 420
+          },
+          {
+            "path": "src/visual.rs",
+            "bytes": 60248,
+            "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835",
+            "mode": 420
+          },
+          {
+            "path": "tests/command_lane.rs",
+            "bytes": 117658,
+            "sha256": "c32868f832937c8735462f4b155385ba283f2584f7fdcbb8ff6416289ca6ef1b",
+            "mode": 420
+          },
+          {
+            "path": "tests/contract.rs",
+            "bytes": 38104,
+            "sha256": "2780702faaf76021b0604a6f9a9820fa882a6537cfba8df6fd07a1a20908d51f",
+            "mode": 420
+          },
+          {
+            "path": "tests/holla_help_overlay.rs",
+            "bytes": 1729,
+            "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+            "mode": 420
+          },
+          {
+            "path": "tests/shared_journeys.rs",
+            "bytes": 1529,
+            "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+            "mode": 420
+          }
+        ],
+        "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+      },
+      "source_unchanged": true,
+      "tools_before": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 12
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 29
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 31
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "version": "v24.20.0",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 21
+        },
+        "cargo_nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 8
+        }
+      },
+      "tools_after": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 11
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 28
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 30
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "version": "v24.20.0",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 23
+        },
+        "cargo_nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 7
+        }
+      },
+      "test_binaries_before": {},
+      "test_binaries_after": {
+        "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/holla_help_overlay-d77b0733247ab4fb": {
+          "sha256": "75f3af85207be2175a7217ee3db1c751c688bdf2f484a3713dc2012398e8f717",
+          "bytes": 34466624,
+          "mode": 493,
+          "mtime_ms": 1791495956601.7207
+        }
+      },
+      "outputs": {
+        "stdout": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/list-holla.stdout.raw",
+          "sha256": "ca86b41f95b76634a452cbbd1bb701cd16fad01372c282829dc3c8155cc0fd11"
+        },
+        "stderr": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/list-holla.stderr.raw",
+          "sha256": "7419dd2e70c9d5274c126aa7bc1b49a943f3ad357324629b4810eaafa88dd15d"
+        },
+        "events": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/list-holla.events.jsonl",
+          "sha256": "65db30e6de4eae0d96ad5990245640684cdf2c4eededc0c0692579e9355b9075"
+        }
+      },
+      "summary_lines": [],
+      "compiled_suite_identity": {
+        "expected_suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+        "build_script_outputs": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/build/termrock-e2e-782e392adc52a292/output",
+            "sha256": "d78263f6e55c236f13f899303fe9d2d3a992e38d169f04e8c1ec8212c7c2ac33",
+            "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+          }
+        ],
+        "compiled_library_artifacts": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/libtermrock_e2e-414fb51c3d5b79bf.rlib",
+            "sha256": "57522f30f4b1143a25461d198cb46b603725eadf799992f10f24b327a221c5d9",
+            "bytes": 24094064,
+            "embeds_expected_suite_sha256": true
+          }
+        ]
+      },
+      "compiled_suite_identity_error": null,
+      "listed_target": "holla_help_overlay",
+      "expected_test_names": [
+        "holla_help_overlay",
+        "holla_write_policy_preflight"
+      ],
+      "expected_test_names_present": [
+        {
+          "name": "holla_help_overlay",
+          "present": true
+        },
+        {
+          "name": "holla_write_policy_preflight",
+          "present": true
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "stage": "list-shared",
+      "action": "list",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "list",
+        "--manifest-path",
+        "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e/Cargo.toml",
+        "--test",
+        "shared_journeys",
+        "--locked",
+        "--offline",
+        "--profile",
+        "default",
+        "--build-jobs",
+        "2",
+        "--user-config-file",
+        "none",
+        "--run-ignored",
+        "all"
+      ],
+      "cwd": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+      "start_utc": "2026-10-08T21:45:57.704Z",
+      "end_utc": "2026-10-08T21:45:59.185Z",
+      "elapsed_ms": 1481,
+      "group_timeout_ms": 1200000,
+      "timed_out": false,
+      "exit_code": 0,
+      "signal": null,
+      "spawn_error": null,
+      "nextest_run_id": null,
+      "source_before": {
+        "label": "list-shared-before",
+        "at_utc": "2026-10-08T21:45:57.483Z",
+        "package_root": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+        "file_count": 21,
+        "files": [
+          {
+            "path": "Cargo.lock",
+            "bytes": 50065,
+            "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+            "mode": 420
+          },
+          {
+            "path": "Cargo.toml",
+            "bytes": 668,
+            "sha256": "ab0bcd4123f16ebf235fe3fbe6a612b0ae5e4828022d50b64cdf70b419d8ef94",
+            "mode": 420
+          },
+          {
+            "path": "README.md",
+            "bytes": 11024,
+            "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785",
+            "mode": 420
+          },
+          {
+            "path": "build.rs",
+            "bytes": 2198,
+            "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+            "mode": 420
+          },
+          {
+            "path": "cases/deferred-obligations.json",
+            "bytes": 3675,
+            "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+            "mode": 420
+          },
+          {
+            "path": "cases/registry.json",
+            "bytes": 13602,
+            "sha256": "aa8181fae93b4606ce927c7507386d0145b86a770167dd37429fa732defa186a",
+            "mode": 420
+          },
+          {
+            "path": "profile.json",
+            "bytes": 1043,
+            "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+            "mode": 420
+          },
+          {
+            "path": "schemas/expected-generation-v1.schema.json",
+            "bytes": 17088,
+            "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v1.schema.json",
+            "bytes": 11270,
+            "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v2.schema.json",
+            "bytes": 22643,
+            "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v3.schema.json",
+            "bytes": 37672,
+            "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v1.schema.json",
+            "bytes": 6026,
+            "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v2.schema.json",
+            "bytes": 9807,
+            "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v1.schema.json",
+            "bytes": 2535,
+            "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v2.schema.json",
+            "bytes": 4418,
+            "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+            "mode": 420
+          },
+          {
+            "path": "src/lib.rs",
+            "bytes": 324083,
+            "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a",
+            "mode": 420
+          },
+          {
+            "path": "src/visual.rs",
+            "bytes": 60248,
+            "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835",
+            "mode": 420
+          },
+          {
+            "path": "tests/command_lane.rs",
+            "bytes": 117658,
+            "sha256": "c32868f832937c8735462f4b155385ba283f2584f7fdcbb8ff6416289ca6ef1b",
+            "mode": 420
+          },
+          {
+            "path": "tests/contract.rs",
+            "bytes": 38104,
+            "sha256": "2780702faaf76021b0604a6f9a9820fa882a6537cfba8df6fd07a1a20908d51f",
+            "mode": 420
+          },
+          {
+            "path": "tests/holla_help_overlay.rs",
+            "bytes": 1729,
+            "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+            "mode": 420
+          },
+          {
+            "path": "tests/shared_journeys.rs",
+            "bytes": 1529,
+            "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+            "mode": 420
+          }
+        ],
+        "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+      },
+      "source_after": {
+        "label": "list-shared-after",
+        "at_utc": "2026-10-08T21:45:58.943Z",
+        "package_root": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+        "file_count": 21,
+        "files": [
+          {
+            "path": "Cargo.lock",
+            "bytes": 50065,
+            "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+            "mode": 420
+          },
+          {
+            "path": "Cargo.toml",
+            "bytes": 668,
+            "sha256": "ab0bcd4123f16ebf235fe3fbe6a612b0ae5e4828022d50b64cdf70b419d8ef94",
+            "mode": 420
+          },
+          {
+            "path": "README.md",
+            "bytes": 11024,
+            "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785",
+            "mode": 420
+          },
+          {
+            "path": "build.rs",
+            "bytes": 2198,
+            "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+            "mode": 420
+          },
+          {
+            "path": "cases/deferred-obligations.json",
+            "bytes": 3675,
+            "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+            "mode": 420
+          },
+          {
+            "path": "cases/registry.json",
+            "bytes": 13602,
+            "sha256": "aa8181fae93b4606ce927c7507386d0145b86a770167dd37429fa732defa186a",
+            "mode": 420
+          },
+          {
+            "path": "profile.json",
+            "bytes": 1043,
+            "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+            "mode": 420
+          },
+          {
+            "path": "schemas/expected-generation-v1.schema.json",
+            "bytes": 17088,
+            "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v1.schema.json",
+            "bytes": 11270,
+            "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v2.schema.json",
+            "bytes": 22643,
+            "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v3.schema.json",
+            "bytes": 37672,
+            "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v1.schema.json",
+            "bytes": 6026,
+            "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v2.schema.json",
+            "bytes": 9807,
+            "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v1.schema.json",
+            "bytes": 2535,
+            "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v2.schema.json",
+            "bytes": 4418,
+            "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+            "mode": 420
+          },
+          {
+            "path": "src/lib.rs",
+            "bytes": 324083,
+            "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a",
+            "mode": 420
+          },
+          {
+            "path": "src/visual.rs",
+            "bytes": 60248,
+            "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835",
+            "mode": 420
+          },
+          {
+            "path": "tests/command_lane.rs",
+            "bytes": 117658,
+            "sha256": "c32868f832937c8735462f4b155385ba283f2584f7fdcbb8ff6416289ca6ef1b",
+            "mode": 420
+          },
+          {
+            "path": "tests/contract.rs",
+            "bytes": 38104,
+            "sha256": "2780702faaf76021b0604a6f9a9820fa882a6537cfba8df6fd07a1a20908d51f",
+            "mode": 420
+          },
+          {
+            "path": "tests/holla_help_overlay.rs",
+            "bytes": 1729,
+            "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+            "mode": 420
+          },
+          {
+            "path": "tests/shared_journeys.rs",
+            "bytes": 1529,
+            "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+            "mode": 420
+          }
+        ],
+        "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+      },
+      "source_unchanged": true,
+      "tools_before": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 12
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 28
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 31
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "version": "v24.20.0",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 21
+        },
+        "cargo_nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 9
+        }
+      },
+      "tools_after": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 12
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 28
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 31
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "version": "v24.20.0",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 20
+        },
+        "cargo_nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 8
+        }
+      },
+      "test_binaries_before": {},
+      "test_binaries_after": {
+        "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/shared_journeys-c985ad032c3215ca": {
+          "sha256": "e7b9b7b5b0eefab8f977146e35bd5ed63a01a46a4528852bb92e2c5d18d7d574",
+          "bytes": 34325504,
+          "mode": 493,
+          "mtime_ms": 1791495958335.559
+        }
+      },
+      "outputs": {
+        "stdout": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/list-shared.stdout.raw",
+          "sha256": "0fe6c083171a0ea9257b3b135a86ccadc24f69a275c78ea7e880d93b1b3d4ef0"
+        },
+        "stderr": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/list-shared.stderr.raw",
+          "sha256": "fddc691d0b357caaafa141d41a0d3cdf71e67765e2d4ee9f06a8dbfea904d646"
+        },
+        "events": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/list-shared.events.jsonl",
+          "sha256": "07339fd54233edf7e3d4d41712c64bda35d995de4386ee941c8f89535e1ba715"
+        }
+      },
+      "summary_lines": [],
+      "compiled_suite_identity": {
+        "expected_suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+        "build_script_outputs": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/build/termrock-e2e-782e392adc52a292/output",
+            "sha256": "d78263f6e55c236f13f899303fe9d2d3a992e38d169f04e8c1ec8212c7c2ac33",
+            "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+          }
+        ],
+        "compiled_library_artifacts": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/libtermrock_e2e-414fb51c3d5b79bf.rlib",
+            "sha256": "57522f30f4b1143a25461d198cb46b603725eadf799992f10f24b327a221c5d9",
+            "bytes": 24094064,
+            "embeds_expected_suite_sha256": true
+          }
+        ]
+      },
+      "compiled_suite_identity_error": null,
+      "listed_target": "shared_journeys",
+      "expected_test_names": [
+        "holla_help_overlay_004",
+        "jackin_editor_save_cancel_120x40_truecolor",
+        "showcase_dialog_001",
+        "tablepro_table_001_120x40_truecolor"
+      ],
+      "expected_test_names_present": [
+        {
+          "name": "holla_help_overlay_004",
+          "present": true
+        },
+        {
+          "name": "jackin_editor_save_cancel_120x40_truecolor",
+          "present": true
+        },
+        {
+          "name": "showcase_dialog_001",
+          "present": true
+        },
+        {
+          "name": "tablepro_table_001_120x40_truecolor",
+          "present": true
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "stage": "contract",
+      "action": "run",
+      "argv": [
+        "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e/Cargo.toml",
+        "--test",
+        "contract",
+        "--locked",
+        "--offline",
+        "--profile",
+        "default",
+        "--build-jobs",
+        "2",
+        "--user-config-file",
+        "none",
+        "--test-threads",
+        "1",
+        "--retries",
+        "0",
+        "--no-fail-fast",
+        "--no-tests",
+        "fail",
+        "-E",
+        "test(=registry_contains_four_seed_cases_and_holla_checkpointed_preconditions)"
+      ],
+      "cwd": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+      "start_utc": "2026-10-08T21:45:59.442Z",
+      "end_utc": "2026-10-08T21:46:01.704Z",
+      "elapsed_ms": 2262,
+      "group_timeout_ms": 1200000,
+      "timed_out": false,
+      "exit_code": 0,
+      "signal": null,
+      "spawn_error": null,
+      "nextest_run_id": "fec35e1d-2bfb-4745-9a53-eefa72a7b919",
+      "source_before": {
+        "label": "contract-before",
+        "at_utc": "2026-10-08T21:45:59.204Z",
+        "package_root": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+        "file_count": 21,
+        "files": [
+          {
+            "path": "Cargo.lock",
+            "bytes": 50065,
+            "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+            "mode": 420
+          },
+          {
+            "path": "Cargo.toml",
+            "bytes": 668,
+            "sha256": "ab0bcd4123f16ebf235fe3fbe6a612b0ae5e4828022d50b64cdf70b419d8ef94",
+            "mode": 420
+          },
+          {
+            "path": "README.md",
+            "bytes": 11024,
+            "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785",
+            "mode": 420
+          },
+          {
+            "path": "build.rs",
+            "bytes": 2198,
+            "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+            "mode": 420
+          },
+          {
+            "path": "cases/deferred-obligations.json",
+            "bytes": 3675,
+            "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+            "mode": 420
+          },
+          {
+            "path": "cases/registry.json",
+            "bytes": 13602,
+            "sha256": "aa8181fae93b4606ce927c7507386d0145b86a770167dd37429fa732defa186a",
+            "mode": 420
+          },
+          {
+            "path": "profile.json",
+            "bytes": 1043,
+            "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+            "mode": 420
+          },
+          {
+            "path": "schemas/expected-generation-v1.schema.json",
+            "bytes": 17088,
+            "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v1.schema.json",
+            "bytes": 11270,
+            "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v2.schema.json",
+            "bytes": 22643,
+            "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v3.schema.json",
+            "bytes": 37672,
+            "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v1.schema.json",
+            "bytes": 6026,
+            "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v2.schema.json",
+            "bytes": 9807,
+            "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v1.schema.json",
+            "bytes": 2535,
+            "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v2.schema.json",
+            "bytes": 4418,
+            "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+            "mode": 420
+          },
+          {
+            "path": "src/lib.rs",
+            "bytes": 324083,
+            "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a",
+            "mode": 420
+          },
+          {
+            "path": "src/visual.rs",
+            "bytes": 60248,
+            "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835",
+            "mode": 420
+          },
+          {
+            "path": "tests/command_lane.rs",
+            "bytes": 117658,
+            "sha256": "c32868f832937c8735462f4b155385ba283f2584f7fdcbb8ff6416289ca6ef1b",
+            "mode": 420
+          },
+          {
+            "path": "tests/contract.rs",
+            "bytes": 38104,
+            "sha256": "2780702faaf76021b0604a6f9a9820fa882a6537cfba8df6fd07a1a20908d51f",
+            "mode": 420
+          },
+          {
+            "path": "tests/holla_help_overlay.rs",
+            "bytes": 1729,
+            "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+            "mode": 420
+          },
+          {
+            "path": "tests/shared_journeys.rs",
+            "bytes": 1529,
+            "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+            "mode": 420
+          }
+        ],
+        "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+      },
+      "source_after": {
+        "label": "contract-after",
+        "at_utc": "2026-10-08T21:46:01.476Z",
+        "package_root": "/private/tmp/termrock-vis02-holla-compat-20261009/candidate/crates/termrock-e2e",
+        "file_count": 21,
+        "files": [
+          {
+            "path": "Cargo.lock",
+            "bytes": 50065,
+            "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+            "mode": 420
+          },
+          {
+            "path": "Cargo.toml",
+            "bytes": 668,
+            "sha256": "ab0bcd4123f16ebf235fe3fbe6a612b0ae5e4828022d50b64cdf70b419d8ef94",
+            "mode": 420
+          },
+          {
+            "path": "README.md",
+            "bytes": 11024,
+            "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785",
+            "mode": 420
+          },
+          {
+            "path": "build.rs",
+            "bytes": 2198,
+            "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64",
+            "mode": 420
+          },
+          {
+            "path": "cases/deferred-obligations.json",
+            "bytes": 3675,
+            "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+            "mode": 420
+          },
+          {
+            "path": "cases/registry.json",
+            "bytes": 13602,
+            "sha256": "aa8181fae93b4606ce927c7507386d0145b86a770167dd37429fa732defa186a",
+            "mode": 420
+          },
+          {
+            "path": "profile.json",
+            "bytes": 1043,
+            "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+            "mode": 420
+          },
+          {
+            "path": "schemas/expected-generation-v1.schema.json",
+            "bytes": 17088,
+            "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v1.schema.json",
+            "bytes": 11270,
+            "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v2.schema.json",
+            "bytes": 22643,
+            "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f",
+            "mode": 420
+          },
+          {
+            "path": "schemas/receipt-v3.schema.json",
+            "bytes": 37672,
+            "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v1.schema.json",
+            "bytes": 6026,
+            "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+            "mode": 420
+          },
+          {
+            "path": "schemas/subject-manifest-v2.schema.json",
+            "bytes": 9807,
+            "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v1.schema.json",
+            "bytes": 2535,
+            "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+            "mode": 420
+          },
+          {
+            "path": "schemas/trust-record-v2.schema.json",
+            "bytes": 4418,
+            "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+            "mode": 420
+          },
+          {
+            "path": "src/lib.rs",
+            "bytes": 324083,
+            "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a",
+            "mode": 420
+          },
+          {
+            "path": "src/visual.rs",
+            "bytes": 60248,
+            "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835",
+            "mode": 420
+          },
+          {
+            "path": "tests/command_lane.rs",
+            "bytes": 117658,
+            "sha256": "c32868f832937c8735462f4b155385ba283f2584f7fdcbb8ff6416289ca6ef1b",
+            "mode": 420
+          },
+          {
+            "path": "tests/contract.rs",
+            "bytes": 38104,
+            "sha256": "2780702faaf76021b0604a6f9a9820fa882a6537cfba8df6fd07a1a20908d51f",
+            "mode": 420
+          },
+          {
+            "path": "tests/holla_help_overlay.rs",
+            "bytes": 1729,
+            "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+            "mode": 420
+          },
+          {
+            "path": "tests/shared_journeys.rs",
+            "bytes": 1529,
+            "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+            "mode": 420
+          }
+        ],
+        "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+      },
+      "source_unchanged": true,
+      "tools_before": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 11
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 29
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 31
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "version": "v24.20.0",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 21
+        },
+        "cargo_nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 8
+        }
+      },
+      "tools_after": {
+        "cargo": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 10
+        },
+        "rustc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 28
+        },
+        "rustdoc": {
+          "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 30
+        },
+        "node": {
+          "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "version": "v24.20.0",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 21
+        },
+        "cargo_nextest": {
+          "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin",
+          "version_check_timeout_ms": 10000,
+          "version_check_elapsed_ms": 8
+        }
+      },
+      "test_binaries_before": {
+        "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/contract-a5545af2d6afdaec": {
+          "sha256": "25471a357d5a37373f489536ce44ada54fd7769f0b4dba40dfe50e481bac25d4",
+          "bytes": 19441464,
+          "mode": 493,
+          "mtime_ms": 1791492331108.97
+        }
+      },
+      "test_binaries_after": {
+        "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/contract-a5545af2d6afdaec": {
+          "sha256": "a4fdf9d87bfc8bd1bb01f4fb9230375d376e23d79e51edde277a10c12386173c",
+          "bytes": 19440664,
+          "mode": 493,
+          "mtime_ms": 1791495960988.259
+        }
+      },
+      "outputs": {
+        "stdout": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/contract.stdout.raw",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/contract.stderr.raw",
+          "sha256": "e1f233aefb174a8eade96c090422e895bdaa6df81c26d48fb38459ada125b930"
+        },
+        "events": {
+          "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/contract.events.jsonl",
+          "sha256": "0be5a60c139142f6287690b82cf82ddf52f6f6fc5c6f5517380331260269fa53"
+        }
+      },
+      "summary_lines": [
+        "     Summary [   0.011s] 1 test run: 1 passed, 9 skipped"
+      ],
+      "compiled_suite_identity": {
+        "expected_suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+        "build_script_outputs": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/build/termrock-e2e-782e392adc52a292/output",
+            "sha256": "d78263f6e55c236f13f899303fe9d2d3a992e38d169f04e8c1ec8212c7c2ac33",
+            "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"
+          }
+        ],
+        "compiled_library_artifacts": [
+          {
+            "path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/libtermrock_e2e-414fb51c3d5b79bf.rlib",
+            "sha256": "57522f30f4b1143a25461d198cb46b603725eadf799992f10f24b327a221c5d9",
+            "bytes": 24094064,
+            "embeds_expected_suite_sha256": true
+          }
+        ]
+      },
+      "compiled_suite_identity_error": null,
+      "counts": {
+        "selected": 1,
+        "binaries": 1,
+        "skipped_or_filtered": 9,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "starting_line": "Starting 1 test across 1 binary (9 tests skipped)",
+        "case_lines": [
+          "        PASS [   0.010s] (1/1) termrock-e2e::contract registry_contains_four_seed_cases_and_holla_checkpointed_preconditions"
+        ]
+      },
+      "expected_test": "registry_contains_four_seed_cases_and_holla_checkpointed_preconditions",
+      "exact_filter": "test(=registry_contains_four_seed_cases_and_holla_checkpointed_preconditions)",
+      "status": "PASS"
+    }
+  ],
+  "scope": "Two ignored-test targets compiled and listed only; exactly one non-product registry contract test executed. This is not a Holla product journey, screenshot comparison, expected-generation admission, or product parity result."
+}

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                        android · Gradle build  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Clean Gradle outputs… cleanup · here
+  › Clean Gradle outputs und…  cleanup  here  4 candidates       destructive
+    gradle build               gradle   here  build.gradle.kts…                  Does       gradle --stop, then move
+    gradle clean               gradle   here  build.gradle.kts…                             every .gradle and build
+    gradle test                gradle   here  build.gradle.kts…                             directory below this
+                                                                                            folder (depth 5, no
+    Recent here                                                                             symlinks, no
+    nothing used here yet                                                                   node_modules) to the
+                                                                                            Trash · 4 candidates · a
+    Explore                                                                                 daemon is running ·
+     Tasks   Git   Files   Disk   Services   System                                         gradle --stop is the
+    System · mbp               explore  host  available on thi…                             first step
+                                                                                 Runs       gradle --stop
+                                                                                 In         ~/work/android
+                                                                                 Host       mbp · local
+                                                                                 Scope      here
+                                                                                 Why        4 candidates
+                                                                                 Changes    see the command
+                                                                                 Risk       destructive
+                                                                                 Data       live · 0 s ago
+                                                                                 Gate       opens a review · the
+                                                                                            deletion is gated there
+                                                                                            (typed phrase)
+                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+ ~/work/android                                                                                      truecolor · 120×40
+         Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

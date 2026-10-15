@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help             Workspaces › payments-platform › edit
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ─────────────────────━━━━━━━━───────────────────────────────────────────────
+
+    Allowed roles  3 of 46                           default ★ the-architect
+  ▎›   [✓] the-architect ★  registry · trusted · Full-stack design and refa… ┃
+       [✓] backend          registry · trusted · Rust and Postgres services  ┃
+       [✓] reviewer         registry · trusted · Read-mostly code review wi… ┃
+       [ ] sre              registry · trusted · Infrastructure, Terraform,… │
+       [ ] data-eng         ! load error · trust required                    │
+       [ ] writer           ~/roles/writer · not in registry                 │
+       [ ] svc-001          registry · trusted · ledger service agent #1     │
+       [ ] svc-002          registry · trusted · search service agent #2     │
+       [ ] svc-003          registry · trusted · notify service agent #3     │
+       [ ] svc-004          registry · trusted · ingest service agent #4     │
+       [ ] svc-005          registry · trusted · auth service agent #5       │
+       [ ] svc-006          registry · trusted · billing service agent #6    │
+       [ ] svc-007          registry · trusted · ledger service agent #7     │
+
+                                                          Cancel     Save…
+
+   Space Allow  Enter Set default  a Load role…  / Filter  [ ] Switch tab  …

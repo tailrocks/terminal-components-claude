@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                • 1 pending  16 colors · 120×40  ? help
+
+  ≡ Query 1 ×    T orders ×                                                                                         +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ public › orders ────────────────────────────────────────────────────────── 14 cols ─╮
+ │                           │ │   Data    Structure                                                                  │
+ │   Filter objects          │ │  ━━━━━━━──────────────────────────────────────────────────────────────────────────── │
+ │  ▾ D acme_prod            │ │                                                                                      │
+ │    ▾ S public             │ │   ‹4    status       total_amount  currency    shipping_address                 7›   │
+ │      ▾ Tables             │ │    •  1 paid                25.90  USD         {"line1": "104 Calle Mayor", "c…    ┃ │
+ │        ▸ T organiz╭────────────────────────────────────────────────────────────────────────────╮y Ave", "cit…    │ │
+ │        ▸ T custome│                                                                            │oma", "city"…    │ │
+ │        ▸ T product│  Save changes?                                                             │et St", "cit…    │ │
+ │        ▸ T orders │                                                                            │et St", "cit…    │ │
+ │        ▸ T order_i│  Action       Save changes                                                 │e Mayor", "c…    │ │
+ │        ▸ T payment│  Target       Production · production · acme_prod · public.orders          │ Rivoli", "c…    │ │
+ │        ▸ T subscri│  Scope        1 update · 0 inserts · 0 deletes                             │                 │ │
+ │      ▸ Views      │  Transaction  All statements run in one transaction; a failure rolls       │et St", "cit…    │ │
+ │      ▸ Functions  │               everything back.                                             │ky Ave", "ci…    │ │
+ │      ▸ Sequences  │  Safe Mode    Safe Mode · deliberate confirmation required                 │n St", "city…    │ │
+ │    ▸ S analytics  │                                                                            │ Mayor", "ci…    │ │
+ │    ▸ S audit      │  UPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…  │Mayor", "cit…    │ │
+ │                   │                                                                            │gatan", "cit…    │ │
+ │                   │   Type orders to confirm                                                   │atan", "city…    │ │
+ │                   │ ▎                                                                          │y Ave", "cit…    │ │
+ │                   │                                                                            │sgatan", "ci…    │ │
+ │                   │                                                                            │de Rivoli", …    │ │
+ │                   │                                                            Cancel   Save   │ St", "city"…    │ │
+ │                   │                                                                            │sgatan", "ci…    │ │
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                 │ │
+ │                           │ │      22 refunded          1645.69  USD         {"line1": "43 Hauptstrasse", "c…    │ │
+ │                           │ │      23 refunded          2412.74  EUR         {"line1": "32 Queen St", "city"…    │ │
+ │                           │ │      24 delivered         1282.42  USD         NULL                                │ │
+ │                           │ │      25 delivered         2219.60  USD         {"line1": "41 Market St", "city…    │ │
+ │                           │ │                                                                                      │
+ │                           │ │   • 1 pending · 1 update                              Preview SQL   Discard   Save   │
+ │                           │ │   rows 1–25 of 500 loaded · 1,203,338 total · cols 5–7 of 14                         │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel                                                          Connected to Production

@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m        ? help [0m
+                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mH[0m[1m History ×  [0m                                              +   [0m
+ ───────────────━━━━━━━━━━━━━━───────────────────────────────────────────────── [0m
+ ╭─[0m[1m Query history [0m─────────────────────────────────────────────── 15 entries ─╮ [0m
+ │                                                                            │ [0m
+ │    Search history · terms are ANDed      scope: Production  ·  status: any │ [0m
+ │                                                                            │ [0m
+ │  [0m[1m▎› SELECT plan, co… 3 d ago · 5 ms [0m    Query           Editor · 3 d ago   │ [0m
+ │     SELECT * FROM … 1 d ago · 24 ms                                        │ [0m
+ │     SELECT day, re… 3 h ago · 14 ms     ›  1 [0m[1mSELECT[0m plan, [0m[1mcount[0m(*)     ┃   │ [0m
+ │   [0m[1m![0m SELECT * FROM ordr… 1 h ago · –        2 [0m[1mFROM[0m subscriptions [0m[1mGROUP[0m  │   │ [0m
+ │     SELECT o.id, o… 1 h ago · 61 ms                            1–2 of 3    │ [0m
+ │     UPDATE order… 58 min ago · 3 ms                                        │ [0m
+ │     SELECT * FR… 40 min ago · 21 ms     Connection  Production · acme_p…   │ [0m
+ │     EXPLAIN ANAL… 15 min ago · 9 ms     Duration    5 ms                   │ [0m
+ │     SELECT count(*) FROM orders WHE…    Rows        3                      │ [0m
+ │     SELECT * FRO… 4 min ago · 38 ms                                        │ [0m
+ │                                          [0m[1mOpen in new tab [0m   Run in new…    │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1mEnter[0m Open in new tab  [0m[1mr[0m Rerun  [0m[1my[0m Copy  [0m[1m/[0m Search  …    Connected to Production [0m

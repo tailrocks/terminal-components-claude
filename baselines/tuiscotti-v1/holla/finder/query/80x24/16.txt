@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ pull                                                         scope ‹ here ›
+
+    Results · 3
+  › Pull              git  here  up to date
+    Pull with merge   git  here  ordinary pull behaviour
+    Pull with rebase  git  here  ordinary pull behaviour
+
+
+
+
+
+
+
+
+
+
+    → git -C /Users/alex/work/holla pull --ff-only · here · mutating
+
+ ~/work/holla   main                                          16 colors · 80×24
+ Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  …

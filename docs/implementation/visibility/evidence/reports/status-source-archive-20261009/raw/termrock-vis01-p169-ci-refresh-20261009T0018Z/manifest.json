@@ -1,0 +1,52 @@
+{
+  "record_type": "read_only_public_actions_run_refresh",
+  "repository": "tailrocks/terminal-components-claude",
+  "observed_at_utc": "2026-10-09T00:18:25Z",
+  "request_interval_note": "Both GET requests completed during the 00:18:10Z–00:18:25Z UTC interval; no individual response timestamp was recorded.",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37862074205",
+      "curl_exit": 0,
+      "http_status": 200,
+      "headers_path": "/private/tmp/termrock-vis01-p169-ci-refresh-20261009T0018Z/run.headers.raw",
+      "headers_sha256": "edee71d4a25712a4e4ac04c824af5dfa815c9da20cf4d6b4a51496a1da01cb97",
+      "body_path": "/private/tmp/termrock-vis01-p169-ci-refresh-20261009T0018Z/run.body.raw",
+      "body_sha256": "e95bfcaf85229b3a79af760e06a58f14e12e8ef5b2061e77e15995d44d0ee7a2",
+      "selected_fields": {
+        "id": 37862074205,
+        "run_number": 798,
+        "event": "push",
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": "169380c7d6a4cff9f1c43ecef592abc715e6df6a",
+        "head_branch": "termrock-implementation",
+        "created_at": "2026-10-08T23:55:22Z",
+        "updated_at": "2026-10-08T23:55:22Z",
+        "run_attempt": 1
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/37862074205/jobs?per_page=100",
+      "curl_exit": 0,
+      "http_status": 200,
+      "headers_path": "/private/tmp/termrock-vis01-p169-ci-refresh-20261009T0018Z/jobs.headers.raw",
+      "headers_sha256": "afcd1bb578c7a57c2a648e639c3e5da502cfc70cb6d8b1d8b6e3ffac8eeb79be",
+      "body_path": "/private/tmp/termrock-vis01-p169-ci-refresh-20261009T0018Z/jobs.body.raw",
+      "body_sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "selected_fields": {
+        "total_count": 0,
+        "jobs": []
+      }
+    }
+  ],
+  "interpretation_limits": {
+    "failure_cause": "UNKNOWN_NOT_CAPTURED",
+    "artifact_count": null,
+    "artifact_query": "NOT_QUERIED",
+    "product_execution": "NOT_RUN",
+    "product_source_pair": "This publication-workflow run is on report commit 169380c7d6a4cff9f1c43ecef592abc715e6df6a, not a measured product run on selected pair 1d797d41c8141fcbdc3f69d7f11eb8875ab54712/b274dd57f4dd078ade6e424d546d83efbd2e8526.",
+    "provenance": "A separate prior exact-commit API observation binds publication commit 169380c7d6a4cff9f1c43ecef592abc715e6df6a to parent candidate S=1d797d41c8141fcbdc3f69d7f11eb8875ab54712 and only queue/task paths. This capture refreshes only the run and jobs endpoints."
+  }
+}

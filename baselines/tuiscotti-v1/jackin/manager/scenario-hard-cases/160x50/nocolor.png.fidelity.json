@@ -1,0 +1,66 @@
+{
+  "profile": "tuiscotti-default",
+  "font_sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+  "font_desc": "vendored JetBrainsMonoNerdFontMono-Regular (SIL OFL 1.1)",
+  "scale": 2,
+  "approximate": false,
+  "faces_fell_back": [],
+  "missing": [],
+  "fallback_glyphs": [
+    {
+      "x": 82,
+      "y": 7,
+      "symbol": "★",
+      "codepoints": [
+        "U+2605"
+      ],
+      "faces": [
+        "vendored NotoSansSymbols2 subset (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 86,
+      "y": 9,
+      "symbol": "★",
+      "codepoints": [
+        "U+2605"
+      ],
+      "faces": [
+        "vendored NotoSansSymbols2 subset (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 84,
+      "y": 10,
+      "symbol": "★",
+      "codepoints": [
+        "U+2605"
+      ],
+      "faces": [
+        "vendored NotoSansSymbols2 subset (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 100,
+      "y": 10,
+      "symbol": "★",
+      "codepoints": [
+        "U+2605"
+      ],
+      "faces": [
+        "vendored NotoSansSymbols2 subset (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 95,
+      "y": 11,
+      "symbol": "★",
+      "codepoints": [
+        "U+2605"
+      ],
+      "faces": [
+        "vendored NotoSansSymbols2 subset (SIL OFL 1.1)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# Minimal CI profile for this isolated-package workspace.
+[profile.ci]
+fail-fast = false
+slow-timeout = { period = "60s", terminate-after = 10 }

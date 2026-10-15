@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                         no project  [0m[1mdevbox · local[0m [0m
+                                                                                [0m
+ [0m[1m Here › Cleanup › Review  [0m                                                     [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────── [0m
+  [0m[1mReview · trash 1 item[0m · gate 1 of 2 · review the resolved facts, then conti…  [0m
+                                                                                [0m
+  Action        move to Trash 1 item under ~                                    [0m
+  Host          devbox · local                                                  [0m
+  Mode          Trash · no Trash backend · every item will fail, never fall     [0m
+                back · space returns after the Trash is emptied                 [0m
+  Estimate      124.0 KiB allocated · APFS clones may overcount · purgeable     [0m
+                space excluded · not a free-space guarantee                     [0m
+  Denied        none · every path passed the lexical, protected-root,           [0m
+                user-data and symlink rules                                     [0m
+                                                                                [0m
+ ╭─ Sequence · 1 command ────────────────────────────────────────── y copies ─╮ [0m
+ │  01  trash /home/alex/Projects/app/node_modules  # 124.0 KiB · project.ar… │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+                                                         ▎[0m[1mCancel [0m   Continue…   [0m
+                                                                                [0m
+ [0m[1m~/work/box[0m                review · gate 1 of 2                no color · 80×24 [0m
+          [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  …   1 item selected · 124.0 KiB [0m

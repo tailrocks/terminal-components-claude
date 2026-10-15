@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                    svc · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Pull                                                                                                                                         scope ‹ here ›
+
+    Results · 3                                                                                                  Pull                            git · parent
+  › Pull              git  parent  blocked · 1 modified
+    Pull with merge   git  parent  history has diverged                                                          Does       pull (configured strategy)
+    Pull with rebase  git  parent  history has diverged                                                                     ~/work/svc from origin/feature/x
+                                                                                                                 Runs       git -C /Users/alex/work/svc pull
+                                                                                                                 In         ~/work/svc
+                                                                                                                 Host       mbp · local
+                                                                                                                 Scope      parent
+                                                                                                                 Why        blocked · 1 modified
+                                                                                                                 Changes    blocked · 1 modified · the
+                                                                                                                            command fails without changing
+                                                                                                                            anything
+                                                                                                                 Risk       mutating
+                                                                                                                 Data       live · 2 s ago
+                                                                                                                 Gate       one confirmation
+                                                                                                                 Alt+Enter  Fetch only · Pull with merge ·
+                                                                                                                            Pull with rebase · Push · Pin ·
+                                                                                                                            Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1                                                                                                   no color · 160×50
+                                 Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

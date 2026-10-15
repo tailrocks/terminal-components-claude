@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "51b801e5a8b5b8bb9cc934758b47ea3ee1636e4048dfaeb8a493b185e1b44b8a",
+  "artifacts": {
+    "ansi": {
+      "bytes": 7216,
+      "file": "holla/gradle/gate1/100x30/256.ansi",
+      "sha256": "51b801e5a8b5b8bb9cc934758b47ea3ee1636e4048dfaeb8a493b185e1b44b8a"
+    },
+    "ascii": {
+      "bytes": 2152,
+      "file": "holla/gradle/gate1/100x30/256.ascii",
+      "sha256": "b187839040beef71e785304e90f3b4523c12144b4c50e1e0c43cb5475ebdcdaa"
+    },
+    "ascii_loss_json": {
+      "bytes": 28272,
+      "file": "holla/gradle/gate1/100x30/256.ascii.loss.json",
+      "sha256": "6264c42bc86e75fb225748ace4f35ce334eec942e82a2b3d5b2106bee958873f"
+    },
+    "frame_json": {
+      "bytes": 704518,
+      "file": "holla/gradle/gate1/100x30/256.frame.json",
+      "sha256": "8844c44befe984fa158e050112eba4304484e4f455bd81d1a170a13e94e641c8"
+    },
+    "html": {
+      "bytes": 728958,
+      "file": "holla/gradle/gate1/100x30/256.html",
+      "sha256": "a83db9c97981ba4312b5c8739d5ed15bee5470293f117ae21c3443af2b46e85a"
+    },
+    "observations_json": {
+      "bytes": 448,
+      "file": "holla/gradle/gate1/100x30/256.observations.json",
+      "sha256": "e0c16700ff05451ac71f78cf142f239291338cc027407b057e119f4e770fabb1"
+    },
+    "png": {
+      "bytes": 533138,
+      "file": "holla/gradle/gate1/100x30/256.png",
+      "sha256": "7a5db4a46cfee2d66ef6ab14cb7721e999a18d3b57e917e22684c9259e38e3cd"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/gradle/gate1/100x30/256.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2736,
+      "file": "holla/gradle/gate1/100x30/256.txt",
+      "sha256": "9f870b1aec437e837080a07d55108a0e6b9cc2b876a913f39f3ac1968b43826c"
+    }
+  },
+  "ascii_substitutions_count": 305,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 11240316136450973686,
+  "frame_sha256": "8844c44befe984fa158e050112eba4304484e4f455bd81d1a170a13e94e641c8",
+  "generation": "d678398a35bec88e68571cc6b92df252b06dc4ba0199c97edc66a8607e217951",
+  "html_sha256": "a83db9c97981ba4312b5c8739d5ed15bee5470293f117ae21c3443af2b46e85a",
+  "legacy_name": "holla/flows/gradle/gate1/100x30/256",
+  "name": "holla/gradle/gate1/100x30/256",
+  "png_sha256": "7a5db4a46cfee2d66ef6ab14cb7721e999a18d3b57e917e22684c9259e38e3cd",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:06Z",
+  "txt_sha256": "9f870b1aec437e837080a07d55108a0e6b9cc2b876a913f39f3ac1968b43826c"
+}

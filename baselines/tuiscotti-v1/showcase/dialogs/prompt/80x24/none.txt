@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Dialogs             i Inspector   ? Help
+
+   Overview       ┃  Dialogs  Focus is trapped, the page dims, Esc always canc…
+   Buttons        ┃
+   Inputs         ┃    Open a dialog
+   Text areas     ┃
+   Forms          ┃     Confirm run    Rename task…    Three choices…    Del…
+   Lists     ╭────────────────────────────────────────────────────╮
+   Trees     │                                                    │n answer d…
+   Tables    │  Rename task                                       │s, validat…
+   Editable t│                                                    │ danger st…
+   Panels    │   Task name *                                      │
+   Sidebars  │ ▎ Migrate sessions table                           │
+ › Dialogs   │   Shown in the task list and PR title              │
+   Progress  │                                                    │
+   Scrolling │                                  Cancel   Rename   │
+   Terminal  │                                                    │
+   Code edito╰────────────────────────────────────────────────────╯
+   Diff           ┃
+   Data grid      │
+   Chips & selec… │
+   Pickers        │
+
+ ← → Choose  Enter Confirm  Esc Cancel

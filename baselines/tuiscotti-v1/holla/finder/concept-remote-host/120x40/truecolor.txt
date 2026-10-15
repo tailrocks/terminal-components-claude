@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Follow paymen… system · on prod-eu-1
+    Who is blocking the data…  postgres  here          2 sessions blocked f…
+  › Follow payments-worker j…  system    on prod-eu-1  unit is restarting        Does       journalctl -u
+    Open btm                   system    on prod-eu-1  sustained pressure…                  payments-worker -f
+    Show payments-worker sta…  system    on prod-eu-1  3 restarts in 10 min      Runs       journalctl -u pa… -n 200
+    Show system resources      system    on prod-eu-1  CPU 34% for 11 min        In         prod-eu-1 · host-wide
+                                                                                 Host       prod-eu-1 · production ·
+    Recent here                                                                             over SSH
+    nothing used here yet                                                        Scope      on prod-eu-1
+                                                                                 Why        unit is restarting
+    Explore                                                                      Changes    none · read-only
+     Tasks   Git   Files   Disk   Services   System                              Risk       read-only
+    System · prod-eu-1         explore   on prod-eu-1  available on this ho…     Data       live · 2 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ /srv/payments   detached @ v2.14.3                                                                  truecolor · 120×40
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

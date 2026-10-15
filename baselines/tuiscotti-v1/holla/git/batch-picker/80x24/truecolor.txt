@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help            repos · project collection  mbp · local
+
+  Here    pull alpha ✓ ×
+ ────────━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────
+  pull alpha · succeeded · 0 s · exit 0       child · ~/work/repos/alpha · mbp
+  $ g╭────────────────────────────────────────────────────────────────────╮po…
+     │ Activities                                                  0 live │
+ ╭─ o│ ▎✓ pull alpha  succeeded · child · 0 s                 activities  │g ─╮
+ │  $│  ✓ pull beta   succeeded · child · 0 s                             │   │
+ │  F│  ! pull delta  failed · child · 0 s                                │   │
+ │   │  ! pull gamma  failed · child · 0 s                                │   │
+ │  U│                                                                    │   │
+ │  F│                                                                    │   │
+ │   ╰────────────────────────────────────────────────────────────────────╯   │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ~/work/repos                 succeeded · 0 s                 truecolor · 80×24
+     ↑↓ Move  …   ! Pull 4 sibling repositories · 2 ok · 2 failed · 0 cancelled

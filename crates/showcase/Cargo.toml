@@ -1,0 +1,16 @@
+[package]
+name = "showcase"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+showcase-data.workspace = true
+showcase-ui.workspace = true
+termrock-session.workspace = true
+clap.workspace = true
+ratatui.workspace = true
+
+[dev-dependencies]
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", branch = "main", features = ["pty"] }

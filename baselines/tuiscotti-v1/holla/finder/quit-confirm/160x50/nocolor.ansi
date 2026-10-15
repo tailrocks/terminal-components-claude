@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                  acme · mise monorepo  mbp · local [0m
+                                                                                                                                                                [0m
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                                                           [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+   Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Deploy preview                 custom · here   [0m
+    Follow acme-api-1 logs                docker    here   service is unhealthy                                                                                 [0m
+    Inspect 10 GB of generated artifacts  disk      here   10 GB generated artifacts                             Does       push the current branch to the      [0m
+    Install missing tools · sqlx-cli      task      here   1 tool missing                                                   preview stack                       [0m
+    Review cleanup candidates             cleanup   host   10.6 GiB across 4 categories                          Runs       tools/deploy-preview.…nv preview    [0m
+  › Deploy preview                        custom    here   Current folder · ⚠ unreviewed                         In         ~/work/acme                         [0m
+                                                                                                                 Host       mbp · local                         [0m
+    Recent here                                                                                                  Scope      here                                [0m
+    nothing used here yet                                                                                        Why        Current folder · ⚠ unreviewed       [0m
+                                                                                                                 Changes    see the command                     [0m
+    Running                                                                                                      Risk       mutating                            [0m
+    logs · api worker scheduler           activity  here   ⠋ running · 3 s                                       Data       live · 0 s ago                      [0m
+    api dev                               activity  child  ⠋ running · 3 s                                       Gate       trust required ·                    [0m
+    btm                                   activity  host   ⠋ detached · 3 s                                                 ~/work/acme/.holla.toml             [0m
+    frontend dev                          activity  c╭────────────────────────────────────────────────────╮      Alt+Enter  Set an alias… · Show                [0m
+                                                     │                                                    │                 configuration diagnostics · Pin     [0m
+    Explore                                          │  [0m[1mQuit holla❯?[0m                                      │                 · Alias · Why here?                 [0m
+     Tasks   Git   Files   Disk   Services   System  │                                                    │                                                     [0m
+    Children · 3 projects                 explore   c│  4 activities are still running. Quitting stops    │                                                     [0m
+    System · mbp                          explore   h│  what holla started; detached monitors keep        │                                                     [0m
+                                                     │  running.                                          │                                                     [0m
+                                                     │                                                    │                                                     [0m
+                                                     │                          ▎[0m[1mCancel [0m  Stop and quit   │                                                     [0m
+                                                     │                                                    │                                                     [0m
+                                                     ╰────────────────────────────────────────────────────╯                                                     [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ ~/work/acme   main   ↑1                                                                                                       ⠋ 4 running    no color · 160×50 [0m
+                              [0m[1m    [0m         [0m[1m  [0m     [0m[1m← → Cho[0mose  [0m[1mEnter Confirm[0m  [0m[1mEsc[0m C[0m[1manc[0mel  [0m[1my / n[0m [0m[1mQuick a[0mnswer   [0m[1m      [0m                api tests finished · exit 0 [0m

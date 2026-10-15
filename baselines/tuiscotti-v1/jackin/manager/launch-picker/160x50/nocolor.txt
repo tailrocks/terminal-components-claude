@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                                                       Workspaces  inside the Construct  2 running
+
+ ╭─ Workspaces ────────────────────── 2 running ─╮ │  Current directory · payments-platform saved workspace      Running                          2 instances
+ │     Current …ory  saved as payments-platform  │ │
+ │   ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…
+ │   ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes
+ │   ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal
+ │   ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 46
+ │     + New workspace                           │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex
+ │                                               │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane
+ │                                               │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments
+ │                                               │ │                OpenCode · Go subscription ★
+ │                                               │ │  Policies      git pull enabled · keep awake on · dir…
+ │                                    ╭──────────────────────────────────────────────────────────────────────────────────╮                          3 records
+ │                                    │ Launch · choose Agent                          payments-platform › the-architect │ayments-platform · reviewer · pres…
+ │                                    │ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │elease-automation · backend · rest…
+ │                                    │  ▪ Codex        account Codex · Primary · provider def… ready                    │nfra-control-plane · sre · preserv…
+ │                                    │  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │
+ │                                    │  ▪ Grok Build   account Grok · Team · provider default  ready                    │                  healthy · 3 s ago
+ │                                    │                                                                                  │    throttled · every 5 s
+ │                                    │                                                                                  │    degraded · 4 warnings · 1 exha…
+ │                                    ╰──────────────────────────────────────────────────────────────────────────────────╯
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │  Launch    Edit
+ ╰───────────────────────────────────────────────╯ │
+
+                                                              ↑↓ Move  Enter Choose  Esc Cancel

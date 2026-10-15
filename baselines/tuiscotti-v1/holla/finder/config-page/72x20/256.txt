@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          probe · Rust project  mbp · local
+
+  Here › Custom actions
+ ━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────
+  Custom actions             ~/work/probe/.holla.toml · live · 1 s ago
+
+  Origin   project
+  Digest   sha256:371a5fe65de3fa31c4d718afa4beb4a90bfcfba1953a1df79fe3
+           a3ffae7e8324
+  Trust    Untrusted
+  Actions  1 · 2 diagnostics
+
+ ╭─ Detail ───────────────────────────────────── 21 lines · y copies ─╮
+ │  /Users/alex/work/probe/.holla.toml action[0]: id "git.pull" col…┃ │
+ │  /Users/alex/work/probe/.holla.toml action[2]: `label` is blank …│ │
+ │  deploy                  mutating     tools/deploy.sh            │ │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ~/work/probe   main   ↓1    snapshot · read-only    256 colors · 72×20
+                     ↑↓ Scroll  y Copy  Esc Back
