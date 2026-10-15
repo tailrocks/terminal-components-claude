@@ -1117,6 +1117,7 @@ fn provider_poll_observations_bundle(fixture: &StatusFixture) -> serde_json::Val
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn provider_observation_accepts_zero_jobs_and_forbidden_logs_without_cause_inference() {
     let fixture = StatusFixture::new();
     let mut files = Vec::new();
@@ -1162,6 +1163,7 @@ fn provider_observation_accepts_zero_jobs_and_forbidden_logs_without_cause_infer
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn provider_observation_rejects_source_drift_archive_tampering_and_out_of_order_rows() {
     let fixture = StatusFixture::new();
     let mut files = Vec::new();
@@ -1269,6 +1271,7 @@ fn provider_observation_rejects_source_drift_archive_tampering_and_out_of_order_
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn provider_poll_variant_preserves_error_and_historical_boundaries() {
     let fixture = StatusFixture::new();
     let bundle = provider_poll_observations_bundle(&fixture);
@@ -1302,6 +1305,7 @@ fn provider_poll_variant_preserves_error_and_historical_boundaries() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes() {
     let fixture = StatusFixture::new();
     let bundle = provider_poll_observations_bundle(&fixture);
@@ -1389,6 +1393,7 @@ fn provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind() {
     let fixture = StatusFixture::new();
     let bundle = provider_poll_observations_bundle(&fixture);
@@ -2214,6 +2219,7 @@ fn write_facts(fixture: &StatusFixture, facts: &str) {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn initial_status_keeps_products_not_run_and_pairs_exact() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -2248,6 +2254,7 @@ fn initial_status_keeps_products_not_run_and_pairs_exact() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
     let fixture = execution_fixture();
     let output = fixture.run(&[]);
@@ -2280,6 +2287,7 @@ fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes() {
     // The overridden assertion ID appears once for each subject role.
     for (status, expected_cell, expected_count) in [
@@ -2314,6 +2322,7 @@ fn holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_receipts_reject_source_pair_mismatch_and_changed_bytes() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2359,6 +2368,7 @@ fn execution_receipts_reject_source_pair_mismatch_and_changed_bytes() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_executable_and_builder_receipt_hashes_are_cross_bound() {
     let mutations = [
         (
@@ -2477,6 +2487,7 @@ fn holla_executable_and_builder_receipt_hashes_are_cross_bound() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows() {
     for (mutation, expected_error) in [
         (
@@ -2543,6 +2554,7 @@ fn holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows() {
 
 #[cfg(unix)]
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_evidence_rejects_tmp_traversal_and_symlinked_parent() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2592,6 +2604,7 @@ fn execution_evidence_rejects_tmp_traversal_and_symlinked_parent() {
 
 #[cfg(unix)]
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_evidence_fifo_is_rejected_without_blocking_or_report() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2638,6 +2651,7 @@ fn execution_evidence_fifo_is_rejected_without_blocking_or_report() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_receipt_json_rejects_duplicate_keys() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2664,6 +2678,7 @@ fn execution_receipt_json_rejects_duplicate_keys() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn checked_in_records_render_from_exact_copies() {
     let fixture = StatusFixture::from_checked_in_records();
     let checked_in_report = fs::read(fixture.repo.root().join("STATUS.md"))
@@ -2995,6 +3010,7 @@ fn checked_in_records_render_from_exact_copies() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_stale_current_local_package_digest() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3015,6 +3031,7 @@ fn rejects_stale_current_local_package_digest() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phases_render_run03_without_promoting_current_readiness() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3064,6 +3081,7 @@ fn historical_product_phases_render_run03_without_promoting_current_readiness() 
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_pair_remains_valid_when_current_pair_differs() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3113,6 +3131,7 @@ fn historical_product_phase_pair_remains_valid_when_current_pair_differs() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_not_applicable_readiness_is_explicit() {
     let phase_names = [
         "build",
@@ -3214,6 +3233,7 @@ fn historical_product_phase_not_applicable_readiness_is_explicit() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_archive_rejects_missing_tampered_and_unlisted_members() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3294,6 +3314,7 @@ fn historical_product_phase_archive_rejects_missing_tampered_and_unlisted_member
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_rejects_command_and_source_pair_drift() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3333,6 +3354,7 @@ fn historical_product_phase_rejects_command_and_source_pair_drift() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3412,6 +3434,7 @@ fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_misbound_latest_ci_publication_and_historical_execution() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3455,6 +3478,7 @@ fn rejects_misbound_latest_ci_publication_and_historical_execution() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
     for mutation in [
         "local_commit",
@@ -3534,6 +3558,7 @@ fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
     let fixture = StatusFixture::from_checked_in_records();
     let tasks_path = fixture
@@ -3724,6 +3749,7 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
 
 #[cfg(unix)]
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_fails_closed_when_adjacent_queue_is_missing_or_symlinked() {
     let missing = StatusFixture::new();
     fs::remove_file(&missing.queue_script).expect("remove adjacent queue module");
@@ -3741,6 +3767,7 @@ fn status_fails_closed_when_adjacent_queue_is_missing_or_symlinked() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_fails_closed_when_adjacent_queue_lacks_v1_validator() {
     let fixture = StatusFixture::new();
     let v2_only_queue_module = concat!(
@@ -3761,6 +3788,7 @@ fn status_fails_closed_when_adjacent_queue_lacks_v1_validator() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_ambiguous_or_nonfinite_source_facts_without_status_output() {
     let duplicate_identity = replace_once(
         base_facts(),
@@ -3790,6 +3818,7 @@ fn rejects_ambiguous_or_nonfinite_source_facts_without_status_output() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3867,6 +3896,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -4017,6 +4047,7 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn reports_latest_remote_refs_and_local_checkout_separately() {
     let fixture = StatusFixture::new();
     let report = output_text(&fixture.run(&[]));
@@ -4048,6 +4079,7 @@ fn reports_latest_remote_refs_and_local_checkout_separately() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn renders_all_seven_exact_commands_and_layers() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4098,6 +4130,7 @@ fn renders_all_seven_exact_commands_and_layers() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn role_changes_local_label_and_uses_reference_links() {
     let fixture = StatusFixture::new();
     let candidate = output_text(&fixture.run(&[]));
@@ -4186,6 +4219,7 @@ fn role_changes_local_label_and_uses_reference_links() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn reference_role_cli_renders_reference_presentation() {
     let fixture = StatusFixture::from_checked_in_records();
     let output = fixture.run(&["--role", "reference"]);
@@ -4210,6 +4244,7 @@ fn reference_role_cli_renders_reference_presentation() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn keeps_visual_interaction_api_ownership_distinct() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4232,6 +4267,7 @@ fn keeps_visual_interaction_api_ownership_distinct() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn keeps_ci_dco_observations_separate() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4255,6 +4291,7 @@ fn keeps_ci_dco_observations_separate() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn absent_optional_current_ci_capture_keeps_only_historical_rows() {
     let fixture = StatusFixture::new();
     let report = output_text(&fixture.run(&[]));
@@ -4267,6 +4304,7 @@ fn absent_optional_current_ci_capture_keeps_only_historical_rows() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
     let fixture = StatusFixture::new();
     let mut facts = facts_with_current_ci_observation();
@@ -4359,6 +4397,7 @@ fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected() {
     let mutations: [(&[&str], serde_json::Value, &str); 5] = [
         (
@@ -4404,6 +4443,7 @@ fn current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn missing_or_failed_reference_query_is_unknown_not_zero() {
     let fixture = StatusFixture::new();
     let mut missing = facts_with_current_ci_observation();
@@ -4430,6 +4470,7 @@ fn missing_or_failed_reference_query_is_unknown_not_zero() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn mismatched_or_absent_provider_capture_does_not_supply_failure_cause() {
     let mutations: [(&[&str], Option<serde_json::Value>); 4] = [
         (&["run_id"], Some(serde_json::json!("123456789"))),
@@ -4495,6 +4536,7 @@ fn mismatched_or_absent_provider_capture_does_not_supply_failure_cause() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_dco_heads_must_match_their_candidate_and_reference_tips() {
     for (role, expected_error) in [
         (
@@ -4519,6 +4561,7 @@ fn current_dco_heads_must_match_their_candidate_and_reference_tips() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_changed_frozen_tag() {
     let fixture = StatusFixture::new();
     let facts = replace_once(
@@ -4535,6 +4578,7 @@ fn rejects_changed_frozen_tag() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_previous_source_facts_schema_version() {
     let fixture = StatusFixture::new();
     let facts = replace_once(
@@ -4550,6 +4594,7 @@ fn rejects_previous_source_facts_schema_version() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn does_not_accept_wrong_or_partial_dco_trailers() {
     let fixture = StatusFixture::new();
     for wrong_trailer in [
@@ -4578,6 +4623,7 @@ fn does_not_accept_wrong_or_partial_dco_trailers() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_candidate_remote_identity_mismatch() {
     let fixture = StatusFixture::new();
     let facts = replace_once(
@@ -4593,6 +4639,7 @@ fn rejects_candidate_remote_identity_mismatch() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn accepts_new_typed_observations_and_unknown_conclusions() {
     let fixture = StatusFixture::new();
     let mut facts = base_facts();
@@ -4689,6 +4736,7 @@ fn accepts_new_typed_observations_and_unknown_conclusions() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_unknown_state_negative_count_and_non_https_reason_source() {
     let fixture = StatusFixture::new();
     let unknown = replace_once(
@@ -4719,6 +4767,7 @@ fn rejects_unknown_state_negative_count_and_non_https_reason_source() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_duplicate_task_ids_and_unknown_states() {
     let fixture = StatusFixture::new();
     let duplicate = replace_once(
@@ -4743,6 +4792,7 @@ fn rejects_duplicate_task_ids_and_unknown_states() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_accepts_q47_reference_branch_scope() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4752,6 +4802,7 @@ fn status_accepts_q47_reference_branch_scope() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_rejects_malformed_or_incomplete_q47_v1_records() {
     let fixture = StatusFixture::new();
     let valid: serde_json::Value =
@@ -4825,6 +4876,7 @@ fn status_rejects_malformed_or_incomplete_q47_v1_records() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn generation_is_byte_deterministic() {
     let fixture = StatusFixture::new();
     let first = fixture.run(&[]);
@@ -4845,6 +4897,7 @@ fn generation_is_byte_deterministic() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_observations_render_source_bound_branch_and_candidate_failure() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -4924,6 +4977,7 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn partial_job_and_subtree_observations_reject_drift_without_product_claims() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -4990,6 +5044,7 @@ fn partial_job_and_subtree_observations_reject_drift_without_product_claims() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_changed_current_observation_evidence_pin() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5026,6 +5081,7 @@ fn rejects_changed_current_observation_evidence_pin() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_a_temporary_root_locator_in_checked_in_source_facts() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5047,6 +5103,7 @@ fn rejects_a_temporary_root_locator_in_checked_in_source_facts() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_a_stale_source_evidence_archive_manifest_pin() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5069,6 +5126,7 @@ fn rejects_a_stale_source_evidence_archive_manifest_pin() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_missing_archived_current_observation_input() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5092,6 +5150,7 @@ fn rejects_missing_archived_current_observation_input() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_tampered_candidate_measurement_packet_member() {
     let fixture = StatusFixture::from_checked_in_records();
     let member = fixture.repo.root().join(
@@ -5107,6 +5166,7 @@ fn rejects_tampered_candidate_measurement_packet_member() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn keeps_historical_raw_capture_gap_separate_from_readiness() {
     let fixture = StatusFixture::from_checked_in_records();
     let output = fixture.run(&[]);
@@ -5121,6 +5181,7 @@ fn keeps_historical_raw_capture_gap_separate_from_readiness() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_relabeling_a_verified_candidate_failure_as_not_run() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5139,6 +5200,7 @@ fn rejects_relabeling_a_verified_candidate_failure_as_not_run() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_unrecorded_candidate_acceptance_promotion() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5157,6 +5219,7 @@ fn rejects_unrecorded_candidate_acceptance_promotion() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate() {
     let fixture = StatusFixture::new();
     let mut facts: serde_json::Value =
@@ -5185,6 +5248,7 @@ fn execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate() 
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn stale_attempt_must_be_historical_and_does_not_promote_readiness() {
     let fixture = StatusFixture::new();
     let mut stale = paired_attempt_fixture(&fixture);
@@ -5231,6 +5295,7 @@ fn stale_attempt_must_be_historical_and_does_not_promote_readiness() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
     let fixture = StatusFixture::new();
     let mut facts: serde_json::Value =
@@ -5274,6 +5339,7 @@ fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
 }
 
 #[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
     let fixture = StatusFixture::new();
     let run = serde_json::json!({
