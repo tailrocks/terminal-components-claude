@@ -7,4 +7,8 @@ license.workspace = true
 
 [dependencies]
 jackin-preview-domain.workspace = true
+termrock.workspace = true
 unicode-width.workspace = true
+
+[lints]
+workspace = true

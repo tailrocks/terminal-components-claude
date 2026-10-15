@@ -12,3 +12,6 @@ jackin-preview-presentation.workspace = true
 termrock.workspace = true
 ratatui.workspace = true
 
+
+[lints]
+workspace = true

@@ -9,3 +9,6 @@ license.workspace = true
 jackin-preview-domain.workspace = true
 termrock.workspace = true
 ratatui.workspace = true
+
+[lints]
+workspace = true

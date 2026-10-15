@@ -78,12 +78,12 @@ impl SaveResult {
 }
 
 #[derive(Clone)]
-pub(crate) struct PendingWrite {
-    pub(crate) ticket: SaveTicket,
-    pub(crate) due_ms: i64,
-    pub(crate) expected: Option<Box<Workspace>>,
-    pub(crate) proposed: Box<Workspace>,
-    pub(crate) ok: bool,
+pub struct PendingWrite {
+    pub ticket: SaveTicket,
+    pub due_ms: i64,
+    pub expected: Option<Box<Workspace>>,
+    pub proposed: Box<Workspace>,
+    pub ok: bool,
 }
 impl fmt::Debug for PendingWrite {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

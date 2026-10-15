@@ -1598,12 +1598,8 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 name = "jackin-preview"
 version = "0.1.0"
 dependencies = [
- "clap",
  "jackin-preview-app",
- "jackin-preview-sim",
- "ratatui 0.30.2",
  "termrock",
- "termrock-session",
 ]
 
 [[package]]
@@ -1634,6 +1630,9 @@ dependencies = [
 [[package]]
 name = "jackin-preview-domain"
 version = "0.1.0"
+dependencies = [
+ "termrock",
+]
 
 [[package]]
 name = "jackin-preview-host-ui"
@@ -1660,6 +1659,7 @@ name = "jackin-preview-sim"
 version = "0.1.0"
 dependencies = [
  "jackin-preview-domain",
+ "termrock",
  "unicode-width 0.2.0",
 ]
 
