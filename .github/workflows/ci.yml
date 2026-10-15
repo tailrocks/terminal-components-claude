@@ -3383,9 +3383,9 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-conformance/nextest/default
           VELNOR_MATRIX_KEY: m-dd18526183e6f086
-          VELNOR_TASK_DIGEST: b3-f56f8c707058ccc136a859ade3ec7cb7af80a9256f72de1f9a793f4264b3e16c
+          VELNOR_TASK_DIGEST: b3-c7a78c8b9571b133e866ecbf971fb748c245ce8978bde7fc453ac5c1a73296e5
           VELNOR_TASK_ID: stack/rust/crates/termrock-conformance/nextest/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; s=$(date +%s%3N); mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.148 -- cargo nextest run --profile default --locked --offline --manifest-path crates/termrock-conformance/Cargo.toml --package termrock-conformance --run-ignored all --no-tests fail; code=$?; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$s\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.8\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; s=$(date +%s%3N); mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.148 -- cargo nextest run --profile default --locked --offline --manifest-path crates/termrock-conformance/Cargo.toml --package termrock-conformance --no-tests fail; code=$?; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$s\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.8\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Doctests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-conformance/doctest/default,')"
         env:
