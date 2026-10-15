@@ -86,7 +86,6 @@ fn qualify_pure_ratatui_capture_and_six_formats() {
     assert_eq!(bundle.generation.profile, profile.name);
 }
 
-
 #[test]
 fn qualify_grouped_store_and_negative_detection() {
     let tmp = tempfile::tempdir().expect("tempdir");
