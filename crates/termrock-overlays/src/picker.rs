@@ -5,17 +5,19 @@ use core::marker::PhantomData;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
-use super::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
+use termrock_navigation::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
+pub use termrock_navigation::item::{AsItem, Item, ItemColumns, ItemRow, ItemRowLayout};
 use super::{Acc, PartStyle, SlotFn, overlay_chrome};
-use crate::collection::{EmptyState, RowFn, RowUi};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::empty::{EmptyState};
 use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
+use crate::layout::Track;
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, FgStep, GlyphRole, Role, StylePatch, Surface, Variant};
+use crate::theme::{Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
-pub use termrock_navigation::{AsItem, Item, ItemColumns, ItemRow, ItemRowLayout};
 
 struct BorrowedRow<'a, R>(&'a R);
 
@@ -141,7 +143,6 @@ impl PickerState {
 pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
-    meta: Option<&'a str>,
     width: Option<u16>,
     searchable: bool,
     filter: FilterPolicy,
@@ -152,7 +153,6 @@ pub struct Picker<'a, T, R = ItemRow> {
     empty: Option<EmptyState<'a>>,
     row: R,
     item_layout: ItemRowLayout,
-    footer: Option<&'a str>,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -164,7 +164,6 @@ impl<T, R> core::fmt::Debug for Picker<'_, T, R> {
         f.debug_struct("Picker")
             .field("id", &self.id)
             .field("title", &self.title)
-            .field("meta", &self.meta)
             .field("scopes", &self.scopes)
             .field("searchable", &self.searchable)
             .field("requested_size", &self.requested_size)
@@ -179,7 +178,6 @@ impl<T> Picker<'_, T, ItemRow> {
         Self {
             id,
             title: "Choose",
-            meta: None,
             width: None,
             searchable: true,
             filter: FilterPolicy::Label,
@@ -189,11 +187,7 @@ impl<T> Picker<'_, T, ItemRow> {
             align: None,
             empty: None,
             row: ItemRow,
-            // the contract form: fixed gutter/glyph/label/detail/tag/group
-            // columns with group labels on first-of-group rows (S4
-            // PICKER-QUERY-001 V1); Compact stays an explicit opt-in
-            item_layout: ItemRowLayout::Columns,
-            footer: None,
+            item_layout: ItemRowLayout::Compact,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -235,12 +229,6 @@ impl<'a, T, R> Picker<'a, T, R> {
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = title;
-        self
-    }
-    /// Optional metadata text displayed on the right side of the title row.
-    #[must_use]
-    pub const fn meta(mut self, meta: &'a str) -> Self {
-        self.meta = Some(meta);
         self
     }
     /// Override the requested width; the layer resolver still clamps to the viewport.
@@ -300,7 +288,6 @@ impl<'a, T, R> Picker<'a, T, R> {
         Picker {
             id: self.id,
             title: self.title,
-            meta: self.meta,
             width: self.width,
             searchable: self.searchable,
             filter: self.filter,
@@ -310,19 +297,12 @@ impl<'a, T, R> Picker<'a, T, R> {
             align: self.align,
             empty: self.empty,
             row,
-            item_layout: self.item_layout,
-            footer: self.footer,
+            item_layout: ItemRowLayout::Compact,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
             _item: PhantomData,
         }
-    }
-    /// Optional footer text displayed on the bottom row of the picker.
-    #[must_use]
-    pub const fn footer(mut self, footer: &'a str) -> Self {
-        self.footer = Some(footer);
-        self
     }
     /// Patch every part.
     #[must_use]
@@ -346,6 +326,15 @@ impl<'a, T, R> Picker<'a, T, R> {
     }
 }
 
+fn clamp_fixed_width(size: LayerSize, viewport_width: u16) -> LayerSize {
+    match size {
+        LayerSize::Fixed(width, height) if viewport_width > 4 => {
+            LayerSize::Fixed(width.min(viewport_width.saturating_sub(4)), height)
+        }
+        other => other,
+    }
+}
+
 impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
         let mut list = FilterList::new(self.id)
@@ -359,16 +348,14 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if let Some(patch) = self.patch {
             list = list.patch(patch);
         }
-        if !self.parts.is_empty() {
-            list = list.patch_part(self.parts);
-        }
+        list = list.patch_part(self.parts);
         list
     }
 
     /// Requested modal size, pure in props, semantic labels, and design tokens.
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         if let Some(size) = self.requested_size {
-            return size;
+            return clamp_fixed_width(size, cx.viewport().width);
         }
         let d = cx.design();
         let width = self.width.unwrap_or_else(|| {
@@ -380,15 +367,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .min(usize::from(d.size.popup_max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
-        // Searchable pickers reserve title, query and spacing before the list
-        // plus the footer/breathing row below it (draw subtracts 3 + 1 from
-        // the inner height), so the outer height is rows + 6: chrome 2 +
-        // title 1 + query 1 + spacing 1 + rows + bottom 1 (oracle
-        // showcase/pickers/open/80x24 shows 13 rows in a 19-tall modal).
-        // Nonsearchable pickers move the list above that query space and
-        // retain the bottom breathing room: rows + 5.
-        let extra = if self.searchable { 6 } else { 5 };
-        LayerSize::Fixed(width, rows.saturating_add(extra))
+        // Searchable pickers reserve title, query and spacing before the list.
+        // Nonsearchable pickers move the list above that query space and retain
+        // the bottom breathing room. Both request the same outer height.
+        LayerSize::Fixed(width, rows.saturating_add(5))
     }
 
     /// Layer specification supplied by this picker.
@@ -495,26 +477,13 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &PickerState, items: &[T]) -> Rect {
         let mut live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
-        let container_patch = self
-            .ov
-            .part_patch(Part::CONTAINER)
-            .unwrap_or_else(|| StylePatch::new().clear_fg().set_bg(Role::CurrentSurface));
-        let border_patch = self
-            .ov
-            .part_patch(Part::BORDER)
-            .unwrap_or_else(|| StylePatch::new().set_fg(Role::BorderStrong));
-        let chrome_patches = [
-            (Part::CONTAINER, container_patch),
-            (Part::BORDER, border_patch),
-        ];
-        let chrome_ov = self.ov.part(&chrome_patches);
         overlay_chrome(
             ui,
             self.id,
             area,
             Family::PICKER,
-            Surface::Elevated,
-            chrome_ov,
+            Surface::Overlay,
+            self.ov,
             live,
             live,
             |ui, inner| {
@@ -539,179 +508,34 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     height: 1,
                     ..content
                 };
-                let title_style = self
-                    .ov
-                    .part_patch(Part::TITLE)
-                    .map(|p| {
-                        ui.style_patched(Family::PICKER, Variant::DEFAULT, Part::TITLE, live, &p)
-                    })
-                    .unwrap_or_else(|| {
-                        ui.style_patched(
-                            Family::PICKER,
-                            Variant::DEFAULT,
-                            Part::TITLE,
-                            live,
-                            &StylePatch::new()
-                                .set_fg(Role::Fg(FgStep::Primary))
-                                .add(Modifier::BOLD),
-                        )
-                    });
-                self.ov.note(
+                let title_style = self.ov.style(
                     ui,
                     self.id,
                     Family::PICKER,
                     Variant::DEFAULT,
                     Part::TITLE,
-                    title_style,
+                    live,
                 );
                 ui.paint_str(title, self.title, title_style.style);
-                if let Some(meta) = self.meta {
-                    let meta_w = width(meta);
-                    let meta_style = self
-                        .ov
-                        .part_patch(Part::META)
-                        .map(|p| {
-                            ui.style_patched(Family::PICKER, Variant::DEFAULT, Part::META, live, &p)
-                        })
-                        .unwrap_or_else(|| {
-                            ui.style_patched(
-                                Family::PICKER,
-                                Variant::DEFAULT,
-                                Part::META,
-                                live,
-                                &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
-                            )
-                        });
-                    self.ov.note(
-                        ui,
-                        self.id,
-                        Family::PICKER,
-                        Variant::DEFAULT,
-                        Part::META,
-                        meta_style,
-                    );
-                    ui.paint_str(
-                        Rect {
-                            x: content.right().saturating_sub(meta_w),
-                            y: content.y,
-                            width: meta_w,
-                            height: 1,
-                        },
-                        meta,
-                        meta_style.style,
-                    );
-                }
                 if self.searchable {
                     let query = Rect {
                         y: content.y.saturating_add(1),
                         height: 1,
                         ..content
                     };
-                    let query_fill = self
-                        .ov
-                        .part_patch(Part::QUERY)
-                        .map(|p| {
-                            ui.style_patched(
-                                Family::PICKER,
-                                Variant::DEFAULT,
-                                Part::QUERY,
-                                live,
-                                &p,
-                            )
-                        })
-                        .unwrap_or_else(|| {
-                            ui.style_patched(
-                                Family::PICKER,
-                                Variant::DEFAULT,
-                                Part::QUERY,
-                                live,
-                                &StylePatch::new()
-                                    .set_fg(Role::Fg(FgStep::Primary))
-                                    .set_bg(Role::Surface(Surface::Field)),
-                            )
-                        });
-                    ui.fill(query, query_fill.style);
-                    let bar_style = self
-                        .ov
-                        .part_patch(Part::GUTTER)
-                        .map(|p| {
-                            ui.style_patched(
-                                Family::PICKER,
-                                Variant::DEFAULT,
-                                Part::GUTTER,
-                                live | StateFlags::FOCUSED,
-                                &p,
-                            )
-                        })
-                        .unwrap_or_else(|| {
-                            ui.style_patched(
-                                Family::PICKER,
-                                Variant::DEFAULT,
-                                Part::GUTTER,
-                                live | StateFlags::FOCUSED,
-                                &StylePatch::new()
-                                    .set_fg(Role::Focus)
-                                    .set_bg(Role::Surface(Surface::Field)),
-                            )
-                        });
-                    ui.glyph(
-                        Rect { width: 1, ..query },
-                        GlyphRole::FocusBar,
-                        bar_style.style,
+                    let query_style = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        Part::QUERY,
+                        live | StateFlags::EDITING,
                     );
+                    ui.fill(query, query_style.style);
                     let text = if st.query().is_empty() {
                         self.placeholder
                     } else {
                         st.query()
-                    };
-                    let text_style = if st.query().is_empty() {
-                        self.ov
-                            .part_patch(Part::HELP)
-                            .map(|p| {
-                                ui.style_patched(
-                                    Family::PICKER,
-                                    Variant::DEFAULT,
-                                    Part::HELP,
-                                    live,
-                                    &p,
-                                )
-                            })
-                            .unwrap_or_else(|| {
-                                ui.style_patched(
-                                    Family::PICKER,
-                                    Variant::DEFAULT,
-                                    Part::HELP,
-                                    live,
-                                    &StylePatch::new()
-                                        .set_fg(Role::Fg(FgStep::Muted))
-                                        .set_bg(Role::Surface(Surface::Field)),
-                                )
-                            })
-                    } else {
-                        self.ov
-                            .part_patch(Part::QUERY)
-                            .map(|p| {
-                                ui.style_patched(
-                                    Family::PICKER,
-                                    Variant::DEFAULT,
-                                    Part::QUERY,
-                                    live | StateFlags::EDITING,
-                                    &p,
-                                )
-                            })
-                            .unwrap_or_else(|| {
-                                ui.style_patched(
-                                    Family::PICKER,
-                                    Variant::DEFAULT,
-                                    Part::QUERY,
-                                    live | StateFlags::EDITING,
-                                    &StylePatch::new()
-                                        .set_fg(Role::Fg(FgStep::Primary))
-                                        .set_bg(Role::Surface(Surface::Field))
-                                        .add(Modifier::UNDERLINED)
-                                        .set_underline(Role::Accent),
-                                )
-                            })
                     };
                     ui.paint_str(
                         Rect {
@@ -720,7 +544,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                             ..query
                         },
                         text,
-                        text_style.style,
+                        query_style.style,
                     );
                     ui.set_cursor(
                         self.id,
@@ -733,52 +557,16 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 // Searchable pickers reserve title, query and spacing before
                 // the list; nonsearchable pickers retain the bottom breathing
                 // room so the drawn rows match the requested outer height.
-                let list_offset = if self.searchable { 3 } else { 1 };
-                let footer_reserve = 1;
                 let list = Rect {
-                    y: content.y.saturating_add(list_offset),
+                    y: content
+                        .y
+                        .saturating_add(if self.searchable { 3 } else { 1 }),
                     height: content
                         .height
-                        .saturating_sub(list_offset)
-                        .saturating_sub(footer_reserve),
+                        .saturating_sub(if self.searchable { 3 } else { 2 }),
                     ..content
                 };
                 self.list().draw(ui, list, &st.list, items);
-                if let Some(footer) = self.footer {
-                    let footer_style = self
-                        .ov
-                        .part_patch(Part::HELP)
-                        .map(|p| {
-                            ui.style_patched(Family::PICKER, Variant::DEFAULT, Part::HELP, live, &p)
-                        })
-                        .unwrap_or_else(|| {
-                            ui.style_patched(
-                                Family::PICKER,
-                                Variant::DEFAULT,
-                                Part::HELP,
-                                live,
-                                &StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
-                            )
-                        });
-                    self.ov.note(
-                        ui,
-                        self.id,
-                        Family::PICKER,
-                        Variant::DEFAULT,
-                        Part::HELP,
-                        footer_style,
-                    );
-                    let footer_text = termrock_text::truncate(footer, content.width);
-                    ui.paint_str(
-                        Rect {
-                            y: content.bottom().saturating_sub(1),
-                            height: 1,
-                            ..content
-                        },
-                        &footer_text,
-                        footer_style.style,
-                    );
-                }
                 area
             },
         )
@@ -791,6 +579,10 @@ pub type CommandPalette<'a, T, R = ItemRow> = Picker<'a, T, R>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::intent::IntentQueue;
+    use crate::theme::Theme;
+    use crate::ui::UiCore;
+    use crate::ui::cx::{FrameServices, LastFrame};
 
     struct Domain {
         id: u64,
@@ -830,5 +622,30 @@ mod tests {
         let action = state.push_query_char('a');
         assert_eq!(action, FilterListAction::QueryChanged);
         assert_eq!(state.query(), "a");
+    }
+
+    fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
+        let picker = Picker::<Domain>::new(Id::root("picker.fixed-width")).size(size);
+        let intents = IntentQueue::new();
+        let mut services = FrameServices {
+            viewport: Rect::new(0, 0, viewport_width, 1),
+            ..FrameServices::default()
+        };
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+        let cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+        picker.measured_size(&cx, &[])
+    }
+
+    #[test]
+    fn fixed_width_keeps_a_four_column_screen_margin() {
+        let requested = LayerSize::Fixed(84, 9);
+        assert_eq!(measured_at(requested, 72), LayerSize::Fixed(68, 9));
+        assert_eq!(measured_at(requested, 80), LayerSize::Fixed(76, 9));
+        assert_eq!(measured_at(requested, 100), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 0), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 4), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(LayerSize::Fill, 72), LayerSize::Fill);
     }
 }

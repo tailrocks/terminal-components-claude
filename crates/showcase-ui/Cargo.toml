@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[dev-dependencies]
+termrock-test-support.workspace = true
+
 [dependencies]
 showcase-data.workspace = true
 showcase-demos.workspace = true

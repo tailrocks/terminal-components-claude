@@ -1,7 +1,7 @@
 //! A cancellable task runner using the public lifecycle rail.
 
-use std::{cmp::Ordering, time::Duration};
 use termrock::author::PaintStyle;
+use std::{cmp::Ordering, time::Duration};
 
 use termrock::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,
@@ -9,13 +9,13 @@ use termrock::{
     Ui, Variant, id, layout, width,
 };
 
-use super::{ModalFooter, Page, PageUpdate, frame};
+use super::{Page, PageUpdate, frame};
 
 const RUN: Id = id!("taskrunner.run");
 const CANCEL: Id = id!("taskrunner.cancel");
 const STEPS: Id = id!("taskrunner.steps");
 const CANCEL_DIALOG: Id = id!("taskrunner.cancel.dialog");
-pub const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
+pub(crate) const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]
 struct RunStep {
@@ -62,7 +62,7 @@ fn cancel_button(running: bool) -> Button<'static> {
 }
 
 fn cancel_dialog() -> Dialog<'static> {
-    Dialog::destructive(
+    Dialog::confirm(
         CANCEL_DIALOG,
         "Cancel pipeline?",
         "The running pipeline will be stopped safely.",
@@ -296,7 +296,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
 /// The runner advances one lifecycle step per virtual tick and confirms
 /// cancellation through a modal layer.
 #[derive(Debug)]
-pub struct TaskRunnerPage {
+pub(crate) struct TaskRunnerPage {
     steps: Vec<RunStep>,
     state: StepsState,
     frame: usize,
@@ -307,7 +307,7 @@ pub struct TaskRunnerPage {
 }
 
 impl TaskRunnerPage {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             steps: NAMES
                 .iter()
@@ -491,13 +491,6 @@ impl Page for TaskRunnerPage {
         } else {
             &[("r", "Run pipeline"), ("Enter", "Activate")]
         }
-    }
-
-    fn modal_footer(&self, ui: &Ui<'_>) -> Option<ModalFooter> {
-        ui.is_open(CANCEL_DIALOG).then(|| ModalFooter {
-            editing: self.cancel_state.is_editing(),
-            quick_answer: cancel_dialog().quick_answer(),
-        })
     }
 }
 

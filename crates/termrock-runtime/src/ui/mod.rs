@@ -6,9 +6,10 @@
 //! is automatic, and roles are recorded per painted cell for `dim_layer`.
 
 pub mod cx;
-pub(crate) mod derived;
-pub(crate) mod layer_buf;
-pub(crate) mod paint;
+pub mod derived;
+pub mod layer_buf;
+pub mod measure;
+pub mod paint;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -17,7 +18,8 @@ use ratatui_core::style::Color;
 use core::ops::{BitOr, BitOrAssign};
 use std::collections::HashMap;
 
-pub use cx::{Cx, FrameRead, FrameServices, LastFrame, LayoutFacts};
+use cx::LastFrame;
+pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
 
@@ -66,12 +68,11 @@ impl CellRoles {
 
 /// Per-frame output the runtime consumes after `app.draw` (§3.3 steps 12–15).
 #[derive(Debug, Default)]
-pub struct FrameState {
-    pub registry: Registry,
-    pub ring: FocusRing,
+pub(crate) struct FrameState {
+    pub(crate) registry: Registry,
+    pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) cursors: Vec<CursorRequest>,
-    pub(crate) cursor_suppressed: bool,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
@@ -83,7 +84,6 @@ pub struct FrameState {
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
     pub(crate) top: LayerId,
-    pub(crate) tick: u64,
     #[cfg(feature = "testing")]
     pub(crate) styled_parts: Vec<(Id, Part)>,
     #[cfg(feature = "testing")]
@@ -187,12 +187,11 @@ struct ReferenceScope {
 }
 
 impl FrameState {
-    pub fn reset(&mut self, generation: u32, screen: Rect) {
+    pub(crate) fn reset(&mut self, generation: u32, screen: Rect) {
         self.registry.reset(generation);
         self.ring.reset();
         self.layers.begin();
         self.cursors.clear();
-        self.cursor_suppressed = false;
         self.typing.clear();
         self.typing_bindings.reset();
         self.typing_resolved = crate::runtime::typing::TypingResolved::default();
@@ -206,7 +205,6 @@ impl FrameState {
         self.screen = screen;
         self.inert_floor = LayerId::PAGE;
         self.top = LayerId::PAGE;
-        self.tick = 0;
         #[cfg(feature = "testing")]
         self.styled_parts.clear();
         #[cfg(feature = "testing")]
@@ -229,7 +227,7 @@ impl FrameState {
 /// State that outlives a frame: the derived cache, the style memo and the
 /// overlay stack (§20.9-2 P4: constructed once per runtime, reused).
 #[derive(Default)]
-pub struct UiCore {
+pub(crate) struct UiCore {
     cache: DerivedCache,
     reference_cache: DerivedCache,
     pub(crate) style_cache: StyleCache,
@@ -263,7 +261,7 @@ impl UiCore {
     }
 
     /// Drop every derived cache (resize, theme change, generation gap).
-    pub fn clear_caches(&mut self) {
+    pub(crate) fn clear_caches(&mut self) {
         self.cache.clear();
         self.reference_cache.clear();
         self.style_cache.clear();
@@ -351,7 +349,7 @@ impl core::fmt::Debug for Ui<'_> {
 }
 
 impl<'f> Ui<'f> {
-    pub fn new(
+    pub(crate) fn new(
         frame: &'f mut FrameState,
         page: &'f mut Buffer,
         core: &'f mut UiCore,
@@ -415,16 +413,6 @@ impl<'f> Ui<'f> {
     /// Whether registrations from this layer are suppressed (`inert_below`).
     pub const fn is_inert(&self) -> bool {
         self.inert || self.reference.is_some()
-    }
-
-    /// Current animation tick.
-    pub const fn tick(&self) -> u64 {
-        self.frame.tick
-    }
-
-    /// Current animation tick.
-    pub const fn animation_tick(&self) -> u64 {
-        self.frame.tick
     }
 
     /// Draw an inert reference fixture.
@@ -587,17 +575,6 @@ impl<'f> Ui<'f> {
         self.frame
             .styled_queries
             .push((owner, family, variant, part, resolved));
-    }
-
-    /// Record that `owner` named `part` in a per-instance override while the
-    /// part is outside the component's declared `PARTS` (R8). One entry per
-    /// `(owner, part)` per frame; the override itself is ignored.
-    #[cfg(feature = "testing")]
-    pub fn note_unknown_part(&mut self, owner: Id, part: Part) {
-        let hit = Diagnostic::UnknownPart { owner, part };
-        if !self.frame.diagnostics.contains(&hit) {
-            self.frame.diagnostics.push(hit);
-        }
     }
 
     /// The `(owner, part)` pairs styled this frame — the declared-parts check.
@@ -1059,14 +1036,8 @@ impl<'f> Ui<'f> {
         self.record_cursor(owner, pos, true);
     }
 
-    /// Suppress hardware cursor for the current frame.
-    pub fn suppress_cursor(&mut self) {
-        self.frame.cursor_suppressed = true;
-        self.frame.cursors.clear();
-    }
-
     fn record_cursor(&mut self, owner: Id, pos: Position, typing_offer: bool) {
-        if self.reference.is_some() || self.frame.cursor_suppressed {
+        if self.reference.is_some() {
             return;
         }
         self.frame.cursors.push(CursorRequest {
@@ -1076,13 +1047,6 @@ impl<'f> Ui<'f> {
             inert: self.inert,
             typing_offer,
         });
-    }
-
-    /// Whether layer `id` is open this frame: the draw-side read of the
-    /// resolver [`Ui::layer`] draws through. Reference fixtures see no
-    /// layers, so this is always false there.
-    pub fn is_open(&self, id: Id) -> bool {
-        self.reference.is_none() && self.frame.layers.find(id).is_some()
     }
 
     /// Draw layer `id`'s content. Resolves `id` to the `LayerId` assigned at
@@ -1289,10 +1253,6 @@ impl<'f> Ui<'f> {
             .unwrap_or_default()
     }
 
-    pub(crate) fn page(&self) -> &Buffer {
-        self.page
-    }
-
     pub(crate) fn page_mut(&mut self) -> &mut Buffer {
         self.page
     }
@@ -1353,10 +1313,7 @@ impl FrameRead for Ui<'_> {
         if self.reference.is_some() {
             None
         } else {
-            self.frame
-                .registry
-                .area_of(id)
-                .or_else(|| self.last.registry.area_of(id))
+            self.last.registry.area_of(id)
         }
     }
 
@@ -1364,10 +1321,7 @@ impl FrameRead for Ui<'_> {
         if self.reference.is_some() {
             None
         } else {
-            self.frame
-                .registry
-                .area_of_part(owner, part)
-                .or_else(|| self.last.registry.area_of_part(owner, part))
+            self.last.registry.area_of_part(owner, part)
         }
     }
 
@@ -1375,18 +1329,8 @@ impl FrameRead for Ui<'_> {
         if self.reference.is_some() {
             None
         } else {
-            self.frame
-                .layout
-                .iter()
-                .rev()
-                .find(|(owner, _)| *owner == id)
-                .map(|(_, l)| *l)
-                .or_else(|| self.last.layout_of(id))
+            self.last.layout_of(id)
         }
-    }
-
-    fn tick(&self) -> u64 {
-        self.tick()
     }
 }
 
@@ -1403,6 +1347,7 @@ mod tests {
         CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget, Ui, UiCore,
     };
     use crate::action::ActionKey;
+    use crate::rowui::RowUi;
     use crate::event::{Chord, KeyCode};
     use crate::focus::Focusability;
     use crate::hit::{Axes, Headroom};
@@ -1410,7 +1355,6 @@ mod tests {
     use crate::keymap::Binding;
     use crate::layer::{LayerId, LayerSpec};
     use crate::response::StateFlags;
-    use crate::rowui::RowUi;
     use crate::theme::{
         Family, FgStep, Overlay, OverlayRule, Role, StylePatch, Surface, Theme, Variant,
     };

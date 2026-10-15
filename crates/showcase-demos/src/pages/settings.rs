@@ -7,7 +7,7 @@ use termrock::{
     TabsState, Ui, Variant, id, width,
 };
 
-use super::{ModalFooter, Page, PageUpdate, frame};
+use super::{Page, PageUpdate, frame};
 
 const TAB: Id = id!("settings.tabs");
 const MEMBERS: Id = id!("settings.members");
@@ -266,7 +266,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
 /// Member records are app state; tabs, list cursor and modal draft are
 /// component state owned by this screen.
 #[derive(Debug)]
-pub struct SettingsPage {
+pub(crate) struct SettingsPage {
     tabs: TabsState,
     members: Vec<Member>,
     member_state: ListState,
@@ -277,7 +277,7 @@ pub struct SettingsPage {
 }
 
 impl SettingsPage {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             tabs: TabsState::default(),
             members: INITIAL_MEMBERS.to_vec(),
@@ -448,13 +448,6 @@ impl Page for SettingsPage {
         } else {
             &[("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
         }
-    }
-
-    fn modal_footer(&self, ui: &Ui<'_>) -> Option<ModalFooter> {
-        ui.is_open(REMOVE_DIALOG).then(|| ModalFooter {
-            editing: self.remove_state.is_editing(),
-            quick_answer: remove_dialog().quick_answer(),
-        })
     }
 }
 

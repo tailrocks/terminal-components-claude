@@ -9,7 +9,7 @@ use core::fmt;
 use core::ops::Range;
 use std::borrow::Cow;
 
-use super::measure::{byte_at_col, graphemes, is_word_grapheme, width};
+use super::measure::{grapheme_width, graphemes, is_word_grapheme, width};
 
 /// Cursor as `(line, display column)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -151,7 +151,7 @@ impl TextBuffer {
     }
 
     /// A single-line buffer used for a secret draft.
-    pub fn sensitive_single(text: &str) -> Self {
+    pub(crate) fn sensitive_single(text: &str) -> Self {
         Self::from_text(text.to_owned(), false, true)
     }
 
@@ -161,7 +161,7 @@ impl TextBuffer {
     }
 
     /// A multi-line buffer used for a secret draft.
-    pub fn sensitive_multi(text: &str) -> Self {
+    pub(crate) fn sensitive_multi(text: &str) -> Self {
         Self::from_text(text.to_owned(), true, true)
     }
 
@@ -606,7 +606,15 @@ impl TextBuffer {
         let mut start = 0usize;
         for (i, l) in self.text.split('\n').enumerate() {
             if i == line {
-                return start.saturating_add(byte_at_col(l, col));
+                let mut w = 0usize;
+                for (gi, g) in graphemes(l) {
+                    let gw = usize::from(grapheme_width(g));
+                    if w.saturating_add(gw) > col {
+                        return start.saturating_add(gi);
+                    }
+                    w = w.saturating_add(gw);
+                }
+                return start.saturating_add(l.len());
             }
             start = start.saturating_add(l.len()).saturating_add(1);
         }

@@ -4,26 +4,19 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::select::{Select, SelectState};
-use crate::collection::{KeyFn, RowFn};
+use crate::select::{Select, SelectState};
+use termrock_collections::collection::{KeyFn};
+use termrock_runtime::rowui::{RowFn};
+use termrock_runtime::field_control::FieldControl;
 use crate::id::Id;
 use crate::measure::{Constraints, Size};
-use crate::ui::{FieldControl, Ui};
+use crate::ui::Ui;
 
 /// A `Field` control over a fully-built [`Select`] and its items.
 ///
 /// `Select::draw` needs the option slice every frame, so a bare `Select`
 /// cannot implement [`FieldControl`] on its own; this adapter carries both
-/// halves. The caller builds the `Select` first (`.key()`, `.row()` and any
-/// patches are non-`const` generic transforms owned by `Select`), then binds
-/// it to the items:
-///
-/// ```ignore
-/// Field::new("Column", SelectField::new(Select::new(COL).key(k).row(r), &columns))
-/// ```
-///
-/// Identity, drawing and measurement are pure passthrough to the wrapped
-/// `Select`; the chrome registers under the select's own id.
+/// halves. The caller builds the `Select` first, then binds it to the items.
 pub struct SelectField<'a, T, K, R> {
     select: Select<'a, T, K, R>,
     items: &'a [T],
@@ -67,7 +60,7 @@ mod tests {
     use ratatui_core::layout::Position;
 
     use super::*;
-    use crate::field::Field;
+    use termrock_fields::fieldfield::Field;
     use crate::id::ItemKey;
     use crate::runtime::Runtime;
     use crate::runtime::stub::{SCREEN, Stub};
@@ -84,8 +77,7 @@ mod tests {
 
     fn cell_symbol(buf: &Buffer, x: u16, y: u16) -> &str {
         buf.cell(Position::new(x, y))
-            .map(|cell| cell.symbol())
-            .unwrap_or("<none>")
+            .map_or("<none>", ratatui_core::buffer::Cell::symbol)
     }
 
     fn row_text(buf: &Buffer, y: u16, x0: u16, len: u16) -> String {
@@ -132,7 +124,6 @@ mod tests {
         let mut st = SelectState::default();
         st.set_value(Some(ItemKey::index(0)));
 
-        // the bare control row is the oracle: the adapter must add nothing
         let (mut rt, mut bare) = scene();
         rt.draw_scene(SCREEN, &mut bare, |ui, _| {
             let select: Select<'_, &str> = Select::new(SEL);
@@ -152,14 +143,11 @@ mod tests {
         })
         .commit_presented();
 
-        // label row through the chrome
         assert_eq!(row_text(&buf, 1, 4, 6), "Column");
-        // gutter / value / marker cells
         assert_eq!(cell_symbol(&buf, 2, 2), cell_symbol(&bare, 2, 2), "gutter");
         assert_eq!(row_text(&buf, 2, 4, 5), "alpha", "value");
         let marker = Theme::junie().design.glyphs.get(GlyphRole::SelectClosed);
         assert_eq!(cell_symbol(&buf, 30, 2), marker, "marker");
-        // the whole control row is pixel-identical to the bare select
         for x in 2..32 {
             assert_eq!(
                 cell_symbol(&buf, x, 2),

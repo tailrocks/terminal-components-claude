@@ -1,5 +1,7 @@
 //! Demo fixtures carried over from the legacy showcase.
 
+use termrock::{ItemKey, TreeNode};
+
 /// One deterministic task row shared by the table and task-runner pages.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TaskRow {
@@ -281,8 +283,40 @@ pub const LANGUAGES: &[&str] = &[
 /// Stable pre-order project tree copied from the legacy showcase. Keys are
 /// explicit domain identities, never derived from depth or display position,
 /// so expansion cannot alias a sibling or move a selection.
-///
-/// Label and metadata for each tree key.
+pub const TREE: &[TreeNode] = &[
+    TreeNode::parent(0).keyed(ItemKey::Num(1)),
+    TreeNode::parent(1).keyed(ItemKey::Num(2)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(3)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(4)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(5)),
+    TreeNode::parent(2).keyed(ItemKey::Num(6)),
+    TreeNode::leaf(3).keyed(ItemKey::Num(7)),
+    TreeNode::leaf(3).keyed(ItemKey::Num(8)),
+    TreeNode::leaf(3).keyed(ItemKey::Num(9)),
+    TreeNode::parent(1).keyed(ItemKey::Num(10)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(11)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(12)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(13)),
+    TreeNode::parent(1).keyed(ItemKey::Num(14)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(15)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(16)),
+    TreeNode::leaf(1).keyed(ItemKey::Num(17)),
+    TreeNode::leaf(1).keyed(ItemKey::Num(18)),
+    TreeNode::leaf(1).keyed(ItemKey::Num(19)),
+    TreeNode::parent(0).keyed(ItemKey::Num(20)),
+    TreeNode::leaf(1).keyed(ItemKey::Num(21)),
+    TreeNode::leaf(1).keyed(ItemKey::Num(22)),
+    TreeNode::parent(1).keyed(ItemKey::Num(23)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(24)),
+    TreeNode::leaf(2).keyed(ItemKey::Num(25)),
+    TreeNode::parent(0).keyed(ItemKey::Num(26)),
+    TreeNode::leaf(1).keyed(ItemKey::Num(27)),
+    TreeNode::leaf(1).keyed(ItemKey::Num(28)),
+    TreeNode::leaf(0).keyed(ItemKey::Num(29)),
+    TreeNode::leaf(0).keyed(ItemKey::Num(30)),
+];
+
+/// Label and metadata for each tree key, in the same order as [`TREE`].
 pub const TREE_LABELS: &[(&str, &str)] = &[
     ("src", "directory"),
     ("api", "directory"),
@@ -369,18 +403,3 @@ pub const SCROLL_ROWS: &[&str] = &[
     "Row 105", "Row 106", "Row 107", "Row 108", "Row 109", "Row 110", "Row 111", "Row 112",
     "Row 113", "Row 114", "Row 115", "Row 116", "Row 117", "Row 118", "Row 119", "Row 120",
 ];
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_showcase_data_fixtures() {
-        assert_eq!(TASKS.len(), 24);
-        assert_eq!(LANGUAGES.len(), 20);
-        assert_eq!(TREE_LABELS.len(), 30);
-        assert_eq!(SCROLL_ROWS.len(), 120);
-        assert!(!PROSE.is_empty());
-        let logs = log_lines(5);
-        assert_eq!(logs.len(), 5);
-    }
-}

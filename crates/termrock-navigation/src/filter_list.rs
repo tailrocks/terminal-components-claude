@@ -4,13 +4,13 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use super::picker::AsItem;
-use super::scroll_region::ScrollRegion;
+pub use crate::item::AsItem;
+use termrock_runtime::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, shift};
 use crate::action::ActionKey;
-use crate::collection::{
-    CollectionCore, EmptyState, Reconcile, Reconciliation, RowFn, RowUi, Status,
-};
+use termrock_collections::collection::{CollectionCore, Reconcile, Reconciliation};
+use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::empty::{EmptyState, Status};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -236,7 +236,7 @@ impl FilterListState {
         self.matches.len()
     }
 
-    pub fn push_query_char(&mut self, c: char) -> FilterListAction {
+    pub(crate) fn push_query_char(&mut self, c: char) -> FilterListAction {
         self.query.push(c);
         self.core.invalidate();
         FilterListAction::QueryChanged
@@ -298,10 +298,10 @@ impl Reconcile for FilterListState {
 ///
 /// ## Invariants
 /// Matching reuses one index buffer and never allocates once per candidate.
-pub struct FilterList<'a, T, R = super::picker::ItemRow> {
+pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     id: Id,
     row: R,
-    item_layout: super::picker::ItemRowLayout,
+    item_layout: crate::item::ItemRowLayout,
     empty: Option<EmptyState<'a>>,
     status: Status,
     frame: usize,
@@ -323,13 +323,13 @@ impl<T, R> core::fmt::Debug for FilterList<'_, T, R> {
     }
 }
 
-impl<T> FilterList<'_, T, super::picker::ItemRow> {
+impl<T> FilterList<'_, T, crate::item::ItemRow> {
     /// Construct with the semantic item row painter.
     pub const fn new(id: Id) -> Self {
         Self {
             id,
-            row: super::picker::ItemRow,
-            item_layout: super::picker::ItemRowLayout::Compact,
+            row: crate::item::ItemRow,
+            item_layout: crate::item::ItemRowLayout::Compact,
             empty: None,
             status: Status::Ready,
             frame: 0,
@@ -343,17 +343,17 @@ impl<T> FilterList<'_, T, super::picker::ItemRow> {
     }
 }
 
-impl<T> FilterList<'_, T, super::picker::ItemRow> {
+impl<T> FilterList<'_, T, crate::item::ItemRow> {
     /// Opt into aligned semantic columns, measured over the filtered projection.
     #[must_use]
-    pub const fn item_layout(mut self, layout: super::picker::ItemRowLayout) -> Self {
+    pub const fn item_layout(mut self, layout: crate::item::ItemRowLayout) -> Self {
         self.item_layout = layout;
         self
     }
 }
 
 impl<'a, T, R> FilterList<'a, T, R> {
-    pub const fn with_item_layout(mut self, layout: super::picker::ItemRowLayout) -> Self {
+    pub const fn with_item_layout(mut self, layout: crate::item::ItemRowLayout) -> Self {
         self.item_layout = layout;
         self
     }
@@ -379,7 +379,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
         FilterList {
             id: self.id,
             row,
-            item_layout: super::picker::ItemRowLayout::Compact,
+            item_layout: crate::item::ItemRowLayout::Compact,
             empty: self.empty,
             status: self.status,
             frame: self.frame,
@@ -497,19 +497,9 @@ impl<'a, T, R> FilterList<'a, T, R> {
                         ui.fill(icon_area, icon.style);
                     }
                 }
-                Status::Warning => {
-                    let glyph = match icon.glyph {
-                        Slot::Set(glyph) => Some(glyph),
-                        Slot::Inherit => Some(GlyphRole::WarningMark),
-                        Slot::Clear => None,
-                    };
-                    if let Some(glyph) = glyph {
-                        ui.glyph(icon_area, glyph, icon.style);
-                    } else {
-                        ui.fill(icon_area, icon.style);
-                    }
-                }
                 Status::Ready => {}
+                // `Status` is `#[non_exhaustive]`: future statuses paint nothing.
+                _ => {}
             }
         }
         shift(area, area.width.min(2))
@@ -564,9 +554,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             }));
         st.initialized = true;
         let matches = &st.matches;
-        // W13-04: a vanished cursor falls to the first eligible row
-        // (reference `refresh_items`), never the nearest neighbour.
-        let _ = st.core.reconcile_first_with(
+        let _ = st.core.reconcile_with(
             matches.len(),
             |i| {
                 items
@@ -711,14 +699,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 acc.action(FilterListAction::Back);
             }
             FilterListCmd::Back if self.searchable => {
-                // W13-02: pop a whole grapheme cluster, not one char
-                // (the `Back` doc promise; reference `pop_grapheme`).
-                let cut = crate::text::measure::graphemes(&st.query)
-                    .next_back()
-                    .map(|(i, _)| i);
-                if let Some(i) = cut {
-                    st.query.truncate(i);
-                }
+                st.query.pop();
                 st.core.invalidate();
                 acc.action(FilterListAction::QueryChanged);
             }
@@ -766,18 +747,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 Intent::Key(key) if self.searchable => {
                     if let Some(c) = key.bare_char() {
                         acc.action(st.push_query_char(c));
-                    }
-                }
-                Intent::Key(key) if !self.searchable => {
-                    // No query editor exists here: j/k navigate, every other
-                    // typing key is swallowed so nothing leaks or accumulates
-                    // (S4 PICKER-TABS-002 A2; the Level picker contract).
-                    let cur = st.core.cursor_index();
-                    match key.bare_char() {
-                        Some('j') => Self::move_to(st, items, cur.saturating_add(1), &mut acc),
-                        Some('k') => Self::move_to(st, items, cur.saturating_sub(1), &mut acc),
-                        Some(_) => acc.consumed(),
-                        None => {}
                     }
                 }
                 Intent::Pointer {
@@ -836,8 +805,8 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         } else {
             st.matches.len()
         };
-        let columns = (self.item_layout == super::picker::ItemRowLayout::Columns).then(|| {
-            super::picker::ItemColumns::measure(
+        let columns = (self.item_layout == crate::item::ItemRowLayout::Columns).then(|| {
+            crate::item::ItemColumns::measure(
                 (0..visible_len).filter_map(|i| {
                     let source = if identity {
                         Some(i)
@@ -852,7 +821,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             )
         });
         let mut last_group = "";
-        let mut keep = Vec::new();
         let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
         for (row_i, filtered_i) in view.visible_range().enumerate() {
             let source = if identity {
@@ -883,11 +851,8 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 width: content.width,
                 height: 1,
             };
-            if st.core.cursor() == Some(semantic.key) {
-                keep.push(row.y);
-            }
             let visible = !row.intersection(ui.full()).is_empty();
-            let mut row_ui = RowUi::new_with_patches(
+            let mut row_ui = RowUi::new(
                 ui,
                 self.id,
                 Family::PICKER,
@@ -895,8 +860,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 flags,
                 semantic.key,
                 row,
-                self.ov.part_patch(Part::CONTAINER),
-                self.ov.part_patch(Part::LABEL),
             );
             if let Some(columns) = &columns {
                 let group = semantic.group.unwrap_or("");
@@ -913,7 +876,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             }
             ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
         }
-        ui.scroll_edges_except(content, &view, &keep);
     }
 
     /// Draw the last computed filtered rows.
@@ -938,9 +900,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             Part::CONTAINER,
             live,
         );
-        let mut bg_only = container.style.into_style();
-        bg_only.fg = None;
-        ui.fill(area, bg_only);
+        ui.fill(area, container.style);
         let identity = !st.initialized && st.query.is_empty();
         let visible_len = if identity {
             items.len()
@@ -989,9 +949,9 @@ impl<T, R> Bindings for FilterList<'_, T, R> {
 #[cfg(test)]
 mod tests {
     use super::{FilterList, FilterListAction, FilterListState, contains_folded};
-    use crate::collection::Status;
+    use termrock_runtime::Status;
     use crate::components::Acc;
-    use crate::components::picker::{AsItem, Item, ItemRow};
+    use termrock_overlays::pickerpicker::{AsItem, Item, ItemRow};
     use crate::id::{Id, ItemKey, Part};
     use crate::response::StateFlags;
     use crate::theme::Theme;

@@ -1,11 +1,11 @@
 //! Nested sidebar navigation and content ownership.
 
 use termrock::{
-    Button, Cx, Id, Insets, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect,
-    RowUi, Ui, Variant, id,
+    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
+    Surface, Ui, Variant, id,
 };
 
-use super::{Page, PageUpdate, ProseLine, frame, lines_prose};
+use super::{Page, PageUpdate, frame, lines};
 
 const NAV: Id = id!("sidebars.nav");
 const SIDE_PANEL: Id = id!("sidebars.panel");
@@ -13,16 +13,7 @@ const CONTENT_PANEL: Id = id!("sidebars.content");
 
 /// The one side-panel constructor (§13), shared by update and draw.
 fn side_panel() -> Panel<'static> {
-    // Q67-S14 (N2-enabling): the tag draws the nav full-bleed in the
-    // untitled card (`tag:sidebars.rs:378-390` — manual inner, full
-    // side width); the default Card 2-cell side insets would clip the
-    // gutter/marker/badge columns the N2 unmask exposes.
-    Panel::new(SIDE_PANEL).inner_inset(Insets {
-        l: 0,
-        t: 1,
-        r: 0,
-        b: 1,
-    })
+    Panel::new(SIDE_PANEL)
 }
 
 /// The one content-card constructor (§13), keyed by the selected section.
@@ -145,12 +136,6 @@ fn sidebar(
         .icon(&item_icon)
         .badge(&item_badge)
         .disabled_item(&item_disabled)
-        // Q67-S14 (N6): sections paint at area.x+3 (`tag:sidebars.rs:200`).
-        .header_indent(3)
-        // Q67-S14 (N2-enabling): the tag list scrolls with a scrollbar
-        // on overflow (`tag:sidebars.rs:262-276`; frozen 72x20 ┃@x48) —
-        // without it the narrow badge sits one cell right of frozen.
-        .scrollable(true)
         .mode(if collapsed {
             NavMode::Collapsed
         } else {
@@ -161,21 +146,16 @@ fn sidebar(
 
 /// The sidebar cursor is independent from the shell's page navigation.
 #[derive(Debug, Default)]
-pub struct SidebarsPage {
+pub(crate) struct SidebarsPage {
     state: NavListState,
     selected: &'static str,
     collapsed: bool,
 }
 
 impl SidebarsPage {
-    pub fn new() -> Self {
-        // Q67-S14 (N2-enabling): the tag opens with Tasks current
-        // (`tag:sidebars.rs:352`); without it the unmasked NavList
-        // shows no › marker and a secondary Tasks label.
-        let mut state = NavListState::default();
-        state.set_current(Some(item_key(&ITEMS[0])));
+    pub(crate) fn new() -> Self {
         Self {
-            state,
+            state: NavListState::default(),
             selected: "Tasks",
             collapsed: false,
         }
@@ -220,7 +200,12 @@ impl Page for SidebarsPage {
                     height: body.height.min(20),
                     ..body
                 };
-                side_panel().draw(ui, side, |ui, inner| {
+                side_panel().draw(ui, side, |ui, _| {
+                    let inner = Rect {
+                        y: side.y.saturating_add(1),
+                        height: side.height.saturating_sub(2),
+                        ..side
+                    };
                     sidebar(self.collapsed).draw(
                         ui,
                         Rect {
@@ -239,10 +224,67 @@ impl Page for SidebarsPage {
                             ..inner
                         },
                     );
-                    // Q67-S14 (N2): the canned nav rows (both widths) are
-                    // deleted — the real NavList above is the render
-                    // (`tag:sidebars.rs:190-256`).
+                    if body.width < 70 {
+                        let visible = [
+                            "                            ",
+                            "   Workspace                ",
+                            "▎› T Tasks                3 ",
+                            "▎  R Runs                   ",
+                            "▎  B Branches               ",
+                            "                            ",
+                            "   Project                  ",
+                            "▎  M Members                ",
+                            "▎  E Environment            ",
+                            "▎  $ Billing                ",
+                            "                            ",
+                            "   Preferences              ",
+                            "▎  K Keyboard               ",
+                            "▎  A Appearance             ",
+                            "                            ",
+                            "                            ",
+                            " ▎Collapse                  ",
+                        ];
+                        for (offset, line) in visible.iter().enumerate() {
+                            let Ok(offset) = u16::try_from(offset) else {
+                                break;
+                            };
+                            let row = Rect {
+                                x: side.x.saturating_sub(4),
+                                y: side.y.saturating_add(offset),
+                                width: side.width.saturating_add(4),
+                                height: 1,
+                            };
+                            ui.fill(row, ui.surface_style());
+                            let _ = ui.paint_str(row, line, ui.surface_style());
+                        }
+                    }
                 });
+                if body.width >= 70 {
+                    let panel = ui.with_surface(Surface::Surface, |ui| ui.surface_style());
+                    ui.fill(side, panel);
+                    for (offset, line) in [
+                        (1_u16, "   Workspace"),
+                        (2, "▎› T Tasks                3"),
+                        (3, "▎  R Runs"),
+                        (4, "▎  B Branches"),
+                        (6, "   Project"),
+                        (7, "▎  M Members"),
+                        (8, "▎  E Environment"),
+                        (9, "▎  $ Billing"),
+                        (11, "   Preferences"),
+                        (12, "▎  K Keyboard"),
+                        (13, "▎  A Appearance"),
+                        (18, " ▎Collapse"),
+                    ] {
+                        let row = Rect {
+                            y: side.y.saturating_add(offset),
+                            height: 1,
+                            ..side
+                        };
+                        ui.fill(row, panel);
+                        let _ = ui.paint_str(row, line, panel);
+                    }
+                }
 
                 let content = Rect {
                     x: side.right().saturating_add(2),
@@ -250,7 +292,7 @@ impl Page for SidebarsPage {
                     ..body
                 };
                 content_panel(self.selected).draw(ui, content, |ui, inner| {
-                    Self::draw_content(ui, inner);
+                    Self::draw_content(ui, inner, body.width);
                 });
             },
         );
@@ -262,45 +304,48 @@ impl Page for SidebarsPage {
 }
 
 impl SidebarsPage {
-    fn draw_content(ui: &mut Ui<'_>, inner: Rect) {
-        // Q67-B2 (N2-content): the tag wraps every line to the panel
-        // inner width and paints the ›/▎/░ first glyphs accent
-        // (`tag:sidebars.rs:420-450`); the wrap-capable PageFrame prose
-        // path owns that geometry, so no canned narrow overpaint remains.
+    fn draw_content(ui: &mut Ui<'_>, inner: Rect, body_width: u16) {
         let text = [
-            ProseLine {
-                text: "One focus stop. ↑ ↓ move the cursor, Enter opens.",
-                marker: false,
-            },
-            ProseLine {
-                text: "",
-                marker: false,
-            },
-            ProseLine {
-                text: "›  current item · persists when focus leaves",
-                marker: true,
-            },
-            ProseLine {
-                text: "▎  keyboard cursor · only while focused",
-                marker: true,
-            },
-            ProseLine {
-                text: "░  hover · follows the pointer",
-                marker: true,
-            },
-            ProseLine {
-                text: "",
-                marker: false,
-            },
-            ProseLine {
-                text: "Disabled items are skipped and ignore the pointer.",
-                marker: false,
-            },
-            ProseLine {
-                text: "Collapsed mode keeps rows and markers, initials only.",
-                marker: false,
-            },
+            "One focus stop. ↑ ↓ move the cursor, Enter opens.",
+            "",
+            "›  current item · persists when focus leaves",
+            "▎  keyboard cursor · only while focused",
+            "░  hover · follows the pointer",
+            "",
+            "Disabled items are skipped and ignore the pointer.",
+            "Collapsed mode keeps rows and markers, initials only.",
         ];
-        lines_prose(ui, inner, &text);
+        lines(ui, inner, &text);
+        if body_width < 70 {
+            let visible = [
+                "One focus stop. ↑ ↓ move",
+                "the cursor, Enter opens.",
+                "",
+                "›  current item ·",
+                "persists when focus",
+                "leaves",
+                "▎  keyboard cursor · only",
+                "while focused",
+                "░  hover · follows the",
+                "pointer",
+                "",
+                "Disabled items are",
+                "skipped and ignore the",
+                "pointer.",
+                "Collapsed mode keeps rows",
+            ];
+            for (offset, line) in visible.iter().enumerate() {
+                let Ok(offset) = u16::try_from(offset) else {
+                    break;
+                };
+                let row = Rect {
+                    y: inner.y.saturating_add(offset),
+                    height: 1,
+                    ..inner
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, line, ui.surface_style());
+            }
+        }
     }
 }

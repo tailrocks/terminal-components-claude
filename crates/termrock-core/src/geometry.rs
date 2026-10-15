@@ -27,3 +27,13 @@ pub enum Axes {
     /// Both axes.
     Both,
 }
+
+impl Axes {
+    /// Whether the region handles `axis`.
+    pub const fn handles(self, axis: crate::event::Axis) -> bool {
+        matches!(
+            (self, axis),
+            (Axes::Both, _) | (Axes::V, crate::event::Axis::V) | (Axes::H, crate::event::Axis::H)
+        )
+    }
+}

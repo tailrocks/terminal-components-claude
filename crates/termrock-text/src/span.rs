@@ -18,8 +18,6 @@ pub struct Span<'a> {
     pub role: Option<Role>,
     /// Modifiers added over the part's style.
     pub add: Modifier,
-    /// Modifiers removed from the part's style.
-    pub remove: Modifier,
 }
 
 impl<'a> Span<'a> {
@@ -29,7 +27,6 @@ impl<'a> Span<'a> {
             text,
             role: None,
             add: Modifier::empty(),
-            remove: Modifier::empty(),
         }
     }
 
@@ -44,13 +41,6 @@ impl<'a> Span<'a> {
     #[must_use]
     pub const fn modifier(mut self, m: Modifier) -> Self {
         self.add = self.add.union(m);
-        self
-    }
-
-    /// Remove modifiers.
-    #[must_use]
-    pub const fn remove_modifier(mut self, m: Modifier) -> Self {
-        self.remove = self.remove.union(m);
         self
     }
 

@@ -4,7 +4,7 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use crate::author::{PartStyle, SlotFn};
+use super::{PartStyle, SlotFn};
 use crate::hit::Axes;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -87,8 +87,6 @@ pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
     scrollbar_visible: bool,
-    fill_container: bool,
-    focus_override: Option<bool>,
     ov: PartStyle<'a>,
 }
 
@@ -107,8 +105,6 @@ impl fmt::Debug for ScrollRegion<'_> {
             .field("id", &self.id)
             .field("family", &self.family)
             .field("scrollbar_visible", &self.scrollbar_visible)
-            .field("fill_container", &self.fill_container)
-            .field("focus_override", &self.focus_override)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -124,24 +120,8 @@ impl<'a> ScrollRegion<'a> {
             id,
             family: Family::SCROLLBAR,
             scrollbar_visible: true,
-            fill_container: true,
-            focus_override: None,
             ov: PartStyle::new(),
         }
-    }
-
-    /// Whether to fill the container area with `CONTAINER` style during draw. Default: true.
-    #[must_use]
-    pub const fn fill_container(mut self, fill: bool) -> Self {
-        self.fill_container = fill;
-        self
-    }
-
-    /// Explicitly override the focus state used for track/thumb styling.
-    #[must_use]
-    pub const fn focused(mut self, focused: bool) -> Self {
-        self.focus_override = Some(focused);
-        self
     }
 
     /// Show and reserve the overflow scrollbar column. Default: true.
@@ -336,9 +316,7 @@ impl<'a> ScrollRegion<'a> {
             Part::CONTAINER,
             StateFlags::empty(),
         );
-        if self.fill_container {
-            ui.fill(area, container.style);
-        }
+        ui.fill(area, container.style);
         ui.report_layout(
             self.id,
             LayoutFacts::new(
@@ -375,16 +353,7 @@ impl<'a> ScrollRegion<'a> {
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
-        // Tag `scrollbar.rs`: the bar answers focus plus its own exact
-        // hover/press only. Owner-level hover (the pointer over a row, not
-        // the bar — a wheel event sets `pointer_position` too) must not
-        // brighten the track or thumb. The exact THUMB hover/press joins
-        // `thumb_live` below.
-        let part_live = match self.focus_override {
-            Some(true) => StateFlags::FOCUSED,
-            Some(false) => StateFlags::empty(),
-            None => ui.state(self.id) & StateFlags::FOCUSED,
-        };
+        let part_live = StateFlags::empty();
         let track = ov.style(
             ui,
             self.id,
@@ -393,13 +362,11 @@ impl<'a> ScrollRegion<'a> {
             Part::TRACK,
             part_live,
         );
-        let mut thumb_live = part_live;
-        if ui.hovered_part(self.id) == Some(PartRef::of(Part::THUMB)) {
-            thumb_live |= StateFlags::HOVERED;
-        }
-        if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
-            thumb_live |= StateFlags::PRESSED;
-        }
+        let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
+            part_live | StateFlags::PRESSED
+        } else {
+            part_live
+        };
         let thumb = ov.style(
             ui,
             self.id,
@@ -559,10 +526,7 @@ mod tests {
         let plain = render(None);
         let focused = render(Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)));
         let pressed = render(Some(ReferenceTarget::new(ID, ReferenceState::PRESSED)));
-        assert_ne!(
-            focused, plain,
-            "owner focus should style its scrollbar thumb"
-        );
+        assert_eq!(focused, plain, "owner focus styled its scrollbar");
         assert_eq!(pressed, plain, "owner press styled its scrollbar");
     }
 

@@ -4,6 +4,7 @@
 //! registry is rebuilt per frame; last registration wins; `hit` returns the
 //! topmost region regardless of layer and the runtime compares layers, which
 //! is what makes "click outside" a real test.
+pub use termrock_core::geometry::{Axes, Headroom};
 
 use ratatui_core::layout::{Position, Rect};
 
@@ -41,28 +42,7 @@ pub struct Hit {
     pub local: Position,
 }
 
-pub use termrock_core::Headroom;
 
-/// Which axes a scroll region handles.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Axes {
-    /// Vertical only.
-    V,
-    /// Horizontal only.
-    H,
-    /// Both.
-    Both,
-}
-
-impl Axes {
-    /// Whether the region handles `axis`.
-    pub const fn handles(self, axis: Axis) -> bool {
-        matches!(
-            (self, axis),
-            (Axes::Both, _) | (Axes::V, Axis::V) | (Axes::H, Axis::H)
-        )
-    }
-}
 
 /// One registered region.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -582,6 +562,7 @@ mod runtime_tests {
 
     use crate::event::{KeyCode, MouseKind};
     use crate::id::Id;
+pub use termrock_core::geometry::{Axes, Headroom};
     use crate::layer::LayerSpec;
     use crate::runtime::stub::{Control, Stub, key, mouse, runtime, step};
 

@@ -22,8 +22,3 @@ pub trait FieldControl {
     /// Measure the control.
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
 }
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct InheritedFormState {
-    pub disabled: bool,
-}

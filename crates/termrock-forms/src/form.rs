@@ -5,18 +5,19 @@ use std::borrow::Cow;
 
 use ratatui_core::layout::Rect;
 
-use super::button::Button;
-use super::chip::{ChipBarState, LabelChips};
-use super::choice::{Checkbox, LabelRadio, RadioGroupAction, RadioGroupState, Toggle};
-use super::input::{ErrorState, TextAction, TextInput, TextInputState, discard_error};
-use super::keyhint::ChordText;
-use super::scroll_region::ScrollRegion;
-use super::select::{LabelSelect, SelectAction, SelectState};
-use super::textarea::{TextArea, TextAreaState};
+use termrock_controls::button::Button;
+use termrock_navigation::chip::{ChipBarState, LabelChips};
+use termrock_controls::choice::{Checkbox, LabelRadio, RadioGroupAction, RadioGroupState, Toggle};
+use termrock_fields::input::{ErrorState, TextAction, TextInput, TextInputState, discard_error};
+use termrock_feedback::keyhint::ChordText;
+use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
+use termrock_fields::textarea::{TextArea, TextAreaState};
 use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
-use crate::collection::KeySet;
+use termrock_collections::collection::key::KeySet;
 use crate::event::{Chord, KeyCode};
+use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef, fnv1a};
 use crate::intent::Intent;
 use crate::measure::{Constraints, Size};
@@ -37,7 +38,7 @@ pub enum FieldSpan {
     Half,
 }
 
-pub use termrock_runtime::InheritedFormState;
+pub use termrock_controls::choice::InheritedFormState;
 
 /// A section identity. [`GroupKey::ALL`] is visible in every section.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -95,7 +96,7 @@ impl fmt::Debug for FieldKind<'_> {
 pub struct FieldSpec<'a> {
     /// Control identity.
     pub id: Id,
-    /// Label painted by `Field`.
+    /// Label painted by [`Field`](crate::components::Field).
     pub label: &'a str,
     /// Configured control.
     pub kind: FieldKind<'a>,
@@ -534,30 +535,6 @@ impl FormState {
         self.dirty = false;
     }
 
-    /// Live non-secret draft text for a text field while it edits.
-    ///
-    /// Owners whose painters mirror component state read this to echo
-    /// keystrokes before commit; secret and idle fields report `None` so the
-    /// committed owner value stays authoritative.
-    pub fn text_draft(&self, id: Id) -> Option<&str> {
-        self.slots
-            .iter()
-            .find(|slot| slot.id == id)
-            .and_then(|slot| slot.input.draft_text())
-    }
-
-    /// Live radio cursor state for a radio field while its form edits.
-    ///
-    /// Owners whose painters mirror component state read this to draw the
-    /// same cursor the update path seeded; unknown ids report `None` so the
-    /// caller falls back to a fresh state.
-    pub fn radio_state(&self, id: Id) -> Option<&RadioGroupState> {
-        self.slots
-            .iter()
-            .find(|slot| slot.id == id)
-            .map(|slot| &slot.radio)
-    }
-
     /// Local validation error for `id`.
     ///
     /// Errors are returned as the generic `"Invalid value"`.
@@ -906,6 +883,10 @@ impl Placements<'_, '_> {
                 FieldKind::Area(area) => {
                     self.field_height.max(area.rows_in_form().saturating_add(2))
                 }
+                FieldKind::Radio(_) => {
+                    let rows = u16::try_from(data.options(field.id).len()).unwrap_or(u16::MAX);
+                    self.field_height.max(rows.saturating_add(2))
+                }
                 _ => self.field_height,
             };
             let is_half = self.columns == 2 && field.span == FieldSpan::Half;
@@ -1019,6 +1000,33 @@ impl<'a> Form<'a> {
 
     fn shown<D: FormData + ?Sized>(&self, data: &D, field: &FieldSpec<'_>) -> bool {
         (field.group == GroupKey::ALL || field.group == self.group) && data.visible(field.id)
+    }
+
+    fn reveal_index(placement: Placement, viewport: usize) -> usize {
+        let bottom = placement
+            .top
+            .saturating_add(usize::from(placement.height).saturating_sub(1));
+        if viewport > 0 && usize::from(placement.height) <= viewport {
+            bottom
+        } else {
+            placement.top
+        }
+    }
+
+    fn register_clipped_field<D: FormData + ?Sized>(
+        ui: &mut Ui<'_>,
+        field: &FieldSpec<'_>,
+        data: &D,
+    ) {
+        if ui.is_inert() {
+            return;
+        }
+        let focus = if data.disabled(field.id) {
+            Focusability::Disabled
+        } else {
+            Focusability::Focusable
+        };
+        ui.register_focus_only(field.id, focus);
     }
 
     fn field_height(field: &FieldSpec<'_>, design: &DesignTokens) -> u16 {
@@ -1163,18 +1171,14 @@ impl<'a> Form<'a> {
 
     fn commit_focused<D: FormData + ?Sized>(&self, cx: &Cx<'_>, st: &mut FormState, data: &mut D) {
         for (index, field) in self.fields.iter().enumerate() {
-            if !self.shown(data, field) {
+            if !self.shown(data, field) || !cx.state(field.id).contains(StateFlags::FOCUSED) {
                 continue;
             }
-            let is_focused = cx.state(field.id).contains(StateFlags::FOCUSED);
             let disabled = data.disabled(field.id);
             let (value, _) = data.value_and_options(field.id);
             let Some(slot) = st.slots.get_mut(index) else {
-                continue;
+                return;
             };
-            if !is_focused && !slot.input.is_editing() && !slot.area.is_editing() {
-                continue;
-            }
             let committed = match (&field.kind, value) {
                 (FieldKind::Text(control), FieldMut::Text(value)) => {
                     control.commit_in_form(&mut slot.input, value)
@@ -1193,6 +1197,7 @@ impl<'a> Form<'a> {
             if committed && !disabled {
                 st.dirty = true;
             }
+            return;
         }
     }
 
@@ -1274,7 +1279,9 @@ impl<'a> Form<'a> {
                 found
             }
         {
-            st.scroll.ensure_visible_on_next_layout(placement.top);
+            let viewport = st.scroll.viewport_len();
+            st.scroll
+                .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
         }
 
         let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
@@ -1297,7 +1304,9 @@ impl<'a> Form<'a> {
                 continue;
             };
             if cx.state(field.id).contains(StateFlags::FOCUSED) {
-                st.scroll.ensure_visible_on_next_layout(placement.top);
+                let viewport = st.scroll.viewport_len();
+                st.scroll
+                    .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
             }
             let disabled = data.disabled(field.id);
             let (value, options) = data.value_and_options(field.id);
@@ -1331,30 +1340,15 @@ impl<'a> Form<'a> {
             acc.fold(&response.erase());
         }
         if let Some(key) = requested {
-            // W11-04: a disabled submit action blocks every submit path,
-            // including Enter (`form.md`: "Busy submit cannot emit"). A
-            // submit key with no declared action stays eligible.
-            let blocked = key == self.submit
-                && self
-                    .actions
-                    .iter()
-                    .find(|action| action.key() == self.submit)
-                    .is_some_and(|action| !action.is_enabled());
-            if blocked {
-                // Swallowed: the Enter chord is already claimed, so the
-                // field stays quiet too and the busy form reports nothing.
-                acc.consumed();
+            let action = if key == self.submit {
+                self.submit_form(cx, st, data)
             } else {
-                let action = if key == self.submit {
-                    self.submit_form(cx, st, data)
-                } else {
-                    FormAction::Action(key)
-                };
-                if key == self.submit {
-                    first = Some(action);
-                } else {
-                    Self::remember_action(&mut first, action);
-                }
+                FormAction::Action(key)
+            };
+            if key == self.submit {
+                first = Some(action);
+            } else {
+                Self::remember_action(&mut first, action);
             }
         }
 
@@ -1437,6 +1431,7 @@ impl<'a> Form<'a> {
             };
             let bottom = placement.top.saturating_add(usize::from(placement.height));
             if bottom <= base || placement.top >= base.saturating_add(usize::from(content.height)) {
+                Self::register_clipped_field(ui, field, data);
                 continue;
             }
             let y_offset = placement.top.saturating_sub(base);
@@ -2261,6 +2256,32 @@ mod tests {
             Form::field_height(&field, &design),
             design.size.field_height
         );
+    }
+
+    fn row_text(buffer: &Buffer, y: u16) -> String {
+        (0..buffer.area.width)
+            .map(|x| buffer.cell((x, y)).expect("row cell").symbol())
+            .collect()
+    }
+
+    #[test]
+    fn radio_field_paints_one_row_per_option() {
+        let (_runtime, buffer) = matrix_runtime(MatrixKind::Radio);
+        let rows: Vec<u16> = ["one", "two", "three"]
+            .into_iter()
+            .map(|label| {
+                (0..buffer.area.height)
+                    .find(|y| row_text(&buffer, *y).contains(label))
+                    .expect(label)
+            })
+            .collect();
+        assert!(rows[0] < rows[1] && rows[1] < rows[2]);
+        assert!(
+            row_text(&buffer, rows[0]).contains('●'),
+            "the value row wears the on glyph"
+        );
+        assert!(row_text(&buffer, rows[1]).contains('○'));
+        assert!(row_text(&buffer, rows[2]).contains('○'));
     }
 
     #[test]

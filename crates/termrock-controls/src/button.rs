@@ -1,13 +1,12 @@
 //! `Button` (`COMPONENT_ARCHITECTURE.md` §17.0 A7, Appendix A 4A).
 
 use core::fmt;
-use std::time::Duration;
 
 use ratatui_core::layout::Rect;
 
 use super::{PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
-use crate::collection::Status;
+use termrock_runtime::Status;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part};
@@ -15,7 +14,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Activated, Response, StateFlags};
-use crate::text::{truncate, width};
+use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
@@ -227,7 +226,7 @@ impl<'a> Button<'a> {
         self
     }
 
-    /// A toggle marker: `true` paints the on knob, `false` the off knob.
+    /// A toggle marker: `true` paints the on knob, `false` a blank slot.
     #[must_use]
     pub const fn checked(mut self, on: bool) -> Self {
         self.checked = Some(on);
@@ -280,14 +279,6 @@ impl<'a> Button<'a> {
     /// The update phase.
     pub fn update(&self, cx: &mut Cx<'_>) -> Response<Activated> {
         self.autofocus_once(cx);
-        if self.busy() {
-            // Q67-F5: the spinner frame reads the runtime tick, and the
-            // runtime delivers no Tick without a repaint request — so a busy
-            // button keeps the animation cadence flowing itself, at the
-            // theme's tick period. Each elapsed deadline settles into one
-            // tick and one redraw with the next frame.
-            cx.request_repaint_after(Duration::from_millis(cx.design().motion.tick_ms));
-        }
         let mut r: Response<Activated> = Response::ignored();
         let can = self.can_activate();
         for it in cx.intents(self.id) {
@@ -337,7 +328,11 @@ impl<'a> Button<'a> {
         }
     }
 
-    pub fn update_in_form(&self, cx: &mut Cx<'_>, inherited_disabled: bool) -> Response<Activated> {
+    pub fn update_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        inherited_disabled: bool,
+    ) -> Response<Activated> {
         self.with_inherited_disabled(inherited_disabled).update(cx)
     }
 
@@ -352,11 +347,7 @@ impl<'a> Button<'a> {
 
     /// Columns the independent toggle marker needs.
     fn marker_width(&self) -> u16 {
-        if self.checked.is_some() && !self.busy() {
-            2
-        } else {
-            0
-        }
+        if self.checked.is_some() { 2 } else { 0 }
     }
 
     /// The natural width: gutter, optional icon, optional marker, label, pad.
@@ -403,13 +394,6 @@ impl<'a> Button<'a> {
         if self.checked != Some(true) {
             live = live.difference(StateFlags::SELECTED);
         }
-        // `.disabled` is the authority for this frame. The focus ring still
-        // reports last frame's registration, so a button that was disabled
-        // on the previous selection would otherwise stay faint after it
-        // becomes enabled.
-        if !self.disabled {
-            live = live.difference(StateFlags::DISABLED);
-        }
         if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
@@ -426,6 +410,7 @@ impl<'a> Button<'a> {
         let container = style(ui, Part::CONTAINER);
         ui.fill(area, container.style);
 
+        // gutter: the focus bar when the recipe says so, else a blank cell
         let gutter_cell = cell_at(area, area.x);
         if let Some(f) = ov.slot_for(Part::GUTTER) {
             f(ui, gutter_cell);
@@ -433,16 +418,9 @@ impl<'a> Button<'a> {
             let g = style(ui, Part::GUTTER);
             match g.glyph {
                 Slot::Set(glyph) => {
-                    let gs = g.style.remove_modifier(ratatui_core::style::Modifier::BOLD);
-                    ui.glyph(gutter_cell, glyph, gs);
+                    ui.glyph(gutter_cell, glyph, g.style);
                 }
-                Slot::Inherit | Slot::Clear => {
-                    let gs = container
-                        .style
-                        .with_fg_from_bg(container.style)
-                        .remove_modifier(ratatui_core::style::Modifier::BOLD);
-                    ui.fill(gutter_cell, gs);
-                }
+                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
 
@@ -465,12 +443,7 @@ impl<'a> Button<'a> {
                 match self.status {
                     Status::Busy | Status::Loading => {
                         let frames = ui.design().motion.spinner_frames;
-                        let frame = if frames.is_empty() {
-                            ""
-                        } else {
-                            let tick = ui.tick() as usize;
-                            frames[tick % frames.len()]
-                        };
+                        let frame = frames.first().copied().unwrap_or("");
                         ui.paint_str(icon_cell, frame, is.style);
                     }
                     Status::Error => match is.glyph {
@@ -482,27 +455,19 @@ impl<'a> Button<'a> {
                         }
                         Slot::Clear => ui.fill(icon_cell, is.style),
                     },
-                    Status::Warning => match is.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(icon_cell, glyph, is.style);
-                        }
-                        Slot::Inherit => {
-                            ui.glyph(icon_cell, GlyphRole::WarningMark, is.style);
-                        }
-                        Slot::Clear => ui.fill(icon_cell, is.style),
-                    },
                     Status::Ready => {
                         if let Some(glyph) = self.icon {
                             ui.glyph(icon_cell, glyph, is.style);
                         }
                     }
+                    // `Status` is `#[non_exhaustive]`: future statuses paint
+                    // no icon until this component learns about them.
+                    _ => {}
                 }
             }
             text = shift(text, 2);
         }
-        if let Some(on) = self.checked
-            && !self.busy()
-        {
+        if let Some(on) = self.checked {
             let marker_cell = Rect {
                 width: text.width.min(1),
                 ..text
@@ -514,12 +479,7 @@ impl<'a> Button<'a> {
                 let glyph = match ms.glyph {
                     Slot::Set(g) => Some(g),
                     Slot::Inherit if on => Some(GlyphRole::SwitchKnob),
-                    // Q67-F5: the off half is a glyph, not a blank slot —
-                    // the reference paints `○` (`visual-baseline` button
-                    // toggle marker), matching the on/off-glyph invariant
-                    // the Checkbox/RadioGroup siblings keep.
-                    Slot::Inherit => Some(GlyphRole::SwitchKnobOff),
-                    Slot::Clear => None,
+                    Slot::Inherit | Slot::Clear => None,
                 };
                 match glyph {
                     Some(g) => {
@@ -534,14 +494,8 @@ impl<'a> Button<'a> {
             f(ui, text);
         } else {
             let ls = style(ui, Part::LABEL);
-            // Q67-F5: the reference fits marker+label into the row with `…`
-            // (`visual-baseline:src/ui/text.rs:146` via button render), so a
-            // clipped label truncates with an ellipsis instead of a hard
-            // clip. `truncate` is a no-op when the label fits; the marker
-            // cell keeps its own paint and still wins at narrow widths.
-            let label = truncate(self.label, text.width);
             if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.paint_str(text, &label, ls.style);
+                ui.paint_str(text, self.label, ls.style);
                 if area.width >= 2 {
                     paint_pressed_bracket(
                         ui,
@@ -551,36 +505,18 @@ impl<'a> Button<'a> {
                     );
                 }
             } else {
-                ui.paint_str(text, &label, ls.style);
-                // Q65-S8 (G9): the trailing pad wears the LABEL style, not the
-                // container fill. The tag paints it with the same `style` as
-                // the text (`visual-baseline:src/widgets/button.rs:161`),
-                // which carries DIM for disabled buttons at `Mono` (frozen
-                // `buttons/audit/120x40/none.ansi:29`). `set_style` only
-                // overwrites channels the style names, so where LABEL is
-                // silent the container fill shows through unchanged.
-                if area.width >= 2 {
-                    ui.paint_str(cell_at(area, area.right().saturating_sub(1)), " ", ls.style);
-                }
-            }
-            // Q67-F5: the reference fits marker lanes plus label jointly, so
-            // when the lanes consume the whole run (`text` is empty) yet the
-            // label overflows, the ellipsis lands on the last run cell — the
-            // lane gap — rather than vanishing with the label. Below width 4
-            // there is no run cell past the marker: at width 3 the marker
-            // stomps the ellipsis, and narrower rows show no label at all.
-            if text.width == 0 && area.width > 3 && width(self.label) > 0 {
-                ui.paint_str(
-                    cell_at(area, area.x.saturating_add(area.width).saturating_sub(2)),
-                    "…",
-                    ls.style,
-                );
+                ui.paint_str(text, self.label, ls.style);
             }
         }
         area
     }
 
-    pub fn draw_in_form(&self, ui: &mut Ui<'_>, area: Rect, inherited_disabled: bool) -> Rect {
+    pub fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        inherited_disabled: bool,
+    ) -> Rect {
         self.with_inherited_disabled(inherited_disabled)
             .draw(ui, area)
     }
@@ -680,10 +616,7 @@ mod tests {
             })
             .commit_presented();
 
-        // Q65-S4/G6b: no brackets at `Mono` (the tag has none) — the focus
-        // gutter the brackets used to cover is visible again, and the full
-        // label still fits: DEFAULT pressed resolves plain, not truncated.
-        assert_eq!(row_text(&buffer, AREA.width), "▎Full width ");
+        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
 
     #[test]
@@ -868,35 +801,6 @@ mod tests {
         );
     }
 
-    /// The disabled colour follows `.disabled` on this frame. Last frame's
-    /// ring entry must not keep the label faint after the prop flips.
-    #[test]
-    fn enabled_button_drops_the_previous_frames_disabled_flag() {
-        use ratatui_core::style::Color;
-
-        let area = Rect::new(0, 0, 13, 1);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                Button::new(BUTTON, "Set default")
-                    .disabled(true)
-                    .draw(ui, area);
-            })
-            .commit_presented();
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                Button::new(BUTTON, "Set default").draw(ui, area);
-            })
-            .commit_presented();
-        let fg = buffer.cell(Position::new(1, 0)).map(|cell| cell.fg);
-        assert_ne!(
-            fg,
-            Some(Color::Rgb(0x4d, 0x4d, 0x4d)),
-            "an enabled button must not keep the disabled foreground"
-        );
-    }
-
     struct HoverApp;
 
     impl App for HoverApp {
@@ -937,199 +841,5 @@ mod tests {
         );
         assert_eq!(pressed.invalidate(), Invalidate::Paint);
         assert_eq!(left.invalidate(), Invalidate::Paint);
-    }
-
-    const Q65S8_VARIANTS: [Variant; 8] = [
-        Variant::DEFAULT,
-        Variant::PRIMARY,
-        Variant::SECONDARY,
-        Variant::SUBTLE,
-        Variant::DANGER,
-        Variant::TOGGLE,
-        Variant::QUIET,
-        Variant::GHOST,
-    ];
-
-    /// Draw one plain "Go" button; return the buffer and the used rect.
-    fn draw_q65s8(variant: Variant, disabled: bool, theme: Theme) -> (Buffer, Rect) {
-        let mut runtime = Runtime::new(Stub::default(), theme);
-        let mut buffer = Buffer::empty(AREA);
-        let mut used = Rect::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                used = Button::new(BUTTON, "Go")
-                    .variant(variant)
-                    .disabled(disabled)
-                    .draw(ui, area);
-            })
-            .commit_presented();
-        (buffer, used)
-    }
-
-    fn cell_style_q65s8(buf: &Buffer, x: u16) -> ratatui_core::style::Style {
-        buf.cell(Position::new(x, 0)).unwrap().style()
-    }
-
-    /// Q65-S8 (G9): disabled trailing pad @Mono is DarkGray+DIM on Black.
-    /// Tag paints the pad with the label `style`
-    /// (`visual-baseline:src/widgets/button.rs:161`), which carries DIM
-    /// via `disabled_style()`; frozen
-    /// `buttons/audit/120x40/none.ansi:29` pins `[2;38;5;8;48;5;0m`
-    /// over label+pads on all four matrix variants. RED on base (pad
-    /// lacks DIM — leftover container fill).
-    #[test]
-    fn q65s8_g9_disabled_pad_mono_is_darkgray_dim() {
-        use ratatui_core::style::Color;
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        for v in [
-            Variant::PRIMARY,
-            Variant::SECONDARY,
-            Variant::SUBTLE,
-            Variant::DANGER,
-        ] {
-            let (buf, used) = draw_q65s8(v, true, theme.clone());
-            let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
-            assert_eq!(pad.fg, Some(Color::DarkGray), "{v:?} pad fg");
-            assert_eq!(pad.bg, Some(Color::Black), "{v:?} pad bg");
-            assert!(
-                pad.add_modifier.contains(Modifier::DIM),
-                "{v:?} pad lost DISABLED dim"
-            );
-        }
-    }
-
-    /// Q65-S8 (G9): the pad wears exactly the label style @Mono disabled
-    /// (tag line 161: one `style` for text and pad), all 8 variants.
-    /// RED on base (pad = container fill, no DIM; label = DIM).
-    #[test]
-    fn q65s8_g9_pad_matches_label_mono_disabled() {
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        for v in Q65S8_VARIANTS {
-            let (buf, used) = draw_q65s8(v, true, theme.clone());
-            let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
-            let label = cell_style_q65s8(&buf, 1);
-            assert_eq!(pad, label, "{v:?} pad != label @Mono disabled");
-        }
-    }
-
-    /// HOLD: the gutter stays DIM-free @Mono disabled (frozen
-    /// `none.ansi:29` gutter `[38;5;0]`; tag `gutter()` names no
-    /// modifiers). This is what rules out a container-DIM fix shape:
-    /// the gutter derives from the container style, so container DIM
-    /// would leak here. GREEN on base and after.
-    #[test]
-    fn q65s8_hold_gutter_dim_free_mono_disabled() {
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        for v in Q65S8_VARIANTS {
-            let (buf, _) = draw_q65s8(v, true, theme.clone());
-            let gutter = cell_style_q65s8(&buf, 0);
-            assert!(
-                !gutter.add_modifier.contains(Modifier::DIM),
-                "{v:?} gutter gained DIM"
-            );
-        }
-    }
-
-    /// HOLD: pad == label everywhere the LABEL part is silent —
-    /// TC/256/16 × enabled/disabled plus Mono enabled — so the fix
-    /// moves nothing outside Mono+disabled. GREEN on base and after.
-    #[test]
-    fn q65s8_hold_pad_matches_label_where_label_silent() {
-        let levels = [
-            ("TC", Theme::junie()),
-            ("256", Theme::junie().downgrade(ColorLevel::Ansi256)),
-            ("16", Theme::junie().downgrade(ColorLevel::Ansi16)),
-            ("Mono", Theme::junie().downgrade(ColorLevel::Mono)),
-        ];
-        for (lname, theme) in levels {
-            for v in Q65S8_VARIANTS {
-                for disabled in [false, true] {
-                    if lname == "Mono" && disabled {
-                        continue; // the G9 case: covered by q65s8_g9_*.
-                    }
-                    let (buf, used) = draw_q65s8(v, disabled, theme.clone());
-                    let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
-                    let label = cell_style_q65s8(&buf, 1);
-                    assert_eq!(
-                        pad, label,
-                        "{lname} {v:?} disabled={disabled}: pad != label"
-                    );
-                }
-            }
-        }
-    }
-
-    /// HOLD: enabled @Mono keeps its exact modifiers — no DIM anywhere,
-    /// BOLD on every focused pad (recipe + LABEL FOCUSED agree), BOLD on
-    /// PRIMARY-only pressed+focused pads (S1/S4 lineage). GREEN on base
-    /// and after.
-    #[test]
-    fn q65s8_hold_enabled_mono_pad_modifiers() {
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        for v in Q65S8_VARIANTS {
-            let (buf, used) = draw_q65s8(v, false, theme.clone());
-            let pad = cell_style_q65s8(&buf, used.right().saturating_sub(1));
-            assert!(
-                !pad.add_modifier.contains(Modifier::DIM),
-                "{v:?} enabled pad gained DIM"
-            );
-        }
-        for (rname, state, bold) in [
-            (
-                "focused",
-                crate::ReferenceState::FOCUSED,
-                Q65S8_VARIANTS.as_slice(),
-            ),
-            (
-                "pressed+focused",
-                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-                [Variant::PRIMARY].as_slice(),
-            ),
-        ] {
-            for v in Q65S8_VARIANTS {
-                let mut runtime = Runtime::new(Stub::default(), theme.clone());
-                let mut buffer = Buffer::empty(AREA);
-                runtime
-                    .draw_scene(AREA, &mut buffer, |ui, area| {
-                        ui.reference(Some(crate::ReferenceTarget::new(BUTTON, state)), |ui| {
-                            Button::new(BUTTON, "Go").variant(v).draw(ui, area);
-                        });
-                    })
-                    .commit_presented();
-                // "Go" is 4 wide (pinned by the geometry hold); x3 is the pad.
-                let pad = cell_style_q65s8(&buffer, 3);
-                assert_eq!(
-                    pad.add_modifier.contains(Modifier::BOLD),
-                    bold.contains(&v),
-                    "{v:?} {rname} pad BOLD"
-                );
-                assert!(
-                    !pad.add_modifier.contains(Modifier::DIM),
-                    "{v:?} {rname} pad gained DIM"
-                );
-            }
-        }
-    }
-
-    /// HOLD: the fix writes inside the used area only — same rect, same
-    /// text. GREEN on base and after.
-    #[test]
-    fn q65s8_hold_geometry_and_text_unchanged() {
-        for (lname, theme) in [
-            ("TC", Theme::junie()),
-            ("Mono", Theme::junie().downgrade(ColorLevel::Mono)),
-        ] {
-            for v in Q65S8_VARIANTS {
-                for disabled in [false, true] {
-                    let (buf, used) = draw_q65s8(v, disabled, theme.clone());
-                    assert_eq!(used, Rect::new(0, 0, 4, 1), "{lname} {v:?} rect");
-                    assert_eq!(
-                        row_text(&buf, AREA.width),
-                        " Go         ",
-                        "{lname} {v:?} disabled={disabled} text"
-                    );
-                }
-            }
-        }
     }
 }

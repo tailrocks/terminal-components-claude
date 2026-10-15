@@ -186,7 +186,7 @@ enum SeamAlign {
 /// `.resizable(bool)` (`false`), `.disabled(bool)` (`false`),
 /// `.seam_start/center/end(width)` (full gap
 /// by default), `.patch`, `.patch_part`, `.slot`,
-/// reference fixtures use `Ui::reference`.
+/// reference fixtures use [`Ui::reference`](crate::Ui::reference).
 ///
 /// ## Variants
 /// `Family::SPLIT`, `Variant::DEFAULT` only.
@@ -552,6 +552,9 @@ impl<'a> SplitPane<'a> {
             ),
             Phase::Click | Phase::Secondary => acc.consumed(),
             Phase::Move => {}
+
+            // `Phase` is `#[non_exhaustive]`: unseen phases keep the seam idle.
+            _ => {}
         }
     }
 

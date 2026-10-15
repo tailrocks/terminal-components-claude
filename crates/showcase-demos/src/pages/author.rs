@@ -15,7 +15,7 @@ const AUTHOR_PATCH: StylePatch = StylePatch::new().set_fg(Role::Accent);
 const AUTHOR_PARTS: &[(Part, StylePatch)] = &[(Part::LABEL, AUTHOR_PATCH)];
 
 #[derive(Debug)]
-pub struct AuthorBadge {
+pub(crate) struct AuthorBadge {
     id: Id,
     selected: bool,
 }

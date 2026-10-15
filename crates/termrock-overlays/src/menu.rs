@@ -2,14 +2,12 @@
 //! §14.1, §18.2, Appendix A 4F).
 
 use core::fmt;
-use std::borrow::Cow;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::keyhint::ChordText;
+use termrock_feedback::keyhint::ChordText;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
-use crate::collection::{CollectionCore, Reconcile, Reconciliation, StepDir};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -23,16 +21,13 @@ use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
-/// One command row. Its optional [`Chord`] is both painted and handled.
-/// When an action has an unbindable chord sequence or pointer gesture
-/// (e.g. "2×click", "Ctrl+B %"), [`MenuItem::shortcut_text`] provides
-/// the display label.
+/// One command row. Its optional [`Chord`] is both painted and handled; no
+/// parallel display-only shortcut string exists.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
     label: &'a str,
     chord: Option<Chord>,
-    shortcut_text: Option<&'a str>,
     disabled: bool,
     danger: bool,
     separator_after: bool,
@@ -46,7 +41,6 @@ impl<'a> MenuItem<'a> {
             action,
             label,
             chord: None,
-            shortcut_text: None,
             disabled: false,
             danger: false,
             separator_after: false,
@@ -58,13 +52,6 @@ impl<'a> MenuItem<'a> {
     #[must_use]
     pub const fn chord(mut self, chord: Chord) -> Self {
         self.chord = Some(chord);
-        self
-    }
-
-    /// Attach display shortcut text (e.g. for pointer gestures or chord sequences).
-    #[must_use]
-    pub const fn shortcut_text(mut self, text: &'a str) -> Self {
-        self.shortcut_text = Some(text);
         self
     }
 
@@ -139,35 +126,16 @@ impl<'a> Menu<'a> {
 }
 
 /// Menu state shared by a context menu and a menu bar dropdown.
-///
-/// The cursor is the shared [`CollectionCore`], like `Select` and
-/// `Completion`: a keyed cursor over positional [`ItemKey::index`] rows. A
-/// menu declaration is static chrome, so positional keys are intentionally
-/// unstable. When the bar is closed the same core names the selected
-/// top-level menu; opening a dropdown repoints it at that menu's rows.
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct MenuState {
-    core: CollectionCore,
+    cursor: usize,
     open: Option<usize>,
 }
 
 impl MenuState {
-    /// Current row key, or the selected top-level menu key while the bar is
-    /// closed.
-    pub const fn cursor(&self) -> Option<ItemKey> {
-        self.core.cursor()
-    }
-
-    /// Current row index as of the last update. Positional: menu rows are
-    /// static chrome, so the index — not the key — is what painting
-    /// highlights.
-    pub const fn cursor_index(&self) -> usize {
-        self.core.cursor_index()
-    }
-
-    /// Point the cursor at `(index, key)`.
-    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
-        self.core.set_cursor(index, key);
+    /// Current row index.
+    pub const fn cursor(&self) -> usize {
+        self.cursor
     }
 
     /// Open top-level menu, for a [`MenuBar`].
@@ -178,16 +146,6 @@ impl MenuState {
     /// Whether a dropdown is open.
     pub const fn is_open(&self) -> bool {
         self.open.is_some()
-    }
-}
-
-impl Reconcile for MenuState {
-    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
-        self.core.reconcile(len, key)
-    }
-
-    fn invalidate(&mut self) {
-        self.core.invalidate();
     }
 }
 
@@ -470,7 +428,7 @@ pub struct ContextMenu<'a> {
     id: Id,
     items: &'a [MenuItem<'a>],
     anchor: Anchor,
-    title: Option<Cow<'a, str>>,
+    title: Option<&'a str>,
     ov: PartStyle<'a>,
     chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
@@ -494,7 +452,6 @@ impl<'a> ContextMenu<'a> {
         Part::CONTAINER,
         Part::BORDER,
         Part::TITLE,
-        Part::HEADER,
         Part::ROW,
         Part::LABEL,
         Part::KEY,
@@ -522,8 +479,8 @@ impl<'a> ContextMenu<'a> {
 
     /// Optional heading.
     #[must_use]
-    pub fn title(mut self, title: impl Into<Cow<'a, str>>) -> Self {
-        self.title = Some(title.into());
+    pub const fn title(mut self, title: &'a str) -> Self {
+        self.title = Some(title);
         self
     }
 
@@ -573,17 +530,11 @@ impl<'a> ContextMenu<'a> {
     }
 
     fn natural_width(&self, effective: impl Fn(ActionKey, Option<Chord>) -> Option<Chord>) -> u16 {
-        let title = self.title.as_deref().map_or(0, width);
+        let title = self.title.map_or(0, width);
         let rows = self.items.iter().map(|item| {
-            let shortcut = item.shortcut_text.map_or_else(
-                || {
-                    effective(item.action, item.chord).map_or(0, |chord| {
-                        width(ChordText::with_case(chord, self.chord_case).as_str())
-                            .saturating_add(3)
-                    })
-                },
-                |s| width(s).saturating_add(3),
-            );
+            let shortcut = effective(item.action, item.chord).map_or(0, |chord| {
+                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(2)
+            });
             width(item.label)
                 .saturating_add(shortcut)
                 .saturating_add(u16::from(item.submenu.is_some()))
@@ -608,35 +559,38 @@ impl<'a> ContextMenu<'a> {
         self.items.get(index).is_some_and(|item| !item.disabled)
     }
 
-    fn key_at(&self, index: usize) -> ItemKey {
-        ItemKey::index(index)
+    fn first_enabled(&self) -> Option<usize> {
+        self.items.iter().position(|item| !item.disabled)
     }
 
-    /// Shared wrapping step over the enabled rows. Menus wrap; every other
-    /// collection clamps. Returns whether the cursor moved.
-    fn step(&self, st: &mut MenuState, dir: StepDir) -> bool {
-        let from = st.core.cursor_index();
-        let Some((index, key)) = CollectionCore::step_wrapping(
-            self.items.len(),
-            from,
-            dir,
-            |i| self.key_at(i),
-            |i| self.enabled_at(i),
-        ) else {
-            return false;
-        };
-        if st.core.cursor() == Some(key) {
+    fn last_enabled(&self) -> Option<usize> {
+        self.items.iter().rposition(|item| !item.disabled)
+    }
+
+    fn step(&self, st: &mut MenuState, delta: isize) -> bool {
+        let len = self.items.len();
+        if len == 0 {
             return false;
         }
-        st.core.set_cursor(index, key);
-        true
+        let mut index = st.cursor.min(len.saturating_sub(1));
+        for _ in 0..len {
+            index = index
+                .wrapping_add_signed(delta)
+                .checked_rem(len)
+                .unwrap_or_default();
+            if self.enabled_at(index) {
+                let changed = st.cursor != index;
+                st.cursor = index;
+                return changed;
+            }
+        }
+        false
     }
 
     fn activate(&self, st: &mut MenuState) -> Option<MenuAction> {
-        let cursor = st.core.cursor_index();
-        let item = self.items.get(cursor).filter(|item| !item.disabled)?;
+        let item = self.items.get(st.cursor).filter(|item| !item.disabled)?;
         Some(if item.submenu.is_some() {
-            MenuAction::Submenu(ItemKey::index(cursor))
+            MenuAction::Submenu(ItemKey::index(st.cursor))
         } else {
             MenuAction::Chosen(item.action)
         })
@@ -644,24 +598,10 @@ impl<'a> ContextMenu<'a> {
 
     fn command(&self, st: &mut MenuState, command: MenuCmd) -> Response<MenuAction> {
         match command {
-            MenuCmd::Prev => moved(self.step(st, StepDir::Prev)),
-            MenuCmd::Next => moved(self.step(st, StepDir::Next)),
-            MenuCmd::First => set_cursor(
-                st,
-                CollectionCore::first_enabled(
-                    self.items.len(),
-                    |i| self.key_at(i),
-                    |i| self.enabled_at(i),
-                ),
-            ),
-            MenuCmd::Last => set_cursor(
-                st,
-                CollectionCore::last_enabled(
-                    self.items.len(),
-                    |i| self.key_at(i),
-                    |i| self.enabled_at(i),
-                ),
-            ),
+            MenuCmd::Prev => moved(self.step(st, -1)),
+            MenuCmd::Next => moved(self.step(st, 1)),
+            MenuCmd::First => set_cursor(st, self.first_enabled()),
+            MenuCmd::Last => set_cursor(st, self.last_enabled()),
             MenuCmd::Activate => self
                 .activate(st)
                 .map_or_else(Response::consumed, Response::action),
@@ -709,12 +649,12 @@ impl<'a> ContextMenu<'a> {
         }
         match phase {
             Phase::Click | Phase::DoubleClick => {
-                st.core.set_cursor(index, self.key_at(index));
+                st.cursor = index;
                 self.activate(st)
                     .map_or_else(Response::consumed, Response::action)
             }
-            Phase::Move if st.core.cursor_index() != index => {
-                st.core.set_cursor(index, self.key_at(index));
+            Phase::Move if st.cursor != index => {
+                st.cursor = index;
                 Response::changed()
             }
             _ => Response::consumed(),
@@ -723,29 +663,10 @@ impl<'a> ContextMenu<'a> {
 
     /// Reconcile cursor, re-assert layer geometry, then process input.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
-        let _ =
-            st.core
-                .reconcile_with(self.items.len(), |i| self.key_at(i), |i| self.enabled_at(i));
-        if st.core.cursor().is_none()
-            && let Some((index, key)) = CollectionCore::first_enabled(
-                self.items.len(),
-                |i| self.key_at(i),
-                |i| self.enabled_at(i),
-            )
+        if !self.enabled_at(st.cursor)
+            && let Some(first) = self.first_enabled()
         {
-            st.core.set_cursor(index, key);
-        }
-        // a cursor left on a newly-disabled row repairs to the first enabled
-        // one; when none exists it stays, as before.
-        if st.core.cursor().is_some()
-            && !self.enabled_at(st.core.cursor_index())
-            && let Some((index, key)) = CollectionCore::first_enabled(
-                self.items.len(),
-                |i| self.key_at(i),
-                |i| self.enabled_at(i),
-            )
-        {
-            st.core.set_cursor(index, key);
+            st.cursor = first;
         }
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx));
@@ -801,7 +722,7 @@ impl<'a> ContextMenu<'a> {
                 Family::MENU,
                 Variant::DEFAULT,
                 Part::CONTAINER,
-                StateFlags::empty(),
+                live,
             );
             ui.fill(area, container.style);
             let border = self.ov.style(
@@ -810,7 +731,7 @@ impl<'a> ContextMenu<'a> {
                 Family::MENU,
                 Variant::DEFAULT,
                 Part::BORDER,
-                StateFlags::empty(),
+                live,
             );
             let inner = ui.frame(area, border.style);
             if let Some(slot) = self.ov.slot_for(Part::BORDER) {
@@ -833,23 +754,18 @@ impl<'a> ContextMenu<'a> {
             );
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
             let mut y = inner.y;
-            if let Some(title) = self.title.as_deref() {
-                let row = Rect {
-                    x: inner.x.saturating_add(2),
-                    y,
-                    width: inner.width.saturating_sub(3),
-                    height: 1,
-                };
+            if let Some(title) = self.title {
+                let row = first_row(Rect { y, ..inner });
                 let style = self.ov.style(
                     ui,
                     self.id,
                     Family::MENU,
                     Variant::DEFAULT,
-                    Part::HEADER,
-                    StateFlags::empty(),
+                    Part::TITLE,
+                    live,
                 );
-                paint_or_slot(ui, &self.ov, Part::HEADER, row, title, style.style);
-                ui.register_decor(self.id, PartRef::of(Part::HEADER), row);
+                paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style.style);
+                ui.register_decor(self.id, PartRef::of(Part::TITLE), row);
                 y = y.saturating_add(1);
             }
             for (index, item) in self.items.iter().enumerate() {
@@ -860,25 +776,20 @@ impl<'a> ContextMenu<'a> {
                 self.draw_row(ui, row, index, item, st, live);
                 y = y.saturating_add(1);
                 if item.separator_after && y < inner.bottom() {
-                    let rule = Rect {
-                        x: inner.x.saturating_add(1),
-                        y,
-                        width: inner.width.saturating_sub(2),
-                        height: 1,
-                    };
+                    let rule = first_row(Rect { y, ..inner });
                     let style = self.ov.style(
                         ui,
                         self.id,
                         Family::MENU,
                         Variant::DEFAULT,
                         Part::RULE,
-                        StateFlags::empty(),
+                        live,
                     );
                     if let Some(slot) = self.ov.slot_for(Part::RULE) {
                         slot(ui, rule);
                     } else {
-                        for col in rule.columns() {
-                            ui.glyph(col, GlyphRole::RuleQuiet, style.style);
+                        for cell in rule.rows() {
+                            ui.glyph(cell, GlyphRole::RuleQuiet, style.style);
                         }
                     }
                     ui.register_decor(self.id, PartRef::of(Part::RULE), rule);
@@ -909,7 +820,7 @@ impl<'a> ContextMenu<'a> {
         {
             derived |= StateFlags::HOVERED;
         }
-        if index == st.core.cursor_index() {
+        if index == st.cursor {
             derived |=
                 StateFlags::ACTIVE | parent & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
         }
@@ -949,16 +860,11 @@ impl<'a> ContextMenu<'a> {
         }
         let label = shift(row, 2);
         let effective_chord = ui.effective_chord(self.id, item.action, item.chord);
-        let shortcut_width = item.shortcut_text.map_or_else(
-            || {
-                effective_chord.map_or(0, |chord| {
-                    width(ChordText::with_case(chord, self.chord_case).as_str())
-                })
-            },
-            width,
-        );
+        let key_width = effective_chord.map_or(0, |chord| {
+            width(ChordText::with_case(chord, self.chord_case).as_str())
+        });
         let label = Rect {
-            width: label.width.saturating_sub(shortcut_width.saturating_add(2)),
+            width: label.width.saturating_sub(key_width.saturating_add(2)),
             ..label
         };
         let label_style = self
@@ -972,32 +878,16 @@ impl<'a> ContextMenu<'a> {
             item.label,
             label_style.style,
         );
-        if let Some(text) = item.shortcut_text {
-            let key = Rect {
-                x: row.right().saturating_sub(shortcut_width.saturating_add(1)),
-                width: shortcut_width.min(row.width),
-                ..row
-            };
-            let mut key_style = self
-                .ov
-                .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
-            key_style.style = key_style
-                .style
-                .remove_modifier(ratatui::style::Modifier::BOLD);
-            paint_or_slot(ui, &self.ov, Part::KEY, key, text, key_style.style);
-        } else if let Some(chord) = effective_chord {
+        if let Some(chord) = effective_chord {
             let text = ChordText::with_case(chord, self.chord_case);
             let key = Rect {
-                x: row.right().saturating_sub(shortcut_width.saturating_add(1)),
-                width: shortcut_width.min(row.width),
+                x: row.right().saturating_sub(key_width.saturating_add(1)),
+                width: key_width.min(row.width),
                 ..row
             };
-            let mut key_style = self
+            let key_style = self
                 .ov
                 .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
-            key_style.style = key_style
-                .style
-                .remove_modifier(ratatui::style::Modifier::BOLD);
             paint_or_slot(ui, &self.ov, Part::KEY, key, text.as_str(), key_style.style);
         }
         ui.register_part(
@@ -1137,33 +1027,14 @@ impl<'a> MenuBar<'a> {
     }
 
     fn anchor(&self, cx: &Cx<'_>, index: usize) -> Anchor {
-        if let Some(rect) = cx.area(self.menu_id(index)) {
-            return Anchor::Rect {
+        cx.area(self.menu_id(index)).map_or(
+            Anchor::Screen(crate::layer::ScreenAlign::UpperThird),
+            |rect| Anchor::Rect {
                 rect,
                 side: crate::layer::Side::Below,
                 align: crate::layer::CrossAlign::Start,
-            };
-        }
-        if let Some(bar) = cx.area(self.id) {
-            let mut x = bar.x.saturating_add(1);
-            for (i, m) in self.menus.iter().enumerate() {
-                let w = width(m.label).saturating_add(2);
-                if i == index {
-                    return Anchor::Rect {
-                        rect: Rect {
-                            x,
-                            y: bar.y,
-                            width: w,
-                            height: 1,
-                        },
-                        side: crate::layer::Side::Below,
-                        align: crate::layer::CrossAlign::Start,
-                    };
-                }
-                x = x.saturating_add(w).saturating_add(1);
-            }
-        }
-        Anchor::Screen(crate::layer::ScreenAlign::UpperThird)
+            },
+        )
     }
 
     fn dropdown(&self, cx: &Cx<'_>, index: usize) -> Option<ContextMenu<'a>> {
@@ -1182,17 +1053,11 @@ impl<'a> MenuBar<'a> {
     fn open(&self, cx: &mut Cx<'_>, st: &mut MenuState, index: usize) -> MenuAction {
         let index = index.min(self.menus.len().saturating_sub(1));
         st.open = Some(index);
-        let items = self.menus.get(index).map_or(&[][..], |menu| menu.items);
-        if let Some((row, key)) = CollectionCore::first_enabled(items.len(), ItemKey::index, |i| {
-            items.get(i).is_some_and(|item| !item.disabled)
-        }) {
-            st.core.set_cursor(row, key);
-        } else if !items.is_empty() {
-            // no enabled row: stay on row 0, as before.
-            st.core.set_cursor(0, ItemKey::index(0));
-        } else {
-            st.core.clear_cursor();
-        }
+        st.cursor = self
+            .menus
+            .get(index)
+            .and_then(|menu| menu.items.iter().position(|item| !item.disabled))
+            .unwrap_or(0);
         if let Some(dropdown) = self.dropdown(cx, index) {
             cx.open_layer(self.id, dropdown.layer(cx));
         }
@@ -1268,35 +1133,24 @@ impl<'a> MenuBar<'a> {
             let action = match intent {
                 Intent::Binding(action) => match Binding::command(BAR_BINDINGS, action) {
                     Some(MenuCmd::PrevMenu) => {
-                        // top-level titles are all enabled; the shared wrap
-                        // also fixes `Prev` from 0 for non-power-of-two
-                        // counts, where `MAX % len` stuck at 0.
-                        if let Some((index, key)) = CollectionCore::step_wrapping(
-                            self.menus.len(),
-                            st.core.cursor_index(),
-                            StepDir::Prev,
-                            ItemKey::index,
-                            |_| true,
-                        ) {
-                            st.core.set_cursor(index, key);
-                        }
+                        st.cursor = st
+                            .cursor
+                            .wrapping_sub(1)
+                            .checked_rem(self.menus.len())
+                            .unwrap_or_default();
                         acc.changed();
                         None
                     }
                     Some(MenuCmd::NextMenu) => {
-                        if let Some((index, key)) = CollectionCore::step_wrapping(
-                            self.menus.len(),
-                            st.core.cursor_index(),
-                            StepDir::Next,
-                            ItemKey::index,
-                            |_| true,
-                        ) {
-                            st.core.set_cursor(index, key);
-                        }
+                        st.cursor = st
+                            .cursor
+                            .wrapping_add(1)
+                            .checked_rem(self.menus.len())
+                            .unwrap_or_default();
                         acc.changed();
                         None
                     }
-                    Some(MenuCmd::Activate) => Some(self.open(cx, st, st.core.cursor_index())),
+                    Some(MenuCmd::Activate) => Some(self.open(cx, st, st.cursor)),
                     _ => None,
                 },
                 Intent::Pointer {
@@ -1337,9 +1191,7 @@ impl<'a> MenuBar<'a> {
             Part::CONTAINER,
             live,
         );
-        let mut container_style = container.style;
-        container_style = container_style.remove_modifier(ratatui::style::Modifier::BOLD);
-        ui.fill(row, container_style);
+        ui.fill(row, container.style);
         if st.open.is_none() {
             ui.register_control(self.id, row, Focusability::Focusable);
             ui.publish_bindings(self.id, live, BAR_BINDINGS);
@@ -1356,13 +1208,11 @@ impl<'a> MenuBar<'a> {
                 width: w,
                 height: 1,
             };
-            let is_open = st.open == Some(index);
+            let current = st.open == Some(index) || (st.open.is_none() && st.cursor == index);
             let mut flags = ui.state(self.menu_id(index));
-            if is_open {
-                flags |= StateFlags::ACTIVE;
-            }
-            if st.open.is_none() && st.core.cursor_index() == index {
-                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+            if current {
+                flags |=
+                    StateFlags::ACTIVE | live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
             }
             if FrameRead::hovered_part(ui, self.id)
                 == Some(PartRef::item(Part::TITLE, ItemKey::index(index)))
@@ -1375,7 +1225,7 @@ impl<'a> MenuBar<'a> {
             } else {
                 flags.remove(StateFlags::PRESSED);
             }
-            let mut style = self.ov.style(
+            let style = self.ov.style(
                 ui,
                 self.id,
                 Family::MENU,
@@ -1383,25 +1233,6 @@ impl<'a> MenuBar<'a> {
                 Part::TITLE,
                 flags,
             );
-            let is_cursor = live.intersects(StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE)
-                && st.open.is_none()
-                && st.core.cursor_index() == index;
-            if is_cursor {
-                style.style = style.style.add_modifier(ratatui::style::Modifier::BOLD);
-                let mut gutter = self.ov.style(
-                    ui,
-                    self.id,
-                    Family::MENU,
-                    Variant::DEFAULT,
-                    Part::GUTTER,
-                    flags,
-                );
-                gutter.style = gutter.style.remove_modifier(ratatui::style::Modifier::BOLD);
-                let focus_cell = cell_at(row, rect.x.saturating_sub(1));
-                ui.paint_str(focus_cell, "▎", gutter.style);
-            } else if st.open != Some(index) && !flags.contains(StateFlags::HOVERED) {
-                style.style = style.style.remove_modifier(ratatui::style::Modifier::BOLD);
-            }
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
@@ -1414,8 +1245,7 @@ impl<'a> MenuBar<'a> {
                     style.style,
                 );
             } else {
-                let text = format!(" {} ", menu.label);
-                ui.paint_str(rect, &text, style.style);
+                ui.paint_str(label, menu.label, style.style);
             }
             ui.register_decor(
                 self.menu_id(index),
@@ -1490,10 +1320,10 @@ fn moved(changed: bool) -> Response<MenuAction> {
     }
 }
 
-fn set_cursor(st: &mut MenuState, target: Option<(usize, ItemKey)>) -> Response<MenuAction> {
-    match target {
-        Some((index, key)) if st.core.cursor() != Some(key) => {
-            st.core.set_cursor(index, key);
+fn set_cursor(st: &mut MenuState, index: Option<usize>) -> Response<MenuAction> {
+    match index {
+        Some(index) if index != st.cursor => {
+            st.cursor = index;
             Response::changed()
         }
         _ => Response::consumed(),
@@ -1535,12 +1365,12 @@ mod tests {
     fn keyboard_skips_disabled_and_wraps() {
         let menu = ContextMenu::at(Id::root("menu.tests"), &ITEMS, Position::new(1, 1));
         let mut state = MenuState::default();
-        assert!(menu.step(&mut state, StepDir::Next));
-        assert_eq!(state.cursor(), Some(ItemKey::index(2)));
-        assert!(menu.step(&mut state, StepDir::Next));
-        assert_eq!(state.cursor(), Some(ItemKey::index(3)));
-        assert!(menu.step(&mut state, StepDir::Next));
-        assert_eq!(state.cursor(), Some(ItemKey::index(0)));
+        assert!(menu.step(&mut state, 1));
+        assert_eq!(state.cursor(), 2);
+        assert!(menu.step(&mut state, 1));
+        assert_eq!(state.cursor(), 3);
+        assert!(menu.step(&mut state, 1));
+        assert_eq!(state.cursor(), 0);
     }
 
     #[test]
@@ -1600,8 +1430,10 @@ mod tests {
     #[test]
     fn submenu_is_typed_and_does_not_emit_parent_action() {
         let menu = ContextMenu::at(Id::root("menu.tests"), &ITEMS, Position::new(1, 1));
-        let mut state = MenuState::default();
-        state.set_cursor(3, ItemKey::index(3));
+        let mut state = MenuState {
+            cursor: 3,
+            open: None,
+        };
         assert_eq!(
             menu.activate(&mut state),
             Some(MenuAction::Submenu(ItemKey::index(3)))
@@ -1613,10 +1445,10 @@ mod tests {
         let menu = ContextMenu::at(Id::root("menu.tests"), &ITEMS, Position::new(1, 1));
         let mut state = MenuState::default();
         let press = menu.pointer(&mut state, 2, Phase::Press);
-        assert_eq!(state.cursor(), None);
+        assert_eq!(state.cursor(), 0);
         assert!(press.is_consumed());
         let moved = menu.pointer(&mut state, 2, Phase::Move);
-        assert_eq!(state.cursor(), Some(ItemKey::index(2)));
+        assert_eq!(state.cursor(), 2);
         assert!(moved.is_consumed());
     }
 
@@ -1830,123 +1662,5 @@ mod tests {
             .map(ratatui_core::buffer::Cell::symbol)
             .collect::<String>();
         assert!(!painted.contains("F4"));
-    }
-
-    #[test]
-    fn context_menu_renders_custom_shortcut_text_and_owned_title() {
-        let items = [
-            MenuItem::new(ActionKey::application("item1"), "Change title…")
-                .shortcut_text("2×click"),
-            MenuItem::new(ActionKey::application("item2"), "Split right")
-                .shortcut_text("Ctrl+B %")
-                .separator(),
-            MenuItem::new(ActionKey::application("item3"), "Close tab")
-                .shortcut_text("Ctrl+B &")
-                .danger(),
-        ];
-        let menu = ContextMenu::at(Id::root("test.menu"), &items, Position::new(1, 2))
-            .title(String::from("Mix (3)"));
-        assert_eq!(menu.natural_width(|_, _| None), 29);
-        assert_eq!(menu.natural_height(), 7);
-    }
-
-    /// Q66-S6 draw helper: the shared `ITEMS` (row 1 `"Disabled"` carries
-    /// chord `d` and is disabled) as a bare context menu at Mono, 30x9:
-    /// border x0/x29, rows y1-3, label x3, shortcut x27.
-    fn draw_q66s6_mono_menu_disabled() -> Buffer {
-        let area = Rect::new(0, 0, 30, 9);
-        let mut runtime = Runtime::new(
-            crate::runtime::stub::Stub::default(),
-            Theme::junie().downgrade(crate::ColorLevel::Mono),
-        );
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                ContextMenu::at(Id::root("menu.q66s6"), &ITEMS, Position::new(0, 0)).draw(
-                    ui,
-                    area,
-                    &MenuState::default(),
-                );
-            })
-            .commit_presented();
-        buffer
-    }
-
-    /// F1-L9a: disabled pad cells are DarkGray+DIM at Mono (P4: the tag's
-    /// disabled menu row is a single `disabled_style` run); enabled pads
-    /// stay DIM-free.
-    #[test]
-    fn q66s6_l9a_disabled_pad_cells_carry_dim_at_mono() {
-        use ratatui_core::style::{Color, Modifier};
-
-        let buf = draw_q66s6_mono_menu_disabled();
-        let pad = buf.cell(Position::new(11, 2)).expect("pad cell");
-        assert_eq!(pad.symbol(), " ");
-        assert_eq!(pad.style().fg, Some(Color::DarkGray), "disabled pad fg");
-        assert!(
-            pad.modifier.contains(Modifier::DIM),
-            "disabled pad lost DIM"
-        );
-        let enabled = buf.cell(Position::new(11, 3)).expect("enabled pad cell");
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled pad gained DIM"
-        );
-    }
-
-    /// F1-L9b: the disabled shortcut cell is the row style `st`
-    /// (DarkGray+DIM at Mono, P4 `e`); the enabled shortcut keeps the Muted
-    /// fg DIM-free.
-    #[test]
-    fn q66s6_l9b_disabled_shortcut_cell_is_disabled_style_at_mono() {
-        use ratatui_core::style::{Color, Modifier};
-
-        let buf = draw_q66s6_mono_menu_disabled();
-        let key = buf.cell(Position::new(27, 2)).expect("shortcut cell");
-        assert_eq!(key.symbol(), "d");
-        assert_eq!(
-            key.style().fg,
-            Some(Color::DarkGray),
-            "disabled shortcut fg"
-        );
-        assert!(
-            key.modifier.contains(Modifier::DIM),
-            "disabled shortcut lost DIM"
-        );
-        let enabled = buf
-            .cell(Position::new(27, 1))
-            .expect("enabled shortcut cell");
-        assert_eq!(enabled.symbol(), "o");
-        assert_eq!(
-            enabled.style().fg,
-            Some(Color::Gray),
-            "enabled shortcut keeps Muted"
-        );
-        assert!(
-            !enabled.modifier.contains(Modifier::DIM),
-            "enabled shortcut gained DIM"
-        );
-    }
-
-    /// F1-L9a+L9b: the disabled row is ONE full-width run — every cell
-    /// x1..=28 carries the disabled fg +DIM at Mono (P4 asserts the same
-    /// run cell-by-cell on the tag side).
-    #[test]
-    fn q66s6_l9ab_disabled_row_is_single_dim_run_at_mono() {
-        use ratatui_core::style::{Color, Modifier};
-
-        let buf = draw_q66s6_mono_menu_disabled();
-        for x in 1..=28 {
-            let c = buf.cell(Position::new(x, 2)).expect("row cell");
-            assert_eq!(
-                c.style().fg,
-                Some(Color::DarkGray),
-                "x{x} leaves the run fg"
-            );
-            assert!(
-                c.modifier.contains(Modifier::DIM),
-                "x{x} leaves the run DIM"
-            );
-        }
     }
 }

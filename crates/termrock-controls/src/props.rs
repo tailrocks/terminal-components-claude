@@ -4,7 +4,8 @@
 use core::fmt;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, paint_pressed_bracket};
-use crate::collection::{CellUi, CollectionCore, Reconcile, Reconciliation, StepDir};
+use termrock_collections::collection::{Reconcile, Reconciliation};
+use termrock_runtime::rowui::CellUi;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -21,7 +22,6 @@ use crate::theme::PaintStyle;
 use crate::theme::{Family, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Modifier;
 
 /// A borrowed value displayed by an interactive property row.
 ///
@@ -296,7 +296,7 @@ const PROPS_BINDINGS: [Binding<PropsCmd>; 12] = [
 /// Caller-owned interaction state for [`PropsList`].
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PropsState {
-    core: crate::collection::CollectionCore,
+    core: termrock_collections::collection::CollectionCore,
 }
 
 impl PropsState {
@@ -428,8 +428,6 @@ pub struct PropsList<'a> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
-    focused: Option<bool>,
-    focusable: bool,
 }
 
 impl fmt::Debug for PropsList<'_> {
@@ -439,8 +437,6 @@ impl fmt::Debug for PropsList<'_> {
             .field("variant", &self.variant)
             .field("patch", &self.patch.is_some())
             .field("parts", &self.parts.len())
-            .field("focused", &self.focused)
-            .field("focusable", &self.focusable)
             .finish_non_exhaustive()
     }
 }
@@ -451,7 +447,6 @@ impl<'a> PropsList<'a> {
         Part::CONTAINER,
         Part::META,
         Part::LABEL,
-        Part::HELP,
         Part::ROW,
         Part::TRACK,
         Part::THUMB,
@@ -465,29 +460,7 @@ impl<'a> PropsList<'a> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
-            focused: None,
-            focusable: true,
         }
-    }
-
-    /// When false, the list paints and does not enter the focus ring.
-    ///
-    /// A dialog can show a cursor row while Close remains the only stop.
-    /// The default keeps the list as a focusable control.
-    #[must_use]
-    pub const fn focusable(mut self, yes: bool) -> Self {
-        self.focusable = yes;
-        self
-    }
-
-    /// Override whether the cursor row wears focus.
-    ///
-    /// `None` follows the runtime focus of this list. A dialog can show the
-    /// fact cursor while another control, such as Close, holds the focus ring.
-    #[must_use]
-    pub const fn focused(mut self, yes: bool) -> Self {
-        self.focused = Some(yes);
-        self
     }
 
     /// Select the theme variant.
@@ -589,8 +562,6 @@ impl<'a> PropsList<'a> {
             .ensure_visible_on_next_layout(Self::visual_start(rows, index, width));
     }
 
-    /// Shared clamped target resolution. Rows have no per-item disabled
-    /// state, so every stop is enabled. Clamps, never wraps.
     fn move_cursor(
         &self,
         cx: &Cx<'_>,
@@ -599,22 +570,12 @@ impl<'a> PropsList<'a> {
         index: usize,
         acc: &mut Acc<PropsAction>,
     ) {
-        if rows.is_empty() {
-            acc.consumed();
-            return;
-        }
-        let index = index.min(rows.len().saturating_sub(1));
-        let Some((index, key)) = CollectionCore::seek(
-            rows.len(),
-            index,
-            StepDir::Next,
-            |i| rows.get(i).map_or(ItemKey::index(i), |row| row.key),
-            |_| true,
-        ) else {
+        let Some(row) = rows.get(index.min(rows.len().saturating_sub(1))) else {
             acc.consumed();
             return;
         };
-        st.core.set_cursor(index, key);
+        let index = index.min(rows.len().saturating_sub(1));
+        st.core.set_cursor(index, row.key);
         self.reveal(cx, st, rows, index);
         acc.changed();
     }
@@ -772,17 +733,11 @@ impl<'a> PropsList<'a> {
         if area.is_empty() {
             return area;
         }
-        if !ui.is_inert() && self.focusable {
+        if !ui.is_inert() {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let runtime = ui.state(self.id);
-        let live_flags = match self.focused {
-            Some(true) => runtime | StateFlags::FOCUSED,
-            Some(false) => runtime.difference(StateFlags::FOCUSED),
-            None => runtime,
-        };
-        let live = PartStyle::flags(live_flags, StateFlags::empty());
-        if !ui.is_inert() && self.focusable {
+        let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
+        if !ui.is_inert() {
             ui.publish_bindings(self.id, live, &PROPS_BINDINGS);
         }
 
@@ -848,88 +803,35 @@ impl<'a> PropsList<'a> {
             );
             ui.fill(visible_area, container.style);
 
-            // Focus gutter: the bar voices the cursor row, blank elsewhere
-            // (tag `theme.rs:391`); labels start two cells in.
-            let row_focused = flags.intersects(StateFlags::FOCUSED);
-            let gutter = self.ov.style(
-                ui,
-                self.id,
-                Family::PROPS,
-                self.variant,
-                Part::GUTTER,
-                flags,
-            );
-            let gutter_area = Rect {
-                x: content.x,
-                y,
-                width: 2.min(content.width),
-                height: 1,
-            };
-            // One cell. The following cell stays the row fill: bold primary
-            // on the cursor row, resting primary elsewhere. Painting `"▎ "`
-            // in the focus colour stains that pad.
-            let mark = Rect {
-                width: 1.min(gutter_area.width),
-                ..gutter_area
-            };
-            if row_focused {
-                ui.paint_str(mark, "▎", gutter.style.add_modifier(Modifier::BOLD));
-            } else if !mark.is_empty() {
-                ui.paint_str(mark, " ", gutter.style);
-            }
-
             let label = self
                 .ov
                 .style(ui, self.id, Family::PROPS, self.variant, Part::META, flags);
             let label_area = Rect {
-                x: content.x.saturating_add(2),
+                x: content.x,
                 y,
                 width: label_width,
                 height: 1,
             };
             ui.paint_str(label_area, row.label, label.style);
 
-            // The focused copyable row voices the `y copy` hint at the
-            // right with one cell of margin; its value yields eight cells
-            // (tag `props.rs:294`).
-            let hinted = row_focused && row.can_copy();
-            let value_x = content
-                .x
-                .saturating_add(2)
-                .saturating_add(label_width)
-                .saturating_add(2);
-            let mut paint_width = value_width.saturating_sub(2);
-            if hinted {
-                paint_width = paint_width.saturating_sub(8);
-            }
-            paint_width = paint_width.min(content.right().saturating_sub(value_x));
             let value_area = Rect {
-                x: value_x,
+                x: content.x.saturating_add(label_width).saturating_add(2),
                 y,
-                width: paint_width,
+                width: value_width,
                 height,
             };
             let value = self
                 .ov
                 .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
             paint_value(ui, value_area, row, value.style);
-            if hinted {
-                let hint =
-                    self.ov
-                        .style(ui, self.id, Family::PROPS, self.variant, Part::HELP, flags);
-                let hint_area = Rect {
-                    x: content.right().saturating_sub(7),
-                    y,
-                    width: 6,
-                    height: 1,
-                };
-                ui.paint_str(hint_area, "y copy", hint.style);
-            }
             if matches!(value.glyph, Slot::Set(GlyphRole::PressLeft)) {
                 paint_pressed_bracket(
                     ui,
-                    cell_at(row_area, value_x.saturating_sub(2)),
-                    cell_at(row_area, value_x.saturating_sub(1)),
+                    cell_at(row_area, content.x.saturating_add(label_width)),
+                    cell_at(
+                        row_area,
+                        content.x.saturating_add(label_width).saturating_add(1),
+                    ),
                     value.style,
                 );
             }
@@ -1047,15 +949,6 @@ fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: PaintStyl
             });
         }
         PropsValue::Text(value) => {
-            // Non-wrapping values truncate with an ellipsis (tag
-            // `widgets/props.rs`), never a hard clip.
-            let owned;
-            let value = if termrock_text::width(value) > area.width {
-                owned = termrock_text::truncate(value, area.width);
-                owned.as_str()
-            } else {
-                value
-            };
             let mut x = area.x;
             paint_piece(ui, area, &mut x, area.y, value, style, row.tone);
         }
@@ -1158,13 +1051,6 @@ fn paint_piece(
 pub struct Props<'a> {
     rows: PropsRows<'a>,
     ov: PartStyle<'a>,
-    /// Columns between the label column and the value. The default is 2.
-    /// Cells in the gap are not painted, so they keep the parent fill.
-    gap: u16,
-    /// Absolute value start, measured from the props origin. Zero keeps
-    /// `widest label + gap`. A wider column lines up separate groups that
-    /// share one inspector. Cells before the value stay the parent fill.
-    label_column: u16,
 }
 
 #[derive(Clone, Copy)]
@@ -1199,8 +1085,6 @@ impl<'a> Props<'a> {
         Props {
             rows: PropsRows::Pairs(rows),
             ov: PartStyle::new(),
-            gap: 2,
-            label_column: 0,
         }
     }
 
@@ -1213,39 +1097,6 @@ impl<'a> Props<'a> {
         Props {
             rows: PropsRows::Rich(rows),
             ov: PartStyle::new(),
-            gap: 2,
-            label_column: 0,
-        }
-    }
-
-    /// Columns between the label column and the value.
-    ///
-    /// The default is 2. A wider gap leaves the extra cells on the parent
-    /// fill instead of painting them with the label or value style.
-    #[must_use]
-    pub const fn value_gap(mut self, gap: u16) -> Self {
-        self.gap = gap;
-        self
-    }
-
-    /// Start every value at `column` cells from the props origin.
-    ///
-    /// Zero keeps the default (`widest label + gap`). A caller that draws
-    /// several groups in one inspector passes the same column so a short
-    /// group does not pull its values left. The column is at least the
-    /// widest label in the group. Cells between a short label and the
-    /// value are not painted.
-    #[must_use]
-    pub const fn label_column(mut self, column: u16) -> Self {
-        self.label_column = column;
-        self
-    }
-
-    fn column(&self, natural: u16) -> u16 {
-        if self.label_column == 0 {
-            natural.saturating_add(self.gap)
-        } else {
-            self.label_column.max(natural)
         }
     }
 
@@ -1272,8 +1123,7 @@ impl<'a> Props<'a> {
         if area.is_empty() {
             return area;
         }
-        let natural = self.label_width().min(area.width);
-        let lw = self.column(natural).min(area.width);
+        let lw = self.label_width().min(area.width);
         let ov = self.ov;
         let owner = Id::root("tui.props");
         let key_style = ov
@@ -1300,12 +1150,11 @@ impl<'a> Props<'a> {
         for (row, (k, v)) in area.rows().zip(rows.iter()) {
             ui.paint_str(row, k, key_style);
             let value = Rect {
-                x: row.x.saturating_add(lw),
-                width: row.width.saturating_sub(lw),
+                x: row.x.saturating_add(lw).saturating_add(2),
+                width: row.width.saturating_sub(lw).saturating_sub(2),
                 ..row
             };
-            let truncated = termrock_text::truncate(v, value.width);
-            ui.paint_str(value, &truncated, value_style);
+            ui.paint_str(value, v, value_style);
             painted = painted.saturating_add(1);
         }
         Rect {
@@ -1319,9 +1168,8 @@ impl<'a> Props<'a> {
             return Rect { height: 0, ..area };
         }
         let owner = Id::root("tui.props");
-        let natural = PropsList::label_width(rows).min(area.width);
-        let label_width = self.column(natural).min(area.width);
-        let value_width = area.width.saturating_sub(label_width);
+        let label_width = PropsList::label_width(rows).min(area.width);
+        let value_width = PropsList::value_width(rows, area.width);
         let key_style = self
             .ov
             .style(
@@ -1388,7 +1236,7 @@ impl<'a> Props<'a> {
             paint_value(
                 ui,
                 Rect {
-                    x: area.x.saturating_add(label_width),
+                    x: area.x.saturating_add(label_width).saturating_add(2),
                     y,
                     width: value_width,
                     height,
@@ -1697,8 +1545,7 @@ mod tests {
             })
             .commit_presented();
 
-        // Values start past the 2-cell focus gutter: 2 + 6 ("Second") + 2.
-        let value_x = 10;
+        let value_x = 8;
         assert_ne!(
             buffer.cell(Position::new(value_x, 0)).map(|cell| cell.bg),
             Some(theme.color.danger)
@@ -1710,7 +1557,7 @@ mod tests {
     }
 
     #[test]
-    fn mono_pressed_leaves_the_existing_column_gap_unbracketed() {
+    fn mono_pressed_brackets_the_existing_column_gap() {
         let rows = [PropsRow::new(FIRST_KEY, "Name", "value")];
         let render = |target| {
             let mut state = PropsState::default();
@@ -1733,35 +1580,32 @@ mod tests {
             ReferenceTarget::new(ID, ReferenceState::PRESSED)
                 .part(PartRef::item(Part::ROW, FIRST_KEY)),
         );
+        let left = Theme::junie().design.glyphs.get(GlyphRole::PressLeft);
+        let right = Theme::junie().design.glyphs.get(GlyphRole::PressRight);
 
-        // The label/value gap sits past the 2-cell focus gutter and the
-        // 4-cell "Name" label: cells 6-7.
         assert_eq!(
             focused
-                .cell(Position::new(6, 0))
+                .cell(Position::new(4, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
         assert_eq!(
             focused
-                .cell(Position::new(7, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(" ")
-        );
-        // Q65-S4/G6: no brackets at `Mono` (the tag has none) — the column
-        // gap the brackets used to occupy stays blank, so the row keeps its
-        // columns.
-        assert_eq!(
-            pressed
-                .cell(Position::new(6, 0))
+                .cell(Position::new(5, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
         assert_eq!(
             pressed
-                .cell(Position::new(7, 0))
+                .cell(Position::new(4, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some(" ")
+            Some(left)
+        );
+        assert_eq!(
+            pressed
+                .cell(Position::new(5, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(right)
         );
     }
 

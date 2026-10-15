@@ -4,11 +4,12 @@
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Modifier;
 
 use super::{PartStyle, SlotFn, cell_at, first_row, shift};
-use crate::collection::{CellUi, Status};
-use crate::edit_keys::{edit_action_of, edit_bindings};
+use crate::action::ActionKey;
+use termrock_runtime::rowui::CellUi;
+use termrock_runtime::Status;
+use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -17,14 +18,14 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy, wipe_string};
-use crate::text::measure::{byte_at_col, graphemes};
+use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{ColorLevel, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 
 mod text_target {
-    pub trait Sealed {}
+    pub(crate) trait Sealed {}
 
     impl Sealed for String {}
     impl Sealed for crate::secret::Secret {}
@@ -34,7 +35,7 @@ mod text_target {
 ///
 /// Sealing keeps the public standalone controls on `String` while allowing
 /// forms to edit `Secret` in place, without cloning it or widening the API.
-pub trait TextTarget: text_target::Sealed {
+pub(crate) trait TextTarget: text_target::Sealed {
     fn expose(&self) -> &str;
     fn set(&mut self, value: &str, sensitive: bool);
     fn is_sensitive(&self) -> bool;
@@ -118,8 +119,8 @@ pub enum TextAction {
 ///
 /// [`Newline`](TextCmd::Newline), [`PageUp`](TextCmd::PageUp) and
 /// [`PageDown`](TextCmd::PageDown) belong to the multi-line flavour of the
-/// table ([`TextArea`](crate::textarea::TextArea)); a single-line
-/// [`TextInput`] never binds them, exactly as the legacy
+/// table ([`TextArea`](crate::TextArea)); a single-line
+/// [`TextInput`](crate::TextInput) never binds them, exactly as the legacy
 /// table selected its arms on a `multiline` flag.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextCmd {
@@ -149,6 +150,182 @@ pub enum TextCmd {
     PageDown,
 }
 
+const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
+    Binding {
+        action: ActionKey::custom(label),
+        chord: Some(chord),
+        cmd,
+        label,
+        priority: 50,
+        visible,
+    }
+}
+
+const CTRL: KeyModifiers = KeyModifiers::CONTROL;
+const ALT: KeyModifiers = KeyModifiers::ALT;
+const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
+
+const BINDINGS: &[Binding<TextCmd>] = &[
+    b(Chord::key(KeyCode::Esc), TextCmd::Cancel, "Cancel", true),
+    b(Chord::key(KeyCode::Enter), TextCmd::Commit, "Commit", true),
+    b(
+        Chord::key(KeyCode::Left),
+        TextCmd::Move(Motion::Left, Extend::No),
+        "Left",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Right),
+        TextCmd::Move(Motion::Right, Extend::No),
+        "Right",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Left, SHIFT),
+        TextCmd::Move(Motion::Left, Extend::Select),
+        "Select left",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Right, SHIFT),
+        TextCmd::Move(Motion::Right, Extend::Select),
+        "Select right",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Left, CTRL),
+        TextCmd::Move(Motion::WordLeft, Extend::No),
+        "Word left",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Right, CTRL),
+        TextCmd::Move(Motion::WordRight, Extend::No),
+        "Word right",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Left, ALT),
+        TextCmd::Move(Motion::WordLeft, Extend::No),
+        "Word left (Alt+Left)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Right, ALT),
+        TextCmd::Move(Motion::WordRight, Extend::No),
+        "Word right (Alt+Right)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Home),
+        TextCmd::Move(Motion::Home, Extend::No),
+        "Start",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::End),
+        TextCmd::Move(Motion::End, Extend::No),
+        "End",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Home, SHIFT),
+        TextCmd::Move(Motion::Home, Extend::Select),
+        "Select to start",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::End, SHIFT),
+        TextCmd::Move(Motion::End, Extend::Select),
+        "Select to end",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Home, CTRL),
+        TextCmd::Move(Motion::DocStart, Extend::No),
+        "Document start",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::End, CTRL),
+        TextCmd::Move(Motion::DocEnd, Extend::No),
+        "Document end",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Backspace),
+        TextCmd::Backspace,
+        "Backspace",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Backspace, CTRL),
+        TextCmd::DeleteWordLeft,
+        "Delete word",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Backspace, ALT),
+        TextCmd::DeleteWordLeft,
+        "Delete word (Alt+Backspace)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Delete),
+        TextCmd::Delete,
+        "Delete",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('a'), CTRL),
+        TextCmd::Move(Motion::Home, Extend::No),
+        "Start (Ctrl+A)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('e'), CTRL),
+        TextCmd::Move(Motion::End, Extend::No),
+        "End (Ctrl+E)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('u'), CTRL),
+        TextCmd::DeleteToLineStart,
+        "Delete to start",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('k'), CTRL),
+        TextCmd::DeleteToLineEnd,
+        "Delete to end",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('w'), CTRL),
+        TextCmd::DeleteWordLeft,
+        "Delete word (Ctrl+W)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('l'), CTRL),
+        TextCmd::SelectAll,
+        "Select all",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('b'), ALT),
+        TextCmd::Move(Motion::WordLeft, Extend::No),
+        "Word left (Alt+B)",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('f'), ALT),
+        TextCmd::Move(Motion::WordRight, Extend::No),
+        "Word right (Alt+F)",
+        false,
+    ),
+];
+
 /// The in-flight editor with its sensitivity encoded in the variant.
 ///
 /// A secret editor is never represented as an untagged `String` plus a flag:
@@ -174,22 +351,12 @@ impl EditorDraft {
         if self.is_sensitive() == sensitive {
             return;
         }
-        if sensitive {
-            // Escalation: a secret control attaches over a begun plain
-            // draft — re-wrap the live text and caret instead of
-            // dropping the edit. The transient is wiped immediately;
-            // the old plain bytes are zeroized first.
-            let text = self.text().to_owned();
-            let caret = self.cursor_offset();
-            self.zeroize();
-            let mut editor = TextEditorCore::sensitive_single(&text);
-            editor.set_cursor_offset(caret);
-            wipe_string(text);
-            *self = EditorDraft::Secret(editor);
+        self.zeroize();
+        *self = if sensitive {
+            EditorDraft::Secret(TextEditorCore::sensitive_single(""))
         } else {
-            self.zeroize();
-            *self = EditorDraft::Plain(TextEditorCore::default());
-        }
+            EditorDraft::Plain(TextEditorCore::default())
+        };
     }
 
     pub(crate) fn begin_single(&mut self, current: &str) {
@@ -234,20 +401,6 @@ impl EditorDraft {
         }
     }
 
-    pub(crate) fn cursor_offset(&self) -> usize {
-        match self {
-            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor.cursor_offset(),
-        }
-    }
-
-    pub(crate) fn select_range(&mut self, start: usize, end: usize) {
-        match self {
-            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
-                editor.select_range(start, end);
-            }
-        }
-    }
-
     pub(crate) fn hscroll(&self) -> u16 {
         match self {
             EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor.hscroll(),
@@ -270,14 +423,6 @@ impl EditorDraft {
         match self {
             EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
                 editor.set_cursor_line_col(line, col);
-            }
-        }
-    }
-
-    pub(crate) fn set_cursor_offset(&mut self, at: usize) {
-        match self {
-            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
-                editor.set_cursor_offset(at);
             }
         }
     }
@@ -354,7 +499,7 @@ impl ErrorState {
         }
     }
 
-    pub fn clone_snapshot(&self) -> Self {
+    pub(crate) fn clone_snapshot(&self) -> Self {
         match self {
             ErrorState::Plain(error) => ErrorState::Plain(error.clone()),
             ErrorState::Pending(_) | ErrorState::Sensitive => ErrorState::Sensitive,
@@ -418,15 +563,6 @@ pub struct TextInputState {
     error: Option<ErrorState>,
     redacted_snapshot: bool,
     sensitivity: Option<bool>,
-    /// FNV-1a of the caller value at `begin` (W08-07): conflict detection
-    /// without retaining caller bytes. `None` while idle.
-    base: Option<u64>,
-}
-
-/// FNV-1a fingerprint of a begin value: change detection that retains no
-/// caller bytes (secret-safe by construction).
-fn hash_str(s: &str) -> u64 {
-    crate::id::fnv1a(0xcbf2_9ce4_8422_2325, s.as_bytes())
 }
 
 impl Clone for TextInputState {
@@ -437,7 +573,6 @@ impl Clone for TextInputState {
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
             redacted_snapshot: self.is_sensitive(),
             sensitivity: self.sensitivity,
-            base: self.base,
         }
     }
 }
@@ -514,26 +649,20 @@ impl TextInputState {
         }
     }
 
-    /// Byte offset of the draft cursor while editing; `None` when idle.
-    ///
-    /// Completion owners anchor trigger and accept ranges on this offset.
-    /// Secret drafts report their real offset: position is not content.
-    pub fn draft_cursor(&self) -> Option<usize> {
-        self.is_editing().then(|| self.draft.cursor_offset())
-    }
-
     /// Replace `replace_len` bytes before the draft cursor with `insertion`.
     ///
-    /// Completion accept targets the live draft only: idle states refuse so a
-    /// stale accept can never rewrite a committed value.
+    /// Idle states refuse so a stale accept cannot rewrite a committed value.
     pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
         if !self.is_editing() {
             return false;
         }
-        let end = self.draft.cursor_offset();
+        let editor = match &mut self.draft {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor,
+        };
+        let end = editor.cursor_offset();
         let start = end.saturating_sub(replace_len);
-        self.draft.select_range(start, end);
-        self.draft.apply(EditAction::Paste(insertion)).changed()
+        editor.select_range(start, end);
+        editor.apply(EditAction::Paste(insertion)).changed()
     }
 
     /// Compare the text the editor currently displays without exposing its draft.
@@ -566,20 +695,15 @@ impl TextInputState {
 
     pub fn set_sensitive(&mut self, sensitive: bool) {
         let changed = self.is_sensitive() != sensitive;
-        let first_attach = self.sensitivity.is_none();
         let pending_error = self
             .error
             .as_ref()
             .is_some_and(|error| matches!(error, ErrorState::Pending(_)));
         self.draft.set_sensitive(sensitive);
         self.sensitivity = Some(sensitive);
-        if changed && !first_attach {
-            // A genuine mid-edit policy flip drops the edit; a first
-            // attach reconciles around the live draft instead.
-            self.base = None;
+        if changed {
             self.phase = EditPhase::Idle;
             self.redacted_snapshot = false;
-            self.draft.zeroize();
             if sensitive && pending_error {
                 self.redact_error();
             } else {
@@ -624,7 +748,6 @@ impl TextInputState {
             return;
         }
         self.redacted_snapshot = false;
-        self.base = Some(hash_str(current));
         self.draft.begin_single(current);
         self.phase = EditPhase::Editing;
     }
@@ -646,20 +769,10 @@ impl TextInputState {
         self.finish_validation(v.check(value.expose()))
     }
 
-    /// Whether the caller-owned value moved under the active draft: the
-    /// begin fingerprint no longer matches. The widget layer — the only
-    /// place where the commit target is the same live binding the draft
-    /// was seeded from — rebases on this; direct `commit` into a fresh
-    /// target always writes.
-    pub(crate) fn external_changed(&self, current: &str) -> bool {
-        self.is_editing() && self.base.is_some_and(|base| base != hash_str(current))
-    }
-
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
         if self.is_editing() && !self.redacted_snapshot {
             value.set(self.draft.text(), self.is_sensitive());
         }
-        self.base = None;
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
         self.draft.zeroize();
@@ -667,7 +780,6 @@ impl TextInputState {
 
     /// Drop the draft.
     pub fn cancel(&mut self) {
-        self.base = None;
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
         self.draft.zeroize();
@@ -850,7 +962,6 @@ pub struct TextInput<'a> {
     pointer_enabled: bool,
     status: Status,
     ov: PartStyle<'a>,
-    inline: bool,
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -866,7 +977,6 @@ impl fmt::Debug for TextInput<'_> {
             .field("disabled", &self.disabled)
             .field("pointer_enabled", &self.pointer_enabled)
             .field("status", &self.status)
-            .field("inline", &self.inline)
             .finish_non_exhaustive()
     }
 }
@@ -898,15 +1008,7 @@ impl<'a> TextInput<'a> {
             pointer_enabled: true,
             status: Status::Ready,
             ov: PartStyle::new(),
-            inline: false,
         }
-    }
-
-    /// Whether the editor is drawn inline in a cell, without standalone gutter or indent.
-    #[must_use]
-    pub const fn inline(mut self, enabled: bool) -> Self {
-        self.inline = enabled;
-        self
     }
 
     /// The controlled value, for `draw`.
@@ -1034,7 +1136,6 @@ impl<'a> TextInput<'a> {
             pointer_enabled: self.pointer_enabled,
             status: self.status,
             ov: self.ov,
-            inline: self.inline,
         }
     }
 
@@ -1067,12 +1168,8 @@ impl<'a> TextInput<'a> {
         value: &mut T,
         inherited_disabled: bool,
     ) -> Response<TextAction> {
-        let field = self.with_inherited_disabled(inherited_disabled);
-        let focused = cx.state(field.id).contains(StateFlags::FOCUSED);
-        if focused && field.editable() {
-            st.begin(value.expose());
-        }
-        field.update_target(cx, st, value)
+        self.with_inherited_disabled(inherited_disabled)
+            .update_target(cx, st, value)
     }
 
     pub fn commit_in_form<T: TextTarget + ?Sized>(
@@ -1087,68 +1184,29 @@ impl<'a> TextInput<'a> {
         true
     }
 
-    /// The update phase over any [`TextTarget`], without the form
-    /// bridge's focus pre-begin. Sensitivity reconciles from this
-    /// control's `.secret()` policy only: a `Secret` value never
-    /// re-sensitizes the state, so plaintext acknowledgement echo keeps a
-    /// secret-typed store. Every other arm matches [`TextInput::update`].
-    pub fn update_value<T: TextTarget + ?Sized>(
-        &self,
-        cx: &mut Cx<'_>,
-        st: &mut TextInputState,
-        value: &mut T,
-    ) -> Response<TextAction> {
-        self.update_core(cx, st, value, false)
-    }
-
     fn update_target<T: TextTarget + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
         st: &mut TextInputState,
         value: &mut T,
     ) -> Response<TextAction> {
-        let value_sensitive = value.is_sensitive();
-        self.update_core(cx, st, value, value_sensitive)
-    }
-
-    fn update_core<T: TextTarget + ?Sized>(
-        &self,
-        cx: &mut Cx<'_>,
-        st: &mut TextInputState,
-        value: &mut T,
-        value_sensitive: bool,
-    ) -> Response<TextAction> {
-        st.set_sensitive(self.secret.is_some() || value_sensitive);
+        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
         let mut acc = super::Acc::<TextAction>::new();
         let editable = self.editable();
-        // W08-07: the caller owns the value and may rewrite it under an
-        // active draft (the widget writes on commit only, so a mismatch
-        // is always external). The newer write wins: drop the stale draft
-        // so no later commit silently overwrites it; the next begin
-        // reseeds from the current value.
-        if st.external_changed(value.expose()) {
-            st.cancel();
-            acc.changed();
-        }
         for it in cx.intents(self.id) {
             match it {
-                Intent::FocusIn { .. } => {}
+                Intent::FocusIn { .. } => {
+                    if editable {
+                        st.begin(value.expose());
+                    }
+                }
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
-                        // W11-04: focus transit through a pristine field
-                        // ends the edit silently — the reference never
-                        // auto-begins, so tabbing past an untouched field
-                        // reports nothing there either.
-                        let dirty = st.draft.text() != value.expose();
                         let _ = st.blur_target(value, &self.validator(), policy);
                         match policy {
                             BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
-                                if dirty {
-                                    acc.action(TextAction::Committed);
-                                } else {
-                                    acc.consumed();
-                                }
+                                acc.action(TextAction::Committed);
                             }
                             BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
                             BlurPolicy::Keep => {}
@@ -1156,7 +1214,7 @@ impl<'a> TextInput<'a> {
                     }
                 }
                 Intent::Binding(action) if editable => {
-                    if let Some(cmd) = Binding::command(edit_bindings(false), action) {
+                    if let Some(cmd) = Binding::command(BINDINGS, action) {
                         if st.is_editing() {
                             self.edit_command_target(st, value, cmd, &mut acc);
                         } else if cmd == TextCmd::Commit {
@@ -1168,19 +1226,9 @@ impl<'a> TextInput<'a> {
                 Intent::Key(k) if editable && st.is_editing() => {
                     if let Some(c) = k.bare_char() {
                         self.insert(st, c, &mut acc);
-                    } else {
-                        // Baseline `edit_key … => None`: keys with no edit
-                        // meaning (verticals, ctrl/alt chords) are swallowed
-                        // while editing, never ignored.
-                        acc.consumed();
                     }
                 }
-                Intent::Paste(s) if editable => {
-                    if !st.is_editing() {
-                        // W08-03: paste while navigating starts editing
-                        // (reference `on_paste` calls `begin_edit` first).
-                        st.begin(value.expose());
-                    }
+                Intent::Paste(s) if editable && st.is_editing() => {
                     if st.apply(EditAction::Paste(s)).changed() {
                         self.live_validate(st);
                         acc.action(TextAction::Changed);
@@ -1189,7 +1237,7 @@ impl<'a> TextInput<'a> {
                     }
                 }
                 Intent::Pointer {
-                    phase: Phase::Click | Phase::DoubleClick,
+                    phase: Phase::Press | Phase::Click,
                     local,
                     ..
                 } if editable && self.pointer_enabled => {
@@ -1198,21 +1246,7 @@ impl<'a> TextInput<'a> {
                     }
                     let col = usize::from(local.x.saturating_sub(2))
                         .saturating_add(usize::from(st.draft.hscroll()));
-                    // W08-02: a press without release edits nothing (the
-                    // legacy widget has no press handler — `on_click`
-                    // only), so `Phase::Press` falls through to the
-                    // consume arm below.
-                    if self.secret.is_some() || st.is_sensitive() {
-                        // W08-02: masked paint shows one cell per grapheme,
-                        // so the click column counts graphemes, not
-                        // plaintext cells (reference `on_click` walks
-                        // `display_graphemes`).
-                        let text = st.draft.text();
-                        let at = graphemes(text).nth(col).map_or(text.len(), |(i, _)| i);
-                        st.draft.set_cursor_offset(at);
-                    } else {
-                        st.draft.set_cursor_line_col(0, col);
-                    }
+                    st.draft.set_cursor_line_col(0, col);
                     acc.changed();
                 }
                 Intent::Pointer { .. } if self.pointer_enabled => acc.consumed(),
@@ -1264,7 +1298,21 @@ impl<'a> TextInput<'a> {
                 acc.action(TextAction::Committed);
             }
             cmd => {
-                let action = edit_action_of(cmd);
+                let action = match cmd {
+                    TextCmd::Move(m, e) => EditAction::Move(m, e),
+                    TextCmd::Backspace => EditAction::Backspace,
+                    TextCmd::Delete => EditAction::Delete,
+                    TextCmd::DeleteWordLeft => EditAction::DeleteWordLeft,
+                    TextCmd::DeleteToLineEnd => EditAction::DeleteToLineEnd,
+                    TextCmd::DeleteToLineStart => EditAction::DeleteToLineStart,
+                    TextCmd::SelectAll => EditAction::SelectAll,
+                    // never bound by the single-line table above
+                    TextCmd::Newline
+                    | TextCmd::PageUp
+                    | TextCmd::PageDown
+                    | TextCmd::Cancel
+                    | TextCmd::Commit => EditAction::ClearSelection,
+                };
                 match st.apply(action) {
                     EditOutcome::Changed => {
                         self.live_validate(st);
@@ -1330,18 +1378,11 @@ impl<'a> TextInput<'a> {
         // without a theme rule (§11.4's `BUSY`/`LOADING` row); it shares the
         // trailing cell with the error glyph, which wins.
         let busy = matches!(self.status, Status::Busy | Status::Loading);
-        let inner = if self.inline {
-            Rect {
-                width: area.width.saturating_sub(1),
-                ..area
-            }
-        } else {
-            Rect {
-                x: area.x.saturating_add(2),
-                y: area.y,
-                width: Self::inner_width(area.width),
-                height: 1,
-            }
+        let inner = Rect {
+            x: area.x.saturating_add(2),
+            y: area.y,
+            width: Self::inner_width(area.width),
+            height: 1,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         if self.pointer_enabled {
@@ -1349,18 +1390,18 @@ impl<'a> TextInput<'a> {
         } else {
             ui.register_keyboard_editor(self.id, area, focusability, declared);
         }
-        ui.publish_bindings(self.id, live, edit_bindings(false));
+        ui.publish_bindings(self.id, live, BINDINGS);
         if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
             ui.publish_typing_target(
                 self.id,
-                edit_bindings(false),
+                BINDINGS,
                 |cmd| !matches!(cmd, TextCmd::Commit | TextCmd::Cancel),
                 cursor,
             );
         }
-        let owns_cursor = editing
-            && (live.contains(StateFlags::FOCUSED)
-                || matches!(
+        let owns_cursor = live.contains(StateFlags::FOCUSED)
+            || (editing
+                && matches!(
                     self.typing_policy,
                     crate::TypingPolicy::Fallback { cursor: true }
                 ));
@@ -1371,27 +1412,16 @@ impl<'a> TextInput<'a> {
         };
         let field = style(ui, Part::FIELD);
         ui.fill(area, field.style);
-        if !self.inline {
-            let gutter_cell = cell_at(area, area.x);
-            if let Some(f) = ov.slot_for(Part::GUTTER) {
-                f(ui, gutter_cell);
-            } else {
-                let g = style(ui, Part::GUTTER);
-                match g.glyph {
-                    Slot::Set(glyph) => {
-                        ui.glyph(gutter_cell, glyph, g.style);
-                    }
-                    Slot::Inherit if live.contains(StateFlags::FOCUSED) => {
-                        ui.glyph(
-                            gutter_cell,
-                            GlyphRole::FocusBar,
-                            g.style.with_bg_from(field.style),
-                        );
-                    }
-                    Slot::Inherit | Slot::Clear => {
-                        ui.fill(gutter_cell, field.style.with_fg_from_bg(field.style));
-                    }
+        let gutter_cell = cell_at(area, area.x);
+        if let Some(f) = ov.slot_for(Part::GUTTER) {
+            f(ui, gutter_cell);
+        } else {
+            let g = style(ui, Part::GUTTER);
+            match g.glyph {
+                Slot::Set(glyph) => {
+                    ui.glyph(gutter_cell, glyph, g.style);
                 }
+                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
         let shown = if editing {
@@ -1402,20 +1432,8 @@ impl<'a> TextInput<'a> {
         if !shown.is_empty() || editing {
             if inner.width > 0 {
                 let ts = style(ui, Part::TEXT);
-                let secret_policy = self
-                    .secret
-                    .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
                 let cursor_col = if editing {
-                    if secret_policy.is_some() {
-                        // W08-02: masked paint shows one cell per grapheme,
-                        // so the caret column counts graphemes before the
-                        // caret, not plaintext cells — clicks and cursor
-                        // share the display geometry.
-                        let at = st.draft.cursor_offset();
-                        graphemes(shown).take_while(|(i, _)| *i < at).count()
-                    } else {
-                        st.draft.cursor_pos().col
-                    }
+                    st.draft.cursor_pos().col
                 } else {
                     0
                 };
@@ -1432,19 +1450,16 @@ impl<'a> TextInput<'a> {
                 } else {
                     0
                 };
+                let secret_policy = self
+                    .secret
+                    .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
                 let total = match secret_policy {
                     Some(_) => graphemes(shown).count(),
                     None => usize::from(width(shown)),
                 };
-                let ellipsis_style = if self.inline {
-                    ts.style
-                } else {
-                    ts.style
-                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))))
-                };
                 let mut run = inner;
                 if hs > 0 {
-                    let used = ui.glyph(run, GlyphRole::Ellipsis, ellipsis_style);
+                    let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
                     run = shift(run, used);
                 }
                 let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
@@ -1456,53 +1471,11 @@ impl<'a> TextInput<'a> {
                     paint_masked(ui, run, shown, skip, editing, policy, ts.style);
                 } else {
                     let start = byte_at_col(shown, skip);
-                    let sel = if editing { st.draft.selection() } else { None };
-                    if let Some(r) = sel {
-                        let text_start = start;
-                        let text_end = shown.len();
-                        let s_start = r.start.max(text_start).min(text_end);
-                        let s_end = r.end.max(text_start).min(text_end);
-                        let sel_style = if ui.theme().capability.color == ColorLevel::Mono {
-                            ts.style
-                                .patch(
-                                    ui.paint_patch(
-                                        &StylePatch::new()
-                                            .set_bg(Role::SelectionBg)
-                                            .set_fg(Role::SelectionFg),
-                                    ),
-                                )
-                                .add_modifier(Modifier::REVERSED)
-                        } else {
-                            ts.style.patch(
-                                ui.paint_patch(
-                                    &StylePatch::new()
-                                        .set_bg(Role::SelectionBg)
-                                        .set_fg(Role::SelectionFg),
-                                ),
-                            )
-                        };
-                        let mut cur_run = run;
-                        if s_start > text_start {
-                            let before = &shown[text_start..s_start];
-                            let used = ui.paint_str(cur_run, before, ts.style);
-                            cur_run = shift(cur_run, used);
-                        }
-                        if s_end > s_start {
-                            let selected_text = &shown[s_start..s_end];
-                            let used = ui.paint_str(cur_run, selected_text, sel_style);
-                            cur_run = shift(cur_run, used);
-                        }
-                        if text_end > s_end {
-                            let after = &shown[s_end..text_end];
-                            ui.paint_str(cur_run, after, ts.style);
-                        }
-                    } else {
-                        ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
-                    }
+                    ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
                 }
                 if overflow_right {
                     let last = cell_at(inner, inner.right().saturating_sub(1));
-                    ui.glyph(last, GlyphRole::Ellipsis, ellipsis_style);
+                    ui.glyph(last, GlyphRole::Ellipsis, ts.style);
                 }
                 if owns_cursor && self.editable() {
                     let cursor_col = if editing {
@@ -1544,46 +1517,43 @@ impl<'a> TextInput<'a> {
             match ov.slot_for(Part::PLACEHOLDER) {
                 Some(f) => f(ui, inner),
                 None => {
-                    let text = crate::text::truncate(p, inner.width);
-                    ui.paint_str(inner, &text, ps.style);
+                    ui.paint_str(inner, p, ps.style);
                 }
             }
         }
-        if !self.inline {
-            let readiness_cell = cell_at(area, area.right().saturating_sub(1));
-            if validation_error {
-                if let Some(f) = ov.slot_for(Part::MARKER) {
-                    f(ui, readiness_cell);
-                } else {
-                    let ms = style(ui, Part::MARKER);
-                    if let Slot::Set(g) = ms.glyph {
-                        ui.glyph(readiness_cell, g, ms.style);
+        let readiness_cell = cell_at(area, area.right().saturating_sub(1));
+        if validation_error {
+            if let Some(f) = ov.slot_for(Part::MARKER) {
+                f(ui, readiness_cell);
+            } else {
+                let ms = style(ui, Part::MARKER);
+                if let Slot::Set(g) = ms.glyph {
+                    ui.glyph(readiness_cell, g, ms.style);
+                }
+            }
+        } else if status_error {
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, readiness_cell);
+            } else {
+                let is = style(ui, Part::ICON);
+                match is.glyph {
+                    Slot::Set(g) => {
+                        ui.glyph(readiness_cell, g, is.style);
                     }
-                }
-            } else if status_error {
-                if let Some(f) = ov.slot_for(Part::ICON) {
-                    f(ui, readiness_cell);
-                } else {
-                    let is = style(ui, Part::ICON);
-                    match is.glyph {
-                        Slot::Set(g) => {
-                            ui.glyph(readiness_cell, g, is.style);
-                        }
-                        Slot::Inherit => {
-                            ui.glyph(readiness_cell, GlyphRole::Error, is.style);
-                        }
-                        Slot::Clear => ui.fill(readiness_cell, is.style),
+                    Slot::Inherit => {
+                        ui.glyph(readiness_cell, GlyphRole::Error, is.style);
                     }
+                    Slot::Clear => ui.fill(readiness_cell, is.style),
                 }
-            } else if busy {
-                if let Some(f) = ov.slot_for(Part::ICON) {
-                    f(ui, readiness_cell);
-                } else {
-                    let is = style(ui, Part::ICON);
-                    let frames = ui.design().motion.spinner_frames;
-                    let frame = frames.first().copied().unwrap_or("");
-                    ui.paint_str(readiness_cell, frame, is.style);
-                }
+            }
+        } else if busy {
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, readiness_cell);
+            } else {
+                let is = style(ui, Part::ICON);
+                let frames = ui.design().motion.spinner_frames;
+                let frame = frames.first().copied().unwrap_or("");
+                ui.paint_str(readiness_cell, frame, is.style);
             }
         }
         area
@@ -1646,13 +1616,17 @@ fn paint_masked(
     let mut cell = CellUi::new(ui.reborrow(), run, style);
     if tail > 0 {
         cell.glyphs(policy.mask, total.saturating_sub(tail));
-        // Oracle reveal rule (TI-MASK-007, masked && !editing): the
-        // committed tail shows the real last `tail` graphemes, painted
-        // slice-by-slice so no allocation of the secret is built.
-        let start = total.saturating_sub(tail);
-        for (_, g) in graphemes(shown).skip(skip).skip(start).take(tail) {
-            cell.text(g);
+        let fp = crate::id::fnv1a(0xcbf2_9ce4_8422_2325, shown.as_bytes()).to_le_bytes();
+        let mut buf = [0u8; 8];
+        for (slot, byte) in buf.iter_mut().zip(fp) {
+            let value = byte % 36;
+            *slot = if value < 10 {
+                b'0'.saturating_add(value)
+            } else {
+                b'a'.saturating_add(value.saturating_sub(10))
+            };
         }
+        cell.text(core::str::from_utf8(buf.get(..tail).unwrap_or(&[])).unwrap_or(""));
     } else {
         cell.glyphs(policy.mask, total);
     }
@@ -1667,11 +1641,23 @@ impl Validate for Dyn<'_> {
     }
 }
 
+/// Byte offset of display column `col` in `s` (the whole length past the end).
+pub(super) fn byte_at_col(s: &str, col: usize) -> usize {
+    let mut w = 0usize;
+    for (i, g) in graphemes(s) {
+        if w >= col {
+            return i;
+        }
+        w = w.saturating_add(usize::from(width(g)));
+    }
+    s.len()
+}
+
 impl Bindings for TextInput<'_> {
     type Cmd = TextCmd;
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<TextCmd>] {
-        edit_bindings(false)
+        BINDINGS
     }
 }
 
@@ -1748,103 +1734,6 @@ mod tests {
         runtime.app().state.clone()
     }
 
-    struct ValueApp {
-        state: TextInputState,
-        value: Secret,
-        secret_control: bool,
-        last: Option<TextAction>,
-    }
-
-    impl App for ValueApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let input = TextInput::new(ID);
-            let input = if self.secret_control {
-                input.secret(SecretPolicy::default())
-            } else {
-                input
-            };
-            let r = input.update_value(cx, &mut self.state, &mut self.value);
-            self.last = r.action_ref().copied();
-            r.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let input = TextInput::new(ID);
-            let input = if self.secret_control {
-                input.secret(SecretPolicy::default())
-            } else {
-                input
-            };
-            input
-                .value(self.value.expose())
-                .draw(ui, SCREEN, &self.state);
-        }
-    }
-
-    /// `update_value` is the plain generic path: no focus pre-begin, the
-    /// `update` lifecycle over a `Secret` value, and sensitivity from the
-    /// control policy only — a secret-typed store never re-sensitizes.
-    #[test]
-    fn update_value_is_plain_and_control_sensitive_only() {
-        let mut rt = Runtime::new(
-            ValueApp {
-                state: TextInputState::default(),
-                value: Secret::new(String::new()),
-                secret_control: false,
-                last: None,
-            },
-            Theme::junie(),
-        );
-        let _ = rt.initialize();
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-        rt.set_focus(Some(ID));
-        let key = |code| {
-            Input::Key(Key {
-                code,
-                mods: KeyModifiers::NONE,
-            })
-        };
-        let step = |rt: &mut Runtime<ValueApp>, buf: &mut Buffer, input: Input| {
-            let _ = crate::runtime::stub::deliver(rt, input);
-            rt.draw_buffer(SCREEN, &mut *buf).commit_presented();
-        };
-        step(&mut rt, &mut buf, Input::Tick);
-        assert!(
-            !rt.app().state.is_editing(),
-            "update_value never pre-begins on focus"
-        );
-        assert!(
-            !rt.app().state.is_sensitive(),
-            "a Secret value must not re-sensitize a plain control"
-        );
-        step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert!(rt.app().state.is_editing(), "idle Enter begins");
-        assert_eq!(rt.app().last, None, "begin reports no commit");
-        step(&mut rt, &mut buf, key(KeyCode::Char('a')));
-        assert_eq!(rt.app().last, Some(TextAction::Changed));
-        step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert_eq!(rt.app().last, Some(TextAction::Committed));
-        assert_eq!(rt.app().value.expose(), "a");
-        assert!(!rt.app().state.is_editing(), "commit ends the edit");
-        assert!(
-            !rt.app().state.is_sensitive(),
-            "committing into a Secret store stays non-sensitive"
-        );
-        step(&mut rt, &mut buf, key(KeyCode::Enter));
-        step(&mut rt, &mut buf, key(KeyCode::Char('b')));
-        step(&mut rt, &mut buf, key(KeyCode::Esc));
-        assert_eq!(rt.app().last, Some(TextAction::Cancelled));
-        assert_eq!(rt.app().value.expose(), "a", "cancel drops the draft");
-        assert!(!rt.app().state.is_editing());
-        rt.app_mut().secret_control = true;
-        step(&mut rt, &mut buf, Input::Tick);
-        assert!(
-            rt.app().state.is_sensitive(),
-            "a .secret() control still sensitizes"
-        );
-    }
-
     #[test]
     fn sensitive_constructor_makes_direct_lifecycle_safe() {
         const SECRET: &str = "hunter2";
@@ -1907,6 +1796,15 @@ mod tests {
         // a second begin while editing keeps the draft
         st.begin("other");
         assert_eq!(st.draft.text(), "hello!");
+    }
+
+    #[test]
+    fn splice_completion_replaces_the_bytes_before_the_cursor() {
+        let mut st = TextInputState::default();
+        assert!(!st.splice_completion(5, "world"));
+        st.begin("hello");
+        assert!(st.splice_completion(5, "world"));
+        assert_eq!(st.draft_text(), Some("world"));
     }
 
     /// §16.1: commit is the only writer of the controlled value.
@@ -2141,11 +2039,11 @@ mod tests {
         assert_ne!(render(false, true), idle, "real edit state was not styled");
     }
 
-    /// Oracle reveal rule (TI-MASK-007, masked && !editing): a committed
-    /// masked field paints mask glyphs plus the real last-`tail`
-    /// graphemes — the reveal tail identifies which secret is stored.
+    /// §16.1 (P5): a masked field paints mask glyphs and a **synthetic**
+    /// tail derived from the fingerprint — never the real characters, and
+    /// never a `String` of them.
     #[test]
-    fn committed_mask_reveals_real_tail() {
+    fn write_mask_is_synthetic() {
         const SECRET: &str = "hunter2";
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -2163,6 +2061,10 @@ mod tests {
                 row.push_str(c.symbol());
             }
         }
+        assert!(
+            !row.contains(SECRET),
+            "the secret reached the buffer: {row}"
+        );
         let policy = SecretPolicy::default();
         let mask = Theme::junie().design.glyphs.get(policy.mask);
         let painted = row.trim();
@@ -2171,10 +2073,15 @@ mod tests {
             painted.starts_with(&mask.repeat(masked)),
             "the mask run is wrong: {painted}"
         );
-        // the tail reveals the real last graphemes, not a substitute
+        // the tail is synthetic: the real one's length, a different string,
+        // and drawn from the fingerprint alphabet
         let tail: String = painted.chars().skip(masked).collect();
         assert_eq!(tail.chars().count(), policy.synthetic_tail);
-        assert_eq!(tail, "r2", "the reveal tail must be real: {painted}");
+        assert_ne!(tail, "r2", "the real tail was painted");
+        assert!(
+            tail.chars().all(|c| c.is_ascii_alphanumeric()),
+            "tail {tail} is not synthetic"
+        );
     }
 
     #[test]

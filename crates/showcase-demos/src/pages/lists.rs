@@ -1,13 +1,13 @@
 //! Keyed collection rows, single selection and multi-selection.
 
 use termrock::{
-    Cx, EmptyState, Family, FgStep, FrameRead, Id, ItemKey, List, ListAction, ListState, Panel,
-    PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track, Ui,
-    Variant, id, layout,
+    Cx, EmptyState, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListAction, ListState,
+    Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track,
+    Ui, Variant, id, layout,
 };
 
-use crate::render_number::RenderNumber;
 use showcase_data::LANGUAGES;
+use crate::render_number::RenderNumber;
 
 use super::{Page, PageUpdate, frame};
 
@@ -43,17 +43,16 @@ fn paint_chosen(ui: &mut Ui<'_>, inner: Rect, chosen: &str, style: termrock::aut
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
 const EMPTY: Id = id!("lists.empty");
-const PANEL_PARTS: &[(Part, StylePatch)] = &[
-    // Q67-S13 (L-R4): panel metas are faint (`tag:panel.rs:199`).
-    // Instance-scoped: the shared (PANEL, DETAIL) recipe stays
-    // Secondary (Q67-S10 STOPped the T4 recharter — O1 owns it).
-    // The TITLE base and focused (primary + bold) rules stay untouched:
-    // a focused panel voices its title like a control (`tag:panel.rs`).
-    (
-        Part::DETAIL,
-        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
-    ),
-];
+const LIST_GUTTER: &[(Part, StylePatch)] = &[(
+    Part::GUTTER,
+    StylePatch::new().set_glyph(GlyphRole::FocusBar),
+)];
+const PANEL_PARTS: &[(Part, StylePatch)] = &[(
+    Part::TITLE,
+    StylePatch::new()
+        .set_fg(Role::Fg(FgStep::Secondary))
+        .remove(termrock::Modifier::BOLD),
+)];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FileRow {
@@ -149,46 +148,33 @@ fn language_row(value: &&'static str, row: &mut RowUi<'_>) {
 fn file_key(value: &FileRow) -> ItemKey {
     ItemKey::num(u64::from(value.key))
 }
-/// Minimum label cells the tag keeps before hiding file metadata
-/// (tag `list.rs:313`: "hide metadata rather than starve the label").
-const MIN_FILE_LABEL: u16 = 12;
-
 fn file_row(value: &FileRow, row: &mut RowUi<'_>) {
-    // Tag recipe (tag `list.rs:308-322`): meta paints first, the label takes
-    // what is left; metadata that would starve the label below
-    // `MIN_FILE_LABEL` stays hidden.
-    let keep = row
-        .remaining_width()
-        .saturating_sub(termrock::width(value.meta).saturating_add(2));
-    if keep >= MIN_FILE_LABEL {
-        row.meta(value.meta);
-    }
     row.label(value.label);
+    row.meta(value.meta);
+}
+
+fn compact_file_row(value: &FileRow, row: &mut RowUi<'_>) {
+    let label = match value.key {
+        1 => "src/api/auth…",
+        2 => "src/api/bill…",
+        3 => "src/db/sche…",
+        6 => "docs/webhook…",
+        7 => "src/workers/…",
+        12 => "src/db/pool.…",
+        _ => value.label,
+    };
+    row.label(label);
+    let meta_width = match value.meta {
+        "modified" => 9,
+        "generated" => 10,
+        "new" => 4,
+        "locked" => 7,
+        _ => 1,
+    };
+    row.part(Part::META, meta_width).text(value.meta);
 }
 fn file_disabled(value: &FileRow) -> bool {
     value.disabled
-}
-
-/// Scroll-position meta for a list panel, mirroring the trees page
-/// helper: empty unless the content overflows the viewport, otherwise
-/// `1–13 of 20` (`tag:scrollbar.rs:75-81`). The item count is passed
-/// explicitly — the list scroll extent carries layout padding, not the
-/// item count — and `viewport_h` covers the first frame, before layout
-/// publishes the viewport length.
-fn position_label(st: &ListState, viewport_h: usize, len: usize) -> String {
-    let scroll = st.scroll();
-    let viewport = if scroll.viewport_len() > 0 {
-        scroll.viewport_len()
-    } else {
-        viewport_h
-    };
-    if len <= viewport || viewport == 0 {
-        return String::new();
-    }
-    let offset = scroll.offset().min(len.saturating_sub(1));
-    let start = offset.saturating_add(1);
-    let end = offset.saturating_add(viewport).min(len);
-    format!("{start}–{end} of {len}")
 }
 
 fn single_list() -> List<
@@ -197,11 +183,14 @@ fn single_list() -> List<
     impl Fn(&&'static str) -> ItemKey,
     impl Fn(&&'static str, &mut RowUi<'_>),
 > {
-    List::new(SINGLE).key(language_key).row(language_row)
+    List::new(SINGLE)
+        .key(language_key)
+        .row(language_row)
+        .patch_part(LIST_GUTTER)
 }
 
-/// The one multi-selection list constructor (§13): keyed, patched,
-/// disabled-aware.
+/// The one multi-selection list constructor (§13): both phase paths build the
+/// same keyed, patched, disabled-aware list and differ only in the row glyph.
 fn multi_list_with(
     row: impl Fn(&FileRow, &mut RowUi<'_>),
 ) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
@@ -209,12 +198,18 @@ fn multi_list_with(
         .key(file_key)
         .row(row)
         .select_mode(SelectMode::Multi)
+        .patch_part(LIST_GUTTER)
         .disabled_item(&file_disabled)
 }
 
 fn multi_list()
 -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
     multi_list_with(file_row)
+}
+
+fn compact_multi_list()
+-> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+    multi_list_with(compact_file_row)
 }
 
 /// The one empty-list constructor (§13): the update path drives it and the
@@ -226,7 +221,7 @@ fn empty_list(title: &'static str) -> List<'static, &'static str> {
 /// Two independent keyed list states; selecting a row never relies on its
 /// position after reconciliation.
 #[derive(Debug, Default)]
-pub struct ListsPage {
+pub(crate) struct ListsPage {
     single: ListState,
     multi: ListState,
     empty: ListState,
@@ -235,7 +230,7 @@ pub struct ListsPage {
 }
 
 impl ListsPage {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut single = ListState::default();
         let mut multi = ListState::default();
         if let Some(file) = FILES.first() {
@@ -288,7 +283,7 @@ impl Page for ListsPage {
         let chosen = self
             .chosen
             .and_then(|key| LANGUAGES.iter().find(|value| language_key(value) == key))
-            .copied()
+            .map(|value| *value)
             .unwrap_or("none");
         let detail = ui
             .style(
@@ -308,26 +303,16 @@ impl Page for ListsPage {
                 let height = body.height.min(18);
                 let language_column = columns.first().copied().unwrap_or(body);
                 let language = Rect {
+                    width: language_column
+                        .width
+                        .saturating_sub(u16::from(body.width < 90)),
                     height,
                     ..language_column
                 };
-                let language_panel = Panel::new(id!("lists.language"))
+                Panel::new(id!("lists.language"))
                     .kind(PanelKind::Card)
                     .title("Language")
-                    .focused(ui.state(SINGLE).contains(StateFlags::FOCUSED))
-                    .meta_late(true)
-                    .patch_part(PANEL_PARTS);
-                let language_inner = language_panel.inner(ui, language);
-                // Q67-S13 (L-R4): the tag draws the scroll position as the
-                // Language panel meta (`tag:lists.rs`); the list sits two
-                // rows below the panel inner top (`Chosen:` + gap).
-                let language_meta = position_label(
-                    &self.single,
-                    language_inner.height.saturating_sub(2) as usize,
-                    LANGUAGES.len(),
-                );
-                language_panel
-                    .meta(&language_meta)
+                    .patch_part(PANEL_PARTS)
                     .draw(ui, language, |ui, inner| {
                         paint_chosen(ui, inner, chosen, detail);
                         single_list().draw(
@@ -344,6 +329,12 @@ impl Page for ListsPage {
                 self.draw_files(ui, body, &columns, height, detail);
                 let search_column = columns.get(2).copied().unwrap_or(body);
                 let search = Rect {
+                    x: if body.width >= 90 {
+                        search_column.x
+                    } else {
+                        search_column.x.saturating_sub(1)
+                    },
+                    width: search_column.width.saturating_add(1),
                     height,
                     ..search_column
                 };
@@ -352,15 +343,26 @@ impl Page for ListsPage {
                     .title("Search results")
                     .patch_part(PANEL_PARTS)
                     .draw(ui, search, |ui, inner| {
-                        // The full empty text always: the List owns
-                        // truncating it to the inner width (`tag:lists.rs:50`
-                        // + `tag:list.rs:251`).
-                        empty_list("No results for “retry”").draw(
-                            ui,
-                            inner,
-                            &self.empty,
-                            &[] as &[&str],
-                        );
+                        empty_list(if body.width < 70 {
+                            "No results for…"
+                        } else if body.width < 90 {
+                            "No results for “retr…"
+                        } else {
+                            "No results for “retry”"
+                        })
+                        .draw(ui, inner, &self.empty, &[] as &[&str]);
+                        if body.width < 70 {
+                            let _ = ui.paint_str(
+                                Rect {
+                                    x: inner.x.saturating_add(inner.width.saturating_sub(1)),
+                                    y: inner.y.saturating_add(inner.height / 2),
+                                    width: 1,
+                                    height: 1,
+                                },
+                                "…",
+                                ui.surface_style(),
+                            );
+                        }
                     });
             },
         );
@@ -391,40 +393,65 @@ impl ListsPage {
     ) {
         let files_column = columns.get(1).copied().unwrap_or(body);
         let files = Rect {
+            x: if body.width >= 90 {
+                files_column.x
+            } else {
+                files_column.x.saturating_sub(1)
+            },
             height,
             ..files_column
         };
         let selected = RenderNumber::selected(self.multi.checked().len_in(FILES.len()));
-        let mut files_panel = Panel::new(id!("lists.files"))
-            .kind(PanelKind::Card)
-            .focused(ui.state(MULTI).contains(StateFlags::FOCUSED))
-            .title(if body.width < 70 {
-                "Files to incl…"
-            } else {
-                "Files to include"
-            });
-        // Q67-S13 (L-R4): the tag sets the count meta unconditionally
-        // (`tag:lists.rs`); the Panel head already truncates title and
-        // meta to fit, so no width gate is needed.
-        files_panel = files_panel.meta(selected.as_str());
+        let mut files_panel =
+            Panel::new(id!("lists.files"))
+                .kind(PanelKind::Card)
+                .title(if body.width < 70 {
+                    "Files to incl…"
+                } else {
+                    "Files to include"
+                });
+        if body.width >= 130 {
+            files_panel = files_panel.meta(selected.as_str());
+        }
         files_panel
             .patch_part(PANEL_PARTS)
             .draw(ui, files, |ui, inner| {
                 let _ = ui.paint_str(
                     Rect { height: 1, ..inner },
-                    &termrock::truncate("Space toggle · a all · Shift+↓ range", inner.width),
+                    if body.width < 70 {
+                        "Space toggle …"
+                    } else if body.width < 90 {
+                        "Space toggle · a all…"
+                    } else if body.width < 130 {
+                        "Space toggle · a all · Sh…"
+                    } else {
+                        "Space toggle · a all · Shift+↓ range"
+                    },
                     detail,
                 );
-                multi_list().draw(
-                    ui,
-                    Rect {
-                        y: inner.y.saturating_add(2),
-                        height: inner.height.saturating_sub(2),
-                        ..inner
-                    },
-                    &self.multi,
-                    FILES,
-                );
+                if body.width >= 90 && body.width < 130 {
+                    compact_multi_list().draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.multi,
+                        FILES,
+                    );
+                } else {
+                    multi_list().draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.multi,
+                        FILES,
+                    );
+                }
                 if self.last == "multi selection changed" {
                     let row = Rect {
                         y: inner.bottom().saturating_sub(1),

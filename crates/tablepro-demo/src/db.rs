@@ -1,10 +1,162 @@
-//! In-memory demo database: connections and deterministic row generation.
+//! Deterministic demo database: catalog (connections, databases, schemas,
+//! tables, columns, indexes, keys) and generated rows. No drivers: a small
+//! in-memory engine evaluates the SQL subset the workbench needs, so every
+//! interaction is real while results stay reproducible.
 
-use tablepro_domain::{
-    ColType, ConnectOutcome, Connection, Engine, Environment, SafeMode, Table, Value,
-};
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::indexing_slicing,
+    clippy::too_many_lines,
+    reason = "This migrated in-memory domain adapter preserves the product fixture vocabulary; generated values use bounded catalog data and deterministic arithmetic."
+)]
 
-pub fn connections() -> Vec<Connection> {
+// ------------------------------------------------------------------ catalog
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Engine {
+    Postgres,
+    MySql,
+    Sqlite,
+}
+
+impl Engine {
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Engine::Postgres => "PostgreSQL",
+            Engine::MySql => "MySQL",
+            Engine::Sqlite => "SQLite",
+        }
+    }
+    pub(crate) fn short(self) -> &'static str {
+        match self {
+            Engine::Postgres => "pg",
+            Engine::MySql => "mysql",
+            Engine::Sqlite => "sqlite",
+        }
+    }
+}
+
+/// `TablePro`'s per-connection Safe Mode level (`SafeModeLevel.swift`).
+/// Destructive statements always confirm regardless of level.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SafeMode {
+    /// Default: writes and reads run; only dangerous statements ask.
+    Silent,
+    /// Writes ask for confirmation.
+    Alert,
+    /// Every statement asks for confirmation.
+    AlertFull,
+    /// Writes ask and require authentication (Touch ID on macOS).
+    Safe,
+    /// Every statement asks and requires authentication.
+    SafeFull,
+    /// Writes are refused.
+    ReadOnly,
+}
+
+impl SafeMode {
+    pub(crate) const ALL: [SafeMode; 6] = [
+        SafeMode::Silent,
+        SafeMode::Alert,
+        SafeMode::AlertFull,
+        SafeMode::Safe,
+        SafeMode::SafeFull,
+        SafeMode::ReadOnly,
+    ];
+
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            SafeMode::Silent => "Silent",
+            SafeMode::Alert => "Alert",
+            SafeMode::AlertFull => "Alert (Full)",
+            SafeMode::Safe => "Safe Mode",
+            SafeMode::SafeFull => "Safe Mode (Full)",
+            SafeMode::ReadOnly => "Read-Only",
+        }
+    }
+
+    /// Short token for the identity strip.
+    pub(crate) fn token(self) -> &'static str {
+        match self {
+            SafeMode::Silent => "silent",
+            SafeMode::Alert => "alert",
+            SafeMode::AlertFull => "alert+",
+            SafeMode::Safe => "safe",
+            SafeMode::SafeFull => "safe+",
+            SafeMode::ReadOnly => "read-only",
+        }
+    }
+
+    pub(crate) fn description(self) -> &'static str {
+        match self {
+            SafeMode::Silent => "Writes run without asking. Destructive statements still confirm.",
+            SafeMode::Alert => "Every write asks for confirmation before it runs.",
+            SafeMode::AlertFull => "Every statement, reads included, asks for confirmation.",
+            SafeMode::Safe => "Writes ask for confirmation and a deliberate acknowledgement.",
+            SafeMode::SafeFull => {
+                "Every statement asks for confirmation and a deliberate acknowledgement."
+            }
+            SafeMode::ReadOnly => "Writes are refused. Reads and exports still work.",
+        }
+    }
+
+    pub(crate) fn requires_confirmation(self) -> bool {
+        !matches!(self, SafeMode::Silent | SafeMode::ReadOnly)
+    }
+    pub(crate) fn requires_authentication(self) -> bool {
+        matches!(self, SafeMode::Safe | SafeMode::SafeFull)
+    }
+    pub(crate) fn applies_to_all_queries(self) -> bool {
+        matches!(self, SafeMode::AlertFull | SafeMode::SafeFull)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Environment {
+    Local,
+    Development,
+    Staging,
+    Production,
+}
+
+impl Environment {
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Environment::Local => "local",
+            Environment::Development => "development",
+            Environment::Staging => "staging",
+            Environment::Production => "production",
+        }
+    }
+}
+
+/// One configured database connection.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Connection {
+    pub(crate) name: String,
+    pub(crate) engine: Engine,
+    pub(crate) host: String,
+    pub(crate) port: u16,
+    pub(crate) database: String,
+    pub(crate) user: String,
+    pub(crate) environment: Environment,
+    pub(crate) safe_mode: SafeMode,
+    pub(crate) ssl: bool,
+    pub(crate) ssh: Option<String>,
+    pub(crate) group: String,
+    pub(crate) last_used: String,
+    /// Simulated behaviour when connecting.
+    pub(crate) outcome: ConnectOutcome,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ConnectOutcome {
+    Ok,
+    AuthFailed,
+    Unreachable,
+}
+
+pub(crate) fn connections() -> Vec<Connection> {
     vec![
         Connection {
             name: "Local PostgreSQL".into(),
@@ -99,10 +251,569 @@ pub fn connections() -> Vec<Connection> {
     ]
 }
 
+/// Column storage type used by the deterministic catalog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColType {
+    /// UUID-like identifier.
+    Uuid,
+    /// Text value.
+    Text,
+    /// Signed integer.
+    Int,
+    /// Decimal number.
+    Numeric,
+    /// Boolean value.
+    Bool,
+    /// Timestamp value.
+    Timestamp,
+    /// Calendar date.
+    Date,
+    /// JSON value.
+    Json,
+    /// Enumerated text value.
+    Enum,
+}
+
+impl ColType {
+    pub(crate) fn sql(self) -> &'static str {
+        match self {
+            ColType::Uuid => "uuid",
+            ColType::Text | ColType::Enum => "text",
+            ColType::Int => "integer",
+            ColType::Numeric => "numeric(12,2)",
+            ColType::Bool => "boolean",
+            ColType::Timestamp => "timestamptz",
+            ColType::Date => "date",
+            ColType::Json => "jsonb",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Column {
+    pub(crate) name: String,
+    pub(crate) ty: ColType,
+    pub(crate) nullable: bool,
+    pub(crate) default: Option<String>,
+    pub(crate) primary: bool,
+    pub(crate) references: Option<(String, String)>,
+    pub(crate) enum_values: Vec<&'static str>,
+    pub(crate) generated: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Index {
+    pub(crate) name: String,
+    pub(crate) columns: Vec<String>,
+    pub(crate) unique: bool,
+    pub(crate) method: &'static str,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Constraint {
+    pub(crate) name: String,
+    pub(crate) kind: &'static str,
+    pub(crate) definition: String,
+}
+
+/// Catalog table metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Table {
+    pub(crate) schema: String,
+    /// Stable unqualified table name.
+    pub name: String,
+    pub(crate) kind: ObjectKind,
+    pub(crate) columns: Vec<Column>,
+    pub(crate) indexes: Vec<Index>,
+    pub(crate) constraints: Vec<Constraint>,
+    pub(crate) triggers: Vec<String>,
+    pub(crate) row_count: usize,
+    pub(crate) comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ObjectKind {
+    Table,
+    View,
+    Function,
+    Sequence,
+}
+
+impl Table {
+    pub(crate) fn qualified(&self) -> String {
+        format!("{}.{}", self.schema, self.name)
+    }
+    pub(crate) fn column(&self, name: &str) -> Option<&Column> {
+        self.columns
+            .iter()
+            .find(|c| c.name.eq_ignore_ascii_case(name))
+    }
+    pub(crate) fn primary_key(&self) -> Vec<&Column> {
+        self.columns.iter().filter(|c| c.primary).collect()
+    }
+}
+
+fn col(name: &str, ty: ColType) -> Column {
+    Column {
+        name: name.into(),
+        ty,
+        nullable: false,
+        default: None,
+        primary: false,
+        references: None,
+        enum_values: vec![],
+        generated: false,
+    }
+}
+fn pk(name: &str) -> Column {
+    Column {
+        primary: true,
+        default: Some("gen_random_uuid()".into()),
+        ..col(name, ColType::Uuid)
+    }
+}
+fn fk(name: &str, table: &str) -> Column {
+    Column {
+        references: Some((table.into(), "id".into())),
+        ..col(name, ColType::Uuid)
+    }
+}
+fn nullable(c: Column) -> Column {
+    Column {
+        nullable: true,
+        ..c
+    }
+}
+fn dflt(c: Column, d: &str) -> Column {
+    Column {
+        default: Some(d.into()),
+        ..c
+    }
+}
+fn enum_col(name: &str, values: Vec<&'static str>) -> Column {
+    Column {
+        enum_values: values,
+        ..col(name, ColType::Enum)
+    }
+}
+fn idx(name: &str, cols: &[&str], unique: bool) -> Index {
+    Index {
+        name: name.into(),
+        columns: cols.iter().map(|c| (*c).into()).collect(),
+        unique,
+        method: "btree",
+    }
+}
+
+/// Deterministic database catalog used by the application.
+#[derive(Debug, Clone)]
+pub struct Catalog {
+    pub(crate) database: String,
+    pub(crate) schemas: Vec<String>,
+    pub(crate) tables: Vec<Table>,
+}
+
+impl Catalog {
+    /// Build the stable `acme_prod` fixture catalog.
+    pub fn acme_prod() -> Self {
+        let created = || dflt(col("created_at", ColType::Timestamp), "now()");
+        let updated = || nullable(col("updated_at", ColType::Timestamp));
+        let tables = vec![
+            Table {
+                schema: "public".into(),
+                name: "organizations".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    col("name", ColType::Text),
+                    col("slug", ColType::Text),
+                    enum_col("plan", vec!["free", "starter", "team", "enterprise"]),
+                    nullable(col("billing_email", ColType::Text)),
+                    dflt(col("seats", ColType::Int), "5"),
+                    nullable(col("settings", ColType::Json)),
+                    created(),
+                    updated(),
+                ],
+                indexes: vec![
+                    idx("organizations_pkey", &["id"], true),
+                    idx("organizations_slug_key", &["slug"], true),
+                ],
+                constraints: vec![
+                    Constraint { name: "organizations_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() },
+                    Constraint { name: "organizations_slug_key".into(), kind: "UNIQUE", definition: "(slug)".into() },
+                    Constraint { name: "organizations_seats_check".into(), kind: "CHECK", definition: "(seats > 0)".into() },
+                ],
+                triggers: vec!["set_updated_at BEFORE UPDATE".into()],
+                row_count: 1_240,
+                comment: Some("Tenant accounts".into()),
+            },
+            Table {
+                schema: "public".into(),
+                name: "customers".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    fk("organization_id", "organizations"),
+                    col("email", ColType::Text),
+                    col("full_name", ColType::Text),
+                    nullable(col("phone", ColType::Text)),
+                    dflt(col("is_active", ColType::Bool), "true"),
+                    dflt(col("marketing_opt_in", ColType::Bool), "false"),
+                    nullable(col("last_login_at", ColType::Timestamp)),
+                    nullable(col("metadata", ColType::Json)),
+                    created(),
+                    updated(),
+                ],
+                indexes: vec![
+                    idx("customers_pkey", &["id"], true),
+                    idx("customers_email_key", &["email"], true),
+                    idx("customers_org_idx", &["organization_id"], false),
+                ],
+                constraints: vec![
+                    Constraint { name: "customers_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() },
+                    Constraint { name: "customers_email_key".into(), kind: "UNIQUE", definition: "(email)".into() },
+                    Constraint { name: "customers_organization_id_fkey".into(), kind: "FOREIGN KEY", definition: "(organization_id) REFERENCES organizations(id) ON DELETE CASCADE".into() },
+                ],
+                triggers: vec!["set_updated_at BEFORE UPDATE".into(), "audit_customers AFTER INSERT OR UPDATE OR DELETE".into()],
+                row_count: 48_912,
+                comment: None,
+            },
+            Table {
+                schema: "public".into(),
+                name: "products".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    col("sku", ColType::Text),
+                    col("name", ColType::Text),
+                    nullable(col("description", ColType::Text)),
+                    col("unit_price", ColType::Numeric),
+                    dflt(col("currency", ColType::Text), "'USD'"),
+                    dflt(col("is_active", ColType::Bool), "true"),
+                    nullable(col("attributes", ColType::Json)),
+                    created(),
+                ],
+                indexes: vec![idx("products_pkey", &["id"], true), idx("products_sku_key", &["sku"], true)],
+                constraints: vec![
+                    Constraint { name: "products_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() },
+                    Constraint { name: "products_sku_key".into(), kind: "UNIQUE", definition: "(sku)".into() },
+                    Constraint { name: "products_unit_price_check".into(), kind: "CHECK", definition: "(unit_price >= 0)".into() },
+                ],
+                triggers: vec![],
+                row_count: 312,
+                comment: None,
+            },
+            Table {
+                schema: "public".into(),
+                name: "orders".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    Column { generated: true, default: Some("nextval('orders_number_seq')".into()), ..col("order_number", ColType::Int) },
+                    fk("customer_id", "customers"),
+                    fk("organization_id", "organizations"),
+                    dflt(enum_col("status", vec!["pending", "paid", "shipped", "delivered", "cancelled", "refunded"]), "'pending'"),
+                    col("total_amount", ColType::Numeric),
+                    dflt(col("currency", ColType::Text), "'USD'"),
+                    nullable(col("shipping_address", ColType::Json)),
+                    nullable(col("notes", ColType::Text)),
+                    nullable(col("shipped_at", ColType::Timestamp)),
+                    nullable(col("delivered_at", ColType::Date)),
+                    dflt(col("is_gift", ColType::Bool), "false"),
+                    created(),
+                    updated(),
+                ],
+                indexes: vec![
+                    idx("orders_pkey", &["id"], true),
+                    idx("orders_order_number_key", &["order_number"], true),
+                    idx("orders_customer_idx", &["customer_id"], false),
+                    idx("orders_status_created_idx", &["status", "created_at"], false),
+                ],
+                constraints: vec![
+                    Constraint { name: "orders_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() },
+                    Constraint { name: "orders_customer_id_fkey".into(), kind: "FOREIGN KEY", definition: "(customer_id) REFERENCES customers(id)".into() },
+                    Constraint { name: "orders_organization_id_fkey".into(), kind: "FOREIGN KEY", definition: "(organization_id) REFERENCES organizations(id)".into() },
+                    Constraint { name: "orders_status_check".into(), kind: "CHECK", definition: "(status IN ('pending','paid','shipped','delivered','cancelled','refunded'))".into() },
+                    Constraint { name: "orders_total_amount_check".into(), kind: "CHECK", definition: "(total_amount >= 0)".into() },
+                ],
+                triggers: vec!["set_updated_at BEFORE UPDATE".into(), "orders_audit AFTER UPDATE".into()],
+                row_count: 1_203_338,
+                comment: Some("One row per checkout".into()),
+            },
+            Table {
+                schema: "public".into(),
+                name: "order_items".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    fk("order_id", "orders"),
+                    fk("product_id", "products"),
+                    col("quantity", ColType::Int),
+                    col("unit_price", ColType::Numeric),
+                    nullable(col("discount", ColType::Numeric)),
+                    created(),
+                ],
+                indexes: vec![idx("order_items_pkey", &["id"], true), idx("order_items_order_idx", &["order_id"], false)],
+                constraints: vec![
+                    Constraint { name: "order_items_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() },
+                    Constraint { name: "order_items_order_id_fkey".into(), kind: "FOREIGN KEY", definition: "(order_id) REFERENCES orders(id) ON DELETE CASCADE".into() },
+                    Constraint { name: "order_items_product_id_fkey".into(), kind: "FOREIGN KEY", definition: "(product_id) REFERENCES products(id)".into() },
+                    Constraint { name: "order_items_quantity_check".into(), kind: "CHECK", definition: "(quantity > 0)".into() },
+                ],
+                triggers: vec![],
+                row_count: 3_811_020,
+                comment: None,
+            },
+            Table {
+                schema: "public".into(),
+                name: "payments".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    fk("order_id", "orders"),
+                    enum_col("provider", vec!["stripe", "paypal", "wire", "apple_pay"]),
+                    nullable(col("provider_ref", ColType::Text)),
+                    col("amount", ColType::Numeric),
+                    dflt(col("currency", ColType::Text), "'USD'"),
+                    enum_col("status", vec!["authorized", "captured", "failed", "refunded"]),
+                    nullable(col("failure_reason", ColType::Text)),
+                    nullable(col("captured_at", ColType::Timestamp)),
+                    created(),
+                ],
+                indexes: vec![idx("payments_pkey", &["id"], true), idx("payments_order_idx", &["order_id"], false), idx("payments_provider_ref_idx", &["provider", "provider_ref"], false)],
+                constraints: vec![
+                    Constraint { name: "payments_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() },
+                    Constraint { name: "payments_order_id_fkey".into(), kind: "FOREIGN KEY", definition: "(order_id) REFERENCES orders(id)".into() },
+                ],
+                triggers: vec![],
+                row_count: 1_180_442,
+                comment: None,
+            },
+            Table {
+                schema: "public".into(),
+                name: "subscriptions".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    fk("organization_id", "organizations"),
+                    enum_col("plan", vec!["starter", "team", "enterprise"]),
+                    enum_col("status", vec!["trialing", "active", "past_due", "cancelled"]),
+                    col("seats", ColType::Int),
+                    col("mrr", ColType::Numeric),
+                    col("current_period_end", ColType::Date),
+                    nullable(col("cancelled_at", ColType::Timestamp)),
+                    created(),
+                    updated(),
+                ],
+                indexes: vec![idx("subscriptions_pkey", &["id"], true), idx("subscriptions_org_idx", &["organization_id"], false)],
+                constraints: vec![
+                    Constraint { name: "subscriptions_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() },
+                    Constraint { name: "subscriptions_organization_id_fkey".into(), kind: "FOREIGN KEY", definition: "(organization_id) REFERENCES organizations(id)".into() },
+                ],
+                triggers: vec!["set_updated_at BEFORE UPDATE".into()],
+                row_count: 1_102,
+                comment: None,
+            },
+            Table {
+                schema: "public".into(),
+                name: "active_customers".into(),
+                kind: ObjectKind::View,
+                columns: vec![col("id", ColType::Uuid), col("email", ColType::Text), col("full_name", ColType::Text), col("organization", ColType::Text)],
+                indexes: vec![],
+                constraints: vec![],
+                triggers: vec![],
+                row_count: 41_207,
+                comment: Some("customers WHERE is_active".into()),
+            },
+            Table {
+                schema: "public".into(),
+                name: "order_totals_by_day".into(),
+                kind: ObjectKind::View,
+                columns: vec![col("day", ColType::Date), col("orders", ColType::Int), col("revenue", ColType::Numeric)],
+                indexes: vec![],
+                constraints: vec![],
+                triggers: vec![],
+                row_count: 1_460,
+                comment: None,
+            },
+            Table {
+                schema: "analytics".into(),
+                name: "events".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    nullable(fk("customer_id", "customers")),
+                    enum_col("event_type", vec!["page_view", "add_to_cart", "checkout", "signup", "login", "search"]),
+                    nullable(col("session_id", ColType::Uuid)),
+                    nullable(col("properties", ColType::Json)),
+                    nullable(col("user_agent", ColType::Text)),
+                    col("occurred_at", ColType::Timestamp),
+                ],
+                indexes: vec![idx("events_pkey", &["id"], true), idx("events_occurred_idx", &["occurred_at"], false), idx("events_type_idx", &["event_type"], false)],
+                constraints: vec![Constraint { name: "events_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() }],
+                triggers: vec![],
+                row_count: 98_442_010,
+                comment: Some("Product analytics, partitioned by month".into()),
+            },
+            Table {
+                schema: "analytics".into(),
+                name: "daily_revenue".into(),
+                kind: ObjectKind::Table,
+                columns: vec![col("day", ColType::Date), col("orders", ColType::Int), col("revenue", ColType::Numeric), col("refunds", ColType::Numeric), col("net", ColType::Numeric)],
+                indexes: vec![idx("daily_revenue_day_key", &["day"], true)],
+                constraints: vec![],
+                triggers: vec![],
+                row_count: 1_460,
+                comment: Some("Materialized nightly".into()),
+            },
+            Table {
+                schema: "analytics".into(),
+                name: "cohort_retention".into(),
+                kind: ObjectKind::View,
+                columns: vec![col("cohort_month", ColType::Date), col("month_offset", ColType::Int), col("customers", ColType::Int), col("retained_pct", ColType::Numeric)],
+                indexes: vec![],
+                constraints: vec![],
+                triggers: vec![],
+                row_count: 288,
+                comment: None,
+            },
+            Table {
+                schema: "audit".into(),
+                name: "change_log".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    Column { generated: true, default: Some("identity".into()), ..pk("id") },
+                    col("table_name", ColType::Text),
+                    col("row_id", ColType::Uuid),
+                    enum_col("operation", vec!["INSERT", "UPDATE", "DELETE"]),
+                    nullable(col("changed_by", ColType::Text)),
+                    nullable(col("old_values", ColType::Json)),
+                    nullable(col("new_values", ColType::Json)),
+                    col("changed_at", ColType::Timestamp),
+                ],
+                indexes: vec![idx("change_log_pkey", &["id"], true), idx("change_log_table_row_idx", &["table_name", "row_id"], false)],
+                constraints: vec![Constraint { name: "change_log_pkey".into(), kind: "PRIMARY KEY", definition: "(id)".into() }],
+                triggers: vec![],
+                row_count: 12_004_118,
+                comment: None,
+            },
+            Table {
+                schema: "audit".into(),
+                name: "login_attempts".into(),
+                kind: ObjectKind::Table,
+                columns: vec![
+                    pk("id"),
+                    col("email", ColType::Text),
+                    col("succeeded", ColType::Bool),
+                    nullable(col("ip", ColType::Text)),
+                    col("attempted_at", ColType::Timestamp),
+                ],
+                indexes: vec![idx("login_attempts_pkey", &["id"], true), idx("login_attempts_email_idx", &["email"], false)],
+                constraints: vec![],
+                triggers: vec![],
+                row_count: 3_301_002,
+                comment: None,
+            },
+            Table {
+                schema: "public".into(),
+                name: "set_updated_at()".into(),
+                kind: ObjectKind::Function,
+                columns: vec![],
+                indexes: vec![],
+                constraints: vec![],
+                triggers: vec![],
+                row_count: 0,
+                comment: Some("trigger function, plpgsql".into()),
+            },
+            Table {
+                schema: "public".into(),
+                name: "orders_number_seq".into(),
+                kind: ObjectKind::Sequence,
+                columns: vec![],
+                indexes: vec![],
+                constraints: vec![],
+                triggers: vec![],
+                row_count: 0,
+                comment: None,
+            },
+        ];
+        Self {
+            database: "acme_prod".into(),
+            schemas: vec!["public".into(), "analytics".into(), "audit".into()],
+            tables,
+        }
+    }
+
+    /// Find a table or view by optional schema and name.
+    pub fn find(&self, schema: Option<&str>, name: &str) -> Option<&Table> {
+        self.tables.iter().find(|t| {
+            t.name.eq_ignore_ascii_case(name)
+                && schema.is_none_or(|s| t.schema.eq_ignore_ascii_case(s))
+        })
+    }
+
+    #[expect(
+        dead_code,
+        reason = "schema browsing remains available to the private catalog adapter"
+    )]
+    pub(crate) fn tables_in(&self, schema: &str, kind: ObjectKind) -> impl Iterator<Item = &Table> {
+        self.tables
+            .iter()
+            .filter(move |t| t.schema == schema && t.kind == kind)
+    }
+}
+
+// ---------------------------------------------------------------- values
+
+/// One deterministic result-cell value.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Value {
+    /// SQL NULL.
+    Null,
+    /// Use the database column default during insertion.
+    Default,
+    /// Text value.
+    Text(String),
+    /// Signed integer.
+    Int(i64),
+    /// Decimal value.
+    Num(f64),
+    /// Boolean value.
+    Bool(bool),
+    /// JSON text.
+    Json(String),
+}
+
+impl Value {
+    pub(crate) fn display(&self) -> String {
+        match self {
+            Value::Null => "NULL".into(),
+            Value::Default => "DEFAULT".into(),
+            Value::Text(s) => s.clone(),
+            Value::Int(i) => i.to_string(),
+            Value::Num(n) => format!("{n:.2}"),
+            Value::Bool(b) => {
+                if *b {
+                    "true".into()
+                } else {
+                    "false".into()
+                }
+            }
+            Value::Json(j) => j.clone(),
+        }
+    }
+    pub(crate) fn as_f64(&self) -> Option<f64> {
+        match self {
+            Value::Int(i) => Some(*i as f64),
+            Value::Num(n) => Some(*n),
+            _ => None,
+        }
+    }
+}
+
 /// Deterministic pseudo-random stream (`SplitMix64`).
 #[derive(Clone)]
 struct Rng(u64);
-
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
@@ -111,15 +822,12 @@ impl Rng {
         z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
         z ^ (z >> 31)
     }
-
     fn below(&mut self, n: u64) -> u64 {
         self.next() % n.max(1)
     }
-
     fn pick<'a>(&mut self, items: &[&'a str]) -> &'a str {
         items[self.below(items.len() as u64) as usize]
     }
-
     fn chance(&mut self, pct: u64) -> bool {
         self.below(100) < pct
     }
@@ -129,7 +837,6 @@ const FIRST: &[&str] = &[
     "Mira", "Jonas", "Ana", "Kai", "Sofia", "Lucas", "Elena", "Omar", "Priya", "Tomas", "Ingrid",
     "Diego", "Hana", "Felix", "Nadia", "Ravi", "Greta", "Mateo", "Yuki", "Leon",
 ];
-
 const LAST: &[&str] = &[
     "Okafor",
     "Weber",
@@ -152,7 +859,6 @@ const LAST: &[&str] = &[
     "Mori",
     "Fischer",
 ];
-
 const ORGS: &[&str] = &[
     "Northwind Labs",
     "Lumen Retail",
@@ -165,7 +871,6 @@ const ORGS: &[&str] = &[
     "Juniper Home",
     "Meridian Foods",
 ];
-
 const DOMAINS: &[&str] = &[
     "northwind.io",
     "lumen.shop",
@@ -178,7 +883,6 @@ const DOMAINS: &[&str] = &[
     "juniper.home",
     "meridian.foods",
 ];
-
 const PRODUCTS: &[&str] = &[
     "Standing desk 140",
     "Ergo chair",
@@ -193,7 +897,6 @@ const PRODUCTS: &[&str] = &[
     "Whiteboard 90",
     "Footrest",
 ];
-
 const STREETS: &[&str] = &[
     "Hauptstrasse",
     "Rue de Rivoli",
@@ -204,7 +907,6 @@ const STREETS: &[&str] = &[
     "Nevsky Ave",
     "Queen St",
 ];
-
 const CITIES: &[&str] = &[
     "Berlin",
     "Paris",
@@ -215,7 +917,6 @@ const CITIES: &[&str] = &[
     "Lisbon",
     "Toronto",
 ];
-
 const NOTES: &[&str] = &[
     "Leave at reception; building closes 18:00.",
     "Customer asked for an invoice with VAT number DE812345678, please attach it to the shipment confirmation email.",
@@ -253,7 +954,7 @@ fn date(r: &mut Rng, year: i32) -> String {
 }
 
 /// Generate deterministic rows for a table. `n` rows starting at `offset`.
-pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
+pub(crate) fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
     let mut out = Vec::with_capacity(n);
     for i in offset..offset + n {
         let mut r =

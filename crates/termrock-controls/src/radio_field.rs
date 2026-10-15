@@ -4,8 +4,9 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::choice::{RadioGroup, RadioGroupState};
-use crate::collection::{KeyFn, RowFn};
+use crate::choice::{RadioGroup, RadioGroupState};
+use termrock_collections::collection::KeyFn;
+use termrock_runtime::rowui::RowFn;
 use crate::field_control::FieldControl;
 use crate::id::Id;
 use crate::measure::{Constraints, Size};
@@ -15,15 +16,7 @@ use crate::ui::Ui;
 ///
 /// `RadioGroup::draw` needs the option slice every frame, so a bare group
 /// cannot implement [`FieldControl`] on its own; this adapter carries both
-/// halves. The caller builds the group first (`.value()` and any patches
-/// are owned by `RadioGroup`), then binds it to the items:
-///
-/// ```ignore
-/// Field::new("Environment", RadioField::new(RadioGroup::new(ENV).value(k), &envs))
-/// ```
-///
-/// Identity, drawing and measurement are pure passthrough to the wrapped
-/// group; the chrome registers under the group's own id.
+/// halves. The caller builds the group first, then binds it to the items.
 pub struct RadioField<'a, T, K, R> {
     group: RadioGroup<'a, T, K, R>,
     items: &'a [T],
@@ -83,8 +76,7 @@ mod tests {
 
     fn cell_symbol(buf: &Buffer, x: u16, y: u16) -> &str {
         buf.cell(Position::new(x, y))
-            .map(|cell| cell.symbol())
-            .unwrap_or("<none>")
+            .map_or("<none>", ratatui_core::buffer::Cell::symbol)
     }
 
     #[test]
@@ -122,7 +114,6 @@ mod tests {
         let mut st = RadioGroupState::default();
         st.set_cursor(1, ItemKey::index(1));
 
-        // the bare group rows are the oracle: the adapter must add nothing
         let (mut rt, mut bare) = scene();
         rt.draw_scene(SCREEN, &mut bare, |ui, _| {
             let group: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(0));

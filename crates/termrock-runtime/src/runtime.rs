@@ -71,13 +71,6 @@ pub trait App {
     fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
         Response::ignored()
     }
-
-    /// Pin the animation tick the UI reads: paused-motion capture renders
-    /// tick-derived surfaces (spinners) at `--frame N` instead of the live
-    /// counter. `None` (the default) leaves the counter running.
-    fn pinned_tick(&self) -> Option<u64> {
-        None
-    }
 }
 
 /// Narrow physical key origin for an admitted update; never an activation grant.
@@ -364,7 +357,6 @@ pub struct Runtime<A: App> {
     intents: IntentQueue,
     inter: Interaction,
     pending_tick: bool,
-    tick: u64,
     frame: FrameState,
     core: UiCore,
     generation: u32,
@@ -423,7 +415,6 @@ impl<A: App> Runtime<A> {
             intents: IntentQueue::new(),
             inter: Interaction::default(),
             pending_tick: false,
-            tick: 0,
             frame: FrameState::default(),
             core,
             generation: 0,
@@ -575,25 +566,6 @@ impl<A: App> Runtime<A> {
     /// Explicit elapsed milliseconds, truncated only for this legacy inspector.
     pub fn clock_ms(&self) -> u64 {
         u64::try_from(self.now().as_duration().as_millis()).unwrap_or(u64::MAX)
-    }
-
-    /// Current animation tick.
-    pub const fn tick(&self) -> u64 {
-        self.tick
-    }
-
-    /// The tick the UI reads: the app's pin wins over the live counter.
-    fn effective_tick(&self) -> u64 {
-        self.app.pinned_tick().unwrap_or(self.tick)
-    }
-
-    /// Publish the effective tick to the update channel, advancing the
-    /// live counter unless the app pins it.
-    fn advance_tick(&mut self) {
-        if self.app.pinned_tick().is_none() {
-            self.tick = self.tick.wrapping_add(1);
-        }
-        self.services.tick = self.effective_tick();
     }
 
     /// The terminal size as last resized or successfully presented.
@@ -1029,13 +1001,6 @@ impl<A: App> Runtime<A> {
                 if let Some(h) = self.last.registry.hit_scroll(m.pos, axis)
                     && h.layer == top
                 {
-                    // One notch scrolls `wheel_rows`: a real terminal
-                    // notch arrives as `Wheel(±1)` (`event.rs`), and the
-                    // reference apps map every notch to ±3 rows at the
-                    // dispatch layer — centralized here so every
-                    // scrollable keeps the reference feel. Components
-                    // must hold this offset per their own follow gate
-                    // (W09-05), never rely on a snap-back.
                     let rows = self.theme.design.motion.wheel_rows as i16;
                     self.intents
                         .wheel(h.owner, axis, delta.saturating_mul(rows), h.part, m.pos);
@@ -1399,7 +1364,6 @@ impl<A: App> Runtime<A> {
             if !core::mem::take(&mut self.pending_tick) {
                 return Response::ignored();
             }
-            self.advance_tick();
             self.intents.clear();
             self.pump_layer_events();
             let r = self.run_update(None, UpdateCause::Tick, None);
@@ -1459,7 +1423,6 @@ impl<A: App> Runtime<A> {
                 return Ok(self.finish(r));
             }
             Input::Tick => {
-                self.advance_tick();
                 update_cause = UpdateCause::Tick;
                 // Explicit ticks request an update at unchanged time. Only
                 // advance_to consumes an elapsed absolute deadline.
@@ -1476,7 +1439,6 @@ impl<A: App> Runtime<A> {
                     scoped.or_else(|| self.core.keymap.lookup(KeyPhase::Capture, k, swallows))
                 {
                     let r = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
-                    self.note_activation_flash(activation_key, &r);
                     drop(input);
                     return Ok(self.finish(r));
                 }
@@ -1485,16 +1447,7 @@ impl<A: App> Runtime<A> {
             }
             Input::Mouse(m) => self.enqueue_mouse(*m),
             Input::Paste(s) => {
-                // W08-03: paste reaches the typing owner; with no owner, the
-                // focused editor — navigation-mode paste begins editing
-                // there (`text-input.md` Paste). Non-editors never receive
-                // paste, so `paste_reaches_only_an_editing_owner` still holds.
-                let owner = self.last.typing.owner.or_else(|| {
-                    self.focus
-                        .current()
-                        .filter(|f| self.last.ring.entry(*f).is_some_and(|e| e.swallows_typing))
-                });
-                if let Some(owner) = owner {
+                if let Some(owner) = self.last.typing.owner {
                     self.intents.paste(owner, s.as_str());
                 }
             }
@@ -1545,28 +1498,8 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
-        self.note_activation_flash(activation_key, &r);
         drop(input);
         Ok(self.finish(r))
-    }
-
-    /// Tag `App::on_key`: a consumed plain Enter/Space flashes the focused
-    /// control for 140 ms even without a pointer press.
-    fn note_activation_flash(&mut self, activation_key: Option<ActivationKey>, r: &Response<()>) {
-        if activation_key.is_some()
-            && r.is_consumed()
-            && self.last.typing.owner.is_none()
-            && let Some(focused) = self.focus.current()
-        {
-            let flash = self.theme.design.motion.press_flash_ms;
-            self.services.feedback.activate(
-                focused,
-                PartRef::of(Part::CONTAINER),
-                self.now(),
-                core::time::Duration::from_millis(flash),
-            );
-            self.last.snapshot.pressed = self.services.feedback.pressed();
-        }
     }
 
     /// Step 9.
@@ -1625,7 +1558,6 @@ impl<A: App> Runtime<A> {
         self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
         self.frame.reset(self.generation, area);
-        self.frame.tick = snapshot.map_or_else(|| self.effective_tick(), |value| value.last.tick);
         self.frame.inert_floor = snapshot.map_or_else(
             || self.services.layers.inert_floor(),
             |value| value.inert_floor,
@@ -1660,17 +1592,13 @@ impl<A: App> Runtime<A> {
         let focus =
             snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus);
         self.frame.typing_resolved = typing::resolve(&mut self.frame, focus);
-        self.painted_cursor = if self.frame.cursor_suppressed {
-            None
-        } else {
-            cursor::resolve_requests(
-                &self.frame.cursors,
-                self.frame.top,
-                self.frame.typing_resolved.cursor,
-                &mut self.frame.diagnostics,
-                &self.frame.typing,
-            )
-        };
+        self.painted_cursor = cursor::resolve_requests(
+            &self.frame.cursors,
+            self.frame.top,
+            self.frame.typing_resolved.cursor,
+            &mut self.frame.diagnostics,
+            &self.frame.typing,
+        );
     }
 
     fn commit_geometry(&mut self) {
@@ -1689,7 +1617,6 @@ impl<A: App> Runtime<A> {
             &mut self.frame.typing_bindings,
         );
         self.last.typing = self.frame.typing_resolved;
-        self.last.tick = self.tick;
     }
 
     fn commit_frame(&mut self) {
@@ -2173,8 +2100,8 @@ impl<A: App> Runtime<A> {
 }
 
 /// A scripted application for runtime-level tests.
-#[cfg(any(test, feature = "testing"))]
-pub mod stub {
+#[cfg(test)]
+pub(crate) mod stub {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
 
@@ -2195,23 +2122,23 @@ pub mod stub {
         clippy::struct_excessive_bools,
         reason = "a test stub's knobs: one flag per registration shape, set by field                   init from `Control::new`, never a state machine"
     )]
-    pub struct Control {
-        pub id: Id,
-        pub area: Rect,
-        pub focus: Focusability,
+    pub(crate) struct Control {
+        pub(crate) id: Id,
+        pub(crate) area: Rect,
+        pub(crate) focus: Focusability,
         /// Registers as an editor (swallows typing, consumes Esc as cancel).
-        pub editor: bool,
+        pub(crate) editor: bool,
         /// Claims capture on `Press`.
-        pub captures: bool,
+        pub(crate) captures: bool,
         /// Also registers a scroll region.
-        pub scroll: bool,
+        pub(crate) scroll: bool,
         /// Registers a `Decorative` region only — no control, no part. This
         /// is what a `Dialog` registers for its own id.
-        pub decor: bool,
+        pub(crate) decor: bool,
     }
 
     impl Control {
-        pub const fn new(id: Id, area: Rect) -> Self {
+        pub(crate) const fn new(id: Id, area: Rect) -> Self {
             Control {
                 id,
                 area,
@@ -2225,38 +2152,38 @@ pub mod stub {
     }
 
     #[derive(Default, Debug)]
-    pub struct Stub {
-        pub page: Vec<Control>,
-        pub layers: Vec<(Id, Vec<Control>)>,
+    pub(crate) struct Stub {
+        pub(crate) page: Vec<Control>,
+        pub(crate) layers: Vec<(Id, Vec<Control>)>,
         /// Every intent seen, as `(owner, Debug text)`.
-        pub log: Vec<(Id, String)>,
-        pub consume_keys: bool,
-        pub focus_request: Option<Id>,
-        pub open_request: Option<(Id, LayerSpec)>,
-        pub close_request: Option<Id>,
-        pub resize_request: Option<(Id, crate::layer::LayerSize)>,
+        pub(crate) log: Vec<(Id, String)>,
+        pub(crate) consume_keys: bool,
+        pub(crate) focus_request: Option<Id>,
+        pub(crate) open_request: Option<(Id, LayerSpec)>,
+        pub(crate) close_request: Option<Id>,
+        pub(crate) resize_request: Option<(Id, crate::layer::LayerSize)>,
         /// `update` calls so far.
-        pub updates: usize,
-        pub events_started: bool,
+        pub(crate) updates: usize,
+        pub(crate) events_started: bool,
         /// Focus requests issued from inside `update` on each pass (settling tests).
-        pub chase: Vec<Id>,
-        pub esc_hits: usize,
+        pub(crate) chase: Vec<Id>,
+        pub(crate) esc_hits: usize,
         /// An owner whose bucket `update` never drains (the gated-shape app).
-        pub skip_drain: Option<Id>,
+        pub(crate) skip_drain: Option<Id>,
     }
 
     impl Stub {
-        pub fn controls(&self) -> impl Iterator<Item = &Control> + '_ {
+        pub(crate) fn controls(&self) -> impl Iterator<Item = &Control> + '_ {
             self.page
                 .iter()
                 .chain(self.layers.iter().flat_map(|(_, c)| c.iter()))
         }
 
-        pub fn saw(&self, id: Id, needle: &str) -> bool {
+        pub(crate) fn saw(&self, id: Id, needle: &str) -> bool {
             self.log.iter().any(|(o, s)| *o == id && s.contains(needle))
         }
 
-        pub fn count(&self, id: Id, needle: &str) -> usize {
+        pub(crate) fn count(&self, id: Id, needle: &str) -> usize {
             self.log
                 .iter()
                 .filter(|(o, s)| *o == id && s.contains(needle))
@@ -2374,7 +2301,7 @@ pub mod stub {
         }
     }
 
-    pub const SCREEN: Rect = Rect {
+    pub(crate) const SCREEN: Rect = Rect {
         x: 0,
         y: 0,
         width: 40,
@@ -2382,7 +2309,7 @@ pub mod stub {
     };
 
     /// A runtime that has drawn once.
-    pub fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
+    pub(crate) fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
         let mut rt = Runtime::new(stub, Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
@@ -2403,7 +2330,7 @@ pub mod stub {
         })
     }
 
-    pub fn mouse(kind: MouseKind, x: u16, y: u16) -> Input {
+    pub(crate) fn mouse(kind: MouseKind, x: u16, y: u16) -> Input {
         Input::Mouse(Mouse {
             kind,
             pos: Position::new(x, y),
@@ -2412,7 +2339,7 @@ pub mod stub {
     }
 
     /// Behavioral fixture delivery: publish real geometry, settle, then assert acceptance.
-    pub fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
+    pub(crate) fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
         assert!(
             rt.bootstrapped,
             "behavioral fixture must explicitly initialize"
@@ -2438,7 +2365,7 @@ pub mod stub {
     }
 
     /// Handle then draw, like the harness.
-    pub fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
+    pub(crate) fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
         let r = deliver(rt, input);
         rt.draw_buffer(SCREEN, buf).commit_presented();
         r
@@ -2820,21 +2747,8 @@ mod tests {
                     ui.publish_bindings(B, ui.state(B), table);
                 }
             }
-            ui.with_focused_hints(|ui, layer| {
-                let mut x = 0;
-                for hint in &layer.hints {
-                    let text = format!("{} {}", hint.key, hint.label);
-                    let len = text.len() as u16;
-                    ui.page_mut().set_stringn(
-                        x,
-                        1,
-                        &text,
-                        text.len(),
-                        ratatui_core::style::Style::new(),
-                    );
-                    x = x.saturating_add(len + 1);
-                }
-            });
+            let _ =
+                crate::HintBar::derived(Id::root("runtime.hints")).draw(ui, Rect::new(0, 1, 40, 1));
         }
 
         fn keymap(&self) -> &KeyMap {

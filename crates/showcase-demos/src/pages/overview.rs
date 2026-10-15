@@ -161,14 +161,14 @@ fn state_language_panel() -> Panel<'static> {
 /// The landing page has no mutable controls; its content is deliberately
 /// useful as a smoke test for themes, clipping and public component exports.
 #[derive(Debug)]
-pub struct OverviewPage {
+pub(crate) struct OverviewPage {
     author: AuthorBadge,
     help_state: HelpOverlayState,
     props_state: PropsState,
 }
 
 impl OverviewPage {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             author: AuthorBadge::new(AUTHOR),
             help_state: HelpOverlayState::default(),
@@ -222,7 +222,6 @@ impl Page for OverviewPage {
         let _ = brand();
         let _ = props_list();
         let _ = props().draw(ui, Rect::ZERO);
-        self.author.draw(ui, Rect::ZERO);
         frame(
             ui,
             area,
@@ -256,7 +255,7 @@ impl Page for OverviewPage {
                     )
                 };
                 draw_tokens(ui, left);
-                draw_principles(ui, right);
+                draw_principles(ui, right, &self.author);
             },
         );
     }
@@ -293,9 +292,6 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
             .surface_style()
             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
         let muted = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-        let faint = ui
             .surface_style()
             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
         let colors = [
@@ -352,7 +348,7 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
                 let mut swatch = ui.surface_style();
                 swatch = swatch.patch(ui.paint_patch(&StylePatch::new().set_bg(*color)));
                 ui.fill(Rect::new(x, y, 4, 1), swatch);
-                ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", faint);
+                ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", muted);
                 ui.paint_str(
                     Rect::new(x.saturating_add(6), y, column_width.saturating_sub(6), 1),
                     name,
@@ -378,7 +374,7 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
     });
 }
 
-fn draw_principles(ui: &mut Ui<'_>, area: Rect) {
+fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
     if area.is_empty() {
         return;
     }
@@ -441,18 +437,28 @@ fn draw_principles(ui: &mut Ui<'_>, area: Rect) {
         area.x,
         legend_y,
         area.width,
-        area.bottom().saturating_sub(legend_y).min(10),
+        area.bottom().saturating_sub(legend_y),
     );
     if legend_area.is_empty() {
         return;
     }
-    draw_state_language(ui, legend_area);
+    let author_y = legend_area.bottom().saturating_sub(1);
+    let state_area = Rect {
+        height: legend_area.height.saturating_sub(1),
+        ..legend_area
+    };
+    draw_state_language(ui, state_area);
+    let author_area = Rect::new(
+        area.x,
+        author_y,
+        area.width,
+        area.bottom().saturating_sub(author_y).min(1),
+    );
+    author.draw(ui, author_area);
 }
 
 fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
-    let inner = state_language_panel().draw(ui, state_area, |_, inner| inner);
-    let raised = ui.theme_ref().raise(ui.surface());
-    ui.with_surface(raised, |ui| {
+    state_language_panel().draw(ui, state_area, |ui, inner| {
         for (index, (glyph, label)) in STATE_LEGEND.iter().enumerate() {
             let Ok(offset) = u16::try_from(index) else {
                 break;
@@ -476,9 +482,13 @@ fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
                 ui.surface_style()
                     .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
             );
-            let text_x = inner.x.saturating_add(3);
             ui.paint_str(
-                Rect::new(text_x, y, state_area.right().saturating_sub(text_x), 1),
+                Rect::new(
+                    inner.x.saturating_add(3),
+                    y,
+                    inner.width.saturating_sub(3),
+                    1,
+                ),
                 label,
                 ui.surface_style()
                     .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),

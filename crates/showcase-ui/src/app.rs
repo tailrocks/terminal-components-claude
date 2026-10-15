@@ -9,16 +9,10 @@ use termrock::{
     Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
 };
 
-use showcase_demos::pages::dialogs::DELETE_COMMAND;
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
-use showcase_demos::pages::grid::{
-    DELETE_ROW as GRID_DELETE, DISCARD as GRID_DISCARD, INSERT_ROW as GRID_INSERT,
-    PREVIEW_SQL as GRID_PREVIEW, SORT as GRID_SORT, SORT_CLEAR as GRID_SORT_CLEAR,
-    UNDO as GRID_UNDO,
-};
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
-    ModalFooter, Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
+    Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
     dialogs::DialogsPage, editable::EditablePage, editor::EditorPage, forms::FormsPage,
     grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
     panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
@@ -91,8 +85,6 @@ pub enum PageId {
     Terminal,
     /// Code editor preview.
     Editor,
-    /// Diff view preview.
-    Diff,
     /// Grid preview.
     Grid,
     /// Chips and selectors.
@@ -109,7 +101,7 @@ pub enum PageId {
 
 impl PageId {
     /// Every page in navigation order.
-    pub const ALL: [Self; 23] = [
+    pub const ALL: [Self; 22] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -126,7 +118,6 @@ impl PageId {
         Self::Scrolling,
         Self::Terminal,
         Self::Editor,
-        Self::Diff,
         Self::Grid,
         Self::Chips,
         Self::Pickers,
@@ -154,7 +145,6 @@ impl PageId {
             Self::Scrolling => "Scrolling",
             Self::Terminal => "Terminal",
             Self::Editor => "Code editor",
-            Self::Diff => "Diff",
             Self::Grid => "Data grid",
             Self::Chips => "Chips & selects",
             Self::Pickers => "Pickers",
@@ -183,7 +173,6 @@ impl PageId {
             Self::Scrolling => "scrolling",
             Self::Terminal => "terminal",
             Self::Editor => "editor",
-            Self::Diff => "diff",
             Self::Grid => "grid",
             Self::Chips => "chips",
             Self::Pickers => "pickers",
@@ -339,12 +328,6 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         icon: "•",
     },
     NavEntry {
-        id: PageId::Diff,
-        label: "Diff",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
         id: PageId::Grid,
         label: "Data grid",
         section: "Components",
@@ -396,7 +379,6 @@ fn nav() -> NavList<'static, NavEntry, impl Fn(&NavEntry) -> ItemKey> {
         .section(&nav_section)
         .compact_when_clipped()
         .header_indent(3)
-        .scrollable(true)
         .render_row(&paint_nav_row)
 }
 
@@ -443,7 +425,6 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::Scrolling => Box::new(ScrollingPage::new()),
         PageId::Terminal => Box::new(TerminalPage::new()),
         PageId::Editor => Box::new(EditorPage::new()),
-        PageId::Diff => Box::new(showcase_demos::pages::diff::DiffPage::new()),
         PageId::Grid => Box::new(GridPage::new()),
         PageId::Chips => Box::new(ChipsPage::new()),
         PageId::Pickers => Box::new(PickersPage::new()),
@@ -487,45 +468,8 @@ fn keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('d')),
-            DELETE_COMMAND,
-        )
-        .bind(
-            KeyPhase::Bubble,
             Chord::with(KeyCode::Char('s'), termrock::KeyModifiers::CONTROL),
             FORM_SUBMIT,
-        )
-        // Datagrid queue keys (tag `grid.rs`): Bubble fires only when no
-        // component consumed the chord, so typing never sorts; the grid
-        // page additionally guards on grid focus, idle editor and closed
-        // preview. `ctrl-s` reuses the submit chord: routing is by active
-        // page, and the grid treats it as its commit request.
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), GRID_SORT)
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('S')),
-            GRID_SORT_CLEAR,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('p')),
-            GRID_PREVIEW,
-        )
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), GRID_UNDO)
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('U')),
-            GRID_DISCARD,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('+')),
-            GRID_INSERT,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('-')),
-            GRID_DELETE,
         )
 }
 
@@ -540,7 +484,6 @@ pub struct App {
     quit: bool,
     status: Option<(PageStatus, Moment)>,
     motion_paused: bool,
-    paused_frame: u64,
 }
 
 impl core::fmt::Debug for App {
@@ -554,7 +497,6 @@ impl core::fmt::Debug for App {
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
             .field("motion_paused", &self.motion_paused)
-            .field("paused_frame", &self.paused_frame)
             .field("quit", &self.quit)
             .field("status", &self.status.as_ref().map(|(_, since)| since))
             .finish()
@@ -593,7 +535,6 @@ impl App {
             quit: false,
             status: None,
             motion_paused: paused,
-            paused_frame: u64::try_from(frame).unwrap_or(u64::MAX),
         }
     }
 
@@ -794,8 +735,12 @@ fn paint_header(
 }
 
 fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintStyle, PaintStyle) {
-    let title =
-        shell_text_style(ui, termrock::FgStep::Primary).add_modifier(termrock::Modifier::BOLD);
+    let title = shell_part_style(
+        ui,
+        termrock::Family::PANEL,
+        Part::TITLE,
+        StateFlags::empty(),
+    );
     let secondary = shell_part_style(
         ui,
         termrock::Family::PANEL,
@@ -804,13 +749,11 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
     );
     let muted = shell_part_style(ui, termrock::Family::LIST, Part::META, StateFlags::empty());
     let faint = shell_text_style(ui, termrock::FgStep::Faint);
-    // Q67-S13 (L-R1/L-R2): the brand mark is accent, not a list marker —
-    // the tag paints it with `t.accent_fg()` directly
-    // (`tag:app.rs:966`), so it resolves the Accent role instead of
-    // borrowing the LIST MARKER rule.
-    let marker = shell_compat_style(
-        ui.surface_style()
-            .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent))),
+    let marker = shell_part_style(
+        ui,
+        termrock::Family::LIST,
+        Part::MARKER,
+        StateFlags::SELECTED,
     );
     (title, secondary, muted, faint, marker)
 }
@@ -920,19 +863,22 @@ fn paint_header_actions(
         // The old shell leaves one cell between the capability cluster and
         // the inspector action.
         let cap_x = right.saturating_sub(capability_width.saturating_add(1));
-        // One spans call paints the whole cluster (capability, separator,
-        // dimensions share one style at adjacent cells).
-        let _ = ui.paint_spans(
-            Rect::new(cap_x, area.y, capability_width, 1),
-            &[
-                termrock::Span::new(capability),
-                termrock::Span::new(" · "),
-                termrock::Span::new(width_text.as_str()),
-                termrock::Span::new("×"),
-                termrock::Span::new(height_text.as_str()),
-            ],
+        ui.paint_str(
+            Rect::new(cap_x, area.y, width(capability), 1),
+            capability,
             faint,
         );
+        ui.paint_str(
+            Rect::new(cap_x.saturating_add(width(capability)), area.y, 3, 1),
+            " · ",
+            faint,
+        );
+        let mut dimension_x = cap_x.saturating_add(width(capability)).saturating_add(3);
+        for fragment in [width_text.as_str(), "×", height_text.as_str()] {
+            let columns = width(fragment);
+            ui.paint_str(Rect::new(dimension_x, area.y, columns, 1), fragment, faint);
+            dimension_x = dimension_x.saturating_add(columns);
+        }
     }
 }
 
@@ -955,7 +901,7 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
     // and hover remain independent, as in the pinned product reference.
     let flags = flags.difference(StateFlags::SELECTED);
     let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
-    let container = shell_row_style(
+    let container = shell_compat_style(
         ui.style(
             termrock::Family::LIST,
             Variant::DEFAULT,
@@ -963,7 +909,6 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
             flags,
         )
         .style,
-        flags,
     );
     let row_background = ui.surface_style().patch(container);
     ui.fill(row, container);
@@ -987,12 +932,7 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
             Variant::DEFAULT,
             Part::MARKER,
             if current {
-                // Q67-S13 (N-L1): the current-row marker resolves with
-                // ACTIVE so the shared LIST MARKER rule keeps it
-                // accent-always (`tag:sidebars.rs:225-226`); every
-                // other shell part resolves without it (the generic
-                // mono ACTIVE fallback is tabs-intended).
-                flags | StateFlags::SELECTED | StateFlags::ACTIVE
+                flags | StateFlags::SELECTED
             } else {
                 flags
             },
@@ -1000,7 +940,12 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
         .style
         .with_bg_from(row_background);
     let label = ui
-        .style(termrock::Family::LIST, Variant::DEFAULT, Part::LABEL, flags)
+        .style(
+            termrock::Family::LIST,
+            Variant::DEFAULT,
+            Part::LABEL,
+            flags,
+        )
         .style
         .with_bg_from(row_background);
     let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags)
@@ -1009,24 +954,31 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
     let marker = shell_row_style(marker, flags);
     let label = shell_row_style(label, flags);
     let secondary = shell_row_style(secondary, flags);
-    let gutter_str = if flags.contains(StateFlags::FOCUSED) {
-        "▎"
-    } else {
-        " "
-    };
-    ui.paint_str(Rect::new(row.x, row.y, 1, 1), gutter_str, gutter);
+    ui.paint_str(Rect::new(row.x, row.y, 1, 1), "▎", gutter);
     ui.paint_str(
         Rect::new(row.x.saturating_add(1), row.y, 1, 1),
         if current { "›" } else { " " },
         marker,
     );
     ui.paint_str(Rect::new(row.x.saturating_add(2), row.y, 1, 1), " ", label);
-    let max_label_w = row.width.saturating_sub(4);
-    let fitted_label = termrock::truncate(entry.label, max_label_w);
+    ui.paint_str(
+        Rect::new(
+            row.x.saturating_add(3),
+            row.y,
+            row.width.saturating_sub(4),
+            1,
+        ),
+        entry.label,
+        if emphasized { label } else { secondary },
+    );
     let label_style = if emphasized { label } else { secondary };
-    let label_area = Rect::new(row.x.saturating_add(3), row.y, max_label_w, 1);
-    ui.paint_str(label_area, &fitted_label, label_style);
-    let used = width(&fitted_label).min(label_area.width);
+    let label_area = Rect::new(
+        row.x.saturating_add(3),
+        row.y,
+        row.width.saturating_sub(4),
+        1,
+    );
+    let used = width(entry.label).min(label_area.width);
     if used < label_area.width {
         ui.fill(
             Rect::new(
@@ -1068,9 +1020,7 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
-/// Paint one footer hint at the cursor column if it fits before
-/// `reserved`, keeping `reserve` cells for the cut marker when more hints
-/// follow (tag `keyhint.rs`). Answers whether the hint was painted.
+/// Paint one footer hint at the cursor column if it fits before `reserved`.
 #[expect(
     clippy::too_many_arguments,
     reason = "the footer paints pre-resolved part styles without re-resolving per hint"
@@ -1080,27 +1030,21 @@ fn paint_hint(
     area: Rect,
     x: &mut u16,
     reserved: u16,
-    reserve: u16,
     key_style: PaintStyle,
     action_style: PaintStyle,
     key: &str,
     action: &str,
-) -> bool {
+) {
     let key_width = width(key);
     let action_width = width(action);
     let hint_width = key_width.saturating_add(action_width).saturating_add(3);
-    if x.saturating_add(hint_width)
-        .saturating_add(reserve)
-        .saturating_add(reserved)
-        > area.right()
-    {
-        return false;
+    if x.saturating_add(hint_width).saturating_add(reserved) > area.right() {
+        return;
     }
     ui.paint_str(Rect::new(*x, area.y, key_width, 1), key, key_style);
     *x = x.saturating_add(key_width.saturating_add(1));
     ui.paint_str(Rect::new(*x, area.y, action_width, 1), action, action_style);
     *x = x.saturating_add(action_width.saturating_add(2));
-    true
 }
 
 fn paint_footer(
@@ -1109,18 +1053,9 @@ fn paint_footer(
     nav_focused: bool,
     page_hints: &[(&str, &str)],
     page_editing: bool,
-    modal: Option<ModalFooter>,
     status: Option<&str>,
 ) {
     const TAB_NEXT: (&str, &str) = ("Tab", "Next");
-    const MODAL_EDITING: &[(&str, &str)] = &[("Enter", "Confirm"), ("Esc", "Cancel")];
-    const MODAL: &[(&str, &str)] = &[("← →", "Choose"), ("Enter", "Confirm"), ("Esc", "Cancel")];
-    const MODAL_QUICK: &[(&str, &str)] = &[
-        ("← →", "Choose"),
-        ("Enter", "Confirm"),
-        ("Esc", "Cancel"),
-        ("y / n", "Quick answer"),
-    ];
     if area.is_empty() {
         return;
     }
@@ -1138,18 +1073,7 @@ fn paint_footer(
         Part::ACTION,
         StateFlags::empty(),
     );
-    // An open dialog replaces every other hint (tag `app.rs`
-    // `draw_footer`): editing shows Enter/Esc only, otherwise the
-    // arrow/Enter/Esc hints plus the `y / n` quick answer for a text
-    // question. The badge and Tab/Next stay suppressed, the status stays.
-    let modal_hints: &[(&str, &str)] = match modal {
-        Some(m) if m.editing => MODAL_EDITING,
-        Some(m) if m.quick_answer => MODAL_QUICK,
-        Some(_) => MODAL,
-        None => &[],
-    };
-    let is_modal = modal.is_some();
-    let nav_hints: &[(&str, &str)] = if nav_focused && !is_modal {
+    let nav_hints: &[(&str, &str)] = if nav_focused {
         &[
             ("↑ ↓", "Move"),
             ("Enter", "Open"),
@@ -1163,68 +1087,33 @@ fn paint_footer(
     // while the navigation owns focus, and the "Tab / Next" entry is appended
     // only when the page body owns focus and is not in an editing mode that
     // consumes it.
-    let tab_next = !nav_focused && !page_editing && !is_modal;
+    let tab_next = !nav_focused && !page_editing;
     let mut x = area.x.saturating_add(1);
-    if page_editing && !nav_focused && !is_modal {
-        let badge_text = " EDIT ";
-        let badge_w = badge_text.len() as u16;
-        if area.width >= badge_w.saturating_add(2) {
-            let badge_style = canvas.patch(
-                ui.paint_patch(
-                    &termrock::StylePatch::new()
-                        .set_fg(termrock::Role::OnAccent)
-                        .set_bg(termrock::Role::Accent)
-                        .add(termrock::Modifier::BOLD),
-                ),
-            );
-            let _ = ui.paint_str(Rect::new(x, area.y, badge_w, 1), badge_text, badge_style);
-            x = (x.saturating_add(badge_w).saturating_add(2)).min(area.right());
-        }
-    }
-    let reserved = status.map_or(0, |message| width(message).saturating_add(3));
-    let page_hints: &[(&str, &str)] = if nav_focused || is_modal {
-        &[]
-    } else {
-        page_hints
-    };
-    // Hints that do not fit are dropped from the right and a faint `…`
-    // marks the cut (tag `keyhint.rs`): the loop breaks at the first
-    // overflow instead of skipping to shorter hints.
-    let tabs: &[(&str, &str)] = if tab_next { &[TAB_NEXT] } else { &[] };
-    let total = nav_hints
-        .len()
-        .saturating_add(modal_hints.len())
-        .saturating_add(page_hints.len())
-        .saturating_add(tabs.len());
-    let mut drawn = 0usize;
-    for (index, &(key, action)) in nav_hints
-        .iter()
-        .chain(modal_hints.iter())
-        .chain(page_hints.iter())
-        .chain(tabs.iter())
-        .enumerate()
-    {
-        let reserve = if index + 1 < total { 2 } else { 0 };
-        if !paint_hint(
+    let reserved = status.map_or(14, |message| width(message).saturating_add(3));
+    let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
+    for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
+        paint_hint(
             ui,
             area,
             &mut x,
             reserved,
-            reserve,
             key_style,
             action_style,
             key,
             action,
-        ) {
-            break;
-        }
-        drawn += 1;
+        );
     }
-    if drawn < total && x < area.right().saturating_sub(reserved) {
-        let style = canvas.patch(ui.paint_patch(
-            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
-        ));
-        ui.paint_str(Rect::new(x, area.y, 1, 1), "…", style);
+    if tab_next {
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            TAB_NEXT.0,
+            TAB_NEXT.1,
+        );
     }
     if let Some(message) = status {
         let message_width = width(message);
@@ -1385,20 +1274,6 @@ impl TuiApp for App {
         // compatibility painting remains separate shell migration work.
         shell_brand().draw(ui, shell.header);
         nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
-        if self.page.index() >= shell.sidebar.height as usize {
-            let mut scroll = termrock::ScrollState::default();
-            scroll.apply_layout(shell.sidebar.height as usize, NAV_ENTRIES.len() + 10);
-            ui.scroll_edges_except(
-                Rect::new(
-                    shell.sidebar.x,
-                    shell.sidebar.y,
-                    shell.sidebar.width.saturating_sub(1),
-                    shell.sidebar.height,
-                ),
-                &scroll,
-                &[shell.sidebar.bottom().saturating_sub(2)],
-            );
-        }
         shell_status().draw(ui, shell.footer);
         paint_header(
             ui,
@@ -1422,25 +1297,12 @@ impl TuiApp for App {
             .active()
             .map(|page| (page.hints(ui), page.editing(ui)))
             .unwrap_or_default();
-        // The help dialog keeps its `y` / `n` keys but never advertises
-        // them (tag `draw_footer` HELP exclusion); a page dialog reports
-        // its own state. Help wins: a page cannot open a dialog while
-        // the help modal traps focus.
-        let modal = if ui.is_open(HELP) {
-            Some(ModalFooter {
-                editing: self.help_state.is_editing(),
-                quick_answer: false,
-            })
-        } else {
-            self.active().and_then(|page| page.modal_footer(ui))
-        };
         paint_footer(
             ui,
             shell.footer,
             ui.state(NAV).contains(StateFlags::FOCUSED),
             page_hints,
             page_editing,
-            modal,
             self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
         ui.layer(HELP, |ui, area| {
@@ -1448,7 +1310,6 @@ impl TuiApp for App {
                 let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
             });
         });
-        ui.suppress_cursor();
     }
 
     fn should_quit(&self) -> bool {
@@ -1472,14 +1333,10 @@ impl TuiApp for App {
         cx.focus(NAV);
         Response::changed()
     }
-
-    fn pinned_tick(&self) -> Option<u64> {
-        self.motion_paused.then_some(self.paused_frame)
-    }
 }
 
 /// Parse CLI options and run the migrated binary.
-pub fn run() -> std::io::Result<()> {
+pub(crate) fn run() -> std::io::Result<()> {
     let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
     termrock::run(App::with_page_motion(page, paused, frame), theme)
 }
@@ -1493,7 +1350,6 @@ fn parse_args(
     let mut frame = 0usize;
     let mut frame_seen = false;
     let mut full_seen = false;
-    let mut color_specified = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--theme" => {
@@ -1506,7 +1362,6 @@ fn parse_args(
                 }
             }
             "--color" => {
-                color_specified = true;
                 if let Some(value) = args.next() {
                     let level = match value.to_ascii_lowercase().as_str() {
                         "truecolor" | "24bit" => Some(ColorLevel::TrueColor),
@@ -1570,9 +1425,6 @@ fn parse_args(
             }
             _ => {}
         }
-    }
-    if !color_specified {
-        theme = theme.downgrade(ColorLevel::detect());
     }
     if frame_seen && full_seen {
         return Err(std::io::Error::new(
@@ -1638,14 +1490,6 @@ mod app_tests {
             PREV_PAGE,
             FORM_SUBMIT,
             RUN_COMMAND,
-            DELETE_COMMAND,
-            GRID_SORT,
-            GRID_SORT_CLEAR,
-            GRID_PREVIEW,
-            GRID_UNDO,
-            GRID_DISCARD,
-            GRID_INSERT,
-            GRID_DELETE,
         ]
         .into_iter()
         .chain(showcase_demos::pages::pickers::action_keys())
@@ -1659,14 +1503,6 @@ mod app_tests {
             "showcase.page.previous",
             "showcase.form.submit",
             "showcase.taskrunner.run",
-            "showcase.dialogs.delete",
-            "showcase.grid.sort",
-            "showcase.grid.sort_clear",
-            "showcase.grid.preview",
-            "showcase.grid.undo",
-            "showcase.grid.discard",
-            "showcase.grid.insert",
-            "showcase.grid.delete",
             "showcase.menu.open",
             "showcase.menu.close",
             "showcase.context.inspect",

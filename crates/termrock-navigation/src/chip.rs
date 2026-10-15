@@ -8,10 +8,8 @@ use ratatui_core::layout::{Position, Rect};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
-use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, RowFn, RowUi,
-    SelectMode, StepDir, index_of, key_at,
-};
+use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, SelectMode};
+use termrock_runtime::rowui::{RowFn, RowUi};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -19,7 +17,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, GlyphRole, PaintStyle, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 /// What a chip bar reports.
@@ -33,11 +31,6 @@ pub enum ChipBarAction {
     Activated(ItemKey),
     /// The trailing add affordance was activated.
     AddRequested,
-    /// The leading affordance was activated (a click on the lead). The lead
-    /// names no item, so like `AddRequested` this carries no key.
-    Lead,
-    /// The clear-all chord (uppercase `X`) fired. It names no item either.
-    Cleared,
 }
 
 /// The const-constructible commands of the chip keymap.
@@ -57,10 +50,6 @@ pub enum ChipBarCmd {
     Toggle,
     /// Close the cursor chip.
     Close,
-    /// Request the add affordance (`+`, gated on `.plus_add()` + `.add()`).
-    Add,
-    /// Clear all (uppercase `X`, gated on `.clear_all()`).
-    Clear,
 }
 
 const fn b(
@@ -104,42 +93,25 @@ const MOVE: [Binding<ChipBarCmd>; 7] = [
     ),
 ];
 
-/// `Space` toggles in every table; `update` consumes it in `None` mode.
-const SPACE: Binding<ChipBarCmd> = b(
-    Chord::key(KeyCode::Char(' ')),
-    ChipBarCmd::Toggle,
-    "Toggle",
-    true,
-);
+const PLAIN: [Binding<ChipBarCmd>; 7] = MOVE;
 
-/// Hidden `+` → `Add`, gated on `.plus_add()` plus a configured `.add()`.
-const PLUS: Binding<ChipBarCmd> = b(
-    Chord::key(KeyCode::Char('+')),
-    ChipBarCmd::Add,
-    "Add",
-    false,
-);
-
-/// Hidden uppercase `X` → `Clear`, gated on `.clear_all()`.
-const CLEAR: Binding<ChipBarCmd> = b(
-    Chord::key(KeyCode::Char('X')),
-    ChipBarCmd::Clear,
-    "Clear",
-    false,
-);
-
-const PLAIN: [Binding<ChipBarCmd>; 10] = [
-    MOVE[0], MOVE[1], MOVE[2], MOVE[3], MOVE[4], MOVE[5], MOVE[6], SPACE, PLUS, CLEAR,
+const TOGGLING: [Binding<ChipBarCmd>; 8] = [
+    MOVE[0],
+    MOVE[1],
+    MOVE[2],
+    MOVE[3],
+    MOVE[4],
+    MOVE[5],
+    MOVE[6],
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChipBarCmd::Toggle,
+        "Toggle",
+        true,
+    ),
 ];
 
-const TOGGLING: [Binding<ChipBarCmd>; 10] = [
-    MOVE[0], MOVE[1], MOVE[2], MOVE[3], MOVE[4], MOVE[5], MOVE[6], SPACE, PLUS, CLEAR,
-];
-
-// Every close chord carries a distinct action label: `publish` rejects the
-// whole table when any action repeats, so a shared label would silence
-// every binding of a closable bar.
-const CLOSABLE: [Binding<ChipBarCmd>; 13] = [
+const CLOSABLE: [Binding<ChipBarCmd>; 10] = [
     MOVE[0],
     MOVE[1],
     MOVE[2],
@@ -153,28 +125,21 @@ const CLOSABLE: [Binding<ChipBarCmd>; 13] = [
         "Remove",
         true,
     ),
-    // W06-02/W06-05: each chord needs its own action label —
-    // `PublishedBindings::publish` rejects a table with a repeated action,
-    // which used to silence every key of a closable bar. The hidden
-    // spellings follow the "Toggle (Enter)" precedent.
     b(
         Chord::key(KeyCode::Backspace),
         ChipBarCmd::Close,
-        "Remove (Backspace)",
+        "Remove",
         false,
     ),
     b(
         Chord::key(KeyCode::Char('x')),
         ChipBarCmd::Close,
-        "Remove (X)",
+        "Remove",
         false,
     ),
-    SPACE,
-    PLUS,
-    CLEAR,
 ];
 
-const TOGGLING_CLOSABLE: [Binding<ChipBarCmd>; 13] = [
+const TOGGLING_CLOSABLE: [Binding<ChipBarCmd>; 11] = [
     CLOSABLE[0],
     CLOSABLE[1],
     CLOSABLE[2],
@@ -185,9 +150,7 @@ const TOGGLING_CLOSABLE: [Binding<ChipBarCmd>; 13] = [
     CLOSABLE[7],
     CLOSABLE[8],
     CLOSABLE[9],
-    SPACE,
-    PLUS,
-    CLEAR,
+    TOGGLING[7],
 ];
 
 /// The default instantiation a form field holds (§15.1, §24 M3): chips are
@@ -288,10 +251,9 @@ impl Reconcile for ChipBarState {
 /// ## Configuration
 /// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
 /// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.select_mode`
-/// (`Multi`), `.closable(bool)` (`false`), `.lead(&str)` (none),
-/// `.add(&str)` (none), `.plus_add(bool)` (`false`), `.clear_all(bool)`
-/// (`false`), `.read_only(bool)`, `.disabled(bool)`, `.patch`,
-/// `.patch_part`, `.slot`.
+/// (`Multi`), `.closable(bool)` (`false`), `.add(&str)` (none),
+/// `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
+/// `.slot`.
 ///
 /// ## Variants
 /// `Family::CHIP`, `DEFAULT` only.
@@ -302,59 +264,49 @@ impl Reconcile for ChipBarState {
 /// wears `CHECKED`; `READ_ONLY` and `DISABLED` reach every chip.
 ///
 /// ## Actions
-/// [`ChipBarAction`]: `Toggled(k)` (`Space` / a click in `Multi` /
-/// `Range`), `Closed(k)` (`Del` / `Backspace` / `x` / a click on `×`),
-/// `Activated(k)` (`Enter` / a click in `Single`), `AddRequested` (the
-/// trailing add affordance), `Lead` (a click on the lead) and `Cleared`
-/// (uppercase `X`, only when configured).
+/// [`ChipBarAction`]: `Toggled(k)` (`Space` / a click in `Multi`),
+/// `Closed(k)` (`Del` / `Backspace` / `x` / a click on `×`), `Activated(k)`
+/// (`Enter` / a click in `Single`) and `AddRequested` (the trailing add
+/// affordance).
 ///
 /// ## Focus
 /// One `Focusable` stop for the whole bar (`FocusableReadOnly` /
-/// `Disabled`); does not swallow typing. Chips, the lead, the close
-/// affordances and the add affordance are click targets, not focus stops.
+/// `Disabled`); does not swallow typing. Chips and the close affordances
+/// are click targets, not focus stops.
 ///
 /// ## Keyboard
-/// `←`/`h`, `→`/`l` move the cursor (the add affordance is the last stop;
-/// the lead is never a stop); `Home`/`End` jump; `Enter` activates;
-/// `Space` toggles (`Single` / `Multi` / `Range`); `Del`, `Backspace` and
-/// `x` close (`.closable(true)`); `+` adds (`.plus_add(true)` plus a
-/// configured `.add`); uppercase `X` clears all (`.clear_all(true)`).
+/// `←`/`h`, `→`/`l` move the cursor (the add affordance is the last stop);
+/// `Home`/`End` jump; `Enter` activates; `Space` toggles (`Multi` /
+/// `Range`); `Del`, `Backspace` and `x` close (`.closable(true)`).
 ///
 /// ## Mouse
 /// `PartRef::item(Part::LABEL, k)`: a press moves the cursor, a click
 /// activates or toggles. `PartRef::item(Part::CLOSE, k)`: a click closes.
-/// The lead is `PartRef::of(Part::LEAD)`: a click reports `Lead`. The add
-/// affordance is `PartRef::of(Part::NEW)`.
+/// The add affordance is `PartRef::of(Part::NEW)`.
 ///
 /// ## Layout
-/// One row: an optional lead (` {lead} ` plus one gap), then tight chips
-/// (`gutter | label | pad [ × pad pad ]`, one blank column between
-/// chips), then the add affordance at the flow position. A closable chip
-/// with an 18-cell label spans exactly 23 cells, `×` at right-3. The
-/// strip starts at the window head ([`ChipBarState::first`]) and the
-/// window follows the cursor,
+/// One row of tight chips: `gutter | label | pad [ × pad ]`, one blank
+/// column between chips, then the add affordance. The strip starts at the
+/// window head ([`ChipBarState::first`]) and the window follows the cursor,
 /// so the cursor chip is always painted and always addressable. A chip that
-/// does not fit is replaced by the `OVERFLOW` glyph and the strip stops;
-/// the add affordance hides unless it fits past the chips. `measure` is
-/// `(8…, 1)`; `draw` returns the row it used; `0×0` registers nothing
-/// (R5).
+/// does not fit is replaced by the `OVERFLOW` glyph and the strip stops.
+/// `measure` is `(8…, 1)`; `draw` returns the row it used; `0×0` registers
+/// nothing (R5).
 ///
 /// ## Parts
-/// `CONTAINER` (each chip's fill), `MARKER` (the checked affordance, else
-/// the focus bar, in the leading pad cell, §30), `LABEL` (the chip
-/// content), `CLOSE` (the `×`), `OVERFLOW` (the truncation glyph), `NEW`
-/// (the add affordance), `LEAD` (the leading affordance). Gaps and the
-/// tail keep the surface style. A `META` painted by the caller's [`RowUi`]
-/// is row-owned, outside this component-owned parts contract.
+/// `CONTAINER` (the strip and each chip's fill), `MARKER` (the checked
+/// affordance in the leading pad cell, §30), `LABEL` (the chip content),
+/// `CLOSE` (the `×`), `OVERFLOW` (the truncation glyph), `NEW` (the add
+/// affordance). A `META` painted by the caller's [`RowUi`] is row-owned,
+/// outside this component-owned parts contract.
 ///
 /// ## Overrides
 /// `.patch`, `.patch_part`; `.slot` on `CLOSE` and `OVERFLOW`.
 ///
 /// ## Identity
 /// `.key` supplies stable keys; `ByIndex` is unstable under
-/// insert/remove/reorder. Item actions carry an `ItemKey`; the add
-/// affordance, the lead and the clear-all chord are not items and report
-/// payloadless `AddRequested` / `Lead` / `Cleared`, so none can collide
+/// insert/remove/reorder. Item actions carry an `ItemKey`; the add affordance
+/// is not an item and reports payloadless `AddRequested`, so it cannot collide
 /// with an item key.
 ///
 /// ## Testing
@@ -374,9 +326,6 @@ pub struct ChipBar<'a, T, K = ByIndex, R = DefaultRow> {
     select_mode: SelectMode,
     closable: bool,
     add: Option<&'a str>,
-    lead: Option<&'a str>,
-    plus_add: bool,
-    clear_all: bool,
     read_only: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -390,9 +339,6 @@ impl<T, K, R> fmt::Debug for ChipBar<'_, T, K, R> {
             .field("select_mode", &self.select_mode)
             .field("closable", &self.closable)
             .field("add", &self.add)
-            .field("lead", &self.lead)
-            .field("plus_add", &self.plus_add)
-            .field("clear_all", &self.clear_all)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .finish_non_exhaustive()
@@ -409,9 +355,6 @@ impl<T> ChipBar<'_, T, ByIndex, DefaultRow> {
             select_mode: SelectMode::Multi,
             closable: false,
             add: None,
-            lead: None,
-            plus_add: false,
-            clear_all: false,
             read_only: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -429,9 +372,6 @@ impl<'a> ChipBar<'a, &'a str, ByIndex, DefaultRow> {
             select_mode: self.select_mode,
             closable: self.closable,
             add: self.add,
-            lead: self.lead,
-            plus_add: self.plus_add,
-            clear_all: self.clear_all,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
             ov: self.ov,
@@ -477,7 +417,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         Part::CLOSE,
         Part::OVERFLOW,
         Part::NEW,
-        Part::LEAD,
     ];
 
     /// The id.
@@ -494,9 +433,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
             select_mode: self.select_mode,
             closable: self.closable,
             add: self.add,
-            lead: self.lead,
-            plus_add: self.plus_add,
-            clear_all: self.clear_all,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -513,9 +449,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
             select_mode: self.select_mode,
             closable: self.closable,
             add: self.add,
-            lead: self.lead,
-            plus_add: self.plus_add,
-            clear_all: self.clear_all,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -541,32 +474,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
     #[must_use]
     pub const fn add(mut self, label: &'a str) -> Self {
         self.add = Some(label);
-        self
-    }
-
-    /// Show a leading affordance (` {lead} ` plus one gap). The lead is
-    /// click-only: it reports [`ChipBarAction::Lead`] and is never a cursor
-    /// stop.
-    #[must_use]
-    pub const fn lead(mut self, label: &'a str) -> Self {
-        self.lead = Some(label);
-        self
-    }
-
-    /// Enable the hidden `+` chord, which requests the add affordance. It
-    /// also requires a configured [`.add`](Self::add); otherwise `+` is
-    /// consumed without an action.
-    #[must_use]
-    pub const fn plus_add(mut self, yes: bool) -> Self {
-        self.plus_add = yes;
-        self
-    }
-
-    /// Enable the hidden uppercase-`X` chord, which reports
-    /// [`ChipBarAction::Cleared`]. Otherwise `X` is consumed without one.
-    #[must_use]
-    pub const fn clear_all(mut self, yes: bool) -> Self {
-        self.clear_all = yes;
         self
     }
 
@@ -625,10 +532,24 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
+    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
+        items
+            .get(i)
+            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
+    }
+
+    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
+        if let Some(h) = hint
+            && h < items.len()
+            && self.key_at(items, h) == key
+        {
+            return Some(h);
+        }
+        (0..items.len()).find(|&i| self.key_at(items, i) == key)
+    }
+
     /// Move the cursor to stop `to`; the stop after the last chip is the add
-    /// affordance when there is one. Chip stops resolve through the shared
-    /// clamped seek (chips have no per-item disabled state); the add stop is
-    /// not an item and stays local. Clamps, never wraps.
+    /// affordance when there is one.
     fn move_cursor(
         &self,
         st: &mut ChipBarState,
@@ -646,17 +567,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         if to >= len {
             st.on_add = true;
         } else {
-            let Some((to, key)) = CollectionCore::seek(
-                len,
-                to,
-                StepDir::Next,
-                |i| key_at(&self.key, items, i),
-                |_| true,
-            ) else {
-                acc.consumed();
-                return;
-            };
-            st.set_cursor(to, key);
+            st.set_cursor(to, self.key_at(items, to));
         }
         acc.changed();
     }
@@ -674,7 +585,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         let Some(cursor) = st.core.cursor() else {
             return;
         };
-        let Some(ci) = index_of(&self.key, items, cursor, Some(st.core.cursor_index())) else {
+        let Some(ci) = self.index_of(items, cursor, Some(st.core.cursor_index())) else {
             return;
         };
         if ci < st.first_index {
@@ -683,7 +594,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         } else if fit > 0 && ci >= st.first_index.saturating_add(fit) {
             let i = ci.saturating_add(1).saturating_sub(fit);
             st.first_index = i;
-            st.first = Some(key_at(&self.key, items, i));
+            st.first = Some(self.key_at(items, i));
         }
     }
 
@@ -704,17 +615,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             }
             return;
         }
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         st.set_cursor(i, key);
         acc.action(ChipBarAction::Activated(key));
     }
 
     fn toggle(&self, st: &mut ChipBarState, items: &[T], i: usize, acc: &mut Acc<ChipBarAction>) {
-        if i >= items.len() || matches!(self.select_mode, SelectMode::None) {
+        if i >= items.len() || !self.toggles() {
             acc.consumed();
             return;
         }
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         st.set_cursor(i, key);
         st.core.checked_mut().toggle(key);
         acc.action(ChipBarAction::Toggled(key));
@@ -725,29 +636,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         st.set_cursor(i, key);
         acc.action(ChipBarAction::Closed(key));
-    }
-
-    /// The hidden `+` chord: it names the add affordance from any cursor,
-    /// but only when `.plus_add()` is on and `.add()` is configured.
-    fn add_key(&self, acc: &mut Acc<ChipBarAction>) {
-        if self.plus_add && self.add.is_some() {
-            acc.action(ChipBarAction::AddRequested);
-        } else {
-            acc.consumed();
-        }
-    }
-
-    /// The hidden uppercase-`X` chord: it clears from any cursor, but only
-    /// when `.clear_all()` is on.
-    fn clear_key(&self, acc: &mut Acc<ChipBarAction>) {
-        if self.clear_all {
-            acc.action(ChipBarAction::Cleared);
-        } else {
-            acc.consumed();
-        }
     }
 
     /// The update phase: reconcile, then move the cursor, activate, toggle
@@ -761,15 +652,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         let len = items.len();
         let can = self.editable();
         if !self.disabled {
-            let _ = st.reconcile(len, |i| key_at(&self.key, items, i));
+            let _ = st.reconcile(len, |i| self.key_at(items, i));
             if st.core.cursor().is_none() && len > 0 {
-                st.set_cursor(0, key_at(&self.key, items, 0));
+                st.set_cursor(0, self.key_at(items, 0));
             }
             if len == 0 && self.add.is_some() {
                 st.on_add = true;
             }
             if st.first.is_none() && len > 0 {
-                st.first = Some(key_at(&self.key, items, 0));
+                st.first = Some(self.key_at(items, 0));
                 st.first_index = 0;
             }
         }
@@ -793,8 +684,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                         Some(ChipBarCmd::Activate) => self.activate(st, items, cur, &mut acc),
                         Some(ChipBarCmd::Toggle) => self.toggle(st, items, cur, &mut acc),
                         Some(ChipBarCmd::Close) => self.close(st, items, cur, &mut acc),
-                        Some(ChipBarCmd::Add) => self.add_key(&mut acc),
-                        Some(ChipBarCmd::Clear) => self.clear_key(&mut acc),
                         None => {}
                     }
                 }
@@ -804,7 +693,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     ..
                 } if can => {
                     let hint = Some(Self::cursor_stop(st, items));
-                    let index = item.and_then(|key| index_of(&self.key, items, key, hint));
+                    let index = item.and_then(|key| self.index_of(items, key, hint));
                     match (phase, part, item, index) {
                         (Phase::Press, Part::LABEL, Some(_), Some(i)) => {
                             self.move_cursor(st, items, i, &mut acc);
@@ -824,12 +713,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                         }
                         (Phase::Click, Part::CLOSE, Some(_), Some(i)) => {
                             self.close(st, items, i, &mut acc);
-                        }
-                        // Click only, like `CLOSE`: a double-click is one
-                        // click plus one double-click, and the lead must
-                        // not fire twice for it.
-                        (Phase::Click, Part::LEAD, None, None) => {
-                            acc.action(ChipBarAction::Lead);
                         }
                         _ => acc.consumed(),
                     }
@@ -873,53 +756,31 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         }
         let ov = self.ov;
         let id = self.id;
-        // Gaps and the tail keep the surface style; each chip repaints its
-        // own fill, so a `CONTAINER` patch never leaks between chips.
-        let surface = ui.surface_style();
-        ui.fill(row0, surface);
+        let strip = ov.style(
+            ui,
+            id,
+            Family::CHIP,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+        ui.fill(row0, strip.style);
+        let add_w = self
+            .add
+            .map_or(0, |l| crate::text::width(l).saturating_add(3));
+        let right_limit = row0.right().saturating_sub(add_w);
         let first_index = st
             .first
-            .and_then(|f| index_of(&self.key, items, f, Some(st.first_index)))
+            .and_then(|f| self.index_of(items, f, Some(st.first_index)))
             .unwrap_or(0)
             .min(items.len());
         let mut x = row0.x;
-        if let Some(lead) = self.lead {
-            // ` {lead} ` plus one gap, skipped whole when it does not fit:
-            // like a chip, the lead is never half-painted.
-            let lead_w = crate::text::width(lead).saturating_add(2);
-            if lead_w.saturating_add(1) <= row0.right().saturating_sub(x) {
-                let mut flags = StateFlags::empty();
-                if ui.hovered_part(self.id) == Some(PartRef::of(Part::LEAD)) {
-                    flags |= StateFlags::HOVERED;
-                }
-                if self.read_only {
-                    flags |= StateFlags::READ_ONLY;
-                }
-                if self.disabled || live.contains(StateFlags::DISABLED) {
-                    flags |= StateFlags::DISABLED;
-                    flags = flags.difference(StateFlags::HOVERED);
-                }
-                let zone = Rect {
-                    x,
-                    y: row0.y,
-                    width: lead_w,
-                    height: 1,
-                };
-                let ls = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::LEAD, flags);
-                ui.fill(zone, ls.style);
-                ui.paint_str(shift(zone, 1), lead, ls.style);
-                if !ui.is_inert() {
-                    ui.register_part(self.id, PartRef::of(Part::LEAD), zone);
-                }
-                x = x.saturating_add(lead_w).saturating_add(1);
-            }
-        }
         let cursor = st.core.cursor();
         let mut truncated = false;
         let mut fit = 0usize;
         for (i, item) in items.iter().enumerate().skip(first_index) {
             let key = self.key.key(item, i);
-            let avail = row0.right().saturating_sub(x);
+            let avail = right_limit.saturating_sub(x);
             if avail < 4 {
                 truncated = i < items.len();
                 break;
@@ -967,10 +828,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 self.row.row(item, &mut r);
             }
             let label_w = painted_width(ui, content).max(1);
-            // The closable close zone is `×` plus two pads: `×` sits at
-            // right-3 (oracle `w = 1 + label_w + 1 + 2 + 1`, `×` at `x + 2
-            // + label_w`, `src/widgets/chips.rs:194-195` and `:217`).
-            let close_w: u16 = if self.closable { 3 } else { 0 };
+            let close_w: u16 = if self.closable { 2 } else { 0 };
             let chip_w = 1u16
                 .saturating_add(label_w)
                 .saturating_add(1)
@@ -978,7 +836,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             if chip_w > avail {
                 // the chip does not fit whole: erase what the row painter put
                 // down and stop, rather than leave half a chip
-                ui.fill(content, surface);
+                ui.fill(content, strip.style);
                 truncated = true;
                 break;
             }
@@ -988,10 +846,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 width: chip_w,
                 height: 1,
             };
+            // The strip was filled before the row pass. Do not refill the
+            // remaining tail here: caller-owned `RowUi::meta` is deliberately
+            // right-aligned there and remains outside `ChipBar::PARTS`.
             // the gutter cell of a chip is part of its fill, so it takes the
-            // chip's own CONTAINER style with the foreground folded into the
-            // background: a blank gutter stays blank whatever the foreground
-            // ladder says
+            // chip's own CONTAINER style rather than the strip's
             let cs = ov.style(
                 ui,
                 id,
@@ -1000,15 +859,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 Part::CONTAINER,
                 flags,
             );
-            ui.paint_style(cell_at(chip, chip.x), cs.style.with_fg_from_bg(cs.style));
-            // The checked chip wears its marker; otherwise the cursor chip of
-            // a focused bar wears the focus bar in its gutter cell — the
-            // oracle `gutter_symbol` — toned by `MARKER` like the marker.
-            let show_focus_bar = !flags.contains(StateFlags::CHECKED)
-                && is_cursor
-                && flags.contains(StateFlags::FOCUSED)
-                && !flags.contains(StateFlags::DISABLED);
-            if flags.contains(StateFlags::CHECKED) || show_focus_bar {
+            ui.paint_style(cell_at(chip, chip.x), cs.style);
+            if flags.contains(StateFlags::CHECKED) {
                 let cell = cell_at(chip, chip.x);
                 let marker = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::MARKER, flags);
                 match marker.glyph {
@@ -1016,12 +868,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                         ui.glyph(cell, glyph, marker.style);
                     }
                     Slot::Inherit => {
-                        let g = if show_focus_bar {
-                            GlyphRole::FocusBar
-                        } else {
-                            GlyphRole::Checked
-                        };
-                        ui.glyph(cell, g, marker.style);
+                        ui.glyph(cell, GlyphRole::Checked, marker.style);
                     }
                     Slot::Clear => ui.fill(cell, marker.style),
                 }
@@ -1045,14 +892,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     );
                 }
             }
-            // The label registers before the close cell (W06-02):
-            // hit-testing is last-registration-wins, so a press on `×`
-            // resolves to `CLOSE` rather than to the chip body it sits in.
-            if !ui.is_inert() {
-                ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
-            }
             if self.closable {
-                let close_cell = cell_at(chip, chip.right().saturating_sub(close_w));
+                let close_cell = cell_at(chip, chip.right().saturating_sub(2));
                 let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
                 if ui.hovered_part(self.id) == Some(PartRef::item(Part::CLOSE, key)) {
                     close_flags |= StateFlags::HOVERED;
@@ -1087,38 +928,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
                 }
             }
-            // The row pass painted past the chip with the chip's fill; restore
-            // the surface style on the gap cell unless caller-owned `meta`
-            // used it.
-            if chip.right() < row0.right() {
-                fill_blank(
-                    ui,
-                    Rect {
-                        x: chip.right(),
-                        y: row0.y,
-                        width: 1,
-                        height: 1,
-                    },
-                    surface,
-                );
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
             }
             x = chip.right().saturating_add(1);
             fit = fit.saturating_add(1);
-        }
-        // The last row pass painted to the strip's end with the last chip's
-        // fill; restore the surface style past it, leaving caller-owned
-        // `meta` alone.
-        if fit > 0 {
-            fill_blank(
-                ui,
-                Rect {
-                    x,
-                    y: row0.y,
-                    width: row0.right().saturating_sub(x),
-                    height: 1,
-                },
-                surface,
-            );
         }
         if truncated {
             let cell = cell_at(row0, x.min(row0.right().saturating_sub(1)));
@@ -1149,20 +963,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 ui.register_part(self.id, PartRef::of(Part::OVERFLOW), cell);
             }
         }
-        // Flow-positioned past the chips and hidden on overflow: when a chip
-        // does not fit, the strip stops and the add affordance with it. The
-        // zone is `gutter | label | pad`, filled with the `NEW` part style.
-        if let Some(label) = self.add
-            && !truncated
-        {
-            let add_w = crate::text::width(label).saturating_add(2);
-            if x.saturating_add(add_w) <= row0.right() {
-                let cell = Rect {
-                    x,
-                    y: row0.y,
-                    width: add_w,
-                    height: 1,
-                };
+        if let Some(label) = self.add {
+            let cell = Rect {
+                x: row0.right().saturating_sub(add_w).max(row0.x),
+                y: row0.y,
+                width: add_w.min(row0.width),
+                height: 1,
+            };
+            if !cell.is_empty() {
                 let mut flags = StateFlags::empty();
                 if st.on_add {
                     flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
@@ -1176,9 +984,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 if self.disabled || live.contains(StateFlags::DISABLED) {
                     flags |= StateFlags::DISABLED;
                 }
+                let bg = ov.style(
+                    ui,
+                    id,
+                    Family::CHIP,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    flags,
+                );
+                ui.fill(cell, bg.style);
                 let ns = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::NEW, flags);
-                ui.fill(cell, ns.style);
-                ui.paint_style(cell_at(cell, cell.x), ns.style.with_fg_from_bg(ns.style));
                 ui.paint_str(shift(cell, 1), label, ns.style);
                 if !ui.is_inert() {
                     ui.register_part(self.id, PartRef::of(Part::NEW), cell);
@@ -1202,36 +1017,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             preferred: (c.max.0, 1),
         }
         .fit(c)
-    }
-}
-
-/// Fill the blank cells of `area` with `surface`, leaving caller-owned
-/// paint (a right-aligned `RowUi::meta`) untouched.
-///
-/// Each row pass fills its whole run with the chip's `CONTAINER` style, past
-/// the chip's own end; the strip itself keeps the surface style, so the gap
-/// and tail cells it overpaints are restored here, one cell at a time, with
-/// no allocation.
-fn fill_blank(ui: &mut Ui<'_>, area: Rect, surface: PaintStyle) {
-    let mut x = area.x;
-    while x < area.right() {
-        let cell = Rect {
-            x,
-            y: area.y,
-            width: 1,
-            height: 1,
-        };
-        let blank = ui.with_area(cell, |ui| {
-            let (buf, clip) = ui.raw();
-            !clip.is_empty()
-                && buf
-                    .cell(Position::new(clip.x, clip.y))
-                    .is_some_and(|c| c.symbol() == " ")
-        });
-        if blank {
-            ui.fill(cell, surface);
-        }
-        x = x.saturating_add(1);
     }
 }
 
@@ -1260,11 +1045,7 @@ fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
                 blank_run = blank_run.saturating_add(1);
             }
         }
-        // `RowUi::meta` ends one cell before the row edge, so a
-        // meta-bearing row stops at `width - 1`, not `width`: either
-        // full row counts as meta present and measures the label
-        // before the gap.
-        if last.saturating_add(1) >= clip.width {
+        if last == clip.width {
             gap_start.unwrap_or(last)
         } else {
             last
@@ -1287,10 +1068,10 @@ mod tests {
     use ratatui_core::style::Modifier;
 
     use super::*;
-    use crate::event::{Input, Key, KeyModifiers, MouseKind};
+    use crate::event::MouseKind;
     use crate::runtime::stub::{Stub, key, mouse};
     use crate::runtime::{App, Runtime};
-    use crate::theme::{ColorLevel, Role, Surface, Theme};
+    use crate::theme::{ColorLevel, Theme};
 
     const BAR: Id = Id::root("chip.tests");
     const AREA: Rect = Rect {
@@ -1390,7 +1171,7 @@ mod tests {
         let items = ["a", "b"];
         let bar: ChipBar<'_, &str> = ChipBar::new(BAR).add("+ Add");
         let mut st = ChipBarState::default();
-        let _ = st.core.reconcile(2, |i| key_at(&bar.key, &items, i));
+        let _ = st.core.reconcile(2, |i| bar.key_at(&items, i));
         st.set_cursor(0, ItemKey::index(0));
         let mut acc = Acc::<ChipBarAction>::new();
         bar.move_cursor(&mut st, &items, 1, &mut acc);
@@ -1480,7 +1261,6 @@ mod tests {
                 Part::CLOSE,
                 Part::OVERFLOW,
                 Part::NEW,
-                Part::LEAD,
             ]
         );
     }
@@ -1669,7 +1449,7 @@ mod tests {
         let items = ["a", "b", "c"];
         let bar: ChipBar<'_, &str> = ChipBar::new(BAR).closable(true);
         let mut st = ChipBarState::default();
-        let _ = st.core.reconcile(3, |i| key_at(&bar.key, &items, i));
+        let _ = st.core.reconcile(3, |i| bar.key_at(&items, i));
         let mut acc = Acc::<ChipBarAction>::new();
         bar.toggle(&mut st, &items, 1, &mut acc);
         assert_eq!(
@@ -1708,7 +1488,7 @@ mod tests {
         let head = ItemKey::text("alpha");
         let items = ["alpha", "beta", "gamma", "delta"];
         let mut st = ChipBarState::default();
-        let _ = st.reconcile(items.len(), |i| key_at(&bar.key, &items, i));
+        let _ = st.reconcile(items.len(), |i| bar.key_at(&items, i));
         st.set_cursor(0, head);
         st.first = Some(head);
 
@@ -1727,7 +1507,7 @@ mod tests {
         );
 
         let reversed = ["delta", "gamma", "beta", "alpha"];
-        let _ = st.reconcile(reversed.len(), |i| key_at(&bar.key, &reversed, i));
+        let _ = st.reconcile(reversed.len(), |i| bar.key_at(&reversed, i));
         assert_eq!(st.first(), Some(head), "the window head keeps its key");
         assert_eq!(st.first_index, 3, "and follows it to its new position");
         let mut buffer = Buffer::empty(STRIP);
@@ -1744,7 +1524,7 @@ mod tests {
     }
 
     #[test]
-    fn mono_pressed_keeps_the_reserved_pad_cells_unbracketed() {
+    fn mono_pressed_brackets_the_reserved_pad_cells() {
         const LABEL: &str = "Full width";
         let items = [LABEL];
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
@@ -1763,13 +1543,11 @@ mod tests {
             })
             .commit_presented();
 
-        // Q65-S4/G6: no brackets at `Mono` (the tag has none) — the pads
-        // stay blank and the full label still fits.
-        assert_eq!(row_text(&buffer, AREA.width), " Full width ");
+        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
 
     #[test]
-    fn mono_pressed_closable_chip_keeps_the_close_cell_unbracketed() {
+    fn mono_pressed_closable_chip_keeps_the_close_cell_after_the_bracket() {
         let items = ["tab"];
         let key = ItemKey::index(0);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
@@ -1792,618 +1570,13 @@ mod tests {
             })
             .commit_presented();
 
-        // Q65-S4/G6: no brackets at `Mono` — the pad stays blank and the
-        // close cell keeps its position.
         assert_eq!(
             buffer.cell(Position::new(4, 0)).map(Cell::symbol),
-            Some(" ")
+            Some(Theme::junie().design.glyphs.get(GlyphRole::PressRight))
         );
         assert_eq!(
             buffer.cell(Position::new(5, 0)).map(Cell::symbol),
             Some(Theme::junie().design.glyphs.get(GlyphRole::Close))
         );
-    }
-
-    /// A configurable bar rig for the contract tests: one bar, `ByIndex`
-    /// keys, `Display` rows, identical builders in update and draw.
-    struct BarRig {
-        state: ChipBarState,
-        actions: Vec<ChipBarAction>,
-        area: Rect,
-        items: &'static [&'static str],
-        mode: SelectMode,
-        closable: bool,
-        lead: Option<&'static str>,
-        add: Option<&'static str>,
-        plus_add: bool,
-        clear_all: bool,
-    }
-
-    impl BarRig {
-        fn new(area: Rect, items: &'static [&'static str], mode: SelectMode) -> Self {
-            BarRig {
-                state: ChipBarState::default(),
-                actions: Vec::new(),
-                area,
-                items,
-                mode,
-                closable: false,
-                lead: None,
-                add: None,
-                plus_add: false,
-                clear_all: false,
-            }
-        }
-
-        fn bar(&self) -> ChipBar<'static, &'static str, ByIndex, DefaultRow> {
-            let mut bar = ChipBar::new(BAR)
-                .select_mode(self.mode)
-                .closable(self.closable)
-                .plus_add(self.plus_add)
-                .clear_all(self.clear_all);
-            if let Some(lead) = self.lead {
-                bar = bar.lead(lead);
-            }
-            if let Some(add) = self.add {
-                bar = bar.add(add);
-            }
-            bar
-        }
-
-        fn boot(self) -> (Runtime<Self>, Buffer) {
-            let mut runtime = Runtime::new(self, Theme::junie());
-            let _ = runtime.initialize();
-            let area = runtime.app().area;
-            let mut buffer = Buffer::empty(area);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            (runtime, buffer)
-        }
-    }
-
-    impl App for BarRig {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let response = self.bar().update(cx, &mut self.state, self.items);
-            if let Some(action) = response.action_ref() {
-                self.actions.push(*action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            self.bar().draw(ui, self.area, &self.state, self.items);
-        }
-    }
-
-    fn click(runtime: &mut Runtime<BarRig>, x: u16, y: u16) {
-        let _ = crate::runtime::stub::deliver(runtime, mouse(MouseKind::Down, x, y));
-        let area = runtime.app().area;
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(runtime, mouse(MouseKind::Up, x, y));
-    }
-
-    /// L1: the lead paints ` {lead} ` plus one gap, registers `LEAD`, clicks
-    /// to `Lead`, and is never a cursor stop.
-    #[test]
-    fn lead_paints_registers_clicks_and_is_never_a_cursor_stop() {
-        let area = Rect::new(0, 0, 32, 1);
-        let mut rig = BarRig::new(area, &["aa", "bb"], SelectMode::Single);
-        rig.lead = Some("match all ▾");
-        let (mut runtime, buffer) = rig.boot();
-        // The single-control harness auto-focuses, so the cursor chip wears
-        // the focus bar.
-        let mut expected = String::from(" match all ▾  ▎aa   bb ");
-        expected.push_str(&" ".repeat(9));
-        assert_eq!(row_text(&buffer, 32), expected);
-        assert_eq!(
-            runtime.area_of_part(BAR, PartRef::of(Part::LEAD)),
-            Some(Rect::new(0, 0, 13, 1)),
-            "the lead registers its ` {{lead}} ` zone"
-        );
-
-        click(&mut runtime, 6, 0);
-        assert_eq!(runtime.app().actions, [ChipBarAction::Lead]);
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Home));
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Left));
-        assert_eq!(
-            runtime.app().state.cursor(),
-            Some(ItemKey::index(0)),
-            "left of the first chip clamps: the lead is not a stop"
-        );
-        assert_eq!(
-            runtime.app().actions,
-            [ChipBarAction::Lead],
-            "cursor motion never reports the lead"
-        );
-    }
-
-    /// L2: the add affordance sits at the flow position, hides unless it
-    /// fits and hides on overflow; Enter-on-add and a NEW click request it.
-    #[test]
-    fn add_sits_at_the_flow_position_and_hides_unless_it_fits() {
-        let area = Rect::new(0, 0, 20, 1);
-        let mut rig = BarRig::new(area, &["a"], SelectMode::Single);
-        rig.add = Some("+ Add");
-        let (mut runtime, buffer) = rig.boot();
-        // The single-control harness auto-focuses, so the cursor chip wears
-        // the focus bar.
-        let mut expected = String::from("▎a   + Add ");
-        expected.push_str(&" ".repeat(9));
-        assert_eq!(row_text(&buffer, 20), expected);
-        assert_eq!(
-            runtime.area_of_part(BAR, PartRef::of(Part::NEW)),
-            Some(Rect::new(4, 0, 7, 1)),
-            "the add zone follows the chips: gutter + label + pad"
-        );
-
-        click(&mut runtime, 7, 0);
-        assert_eq!(
-            runtime.app().actions,
-            [ChipBarAction::AddRequested],
-            "a NEW click requests the add"
-        );
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::End));
-        assert!(
-            runtime.app().state.on_add(),
-            "the stop after the last chip is the add stop"
-        );
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        assert_eq!(
-            runtime.app().actions,
-            [ChipBarAction::AddRequested, ChipBarAction::AddRequested],
-            "Enter on the add stop requests the add"
-        );
-
-        // No room past the chips: the add hides.
-        let mut cramped = BarRig::new(Rect::new(0, 0, 8, 1), &["a"], SelectMode::Single);
-        cramped.add = Some("+ Add");
-        let (runtime, buffer) = cramped.boot();
-        assert_eq!(
-            runtime.area_of_part(BAR, PartRef::of(Part::NEW)),
-            None,
-            "the add hides unless the whole zone fits"
-        );
-        assert!(
-            !row_text(&buffer, 8).contains('+'),
-            "a hidden add paints nothing"
-        );
-
-        // Overflow hides the add even where it would fit: the strip stops
-        // at the first chip that does not fit.
-        let mut overflowing = BarRig::new(
-            Rect::new(0, 0, 14, 1),
-            &["abcdef", "ghijkl"],
-            SelectMode::Single,
-        );
-        overflowing.add = Some("+");
-        let (runtime, buffer) = overflowing.boot();
-        assert_eq!(
-            runtime.area_of_part(BAR, PartRef::of(Part::NEW)),
-            None,
-            "the add hides on overflow"
-        );
-        assert!(
-            row_text(&buffer, 14).contains('…'),
-            "the strip stops at the overflow glyph"
-        );
-    }
-
-    /// L3: `Space` toggles in `Single`, with and without closable chips.
-    #[test]
-    fn space_toggles_in_single_with_plain_and_closable_tables() {
-        for closable in [false, true] {
-            let mut rig = BarRig::new(Rect::new(0, 0, 20, 1), &["a", "b"], SelectMode::Single);
-            rig.closable = closable;
-            let (mut runtime, _) = rig.boot();
-            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char(' ')));
-            assert_eq!(
-                runtime.app().actions,
-                [ChipBarAction::Toggled(ItemKey::index(0))],
-                "Space toggles the cursor chip (closable={closable})"
-            );
-            assert!(
-                runtime.app().state.checked().contains(ItemKey::index(0)),
-                "the toggle flips the checked set (closable={closable})"
-            );
-        }
-    }
-
-    /// L4: `+`/`X` are gated chords — off means consumed, `+` also needs a
-    /// configured add.
-    #[test]
-    fn plus_and_clear_chords_are_gated() {
-        // Both off: consumed, silent.
-        let rig = BarRig::new(Rect::new(0, 0, 20, 1), &["a"], SelectMode::Single);
-        let (mut runtime, _) = rig.boot();
-        let r = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('+')));
-        assert!(r.is_consumed(), "an unconfigured `+` is consumed");
-        let r = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('X')));
-        assert!(r.is_consumed(), "an unconfigured `X` is consumed");
-        assert!(
-            runtime.app().actions.is_empty(),
-            "gated-off chords emit nothing"
-        );
-
-        // `.plus_add()` without `.add()`: still silent.
-        let mut rig = BarRig::new(Rect::new(0, 0, 20, 1), &["a"], SelectMode::Single);
-        rig.plus_add = true;
-        let (mut runtime, _) = rig.boot();
-        let r = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('+')));
-        assert!(r.is_consumed(), "`+` without an add is consumed");
-        assert!(
-            runtime.app().actions.is_empty(),
-            "`+` without an add emits nothing"
-        );
-
-        // Both on: the chords fire from the chip cursor.
-        let mut rig = BarRig::new(Rect::new(0, 0, 20, 1), &["a"], SelectMode::Single);
-        rig.add = Some("+ Add");
-        rig.plus_add = true;
-        rig.clear_all = true;
-        let (mut runtime, _) = rig.boot();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('+')));
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('X')));
-        assert_eq!(
-            runtime.app().actions,
-            [ChipBarAction::AddRequested, ChipBarAction::Cleared],
-            "configured `+`/`X` fire"
-        );
-    }
-
-    /// L5: a `CONTAINER` patch repaints the chips but skips gaps and tail.
-    #[test]
-    fn container_patch_repaints_chips_but_skips_gaps_and_tail() {
-        let theme = Theme::junie();
-        let patches = [(
-            Part::CONTAINER,
-            StylePatch::new().set_bg(Role::Surface(Surface::Overlay)),
-        )];
-        let items = ["a"];
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(Rect::new(0, 0, 12, 1));
-        runtime
-            .draw_scene(Rect::new(0, 0, 12, 1), &mut buffer, |ui, area| {
-                ChipBar::new(BAR).patch_part(&patches).draw(
-                    ui,
-                    area,
-                    &ChipBarState::default(),
-                    &items,
-                );
-            })
-            .commit_presented();
-        let overlay = crate::theme::resolve::bind_role(
-            &theme,
-            Role::Surface(Surface::Overlay),
-            Surface::Canvas,
-        );
-        let cell = |x| buffer.cell(Position::new(x, 0)).expect("strip cell");
-        assert_eq!(cell(1).bg, overlay.expect("overlay binds"));
-        let canvas = theme.bg(Surface::Canvas);
-        assert_eq!(cell(3).bg, canvas, "the gap keeps the surface style");
-        assert_eq!(cell(5).bg, canvas, "the tail keeps the surface style");
-    }
-
-    /// L6: chip and add gutters fold the foreground into the background.
-    #[test]
-    fn gutters_fold_foreground_into_background() {
-        for patches in [
-            None,
-            Some([(
-                Part::CONTAINER,
-                StylePatch::new().set_bg(Role::Surface(Surface::Overlay)),
-            )]),
-        ] {
-            let items = ["a"];
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(Rect::new(0, 0, 20, 1));
-            runtime
-                .draw_scene(Rect::new(0, 0, 20, 1), &mut buffer, |ui, area| {
-                    let mut bar = ChipBar::new(BAR).add("+ Add");
-                    if let Some(patches) = &patches {
-                        bar = bar.patch_part(patches);
-                    }
-                    bar.draw(ui, area, &ChipBarState::default(), &items);
-                })
-                .commit_presented();
-            let patched = patches.is_some();
-            for (x, what) in [(0, "chip gutter"), (4, "add gutter")] {
-                let cell = buffer.cell(Position::new(x, 0)).expect("gutter cell");
-                assert_eq!(cell.symbol(), " ", "{what} stays blank (patched={patched})");
-                assert_eq!(
-                    cell.fg, cell.bg,
-                    "{what} folds fg into bg (patched={patched})"
-                );
-            }
-        }
-    }
-
-    /// L7: the cursor chip of a focused bar wears the focus bar; checked
-    /// wins; the tone follows the `MARKER` part at every colour level.
-    #[test]
-    fn cursor_chip_of_a_focused_bar_wears_the_focus_bar() {
-        let bar_glyph = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
-        let checked_glyph = Theme::junie().design.glyphs.get(GlyphRole::Checked);
-        assert_ne!(bar_glyph, checked_glyph);
-
-        // Unchecked cursor + focused: the focus bar shows.
-        let mut st = ChipBarState::default();
-        st.set_cursor(0, ItemKey::index(0));
-        let items = ["a"];
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                let target = crate::ReferenceTarget::new(BAR, crate::ReferenceState::FOCUSED);
-                ui.reference(Some(target), |ui| {
-                    ChipBar::new(BAR).draw(ui, area, &st, &items);
-                });
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer.cell(Position::new(0, 0)).map(Cell::symbol),
-            Some(bar_glyph)
-        );
-
-        // Checked wins over the focus bar.
-        let mut checked = ChipBarState::default();
-        checked.set_cursor(0, ItemKey::index(0));
-        checked.checked_mut().insert(ItemKey::index(0));
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                let target = crate::ReferenceTarget::new(BAR, crate::ReferenceState::FOCUSED);
-                ui.reference(Some(target), |ui| {
-                    ChipBar::new(BAR).draw(ui, area, &checked, &items);
-                });
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer.cell(Position::new(0, 0)).map(Cell::symbol),
-            Some(checked_glyph),
-            "checked wins over the focus bar"
-        );
-
-        // Unfocused: the gutter stays blank.
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                ChipBar::new(BAR).draw(ui, area, &st, &items);
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer.cell(Position::new(0, 0)).map(Cell::symbol),
-            Some(" "),
-            "no focus, no focus bar"
-        );
-
-        // The `MARKER` tone follows at every colour level, with no
-        // behaviour branch: the same glyph, the level's Focus binding.
-        let marker = [(Part::MARKER, StylePatch::new().set_fg(Role::Focus))];
-        for theme in [
-            Theme::junie(),
-            Theme::junie().downgrade(ColorLevel::Ansi256),
-            Theme::junie().downgrade(ColorLevel::Ansi16),
-            Theme::junie().downgrade(ColorLevel::Mono),
-        ] {
-            let mut runtime = Runtime::new(Stub::default(), theme.clone());
-            let mut buffer = Buffer::empty(AREA);
-            runtime
-                .draw_scene(AREA, &mut buffer, |ui, area| {
-                    let target = crate::ReferenceTarget::new(BAR, crate::ReferenceState::FOCUSED);
-                    ui.reference(Some(target), |ui| {
-                        ChipBar::new(BAR)
-                            .patch_part(&marker)
-                            .draw(ui, area, &st, &items);
-                    });
-                })
-                .commit_presented();
-            let cell = buffer.cell(Position::new(0, 0)).expect("gutter cell");
-            assert_eq!(
-                cell.symbol(),
-                bar_glyph,
-                "level {:?}",
-                theme.capability.color
-            );
-            assert_eq!(
-                cell.fg,
-                crate::theme::resolve::bind_role(&theme, Role::Focus, Surface::Canvas)
-                    .expect("focus binds"),
-                "the focus bar wears the Focus tone (level {:?})",
-                theme.capability.color
-            );
-        }
-    }
-
-    /// L8: a full key sweep over a fully-configured closable bar reports
-    /// zero diagnostics, and a modified `X` never clears.
-    #[test]
-    fn full_key_sweep_reports_zero_diagnostics_and_modified_x_never_clears() {
-        let mut rig = BarRig::new(Rect::new(0, 0, 40, 1), &["a", "b", "c"], SelectMode::Multi);
-        rig.closable = true;
-        rig.lead = Some("all");
-        rig.add = Some("+ Add");
-        rig.plus_add = true;
-        rig.clear_all = true;
-        let (mut runtime, _) = rig.boot();
-        for code in [
-            KeyCode::Left,
-            KeyCode::Right,
-            KeyCode::Char('h'),
-            KeyCode::Char('l'),
-            KeyCode::Home,
-            KeyCode::Char(' '),
-            KeyCode::Delete,
-            KeyCode::Backspace,
-            KeyCode::Char('x'),
-            KeyCode::End,
-            KeyCode::Enter,
-            KeyCode::Char('+'),
-            KeyCode::Char('X'),
-        ] {
-            let _ = crate::runtime::stub::deliver(&mut runtime, key(code));
-        }
-        assert!(
-            runtime.diagnostics().is_empty(),
-            "a full key sweep stays silent, got {:?}",
-            runtime.diagnostics()
-        );
-        // The sweep is not vacuous: every routed chord reported, which a
-        // rejected table (a repeated action) could never do.
-        assert_eq!(
-            runtime.app().actions,
-            [
-                ChipBarAction::Toggled(ItemKey::index(0)),
-                ChipBarAction::Closed(ItemKey::index(0)),
-                ChipBarAction::Closed(ItemKey::index(0)),
-                ChipBarAction::Closed(ItemKey::index(0)),
-                ChipBarAction::AddRequested,
-                ChipBarAction::AddRequested,
-                ChipBarAction::Cleared,
-            ],
-            "every swept chord routes through its binding"
-        );
-
-        let before = runtime.app().actions.len();
-        let ctrl_x = Input::Key(Key {
-            code: KeyCode::Char('X'),
-            mods: KeyModifiers::CONTROL,
-        });
-        let _ = crate::runtime::stub::deliver(&mut runtime, ctrl_x);
-        assert_eq!(
-            runtime.app().actions.len(),
-            before,
-            "a modified chord never performs the plain action"
-        );
-        assert!(
-            runtime.diagnostics().is_empty(),
-            "the ignored modified chord stays silent, got {:?}",
-            runtime.diagnostics()
-        );
-    }
-
-    /// L10: a close click reports `Closed` only — never an activation or a
-    /// toggle — in both `Single` and `Multi`.
-    #[test]
-    fn close_click_reports_closed_only() {
-        let rig = BarRig::new(Rect::new(0, 0, 20, 1), &["a", "b"], SelectMode::Single);
-        let (mut runtime, _) = {
-            let mut rig = rig;
-            rig.closable = true;
-            rig.boot()
-        };
-        let close = runtime
-            .area_of_part(BAR, PartRef::item(Part::CLOSE, ItemKey::index(0)))
-            .expect("the close cell registers");
-        click(&mut runtime, close.x, close.y);
-        assert_eq!(
-            runtime.app().actions,
-            [ChipBarAction::Closed(ItemKey::index(0))],
-            "a click on × closes only"
-        );
-
-        let label = runtime
-            .area_of_part(BAR, PartRef::item(Part::LABEL, ItemKey::index(1)))
-            .expect("the chip registers");
-        click(&mut runtime, label.x.saturating_add(1), label.y);
-        assert_eq!(
-            runtime.app().actions,
-            [
-                ChipBarAction::Closed(ItemKey::index(0)),
-                ChipBarAction::Activated(ItemKey::index(1)),
-            ],
-            "a click on the label activates only"
-        );
-
-        let mut rig = BarRig::new(Rect::new(0, 0, 20, 1), &["a", "b"], SelectMode::Multi);
-        rig.closable = true;
-        let (mut runtime, _) = rig.boot();
-        let close = runtime
-            .area_of_part(BAR, PartRef::item(Part::CLOSE, ItemKey::index(0)))
-            .expect("the close cell registers");
-        click(&mut runtime, close.x, close.y);
-        assert_eq!(
-            runtime.app().actions,
-            [ChipBarAction::Closed(ItemKey::index(0))],
-            "a click on × closes without toggling"
-        );
-    }
-
-    /// L11: a closable chip reserves a three-cell close zone — `×` plus two
-    /// pads — so `×` sits at right-3 and an 18-character label spans exactly
-    /// 23 cells (oracle `w = 1 + label_w + 1 + 2 + 1`, `×` at `x + 2 +
-    /// label_w`, `src/widgets/chips.rs:194-195` and `:217`).
-    fn closable_scene(items: &[&str], width: u16) -> (Runtime<Stub>, Buffer) {
-        let patches = [(
-            Part::CONTAINER,
-            StylePatch::new().set_bg(Role::Surface(Surface::Overlay)),
-        )];
-        let area = Rect::new(0, 0, width, 1);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                ChipBar::new(BAR).closable(true).patch_part(&patches).draw(
-                    ui,
-                    area,
-                    &ChipBarState::default(),
-                    items,
-                );
-            })
-            .commit_presented();
-        (runtime, buffer)
-    }
-
-    #[test]
-    fn closable_chips_reserve_a_three_cell_close_zone() {
-        let theme = Theme::junie();
-        let overlay = crate::theme::resolve::bind_role(
-            &theme,
-            Role::Surface(Surface::Overlay),
-            Surface::Canvas,
-        )
-        .expect("overlay binds");
-        let canvas = theme.bg(Surface::Canvas);
-        let close_glyph = theme.design.glyphs.get(GlyphRole::Close);
-
-        // Short label: `gutter | ab | pad | × | pad | pad` is 7 cells.
-        let (runtime, buffer) = closable_scene(&["ab"], 32);
-        let key = ItemKey::index(0);
-        assert_eq!(
-            runtime.area_of_part(BAR, PartRef::item(Part::LABEL, key)),
-            Some(Rect::new(0, 0, 7, 1))
-        );
-        assert_eq!(
-            runtime.area_of_part(BAR, PartRef::item(Part::CLOSE, key)),
-            Some(Rect::new(4, 0, 1, 1)),
-            "× sits at right-3 of the chip"
-        );
-        let cell = |x| buffer.cell(Position::new(x, 0)).expect("strip cell");
-        assert_eq!(cell(4).symbol(), close_glyph);
-        for x in [5, 6] {
-            assert_eq!(cell(x).symbol(), " ", "pad {x} stays blank");
-            assert_eq!(cell(x).bg, overlay, "pad {x} keeps the chip fill");
-        }
-        assert_eq!(cell(7).bg, canvas, "the cell past the chip is the gap");
-
-        // Tablepro fidelity: an 18-character label spans exactly 23 cells
-        // with × at label-start + 20 and two trailing pads.
-        let (runtime, buffer) = closable_scene(&["abcdefghijklmnopqr"], 32);
-        let label = runtime
-            .area_of_part(BAR, PartRef::item(Part::LABEL, key))
-            .expect("the chip registers");
-        assert_eq!(label, Rect::new(0, 0, 23, 1));
-        let close = runtime
-            .area_of_part(BAR, PartRef::item(Part::CLOSE, key))
-            .expect("the close cell registers");
-        assert_eq!(close.x, label.x.saturating_add(20));
-        assert_eq!(close.x, label.right().saturating_sub(3));
-        let cell = |x| buffer.cell(Position::new(x, 0)).expect("strip cell");
-        assert_eq!(cell(20).symbol(), close_glyph);
-        for x in [21, 22] {
-            assert_eq!(cell(x).symbol(), " ", "pad {x} stays blank");
-            assert_eq!(cell(x).bg, overlay, "pad {x} keeps the chip fill");
-        }
-        assert_eq!(cell(23).bg, canvas, "the cell past the chip is the gap");
     }
 }

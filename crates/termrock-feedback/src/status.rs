@@ -14,16 +14,16 @@ use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Modifier;
 
-use super::meter::{Meter, MeterTone};
-use super::progress::{PCT_COLUMNS, spinner_glyph};
+use crate::meter::{Meter, MeterTone};
+use crate::progress::{PCT_COLUMNS, spinner_glyph};
 use super::{PartStyle, SlotFn, first_row, shift};
-use crate::collection::Status;
+use termrock_runtime::Status;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Surface, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// Items per group laid out without allocating.
@@ -87,8 +87,6 @@ pub struct StatusItem<'a> {
     ratio: Option<f64>,
     meter_tone: Option<MeterTone>,
     spinner: Option<usize>,
-    /// Paint one space on each side with the item style, outside the gap math.
-    padded: bool,
 }
 
 impl<'a> StatusItem<'a> {
@@ -106,7 +104,6 @@ impl<'a> StatusItem<'a> {
             ratio: None,
             meter_tone: None,
             spinner: None,
-            padded: false,
         }
     }
 
@@ -133,17 +130,6 @@ impl<'a> StatusItem<'a> {
     #[must_use]
     pub const fn priority(mut self, p: u8) -> Self {
         self.priority = p;
-        self
-    }
-
-    /// Paint one space on each side in the item's own style.
-    ///
-    /// The spaces sit in the separator and the trailing edge. They do not
-    /// change the item's measured width, so the neighbour stays put. This is
-    /// the clickable tag segment, whose muted run includes those spaces.
-    #[must_use]
-    pub const fn padded(mut self) -> Self {
-        self.padded = true;
         self
     }
 
@@ -378,9 +364,6 @@ pub struct StatusBar<'a> {
     variant: Variant,
     status: Status,
     frame: usize,
-    /// `None` uses [`Self::GAP`]. A caller that matches an older two-cell
-    /// segment strip sets `2` without moving the default.
-    gap: Option<u16>,
     /// Kept beside `ov` so an item's inline [`Meter`] can be built with the
     /// caller's own overrides: it paints `TRACK` and `THUMB` under *this*
     /// strip's `Id`, so a bare construction dropped the caller's `.patch`
@@ -431,9 +414,6 @@ impl<'a> StatusBar<'a> {
         Part::OVERFLOW,
     ];
 
-    /// Cells between items within a group and between groups.
-    pub const GAP: u16 = 3;
-
     /// An empty strip.
     pub const fn new(id: Id) -> Self {
         StatusBar {
@@ -444,7 +424,6 @@ impl<'a> StatusBar<'a> {
             variant: Variant::DEFAULT,
             status: Status::Ready,
             frame: 0,
-            gap: None,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -475,55 +454,6 @@ impl<'a> StatusBar<'a> {
     pub const fn right(mut self, items: &'a [StatusItem<'a>]) -> Self {
         self.right = items;
         self
-    }
-
-    /// Cells between items. `None` keeps [`Self::GAP`].
-    #[must_use]
-    pub const fn gap(mut self, gap: u16) -> Self {
-        self.gap = Some(gap);
-        self
-    }
-
-    fn item_gap(&self) -> u16 {
-        self.gap.unwrap_or(Self::GAP)
-    }
-
-    /// The padded item's flanking spaces. Width math ignores them.
-    fn paint_padded_flanks(
-        &self,
-        ui: &mut Ui<'_>,
-        it: &StatusItem<'_>,
-        cell: Rect,
-        bounds: Rect,
-        live: StateFlags,
-    ) {
-        if !it.padded || cell.is_empty() {
-            return;
-        }
-        let style = self.item_style(ui, it, live);
-        if cell.x > bounds.x {
-            ui.paint_str(
-                Rect {
-                    x: cell.x.saturating_sub(1),
-                    width: 1,
-                    ..cell
-                },
-                " ",
-                style,
-            );
-        }
-        let right = cell.x.saturating_add(cell.width);
-        if right < bounds.right() {
-            ui.paint_str(
-                Rect {
-                    x: right,
-                    width: 1,
-                    ..cell
-                },
-                " ",
-                style,
-            );
-        }
     }
 
     /// Set the variant.
@@ -660,12 +590,6 @@ impl<'a> StatusBar<'a> {
     }
 
     /// Columns the whole strip needs under `keep`.
-    ///
-    /// Tag `segments::render` charges every kept segment `width + sep` and
-    /// then adds 2. Within-group `(n - 1) * gap`, the gap between groups,
-    /// and `edge * 2` are one separator short of that total. The extra gap
-    /// is that separator, so a singleton drops at the same width the tag
-    /// drops it.
     fn needed(&self, keep: Keep, metrics: ItemMetrics, gap: u16, edge: u16, lead: u16) -> u16 {
         let ws = Group::ALL.map(|g| self.group_columns(g, keep, metrics, gap));
         let present = ws.iter().filter(|w| **w > 0).count().min(3) as u16;
@@ -674,7 +598,6 @@ impl<'a> StatusBar<'a> {
             .saturating_add(present.saturating_sub(1).saturating_mul(gap))
             .saturating_add(edge.saturating_mul(2))
             .saturating_add(lead)
-            .saturating_add(if present > 0 { gap } else { 0 })
     }
 
     /// Which items survive at `total` columns.
@@ -781,7 +704,7 @@ impl<'a> StatusBar<'a> {
             // component invents no colour, only the weight the caller asked
             // for
             Emphasis::Strong => delta = delta.add(Modifier::BOLD),
-            Emphasis::Chip => delta = delta.set_bg(Role::Surface(Surface::Overlay)),
+            Emphasis::Chip => delta = delta.set_bg(Role::RaisedSurface),
             Emphasis::Plain => {}
         }
         if let Some(r) = it.tone {
@@ -910,131 +833,126 @@ impl<'a> StatusBar<'a> {
         if area.is_empty() {
             return area;
         }
-        ui.with_surface(Surface::Elevated, |ui| {
-            let live = PartStyle::flags(ui.state(self.id), self.status.flags());
-            let ov = self.ov;
-            let id = self.id;
-            let d = ui.design();
-            let gap = self.item_gap();
-            let edge = d.space.gutter.max(1);
-            let metrics = ItemMetrics {
-                meter_columns: Self::meter_columns(ui),
-                spinner_frames: ui.design().motion.spinner_frames,
+        let live = PartStyle::flags(ui.state(self.id), self.status.flags());
+        let ov = self.ov;
+        let id = self.id;
+        let d = ui.design();
+        let gap = d.space.gap.max(1);
+        let edge = d.space.gutter.max(1);
+        let metrics = ItemMetrics {
+            meter_columns: Self::meter_columns(ui),
+            spinner_frames: ui.design().motion.spinner_frames,
+        };
+        let container = ov.style(
+            ui,
+            id,
+            Family::STATUSBAR,
+            self.variant,
+            Part::CONTAINER,
+            live,
+        );
+        ui.fill(area, container.style);
+
+        // the readiness affordance leads the strip
+        let ready = self.readiness(ui, live);
+        let lead = ready.map_or(0, |g| width(g).saturating_add(1));
+        if let Some(g) = ready {
+            // one cell, two parts: the spinner is `ICON` and the error or
+            // warning marker is `MARKER`. The slot is consulted before
+            // `spinner_frames` (§45.4) — a slot is substitution, not
+            // suppression, so `lead` reserves the same columns either way.
+            let part = if self.busy() {
+                Part::ICON
+            } else {
+                Part::MARKER
             };
-            let container = ov.style(
-                ui,
-                id,
-                Family::STATUSBAR,
-                self.variant,
-                Part::CONTAINER,
-                live,
-            );
-            ui.fill(area, container.style);
-
-            // the readiness affordance leads the strip
-            let ready = self.readiness(ui, live);
-            let lead = ready.map_or(0, |g| width(g).saturating_add(1));
-            if let Some(g) = ready {
-                // one cell, two parts: the spinner is `ICON` and the error or
-                // warning marker is `MARKER`. The slot is consulted before
-                // `spinner_frames` (§45.4) — a slot is substitution, not
-                // suppression, so `lead` reserves the same columns either way.
-                let part = if self.busy() {
-                    Part::ICON
-                } else {
-                    Part::MARKER
-                };
-                let cell = Rect {
-                    x: area.x.saturating_add(edge),
-                    width: area.width.saturating_sub(edge),
-                    ..area
-                };
-                if let Some(f) = ov.slot_for(part) {
-                    f(ui, cell);
-                } else {
-                    let s = ov.style(ui, id, Family::STATUSBAR, self.variant, part, live);
-                    ui.paint_str(cell, g, s.style);
-                }
+            let cell = Rect {
+                x: area.x.saturating_add(edge),
+                width: area.width.saturating_sub(edge),
+                ..area
+            };
+            if let Some(f) = ov.slot_for(part) {
+                f(ui, cell);
+            } else {
+                let s = ov.style(ui, id, Family::STATUSBAR, self.variant, part, live);
+                ui.paint_str(cell, g, s.style);
             }
+        }
 
-            let keep = self.survivors(area.width, metrics, gap, edge, lead);
-            let inner_left = area.x.saturating_add(edge).saturating_add(lead);
-            let inner_right = area.right().saturating_sub(edge);
+        let keep = self.survivors(area.width, metrics, gap, edge, lead);
+        let inner_left = area.x.saturating_add(edge).saturating_add(lead);
+        let inner_right = area.right().saturating_sub(edge);
 
-            // left, from the leading edge
-            let mut x = inner_left;
-            let left_mask = keep.first().copied().unwrap_or(0);
-            for (i, it) in self.group(Group::Left).iter().enumerate() {
-                if left_mask & (1 << i) == 0 {
-                    continue;
-                }
-                let room = inner_right.saturating_sub(x);
-                if room == 0 {
-                    break;
-                }
-                let cell = Rect {
-                    x,
-                    width: it.columns(metrics).min(room),
-                    ..area
-                };
-                let used = self.paint_item(ui, it, cell, live, metrics);
-                self.paint_padded_flanks(ui, it, cell, area, live);
-                x = x.saturating_add(used).saturating_add(gap);
+        // left, from the leading edge
+        let mut x = inner_left;
+        let left_mask = keep.first().copied().unwrap_or(0);
+        for (i, it) in self.group(Group::Left).iter().enumerate() {
+            if left_mask & (1 << i) == 0 {
+                continue;
             }
-            let left_end = x.saturating_sub(gap);
+            let room = inner_right.saturating_sub(x);
+            if room == 0 {
+                break;
+            }
+            let cell = Rect {
+                x,
+                width: it.columns(metrics).min(room),
+                ..area
+            };
+            let used = self.paint_item(ui, it, cell, live, metrics);
+            x = x.saturating_add(used).saturating_add(gap);
+        }
+        let left_end = x.saturating_sub(gap);
 
-            // right, from the trailing edge backwards
-            let right_mask = keep.get(2).copied().unwrap_or(0);
-            let mut rx = inner_right;
-            let right_items = self.group(Group::Right);
-            for (i, it) in right_items.iter().enumerate().rev() {
-                if right_mask & (1 << i) == 0 {
+        // right, from the trailing edge backwards
+        let right_mask = keep.get(2).copied().unwrap_or(0);
+        let mut rx = inner_right;
+        let right_items = self.group(Group::Right);
+        for (i, it) in right_items.iter().enumerate().rev() {
+            if right_mask & (1 << i) == 0 {
+                continue;
+            }
+            let w = it.columns(metrics);
+            if rx.saturating_sub(w) <= left_end {
+                break;
+            }
+            rx = rx.saturating_sub(w);
+            let cell = Rect {
+                x: rx,
+                width: w,
+                ..area
+            };
+            self.paint_item(ui, it, cell, live, metrics);
+            rx = rx.saturating_sub(gap);
+        }
+        let right_start = if right_mask == 0 {
+            inner_right
+        } else {
+            rx.saturating_add(gap)
+        };
+
+        // centre, in the free span between the two
+        let cw = self.group_columns(Group::Center, keep, metrics, gap);
+        if cw > 0 {
+            let lo = left_end.saturating_add(gap);
+            let hi = right_start.saturating_sub(gap);
+            let free = hi.saturating_sub(lo);
+            let mut cx = lo.saturating_add(free.saturating_sub(cw) / 2);
+            let center_mask = keep.get(1).copied().unwrap_or(0);
+            for (i, it) in self.group(Group::Center).iter().enumerate() {
+                if center_mask & (1 << i) == 0 {
                     continue;
                 }
                 let w = it.columns(metrics);
-                if rx.saturating_sub(w) <= left_end {
-                    break;
-                }
-                rx = rx.saturating_sub(w);
                 let cell = Rect {
-                    x: rx,
-                    width: w,
+                    x: cx,
+                    width: hi.saturating_sub(cx).min(w),
                     ..area
                 };
                 self.paint_item(ui, it, cell, live, metrics);
-                self.paint_padded_flanks(ui, it, cell, area, live);
-                rx = rx.saturating_sub(gap);
+                cx = cx.saturating_add(w).saturating_add(gap);
             }
-            let right_start = if right_mask == 0 {
-                inner_right
-            } else {
-                rx.saturating_add(gap)
-            };
-
-            // centre, in the free span between the two
-            let cw = self.group_columns(Group::Center, keep, metrics, gap);
-            if cw > 0 {
-                let lo = left_end.saturating_add(gap);
-                let hi = right_start.saturating_sub(gap);
-                let free = hi.saturating_sub(lo);
-                let mut cx = lo.saturating_add(free.saturating_sub(cw) / 2);
-                let center_mask = keep.get(1).copied().unwrap_or(0);
-                for (i, it) in self.group(Group::Center).iter().enumerate() {
-                    if center_mask & (1 << i) == 0 {
-                        continue;
-                    }
-                    let w = it.columns(metrics);
-                    let cell = Rect {
-                        x: cx,
-                        width: hi.saturating_sub(cx).min(w),
-                        ..area
-                    };
-                    self.paint_item(ui, it, cell, live, metrics);
-                    self.paint_padded_flanks(ui, it, cell, area, live);
-                    cx = cx.saturating_add(w).saturating_add(gap);
-                }
-            }
-        });
+        }
         area
     }
 
@@ -1044,7 +962,7 @@ impl<'a> StatusBar<'a> {
             meter_columns: Self::meter_columns(ui),
             spinner_frames: ui.design().motion.spinner_frames,
         };
-        let gap = self.item_gap();
+        let gap = ui.design().space.gap.max(1);
         let edge = ui.design().space.gutter.max(1);
         let full = self.all_alive_keep();
         let preferred = self.needed(full, metrics, gap, edge, 0);
@@ -1119,23 +1037,6 @@ mod tests {
             "exactly the strongest left item survives"
         );
         assert_eq!(keep.first().copied(), Some(0b1));
-    }
-
-    #[test]
-    fn a_singleton_pays_the_separator_the_tag_charges() {
-        // 37 columns is the inspect crumb. Width 40 fits `width + edge*2`
-        // and drops `width + edge*2 + sep`, which is the tag's bill.
-        const CRUMB: [StatusItem<'static>; 1] =
-            [StatusItem::new("Workspaces › payments-platform › 7f3a").priority(7)];
-        let bar = StatusBar::new(Id::root("t")).right(&CRUMB);
-        assert_eq!(CRUMB[0].columns(TEST_METRICS), 37);
-        let dropped = bar.survivors(40, TEST_METRICS, 2, 1, 0);
-        assert_eq!(dropped.get(2).copied(), Some(0), "the crumb does not fit");
-        const SHORT: [StatusItem<'static>; 1] = [StatusItem::new("Workspaces").priority(7)];
-        let kept = StatusBar::new(Id::root("t"))
-            .right(&SHORT)
-            .survivors(40, TEST_METRICS, 2, 1, 0);
-        assert_eq!(kept.get(2).copied(), Some(0b1));
     }
 
     #[test]
@@ -1414,47 +1315,6 @@ mod tests {
         assert!(
             before.abs_diff(after) <= 1,
             "the centre group is centred in the free span: {before} before, {after} after, in {row:?}"
-        );
-    }
-
-    /// A two-cell gap keeps the neighbour where the tag segment strip put it,
-    /// and a padded item paints its flanks without moving that neighbour.
-    #[test]
-    fn gap_two_and_padded_flanks_keep_the_neighbour() {
-        const ROW: Rect = Rect {
-            x: 0,
-            y: 0,
-            width: 40,
-            height: 1,
-        };
-        const LEFT: [StatusItem<'static>; 1] = [StatusItem::new("alpha").priority(9)];
-        const RIGHT: [StatusItem<'static>; 2] = [
-            StatusItem::new("beta").priority(6),
-            StatusItem::new("? help").padded().priority(4),
-        ];
-        let bar = StatusBar::new(Id::root("status.gap"))
-            .gap(2)
-            .left(&LEFT)
-            .right(&RIGHT);
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(ROW);
-        rt.draw_scene(ROW, &mut buf, |ui, area| {
-            bar.draw(ui, area);
-        })
-        .commit_presented();
-        let row = painted_row(&buf, ROW.width);
-        let help = row.find("? help").expect(&row);
-        let beta = row.find("beta").expect(&row);
-        assert_eq!(help - (beta + "beta".len()), 2, "{row:?}");
-        assert_eq!(
-            buf.cell(Position::new((help - 1) as u16, 0))
-                .map(|c| c.symbol()),
-            Some(" ")
-        );
-        assert_eq!(
-            buf.cell(Position::new((help + "? help".len()) as u16, 0))
-                .map(|c| c.symbol()),
-            Some(" ")
         );
     }
 }

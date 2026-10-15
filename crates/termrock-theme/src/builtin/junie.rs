@@ -126,7 +126,7 @@ pub(crate) const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴"
 /// The Junie glyph set, one entry per `GlyphRole` in declaration order.
 pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
     [
-        "▎", "›", "✓", "[✓]", "[ ]", "(●)", "( )", "●", "•", "+", "−", "!", "▲", "▸", "▾", "▴",
+        "▎", "›", "✓", "[✓]", "[ ]", "(●)", "(○)", "●", "•", "+", "−", "!", "▲", "▸", "▾", "▴",
         "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇",
         // Indices 29–32 (`RuleQuiet`, `RuleActive`, `ScrollTrack`,
         // `ScrollThumb`) are **dead**: `GlyphSet::get`/`set` route those four
@@ -136,11 +136,6 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "", "", "", "", //
         // Canonical pause mark; Paper/from_tokens inherit this design too.
         "✓", "‖", "+", "[", "]", "•", "▾", "▴",
-        // Index 41 (`PrimaryKey`) is dead: `GlyphSet::get`/`set` route that
-        // role to its own field and never index the array. Index 42 is the
-        // off half of the switch-knob pair (Q67-F5). Index 43 is the narrow
-        // checkbox off mark (W03-01).
-        "", "○", "□",
     ],
     scrollbar::Set {
         track: "│",
@@ -177,7 +172,7 @@ pub(crate) const fn design() -> DesignTokens {
             min_width: 72,
             min_height: 20,
             scrollbar_width: 1,
-            meter_track: 11,
+            meter_track: 10,
             code_preview_lines: 6,
         },
         glyphs: GLYPHS,
@@ -203,7 +198,6 @@ pub(crate) const fn design() -> DesignTokens {
 /// Keep this in the recipe so Paper and token-only themes retain their policy,
 /// while Junie-derived themes still bind all colours from their live tokens.
 pub(crate) fn recipes() -> crate::theme::Recipes {
-    use crate::theme::glyph::GlyphRole;
     use crate::theme::{Family, FgStep, Modifier, Role, Slot, StylePatch};
     use crate::{Part, StateFlags};
 
@@ -247,234 +241,18 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
     for rule in states.into_iter().filter(|rule| rule.specificity() > 1) {
         container.when(rule.when | StateFlags::DISABLED, disabled);
     }
-    // Q66-S8 (F1-L11): the LIST GUTTER DISABLED rule also restores
-    // fg=CurrentSurface. The tag blanks the gutter whenever disabled
-    // (fg=bg, `tag:theme.rs:397-406`); the glyph-only patch merged after
-    // the `row_like` FOCUSED fg=Focus (same specificity, later insert
-    // wins) and left a green fg on the blanked cell at FOCUSED|DISABLED.
-    // LIST-scoped (M2): PICKER/TREE keep their own GUTTER behavior.
     row.entry(Part::GUTTER).when(
         StateFlags::DISABLED,
         StylePatch {
             glyph: Slot::Clear,
-            ..p().set_fg(Role::CurrentSurface)
+            ..p()
         },
     );
-    // Q66-S2 (F1-L2-fg + F1-L7b-fg): a disabled list row's meta is the row
-    // style `st`, and a nav-list icon is `label_style.fg(disabled)` — both
-    // DisabledFg at every level. LIST-scoped on purpose: PICKER/TREE meta
-    // is `st.fg(muted)` and must keep `row_like`'s Muted (M2).
-    row.entry(Part::META)
-        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    // Q67-S14 (N3): a nav-list icon is muted whenever enabled
-    // (`tag:sidebars.rs:242-246`). LIST-scoped: TREE/MENU/CHIP/PICKER
-    // keep `row_like` Secondary under their own families. The List
-    // readiness cell is the only other (LIST, ICON) resolve
-    // (`list.rs:1182`, list-level live flags); NavList rows never carry
-    // BUSY|LOADING|ERROR|WARNING (`nav_list.rs` row flags), so the four
-    // preservation rules voice exactly the readiness
-    // spinner/error/warning and nothing else. DISABLED stays last so
-    // spec-1 ties resolve to it (Q66-S2 F1-L7b-fg; S13 precedent).
-    let icon = row.entry(Part::ICON);
-    icon.base = p().set_fg(Role::Fg(FgStep::Muted));
-    let readiness = p().set_fg(Role::Fg(FgStep::Secondary));
-    icon.when(StateFlags::BUSY, readiness)
-        .when(StateFlags::LOADING, readiness)
-        .when(StateFlags::ERROR, readiness)
-        .when(StateFlags::WARNING, readiness)
-        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    // Q67-S14 (N5): a nav-list badge is accent whenever enabled
-    // (`tag:sidebars.rs:249-252`; frozen y6 x52 green). LIST-scoped:
-    // Panel/Hintbar/Tabs badges resolve under their own families and
-    // no List site resolves (LIST, BADGE), so this entry voices exactly
-    // NavList badges. DISABLED clears the fg instead of naming one
-    // (Q66-S3 F1-L7c: the badge inherits the container fill — the row
-    // fill paints first, `fill`/`set_style` keeps cell fg on None —
-    // which IS the tag's disabled `st`).
-    let badge = row.entry(Part::BADGE);
-    badge.base = p().set_fg(Role::Accent);
-    badge.when(StateFlags::DISABLED, p().clear_fg());
-    // Q67-S13 (L-R1/L-R2 + N-L1): the LIST marker is secondary unless the
-    // row is live — the tag keys accent on focus-or-hover
-    // (`tag:list.rs:296-302`) and keeps the row style `st` for disabled
-    // rows. SELECTED|ACTIVE keeps the NavList current destination
-    // accent-always (`tag:sidebars.rs:225-226`; NavList resolves
-    // current-row markers with ACTIVE, List never sets it). DISABLED
-    // compounds mirror the
-    // CONTAINER pattern above so a disabled List row never takes accent;
-    // there is deliberately NO SELECTED|ACTIVE|DISABLED rule — the tag
-    // paints a current marker accent unconditionally, and
-    // disabled-current is unreachable (choose/click guard on enabled,
-    // `set_current` callers use never-disabled shell keys).
-    let marker = row.entry(Part::MARKER);
-    marker.states.clear();
-    let accent = p().set_fg(Role::Accent);
-    let marker_disabled = p().set_fg(Role::DisabledFg);
-    marker
-        .when(
-            StateFlags::SELECTED,
-            p().set_glyph(GlyphRole::Chosen)
-                .set_fg(Role::Fg(FgStep::Secondary)),
-        )
-        .when(
-            StateFlags::CHECKED,
-            p().set_glyph(GlyphRole::Checked)
-                .set_fg(Role::Fg(FgStep::Secondary)),
-        )
-        .when(StateFlags::DISABLED, marker_disabled)
-        .when(StateFlags::SELECTED | StateFlags::FOCUSED, accent)
-        .when(StateFlags::SELECTED | StateFlags::HOVERED, accent)
-        .when(StateFlags::CHECKED | StateFlags::FOCUSED, accent)
-        .when(StateFlags::CHECKED | StateFlags::HOVERED, accent)
-        .when(StateFlags::SELECTED | StateFlags::ACTIVE, accent)
-        .when(
-            StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::DISABLED,
-            marker_disabled,
-        )
-        .when(
-            StateFlags::SELECTED | StateFlags::HOVERED | StateFlags::DISABLED,
-            marker_disabled,
-        )
-        .when(
-            StateFlags::CHECKED | StateFlags::FOCUSED | StateFlags::DISABLED,
-            marker_disabled,
-        )
-        .when(
-            StateFlags::CHECKED | StateFlags::HOVERED | StateFlags::DISABLED,
-            marker_disabled,
-        );
-    // Q66-S3 (F1-L1+L3+L4+DIM, F1-L7c): the LIST targeted mono set is
-    // (CONTAINER+GUTTER+META+BADGE, DISABLED)+DIM — the PICKER mirror
-    // (`downgrade.rs:639-681`). The tag's disabled row is a full DIM run at
-    // Mono; the generic press fallback runs after ordinary recipes, and
-    // `ui.fill` overwrites modifiers, so each fill-painted part needs its
-    // own rule. The CONTAINER rule keeps its explicit disabled restore
-    // (pressed+disabled) and gains +DIM; GUTTER/META/BADGE are DIM-only. No
-    // MARKER rule: the List marker cell is unpainted and rides the container.
-    // LIST-scoped: a generic (CONTAINER,DISABLED)+DIM would regress the
-    // button gutter (`q65s8_hold_gutter_dim_free` pins it DIM-free).
-    let dim = p().add(Modifier::DIM);
+    // Generic mono press fallback runs after ordinary recipes; keep its
+    // explicit inversion but restore the disabled container if both are live.
     recipes.set_mono_rules(
         Family::LIST,
-        vec![
-            (
-                Part::CONTAINER,
-                StateFlags::DISABLED,
-                disabled.add(Modifier::DIM),
-            ),
-            (Part::GUTTER, StateFlags::DISABLED, dim),
-            (Part::META, StateFlags::DISABLED, dim),
-            (Part::BADGE, StateFlags::DISABLED, dim),
-        ],
+        vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],
     );
-    recipes
-        .get_mut(Family::TREE)
-        .parts
-        .entry(Part::CONTAINER)
-        .states
-        .retain(|rule| !rule.when.contains(StateFlags::HOVERED));
-    // Q66-S5 (F1-L6): the TREE targeted mono set is
-    // (CONTAINER+GUTTER+META, DISABLED)+DIM — the LIST mirror (Q66-S3),
-    // principle-only (Q65 GHOST precedent): tag tree never sets disabled,
-    // so no tag/frozen pin exists. The CONTAINER rule reuses the explicit
-    // disabled restore (pressed+disabled) and gains +DIM; GUTTER/META are
-    // DIM-only. No BADGE rule: Tree paints no badge (`tree.rs` has no
-    // `Part::BADGE` site). No ICON rule: the LIST mirror has none, and leaf
-    // disclosure cells ride the container fill (`tree.rs:2015-2017`);
-    // branch-glyph DIM is the open L7b-DIM class, not this slice. No MARKER
-    // rule: the marker cell is unpainted unless selected
-    // (`tree.rs:2085-2087`) and rides the container. TREE-scoped: a generic
-    // (CONTAINER,DISABLED)+DIM would regress the button gutter
-    // (`q65s8_hold_gutter_dim_free` pins it DIM-free).
-    recipes.set_mono_rules(
-        Family::TREE,
-        vec![
-            (
-                Part::CONTAINER,
-                StateFlags::DISABLED,
-                disabled.add(Modifier::DIM),
-            ),
-            (Part::GUTTER, StateFlags::DISABLED, dim),
-            (Part::META, StateFlags::DISABLED, dim),
-        ],
-    );
-    // Q66-S6 (F1-L9b-fg): a disabled menu shortcut is the row style `st`
-    // (tag:menu.rs:335-341; P4 pins TC `Rgb(77,77,77)`, 256 `Indexed(238)`,
-    // 16/Mono `DarkGray`) — DisabledFg at every level. MENU-scoped: HELP
-    // and KEYHINT resolve KEY under their own families and keep their
-    // tones.
-    recipes
-        .get_mut(Family::MENU)
-        .parts
-        .entry(Part::KEY)
-        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    // Q66-S6 (F1-L9a+L9b-DIM): the MENU targeted mono set is the pressed
-    // pair plus (ROW+KEY, DISABLED)+DIM — the PICKER shape (DIM-only rules;
-    // `downgrade.rs:639-680`). The tag's disabled menu row is a single
-    // `disabled_style` run at Mono — fill, label, and shortcut alike (P4
-    // render pin; `tag:menu.rs:301-302,329,335-341`) — and `ui.fill`
-    // overwrites modifiers (`paint.rs:389`), so the ROW fill needs its own
-    // rule. Whole-set replace semantics: the set REPEATS the pressed-only
-    // builtin (`downgrade.rs:604-622`) verbatim and extends it — the ROW
-    // pressed patch reuses the value-identical `pressed` binding. DIM-only,
-    // not the LIST restore shape: the MENU ROW recipe declares PRESSED
-    // after DISABLED, so pressed wins ties at TC, and a mono-only fg/bg
-    // restore would diverge from TC in that corner. MENU-scoped: no generic
-    // (ROW|KEY,DISABLED) rule exists, and Paper keeps the pressed-only
-    // builtin.
-    recipes.set_mono_rules(
-        Family::MENU,
-        vec![
-            (Part::ROW, StateFlags::PRESSED, pressed),
-            (
-                Part::TITLE,
-                StateFlags::PRESSED,
-                p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
-            ),
-            (Part::ROW, StateFlags::DISABLED, dim),
-            (Part::KEY, StateFlags::DISABLED, dim),
-        ],
-    );
-    // Q67-SHOWMAIN (terminal rail): a step row voices its lifecycle
-    // (`tag:steps.rs:247-299`). The label is muted at rest, secondary when
-    // done or blocked, primary+bold while running, faint when skipped and
-    // danger+bold when failed; the icon is success once done and accent
-    // while running; the number and the trailing word share the META voice
-    // (faint, secondary while running, danger on failure, warning when
-    // blocked). STEPS-scoped: only the Steps rails resolve here.
-    let rail = &mut recipes.get_mut(Family::STEPS).parts;
-    // The rail fill never voices the lifecycle (`tag:steps.rs:239`: the row
-    // style is interaction-only), so the shared BUSY/ERROR row_like voices
-    // are restored to primary here.
-    let container = rail.entry(Part::CONTAINER);
-    let primary = p().set_fg(Role::Fg(FgStep::Primary));
-    container
-        .when(StateFlags::BUSY, primary)
-        .when(StateFlags::ERROR, primary)
-        .when(StateFlags::WARNING, primary);
-    let label = rail.entry(Part::LABEL);
-    label.base = p().set_fg(Role::Fg(FgStep::Muted));
-    label
-        .when(StateFlags::CHECKED, p().set_fg(Role::Fg(FgStep::Secondary)))
-        .when(
-            StateFlags::BUSY,
-            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
-        )
-        .when(StateFlags::READ_ONLY, p().set_fg(Role::Fg(FgStep::Faint)))
-        .when(
-            StateFlags::ERROR,
-            p().set_fg(Role::Danger).add(Modifier::BOLD),
-        )
-        .when(StateFlags::WARNING, p().set_fg(Role::Fg(FgStep::Secondary)));
-    let icon = rail.entry(Part::ICON);
-    icon.base = p().set_fg(Role::Fg(FgStep::Primary));
-    icon.when(StateFlags::CHECKED, p().set_fg(Role::Success))
-        .when(StateFlags::BUSY, p().set_fg(Role::Accent))
-        .when(StateFlags::ERROR, p().set_fg(Role::Danger));
-    let meta = rail.entry(Part::META);
-    meta.base = p().set_fg(Role::Fg(FgStep::Faint));
-    meta.when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))
-        .when(StateFlags::ERROR, p().set_fg(Role::Danger))
-        .when(StateFlags::WARNING, p().set_fg(Role::Warning));
     recipes
 }

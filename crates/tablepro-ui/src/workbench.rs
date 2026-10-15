@@ -1,10 +1,8 @@
 //! `TablePro` workbench state: explorer, tabs, history and query routing.
 
-use tablepro_domain::{Catalog, Connection, History, HistoryEntry, HistorySource, ObjectKind};
-use termrock::Id;
-
+use tablepro_demo::db::{Catalog, Connection, ObjectKind};
 use crate::filter_editor::Filter;
-use crate::model::SwitcherIndex;
+use tablepro_domain::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
 use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
 
 /// Workbench state for one active connection.
@@ -35,8 +33,6 @@ pub struct Workbench {
     pub history: History,
     /// Whether the active tab is maximised.
     pub maximized: bool,
-    /// Whether the explorer panel is visible.
-    pub explorer_visible: bool,
 }
 
 impl Workbench {
@@ -45,7 +41,7 @@ impl Workbench {
         Self {
             owner: std::sync::Arc::new(()),
             current_schema: "public".to_owned(),
-            schema_caption: "public".to_owned(),
+            schema_caption: "public ".to_owned(),
             explorer: tabs::explorer_items(&catalog),
             connection,
             catalog,
@@ -57,7 +53,6 @@ impl Workbench {
             next_tab_key: Some(1),
             history: History::seeded(),
             maximized: false,
-            explorer_visible: true,
         }
     }
     /// Schema selected for explorer reconstruction.
@@ -80,7 +75,7 @@ impl Workbench {
             return false;
         }
         schema.clone_into(&mut self.current_schema);
-        self.schema_caption = schema.to_owned();
+        self.schema_caption = format!("{schema} ");
         self.explorer_filter.clear();
         self.explorer_selected = 0;
         true
@@ -253,20 +248,12 @@ impl Workbench {
         self.query_counter = number;
         Some(key)
     }
-    /// Open history, activating the existing history tab if already open, or creating one.
+    /// Open history with a fresh identity.
     pub fn open_history(&mut self) -> Option<TabKey> {
-        if let Some(key) = self.tabs.iter().find_map(|r| match r.payload() {
-            Tab::History(_) => Some(r.key()),
-            _ => None,
-        }) {
-            self.active = Some(key);
-            let conn = self.connection.name.clone();
-            self.refresh_history_tab(key, &conn);
-            return Some(key);
-        }
-        let mut tab = HistoryTab::new(&self.history);
-        tab.refresh(&self.history, &self.connection.name);
-        self.insert_tab(self.tabs.len(), Tab::History(tab))
+        self.insert_tab(
+            self.tabs.len(),
+            Tab::History(HistoryTab::new(&self.history)),
+        )
     }
     /// Close a clean tab; dirty tabs require explicit confirmation.
     pub fn close_tab(&mut self, index: usize) -> bool {
@@ -334,12 +321,12 @@ impl Workbench {
     }
 
     /// Current grid and control identity derive from one owned record.
-    pub fn active_grid(&self) -> Option<(Id, &tabs::GridView)> {
+    pub fn active_grid(&self) -> Option<(termrock::Id, &tabs::GridView)> {
         self.tabs.get(self.active_index()?)?.grid()
     }
     /// Mutate the current grid without exposing its record identity.
     /// Invalidates captured destructive authorization before borrowing, even if unchanged.
-    pub fn active_grid_mut(&mut self) -> Option<(Id, &mut tabs::GridView)> {
+    pub fn active_grid_mut(&mut self) -> Option<(termrock::Id, &mut tabs::GridView)> {
         let index = self.active_index()?;
         let record = self.tabs.get_mut(index)?;
         let key = record.key();
@@ -431,15 +418,6 @@ impl Workbench {
             .iter()
             .filter(|item| item.kind == ObjectKind::Table)
             .count()
-    }
-
-    /// Refresh a history tab against the active history and connection name.
-    pub fn refresh_history_tab(&mut self, key: TabKey, connection_name: &str) {
-        if let Some(record) = self.tabs.iter_mut().find(|r| r.key() == key)
-            && let Tab::History(h) = record.lifecycle_payload_mut()
-        {
-            h.refresh(&self.history, connection_name);
-        }
     }
 }
 

@@ -238,14 +238,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
 /// Filter chips and the language selector demonstrate two keyed collection
 /// controls with independent cursor/value state.
 #[derive(Debug, Default)]
-pub struct ChipsPage {
+pub(crate) struct ChipsPage {
     chip_state: ChipBarState,
     select_state: SelectState,
     last: &'static str,
 }
 
 impl ChipsPage {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut chip_state = ChipBarState::default();
         chip_state.checked_mut().insert(ItemKey::text("Open"));
         chip_state.checked_mut().insert(ItemKey::text("Assigned"));
@@ -271,10 +271,6 @@ impl Page for ChipsPage {
                 ChipBarAction::Activated(_) => "filter activated",
                 ChipBarAction::Closed(_) => "filter closed",
                 ChipBarAction::AddRequested => "filter add requested",
-                // Inert: this page sets neither `.lead()` nor `.clear_all()`,
-                // so the bar never emits these.
-                ChipBarAction::Lead => "lead activated",
-                ChipBarAction::Cleared => "filters cleared",
             };
         }
         result |= chips.erase();

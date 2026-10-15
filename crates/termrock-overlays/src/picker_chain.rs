@@ -3,8 +3,8 @@
 use ratatui_core::layout::Rect;
 
 use super::{PartStyle, SlotFn};
-use crate::collection::empty::{CenteredText, draw_centered};
-use crate::collection::{EmptyState, Status};
+use termrock_runtime::empty::{CenteredText, draw_centered};
+use termrock_runtime::empty::{EmptyState, Status};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -407,11 +407,9 @@ impl<'a> PickerChain<'a> {
                 message: "Unable to load",
                 detail: Some("Press r to retry"),
             }),
-            Status::Warning => Some(EmptyState::Error {
-                message: "Warning",
-                detail: None,
-            }),
             Status::Ready => self.empty,
+            // `Status` is `#[non_exhaustive]`: future statuses read as busy.
+            _ => Some(EmptyState::Loading { label: "Loading" }),
         });
         if let Some(slot) = self.ov.slot_for(Part::BODY) {
             slot(ui, body);
@@ -470,12 +468,9 @@ impl<'a> PickerChain<'a> {
                 Slot::Inherit => Some(ui.design().glyphs.get(GlyphRole::Error)),
                 Slot::Clear => None,
             },
-            Status::Warning => match icon.glyph {
-                Slot::Set(glyph) => Some(ui.design().glyphs.get(glyph)),
-                Slot::Inherit => Some(ui.design().glyphs.get(GlyphRole::WarningMark)),
-                Slot::Clear => None,
-            },
             Status::Ready => None,
+            // `Status` is `#[non_exhaustive]`: future statuses paint no icon.
+            _ => None,
         };
         let icon_width = glyph.map_or(0, crate::text::width);
         let detail = empty.detail();

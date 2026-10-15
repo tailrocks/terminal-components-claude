@@ -10,16 +10,13 @@
 use core::fmt;
 use core::marker::PhantomData;
 
-use ratatui_core::layout::{Position, Rect};
+use ratatui_core::layout::Rect;
 
-use super::form::InheritedFormState;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
-use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, StepDir,
-    index_of, key_at,
-};
-use crate::event::{Axis, Chord, KeyCode};
+use termrock_collections::collection::{ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation};
+use termrock_runtime::{RowFn, RowUi};
+use crate::event::{Chord, KeyCode};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -33,6 +30,15 @@ use crate::ui::{Cx, Ui};
 
 /// What a radio group reports; the cursor moving is **not** an action —
 /// cursor and value are separate (§15, §20.10 item 3).
+/// Editing state a [`Form`](termrock_forms::form::Form) hands to its field
+/// controls: shared flags every embedded control must respect.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct InheritedFormState {
+    /// The owning form field is disabled; the control paints and behaves
+    /// accordingly without owning the disable decision.
+    pub disabled: bool,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RadioGroupAction {
     /// The cursor option was committed as the value.
@@ -107,39 +113,6 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
         Chord::key(KeyCode::Char('j')),
         ChoiceCmd::Next,
         "Down (J)",
-        false,
-    ),
-    b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
-    b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
-];
-
-/// `RadioGroup` laid out horizontally: Left/Right move the cursor,
-/// `Space` / `Enter` commit it (W05-04).
-const RADIO_H: &[Binding<ChoiceCmd>] = &[
-    b(
-        Chord::key(KeyCode::Char(' ')),
-        ChoiceCmd::Choose,
-        "Choose",
-        true,
-    ),
-    b(
-        Chord::key(KeyCode::Enter),
-        ChoiceCmd::Choose,
-        "Choose (Enter)",
-        false,
-    ),
-    b(Chord::key(KeyCode::Left), ChoiceCmd::Prev, "Left", true),
-    b(Chord::key(KeyCode::Right), ChoiceCmd::Next, "Right", true),
-    b(
-        Chord::key(KeyCode::Char('h')),
-        ChoiceCmd::Prev,
-        "Left (H)",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Char('l')),
-        ChoiceCmd::Next,
-        "Right (L)",
         false,
     ),
     b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
@@ -469,9 +442,6 @@ impl<'a> Checkbox<'a> {
             ui.publish_bindings(self.id, live, FLAG);
         }
         let on = live.contains(StateFlags::CHECKED);
-        // W03-01: under four columns the box collapses to its single-cell
-        // state mark (reference `Checkbox::render`: `area.width < 4`).
-        let compact = area.width < 4;
         FlagRow {
             id: self.id,
             ov: self.ov,
@@ -484,11 +454,10 @@ impl<'a> Checkbox<'a> {
             area,
             live,
             &move |ui: &mut Ui<'_>, cell: Rect, style| {
-                let g = match (compact, on) {
-                    (true, true) => GlyphRole::Checked,
-                    (true, false) => GlyphRole::CheckboxEmpty,
-                    (false, true) => GlyphRole::CheckboxOn,
-                    (false, false) => GlyphRole::CheckboxOff,
+                let g = if on {
+                    GlyphRole::CheckboxOn
+                } else {
+                    GlyphRole::CheckboxOff
                 };
                 ui.glyph(cell, g, style);
             },
@@ -778,34 +747,18 @@ impl<'a> Toggle<'a> {
             ui.publish_bindings(self.id, live, FLAG);
         }
         let on = live.contains(StateFlags::CHECKED);
-        // W04-01: under four columns the switch collapses to its
-        // single-cell state dot (reference `Toggle::render`).
-        let compact = area.width < 4;
-        // Baseline guard (`visual-baseline:src/widgets/choice.rs:341-343`):
-        // the trailing state word paints only when the full row fits, strict,
-        // for both words (the `+3`-for-`on` quirk is the frozen authority).
-        let show_word = 6u16.saturating_add(width(self.label)).saturating_add(3) < area.width;
         FlagRow {
             id: self.id,
             ov: self.ov,
             label: self.label,
             marker_w: Self::MARKER_W,
-            trailing: show_word.then_some(if on { "on" } else { "off" }),
+            trailing: Some(if on { "on" } else { "off" }),
         }
         .draw(
             ui,
             area,
             live,
             &move |ui: &mut Ui<'_>, cell: Rect, style| {
-                if compact {
-                    let g = if on {
-                        GlyphRole::SwitchKnob
-                    } else {
-                        GlyphRole::SwitchKnobOff
-                    };
-                    ui.glyph(cell, g, style);
-                    return;
-                }
                 // the knob sits at the end of the track when the switch is on
                 let (knob, track) = if on {
                     (cell.right().saturating_sub(1), cell.x)
@@ -821,12 +774,7 @@ impl<'a> Toggle<'a> {
                 for col in rail.columns() {
                     ui.glyph(col, GlyphRole::RuleQuiet, style);
                 }
-                let knob_glyph = if on {
-                    GlyphRole::SwitchKnob
-                } else {
-                    GlyphRole::SwitchKnobOff
-                };
-                ui.glyph(cell_at(cell, knob), knob_glyph, style);
+                ui.glyph(cell_at(cell, knob), GlyphRole::SwitchKnob, style);
             },
         )
     }
@@ -913,7 +861,7 @@ impl Reconcile for RadioGroupState {
     }
 }
 
-/// A radio group over borrowed options, with the **cursor
+/// A vertical radio group over borrowed options, with the **cursor
 /// separated from the value**.
 ///
 /// ## Construction
@@ -929,9 +877,8 @@ impl Reconcile for RadioGroupState {
 /// ## Configuration
 /// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
 /// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.value(ItemKey)`
-/// (update and draw), `.read_only(bool)`, `.disabled(bool)`,
-/// `.disabled_item(Fn(ItemKey) -> bool)`, `.orientation(Axis)` (`V`), `.patch`,
-/// `.patch_part`, `.slot`.
+/// (update and draw), `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
+/// `.slot`.
 ///
 /// ## Variants
 /// `Family::CHOICE`, `DEFAULT` only.
@@ -950,26 +897,21 @@ impl Reconcile for RadioGroupState {
 ///
 /// ## Focus
 /// One `Focusable` stop for the whole group (`FocusableReadOnly` /
-/// `Disabled`, the latter also when every option is disabled); does not
-/// swallow typing. Option rows are click targets, not focus stops.
+/// `Disabled`); does not swallow typing. Option rows are click targets, not
+/// focus stops.
 ///
 /// ## Keyboard
-/// `↑`/`k`, `↓`/`j` move the cursor (`←`/`h`, `→`/`l` when
-/// `.orientation(Axis::H)`); `Home`/`End` jump; `Space` (visible)
-/// and `Enter` commit the cursor option. The cursor skips disabled options.
+/// `↑`/`k`, `↓`/`j` move the cursor; `Home`/`End` jump; `Space` (visible)
+/// and `Enter` commit the cursor option.
 ///
 /// ## Mouse
 /// `PartRef::item(Part::ROW, k)`: a press moves the cursor, a click commits
-/// option `k`. Disabled options register no hit target and never choose.
+/// option `k`.
 ///
 /// ## Layout
 /// One row per option: gutter, a three-column marker, one space, the row
-/// renderer's content. `.orientation(Axis::H)` lays the options out as one
-/// horizontal strip of gutter + marker + label segments instead, each
-/// measured from its painted label (ChipBar precedent); segments that do
-/// not fit whole are dropped, never clipped. `measure` is `(16…, options)`
-/// vertically and `(8…, 1)` horizontally; `draw` returns the rows it used;
-/// `0×0` registers nothing (R5).
+/// renderer's content. `measure` is `(16…, options)`; `draw` returns the
+/// rows it used; `0×0` registers nothing (R5).
 ///
 /// ## Parts
 /// `CONTAINER` (the row fill), `GUTTER` (the focus bar), `MARKER` (the
@@ -999,8 +941,6 @@ pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     value: Option<ItemKey>,
     read_only: bool,
     disabled: bool,
-    disabled_item: Option<&'a dyn Fn(ItemKey) -> bool>,
-    orientation: Axis,
     ov: PartStyle<'a>,
     _t: PhantomData<fn() -> T>,
 }
@@ -1012,7 +952,6 @@ impl<T, K, R> fmt::Debug for RadioGroup<'_, T, K, R> {
             .field("value", &self.value)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
-            .field("orientation", &self.orientation)
             .finish_non_exhaustive()
     }
 }
@@ -1027,8 +966,6 @@ impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
             value: None,
             read_only: false,
             disabled: false,
-            disabled_item: None,
-            orientation: Axis::V,
             ov: PartStyle::new(),
             _t: PhantomData,
         }
@@ -1044,8 +981,6 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
             value: Some(ItemKey::index(value)),
             read_only: self.read_only,
             disabled: self.disabled || inherited_disabled,
-            disabled_item: self.disabled_item,
-            orientation: self.orientation,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -1103,8 +1038,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             value: self.value,
             read_only: self.read_only,
             disabled: self.disabled,
-            disabled_item: self.disabled_item,
-            orientation: self.orientation,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -1119,8 +1052,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             value: self.value,
             read_only: self.read_only,
             disabled: self.disabled,
-            disabled_item: self.disabled_item,
-            orientation: self.orientation,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -1154,26 +1085,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         self
     }
 
-    /// Which options are disabled, by stable key. Disabled options stay
-    /// visible, are skipped by the cursor, register no hit target and
-    /// never choose (W05-02). Keyed rather than item-based (cf.
-    /// `List::disabled_item`): a `&dyn Fn(&T)` predicate would pin the
-    /// group invariant in `T` and break the form instantiations that
-    /// shrink lifetimes across phases.
-    #[must_use]
-    pub const fn disabled_item(mut self, f: &'a dyn Fn(ItemKey) -> bool) -> Self {
-        self.disabled_item = Some(f);
-        self
-    }
-
-    /// The layout axis: vertical rows (`Axis::V`, default) or one
-    /// horizontal strip of option segments (W05-04).
-    #[must_use]
-    pub const fn orientation(mut self, axis: Axis) -> Self {
-        self.orientation = axis;
-        self
-    }
-
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -1199,56 +1110,38 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
-
-    /// The key table for the layout axis: Up/Down vertically,
-    /// Left/Right horizontally.
-    fn table(&self) -> &'static [Binding<ChoiceCmd>] {
-        match self.orientation {
-            Axis::V => RADIO,
-            Axis::H => RADIO_H,
-        }
-    }
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
-    fn is_disabled(&self, key: ItemKey) -> bool {
-        self.disabled_item.is_some_and(|f| f(key))
+    fn key_at(&self, items: &[T], i: usize) -> ItemKey {
+        items
+            .get(i)
+            .map_or(ItemKey::index(i), |it| self.key.key(it, i))
     }
 
-    fn enabled_at(&self, items: &[T], i: usize) -> bool {
-        i < items.len() && !self.is_disabled(key_at(&self.key, items, i))
+    fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
+        if let Some(h) = hint
+            && h < items.len()
+            && self.key_at(items, h) == key
+        {
+            return Some(h);
+        }
+        (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
-    /// Shared clamped target resolution over the enabled options (W05-02):
-    /// the cursor skips disabled options. Clamps, never wraps.
     fn move_cursor(
         &self,
         st: &mut RadioGroupState,
         items: &[T],
-        from: usize,
-        forward: bool,
+        to: usize,
         acc: &mut Acc<RadioGroupAction>,
     ) {
         if items.is_empty() {
             acc.consumed();
             return;
         }
-        let from = from.min(items.len().saturating_sub(1));
-        let dir = if forward {
-            StepDir::Next
-        } else {
-            StepDir::Prev
-        };
-        let Some((to, key)) = CollectionCore::seek(
-            items.len(),
-            from,
-            dir,
-            |i| key_at(&self.key, items, i),
-            |i| self.enabled_at(items, i),
-        ) else {
-            acc.consumed();
-            return;
-        };
+        let to = to.min(items.len().saturating_sub(1));
+        let key = self.key_at(items, to);
         st.core.set_cursor(to, key);
         // the cursor is not the value: moving it repaints and reports
         // nothing (§20.10 item 3)
@@ -1267,11 +1160,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             return;
         }
         let i = i.min(items.len().saturating_sub(1));
-        if !self.enabled_at(items, i) {
-            acc.consumed();
-            return;
-        }
-        let key = key_at(&self.key, items, i);
+        let key = self.key_at(items, i);
         st.core.set_cursor(i, key);
         acc.action(RadioGroupAction::Chose(key));
     }
@@ -1287,28 +1176,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         let can = self.editable();
         let len = items.len();
         if !self.disabled {
-            let _ = st.core.reconcile(len, |i| key_at(&self.key, items, i));
+            let _ = st.core.reconcile(len, |i| self.key_at(items, i));
             if st.core.cursor().is_none() && len > 0 {
-                // the cursor starts on the value when there is one and it
-                // is enabled, else on the first enabled option; an
-                // all-disabled group keeps no cursor (W05-02/W05-04)
-                let seed = self
+                // the cursor starts on the value when there is one, else on
+                // the first option
+                let i = self
                     .value
-                    .and_then(|v| index_of(&self.key, items, v, None))
-                    .filter(|&i| self.enabled_at(items, i))
-                    .map(|i| (i, key_at(&self.key, items, i)))
-                    .or_else(|| {
-                        CollectionCore::seek(
-                            items.len(),
-                            0,
-                            StepDir::Next,
-                            |i| key_at(&self.key, items, i),
-                            |i| self.enabled_at(items, i),
-                        )
-                    });
-                if let Some((i, key)) = seed {
-                    st.core.set_cursor(i, key);
-                }
+                    .and_then(|v| self.index_of(items, v, None))
+                    .unwrap_or(0);
+                let key = self.key_at(items, i);
+                st.core.set_cursor(i, key);
             }
         }
         let mut acc = Acc::<RadioGroupAction>::new();
@@ -1316,18 +1193,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             match it {
                 Intent::Binding(action) if can => {
                     let cur = st.core.cursor_index();
-                    match Binding::command(self.table(), action) {
+                    match Binding::command(RADIO, action) {
                         Some(ChoiceCmd::Prev) => {
-                            self.move_cursor(st, items, cur.saturating_sub(1), false, &mut acc);
+                            self.move_cursor(st, items, cur.saturating_sub(1), &mut acc);
                         }
                         Some(ChoiceCmd::Next) => {
-                            self.move_cursor(st, items, cur.saturating_add(1), true, &mut acc);
+                            self.move_cursor(st, items, cur.saturating_add(1), &mut acc);
                         }
-                        Some(ChoiceCmd::First) => {
-                            self.move_cursor(st, items, 0, true, &mut acc);
-                        }
+                        Some(ChoiceCmd::First) => self.move_cursor(st, items, 0, &mut acc),
                         Some(ChoiceCmd::Last) => {
-                            self.move_cursor(st, items, usize::MAX, false, &mut acc);
+                            self.move_cursor(st, items, usize::MAX, &mut acc);
                         }
                         Some(ChoiceCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         None => {}
@@ -1342,17 +1217,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                         },
                     ..
                 } if can => {
-                    let Some(i) = index_of(&self.key, items, k, Some(st.core.cursor_index()))
-                    else {
+                    let Some(i) = self.index_of(items, k, Some(st.core.cursor_index())) else {
                         acc.consumed();
                         continue;
                     };
-                    if !self.enabled_at(items, i) {
-                        acc.consumed();
-                        continue;
-                    }
                     match phase {
-                        Phase::Press => self.move_cursor(st, items, i, true, &mut acc),
+                        Phase::Press => self.move_cursor(st, items, i, &mut acc),
                         Phase::Click | Phase::DoubleClick => self.choose(st, items, i, &mut acc),
                         _ => acc.consumed(),
                     }
@@ -1376,13 +1246,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
     /// Registers the group as one control over `used`.
     ///
     /// A reference rendering registers nothing, so it cannot take focus from
-    /// the live frame. A group with no enabled option registers `Disabled`
-    /// (W05-04): like the empty group it paints but takes no focus.
-    fn register(&self, ui: &mut Ui<'_>, used: Rect, has_enabled: bool) {
+    /// the live frame.
+    fn register(&self, ui: &mut Ui<'_>, used: Rect) {
         if ui.is_inert() {
             return;
         }
-        let f = if self.disabled || !has_enabled {
+        let f = if self.disabled {
             Focusability::Disabled
         } else if self.read_only {
             Focusability::FocusableReadOnly
@@ -1390,11 +1259,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             Focusability::Focusable
         };
         ui.register_control(self.id, used, f);
-    }
-
-    /// Whether any option can take the cursor.
-    fn has_enabled(&self, items: &[T]) -> bool {
-        (0..items.len()).any(|i| self.enabled_at(items, i))
     }
 
     /// The state flags row `i` paints with, and whether that row carries the
@@ -1409,7 +1273,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         key: ItemKey,
         hovered: bool,
         pressed: bool,
-        item_disabled: bool,
     ) -> (StateFlags, bool) {
         let is_cursor = cursor == Some(key);
         let on = self.value == Some(key);
@@ -1429,7 +1292,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         if self.read_only {
             flags |= StateFlags::READ_ONLY;
         }
-        if item_disabled || self.disabled || live.contains(StateFlags::DISABLED) {
+        if self.disabled || live.contains(StateFlags::DISABLED) {
             flags |= StateFlags::DISABLED;
             flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
         }
@@ -1460,28 +1323,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
 
     /// Paints the radio marker of one option row.
     fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, on: bool) {
-        let g = if on {
-            GlyphRole::RadioOn
-        } else {
-            GlyphRole::RadioOff
-        };
-        self.paint_marker_role(ui, cell, flags, g);
-    }
-
-    /// Paints the single-cell state dot of a narrow option row: the marker
-    /// roles have no compact half, so the dot reuses the switch-knob pair
-    /// (the `Toggle` compact precedent).
-    fn paint_narrow_marker(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, on: bool) {
-        let g = if on {
-            GlyphRole::SwitchKnob
-        } else {
-            GlyphRole::SwitchKnobOff
-        };
-        self.paint_marker_role(ui, cell, flags, g);
-    }
-
-    /// Paints one marker glyph through the `MARKER` part style.
-    fn paint_marker_role(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, g: GlyphRole) {
         if let Some(f) = self.ov.slot_for(Part::MARKER) {
             f(ui, cell);
             return;
@@ -1494,6 +1335,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             Part::MARKER,
             flags,
         );
+        let g = if on {
+            GlyphRole::RadioOn
+        } else {
+            GlyphRole::RadioOff
+        };
         ui.glyph(cell, g, ms.style);
     }
 
@@ -1524,23 +1370,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             width: Self::MARKER_W.min(row.width.saturating_sub(1)),
             height: 1,
         };
-        // Narrow vertical allocations (reference `RadioGroup::render`): under
-        // four columns the marker collapses to its single-cell state dot. A
-        // one-column row skips the marker entirely — the legacy x+1 write
-        // lands outside the area (W05-04 containment).
-        if (2..4).contains(&row.width) {
-            self.paint_narrow_marker(
-                ui,
-                Rect {
-                    width: 1,
-                    ..marker_cell
-                },
-                flags,
-                on,
-            );
-        } else if row.width >= 4 {
-            self.paint_marker(ui, marker_cell, flags, on);
-        }
+        self.paint_marker(ui, marker_cell, flags, on);
         let rest = Rect {
             x: row
                 .x
@@ -1552,10 +1382,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             height: 1,
         };
         if !rest.is_empty() {
-            // Forward the instance patches (the `List` precedent): a bare
-            // `RowUi::new` would never see them, so a LABEL patch would not
-            // reach the row painter.
-            let mut r = RowUi::new_with_patches(
+            let mut r = RowUi::new(
                 ui,
                 self.id,
                 Family::CHOICE,
@@ -1563,37 +1390,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 flags,
                 key,
                 rest,
-                self.ov.part_patch(Part::CONTAINER),
-                self.ov.part_patch(Part::LABEL),
             );
             self.row.row(item, &mut r);
         }
     }
 
-    /// The draw phase: one row per option, or one horizontal strip.
+    /// The draw phase: one row per option.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
         }
-        match self.orientation {
-            Axis::V => self.draw_vertical(ui, area, st, items),
-            Axis::H => self.draw_horizontal(ui, area, st, items),
-        }
-    }
-
-    /// The draw phase: one row per option.
-    fn draw_vertical(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        st: &RadioGroupState,
-        items: &[T],
-    ) -> Rect {
         let used = Self::used_rect(area, items.len());
         if used.is_empty() {
             return used;
         }
-        self.register(ui, used, self.has_enabled(items));
+        self.register(ui, used);
         // runtime: the group's own frame state; derived: none — the group's
         // `.disabled` and `.read_only` enter per row, in `row_flags`
         let live = PartStyle::flags(
@@ -1601,7 +1412,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             StateFlags::empty(),
         );
         if !ui.is_inert() {
-            ui.publish_bindings(self.id, live, self.table());
+            ui.publish_bindings(self.id, live, RADIO);
         }
         let cursor = st.core.cursor();
         let rows = usize::from(used.height);
@@ -1614,175 +1425,28 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 height: 1,
             };
             let part = PartRef::item(Part::ROW, key);
-            let item_disabled = self.is_disabled(key);
             let (flags, on) = self.row_flags(
                 live,
                 cursor,
                 key,
                 ui.hovered_part(self.id) == Some(part),
                 ui.pressed_part(self.id) == Some(part),
-                item_disabled,
             );
             self.paint_row(ui, row, item, key, flags, on);
-            if !ui.is_inert() && !item_disabled {
+            if !ui.is_inert() {
                 ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
             }
         }
         used
     }
 
-    /// Columns a horizontal segment reserves before its label: gutter,
-    /// three-column marker, one space.
-    const SEGMENT_CHROME: u16 = 5;
-
-    /// The draw phase: one horizontal strip of option segments (W05-04).
-    ///
-    /// Each segment is measured from its painted label (the ChipBar
-    /// paint-then-measure precedent): the row painter runs into the rest
-    /// of the strip, the label width is scanned back, and a segment that
-    /// does not fit whole is erased and dropped, never clipped.
-    fn draw_horizontal(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        st: &RadioGroupState,
-        items: &[T],
-    ) -> Rect {
-        if items.is_empty() {
-            return Rect {
-                width: 0,
-                ..first_row(area)
-            };
-        }
-        let used = first_row(area);
-        self.register(ui, used, self.has_enabled(items));
-        let live = PartStyle::flags(
-            crate::ui::FrameRead::state(ui, self.id),
-            StateFlags::empty(),
-        );
-        if !ui.is_inert() {
-            ui.publish_bindings(self.id, live, self.table());
-        }
-        let base = self.ov.style(
-            ui,
-            self.id,
-            Family::CHOICE,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        );
-        let cursor = st.core.cursor();
-        let mut x = used.x;
-        for (i, item) in items.iter().enumerate() {
-            let key = self.key.key(item, i);
-            let avail = used.right().saturating_sub(x);
-            if avail < Self::SEGMENT_CHROME {
-                break;
-            }
-            let part = PartRef::item(Part::ROW, key);
-            let item_disabled = self.is_disabled(key);
-            let (flags, on) = self.row_flags(
-                live,
-                cursor,
-                key,
-                ui.hovered_part(self.id) == Some(part),
-                ui.pressed_part(self.id) == Some(part),
-                item_disabled,
-            );
-            let content = Rect {
-                x: x.saturating_add(Self::SEGMENT_CHROME),
-                y: used.y,
-                width: avail.saturating_sub(Self::SEGMENT_CHROME),
-                height: 1,
-            };
-            if !content.is_empty() {
-                let mut r = RowUi::new_with_patches(
-                    ui,
-                    self.id,
-                    Family::CHOICE,
-                    Variant::DEFAULT,
-                    flags,
-                    key,
-                    content,
-                    self.ov.part_patch(Part::CONTAINER),
-                    self.ov.part_patch(Part::LABEL),
-                );
-                self.row.row(item, &mut r);
-            }
-            let label_w = painted_width(ui, content);
-            let seg_w = Self::SEGMENT_CHROME.saturating_add(label_w);
-            if seg_w > avail {
-                // the segment does not fit whole: erase what the row
-                // painter put down and stop, rather than leave half a
-                // segment
-                ui.fill(content, base.style);
-                break;
-            }
-            let seg = Rect {
-                x,
-                y: used.y,
-                width: seg_w,
-                height: 1,
-            };
-            let container = self.ov.style(
-                ui,
-                self.id,
-                Family::CHOICE,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                flags,
-            );
-            ui.fill(
-                Rect {
-                    x: seg.x,
-                    y: seg.y,
-                    width: Self::SEGMENT_CHROME,
-                    height: 1,
-                },
-                container.style,
-            );
-            self.paint_gutter(ui, cell_at(seg, seg.x), flags);
-            let marker_cell = Rect {
-                x: seg.x.saturating_add(1),
-                y: seg.y,
-                width: Self::MARKER_W.min(seg_w.saturating_sub(1)),
-                height: 1,
-            };
-            self.paint_marker(ui, marker_cell, flags, on);
-            if !ui.is_inert() && !item_disabled {
-                ui.register_part(self.id, PartRef::item(Part::ROW, key), seg);
-            }
-            x = x.saturating_add(seg_w);
-        }
-        // the tail — the last segment's overshoot plus the unclaimed rest —
-        // reads neutral
-        ui.fill(
-            Rect {
-                x,
-                y: used.y,
-                width: used.right().saturating_sub(x),
-                height: 1,
-            },
-            base.style,
-        );
-        used
-    }
-
-    /// The natural size: sixteen columns by one row per option vertically,
-    /// one strip row horizontally.
+    /// The natural size: sixteen columns by one row per option.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
-        match self.orientation {
-            Axis::V => Size {
-                min: (16, 1),
-                preferred: (24, c.max.1.max(1)),
-            }
-            .fit(c),
-            Axis::H => Size {
-                min: (8, 1),
-                preferred: (24, 1),
-            }
-            .fit(c),
+        Size {
+            min: (16, 1),
+            preferred: (24, c.max.1.max(1)),
         }
+        .fit(c)
     }
 }
 
@@ -1790,39 +1454,8 @@ impl<T, K, R> Bindings for RadioGroup<'_, T, K, R> {
     type Cmd = ChoiceCmd;
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<ChoiceCmd>] {
-        self.table()
+        RADIO
     }
-}
-
-/// The painted label width of a horizontal segment's content rect: the
-/// last non-blank column plus one, ignoring a `RowUi::meta` suffix after
-/// a two-cell gap (the ChipBar `painted_width` precedent).
-fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
-    ui.with_area(row, |ui| {
-        let (buf, clip) = ui.raw();
-        let mut last = 0u16;
-        let mut blank_run = 0u16;
-        let mut gap_start = None;
-        for x in clip.columns().map(|c| c.x) {
-            let non_blank = buf
-                .cell(Position::new(x, clip.y))
-                .is_some_and(|c| c.symbol() != " ");
-            if non_blank {
-                if blank_run >= 2 {
-                    gap_start = Some(x.saturating_sub(blank_run).saturating_sub(clip.x));
-                }
-                blank_run = 0;
-                last = x.saturating_sub(clip.x).saturating_add(1);
-            } else {
-                blank_run = blank_run.saturating_add(1);
-            }
-        }
-        if last == clip.width {
-            gap_start.unwrap_or(last)
-        } else {
-            last
-        }
-    })
 }
 
 #[cfg(test)]
@@ -1902,74 +1535,6 @@ mod tests {
         assert_ne!(draw_toggle(true), draw_toggle(false));
     }
 
-    fn draw_toggle_sized(label: &str, on: bool, w: u16) -> Buffer {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: w,
-            height: 1,
-        };
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                Toggle::new(RG, label).on(on).draw(ui, area);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    /// Symbols of buffer row `y` over `x0..=x1`.
-    fn buf_row(buf: &Buffer, y: u16, x0: u16, x1: u16) -> String {
-        (x0..=x1)
-            .map(|x| {
-                buf.cell(Position::new(x, y))
-                    .map(|c| c.symbol().to_string())
-                    .unwrap_or_default()
-            })
-            .collect()
-    }
-
-    /// L1: the off knob is the `○──` half of the pair, not `●──`.
-    #[test]
-    fn toggle_off_switch_pair() {
-        let row = buf_row(&draw_toggle(false), 0, 0, 39);
-        assert!(row.contains("○──"), "off row must show ○──, got {row:?}");
-        assert!(row.contains("off"), "off row must show off, got {row:?}");
-        let row = buf_row(&draw_toggle(true), 0, 0, 39);
-        assert!(row.contains("──●"), "on row must show ──●, got {row:?}");
-        assert!(row.contains("on"), "on row must show on, got {row:?}");
-    }
-
-    /// L2: the clipped state word is suppressed unless `6+labelw+3 < width`.
-    /// A 27-char label in 34/35/36-wide rects paints no word char (pre-fix
-    /// fragments `o`/`of`/`off`); 40-wide paints `off`.
-    #[test]
-    fn toggle_suppresses_clipped_state_word() {
-        let label = "Local only (no iCloud sync)";
-        assert_eq!(width(label), 27, "test label must be 27 wide");
-        for w in [34u16, 35, 36] {
-            let buf = draw_toggle_sized(label, false, w);
-            assert_eq!(
-                buf_row(&buf, 0, 5, 31),
-                label,
-                "{w}-wide: label must be intact"
-            );
-            assert!(
-                buf_row(&buf, 0, 33, w.saturating_sub(1))
-                    .chars()
-                    .all(|c| c == ' '),
-                "{w}-wide: word zone must be blank"
-            );
-        }
-        let buf = draw_toggle_sized(label, false, 40);
-        assert_eq!(
-            buf_row(&buf, 0, 33, 35),
-            "off",
-            "40-wide: the word must paint"
-        );
-    }
-
     /// A disabled collection remains drawable from its current item slice,
     /// but its update phase must not initialize or reconcile persistent state.
     #[test]
@@ -1989,10 +1554,10 @@ mod tests {
         let mut st = RadioGroupState::default();
         let g: RadioGroup<'_, &str> = RadioGroup::new(RG);
         let mut acc = Acc::<RadioGroupAction>::new();
-        let _ = st.core.reconcile(3, |i| key_at(&g.key, &items, i));
+        let _ = st.core.reconcile(3, |i| g.key_at(&items, i));
         st.set_cursor(0, ItemKey::index(0));
-        g.move_cursor(&mut st, &items, 1, true, &mut acc);
-        g.move_cursor(&mut st, &items, 2, true, &mut acc);
+        g.move_cursor(&mut st, &items, 1, &mut acc);
+        g.move_cursor(&mut st, &items, 2, &mut acc);
         assert_eq!(st.cursor(), Some(ItemKey::index(2)));
         let moved = acc.finish(RG);
         assert!(moved.is_changed(), "the cursor repaints");
@@ -2011,12 +1576,9 @@ mod tests {
         // the cursor also lands on the value when the group first draws
         let mut fresh = RadioGroupState::default();
         let valued: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
-        let _ = fresh.core.reconcile(3, |i| key_at(&valued.key, &items, i));
+        let _ = fresh.core.reconcile(3, |i| valued.key_at(&items, i));
         assert!(fresh.cursor().is_none());
-        assert_eq!(
-            index_of(&valued.key, &items, ItemKey::index(1), None),
-            Some(1)
-        );
+        assert_eq!(valued.index_of(&items, ItemKey::index(1), None), Some(1));
     }
 
     #[test]
@@ -2044,14 +1606,7 @@ mod tests {
         );
         assert!(
             group
-                .row_flags(
-                    StateFlags::empty(),
-                    state.cursor(),
-                    selected,
-                    false,
-                    false,
-                    false
-                )
+                .row_flags(StateFlags::empty(), state.cursor(), selected, false, false)
                 .1
         );
         assert!(
@@ -2060,7 +1615,6 @@ mod tests {
                     StateFlags::empty(),
                     state.cursor(),
                     ItemKey::index(2),
-                    false,
                     false,
                     false,
                 )
@@ -2079,7 +1633,7 @@ mod tests {
             let key = group.key.key(item, i);
             assert!(
                 !group
-                    .row_flags(StateFlags::empty(), None, key, false, false, false)
+                    .row_flags(StateFlags::empty(), None, key, false, false)
                     .1,
                 "a missing controlled value must not select a fallback row"
             );
@@ -2087,17 +1641,10 @@ mod tests {
 
         let vanished_items = ["a"];
         let vanished_group: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
-        let only_key = key_at(&vanished_group.key, &vanished_items, 0);
+        let only_key = vanished_group.key_at(&vanished_items, 0);
         assert!(
             !vanished_group
-                .row_flags(
-                    StateFlags::empty(),
-                    Some(only_key),
-                    only_key,
-                    false,
-                    false,
-                    false
-                )
+                .row_flags(StateFlags::empty(), Some(only_key), only_key, false, false)
                 .1,
             "the cursor is not stored chosen state after the value vanishes"
         );
@@ -2113,15 +1660,13 @@ mod tests {
                 None,
                 ItemKey::text("alpha"),
                 false,
-                false,
                 false
             ),
             (StateFlags::empty(), false)
         );
 
         let controlled = radio.value(selected);
-        let (flags, on) =
-            controlled.row_flags(StateFlags::empty(), None, selected, false, false, false);
+        let (flags, on) = controlled.row_flags(StateFlags::empty(), None, selected, false, false);
         assert!(on);
         assert_eq!(flags, StateFlags::SELECTED);
     }
@@ -2136,7 +1681,6 @@ mod tests {
                 Some(ItemKey::index(0)),
                 ItemKey::index(0),
                 false,
-                false,
                 false
             ),
             (StateFlags::FOCUSED, false)
@@ -2146,7 +1690,6 @@ mod tests {
                 StateFlags::FOCUSED,
                 Some(ItemKey::index(0)),
                 ItemKey::index(1),
-                false,
                 false,
                 false
             ),
@@ -2195,104 +1738,5 @@ mod tests {
         assert!(text.contains(glyphs.get(GlyphRole::RadioOn)), "{text}");
         assert!(text.contains(glyphs.get(GlyphRole::RadioOff)), "{text}");
         assert!(text.contains("alpha") && text.contains("beta"));
-    }
-
-    fn draw_radio(items: &[&str], value: usize, area: Rect) -> Buffer {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                let g: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(value));
-                g.draw(ui, area, &RadioGroupState::default(), items);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    /// L1: the off marker is the frozen `( )`, not the theme's old `(○)`.
-    #[test]
-    fn radio_off_marker_is_blank() {
-        let buf = draw_radio(
-            &["alpha", "beta"],
-            0,
-            Rect {
-                x: 0,
-                y: 0,
-                width: 30,
-                height: 2,
-            },
-        );
-        assert_eq!(buf_row(&buf, 0, 1, 3), "(●)", "on row marker");
-        assert_eq!(buf_row(&buf, 1, 1, 3), "( )", "off row marker");
-        assert!(
-            !buf_row(&buf, 1, 0, 29).contains('○'),
-            "no ○ may survive in the off row"
-        );
-    }
-
-    /// L2: narrow rows collapse the marker to its single-cell state dot;
-    /// a one-column row skips the marker — the legacy x+1 write lands
-    /// outside the area (W05-04 containment).
-    #[test]
-    fn radio_narrow_markers() {
-        use ratatui_core::style::Color;
-        let items = ["aa", "bb"];
-        // w=1: gutter only; the x+1 cell is untouched.
-        let buf = draw_radio(&items, 0, Rect::new(2, 1, 1, 2));
-        for y in 1..3 {
-            assert_eq!(buf_row(&buf, y, 2, 2), " ", "w=1 gutter");
-            let outside = buf.cell(Position::new(3, y)).expect("the x+1 cell exists");
-            assert_eq!(outside.symbol(), " ", "w=1 x+1 symbol");
-            assert_eq!(outside.fg, Color::Reset, "w=1 x+1 untouched");
-        }
-        // w=2..3: one dot at x+1, no label chars.
-        let buf = draw_radio(&items, 0, Rect::new(2, 1, 2, 2));
-        assert_eq!(buf_row(&buf, 1, 2, 3), " ●", "w=2 on row");
-        assert_eq!(buf_row(&buf, 2, 2, 3), " ○", "w=2 off row");
-        let buf = draw_radio(&items, 0, Rect::new(2, 1, 3, 2));
-        assert_eq!(buf_row(&buf, 1, 2, 4), " ● ", "w=3 on row");
-        assert_eq!(buf_row(&buf, 2, 2, 4), " ○ ", "w=3 off row");
-        // w=4: full markers, still no room for labels.
-        let buf = draw_radio(&items, 0, Rect::new(2, 1, 4, 2));
-        assert_eq!(buf_row(&buf, 1, 2, 5), " (●)", "w=4 on row");
-        assert_eq!(buf_row(&buf, 2, 2, 5), " ( )", "w=4 off row");
-    }
-
-    /// L3: the unselected marker resolves Muted, the selected one Accent;
-    /// the shared recipe keeps checkbox/toggle on Accent and off Muted.
-    #[test]
-    fn radio_off_marker_muted() {
-        use ratatui_core::style::Color;
-        const MUTED: Color = Color::Rgb(128, 128, 128);
-        const ACCENT: Color = Color::Rgb(72, 224, 84);
-        let fg = |buf: &Buffer, x: u16, y: u16| {
-            buf.cell(Position::new(x, y))
-                .expect("marker cell exists")
-                .fg
-        };
-        let buf = draw_radio(
-            &["alpha", "beta"],
-            0,
-            Rect {
-                x: 0,
-                y: 0,
-                width: 30,
-                height: 2,
-            },
-        );
-        for x in 1..4 {
-            assert_eq!(fg(&buf, x, 0), ACCENT, "on marker x={x}");
-            assert_eq!(fg(&buf, x, 1), MUTED, "off marker x={x}");
-        }
-        for x in 1..4 {
-            assert_eq!(fg(&draw_checkbox(true), x, 0), ACCENT, "checked box x={x}");
-            assert_eq!(
-                fg(&draw_checkbox(false), x, 0),
-                MUTED,
-                "unchecked box x={x}"
-            );
-        }
-        assert_eq!(fg(&draw_toggle(true), 3, 0), ACCENT, "on knob");
-        assert_eq!(fg(&draw_toggle(false), 1, 0), MUTED, "off knob");
     }
 }
