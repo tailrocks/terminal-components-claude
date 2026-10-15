@@ -3145,6 +3145,7 @@ dependencies = [
  "showcase-data",
  "showcase-ui",
  "termrock-session",
+ "tuiscotti",
 ]
 
 [[package]]
