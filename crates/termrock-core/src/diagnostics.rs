@@ -2,7 +2,7 @@
 //!
 //! Never a panic: collisions, rejected cursor writes and undelivered
 //! intents are recorded and surfaced through `Runtime::diagnostics()`.
-//! At most [`Diagnostics::CAPACITY`] are retained per `handle`, plus a
+//! At most the documented `CAPACITY` bound is retained per `handle`, plus a
 //! dropped count.
 
 use ratatui_core::layout::Rect;

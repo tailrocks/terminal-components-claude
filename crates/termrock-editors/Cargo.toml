@@ -20,3 +20,6 @@ unicode-width.workspace = true
 unicode-segmentation.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
+
+[dev-dependencies]
+termrock-runtime = { workspace = true, features = ["testing"] }

@@ -37,7 +37,7 @@ use crate::ui::{FrameRead, Ui};
 /// ## States
 /// Reads the control's runtime flags (`FOCUSED`, `DISABLED`) and adds
 /// `ERROR` when `.error` is `Some`; reference fixtures inject runtime state
-/// through [`Ui::reference`](crate::Ui::reference).
+/// through [`Ui::reference`](termrock_runtime::Ui::reference).
 ///
 /// ## Actions
 /// None.
