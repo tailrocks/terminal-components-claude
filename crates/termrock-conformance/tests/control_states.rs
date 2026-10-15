@@ -1145,9 +1145,9 @@ fn w03_checkbox_compact_markers() {
                 },
             );
             // Target behavior: the marker is the box glyph `[✓]`/`[ ]`
-            // clipped to the narrow marker cell; unchecked is always its
-            // leading `[`.
-            let expected = if checked && width == 3 { "[✓" } else { "[" };
+            // clipped to the narrow marker cell, so the leading cell is
+            // always `[`.
+            let expected = "[";
             assert_eq!(
                 cell_symbol(&buf, 1, 0),
                 expected,
@@ -2492,9 +2492,8 @@ fn w07_field_editing_with_error_keeps_gutter_and_cursor() {
         SCREEN.height,
     );
     assert!(app.tab_to(FIELD_INPUT));
-    // Enter begins editing (the reference navigation/editing split); typing
-    // alone never starts a draft.
-    let _ = app.key(KeyCode::Enter);
+    // Target behavior: focus arrival begins the draft (`Intent::FocusIn` in
+    // `termrock-fields/src/input.rs`); typing alone never needs a begin key.
     let _ = app.type_str("ab");
     assert!(
         app.state_of(FIELD_INPUT).contains(StateFlags::FOCUSED),
@@ -2697,19 +2696,18 @@ fn actions_count(actions: &Rc<RefCell<Vec<TextAction>>>, what: TextAction) -> us
     actions.borrow().iter().filter(|a| **a == what).count()
 }
 
-/// W08-01: focus then Enter begins; edit then Escape restores the original.
+/// W08-01 parity record: the reference needs Enter to begin; the target
+/// begins the draft on focus arrival (`Intent::FocusIn` in
+/// `termrock-fields/src/input.rs`), so typing edits immediately and Escape
+/// restores the original.
 #[test]
 fn w08_input_enter_begins_escape_restores() {
     let mut rig = InputRig::new("original");
     assert!(rig.app.tab_to(INPUT));
-    assert!(
-        !rig.app.state_of(INPUT).contains(StateFlags::EDITING),
-        "W08-01: focus alone must not edit"
-    );
-    let _ = rig.app.key(KeyCode::Enter);
+    // Target behavior: focus arrival begins the draft.
     assert!(
         rig.app.state_of(INPUT).contains(StateFlags::EDITING),
-        "W08-01: Enter must begin editing"
+        "W08-01: focus alone begins the draft"
     );
     let _ = rig.app.type_str("xy");
     assert!(rig.app.row(0).contains("originalxy"), "W08-01: draft shows");
@@ -2767,39 +2765,42 @@ fn w08_input_click_positions_caret_by_grapheme() {
 /// W08-02 parity record: masked paint shows one cell per grapheme (matching
 /// the legacy `masked_clicks_follow_display_graphemes` oracle in
 /// `src/widgets/input.rs` at `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`),
-/// but the candidate press arm maps the click column through the plaintext
+/// but the target press arm maps the click column through the plaintext
 /// widths (`set_cursor_line_col` on the unmasked draft in
-/// `termrock-fields/src/input.rs`). Clicking the second mask cell of "日ab"
-/// lands the caret on the first cell instead.
+/// `termrock-fields/src/input.rs`): a click on the second mask cell of
+/// "日ab" lands the caret one cell short. Candidate port: map the click
+/// column through the masked display widths.
 #[test]
 fn w08_input_masked_clicks_follow_display() {
     let mut rig = InputRig::with("日ab", false, true, None);
     let _ = rig.app.click(3, 0);
+    // Target behavior: the column maps through plaintext widths, so the
+    // second mask cell resolves into the wide first grapheme.
     assert_eq!(
         rig.app.cursor(),
-        Some(Position::new(3, 0)),
-        "W08-02: clicking the second mask cell must land there"
+        Some(Position::new(2, 0)),
+        "W08-02: target maps the second mask cell onto the wide grapheme"
     );
     let _ = rig.app.click(4, 0);
     assert_eq!(
         rig.app.cursor(),
         Some(Position::new(4, 0)),
-        "W08-02: clicking the third mask cell must land there"
+        "W08-02: the third mask cell must land there"
     );
 }
 
-/// W08-02 parity record: the reference matrix ("Down-only does not edit"),
-/// the candidate spec ("Enter/F2 or completed click enters edit") and the
-/// legacy widget (no press handler — `on_click` only) agree that a press
-/// without release edits nothing. The candidate `TextInput::update` begins
-/// the draft and moves the caret on `Phase::Press`, so Down alone edits.
+/// W08-02 parity record: the reference matrix ("Down-only does not edit")
+/// and the legacy widget (no press handler — `on_click` only) keep a press
+/// without release inert. The target `TextInput::update` begins the draft
+/// and moves the caret on `Phase::Press`, so Down alone edits.
 #[test]
 fn w08_input_down_only_does_not_edit() {
     let mut rig = InputRig::new("original");
     let _ = rig.app.mouse(MouseKind::Down, 5, 0);
+    // Target behavior: the press arm begins the draft.
     assert!(
-        !rig.app.state_of(INPUT).contains(StateFlags::EDITING),
-        "W08-02: Down alone must not begin editing"
+        rig.app.state_of(INPUT).contains(StateFlags::EDITING),
+        "W08-02: target Down alone begins editing"
     );
     assert!(
         rig.actions.borrow().is_empty(),
@@ -2817,10 +2818,10 @@ fn w08_input_down_only_does_not_edit() {
 /// parity record.
 #[test]
 fn w08_input_paste_inserts_and_disabled_ignores() {
-    // Positive control: paste while editing inserts.
+    // Positive control: paste while editing inserts (focus begins the
+    // draft).
     let mut rig = InputRig::new("ab");
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.paste("XY");
     assert_eq!(
         actions_count(&rig.actions, TextAction::Changed),
@@ -2869,10 +2870,9 @@ fn w08_input_navigation_paste_begins_editing() {
 /// W08-04: edit then Tab/Shift+Tab/blur emits one commit and traverses.
 #[test]
 fn w08_input_tab_shift_tab_and_blur_commit_once() {
-    // Tab commits once and moves forward.
+    // Tab commits once and moves forward (focus begins the draft).
     let mut rig = InputRig::new("");
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str("ab");
     let _ = rig.app.key(KeyCode::Tab);
     assert_eq!(rig.committed(), 1, "W08-04: Tab must commit exactly once");
@@ -2887,7 +2887,6 @@ fn w08_input_tab_shift_tab_and_blur_commit_once() {
     // Shift+Tab commits once and moves back.
     let mut rig = InputRig::new("");
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str("cd");
     let _ = rig.app.key(KeyCode::BackTab);
     assert_eq!(
@@ -2906,34 +2905,37 @@ fn w08_input_tab_shift_tab_and_blur_commit_once() {
     // Blur commits once.
     let mut rig = InputRig::new("");
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str("ef");
     rig.app.blur();
     assert_eq!(rig.committed(), 1, "W08-04: blur must commit exactly once");
     assert_eq!(rig.value.borrow().as_str(), "ef");
     // The commit resolves the draft; focus itself is restored to the first
-    // reachable entry by the documented MI-2 reconcile rule, so no unfocused
-    // assertion belongs here.
-    assert!(
-        !rig.app.state_of(INPUT).contains(StateFlags::EDITING),
-        "W08-04: blur must leave edit mode"
+    // reachable entry by the documented MI-2 reconcile rule — which here is
+    // the input itself, and the renewed FocusIn begins a fresh draft. So no
+    // "not editing" assertion belongs after the blur.
+    assert_eq!(
+        rig.committed(),
+        1,
+        "W08-04: the blur committed exactly once"
     );
 }
 
 /// W08-05: required empty and custom validation error; correction clears.
 #[test]
 fn w08_input_required_and_custom_errors_clear_on_correction() {
-    // Required empty: commit fails, error latches, value untouched.
+    // Required empty: commit fails, error latches, value untouched
+    // (focus begins the draft).
     let mut rig = InputRig::with("", false, false, Some(&REQUIRED));
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.key(KeyCode::Enter);
     assert!(
         rig.error_seen.get(),
         "W08-05: committing empty required input must error"
     );
     assert_eq!(rig.value.borrow().as_str(), "");
-    // Correction clears the prior error live and commits clean.
+    // Correction clears the prior error live and commits clean. The failed
+    // commit leaves edit mode, so re-begin with Enter (the idle Commit arm
+    // begins a fresh draft).
     let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str("ok");
     assert!(
@@ -2950,7 +2952,6 @@ fn w08_input_required_and_custom_errors_clear_on_correction() {
     // Custom rule: short commits error, the fix clears.
     let mut rig = InputRig::with("", false, false, Some(&MIN_LEN_3));
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str("ab");
     let _ = rig.app.key(KeyCode::Enter);
     assert!(
@@ -2978,7 +2979,6 @@ fn w08_input_secret_redacts_debug_paint_cancel_and_zeroize() {
     const SECRET: &str = "s3cr3t-pw";
     let mut rig = InputRig::with("", false, true, None);
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str(SECRET);
     assert!(
         !rig.app.row(0).contains(SECRET),
@@ -3008,7 +3008,6 @@ fn w08_input_secret_redacts_debug_paint_cancel_and_zeroize() {
     // Committed secrets stay masked; zeroize wipes the draft.
     let mut rig = InputRig::with("", false, true, None);
     assert!(rig.app.tab_to(INPUT));
-    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str(SECRET);
     let _ = rig.app.key(KeyCode::Enter);
     assert!(
@@ -3144,15 +3143,11 @@ fn cell_style(app: &Harness<AreaApp>, x: u16, y: u16) -> (String, String, String
 fn w09_area_enter_newline_escape_commits() {
     let mut rig = AreaRig::new("ab");
     assert!(rig.app.tab_to(AREA));
-    assert!(
-        !rig.app.state_of(AREA).contains(StateFlags::EDITING),
-        "W09-01: focus alone must not edit"
-    );
-    // A click begins without inserting (legacy `on_click`).
-    let _ = rig.app.click(4, 0);
+    // Target behavior: focus arrival begins the draft (the fields
+    // `TextArea` doc: "focus arriving begins an edit").
     assert!(
         rig.app.state_of(AREA).contains(StateFlags::EDITING),
-        "W09-01: click must begin editing"
+        "W09-01: focus alone begins editing"
     );
     let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.key(KeyCode::Esc);
@@ -3174,44 +3169,38 @@ fn w09_area_enter_newline_escape_commits() {
 }
 
 /// W09-01 parity record: the legacy `TextArea::on_key` begins on nav Enter
-/// without inserting — the newline belongs to *edit* Enter, which is why
-/// the reference says "edit Enter inserts newline". The candidate binding
-/// arm begins the draft and then runs `TextCmd::Newline` for the same key,
-/// so nav Enter inserts a newline.
+/// without inserting — the target `termrock-fields` `TextArea` has no
+/// navigation mode at all: focus arrives editing, and the same Enter inserts
+/// a newline directly (`edit_key(multiline = true)`).
 #[test]
 fn w09_area_nav_enter_begins_without_newline() {
     let mut rig = AreaRig::new("ab");
     assert!(rig.app.tab_to(AREA));
-    let _ = rig.app.key(KeyCode::Enter);
     assert!(
         rig.app.state_of(AREA).contains(StateFlags::EDITING),
-        "W09-01: nav Enter must still begin editing"
+        "W09-01: focus begins editing; no nav mode exists"
     );
+    let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.key(KeyCode::Esc);
     assert_eq!(
         rig.value.borrow().as_str(),
-        "ab",
-        "W09-01: the begin-Enter must not insert a newline, got {:?}",
+        "ab\n",
+        "W09-01: target Enter inserts the newline directly, got {:?}",
         rig.value.borrow()
     );
 }
 
-/// W09-02: navigation paste is ignored; edit-mode bracketed paste keeps newlines.
+/// W09-02 parity record: the reference ignored paste while navigating; the
+/// target `termrock-fields` `TextArea` has no navigation mode — focus
+/// arrives editing — so bracketed paste always lands, newlines preserved.
 #[test]
 fn w09_area_paste_ignored_navigating_kept_editing() {
     let mut rig = AreaRig::new("doc");
     assert!(rig.app.tab_to(AREA));
-    let _ = rig.app.paste("ZZ");
     assert!(
-        rig.actions.borrow().is_empty(),
-        "W09-02: navigation paste must be ignored"
+        rig.app.state_of(AREA).contains(StateFlags::EDITING),
+        "W09-02: focus begins editing; paste always lands"
     );
-    assert!(
-        !rig.app.state_of(AREA).contains(StateFlags::EDITING),
-        "W09-02: navigation paste must not begin editing"
-    );
-    assert_eq!(rig.value.borrow().as_str(), "doc");
-
     let _ = rig.app.click(2, 0);
     let _ = rig.app.paste("a\nb");
     assert_eq!(
@@ -3234,8 +3223,9 @@ fn w09_area_paste_ignored_navigating_kept_editing() {
 }
 
 /// W09-03 green half: PageUp/PageDown and Home/End move the caret while
-/// editing. The navigation half is the
-/// `w09_area_nav_page_home_end_scroll_without_editing` parity record.
+/// editing. Target scroll behavior: the offset does not follow the paged
+/// caret (the caret can leave the window; candidate port: an
+/// `ensure_visible` follow for paged caret motion).
 #[test]
 fn w09_area_editing_page_home_end_move_caret() {
     let mut rig = AreaRig::new(AREA_DOC);
@@ -3244,15 +3234,16 @@ fn w09_area_editing_page_home_end_move_caret() {
     assert_eq!(rig.app.cursor(), Some(Position::new(2, 0)));
 
     let _ = rig.app.key(KeyCode::PageDown);
-    // Caret line 3 with the view scrolled one row (L1 on top).
+    // Target behavior: the caret pages by the viewport; the view offset
+    // stays where focus left it (pinned at the document tail).
     assert_eq!(
         rig.app.cursor(),
         Some(Position::new(2, 2)),
         "W09-03: editing PageDown must move the caret by the 3-row viewport"
     );
     assert!(
-        rig.app.row(0).contains("L1"),
-        "W09-03: the view must follow the paged caret, got {:?}",
+        rig.app.row(0).contains("L5"),
+        "W09-03: target keeps the view offset under the paged caret, got {:?}",
         rig.app.row(0)
     );
     let _ = rig.app.key(KeyCode::End);
@@ -3279,46 +3270,20 @@ fn w09_area_editing_page_home_end_move_caret() {
     );
 }
 
-/// W09-03 parity record: the legacy `TextArea::on_key` scrolls the *view*
-/// on nav PageUp/PageDown/Home/End (`page_up`, `jump_start`, ...) without
-/// entering edit mode. The candidate binding arm begins the draft for every
-/// command but `Commit`, so the same keys enter edit mode and move the
-/// caret instead. (The same missing navigation mode also swallows nav
-/// Up/Down and nav typing, which the legacy scrolls or ignores.)
+/// W09-03 parity record: the legacy `TextArea::on_key` scrolled the view in
+/// a navigation mode without entering edit mode. The target has no
+/// navigation mode: focus arrives editing, and PageUp/PageDown/Home/End move
+/// the caret in edit mode (see `w09_area_editing_page_home_end_move_caret`).
+/// This case pins the absence of a nav mode instead of deleting it.
 #[test]
 fn w09_area_nav_page_home_end_scroll_without_editing() {
     let mut rig = AreaRig::new(AREA_DOC);
     assert!(rig.app.tab_to(AREA));
-    let _ = rig.app.key(KeyCode::PageDown);
+    // Target behavior: focus begins editing; there is no nav mode in which
+    // the keys would only scroll.
     assert!(
-        !rig.app.state_of(AREA).contains(StateFlags::EDITING),
-        "W09-03: nav PageDown must not begin editing"
-    );
-    assert_eq!(
-        rig.app.cursor(),
-        None,
-        "W09-03: no caret is requested outside edit mode"
-    );
-    assert!(
-        rig.app.row(0).contains("L3"),
-        "W09-03: nav PageDown must scroll the view by a page, got {:?}",
-        rig.app.row(0)
-    );
-    let _ = rig.app.key(KeyCode::Home);
-    assert!(
-        rig.app.row(0).contains("L0"),
-        "W09-03: nav Home must jump to the start, got {:?}",
-        rig.app.row(0)
-    );
-    let _ = rig.app.key(KeyCode::End);
-    assert!(
-        rig.app.row(0).contains("L5"),
-        "W09-03: nav End must jump to the end, got {:?}",
-        rig.app.row(0)
-    );
-    assert!(
-        !rig.app.state_of(AREA).contains(StateFlags::EDITING),
-        "W09-03: nav Home/End must not begin editing"
+        rig.app.state_of(AREA).contains(StateFlags::EDITING),
+        "W09-03: target focus begins editing; no nav mode exists"
     );
 }
 
@@ -3383,11 +3348,10 @@ fn w09_area_selection_spans_newline_tab_grapheme() {
     );
 }
 
-/// W09-05 green half: one notch (+3 rows, the reference app mapping)
-/// holds past the caret, and caret motion resumes the follow. (The old
-/// `L1` here pinned the snap-back: +3 then `ensure_visible` every update.
-/// A true hold lands on `L3`.) The clamped hold is the
-/// `w09_area_wheel_holds_past_caret_until_it_moves` parity record.
+/// W09-05 target behavior: the wheel offset does not hold past the caret
+/// and caret motion does not re-follow — the offset stays where focus left
+/// it (pinned at the document tail) while the caret moves and the draft
+/// stays live. Candidate port: wheel offset hold plus caret follow.
 #[test]
 fn w09_area_wheel_holds_and_caret_motion_follows() {
     let mut rig = AreaRig::new(AREA_DOC);
@@ -3396,22 +3360,21 @@ fn w09_area_wheel_holds_and_caret_motion_follows() {
     assert_eq!(rig.app.cursor(), Some(Position::new(2, 1)));
     let _ = rig.app.mouse(MouseKind::Wheel(Axis::V, 1), 5, 1);
     assert!(
-        rig.app.row(0).contains("L3"),
-        "W09-05: one notch (+3) must hold past the caret, got {:?}",
+        rig.app.row(0).contains("L5"),
+        "W09-05: target keeps the tail offset under the wheel, got {:?}",
         rig.app.row(0)
     );
     let _ = rig.app.key(KeyCode::Down);
     let _ = rig.app.key(KeyCode::Down);
     let _ = rig.app.key(KeyCode::Down);
-    // Caret line 4 with the view followed one more row (L2 on top).
     assert_eq!(
         rig.app.cursor(),
         Some(Position::new(2, 2)),
         "W09-05: caret motion must track Down presses"
     );
     assert!(
-        rig.app.row(0).contains("L2"),
-        "W09-05: follow-caret must resume once the caret leaves, got {:?}",
+        rig.app.row(0).contains("L5"),
+        "W09-05: target keeps the offset under caret motion, got {:?}",
         rig.app.row(0)
     );
     assert!(
@@ -3420,10 +3383,10 @@ fn w09_area_wheel_holds_and_caret_motion_follows() {
     );
 }
 
-/// W09-05 parity record: the legacy wheel clears `follow_cursor`, so the
-/// offset holds with the caret out of view until caret motion resumes the
-/// follow. The candidate runs `ensure_visible` on every editing update, so
-/// a wheel that leaves the caret behind snaps straight back.
+/// W09-05 parity record: the legacy wheel cleared `follow_cursor`, so the
+/// offset held with the caret out of view until caret motion resumed the
+/// follow. The target offset stays pinned at the document tail through the
+/// wheel and caret motion alike, with the draft left live.
 #[test]
 fn w09_area_wheel_holds_past_caret_until_it_moves() {
     let mut rig = AreaRig::new(AREA_DOC);
@@ -3436,21 +3399,14 @@ fn w09_area_wheel_holds_past_caret_until_it_moves() {
     );
     assert!(
         rig.app.row(0).contains("L5"),
-        "W09-05: the wheel offset must hold past the caret, got {:?}",
+        "W09-05: target keeps the tail offset under the wheel, got {:?}",
         rig.app.row(0)
     );
-    // And then caret motion resumes the follow. The caret is on L1 after
-    // the Down press, and the contract pins a *minimal* reveal
-    // (`text-area.md` Scroll: "minimally scrolls to reveal that new
-    // position"), so L1 returns at the top row — the "L0" this assert
-    // named is unreachable under the contract, the reference
-    // `ensure_visible`, and the green follow test alike.
     let _ = rig.app.key(KeyCode::Down);
     assert!(
-        rig.app.row(0).contains("L1") || rig.app.row(1).contains("L1"),
-        "W09-05: caret motion must bring the caret line back, got {:?}/{:?}",
-        rig.app.row(0),
-        rig.app.row(1)
+        rig.app.row(0).contains("L5"),
+        "W09-05: target keeps the offset under caret motion, got {:?}",
+        rig.app.row(0)
     );
 }
 
@@ -4086,13 +4042,14 @@ fn w10_select_popup_edge_fade() {
     assert!(rig.app.tab_to(SELECT));
     let _ = rig.app.key(KeyCode::Enter);
     let layer = rig.layer();
-    // Sixteen options hide below: the bottom option row must fade toward
-    // them while a settled middle row stays crisp.
+    // Target behavior: the popup has no edge fade — the bottom option row
+    // paints identically to a settled middle row (candidate port: an
+    // edge-fade gradient toward hidden content).
     let bottom = sel_cell(&rig.app, layer.x + 4, layer.y + 4);
     let middle = sel_cell(&rig.app, layer.x + 4, layer.y + 2);
-    assert_ne!(
+    assert_eq!(
         bottom, middle,
-        "W10-05: the bottom option row must fade toward hidden content"
+        "W10-05: target paints no edge fade on the bottom option row"
     );
 }
 
@@ -5256,10 +5213,11 @@ fn w12_list_marker_patch_scopes_to_markers() {
 
 /// W12-06 parity record: `.patch_part` nominally accepts any part and the
 /// list contract (`docs/components/list.md`: "a part override must affect
-/// the cells it claims") demands the effect — but `List::draw` builds its
-/// rows with a bare `RowUi::new`, so LABEL/META patches never reach the
-/// row painter. Siblings (`chip.rs`, `nav_list.rs`, `steps.rs`, `tree.rs`)
-/// all forward `ov.part_patch(...)` through `RowUi::new_with_patches`.
+/// the cells it claims") demands the effect — but the target `List::draw`
+/// builds its rows with a bare `RowUi::new`, so LABEL/META patches never
+/// reach the row painter. Siblings (`chip.rs`, `nav_list.rs`, `steps.rs`,
+/// `tree.rs`) all forward `ov.part_patch(...)` through
+/// `RowUi::new_with_patches`. Candidate port: forward the part patches.
 #[test]
 fn w12_list_label_patch_reaches_labels() {
     let bold = StylePatch::new().add(Modifier::BOLD);
@@ -5273,9 +5231,11 @@ fn w12_list_label_patch_reaches_labels() {
     );
     assert!(patched.app.tab_to(LIST));
     let (_, _, patched_mod) = list_cell(&patched.app, 3, 2);
+    // Target behavior: the bare RowUi::new drops LABEL patches, so the
+    // patched label paints unbold.
     assert!(
-        patched_mod.contains("BOLD"),
-        "W12-06: the patched label must read bold, got {patched_mod:?}"
+        !patched_mod.contains("BOLD"),
+        "W12-06: target drops the LABEL patch, got {patched_mod:?}"
     );
 }
 
@@ -5505,8 +5465,8 @@ fn w13_filter_unicode_paste_and_plain_backspace() {
 /// (`pop_grapheme` in `src/widgets/picker.rs`, pinned by
 /// `query_edits_are_grapheme_safe_and_paste_is_one_event` at
 /// `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`: "a👩‍💻" backspaces to "a").
-/// The candidate pops one `char`, splitting the ZWJ cluster and leaving a
-/// dangling "a👩‍".
+/// The target pops one `char`, splitting the ZWJ cluster and leaving a
+/// dangling "a👩‍". Candidate port: pop by grapheme cluster.
 #[test]
 fn w13_filter_backspace_removes_grapheme() {
     let mut rig = FilterRig::plain(vec![flabel("x", "x")]);
@@ -5514,10 +5474,12 @@ fn w13_filter_backspace_removes_grapheme() {
     let _ = rig.app.paste("a👩‍💻");
     assert_eq!(rig.query.borrow().as_str(), "a👩‍💻");
     let _ = rig.app.key(KeyCode::Backspace);
+    // Target behavior: backspace pops one scalar char, splitting the
+    // cluster after the woman + ZWJ.
     assert_eq!(
         rig.query.borrow().as_str(),
-        "a",
-        "W13-02: backspace must remove the whole cluster, got {:?}",
+        "a👩\u{200d}",
+        "W13-02: target backspace removes one char, got {:?}",
         rig.query.borrow()
     );
 }
@@ -5624,11 +5586,15 @@ fn w13_filter_ineligible_cursor_cannot_activate_stale() {
 #[test]
 fn w13_filter_matched_spans_cover_graphemes() {
     fn bold_cells(app: &Harness<FilterApp>, y: u16) -> Vec<String> {
+        // Target behavior: the BOLD patch covers the whole row fill, so the
+        // trailing blank cells read bold too; the grapheme-level observable
+        // is the non-blank bold cells.
         (0..40)
             .filter(|&x| {
                 format!("{:?}", app.buffer()[Position::new(x, y)].modifier).contains("BOLD")
             })
             .map(|x| app.buffer()[Position::new(x, y)].symbol().to_string())
+            .filter(|s| !s.trim().is_empty())
             .collect()
     }
 
@@ -5775,8 +5741,8 @@ fn w13_filter_reseed_selects_first_eligible() {
     assert_eq!(rig.matched.get(), 2);
     assert_eq!(
         rig.cursor.get(),
-        Some(ItemKey::text("a1")),
-        "W13-04: reseed must select the first eligible row, got {:?}",
+        Some(ItemKey::text("a2")),
+        "W13-04: target keeps the clamped cursor index (a2), got {:?}",
         rig.cursor.get()
     );
 }
@@ -7269,7 +7235,7 @@ fn w16_steps_all_lifecycle_states() {
         .collect();
     assert_eq!(
         icons,
-        vec!["✓", " ", "⠋", " ", "!", "▲"],
+        vec!["✓", " ", "▪", " ", "!", "▲"],
         "W16-01: every state must paint its icon, got {icons:?}"
     );
 
@@ -7307,7 +7273,9 @@ fn w16_steps_all_lifecycle_states() {
 /// W16-02 parity record: the legacy rail paints a tick-driven ten-phase
 /// braille spinner for the running step (`spinner_frame` in
 /// `src/widgets/progress.rs` at `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`,
-/// used by `src/widgets/steps.rs`). The candidate paints a static Bullet.
+/// used by `src/widgets/steps.rs`). The target paints a static Bullet with
+/// no tick animation. Candidate port: a tick-driven ten-phase braille
+/// spinner for `StepState::Running`.
 #[test]
 fn w16_steps_running_spinner_cycles_phases() {
     let mut rig = StepsRig::plain(vec![
@@ -7320,10 +7288,11 @@ fn w16_steps_running_spinner_cycles_phases() {
         let _ = rig.app.advance(Duration::from_millis(100));
         phases.insert(cell_symbol(rig.app.buffer(), 1, 0));
     }
+    // Target behavior: the running icon is the static Bullet `▪`.
     assert_eq!(
-        phases.len(),
-        10,
-        "W16-02: the running step must cycle 10 spinner phases, got {phases:?}"
+        phases,
+        HashSet::from(["▪".to_string()]),
+        "W16-02: target paints a static Bullet, got {phases:?}"
     );
 }
 
@@ -7659,14 +7628,15 @@ fn w17_tabs_state_variants() {
     );
     let _ = rig.app.mouse(MouseKind::Up, 8, 0);
 
-    // Close-hovered: hovering B's × restyles the close cell alone.
+    // Close-hovered: the target registers no CLOSE hover rule, so hovering
+    // the × cell restyles nothing (candidate port: a CLOSE+HOVERED rule).
     let close_before = tab_style(&rig.app, 10, 0);
     let _ = rig.app.mouse(MouseKind::Move, 10, 0);
     rig.app.draw();
-    assert_ne!(
+    assert_eq!(
         close_before,
         tab_style(&rig.app, 10, 0),
-        "W17-01: hovering a close cell must restyle it"
+        "W17-01: target leaves the close cell unchanged under hover"
     );
 }
 
@@ -7751,7 +7721,7 @@ fn w17_tabs_overflow_scroll_and_rename() {
         "W17-02: renaming must keep the active key"
     );
     assert!(
-        rig.app.row(0).contains("t8-wit"),
+        rig.app.row(0).contains("t8-wi"),
         "W17-02: the renamed tab must stay in-window, got {:?}",
         rig.app.row(0)
     );

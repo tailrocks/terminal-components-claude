@@ -8,7 +8,6 @@
 
 pub(crate) mod feedback;
 #[cfg(feature = "crossterm")]
-pub(crate) mod session;
 mod time;
 pub use feedback::{ActivationFeedback, FeedbackClock, FeedbackClockError, SimulationMoment};
 pub(crate) mod typing;

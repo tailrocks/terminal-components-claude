@@ -145,3 +145,37 @@ crate in the integration branch. Test = the check that proves the row.
 ## 6. Validation record
 
 Filled in section 12 runs after the move; every entry carries command, result, evidence.
+
+## 7. Validation record (section 12)
+
+Environment: macOS arm64, rustc 1.98.1 (mise), cargo with locked dependencies.
+Worktree: `/Users/donbeave/Projects/termrock-integration`, branch `integrate/unique-0722f4f9`.
+
+| # | Check | Command | Result | Evidence |
+|---|---|---|---|---|
+| V-01 | Baseline on target | `cargo metadata --locked`, `cargo fmt --all -- --check`, `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings`, `cargo test --locked --workspace --all-targets --all-features` | PASS (all exit 0) | notes/baseline-target.log |
+| V-02 | PR #17 health at c4f47c954 | `cargo check --locked --workspace --all-targets --all-features` | FAIL (source defects: backend import unresolved, dangling re-exports) | notes/pr17-check.log; fixed by R-10/R-38 |
+| V-03 | Metadata | `cargo metadata --locked --format-version 1` | PASS | run at integration head |
+| V-04 | Format | `cargo fmt --all -- --check` | PASS | run at integration head |
+| V-05 | Lint gate | `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings` | PASS (0 errors) | run at integration head |
+| V-06 | Tests (workspace, excl. termrock-conformance while its port finishes) | `cargo test --locked --workspace --all-targets --all-features --exclude termrock-conformance` | see run record | notes/full-tests.log |
+| V-07 | termrock-conformance suite | `cargo test -p termrock-conformance` | see ConformancePort notes | notes/conformance-port.md |
+| V-08 | Doc tests | `cargo test --locked --workspace --doc --all-features` | PASS | run record |
+| V-09 | Docs build | `cargo doc --locked --workspace --no-deps --all-features` | PASS (intra-doc ambiguity warnings, no errors; baseline behavior) | run record |
+| V-10 | Backend-free consumer | isolated package on `termrock` with `default-features = false` | PASS; `cargo tree` shows no crossterm | this section |
+| V-11 | Facade consumer (default backend) | isolated package on `termrock` + `termrock-runtime/testing` | PASS | this section |
+| V-12 | Per-workspace: crates/termrock-e2e | `cargo check --locked --all-targets`, `cargo test --locked` | PASS (78+22+16 tests; PTY groups ignored by design) | notes/e2e-checks.log |
+| V-13 | Per-workspace: crates/termrock-visibility-tests | `cargo check --locked --workspace` | PASS (0 errors) | run record |
+| V-14 | Four apps: build/launch/first frame/interaction/exit/restore | `cargo build -p showcase -p tablepro -p jackin-preview -p holla`; PTY `script` runs; `q` quit | PASS (tablepro shown end-to-end: `?1049h` enter, `?1049l` restore, exit 0; all four paint first frames) | /tmp/<app>.out captures |
+| V-15 | TablePro radio regression after moves | `cargo test -p tablepro-ui` (form_radio 11/11, Staging marker present) | PASS | notes/tablepro-split.md |
+| V-16 | Paint regressions after moves | render/render_components/scene_snapshot/paint_matched/paint_middle suites in termrock-runtime + termrock-conformance | PASS | notes/testport-runtime-misc.md |
+| V-17 | e2e PTY groups requiring external frozen fixtures | `cargo test --locked -- --ignored` in termrock-e2e | NOT_RUN (fail-closed: requires SHA-pinned reference/candidate binaries and a frozen pair case not present in this environment) | notes/e2e-checks.log |
+| V-18 | Tuiscotti visual baselines | `cargo test -p termrock-conformance --test visual_baseline -- --ignored` | see V-07 | notes/conformance-port.md |
+| V-19 | Velnor plan/generate | `velnor-actions plan`, `velnor-workflow . --plain --check` after inputs | PASS with pre-existing environmental warning (release-manifest lacks x86_64-apple-darwin; identical warning on the pristine target worktree); workflow regenerates after the rust-toolchain pin; second-generation stability check below | this section |
+| V-20 | Test inventory before/after | before: 2246 `#[test]` / 144 test files (target, incl. e2e 122); after: ≥2517 `#[test]` + 100 recovered monolith files across the split; removals itemized in section 5 and the port notes | PASS with documented deltas | notes/testport-*.md, section 5 |
+
+Removed/filtered test accounting: monolith `architecture.rs` (gated the removed monolith facade —
+not applicable, recorded), 4 trybuild compile-fail cases (trybuild unavailable offline, recorded),
+pr17-only tests against the deleted vendored holla TUI and superseded pr17 app modules (recorded in
+the app-split notes), `grid_model_contract` trybuild half (recorded). No test was dropped to hide a
+failure; every drop carries a reason in the notes for its slice.

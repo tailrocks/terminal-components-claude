@@ -629,7 +629,10 @@ fn busy_checked_row_geometry_shared_marker() {
         // subsequent control shifts right by exactly those 2 cells versus
         // the idle checked row, cell-for-cell.
         let (idle_buf, _, _, _, idle_rects) = render_row(tick, Some(on), false, ROW_W);
-        assert_eq!(idle_rects[0].width, IDLE_FULL_W, "{what}: idle leader width");
+        assert_eq!(
+            idle_rects[0].width, IDLE_FULL_W,
+            "{what}: idle leader width"
+        );
         assert_eq!(
             rects[1].x,
             idle_rects[1].x + 2,
