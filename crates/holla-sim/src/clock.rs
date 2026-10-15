@@ -7,18 +7,18 @@
 #![allow(dead_code)]
 
 /// Fixed epoch for fixture timestamps: 2026-09-06 09:14:00 local (UTC+7).
-pub(crate) const EPOCH_SECS: i64 = 1_788_660_840;
+pub const EPOCH_SECS: i64 = 1_788_660_840;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Clock {
+pub struct Clock {
     /// Virtual milliseconds since the fixture epoch.
-    pub(crate) now_ms: i64,
+    pub now_ms: i64,
     /// Whether ticks advance at all (`--motion paused` freezes them).
-    pub(crate) running: bool,
+    pub running: bool,
 }
 
 impl Clock {
-    pub(crate) const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             now_ms: 0,
             running: true,
@@ -26,7 +26,7 @@ impl Clock {
     }
 
     /// Advance by one admitted, fixed simulation interval of `interval_ms`.
-    pub(crate) fn advance(&mut self, interval_ms: i64) {
+    pub fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms = self.now_ms.saturating_add(interval_ms.max(0));
         }
@@ -37,7 +37,7 @@ impl Clock {
         clippy::arithmetic_side_effects,
         reason = "Division by 1000 bounds every i64 clock value before adding the fixed epoch"
     )]
-    pub(crate) fn now_secs(&self) -> i64 {
+    pub fn now_secs(&self) -> i64 {
         EPOCH_SECS + self.now_ms.div_euclid(1000)
     }
 
@@ -46,7 +46,7 @@ impl Clock {
         clippy::arithmetic_side_effects,
         reason = "Widened i64 seconds plus a fixed timezone offset fit i128"
     )]
-    pub(crate) fn hhmm(secs: i64) -> String {
+    pub fn hhmm(secs: i64) -> String {
         let local = i128::from(secs) + 7 * 3600;
         let day = local.rem_euclid(86_400);
         format!("{:02}:{:02}", day / 3600, (day % 3600) / 60)
@@ -57,7 +57,7 @@ impl Clock {
         clippy::arithmetic_side_effects,
         reason = "Widened i64 seconds and the fixed timezone offset fit i128"
     )]
-    pub(crate) fn stamp(secs: i64) -> String {
+    pub fn stamp(secs: i64) -> String {
         let local = i128::from(secs) + 7 * 3600;
         let days = local.div_euclid(86_400);
         let (y, m, d) = civil_from_days(days);
@@ -69,7 +69,7 @@ impl Clock {
         clippy::arithmetic_side_effects,
         reason = "The difference of two widened i64 timestamps fits i128"
     )]
-    pub(crate) fn ago(&self, then_secs: i64) -> String {
+    pub fn ago(&self, then_secs: i64) -> String {
         let delta = (i128::from(self.now_secs()) - i128::from(then_secs)).max(0);
         match delta {
             0..=59 => format!("{delta} s ago"),
@@ -112,7 +112,7 @@ fn civil_from_days(days: i128) -> (i128, u32, u32) {
 
 /// Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,
 /// `1 d 2 h`. Two most significant units, never more.
-pub(crate) fn format_duration(secs: u64) -> String {
+pub fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;
     let h = (secs % 86_400) / 3600;
     let m = (secs % 3600) / 60;

@@ -7,18 +7,18 @@ use crate::domain::docker::Health;
 use crate::domain::human_bytes;
 use crate::domain::mise::Trust;
 use crate::domain::ranking::Memory;
-use crate::sim::world::{Domain, World};
+use crate::world::{Domain, World};
 
 /// One ranked section on home.
-pub(crate) struct Section {
-    pub(crate) name: &'static str,
-    pub(crate) actions: Vec<Action>,
+pub struct Section {
+    pub name: &'static str,
+    pub actions: Vec<Action>,
 }
 
 /// Derive every known action for the current world state. Domains still
 /// discovering contribute nothing yet; failed domains contribute a blocked
 /// note row instead of silence.
-pub(crate) fn catalogue(w: &World) -> Vec<Action> {
+pub fn catalogue(w: &World) -> Vec<Action> {
     let mut out = vec![];
     mise_actions(w, &mut out);
     git_actions(w, &mut out);
@@ -36,7 +36,7 @@ pub(crate) fn catalogue(w: &World) -> Vec<Action> {
 /// Suggested / Recent / Explore with Suggested holding the top-ranked four.
 /// Pins and exact aliases always lead Suggested; live urgency can elevate a
 /// nonlocal row, but never above them.
-pub(crate) fn sections(w: &World) -> Vec<Section> {
+pub fn sections(w: &World) -> Vec<Section> {
     let mut all = catalogue(w);
     rank(w, &mut all);
     // ranking is inspectable: the alias an action carries shows as a reason
@@ -85,7 +85,7 @@ pub(crate) fn sections(w: &World) -> Vec<Section> {
     clippy::arithmetic_side_effects,
     reason = "Closed scope weights and capped usage bound the total score to 390"
 )]
-pub(crate) fn rank(w: &World, actions: &mut [Action]) {
+pub fn rank(w: &World, actions: &mut [Action]) {
     let score = |a: &Action| -> i32 {
         let mut s = a.scope.weight();
         // pins are the strongest user intent: they must outrank an alias
@@ -674,7 +674,7 @@ fn memory_action(w: &World, canonical: &[Action], command: &str) -> Action {
 /// # Errors
 /// Refuses removed/changed targets, untrusted/blocked actions and arbitrary
 /// stored commands. Error codes contain no command or typed input payloads.
-pub(crate) fn resolve_intent(w: &World, row: &Action) -> Result<Action, IntentError> {
+pub fn resolve_intent(w: &World, row: &Action) -> Result<Action, IntentError> {
     use crate::domain::action::ActionIntent;
     let all = catalogue(w);
     let current_row = all
@@ -705,7 +705,7 @@ pub(crate) fn resolve_intent(w: &World, row: &Action) -> Result<Action, IntentEr
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum IntentError {
+pub enum IntentError {
     StaleTarget,
     NeedsTrust,
     Unavailable,
@@ -739,7 +739,7 @@ fn basename(path: &str) -> &str {
 }
 
 /// Ring of a filesystem path relative to cwd.
-pub(crate) fn path_scope(cwd: &str, path: &str) -> Scope {
+pub fn path_scope(cwd: &str, path: &str) -> Scope {
     if path == cwd || path.starts_with(&format!("{cwd}/")) {
         Scope::Here
     } else if path.starts_with('/') {
@@ -769,7 +769,7 @@ fn scope_place(cwd: &str, workdir: &str) -> String {
 /// and command. An alias query matches the row of the command it expands
 /// to (`gs` finds `git status`). A hidden row resurfaces when the query is
 /// its exact command — that is the only way to reach Unhide/Reset.
-pub(crate) fn visible(
+pub fn visible(
     actions: &[Action],
     scope: Option<Scope>,
     query: &str,

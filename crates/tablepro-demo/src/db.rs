@@ -754,10 +754,6 @@ impl Catalog {
         })
     }
 
-    #[expect(
-        dead_code,
-        reason = "schema browsing remains available to the private catalog adapter"
-    )]
     pub fn tables_in(&self, schema: &str, kind: ObjectKind) -> impl Iterator<Item = &Table> {
         self.tables
             .iter()

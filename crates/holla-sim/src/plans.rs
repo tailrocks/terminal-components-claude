@@ -9,12 +9,12 @@ use crate::domain::effect::Mutation;
 use crate::domain::human_bytes;
 use crate::domain::mise::ToolState;
 use crate::domain::plan::{Plan, PlanEffect, PlanSpec, PlanStep, StepState};
-use crate::sim::world::World;
+use crate::world::World;
 use std::sync::Arc;
 
 /// A review bound to the exact simulated host and effect target facts.
 /// It cannot be cloned, reconstructed from UI fields, or executed twice.
-pub(crate) struct ReviewedPlan {
+pub struct ReviewedPlan {
     plan: Plan,
     target: Arc<TargetSnapshot>,
 }
@@ -25,23 +25,23 @@ impl ReviewedPlan {
         Self { plan, target }
     }
 
-    pub(crate) fn plan(&self) -> &Plan {
+    pub fn plan(&self) -> &Plan {
         &self.plan
     }
 
     /// Bind a confirmation surface to this exact review and its complete plan.
-    pub(crate) fn binding(&self) -> ReviewBinding {
+    pub fn binding(&self) -> ReviewBinding {
         ReviewBinding {
             target: Arc::clone(&self.target),
             plan: self.plan.clone(),
         }
     }
 
-    pub(crate) fn matches_binding(&self, binding: &ReviewBinding) -> bool {
+    pub fn matches_binding(&self, binding: &ReviewBinding) -> bool {
         Arc::ptr_eq(&self.target, &binding.target) && self.plan == binding.plan
     }
 
-    pub(crate) fn toggle(
+    pub fn toggle(
         &mut self,
         index: usize,
     ) -> Result<String, crate::domain::plan::PlanError> {
@@ -53,7 +53,7 @@ impl ReviewedPlan {
     /// # Errors
     /// Refuses a wrong phrase, an already-consumed review or changed target.
     /// The phrase is never retained or included in the error.
-    pub(crate) fn approve<'a>(
+    pub fn approve<'a>(
         &'a mut self,
         phrase: &str,
         world: &World,
@@ -80,14 +80,14 @@ impl ReviewedPlan {
 /// Regenerating even an identical plan creates a distinct identity. The complete
 /// plan snapshot also detects selection or effect changes within the same review.
 /// Target facts remain immutable and private; no address or token is exposed.
-pub(crate) struct ReviewBinding {
+pub struct ReviewBinding {
     target: Arc<TargetSnapshot>,
     plan: Plan,
 }
 
 /// Exclusive, one-use permission to apply this in-memory simulation.
 /// Dropping approval cancels it without running or consuming the review.
-pub(crate) struct Approval<'a> {
+pub struct Approval<'a> {
     review: &'a mut ReviewedPlan,
 }
 
@@ -97,7 +97,7 @@ impl Approval<'_> {
     /// # Errors
     /// A changed target refuses the whole run with no model mutation. Successful
     /// execution consumes the review even when fixture steps fail partway.
-    pub(crate) fn execute(self, world: &mut World) -> Result<EffectReport, ApprovalError> {
+    pub fn execute(self, world: &mut World) -> Result<EffectReport, ApprovalError> {
         self.review.validate(world)?;
         let next_revision = world
             .effect_revision
@@ -164,24 +164,24 @@ impl Approval<'_> {
 
 /// Executed mutation groups, including truthful partial failures.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct AppliedStep {
-    pub(crate) id: String,
-    pub(crate) operations: usize,
-    pub(crate) reclaimed_bytes: u64,
+pub struct AppliedStep {
+    pub id: String,
+    pub operations: usize,
+    pub reclaimed_bytes: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct EffectReport {
-    pub(crate) applied_steps: Vec<AppliedStep>,
-    pub(crate) reclaimed_bytes: u64,
-    pub(crate) succeeded: usize,
-    pub(crate) failed: usize,
-    pub(crate) skipped: usize,
+pub struct EffectReport {
+    pub applied_steps: Vec<AppliedStep>,
+    pub reclaimed_bytes: u64,
+    pub succeeded: usize,
+    pub failed: usize,
+    pub skipped: usize,
 }
 
 /// Failure codes never contain typed confirmation text or target payloads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ApprovalError {
+pub enum ApprovalError {
     WrongPhrase,
     StaleTarget,
     AlreadyConsumed,
@@ -252,7 +252,7 @@ impl TargetSnapshot {
 }
 
 /// The plan behind a Broad action, if this world has one.
-pub(crate) fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
+pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     let plan = match action_id {
         "docker.cleanup" => docker_cleanup(w),
         "disk.reclaim" => disk_reclaim(w),
@@ -1397,7 +1397,7 @@ mod tests {
         assert_eq!(docker.container_bytes(), Err(InventoryError::Overflow));
         assert_eq!(docker.total_bytes(), Err(InventoryError::Overflow));
         assert!(plan_for(&world, "docker.cleanup").is_none());
-        let note = crate::sim::catalogue::catalogue(&world)
+        let note = crate::catalogue::catalogue(&world)
             .into_iter()
             .find(|row| row.id == "docker.invalid")
             .unwrap();
@@ -1428,7 +1428,7 @@ mod tests {
         let mut world = settled(Scenario::UpgradePlan);
         world.debian.as_mut().unwrap().orphaned_packages[0].size_bytes = u64::MAX;
         assert!(plan_for(&world, "debian.upgrade").is_none());
-        let note = crate::sim::catalogue::catalogue(&world)
+        let note = crate::catalogue::catalogue(&world)
             .into_iter()
             .find(|row| row.id == "debian.invalid")
             .unwrap();

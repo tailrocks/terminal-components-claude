@@ -15,18 +15,13 @@ pub mod mise;
 pub mod pg;
 pub mod ssh;
 
-// Plan and ranking live in their own crates; re-exported so the historical
-// `holla_domain::plan` / `holla_domain::ranking` paths keep working.
-pub use holla_catalog::ranking;
-pub use holla_plan::plan;
-
 pub use host::Environment;
 
 /// Fixed home directory of the simulated user, shared by path fixtures.
-pub(crate) const HOME: &str = "/home/dev";
+pub const HOME: &str = "/home/dev";
 
 /// Human byte size per the design-system number grammar: `8.4 GB`, `900 MB`.
-pub(crate) fn human_bytes(bytes: u64) -> String {
+pub fn human_bytes(bytes: u64) -> String {
     const KB: u64 = 1_024;
     const MB: u64 = KB * 1_024;
     const GB: u64 = MB * 1_024;

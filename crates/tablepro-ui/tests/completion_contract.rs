@@ -1,5 +1,5 @@
 //! Completion is a statement-scoped model contract, independent of popup input.
-use tablepro_app::{Catalog, CompletionKind, auto_trigger, completion_batch};
+use tablepro_ui::{Catalog, CompletionKind, auto_trigger, completion_batch};
 
 #[test]
 fn alias_member_uses_the_statement_at_cursor_including_future_from() {

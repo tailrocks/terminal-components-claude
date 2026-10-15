@@ -61,7 +61,7 @@ impl Scenario {
         }
     }
 
-    pub(crate) fn from_name(s: &str) -> Option<Self> {
+    pub fn from_name(s: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|sc| sc.name() == s)
     }
 }
@@ -79,7 +79,7 @@ pub enum Motion {
 }
 
 impl Motion {
-    pub(crate) fn from_name(s: &str) -> Option<Self> {
+    pub fn from_name(s: &str) -> Option<Self> {
         match s {
             "full" => Some(Motion::Full),
             "reduced" => Some(Motion::Reduced),
@@ -90,7 +90,7 @@ impl Motion {
 
     /// Explicit CLI motion wins; otherwise `HOLLA_NO_MOTION` selects the
     /// reduced path.
-    pub(crate) fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
+    pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
         match cli {
             Some(m) => m,
             None if no_motion_env => Motion::Reduced,

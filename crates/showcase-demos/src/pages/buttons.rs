@@ -8,16 +8,16 @@ use std::time::Duration;
 
 use termrock::{
     Button, Constraints, Cx, Family, FrameRead, Id, Moment, Panel, PanelKind, Part, PartRef, Rect,
-    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, id,
+    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant,
     layout,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
 
-const BUTTONS: Id = id!("buttons");
-const PLAYGROUND_PANEL: Id = id!("buttons.playground");
-const MATRIX: Id = id!("buttons.matrix");
-const MATRIX_PANEL: Id = id!("buttons.matrix.panel");
+const BUTTONS: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons");
+const PLAYGROUND_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.playground");
+const MATRIX: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix");
+const MATRIX_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix.panel");
 
 fn playground_panel() -> Panel<'static> {
     Panel::new(PLAYGROUND_PANEL)

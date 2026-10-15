@@ -3,13 +3,13 @@
 use termrock::author::PaintStyle;
 use termrock::{
     Brand, Cx, FrameRead, Id, Modifier, Part, Role, StateFlags, Status, StatusBar, StatusItem,
-    Surface, Ui, Variant, id, width,
+    Surface, Ui, Variant, width,
 };
 
 use super::{Page, PageUpdate, frame};
 
-const BRAND: Id = id!("chrome.brand");
-const BAR: Id = id!("chrome.status");
+const BRAND: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.brand");
+const BAR: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.status");
 const LEFT: [StatusItem<'static>; 2] = [
     StatusItem::new("SHOWCASE").strong(),
     StatusItem::new("workspace").tone(Role::Fg(termrock::FgStep::Secondary)),

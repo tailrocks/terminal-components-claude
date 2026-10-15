@@ -2,9 +2,9 @@
 //! Each sample reports totals for a complete fixed-size workload batch.
 //! Input pairs include the runtime's required pre-input frame publication.
 //! Wall time is informational; allocation limits require independent review.
-use holla_app::{App, Motion, Scenario};
-use junie_tui::{Id, KeyCode, Theme};
-use junie_tui_testing::{
+use holla_ui::{App, Motion, Scenario};
+use termrock::{Id, KeyCode, Theme};
+use termrock_test_support::{
     Harness,
     perf::{Counting, Stats, lock, measure_once},
 };
@@ -25,8 +25,8 @@ fn fixture(scenario: Scenario) -> Harness<App> {
         Theme::junie(),
         WIDTH,
         HEIGHT,
-        junie_tui::FeedbackClock::Simulation {
-            initial: junie_tui::SimulationMoment::from_millis(4_000),
+        termrock::FeedbackClock::Simulation {
+            initial: termrock::SimulationMoment::from_millis(4_000),
         },
     )
 }
@@ -135,11 +135,11 @@ fn production_workload_measurements() {
 fn perf_holla_baseline() {
     let _guard = lock();
     let mut harness = fixture(Scenario::FirstUse).with_auto_draw(false);
-    let stats = junie_tui_testing::perf::bench(2, junie_tui_testing::perf::iters(100), &mut || {
+    let stats = termrock_test_support::perf::bench(2, termrock_test_support::perf::iters(100), &mut || {
         harness.draw();
         std::hint::black_box(harness.focus());
     });
-    junie_tui_testing::perf::report_to(
+    termrock_test_support::perf::report_to(
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
         "frame_holla_first_use_120x40",
         &stats,

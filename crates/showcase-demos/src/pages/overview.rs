@@ -5,25 +5,25 @@ use termrock::{
     Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FieldSpec, Form, HelpOverlay,
     HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Meter,
     Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role, ScrollRegion,
-    SplitAxis, SplitPane, StateFlags, StylePatch, Surface, TooSmall, Ui, Variant, Wizard, id,
+    SplitAxis, SplitPane, StateFlags, StylePatch, Surface, TooSmall, Ui, Variant, Wizard,
     layout, width, wrap,
 };
 
 use super::{Page, PageUpdate, author::AuthorBadge, frame};
 
-const BRAND: Id = id!("overview.brand");
-const AUTHOR: Id = id!("overview.author");
-const EMPTY: Id = id!("overview.empty");
-const KEY_HINT: Id = id!("overview.key-hint");
-const HINT_BAR: Id = id!("overview.hint-bar");
-const DERIVED_HINT_BAR: Id = id!("overview.derived-hint-bar");
-const HELP: Id = id!("overview.help");
-const TOO_SMALL: Id = id!("overview.too-small");
-const PROPS_LIST: Id = id!("overview.props-list");
-const TOKENS: Id = id!("overview.tokens");
-const PRINCIPLES: Id = id!("overview.principles");
-const STATE_LANGUAGE: Id = id!("overview.state-language");
-const COMPONENT_ROSTER: Id = id!("overview.component-roster");
+const BRAND: Id = termrock::Id::root("showcase_ui::pages::overview::overview.brand");
+const AUTHOR: Id = termrock::Id::root("showcase_ui::pages::overview::overview.author");
+const EMPTY: Id = termrock::Id::root("showcase_ui::pages::overview::overview.empty");
+const KEY_HINT: Id = termrock::Id::root("showcase_ui::pages::overview::overview.key-hint");
+const HINT_BAR: Id = termrock::Id::root("showcase_ui::pages::overview::overview.hint-bar");
+const DERIVED_HINT_BAR: Id = termrock::Id::root("showcase_ui::pages::overview::overview.derived-hint-bar");
+const HELP: Id = termrock::Id::root("showcase_ui::pages::overview::overview.help");
+const TOO_SMALL: Id = termrock::Id::root("showcase_ui::pages::overview::overview.too-small");
+const PROPS_LIST: Id = termrock::Id::root("showcase_ui::pages::overview::overview.props-list");
+const TOKENS: Id = termrock::Id::root("showcase_ui::pages::overview::overview.tokens");
+const PRINCIPLES: Id = termrock::Id::root("showcase_ui::pages::overview::overview.principles");
+const STATE_LANGUAGE: Id = termrock::Id::root("showcase_ui::pages::overview::overview.state-language");
+const COMPONENT_ROSTER: Id = termrock::Id::root("showcase_ui::pages::overview::overview.component-roster");
 const OVERVIEW_PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()

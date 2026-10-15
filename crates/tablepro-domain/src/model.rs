@@ -2,10 +2,35 @@
 
 #![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
 
-use termrock::{FuzzyBoundary, fuzzy_with_boundary};
+use termrock::{AsItem, FuzzyBoundary, Item, ItemKey, fuzzy_with_boundary};
 
 use tablepro_demo::db::{Catalog, ColType, Table};
 use tablepro_sql::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
+
+impl AsItem for SwitchItem {
+    fn as_item(&self) -> Item<'_> {
+        let group = self.target.group();
+        let glyph = match &self.target {
+            SwitchTarget::Table { .. } => "T",
+            SwitchTarget::View { .. } => "V",
+            SwitchTarget::Schema(_) => "S",
+            SwitchTarget::Database(_) => "D",
+            SwitchTarget::OpenTab(_) => "≡",
+            SwitchTarget::Query(_) => "Q",
+            SwitchTarget::Connection(_) => "C",
+        };
+        let item = Item::new(ItemKey::text(&self.key), &self.label)
+            .detail(&self.detail)
+            .glyph(glyph)
+            .group(group)
+            .matched(&self.matched);
+        if self.open && !matches!(self.target, SwitchTarget::OpenTab(_)) {
+            item.tag("open")
+        } else {
+            item
+        }
+    }
+}
 
 /// Origin of a history entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,10 +49,6 @@ pub enum HistorySource {
 
 impl HistorySource {
     /// Human-readable source label.
-    #[expect(
-        dead_code,
-        reason = "history labels remain available to the private history adapter"
-    )]
     pub const fn label(self) -> &'static str {
         match self {
             Self::Editor => "Editor",
@@ -89,10 +110,6 @@ impl HistoryEntry {
         }
     }
     /// Stable duration label.
-    #[expect(
-        dead_code,
-        reason = "history duration remains available to the private history adapter"
-    )]
     pub fn duration(&self) -> String {
         match self.duration_ms {
             None => "–".to_owned(),
@@ -939,10 +956,6 @@ impl SwitcherIndex {
 }
 
 /// Return the columns of a table for filter/editor construction.
-#[expect(
-    dead_code,
-    reason = "column projection remains available to the private editor adapter"
-)]
 pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
@@ -952,10 +965,6 @@ pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
 }
 
 /// Explicit app-level wrapper around the SQL tokenizer for tests and editor UI.
-#[expect(
-    dead_code,
-    reason = "token projection remains available to the private editor adapter"
-)]
 pub fn statement_tokens(source: &str) -> Vec<String> {
     tokenize(source)
         .into_iter()
@@ -1027,32 +1036,5 @@ mod tests {
         );
         assert!(auto_trigger("SELECT * FROM ", 14));
         assert!(!auto_trigger("SELECT * FROM orders WHERE s", 28));
-    }
-    #[test]
-    fn switcher_ranks_tables_first_and_prefix_first() -> Result<(), String> {
-        let mut app = crate::app::TableProApp::default();
-        assert!(app.connect(0));
-        assert!(app.workbench.open_table("orders"));
-        let index = app.workbench.switcher();
-        let items = index.search("ord");
-        let first = items.first().ok_or("orders missing")?;
-        assert_eq!(first.label, "orders");
-        assert!(first.open);
-        assert!(items.iter().any(|item| item.label == "order_items"));
-        assert!(
-            items
-                .iter()
-                .any(|item| item.target.group() == "Recent queries")
-        );
-        let all = index.search("");
-        assert!(all.len() > 15);
-        assert_eq!(all.first().map(|item| item.target.group()), Some("Tables"));
-        assert!(
-            index
-                .search("public")
-                .iter()
-                .any(|item| item.label == "orders")
-        );
-        Ok(())
     }
 }

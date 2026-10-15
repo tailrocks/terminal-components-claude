@@ -4,7 +4,7 @@ use crate::sim::{
     plans::{ReviewBinding, ReviewedPlan},
     world::World,
 };
-use junie_tui::{
+use termrock::{
     Action, ActionKey, Cx, Dialog, DialogAction, DialogState, Id, Props, Rect, Response,
     TextViewport, Ui, ViewportLine, ViewportState,
 };
@@ -196,8 +196,8 @@ fn commands_viewport() -> TextViewport<'static> {
 mod tests {
     use super::*;
     use crate::{domain::fixtures, scenario::Scenario, sim::plans};
-    use junie_tui::{App, KeyCode, Theme};
-    use junie_tui_testing::Harness;
+    use termrock::{App, KeyCode, Theme};
+    use termrock_test_support::Harness;
     struct Fixture {
         gate: PlanGate,
         review: ReviewedPlan,

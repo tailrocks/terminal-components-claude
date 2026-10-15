@@ -3,7 +3,7 @@
 use termrock::author::PaintStyle;
 use termrock::{
     ChipBar, ChipBarAction, ChipBarState, Cx, FrameRead, Id, ItemKey, Modifier, Part, Rect,
-    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant, id,
+    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant,
     layout, width,
 };
 
@@ -11,8 +11,8 @@ use showcase_data::LANGUAGES;
 
 use super::{Page, PageUpdate, frame};
 
-const CHIPS: Id = id!("chips.filters");
-const SELECT: Id = id!("chips.language");
+const CHIPS: Id = termrock::Id::root("showcase_ui::pages::chips::chips.filters");
+const SELECT: Id = termrock::Id::root("showcase_ui::pages::chips::chips.language");
 const FILTERS: &[&str] = &[
     "Open",
     "Assigned",

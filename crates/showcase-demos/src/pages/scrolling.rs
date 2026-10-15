@@ -2,21 +2,21 @@
 
 use termrock::{
     Cx, FrameRead, Id, Panel, Rect, Response, ScrollRegion, ScrollState, StateFlags, TextViewport,
-    Track, Ui, ViewportAction, ViewportLine, ViewportState, id, layout,
+    Track, Ui, ViewportAction, ViewportLine, ViewportState, layout,
 };
 
 use showcase_data::{PROSE, SCROLL_ROWS, log_lines};
 
 use super::{Page, PageUpdate, frame};
 
-const PROSE_VIEW: Id = id!("scrolling.prose");
-const LIST_VIEW: Id = id!("scrolling.list");
-const LOG_VIEW: Id = id!("scrolling.log");
-const PROSE_PANEL: Id = id!("scrolling.prose.panel");
-const LIST_PANEL: Id = id!("scrolling.list.panel");
-const LOG_PANEL: Id = id!("scrolling.log.panel");
-const REGION_PANEL: Id = id!("scrolling.region.panel");
-const REGION: Id = id!("scrolling.region");
+const PROSE_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.prose");
+const LIST_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.list");
+const LOG_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.log");
+const PROSE_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.prose.panel");
+const LIST_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.list.panel");
+const LOG_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.log.panel");
+const REGION_PANEL: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.region.panel");
+const REGION: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.region");
 const REGION_LEN: usize = 48;
 
 fn prose_view() -> TextViewport<'static> {

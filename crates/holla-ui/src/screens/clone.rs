@@ -1,6 +1,6 @@
 //! Repository selection keeps stable repository identity through shared filtering.
 use crate::domain::github::{GhRepo, GhState};
-use junie_tui::{Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Response, Ui};
+use termrock::{Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Response, Ui};
 const PICKER: Id = Id::root("clone.picker");
 /// One private constructor keeps the picker's props identical across the open,
 /// update and draw passes; the layer pass never renders the query placeholder,

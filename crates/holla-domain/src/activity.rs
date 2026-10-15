@@ -2,20 +2,16 @@
 //! Output is retained so a finished activity stays inspectable (§8.14).
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ActivityState {
+pub enum ActivityState {
     Running,
     Waiting,
-    #[expect(
-        dead_code,
-        reason = "P2+ completes activities; P1 only seeds and renders"
-    )]
     Succeeded,
     Failed,
     Detached,
 }
 
 impl ActivityState {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             ActivityState::Running => "running",
             ActivityState::Waiting => "waiting",
@@ -27,20 +23,20 @@ impl ActivityState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Activity {
-    pub(crate) id: u32,
-    pub(crate) name: String,
+pub struct Activity {
+    pub id: u32,
+    pub name: String,
     /// Path scope the activity belongs to (ring: Here or a child project).
-    pub(crate) scope: String,
-    pub(crate) state: ActivityState,
+    pub scope: String,
+    pub state: ActivityState,
     /// Virtual ms when it started (relative to the world clock's zero).
-    pub(crate) started_ms: i64,
+    pub started_ms: i64,
     /// Retained output lines, oldest first.
-    pub(crate) lines: Vec<String>,
+    pub lines: Vec<String>,
 }
 
 impl Activity {
-    pub(crate) fn new(
+    pub fn new(
         id: u32,
         name: &str,
         scope: &str,

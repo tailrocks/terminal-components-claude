@@ -4,7 +4,8 @@ use std::ffi::{OsStr, OsString};
 use crate::{Motion, Scenario};
 use termrock::{ColorLevel, Theme};
 
-pub(super) const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)\n\n\
+/// Usage text printed for `--help`.
+pub const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)\n\n\
                      USAGE: jackin-preview [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
                      Scenarios: first-use, returning, accounts-mixed, launch-running, launch-failure, capsule-multi, outro-last, hard-cases\n\
                      Motion:    explicit --motion wins; otherwise JACKIN_NO_MOTION=1 selects reduced motion\n\
@@ -13,16 +14,23 @@ pub(super) const HELP: &str = "jackin-preview — Jackin redesigned on the Junie
                      Everything is simulated in memory; the real Jackin CLI is never touched.";
 
 #[derive(Debug)]
-pub(super) struct Options {
+/// Resolved launch options.
+pub struct Options {
+    /// Scenario world to load.
     scenario: Scenario,
+    /// Motion cadence.
     motion: Motion,
+    /// Pinned virtual frame for paused captures.
     frame: u64,
+    /// Terminal color capability.
     level: ColorLevel,
+    /// Use the paper theme.
     paper: bool,
 }
 
 impl Options {
-    pub(super) fn run(self) -> std::io::Result<()> {
+    /// Run the preview with these options.
+    pub fn run(self) -> std::io::Result<()> {
         let theme = if self.paper {
             Theme::paper()
         } else {
@@ -38,8 +46,11 @@ impl Options {
 }
 
 #[derive(Debug)]
-pub(super) enum Parsed {
+/// Outcome of argument parsing.
+pub enum Parsed {
+    /// Launch with the parsed options.
     Run(Options),
+    /// Print usage text.
     Help,
 }
 
@@ -47,7 +58,8 @@ pub(super) enum Parsed {
 // argument can itself be a pasted credential; reference value echoing is unsafe.
 type Error = &'static str;
 
-pub(super) fn parse(
+/// Parse Jackin Preview CLI arguments.
+pub fn parse(
     args: impl IntoIterator<Item = OsString>,
     no_motion: Option<&OsStr>,
     detected_color: ColorLevel,
@@ -115,6 +127,7 @@ pub(super) fn parse(
     }))
 }
 
+/// Parse a `--color` value into a terminal color level.
 fn parse_color(value: &str) -> Option<ColorLevel> {
     match value.to_ascii_lowercase().as_str() {
         "truecolor" | "24bit" => Some(ColorLevel::TrueColor),

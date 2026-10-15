@@ -377,14 +377,14 @@ impl EditorState {
     }
 
     /// Open a fresh environment-variable form, dropping any previous input.
-    pub(crate) fn open_env_form(&mut self) {
+    pub fn open_env_form(&mut self) {
         self.clear_env_form();
         self.env_form_open = true;
         self.env_value_input = termrock::TextInputState::sensitive();
     }
 
     /// Cancel and clear all transient environment-variable input.
-    pub(crate) fn clear_env_form(&mut self) {
+    pub fn clear_env_form(&mut self) {
         self.env_form_open = false;
         self.env_key.clear();
         self.env_key_input = termrock::TextInputState::default();
@@ -394,7 +394,7 @@ impl EditorState {
     }
 
     /// Move the committed transient value into its durable draft owner.
-    pub(crate) fn take_env_value(&mut self) -> String {
+    pub fn take_env_value(&mut self) -> String {
         self.env_value_input.zeroize();
         self.env_value_input = termrock::TextInputState::sensitive();
         mem::take(&mut self.env_value)

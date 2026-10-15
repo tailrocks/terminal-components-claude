@@ -14,20 +14,19 @@ use crate::domain::pg::PgSession;
 use crate::domain::ranking::{Alias, Memory, Pin, Usage};
 use crate::domain::ssh::{HostKeyPolicy, SshHost};
 use crate::scenario::Scenario;
-use crate::sim::world::{Discovery, Domain, World};
+use crate::world::{Discovery, Domain, World};
 
 /// Fixture home directory. Display paths use `~`; typed confirmation
 /// phrases (P3) expand through this, e.g. `~/work/scratch` →
 /// `/home/dev/work/scratch`.
-pub(crate) const HOME: &str = "/home/dev";
+pub const HOME: &str = "/home/dev";
 
-#[cfg_attr(not(test), expect(dead_code, reason = "P3 typed-phrase targets"))]
-pub(crate) fn expand_home(path: &str) -> String {
+pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
 
 /// The working directory holla was launched from, per scenario.
-pub(crate) fn cwd_for(scenario: Scenario) -> &'static str {
+pub fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
         Scenario::FirstUse => "~/scratch/empty",
         Scenario::RustDirty | Scenario::LaunchFailure => "~/work/pave",
@@ -41,7 +40,7 @@ pub(crate) fn cwd_for(scenario: Scenario) -> &'static str {
     }
 }
 
-pub(crate) fn host_for(scenario: Scenario) -> Host {
+pub fn host_for(scenario: Scenario) -> Host {
     match scenario {
         Scenario::RemoteHost => Host::remote("prod-eu-1", Environment::Production),
         Scenario::UpgradePlan => Host::remote("devbox-deb", Environment::Dev),
@@ -49,7 +48,7 @@ pub(crate) fn host_for(scenario: Scenario) -> Host {
     }
 }
 
-pub(crate) fn world_for(scenario: Scenario) -> World {
+pub fn world_for(scenario: Scenario) -> World {
     let mut w = World::new(scenario, host_for(scenario), cwd_for(scenario));
     w.discovery = match scenario {
         // hard-cases: docker discovery never lands; the UI must say so
@@ -838,7 +837,7 @@ fn seed_hard_cases(w: &mut World) {
 
 /// Explicit authorization for simulated custom commands seeded by these
 /// fixtures. Stored text alone never grants an effect or a risk downgrade.
-pub(crate) fn memory_command(
+pub fn memory_command(
     scenario: Scenario,
     cwd: &str,
     command: &str,

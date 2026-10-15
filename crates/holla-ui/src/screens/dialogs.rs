@@ -7,7 +7,7 @@ use crate::domain::{
     ssh::SshHost,
 };
 use crate::sim::{catalogue, pg, world::World};
-use junie_tui::{
+use termrock::{
     Action as UiAction, ActionKey, Cx, Dialog, DialogAction, DialogState, Id, Props, Rect,
     Response, TextViewport, Ui, ViewportLine, ViewportState,
 };
@@ -99,7 +99,7 @@ impl ProductDialog {
                     ),
                     (
                         "Design system",
-                        "Junie-inspired Ratatui components (junie_tui)".into(),
+                        "Junie-inspired Ratatui components (termrock)".into(),
                     ),
                 ]);
             }

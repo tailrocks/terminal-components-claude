@@ -77,12 +77,19 @@ impl SaveResult {
     }
 }
 
+/// Queued editor workspace write: what to save, when, and against which
+/// expected snapshot.
 #[derive(Clone)]
 pub struct PendingWrite {
+    /// Ticket this write fulfills.
     pub ticket: SaveTicket,
+    /// Virtual deadline in milliseconds.
     pub due_ms: i64,
+    /// Snapshot the write was staged against, if any.
     pub expected: Option<Box<Workspace>>,
+    /// Proposed workspace contents.
     pub proposed: Box<Workspace>,
+    /// Whether the write applies cleanly.
     pub ok: bool,
 }
 impl fmt::Debug for PendingWrite {

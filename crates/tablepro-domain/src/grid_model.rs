@@ -86,7 +86,7 @@ impl termrock::GridModel for StructureModel {
 }
 
 /// Column labels/types for the generic grid.
-pub(crate) fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
+pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
         .iter()
@@ -95,11 +95,7 @@ pub(crate) fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
 }
 
 /// Compact pending-change marker for the status bar.
-#[expect(
-    dead_code,
-    reason = "pending marker remains available to the private grid adapter"
-)]
-pub(crate) fn pending_label(grid: &ResultGrid) -> String {
+pub fn pending_label(grid: &ResultGrid) -> String {
     match grid.pending_total() {
         0 => String::new(),
         n => format!("• {n} pending"),

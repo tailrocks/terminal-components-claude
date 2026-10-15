@@ -1189,12 +1189,8 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 name = "holla"
 version = "0.1.0"
 dependencies = [
- "clap",
- "holla-domain",
- "holla-sim",
  "holla-ui",
- "ratatui 0.30.2",
- "termrock-session",
+ "termrock",
 ]
 
 [[package]]

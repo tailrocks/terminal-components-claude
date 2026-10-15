@@ -5,20 +5,20 @@ use termrock::author::PaintStyle;
 
 use termrock::{
     Button, Cx, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status,
-    StepState, Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
+    StepState, Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, layout, width,
 };
 
 use showcase_data::log_lines;
 
 use super::{Page, PageUpdate, frame, lines};
 
-const OUTPUT: Id = id!("terminal.output");
-const OUTPUT_PANEL: Id = id!("terminal.output.panel");
-const RAIL: Id = id!("terminal.rail");
-const RAIL_PANEL: Id = id!("terminal.rail.panel");
-const STEP_SPINNER: Id = id!("terminal.step.spinner");
-const RUN: Id = id!("terminal.run");
-const FAIL: Id = id!("terminal.fail");
+const OUTPUT: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.output");
+const OUTPUT_PANEL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.output.panel");
+const RAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.rail");
+const RAIL_PANEL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.rail.panel");
+const STEP_SPINNER: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.step.spinner");
+const RUN: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.run");
+const FAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.fail");
 
 const STAGES: &[(&str, StepState)] = &[
     ("01 Resolve workspace", StepState::Running),

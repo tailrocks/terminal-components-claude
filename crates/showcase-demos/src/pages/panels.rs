@@ -4,22 +4,22 @@ use termrock::author::PaintStyle;
 use termrock::{
     Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
     Rect, Response, Role, RowUi, SelectMode, SplitAxis, SplitPane, SplitPaneState, StateFlags,
-    StylePatch, TextViewport, Ui, Variant, ViewportLine, ViewportState, id, layout, wrap,
+    StylePatch, TextViewport, Ui, Variant, ViewportLine, ViewportState, layout, wrap,
 };
 
 use showcase_data::{PROSE, log_lines};
 
 use super::{Page, PageUpdate, frame};
 
-const TITLED_CARD: Id = id!("panels.titled_card");
-const UNTITLED_CARD: Id = id!("panels.untitled_card");
-const NESTED_CARD: Id = id!("panels.nested_card");
-const FRAMED_PANE: Id = id!("panels.framed_pane");
-const LOG_CARD: Id = id!("panels.log_card");
-const PROSE_VIEW: Id = id!("panels.prose");
-const LOG_VIEW: Id = id!("panels.log");
-const NESTED_LIST: Id = id!("panels.nested");
-const WORKBENCH: Id = id!("panels.workbench");
+const TITLED_CARD: Id = termrock::Id::root("showcase_ui::pages::panels::panels.titled_card");
+const UNTITLED_CARD: Id = termrock::Id::root("showcase_ui::pages::panels::panels.untitled_card");
+const NESTED_CARD: Id = termrock::Id::root("showcase_ui::pages::panels::panels.nested_card");
+const FRAMED_PANE: Id = termrock::Id::root("showcase_ui::pages::panels::panels.framed_pane");
+const LOG_CARD: Id = termrock::Id::root("showcase_ui::pages::panels::panels.log_card");
+const PROSE_VIEW: Id = termrock::Id::root("showcase_ui::pages::panels::panels.prose");
+const LOG_VIEW: Id = termrock::Id::root("showcase_ui::pages::panels::panels.log");
+const NESTED_LIST: Id = termrock::Id::root("showcase_ui::pages::panels::panels.nested");
+const WORKBENCH: Id = termrock::Id::root("showcase_ui::pages::panels::panels.workbench");
 const PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()

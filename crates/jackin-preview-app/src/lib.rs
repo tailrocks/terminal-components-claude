@@ -35,21 +35,27 @@ pub mod screens {
     pub use jackin_preview_presentation::prelude;
 }
 
+/// Domain re-exports (monolith `domain::` namespace).
 pub mod domain {
     pub use jackin_preview_domain::*;
 }
+/// Sim re-exports (monolith `sim::` namespace).
 pub mod sim {
     pub use jackin_preview_sim::*;
 }
+/// Atmosphere re-exports (monolith `rain::` namespace).
 pub mod rain {
     pub use jackin_preview_presentation::rain::*;
 }
+/// Arbiter re-exports (monolith `arbiter::` namespace).
 pub mod arbiter {
     pub use jackin_preview_sim::arbiter::*;
 }
+/// Clock re-exports (monolith `clock::` namespace).
 pub mod clock {
     pub use jackin_preview_sim::clock::*;
 }
+/// Scenario re-exports (monolith `scenario::` namespace).
 pub mod scenario {
     pub use jackin_preview_domain::scenario::*;
 }

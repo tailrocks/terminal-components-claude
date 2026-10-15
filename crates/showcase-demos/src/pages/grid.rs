@@ -2,12 +2,12 @@
 
 use termrock::{
     Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
-    Modifier, NavUnit, Part, Rect, Role, RowDecor, StateFlags, Surface, Ui, Variant, id,
+    Modifier, NavUnit, Part, Rect, Role, RowDecor, StateFlags, Surface, Ui, Variant
 };
 
 use super::{Page, PageUpdate, frame};
 
-const METRICS: Id = id!("grid.metrics");
+const METRICS: Id = termrock::Id::root("showcase_ui::pages::grid::grid.metrics");
 const COLUMNS: [Column<'static>; 4] = [
     Column {
         key: ColumnKey::num(0),

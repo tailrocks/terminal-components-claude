@@ -2,19 +2,19 @@
 
 use termrock::{
     ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
-    Response, Ui, Variant, id, layout,
+    Response, Ui, Variant, layout,
 };
 
 use super::{Page, PageUpdate, frame, lines};
 
-const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
-const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
-const OPEN_CHOICE: Id = id!("dialogs.choice.open");
-const OPEN_DELETE: Id = id!("dialogs.delete.open");
-const CONFIRM: Id = id!("dialogs.confirm.layer");
-const PROMPT: Id = id!("dialogs.prompt.layer");
-const OPEN_PANEL: Id = id!("dialogs.open.panel");
-const RESULTS_PANEL: Id = id!("dialogs.results.panel");
+const OPEN_CONFIRM: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.confirm.open");
+const OPEN_PROMPT: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.prompt.open");
+const OPEN_CHOICE: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.choice.open");
+const OPEN_DELETE: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.delete.open");
+const CONFIRM: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.confirm.layer");
+const PROMPT: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.prompt.layer");
+const OPEN_PANEL: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.open.panel");
+const RESULTS_PANEL: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.results.panel");
 const DIALOG_LABEL_PATCH: termrock::StylePatch = termrock::StylePatch::new()
     .set_fg(termrock::Role::Accent)
     .add(termrock::Modifier::BOLD);

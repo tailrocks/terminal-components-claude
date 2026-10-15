@@ -1,7 +1,5 @@
 //! Visual variant newtype.
 
-use core::fmt;
-
 use crate::id::fnv1a;
 
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
