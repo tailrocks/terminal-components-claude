@@ -4,7 +4,7 @@
 //! last frame's registry and focus ring (§3.3 steps 3–6) and files the
 //! resulting [`Intent`]s into a per-frame [`IntentQueue`] keyed by owner.
 //! The queue is frozen for the whole of `app.update`; a component drains
-//! its own bucket through [`Cx::intents`](crate::ui::Cx::intents), which
+//! its own bucket through `Cx::intents`, which
 //! borrows only the queue, so services on `Cx` stay usable inside the loop.
 
 use core::cell::Cell;
