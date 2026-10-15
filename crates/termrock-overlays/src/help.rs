@@ -21,7 +21,7 @@ use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
 /// One titled group, borrowing the same derived binding metadata a
-/// [`crate::components::HintBar`] consumes.
+/// [`termrock_feedback::HintBar`] consumes.
 #[derive(Clone, Copy, Debug)]
 pub struct HelpSection<'a> {
     title: &'a str,

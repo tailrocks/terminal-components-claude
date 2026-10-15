@@ -32,7 +32,7 @@ use termrock_runtime::{RowFn, RowUi};
 
 /// What a radio group reports; the cursor moving is **not** an action —
 /// cursor and value are separate (§15, §20.10 item 3).
-/// Editing state a [`Form`](termrock_forms::form::Form) hands to its field
+/// Editing state a `Form` (in `termrock-forms`) hands to its field
 /// controls: shared flags every embedded control must respect.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct InheritedFormState {
