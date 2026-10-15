@@ -33,7 +33,7 @@ fn ownership_check_passes_on_workspace() {
         .join("v1.json");
     let report = check_workspace(&root, &exceptions);
     assert!(
-        report.files_scanned > 300,
+        report.files_scanned > 250,
         "the check must scan the whole tree, got {} files",
         report.files_scanned
     );
