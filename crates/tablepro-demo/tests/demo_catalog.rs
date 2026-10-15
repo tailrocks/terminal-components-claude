@@ -2,12 +2,15 @@
 //! connection names a real engine and environment, and the safe-mode rules
 //! agree with the documented confirmation behaviour.
 
-use tablepro_demo::db::{connections, Engine, SafeMode};
+use tablepro_demo::db::{Engine, SafeMode, connections};
 
 #[test]
 fn shipped_connections_are_fully_labelled_and_consistent() {
     let connections = connections();
-    assert!(!connections.is_empty(), "the demo ships at least one connection");
+    assert!(
+        !connections.is_empty(),
+        "the demo ships at least one connection"
+    );
     for connection in &connections {
         assert!(!connection.name.is_empty());
         assert!(!connection.host.is_empty());
@@ -31,10 +34,8 @@ fn shipped_connections_are_fully_labelled_and_consistent() {
             | SafeMode::ReadOnly => connection.safe_mode.label(),
         };
         // Silent and read-only never prompt; everything in between does.
-        let silent_or_readonly = matches!(
-            connection.safe_mode,
-            SafeMode::Silent | SafeMode::ReadOnly
-        );
+        let silent_or_readonly =
+            matches!(connection.safe_mode, SafeMode::Silent | SafeMode::ReadOnly);
         assert_eq!(
             connection.safe_mode.requires_confirmation(),
             !silent_or_readonly,
