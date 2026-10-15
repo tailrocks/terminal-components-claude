@@ -11,3 +11,6 @@ showcase-ui.workspace = true
 termrock-session.workspace = true
 clap.workspace = true
 ratatui.workspace = true
+
+[dev-dependencies]
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", branch = "main", features = ["pty"] }
