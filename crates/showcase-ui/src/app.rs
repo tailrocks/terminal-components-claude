@@ -514,7 +514,7 @@ impl App {
         Self::with_page_motion(initial, false, 0)
     }
 
-    pub(crate) fn with_page_motion(initial: PageId, paused: bool, frame: usize) -> Self {
+    pub fn with_page_motion(initial: PageId, paused: bool, frame: usize) -> Self {
         let mut nav_state = NavListState::new();
         let initial_key = ItemKey::text(initial.slug());
         nav_state.set_current(Some(initial_key));
@@ -1336,7 +1336,7 @@ impl TuiApp for App {
 }
 
 /// Parse CLI options and run the migrated binary.
-pub(crate) fn run() -> std::io::Result<()> {
+pub fn run() -> std::io::Result<()> {
     let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
     termrock::run(App::with_page_motion(page, paused, frame), theme)
 }

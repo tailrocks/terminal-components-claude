@@ -1,17 +1,24 @@
-//! `jackin-preview-domain`
-//!
-//! Connection, auth, service catalog, diagnostic types, pure state logic.
+//! Jackin domain: Workspaces, Roles, mounts, environments, Auth, instances,
+//! sessions, accounts, Usage. Plain data; no rendering, no services.
 
 #![forbid(unsafe_code)]
 
+/// Account identities, credential sources, and registry rules.
 pub mod account;
+/// Agent runtimes, providers, and authentication modes.
 pub mod agent;
-pub mod clock;
+/// Persisted instance, session, daemon, and pane models.
 pub mod instance;
+/// Public 1Password reference metadata.
 pub mod onepassword;
+/// Deterministic scenario contract: fixture world, motion, capture frames.
 pub mod scenario;
+/// Usage windows, freshness, and roll-up summaries.
 pub mod usage;
+/// Workspace, role, mount, and environment models.
 pub mod workspace;
+
+/// Captured workspace save identities and results.
 pub mod workspace_save;
 
 pub use account::{
@@ -20,7 +27,6 @@ pub use account::{
     RecoverableIssue, ValidationLevel, ValidationState,
 };
 pub use agent::{Agent, Provider, UsageSurface};
-pub use clock::{Clock, EPOCH_SECS, format_duration};
 pub use instance::{
     AgentState, DaemonSnapshot, Instance, InstanceId, InstanceStatus, PaneSnapshot, RunId,
     SessionRecord, SessionStatus, TabSnapshot,

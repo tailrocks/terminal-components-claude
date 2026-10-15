@@ -1,35 +1,32 @@
-//! Typed model of everything Holla knows: context, results, plans,
-//! activities, the stack fixtures, search and ranking, and the scenario
-//! worlds.
+//! Typed fixture model for the simulated world: hosts, places, projects,
+//! tools, containers, activities. Plain data; nothing here spawns a process.
 
+pub mod accounting;
 pub mod action;
 pub mod activity;
-pub mod clock;
-pub mod context;
-pub mod custom;
-pub mod digest;
+pub mod debian;
+pub mod disk;
+pub mod docker;
 pub mod effect;
-pub mod exec;
-pub mod manifest;
-pub mod plan;
-pub mod ranking;
-pub mod scenario;
-pub mod scripts;
-pub mod stack;
-pub mod usage;
+pub mod git;
+pub mod github;
+pub mod host;
+pub mod mise;
+pub mod pg;
+pub mod ssh;
 
-pub use clock::{Clock, EPOCH_SECS};
-pub use scenario::{Motion, Scenario};
+// Plan and ranking live in their own crates; re-exported so the historical
+// `holla_domain::plan` / `holla_domain::ranking` paths keep working.
+pub use holla_catalog::ranking;
+pub use holla_plan::plan;
 
-/// Fixture home directory matching visual baseline oracle.
-pub const HOME: &str = "/Users/alex";
+pub use host::Environment;
 
-pub fn expand_home(path: &str) -> String {
-    path.replacen('~', HOME, 1)
-}
+/// Fixed home directory of the simulated user, shared by path fixtures.
+pub(crate) const HOME: &str = "/home/dev";
 
 /// Human byte size per the design-system number grammar: `8.4 GB`, `900 MB`.
-pub fn human_bytes(bytes: u64) -> String {
+pub(crate) fn human_bytes(bytes: u64) -> String {
     const KB: u64 = 1_024;
     const MB: u64 = KB * 1_024;
     const GB: u64 = MB * 1_024;
@@ -42,26 +39,6 @@ pub fn human_bytes(bytes: u64) -> String {
     } else {
         format!("{bytes} B")
     }
-}
-
-pub fn plural(n: usize, one: &str, many: &str) -> String {
-    if n == 1 {
-        format!("{n} {one}")
-    } else {
-        format!("{n} {many}")
-    }
-}
-
-pub fn thousands(n: usize) -> String {
-    let s = n.to_string();
-    let mut out = String::new();
-    for (i, ch) in s.chars().enumerate() {
-        if i > 0 && (s.len() - i).is_multiple_of(3) {
-            out.push(',');
-        }
-        out.push(ch);
-    }
-    out
 }
 
 #[cfg(test)]

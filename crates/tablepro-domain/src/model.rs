@@ -1,5 +1,7 @@
 //! Query-history, completion and quick-switcher models.
 
+#![allow(missing_docs, reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures")]
+
 use termrock::{FuzzyBoundary, fuzzy_with_boundary};
 
 use tablepro_demo::db::{Catalog, ColType, Table};
@@ -7,7 +9,7 @@ use tablepro_sql::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
 
 /// Origin of a history entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum HistorySource {
+pub enum HistorySource {
     /// Editor execution.
     Editor,
     /// Explain-plan execution.
@@ -26,7 +28,7 @@ impl HistorySource {
         dead_code,
         reason = "history labels remain available to the private history adapter"
     )]
-    pub(crate) const fn label(self) -> &'static str {
+    pub const fn label(self) -> &'static str {
         match self {
             Self::Editor => "Editor",
             Self::Explain => "Explain",
@@ -39,36 +41,36 @@ impl HistorySource {
 
 /// One query-history record.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct HistoryEntry {
+pub struct HistoryEntry {
     /// Stable id.
-    pub(crate) id: usize,
+    pub id: usize,
     /// SQL text.
-    pub(crate) sql: String,
+    pub sql: String,
     /// Connection name.
-    pub(crate) connection: String,
+    pub connection: String,
     /// Database name.
-    pub(crate) database: String,
+    pub database: String,
     /// Schema name.
-    pub(crate) schema: String,
+    pub schema: String,
     /// Deterministic age in minutes.
-    pub(crate) minutes_ago: u32,
+    pub minutes_ago: u32,
     /// Duration in milliseconds.
-    pub(crate) duration_ms: Option<u32>,
+    pub duration_ms: Option<u32>,
     /// Returned/affected rows.
-    pub(crate) rows: Option<usize>,
+    pub rows: Option<usize>,
     /// Error, when execution failed.
-    pub(crate) error: Option<String>,
+    pub error: Option<String>,
     /// Origin surface.
-    pub(crate) source: HistorySource,
+    pub source: HistorySource,
 }
 
 impl HistoryEntry {
     /// Whether execution succeeded.
-    pub(crate) fn ok(&self) -> bool {
+    pub fn ok(&self) -> bool {
         self.error.is_none()
     }
     /// First line for compact rows.
-    pub(crate) fn first_line(&self) -> String {
+    pub fn first_line(&self) -> String {
         let mut lines = self.sql.lines();
         let first = lines.next().unwrap_or_default().trim();
         if lines.next().is_some() {
@@ -78,7 +80,7 @@ impl HistoryEntry {
         }
     }
     /// Stable relative time label.
-    pub(crate) fn when(&self) -> String {
+    pub fn when(&self) -> String {
         match self.minutes_ago {
             0 => "just now".to_owned(),
             n if n < 60 => format!("{n} min ago"),
@@ -91,7 +93,7 @@ impl HistoryEntry {
         dead_code,
         reason = "history duration remains available to the private history adapter"
     )]
-    pub(crate) fn duration(&self) -> String {
+    pub fn duration(&self) -> String {
         match self.duration_ms {
             None => "–".to_owned(),
             Some(0) => "<1 ms".to_owned(),
@@ -106,7 +108,7 @@ impl HistoryEntry {
 #[derive(Debug, Clone, Default)]
 pub struct History {
     /// Entries, newest first.
-    pub(crate) entries: Vec<HistoryEntry>,
+    pub entries: Vec<HistoryEntry>,
     next_id: usize,
 }
 
@@ -208,14 +210,14 @@ impl History {
         self.entries.is_empty()
     }
     /// Add an entry and retain the newest 10,000 records.
-    pub(crate) fn push(&mut self, mut entry: HistoryEntry) {
+    pub fn push(&mut self, mut entry: HistoryEntry) {
         self.next_id = self.next_id.saturating_add(1);
         entry.id = self.next_id;
         self.entries.insert(0, entry);
         self.entries.truncate(10_000);
     }
     /// Search with case-insensitive AND semantics.
-    pub(crate) fn search<'a>(
+    pub fn search<'a>(
         &'a self,
         query: &str,
         connection: Option<&str>,
@@ -801,7 +803,7 @@ impl SwitcherIndex {
     ) -> Self {
         Self::build(catalog, history, connections, &[])
     }
-    pub(crate) fn from_workbench(
+    pub fn from_workbench(
         catalog: &Catalog,
         history: &History,
         connection: &tablepro_demo::db::Connection,
@@ -941,7 +943,7 @@ impl SwitcherIndex {
     dead_code,
     reason = "column projection remains available to the private editor adapter"
 )]
-pub(crate) fn table_columns(table: &Table) -> Vec<(String, ColType)> {
+pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
         .iter()
@@ -954,7 +956,7 @@ pub(crate) fn table_columns(table: &Table) -> Vec<(String, ColType)> {
     dead_code,
     reason = "token projection remains available to the private editor adapter"
 )]
-pub(crate) fn statement_tokens(source: &str) -> Vec<String> {
+pub fn statement_tokens(source: &str) -> Vec<String> {
     tokenize(source)
         .into_iter()
         .filter_map(|token| source.get(token.start..token.end).map(str::to_owned))

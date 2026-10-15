@@ -4,12 +4,6 @@
 //! public entry point as downstream consumers and makes the `termrock`
 //! facade boundary compiler-enforced.
 
-#![expect(
-    clippy::arithmetic_side_effects,
-    clippy::too_many_lines,
-    reason = "historical compatibility pages keep bounded fixture arithmetic and composition together"
-)]
-
 pub mod app;
 pub use app::{App, NAV_ENTRIES, NavEntry, PageId};
 

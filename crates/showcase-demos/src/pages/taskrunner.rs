@@ -15,7 +15,7 @@ const RUN: Id = id!("taskrunner.run");
 const CANCEL: Id = id!("taskrunner.cancel");
 const STEPS: Id = id!("taskrunner.steps");
 const CANCEL_DIALOG: Id = id!("taskrunner.cancel.dialog");
-pub(crate) const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
+pub const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]
 struct RunStep {
@@ -296,7 +296,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
 /// The runner advances one lifecycle step per virtual tick and confirms
 /// cancellation through a modal layer.
 #[derive(Debug)]
-pub(crate) struct TaskRunnerPage {
+pub struct TaskRunnerPage {
     steps: Vec<RunStep>,
     state: StepsState,
     frame: usize,
@@ -307,7 +307,7 @@ pub(crate) struct TaskRunnerPage {
 }
 
 impl TaskRunnerPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             steps: NAMES
                 .iter()

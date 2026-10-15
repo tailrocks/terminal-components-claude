@@ -1,13 +1,18 @@
 [package]
 name = "tablepro"
+description = "TablePro terminal database workbench"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+publish = false
+
+[[bin]]
+name = "tablepro"
+path = "src/main.rs"
 
 [dependencies]
 tablepro-ui.workspace = true
-tablepro-demo.workspace = true
-termrock-session.workspace = true
-clap.workspace = true
-ratatui.workspace = true
+
+[lints]
+workspace = true

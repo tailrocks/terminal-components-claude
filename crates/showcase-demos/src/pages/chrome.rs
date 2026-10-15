@@ -299,13 +299,13 @@ fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
 
 /// Chrome keeps a clickable brand and a deterministic status strip in state.
 #[derive(Debug, Default)]
-pub(crate) struct ChromePage {
+pub struct ChromePage {
     brand_clicks: u32,
     frame: usize,
 }
 
 impl ChromePage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 }

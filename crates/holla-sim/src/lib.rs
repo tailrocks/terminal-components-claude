@@ -1,19 +1,19 @@
-//! Deterministic simulation world and virtual filesystem matching oracle baselines.
-#![forbid(unsafe_code)]
+//! In-memory simulation services. The launcher never spawns a real process:
+//! mise, git, gh, docker, btm, `pg_activity`, ssh and the filesystem are
+//! deterministic fixtures that evolve only on virtual-clock ticks.
+//!
+//! The fixture clock, the scenario contract and the per-scenario fixture
+//! worlds (`fixtures`) live here so the world, the fixtures and the UI can
+//! share one dependency direction: holla-ui depends on holla-sim.
 
-pub mod catalog;
-pub mod cleanup;
+pub mod catalogue;
+pub mod clock;
 pub mod fixtures;
-pub mod fs;
-pub mod outcomes;
-pub mod parity;
+pub mod pg;
+pub mod plans;
+pub mod scenario;
 pub mod world;
 
 pub use fixtures::world_for;
-pub use fs::Fs;
+pub use scenario::{Motion, Scenario};
 pub use world::World;
-
-/// `2 min 14 s` from ticks.
-pub fn ticks_label(ticks: u64) -> String {
-    holla_domain::clock::format_duration(ticks * world::TICK_MS as u64 / 1000)
-}

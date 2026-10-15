@@ -187,14 +187,14 @@ fn legacy_field_error(ui: &mut Ui<'_>, area: Rect, text: &str) {
 /// A controlled multi-line document with enough rows to exercise wheel and
 /// keyboard scrolling at both baseline sizes.
 #[derive(Debug)]
-pub(crate) struct TextAreasPage {
+pub struct TextAreasPage {
     value: String,
     state: TextAreaState,
     last: &'static str,
 }
 
 impl TextAreasPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             value: checklist(),
             state: TextAreaState::default(),

@@ -466,14 +466,14 @@ fn tasks_panel(meta: &str) -> Panel<'_> {
 /// The grid owns cursor and editor state; the model owns the editable task
 /// records and their validation rules.
 #[derive(Debug)]
-pub(crate) struct EditablePage {
+pub struct EditablePage {
     model: EditableModel,
     state: GridState,
     edits: u32,
 }
 
 impl EditablePage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             model: EditableModel::new(),
             state: GridState::default(),

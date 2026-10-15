@@ -193,7 +193,7 @@ fn editor_meta(state: &CodeEditorState) -> String {
 /// The editor's durable document and semantic spans are initialized from the
 /// historical retry sample.
 #[derive(Debug)]
-pub(crate) struct EditorPage {
+pub struct EditorPage {
     state: CodeEditorState,
     completion_state: CompletionState,
     diff_state: DiffViewState,
@@ -201,7 +201,7 @@ pub(crate) struct EditorPage {
 }
 
 impl EditorPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             state: CodeEditorState::new(SAMPLE),
             completion_state: CompletionState::default(),

@@ -161,7 +161,7 @@ fn legacy_field_help(
 
 /// A pair of independent controlled fields, matching the legacy input page.
 #[derive(Debug)]
-pub(crate) struct InputsPage {
+pub struct InputsPage {
     name: String,
     branch: String,
     name_state: TextInputState,
@@ -170,7 +170,7 @@ pub(crate) struct InputsPage {
 }
 
 impl InputsPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             name: String::from("payments-gateway"),
             branch: String::new(),

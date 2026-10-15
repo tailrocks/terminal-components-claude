@@ -280,7 +280,7 @@ impl core::fmt::Debug for PendingInput {
 ///
 /// A pending frame prevents mutation of the runtime it belongs to:
 /// ```compile_fail,E0499
-/// use junie_tui::{App, Runtime};
+/// use termrock_runtime::{App, Runtime};
 /// use ratatui_core::terminal::Frame;
 /// fn stale<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {
 ///     let frame = rt.draw(buf);
@@ -290,7 +290,7 @@ impl core::fmt::Debug for PendingInput {
 /// ```
 /// Publication cannot be redirected to a different runtime:
 /// ```compile_fail,E0061
-/// use junie_tui::{App, Runtime};
+/// use termrock_runtime::{App, Runtime};
 /// use ratatui_core::terminal::Frame;
 /// fn wrong<A: App>(one: &mut Runtime<A>, two: &mut Runtime<A>, buf: &mut Frame<'_>) {
 ///     let frame = one.draw(buf);
@@ -299,7 +299,7 @@ impl core::fmt::Debug for PendingInput {
 /// ```
 /// A successful acknowledgment consumes the frame:
 /// ```compile_fail,E0382
-/// use junie_tui::{App, Runtime};
+/// use termrock_runtime::{App, Runtime};
 /// use ratatui_core::terminal::Frame;
 /// fn twice<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {
 ///     let frame = rt.draw(buf);
@@ -3648,5 +3648,279 @@ mod tests {
             Some(OK),
             "the named target holds focus before the layer has ever drawn"
         );
+    }
+}
+
+/// Test stubs: a minimal `Control` and driver for focus, capture, scroll
+/// and hit-registration shapes in component tests.
+#[cfg(any(test, feature = "testing"))]
+pub mod stub {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+
+    use super::{App, Runtime, UpdateCause};
+    use crate::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
+    use crate::focus::Focusability;
+    use crate::hit::{Axes, Headroom};
+    use crate::id::{Id, Part, PartRef};
+    use crate::intent::{Intent, Phase};
+    use crate::layer::LayerSpec;
+    use crate::response::{Response, StateFlags};
+    use crate::theme::Theme;
+    use crate::ui::{Cx, Ui};
+
+    /// One control the stub draws.
+    #[derive(Clone, Debug)]
+    #[expect(
+        clippy::struct_excessive_bools,
+        reason = "a test stub's knobs: one flag per registration shape, set by field                   init from `Control::new`, never a state machine"
+    )]
+    pub struct Control {
+        pub id: Id,
+        pub area: Rect,
+        pub focus: Focusability,
+        /// Registers as an editor (swallows typing, consumes Esc as cancel).
+        pub editor: bool,
+        /// Claims capture on `Press`.
+        pub captures: bool,
+        /// Also registers a scroll region.
+        pub scroll: bool,
+        /// Registers a `Decorative` region only — no control, no part. This
+        /// is what a `Dialog` registers for its own id.
+        pub decor: bool,
+    }
+
+    impl Control {
+        pub const fn new(id: Id, area: Rect) -> Self {
+            Control {
+                id,
+                area,
+                focus: Focusability::Focusable,
+                editor: false,
+                captures: false,
+                scroll: false,
+                decor: false,
+            }
+        }
+    }
+
+    #[derive(Default, Debug)]
+    pub struct Stub {
+        pub page: Vec<Control>,
+        pub layers: Vec<(Id, Vec<Control>)>,
+        /// Every intent seen, as `(owner, Debug text)`.
+        pub log: Vec<(Id, String)>,
+        pub consume_keys: bool,
+        pub focus_request: Option<Id>,
+        pub open_request: Option<(Id, LayerSpec)>,
+        pub close_request: Option<Id>,
+        pub resize_request: Option<(Id, crate::layer::LayerSize)>,
+        /// `update` calls so far.
+        pub updates: usize,
+        pub events_started: bool,
+        /// Focus requests issued from inside `update` on each pass (settling tests).
+        pub chase: Vec<Id>,
+        pub esc_hits: usize,
+        /// An owner whose bucket `update` never drains (the gated-shape app).
+        pub skip_drain: Option<Id>,
+    }
+
+    impl Stub {
+        pub fn controls(&self) -> impl Iterator<Item = &Control> + '_ {
+            self.page
+                .iter()
+                .chain(self.layers.iter().flat_map(|(_, c)| c.iter()))
+        }
+
+        pub fn saw(&self, id: Id, needle: &str) -> bool {
+            self.log.iter().any(|(o, s)| *o == id && s.contains(needle))
+        }
+
+        pub fn count(&self, id: Id, needle: &str) -> usize {
+            self.log
+                .iter()
+                .filter(|(o, s)| *o == id && s.contains(needle))
+                .count()
+        }
+    }
+
+    impl App for Stub {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.updates = self.updates.saturating_add(1);
+            // The bootstrap pass is lifecycle plumbing. Keep this fixture's
+            // queued test actions for the first externally handled event.
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                return Response::ignored();
+            }
+            if matches!(cx.update_cause(), UpdateCause::Event | UpdateCause::Tick) {
+                self.events_started = true;
+            }
+            let mut r = Response::ignored();
+            let controls: Vec<Control> = self.controls().cloned().collect();
+            for c in &controls {
+                if self.skip_drain == Some(c.id) {
+                    continue;
+                }
+                for it in cx.intents(c.id) {
+                    self.log.push((c.id, format!("{it:?}")));
+                    match it {
+                        Intent::Key(k) if c.editor && k.is(KeyCode::Esc) => {
+                            r |= Response::changed();
+                        }
+                        Intent::Key(_) if self.consume_keys => r |= Response::consumed(),
+                        Intent::Pointer {
+                            phase: Phase::Press,
+                            part,
+                            ..
+                        } if c.captures => {
+                            assert!(cx.capture(c.id, part));
+                            self.log
+                                .push((c.id, format!("origin: {:?}", cx.capture_origin())));
+                            r |= Response::changed();
+                        }
+                        Intent::Pointer {
+                            phase: Phase::Move, ..
+                        } => {}
+                        Intent::Pointer { .. } | Intent::Wheel { .. } => r |= Response::changed(),
+                        _ => {}
+                    }
+                }
+            }
+            let layer_ids: Vec<Id> = self
+                .layers
+                .iter()
+                .map(|(id, _)| *id)
+                .filter(|id| self.skip_drain != Some(*id))
+                .collect();
+            for id in layer_ids {
+                for it in cx.intents(id) {
+                    self.log.push((id, format!("{it:?}")));
+                }
+            }
+            if !self.events_started {
+                return r;
+            }
+            if let Some(f) = self.focus_request.take() {
+                cx.focus(f);
+            }
+            if let Some(next) = self.chase.pop() {
+                cx.focus(next);
+            }
+            if let Some((id, spec)) = self.open_request.take() {
+                cx.open_layer(id, spec);
+            }
+            if let Some(id) = self.close_request.take() {
+                cx.close_layer(id, None);
+            }
+            if let Some((id, size)) = self.resize_request.take() {
+                cx.resize_layer(id, size);
+            }
+            r
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            for c in &self.page {
+                register(ui, c);
+            }
+            for (layer, controls) in &self.layers {
+                ui.layer(*layer, |ui, _area| {
+                    for c in controls {
+                        register(ui, c);
+                    }
+                });
+            }
+        }
+
+        fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            self.esc_hits = self.esc_hits.saturating_add(1);
+            Response::consumed()
+        }
+    }
+
+    fn register(ui: &mut Ui<'_>, c: &Control) {
+        if c.decor {
+            ui.register_decor(c.id, PartRef::of(Part::CONTAINER), c.area);
+            return;
+        }
+        if c.editor {
+            ui.register_editor(c.id, c.area, c.focus, StateFlags::EDITING);
+            ui.set_cursor(c.id, Position::new(c.area.x, c.area.y));
+        } else {
+            ui.register_control(c.id, c.area, c.focus);
+        }
+        ui.register_part(c.id, PartRef::of(Part::LABEL), c.area);
+        if c.scroll {
+            ui.register_scroll(c.id, c.area, Axes::V, Headroom::default());
+        }
+    }
+
+    pub const SCREEN: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 12,
+    };
+
+    /// A runtime that has drawn once.
+    pub fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
+        let mut rt = Runtime::new(stub, Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..16 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                return (rt, buf);
+            }
+            let _ = rt.settle();
+        }
+        panic!("initial fixture focus did not settle");
+    }
+
+    pub fn key(code: KeyCode) -> Input {
+        Input::Key(Key {
+            code,
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    pub fn mouse(kind: MouseKind, x: u16, y: u16) -> Input {
+        Input::Mouse(Mouse {
+            kind,
+            pos: Position::new(x, y),
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    /// Behavioral fixture delivery: publish real geometry, settle, then assert acceptance.
+    pub fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
+        assert!(
+            rt.bootstrapped,
+            "behavioral fixture must explicitly initialize"
+        );
+        let area = if rt.screen().is_empty() {
+            SCREEN
+        } else {
+            rt.screen()
+        };
+        let mut buffer = Buffer::empty(area);
+        for _ in 0..16 {
+            if rt.needs_settle() {
+                let _ = rt.settle();
+            }
+            if !rt.needs_present() && !rt.needs_settle() {
+                return rt
+                    .handle(input)
+                    .expect("fixture publication must accept input");
+            }
+            rt.draw_buffer(area, &mut buffer).commit_presented();
+        }
+        panic!("fixture publication did not settle: {:?}", rt.diagnostics());
+    }
+
+    /// Handle then draw, like the harness.
+    pub fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
+        let r = deliver(rt, input);
+        rt.draw_buffer(SCREEN, buf).commit_presented();
+        r
     }
 }

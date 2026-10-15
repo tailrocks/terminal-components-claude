@@ -161,14 +161,14 @@ fn state_language_panel() -> Panel<'static> {
 /// The landing page has no mutable controls; its content is deliberately
 /// useful as a smoke test for themes, clipping and public component exports.
 #[derive(Debug)]
-pub(crate) struct OverviewPage {
+pub struct OverviewPage {
     author: AuthorBadge,
     help_state: HelpOverlayState,
     props_state: PropsState,
 }
 
 impl OverviewPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             author: AuthorBadge::new(AUTHOR),
             help_state: HelpOverlayState::default(),

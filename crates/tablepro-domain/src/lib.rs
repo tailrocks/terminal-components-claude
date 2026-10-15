@@ -1,36 +1,20 @@
-//! `tablepro-domain`
-//!
-//! Connection, schema, query, result, history, safety and pending-change domain values.
-//! Pure data structures without dependency on TUI or terminal widgets.
+//! Domain model for the `TablePro` application: connections, switcher
+//! index, result grids, and pending-edit bookkeeping.
 
 #![forbid(unsafe_code)]
 
-mod connection;
-mod history;
-mod pending;
-mod schema;
-mod value;
+pub mod connections;
+pub mod domain;
+pub mod filter_editor;
+pub mod grid_model;
+pub mod model;
+pub mod tabs;
 
-pub use connection::{ConnectOutcome, Connection, Engine, Environment, SafeMode};
-pub use history::{History, HistoryEntry, HistorySource};
-pub use pending::{PendingEdits, PendingRow};
-pub use schema::{Catalog, ColType, Column, Constraint, Index, ObjectKind, Table};
-pub use value::{ResultSet, Value, cmp_values};
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_engine_labels() {
-        assert_eq!(Engine::Postgres.label(), "PostgreSQL");
-        assert_eq!(Engine::MySql.label(), "MySQL");
-        assert_eq!(Engine::Sqlite.label(), "SQLite");
-        assert_eq!(Engine::Postgres.short(), "pg");
-    }
-
-    #[test]
-    fn test_safe_mode_ordering() {
-        assert!(SafeMode::Silent < SafeMode::Alert);
-    }
-}
+pub use connections::{ConnectionDraft, ConnectionsScreen, form_fields};
+pub use domain::{PendingEdits, ResultGrid};
+pub use filter_editor::{Filter, FilterOp};
+pub use grid_model::{ResultGridModel, StructureModel, TableGridModel, preview_for};
+pub use model::{
+    Completion, CompletionBatch, CompletionKind, History, SwitchItem, SwitchTarget, SwitcherIndex,
+    auto_trigger, complete, completion_batch,
+};

@@ -246,13 +246,13 @@ fn paint_invisible(ui: &mut Ui<'_>, body: Rect, row: u16, x: u16, text: &str) {
 
 /// A read-only health dashboard demonstrates row identity and typed cell data.
 #[derive(Debug, Default)]
-pub(crate) struct GridPage {
+pub struct GridPage {
     state: GridState,
     selected: Option<ItemKey>,
 }
 
 impl GridPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 }

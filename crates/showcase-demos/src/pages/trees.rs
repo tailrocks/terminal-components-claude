@@ -171,14 +171,14 @@ fn label_for(key: Option<ItemKey>) -> &'static str {
 /// Project navigation owns expansion by stable item key. No depth-derived key
 /// can alias a sibling or move focus after a branch changes shape.
 #[derive(Debug)]
-pub(crate) struct TreesPage {
+pub struct TreesPage {
     state: TreeState,
     chosen: Option<ItemKey>,
     last: &'static str,
 }
 
 impl TreesPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut state = TreeState::new();
         // Match the legacy tree's first-level-open presentation. Descendants
         // remain closed until the user opens them, so keyboard expansion has

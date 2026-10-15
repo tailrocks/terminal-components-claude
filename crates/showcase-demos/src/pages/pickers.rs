@@ -917,7 +917,7 @@ fn paint_historical(
 
 /// The picker owns query/cursor state while the app owns the selected result.
 #[derive(Debug, Default)]
-pub(crate) struct PickersPage {
+pub struct PickersPage {
     state: PickerState,
     filter_state: FilterListState,
     chain_state: PickerChainState,
@@ -933,7 +933,7 @@ pub(crate) struct PickersPage {
 }
 
 impl PickersPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             state: PickerState::default(),
             filter_state: FilterListState::default(),
@@ -1163,7 +1163,6 @@ impl Page for PickersPage {
     }
 }
 
-#[cfg(test)]
-pub(crate) fn action_keys() -> impl Iterator<Item = ActionKey> {
+pub fn action_keys() -> impl Iterator<Item = ActionKey> {
     MENU_ITEMS.iter().chain(CONTEXT_ITEMS).map(MenuItem::action)
 }

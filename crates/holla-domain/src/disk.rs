@@ -3,7 +3,7 @@
 
 /// Cleanup families (mole §families): generated artifacts, not user data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Family {
+pub(crate) enum Family {
     CargoTarget,
     Gradle,
     NodeModules,
@@ -15,7 +15,7 @@ pub enum Family {
 }
 
 impl Family {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Family::CargoTarget => "cargo target",
             Family::Gradle => "gradle build",
@@ -31,14 +31,14 @@ impl Family {
 
 /// How recently anything touched the candidate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Freshness {
+pub(crate) enum Freshness {
     ActiveToday,
     InactiveDays(u32),
     Unknown,
 }
 
 impl Freshness {
-    pub fn label(self) -> String {
+    pub(crate) fn label(self) -> String {
         match self {
             Freshness::ActiveToday => "active today".to_owned(),
             Freshness::InactiveDays(d) => format!("inactive {d} days"),
@@ -48,22 +48,22 @@ impl Freshness {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Candidate {
-    pub path: String,
-    pub family: Family,
-    pub size_bytes: u64,
-    pub freshness: Freshness,
+pub(crate) struct Candidate {
+    pub(crate) path: String,
+    pub(crate) family: Family,
+    pub(crate) size_bytes: u64,
+    pub(crate) freshness: Freshness,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DiskState {
-    pub total_bytes: u64,
-    pub used_bytes: u64,
-    pub candidates: Vec<Candidate>,
+pub(crate) struct DiskState {
+    pub(crate) total_bytes: u64,
+    pub(crate) used_bytes: u64,
+    pub(crate) candidates: Vec<Candidate>,
 }
 
 impl DiskState {
-    pub fn validate(&self, cwd: &str) -> Result<(), super::accounting::InventoryError> {
+    pub(crate) fn validate(&self, cwd: &str) -> Result<(), super::accounting::InventoryError> {
         use super::accounting::InventoryError;
         if self.inspected_bytes()? > self.used_bytes || self.used_bytes > self.total_bytes {
             return Err(InventoryError::InvalidCapacity);
@@ -81,7 +81,7 @@ impl DiskState {
         Ok(())
     }
 
-    pub fn used_percent(&self) -> u32 {
+    pub(crate) fn used_percent(&self) -> u32 {
         if self.total_bytes == 0 {
             return 0;
         }
@@ -93,12 +93,12 @@ impl DiskState {
     }
 
     /// All inspected generated artifacts, including policy-protected active data.
-    pub fn inspected_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+    pub(crate) fn inspected_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
         super::accounting::bytes(self.candidates.iter().map(|c| c.size_bytes))
     }
 
     /// Bytes eligible for the cleanup policy shown by the plan.
-    pub fn reclaimable_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+    pub(crate) fn reclaimable_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
         super::accounting::bytes(
             self.candidates
                 .iter()
@@ -111,14 +111,14 @@ impl DiskState {
 /// Resolve fixture paths lexically without reading or mutating a filesystem.
 /// Relative paths belong to the simulated cwd; `.`/`..` cannot disguise an
 /// overlapping target. Root and traversal above root are not cleanup targets.
-pub fn cleanup_path(cwd: &str, path: &str) -> Option<std::path::PathBuf> {
+pub(crate) fn cleanup_path(cwd: &str, path: &str) -> Option<std::path::PathBuf> {
     use std::path::{Component, Path, PathBuf};
     if path.is_empty() {
         return None;
     }
     let expand = |value: &str| match value.strip_prefix("~/") {
-        Some(rest) => format!("{}/{rest}", crate::HOME),
-        None if value == "~" => crate::HOME.to_owned(),
+        Some(rest) => format!("{}/{rest}", super::fixtures::HOME),
+        None if value == "~" => super::fixtures::HOME.to_owned(),
         None => value.to_owned(),
     };
     let expanded = expand(path);

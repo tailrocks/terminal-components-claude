@@ -4,7 +4,7 @@ use std::ffi::{OsStr, OsString};
 use crate::{Motion, Scenario};
 use termrock::{ColorLevel, Theme};
 
-pub const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)\n\n\
+pub(super) const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)\n\n\
                      USAGE: jackin-preview [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
                      Scenarios: first-use, returning, accounts-mixed, launch-running, launch-failure, capsule-multi, outro-last, hard-cases\n\
                      Motion:    explicit --motion wins; otherwise JACKIN_NO_MOTION=1 selects reduced motion\n\
@@ -13,16 +13,16 @@ pub const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design
                      Everything is simulated in memory; the real Jackin CLI is never touched.";
 
 #[derive(Debug)]
-pub struct Options {
-    pub scenario: Scenario,
-    pub motion: Motion,
-    pub frame: u64,
-    pub level: ColorLevel,
-    pub paper: bool,
+pub(super) struct Options {
+    scenario: Scenario,
+    motion: Motion,
+    frame: u64,
+    level: ColorLevel,
+    paper: bool,
 }
 
 impl Options {
-    pub fn run(self) -> std::io::Result<()> {
+    pub(super) fn run(self) -> std::io::Result<()> {
         let theme = if self.paper {
             Theme::paper()
         } else {
@@ -38,16 +38,16 @@ impl Options {
 }
 
 #[derive(Debug)]
-pub enum Parsed {
+pub(super) enum Parsed {
     Run(Options),
     Help,
 }
 
 // Errors contain policy text only, never supplied values. A malformed CLI
 // argument can itself be a pasted credential; reference value echoing is unsafe.
-pub type Error = &'static str;
+type Error = &'static str;
 
-pub fn parse(
+pub(super) fn parse(
     args: impl IntoIterator<Item = OsString>,
     no_motion: Option<&OsStr>,
     detected_color: ColorLevel,

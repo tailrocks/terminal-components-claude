@@ -1,6 +1,6 @@
 //! Checked fixture accounting shared by views, review and simulation effects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InventoryError {
+pub(crate) enum InventoryError {
     Overflow,
     DuplicateIdentity,
     InvalidCapacity,
@@ -22,13 +22,15 @@ impl std::fmt::Display for InventoryError {
 }
 impl std::error::Error for InventoryError {}
 
-pub fn bytes(values: impl IntoIterator<Item = u64>) -> Result<u64, InventoryError> {
+pub(crate) fn bytes(values: impl IntoIterator<Item = u64>) -> Result<u64, InventoryError> {
     values.into_iter().try_fold(0_u64, |total, value| {
         total.checked_add(value).ok_or(InventoryError::Overflow)
     })
 }
 
-pub fn identities<'a>(values: impl IntoIterator<Item = &'a str>) -> Result<(), InventoryError> {
+pub(crate) fn identities<'a>(
+    values: impl IntoIterator<Item = &'a str>,
+) -> Result<(), InventoryError> {
     let mut seen = std::collections::BTreeSet::new();
     for value in values {
         if value.is_empty() || !seen.insert(value) {

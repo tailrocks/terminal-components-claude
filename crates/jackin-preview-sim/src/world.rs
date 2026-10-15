@@ -6,48 +6,29 @@
 use std::collections::BTreeMap;
 
 use crate::arbiter::Arbiter;
-use crate::fixtures::{self, HOME};
-use crate::onepassword::SimOnePassword;
-use crate::pty::Daemon;
+use crate::clock::{Clock, EPOCH_SECS};
 use jackin_preview_domain::account::{AccountId, AccountRegistry};
 use jackin_preview_domain::agent::{Agent, AuthMode, Provider};
-use jackin_preview_domain::clock::{Clock, EPOCH_SECS};
+use crate::fixtures::{self, HOME};
 use jackin_preview_domain::instance::{Instance, InstanceStatus};
-use jackin_preview_domain::scenario::Scenario;
-use jackin_preview_domain::workspace::{
-    EnvVar, Mount, RoleEntry, RoleName, Usability, Workspace, WorkspaceId,
-};
+use jackin_preview_domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
 use jackin_preview_domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
+use jackin_preview_domain::scenario::Scenario;
+use crate::onepassword::SimOnePassword;
+use crate::pty::Daemon;
 
 /// Host trust setting projected by the Settings route.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrustRow {
     /// Stable source label.
     pub source: String,
-    /// Source kind (`git` or `path`).
-    pub kind: &'static str,
     /// Whether the source is trusted.
     pub trusted: bool,
-    /// Number of registry roles served from this source.
-    pub roles: usize,
 }
 
 /// Host-level configuration shared by workspace drafts.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GlobalConfig {
-    /// Whether new workspaces add a Co-authored-by trailer.
-    pub coauthor_trailer: bool,
-    /// Whether new workspaces sign off commits (DCO).
-    pub dco_signoff: bool,
-    /// Global mounts shared by every workspace.
-    pub mounts: Vec<Mount>,
-    /// Global environment variables.
-    pub env: Vec<EnvVar>,
-    /// Role-scoped environment overrides by role name.
-    pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
-    /// How each agent runtime is given credentials inside the container.
-    /// Which account backs it is the registry's business, not this table's.
-    pub agent_modes: BTreeMap<Agent, AuthMode>,
     /// Trust rows edited by Settings.
     pub trust: Vec<TrustRow>,
 }
@@ -180,14 +161,14 @@ impl World {
     }
 
     /// Allocate a world-lifetime operation token, independent of screen replacement.
-    pub fn next_manager_operation(&mut self) -> Option<u64> {
+    pub(crate) fn next_manager_operation(&mut self) -> Option<u64> {
         let next = self.manager_operation_sequence.checked_add(1)?;
         self.manager_operation_sequence = next;
         Some(next)
     }
 
     /// Consume a review once, invalidating older UI contexts without shared clone state.
-    pub fn consume_manager_review(&mut self, review: u64) -> bool {
+    pub(crate) fn consume_manager_review(&mut self, review: u64) -> bool {
         if review <= self.manager_review_watermark || review > self.manager_operation_sequence {
             return false;
         }
@@ -196,7 +177,7 @@ impl World {
     }
 
     /// Admit a captured write; UI callbacks never supply its completion payload.
-    pub fn begin_editor_write(
+    pub(crate) fn begin_editor_write(
         &mut self,
         expected: Option<&Workspace>,
         mut proposed: Workspace,
@@ -362,15 +343,6 @@ impl World {
         })
     }
 
-    /// Shorten with `~` if the path starts with the home directory.
-    pub fn tilde(&self, path: &str) -> String {
-        if let Some(rest) = path.strip_prefix(&self.home) {
-            format!("~{rest}")
-        } else {
-            path.to_owned()
-        }
-    }
-
     /// Find an instance by stable identifier.
     pub fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)
@@ -412,8 +384,8 @@ impl World {
 
     /// Allocate the next deterministic instance identifier.
     pub fn new_instance_id(&self) -> String {
-        let n = self.instances.len() as u32 + 0x7f3a + 0x1234 * 3;
-        format!("jk-{:04x}", n & 0xffff)
+        let next = self.instances.len().saturating_add(1);
+        format!("jk-{next:04x}")
     }
 
     /// Resolve the account selected for a launch context.
@@ -567,7 +539,26 @@ pub fn world_for(scenario: Scenario) -> World {
         arbiter: Arbiter::new(0),
         home: HOME.into(),
         cwd: fixtures::PAYMENTS_WORKDIR.into(),
-        global: fixtures::global_config(scenario != Scenario::FirstUse),
+        global: GlobalConfig {
+            trust: vec![
+                TrustRow {
+                    source: "github.com/chainargos/roles".into(),
+                    trusted: true,
+                },
+                TrustRow {
+                    source: "github.com/acme-labs/roles-experimental".into(),
+                    trusted: false,
+                },
+                TrustRow {
+                    source: "~/roles".into(),
+                    trusted: true,
+                },
+                TrustRow {
+                    source: "git@corp:infra/roles".into(),
+                    trusted: true,
+                },
+            ],
+        },
         workspaces: Vec::new(),
         roles: fixtures::fixture_roles_for(scenario),
         instances: Vec::new(),
@@ -602,7 +593,6 @@ pub fn world_for(scenario: Scenario) -> World {
     }
     if scenario == Scenario::HardCases {
         world.op.session = crate::onepassword::OpSession::Locked;
-        world.daemon_health = DaemonHealth::Stale;
         world.arbiter.discovery = Err(crate::arbiter::DiscoveryError::IndexUnreadable);
         world.arbiter.entered_at_ms = None;
     }

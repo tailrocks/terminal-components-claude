@@ -172,7 +172,7 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
 /// The page keeps terminal text and lifecycle data in app state; public
 /// controls retain ownership of scrolling, focus, and activation semantics.
 #[derive(Debug)]
-pub(crate) struct TerminalPage {
+pub struct TerminalPage {
     output: String,
     output_state: TextAreaState,
     steps: Vec<TerminalStep>,
@@ -181,7 +181,7 @@ pub(crate) struct TerminalPage {
 }
 
 impl TerminalPage {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             output: log_lines(120).join("\n"),
             output_state: TextAreaState::default(),
