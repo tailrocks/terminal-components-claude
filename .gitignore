@@ -1,4 +1,4 @@
-/target
+target/
 baseline/**/*.png
 baseline/**/*.html
 tools/**/__pycache__/
@@ -17,3 +17,7 @@ crates/tui/wip/
 
 # untracked parity capture artifacts
 parity/
+
+# Local one-off consumer workspaces (backend-free/facade probes) live here.
+/target/*
+/target

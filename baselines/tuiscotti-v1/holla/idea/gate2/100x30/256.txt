@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local
+           ╭────────────────────────────────────────────────────────────────────────────╮
+  Here › Cl│                                                                            │
+ ━━━━━━━━━━│  Trash 4 items · gate 2 of 2                                               │──────────
+  Review · │                                                                            │ately
+           │  Action        move to Trash 4 items under ~/work/ide                      │
+  Action   │  Host          mbp · local                                                 │
+  Host     │  Mode          Trash · native macOS Trash · space returns after the Trash  │
+  Mode     │                is emptied                                                  │
+  Estimate │  Estimate      44.0 KiB allocated · APFS clones may overcount · purgeable  │ · not a
+           │                space excluded · not a free-space guarantee                 │
+  Denied   │  Denied        none · every path passed the lexical, protected-root,       │nk rules
+  Revision │                user-data and symlink rules                                 │
+  Threat mo│  Revision      bd45d030348d92d6 · any change to paths, mode or dry run     │ rename
+           │                voids this review                                           │
+  Paths    │  Threat model  an unprivileged user · ancestors are re-resolved at commit  │
+           │                                                                            │
+           │  /Users/alex/work/ide/.idea                                                │
+ ╭─ Sequenc│  /Users/alex/work/ide/a/b/c/d/e/deep.iml                                   │ copies ─╮
+ │  01  tra│  /Users/alex/work/ide/app.iml                                              │         │
+ │  02  tra│  /Users/alex/work/ide/mod/mod.iml                                          │         │
+ │  03  tra│                                                                            │         │
+ │  04  tra│   Type TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm                │         │
+ │         │ ▎                                                                          │         │
+ ╰─────────│                                                                            │─────────╯
+           │                                                                            │
+           │                                                         Cancel   Execute   │ontinue…
+           │                                                                            │
+ ~/work/ide╰────────────────────────────────────────────────────────────────────────────╯s · 100×30
+                              ← → Choose  Enter Confirm  Esc Cancel

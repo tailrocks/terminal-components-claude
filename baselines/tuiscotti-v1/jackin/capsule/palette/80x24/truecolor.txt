@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help
+          ╭──────────────────────────────────────────────────────────╮
+  1 Mix (3│ Command palette                                 20 of 20 │
+ ━━━━━━━━━│ ▎ Type to filter commands…                               │─────────
+╭─ Claude │                                                          │─────────╮
+│  +  cons│ ▎  New tab                   Ctrl+B c                  ┃ │1,204.49││
+│  +  let │    Split pane                Ctrl+B " %                ┃ │sion in ││
+│  -  for │    Zoom / unzoom pane        Ctrl+B z                  ┃ │        ││
+│  +  for │    Export file               host                      ┃ │        ││
+│         │    Export file and reveal    host                      ┃ │        ┃│
+│● Bash ca│    Export file and open      host                      ┃ │        ┃│
+│  running│    Export file under cursor  no file under cursor      ┃ │─────────╯
+│         │    Export file under curso…  no file under cursor      ┃ │──────────
+│● Edit sr│    Export file under curso…  no file under cursor      │ │─────────╮
+│  +  pub │    Export selected file      no selection              │ │2 (crate││
+│         │    Export selected file an…  no selection              │ │] target││
+│● Retries│    Export selected file an…  no selection              │ │dr      ││
+│  One mor│    Stage image from clipbo…  host                      │ │0004-led││
+│         │                                                          │0005-fx-││
+│▶ Allow e╰──────────────────────────────────────────────────────────╯0007-ret││
+│❯                                   ┃│││payments-platform ❯                  ┃│
+╰─────────────────────────────────────╯│╰──────────────────────────────────────╯
+ PR #482 · Settlement retry backoff                   Session ━━━━━━━━─── 76%
+       Type Filter  …   Attached to payments-platform · tabs and panes restored

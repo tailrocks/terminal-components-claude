@@ -1,0 +1,37 @@
+{
+  "schema": "termrock-postcommit-binding-review/v1",
+  "verdict": "READY_POSTCOMMIT_BINDING",
+  "scope": "Commit-object binding only; no source, test, or runtime re-review.",
+  "proposal": {
+    "path": "/private/tmp/termrock-vis01-candidate-status-f0a-proposal-r2/proposal.json",
+    "base_commit": "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+    "proposed_tree": "e6eb50897b20b30c873cd00e612009b251535d01",
+    "approved_message_path": "/private/tmp/termrock-vis01-candidate-status-f0a-proposal-r2/commit-message.txt",
+    "approved_message_sha256": "4fe28bb40d0aae4454a2bf26710182688cb08aa7a6aa29cc16f4a9c5c369f51c"
+  },
+  "commit": {
+    "object_id": "20f2d485695991632f1ff5210d696576eb602583",
+    "tree": "e6eb50897b20b30c873cd00e612009b251535d01",
+    "parent": "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+    "author": "Alexey Zhokhov <alexey@zhokhov.com>",
+    "committer": "Alexey Zhokhov <alexey@zhokhov.com>",
+    "message_matches_approved_bytes": true,
+    "message_sha256": "4fe28bb40d0aae4454a2bf26710182688cb08aa7a6aa29cc16f4a9c5c369f51c",
+    "signed_off_by": "Alexey Zhokhov <alexey@zhokhov.com>"
+  },
+  "changed_paths": [
+    {"path": "STATUS.md", "mode": "100644", "blob": "1a5c6a484f0a9a659e27e56f37c6f1917e245437"},
+    {"path": "crates/termrock-visibility-tests/tests/status.rs", "mode": "100644", "blob": "28e6fdb05f10cb949d1c48d164cf3cbab7ecbd95"},
+    {"path": "tools/visibility/status.py", "mode": "100644", "blob": "d83fe7857755b8f2501c171a8d5a327f18469639"}
+  ],
+  "checks": [
+    "Commit object resolves to the reviewed tree and base parent.",
+    "Commit changed-path set is exactly the three proposal paths; modes and blob IDs match the proposal.",
+    "Commit message bytes match the approved message file and include the exact DCO trailer.",
+    "No refs or worktree state were changed by this review."
+  ],
+  "limitations": [
+    "This receipt binds the commit object only; it makes no claim about push or remote readback.",
+    "No Cargo, tests, or CLI commands were run."
+  ]
+}

@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Settings       i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Trees          [0m│  [0m[1mProject settings[0m  Composed: tabs, form, editable … [0m
+   Tables         │                                                     [0m
+   Editable tabl… │  [0m[1m General  [0m  Members    Environment                 [0m
+   Panels         │  ━━━━━━━━━━─────────────────────────────────────────[0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        ┃    General                                          [0m
+   Progress       ┃                                                     [0m
+   Scrolling      ┃      Project name *           Visibility            [0m
+   Terminal       ┃      payments-gateway        (●) Private            [0m
+   Code editor    ┃                              ( ) Internal           [0m
+   Diff           ┃      Description             ( ) Public             [0m
+   Data grid      ┃      Handles checkout…                              [0m
+   Chips & selec… ┃                              ○── Auto-merge appro…  [0m
+   Pickers        ┃                              ──● Protect main bra…  [0m
+   Chrome         ┃     [0m[1mSave changes [0m  No changes                       [0m
+[0m[2m › Settings       [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m← →[0m Switch tab  [0m[1m1 2 3[0m Jump  [0m[1mTab[0m Next                                   [0m

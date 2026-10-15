@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "bef51c7e0513763b7b69c4ba16f20b4329483b74859e02147ad2a4f04afee47a",
+  "artifacts": {
+    "ansi": {
+      "bytes": 2409,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.ansi",
+      "sha256": "bef51c7e0513763b7b69c4ba16f20b4329483b74859e02147ad2a4f04afee47a"
+    },
+    "ascii": {
+      "bytes": 1070,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.ascii",
+      "sha256": "766b2173364ee9de06ba0f7d62103f411fc463e34c8c6b418a5a3e6bf635edfd"
+    },
+    "ascii_loss_json": {
+      "bytes": 9634,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.ascii.loss.json",
+      "sha256": "6f630644ff87c238d3774bcb2b77bead4919b51e2fc19d51ad5ecf356eb55669"
+    },
+    "frame_json": {
+      "bytes": 429356,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.frame.json",
+      "sha256": "46f7e55fea1ba3647e8c54767c60aec55a689231dc7d5d7963694ba305040ae3"
+    },
+    "html": {
+      "bytes": 420072,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.html",
+      "sha256": "cd346a55cf6df92f71eba0b316147066a03823f6fa26a16695afe0f062f89057"
+    },
+    "observations_json": {
+      "bytes": 466,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.observations.json",
+      "sha256": "03c3155aed780fc2e415b6d36ab724eb66326f8d0580ecab62dd154e3e4cbbc2"
+    },
+    "png": {
+      "bytes": 309030,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.png",
+      "sha256": "012081c491ef008a2a04d8893322b56a2ad4ba3f3a614b504bc6b8e9d65fcdcf"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1271,
+      "file": "holla/finder/concept-remote-host/80x24/nocolor.txt",
+      "sha256": "0628b70cbb232d90ea6f35c7f5b9d77afe64d04180a3074eec5a5fe793f81da8"
+    }
+  },
+  "ascii_substitutions_count": 104,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 1155742750985289647,
+  "frame_sha256": "46f7e55fea1ba3647e8c54767c60aec55a689231dc7d5d7963694ba305040ae3",
+  "generation": "9e61cbd0bb9d3d1dead4da6f8f1ccfa27eb0b3139565db6020835be970a3f0b6",
+  "html_sha256": "cd346a55cf6df92f71eba0b316147066a03823f6fa26a16695afe0f062f89057",
+  "legacy_name": "holla/concept/remote-host/80x24/nocolor",
+  "name": "holla/finder/concept-remote-host/80x24/nocolor",
+  "png_sha256": "012081c491ef008a2a04d8893322b56a2ad4ba3f3a614b504bc6b8e9d65fcdcf",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:18Z",
+  "txt_sha256": "0628b70cbb232d90ea6f35c7f5b9d77afe64d04180a3074eec5a5fe793f81da8"
+}

@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Terminal            no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step… [0m
+   Buttons                                                                                          [0m
+   Inputs            ╭─ Viewport ─────────── 37 lines · following ─╮ │  Step rail           7 of 7  [0m
+   Text areas        │  [0m[2m  #3 RUN cargo fetch --locked            [0m│ │ │                              [0m
+   Forms             │    #4 RUN cargo build --release           │ │ │   ✓ 01 Resolve wor…  0.8 s   [0m
+   Lists             │    #5 RUN apt-get install -y build-essenti│ │ │   ✓ 02 Pull base i…  2.1 s   [0m
+   Trees             │    #6 COPY rust-toolchain.toml ./         │ │ │   ✓ 03 Build conta…  3.2 s   [0m
+   Tables            │    #7 RUN cargo fetch --locked            │ │ │     04 Mount sour…  cached   [0m
+   Editable tables   │    #8 RUN cargo build --release           │ │ │   ✓ 05 Resolve cre…  1.4 s   [0m
+   Panels            │    #9 RUN apt-get install -y build-essenti│ │ │   ✓ 06 Start agent   1.1 s   [0m
+   Sidebars          │    #10 COPY rust-toolchain.toml ./        │ │ │   ✓ 07 Ready         0.1 s   [0m
+   Dialogs           │    #11 RUN cargo fetch --locked           │ │ │                              [0m
+   Progress          │    #12 RUN cargo build --release          ┃ │ │                              [0m
+   Scrolling         │    #13 RUN apt-get install -y build-essent┃ │ │                              [0m
+[0m[1m▎› Terminal        [0m  │    #14 COPY rust-toolchain.toml ./        ┃ │ │                              [0m
+   Code editor       │  ✓ Build container                        ┃ │ │                              [0m
+   Diff              │  [0m[1m▶ Resolve credentials[0m                    ┃ │ │                              [0m
+   Data grid         │    1Password  Engineering › Anthropic · Wo┃ │ │                              [0m
+   Chips & selects   │  ✓ Resolve credentials                    ┃ │ │                              [0m
+   Pickers           │  [0m[1m▶ Start agent[0m                            ┃ │ │                              [0m
+   Chrome            │    claude --resume  pid 4188              ┃ │ │                              [0m
+   Settings          │  ✓ Start agent                            ┃ │ │                              [0m
+   Task runner       │  [0m[1m▶ Ready[0m                                  ┃ │ │                              [0m
+                     │  ✓ Ready                                  ┃ │ │                              [0m
+                     │  [0m[1mpayments-platform ❯ [0m                     ┃ │ │   [0m[1mRun [0m   Run with a failu…   [0m
+                     ╰─────────────────────────────────────────────╯ │                              [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

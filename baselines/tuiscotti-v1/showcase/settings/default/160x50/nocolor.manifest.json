@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "8cad59f6678b22a4e4fcd8be6dbe81b0294c0614e10e0f7c6ff4c100f97c9ae9",
+  "artifacts": {
+    "ansi": {
+      "bytes": 8652,
+      "file": "showcase/settings/default/160x50/nocolor.ansi",
+      "sha256": "8cad59f6678b22a4e4fcd8be6dbe81b0294c0614e10e0f7c6ff4c100f97c9ae9"
+    },
+    "ascii": {
+      "bytes": 1597,
+      "file": "showcase/settings/default/160x50/nocolor.ascii",
+      "sha256": "3790d207a5bc93cedbe34cb91483933addacf161ad83118b6d409ed2578b67a6"
+    },
+    "ascii_loss_json": {
+      "bytes": 13756,
+      "file": "showcase/settings/default/160x50/nocolor.ascii.loss.json",
+      "sha256": "163a03c8ffa87913804071cfd022eff873ce9f9e44cc74fe6db5830391fd4e65"
+    },
+    "frame_json": {
+      "bytes": 1793352,
+      "file": "showcase/settings/default/160x50/nocolor.frame.json",
+      "sha256": "3ef582e574f29ec6b43ebf6df23a8e04e6855bcdb6d316453db076f592d6d16b"
+    },
+    "html": {
+      "bytes": 498916,
+      "file": "showcase/settings/default/160x50/nocolor.html",
+      "sha256": "21e77b3073a43b7c62106010f41e4bd3a49cf43ab03d5950624c7bd973674ffb"
+    },
+    "observations_json": {
+      "bytes": 460,
+      "file": "showcase/settings/default/160x50/nocolor.observations.json",
+      "sha256": "4dfce9ee146ec87b5bfe8f02799cd5c45184d020d7600515ae1e6831618bc801"
+    },
+    "png": {
+      "bytes": 362405,
+      "file": "showcase/settings/default/160x50/nocolor.png",
+      "sha256": "2e40e0365c0eb4a5c757dcd902e24d615fa045bcbc27ce6ebd295c0195b0597a"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/settings/default/160x50/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1891,
+      "file": "showcase/settings/default/160x50/nocolor.txt",
+      "sha256": "6f2ece9b6e00f501d33677bb569eadbf6ed1fd62e7673902a3cae52f838cf23b"
+    }
+  },
+  "ascii_substitutions_count": 148,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 1404062283341101698,
+  "frame_sha256": "3ef582e574f29ec6b43ebf6df23a8e04e6855bcdb6d316453db076f592d6d16b",
+  "generation": "64862c33ae46d8248cc7852ff74993a23ee750aa69bb40d4645f706a84f09b30",
+  "html_sha256": "21e77b3073a43b7c62106010f41e4bd3a49cf43ab03d5950624c7bd973674ffb",
+  "legacy_name": "showcase/pages/settings/160x50/nocolor",
+  "name": "showcase/settings/default/160x50/nocolor",
+  "png_sha256": "2e40e0365c0eb4a5c757dcd902e24d615fa045bcbc27ce6ebd295c0195b0597a",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:01Z",
+  "txt_sha256": "6f2ece9b6e00f501d33677bb569eadbf6ed1fd62e7673902a3cae52f838cf23b"
+}

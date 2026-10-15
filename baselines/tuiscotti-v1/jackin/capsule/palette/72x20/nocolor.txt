@@ -1,0 +1,20 @@
+  jackin❯    File   Edit   View   Session   Help
+      ╭──────────────────────────────────────────────────────────╮
+  1 Mi│ Command palette                                 20 of 20 │
+ ━━━━━│ ▎ Type to filter commands…                               │─────
+╭─ Cla│                                                          │─────╮
+│     │ ▎  New tab                   Ctrl+B c                  ┃ │    ││
+│● Bas│    Split pane                Ctrl+B " %                ┃ │    ││
+│  run│    Zoom / unzoom pane        Ctrl+B z                  ┃ │    ││
+│     │    Export file               host                      ┃ │    ┃│
+│● Edi│    Export file and reveal    host                      ┃ │─────╯
+│  +  │    Export file and open      host                      ┃ │──────
+│     │    Export file under cursor  no file under cursor      ┃ │─────╮
+│● Ret│    Export file under curso…  no file under cursor      │ │dr  ││
+│  One│    Export file under curso…  no file under cursor      │ │0004││
+│     │    Export selected file      no selection              │ │0005││
+│▶ All│    Export selected file an…  no selection              │ │0007││
+│❯    │    Export selected file an…  no selection              │ │    ┃│
+╰─────│                                                          │─────╯
+ PR #4╰──────────────────────────────────────────────────────────╯76%
+            …   Attached to payments-platform · tabs and panes restored

@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe          no color · 100×30  ? help
+
+  ≡ Query 1 ×                                                                                   +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────────── 2 ms ─╮
+ │  ▎›  1 SELECT * FROM orders                                                                    │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                               ln 1/1 · col 21  │
+ │                                                                                                │
+ │   EXPLAIN ×                                                                                    │
+ │  ━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────── │
+ │   Planning 0.210 ms · r Raw                                                                    │
+ │     Operation                                                    cost     rows     actual    % │
+ │   ▾ Gather                                                1000..16254    1.2 M          —   7  │
+ │       Parallel Seq Scan on public.orders                     0..15054    1.2 M          —  93 ▲│
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  EDIT   Ctrl+R Run  Alt+R Run all  Ctrl+Space Complete  Esc Done           Connected to Production

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help            big · Rust project  mbp · local
+
+  Here › Disk › Usage
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────
+  Disk usage · ~/work/big
+  scan complete · 2.3 MiB allocated · 21 entries · 0 selected (0 B)
+
+    largest first · apparent · noise folded
+ ▎▾   big                                               5.6 MiB · 100%
+        vm.img                                          3.5 MiB ·   7%
+        target                                 2.0 MiB ·  85% · folded
+    ▸   noise                                         112.0 KiB ·   7%
+    ▸   docs                                            4.0 KiB ·   0%
+    ▸   src                                             4.0 KiB ·   0%
+        Cargo.toml                                         10 B ·   0%
+
+
+
+ ~/work/big             0 selected · 0 B              truecolor · 72×20
+ ↑↓ Move  …   Sorted by apparent size · rows still show allocated bytes

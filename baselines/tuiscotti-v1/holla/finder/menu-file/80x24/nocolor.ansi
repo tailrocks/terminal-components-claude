@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m  [0m[1m File [0m  Go   Help                  holla · Rust project  [0m[1mmbp · local[0m [0m
+           ╭─────────────────────────────╮                                      [0m
+ [0m[1m Here  [0m   │[0m[1m  Run                  [0mEnter[0m[1m [0m│                                      [0m
+ ━━━━━━━───│  Alternatives…    Alt+Enter │───────────────────────────────────── [0m
+ ▎ Search a│  Copy command               │                      scope ‹ here ›  [0m
+           │ ─────────────────────────── │                                      [0m
+    Suggest│  Close tab           Ctrl+W │                                      [0m
+ [0m[1m › Inspect│ ───────────────────[0m────────[0m[1m │[0mhere[0m[1m  [0m12 GB generated artifacts[0m[1m      [0m [0m
+    Pull   │  Quit                Ctrl+Q │here  branch is 3 commits behind      [0m
+    Review ╰─────────────────────────────╯here  4 modified · 1 untracked        [0m
+    Run tests                   task      here  5 files changed since the las…  [0m
+    Who is blocking the datab…  postgres  here  2 sessions blocked for 4 min    [0m
+                                                                                [0m
+    Recent here                                                                 [0m
+    nothing used here yet                                                       [0m
+                                                                                [0m
+    Explore                                                                     [0m
+     Tasks   Git   Files   Disk   Services   System                             [0m
+    System · mbp                explore   host  available on this host          [0m
+                                                                                [0m
+    → 'holla disk analyze --artifacts' · here · read-only                       [0m
+                                                                                [0m
+ [0m[1m~/work/holla[0m   main   ↓3 • 5                                  no color · 80×24 [0m
+                  [0m[1m← →[0m Menu  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close                    [0m

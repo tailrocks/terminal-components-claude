@@ -1,0 +1,30 @@
+  jackin❯    File   Edit   View   Session   Help                  payments-platform › the-architect
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ━━━━━━━━━━━━━━─────╭──────────────────────────────────────────────────────────╮───────────────────
+╭─ Claude Code (Work│ Command palette                                 20 of 20 │───────────────────╮
+│● Read src/settleme│ ▎ Type to filter commands…                               │nored (6.8 s)     ││
+│                   │                                                          │                  ││
+│● The loop retries │ ▎  New tab                   Ctrl+B c                  ┃ │_currency         ││
+│  exponential backo│    Split pane                Ctrl+B " %                ┃ │1,204.49 EUR      ││
+│                   │    Zoom / unzoom pane        Ctrl+B z                  ┃ │sion in ledger/fx.││
+│● Edit src/settleme│    Export file               host                      ┃ │                  ┃│
+│  +  const MAX_ATTE│    Export file and reveal    host                      ┃ │                  ┃│
+│  +  let delay = BA│    Export file and open      host                      ┃ │                  ┃│
+│  -  for attempt in│    Export file under cursor  no file under cursor      ┃ │                  ┃│
+│  +  for attempt in│    Export file under curso…  no file under cursor      ┃ │───────────────────╯
+│                   │    Export file under curso…  no file under cursor      │ │────────────────────
+│● Bash cargo test -│    Export selected file      no selection              │ │───────────────────╮
+│  running 6 tests …│    Export selected file an…  no selection              │ │                  ││
+│                   │    Export selected file an…  no selection              │ │f.md              ││
+│● Edit src/settleme│    Stage image from clipbo…  host                      │ │ppy -p settlement ││
+│  +  pub use retry:│                                                          │2 (crates/settleme││
+│                   ╰──────────────────────────────────────────────────────────╯] target(s) in 3.1││
+│● Retries now back off 250 ms → 4 s, capped at┃│││payments-platform ❯ ls docs/adr                ││
+│  One more edit: expose the policy in settleme┃│││0001-record-architecture.md  0004-ledger-precis││
+│                                              ┃│││0002-settlement-batches.md   0005-fx-rounding.m││
+│▶ Allow edit to src/settlement/config.rs? (y/n┃│││0003-retry-policy.md         0007-retry-backoff││
+│❯                                             ┃│││payments-platform ❯                            ┃│
+╰───────────────────────────────────────────────╯│╰────────────────────────────────────────────────╯
+ PR #482 · Settlement retry backoff   Claude Code · Work · needs input    Session ━━━━━━━━─── 76%
+    Type Filter  ↑↓ Move  Enter Choose  …   Attached to payments-platform · tabs and panes restored

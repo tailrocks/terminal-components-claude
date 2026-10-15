@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Code editor         i Inspector   ? Help
+
+   Overview       ┃  Code editor  Blocks, tones, diagnostics and completion; t…
+   Buttons        ┃
+   Inputs         ┃   ▎retry.rs                                       3 blocks
+   Text areas     ┃
+   Forms          ┃    ▎›  1 cl// Retry a request with exponential backoff.  ┃
+   Lists          ┃        2 ╭─────────────────────────────────────────────╮…│
+   Trees          ┃        3 │▎T Client                             struct │ │
+   Tables         ┃        4 │ ƒ client(                   fn () -> Client │ │
+   Editable tabl… ┃        5 │ ƒ schedule(  fn (attempts: u32) -> Vec<u64> │ │
+   Panels         ┃          ╰─────────────────────────────────────────────╯3
+   Sidebars       ┃
+   Dialogs        ┃    State
+   Progress       ┃
+   Scrolling      ┃    Mode         editing
+   Terminal       ┃    Cursor       ln 1 · col 3
+ › Code editor    ┃    Block        1 of 3
+   Diff           ┃    Runs         0
+   Data grid      │    Last run     —
+   Chips & selec… │    Diagnostics  0
+   Pickers        │
+
+  EDIT   ↑ ↓ Move  Enter Accept  Esc Close

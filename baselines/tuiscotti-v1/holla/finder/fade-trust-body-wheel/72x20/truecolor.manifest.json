@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "a0d25efdc4f97205e1d82eb5e65c00b09a06edc309a7ca4c9ecc2907925298fe",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4745,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.ansi",
+      "sha256": "a0d25efdc4f97205e1d82eb5e65c00b09a06edc309a7ca4c9ecc2907925298fe"
+    },
+    "ascii": {
+      "bytes": 965,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.ascii",
+      "sha256": "5fdfd30970a567fd36bee7c60d2076e4524d4a73e9333b388a2542233fbd2fa8"
+    },
+    "ascii_loss_json": {
+      "bytes": 7972,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.ascii.loss.json",
+      "sha256": "e07afc6965995dfb761ea62d4c2073ef8b0b1ebcc71302bfe68f68745946abdf"
+    },
+    "frame_json": {
+      "bytes": 382475,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.frame.json",
+      "sha256": "b850a0438acb6f5eb45826127de32a943e077f1d467c28c20e91ae891e987c59"
+    },
+    "html": {
+      "bytes": 386538,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.html",
+      "sha256": "32fab98719ce5c562a67cfa6af25621937a5c60a1831c60edbf8c4c14467a411"
+    },
+    "observations_json": {
+      "bytes": 474,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.observations.json",
+      "sha256": "74f3da22c16ed65caf540c573fb5e5efb33224078188ab6f5e81e813b68bcd2a"
+    },
+    "png": {
+      "bytes": 281947,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.png",
+      "sha256": "913815275267572aeb85611eda442e24a8ada3db016bc97fcdce68beb1358adc"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1126,
+      "file": "holla/finder/fade-trust-body-wheel/72x20/truecolor.txt",
+      "sha256": "38b25f530353161695edde8e0799b852ee0d10d492e02c0e7b131b7c934004a4"
+    }
+  },
+  "ascii_substitutions_count": 86,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 4312412700709501662,
+  "frame_sha256": "b850a0438acb6f5eb45826127de32a943e077f1d467c28c20e91ae891e987c59",
+  "generation": "08644825abc5d38361f46a8d0257a604479b4f9aab40d98288ab7f61143ccc01",
+  "html_sha256": "32fab98719ce5c562a67cfa6af25621937a5c60a1831c60edbf8c4c14467a411",
+  "legacy_name": "holla/fade/trust_body_wheel/72x20/truecolor",
+  "name": "holla/finder/fade-trust-body-wheel/72x20/truecolor",
+  "png_sha256": "913815275267572aeb85611eda442e24a8ada3db016bc97fcdce68beb1358adc",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:17Z",
+  "txt_sha256": "38b25f530353161695edde8e0799b852ee0d10d492e02c0e7b131b7c934004a4"
+}

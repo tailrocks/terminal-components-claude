@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "8d5abfa70d69a393a024cee8ce1342e7641a6694f69a79b39cb8dcbfa9b0e1f0",
+  "artifacts": {
+    "ansi": {
+      "bytes": 11648,
+      "file": "holla/idea/gate2/120x40/none.ansi",
+      "sha256": "8d5abfa70d69a393a024cee8ce1342e7641a6694f69a79b39cb8dcbfa9b0e1f0"
+    },
+    "ascii": {
+      "bytes": 4156,
+      "file": "holla/idea/gate2/120x40/none.ascii",
+      "sha256": "40e9a34932562edae7bac4a775c06cf4bbe4de9128ec08cdf25334167dae592c"
+    },
+    "ascii_loss_json": {
+      "bytes": 41156,
+      "file": "holla/idea/gate2/120x40/none.ascii.loss.json",
+      "sha256": "8d288c4c9fee7df6bab07987fb29019686fc7344c0f23b8e5d0c4a7d55bdb64d"
+    },
+    "frame_json": {
+      "bytes": 1114365,
+      "file": "holla/idea/gate2/120x40/none.frame.json",
+      "sha256": "f34519431ea646e4f0a709c5822f358eed4d6d28e56df98fbef9d7d8c8b2850a"
+    },
+    "html": {
+      "bytes": 828532,
+      "file": "holla/idea/gate2/120x40/none.html",
+      "sha256": "494a157f27241dc1a48e7584749dba60621e4c9d22afca204ac9d618bdc3b515"
+    },
+    "observations_json": {
+      "bytes": 445,
+      "file": "holla/idea/gate2/120x40/none.observations.json",
+      "sha256": "b29acaa80d07712fbcaab39afc93ea8e7d19f6aef616f8fc91d1f933953dd68b"
+    },
+    "png": {
+      "bytes": 598369,
+      "file": "holla/idea/gate2/120x40/none.png",
+      "sha256": "dcf42fdd860ea965be24886737f859c80303ba8f7f1b0d82b17e41b579f3504f"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/idea/gate2/120x40/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 5020,
+      "file": "holla/idea/gate2/120x40/none.txt",
+      "sha256": "15c92f1dd07f37cef2b17087b8707ea0d972a78609d9aab65dc95d6e8a3d8870"
+    }
+  },
+  "ascii_substitutions_count": 444,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 6173608198594889322,
+  "frame_sha256": "f34519431ea646e4f0a709c5822f358eed4d6d28e56df98fbef9d7d8c8b2850a",
+  "generation": "56c67489a57d317666bda1c52ca82a4033fc90bb422409c17679724f48d651c6",
+  "html_sha256": "494a157f27241dc1a48e7584749dba60621e4c9d22afca204ac9d618bdc3b515",
+  "legacy_name": "holla/flows/idea/gate2/120x40/none",
+  "name": "holla/idea/gate2/120x40/none",
+  "png_sha256": "dcf42fdd860ea965be24886737f859c80303ba8f7f1b0d82b17e41b579f3504f",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:09Z",
+  "txt_sha256": "15c92f1dd07f37cef2b17087b8707ea0d972a78609d9aab65dc95d6e8a3d8870"
+}

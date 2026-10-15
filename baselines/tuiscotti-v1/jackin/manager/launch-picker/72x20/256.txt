@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help          Workspaces  inside the Construct
+
+ ╭─ Workspaces ─────────────────────────────────────────── 2 running ─╮
+ │╭──────────────────────────────────────────────────────────────────╮│
+ ││ Launch · choose Agent          payments-platform › the-architect ││
+ ││ ▎▪ Claude Code  account Claude · Perso… choose at start  agents  ││
+ ││  ▪ Codex        account Codex · Primar… ready                    ││
+ ││  ▪ OpenCode     account OpenCode · Go … ready                    ││
+ ││  ▪ Grok Build   account Grok · Team · … ready                    ││
+ ││                                                                  ││
+ ││                                                                  ││
+ ╰╰──────────────────────────────────────────────────────────────────╯╯
+
+   Current directory                                      Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+
+
+                  ↑↓ Move  Enter Choose  Esc Cancel

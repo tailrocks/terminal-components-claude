@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         16 colors · 100×30  ? help
+
+  ≡ Query 1 ×    ≡ Query 2 ×                                                                    +
+ ───────────────━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────
+ ╭─ Query 2 ───────────────────────────────────────────────────────────────────────────────────  ─╮
+ │   ›  1 x                                                                                       │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                     ╭────────────────────────────────────────────────────╮                     │
+ │                     │                                                    │                     │
+ │                     │  Close tab with unsaved work?                      │                     │
+ │                     │                                                    │                     │
+ │                     │  Pending row edits and unsaved query text in this  │                     │
+ │                     │  tab will be lost.                                 │                     │
+ │                     │                                                    │                     │
+ │                     │                           ▎Cancel   Close anyway   │                     │
+ │                     │                                                    │                     │
+ │                     ╰────────────────────────────────────────────────────╯                     │
+ │                   Ctrl+R runs the statement under the cursor · Alt+R runs all                  │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer                  Connected to Production

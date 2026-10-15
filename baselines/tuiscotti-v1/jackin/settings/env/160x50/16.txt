@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                                 Settings › global › Environments  inside the Construct  2 running
+
+
+   General    Mounts    Environments    Agents    Trust
+  ─────────────────────━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      Global                                                                                 3 vars     Variable · GH_TOKEN                           global
+  ▎›    GH_TOKEN            global          ****************  [op] Engineering › GitHub · CLI toke…
+        EDITOR              global          ****              plain                                     Pending       1Password
+        CARGO_NET_GIT_FET…  global          ****              plain                                     Original      1Password
+        + Add environment variable                                                                      Reference     op://v_eng01/it_gh01/credential
+      Role overrides                                              1 configured · 46 in the registry     Vault         chainargos.1password.com · Engineering
+    ▾ Role: sre                                                                               1 var     Resolution    resolved at launch · never stored in …
+        KUBECONFIG          role sre        ****************  plain
+        + Add sre environment variable
+        + Add role override…
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                          Cancel     Save…
+
+                             Enter Edit  m Show  p 1Password…  s Scope…  d Remove…  a Add…  [ ] Switch tab  Ctrl+S Save  Esc Back

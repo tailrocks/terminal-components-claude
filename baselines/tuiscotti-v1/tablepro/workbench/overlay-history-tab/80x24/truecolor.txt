@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡ Query 1 ×    H History ×                                                +
+ ───────────────━━━━━━━━━━━━━━─────────────────────────────────────────────────
+ ╭─ Query history ─────────────────────────────────────────────── 15 entries ─╮
+ │                                                                            │
+ │    Search history · terms are ANDed      scope: Production  ·  status: any │
+ │                                                                            │
+ │  ▎› SELECT plan, co… 3 d ago · 5 ms     Query           Editor · 3 d ago   │
+ │     SELECT * FROM … 1 d ago · 24 ms                                        │
+ │     SELECT day, re… 3 h ago · 14 ms     ›  1 SELECT plan, count(*)     ┃   │
+ │   ! SELECT * FROM ordr… 1 h ago · –        2 FROM subscriptions GROUP  │   │
+ │     SELECT o.id, o… 1 h ago · 61 ms                            1–2 of 3    │
+ │     UPDATE order… 58 min ago · 3 ms                                        │
+ │     SELECT * FR… 40 min ago · 21 ms     Connection  Production · acme_p…   │
+ │     EXPLAIN ANAL… 15 min ago · 9 ms     Duration    5 ms                   │
+ │     SELECT count(*) FROM orders WHE…    Rows        3                      │
+ │     SELECT * FRO… 4 min ago · 38 ms                                        │
+ │                                          Open in new tab    Run in new…    │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Open in new tab  r Rerun  y Copy  / Search  …    Connected to Production

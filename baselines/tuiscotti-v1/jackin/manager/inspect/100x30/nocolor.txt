@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help           Workspaces › payments-platform › 7f3a  inside the Construct
+
+ ╭─ Workspaces ─────────────────────────────────────────────────────────────────────── 2 running ─╮
+ │     Current directory                                              saved as payments-platform  │
+ │   ▾ payments-platform                                                               1 running  │
+ │     ◉ 7f3a  the-architect · Claude Code                                    running 2 h 14 min  │
+ │     ◌ c41e  reviewer · Codex                                              preserved · dirty •  │
+ │   ▸ infra-control-plane                                                             1 running  │
+ │   ▸ release-au╭─ Container 7f3a ─────────────────────────────────── read-only ─╮     ! failed  │
+ │   ▸ customer-p│ ▎ Container  jackin-payments-platform-7f3a            y copy   │     ! failed  │
+ │     + New work│   Image      jackin/derived:payments-platform-7f3a             │               │
+ │               │   Workspace  payments-platform › role the-architect            │               │
+ │               │   Agent      Claude Code · account Claude · Personal           │               │
+ │               │   Target     /workspace/payments-platform · 2 mounts           │               │
+ │               │   Run id     run-7f3a                                          │               │
+ │               │   Lifecycle  running                                           │               │
+ │               │   Daemon     attached · 3 tabs · 3 s ago                       │               │
+ │               │                                                                │               │
+ │               │                                                                │               │
+ │               │                                                                │               │
+ ╰───────────────│                                                        Close   │───────────────╯
+                 ╰────────────────────────────────────────────────────────────────╯
+   Instance 7f3a                                                                      Tab details
+
+   the-architect · Claude Code · running · 2 uncommitted · 1 unpushed
+   daemon · 3 tabs · 5 panes
+
+
+
+                                    ↑↓ Move  y Copy  Esc Close

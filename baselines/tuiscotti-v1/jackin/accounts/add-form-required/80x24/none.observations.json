@@ -1,0 +1,22 @@
+{
+  "cell_count": 1920,
+  "cols": 80,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 14022836629602830694,
+  "legacy_name": "jackin/accounts/add_form_required/80x24/none",
+  "name": "jackin/accounts/add-form-required/80x24/none",
+  "non_empty_cells": 611,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 24
+}

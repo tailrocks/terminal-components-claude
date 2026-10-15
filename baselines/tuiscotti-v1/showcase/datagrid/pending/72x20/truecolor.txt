@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Data grid   i Inspector   ? Help
+
+   Inputs         │  Data grid  Typed cells, a pending-change queue, p…
+   Text areas     ┃
+   Forms          ┃   ▎cus… rows 1–8 of 40 loaded · ~4,812 total · co…
+   Lists          ┃
+   Trees          ┃     ‹3     seats      mrr  active    renewed… 2›
+   Tables         ┃      • 1     600    57.00  true      2026-01…    ┃
+   Editable tabl… ┃    ▎ • 2      12  1920.00  true      2026-02…    │
+   Panels         ┃        3      12   348.00  true      2026-03…    │
+   Sidebars       ┃        4       1     0.00  false     NULL        │
+   Dialogs        ┃        5      40   760.00  true      2026-05…    │
+   Progress       ┃        6       5   120.00  true      2026-06…    │
+   Scrolling      ┃        7     150  4350.00  true      2026-07…    │
+   Terminal       │        8      25     0.00  true      NULL        │
+   Code editor    │
+   Diff           │     • 2 pending …   Preview SQL   Discard   Save
+ › Data grid      │
+
+ ↑↓←→ Cell  Enter Edit  s Sort  Space Select row  …           2 pending
