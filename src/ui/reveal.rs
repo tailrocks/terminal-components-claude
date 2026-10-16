@@ -85,6 +85,11 @@ pub struct Reveal {
     /// (default on). Off, it stays at its first lines and ends with
     /// `↓ N more`.
     pub scroll: bool,
+    /// Lines one wheel notch scrolls a pointer-only tooltip (one shown by
+    /// [`truncated`] or [`queue_cut`], which no widget state owns; see
+    /// [`on_pointer_wheel`]). Default 3, the pointer's default. A
+    /// [`RevealState`] owner passes its own wheel delta instead.
+    pub wheel_lines: u16,
 }
 
 impl Reveal {
@@ -95,6 +100,7 @@ impl Reveal {
         mode: RevealMode::Tooltip,
         max_rows: 0,
         scroll: false,
+        wheel_lines: 3,
     };
 
     pub const fn hover(mut self, on: bool) -> Self {
@@ -119,6 +125,11 @@ impl Reveal {
 
     pub const fn scroll(mut self, on: bool) -> Self {
         self.scroll = on;
+        self
+    }
+
+    pub const fn wheel_lines(mut self, lines: u16) -> Self {
+        self.wheel_lines = lines;
         self
     }
 
@@ -151,6 +162,7 @@ impl Default for Reveal {
             mode: RevealMode::Tooltip,
             max_rows: 0,
             scroll: true,
+            wheel_lines: 3,
         }
     }
 }
@@ -402,6 +414,7 @@ impl RevealState {
             },
             max_rows: self.effective.max_rows,
             extent: Some(self.extent.clone()),
+            pointer_only: false,
         }
     }
 }
@@ -478,8 +491,9 @@ fn window(lines: &[String], rows: usize, scroll: usize) -> (Vec<RevealLine>, Ext
 
 /// Register a pointer-only reveal for a cell showing `full` cut to `area`,
 /// under `config` (or the global default). Returns whether the text was
-/// cut. A tooltip longer than the screen ends with `↓ N more`: scrolling
-/// needs the state a [`RevealState`] keeps.
+/// cut. A tooltip longer than the screen shows `↓ N more` and scrolls with
+/// the wheel over it ([`on_pointer_wheel`], which the runtime calls before
+/// the app sees the wheel); off with [`Reveal::scroll`].
 pub fn truncated(
     ctx: &mut RenderCtx,
     config: Option<Reveal>,
@@ -490,14 +504,83 @@ pub fn truncated(
     let cfg = config.unwrap_or(ctx.reveal);
     let cut = is_cut(area, full);
     if cfg.hover && cut && !ctx.inert && ctx.interaction.live_hover() == Some(id) {
-        let feed = Feed {
-            scroll: 0,
-            max_rows: cfg.max_rows,
-            extent: None,
-        };
+        let feed = POINTER.with(|p| {
+            let mut p = p.borrow_mut();
+            if p.target != Some(id) {
+                p.target = Some(id);
+                p.scroll = 0;
+            }
+            p.wheel_lines = cfg.wheel_lines;
+            p.scrolls = cfg.scroll;
+            Feed {
+                scroll: if cfg.scroll { p.scroll } else { 0 },
+                max_rows: cfg.max_rows,
+                extent: Some(p.extent.clone()),
+                pointer_only: true,
+            }
+        });
         show(ctx, id, area, full, Source::Pointer, feed);
     }
     cut
+}
+
+/// The scroll state of the pointer-only tooltip ([`truncated`]): no widget
+/// owns it, and only one reveal shows per frame.
+#[derive(Debug, Default)]
+struct PointerTip {
+    /// The cell the scroll offset belongs to.
+    target: Option<WidgetId>,
+    scroll: u16,
+    extent: SharedExtent,
+    /// Where the tooltip was drawn in the last frame, if it was.
+    drawn: Option<Rect>,
+    wheel_lines: u16,
+    scrolls: bool,
+}
+
+thread_local! {
+    static POINTER: std::cell::RefCell<PointerTip> =
+        std::cell::RefCell::new(PointerTip::default());
+}
+
+/// A frame starts: a pointer-only tooltip is under the pointer only if
+/// this frame draws it again.
+pub(crate) fn begin_frame() {
+    POINTER.with(|p| p.borrow_mut().drawn = None);
+}
+
+/// The wheel over a pointer-only tooltip ([`truncated`], [`queue_cut`])
+/// longer than its rows scrolls the tooltip, the way a [`RevealState`]
+/// owner scrolls its own. `None` when the event is not a vertical wheel
+/// over such a tooltip, as last drawn: the app handles it as usual. At
+/// either end the tooltip still holds the wheel (`Consumed`), so the
+/// content beneath does not jump while the text is being read.
+/// [`crate::runtime`] calls this before dispatching each input.
+pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
+    let crate::core::event::Input::Mouse(m) = input else {
+        return None;
+    };
+    let (0, dy) = m.wheel()? else {
+        return None;
+    };
+    if !m.mods.is_empty() {
+        return None;
+    }
+    POINTER.with(|p| {
+        let mut p = p.borrow_mut();
+        let extent = p.extent.get();
+        if !p.scrolls || extent.max == 0 || !p.drawn?.contains(m.pos) {
+            return None;
+        }
+        let next =
+            (p.scroll as i32 + dy * p.wheel_lines.max(1) as i32).clamp(0, extent.max as i32) as u16;
+        Some(if next == p.scroll {
+            Outcome::Consumed
+        } else {
+            p.scroll = next;
+            Outcome::Changed
+        })
+    })
 }
 
 /// Put the frame's reveal key hint ([`RenderCtx::reveal_hint`]: `→ Full
@@ -598,6 +681,8 @@ struct Feed {
     scroll: u16,
     max_rows: u16,
     extent: Option<SharedExtent>,
+    /// A pointer-only tooltip: its drawn box is where the wheel scrolls it.
+    pointer_only: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -741,6 +826,9 @@ fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     let area = area.intersection(screen);
     if area.is_empty() {
         return;
+    }
+    if tip.feed.pointer_only {
+        POINTER.with(|p| p.borrow_mut().drawn = Some(area));
     }
     // the popover plane, the strongest neutral; over content already on
     // that plane (a menu) it steps down a plane, so the tooltip always
