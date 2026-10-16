@@ -52,6 +52,10 @@ pub const CONTEXT: WidgetId = WidgetId::of("capsule.context");
 pub const USAGE_CHIP: WidgetId = WidgetId::of("capsule.chip.usage");
 pub const CONTAINER_CHIP: WidgetId = WidgetId::of("capsule.chip.container");
 pub const PANES: WidgetId = WidgetId::of("capsule.panes");
+/// The takeover notice's Reconnect button.
+pub const TAKEOVER_RECONNECT: WidgetId = WidgetId::of("capsule.takeover.reconnect");
+/// The takeover notice's Workspace manager button.
+pub const TAKEOVER_LEAVE: WidgetId = WidgetId::of("capsule.takeover.leave");
 
 const PREFIX_TIMEOUT_MS: i64 = 2_000;
 
@@ -1868,6 +1872,23 @@ impl CapsuleScreen {
     }
 }
 
+impl CapsuleScreen {
+    /// Take the attach back from the client that took it over.
+    fn reconnect(&mut self, w: &mut World, cx: &mut Cx) {
+        self.takeover = None;
+        if let Some(d) = self.daemon_mut(w) {
+            d.attached_by = Some("this terminal".into());
+        }
+        cx.status("Reconnected · the other client was displaced");
+    }
+
+    /// Leave the taken-over instance for the workspace manager.
+    fn leave_takeover(&mut self, cx: &mut Cx) {
+        self.takeover = None;
+        cx.go(Go::Detach);
+    }
+}
+
 impl Screen for CapsuleScreen {
     fn layer_open(&self) -> bool {
         self.menubar.hides_page_focus()
@@ -1929,20 +1950,10 @@ impl Screen for CapsuleScreen {
     }
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-        if let Some(by) = &self.takeover {
+        if self.takeover.is_some() {
             match key.code {
-                KeyCode::Enter => {
-                    let _ = by;
-                    self.takeover = None;
-                    if let Some(d) = self.daemon_mut(w) {
-                        d.attached_by = Some("this terminal".into());
-                    }
-                    cx.status("Reconnected · the other client was displaced");
-                }
-                KeyCode::Esc => {
-                    self.takeover = None;
-                    cx.go(Go::Detach);
-                }
+                KeyCode::Enter => self.reconnect(w, cx),
+                KeyCode::Esc => self.leave_takeover(cx),
                 _ => {}
             }
             return Outcome::Changed;
@@ -2045,6 +2056,15 @@ impl Screen for CapsuleScreen {
 
     fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.takeover.is_some() {
+            // the takeover notice's buttons (mouse #6)
+            if id == TAKEOVER_RECONNECT {
+                self.reconnect(w, cx);
+                return Outcome::Changed;
+            }
+            if id == TAKEOVER_LEAVE {
+                self.leave_takeover(cx);
+                return Outcome::Changed;
+            }
             return Outcome::Consumed;
         }
         self.prefix_until = None;
@@ -2540,11 +2560,28 @@ impl Screen for CapsuleScreen {
                     t.muted(),
                 ),
             ];
-            let y0 = area.y + area.height.saturating_sub(lines.len() as u16) / 2;
+            let y0 = area.y + area.height.saturating_sub(lines.len() as u16 + 2) / 2;
             for (i, (text, style)) in lines.iter().enumerate() {
                 let w_ = width(text) as u16;
                 let x = area.x + area.width.saturating_sub(w_) / 2;
                 buf.set_string(x, y0 + i as u16, text, style.bg(t.canvas));
+            }
+            // the same two ways out as buttons, for the pointer
+            let y = y0 + lines.len() as u16 + 1;
+            if y < area.bottom() {
+                let mut reconnect = Button::primary(TAKEOVER_RECONNECT, "Reconnect");
+                let mut leave = Button::secondary(TAKEOVER_LEAVE, "Workspace manager");
+                let gap = t.spacing.button_gap;
+                let widths = [reconnect.width(), leave.width()];
+                let total = widths[0] + gap + widths[1];
+                let x = area.x + area.width.saturating_sub(total) / 2;
+                let rects = junie_tui::widgets::button::row_layout(
+                    Rect::new(x, y, total.min(area.width), 1),
+                    &widths,
+                    gap,
+                );
+                reconnect.render(rects[0], buf, ctx, t.canvas);
+                leave.render(rects[1], buf, ctx, t.canvas);
             }
             return;
         }
