@@ -4,6 +4,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::core::text::{CursorPos, TextBuffer};
@@ -36,6 +37,11 @@ pub struct TextArea {
     follow_cursor: bool,
     /// Fixed height of the text region (rows).
     pub rows: u16,
+    /// What an edit in progress does when the area loses focus
+    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+    pub blur_action: BlurAction,
+    /// Text before editing began, for [`BlurAction::Cancel`].
+    snapshot: String,
 }
 
 impl TextArea {
@@ -56,6 +62,37 @@ impl TextArea {
             last_cursor: None,
             follow_cursor: false,
             rows,
+            blur_action: BlurAction::Commit,
+            snapshot: String::new(),
+        }
+    }
+
+    /// See [`Self::blur_action`].
+    pub fn blur_action(mut self, action: BlurAction) -> Self {
+        self.blur_action = action;
+        self
+    }
+
+    /// Focus left the area (see [`crate::core::focus::Focus::take_changes`]).
+    /// An edit in progress ends per [`Self::blur_action`] and reports
+    /// `Committed` (or `Cancelled`, which restores the text from before
+    /// editing) so the owner's hooks run; `None` when not editing.
+    pub fn on_blur(&mut self) -> Option<InputEvent> {
+        if !self.editing {
+            return None;
+        }
+        match self.blur_action {
+            BlurAction::Commit => {
+                self.commit();
+                Some(InputEvent::Committed)
+            }
+            BlurAction::Cancel => {
+                self.editing = false;
+                let snap = std::mem::take(&mut self.snapshot);
+                self.buffer.set_text(snap);
+                Some(InputEvent::Cancelled)
+            }
+            BlurAction::Keep => None,
         }
     }
 
@@ -87,6 +124,9 @@ impl TextArea {
 
     pub fn begin_edit(&mut self) {
         if !self.disabled {
+            if !self.editing {
+                self.snapshot = self.buffer.text().to_owned();
+            }
             self.editing = true;
             self.follow_cursor = true;
         }
@@ -416,9 +456,50 @@ impl TextArea {
     }
 }
 
+impl crate::core::focus::BlurTarget for TextArea {
+    fn blur_id(&self) -> WidgetId {
+        self.id
+    }
+    fn blur(&mut self) -> Outcome {
+        match self.on_blur() {
+            Some(_) => Outcome::Changed,
+            None => Outcome::Ignored,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn blur_ends_the_edit_per_blur_action_and_reports_it() {
+        let edited = |action| {
+            let mut a = TextArea::new(WidgetId::of("b"), "Notes", 3)
+                .value("old")
+                .blur_action(action);
+            assert_eq!(
+                a.on_blur(),
+                None,
+                "an area that is not editing ignores blur"
+            );
+            a.begin_edit();
+            a.buffer.move_doc_end(false);
+            a.buffer.insert_str("\nnew");
+            a
+        };
+        let mut commit = edited(BlurAction::default());
+        assert_eq!(commit.on_blur(), Some(InputEvent::Committed));
+        assert!(!commit.editing);
+        assert_eq!(commit.buffer.text(), "old\nnew");
+        let mut cancel = edited(BlurAction::Cancel);
+        assert_eq!(cancel.on_blur(), Some(InputEvent::Cancelled));
+        assert!(!cancel.editing);
+        assert_eq!(cancel.buffer.text(), "old");
+        let mut keep = edited(BlurAction::Keep);
+        assert_eq!(keep.on_blur(), None);
+        assert!(keep.editing);
+    }
 
     #[test]
     fn home_and_end_scroll_a_read_only_view_and_boundary_wheels_are_consumed() {

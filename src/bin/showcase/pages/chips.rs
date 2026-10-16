@@ -6,6 +6,7 @@ use ratatui::layout::Rect;
 
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
+use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
@@ -179,6 +180,12 @@ impl Page for ChipsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let PageEvent::Blur(ch) = ev {
+            return forward_blur(
+                *ch,
+                &mut [&mut self.sort, &mut self.page_size, &mut self.engine],
+            );
+        }
         if let Some(o) = self.sections.handle(ev) {
             return o;
         }
