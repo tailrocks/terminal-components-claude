@@ -577,6 +577,12 @@ impl Dialog {
 
     /// The pointer moved while held on one of the dialog's scrollbars.
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        // a drag from a press on the input selects its text
+        if let Some(inp) = self.input_mut()
+            && inp.id == pressed
+        {
+            return inp.on_drag(pos);
+        }
         let moved = if pressed == scrollbar::h_id_for(self.id) && !self.htrack.is_empty() {
             scrollbar::drag_h(self.htrack, pos, &mut self.code_scroll)
         } else if pressed == scrollbar::id_for(self.id) && !self.track.is_empty() {
@@ -896,18 +902,43 @@ impl Dialog {
         }
     }
 
-    /// A completed click on `id`.
+    /// A press on `id` with the click count it starts
+    /// ([`crate::core::pointer::PointerState::press_count`]): the input
+    /// remembers it for the drag, and the second press of a double click
+    /// selects the word.
+    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        match self.input_mut() {
+            Some(inp) if inp.id == id => inp.on_press_count(pos, count),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    /// A completed click on `id`. Same as [`Self::on_click_count`] with a
+    /// count of 1.
     pub fn on_click(
         &mut self,
         id: WidgetId,
         pos: Position,
         focus: &mut crate::core::focus::Focus,
     ) -> Outcome {
+        self.on_click_count(id, pos, 1, focus)
+    }
+
+    /// A completed click on `id` with its multi-click `count`
+    /// ([`crate::core::pointer::PointerState::count_click`]): in the input
+    /// 2 selects the word and 3 the line.
+    pub fn on_click_count(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        count: u8,
+        focus: &mut crate::core::focus::Focus,
+    ) -> Outcome {
         if let Some(inp) = self.input_mut()
             && inp.id == id
         {
             focus.focus(id);
-            return inp.on_click(pos);
+            return inp.on_click_count(pos, count.max(1));
         }
         if id == scrollbar::h_id_for(self.id) && !self.htrack.is_empty() {
             let click = self.h_cfg.track_click;

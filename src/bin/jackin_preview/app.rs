@@ -187,6 +187,12 @@ pub struct App {
 }
 
 impl App {
+    /// The top modal (proof accessor).
+    #[cfg(test)]
+    pub fn top_modal(&self) -> Option<&Modal> {
+        self.modals.top().map(|e| &e.modal)
+    }
+
     /// Pure fixture entry point: one coherent world per scenario.
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let mut world = crate::domain::fixtures::world_for(scenario);
@@ -286,6 +292,7 @@ impl App {
                         focus: &mut self.focus,
                         ring: &self.ring,
                         requests: vec![],
+                        clicks: 1,
                     };
                     if let Some(c) = self.screens.cockpit.as_mut() {
                         c.seek(frame, &mut self.world, &mut cx);
@@ -308,6 +315,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         self.screens.manager.enter(&mut self.world, &mut cx);
         let reqs = std::mem::take(&mut cx.requests);
@@ -401,6 +409,7 @@ impl App {
                     focus: &mut self.focus,
                     ring: &self.ring,
                     requests: vec![],
+                    clicks: 1,
                 };
                 if let Some(s) = self.screens.get_mut(route) {
                     out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
@@ -501,6 +510,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         if let Some(s) = self.screens.get_mut(route) {
             let o = s.on_tick(&mut self.world, &mut cx);
@@ -521,6 +531,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         let mut o = match self.screens.get_mut(route) {
             Some(s) => s.on_msg(&m, &mut self.world, &mut cx),
@@ -550,6 +561,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         if let Some(c) = self.screens.capsule.as_mut() {
             c.enter(&mut self.world, &mut cx);
@@ -709,6 +721,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         let mut out = match self.screens.get_mut(route) {
             Some(s) => s.on_key(&key, &mut self.world, &mut cx),
@@ -749,6 +762,7 @@ impl App {
                     focus: &mut self.focus,
                     ring: &self.ring,
                     requests: vec![],
+                    clicks: 1,
                 };
                 let o = match self.screens.get_mut(route) {
                     Some(s) => s.on_esc_top(&mut self.world, &mut cx),
@@ -1341,6 +1355,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         let o = match self.screens.get_mut(owner) {
             Some(s) => s.on_modal(&entry.tag, result, &mut self.world, &mut cx),
@@ -1453,6 +1468,7 @@ impl App {
                             focus: &mut self.focus,
                             ring: &self.ring,
                             requests: vec![],
+                            clicks: 1,
                         };
                         if let Some(s) = self.screens.get_mut(owner) {
                             s.on_modal(&tag, ModalResult::Scope, &mut self.world, &mut cx);
@@ -1506,6 +1522,7 @@ impl App {
                                 focus: &mut self.focus,
                                 ring: &self.ring,
                                 requests: vec![],
+                                clicks: 1,
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
                                 s.on_modal(
@@ -1527,6 +1544,7 @@ impl App {
                                 focus: &mut self.focus,
                                 ring: &self.ring,
                                 requests: vec![],
+                                clicks: 1,
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
                                 s.on_modal(
@@ -1615,6 +1633,7 @@ impl App {
                 focus: &mut self.focus,
                 ring: &self.ring,
                 requests: vec![],
+                clicks: 1,
             };
             let o = match self.screens.get_mut(route) {
                 Some(s) => s.on_release(p, m.pos, &mut self.world, &mut cx),
@@ -1634,11 +1653,13 @@ impl App {
         };
         let now = self.now_ms();
         self.pointer.flash(id, now);
+        // multi-clicks count by control, cell and time; a field in a
+        // modal selects a word or a line with them too
+        let clicks = self.pointer.count_click(id, m.pos, now);
         if !self.modals.is_empty() {
-            return self.modal_click(id, m.pos);
+            return self.modal_click(id, m.pos, clicks);
         }
-        // multi-clicks count on the page only, by control, cell and time
-        let double = self.pointer.count_click(id, m.pos, now) >= 2;
+        let double = clicks >= 2;
         if Self::is_host(self.route) && self.host_menu.owns(id) {
             let (o, ev) = self.host_menu.on_click(id);
             return match ev {
@@ -1677,6 +1698,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks,
         };
         let o = match self.screens.get_mut(route) {
             Some(s) => {
@@ -1728,6 +1750,10 @@ impl App {
                             i.on_click(pressed, m.pos, &mut self.focus)
                         }
                         Modal::Custom(c) => c.on_drag(pressed, m.pos),
+                        // a drag from a press on a field selects its text
+                        Modal::Dialog(d) => d.on_drag(pressed, m.pos),
+                        Modal::Form(f) => f.on_drag(pressed, m.pos).or(Outcome::Consumed),
+                        Modal::Browser(b) => b.on_drag(pressed, m.pos).or(Outcome::Consumed),
                         _ => Outcome::Consumed,
                     };
                 }
@@ -1752,12 +1778,30 @@ impl App {
                 {
                     self.focus.focus(id);
                 }
+                // the click count this press starts: the second press of a
+                // double click selects a word in a field
+                let clicks = self.pointer.press_count(id, m.pos, self.now_ms());
+                if let Some(top) = self.modals.top_mut() {
+                    match &mut top.modal {
+                        Modal::Dialog(d) => {
+                            d.on_press(id, m.pos, clicks);
+                        }
+                        Modal::Form(f) => {
+                            f.on_press(id, m.pos, clicks);
+                        }
+                        Modal::Browser(b) => {
+                            b.on_press(id, m.pos, clicks);
+                        }
+                        _ => {}
+                    }
+                }
                 if self.modals.is_empty() {
                     let route = self.route;
                     let mut cx = Cx {
                         focus: &mut self.focus,
                         ring: &self.ring,
                         requests: vec![],
+                        clicks,
                     };
                     let o = match self.screens.get_mut(route) {
                         Some(s) => s.on_press(id, m.pos, &mut self.world, &mut cx),
@@ -1854,6 +1898,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         let o = match self.screens.get_mut(route) {
             Some(s) => s.on_secondary(id, pos, &mut self.world, &mut cx),
@@ -1908,14 +1953,14 @@ impl App {
         }
     }
 
-    fn modal_click(&mut self, id: WidgetId, pos: Position) -> Outcome {
+    fn modal_click(&mut self, id: WidgetId, pos: Position, clicks: u8) -> Outcome {
         let now = self.world.now_ms();
         let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match &mut top.modal {
             Modal::Dialog(d) => {
-                let out = d.on_click(id, pos, &mut self.focus);
+                let out = d.on_click_count(id, pos, clicks, &mut self.focus);
                 if let Some(result) = d.result {
                     let text = match &d.body {
                         DialogBody::Input(i) => Some(i.text().to_owned()),
@@ -1945,7 +1990,7 @@ impl App {
                 Outcome::Changed
             }
             Modal::Browser(b) => {
-                let o = b.on_click(id, pos, &mut self.focus, &self.world);
+                let o = b.on_click(id, pos, clicks, &mut self.focus, &self.world);
                 if let Some(r) = b.result.take() {
                     let entry = self.pop_modal().unwrap();
                     return self.deliver(entry, ModalResult::Browser(r));
@@ -1961,7 +2006,7 @@ impl App {
                 o.or(Outcome::Changed)
             }
             Modal::Form(f) => {
-                let o = f.on_click(id, pos, &mut self.focus);
+                let o = f.on_click_count(id, pos, clicks, &mut self.focus);
                 let events = std::mem::take(&mut f.events);
                 for ev in events {
                     match ev {
@@ -1974,6 +2019,7 @@ impl App {
                                 focus: &mut self.focus,
                                 ring: &self.ring,
                                 requests: vec![],
+                                clicks: 1,
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
                                 s.on_modal(
@@ -1995,6 +2041,7 @@ impl App {
                                 focus: &mut self.focus,
                                 ring: &self.ring,
                                 requests: vec![],
+                                clicks: 1,
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
                                 s.on_modal(
@@ -2346,6 +2393,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: vec![],
+            clicks: 1,
         };
         if let Some(s) = self.screens.get_mut(route) {
             s.enter(&mut self.world, &mut cx);
