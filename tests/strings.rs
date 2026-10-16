@@ -130,6 +130,16 @@ fn dialogs_follow_the_theme_and_keep_a_set_label() {
         text.contains("Abbrechen") && text.contains("Weiter"),
         "{text}"
     );
+
+    let mut i = junie_tui::widgets::info_dialog::InfoDialog::new(WidgetId::of("i"), "Info", vec![]);
+    let theme = Theme::junie().with_strings(Strings {
+        close: "Schließen",
+        ..DE
+    });
+    let text = draw(&theme, (80, 20), |buf, ctx| {
+        i.render(Rect::new(0, 0, 80, 20), buf, ctx)
+    });
+    assert!(text.contains("Schließen"), "{text}");
 }
 
 #[test]
