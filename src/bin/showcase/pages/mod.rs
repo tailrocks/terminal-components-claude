@@ -170,6 +170,9 @@ pub enum Request {
     /// Open a keyboard reference as the shell's modal
     /// ([`PageCtx::open_help`]); the shell's `?` opens its own the same way.
     OpenHelp(Box<junie_tui::widgets::help::HelpOverlay>),
+    /// A page layer refused an outside click under `Dismiss`: the shell
+    /// flashes the frame ([`junie_tui::ui::modal::refuse_outside_click`]).
+    RefusedOutsideClick(junie_tui::ui::popup::Dismiss),
 }
 
 pub struct PageCtx<'a> {
@@ -207,6 +210,11 @@ impl PageCtx<'_> {
     /// over another modal and gives focus back when it closes.
     pub fn open_help(&mut self, help: junie_tui::widgets::help::HelpOverlay) {
         self.requests.push(Request::OpenHelp(Box::new(help)));
+    }
+    /// A page layer refused an outside click: flash its frame under the
+    /// policy's `refuse_feedback` (the shell owns the pointer clock).
+    pub fn refuse_outside_click(&mut self, dismiss: junie_tui::ui::popup::Dismiss) {
+        self.requests.push(Request::RefusedOutsideClick(dismiss));
     }
 }
 

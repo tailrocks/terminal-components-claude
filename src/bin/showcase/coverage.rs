@@ -1065,6 +1065,12 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::hintbar::HintBar",
         Demo("chrome", "hint bar · topmost layer wins"),
     ),
+    // the shell footer (M1): every hint naming one key is a click target
+    // that replays it (`HintBar::render_ctx`)
+    (
+        "widgets::hintbar::HintKeys",
+        Demo("overview", "Tab Into page"),
+    ),
     (
         "widgets::button::Button",
         Demo("buttons", "Run task Preview Cancel Delete branch"),

@@ -38,6 +38,8 @@ mod app_tests_options;
 #[cfg(test)]
 mod app_tests_overview;
 #[cfg(test)]
+mod app_tests_pointer;
+#[cfg(test)]
 mod app_tests_screens;
 #[cfg(test)]
 mod app_tests_scrolling;
