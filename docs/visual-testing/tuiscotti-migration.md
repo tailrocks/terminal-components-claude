@@ -114,6 +114,29 @@ tier (`40x12`, `60x18`, pending) still misses several of these targets
 (`jackin/cockpit/debug`, `jackin/accounts/filter` and others); it needs
 its own pass before it is approved.
 
+`jackin/manager/quit_confirm` (100 tuisnap files and its `overlay_sites`
+row) was removed in 8a8c20253: a clean Ctrl+Q now quits at once, so that
+dialog no longer exists. The quit guard is covered instead by pending
+`OVERLAYS` rows (open plus both dismissals), each captured twice
+byte-identical over the full tier (675 captures):
+
+| Row | Guarded path |
+|---|---|
+| `jackin/editor/quit_guard` | workspace editor with an unsaved toggle, Ctrl+Q: Save / Discard / Cancel |
+| `jackin/settings/quit_guard` | Settings with unsaved edits, Ctrl+Q |
+| `holla/flows/quit/confirm_ctrl_c`, `confirm_menu` | live activities, Ctrl+C and File › Quit (Ctrl+Q stays `holla/flows/quit/confirm`) |
+| `tablepro/connections/form_leave_{esc,edit,new}` | edited connection form, then Esc, `e` or Ctrl+N |
+| `tablepro/connections/form_quit_guard` | edited connection form, Ctrl+C |
+| `showcase/overlays/settings_quit_guard` | Settings page with unsaved toggles, `q`: Cancel / Discard |
+
+`overlay_sites` now also counts the shared leave guard as an opener
+(`.request_quit(&`, `.request(Leave::`), so `tablepro/connections.rs::leave_form`,
+`tablepro/app.rs::request_quit` and `showcase/app.rs::request_quit` are
+sites with these rows, and jackin's `editor.rs::leave` / `settings.rs::leave`
+are no longer gaps. On this HEAD Ctrl+Q does nothing in tablepro (its
+quit keys are Ctrl+C, `q` and the menu; reported, not changed here), so
+its rows use Ctrl+C.
+
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
 matrix and the OS that generates baselines (CI runs ubuntu-24.04) before
 the rest is re-approved. Re-approve one group at a time:
