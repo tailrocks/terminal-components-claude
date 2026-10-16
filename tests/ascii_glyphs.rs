@@ -395,7 +395,12 @@ fn panels_dialogs_and_diffs_draw_ascii() {
             Rect::new(0, 0, 40, 1),
             buf,
             &t,
-            &[hint("↑↓", "Move"), hint("1-6", "Jump"), hint("Esc", "Back")],
+            &[
+                hint("↑↓", "Move"),
+                hint("⇧←→", "Pan"),
+                hint("1-6", "Jump"),
+                hint("Esc", "Back"),
+            ],
             None,
             Some(("disk low", junie_tui::theme::Tone::Warning)),
         );
