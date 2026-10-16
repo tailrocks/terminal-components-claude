@@ -63,6 +63,13 @@ pub enum PageEvent {
         pressed: WidgetId,
         pos: Position,
     },
+    /// The button went up away from `pressed`, where the press started
+    /// (no click: the press and the release landed on different targets).
+    /// A select chooses the option a press-drag ended on.
+    Release {
+        pressed: WidgetId,
+        pos: Position,
+    },
     /// Wheel over `id` (a scroll container).
     Wheel {
         id: WidgetId,

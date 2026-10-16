@@ -501,3 +501,60 @@ fn changing_the_selection_with_unsaved_edits_asks_to_discard_them() {
     assert!(!h.has("June Park Lee"));
     assert!(!h.has("Unsaved changes"));
 }
+
+impl Harness {
+    fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) {
+        self.app
+            .handle(Input::Mouse(Mouse::new(kind, Position::new(x, y))));
+        self.draw();
+    }
+
+    /// `needle` on a row below `below`, left of column `right`.
+    fn find_below(&self, needle: &str, below: u16, right: u16) -> Option<(u16, u16)> {
+        let buf = self.term.backend().buffer();
+        (below + 1..buf.area.height).find_map(|y| {
+            let row = self.row(y);
+            row.find(needle)
+                .map(|b| row[..b].chars().count() as u16)
+                .filter(|&x| x < right)
+                .map(|x| (x, y))
+        })
+    }
+}
+
+#[test]
+fn a_select_chooses_by_press_drag_release_and_its_label_focuses_it() {
+    let mut h = Harness::new(120, 40);
+    h.click_text("Cleo Barnes", KeyModifiers::NONE);
+    let (_, ey) = h.find("Edit member").expect("the editor");
+    let (lx, ly) = h.find_below("Role", ey, 120).expect("the Role field");
+    let field_y = ly + 1;
+    assert!(h.row(field_y).contains("Editor"), "{}", h.text());
+    // press the closed field: the list opens under the held button
+    h.mouse(MouseKind::Down, lx + 2, field_y);
+    let (vx, vy) = h
+        .find_below("Viewer", field_y, lx + 40)
+        .unwrap_or_else(|| panic!("the press opens the list:\n{}", h.text()));
+    // drag onto an option and let go: chosen in one gesture
+    h.mouse(MouseKind::Drag, vx + 1, vy);
+    h.mouse(MouseKind::Up, vx + 1, vy);
+    assert!(h.row(field_y).contains("Viewer"), "{}", h.text());
+    assert!(
+        h.find_below("Admin", field_y, lx + 40).is_none(),
+        "the list closed:\n{}",
+        h.text()
+    );
+    // a click on the label focuses the field without opening it
+    h.click(lx + 1, ly);
+    assert!(
+        h.find_below("Admin", field_y, lx + 40).is_none(),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert!(
+        h.find_below("Admin", field_y, lx + 40).is_some(),
+        "the label click focused the field:\n{}",
+        h.text()
+    );
+}
