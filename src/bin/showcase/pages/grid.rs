@@ -13,6 +13,7 @@ use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::grid::{
     CellKind, CellValue, ColumnSpec, DataGrid, GridEvent, GridRows, RowTotal,
 };
+use junie_tui::widgets::option_editor::{ColumnEditor, Options};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
@@ -121,8 +122,10 @@ impl GridPage {
             ColumnSpec::new("customer", CellKind::Text)
                 .nullable(false)
                 .type_label("text"),
+            // four plans: a segmented strip (the option-count ladder)
             ColumnSpec::new("plan", CellKind::Enum)
                 .enum_values(PLANS)
+                .editor(ColumnEditor::for_options(Options::values(PLANS)))
                 .nullable(false),
             ColumnSpec::new("seats", CellKind::Number)
                 .nullable(false)

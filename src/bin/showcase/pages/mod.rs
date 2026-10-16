@@ -10,6 +10,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 
 pub mod buttons;
+pub mod celleditors;
 pub mod chips;
 pub mod chrome;
 pub mod dialogs;
@@ -139,6 +140,11 @@ pub trait Page {
     /// True when the page needs periodic ticks (spinners, progress).
     fn animating(&self) -> bool {
         false
+    }
+    /// The page as `Any`, so tests can reach its widgets by type.
+    #[allow(dead_code)]
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        None
     }
     /// True while the page draws a layer above itself (a modal picker, an
     /// open menu that owns the keyboard): the shell then renders the page

@@ -6,9 +6,10 @@
 120x40 TrueColor Chips & selects 129a3b0b29e0bcb4
 120x40 TrueColor Forms 53f4fcc4c5ea4e12
 120x40 TrueColor Basic table 20ac63cfbac3b09d
-120x40 TrueColor Editable 35f3b3edff129f16
+120x40 TrueColor Editable 6a299361cc7f0355
 120x40 TrueColor Data grid fca0e9a68276020c
 120x40 TrueColor Selection cd14370cb06ed680
+120x40 TrueColor Cell editors e6045ae179af3d48
 120x40 TrueColor Lists 418194742cd65674
 120x40 TrueColor Trees 05360871f45a8841
 120x40 TrueColor Sidebars df2562f85b5ece43
@@ -30,9 +31,10 @@
 120x40 Ansi256 Chips & selects 0434e6b5eb1566a1
 120x40 Ansi256 Forms b42b1157d068663b
 120x40 Ansi256 Basic table ea8ebb0f1ac7a582
-120x40 Ansi256 Editable fa26c948eec8727b
+120x40 Ansi256 Editable 94078e8b1da21c82
 120x40 Ansi256 Data grid bbc2add1b91e3812
 120x40 Ansi256 Selection 4d8ecea65baffd61
+120x40 Ansi256 Cell editors dbb220981836053e
 120x40 Ansi256 Lists bdbbd890ef83aadf
 120x40 Ansi256 Trees 3213cc8f2b52eefe
 120x40 Ansi256 Sidebars a4befbae5e57de8d
@@ -54,9 +56,10 @@
 120x40 Ansi16 Chips & selects bbd5c1cf0ef6de3b
 120x40 Ansi16 Forms 5e99a5f1890dfafe
 120x40 Ansi16 Basic table a8e99a19a6126ae1
-120x40 Ansi16 Editable aa5bc2ef6d3aabc7
+120x40 Ansi16 Editable 27e1664233f9a1cc
 120x40 Ansi16 Data grid b784f84c204b9fe9
 120x40 Ansi16 Selection 263523df1b9416b8
+120x40 Ansi16 Cell editors fb81e8f016d804e7
 120x40 Ansi16 Lists 2f47e89d243e3c5e
 120x40 Ansi16 Trees 95cecca6070c81f9
 120x40 Ansi16 Sidebars 1ec6283f70179f66
@@ -78,9 +81,10 @@
 120x40 Mono Chips & selects cdb6af6793d30487
 120x40 Mono Forms 00c919496761cfc9
 120x40 Mono Basic table eed57c0288bd555c
-120x40 Mono Editable 34669d4a46f626ed
+120x40 Mono Editable d682eaac21dc9a0a
 120x40 Mono Data grid 44144f2bfd92869f
 120x40 Mono Selection c2d7ac69442ed1c0
+120x40 Mono Cell editors e0b733b12e25b5d6
 120x40 Mono Lists 8534ab68c8de175f
 120x40 Mono Trees a3d315fb7f1231ba
 120x40 Mono Sidebars 1b247048adfd5bcf
@@ -105,6 +109,7 @@
 80x24 TrueColor Editable 3f90db771d56497e
 80x24 TrueColor Data grid 2bf96d1f5553106f
 80x24 TrueColor Selection 1bdfd58e45692385
+80x24 TrueColor Cell editors fe606c967247151c
 80x24 TrueColor Lists d6c791e4a8175312
 80x24 TrueColor Trees 59406bb2b688f352
 80x24 TrueColor Sidebars bc233c41b09712d9
@@ -129,6 +134,7 @@
 80x24 Ansi256 Editable dbecaed3a85adee0
 80x24 Ansi256 Data grid 2ef0d14ed37fca5e
 80x24 Ansi256 Selection 624862e676d61c18
+80x24 Ansi256 Cell editors 38d3943146c75d7f
 80x24 Ansi256 Lists 5c6c7755d67eaac3
 80x24 Ansi256 Trees 2cf83b0cc6f2ab33
 80x24 Ansi256 Sidebars c8e410503353acc8
@@ -153,6 +159,7 @@
 80x24 Ansi16 Editable 0a6319a3fed84455
 80x24 Ansi16 Data grid f79ed08dcdf19fa5
 80x24 Ansi16 Selection a7dd72b5142e5f9f
+80x24 Ansi16 Cell editors bdfd42bd46e8b5ed
 80x24 Ansi16 Lists 93431e02a4cfe86c
 80x24 Ansi16 Trees f57464320c966a3c
 80x24 Ansi16 Sidebars 14a43a042fc8197e
@@ -177,6 +184,7 @@
 80x24 Mono Editable b7c09e301157ddad
 80x24 Mono Data grid 19aafcb42db9c2da
 80x24 Mono Selection 0c23185a142631e7
+80x24 Mono Cell editors 05581f6fc65ad1cb
 80x24 Mono Lists 6bf7db81a7b75aa0
 80x24 Mono Trees 8f01e792e2283ac0
 80x24 Mono Sidebars de137ebf7af081be
@@ -201,6 +209,7 @@
 72x20 TrueColor Editable fd943b4d9e804368
 72x20 TrueColor Data grid e5ebc7e0a05efa52
 72x20 TrueColor Selection 60a7e618b68b6a46
+72x20 TrueColor Cell editors b228dedc2f347a5b
 72x20 TrueColor Lists 451e8fd5d7c82144
 72x20 TrueColor Trees d1489126c233f5d8
 72x20 TrueColor Sidebars a988a21c1dcf7abe
@@ -225,6 +234,7 @@
 72x20 Ansi256 Editable cd51636e421d6290
 72x20 Ansi256 Data grid 2fb5b87d45e85bfb
 72x20 Ansi256 Selection d2f41d9dcc19cd65
+72x20 Ansi256 Cell editors 7a43e882b66fc3c8
 72x20 Ansi256 Lists 25425b0ba2d3c502
 72x20 Ansi256 Trees ab3d4ae3ce05e32e
 72x20 Ansi256 Sidebars 17744736f366f2d9
@@ -249,6 +259,7 @@
 72x20 Ansi16 Editable 7a4c6c770e130355
 72x20 Ansi16 Data grid 39594e696ea3a4fb
 72x20 Ansi16 Selection 6b3608c1708a67b3
+72x20 Ansi16 Cell editors 4ec20809c47acbe8
 72x20 Ansi16 Lists f270b4e73d867968
 72x20 Ansi16 Trees 4c24b4edbc8b2241
 72x20 Ansi16 Sidebars 7db07fdd0803fca9
@@ -273,6 +284,7 @@
 72x20 Mono Editable ca2cfeef4408fc1d
 72x20 Mono Data grid 036ded1cc51ce732
 72x20 Mono Selection e6a1be178d4df63f
+72x20 Mono Cell editors 079a20dd8e538b3e
 72x20 Mono Lists d1b12a8b95695818
 72x20 Mono Trees 3583f81017af50b7
 72x20 Mono Sidebars d3f4f43e8c1d3d01
@@ -294,9 +306,10 @@
 100x30 TrueColor Chips & selects 33dc936f3155563e
 100x30 TrueColor Forms 9bc91de07335ef6f
 100x30 TrueColor Basic table 71a21c7f43831427
-100x30 TrueColor Editable a5338d1955ac2f09
+100x30 TrueColor Editable b67c03de9e3a2832
 100x30 TrueColor Data grid f5cb2572dcaca1c0
 100x30 TrueColor Selection 9bd6c41be4de5d48
+100x30 TrueColor Cell editors 5912983cdb511178
 100x30 TrueColor Lists e6d97e8931dfb052
 100x30 TrueColor Trees bc43b8549fc3a077
 100x30 TrueColor Sidebars dce27b4a1ed5f30d
@@ -318,9 +331,10 @@
 100x30 Ansi256 Chips & selects 4c376b38201c6355
 100x30 Ansi256 Forms fc28a44dc1320554
 100x30 Ansi256 Basic table ce1ba8cd2dfff2ce
-100x30 Ansi256 Editable ef51bc12da0ead9f
+100x30 Ansi256 Editable 88fb619425c5d566
 100x30 Ansi256 Data grid a8c78e5d35b1d582
 100x30 Ansi256 Selection ece3beba8ab7aa02
+100x30 Ansi256 Cell editors a95eced048d9feec
 100x30 Ansi256 Lists d048f0e929facc9c
 100x30 Ansi256 Trees 2b52f4362cdaa586
 100x30 Ansi256 Sidebars b8f3e6fe76483d3d
@@ -342,9 +356,10 @@
 100x30 Ansi16 Chips & selects 7ee283d5191ad03d
 100x30 Ansi16 Forms 5021a35ee704fa01
 100x30 Ansi16 Basic table dd98118b39a5b594
-100x30 Ansi16 Editable 08687b0fb628589d
+100x30 Ansi16 Editable 3fa79bd5dd04d156
 100x30 Ansi16 Data grid 871b883f5d5e1169
 100x30 Ansi16 Selection bcf46280557a4361
+100x30 Ansi16 Cell editors 39439ac1e3f7bceb
 100x30 Ansi16 Lists ad5c9545c5ba1387
 100x30 Ansi16 Trees fff9855c4ae7b205
 100x30 Ansi16 Sidebars 22c8ef90eeaee49c
@@ -366,9 +381,10 @@
 100x30 Mono Chips & selects aacec749faa539f8
 100x30 Mono Forms 682ca54d4b5d9f0a
 100x30 Mono Basic table 27b19e0eebb77996
-100x30 Mono Editable 59fab31200b8fbbe
+100x30 Mono Editable 9b9271a5e3ed7765
 100x30 Mono Data grid 703d0eb7ab4af7d3
 100x30 Mono Selection 1a9ca4dfd139acbe
+100x30 Mono Cell editors 29d4c2288a7cbed2
 100x30 Mono Lists fd6b5bf927c8dda4
 100x30 Mono Trees f11fa76a0a4702ee
 100x30 Mono Sidebars 2406c302d3394db7
@@ -390,9 +406,10 @@
 160x50 TrueColor Chips & selects 6d6121a3366d1fc1
 160x50 TrueColor Forms 815b1310b980c7eb
 160x50 TrueColor Basic table 3e1d12bc8716004c
-160x50 TrueColor Editable 8275baf6256ad3bc
+160x50 TrueColor Editable 8b91d3d383fc3dfb
 160x50 TrueColor Data grid 232129e327ac6a9b
 160x50 TrueColor Selection 808889c78725d7cd
+160x50 TrueColor Cell editors c7724e82314ac8a9
 160x50 TrueColor Lists 8d7bf4a3593360ed
 160x50 TrueColor Trees 36964028033b6354
 160x50 TrueColor Sidebars b882ea6738a59df6
@@ -414,9 +431,10 @@
 160x50 Ansi256 Chips & selects e3fca3406f1cb73a
 160x50 Ansi256 Forms 70f70bbbbdcaab44
 160x50 Ansi256 Basic table 5ef116b28f9c12f3
-160x50 Ansi256 Editable a42bd423c0a97ace
+160x50 Ansi256 Editable 5204975566f4fcbf
 160x50 Ansi256 Data grid e5e0ee922400d905
 160x50 Ansi256 Selection 4a9520799f4c5560
+160x50 Ansi256 Cell editors cb7f1d5e244136f1
 160x50 Ansi256 Lists 79ddc9dea4893399
 160x50 Ansi256 Trees 2811064503ec8ac7
 160x50 Ansi256 Sidebars f4a0938e9364d3d6
@@ -438,9 +456,10 @@
 160x50 Ansi16 Chips & selects b4497244f891c2d0
 160x50 Ansi16 Forms 55a9858908661335
 160x50 Ansi16 Basic table f484f60378e24461
-160x50 Ansi16 Editable 0703f1185481e3f8
+160x50 Ansi16 Editable c9dcfe326e2222ab
 160x50 Ansi16 Data grid 030ac9c6f87f5042
 160x50 Ansi16 Selection cf95d9e0934ea5e6
+160x50 Ansi16 Cell editors f895ca133d3cb3d5
 160x50 Ansi16 Lists cefb377eb655af9e
 160x50 Ansi16 Trees 63d31e1e70e0d530
 160x50 Ansi16 Sidebars b578445c345c1145
@@ -462,9 +481,10 @@
 160x50 Mono Chips & selects d4ba5513bb5bf3ca
 160x50 Mono Forms e4afeacbd000aec0
 160x50 Mono Basic table bc524aac8c457778
-160x50 Mono Editable 2f6ecf825538238f
+160x50 Mono Editable d21106bb7a6dea64
 160x50 Mono Data grid bc9ed7362bb7ca04
 160x50 Mono Selection e259296bc9e135bc
+160x50 Mono Cell editors 4a5296d78d155647
 160x50 Mono Lists d40f11c5fc1aaa7d
 160x50 Mono Trees b12d86761a388019
 160x50 Mono Sidebars 4d44789b51c1b93a
