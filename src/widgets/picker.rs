@@ -104,6 +104,9 @@ pub struct Picker {
     /// into view. Wheel scrolling leaves it alone so the viewport and the
     /// selection never fight.
     cursor_dirty: bool,
+    /// How a cut label or detail reveals its full text on hover (see
+    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+    pub reveal: Option<crate::ui::reveal::Reveal>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -143,6 +146,7 @@ impl Picker {
             searchable: true,
             cursor_style: CursorStyle::default(),
             cursor_dirty: true,
+            reveal: None,
         }
     }
 
@@ -600,6 +604,14 @@ impl Picker {
             // fixed columns: label · detail · tag · group, so rows line up
             let mut x = row.x + 3;
             let label = truncate(&it.label, label_col as usize);
+            let label_cut = !it.disabled
+                && crate::ui::reveal::truncated(
+                    ctx,
+                    self.reveal,
+                    rid,
+                    Rect::new(row.x + 3, ry, label_col, 1),
+                    &it.label,
+                );
             for (bi, ch) in label.char_indices() {
                 let mut cs = st;
                 if it.matched.contains(&bi) {
@@ -647,6 +659,15 @@ impl Picker {
                         st.fg(t.row_ink(&cr, t.text_muted))
                             .remove_modifier(Modifier::BOLD),
                     );
+                    if !it.disabled && !label_cut {
+                        crate::ui::reveal::truncated(
+                            ctx,
+                            self.reveal,
+                            rid,
+                            Rect::new(dx, ry, room as u16, 1),
+                            &it.detail,
+                        );
+                    }
                 }
             }
             if !it.disabled {
@@ -976,5 +997,37 @@ mod tests {
         let mut p = picker(30);
         render(&mut p);
         assert_eq!(p.on_wheel(1), Outcome::Changed);
+    }
+
+    #[test]
+    fn hovering_a_cut_row_reveals_its_label_then_its_detail() {
+        let label = "a picker label long enough to be cut by the label column";
+        let detail = "and a detail that is also far too long for what is left of the row";
+        let mut p = picker(2);
+        p.items[0].label = label.into();
+        p.items[1].detail = detail.into();
+        let draw = |p: &mut Picker, hover| {
+            let theme = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover,
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 100, 24));
+            p.render(Rect::new(0, 0, 100, 24), &mut buf, &mut ctx, "");
+            ctx.flush_overlays(&mut buf);
+            (0..24)
+                .map(|y| (0..100).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let rest = draw(&mut p, None);
+        assert!(!rest.contains(label) && !rest.contains(detail), "{rest}");
+        let r0 = p.row_id(0);
+        assert!(draw(&mut p, Some(r0)).contains(label));
+        let r1 = p.row_id(1);
+        assert!(draw(&mut p, Some(r1)).contains(detail));
     }
 }
