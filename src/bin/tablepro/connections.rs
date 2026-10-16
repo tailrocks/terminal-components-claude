@@ -1279,6 +1279,8 @@ impl ConnectionsScreen {
         }
         if r.is_empty() {
             if self.form.is_some() {
+                // the form covers the list: the list is inert under it
+                ctx.cover(buf);
                 self.render_form(area, buf, ctx);
             }
             return;
