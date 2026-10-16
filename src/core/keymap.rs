@@ -943,4 +943,32 @@ mod widget_tests {
         comp.on_key(&k(KeyCode::End));
         assert_eq!(comp.cursor, 2, "an app can hand it Home/End");
     }
+
+    #[test]
+    fn props_and_help_nav() {
+        use crate::widgets::help::HelpOverlay;
+        use crate::widgets::props::{Prop, PropsList};
+        let props = || vec![Prop::new("a", "1"), Prop::new("b", "2")];
+        let mut p = PropsList::new(WidgetId::of("p"), props());
+        p.on_key(&c('j'));
+        assert_eq!(p.cursor, 1);
+        let mut p = PropsList::new(WidgetId::of("p"), props()).nav(NavKeys::NO_VIM);
+        assert_eq!(p.on_key(&c('j')).0, Outcome::Ignored);
+        assert_eq!(p.cursor, 0);
+
+        let rows: Vec<(&str, &str)> = (0..40).map(|_| ("k", "action")).collect();
+        let mut h = HelpOverlay::new(WidgetId::of("h"), "S", vec![("Keys", rows.clone())]);
+        h.scroll.set_content(40);
+        h.scroll.set_viewport(5);
+        h.on_key(&c('G'));
+        assert!(h.scroll.offset > 0, "G jumps to the end");
+        let mut h =
+            HelpOverlay::new(WidgetId::of("h"), "S", vec![("Keys", rows)]).nav(NavKeys::NO_VIM);
+        h.scroll.set_content(40);
+        h.scroll.set_viewport(5);
+        h.on_key(&c('j'));
+        assert_eq!(h.scroll.offset, 0);
+        h.on_key(&k(KeyCode::Down));
+        assert_eq!(h.scroll.offset, 1);
+    }
 }

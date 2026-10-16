@@ -8,6 +8,7 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
@@ -268,9 +269,17 @@ pub struct PropsList {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
+    pub nav: NavKeys,
 }
 
 impl PropsList {
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
     pub fn new(id: WidgetId, props: Vec<Prop>) -> Self {
         let n = props.len();
         Self {
@@ -285,6 +294,7 @@ impl PropsList {
             sheet: Sheet::default(),
             track_click: None,
             v_click: crate::core::scroll::TrackClick::Jump,
+            nav: NavKeys::DEFAULT,
         }
     }
 
@@ -341,19 +351,18 @@ impl PropsList {
         if let Some(o) = self.reveal.on_key(key) {
             return (o, None);
         }
-        match key.code {
-            KeyCode::Up | KeyCode::Char('k') if key.plain() => {
-                self.set_cursor(self.cursor.saturating_sub(1))
+        let page = self.scroll.viewport_len.max(1);
+        match (self.nav.action(key), key.code) {
+            (Some(Nav::Up), _) if key.plain() => self.set_cursor(self.cursor.saturating_sub(1)),
+            (Some(Nav::Down), _) if key.plain() => self.set_cursor(self.cursor + 1),
+            (Some(Nav::PageUp), _) => self.set_cursor(self.cursor.saturating_sub(page)),
+            (Some(Nav::PageDown), _) => self.set_cursor(self.cursor + page),
+            (Some(Nav::Home), _) if key.plain() => self.set_cursor(0),
+            (Some(Nav::End), _) => self.set_cursor(usize::MAX),
+            (_, KeyCode::Enter) => {
+                return (Outcome::Changed, Some(PropsEvent::Activate(self.cursor)));
             }
-            KeyCode::Down | KeyCode::Char('j') if key.plain() => self.set_cursor(self.cursor + 1),
-            KeyCode::PageUp => {
-                self.set_cursor(self.cursor.saturating_sub(self.scroll.viewport_len.max(1)))
-            }
-            KeyCode::PageDown => self.set_cursor(self.cursor + self.scroll.viewport_len.max(1)),
-            KeyCode::Home | KeyCode::Char('g') if key.plain() => self.set_cursor(0),
-            KeyCode::End | KeyCode::Char('G') => self.set_cursor(usize::MAX),
-            KeyCode::Enter => return (Outcome::Changed, Some(PropsEvent::Activate(self.cursor))),
-            KeyCode::Char('y') if key.plain() => {
+            (_, KeyCode::Char('y')) if key.plain() => {
                 if self.props[self.cursor].copyable {
                     return (Outcome::Changed, Some(PropsEvent::Copy(self.cursor)));
                 }
