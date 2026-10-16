@@ -37,8 +37,34 @@ pub enum PanelFocus {
     Bar,
 }
 
-/// Cells a title keeps when a long meta competes for the title row.
-const TITLE_MIN: u16 = 4;
+/// Cells a title keeps when a long meta competes for the title row: the
+/// default of [`Panel::title_min`].
+pub const TITLE_MIN: u16 = 12;
+
+/// The fewest cells a cut meta is drawn in; below that it is dropped.
+const META_MIN: u16 = 4;
+
+/// `meta` cut to `room` cells with an ellipsis, never in the middle of a
+/// number or a range (`"1–1…"` would misstate the position): the cut backs
+/// up to the last space before it. `None` when what is left is shorter
+/// than [`META_MIN`].
+fn cut_meta(meta: &str, room: u16) -> Option<String> {
+    if room < META_MIN {
+        return None;
+    }
+    let cut = crate::ui::text::truncate(meta, room as usize);
+    let body = cut.trim_end_matches('…');
+    let next = meta[body.len()..].chars().next();
+    let numeric = |c: char| c.is_ascii_digit() || matches!(c, '–' | '-' | '/' | ',' | '.' | '~');
+    let mid_number = body.chars().last().is_some_and(numeric) && next.is_some_and(numeric);
+    let body = if mid_number {
+        body.rsplit_once(' ').map(|(head, _)| head).unwrap_or("")
+    } else {
+        body
+    }
+    .trim_end_matches([' ', '·']);
+    (crate::ui::text::width(body) as u16 + 1 >= META_MIN).then(|| format!("{body}…"))
+}
 
 pub struct Panel<'a> {
     pub title: Option<&'a str>,
@@ -50,6 +76,15 @@ pub struct Panel<'a> {
     pub bg_override: Option<Color>,
     /// How focus-within shows on a card. Default [`PanelFocus::Title`].
     pub focus_mark: PanelFocus,
+    /// Cells the title keeps before the meta gives way. Default
+    /// [`TITLE_MIN`] (12); a shorter title keeps its whole width.
+    pub title_min: u16,
+    /// A short form of the meta, used when the full one does not fit
+    /// beside the title (`"1–9/24"` for `"1–9 of 24"`). `None`: a position
+    /// label `"a–b of n"` shortens to `"a–b/n"` on its own. When the short
+    /// form is still too long, its first `" · "`-separated fact is shown,
+    /// then a cut that never splits a number, then nothing.
+    pub meta_short: Option<&'a str>,
 }
 
 impl<'a> Panel<'a> {
@@ -62,6 +97,8 @@ impl<'a> Panel<'a> {
             badge: None,
             bg_override: None,
             focus_mark: PanelFocus::Title,
+            title_min: TITLE_MIN,
+            meta_short: None,
         }
     }
     pub fn framed(title: Option<&'a str>) -> Self {
@@ -73,6 +110,8 @@ impl<'a> Panel<'a> {
             badge: None,
             bg_override: None,
             focus_mark: PanelFocus::Title,
+            title_min: TITLE_MIN,
+            meta_short: None,
         }
     }
     pub fn focused(mut self, f: bool) -> Self {
@@ -85,6 +124,17 @@ impl<'a> Panel<'a> {
     }
     pub fn meta(mut self, m: &'a str) -> Self {
         self.meta = Some(m);
+        self
+    }
+    /// The short form of the meta for a narrow title row.
+    pub fn meta_short(mut self, m: &'a str) -> Self {
+        self.meta_short = Some(m);
+        self
+    }
+    /// Cells the title keeps before the meta gives way (default
+    /// [`TITLE_MIN`]).
+    pub fn title_min(mut self, cells: u16) -> Self {
+        self.title_min = cells;
         self
     }
 
@@ -116,6 +166,8 @@ impl<'a> Panel<'a> {
             badge: self.badge,
             bg_override: self.bg_override,
             focus_mark: self.focus_mark,
+            title_min: self.title_min,
+            meta_short: self.meta_short,
         };
         let row = Rect::new(area.x + 2, area.y, area.width.saturating_sub(4), 1);
         fill(buf, row, Style::new().bg(bg));
@@ -197,19 +249,33 @@ impl<'a> Panel<'a> {
         let mut cx = x;
         let framed = self.kind == PanelKind::Framed;
         let pad: u16 = if framed { 2 } else { 0 };
-        // the meta (a scroll position) is state the reader relies on: when
-        // both do not fit, the title yields first down to a few cells that
-        // still name the panel, then the meta shortens
+        // the title keeps `title_min` cells (its whole width when shorter):
+        // a panel must still say what it is. The meta gives way first: its
+        // short form, then an ellipsis, and it is dropped when not even a
+        // few cells are left
         let title_min = self
             .title
-            .map(|t| (crate::ui::text::width(t) as u16).min(TITLE_MIN))
+            .map(|t| (crate::ui::text::width(t) as u16).min(self.title_min))
             .unwrap_or(0);
-        let meta = self.meta.map(|m| {
+        let meta = self.meta.filter(|m| !m.is_empty()).and_then(|m| {
             let room = w.saturating_sub(pad + if title_min > 0 { title_min + 1 } else { 0 });
-            if crate::ui::text::width(m) as u16 > room {
-                crate::ui::text::truncate(m, room as usize)
+            let fits = |m: &str| crate::ui::text::width(m) as u16 <= room;
+            if fits(m) {
+                return Some(m.to_owned());
+            }
+            let short = self
+                .meta_short
+                .map(str::to_owned)
+                .unwrap_or_else(|| m.replace(" of ", "/"));
+            // then only its first fact ("388–401/401" of
+            // "388–401/401 · following")
+            let head = short.split(" · ").next().unwrap_or_default().to_owned();
+            if fits(&short) {
+                Some(short)
+            } else if fits(&head) && !head.is_empty() {
+                Some(head)
             } else {
-                m.to_owned()
+                cut_meta(&short, room)
             }
         });
         let meta_w = meta
@@ -704,29 +770,74 @@ mod scroll_panel_tests {
         assert_eq!(buf[(1, 0)].symbol(), "▎", "the bar stays available");
     }
 
-    #[test]
-    fn the_meta_is_never_dropped_the_title_yields_first() {
+    fn title_of(title: &str, meta: &str, short: Option<&str>, w: u16) -> String {
         let t = Theme::junie();
-        // 24 columns: the title has 20; the meta needs 13 of them
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, 3));
+        let mut p = Panel::card(Some(title)).meta(meta);
+        if let Some(s) = short {
+            p = p.meta_short(s);
+        }
+        p.render(Rect::new(0, 0, w, 3), &mut buf, &t);
+        row(&buf, 0)
+    }
+
+    /// Layout audit #7: the title gave way to the meta down to 4 cells
+    /// ("Lan… 1–13 of …", both cut). The title now keeps `title_min` cells
+    /// (12 by default, its whole width when shorter) and the meta yields
+    /// first: its short form, then an ellipsis, then nothing.
+    #[test]
+    fn the_title_keeps_title_min_and_the_meta_shortens_first() {
+        // room for both
+        let r = title_of("Languages", "1–13 of 24", None, 30);
+        assert!(r.contains("Languages") && r.contains("1–13 of 24"), "{r}");
+        // a position label shortens on its own before the title is cut
+        let r = title_of("Languages", "1–13 of 24", None, 22);
+        assert!(r.contains("Languages"), "the title stays whole: {r}");
+        assert!(r.contains("1–13/24"), "{r}");
+        // an explicit short form wins
+        let r = title_of(
+            "customers",
+            "rows 1–10 of 40 loaded · ~4,812 total",
+            Some("1–10/40"),
+            24,
+        );
+        assert!(r.contains("customers") && r.contains("1–10/40"), "{r}");
+        // no room left: a number is never cut mid-way ("1–1…" misstates the
+        // position), so the meta is dropped; the title never is
+        let r = title_of("Languages", "1–13 of 24", None, 18);
+        assert!(r.contains("Languages") && !r.contains('1'), "{r}");
+        // a text meta is cut with an ellipsis
+        let r = title_of("Log", "Enter copies the row", None, 20);
+        assert!(
+            r.contains("Log") && r.contains("Enter cop") && r.contains('…'),
+            "{r}"
+        );
+        // a long meta keeps its first fact whole rather than cutting
+        // inside the next number
+        let r = title_of(
+            "customers",
+            "rows 1–10 of 40 loaded · ~4,812 total",
+            None,
+            40,
+        );
+        assert!(r.contains("rows 1–10/40 loaded"), "{r}");
+        assert!(!r.contains("~4"), "{r}");
+        assert_eq!(cut_meta("1–13/24", 4), None, "never \"1–1…\"");
+        assert_eq!(
+            cut_meta("rows 1–10/40 · ~4,812", 16).as_deref(),
+            Some("rows 1–10/40…")
+        );
+        // a long title is cut to title_min, not to 4 cells
+        let r = title_of("A rather long title", "70–100 of 120", None, 28);
+        assert!(r.contains("A rather lo") && r.contains("70–100/120"), "{r}");
+        // configurable: a title_min of 4 restores the old balance
+        let t = Theme::junie();
         let mut buf = Buffer::empty(Rect::new(0, 0, 24, 3));
         Panel::card(Some("A rather long title"))
             .meta("70–100 of 120")
+            .title_min(4)
             .render(Rect::new(0, 0, 24, 3), &mut buf, &t);
-        let title = row(&buf, 0);
-        assert!(title.contains("70–100 of 120"), "{title}");
-        assert!(
-            title.contains("A ra") && title.contains('…'),
-            "the title shortened: {title}"
-        );
-        // narrower than the meta itself: the meta shortens, still present
-        let mut buf = Buffer::empty(Rect::new(0, 0, 12, 3));
-        Panel::card(Some("Log"))
-            .meta("371–401 of 401 · following")
-            .render(Rect::new(0, 0, 12, 3), &mut buf, &t);
-        let title = row(&buf, 0);
-        assert!(title.contains("Log"), "the title keeps its name: {title}");
-        assert!(title.contains("371"), "{title}");
-        assert!(title.contains('…'));
+        assert!(row(&buf, 0).contains("70–100 of 120"), "{}", row(&buf, 0));
     }
 
     #[test]

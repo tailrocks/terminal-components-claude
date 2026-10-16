@@ -757,7 +757,7 @@ fn titles(h: &Harness) -> String {
     // titles themselves may be shortened to keep the labels whole)
     h.text()
         .lines()
-        .find(|l| l.contains(" of ") && l.contains('–'))
+        .find(|l| (l.contains(" of ") || l.contains('/')) && l.contains('–'))
         .map(str::to_owned)
         .unwrap_or_default()
 }
@@ -819,14 +819,15 @@ fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick
     h.draw();
     let title = titles(&h);
     let drawn = h.text().lines().filter(|l| l.contains("Row ")).count() as u32;
-    // at 80 columns the labels keep their positions and shorten their tails
+    // at 80 columns the labels keep their positions in their short form
+    // ("a–b/n", layout audit #7), never cut inside a number
     assert!(
-        title.contains(&format!("1–{drawn} of")),
+        title.contains(&format!("1–{drawn} of")) || title.contains(&format!("1–{drawn}/")),
         "the list label matches the rows drawn at 80x24: {title}"
     );
     assert!(
         // (its long lines scroll sideways: the horizontal bar takes a row)
-        title.contains("388–401 of"),
+        title.contains("388–401 of") || title.contains("388–401/401"),
         "the log label survives at 80x24: {title}"
     );
 }
@@ -923,12 +924,8 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
     // at 80 columns the labels keep their positions and shorten their
     // suffix; the prose label is the first one and never says following
     let row = titles(&h);
-    assert_eq!(
-        row.matches(" of").count(),
-        3,
-        "all three labels stay: {row}"
-    );
-    let before_log = row.rsplit_once(" of").map(|(a, _)| a.to_owned()).unwrap();
+    assert_eq!(row.matches('–').count(), 3, "all three labels stay: {row}");
+    let before_log = row.rsplit_once('–').map(|(a, _)| a.to_owned()).unwrap();
     assert!(!before_log.contains("following"), "{row}");
 }
 
