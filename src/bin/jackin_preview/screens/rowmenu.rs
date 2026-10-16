@@ -119,12 +119,13 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
             o.menu.render(screen, buf, ctx);
         }
     }
+}
 
-    pub fn hints() -> Vec<Hint> {
-        vec![
-            hint("↑↓", "Move"),
-            hint("Enter", "Choose"),
-            hint("Esc", "Close"),
-        ]
-    }
+/// The hint bar while a row menu is open.
+pub fn hints() -> Vec<Hint> {
+    vec![
+        hint("↑↓", "Move"),
+        hint("Enter", "Choose"),
+        hint("Esc", "Close"),
+    ]
 }

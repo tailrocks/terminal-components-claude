@@ -29,6 +29,7 @@ use super::modals::{
     BrowserResult, ChoiceDialog, FieldKindW, FieldValue, FileBrowser, FormDialog, FormField,
     FormValues, OpFlow,
 };
+use super::rowmenu::RowMenu;
 use super::{Cx, Modal, ModalResult, ModalTag};
 use crate::domain::agent::AuthMode;
 use crate::domain::onepassword::OpReference;
@@ -37,6 +38,9 @@ use crate::domain::workspace::{
     env_key_error, mask,
 };
 use crate::sim::world::{GlobalConfig, World};
+use junie_tui::ui::context::ContextAnchor;
+use junie_tui::widgets::menu::MenuItem;
+use ratatui::crossterm::event::KeyModifiers;
 
 /// Which configuration document the tabs edit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -209,6 +213,9 @@ pub struct ConfigTabs {
     /// Picker rows → Role names for the last role picker.
     role_targets: Vec<RoleName>,
     ids: Ids,
+    /// The rows' context menu (right-click, Shift+F10, Menu key): each item
+    /// replays the row key it shows. Its `config` is the knob.
+    pub menu: RowMenu<(Tab, RowKey), KeyCode>,
 }
 
 #[derive(Clone, Copy)]
@@ -257,6 +264,7 @@ impl ConfigTabs {
                 envs: base.sub("envs"),
                 form: base.sub("form"),
             },
+            menu: RowMenu::new(base.sub("menu")),
         }
     }
 
@@ -1200,6 +1208,25 @@ impl ConfigTabs {
 
     pub fn on_key(&mut self, tab: Tab, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(tab, w);
+        if self.menu.is_context_key(key) {
+            let st = self.state_ref(tab);
+            let i = st.cursor;
+            if i < st.rows.len() {
+                let dy = i.saturating_sub(st.scroll.offset) as u16;
+                let fallback = Rect::new(
+                    st.area.x,
+                    st.area.y + dy.min(st.area.height.saturating_sub(1)),
+                    st.area.width.max(1),
+                    1,
+                );
+                let anchor = ContextAnchor::Control {
+                    id: self.list_id(tab).child(i),
+                    fallback,
+                };
+                self.open_menu(tab, i, anchor, w);
+            }
+            return Outcome::Changed;
+        }
         let st = self.state_ref(tab);
         let Some(row) = st.rows.get(st.cursor).cloned() else {
             return Outcome::Ignored;
@@ -1409,6 +1436,261 @@ impl ConfigTabs {
             _ => return Outcome::Ignored,
         }
         Outcome::Changed
+    }
+
+    // ------------------------------------------------------ context menu
+
+    fn row_title(row: &Row) -> String {
+        match &row.key {
+            RowKey::Mount(d) | RowKey::RemovedMount(d) => d.clone(),
+            RowKey::Env(Some(r), k) => format!("{k} · role {r}"),
+            RowKey::Env(None, k) => k.clone(),
+            RowKey::Section(Some(r)) => format!("role {r}"),
+            _ => row
+                .cells
+                .first()
+                .map(|c| c.0.trim_start_matches("+ ").to_owned())
+                .unwrap_or_default(),
+        }
+    }
+
+    /// The commands a row offers: its keys (the hint bar's), each replayed
+    /// through [`Self::on_key`]; unavailable ones carry the reason.
+    fn menu_items(&self, row: &Row) -> Vec<(MenuItem, KeyCode)> {
+        let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
+        let add_env = (item("Add variable…", "a"), KeyCode::Char('a'));
+        match &row.key {
+            RowKey::Mount(d) => {
+                let Some(m) = self.pending.mounts.iter().find(|m| &m.destination == d) else {
+                    return vec![];
+                };
+                let o = self.original.mounts.iter().find(|o| &o.destination == d);
+                let isolation = item("Next isolation", "i");
+                let source = item("Open source", "o");
+                let scope = item("Scope…", "s");
+                let revert = item("Revert changes", "u");
+                let has_url = matches!(m.source, MountSource::Git(_))
+                    || matches!(m.source, MountSource::Host(_)) && m.kind == MountKind::Repository;
+                vec![
+                    (item("Edit…", "Enter"), KeyCode::Enter),
+                    (
+                        item(
+                            if m.readonly {
+                                "Make read-write"
+                            } else {
+                                "Make read-only"
+                            },
+                            "r",
+                        ),
+                        KeyCode::Char('r'),
+                    ),
+                    (
+                        if m.running_isolated {
+                            isolation.reason("a running instance holds isolated state")
+                        } else {
+                            isolation
+                        },
+                        KeyCode::Char('i'),
+                    ),
+                    (
+                        if has_url {
+                            source
+                        } else {
+                            source.reason("no GitHub URL for this mount")
+                        },
+                        KeyCode::Char('o'),
+                    ),
+                    (
+                        if self.scope == Scope::Global {
+                            scope
+                        } else {
+                            scope.reason("workspace mounts have no scope")
+                        },
+                        KeyCode::Char('s'),
+                    ),
+                    (
+                        match o {
+                            Some(o) if o != m => revert,
+                            Some(_) => revert.reason("no changes"),
+                            None => revert.reason("a new mount · remove it instead"),
+                        }
+                        .separator(),
+                        KeyCode::Char('u'),
+                    ),
+                    (item("Add mount…", "a"), KeyCode::Char('a')),
+                    (item("Remove", "d").danger(), KeyCode::Char('d')),
+                ]
+            }
+            RowKey::RemovedMount(_) => vec![
+                (item("Undo remove", "u"), KeyCode::Char('u')),
+                (item("Add mount…", "a"), KeyCode::Char('a')),
+            ],
+            RowKey::AddMount => vec![(item("Add mount…", "Enter"), KeyCode::Enter)],
+            RowKey::Env(..) if row.change == Change::Removed => {
+                vec![(item("Restore", "u"), KeyCode::Char('u')), add_env]
+            }
+            RowKey::Env(r, k) => {
+                let p = self
+                    .pending
+                    .env_of(r.as_deref())
+                    .iter()
+                    .find(|e| &e.key == k);
+                let o = self
+                    .original
+                    .env_of(r.as_deref())
+                    .iter()
+                    .find(|e| &e.key == k);
+                let plain = p.is_some_and(|e| matches!(e.value, EnvValue::Plain(_)));
+                let shown = self.unmasked.contains(&(r.clone(), k.clone()));
+                let show = item(if shown { "Mask value" } else { "Show value" }, "m");
+                let revert = item("Revert changes", "u");
+                vec![
+                    (item("Edit…", "Enter"), KeyCode::Enter),
+                    (
+                        if plain {
+                            show
+                        } else {
+                            show.reason("only plain values can be shown")
+                        },
+                        KeyCode::Char('m'),
+                    ),
+                    (item("1Password reference…", "p"), KeyCode::Char('p')),
+                    (item("Scope…", "s"), KeyCode::Char('s')),
+                    (
+                        match (o, p) {
+                            (Some(o), Some(p)) if o != p => revert,
+                            (Some(_), _) => revert.reason("no changes"),
+                            (None, _) => revert.reason("a new variable · remove it instead"),
+                        }
+                        .separator(),
+                        KeyCode::Char('u'),
+                    ),
+                    add_env,
+                    (item("Remove…", "d").danger(), KeyCode::Char('d')),
+                ]
+            }
+            RowKey::Section(Some(r)) => vec![
+                (
+                    item(
+                        if self.folded.contains(&Some(r.clone())) {
+                            "Expand"
+                        } else {
+                            "Collapse"
+                        },
+                        "Enter",
+                    ),
+                    KeyCode::Enter,
+                ),
+                add_env,
+            ],
+            RowKey::Section(None) => vec![add_env],
+            RowKey::AddEnv(_) => vec![(item("Add variable…", "Enter"), KeyCode::Enter)],
+            RowKey::RoleSummary | RowKey::AddRoleOverride => {
+                vec![(item("Add role override…", "Enter"), KeyCode::Enter)]
+            }
+        }
+    }
+
+    fn open_menu(&mut self, tab: Tab, i: usize, anchor: ContextAnchor, _w: &World) {
+        let Some(row) = self.state_ref(tab).rows.get(i).cloned() else {
+            return;
+        };
+        let items = self.menu_items(&row);
+        if !items.is_empty() {
+            self.menu
+                .open((tab, row.key.clone()), anchor, Self::row_title(&row), items);
+        }
+    }
+
+    pub fn menu_open(&self) -> bool {
+        self.menu.is_open()
+    }
+
+    /// The page under the open menu draws without focus.
+    pub fn menu_hides_focus(&self) -> bool {
+        self.menu.hides_page_focus()
+    }
+
+    /// A key while the menu is open.
+    pub fn menu_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (o, chosen) = self.menu.on_key(key);
+        match chosen {
+            Some(((tab, target), code)) => self.run_menu(tab, target, code, w, cx),
+            None => o,
+        }
+    }
+
+    /// A click while the menu is open.
+    pub fn menu_click(&mut self, id: WidgetId, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (o, chosen) = self.menu.on_click(id);
+        match chosen {
+            Some(((tab, target), code)) => self.run_menu(tab, target, code, w, cx),
+            None => o,
+        }
+    }
+
+    /// Replay the chosen row key on its row.
+    fn run_menu(
+        &mut self,
+        tab: Tab,
+        target: RowKey,
+        code: KeyCode,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        self.build_rows(tab, w);
+        let Some(i) = self
+            .state_ref(tab)
+            .rows
+            .iter()
+            .position(|r| r.key == target)
+        else {
+            return Outcome::Changed;
+        };
+        let prev = self.state_ref(tab).cursor;
+        self.state(tab).cursor = i;
+        let key = Key {
+            code,
+            mods: KeyModifiers::NONE,
+        };
+        let out = self.on_key(tab, &key, w, cx);
+        // a menu that leaves the cursor in place runs on its row only
+        if !self.menu.config.moves_cursor {
+            self.state(tab).cursor = prev;
+        }
+        out.or(Outcome::Changed)
+    }
+
+    /// A secondary click on one of `tab`'s rows opens its menu at `pos`.
+    pub fn on_secondary(
+        &mut self,
+        tab: Tab,
+        id: WidgetId,
+        pos: Position,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        self.build_rows(tab, w);
+        let list = self.list_id(tab);
+        let Some(i) = self
+            .state_ref(tab)
+            .scroll
+            .visible_range()
+            .find(|&i| list.child(i) == id || list.child(i).sub("fold") == id)
+        else {
+            return Outcome::Ignored;
+        };
+        if self.menu.config.moves_cursor {
+            self.state(tab).cursor = i;
+        }
+        cx.focus.focus(list);
+        self.open_menu(tab, i, ContextAnchor::Pointer(pos), w);
+        Outcome::Changed
+    }
+
+    /// Draw the open menu; after the rows, so it anchors to them.
+    pub fn render_menu(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        self.menu.render(screen, buf, ctx);
     }
 
     fn undo(&mut self, tab: Tab, key: &RowKey, _w: &World, cx: &mut Cx) -> Outcome {
