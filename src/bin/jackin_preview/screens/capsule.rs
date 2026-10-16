@@ -119,7 +119,7 @@ const PALETTE: [&str; 20] = [
     "Clear pane",
     "Usage",
     "Close",
-    "Exit",
+    "Quit",
 ];
 
 impl CapsuleScreen {
@@ -272,7 +272,7 @@ impl CapsuleScreen {
                         .shortcut("Ctrl+B &")
                         .danger()
                         .separator(),
-                    MenuItem::new("Exit").shortcut("Ctrl+Q").danger(),
+                    MenuItem::new("Quit").shortcut("Ctrl+Q").danger(),
                 ],
             ),
             (
@@ -463,7 +463,7 @@ impl CapsuleScreen {
                 }
                 self.confirm_close(true, w, cx);
             }
-            "Exit" => self.request_exit(w, cx),
+            "Quit" => self.request_exit(w, cx),
             "Key reference" => cx.help(),
             "Command palette" => self.open_palette(w, cx),
             "About jackin-preview" => self.open_about(w, cx),
@@ -892,7 +892,7 @@ impl CapsuleScreen {
                 "Clear pane" => ("Ctrl+B Ctrl+L", false),
                 "Usage" => ("Ctrl+B u", false),
                 "Close" => ("Ctrl+B x", false),
-                "Exit" => ("Ctrl+Q", false),
+                "Quit" => ("Ctrl+Q", false),
                 _ => ("host", false),
             };
             let matched: Vec<usize> = if q.is_empty() {
@@ -1011,7 +1011,7 @@ impl CapsuleScreen {
                     cx.open(Modal::Picker(p), ModalTag::new("closetarget"));
                 }
             }
-            "Exit" => self.request_exit(w, cx),
+            "Quit" => self.request_exit(w, cx),
             _ => cx.status(format!("{cmd}: not available in the preview")),
         }
     }
@@ -2496,12 +2496,12 @@ impl Screen for CapsuleScreen {
             Mode::PrefixAwait => vec![
                 hint("c", "New tab"),
                 hint("n p", "Tabs"),
-                hint("x", "Close"),
-                hint("h j k l", "Nav"),
+                hint("x", "Close pane"),
+                hint("h j k l", "Move between panes"),
                 hint("\"", "Split ↕"),
                 hint("%", "Split ↔"),
                 hint("z", "Zoom"),
-                hint("&", "Kill tab"),
+                hint("&", "Close tab"),
                 hint("Ctrl+L", "Clear"),
                 hint("d", "Detach"),
                 hint("u", "Usage"),
@@ -2525,7 +2525,7 @@ impl Screen for CapsuleScreen {
                     ]
                 } else {
                     vec![
-                        hint("Ctrl+B", "Prefix"),
+                        hint("Ctrl+B", "Pane commands…"),
                         hint("F10", "Menu"),
                         hint("Ctrl+\\", "Palette"),
                         hint("Alt+Shift+↑↓←→", "Resize"),
