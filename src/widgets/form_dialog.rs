@@ -497,16 +497,49 @@ impl FormDialog {
     /// remembers it for the drag (the second press of a double click
     /// selects the word).
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        if let Some(s) = self.select_owning(id) {
+            // a select opens on the press (press-drag-release)
+            return s.on_press(id, pos);
+        }
         self.inputs()
             .find(|i| i.id == id)
             .map_or(Outcome::Ignored, |i| i.on_press_count(pos, count))
     }
 
-    /// A drag held since a press on `pressed`: an input selects its text.
+    /// A drag held since a press on `pressed`: an input selects its text,
+    /// a select's cursor follows the pointer over its options.
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if let Some(s) = self.select_owning(pressed) {
+            return s.on_drag(pressed, pos);
+        }
         self.inputs()
             .find(|i| i.id == pressed)
             .map_or(Outcome::Ignored, |i| i.on_drag(pos))
+    }
+
+    /// The button went up away from `pressed` (no click): a select whose
+    /// press-drag ended on an option chooses it.
+    pub fn on_release(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        for f in self.fields.iter_mut() {
+            if let FormFieldKind::Select(s) = &mut f.kind
+                && s.owns(pressed)
+            {
+                let (o, ev) = s.on_release(pos);
+                if ev.is_some() {
+                    self.dirty = true;
+                    self.events.push(FormEvent::Changed(f.name.clone()));
+                }
+                return o;
+            }
+        }
+        Outcome::Ignored
+    }
+
+    fn select_owning(&mut self, id: WidgetId) -> Option<&mut Select> {
+        self.fields.iter_mut().find_map(|f| match &mut f.kind {
+            FormFieldKind::Select(s) if s.owns(id) => Some(s),
+            _ => None,
+        })
     }
 
     /// A completed click. Same as [`Self::on_click_count`] with a count
