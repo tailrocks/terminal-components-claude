@@ -3,7 +3,10 @@
 //! selected row to the Account & Usage Center.
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::columns::{self, Col};
@@ -883,62 +886,14 @@ impl Screen for UsageScreen {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        self.build_rows(w);
-        for i in self.scroll.visible_range() {
-            if LIST.child(i) == id {
-                match &self.rows[i] {
-                    Row::Account(a) => self.selected = Some(a.clone()),
-                    Row::Overview => self.selected = None,
-                    Row::Heading(_) => {}
-                }
-                self.detail_scroll.jump_start();
-                cx.focus.focus(LIST);
-                return Outcome::Changed;
-            }
+    /// A click picks a row or pages a bar; the wheel scrolls the list or
+    /// the detail under the pointer.
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        match (ev.wheel(), ev.phase()) {
+            (Some((Axis::Vertical, delta)), _) => self.wheel(ev.id, delta),
+            (None, Some(Phase::Click)) => self.click(ev.id, ev.pos(), w, cx),
+            _ => Outcome::Ignored,
         }
-        if id == DETAIL {
-            cx.focus.focus(DETAIL);
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(LIST) {
-            let track = Rect::new(
-                self.list_area.right() - 1,
-                self.list_area.y,
-                1,
-                self.list_area.height,
-            );
-            self.scroll
-                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            let track = Rect::new(
-                self.detail_area.right() - 1,
-                self.detail_area.y + 2,
-                1,
-                self.detail_area.height.saturating_sub(2),
-            );
-            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
-                track,
-                pos,
-                &self.detail_scroll,
-            ));
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == LIST || id == scrollbar::id_for(LIST) {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == DETAIL || id == scrollbar::id_for(DETAIL) {
-            self.detail_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn on_msg(&mut self, msg: &Msg, w: &mut World, _cx: &mut Cx) -> Outcome {
@@ -1037,5 +992,69 @@ impl Screen for UsageScreen {
             Some(a) => format!("Usage › {} › {}", a.surface.surface_name(), a.display_name),
             None => "Usage › Overview".into(),
         }
+    }
+}
+
+// ------------------------------------------------------------ pointer
+
+/// The screen's pointer gestures by phase (its hand-drawn rows keep
+/// their derived ids until S16 moves them onto widgets).
+impl UsageScreen {
+    fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        self.build_rows(w);
+        for i in self.scroll.visible_range() {
+            if LIST.child(i) == id {
+                match &self.rows[i] {
+                    Row::Account(a) => self.selected = Some(a.clone()),
+                    Row::Overview => self.selected = None,
+                    Row::Heading(_) => {}
+                }
+                self.detail_scroll.jump_start();
+                cx.focus.focus(LIST);
+                return Outcome::Changed;
+            }
+        }
+        if id == DETAIL {
+            cx.focus.focus(DETAIL);
+            return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(LIST) {
+            let track = Rect::new(
+                self.list_area.right() - 1,
+                self.list_area.y,
+                1,
+                self.list_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            let track = Rect::new(
+                self.detail_area.right() - 1,
+                self.detail_area.y + 2,
+                1,
+                self.detail_area.height.saturating_sub(2),
+            );
+            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
+                track,
+                pos,
+                &self.detail_scroll,
+            ));
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn wheel(&mut self, id: WidgetId, delta: i32) -> Outcome {
+        if id == LIST || id == scrollbar::id_for(LIST) {
+            self.scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        if id == DETAIL || id == scrollbar::id_for(DETAIL) {
+            self.detail_scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
     }
 }
