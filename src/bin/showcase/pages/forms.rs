@@ -1,7 +1,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
@@ -91,7 +91,7 @@ impl FormsPage {
         a && b
     }
 
-    fn do_submit(&mut self, cx: &mut PageCtx) {
+    fn do_submit(&mut self, cx: &mut Cx) {
         self.attempted = true;
         if self.name.editing {
             self.name.commit();
@@ -113,7 +113,7 @@ impl FormsPage {
         cx.status("Creating task…");
     }
 
-    fn do_reset(&mut self, cx: &mut PageCtx) {
+    fn do_reset(&mut self, cx: &mut Cx) {
         *self = Self::new();
         cx.focus.focus(self.name.id);
         cx.status("Form reset");
@@ -123,7 +123,7 @@ impl FormsPage {
 impl FormsPage {
     /// Each control takes its own pointer events; a click on a text field
     /// or a radio option focuses it (the options are not focus stops).
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         for inp in [&mut self.name, &mut self.reviewer] {
             if let Some(r) = inp.route(ev) {
@@ -286,7 +286,7 @@ impl Page for FormsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(
                 *ch,
@@ -315,7 +315,7 @@ impl Page for FormsPage {
                 let Some(f) = cx.focus.current() else {
                     return Outcome::Ignored;
                 };
-                let route_input = |inp: &mut TextInput, cx: &mut PageCtx| -> Outcome {
+                let route_input = |inp: &mut TextInput, cx: &mut Cx| -> Outcome {
                     let (out, iev) = inp.on_key(key);
                     match iev {
                         Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),

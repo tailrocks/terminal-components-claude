@@ -16,7 +16,7 @@ use crate::app::PageId;
 use crate::options::page_options;
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -196,7 +196,7 @@ impl TreesPage {
     }
 
     /// What a tree reported.
-    fn on_action(&mut self, id: WidgetId, a: Option<TreeAction>, cx: &mut PageCtx) {
+    fn on_action(&mut self, id: WidgetId, a: Option<TreeAction>, cx: &mut Cx) {
         let Some(a) = a else { return };
         let t = if id == CONNECTIONS {
             &mut self.conns
@@ -492,7 +492,7 @@ impl Page for TreesPage {
         self.loading.is_some()
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Tick = ev
             && let Some((path, left)) = self.loading.as_mut()
         {

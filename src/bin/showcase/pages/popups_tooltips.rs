@@ -24,7 +24,7 @@ use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -453,7 +453,7 @@ impl Page for PopupsTooltipsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some((out, chosen)) = self.popover.handle(ev) {
             match chosen {
                 Some(((), i)) => {

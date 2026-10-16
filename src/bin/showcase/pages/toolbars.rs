@@ -17,7 +17,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -155,7 +155,7 @@ impl ToolbarsPage {
     }
 
     /// `k` is a toolbar of query commands (the wide or the narrow one).
-    fn act(&mut self, a: ToolbarAction, k: usize, cx: &mut PageCtx) {
+    fn act(&mut self, a: ToolbarAction, k: usize, cx: &mut Cx) {
         let label = match a {
             ToolbarAction::Activated(i) | ToolbarAction::Toggled(i, _) => {
                 self.bar_mut(k).items[i].label.clone()
@@ -324,7 +324,7 @@ impl Page for ToolbarsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

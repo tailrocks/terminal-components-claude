@@ -10,7 +10,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -225,7 +225,7 @@ impl Page for DiffPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }
@@ -415,11 +415,7 @@ mod tests {
         let (_, ring) = render(&mut page, 100, ColorLevel::Mono);
         let mut focus = Focus::default();
         focus.focus(page.review.id);
-        let mut cx = PageCtx {
-            focus: &mut focus,
-            ring: &ring,
-            requests: vec![],
-        };
+        let mut cx = Cx::new(&mut focus, &ring);
         let enter = PageEvent::Key(junie_tui::core::event::Key {
             code: KeyCode::Enter,
             mods: KeyModifiers::NONE,

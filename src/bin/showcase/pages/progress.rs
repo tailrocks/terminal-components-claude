@@ -9,7 +9,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::MouseTarget;
@@ -307,7 +307,7 @@ impl Page for ProgressPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Tick = ev {
             if self.running && !self.paused && self.build < 1.0 {
                 self.build = (self.build + 0.006).min(1.0);

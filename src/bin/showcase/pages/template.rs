@@ -17,7 +17,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use super::{Hint, PageCtx, PageEvent};
+use super::{Cx, CxExt, Hint, PageEvent};
 use crate::options::{Group, Opt, OptionsView};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
@@ -117,7 +117,7 @@ impl Template {
     /// Load the page's option values before a frame: `opts` is the page's
     /// table, `value` its current value index per option. The controls
     /// are the same declarations the Inspector's Options tab and `--opt`
-    /// read; a change goes back to the shell as [`super::Request::SetOption`], so
+    /// read; a change goes back to the shell as [`super::Go::SetOption`], so
     /// all three take one path (`App::apply_opt`).
     pub fn sync_options(&mut self, opts: &'static [Opt], value: impl Fn(&Opt) -> usize) {
         if opts.is_empty() {
@@ -273,7 +273,7 @@ impl Template {
 
     /// The template's own events: the strip, and in the States section the
     /// toggle and the body's scroll. `None` leaves the event to the page.
-    pub fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Option<Outcome> {
+    pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let before = self.tabs.active;
         let out = self.handle_inner(ev, cx)?;
         if self.tabs.active != before {
@@ -282,7 +282,7 @@ impl Template {
         Some(out)
     }
 
-    fn handle_inner(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Option<Outcome> {
+    fn handle_inner(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let states = self.section() == Section::States;
         if states && let Some(o) = self.states.handle(ev) {
             return Some(o);

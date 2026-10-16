@@ -10,7 +10,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -422,7 +422,7 @@ impl TerminalPage {
 }
 
 impl TerminalPage {
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.id == SEAM {
             return match ev.phase() {
                 Some(Phase::Press) => {
@@ -478,7 +478,7 @@ impl Page for TerminalPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Tick = ev {
             return self.advance();
         }

@@ -21,7 +21,7 @@ use ratatui::layout::Rect;
 
 use crate::app::PageId;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -217,7 +217,7 @@ impl TabsPage {
         self.editor.cursor = cursor.min(self.editor.items.len().saturating_sub(1));
     }
 
-    fn act(&mut self, a: TabAction, cx: &mut PageCtx) {
+    fn act(&mut self, a: TabAction, cx: &mut Cx) {
         match a {
             TabAction::Activated(i) => {
                 self.last = format!("{a:?} · {}", self.editor.items[i].label);
@@ -239,7 +239,7 @@ impl TabsPage {
                     // a dirty tab asks first: Cancel, Discard, Save
                     self.closing = Some(i);
                     self.last = format!("{a:?} · {} has unsaved changes: asked first", it.label);
-                    cx.open(junie_tui::ui::leave::unsaved_dialog(
+                    cx.open_dialog(junie_tui::ui::leave::unsaved_dialog(
                         CLOSE_DLG,
                         1,
                         &Strings::DEFAULT,
@@ -431,7 +431,7 @@ impl Page for TabsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

@@ -14,7 +14,7 @@ use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::inputs::{custom_text_keymap, field_keys};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::edit::EditEntry;
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
@@ -389,7 +389,7 @@ impl EditorPage {
         self.completion.close();
     }
 
-    fn run(&mut self, cx: &mut PageCtx) {
+    fn run(&mut self, cx: &mut Cx) {
         let Some(block) = self.editor.current_block() else {
             cx.status("Nothing to run: the cursor is between blocks");
             return;
@@ -399,13 +399,13 @@ impl EditorPage {
         self.run_ticks = 10;
     }
 
-    fn open_find(&mut self, cx: &mut PageCtx) {
+    fn open_find(&mut self, cx: &mut Cx) {
         self.completion.close();
         cx.focus.focus(self.editor.id);
         self.editor.open_find();
     }
 
-    fn finish_run(&mut self, cx: &mut PageCtx) {
+    fn finish_run(&mut self, cx: &mut Cx) {
         if let Some(block) = self.editor.running.clone() {
             let text = self.editor.text()[block.clone()].to_owned();
             if let Some(p) = text.find(".unwrap()") {
@@ -626,7 +626,7 @@ impl Page for EditorPage {
         self.completion.is_open()
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Tick = ev {
             if self.run_ticks == 0 {
                 return Outcome::Ignored;
