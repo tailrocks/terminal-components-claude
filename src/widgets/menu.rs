@@ -87,6 +87,18 @@ impl MenuItem {
     }
 }
 
+/// What an open menu does with a key it has no use for (no row, no
+/// accelerator, no navigation) (K14).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum UnknownKey {
+    /// Close the menu without choosing and let the key reach the page
+    /// (macOS menus: a shortcut typed with a menu open still works).
+    #[default]
+    CloseAndPass,
+    /// Keep the menu open and swallow the key (the old behaviour).
+    Swallow,
+}
+
 /// Menus are placed like every other popup: this is
 /// [`crate::ui::popup::Placement`], re-exported so `menu::Placement`
 /// paths keep compiling.
@@ -155,6 +167,11 @@ pub struct ContextMenu {
     /// with it (macOS menus and lists). Off by default: plain letters keep
     /// their vim and action bindings.
     pub type_ahead: bool,
+    /// What a key the menu has no use for does. Default
+    /// [`UnknownKey::CloseAndPass`]. A row's one-character shortcut (the
+    /// `a` shown beside "Select all") always chooses that row: the menu
+    /// does what it advertises.
+    pub unknown_key: UnknownKey,
     typeahead: crate::core::typeahead::TypeAhead,
     /// Press, drag, release: a secondary release over an enabled row
     /// chooses it when the pointer moved at least one cell from the
@@ -277,6 +294,7 @@ impl ContextMenu {
             cursor_dirty: true,
             nav: NavKeys::DEFAULT,
             type_ahead: false,
+            unknown_key: UnknownKey::CloseAndPass,
             typeahead: Default::default(),
             release_selects: true,
             release_from: Vec::new(),
@@ -435,6 +453,14 @@ impl ContextMenu {
             self.cursor_hidden = true;
             return (Outcome::Consumed, None);
         }
+        // a row's one-character shortcut chooses it (K14): the menu does
+        // what it advertises
+        if let KeyCode::Char(c) = key.code
+            && let Some(i) = self.accelerator(c)
+        {
+            self.cursor = i;
+            return (Outcome::Changed, Some(MenuAction::Chosen(i)));
+        }
         if let KeyCode::Char(c) = key.code
             && self.type_ahead
             && !c.is_whitespace()
@@ -485,8 +511,31 @@ impl ContextMenu {
                 }
             }
             KeyCode::Esc if self.dismiss.escape => (Outcome::Changed, Some(MenuAction::Dismissed)),
-            _ => (Outcome::Consumed, None),
+            KeyCode::Esc | KeyCode::Tab | KeyCode::BackTab => (Outcome::Consumed, None),
+            // a key the menu has no use for closes it and reaches the page
+            // (`Ignored`), unless the owner keeps the old swallow
+            _ => match self.unknown_key {
+                UnknownKey::CloseAndPass => (Outcome::Ignored, Some(MenuAction::Dismissed)),
+                UnknownKey::Swallow => (Outcome::Consumed, None),
+            },
         }
+    }
+
+    /// The enabled row whose shortcut is exactly the character `c`.
+    fn accelerator(&self, c: char) -> Option<usize> {
+        self.items.iter().position(|it| {
+            !it.disabled
+                && it
+                    .shortcut
+                    .as_deref()
+                    .is_some_and(|s| s.chars().eq(std::iter::once(c)))
+        })
+    }
+
+    /// See [`Self::unknown_key`].
+    pub fn unknown_key(mut self, unknown: UnknownKey) -> Self {
+        self.unknown_key = unknown;
+        self
     }
 
     /// A completed click on `id`: a row chooses it, anywhere else dismisses
@@ -1123,6 +1172,12 @@ impl MenuBar {
                     self.close();
                     (Outcome::Changed, Some(MenuBarAction::Chosen(m, i)))
                 }
+                // a key the menu has no use for (K14): the bar closes and
+                // the key goes on to the page
+                Some(MenuAction::Dismissed) if o == Outcome::Ignored => {
+                    self.close();
+                    (Outcome::Ignored, Some(MenuBarAction::Closed))
+                }
                 Some(MenuAction::Dismissed) if !self.dismiss.escape => (Outcome::Consumed, None),
                 Some(MenuAction::Dismissed) => {
                     self.close();
@@ -1573,6 +1628,40 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
         m.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
         assert_eq!(m.cursor, 3);
+    }
+
+    /// K14 in a menu-bar menu: the shortcut letter shown beside a row
+    /// chooses it; a key the menu has no use for closes the bar and is
+    /// passed on (`Ignored`); `UnknownKey::Swallow` keeps the old way.
+    #[test]
+    fn menubar_menus_honour_shortcut_letters_and_pass_other_keys() {
+        let bar = || {
+            MenuBar::new(
+                WidgetId::of("bar"),
+                vec![(
+                    "File",
+                    vec![MenuItem::new("New").shortcut("n"), MenuItem::new("Quit")],
+                )],
+            )
+        };
+        let mut b = bar();
+        b.on_key(&key(KeyCode::Enter));
+        assert_eq!(
+            b.on_key(&key(KeyCode::Char('n'))),
+            (Outcome::Changed, Some(MenuBarAction::Chosen(0, 0)))
+        );
+        b.on_key(&key(KeyCode::Enter));
+        assert_eq!(
+            b.on_key(&key(KeyCode::Char('z'))),
+            (Outcome::Ignored, Some(MenuBarAction::Closed))
+        );
+        assert!(!b.is_open());
+        let mut m = ContextMenu::new(WidgetId::of("m"), vec![MenuItem::new("New")])
+            .unknown_key(UnknownKey::Swallow);
+        assert_eq!(
+            m.on_key(&key(KeyCode::Char('z'))),
+            (Outcome::Consumed, None)
+        );
     }
 
     #[test]
