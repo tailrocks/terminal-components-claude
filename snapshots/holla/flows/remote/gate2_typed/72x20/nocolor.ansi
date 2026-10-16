@@ -1,20 +1,21 @@
-  holla❯    File   Go   Help                   ◆ prod-eu-1 · production [0m
-  ╭──────────────────────────────────────────────────────────────────╮  [0m
-  │                                                                  │  [0m
- ━│  [0m[1mRestart payments · gate 2 of 2[0m                                  │─ [0m
-  │                                                                  │  [0m
-  │  Action   systemctl restart payments on prod-eu-1 · production   │  [0m
-  │           · in-flight requests are dropped                       │  [0m
-  │  Host     prod-eu-1 · production                                 │  [0m
-  │                                                                  │  [0m
-  │  sudo systemctl restart payments                                 │  [0m
-  │  systemctl status payments                                       │  [0m
-  │                                                                  │  [0m
-  │   [0m[1mType RESTART PAYMENTS ON prod-eu-1 to confirm                [0m  │  [0m
- ╭│ ▎ [0m[4mRESTART PAYMENTS ON prod-eu-1[0m                                  │╮ [0m
- ╰│                                                                  │╯ [0m
-  │                                                                  │  [0m
-  │                                               Cancel   Execute   │  [0m
-  │                                                                  │  [0m
- /╰──────────────────────────────────────────────────────────────────╯  [0m
- [0m[1m EDIT [0m  [0m[1m   [0m     [0m[1mType Phra[0mse  [0m[1mEnter[0m N[0m[1mext[0m  [0m[1mEsc[0m C[0m[1ma[0mncel                    [0m
+[0m[2m  holla❯    File   Go   Help                  ◆ prod-eu-1 · production  [0m
+[0m[2m  Here › Review                                                         [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                │── [0m
+[0m[2m  R│  [0m[1;2mRestart payments · gate 2 of 2[0m[2m                                │…  [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m  A│  [0mAction   systemctl restart payments on prod-eu-1 ·          [0m[2m ┃│   [0m
+[0m[2m   │  ↓ 7 more                                                      │   [0m
+[0m[2m  H│  sudo systemctl restart payments                               │   [0m
+[0m[2m  I│  systemctl status payments                                     │   [0m
+[0m[2m  S│                                                                │   [0m
+[0m[2m  C│  [0m[1;2mType RESTART PAYMENTS ON prod-eu-1 to confirm               [0m[2m  │   [0m
+[0m[2m   │[0m[1;2;7m▎ [0m[1;2;4;7mRESTART PAYMENTS ON prod-eu-1[0m[1;2;7m                               [0m[2m  │   [0m
+[0m[2m ╭─│                                                                │─╮ [0m
+[0m[2m ╰─│                                            Cancel    Execute   │─╯ [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m   ╰─────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
+[0m[2m                                                                        [0m
+[0m[2m /srv/payments   detached @ v2.14.3        review · gate 1 of 2         [0m
+ [0m[1m EDIT [0m    [0m[1m  [0m         [0m[1m Enter[0m Execute  [0m[1mEsc[0m Cancel[0m[1m   [0m                     [0m
+[?25h[13;36H[6 q

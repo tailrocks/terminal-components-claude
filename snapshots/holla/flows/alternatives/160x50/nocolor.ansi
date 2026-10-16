@@ -1,4 +1,4 @@
- [0m[1m holla❯ [0m   File   Go   Help                                                                                                  holla · Rust project  [0m[1mmbp · local[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                                                                                 holla · Rust project  [0m[1mmbp · local[0m  [0m
                                                                                                                                                                 [0m
  [0m[1m Here  [0m                                                                                                                                                        [0m
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
@@ -8,7 +8,7 @@
   › Inspect 12 GB of generated artifacts  disk      here  12 GB generated artifacts                                                                             [0m
     Pul╭────────────────────────────────────────╮   here  branch is 3 commits behind                             Does       1 rebuildable candidate below       [0m
     Rev│  Inspect 12 GB of generated artifacts  │   here  4 modified · 1 untracked                                          this folder · 0 stale enough to     [0m
-    Run│[0m[1m  Open                            [0mEnter[0m[1m [0m│   here  5 files changed since the last run                                start selected                      [0m
+    Run│[0m[1;7m  Open                            [0m[7mEnter[0m[1;7m [0m│   here  5 files changed since the last run                                start selected                      [0m
     Who│  Copy command                        y │s  here  2 sessions blocked for 4 min                           Runs       'holla disk analyze --artifacts'    [0m
        │  Insert into shell                     │                                                                In         ~/work/holla                        [0m
     Rec│ ────────────────────────────────────── │                                                                Host       mbp · local                         [0m
@@ -46,5 +46,6 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
- [0m[1m~/work/holla[0m   main   ↓3 • 5                                                                                                                 no color · 160×50 [0m
-                               [0m[1m    [0m         [0m[1m  [0m       [0m[1m     [0m     [0m[1m↑↓ Move  Enter[0m Cho[0m[1mose[0m  [0m[1mEsc[0m Clos[0m[1me      [0m        [0m[1m      [0m                                             [0m
+ [0m[1m~/work/holla[0m   main   ↓3   • 5                                                                                                               no color · 160×50 [0m
+                            [0m[1m    [0m         [0m[1m  [0m       [0m[1m     [0m       [0m[1m  ↑↓ Move[0m  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close    [0m[1m       [0m        [0m[1m      [0m                                       [0m
+[?25l
