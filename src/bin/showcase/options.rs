@@ -211,7 +211,82 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
     match page {
         PageId::Columns => COLUMNS,
         PageId::Tables => BASIC_TABLE,
+        PageId::Buttons => BUTTONS,
         _ => &[],
+    }
+}
+
+/// Buttons (SC7): `Button`, `ButtonRow`, `IconButton` and the States grid.
+pub static BUTTONS: &[Opt] = &[
+    Opt::new(
+        "buttons.focus_visible",
+        "Focus ring",
+        &["always", "keyboard-only"],
+    ),
+    Opt::new("buttons.toolbar_focus", "Toolbar in Tab order", OFF_ON),
+    Opt::new("buttons.row_align", "Row align", &["start", "end"]),
+    Opt::new("buttons.row_overflow", "Row overflow", &["more", "wrap"]),
+    Opt::new("buttons.row_gap", "Row gap", &["theme", "1", "4"]),
+    Opt::new("buttons.row_width", "Row width", &["full", "48", "30"]),
+    Opt::new("buttons.row_wrap", "Arrows wrap in the row", OFF_ON),
+    Opt::new("buttons.icon_pad", "Icon plate pad", &["0", "1", "2"]).default(1),
+    Opt::new("buttons.icon_danger", "Danger hover on ×", OFF_ON),
+    Opt::new(
+        "buttons.label_width",
+        "States label column",
+        &["15", "10", "20"],
+    ),
+    Opt::new(
+        "buttons.focus_mark",
+        "States focus mark",
+        &["thin", "colon"],
+    ),
+];
+
+/// A page's option values: an index into each option's values, in the
+/// order of the page's table. The page reads them when it rebuilds its
+/// widgets through their builders (`Page::set_option`).
+#[derive(Debug, Clone)]
+pub struct PageValues {
+    opts: &'static [Opt],
+    values: Vec<usize>,
+}
+
+impl PageValues {
+    pub fn new(opts: &'static [Opt]) -> Self {
+        Self {
+            opts,
+            values: opts.iter().map(|o| o.default).collect(),
+        }
+    }
+    fn index(&self, key: &str) -> Option<usize> {
+        self.opts.iter().position(|o| o.key == key)
+    }
+    /// The value index of `key`; `None` for a key the table does not have.
+    pub fn get(&self, key: &str) -> Option<usize> {
+        self.index(key).map(|i| self.values[i])
+    }
+    /// Set `key` to value index `value` (clamped); `false` for an unknown
+    /// key.
+    pub fn set(&mut self, key: &str, value: usize) -> bool {
+        let Some(i) = self.index(key) else {
+            return false;
+        };
+        self.values[i] = value.min(self.opts[i].values.len() - 1);
+        true
+    }
+    /// The value of `key` as `--opt` spells it (`""` for an unknown key).
+    pub fn value(&self, key: &str) -> &'static str {
+        self.index(key)
+            .map_or("", |i| self.opts[i].values[self.values[i]])
+    }
+    /// An `off | on` option is on.
+    pub fn on(&self, key: &str) -> bool {
+        self.value(key) == "on"
+    }
+    /// A numeric value (`None` for a word such as `theme` or `full`).
+    pub fn number(&self, key: &str) -> Option<u16> {
+        self.value(key).parse().ok()
     }
 }
 

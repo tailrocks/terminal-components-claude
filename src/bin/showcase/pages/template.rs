@@ -63,7 +63,15 @@ impl Section {
 pub const WIDE: u16 = 76;
 
 /// The legend beside the Compare toggle: what the focus mark means.
+/// It starts with the grid's own mark ([`StateGrid::mark`]): `▏` by
+/// default, `:` under ASCII glyphs.
 pub const FOCUS_LEGEND: &str = "▏ depicts a focused sample; it is not where your focus is";
+
+/// [`FOCUS_LEGEND`] after `mark`, the glyph the grid really draws.
+pub fn focus_legend(mark: &str) -> String {
+    let rest = FOCUS_LEGEND.trim_start_matches('▏');
+    format!("{mark}{rest}")
+}
 
 const LEVELS: [ColorLevel; 4] = [
     ColorLevel::TrueColor,
@@ -219,8 +227,9 @@ impl Template {
                     .render(Rect::new(r.x, r.y, bw, 1), buf, ctx, t.canvas);
                 let x = r.x + bw + 3;
                 let room = r.right().saturating_sub(x) as usize;
-                if r.width >= WIDE && room >= junie_tui::ui::text::width(FOCUS_LEGEND) {
-                    buf.set_string(x, r.y, FOCUS_LEGEND, t.faint().bg(t.canvas));
+                let legend = focus_legend(self.grid.mark(t));
+                if r.width >= WIDE && room >= junie_tui::ui::text::width(&legend) {
+                    buf.set_string(x, r.y, &legend, t.faint().bg(t.canvas));
                 }
             }
             None => ctx.focus_stop(self.compare.id),
