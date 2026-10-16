@@ -321,17 +321,17 @@ fn chips_selection_and_disabled_behavior() {
 fn dialogs_cover_choice_destructive_and_prompt_validation() {
     let mut h = Harness::new(120, 40, PageId::Dialogs);
 
-    h.click_label("Three choices");
+    h.click_label("Unsaved changes");
     assert!(h.app.dialog.is_some());
     h.key(KeyCode::Left);
     h.key(KeyCode::Enter);
     h.assert_status("Changes discarded");
 
-    h.click_label("Three choices");
+    h.click_label("Unsaved changes");
     h.key(KeyCode::Esc);
     h.assert_status("Cancelled");
 
-    h.click_label("Three choices");
+    h.click_label("Unsaved changes");
     h.key(KeyCode::Enter);
     h.assert_status("Description saved");
 
