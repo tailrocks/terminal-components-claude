@@ -13,6 +13,11 @@ pub struct ScrollState {
     /// held, so a drag moves the thumb with the pointer instead of
     /// centring it under the pointer on the first motion.
     pub(crate) grab: Option<usize>,
+    /// When [`follow`](Self::follow) brings the cursor back into view.
+    pub follow_cursor: FollowCursor,
+    /// The cursor and viewport length of the last [`follow`](Self::follow),
+    /// so `OnMove` can tell a cursor move from a repaint.
+    followed: Option<(usize, usize)>,
 }
 
 impl ScrollState {
@@ -22,7 +27,15 @@ impl ScrollState {
             content_len,
             viewport_len: 0,
             grab: None,
+            follow_cursor: FollowCursor::OnMove,
+            followed: None,
         }
+    }
+
+    /// Builder for [`follow_cursor`](Self::follow_cursor).
+    pub fn with_follow_cursor(mut self, follow: FollowCursor) -> Self {
+        self.follow_cursor = follow;
+        self
     }
 
     pub fn max_offset(&self) -> usize {
@@ -99,6 +112,22 @@ impl ScrollState {
         }
         self.clamp();
         self.offset != before
+    }
+
+    /// Keep a list cursor in view the way the list's
+    /// [`follow_cursor`](Self::follow_cursor) policy says. Call it from
+    /// render: under the default `OnMove` the viewport moves only when the
+    /// cursor (or the viewport size) changed since the last call, so the
+    /// wheel and the scrollbar can move the view away from the cursor
+    /// without the next frame snapping it back. Returns whether the offset
+    /// changed.
+    pub fn follow(&mut self, cursor: usize) -> bool {
+        let key = (cursor, self.viewport_len);
+        if self.follow_cursor == FollowCursor::OnMove && self.followed == Some(key) {
+            return false;
+        }
+        self.followed = Some(key);
+        self.ensure_visible(cursor)
     }
 
     /// Range of content indices currently in view.
@@ -200,6 +229,22 @@ impl ScrollState {
             self.page_down()
         }
     }
+}
+
+/// When a list's viewport follows its cursor
+/// ([`ScrollState::follow`]).
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum FollowCursor {
+    /// Only after the cursor moves. Scrolling by wheel or scrollbar moves
+    /// the view, never the cursor, and the view stays where the user left
+    /// it until the cursor moves again (macOS and WAI-ARIA listbox: the
+    /// selection is scrolled into view when it changes, not on every
+    /// repaint).
+    #[default]
+    OnMove,
+    /// On every call: the cursor is pinned in view and the view can only
+    /// leave it by moving the cursor.
+    Always,
 }
 
 /// When a scrollbar is drawn.
@@ -407,6 +452,36 @@ mod tests {
         assert_eq!(s.offset, 5);
         s.ensure_visible(7);
         assert_eq!(s.offset, 5);
+    }
+
+    #[test]
+    fn follow_on_move_leaves_a_wheeled_view_alone_until_the_cursor_moves() {
+        let mut s = ScrollState::new(50);
+        s.set_viewport(10);
+        s.follow(3);
+        assert_eq!(s.offset, 0);
+        // the wheel moves the view away from the cursor
+        s.scroll_by(20);
+        s.follow(3);
+        assert_eq!(s.offset, 20, "a repaint must not snap back");
+        // a cursor move brings it back into view
+        s.follow(4);
+        assert_eq!(s.offset, 4);
+        // so does a viewport resize
+        s.scroll_by(20);
+        s.set_viewport(8);
+        s.follow(4);
+        assert_eq!(s.offset, 4);
+    }
+
+    #[test]
+    fn follow_always_pins_the_cursor() {
+        let mut s = ScrollState::new(50).with_follow_cursor(FollowCursor::Always);
+        s.set_viewport(10);
+        s.follow(3);
+        s.scroll_by(20);
+        s.follow(3);
+        assert_eq!(s.offset, 3);
     }
 
     #[test]
