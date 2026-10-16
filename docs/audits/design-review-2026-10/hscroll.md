@@ -129,3 +129,61 @@ and `on_bar_drag(pressed, pos)`; pages route `scrollbar::is_bar_of`.
   would make the two axes configurable together.
 - Holla and jackin screens get the sideways wheel through the pointer
   refactor's `on_wheel_h`; none of their screens has wide content yet.
+
+## Status: TextViewport and vertical track paging
+
+The `TextViewport` and `DiffView` follow-ups and the vertical
+`TrackClick::Page` follow-up are done.
+
+| Surface | Commit |
+|---|---|
+| `TextViewport` (+ `DiffView` delegation) | `6f075829a` feat(viewport) |
+| Showcase Terminal/Diff, jackin capsule panes and Inspect diff, holla Files preview | `b68c2210e` feat(apps) |
+| Vertical `TrackClick::Page` (`ScrollPanel`, `ListBox`, `TreeView`, `DataTable`, `DataGrid`, `CodeEditor`, `TextViewport`) | `7338c7ecf` feat(scroll) |
+
+How `TextViewport` handles the horizontal offset:
+
+- Mouse: `pos_at` adds the offset, so click, drag and double-click
+  select the content under the pointer. A drag past the left or right
+  edge scrolls sideways one step and keeps selecting.
+- Painting: selection and marks are drawn at their scrolled columns. A
+  wide cell cut by the left edge leaves its visible half blank.
+- Search: `reveal_line` brings the line's current mark into view
+  sideways, so the existing holla search jumps work without changes.
+  `reveal_mark(line, bytes)` does the same for any range. A Shift+arrow
+  selection head stays in view.
+- Follow (tail) mode: following is vertical only. Scrolling sideways
+  never pauses it, and new lines keep the horizontal offset.
+- Caret: the producer caret maps through both offsets (`screen_pos`).
+  While it is scrolled out of view it is hidden, never parked at an
+  edge. The jackin capsule places its re-drawn caret through
+  `screen_pos`.
+- Wrapping: `wrap(true)` turns the axis off (no bar, no reserved row).
+  The holla activity and plan viewports and the jackin cockpit log
+  wrap, so they have no horizontal axis.
+- Input: sideways wheel and Shift+wheel go to `on_wheel_h`. Plain ←/→
+  and h/l scroll sideways only while no producer caret is shown; the
+  jackin capsule maps ←/→ that way while scrolled back. Home/End stay
+  vertical, as on `ScrollPanel`. Bar press and drag go through
+  `on_scrollbar` and `on_bar_drag`, and `owns()` covers both bar ids.
+  `hbar()` exposes the bar row for owners that render a copy of the
+  viewport (jackin panes).
+- jackin `CustomModal::on_wheel_h` lets a modal's content take the
+  sideways wheel. Dialogs take it too.
+
+Knobs added:
+
+| Name | Type | Default |
+|---|---|---|
+| `TextViewport::horizontal` | `Option<HScroll>` | `None` (app default) |
+| `RenderCtx::track_click` | `TrackClick` (vertical bars, app-wide) | `Jump` |
+| widget `track_click` (`TextViewport`, `ScrollPanel`, `ListBox`, `TreeView`, `DataTable`, `DataGrid`, `CodeEditor`) | `Option<TrackClick>` | `None` (app default) |
+
+Still open:
+
+- Vertical bars of `Dialog`, `Steps`, `PropsList` and `ui::layout` still
+  use `scrollbar::press` (always `Jump`).
+- Showcase and holla pages still route bars by hand
+  (`scrollbar::is_bar_of`). This waits for the shared pointer router.
+- jackin capsule pane bars are routed by position (`hbar()`), because
+  the pane draws a copy of the viewport inside an inert region.
