@@ -252,7 +252,7 @@ fn validate_output_paths(request: &Request, request_path: &Path) -> Result<(), S
     Ok(())
 }
 
-#[cfg(all(unix, test))]
+#[cfg(unix)]
 fn execute_request(
     request: Request,
     request_sha256: String,
