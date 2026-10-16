@@ -16,6 +16,7 @@ layer (see `AGENTS.md`), with a regression test, in its own commit.
 | `copy.md` | Copy, key hints and feedback |
 | `hscroll.md` | Horizontal scrolling and position for wide content |
 | `performance.md` | Scrolling cost of tables, grids, lists and trees |
+| `keyboard.md` | Keyboard-only use: focus order, caret, Esc, quit safety and hints |
 
 Line numbers refer to the code at the time of each audit and drift as
 fixes land.
