@@ -434,6 +434,11 @@ impl TextInput {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
+        // Ctrl+C copies only a selection; with nothing selected it is not
+        // the field's, so it reaches the app's quit guard
+        if key.ctrl_char('c') && self.buffer.selected_text().is_none() {
+            return (Outcome::Ignored, None);
+        }
         let entry = self.entry();
         if !self.editing {
             match entry {
@@ -998,6 +1003,29 @@ mod tests {
         let mut ring = FocusRing::default();
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         input.render(area, buf, &mut ctx, theme.surface);
+    }
+
+    #[test]
+    fn ctrl_c_without_a_selection_is_left_to_the_app() {
+        let ctrl_c = key(
+            KeyCode::Char('c'),
+            ratatui::crossterm::event::KeyModifiers::CONTROL,
+        );
+        let mut input = TextInput::new(WidgetId::of("f"), "Name").value("draft");
+        input.begin_edit();
+        input.buffer.clear_selection();
+        assert_eq!(
+            input.on_key(&ctrl_c).0,
+            Outcome::Ignored,
+            "reaches the quit guard"
+        );
+        assert!(input.editing, "the edit goes on");
+        input.buffer.select_all();
+        assert_ne!(
+            input.on_key(&ctrl_c).0,
+            Outcome::Ignored,
+            "a selection is the field's"
+        );
     }
 
     #[test]
