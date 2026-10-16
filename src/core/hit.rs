@@ -293,11 +293,26 @@ impl HitRegistry {
     /// Register a light-dismiss backdrop for a popup layer. With
     /// `pass_through`, a click on it also lands on what is beneath.
     pub fn register_backdrop(&mut self, id: WidgetId, area: Rect, pass_through: bool) {
+        self.register_backdrop_of(id, id, area, pass_through);
+    }
+
+    /// [`Self::register_backdrop`] owned by the popup's `owner`: the
+    /// backdrop resolves to `owner`'s [`Part::BACKDROP`], so a pointer
+    /// router delivers an outside click to the popup that dismisses itself
+    /// ([`crate::ui::popup::backdrop`]).
+    pub fn register_backdrop_of(
+        &mut self,
+        id: WidgetId,
+        owner: WidgetId,
+        area: Rect,
+        pass_through: bool,
+    ) {
         if area.is_empty() {
             return;
         }
         self.regions.push(HitRegion {
             pass_through,
+            owner,
             part: PartRef::of(Part::BACKDROP),
             backdrop: true,
             ..HitRegion::plain(id, area)

@@ -61,7 +61,80 @@ impl HintLayer {
 
 pub struct HintBar;
 
+/// The keys of the hints a footer drew this frame
+/// ([`HintBar::render_ctx`]): a click on a hint replays its key (M1).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct HintKeys(Vec<Option<crate::core::event::Key>>);
+
+impl HintKeys {
+    /// The key a click on the footer replays: the hint under a completed
+    /// click on [`HintBar::ID`].
+    pub fn clicked(
+        &self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::event::Key> {
+        if !ev.on(HintBar::ID) || !ev.is(crate::core::intent::Phase::Click) {
+            return None;
+        }
+        let i = ev.index_of(crate::core::id::Part::KEY)?;
+        self.0.get(i).copied().flatten()
+    }
+}
+
 impl HintBar {
+    /// The footer's hit owner: each clickable hint is its
+    /// `Part::KEY` item.
+    pub const ID: crate::core::id::WidgetId = crate::core::id::WidgetId::of("hintbar");
+
+    /// [`Self::render`] with every hint that names one key
+    /// ([`keyhint::key_of`]) a click target: hover underlines it, a press
+    /// reverses its key, and a click replays the key through the app
+    /// ([`HintKeys::clicked`]). Hints naming several keys (`↑↓`) stay text.
+    pub fn render_ctx(
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut crate::ui::ctx::RenderCtx,
+        layer: &HintLayer,
+    ) -> HintKeys {
+        use crate::core::id::{ItemKey, Part, PartRef};
+        use ratatui::style::Modifier;
+        let t = ctx.theme;
+        let style = crate::theme::HintBarStyle {
+            align: layer.align.unwrap_or(t.hintbar.align),
+            ..t.hintbar
+        };
+        let (_, spots) = keyhint::render_parts_at(
+            area,
+            buf,
+            t,
+            &layer.hints,
+            layer.badge,
+            layer.status.as_ref().map(|(s, tone)| (s.as_str(), *tone)),
+            &layer.status_parts,
+            &style,
+        );
+        let mut keys = vec![None; layer.hints.len()];
+        for (i, cell) in spots {
+            let Some(key) = keyhint::key_of(layer.hints[i].key) else {
+                continue;
+            };
+            keys[i] = Some(key);
+            let id = ctx.register_part(Self::ID, PartRef::item(Part::KEY, ItemKey::index(i)), cell);
+            if ctx.interaction.pressed(id) {
+                buf.set_style(
+                    cell,
+                    ratatui::style::Style::new().add_modifier(Modifier::REVERSED),
+                );
+            } else if ctx.interaction.hovered(id) {
+                buf.set_style(
+                    cell,
+                    ratatui::style::Style::new().add_modifier(Modifier::UNDERLINED),
+                );
+            }
+        }
+        HintKeys(keys)
+    }
+
     /// The first present layer wins; `layers` is ordered from the topmost
     /// context down to the global fallback.
     pub fn resolve(layers: &[Option<HintLayer>]) -> HintLayer {
@@ -132,6 +205,55 @@ impl crate::ui::specimen::Specimen for HintLayer {
 mod tests {
     use super::*;
     use crate::widgets::keyhint::hint;
+
+    /// M1: every hint that names one key is a click target whose click
+    /// replays the key; a hint naming several keys stays text; the cells
+    /// at rest are those `render` draws.
+    #[test]
+    fn a_click_on_a_footer_hint_replays_its_key() {
+        use crate::core::event::Key;
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::core::id::{ItemKey, Part, PartRef};
+        use crate::core::intent::Phase;
+        use crate::core::pointer::PointerEvent;
+        use crate::ui::ctx::{Interaction, RenderCtx};
+        use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+        use ratatui::layout::Position;
+        let t = Theme::junie();
+        let layer = HintLayer::new(vec![
+            hint("↑↓", "Move"),
+            hint("Ctrl+S", "Save"),
+            hint("Esc", "Back"),
+        ]);
+        let area = Rect::new(0, 0, 60, 1);
+        let mut plain = Buffer::empty(area);
+        HintBar::render(area, &mut plain, &t, &layer);
+        let mut buf = Buffer::empty(area);
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let keys = {
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            HintBar::render_ctx(area, &mut buf, &mut ctx, &layer)
+        };
+        assert_eq!(buf, plain, "rest looks as before");
+        let save = HintBar::ID.part(PartRef::item(Part::KEY, ItemKey::index(1)));
+        let at = hits.area_of(save).expect("Ctrl+S is a target");
+        assert!(
+            hits.area_of(HintBar::ID.part(PartRef::item(Part::KEY, ItemKey::index(0))))
+                .is_none()
+        );
+        let pos = Position::new(at.x, 0);
+        let click = PointerEvent::new(&hits, Phase::Click, save, pos, 1, KeyModifiers::NONE);
+        assert_eq!(
+            keys.clicked(&click),
+            Some(Key {
+                code: KeyCode::Char('s'),
+                mods: KeyModifiers::CONTROL
+            })
+        );
+        let press = PointerEvent::new(&hits, Phase::Press, save, pos, 1, KeyModifiers::NONE);
+        assert_eq!(keys.clicked(&press), None, "only a completed click");
+    }
 
     #[test]
     fn topmost_layer_wins_and_fallback_is_empty() {
