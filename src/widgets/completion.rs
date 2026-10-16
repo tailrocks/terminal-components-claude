@@ -41,6 +41,8 @@ pub struct Completion {
     /// Bytes before the cursor to replace on accept.
     pub replace_len: usize,
     pub max_rows: u16,
+    /// Popup width bounds `(min, max)` in cells. Default `(24, 48)`.
+    pub popup_width: (u16, u16),
     /// How the list keeps off the screen edges and lines up with the typed
     /// text. Default: one free cell from every edge, and the item labels
     /// start in the anchor's column ([`TEXT_INSET`]).
@@ -62,6 +64,18 @@ pub enum CompletionEvent {
 }
 
 impl Completion {
+    /// Most rows shown before the list scrolls. Default 8.
+    pub fn max_rows(mut self, rows: u16) -> Self {
+        self.max_rows = rows;
+        self
+    }
+
+    /// Popup width bounds in cells. Default `(24, 48)`.
+    pub fn popup_width(mut self, min: u16, max: u16) -> Self {
+        self.popup_width = (min, max.max(min));
+        self
+    }
+
     pub fn new(id: WidgetId) -> Self {
         Self {
             id,
@@ -71,6 +85,7 @@ impl Completion {
             anchor: Rect::ZERO,
             replace_len: 0,
             max_rows: 8,
+            popup_width: (24, 48),
             fit: crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET),
             area: Rect::ZERO,
             dismiss: Dismiss::LIGHT.pass_through(true),
@@ -204,7 +219,8 @@ impl Completion {
             .map(|i| width(&i.detail))
             .max()
             .unwrap_or(0);
-        let w = (label_w + detail_w + 8).clamp(24, 48) as u16;
+        let w = (label_w + detail_w + 8)
+            .clamp(self.popup_width.0 as usize, self.popup_width.1 as usize) as u16;
         let rows = (self.items.len() as u16).min(self.max_rows);
         let h = rows + 2;
         let area = place_with(screen, self.anchor, w, h, Placement::Below, self.fit);
@@ -315,6 +331,15 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    #[test]
+    fn builders_set_rows_and_width_bounds() {
+        let c = Completion::new(WidgetId::of("c"))
+            .max_rows(4)
+            .popup_width(30, 20);
+        assert_eq!(c.max_rows, 4);
+        assert_eq!(c.popup_width, (30, 30), "max never under min");
+    }
 
     fn popup(rows: u16) -> Completion {
         let mut c = Completion::new(WidgetId::of("c"));

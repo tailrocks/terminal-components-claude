@@ -93,9 +93,18 @@ pub struct ContextMenu {
     /// edges, so its frame never lands on a panel border. Given up when
     /// the menu would not fit otherwise. Default 1.
     pub edge_margin: u16,
+    /// Narrowest label column in cells (the frame and gutters add 6).
+    /// Default 8.
+    pub min_width: u16,
 }
 
 impl ContextMenu {
+    /// Narrowest label column in cells. Default 8.
+    pub fn min_width(mut self, cols: u16) -> Self {
+        self.min_width = cols;
+        self
+    }
+
     pub fn new(id: WidgetId, items: Vec<MenuItem>) -> Self {
         let cursor = items.iter().position(|i| !i.disabled).unwrap_or(0);
         Self {
@@ -110,6 +119,7 @@ impl ContextMenu {
             hide_owner_focus: true,
             reveal: None,
             edge_margin: 1,
+            min_width: 8,
         }
     }
 
@@ -173,7 +183,7 @@ impl ContextMenu {
             .unwrap_or(4);
         let title_w = self.title.as_ref().map(|t| width(t) as u16).unwrap_or(0);
         // gutter + marker gap + label + 2 inset + frame
-        let w = label_w.max(title_w).max(8) + 6;
+        let w = label_w.max(title_w).max(self.min_width) + 6;
         let seps = self.items.iter().filter(|i| i.separator_after).count() as u16;
         let title_rows = if self.title.is_some() { 1 } else { 0 };
         let h = self.items.len() as u16 + seps + title_rows + 2;

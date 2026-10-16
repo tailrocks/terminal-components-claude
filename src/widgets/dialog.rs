@@ -59,6 +59,10 @@ pub struct Dialog {
     /// Index of the action Esc maps to (usually a Cancel button).
     pub cancel_index: Option<usize>,
     pub width: u16,
+    /// Letter accelerators on a text dialog: `(yes, no)` press the primary
+    /// action and the cancel action. Default `Some(('y', 'n'))`; `None`
+    /// keeps letters inert, as macOS alerts do.
+    pub accelerators: Option<(char, char)>,
     pub area: Rect,
     pub result: Option<DialogResult>,
     pub initial_focus: WidgetId,
@@ -112,6 +116,19 @@ pub const OUTER_MARGIN: Margin = Margin {
 };
 
 impl Dialog {
+    /// Width in cells before clamping to the screen.
+    pub fn width(mut self, width: u16) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Letter accelerators `(yes, no)` on a text dialog; `None` turns them
+    /// off.
+    pub fn accelerators(mut self, keys: Option<(char, char)>) -> Self {
+        self.accelerators = keys;
+        self
+    }
+
     pub fn confirm(id: WidgetId, title: &str, text: &str, confirm: &str) -> Self {
         let cancel = Button::subtle(id.sub("cancel"), "Cancel");
         let ok = Button::primary(id.sub("ok"), confirm);
@@ -123,6 +140,7 @@ impl Dialog {
             actions: vec![cancel, ok],
             cancel_index: Some(0),
             width: 54,
+            accelerators: Some(('y', 'n')),
             area: Rect::ZERO,
             result: None,
             initial_focus: ok_id,
@@ -156,6 +174,7 @@ impl Dialog {
             actions: vec![cancel, del],
             cancel_index: Some(0),
             width: 54,
+            accelerators: Some(('y', 'n')),
             area: Rect::ZERO,
             result: None,
             initial_focus: cancel_id,
@@ -189,6 +208,7 @@ impl Dialog {
             actions: vec![cancel, ok],
             cancel_index: Some(0),
             width: 54,
+            accelerators: Some(('y', 'n')),
             area: Rect::ZERO,
             result: None,
             initial_focus: input_id,
@@ -237,6 +257,7 @@ impl Dialog {
             actions: vec![cancel, confirm],
             cancel_index: Some(0),
             width: 66,
+            accelerators: Some(('y', 'n')),
             area: Rect::ZERO,
             result: None,
             initial_focus: initial,
@@ -714,7 +735,10 @@ impl Dialog {
                 }
                 Outcome::Changed
             }
-            KeyCode::Char('y') if matches!(self.body, DialogBody::Text(_)) => {
+            KeyCode::Char(c)
+                if self.accelerators.is_some_and(|(yes, _)| yes == c)
+                    && matches!(self.body, DialogBody::Text(_)) =>
+            {
                 let primary = self.actions.iter().position(|b| {
                     matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled
                 });
@@ -723,7 +747,10 @@ impl Dialog {
                     None => Outcome::Consumed,
                 }
             }
-            KeyCode::Char('n') if matches!(self.body, DialogBody::Text(_)) => {
+            KeyCode::Char(c)
+                if self.accelerators.is_some_and(|(_, no)| no == c)
+                    && matches!(self.body, DialogBody::Text(_)) =>
+            {
                 match self.cancel_index {
                     Some(ci) => self.finish(DialogResult::Action(ci)),
                     None => Outcome::Consumed,
@@ -1366,6 +1393,25 @@ mod tests {
             .map(|i| format!("line {i:02}"))
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    #[test]
+    fn letter_accelerators_follow_the_dialog_config() {
+        let mut focus = crate::core::focus::Focus::default();
+        let ring = FocusRing::default();
+        let mut d = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit");
+        d.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
+        assert!(matches!(d.result, Some(DialogResult::Action(_))));
+        let mut off = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit")
+            .accelerators(None)
+            .width(40);
+        off.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
+        assert_eq!(off.result, None, "letters are inert without accelerators");
+        assert_eq!(off.width, 40);
+        let mut custom = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit")
+            .accelerators(Some(('o', 'a')));
+        custom.on_key(&key(KeyCode::Char('o')), &mut focus, &ring);
+        assert!(matches!(custom.result, Some(DialogResult::Action(_))));
     }
 
     #[test]
