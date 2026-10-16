@@ -269,6 +269,19 @@ fn measure_widgets() {
         let mut tr = None;
         let b = time(|| tr = Some(tree(n)));
         measure("TreeView", n, b, tr.as_mut().unwrap());
+        // collapse and expand one folder in the middle of the tree
+        let tr = tr.as_mut().unwrap();
+        let folder = (n / 100 / 2) * 101;
+        let toggles = 20;
+        let spent = time(|| {
+            for _ in 0..toggles {
+                tr.toggle(folder);
+            }
+        });
+        println!(
+            "TreeView {n:>7} rows toggle {:>8.1} µs",
+            spent.as_secs_f64() * 1e6 / toggles as f64
+        );
     }
     // cut cells holding long values (JSON documents, long text)
     for blob in [4_096, 65_536] {

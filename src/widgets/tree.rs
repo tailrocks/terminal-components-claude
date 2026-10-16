@@ -159,6 +159,55 @@ pub struct TreeView {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+    /// Flat rows built so far (a complexity guard: an expand or collapse
+    /// builds only the rows it reveals, never the whole tree).
+    rows_built: usize,
+}
+
+fn matches(n: &TreeNode, q: &str) -> bool {
+    n.label.to_lowercase().contains(q) || n.children.iter().any(|c| matches(c, q))
+}
+
+/// Append the visible rows of `nodes` (preorder, open folders descended)
+/// to `out`. `path` is the parent's path and is restored on return.
+fn walk(
+    nodes: &[TreeNode],
+    path: &mut Path,
+    depth: usize,
+    exp: &std::collections::HashSet<Path>,
+    filter: Option<&str>,
+    out: &mut Vec<FlatRow>,
+) {
+    for (i, n) in nodes.iter().enumerate() {
+        if let Some(q) = filter
+            && !matches(n, q)
+        {
+            continue;
+        }
+        path.push(i);
+        let has_children = !n.children.is_empty() || (n.lazy && !n.note);
+        // while filtering, folders that contain matches are open
+        let expanded = has_children
+            && (exp.contains(path)
+                || filter.is_some_and(|q| {
+                    !n.children.is_empty() && !n.label.to_lowercase().contains(q)
+                }));
+        out.push(FlatRow {
+            path: path.clone(),
+            depth,
+            label: n.label.clone(),
+            meta: n.meta.clone(),
+            has_children,
+            expanded,
+            glyph: n.glyph,
+            busy: n.busy,
+            note: n.note,
+        });
+        if expanded {
+            walk(&n.children, path, depth + 1, exp, filter, out);
+        }
+        path.pop();
+    }
 }
 
 impl TreeView {
@@ -182,6 +231,7 @@ impl TreeView {
             branch_activate: BranchAction::Toggle,
             row_click_toggles: true,
             indent: 2,
+            rows_built: 0,
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -263,48 +313,6 @@ impl TreeView {
             .and_then(|i| self.rows.get(i))
             .map(|r| r.path.clone());
         let after: Option<Path> = self.rows.get(self.cursor + 1).map(|r| r.path.clone());
-        fn matches(n: &TreeNode, q: &str) -> bool {
-            n.label.to_lowercase().contains(q) || n.children.iter().any(|c| matches(c, q))
-        }
-        fn walk(
-            nodes: &[TreeNode],
-            path: &mut Path,
-            depth: usize,
-            exp: &std::collections::HashSet<Path>,
-            filter: Option<&str>,
-            out: &mut Vec<FlatRow>,
-        ) {
-            for (i, n) in nodes.iter().enumerate() {
-                if let Some(q) = filter
-                    && !matches(n, q)
-                {
-                    continue;
-                }
-                path.push(i);
-                let has_children = !n.children.is_empty() || (n.lazy && !n.note);
-                // while filtering, folders that contain matches are open
-                let expanded = has_children
-                    && (exp.contains(path)
-                        || filter.is_some_and(|q| {
-                            !n.children.is_empty() && !n.label.to_lowercase().contains(q)
-                        }));
-                out.push(FlatRow {
-                    path: path.clone(),
-                    depth,
-                    label: n.label.clone(),
-                    meta: n.meta.clone(),
-                    has_children,
-                    expanded,
-                    glyph: n.glyph,
-                    busy: n.busy,
-                    note: n.note,
-                });
-                if expanded {
-                    walk(&n.children, path, depth + 1, exp, filter, out);
-                }
-                path.pop();
-            }
-        }
         let mut out = Vec::new();
         let filter = self
             .filter
@@ -319,6 +327,7 @@ impl TreeView {
             filter.as_deref(),
             &mut out,
         );
+        self.rows_built += out.len();
         self.rows = out;
         self.cursor = self
             .relocate(focused.as_deref(), before.as_deref(), after.as_deref())
@@ -434,18 +443,74 @@ impl TreeView {
             let lazy = self
                 .node(&path)
                 .is_some_and(|n| n.lazy && n.children.is_empty());
-            self.flatten();
+            if lazy && let Some(n) = self.node_mut(&path) {
+                n.busy = true;
+            }
+            self.refold(i);
             if lazy {
-                if let Some(n) = self.node_mut(&path) {
-                    n.busy = true;
-                }
-                self.flatten();
                 return (Outcome::Changed, Some(TreeEvent::Expand(path)));
             }
             return (Outcome::Changed, None);
         }
-        self.flatten();
+        self.refold(i);
         (Outcome::Changed, None)
+    }
+
+    /// Row `i` was just expanded or collapsed in [`Self::expanded`]: splice
+    /// its subtree in or out of the flat rows instead of rebuilding them.
+    /// The cost is the rows revealed or hidden (plus a move of the rows
+    /// after them), not the whole tree. While a filter is active the
+    /// visible set depends on it, so the tree is flattened in full.
+    fn refold(&mut self, i: usize) {
+        if self.filter.as_deref().is_some_and(|f| !f.trim().is_empty()) {
+            self.flatten();
+            return;
+        }
+        let depth = self.rows[i].depth;
+        // the subtree shown under row `i`: every following deeper row
+        let end = self.rows[i + 1..]
+            .iter()
+            .position(|r| r.depth <= depth)
+            .map_or(self.rows.len(), |k| i + 1 + k);
+        let mut path = self.rows[i].path.clone();
+        let Some(node) = self.node(&path) else {
+            self.flatten();
+            return;
+        };
+        let has_children = !node.children.is_empty() || (node.lazy && !node.note);
+        let open = has_children && self.expanded.contains(&path);
+        let busy = node.busy;
+        let mut shown = Vec::new();
+        if open {
+            walk(
+                &node.children,
+                &mut path,
+                depth + 1,
+                &self.expanded,
+                None,
+                &mut shown,
+            );
+        }
+        self.rows_built += shown.len();
+        let row = &mut self.rows[i];
+        row.expanded = open;
+        row.has_children = has_children;
+        row.busy = busy;
+        let removed = end - (i + 1);
+        let added = shown.len();
+        self.rows.splice(i + 1..end, shown);
+        // the focused node is an identity: a cursor inside the hidden
+        // subtree moves to its nearest visible ancestor (row `i`), one
+        // after it keeps its node
+        if self.cursor > i {
+            self.cursor = if self.cursor < end {
+                if removed > 0 { i } else { self.cursor }
+            } else {
+                self.cursor - removed + added
+            };
+        }
+        self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
+        self.scroll.set_content(self.rows.len());
     }
 
     pub fn expand_all(&mut self) {
@@ -517,8 +582,12 @@ impl TreeView {
                 if row.has_children && row.expanded {
                     return self.toggle(self.cursor);
                 } else if row.depth > 0 {
-                    let parent = &row.path[..row.path.len() - 1];
-                    if let Some(pi) = self.rows.iter().position(|r| r.path == parent) {
+                    // the parent is the nearest shallower row above
+                    let depth = row.depth;
+                    if let Some(pi) = self.rows[..self.cursor]
+                        .iter()
+                        .rposition(|r| r.depth < depth)
+                    {
                         self.set_cursor(pi);
                     }
                     Outcome::Changed
@@ -822,6 +891,63 @@ impl TreeView {
 #[cfg(test)]
 mod identity_tests {
     use super::*;
+
+    /// `folders` open folders of `leaves` leaves each; folder 0 also holds
+    /// an open sub-folder, so an expand must restore nested state.
+    fn big(folders: usize, leaves: usize) -> TreeView {
+        let dirs = (0..folders)
+            .map(|d| {
+                let mut kids: Vec<TreeNode> = (0..leaves)
+                    .map(|l| TreeNode::leaf(&format!("leaf {d}.{l}")))
+                    .collect();
+                kids.push(TreeNode::dir("sub", vec![TreeNode::leaf("deep")]));
+                TreeNode::dir(&format!("folder {d}"), kids)
+            })
+            .collect();
+        TreeView::new(WidgetId::of("big"), dirs)
+    }
+
+    fn shape(t: &TreeView) -> Vec<(Path, usize, bool)> {
+        t.rows()
+            .iter()
+            .map(|r| (r.path.clone(), r.depth, r.expanded))
+            .collect()
+    }
+
+    /// Guard (performance): expanding or collapsing one folder of a
+    /// 100k-row tree builds only the rows it reveals, not the whole tree,
+    /// and lands on exactly the rows (and cursor) a full flatten gives.
+    #[test]
+    fn a_toggle_builds_only_the_rows_it_reveals() {
+        let mut t = big(1_000, 100);
+        let per = 102; // the folder, its leaves and the closed sub-folder
+        assert_eq!(t.rows().len(), 1_000 * per);
+        let folder = 500 * per;
+        // open the sub-folder of folder 500, so a re-expand restores it
+        t.toggle(folder + 101);
+        t.cursor = folder + 40;
+        let built = t.rows_built;
+        t.toggle(folder);
+        assert_eq!(t.rows_built - built, 0, "a collapse builds no rows");
+        assert_eq!(t.cursor, folder, "the cursor moves to the folder");
+        let mut full = t.clone();
+        full.flatten();
+        assert_eq!(shape(&t), shape(&full));
+        t.cursor = folder + 1_000;
+        let built = t.rows_built;
+        t.toggle(folder);
+        assert_eq!(
+            t.rows_built - built,
+            102,
+            "an expand builds its 100 leaves, the sub-folder and its child"
+        );
+        assert_eq!(t.cursor, folder + 1_000 + 102, "the cursor keeps its node");
+        let mut full = t.clone();
+        full.flatten();
+        assert_eq!(shape(&t), shape(&full));
+        assert_eq!(t.cursor, full.cursor);
+        assert_eq!(t.scroll.content_len, t.rows().len());
+    }
 
     #[test]
     fn branch_rows_toggle_or_activate_per_config() {
