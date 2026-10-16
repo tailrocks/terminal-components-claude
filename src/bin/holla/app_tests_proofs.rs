@@ -568,7 +568,8 @@ fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
     let mut q: VecDeque<Input> = (0..DRAIN_BUDGET * 3)
         .map(|_| key_mods(KeyCode::Char('x'), KeyModifiers::ALT))
         .collect();
-    q.push_back(key(KeyCode::Esc));
+    // Esc never quits (keyboard audit #21); Ctrl+Q on a clean shell does
+    q.push_back(key_mods(KeyCode::Char('q'), KeyModifiers::CONTROL));
     let mut passes = 0;
     while !h.app.quit {
         drain_ready_inputs(&mut h.app, || Ok(q.pop_front())).unwrap();
