@@ -4,6 +4,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
+use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
 use crate::core::text::TextBuffer;
 use crate::ui::ctx::RenderCtx;
@@ -63,6 +64,9 @@ pub struct TextInput {
     /// typed-acknowledgement prompt turns it on, because its label is the
     /// instruction and must be read whole. Measure with [`Self::height_for`].
     pub wrap_label: bool,
+    /// What an edit in progress does when the field loses focus
+    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+    pub blur_action: BlurAction,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,6 +101,7 @@ impl TextInput {
             masked: false,
             reveal_tail: 0,
             wrap_label: false,
+            blur_action: BlurAction::Commit,
         }
     }
 
@@ -140,6 +145,32 @@ impl TextInput {
     pub fn wrap_label(mut self, on: bool) -> Self {
         self.wrap_label = on;
         self
+    }
+    /// See [`Self::blur_action`].
+    pub fn blur_action(mut self, action: BlurAction) -> Self {
+        self.blur_action = action;
+        self
+    }
+
+    /// Focus left the field (see [`crate::core::focus::Focus::take_changes`]).
+    /// An edit in progress ends per [`Self::blur_action`] and reports the
+    /// same event Enter or Esc would, so the owner's validation and save
+    /// hooks run; a field that is not editing returns `None`.
+    pub fn on_blur(&mut self) -> Option<InputEvent> {
+        if !self.editing {
+            return None;
+        }
+        match self.blur_action {
+            BlurAction::Commit => {
+                self.commit();
+                Some(InputEvent::Committed)
+            }
+            BlurAction::Cancel => {
+                self.cancel();
+                Some(InputEvent::Cancelled)
+            }
+            BlurAction::Keep => None,
+        }
     }
 
     /// Overwrite and drop the value (owners clear secrets this way).
@@ -551,6 +582,18 @@ impl TextInput {
     }
 }
 
+impl crate::core::focus::BlurTarget for TextInput {
+    fn blur_id(&self) -> WidgetId {
+        self.id
+    }
+    fn blur(&mut self) -> Outcome {
+        match self.on_blur() {
+            Some(_) => Outcome::Changed,
+            None => Outcome::Ignored,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -573,6 +616,61 @@ mod tests {
         );
         input.render(area, buf, &mut ctx, theme.surface);
         ctx.cursor
+    }
+
+    #[test]
+    fn blur_ends_the_edit_per_blur_action_and_reports_it() {
+        let edited = |action| {
+            let mut i = TextInput::new(WidgetId::of("b"), "Name")
+                .value("old")
+                .required(true)
+                .blur_action(action);
+            assert_eq!(
+                i.on_blur(),
+                None,
+                "a field that is not editing ignores blur"
+            );
+            i.begin_edit();
+            i.buffer.select_all();
+            i.buffer.backspace();
+            i
+        };
+        let mut commit = edited(BlurAction::default());
+        assert_eq!(commit.on_blur(), Some(InputEvent::Committed));
+        assert!(!commit.editing);
+        assert_eq!(commit.text(), "");
+        assert!(commit.error.is_some(), "the commit validates");
+        let mut cancel = edited(BlurAction::Cancel);
+        assert_eq!(cancel.on_blur(), Some(InputEvent::Cancelled));
+        assert!(!cancel.editing);
+        assert_eq!(cancel.text(), "old");
+        let mut keep = edited(BlurAction::Keep);
+        assert_eq!(keep.on_blur(), None);
+        assert!(keep.editing, "the edit stays open for when focus returns");
+        assert_eq!(keep.text(), "");
+    }
+
+    #[test]
+    fn forward_blur_reaches_only_the_field_that_lost_focus() {
+        use crate::core::focus::{FocusChange, forward_blur};
+        let mut a = TextInput::new(WidgetId::of("a"), "A").value("a");
+        let mut b = TextInput::new(WidgetId::of("b"), "B").value("b");
+        a.begin_edit();
+        b.begin_edit();
+        let change = FocusChange {
+            from: a.id,
+            to: Some(b.id),
+        };
+        assert_eq!(
+            forward_blur(change, &mut [&mut a, &mut b]),
+            Outcome::Changed
+        );
+        assert!(!a.editing);
+        assert!(b.editing);
+        assert_eq!(
+            forward_blur(change, &mut [&mut a, &mut b]),
+            Outcome::Ignored
+        );
     }
 
     #[test]

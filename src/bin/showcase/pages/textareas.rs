@@ -78,6 +78,19 @@ impl Page for TextAreasPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let PageEvent::Blur(ch) = ev {
+            let Some(i) = self.index_of(ch.from) else {
+                return Outcome::Ignored;
+            };
+            return match self.areas[i].on_blur() {
+                Some(InputEvent::Committed) => {
+                    cx.status("Saved");
+                    Outcome::Changed
+                }
+                Some(_) => Outcome::Changed,
+                None => Outcome::Ignored,
+            };
+        }
         match ev {
             PageEvent::Key(key) => {
                 let Some(f) = cx.focus.current() else {
