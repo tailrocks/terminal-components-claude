@@ -6,6 +6,7 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
@@ -67,6 +68,7 @@ pub fn task_rows() -> Vec<Vec<Cell>> {
 pub struct TablesPage {
     table: DataTable,
     empty: DataTable,
+    sections: crate::pages::layout::Sections,
 }
 
 impl TablesPage {
@@ -82,7 +84,11 @@ impl TablesPage {
             vec![],
         )
         .empty_text("No checks have run yet");
-        Self { table, empty }
+        Self {
+            table,
+            empty,
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        }
     }
 }
 
@@ -96,7 +102,25 @@ impl Page for TablesPage {
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[area.height.saturating_sub(9), 1, 0]);
+        // the table keeps at least four rows; on a short terminal the page
+        // scrolls to the checks instead of squeezing the table to one row
+        let focus = if ctx.interaction.has_focus(self.table.id) {
+            Some(0)
+        } else if ctx.interaction.has_focus(self.empty.id) {
+            Some(1)
+        } else {
+            None
+        };
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::flex(9, area.height.saturating_sub(9).max(9)),
+                StackChild::fixed(8),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
         let sort = match self.table.sort {
             Some((c, d)) => format!(
                 "sorted by {} {}",
@@ -111,23 +135,36 @@ impl Page for TablesPage {
         };
         let panel = Panel::card(Some("Tasks")).focused(ctx.interaction.focused(self.table.id));
         let bg = panel.bg(t);
-        let inner = panel.render(rows[0], buf, t);
-        self.table.render(inner, buf, ctx, bg);
-        let pos = scrollbar::position_label(&self.table.scroll);
-        let meta = if pos.is_empty() {
-            sort
-        } else {
-            format!("{sort} · {pos}")
-        };
-        panel.draw_meta(rows[0], buf, t, &meta);
+        match l.slot(0) {
+            Some(r) => {
+                let inner = panel.render(r, buf, t);
+                self.table.render(inner, buf, ctx, bg);
+                let pos = scrollbar::position_label(&self.table.scroll);
+                let meta = if pos.is_empty() {
+                    sort
+                } else {
+                    format!("{sort} · {pos}")
+                };
+                panel.draw_meta(r, buf, t, &meta);
+            }
+            None => ctx.focus_stop(self.table.id),
+        }
 
         let panel = Panel::card(Some("Checks"));
         let bg = panel.bg(t);
-        let inner = panel.render(rows[2], buf, t);
-        self.empty.render(inner, buf, ctx, bg);
+        match l.slot(1) {
+            Some(r) => {
+                let inner = panel.render(r, buf, t);
+                self.empty.render(inner, buf, ctx, bg);
+            }
+            None => ctx.focus_stop(self.empty.id),
+        }
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
         match ev {
             PageEvent::Key(key) => {
                 if cx.focus.is(self.table.id) {
