@@ -1041,6 +1041,57 @@ fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     assert!(clean.app.quit, "a clean quit never asks");
 }
 
+/// Focus decision 2026-10-16 (docs/audits/design-review-2026-10/focus.md):
+/// a focused tab strip shows the screen's one `▎`, on its cursor tab. Focus
+/// elsewhere leaves the strip without one, and so does a modal over the
+/// page (the gutter lives only in the topmost layer). The selected tab's
+/// accent rule is selection, not focus.
+#[test]
+fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
+    let mut h = Harness::new(140, 45, PageId::Settings);
+    let settings = WidgetId::of("settings");
+    let tabs = settings.sub("tabs");
+    let strip = h.area(tabs);
+    let gutters = |h: &Harness| h.text().matches('▎').count();
+    // `▎` cells on the strip's own row, inside the strip
+    let strip_gutters = |h: &Harness| -> Vec<u16> {
+        let buffer = h.term.backend().buffer();
+        (strip.x..strip.right())
+            .filter(|&x| buffer[(x, strip.y)].symbol() == "▎")
+            .collect()
+    };
+
+    // focused: exactly one `▎` on screen, on the cursor tab, in the focus colour
+    h.focus(tabs);
+    assert_eq!(gutters(&h), 1, "{}", h.text());
+    let first = h.area(tabs.child(0));
+    assert_eq!(strip_gutters(&h), vec![first.x], "{}", h.text());
+    assert_eq!(
+        h.term.backend().buffer()[(first.x, strip.y)].fg,
+        Theme::junie().focus
+    );
+    // the gutter follows the keyboard cursor
+    h.key(KeyCode::Right);
+    let second = h.area(tabs.child(1));
+    assert_eq!(strip_gutters(&h), vec![second.x], "{}", h.text());
+    assert_eq!(gutters(&h), 1, "{}", h.text());
+    h.key(KeyCode::Left);
+
+    // focus elsewhere: the strip shows none, the focused control has the one
+    h.click_id(settings.sub("automerge"));
+    assert!(strip_gutters(&h).is_empty(), "{}", h.text());
+    assert_eq!(gutters(&h), 1, "{}", h.text());
+
+    // a modal over the focused strip: the strip shows none
+    h.focus(tabs);
+    assert_eq!(strip_gutters(&h).len(), 1, "{}", h.text());
+    h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
+    assert!(h.app.dialog.is_some(), "{}", h.text());
+    assert!(h.text().contains("Unsaved changes"), "{}", h.text());
+    assert!(strip_gutters(&h).is_empty(), "{}", h.text());
+    assert!(gutters(&h) <= 1, "{}", h.text());
+}
+
 /// Ctrl+Q reaches the quit guard from inside an editing text field and an
 /// editing text area: neither binds it, so each passes it on
 /// (`field_common::unbound_key`).
