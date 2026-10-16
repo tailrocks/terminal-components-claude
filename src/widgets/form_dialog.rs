@@ -346,6 +346,28 @@ impl FormDialog {
         }
     }
 
+    /// Save: validate every visible text input first (submit is where an
+    /// untouched required field is judged, [`crate::widgets::input::ValidateOn`]).
+    /// An invalid field shows its error inline and takes focus, the first
+    /// one in form order, and the form does not save (the HTML form and
+    /// macOS sheet convention); otherwise the save event goes out.
+    fn submit(&mut self, focus: &mut Focus) {
+        let mut first_invalid = None;
+        for f in self.fields.iter_mut().filter(|f| f.visible) {
+            if let FormFieldKind::Input(i) = &mut f.kind
+                && !i.disabled
+                && !i.validate()
+                && first_invalid.is_none()
+            {
+                first_invalid = Some(i.id);
+            }
+        }
+        match first_invalid {
+            Some(id) => focus.focus(id),
+            None => self.events.push(self.save_event()),
+        }
+    }
+
     fn any_open_select(&self) -> bool {
         self.fields
             .iter()
@@ -475,7 +497,7 @@ impl FormDialog {
         if cur == Some(self.save.id) {
             let (o, fired) = self.save.on_key(key);
             if fired {
-                self.events.push(self.save_event());
+                self.submit(focus);
                 return Outcome::Changed;
             }
             if o.consumed() {
@@ -485,7 +507,7 @@ impl FormDialog {
         match key.code {
             KeyCode::Enter if !editing => {
                 if self.save.can_activate() {
-                    self.events.push(self.save_event());
+                    self.submit(focus);
                 } else {
                     focus.focus(self.initial_focus());
                 }
@@ -658,7 +680,7 @@ impl FormDialog {
         if id == self.save.id {
             focus.focus(id);
             if self.save.on_click() {
-                self.events.push(self.save_event());
+                self.submit(focus);
             }
             return Outcome::Changed;
         }
@@ -1086,6 +1108,46 @@ mod tests {
         focus.focus(w.save.id);
         w.on_key(&key(KeyCode::Right), &mut focus, &ring);
         assert_eq!(focus.current(), Some(w.cancel.id), "wraps when asked");
+    }
+
+    /// Submit judges the fields an edit only passed (ValidateOn::Change):
+    /// Save with an empty required field marks it inline, moves focus to
+    /// it and does not save. Found re-approving jackin against
+    /// visual-baseline: after f7e8b7538 the add-account form saved past
+    /// the empty Display name and only the owner's form-level line said so.
+    #[test]
+    fn save_marks_the_first_invalid_field_and_does_not_save() {
+        use crate::core::focus::{Focus, FocusRing};
+        let mut f = FormDialog::new(
+            WidgetId::of("f"),
+            "Form",
+            vec![
+                FormField::input("note", TextInput::new(WidgetId::of("f.note"), "Note")),
+                FormField::input(
+                    "name",
+                    TextInput::new(WidgetId::of("f.name"), "Name").required(true),
+                ),
+            ],
+        );
+        let mut focus = Focus::default();
+        let ring = FocusRing::default();
+        let enter = Key {
+            code: KeyCode::Enter,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        focus.focus(f.save.id);
+        f.on_key(&enter, &mut focus, &ring);
+        assert!(f.events.is_empty(), "no save: {:?}", f.events);
+        assert_eq!(focus.current(), Some(WidgetId::of("f.name")));
+        let name = f.field("name").unwrap();
+        assert!(
+            matches!(&name.kind, FormFieldKind::Input(i) if i.error.is_some()),
+            "the field shows its error"
+        );
+        f.set_text("name", "Work");
+        focus.focus(f.save.id);
+        f.on_click(f.save.id, Position::new(0, 0), &mut focus);
+        assert_eq!(f.events, vec![FormAction::Save]);
     }
 
     /// A field that edits as soon as it has focus passes a clean Esc on

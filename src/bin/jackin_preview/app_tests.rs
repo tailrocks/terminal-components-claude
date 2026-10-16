@@ -1518,3 +1518,24 @@ fn q_leaves_the_editor_from_a_focused_select() {
     h.key(KeyCode::Char('q'));
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
 }
+
+#[test]
+fn saving_a_new_account_without_a_name_marks_the_field_and_stays() {
+    // Save judges the Display name an edit only passed (ValidateOn::Change):
+    // it is marked inline and takes focus; the form stays open. After
+    // f7e8b7538 the form went to the owner's save and only its form-level
+    // line said the name was missing.
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 100, 30);
+    h.key(KeyCode::Char('a'));
+    assert!(h.text().contains("New account"), "{}", h.text());
+    let (x, y) = h.find("Save   │").expect("the Save button");
+    h.click(x + 1, y);
+    let text = h.text();
+    let (_, ny) = h.find("Personal, Work, Team…").expect("the name field");
+    let below = text.lines().nth(ny as usize + 1).unwrap_or("");
+    assert!(below.contains("Required"), "{text}");
+    assert!(!text.contains("Display name is required"), "{text}");
+    assert!(text.contains("New account"), "the form stays open: {text}");
+    let name = crate::screens::accounts::FORM.sub("name");
+    assert_eq!(h.app.focus.current(), Some(name), "{text}");
+}
