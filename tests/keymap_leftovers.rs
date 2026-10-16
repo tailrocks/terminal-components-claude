@@ -30,12 +30,17 @@ fn ch(c: char) -> Key {
 #[test]
 fn choice_dialog_buttons_follow_its_nav_keys() {
     let ring = FocusRing::default();
-    let make = || ChoiceDialog::new(WidgetId::of("c"), "Pick", "Kind", &["a", "b"], 0);
+    let make =
+        || ChoiceDialog::new(WidgetId::of("c"), "Pick", "Kind", &["a", "b"], 0).nav(NavKeys::VIM);
     let mut d = make();
     let mut focus = Focus::default();
     focus.focus(d.buttons[0].id);
     assert_eq!(d.on_key(&ch('l'), &mut focus, &ring), Outcome::Changed);
-    assert_eq!(focus.current(), Some(d.buttons[1].id), "vim `l` by default");
+    assert_eq!(
+        focus.current(),
+        Some(d.buttons[1].id),
+        "vim `l` with vim keys"
+    );
     d.on_key(&key(KeyCode::Left), &mut focus, &ring);
     assert_eq!(focus.current(), Some(d.buttons[0].id));
     let mut d = make().nav(NavKeys::NO_VIM);
@@ -60,7 +65,7 @@ fn form_dialog_buttons_follow_its_nav_keys() {
     );
     f.on_key(&key(KeyCode::Right), &mut focus, &ring);
     assert_eq!(focus.current(), Some(f.save.id));
-    let mut f = FormDialog::new(WidgetId::of("f"), "Form", vec![]).nav(NavKeys::DEFAULT);
+    let mut f = FormDialog::new(WidgetId::of("f"), "Form", vec![]).nav(NavKeys::VIM);
     focus.focus(f.cancel.id);
     f.on_key(&ch('l'), &mut focus, &ring);
     assert_eq!(focus.current(), Some(f.save.id), "opted into vim");
@@ -121,9 +126,12 @@ fn menu_items() -> Vec<MenuItem> {
 
 #[test]
 fn context_menus_take_type_ahead_when_asked() {
+    let mut m = ContextMenu::new(WidgetId::of("m"), menu_items()).type_ahead(false);
+    m.on_key(&ch('p'));
+    assert_eq!(m.cursor, 0, "off when switched off");
     let mut m = ContextMenu::new(WidgetId::of("m"), menu_items());
     m.on_key(&ch('p'));
-    assert_eq!(m.cursor, 0, "off by default");
+    assert_eq!(m.cursor, 2, "on by default (Desktop profile, K34)");
     let mut m = ContextMenu::new(WidgetId::of("m"), menu_items()).type_ahead(true);
     m.on_key(&ch('p'));
     assert_eq!(m.cursor, 2);

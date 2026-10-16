@@ -44,11 +44,14 @@ impl TypeAhead {
         }
     }
 
-    /// The character `key` types into a prefix: a printable, non-space
-    /// character with no Ctrl, Alt or Cmd (Shift is part of the letter).
+    /// The character `key` types into a prefix: a letter or digit (any
+    /// script) with no Ctrl, Alt or Cmd (Shift is part of the letter).
+    /// Punctuation and space are not type-ahead, so `?`, `/`, `*` or Space
+    /// keep their meaning (help, find, expand, activate) while a list has
+    /// focus.
     pub fn char_of(key: &Key) -> Option<char> {
         match key.code {
-            KeyCode::Char(c) if !key.chord() && !c.is_whitespace() => Some(c),
+            KeyCode::Char(c) if !key.chord() && c.is_alphanumeric() => Some(c),
             _ => None,
         }
     }

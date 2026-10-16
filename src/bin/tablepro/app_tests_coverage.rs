@@ -161,7 +161,11 @@ fn structure_sections_and_workbench_grid_routes() {
     }
 
     h.ctrl('d');
-    h.key(KeyCode::Char('G'));
+    // Ctrl+End: the grid's last row (`G` only under the Vim profile)
+    h.app.handle(Input::Key(junie_tui::core::event::Key {
+        code: KeyCode::End,
+        mods: ratatui::crossterm::event::KeyModifiers::CONTROL,
+    }));
     h.key(KeyCode::Enter);
     // the status speaks about the result, not the preview's engine
     assert!(

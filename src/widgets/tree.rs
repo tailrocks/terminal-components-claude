@@ -190,14 +190,14 @@ pub struct TreeView {
     /// builds only the rows it reveals, never the whole tree).
     rows_built: usize,
     /// Which keys move the cursor and open/close branches (default
-    /// [`NavKeys::DEFAULT`]).
+    /// [`NavKeys::default`]).
     pub nav: NavKeys,
     /// The tree's own action keys (default [`TreeCmd::default_keymap`]).
     pub keymap: KeyMap<TreeCmd>,
     /// Typing a prefix moves the cursor to the next row whose label starts
-    /// with it, as in macOS outline views. Off by default: plain letters
-    /// stay with the owner's shortcuts. Navigation letters (`j`/`k`/`g`
-    /// per [`Self::nav`]) and mapped actions keep priority.
+    /// with it, as in macOS outline views (APG tree). Default from the
+    /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
+    /// `Vim`. Mapped actions (`*`, `-`) keep priority.
     pub type_ahead: bool,
     typeahead: crate::core::typeahead::TypeAhead,
     /// Keep the last column as a divider at every size: a track when the
@@ -302,9 +302,9 @@ impl TreeView {
             indent: 2,
             wrap: false,
             rows_built: 0,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: TreeCmd::default_keymap(),
-            type_ahead: false,
+            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
             typeahead: Default::default(),
             divider: false,
             selected_marker: None,
@@ -1476,8 +1476,18 @@ mod scroll_tests {
             Outcome::Consumed,
             "no match: consumed, never half-typed to the owner (plan §3)"
         );
-        let mut off = TreeView::new(WidgetId::of("t"), nodes);
-        assert_eq!(off.on_key(&key('o')).0, Outcome::Ignored, "off by default");
+        let mut on = TreeView::new(WidgetId::of("t"), nodes.clone());
+        assert_eq!(
+            on.on_key(&key('o')).0,
+            Outcome::Changed,
+            "on by default (Desktop profile, K34)"
+        );
+        let mut off = TreeView::new(WidgetId::of("t"), nodes).type_ahead(false);
+        assert_eq!(
+            off.on_key(&key('o')).0,
+            Outcome::Ignored,
+            "off: the owner's"
+        );
         assert_eq!(off.cursor, 0);
     }
 

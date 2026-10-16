@@ -79,7 +79,7 @@ pub struct StepRail {
     /// Show the ordinal (`03`) before the label.
     pub numbered: bool,
     /// Which keys move the cursor of a selectable rail (default
-    /// [`NavKeys::DEFAULT`]).
+    /// [`NavKeys::default`]).
     pub nav: NavKeys,
 }
 
@@ -101,7 +101,7 @@ impl StepRail {
             area: Rect::ZERO,
             parts: PartMap::default(),
             numbered: true,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
         }
     }
 
