@@ -401,7 +401,7 @@ impl TableTab {
                 "This table has no primary key, so rows cannot be identified.".into()
             });
         }
-        grid.empty = EmptyState::new("No rows").hint("The table is empty");
+        grid.empty = EmptyState::new("No rows").hint("f changes the filter");
         let mut chips = ChipBar::new(id.sub("chips"));
         chips.lead = Some("match all ▾".into());
         let mut mode_tabs = Tabs::new(id.sub("mode"), &["Data", "Structure"]);
@@ -2446,7 +2446,13 @@ impl HistoryTab {
             return;
         }
         let Some(e) = self.current_entry(history).cloned() else {
-            junie_tui::widgets::empty::render(r, buf, t, &EmptyState::new("Select a query"), bg);
+            junie_tui::widgets::empty::render(
+                r,
+                buf,
+                t,
+                &EmptyState::new("Select a query").hint("↑↓ moves through history"),
+                bg,
+            );
             return;
         };
         let focused = ctx.interaction.focused(self.detail.id);
