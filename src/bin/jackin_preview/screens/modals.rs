@@ -23,6 +23,7 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::onepassword::OpReference;
 use crate::sim::onepassword::{FieldKind, OpError, SimOnePassword};
 use crate::sim::world::{FsEntry, World};
+use junie_tui::core::scroll::Scrollable;
 
 /// Dim the page (footer excluded), start the modal barrier and draw an
 /// elevated rounded frame. Returns the inner content area.
