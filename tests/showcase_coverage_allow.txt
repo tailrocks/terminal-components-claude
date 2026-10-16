@@ -478,6 +478,10 @@ widgets::input::InputAction::Cancelled | widget edit events and outcomes: the In
 widgets::input::InputAction::CommittedTab | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::input::InputAction::Changed | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::input::TextInput::type_to_edit | deprecated alias of TextInput::edit_entry, shown through inputs.edit_entry | permanent
+widgets::input::TextInput::validate_on | Inputs page options: which ended edits validate (not shown yet) | SC8
+widgets::input::ValidateOn | Inputs page options: which ended edits validate (not shown yet) | SC8
+widgets::input::ValidateOn::Change | Inputs page options: which ended edits validate (not shown yet) | SC8
+widgets::input::ValidateOn::EveryCommit | Inputs page options: which ended edits validate (not shown yet) | SC8
 
 # widgets::keyhint
 
