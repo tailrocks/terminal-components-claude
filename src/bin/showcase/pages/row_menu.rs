@@ -70,6 +70,12 @@ impl<T: Clone> RowMenu<T> {
         let (out, event) = match ev {
             PageEvent::Key(key) => {
                 let (o, e) = menu.on_key(key);
+                if o == Outcome::Ignored && e == Some(MenuAction::Dismissed) {
+                    // a key the menu has no use for closed it; the page
+                    // gets the key (K14)
+                    self.open = None;
+                    return None;
+                }
                 // the menu owns the keyboard while it is open
                 (o.or(Outcome::Consumed), e)
             }
