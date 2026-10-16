@@ -16,8 +16,10 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 
+use crate::core::hit::Axis;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
-use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, lookup, unassigned_chord};
+use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::tooltip::Tip;
@@ -546,7 +548,7 @@ impl Tabs {
             return (o, self.menu_event(ev));
         }
         let action = lookup(&self.keymap, key);
-        if matches!(key.code, KeyCode::Char(_)) && key.chord() && action.is_none() {
+        if unassigned_chord(key, &self.keymap) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
@@ -575,23 +577,9 @@ impl Tabs {
             }
             _ => {}
         }
-        let last = self.items.len() - 1;
         let to = match self.nav.action(key).filter(|_| key.plain()) {
-            Some(Nav::Left) => Some(crate::core::nav::step_index(
-                self.cursor,
-                self.items.len(),
-                -1,
-                self.wrap,
-            )),
-            Some(Nav::Right) => Some(crate::core::nav::step_index(
-                self.cursor,
-                self.items.len(),
-                1,
-                self.wrap,
-            )),
-            Some(Nav::Home) => Some(0),
-            Some(Nav::End) => Some(last),
-            _ => None,
+            Some(nav) => self.cursor().apply(nav, self, 1).index(),
+            None => None,
         };
         if let Some(to) = to {
             self.set_active(to);
@@ -961,6 +949,23 @@ impl Tabs {
         if let Some((menu, _)) = self.menu.as_mut() {
             menu.render(*buf.area(), buf, ctx);
         }
+    }
+}
+
+impl RowSource for Tabs {
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.items[i].label
+    }
+}
+
+impl Navigable for Tabs {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor)
+            .wrap(self.wrap)
+            .axis(Axis::Horizontal)
     }
 }
 
