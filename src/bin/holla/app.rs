@@ -18,7 +18,9 @@ use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
-use junie_tui::ui::layer::{DismissReason, Dismissed, Layer, LayerCx, LayerTag, Taken};
+use junie_tui::ui::layer::{
+    DismissReason, Dismissed, Layer, LayerCx, LayerPointer, LayerTag, Taken,
+};
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, Stakes};
 use junie_tui::ui::text::{crumb_fit, truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
@@ -1268,12 +1270,28 @@ impl App {
     /// Close the top layer for `reason` through its own dismiss policy; a
     /// refused outside click flashes the layer's frame.
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
-        let dismiss = self
-            .modals
+        let dismiss = self.top_dismiss();
+        let d = self.modals.dismiss(reason, &mut self.focus);
+        self.dismissed(reason, dismiss, d)
+    }
+
+    /// The top layer's dismiss policy.
+    fn top_dismiss(&self) -> junie_tui::ui::popup::Dismiss {
+        self.modals
             .top()
             .map(|e| e.layer.spec().dismiss)
-            .unwrap_or_default();
-        match self.modals.dismiss(reason, &mut self.focus) {
+            .unwrap_or_default()
+    }
+
+    /// What a dismissal of the top layer did; a refused outside click
+    /// flashes the layer's frame under `dismiss`.
+    fn dismissed(
+        &mut self,
+        reason: DismissReason,
+        dismiss: junie_tui::ui::popup::Dismiss,
+        d: Dismissed<ModalResult, (), usize>,
+    ) -> Outcome {
+        match d {
             Dismissed::None => Outcome::Ignored,
             Dismissed::Refused => {
                 let now = self.now_ms();
@@ -1584,17 +1602,18 @@ impl App {
     }
 
     /// An event while a layer is open: the frame's `×` means what Esc
-    /// means, under the layer's own policy; anything else (a popup's own
-    /// backdrop included) is the layer's.
+    /// means and a click on its backdrop is an outside click, both under
+    /// the layer's own policy (`ShellLayers::pointer`); anything else is
+    /// the layer's.
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
         }
-        let (Some(top), mut cx) = self.layer_cx() else {
-            return Outcome::Ignored;
-        };
-        let out = top.layer.pointer(ev, &mut cx);
-        self.settle_layer(out)
+        let dismiss = self.top_dismiss();
+        match self.modals.pointer(ev, &mut self.focus, &self.ring, &()) {
+            LayerPointer::Handled(out) => self.settle_layer(out),
+            LayerPointer::Dismissed(d) => self.dismissed(DismissReason::OutsideClick, dismiss, d),
+        }
     }
 
     /// An event on the chrome around the page; `None` when it is not the
