@@ -192,12 +192,23 @@ impl TextModal {
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         ctx.modal_backdrop(buf, screen);
-        let w = self.width.min(screen.width.saturating_sub(4)).max(30);
+        // placed in the body, clear of the menu bar, the status bar and the
+        // footer, with the dialog's margin around it
+        let bounds = junie_tui::widgets::dialog::body_bounds(screen, 1, 2);
+        let m = junie_tui::widgets::dialog::OUTER_MARGIN;
+        let w = self
+            .width
+            .min(bounds.width.saturating_sub(2 * m.horizontal))
+            .max(30)
+            .min(bounds.width);
         let inner_w = w.saturating_sub(6);
         self.layout(inner_w);
         let content_h = self.wrapped.len() as u16;
-        let h = (content_h + 6).min(screen.height.saturating_sub(3)).max(8);
-        let area = place(screen, Rect::ZERO, w, h, Placement::Center);
+        let h = (content_h + 6)
+            .min(bounds.height.saturating_sub(2 * m.vertical))
+            .max(8)
+            .min(bounds.height);
+        let area = place(bounds, Rect::ZERO, w, h, Placement::Center);
         self.area = area;
         let bg = t.surface_elevated;
         fill(buf, area, Style::new().bg(bg));
