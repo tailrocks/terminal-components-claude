@@ -1328,7 +1328,7 @@ impl AccountsScreen {
         let bg = t.canvas;
         self.scroll.set_viewport(inner.height as usize);
         if let Some(i) = self.cursor() {
-            self.scroll.ensure_visible(i);
+            self.scroll.follow(i);
         }
         ctx.control(TREE, inner, false);
         ctx.scrollable(TREE, inner);

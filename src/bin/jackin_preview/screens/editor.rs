@@ -684,7 +684,7 @@ impl EditorScreen {
         ctx.scrollable(ROLES, body);
         self.role_scroll.set_content(self.role_rows.len());
         self.role_scroll.set_viewport(body.height as usize);
-        self.role_scroll.ensure_visible(self.role_cursor);
+        self.role_scroll.follow(self.role_cursor);
         let has_sb = self.role_scroll.overflows();
         let name_w = self
             .role_rows
@@ -953,7 +953,7 @@ impl EditorScreen {
         ctx.control(ACCOUNTS, body, false);
         ctx.scrollable(ACCOUNTS, body);
         self.acct.scroll.set_viewport(body.height as usize);
-        self.acct.scroll.ensure_visible(self.acct.cursor);
+        self.acct.scroll.follow(self.acct.cursor);
         let has_sb = self.acct.scroll.overflows();
         let row_w = body.width.saturating_sub(u16::from(has_sb));
         if self.acct.rows.is_empty() {

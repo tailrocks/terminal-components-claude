@@ -836,7 +836,7 @@ impl ConfigTabs {
         let st = self.state(tab);
         st.area = body;
         st.scroll.set_viewport(body.height as usize);
-        st.scroll.ensure_visible(cursor);
+        st.scroll.follow(cursor);
         ctx.control(id, body, false);
         ctx.scrollable(id, body);
         let has_sb = st.scroll.overflows();

@@ -276,6 +276,21 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
+    /// Every region a wheel at `pos` can reach, topmost first: the
+    /// candidates [`hit_scroll`](Self::hit_scroll) picks the first of. A
+    /// wheel router offers the notch to each in turn until one owner takes
+    /// it, so a wheel over a list row (registered above its list) still
+    /// scrolls the list.
+    pub fn scroll_stack(&self, pos: Position) -> Vec<WidgetId> {
+        let mut out: Vec<WidgetId> = Vec::new();
+        for r in self.reachable().iter().rev() {
+            if !r.hover_only && r.area.contains(pos) && !out.contains(&r.id) {
+                out.push(r.id);
+            }
+        }
+        out
+    }
+
     pub fn len(&self) -> usize {
         self.regions.len()
     }
@@ -312,6 +327,18 @@ impl HitRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scroll_stack_lists_the_row_then_its_list_once_each() {
+        let mut h = HitRegistry::default();
+        let list = WidgetId::of("list");
+        let row = list.child(1);
+        h.register(list, Rect::new(0, 0, 20, 5));
+        h.register_scroll(list, Rect::new(0, 0, 20, 5));
+        h.register(row, Rect::new(0, 1, 20, 1));
+        assert_eq!(h.scroll_stack(Position::new(3, 1)), vec![row, list]);
+        assert_eq!(h.scroll_stack(Position::new(3, 0)), vec![list]);
+    }
 
     #[test]
     fn hover_only_regions_take_hover_and_let_clicks_and_the_wheel_through() {

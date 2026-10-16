@@ -1876,15 +1876,20 @@ impl App {
                         Modal::Choice(_) => Outcome::Consumed,
                     };
                 }
-                let Some(id) = self.hits.hit_scroll(m.pos) else {
-                    return Outcome::Ignored;
-                };
+                // innermost first: a row registered above its list hands
+                // the notch on to the list that scrolls
                 let route = self.route;
-                let out = match self.screens.get_mut(route) {
-                    Some(s) if horizontal => s.on_wheel_h(id, delta, m.pos, &mut self.world),
-                    Some(s) => s.on_wheel(id, delta, m.pos, &mut self.world),
-                    None => Outcome::Ignored,
-                };
+                let mut out = Outcome::Ignored;
+                for id in self.hits.scroll_stack(m.pos) {
+                    out = match self.screens.get_mut(route) {
+                        Some(s) if horizontal => s.on_wheel_h(id, delta, m.pos, &mut self.world),
+                        Some(s) => s.on_wheel(id, delta, m.pos, &mut self.world),
+                        None => Outcome::Ignored,
+                    };
+                    if out != Outcome::Ignored {
+                        break;
+                    }
+                }
                 // rows move under a still pointer: re-resolve hover next frame
                 self.pointer.scrolled(m.pos, out);
                 out
