@@ -209,10 +209,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/trees-states", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     Root::new("showcase/sections/trees-lazy-loading", Bin::Showcase, &["--page", "trees", "--motion", "paused"], BOOT).click("orders-db").pending(),
     Root::new("showcase/elements/trees/connection-hover", Bin::Showcase, &["--page", "trees"], BOOT).hover("replica-eu").pending(),
-    Root::new("showcase/overlays/helpkeys_overlay", Bin::Showcase, &["--page", "helpkeys"], BOOT).click("Open help overlay").pending().dismiss_pending(),
-    Root::new("showcase/overlays/helpkeys_overlay_small", Bin::Showcase, &["--page", "helpkeys", "--opt", "helpkeys.max_percent=60", "--opt", "helpkeys.title=custom"], BOOT).click("Open help overlay").pending().dismiss_pending(),
-    Root::new("showcase/overlays/quitleave_unsaved", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=unsaved"], BOOT).click("Leave for Overview").pending().dismiss_pending(),
-    Root::new("showcase/overlays/quitleave_running", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=running"], BOOT).click("Quit    Stop export").pending().dismiss_pending(),
     Root::new("showcase/elements/breadcrumbs/crumb-hover", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).hover("Users ›").pending(),
     Root::new("showcase/elements/rails/collapse-hover", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).hover("‹").pending(),
     // Overview (SC3): the theme explorer's options and every Kind on a plane.
@@ -340,6 +336,10 @@ pub const OVERLAYS: &[Root] = &[
     // (x on orders.sql) asks Cancel / Discard / Save first.
     Root::new("showcase/overlays/tabs_overflow_menu", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).click("+").pending().dismiss_pending(),
     Root::new("showcase/overlays/tabs_close_dirty", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["tab", "tab", "right", "x", "wait:Discard"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/helpkeys_overlay", Bin::Showcase, &["--page", "helpkeys"], BOOT).click("Open help overlay").pending().dismiss_pending(),
+    Root::new("showcase/overlays/helpkeys_overlay_small", Bin::Showcase, &["--page", "helpkeys", "--opt", "helpkeys.max_percent=60", "--opt", "helpkeys.title=custom"], BOOT).click("Open help overlay").pending().dismiss_pending(),
+    Root::new("showcase/overlays/quitleave_unsaved", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=unsaved"], BOOT).click("Leave for Overview").pending().dismiss_pending(),
+    Root::new("showcase/overlays/quitleave_running", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=running"], BOOT).click("Quit    Stop export").pending().dismiss_pending(),
     // SC16 Menus: a file's menu from the keyboard (under its row) and from
     // a right-click (at the pointer, with reasons), and the Actions menu
     // under its button.
