@@ -24,7 +24,7 @@ use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::layer_host::{LayerHost, Report};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
@@ -442,7 +442,7 @@ impl PickersPage {
 
     /// Handle what the open picker reported: an event keeps it open, a
     /// result closed it (and the stack gave focus back, K9).
-    fn on_report(&mut self, kind: Kind, r: Report, cx: &mut PageCtx) {
+    fn on_report(&mut self, kind: Kind, r: Report, cx: &mut Cx) {
         let LayerResult::Picker(ev) = r.result else {
             return;
         };
@@ -728,7 +728,7 @@ impl Page for PickersPage {
         self.layers.render(buf, ctx);
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Tick = ev
             && self.tick()
         {

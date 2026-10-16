@@ -9,7 +9,7 @@ use ratatui::layout::Rect;
 
 use crate::inspector::{self, Inspector};
 use crate::options::{OptSet, ShellOptions};
-use crate::pages::{Page, PageCtx, PageEvent, Request};
+use crate::pages::{Cx, Go, Page, PageEvent, Request};
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::FocusChange;
@@ -791,11 +791,7 @@ impl App {
         if motion == Motion::Paused {
             for _ in 0..frame {
                 for i in 0..app.pages.len() {
-                    let mut cx = PageCtx {
-                        focus: &mut app.shell.focus,
-                        ring: &app.shell.ring,
-                        requests: Vec::new(),
-                    };
+                    let mut cx = Cx::new(&mut app.shell.focus, &app.shell.ring);
                     app.pages[i].handle(&PageEvent::Tick, &mut cx);
                 }
             }
@@ -971,19 +967,34 @@ impl App {
     }
 
     fn dispatch_to(&mut self, i: usize, ev: PageEvent) -> Outcome {
-        let mut cx = PageCtx {
-            focus: &mut self.shell.focus,
-            ring: &self.shell.ring,
-            requests: Vec::new(),
-        };
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let out = self.pages[i].handle(&ev, &mut cx);
-        let requests = std::mem::take(&mut cx.requests);
+        let requests = cx.take();
+        self.apply_requests(requests);
+        out
+    }
+
+    /// What the pages asked of the shell, in order.
+    fn apply_requests(&mut self, requests: Vec<Request>) {
         for r in requests {
             match r {
-                Request::OpenDialog(d) => self.open_dialog(*d),
-                Request::Status(s) => self.set_status(s),
-                Request::SetOption(set) => self.apply_opt(set),
-                Request::OpenHelp(h) => self.show_help(*h),
+                Request::Status(s, tone) => self.shell.status.set_at(s, tone, self.clock.now()),
+                Request::StatusAs(s, kind) => {
+                    self.shell.status.set_at(s, kind.tone(), self.clock.now());
+                }
+                Request::Open(layer, _) => {
+                    let layer: Box<dyn std::any::Any> = layer;
+                    match layer.downcast::<Dialog>() {
+                        Ok(d) => self.open_dialog(*d),
+                        Err(layer) => {
+                            if let Ok(h) = layer.downcast::<HelpOverlay>() {
+                                self.show_help(*h);
+                            }
+                        }
+                    }
+                }
+                Request::Go(Go::SetOption(set)) => self.apply_opt(set),
+                Request::Help => self.open_help(),
                 Request::RefusedOutsideClick(dismiss) => {
                     let now = self.clock.now_ms();
                     junie_tui::ui::modal::refuse_outside_click(
@@ -992,9 +1003,10 @@ impl App {
                         now,
                     );
                 }
+                // showcase pages do not ask for these
+                Request::Close | Request::Top(_) | Request::Back | Request::Copy(_) => {}
             }
         }
-        out
     }
 
     /// What quitting would lose across every page.
@@ -1263,11 +1275,7 @@ impl App {
     /// Deliver `ev` to the Inspector; an option it changed is applied.
     /// `None` when the Inspector does not own the event.
     fn dispatch_inspector(&mut self, ev: PageEvent) -> Option<Outcome> {
-        let mut cx = PageCtx {
-            focus: &mut self.shell.focus,
-            ring: &self.shell.ring,
-            requests: Vec::new(),
-        };
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let (out, set) = self.insp.handle(&ev, &mut cx)?;
         if let Some(set) = set {
             self.apply_opt(set);

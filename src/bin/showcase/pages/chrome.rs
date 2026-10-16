@@ -16,7 +16,7 @@ use crate::app::PageId;
 use crate::options::page_options;
 use crate::pages::row_menu::RowMenu;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -372,7 +372,7 @@ impl ChromePage {
         l
     }
 
-    fn act(&mut self, menu: usize, item: usize, cx: &mut PageCtx) {
+    fn act(&mut self, menu: usize, item: usize, cx: &mut Cx) {
         let label = self.bar.menus[menu][item].label.clone();
         if menu == 2 && item == 0 {
             self.zoomed = !self.zoomed;
@@ -382,7 +382,7 @@ impl ChromePage {
     }
 
     /// Record what the bar reported, and act on a choice or the brand.
-    fn bar_action(&mut self, ev: Option<MenuBarAction>, cx: &mut PageCtx) {
+    fn bar_action(&mut self, ev: Option<MenuBarAction>, cx: &mut Cx) {
         let Some(ev) = ev else { return };
         self.action = Some(ev);
         match ev {
@@ -602,7 +602,7 @@ impl Page for ChromePage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

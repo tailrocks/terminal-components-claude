@@ -17,7 +17,7 @@ use ratatui::style::Color;
 
 use crate::app::PageId;
 use crate::pages::layout::Sections;
-use crate::pages::{Hint, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -1741,11 +1741,7 @@ impl OptionsView {
 
     /// Route `ev` to the control it targets. Returns the outcome and the
     /// option it changed, if any; `None` when the view does not own it.
-    pub fn handle(
-        &mut self,
-        ev: &PageEvent,
-        cx: &mut PageCtx,
-    ) -> Option<(Outcome, Option<OptSet>)> {
+    pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
         if let Some(o) = self.sections.handle(ev) {
             return Some((o, None));
         }

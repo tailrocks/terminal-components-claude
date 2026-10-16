@@ -13,7 +13,7 @@ use ratatui::layout::{Constraint, Rect};
 
 use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
@@ -273,7 +273,7 @@ impl EditablePage {
             .collect()
     }
 
-    fn on_event(&mut self, tev: Option<TableAction>, cx: &mut PageCtx) {
+    fn on_event(&mut self, tev: Option<TableAction>, cx: &mut Cx) {
         match tev {
             Some(TableAction::Committed { .. }) => {
                 self.edits += 1;
@@ -372,7 +372,7 @@ impl Page for EditablePage {
         self.table = build(&self.knobs);
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

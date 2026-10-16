@@ -16,7 +16,7 @@ use ratatui::layout::{Constraint, Rect};
 use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -342,7 +342,7 @@ impl ColumnsPage {
     /// A secondary click on a header opens its menu; the sized table takes
     /// its headers, seams (a press focuses it), cells, bar and wheel; the
     /// two specimen tables their cells.
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let Some(c) = self.sized.header_menu_at(ev) else {
                 return Outcome::Ignored;
@@ -426,7 +426,7 @@ impl Page for ColumnsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }
