@@ -1807,7 +1807,13 @@ mod click_regressions {
             app.goto(page);
             let mut term = Terminal::new(TestBackend::new(120, 40)).unwrap();
             term.draw(|frame| app.render(frame)).unwrap();
-            let id = app.ring.next(Some(NAV)).unwrap();
+            let mut id = app.ring.next(Some(NAV)).unwrap();
+            // a templated page's first stop is its section strip
+            if let Some(t) = app.pages[page.index()].template()
+                && id == t.tabs.id
+            {
+                id = app.ring.next(Some(id)).unwrap();
+            }
             let area = app.hits.area_of(id).unwrap();
             let pos = Position::new(area.x + 2, area.y + area.height / 2);
             // the press alone focuses nothing; the completed click focuses

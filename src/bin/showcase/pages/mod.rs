@@ -32,6 +32,7 @@ pub mod settings;
 pub mod sidebars;
 pub mod tables;
 pub mod taskrunner;
+pub mod template;
 pub mod terminal;
 pub mod textareas;
 pub mod trees;
@@ -163,6 +164,16 @@ pub trait Page {
     /// with no focus indicator ([`RenderCtx::page_under_layer`]).
     fn layer_open(&self) -> bool {
         false
+    }
+    /// The page's Playground | Options | States template, for pages built
+    /// on it ([`template::Template`]).
+    #[allow(dead_code)] // tests and the coverage gate read it
+    fn template(&self) -> Option<&template::Template> {
+        None
+    }
+    #[allow(dead_code)] // tests and the coverage gate drive it
+    fn template_mut(&mut self) -> Option<&mut template::Template> {
+        None
     }
 }
 
