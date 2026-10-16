@@ -144,7 +144,7 @@ pub struct Picker {
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
     /// Which dismissals close the picker without choosing. Default
-    /// [`Dismiss::LIGHT`]: Esc and a click outside both cancel.
+    /// [`Dismiss::LIGHT`](crate::ui::popup::Dismiss::LIGHT): Esc and a click outside both cancel.
     pub dismiss: crate::ui::popup::Dismiss,
     /// The last action, kept for the stack while the picker is a
     /// [`crate::ui::layer::Layer`].

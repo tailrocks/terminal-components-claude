@@ -192,8 +192,8 @@ pub struct FormDialog {
     /// Default [`NavKeys::NO_VIM`]: ←/→ only, so letters stay with the
     /// fields.
     pub nav: NavKeys,
-    /// How ←/→ move between the buttons ([`ButtonRow::step`]). Default
-    /// [`ButtonRow::new`]: disabled buttons are skipped, no wrap.
+    /// How ←/→ move between the buttons ([`ButtonRow::step`](crate::widgets::button::ButtonRow::step)). Default
+    /// [`ButtonRow::new`](crate::widgets::button::ButtonRow::new): disabled buttons are skipped, no wrap.
     pub button_row: crate::widgets::button::ButtonRow,
 }
 

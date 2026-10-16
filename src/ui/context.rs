@@ -7,7 +7,7 @@
 //! [`ContextRequest`]: *what* the menu is about ([`ContextSource::Target`])
 //! and *where* it opens ([`ContextAnchor`]). The owner answers with the
 //! items it can offer for that target and opens a
-//! [`ContextMenu`](crate::widgets::menu::ContextMenu) through
+//! [`ContextMenu`] through
 //! [`ContextRequest::menu`]; unavailable commands stay in the menu with
 //! [`MenuItem::reason`](crate::widgets::menu::MenuItem::reason).
 //!
