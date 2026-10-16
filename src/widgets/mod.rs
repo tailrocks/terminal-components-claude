@@ -23,6 +23,7 @@ pub mod keyhint;
 pub mod keyref;
 pub mod list;
 pub mod menu;
+pub mod option_editor;
 pub mod panel;
 pub mod picker;
 pub mod progress;
