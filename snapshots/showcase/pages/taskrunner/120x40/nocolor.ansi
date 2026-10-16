@@ -14,8 +14,8 @@
   ▾ Screens                        integration               [0m[1;7mRun pipeline [0m   [0m[2mCancel [0m                                    [0m
       Settings                     e2e                                                                                  [0m
  [0m[1m▎  › Task runner       [0m       ▾ deploy                                                                                 [0m
-                                   staging                  Log                                            · following  [0m
-                                   production                                                                           [0m
+                                   ◇ staging                Log                                            · following  [0m
+                                   ◆ production                                                                         [0m
                              ▾ shared-libs                  Ready. Press r or Run to start the pipeline.                [0m
                                  compile                                                                                [0m
                                  publish                                                                                [0m
