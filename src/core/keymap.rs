@@ -142,7 +142,9 @@ impl Default for NavKeys {
 ///
 /// For a character the Shift modifier is part of the character (`X` is
 /// Shift+x), so it is ignored when matching: `KeyBinding::char('X')`
-/// matches `X` whether or not the terminal reports Shift. Every other
+/// matches `X` whether or not the terminal reports Shift. A character
+/// binding that names Shift itself (Cmd+Shift+Z, [`Self::shift`]) does
+/// require it, so list it before the same chord without Shift. Every other
 /// modifier must match exactly, so `KeyBinding::char('x')` never fires on
 /// Ctrl+X.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -182,6 +184,12 @@ impl KeyBinding {
         Self::new(KeyCode::Char(c), KeyModifiers::SUPER)
     }
 
+    /// This chord with Shift held too (Cmd+Shift+Z): a character binding
+    /// that names Shift requires it ([`Self::matches`]).
+    pub const fn shift(self) -> Self {
+        Self::new(self.code, self.mods.union(KeyModifiers::SHIFT))
+    }
+
     /// Whether the terminal delivers this chord: a Cmd (super) chord only
     /// once [`crate::core::keyboard::super_delivered`] confirms it. Hints
     /// skip chords that are not deliverable.
@@ -195,7 +203,9 @@ impl KeyBinding {
             return false;
         }
         if matches!(self.code, KeyCode::Char(_)) {
-            self.mods.difference(KeyModifiers::SHIFT) == key.mods.difference(KeyModifiers::SHIFT)
+            (!self.mods.contains(KeyModifiers::SHIFT) || key.shift())
+                && self.mods.difference(KeyModifiers::SHIFT)
+                    == key.mods.difference(KeyModifiers::SHIFT)
         } else {
             self.mods == key.mods
         }
@@ -208,11 +218,21 @@ impl KeyBinding {
     }
 
     /// [`Self::label`] for a client on `platform`: Cmd is `⌘` on macOS
-    /// (`⌘A`), `Super+` elsewhere.
+    /// (`⌘A`, and `⇧⌘Z` with Shift), `Super+` elsewhere.
     pub fn label_on(&self, platform: ClientPlatform) -> String {
         let mut out = String::new();
+        let char_shift =
+            self.mods.contains(KeyModifiers::SHIFT) && matches!(self.code, KeyCode::Char(_));
         if self.mods.contains(KeyModifiers::SUPER) {
-            out.push_str(if platform.is_macos() { "⌘" } else { "Super+" });
+            if platform.is_macos() {
+                out.push_str(if self.mods.contains(KeyModifiers::SHIFT) {
+                    "⇧⌘"
+                } else {
+                    "⌘"
+                });
+            } else {
+                out.push_str("Super+");
+            }
         }
         if self.mods.contains(KeyModifiers::CONTROL) {
             out.push_str("Ctrl+");
@@ -223,7 +243,8 @@ impl KeyBinding {
         let ctrl_or_alt = self
             .mods
             .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER);
-        if self.mods.contains(KeyModifiers::SHIFT) && !matches!(self.code, KeyCode::Char(_)) {
+        let mac_cmd = self.mods.contains(KeyModifiers::SUPER) && platform.is_macos();
+        if self.mods.contains(KeyModifiers::SHIFT) && !mac_cmd && (!char_shift || ctrl_or_alt) {
             out.push_str("Shift+");
         }
         match self.code {
@@ -871,7 +892,12 @@ mod widget_tests {
         assert_eq!(binding_for(&g.keymap, GridAction::DuplicateRow), None);
         assert_eq!(
             binding_for(&g.keymap, GridAction::Copy),
-            Some(KeyBinding::char('y'))
+            Some(KeyBinding::cmd('c'))
+        );
+        assert_eq!(
+            label_for(&g.keymap, GridAction::Copy).as_deref(),
+            Some("y"),
+            "Cmd+C is not named until the terminal delivers Cmd"
         );
     }
 
