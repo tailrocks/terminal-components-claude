@@ -227,7 +227,9 @@ impl HelpOverlay {
                         x + 13,
                         y,
                         truncate(action, (col_w - 15) as usize),
-                        t.key_hint_action().bg(bg),
+                        // a reference sheet: the description is read, so
+                        // it is secondary text, not the hint bar's muted
+                        t.secondary().bg(bg),
                     );
                 }
             }
@@ -310,6 +312,20 @@ mod tests {
         h.render(screen, &mut buf, &mut ctx);
         let text: String = buf.content().iter().map(|c| c.symbol()).collect();
         assert!(text.contains("Keyboard shortcuts") && text.contains("Select"));
+        // keys primary bold, descriptions secondary
+        let at = |needle: &str| {
+            let want: Vec<String> = needle.chars().map(String::from).collect();
+            let i = buf
+                .content()
+                .windows(want.len())
+                .position(|cells| cells.iter().zip(&want).all(|(c, w)| c.symbol() == w))
+                .expect("drawn");
+            &buf.content()[i]
+        };
+        let key = at("Enter");
+        assert_eq!(key.fg, theme.text_primary);
+        assert!(key.modifier.contains(ratatui::style::Modifier::BOLD));
+        assert_eq!(at("Open").fg, theme.text_secondary);
         let esc = Key {
             code: KeyCode::Esc,
             mods: KeyModifiers::NONE,
