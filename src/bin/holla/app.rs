@@ -15,7 +15,6 @@ use junie_tui::core::pointer::{
 use junie_tui::core::response::Response;
 use junie_tui::shell::{self, PageKey, Shell};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
-use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, Layer, LayerCx, LayerPointer, LayerTag, Taken,
@@ -110,10 +109,6 @@ pub struct App {
     /// world clock; an error stays until the next action, with its toned
     /// parts), size, motion and quit: the library shell's state.
     pub shell: Shell<Vec<(String, Tone)>>,
-    /// Context menus: the keys that open one at the focused cursor row
-    /// and whether a secondary click moves the cursor. Default
-    /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key; moves).
-    pub context: ContextConfig,
     menu: MenuBar,
     strip: Tabs,
     /// The Here tab's page trail, drawn above a nested page (mouse #5).
@@ -170,7 +165,6 @@ impl App {
             active: 0,
             modals: Layers::new(),
             shell,
-            context: ContextConfig::DEFAULT,
             menu: Self::build_menu(),
             strip: Tabs::with_items(TABS, vec![]),
             crumbs: Breadcrumb::new(CRUMBS, vec![]),
@@ -298,13 +292,27 @@ impl App {
         f: F,
     ) -> Outcome {
         let active = self.active;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
-        let o = match self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
-            Some(s) => f(s, &mut self.world, &mut cx),
-            None => Outcome::Ignored,
-        };
-        let reqs = cx.take();
+        let (o, reqs) = self.deliver_tab(active, true, Outcome::Ignored, f);
         o.or(self.apply_requests(reqs, active))
+    }
+
+    /// Hand an event to the top screen of tab `ti` (`absent` when the tab
+    /// is empty) through [`junie_tui::shell::Shell::deliver`]: what it
+    /// asked for, filtered by the background-request policy unless
+    /// `shown`.
+    fn deliver_tab(
+        &mut self,
+        ti: usize,
+        shown: bool,
+        absent: Outcome,
+        f: impl FnOnce(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome,
+    ) -> (Outcome, Vec<Request>) {
+        self.shell.deliver(shown, |cx| {
+            match self.tabs.get_mut(ti).and_then(|t| t.stack.last_mut()) {
+                Some(s) => f(s, &mut self.world, cx),
+                None => absent,
+            }
+        })
     }
 
     fn enter_top(&mut self) {
@@ -323,17 +331,16 @@ impl App {
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.modals.on_blur(ch);
         for ti in 0..self.tabs.len() {
-            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
-            if let Some(s) = self.tabs[ti].stack.last_mut() {
-                out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
-            }
-            let reqs = cx.take();
-            if ti == self.active {
+            let shown = ti == self.active;
+            let (o, reqs) =
+                self.deliver_tab(ti, shown, Outcome::Ignored, |s, w, cx| s.on_blur(ch, w, cx));
+            out = out.or(o);
+            if shown {
                 out = out.or(self.apply_requests(reqs, ti));
             } else {
                 // a background tab's messages wait for the tab; what
                 // would act on the screen (navigation, modals) does not
-                self.tabs[ti].pending.extend(shell::background(reqs));
+                self.tabs[ti].pending.extend(reqs);
             }
         }
         out
@@ -439,12 +446,10 @@ impl App {
         // every screen on every tab ticks so background tabs keep their state
         let active = self.active;
         for ti in 0..self.tabs.len() {
-            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
-            let mut o = Outcome::Ignored;
-            if let Some(s) = self.tabs[ti].stack.last_mut() {
-                o = s.on_tick(&mut self.world, &mut cx);
-            }
-            let reqs = cx.take();
+            let (o, reqs) = self.deliver_tab(ti, ti == active, Outcome::Ignored, |s, w, cx| {
+                s.on_tick(w, cx)
+            });
+            // a background tab's tick reports nothing
             if ti == active {
                 out = out.or(o).or(self.apply_requests(reqs, ti));
             }
@@ -528,12 +533,11 @@ impl App {
             }
         }
         for ti in 0..self.tabs.len() {
-            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
-            if let Some(s) = self.tabs[ti].stack.last_mut() {
-                s.on_msg(&m, &mut self.world, &mut cx);
-            }
-            let reqs = cx.take();
-            if ti == self.active {
+            let shown = ti == self.active;
+            let (_, reqs) =
+                self.deliver_tab(ti, shown, Outcome::Ignored, |s, w, cx| s.on_msg(&m, w, cx));
+            // a background tab's message reports nothing
+            if shown {
                 out = out.or(self.apply_requests(reqs, ti));
             }
         }
@@ -598,7 +602,7 @@ impl App {
         }
         // the context key opens the focused cursor row's menu; a page with
         // none leaves it alone (it never opens the menu bar)
-        let context_key = self.context.keys.matches(&key);
+        let context_key = self.shell.context.keys.matches(&key);
         if context_key {
             let o = self.with_top(|s, w, cx| s.on_context_key(w, cx));
             if o != Outcome::Ignored {
@@ -1365,12 +1369,9 @@ impl App {
 
     /// Hand a layer's report to the top screen of the tab that opened it.
     fn report_to_owner(&mut self, owner: usize, tag: &LayerTag, result: ModalResult) -> Outcome {
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
-        let o = match self.tabs.get_mut(owner).and_then(|t| t.stack.last_mut()) {
-            Some(s) => s.on_layer_result(tag, result, &mut self.world, &mut cx),
-            None => Outcome::Changed,
-        };
-        let reqs = cx.take();
+        let (o, reqs) = self.deliver_tab(owner, true, Outcome::Changed, |s, w, cx| {
+            s.on_layer_result(tag, result, w, cx)
+        });
         o.or(self.apply_requests(reqs, owner)).or(Outcome::Changed)
     }
 
@@ -1431,7 +1432,7 @@ impl App {
                     PickerAction::Submit => None,
                     _ => picker.and_then(|p| p.current_key()).map(str::to_owned),
                 };
-                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
+                let mut cx = self.shell.cx();
                 let outcome = self
                     .tabs
                     .get_mut(active)

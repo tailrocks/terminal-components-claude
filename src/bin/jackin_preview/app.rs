@@ -289,11 +289,12 @@ impl App {
                     plan,
                 });
                 if frame > 0 {
-                    let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-                    if let Some(c) = self.screens.cockpit.as_mut() {
-                        c.seek(frame, &mut self.world, &mut cx);
-                    }
-                    let reqs = cx.take();
+                    let (_, reqs) = self.shell.deliver(true, |cx| {
+                        if let Some(c) = self.screens.cockpit.as_mut() {
+                            c.seek(frame, &mut self.world, cx);
+                        }
+                        Outcome::Ignored
+                    });
                     self.apply_requests(reqs, Route::Cockpit);
                 }
             }
@@ -307,10 +308,10 @@ impl App {
 
     fn enter_manager(&mut self) {
         self.route = Route::Manager;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        self.screens.manager.enter(&mut self.world, &mut cx);
-        let reqs = cx.take();
-        self.apply_requests(reqs, Route::Manager);
+        self.on_route(Route::Manager, Outcome::Ignored, |s, w, cx| {
+            s.enter(w, cx);
+            Outcome::Ignored
+        });
     }
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
@@ -353,20 +354,11 @@ impl App {
             // what an ended edit reported (a form field changed) reaches
             // the owner, as Enter's does
             out = self.settle_layers(out);
+            // a route behind the shown one may only report a status (the
+            // background-request policy, `Shell::deliver`)
             for route in ROUTES {
-                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-                if let Some(s) = self.screens.get_mut(route) {
-                    out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
-                }
-                let reqs = cx.take();
-                if route == self.route {
-                    out = out.or(self.apply_requests(reqs, route));
-                } else {
-                    // the background-request policy: a route behind the
-                    // shown one may only report a status
-                    let kept = shell::background(reqs).collect();
-                    self.apply_requests(kept, route);
-                }
+                out =
+                    out.or(self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_blur(ch, w, cx)));
             }
         }
         out
@@ -452,13 +444,7 @@ impl App {
         }
         // screen tick
         let route = self.route;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        if let Some(s) = self.screens.get_mut(route) {
-            let o = s.on_tick(&mut self.world, &mut cx);
-            out = out.or(o);
-        }
-        let reqs = cx.take();
-        out = out.or(self.apply_requests(reqs, route));
+        out = out.or(self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_tick(w, cx)));
         // messages
         for m in msgs {
             out = out.or(self.dispatch_msg(m));
@@ -468,22 +454,24 @@ impl App {
 
     fn dispatch_msg(&mut self, m: Msg) -> Outcome {
         let route = self.route;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let mut o = match self.screens.get_mut(route) {
-            Some(s) => s.on_msg(&m, &mut self.world, &mut cx),
-            None => Outcome::Ignored,
-        };
-        let reqs = cx.take();
+        let (o, reqs) = self
+            .shell
+            .deliver(true, |cx| match self.screens.get_mut(route) {
+                Some(s) => s.on_msg(&m, &mut self.world, cx),
+                None => Outcome::Ignored,
+            });
         // the manager and accounts follow the world from behind; the
         // background-request policy keeps only their statuses
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        if !o.consumed() && route != Route::Manager {
-            o = self.screens.manager.on_msg(&m, &mut self.world, &mut cx);
-        }
-        if !o.consumed() && route != Route::Accounts {
-            o = self.screens.accounts.on_msg(&m, &mut self.world, &mut cx);
-        }
-        let behind: Vec<Request> = shell::background(cx.take()).collect();
+        let (o, behind) = self.shell.deliver(false, |cx| {
+            let mut o = o;
+            if !o.consumed() && route != Route::Manager {
+                o = self.screens.manager.on_msg(&m, &mut self.world, cx);
+            }
+            if !o.consumed() && route != Route::Accounts {
+                o = self.screens.accounts.on_msg(&m, &mut self.world, cx);
+            }
+            o
+        });
         let o = o.or(self.apply_requests(reqs, route));
         o.or(self.apply_requests(behind, route))
     }
@@ -498,12 +486,10 @@ impl App {
         self.handoff = None;
         self.screens.cockpit = None;
         self.route = Route::Capsule;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        if let Some(c) = self.screens.capsule.as_mut() {
-            c.enter(&mut self.world, &mut cx);
-        }
-        let reqs = cx.take();
-        self.apply_requests(reqs, Route::Capsule);
+        self.on_route(Route::Capsule, Outcome::Ignored, |s, w, cx| {
+            s.enter(w, cx);
+            Outcome::Ignored
+        });
     }
 
     fn on_paste(&mut self, text: &str) -> Outcome {
@@ -512,13 +498,7 @@ impl App {
             return self.settle_layers(o);
         }
         let route = self.route;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let o = match self.screens.get_mut(route) {
-            Some(s) => s.on_paste(text, &mut self.world, &mut cx),
-            None => Outcome::Consumed,
-        };
-        let reqs = cx.take();
-        o.or(self.apply_requests(reqs, route))
+        self.on_route(route, Outcome::Consumed, |s, w, cx| s.on_paste(text, w, cx))
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
@@ -655,13 +635,7 @@ impl App {
                 _ => {}
             }
         }
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let mut out = match self.screens.get_mut(route) {
-            Some(s) => s.on_key(&key, &mut self.world, &mut cx),
-            None => Outcome::Ignored,
-        };
-        let reqs = cx.take();
-        out = out.or(self.apply_requests(reqs, route));
+        let out = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_key(&key, w, cx));
         if out.consumed() {
             if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
                 && key.plain()
@@ -718,13 +692,7 @@ impl App {
                 Outcome::Changed
             }
             KeyCode::Esc => {
-                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-                let o = match self.screens.get_mut(route) {
-                    Some(s) => s.on_esc_top(&mut self.world, &mut cx),
-                    None => Outcome::Ignored,
-                };
-                let reqs = cx.take();
-                let o = o.or(self.apply_requests(reqs, route));
+                let o = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_esc_top(w, cx));
                 if o != Outcome::Ignored || !host {
                     return o;
                 }
@@ -756,13 +724,7 @@ impl App {
             return Outcome::Consumed;
         }
         self.quit_after_leave = true;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let o = match self.screens.get_mut(route) {
-            Some(s) => s.request_leave(&mut self.world, &mut cx),
-            None => Outcome::Ignored,
-        };
-        let reqs = cx.take();
-        o.or(self.apply_requests(reqs, route))
+        self.on_route(route, Outcome::Ignored, |s, w, cx| s.request_leave(w, cx))
     }
 
     fn is_host(route: Route) -> bool {
@@ -1419,13 +1381,10 @@ impl App {
 
     /// Tell `owner`, the screen that opened a layer, what it reported.
     fn tell_owner(&mut self, owner: Route, tag: &LayerTag, r: ModalResult) -> Outcome {
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let o = match self.screens.get_mut(owner) {
-            Some(s) => s.on_layer_result(tag, r, &mut self.world, &mut cx),
-            None => Outcome::Changed,
-        };
-        let reqs = cx.take();
-        o.or(self.apply_requests(reqs, owner)).or(Outcome::Changed)
+        self.on_route(owner, Outcome::Changed, |s, w, cx| {
+            s.on_layer_result(tag, r, w, cx)
+        })
+        .or(Outcome::Changed)
     }
 
     /// The values of the form on top (a chooser or action button
@@ -1729,16 +1688,29 @@ impl App {
     /// An event on the route's screen, with the requests it made.
     fn screen_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         let route = self.route;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let o = match self.screens.get_mut(route) {
-            Some(s) => s.pointer(ev, &mut self.world, &mut cx),
-            None => Outcome::Ignored,
-        };
-        let reqs = cx.take();
-        o.or(self.apply_requests(reqs, route))
+        self.on_route(route, Outcome::Ignored, |s, w, cx| s.pointer(ev, w, cx))
     }
 
     // ----------------------------------------------------------- requests
+
+    /// Hand an event to `route`'s screen (`absent` when it is not mounted)
+    /// through [`junie_tui::shell::Shell::deliver`] (a route behind the
+    /// shown one keeps only its statuses), then apply what it asked for.
+    fn on_route(
+        &mut self,
+        route: Route,
+        absent: Outcome,
+        f: impl FnOnce(&mut dyn Screen, &mut World, &mut Cx) -> Outcome,
+    ) -> Outcome {
+        let shown = route == self.route;
+        let (o, reqs) = self
+            .shell
+            .deliver(shown, |cx| match self.screens.get_mut(route) {
+                Some(s) => f(s, &mut self.world, cx),
+                None => absent,
+            });
+        o.or(self.apply_requests(reqs, route))
+    }
 
     fn apply_requests(&mut self, requests: Vec<Request>, owner: Route) -> Outcome {
         let mut out = Outcome::Ignored;
@@ -2030,12 +2002,10 @@ impl App {
 
     fn enter_route(&mut self) {
         let route = self.route;
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        if let Some(s) = self.screens.get_mut(route) {
-            s.enter(&mut self.world, &mut cx);
-        }
-        let reqs = cx.take();
-        self.apply_requests(reqs, route);
+        self.on_route(route, Outcome::Ignored, |s, w, cx| {
+            s.enter(w, cx);
+            Outcome::Ignored
+        });
     }
 
     // ------------------------------------------------------------ render
