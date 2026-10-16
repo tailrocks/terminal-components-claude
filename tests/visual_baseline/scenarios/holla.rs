@@ -18,6 +18,10 @@
 use super::{Bin, Root, Variant, interact};
 use crate::support::Color;
 
+/// Usage history on for one row: `main` reads only `HOLLA_NO_HISTORY=1` as
+/// the opt-out, so `0` restores the fixture's seeded history.
+const HISTORY_ON: &[(&str, &str)] = &[("HOLLA_NO_HISTORY", "0")];
+
 #[rustfmt::skip]
 pub const SURFACES: &[Root] = &[
     // ---------------------------------------------------------------- concept --
@@ -72,6 +76,14 @@ pub const SURFACES: &[Root] = &[
         Variant::new(160, 50, Color::Truecolor, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").timeout(20_000),
         Variant::new(100, 30, Color::None, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").timeout(20_000),
     ]),
+    // Usage history on (product owner decision 2026-10-17): every other holla
+    // capture pins HOLLA_NO_HISTORY=1 and shows what a new user sees; these
+    // rows turn the fixture's seeded usage back on (in memory, fixture clock,
+    // nothing read from or written to disk) so the ranking and the Recent
+    // list keep visual coverage.
+    Root::new("holla/concept/first-use-with-history", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").env(HISTORY_ON).pending(),
+    Root::new("holla/concept/monorepo-root-with-history", Bin::Holla, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], "holla❯").env(HISTORY_ON).pending(),
+    Root::new("holla/concept/activities-multi-with-history", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").timeout(20_000).env(HISTORY_ON).pending(),
     Root::new("holla/concept/remote-host", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").variants(&[
         Variant::new(80, 24, Color::Truecolor, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯"),
         Variant::new(100, 30, Color::Truecolor, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯"),
@@ -416,11 +428,10 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("holla/flows/upgrade/facts", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["p", "wait:Preflight"]),
     // h_hp01_config_page: the custom-action configuration diagnostics page.
     Root::new("holla/flows/config/page", Bin::Holla, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Custom action configuration", "enter", "wait:sha256:"]),
-    // h_hp02_recent — DROP: the usage-populated Recent list ("used N times
-    // here") exists only with the history store; the suite sets
-    // HOLLA_NO_HISTORY=1 by design (support.rs opts_for — ambient-learning
-    // hygiene), so every capture shows "nothing used here yet". The populated
-    // state is unreachable by construction, not by nondeterminism.
+    // h_hp02_recent: the usage-populated Recent list ("used N times here")
+    // exists only with the history store; the suite sets HOLLA_NO_HISTORY=1
+    // by design, so these flows show "nothing used here yet". The populated
+    // list is covered by the `concept/*-with-history` rows (HISTORY_ON).
     // h_hp03_actions: Enter on a find result opens its actions popup.
     Root::new("holla/flows/files/actions", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "wait:of 29 indexed", "ctrl-u", "type:todo", "wait:1 result", "enter", "wait:Open in the OS"]),
     // h_hp04_jumped: the browser after a successful Go-to-path jump.
