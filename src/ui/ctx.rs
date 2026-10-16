@@ -150,8 +150,9 @@ pub struct RenderCtx<'a> {
     /// scrolling and its bar); widgets may override it.
     pub hscroll: crate::core::scroll::HScroll,
     /// App-wide default for a press on the bare track of a vertical
-    /// scrollbar (`Jump` moves the thumb under the pointer, `Page` moves a
-    /// page toward it); widgets with a `track_click` field may override it.
+    /// scrollbar (`Page`, the default, moves a page toward the pointer as
+    /// macOS and Windows do; `Jump` moves the thumb under it); widgets with
+    /// a `track_click` field may override it.
     pub track_click: crate::core::scroll::TrackClick,
     /// The frame's single truncated-text reveal, if any.
     pub(crate) reveal_slot: crate::ui::reveal::Slot,
@@ -179,7 +180,7 @@ impl<'a> RenderCtx<'a> {
             overlays: Vec::new(),
             reveal: crate::ui::reveal::Reveal::default(),
             hscroll: crate::core::scroll::HScroll::default(),
-            track_click: crate::core::scroll::TrackClick::Jump,
+            track_click: crate::core::scroll::TrackClick::Page,
             reveal_hint: None,
             reveal_slot: {
                 crate::ui::reveal::clear_cuts();

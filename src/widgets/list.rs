@@ -127,7 +127,7 @@ impl ListBox {
         let n = items.len();
         Self {
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             id,
             items,
             cursor: 0,

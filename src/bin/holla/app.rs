@@ -445,6 +445,10 @@ impl App {
         if let Some((_, pos)) = self.pointer.autoscroll_due(self.now_ms()) {
             out = out.or(self.on_mouse(Mouse::new(MouseKind::Drag, pos)));
         }
+        // a press held on a scrollbar track keeps paging toward the pointer
+        if let Some(pos) = self.pointer.track_repeat_due(self.now_ms()) {
+            out = out.or(self.on_mouse(Mouse::new(MouseKind::Down, pos)));
+        }
         if let Some((_, _, until)) = &self.status
             && self.world.now_ms() >= *until
         {

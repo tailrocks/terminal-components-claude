@@ -13,6 +13,9 @@ pub struct ScrollState {
     /// held, so a drag moves the thumb with the pointer instead of
     /// centring it under the pointer on the first motion.
     pub(crate) grab: Option<usize>,
+    /// The held press pages the track ([`TrackClick::Page`]): motion while
+    /// it is held never jumps the thumb under the pointer.
+    pub(crate) paging: bool,
     /// When [`follow`](Self::follow) brings the cursor back into view.
     pub follow_cursor: FollowCursor,
     /// The cursor and viewport length of the last [`follow`](Self::follow),
@@ -27,6 +30,7 @@ impl ScrollState {
             content_len,
             viewport_len: 0,
             grab: None,
+            paging: false,
             follow_cursor: FollowCursor::OnMove,
             followed: None,
         }
@@ -176,6 +180,7 @@ impl ScrollState {
     /// only remembers where the thumb was grabbed; on the track it jumps
     /// the thumb under the pointer. Returns whether the offset changed.
     pub fn press_track(&mut self, pos: usize, track_len: usize) -> bool {
+        self.paging = false;
         if !self.overflows() || track_len == 0 {
             self.grab = None;
             return false;
@@ -197,6 +202,11 @@ impl ScrollState {
             return false;
         }
         let Some(grab) = self.grab else {
+            // a held page press keeps paging (on the app tick); motion
+            // never turns it into a jump
+            if self.paging {
+                return false;
+            }
             return self.press_track(pos, track_len);
         };
         let target = self.offset_for_thumb_start(pos.saturating_sub(grab), track_len);
@@ -206,6 +216,7 @@ impl ScrollState {
     /// The pointer was released: the next press starts a new grab.
     pub fn release_track(&mut self) {
         self.grab = None;
+        self.paging = false;
     }
 
     /// A press on the track under `click`. Off the thumb, `Jump` moves the
@@ -221,8 +232,10 @@ impl ScrollState {
             self.grab = Some(pos - start);
             return false;
         }
-        // paging never grabs: a drag that follows starts a fresh grab
+        // paging never grabs: motion while held pages no further and never
+        // jumps; the app tick repeats the page toward the pointer
         self.grab = None;
+        self.paging = true;
         if pos < start {
             self.page_up()
         } else {
@@ -274,12 +287,15 @@ impl ScrollbarVisibility {
 /// What a press on the bare scrollbar track (off the thumb) does.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum TrackClick {
-    /// The thumb jumps under the pointer (what the library's vertical bars
-    /// do, so both axes agree by default).
-    #[default]
+    /// The thumb jumps under the pointer (macOS "Jump to the spot that's
+    /// clicked", GTK's primary click).
     Jump,
-    /// The view moves one page toward the pointer (macOS "Jump to the
-    /// next page").
+    /// The view moves one page toward the pointer, repeating while the
+    /// button is held until the thumb reaches it
+    /// ([`PointerState::track_repeat_due`](crate::core::pointer::PointerState::track_repeat_due)).
+    /// The default: macOS System Settings ("Click in the scroll bar to:
+    /// Jump to the next page") and Windows both page.
+    #[default]
     Page,
 }
 
@@ -306,7 +322,7 @@ impl Default for HScroll {
             enabled: true,
             bar: ScrollbarVisibility::Auto,
             step: 4,
-            track_click: TrackClick::Jump,
+            track_click: TrackClick::Page,
         }
     }
 }
@@ -364,6 +380,7 @@ mod tests {
         let mut s = ScrollState::new(100);
         s.set_viewport(10);
         // the thumb is the first cell of a 10-cell track
+        assert_eq!(TrackClick::default(), TrackClick::Page, "macOS, Windows");
         assert!(s.press_track_with(9, 10, TrackClick::Page));
         assert_eq!(s.offset, 10, "one page right, not a jump to the end");
         assert!(s.press_track_with(0, 10, TrackClick::Page));
@@ -371,6 +388,22 @@ mod tests {
         let (start, _) = s.thumb(10);
         assert!(!s.press_track_with(start, 10, TrackClick::Page));
         assert_eq!(s.grab, Some(0), "the thumb is grabbed, not paged");
+    }
+
+    #[test]
+    fn motion_after_a_paging_press_never_jumps_the_thumb() {
+        let mut s = ScrollState::new(100);
+        s.set_viewport(10);
+        assert!(s.press_track_with(9, 10, TrackClick::Page));
+        assert_eq!(s.offset, 10);
+        // the pointer slides along the held track: no jump under it
+        assert!(!s.drag_track(8, 10));
+        assert_eq!(s.offset, 10);
+        // a fresh press under Jump drags as before
+        s.release_track();
+        assert!(s.press_track_with(9, 10, TrackClick::Jump));
+        assert!(s.drag_track(0, 10));
+        assert_eq!(s.offset, 0);
     }
 
     #[test]
