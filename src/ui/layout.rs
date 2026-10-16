@@ -230,9 +230,10 @@ pub struct StackScroll {
 }
 
 impl StackScroll {
-    /// Wheel over the stack: whole children per notch.
+    /// Wheel over the stack: one whole child per notch, whatever the
+    /// app's rows-per-notch `delta` is (a child is already several rows).
     pub fn on_wheel(&mut self, delta: i32) -> bool {
-        self.scroll.scroll_by(delta as isize)
+        self.scroll.scroll_by(delta.signum() as isize)
     }
     /// A press or click on the stack's scrollbar.
     pub fn on_scrollbar(&mut self, pos: Position) -> bool {
@@ -504,7 +505,8 @@ mod tests {
         assert_eq!(l.slot(1), None);
         assert_eq!(l.hidden_above, 2);
         // the wheel scrolls back up; focus did not move, so it stays there
-        st.on_wheel(-2);
+        st.on_wheel(-3);
+        st.on_wheel(-3);
         let l = s.layout(area, &ch, &mut st, Some(3));
         assert_eq!(st.scroll.offset, 0);
         assert_eq!(l.slot(3), None);
