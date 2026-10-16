@@ -276,11 +276,35 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
     /// Resolve to the cancel result for `reason`. [`ShellLayers::dismiss`]
     /// calls it only when [`Self::spec`]'s policy allows `reason`.
     fn on_dismiss(&mut self, reason: DismissReason);
-    /// The result, once it resolved (taken once).
-    fn take_result(&mut self) -> Option<R>;
+    /// What it reported since the last call (taken once): a final result
+    /// closes it, an event (a picker's query changed, a form's chooser
+    /// button) goes to the owner while it stays open.
+    fn take_result(&mut self) -> Option<LayerOut<R>>;
     /// Whether `id` is one of its controls (routes a click to it).
     fn owns(&self, _id: WidgetId) -> bool {
         false
+    }
+}
+
+/// What a [`Layer`] reports to its owner.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LayerOut<R> {
+    /// The layer resolved: it closes and the owner gets `R`.
+    Close(R),
+    /// The owner handles `R` while the layer stays open.
+    Event(R),
+}
+
+impl<R> LayerOut<R> {
+    /// The reported value.
+    pub fn into_inner(self) -> R {
+        match self {
+            Self::Close(r) | Self::Event(r) => r,
+        }
+    }
+    /// Whether the layer closes.
+    pub fn closes(&self) -> bool {
+        matches!(self, Self::Close(_))
     }
 }
 
@@ -342,6 +366,14 @@ impl<R: 'static, W: ?Sized + 'static, O> Modal for LayerEntry<R, W, O> {
 /// it gives that focus back (K9).
 pub type ShellLayers<R, W = (), O = ()> = ModalStack<LayerEntry<R, W, O>>;
 
+/// What [`ShellLayers::take`] found on the top layer.
+pub enum Taken<R, W: ?Sized = (), O = ()> {
+    /// An event for the owner; the layer stays open.
+    Event(R),
+    /// The layer closed with its result.
+    Closed(LayerEntry<R, W, O>, R),
+}
+
 /// How a dismissal of the top layer went.
 pub enum Dismissed<R, W: ?Sized = (), O = ()> {
     /// No layer is open.
@@ -365,12 +397,16 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         self.push(LayerEntry { layer, tag, owner }, focus, initial);
     }
 
-    /// The top layer resolved: close it (restoring focus) and hand back
-    /// its entry and result. `None` while it is still open.
-    pub fn take_finished(&mut self, focus: &mut Focus) -> Option<(LayerEntry<R, W, O>, R)> {
-        let result = self.top_mut()?.layer.take_result()?;
-        let entry = self.pop(focus)?;
-        Some((entry, result))
+    /// What the top layer reported: a final result closes it (restoring
+    /// focus) and hands back its entry; an event leaves it open.
+    pub fn take(&mut self, focus: &mut Focus) -> Option<Taken<R, W, O>> {
+        match self.top_mut()?.layer.take_result()? {
+            LayerOut::Event(r) => Some(Taken::Event(r)),
+            LayerOut::Close(r) => {
+                let entry = self.pop(focus)?;
+                Some(Taken::Closed(entry, r))
+            }
+        }
     }
 
     /// Dismiss the top layer for `reason` under its policy. A closed layer
@@ -383,7 +419,7 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
             return Dismissed::Refused;
         }
         top.layer.on_dismiss(reason);
-        let result = top.layer.take_result();
+        let result = top.layer.take_result().map(LayerOut::into_inner);
         match self.pop(focus) {
             Some(entry) => Dismissed::Closed(entry, result),
             None => Dismissed::None,
@@ -422,11 +458,17 @@ use crate::widgets::select::{Select, SelectAction};
 
 impl Overlay for Dialog {
     type Action = DialogResult;
+    /// Its policy, except that a prompt with typed text refuses the
+    /// outside click under [`Dialog::guard_dirty_prompt`].
     fn dismiss(&self) -> Dismiss {
-        self.dismiss
+        let mut d = self.dismiss;
+        if self.guard_dirty_prompt && self.prompt_dirty() {
+            d.outside_click = false;
+        }
+        d
     }
     fn spec(&self) -> LayerSpec {
-        LayerSpec::modal(self.dismiss).initial_focus(self.initial_focus)
+        LayerSpec::modal(Overlay::dismiss(self)).initial_focus(self.initial_focus)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<DialogResult> {
         self.result = Some(DialogResult::Cancelled);
@@ -602,8 +644,8 @@ mod tests {
         fn on_dismiss(&mut self, _: DismissReason) {
             self.result = Some(false);
         }
-        fn take_result(&mut self) -> Option<bool> {
-            self.result.take()
+        fn take_result(&mut self) -> Option<LayerOut<bool>> {
+            self.result.take().map(LayerOut::Close)
         }
     }
 
@@ -654,7 +696,7 @@ mod tests {
             dismiss(&mut m, R::FocusOut).unwrap().into_action(),
             Some(MenuAction::Dismissed)
         );
-        assert_eq!(m.spec().kind, LayerKind::Popover);
+        assert_eq!(Overlay::spec(&m).kind, LayerKind::Popover);
 
         let mut s = Select::new(id, "Size", &["S", "M"], 0);
         s.open = true;
@@ -772,7 +814,7 @@ mod tests {
         assert_eq!(focus.current(), Some(owner));
         // a result closes it too, through the same focus restore
         layers.open(ask("b", Dismiss::NEVER), LayerTag::new("b"), (), &mut focus);
-        assert!(layers.take_finished(&mut focus).is_none());
+        assert!(layers.take(&mut focus).is_none());
         let ring = FocusRing::default();
         let mut cx = LayerCx {
             focus: &mut focus,
@@ -785,7 +827,9 @@ mod tests {
         };
         let _ = layers.top_mut().unwrap().layer.on_key(&enter, &mut cx);
         assert!(layers.top_as::<Ask>().is_some(), "downcast to the app type");
-        let (entry, result) = layers.take_finished(&mut focus).unwrap();
+        let Some(Taken::Closed(entry, result)) = layers.take(&mut focus) else {
+            panic!("Enter resolved it");
+        };
         assert_eq!((entry.tag.kind, result), ("b", true));
         assert_eq!(focus.current(), Some(owner));
         assert!(matches!(
