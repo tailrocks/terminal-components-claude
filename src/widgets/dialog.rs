@@ -927,6 +927,8 @@ impl Dialog {
                 inp.commit();
             }
             if !inp.validate() {
+                // the field keeps the caret for the correction
+                inp.resume();
                 return Outcome::Changed;
             }
         }
@@ -1856,7 +1858,7 @@ mod tests {
     fn enter_in_a_matching_acknowledgement_presses_the_gated_action() {
         let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
         let ack = d.initial_focus;
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        // the ack field takes typing at once (EditEntry::Immediate)
         type_into(&mut d, &mut focus, &ring, "orders");
         assert_eq!(hint_text(&d.hints(Some(ack))), "Enter Drop · Esc Cancel");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
@@ -1871,7 +1873,7 @@ mod tests {
     fn enter_in_a_mismatched_acknowledgement_keeps_editing_and_says_so() {
         let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
         let ack = d.initial_focus;
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        // the ack field takes typing at once (EditEntry::Immediate)
         type_into(&mut d, &mut focus, &ring, "order");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         // a second Enter must not reach Cancel either
@@ -1893,7 +1895,7 @@ mod tests {
     fn ack_enter_next_field_keeps_the_two_step_confirmation() {
         let (mut d, mut focus, ring) = ack_dialog(AckEnter::NextField);
         let ack = d.initial_focus;
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        // the ack field takes typing at once (EditEntry::Immediate)
         type_into(&mut d, &mut focus, &ring, "orders");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         assert_eq!(d.result, None);

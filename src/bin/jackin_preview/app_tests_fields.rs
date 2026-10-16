@@ -75,7 +75,6 @@ fn a_double_click_in_a_prompt_selects_the_word_and_a_drag_extends_by_words() {
     h.ctrl('b');
     h.key(KeyCode::Char(','));
     // the label field edits on Enter (16 characters at most)
-    h.key(KeyCode::Enter);
     h.type_str("ab cd ef");
     let (x, y) = h.find("ab cd ef").unwrap_or_else(|| panic!("{}", h.text()));
     h.click(x + 3, y);
@@ -94,7 +93,6 @@ fn a_press_on_the_dialog_body_ends_its_fields_edit() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     h.ctrl('b');
     h.key(KeyCode::Char(','));
-    h.key(KeyCode::Enter);
     h.type_str("xy");
     let editing = |h: &H| match h.app.top_modal() {
         Some(Modal::Dialog(d)) => match &d.body {
@@ -112,5 +110,35 @@ fn a_press_on_the_dialog_body_ends_its_fields_edit() {
         (false, "xy".to_owned()),
         "the edit ended in place and kept the value\n{}",
         h.text()
+    );
+}
+
+/// Keyboard audit #1 and #15: the workspace Name field shows its caret the
+/// moment focus lands, the value is selected so typing replaces it, typed
+/// `[`/`]`/`q` stay in the name, and one Tab applies and moves on (the
+/// editor used to keep focus until a second Tab).
+#[test]
+fn the_name_field_edits_on_focus_and_one_tab_moves_on() {
+    let mut h = editor();
+    h.app.focus.focus(crate::screens::editor::NAME);
+    h.draw();
+    assert!(h.term.backend().cursor_visible(), "caret on arrival");
+    assert!(
+        name_selection(&h).is_some(),
+        "keyboard focus selects the value"
+    );
+    h.type_str("a]q[");
+    assert_eq!(
+        h.app.route,
+        Route::Editor,
+        "q was typed, not a route change"
+    );
+    let e = h.app.screens.editor.as_ref().expect("the editor");
+    assert_eq!(e.name.text(), "a]q[", "the letters edited the name");
+    h.key(KeyCode::Tab);
+    assert_ne!(
+        h.app.focus.current(),
+        Some(crate::screens::editor::NAME),
+        "one Tab leaves the field"
     );
 }

@@ -881,6 +881,10 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Enter);
     assert_eq!(h.app.route, Route::Editor, "{}", h.text());
     assert!(h.text().contains("new workspace › edit"));
+    // a new workspace opens on its Name field, editing with the caret: a
+    // typed `]` would land in the name, so Tab leaves the field first
+    assert!(h.term.backend().cursor_visible());
+    h.key(KeyCode::Tab);
     // 15 configure every tab
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
