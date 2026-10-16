@@ -2225,6 +2225,11 @@ impl App {
                         Outcome::Ignored
                     };
                 };
+                // a press on a modal's own body is dead space inside it:
+                // it ends the focused field's edit in place
+                if !self.modals.is_empty() {
+                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
+                }
                 let count = self.pointer.press_count(id, m.pos, self.now_ms());
                 if let Some(Modal::Filter(f)) = self.modals.top_mut() {
                     route_press(&mut [&mut f.value, &mut f.value2], id, m.pos, count);
@@ -2697,7 +2702,9 @@ impl App {
             .border_type(ratatui::widgets::BorderType::Rounded)
             .border_style(t.border(true).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
-        ctx.hits.register(WidgetId::of("filter-editor"), area);
+        // the editor's body: a press on it is dead space inside the modal
+        ctx.hits
+            .register_surface(WidgetId::of("filter-editor"), area);
         let inner = area.inner(ratatui::layout::Margin::new(3, 1));
         buf.set_string(
             inner.x,

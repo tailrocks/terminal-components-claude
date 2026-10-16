@@ -238,6 +238,24 @@ impl PointerState {
         hit
     }
 
+    /// A press on `id` while a modal is open: when `id` is the modal's own
+    /// surface ([`HitRegistry::is_surface`]) it is dead space inside the
+    /// modal, and ends the focused field's edit in place like
+    /// [`Self::dead_space`] (per [`PointerConfig::end_edit_on_dead_space`]).
+    /// `true` when it was the surface.
+    pub fn surface_press(
+        &self,
+        hits: &HitRegistry,
+        id: WidgetId,
+        focus: &mut super::focus::Focus,
+    ) -> bool {
+        if !hits.is_surface(id) {
+            return false;
+        }
+        self.dead_space(focus);
+        true
+    }
+
     /// A press that hit no control: ends the focused control's edit in
     /// place, per [`PointerConfig::end_edit_on_dead_space`]. Applications
     /// call it when [`Self::on_down`] returns `None` outside a modal.
