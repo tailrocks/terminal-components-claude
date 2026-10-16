@@ -555,7 +555,12 @@ impl InspectChanges {
         if self.stacked {
             let y = tree_r.bottom();
             for x in body.left()..body.right() {
-                buf.set_string(x, y, "─", Style::new().fg(t.border_subtle).bg(bg));
+                buf.set_string(
+                    x,
+                    y,
+                    t.glyphs.h_divider,
+                    Style::new().fg(t.border_subtle).bg(bg),
+                );
             }
         } else {
             let handle = self.split.handle(SplitDir::Horizontal, body, 1);
