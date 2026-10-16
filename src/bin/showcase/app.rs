@@ -787,6 +787,11 @@ impl App {
                     self.pointer.dead_space(&mut self.focus);
                     return Outcome::Ignored;
                 };
+                // a press on a modal's own body is dead space inside it:
+                // it ends the focused field's edit in place
+                if self.dialog.is_some() {
+                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
+                }
                 if self.dialog.is_some() {
                     return Outcome::Changed;
                 }

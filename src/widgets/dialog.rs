@@ -1191,8 +1191,9 @@ impl Dialog {
             ctx,
             bg,
         );
-        // the dialog surface itself blocks clicks from falling through
-        ctx.hits.register(self.id, area);
+        // the dialog surface itself blocks clicks from falling through;
+        // a press on it is dead space inside the dialog
+        ctx.hits.register_surface(self.id, area);
         // re-register the controls on top of the surface
         match &self.body {
             DialogBody::Input(inp) => ctx.hits.register(inp.id, inp.area),

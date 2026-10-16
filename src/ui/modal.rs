@@ -333,7 +333,8 @@ impl<'a> Frame<'a> {
             }
         }
         if !ctx.inert {
-            ctx.hits.register(WidgetId::of("modal.surface"), area);
+            ctx.hits
+                .register_surface(WidgetId::of("modal.surface"), area);
         }
         (area, area.inner(self.margin))
     }
