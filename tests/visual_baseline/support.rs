@@ -32,14 +32,12 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
-use crate::ansi_cursor;
-use tuiscotti::diff;
+use tuiscotti::grouped::{ArtifactSet, GroupedStore};
 use tuiscotti::locate::Locator;
 use tuiscotti::render::{self, Renderer};
-use tuiscotti::tui::{CancelToken, Key, KeyMods, MouseMods, Tui, WaitError, Wheel};
+use tuiscotti::tui::{CancelToken, MouseMods, Tui, WaitError, Wheel};
 use tuiscotti::{Frame, Observation, Profile, VENDORED_FACES};
 
 pub use tuiscotti::MouseButton;
@@ -155,42 +153,17 @@ pub fn argv_for(case: &Case) -> Vec<String> {
 
 // ----------------------------------------------------------- artifacts --
 
-/// One committable/gateable artifact kind of a scenario.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(
-    dead_code,
-    reason = "the committed set is switchable; unused kinds stay available"
-)]
-pub enum Artifact {
-    /// tuiscotti `ansi_dump` + cursor trailer ([`ansi_cursor::encode`]):
-    /// every cell (text, colours, attributes), grid size and the cursor.
-    Ansi,
-    /// Plain text rows (`Frame::text`).
-    Txt,
-    /// Rasterized frame (vendored fonts): decoded-pixel gate.
-    Png,
-    /// Standalone HTML view (PNG + frame JSON): byte gate.
-    Html,
-}
+/// THE switch: what is committed under the store and gated, as tuiscotti's
+/// grouped-store artifact mode. Decision
+/// (docs/visual-testing/tuiscotti-migration.md): one `.ansi` with a VT
+/// cursor trailer per scenario (`render::ansi_dump_with_cursor`).
+/// `.png`/`.html` and the diff PNG are review evidence only, rendered by
+/// the store under `target/tuiscotti/` on a mismatch.
+pub const ARTIFACTS: ArtifactSet = ArtifactSet::AnsiCursor;
 
-impl Artifact {
-    pub const fn ext(self) -> &'static str {
-        match self {
-            Artifact::Ansi => "ansi",
-            Artifact::Txt => "txt",
-            Artifact::Png => "png",
-            Artifact::Html => "html",
-        }
-    }
-}
-
-/// THE switch: which artifacts are committed under `snapshots/` and gated.
-/// Decision (docs/visual-testing/tuiscotti-migration.md): one `.ansi` with a
-/// cursor trailer per scenario. `.png`/`.html` are review evidence only,
-/// written under `target/tuiscotti/` on a mismatch. Changing this list
-/// changes the gate and `store_integrity`; `cargo xtask visual accept`
-/// (xtask/src/main.rs) copies `.ansi` only and must follow it.
-pub const COMMITTED: &[Artifact] = &[Artifact::Ansi];
+/// The extensions [`ARTIFACTS`] commits per scenario; `store_integrity`
+/// checks the store holds exactly these for every re-approved scenario.
+pub const COMMITTED: &[&str] = &["ansi"];
 
 /// Extensions the retired tuisnap engine committed for every scenario; the
 /// not-yet-re-approved part of the store still carries exactly these.
@@ -201,12 +174,11 @@ pub const LEGACY_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
 /// [`LEGACY_EXTS`]). Re-approved scenarios gate (with `--run-ignored`);
 /// every other one is pending re-approval and runs only with
 /// `VISUAL_FULL=1`. Re-approving a group is therefore a pure `snapshots/`
-/// change made by `cargo xtask visual accept`; no code list has to follow
-/// it.
+/// change made by `tuiscotti accept`; no code list has to follow it.
 pub fn is_reapproved(name: &str) -> bool {
     let root = approved_root();
     LEGACY_EXTS.iter().all(|ext| {
-        let committed = COMMITTED.iter().any(|a| a.ext() == *ext);
+        let committed = COMMITTED.contains(ext);
         root.join(format!("{name}.{ext}")).exists() == committed
     })
 }
@@ -217,8 +189,9 @@ pub fn visual_full() -> bool {
 }
 
 /// `VISUAL_REVIEW=0` skips the review PNG/HTML/diff on a mismatch (seconds
-/// per capture). The gate verdict and the actual `.ansi` are unchanged;
-/// `cargo xtask visual determinism` sets it.
+/// per capture; the store's `with_review_evidence(false)`). The gate
+/// verdict and the sealed actual `.ansi` are unchanged; `cargo xtask
+/// visual determinism` sets it.
 pub fn review_enabled() -> bool {
     std::env::var_os("VISUAL_REVIEW").is_none_or(|v| v != "0")
 }
@@ -247,34 +220,43 @@ pub fn actual_root() -> PathBuf {
     manifest_path("target/tuiscotti/actual")
 }
 
-pub fn expected_root() -> PathBuf {
-    manifest_path("target/tuiscotti/expected")
-}
-
 pub fn diff_root() -> PathBuf {
     manifest_path("target/tuiscotti/diff")
 }
 
-fn artifact_path(root: &Path, name: &str, ext: &str) -> PathBuf {
-    root.join(format!("{name}.{ext}"))
+/// The grouped store the gate checks against: [`ARTIFACTS`] mode over
+/// [`approved_root`], scratch under `target/tuiscotti/{actual,expected,diff}`
+/// (`expected` follows `actual`). tuiscotti seals every candidate
+/// (`<name>.manifest.json`, `<name>.verdict.json`, stamped with the
+/// nextest run id) so `tuiscotti accept` takes only reviewed actuals of one
+/// run, and refuses under `CI`.
+pub fn store() -> GroupedStore {
+    GroupedStore::new(&approved_root())
+        .with_artifacts(ARTIFACTS)
+        .with_actual_root(&actual_root())
+        .with_diff_root(&diff_root())
+        .with_review_evidence(review_enabled())
 }
 
-fn write_file(path: &Path, bytes: &[u8]) {
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
-    }
-    std::fs::write(path, bytes).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
-}
-
-/// Everything a capture writes under [`actual_root`] for one scenario.
-const ACTUAL_EXTS: [&str; 5] = ["ansi", "run", "frame.json", "png", "html"];
+/// Everything a capture can leave under [`actual_root`] for one scenario
+/// (the store's candidate, its seals and the mismatch-only evidence).
+const ACTUAL_EXTS: [&str; 8] = [
+    "ansi",
+    "manifest.json",
+    "verdict.json",
+    "frame.json",
+    "txt",
+    "png",
+    "png.fidelity.json",
+    "html",
+];
 
 /// Remove what an earlier run left under [`actual_root`] for `name`, so a
 /// run that skips the scenario or fails before its capture leaves no actual
-/// behind for `cargo xtask visual accept` to pick up.
+/// behind for `tuiscotti accept` to pick up.
 pub fn clear_actual(name: &str) {
     for ext in ACTUAL_EXTS {
-        let path = artifact_path(&actual_root(), name, ext);
+        let path = actual_root().join(format!("{name}.{ext}"));
         if let Err(e) = std::fs::remove_file(&path)
             && e.kind() != std::io::ErrorKind::NotFound
         {
@@ -283,69 +265,29 @@ pub fn clear_actual(name: &str) {
     }
 }
 
-/// The run this process captures for: nextest's `NEXTEST_RUN_ID` (one id
-/// per `cargo nextest run`), else one id per test-binary process.
-pub fn run_id() -> &'static str {
-    static ID: OnceLock<String> = OnceLock::new();
-    ID.get_or_init(|| match std::env::var("NEXTEST_RUN_ID") {
-        Ok(id) if !id.is_empty() => format!("nextest-{id}"),
-        _ => {
-            let nanos = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map_or(0, |d| d.as_nanos());
-            format!("local-{}-{nanos}", std::process::id())
-        }
-    })
-}
-
-/// FNV-1a (64 bit) of the actual `.ansi`, recorded in its run stamp so
-/// `accept` copies only the exact bytes that run captured.
-pub fn fnv1a64(bytes: &[u8]) -> u64 {
-    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
-        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
-    })
-}
-
-/// The `<name>.run` stamp written next to every actual `.ansi`:
-/// `run=<run id>` and `fnv1a64=<hash of the .ansi>`. `cargo xtask visual
-/// accept` refuses actuals whose stamp is missing, does not match, or names
-/// an older run than the newest one in its selection.
-pub fn run_stamp(ansi: &[u8]) -> String {
-    format!("run={}\nfnv1a64={:016x}\n", run_id(), fnv1a64(ansi))
-}
-
-/// Default-run check: the stamp names this run and hashes the bytes the way
-/// `cargo xtask visual accept` verifies them (xtask's `stamps_bind_run_and_bytes`
-/// reads the same format), and [`clear_actual`] leaves nothing behind.
-pub fn run_stamp_names_run_and_bytes() {
-    assert_eq!(fnv1a64(b""), 0xcbf2_9ce4_8422_2325);
-    assert_eq!(fnv1a64(b"a"), 0xaf63_dc4c_8601_ec8c);
-    let stamp = run_stamp(b"a");
-    assert_eq!(
-        stamp,
-        format!("run={}\nfnv1a64=af63dc4c8601ec8c\n", run_id())
-    );
-    match std::env::var("NEXTEST_RUN_ID") {
-        Ok(id) if !id.is_empty() => assert_eq!(run_id(), format!("nextest-{id}")),
-        _ => assert!(run_id().starts_with("local-")),
-    }
-    let name = format!("probe/stamp-check-{}/1x1/truecolor", std::process::id());
+/// Default-run check: [`clear_actual`] removes every file a capture can
+/// leave, and a missing one is not an error.
+pub fn clear_actual_leaves_nothing() {
+    let name = format!("probe/clear-check-{}/1x1/truecolor", std::process::id());
     for ext in ACTUAL_EXTS {
-        write_file(&artifact_path(&actual_root(), &name, ext), b"stale");
+        let path = actual_root().join(format!("{name}.{ext}"));
+        std::fs::create_dir_all(path.parent().expect("nested name"))
+            .unwrap_or_else(|e| panic!("mkdir for {}: {e}", path.display()));
+        std::fs::write(&path, b"stale").unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
     }
     clear_actual(&name);
     clear_actual(&name); // nothing left is not an error
     for ext in ACTUAL_EXTS {
-        let path = artifact_path(&actual_root(), &name, ext);
+        let path = actual_root().join(format!("{name}.{ext}"));
         assert!(!path.exists(), "{} survived clear_actual", path.display());
     }
-    let probe = actual_root().join(format!("probe/stamp-check-{}", std::process::id()));
+    let probe = actual_root().join(format!("probe/clear-check-{}", std::process::id()));
     std::fs::remove_dir_all(&probe).unwrap_or_else(|e| panic!("remove {}: {e}", probe.display()));
 }
 
 thread_local! {
     /// One renderer per test thread: font faces parsed once, glyph rasters
-    /// cached across every render on the thread (no locks).
+    /// cached across every review render on the thread (no locks).
     static RENDERER: RefCell<Renderer> = RefCell::new(
         Profile::default_profile()
             .renderer(&VENDORED_FACES)
@@ -358,155 +300,23 @@ fn profile_name() -> String {
     Profile::default_profile().name
 }
 
-/// `(png, html)` for `frame`, through the thread's cached renderer.
-fn render_png_html(frame: &Frame, title: &str) -> (Vec<u8>, Vec<u8>) {
-    let artifacts = RENDERER
-        .with(|r| r.borrow_mut().render_artifacts(frame, title))
-        .unwrap_or_else(|e| panic!("render `{title}`: {e}"));
-    (artifacts.png, artifacts.html.into_bytes())
-}
-
-/// Gate one frame against the [`COMMITTED`] approved artifacts.
-///
-/// Always writes `target/tuiscotti/actual/<name>.ansi` and `.frame.json`.
-/// On a mismatch it also writes review evidence: actual `.png`/`.html`,
-/// expected `.png`/`.html` rebuilt from the approved `.ansi`
-/// (`target/tuiscotti/expected/`), and a red-overlay diff PNG
-/// (`target/tuiscotti/diff/`). Fail-closed: a missing approved artifact
-/// fails; approval is never implicit (`cargo xtask visual accept`).
-pub fn gate(name: &str, frame: &Frame) -> Result<(), String> {
-    tuiscotti::grouped::validate_name(name).map_err(|e| e.to_string())?;
-    frame
-        .validate()
-        .map_err(|e| format!("invalid frame `{name}`: {e}"))?;
-    let actual = actual_root();
-    let approved = approved_root();
-    let ansi = ansi_cursor::encode(frame);
-    write_file(&artifact_path(&actual, name, "ansi"), ansi.as_bytes());
-    write_file(
-        &artifact_path(&actual, name, "run"),
-        run_stamp(ansi.as_bytes()).as_bytes(),
-    );
-    write_file(
-        &artifact_path(&actual, name, "frame.json"),
-        frame.to_json().as_bytes(),
-    );
-    let mut rendered: Option<(Vec<u8>, Vec<u8>)> = None;
-    let render = |rendered: &mut Option<(Vec<u8>, Vec<u8>)>| -> (Vec<u8>, Vec<u8>) {
-        rendered
-            .get_or_insert_with(|| {
-                let (png, html) = render_png_html(frame, name);
-                write_file(&artifact_path(&actual, name, "png"), &png);
-                write_file(&artifact_path(&actual, name, "html"), &html);
-                (png, html)
-            })
-            .clone()
-    };
-
-    let mut problems = Vec::new();
-    for &artifact in COMMITTED {
-        let path = artifact_path(&approved, name, artifact.ext());
-        let Ok(expected) = std::fs::read(&path) else {
-            problems.push(format!("missing approval {}", path.display()));
-            continue;
-        };
-        let differs = match artifact {
-            Artifact::Ansi => expected != ansi.as_bytes(),
-            Artifact::Txt => expected != frame.text().as_bytes(),
-            Artifact::Html => expected != render(&mut rendered).1,
-            Artifact::Png => {
-                let verdict = diff::compare_png(&expected, &render(&mut rendered).0)
-                    .map_err(|e| format!("png compare `{name}`: {e}"))?;
-                !verdict.dims_equal || verdict.score < 1.0
-            }
-        };
-        if differs {
-            problems.push(format!(
-                "{} differs from {}",
-                artifact.ext(),
-                path.display()
-            ));
-        }
-    }
-    if problems.is_empty() {
-        return Ok(());
-    }
-    if !review_enabled() {
-        return Err(format!(
-            "baseline `{name}` failed: {} (VISUAL_REVIEW=0: no review files)\n  actual: {}",
-            problems.join("; "),
-            artifact_path(&actual, name, "ansi").display(),
-        ));
-    }
-    let (actual_png, _) = render(&mut rendered);
-    let evidence = write_expected_evidence(name, &actual_png);
-    Err(format!(
-        "baseline `{name}` failed: {}\n  actual: {}{evidence}",
-        problems.join("; "),
-        artifact_path(&actual, name, "{ansi,png,html}").display(),
-    ))
-}
-
-/// Rebuild expected PNG/HTML from the approved `.ansi` and write the diff
-/// PNG. Returns a note for the failure message (never fails the caller).
-fn write_expected_evidence(name: &str, actual_png: &[u8]) -> String {
-    let approved = artifact_path(&approved_root(), name, "ansi");
-    let Ok(text) = std::fs::read_to_string(&approved) else {
-        return String::new();
-    };
-    let provenance =
-        render::frame_from_screen(&tuiscotti::Screen::blank(1, 1), &profile_name()).provenance;
-    let Some(expected) = ansi_cursor::decode(&text, provenance) else {
-        return format!("\n  expected: {} is not decodable", approved.display());
-    };
-    let (png, html) = render_png_html(&expected, name);
-    write_file(&artifact_path(&expected_root(), name, "png"), &png);
-    write_file(&artifact_path(&expected_root(), name, "html"), &html);
-    let mut note = format!(
-        "\n  expected: {}",
-        artifact_path(&expected_root(), name, "{png,html}").display()
-    );
-    if let Ok(verdict) = diff::compare_png(&png, actual_png)
-        && verdict.dims_equal
-        && verdict.score < 1.0
-    {
-        let path = artifact_path(&diff_root(), name, "png");
-        write_file(&path, &verdict.diff_png);
-        note.push_str(&format!(
-            "\n  diff: {} (pixel score {:.4})",
-            path.display(),
-            verdict.score
-        ));
-    }
-    note
-}
-
-/// Render the approved `.ansi` of `name` to
-/// `target/tuiscotti/render/<name>.{png,html}` (`cargo xtask visual render`).
-pub fn render_approved(name: &str) -> Result<(PathBuf, PathBuf), String> {
-    let approved = artifact_path(&approved_root(), name, "ansi");
-    let text = std::fs::read_to_string(&approved)
-        .map_err(|e| format!("read {}: {e}", approved.display()))?;
-    let provenance =
-        render::frame_from_screen(&tuiscotti::Screen::blank(1, 1), &profile_name()).provenance;
-    let frame = ansi_cursor::decode(&text, provenance)
-        .ok_or_else(|| format!("{} is not decodable", approved.display()))?;
-    let (png, html) = render_png_html(&frame, name);
-    let root = manifest_path("target/tuiscotti/render");
-    let (png_path, html_path) = (
-        artifact_path(&root, name, "png"),
-        artifact_path(&root, name, "html"),
-    );
-    write_file(&png_path, &png);
-    write_file(&html_path, &html);
-    Ok((png_path, html_path))
-}
-
-/// Fail-closed assertion: only a full match passes.
+/// Fail-closed gate of one frame through [`store`]: only a full match
+/// passes, a missing approval fails, and approval is never implicit
+/// (`tuiscotti accept`, local only). On a mismatch the store writes the
+/// actual and expected `.png`/`.html` and a diff PNG under
+/// `target/tuiscotti/`.
 pub fn assert_gated(name: &str, frame: &Frame) {
-    match gate(name, frame) {
+    // 1.0: any pixel difference counts (only review evidence renders
+    // pixels in `AnsiCursor` mode; the `.ansi` bytes decide).
+    let outcome = RENDERER
+        .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
+        .unwrap_or_else(|e| panic!("baseline `{name}` could not be checked: {e}"));
+    match outcome.ensure_matched() {
         Ok(()) => eprintln!("baseline matched   {name}"),
-        Err(e) => panic!("{e}"),
+        Err(e) => panic!(
+            "baseline `{name}` failed: {e}\n  actual: {}",
+            outcome.actual.ansi.display()
+        ),
     }
 }
 
@@ -565,24 +375,6 @@ fn wait_failure(what: &str, err: &WaitError) -> String {
     format!("{what}: {err}\n--- last screen ---\n{evidence}")
 }
 
-/// Translate the suite's key names (`ctrl-l`, `alt-0`, `backtab`, `f10`,
-/// `pagedown`, single characters) to tuiscotti `+` chords.
-fn chord(name: &str) -> String {
-    if name == "backtab" {
-        return "shift+tab".to_string();
-    }
-    if name.chars().count() > 1
-        && let Some((mods, key)) = name.rsplit_once('-')
-        && !key.is_empty()
-        && mods
-            .split('-')
-            .all(|m| matches!(m, "ctrl" | "alt" | "shift"))
-    {
-        return format!("{}+{key}", mods.replace('-', "+"));
-    }
-    name.to_string()
-}
-
 impl Session {
     fn wait(&self, pred: impl Fn(&Observation) -> bool) -> Result<Observation, WaitError> {
         self.inner
@@ -634,30 +426,11 @@ impl Session {
         Ok(render::frame_from_screen(&obs.screen, &profile_name()))
     }
 
+    /// Press one key named in the suite's vocabulary (`ctrl-l`, `alt-0`,
+    /// `backtab`, `f10`, `pagedown`, single characters such as `f`), which
+    /// is tuiscotti's chord grammar (`tui::parse_chord`).
     pub fn send_key(&mut self, name: &str) -> Result<(), tuiscotti::TuiError> {
-        // A character key, bare or with modifiers, goes straight to
-        // `Key::Char`: tuiscotti's chord parser reads a lone `f`/`F` as a
-        // malformed function key, so `ctrl+f` never reached the app.
-        let mut chars = name.chars();
-        if let (Some(c), None) = (chars.next(), chars.next()) {
-            return self.inner.press_key(Key::Char(c), KeyMods::NONE);
-        }
-        let chord = chord(name);
-        let (mods, key) = chord.rsplit_once('+').unwrap_or(("", &chord));
-        let mut chars = key.chars();
-        if let (Some(c), None) = (chars.next(), chars.next()) {
-            let mut km = KeyMods::NONE;
-            for m in mods.split('+').filter(|m| !m.is_empty()) {
-                match m {
-                    "ctrl" => km.ctrl = true,
-                    "alt" => km.alt = true,
-                    "shift" => km.shift = true,
-                    _ => return self.inner.press(&chord),
-                }
-            }
-            return self.inner.press_key(Key::Char(c), km);
-        }
-        self.inner.press(&chord)
+        self.inner.press(name)
     }
 
     pub fn type_text(&mut self, text: &str) -> Result<(), tuiscotti::TuiError> {

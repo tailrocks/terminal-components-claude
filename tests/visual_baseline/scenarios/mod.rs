@@ -443,7 +443,7 @@ impl Scenario {
     /// Run this capture through the gate. A scenario without a tuiscotti
     /// approval is skipped unless `VISUAL_FULL=1` ([`support::capture_enabled`]).
     pub fn run(&self) {
-        // no actual from an earlier run survives this one (`accept`)
+        // no actual from an earlier run survives this one (`tuiscotti accept`)
         support::clear_actual(&self.name);
         if !support::capture_enabled(&self.name) {
             return;
@@ -668,6 +668,21 @@ pub fn check_tables() -> Result<(), String> {
         }
         if !names.insert(scenario.name.clone()) {
             problems.push(format!("duplicate scenario `{}`", scenario.name));
+        }
+        // every key step is a tuiscotti chord (`support::Session::send_key`)
+        let case = scenario
+            .root
+            .case(scenario.cols, scenario.rows, scenario.color);
+        for step in case.sends {
+            if ["sleep:", "wait:", "type:"]
+                .iter()
+                .any(|p| step.starts_with(p))
+            {
+                continue;
+            }
+            if let Err(e) = tuiscotti::tui::parse_chord(step) {
+                problems.push(format!("`{}` step `{step}`: {e}", scenario.name));
+            }
         }
     }
     if problems.is_empty() {

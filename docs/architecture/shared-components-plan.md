@@ -240,7 +240,7 @@ Default policy: macOS, then APG, then WCAG (standards-interaction.md). Each over
 
 The rules that go with the gate:
 - **No behaviour change** except the intended drift fixes the step lists. Each drift fix is its own commit with its test.
-- A visual change is named in the commit message and re-approved with `cargo xtask visual accept <filter>` in a separate commit. `visual-baseline` is never touched.
+- A visual change is named in the commit message and re-approved with `tuiscotti accept` (docs/visual-testing/README.md) in a separate commit. `visual-baseline` is never touched.
 - Pattern: **expand** (add the library API plus an adapter over the old API), **migrate** (move every caller in all apps), **contract** (delete the old API and the app copies).
 - `rg` checks named per step must return 0 hits after the contract.
 
