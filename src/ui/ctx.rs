@@ -224,7 +224,8 @@ impl<'a> RenderCtx<'a> {
             if let Some(c) = buf.cell_mut(pos) {
                 let st = t.backdrop(c.style());
                 c.set_style(st);
-                c.modifier = ratatui::style::Modifier::empty();
+                // only the backdrop's own dimming survives
+                c.modifier = st.add_modifier;
                 // a focus bar under the modal is never "here": the only
                 // focus indicator belongs to the modal
                 if c.symbol() == "▎" {
