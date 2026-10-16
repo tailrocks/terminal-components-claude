@@ -379,6 +379,40 @@ impl Scrollable for Completion {
     }
 }
 
+/// The popup's pointer gestures: a vertical wheel or a bar press scrolls
+/// it (a sideways notch is consumed: the editor beneath does not move); a
+/// completed click on a row accepts it, on the backdrop dismisses per its
+/// dismiss policy ([`Completion::on_click`]); any other click on it is
+/// consumed.
+impl crate::core::pointer::MouseTarget for Completion {
+    type Action = CompletionAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<CompletionAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if let Some((crate::core::hit::Axis::Horizontal, _)) = ev.wheel() {
+            return Response::consumed();
+        }
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r.lift();
+        }
+        match ev.phase() {
+            Some(Phase::Click) => match self.on_click(ev.id) {
+                Some(a) => Response::emit(a),
+                None => Response::consumed(),
+            },
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
