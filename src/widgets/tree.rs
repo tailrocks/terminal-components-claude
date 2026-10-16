@@ -169,8 +169,8 @@ pub struct TreeView {
     /// Which keys move the cursor and open/close branches (default
     /// [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
-    /// The tree's own action keys (default [`TreeAction::default_keymap`]).
-    pub keymap: KeyMap<TreeAction>,
+    /// The tree's own action keys (default [`TreeCmd::default_keymap`]).
+    pub keymap: KeyMap<TreeCmd>,
     /// Typing a prefix moves the cursor to the next row whose label starts
     /// with it, as in macOS outline views. Off by default: plain letters
     /// stay with the owner's shortcuts. Navigation letters (`j`/`k`/`g`
@@ -194,18 +194,18 @@ pub struct TreeView {
 
 /// A [`TreeView`] action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TreeAction {
+pub enum TreeCmd {
     /// Open every branch. Default `*`.
     ExpandAll,
     /// Close every branch. Default `-`.
     CollapseAll,
 }
 
-impl Actions for TreeAction {
+impl Actions for TreeCmd {
     fn default_keymap() -> KeyMap<Self> {
         vec![
-            (KeyBinding::char('*'), TreeAction::ExpandAll),
-            (KeyBinding::char('-'), TreeAction::CollapseAll),
+            (KeyBinding::char('*'), TreeCmd::ExpandAll),
+            (KeyBinding::char('-'), TreeCmd::CollapseAll),
         ]
     }
 }
@@ -280,7 +280,7 @@ impl TreeView {
             wrap: false,
             rows_built: 0,
             nav: NavKeys::DEFAULT,
-            keymap: TreeAction::default_keymap(),
+            keymap: TreeCmd::default_keymap(),
             type_ahead: false,
             typeahead: Default::default(),
             divider: false,
@@ -318,7 +318,7 @@ impl TreeView {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<TreeAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<TreeCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -641,8 +641,8 @@ impl TreeView {
         }
         if let Some(action) = lookup(&self.keymap, key) {
             match action {
-                TreeAction::ExpandAll => self.expand_all(),
-                TreeAction::CollapseAll => self.collapse_all(),
+                TreeCmd::ExpandAll => self.expand_all(),
+                TreeCmd::CollapseAll => self.collapse_all(),
             }
             return (Outcome::Changed, None);
         }
