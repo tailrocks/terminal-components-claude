@@ -21,16 +21,16 @@ use crate::widgets::scrollbar;
 /// A [`HelpOverlay`] action a key can be bound to. Esc (per the
 /// [`Dismiss`](crate::ui::popup::Dismiss) policy) and Enter always close.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HelpAction {
+pub enum HelpCmd {
     /// Close the overlay. Default `?` and `q`.
     Close,
 }
 
-impl Actions for HelpAction {
+impl Actions for HelpCmd {
     fn default_keymap() -> KeyMap<Self> {
         vec![
-            (KeyBinding::char('?'), HelpAction::Close),
-            (KeyBinding::char('q'), HelpAction::Close),
+            (KeyBinding::char('?'), HelpCmd::Close),
+            (KeyBinding::char('q'), HelpCmd::Close),
         ]
     }
 }
@@ -50,8 +50,8 @@ pub struct HelpOverlay {
     pub hint: String,
     /// Which keys scroll (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
-    /// The overlay's action keys (default [`HelpAction::default_keymap`]).
-    pub keymap: KeyMap<HelpAction>,
+    /// The overlay's action keys (default [`HelpCmd::default_keymap`]).
+    pub keymap: KeyMap<HelpCmd>,
     /// Largest share of the screen the overlay takes, in percent of its
     /// width and height. Default 80, so the dimmed page stays visible
     /// around it and a click there closes it (under `Dismiss::LIGHT`).
@@ -72,7 +72,7 @@ impl HelpOverlay {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<HelpAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<HelpCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -99,7 +99,7 @@ impl HelpOverlay {
             title: crate::theme::Strings::DEFAULT.help_title.into(),
             hint: crate::theme::Strings::DEFAULT.help_footer.into(),
             nav: NavKeys::DEFAULT,
-            keymap: HelpAction::default_keymap(),
+            keymap: HelpCmd::default_keymap(),
             max_percent: 80,
             done: Button::secondary(id.sub("done"), crate::theme::Strings::DEFAULT.done),
             strings: crate::theme::Strings::DEFAULT,
@@ -147,7 +147,7 @@ impl HelpOverlay {
             };
             return Outcome::Changed;
         }
-        if let Some(HelpAction::Close) = lookup(&self.keymap, key) {
+        if let Some(HelpCmd::Close) = lookup(&self.keymap, key) {
             self.closed = true;
             return Outcome::Changed;
         }
