@@ -986,6 +986,7 @@ pub static TOOLBARS: &[Opt] = &[
     Opt::new("toolbars.wrap", "Wrap", OFF_ON),
     Opt::new("toolbars.skip_disabled", "Skip disabled", OFF_ON).default(1),
     Opt::new("toolbars.gap", "Gap", &["0", "1", "2"]).default(1),
+    Opt::new("toolbars.overflow", "Overflow button", &["»", "…", "off"]),
 ];
 
 /// Focus & navigation (SC28): one list's navigation keys and what Tab
