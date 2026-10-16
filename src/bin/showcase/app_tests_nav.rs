@@ -3,6 +3,7 @@
 //! the current page's group opens on navigation, type-ahead, the wheel,
 //! `[`/`]` in tree order and stable `--page` names.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -191,7 +192,7 @@ fn arrows_fold_groups_and_enter_opens_pages() {
     let mut h = Harness::new(120, 40, PageId::Grid);
     let tables = root_of("Tables");
     h.key(KeyCode::Char('0'));
-    assert_eq!(h.app.focus.current(), Some(NAV));
+    assert_eq!(h.app.shell.focus.current(), Some(NAV));
     assert_eq!(
         h.app.nav.cursor_path(),
         Some(&[tables, 2][..]),
@@ -215,7 +216,7 @@ fn arrows_fold_groups_and_enter_opens_pages() {
     h.key(KeyCode::Enter);
     assert_eq!(h.app.page, PageId::Editable);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(NAV),
         "Enter keeps the sidebar focus"
     );
@@ -248,7 +249,7 @@ fn clicks_toggle_groups_and_open_pages() {
     let (x, y) = h.nav_row("Selection").unwrap();
     h.click(x, y);
     assert_eq!(h.app.page, PageId::Selectable);
-    assert_eq!(h.app.focus.current(), Some(NAV));
+    assert_eq!(h.app.shell.focus.current(), Some(NAV));
     // the group row itself toggles too
     let (x, y) = h.nav_row("App shell").unwrap();
     h.click(x, y);
@@ -283,19 +284,23 @@ fn typing_a_name_jumps_in_the_sidebar_unless_the_page_claims_the_letter() {
 fn shell_letters_win_over_a_focused_page_list() {
     let mut h = Harness::new(120, 40, PageId::Lists);
     h.key(KeyCode::Tab);
-    let list = h.app.focus.current();
+    let list = h.app.shell.focus.current();
     assert!(list.is_some() && list != Some(NAV), "a page list has focus");
     h.key(KeyCode::Char('i'));
     assert!(h.app.inspector, "i toggles the inspector");
     h.key(KeyCode::Char('i'));
     assert!(!h.app.inspector);
-    assert_eq!(h.app.focus.current(), list);
+    assert_eq!(h.app.shell.focus.current(), list);
     h.key(KeyCode::Char('0'));
-    assert_eq!(h.app.focus.current(), Some(NAV), "0 focuses the sidebar");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(NAV),
+        "0 focuses the sidebar"
+    );
     h.key(KeyCode::Tab);
-    assert_eq!(h.app.focus.current(), list);
+    assert_eq!(h.app.shell.focus.current(), list);
     h.key(KeyCode::Char('q'));
-    assert!(h.app.quit, "q quits");
+    assert!(h.app.shell.quit, "q quits");
 }
 
 #[test]
@@ -402,11 +407,11 @@ fn the_current_page_marker_is_neutral_unless_the_sidebar_has_focus() {
         assert_eq!(cells.len(), 1, "one current-page marker");
         cells[0]
     };
-    h.app.focus.set(Some(NAV));
+    h.app.shell.focus.set(Some(NAV));
     h.draw();
     assert_eq!(marker(&h), t.accent);
     h.key(KeyCode::Tab);
-    assert_ne!(h.app.focus.current(), Some(NAV));
+    assert_ne!(h.app.shell.focus.current(), Some(NAV));
     assert_eq!(marker(&h), t.text_primary);
     // no focus bar in the sidebar while the page holds focus
     let side = h.app.sidebar_area();
@@ -428,7 +433,7 @@ fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
     let mut h = Harness::new(72, 20, PageId::Lists);
     let t = h.app.theme;
     h.key(KeyCode::Tab);
-    assert_ne!(h.app.focus.current(), Some(NAV));
+    assert_ne!(h.app.shell.focus.current(), Some(NAV));
     let side = h.app.sidebar_area();
     let title = |h: &Harness| h.term.backend().buffer()[(side.x + 1, side.y)].clone();
     assert_eq!(title(&h).symbol(), "C");
@@ -443,12 +448,16 @@ fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
         (side.right() - 1, side.bottom() - 1),
     ] {
         h.key(KeyCode::Tab);
-        if h.app.focus.current() == Some(NAV) {
+        if h.app.shell.focus.current() == Some(NAV) {
             h.key(KeyCode::Tab);
         }
-        assert_ne!(h.app.focus.current(), Some(NAV));
+        assert_ne!(h.app.shell.focus.current(), Some(NAV));
         h.click(x, y);
-        assert_eq!(h.app.focus.current(), Some(NAV), "a click at ({x},{y})");
+        assert_eq!(
+            h.app.shell.focus.current(),
+            Some(NAV),
+            "a click at ({x},{y})"
+        );
         assert_eq!(h.app.page, PageId::Lists, "the padding opens no page");
     }
     let cell = title(&h);

@@ -2,6 +2,7 @@
 //! Empty & error): options set through `--opt` change the playground, the
 //! States rows render, and the key interactions work.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Cell;
@@ -77,6 +78,7 @@ impl Harness {
 
     pub fn area(&self, id: WidgetId) -> Rect {
         self.app
+            .shell
             .hits
             .area_of(id)
             .unwrap_or_else(|| panic!("missing hit area for {id:?}\n{}", self.text()))
@@ -88,7 +90,7 @@ impl Harness {
     }
 
     pub fn focus(&mut self, id: WidgetId) {
-        self.app.focus.focus(id);
+        self.app.shell.focus.focus(id);
         self.draw();
     }
 
@@ -131,7 +133,7 @@ impl Harness {
     }
 
     pub fn status(&self) -> String {
-        self.app.status.text().unwrap_or_default().to_owned()
+        self.app.shell.status.text().unwrap_or_default().to_owned()
     }
 }
 

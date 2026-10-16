@@ -3,6 +3,7 @@
 //! scrollbar inside a modal and a page layer's light dismiss, each driven
 //! through the real app.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -69,13 +70,14 @@ impl Harness {
 
     fn area_of(&self, id: WidgetId) -> ratatui::layout::Rect {
         self.app
+            .shell
             .hits
             .area_of(id)
             .unwrap_or_else(|| panic!("{id:?} not on screen:\n{}", self.text()))
     }
 
     fn flashing(&self) -> Option<WidgetId> {
-        self.app.pointer.flashing(self.app.clock.now_ms())
+        self.app.shell.pointer.flashing(self.app.clock.now_ms())
     }
 }
 
@@ -87,21 +89,21 @@ fn a_press_focuses_the_control_under_it_before_the_release() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
     let id = WidgetId::of("buttons").child(0);
     let area = h.area_of(id);
-    assert_ne!(h.app.focus.current(), Some(id));
+    assert_ne!(h.app.shell.focus.current(), Some(id));
     h.mouse(MouseKind::Down, area.x + 1, area.y);
-    assert_eq!(h.app.focus.current(), Some(id), "the press focuses");
+    assert_eq!(h.app.shell.focus.current(), Some(id), "the press focuses");
     h.mouse(MouseKind::Up, area.x + 1, area.y);
-    assert_eq!(h.app.focus.current(), Some(id));
+    assert_eq!(h.app.shell.focus.current(), Some(id));
 
     let mut h = Harness::new(120, 40, PageId::Buttons);
     h.app
         .apply_opt(crate::options::parse_opt("shell.focus_on=release").unwrap());
     h.draw();
     h.mouse(MouseKind::Down, area.x + 1, area.y);
-    assert_ne!(h.app.focus.current(), Some(id), "release: not yet");
+    assert_ne!(h.app.shell.focus.current(), Some(id), "release: not yet");
     h.mouse(MouseKind::Up, area.x + 1, area.y);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(id),
         "release: the click focuses"
     );
@@ -132,9 +134,14 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
     let area = h.area_of(h.app.nav.row_id(i));
     let at = Position::new(area.x + 2, area.y);
     // the row or its disclosure, whichever part is under the pointer
-    let target = h.app.hits.hit(at).expect("a target under the pointer");
+    let target = h
+        .app
+        .shell
+        .hits
+        .hit(at)
+        .expect("a target under the pointer");
     assert_eq!(
-        h.app.hits.part_of(target).map(|hit| hit.owner),
+        h.app.shell.hits.part_of(target).map(|hit| hit.owner),
         Some(WidgetId::of("app.nav")),
         "a part of the sidebar tree"
     );

@@ -358,6 +358,7 @@ mod tests {
     use junie_tui::core::focus::{Focus, FocusRing};
     use junie_tui::core::hit::HitRegistry;
     use junie_tui::core::pointer::PointerEvent;
+    use junie_tui::runtime::Application;
     use junie_tui::theme::{ColorLevel, Theme};
     use junie_tui::ui::ctx::Interaction;
     use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -484,7 +485,7 @@ mod tests {
             app.goto(page);
             let mut term = Terminal::new(TestBackend::new(140, 40)).unwrap();
             term.draw(|frame| app.render(frame)).unwrap();
-            let area = app.hits.area_of(id).unwrap();
+            let area = app.shell.hits.area_of(id).unwrap();
             let start = Position::new(area.x + 2, area.y);
             let end = Position::new(area.x + 10, area.y);
             for (kind, pos) in [
@@ -495,7 +496,7 @@ mod tests {
                 app.handle(Input::Mouse(Mouse::new(kind, pos)));
                 term.draw(|frame| app.render(frame)).unwrap();
             }
-            assert_eq!(app.focus.current(), Some(id));
+            assert_eq!(app.shell.focus.current(), Some(id));
             assert_eq!(
                 term.backend().buffer()[(start.x, start.y)].bg,
                 app.theme.selection().bg.unwrap(),

@@ -1,6 +1,7 @@
 //! App shell pages (plan §7, SC5 and SC6), driven through the real app:
 //! Breadcrumbs & rails, Help & keys, Quit & leave.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -150,7 +151,7 @@ mod breadcrumbs_rails {
         let mut h = page();
         let (x, y) = h.find("Projects").expect("the folder list");
         h.click(x, y);
-        assert!(h.app.focus.is(LIST));
+        assert!(h.app.shell.focus.is(LIST));
         assert!(
             h.text().contains("Disk › Users › alex › Projects"),
             "{}",
@@ -169,7 +170,7 @@ mod breadcrumbs_rails {
         assert!(!h.text().contains("› alex ›"));
         assert!(h.text().contains("Users (level 1)"));
         // Backspace walks up a level
-        h.app.focus.focus(LIST);
+        h.app.shell.focus.focus(LIST);
         h.key(KeyCode::Backspace);
         assert!(h.text().contains("Backspace → level 0"));
         assert!(h.find("Applications").is_some());
@@ -200,12 +201,12 @@ mod breadcrumbs_rails {
         // a click anywhere on it opens the sidebar again and focuses the list
         h.click(x, y + 4);
         assert!(h.row_of("Last RailAction").contains("Expand"));
-        assert!(h.app.focus.is(LIST));
+        assert!(h.app.shell.focus.is(LIST));
         h.key_mods(KeyCode::Char('b'), KeyModifiers::CONTROL);
         assert!(h.row_of("Last RailAction").contains("Collapse"));
-        assert!(!h.app.focus.is(LIST), "focus leaves the hidden list");
+        assert!(!h.app.shell.focus.is(LIST), "focus leaves the hidden list");
         h.key_mods(KeyCode::Char('b'), KeyModifiers::CONTROL);
-        assert!(h.app.focus.is(LIST));
+        assert!(h.app.shell.focus.is(LIST));
     }
 
     #[test]
@@ -294,7 +295,7 @@ mod help_keys {
     #[test]
     fn question_mark_opens_the_shell_reference() {
         let mut h = Harness::new(120, 40, PageId::Overview);
-        let before = h.app.focus.current();
+        let before = h.app.shell.focus.current();
         h.key(KeyCode::Char('?'));
         let help = h.app.help.as_ref().expect("the reference opened");
         assert_eq!(help.title, "Keyboard & mouse");
@@ -313,7 +314,7 @@ mod help_keys {
         assert!(h.row_of("▎").contains("Done"), "{text}");
         h.key(KeyCode::Esc);
         assert!(h.app.help.is_none());
-        assert_eq!(h.app.focus.current(), before);
+        assert_eq!(h.app.shell.focus.current(), before);
         // `?` closes it too (HelpCmd::Close)
         h.key(KeyCode::Char('?'));
         assert!(h.app.help.is_some());
@@ -359,7 +360,7 @@ mod help_keys {
         assert!(h.app.help.is_some(), "Esc only: an outside click keeps it");
         h.key(KeyCode::Esc);
         assert!(h.app.help.is_none());
-        assert!(h.app.focus.is(OPEN), "focus back on the button");
+        assert!(h.app.shell.focus.is(OPEN), "focus back on the button");
     }
 
     #[test]
@@ -424,7 +425,7 @@ mod quit_leave {
     }
 
     fn press(h: &mut Harness, id: junie_tui::core::id::WidgetId) {
-        h.app.focus.focus(id);
+        h.app.shell.focus.focus(id);
         h.key(KeyCode::Enter);
     }
 
@@ -434,7 +435,7 @@ mod quit_leave {
         press(&mut h, QUIT);
         assert!(h.app.dialog.is_none());
         assert!(h.row_of("Last request").contains("Ok(Leave::Quit)"));
-        assert!(!h.app.quit, "the demo never quits the showcase");
+        assert!(!h.app.shell.quit, "the demo never quits the showcase");
     }
 
     #[test]
@@ -444,7 +445,7 @@ mod quit_leave {
         h.click(x + 2, y);
         h.key(KeyCode::End);
         h.key(KeyCode::Char('!'));
-        assert!(h.app.focus.is(TITLE));
+        assert!(h.app.shell.focus.is(TITLE));
         assert!(h.row_of("Edits").contains("Unsaved"), "{}", h.text());
         press(&mut h, LEAVE);
         let d = h.app.dialog.as_ref().expect("the unsaved-changes dialog");
@@ -484,13 +485,13 @@ mod quit_leave {
     fn the_shell_quit_keys_see_the_page_stakes() {
         let mut h = page();
         h.opt("quitleave.stakes=unsaved");
-        h.app.focus.focus(LEAVE);
+        h.app.shell.focus.focus(LEAVE);
         h.key(KeyCode::Char('q'));
-        assert!(!h.app.quit);
+        assert!(!h.app.shell.quit);
         assert!(h.app.dialog.is_none());
         h.key_mods(KeyCode::Char('q'), KeyModifiers::CONTROL);
         assert!(h.app.dialog.is_some(), "Ctrl+Q asks first");
-        assert!(!h.app.quit);
+        assert!(!h.app.shell.quit);
     }
 
     #[test]

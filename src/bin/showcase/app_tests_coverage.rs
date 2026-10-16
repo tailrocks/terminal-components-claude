@@ -2,6 +2,7 @@ use junie_tui::core::{
     event::{Input, Key, Mouse, MouseKind, Outcome},
     id::WidgetId,
 };
+use junie_tui::runtime::Application;
 use junie_tui::theme::Theme;
 use ratatui::{
     Terminal,
@@ -76,6 +77,7 @@ impl Harness {
 
     fn area(&self, id: WidgetId) -> Rect {
         self.app
+            .shell
             .hits
             .area_of(id)
             .unwrap_or_else(|| panic!("missing hit area for {id:?}\n{}", self.text()))
@@ -89,7 +91,7 @@ impl Harness {
     }
 
     fn focus(&mut self, id: WidgetId) {
-        self.app.focus.focus(id);
+        self.app.shell.focus.focus(id);
         self.draw();
     }
 
@@ -129,7 +131,7 @@ impl Harness {
     }
 
     fn status(&self) -> Option<String> {
-        self.app.status.text().map(str::to_owned)
+        self.app.shell.status.text().map(str::to_owned)
     }
 
     fn assert_status(&self, expected: &str) {
@@ -152,7 +154,7 @@ fn too_small_q_quits() {
     let mut h = Harness::new(60, 15, PageId::Buttons);
 
     assert_eq!(h.key(KeyCode::Char('q')), Outcome::Consumed);
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 }
 
 #[test]
@@ -202,7 +204,7 @@ fn navigation_edges_and_page_entry_are_deterministic() {
     let mut h = Harness::new(72, 20, PageId::Overview);
 
     h.key(KeyCode::Char('0'));
-    assert_eq!(h.app.focus.current(), Some(NAV));
+    assert_eq!(h.app.shell.focus.current(), Some(NAV));
 
     let last = h.app.nav.rows().len() - 1;
     h.key(KeyCode::PageDown);
@@ -394,7 +396,7 @@ fn forms_reset_controls_and_reviewer_paste_validation() {
     h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
     assert!(h.text().contains("Enter a valid email address"));
-    assert_eq!(h.app.focus.current(), Some(reviewer));
+    assert_eq!(h.app.shell.focus.current(), Some(reviewer));
 
     h.click_id(reviewer);
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
@@ -435,7 +437,7 @@ fn inputs_paste_validation_and_disabled_field() {
     // stays on Branch (the library's `FocusFallback::Nearest`, the
     // showcase default; `First` used to send it to the sidebar)
     h.click_id(api_token);
-    assert_eq!(h.app.focus.current(), Some(branch));
+    assert_eq!(h.app.shell.focus.current(), Some(branch));
 }
 
 #[test]
@@ -458,9 +460,9 @@ fn pickers_cancel_scope_and_secondary_action() {
     h.key(KeyCode::Enter);
     h.type_str("auth");
     h.key(KeyCode::Esc);
-    assert!(h.app.hits.area_of(quick_picker).is_some());
+    assert!(h.app.shell.hits.area_of(quick_picker).is_some());
     h.key(KeyCode::Esc);
-    assert!(h.app.hits.area_of(quick_picker).is_none());
+    assert!(h.app.shell.hits.area_of(quick_picker).is_none());
 
     h.focus(pickers.sub("tabs"));
     h.key(KeyCode::Enter);
@@ -479,7 +481,7 @@ fn tab_in_an_open_select_chooses_and_moves_focus_on() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Down);
     h.key(KeyCode::Tab);
-    assert_ne!(h.app.focus.current(), Some(sort), "focus moved on");
+    assert_ne!(h.app.shell.focus.current(), Some(sort), "focus moved on");
     let text = h.text();
     assert!(
         text.contains("total"),
@@ -504,17 +506,26 @@ fn closing_a_picker_gives_focus_back_to_the_button_that_opened_it() {
         let b = pickers.sub(button);
         h.focus(b);
         h.key(KeyCode::Enter);
-        assert_ne!(h.app.focus.current(), Some(b), "the picker takes focus");
+        assert_ne!(
+            h.app.shell.focus.current(),
+            Some(b),
+            "the picker takes focus"
+        );
         h.key(key);
         assert!(
             h.app
+                .shell
                 .hits
                 .area_of(pickers.sub(&format!("picker.{button}")))
                 .is_none(),
             "{button}: closed\n{}",
             h.text()
         );
-        assert_eq!(h.app.focus.current(), Some(b), "{button}: focus is back");
+        assert_eq!(
+            h.app.shell.focus.current(),
+            Some(b),
+            "{button}: focus is back"
+        );
     }
 }
 
@@ -707,6 +718,7 @@ fn editor_completion_paste_and_diagnostic_paths() {
     h.key(KeyCode::Enter);
     assert!(
         h.app
+            .shell
             .hits
             .area_of(WidgetId::of("editor").sub("complete").child(0))
             .is_none()
@@ -739,12 +751,18 @@ fn chrome_secondary_click_opens_and_selects_context_action() {
         Outcome::Changed,
         "secondary click is routed to the session row"
     );
-    assert_eq!(h.app.focus.current(), Some(sessions));
+    assert_eq!(h.app.shell.focus.current(), Some(sessions));
     assert!(h.text().contains("Change title"));
 
     h.key(KeyCode::Enter);
     h.assert_status("Change title…");
-    assert!(h.app.hits.area_of(WidgetId::of("chrome.context")).is_none());
+    assert!(
+        h.app
+            .shell
+            .hits
+            .area_of(WidgetId::of("chrome.context"))
+            .is_none()
+    );
 }
 
 #[test]
@@ -783,7 +801,7 @@ fn panels_route_wheel_and_nested_list_clicks() {
 
     let nested = WidgetId::of("panels").sub("nested");
     h.click_label("CLI");
-    assert_eq!(h.app.focus.current(), Some(nested));
+    assert_eq!(h.app.shell.focus.current(), Some(nested));
     assert!(h.text().contains("CLI"));
 
     let log = WidgetId::of("panels").sub("log");
@@ -851,7 +869,7 @@ fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
     let nav = WidgetId::of("sidebars").sub("nav");
     let (x, y) = disabled.find("Billing").expect("disabled row");
     disabled.click(x, y);
-    assert_eq!(disabled.app.focus.current(), Some(nav));
+    assert_eq!(disabled.app.shell.focus.current(), Some(nav));
     assert!(
         disabled.text().contains("Tasks"),
         "current item stayed stable"
@@ -884,7 +902,7 @@ fn lists_and_trees_accept_mouse_selection() {
     let (x, y) = lists.find("TypeScript").expect("language row");
     lists.click(x, y);
     assert_eq!(
-        lists.app.focus.current(),
+        lists.app.shell.focus.current(),
         Some(WidgetId::of("lists").sub("single"))
     );
     assert!(lists.text().contains("Chosen: TypeScript"));
@@ -900,7 +918,7 @@ fn lists_and_trees_accept_mouse_selection() {
     let (x, y) = trees.find("auth.rs").expect("tree leaf");
     trees.click(x, y);
     assert_eq!(
-        trees.app.focus.current(),
+        trees.app.shell.focus.current(),
         Some(WidgetId::of("trees").sub("tree"))
     );
     assert!(trees.text().contains("src/api/auth.rs"));
@@ -935,12 +953,24 @@ fn picker_level_selection_updates_result_state() {
     let level = pickers.sub("level");
     h.focus(level);
     h.key(KeyCode::Enter);
-    assert!(h.app.hits.area_of(pickers.sub("picker.level")).is_some());
+    assert!(
+        h.app
+            .shell
+            .hits
+            .area_of(pickers.sub("picker.level"))
+            .is_some()
+    );
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
     h.assert_status("Chose Safe Mode (Full)");
     assert!(h.text().contains("Safe Mode (Full)"));
-    assert!(h.app.hits.area_of(pickers.sub("picker.level")).is_none());
+    assert!(
+        h.app
+            .shell
+            .hits
+            .area_of(pickers.sub("picker.level"))
+            .is_none()
+    );
 }
 
 #[test]
@@ -1032,7 +1062,7 @@ fn terminal_reaches_success_failure_and_splitter_states() {
         failure.text().contains("failed: network unreachable"),
         "animating={} focus={:?}\n{}",
         failure.app.animating(),
-        failure.app.focus.current(),
+        failure.app.shell.focus.current(),
         failure.text()
     );
     assert!(!failure.app.pages[PageId::Terminal.index()].animating());
@@ -1087,7 +1117,7 @@ fn blank_space_right_of_a_checkbox_label_does_not_toggle_it() {
         "the target is the box and label, not the row: {area:?}"
     );
     let beyond = Position::new(area.right() + 4, area.y);
-    assert_ne!(h.app.hits.hit(beyond), Some(pr));
+    assert_ne!(h.app.shell.hits.hit(beyond), Some(pr));
     let before = h.text();
     h.click(beyond.x, beyond.y);
     let row = |t: &str| {
@@ -1110,23 +1140,23 @@ fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     h.click_id(settings.sub("automerge"));
     assert!(h.text().contains("General · unsaved"));
     h.key(KeyCode::Char('q'));
-    assert!(!h.app.quit, "q never drops unsaved edits");
+    assert!(!h.app.shell.quit, "q never drops unsaved edits");
     assert!(h.text().contains("General · unsaved"));
     h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
-    assert!(!h.app.quit, "Ctrl+C asks first");
+    assert!(!h.app.shell.quit, "Ctrl+C asks first");
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     // Cancel (the default) stays
     h.key(KeyCode::Enter);
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     assert!(h.app.dialog.is_none());
     // Discard quits
     h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
     h.key(KeyCode::Char('d'));
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 
     let mut clean = Harness::new(140, 45, PageId::Settings);
     clean.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
-    assert!(clean.app.quit, "a clean quit never asks");
+    assert!(clean.app.shell.quit, "a clean quit never asks");
 }
 
 /// Focus decision 2026-10-16 (docs/audits/design-review-2026-10/focus.md):
@@ -1192,6 +1222,6 @@ fn ctrl_q_reaches_past_editing_text_controls() {
         h.type_str(text);
         assert!(h.app.pages[PageId::Forms.index()].editing(), "{field}");
         h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
-        assert!(h.app.quit, "{field}: Ctrl+Q quits\n{}", h.text());
+        assert!(h.app.shell.quit, "{field}: Ctrl+Q quits\n{}", h.text());
     }
 }

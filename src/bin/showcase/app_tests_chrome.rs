@@ -3,6 +3,7 @@
 //! strip and status bar show their parts, the hint bar resolves layers and
 //! drops hints by priority.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};

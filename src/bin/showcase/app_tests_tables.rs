@@ -3,6 +3,7 @@
 //! page's Options section and `--opt` rebuild the widget through its
 //! builder, and the States grids draw their rows.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -175,7 +176,11 @@ fn a_page_option_set_in_the_options_section_goes_through_the_shell() {
         .expect("the option's control");
     let (x, y) = h.find("Resizable columns").expect("the toggle");
     h.click(x, y);
-    assert_eq!(h.app.focus.current(), Some(toggle), "the click focuses it");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(toggle),
+        "the click focuses it"
+    );
     assert!(
         !columns_page(&h).sized.sizing.resizable,
         "the click sets it off"
@@ -205,13 +210,13 @@ fn basic_table_selection_option_sets_the_selection_model() {
     assert!(line_with(&h.text(), "#1040").contains("[ ] #1040"));
     // Space marks the cursor row in a multi-select table
     let id = tables_page(&h).table.id;
-    h.app.focus.focus(id);
+    h.app.shell.focus.focus(id);
     h.key(KeyCode::Char(' '));
     assert_eq!(tables_page(&h).table.selected_rows(), vec![0]);
     assert!(line_with(&h.text(), "#1040").contains("[✓] #1040"));
     h.opt("basictable.selection=none");
     let id = tables_page(&h).table.id;
-    h.app.focus.focus(id);
+    h.app.shell.focus.focus(id);
     h.key(KeyCode::Enter);
     assert_eq!(
         tables_page(&h).table.selected,
@@ -281,7 +286,7 @@ fn grid_page(h: &Harness) -> &crate::pages::grid::GridPage {
 /// Focus the grid and put its cursor on column `col` of the first row.
 fn grid_cell(h: &mut Harness, col: usize) {
     let id = grid_page(h).grid.id;
-    h.app.focus.focus(id);
+    h.app.shell.focus.focus(id);
     h.draw();
     h.key(KeyCode::Home);
     for _ in 0..col {
@@ -290,7 +295,7 @@ fn grid_cell(h: &mut Harness, col: usize) {
 }
 
 fn status(h: &Harness) -> String {
-    format!("{:?}", h.app.status)
+    format!("{:?}", h.app.shell.status)
 }
 
 #[test]
@@ -465,7 +470,7 @@ fn cell_editors_page(h: &Harness) -> &crate::pages::celleditors::CellEditorsPage
 
 /// Focus `id` and draw.
 fn focus(h: &mut Harness, id: junie_tui::core::id::WidgetId) {
-    h.app.focus.focus(id);
+    h.app.shell.focus.focus(id);
     h.draw();
 }
 
@@ -548,7 +553,7 @@ fn a_standalone_choice_editor_commits_cancels_and_tabs_on() {
     h.key(KeyCode::Down);
     h.key(KeyCode::Tab);
     assert_eq!(cell_editors_page(&h).region, "eu-west-3");
-    assert_ne!(h.app.focus.current(), Some(pick), "Tab moves on");
+    assert_ne!(h.app.shell.focus.current(), Some(pick), "Tab moves on");
     // a click on an option commits it
     focus(&mut h, pick);
     h.key(KeyCode::Enter);
@@ -559,6 +564,7 @@ fn a_standalone_choice_editor_commits_cancels_and_tabs_on() {
         .option_id(6);
     let r = h
         .app
+        .shell
         .hits
         .area_of(option)
         .unwrap_or_else(|| panic!("eu-west-1 is on screen\n{}", h.text()));

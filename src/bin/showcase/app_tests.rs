@@ -2,6 +2,7 @@
 //! into a `TestBackend` so hit regions and focus rings are the same ones the
 //! terminal would see.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -123,9 +124,10 @@ impl Harness {
 
     fn focus_area(&self) -> Option<ratatui::layout::Rect> {
         self.app
+            .shell
             .focus
             .current()
-            .and_then(|f| self.app.hits.area_of(f))
+            .and_then(|f| self.app.shell.hits.area_of(f))
     }
 }
 
@@ -140,7 +142,7 @@ fn launches_and_renders_shell() {
     assert!(t.contains("Junie"));
     assert!(t.contains("Overview"));
     assert!(t.contains("Tokens"));
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
 }
 
 #[test]
@@ -188,18 +190,18 @@ fn resize_recovers_from_too_small() {
 #[test]
 fn tab_traversal_is_deterministic_and_wraps() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
-    let start = h.app.focus.current();
+    let start = h.app.shell.focus.current();
     let mut seen = vec![start];
     for _ in 0..20 {
         h.key(tab());
-        let cur = h.app.focus.current();
+        let cur = h.app.shell.focus.current();
         if cur == start {
             break;
         }
         seen.push(cur);
     }
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         start,
         "focus ring wraps back to start"
     );
@@ -211,7 +213,7 @@ fn tab_traversal_is_deterministic_and_wraps() {
     let mut back = vec![];
     for _ in 0..seen.len() {
         h.key(KeyCode::BackTab);
-        back.push(h.app.focus.current());
+        back.push(h.app.shell.focus.current());
     }
     let mut expected = seen.clone();
     expected.reverse();
@@ -273,9 +275,10 @@ fn hit_testing_prefers_rows_over_their_container() {
     h.mouse(MouseKind::Move, x + 20, y);
     let area = h
         .app
+        .shell
         .pointer
         .hover
-        .and_then(|id| h.app.hits.area_of(id))
+        .and_then(|id| h.app.shell.hits.area_of(id))
         .unwrap();
     assert_eq!(
         area.height, 1,
@@ -387,11 +390,11 @@ fn input_editing_commit_and_revert() {
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("XX"));
     // Tab commits and moves focus on
-    let before = h.app.focus.current();
+    let before = h.app.shell.focus.current();
     h.key(KeyCode::Enter);
     h.type_str("!");
     h.key(tab());
-    assert_ne!(h.app.focus.current(), before);
+    assert_ne!(h.app.shell.focus.current(), before);
     assert!(h.text().contains("payments-gateway-v2!"));
     // editing places the hardware cursor
     h.key(KeyCode::Enter);
@@ -415,7 +418,7 @@ fn typing_into_a_type_to_edit_field_starts_editing_and_a_default_field_edits_on_
     let mut h = Harness::new(120, 40, PageId::Inputs);
     // "Search files" opts into EditEntry::TypeToEdit: focus alone shows no
     // caret, the first letter starts the edit
-    h.app.focus.focus(WidgetId::of("inputs").child(4));
+    h.app.shell.focus.focus(WidgetId::of("inputs").child(4));
     h.draw();
     assert!(!h.app.pages[PageId::Inputs.index()].editing());
     h.type_str("src");
@@ -425,7 +428,7 @@ fn typing_into_a_type_to_edit_field_starts_editing_and_a_default_field_edits_on_
     // "Branch" keeps the library default, EditEntry::Immediate: focus
     // starts the edit with the value selected and the caret shown, so a
     // letter replaces the value instead of firing a page shortcut
-    h.app.focus.focus(WidgetId::of("inputs").child(1));
+    h.app.shell.focus.focus(WidgetId::of("inputs").child(1));
     h.draw();
     assert!(h.app.pages[PageId::Inputs.index()].editing());
     assert!(
@@ -507,14 +510,22 @@ fn clicking_dead_space_ends_the_edit_and_keeps_focus() {
     let (x, _) = h.find("payments-gateway").unwrap();
     h.click(x + 2, name_row);
     h.type_str("X");
-    let focused = h.app.focus.current();
+    let focused = h.app.shell.focus.current();
     // the blank row under the playground card
     let (_, py) = h.find("Search files").unwrap();
     let (dx, dy) = (x, py + 4);
-    assert_eq!(h.app.hits.hit(Position::new(dx, dy)), None, "dead space");
+    assert_eq!(
+        h.app.shell.hits.hit(Position::new(dx, dy)),
+        None,
+        "dead space"
+    );
     h.click(dx, dy);
     assert!(!h.app.pages[PageId::Inputs.index()].editing(), "edit ended");
-    assert_eq!(h.app.focus.current(), focused, "focus stays on the field");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        focused,
+        "focus stays on the field"
+    );
     assert!(h.text().contains("Project name saved"));
 }
 
@@ -624,29 +635,40 @@ fn grid_header_seam_drag_resizes_the_column() {
             junie_tui::core::id::Part::SEAM,
             junie_tui::core::id::ItemKey::index(1),
         ));
-    let Some(s) = h.app.hits.area_of(seam) else {
+    let Some(s) = h.app.shell.hits.area_of(seam) else {
         panic!("a seam after the second column\n{}", h.text());
     };
-    let head = h.app.hits.area_of(WidgetId::of("grid").sub("grid").part(
-        junie_tui::core::id::PartRef::item(
-            junie_tui::core::id::Part::HEADER,
-            junie_tui::core::id::ItemKey::index(2),
-        ),
-    ));
+    let head = h
+        .app
+        .shell
+        .hits
+        .area_of(
+            WidgetId::of("grid")
+                .sub("grid")
+                .part(junie_tui::core::id::PartRef::item(
+                    junie_tui::core::id::Part::HEADER,
+                    junie_tui::core::id::ItemKey::index(2),
+                )),
+        );
     h.mouse(MouseKind::Down, s.x, s.y);
     h.mouse(MouseKind::Drag, s.x + 3, s.y);
     h.mouse(MouseKind::Up, s.x + 3, s.y);
-    let after = h.app.hits.area_of(seam).unwrap();
+    let after = h.app.shell.hits.area_of(seam).unwrap();
     assert_eq!(after.x, s.x + 3, "the seam followed the pointer");
-    if let (Some(a), Some(b)) = (
-        head,
-        h.app.hits.area_of(WidgetId::of("grid").sub("grid").part(
-            junie_tui::core::id::PartRef::item(
-                junie_tui::core::id::Part::HEADER,
-                junie_tui::core::id::ItemKey::index(2),
-            ),
-        )),
-    ) {
+    if let (Some(a), Some(b)) =
+        (
+            head,
+            h.app
+                .shell
+                .hits
+                .area_of(WidgetId::of("grid").sub("grid").part(
+                    junie_tui::core::id::PartRef::item(
+                        junie_tui::core::id::Part::HEADER,
+                        junie_tui::core::id::ItemKey::index(2),
+                    ),
+                )),
+        )
+    {
         assert_eq!(b.x, a.x + 3, "the next column moved over");
     }
 }
@@ -657,21 +679,21 @@ fn modal_traps_focus_and_restores_it() {
     // the section strip is the page's first stop, the first button the second
     h.key(tab());
     h.key(tab());
-    let before = h.app.focus.current();
+    let before = h.app.shell.focus.current();
     h.key(KeyCode::Enter);
     assert!(h.app.dialog.is_some());
     assert!(h.text().contains("Run task now?"));
-    let ring: Vec<_> = h.app.ring.reachable().to_vec();
+    let ring: Vec<_> = h.app.shell.ring.reachable().to_vec();
     assert_eq!(ring.len(), 2, "only the dialog's two actions are reachable");
     for _ in 0..5 {
         h.key(tab());
-        assert!(ring.contains(&h.app.focus.current().unwrap()));
+        assert!(ring.contains(&h.app.shell.focus.current().unwrap()));
     }
     // clicking the page behind does nothing to it
     let (x, y) = h.find("Rename task").unwrap();
     h.click(x, y);
     assert!(h.app.dialog.is_none(), "click outside cancels");
-    assert_eq!(h.app.focus.current(), before, "focus restored");
+    assert_eq!(h.app.shell.focus.current(), before, "focus restored");
     assert!(h.text().contains("Cancelled"));
     // the Run button's mnemonic answers a confirm
     h.key(KeyCode::Enter);
@@ -730,7 +752,7 @@ fn scrollbar_click_and_drag_move_the_view() {
     // scrollbar is the last column of the list area
     let list_area = {
         let id = junie_tui::core::id::WidgetId::of("scrolling").sub("list");
-        h.app.hits.area_of(id).unwrap()
+        h.app.shell.hits.area_of(id).unwrap()
     };
     let sx = list_area.right() - 1;
     // a track click pages toward the pointer (TrackClick::Page)
@@ -784,15 +806,15 @@ fn keyboard_navigation_between_pages() {
 fn quit_keys() {
     let mut h = Harness::new(120, 40, PageId::Overview);
     h.key(KeyCode::Char('q'));
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
     let mut h = Harness::new(120, 40, PageId::Inputs);
     h.key(tab()); // the section strip
     h.key(tab());
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('q')); // typed into the field, not quit
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 }
 
 #[test]
@@ -857,18 +879,18 @@ fn a_status_stays_five_seconds_on_the_pointer_clock() {
     // the clock reads 10 s; the status is set then
     h.app.clock = at(10_000);
     let now = h.app.clock.now();
-    h.app.status.set_at("Saved", Tone::Secondary, now);
+    h.app.shell.status.set_at("Saved", Tone::Secondary, now);
     // 4.5 s later it still shows
     h.app.clock = at(14_500);
     h.app.handle(Input::Tick);
     h.draw();
-    assert_eq!(h.app.status.text(), Some("Saved"));
+    assert_eq!(h.app.shell.status.text(), Some("Saved"));
     assert!(h.text().contains("Saved"));
     // 5 s later it is gone
     h.app.clock = at(15_000);
     h.app.handle(Input::Tick);
     h.draw();
-    assert!(h.app.status.is_none());
+    assert!(h.app.shell.status.is_none());
     assert!(!h.text().contains("Saved"));
 }
 
@@ -948,13 +970,13 @@ fn short_pages_scroll_by_section_and_never_draw_past_their_area() {
                     row.trim().is_empty(),
                     "{page:?} {w}x{hh}: drawn on the row above the footer: {row:?}\n{text}"
                 );
-                let Some(f) = h.app.focus.current() else {
+                let Some(f) = h.app.shell.focus.current() else {
                     break;
                 };
                 if !seen.insert(f) {
                     break;
                 }
-                if let Some(a) = h.app.hits.area_of(f) {
+                if let Some(a) = h.app.shell.hits.area_of(f) {
                     assert!(
                         a.bottom() <= spacer,
                         "{page:?} {w}x{hh}: focused {f:?} at {a:?} is past the page\n{text}"
@@ -1164,8 +1186,8 @@ fn the_data_grid_draws_both_tracks_dotted_in_one_frame() {
             h.draw();
             let t = h.app.theme;
             let ctx = format!("{level:?} {:?}", glyphs.scroll_track);
-            let v = h.app.hits.area_of(scrollbar::id_for(grid));
-            let hz = h.app.hits.area_of(scrollbar::h_id_for(grid));
+            let v = h.app.shell.hits.area_of(scrollbar::id_for(grid));
+            let hz = h.app.shell.hits.area_of(scrollbar::h_id_for(grid));
             let (v, hz) = (v.expect(&ctx), hz.expect(&ctx));
             let buf = h.term.backend().buffer();
             let track_fg = t.scrollbar_track().fg;
@@ -1205,6 +1227,7 @@ fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
     let buf = h.term.backend().buffer();
     let bar = h
         .app
+        .shell
         .hits
         .area_of(junie_tui::widgets::scrollbar::id_for(
             WidgetId::of("scrolling").sub("list"),
@@ -1222,6 +1245,7 @@ fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
 fn list_scrollbar_x(h: &Harness) -> u16 {
     let id = junie_tui::widgets::scrollbar::id_for(WidgetId::of("scrolling").sub("list"));
     h.app
+        .shell
         .hits
         .area_of(id)
         .expect("the list scrollbar is registered")
@@ -1278,6 +1302,7 @@ fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick
     // log shares the page with two more bands, so its rows follow its card)
     let log = h
         .app
+        .shell
         .hits
         .area_of(WidgetId::of("scrolling").sub("log"))
         .unwrap();
@@ -1316,6 +1341,7 @@ fn a_press_on_the_thumb_grabs_it_and_a_drag_moves_the_view_with_the_pointer() {
     // dragging to the end of the track shows the last row
     let bottom = h
         .app
+        .shell
         .hits
         .area_of(junie_tui::widgets::scrollbar::id_for(
             WidgetId::of("scrolling").sub("list"),
@@ -1335,6 +1361,7 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
     let mut h = Harness::new(160, 50, PageId::Scrolling);
     let log_x = h
         .app
+        .shell
         .hits
         .area_of(WidgetId::of("scrolling").sub("log"))
         .unwrap()
@@ -1342,6 +1369,7 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
         + 2;
     let log_y = h
         .app
+        .shell
         .hits
         .area_of(WidgetId::of("scrolling").sub("log"))
         .unwrap()
@@ -1368,7 +1396,7 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
     h.key(KeyCode::Tab);
     h.key(KeyCode::Tab);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(WidgetId::of("scrolling").sub("prose"))
     );
     assert_eq!(h.key(KeyCode::Char('f')), Outcome::Ignored);
@@ -1397,6 +1425,7 @@ fn boundary_wheels_are_consumed_and_hover_follows_the_content() {
     let mut h = Harness::new(120, 40, PageId::Scrolling);
     let list = h
         .app
+        .shell
         .hits
         .area_of(WidgetId::of("scrolling").sub("list"))
         .unwrap();
@@ -1407,14 +1436,17 @@ fn boundary_wheels_are_consumed_and_hover_follows_the_content() {
         "at the top"
     );
     h.mouse(MouseKind::Move, x, y);
-    let hovered = h.app.pointer.hover;
+    let hovered = h.app.shell.pointer.hover;
     assert!(hovered.is_some());
     assert_eq!(h.mouse(MouseKind::WheelDown, x, y), Outcome::Changed);
     assert_ne!(
-        h.app.pointer.hover, hovered,
+        h.app.shell.pointer.hover, hovered,
         "hover moved to the row now under the pointer"
     );
-    assert_eq!(h.app.pointer.hover, h.app.hits.hit(Position::new(x, y)));
+    assert_eq!(
+        h.app.shell.pointer.hover,
+        h.app.shell.hits.hit(Position::new(x, y))
+    );
 }
 
 #[test]
@@ -1422,6 +1454,7 @@ fn the_editor_scrollbar_takes_the_wheel_and_the_grid_scrollbar_keeps_focus() {
     let mut h = Harness::new(120, 40, PageId::Editor);
     let sb = h
         .app
+        .shell
         .hits
         .area_of(junie_tui::widgets::scrollbar::id_for(
             WidgetId::of("editor").sub("code"),
@@ -1439,22 +1472,24 @@ fn the_editor_scrollbar_takes_the_wheel_and_the_grid_scrollbar_keeps_focus() {
     );
 
     let mut g = Harness::new(120, 40, PageId::Grid);
-    let focus = g.app.focus.current();
+    let focus = g.app.shell.focus.current();
     let sb = g
         .app
+        .shell
         .hits
         .area_of(junie_tui::widgets::scrollbar::id_for(
             WidgetId::of("grid").sub("grid"),
         ))
         .or_else(|| {
             g.app
+                .shell
                 .hits
                 .area_of(junie_tui::widgets::scrollbar::id_for(WidgetId::of("grid")))
         })
         .expect("the grid scrollbar is registered");
     g.click(sb.x, sb.bottom() - 1);
     assert_eq!(
-        g.app.focus.current(),
+        g.app.shell.focus.current(),
         focus,
         "a scrollbar click never moves focus"
     );
@@ -1477,15 +1512,16 @@ fn tables_take_the_horizontal_wheel_and_the_sidebar_nav_keeps_its_cursor_visible
     let mut s = Harness::new(72, 20, PageId::Sidebars);
     s.key(KeyCode::Tab);
     let nav = WidgetId::of("sidebars").sub("nav");
-    assert_eq!(s.app.focus.current(), Some(nav));
+    assert_eq!(s.app.shell.focus.current(), Some(nav));
     for _ in 0..8 {
         s.key(KeyCode::Down);
     }
-    let last = s.app.hits.area_of(nav.child(7));
+    let last = s.app.shell.hits.area_of(nav.child(7));
     assert!(last.is_some(), "the cursor row is on screen: {}", s.text());
     assert!(s.text().contains("Appearance"));
     let sb = s
         .app
+        .shell
         .hits
         .area_of(junie_tui::widgets::scrollbar::id_for(nav));
     assert!(
@@ -1503,6 +1539,7 @@ fn the_terminal_viewport_survives_narrow_widths_and_completion_keeps_a_wheel_scr
     let t = Harness::new(80, 24, PageId::Terminal);
     assert!(
         t.app
+            .shell
             .hits
             .area_of(WidgetId::of("terminal").sub("term"))
             .is_some(),
@@ -1512,6 +1549,7 @@ fn the_terminal_viewport_survives_narrow_widths_and_completion_keeps_a_wheel_scr
     let t = Harness::new(72, 20, PageId::Terminal);
     assert!(
         t.app
+            .shell
             .hits
             .area_of(WidgetId::of("terminal").sub("term"))
             .is_some()
@@ -1605,10 +1643,10 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
     // a short terminal: the list opens over the panels drawn after the field
     let mut h = Harness::new(120, 30, PageId::Chips);
     let size = WidgetId::of("chips").sub("size");
-    let field = h.app.hits.area_of(size).expect("page size field");
+    let field = h.app.shell.hits.area_of(size).expect("page size field");
     h.click(field.x + 2, field.y);
     let rows: Vec<_> = (0..4)
-        .map(|i| h.app.hits.area_of(size.child(i)).expect("option row"))
+        .map(|i| h.app.shell.hits.area_of(size.child(i)).expect("option row"))
         .collect();
     let buf = h.term.backend().buffer().clone();
     for (row, label) in rows.iter().zip(["25", "50", "100", "500"]) {
@@ -1622,7 +1660,10 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
         assert!(row.bottom() <= 30, "inside the screen: {row:?}");
     }
     assert_eq!(
-        h.app.hits.hit(Position::new(rows[3].x + 3, rows[3].y)),
+        h.app
+            .shell
+            .hits
+            .hit(Position::new(rows[3].x + 3, rows[3].y)),
         Some(size.child(3)),
         "the last option is clickable, not shadowed by the page"
     );
@@ -1632,15 +1673,18 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
     let outside = Position::new(field.x + 2, 29 - 2);
     assert!(!rows.iter().any(|r| r.contains(outside)));
     h.click(outside.x, outside.y);
-    assert!(h.app.hits.area_of(size.child(0)).is_none(), "list closed");
+    assert!(
+        h.app.shell.hits.area_of(size.child(0)).is_none(),
+        "list closed"
+    );
     assert!(before.contains("50"));
     assert!(h.text().contains("Page size"));
 
     // reopen and choose with the mouse: the click lands on the option
     h.click(field.x + 2, field.y);
-    let last = h.app.hits.area_of(size.child(3)).unwrap();
+    let last = h.app.shell.hits.area_of(size.child(3)).unwrap();
     h.click(last.x + 3, last.y);
-    assert!(h.app.hits.area_of(size.child(0)).is_none());
+    assert!(h.app.shell.hits.area_of(size.child(0)).is_none());
     let row: String = (field.x..field.right())
         .map(|x| h.term.backend().buffer()[(x, field.y)].symbol().to_owned())
         .collect();
@@ -1651,27 +1695,31 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
 fn a_menu_bar_title_opens_on_the_press_and_a_drag_release_chooses_a_row() {
     let mut h = Harness::new(120, 40, PageId::Chrome);
     let bar = WidgetId::of("chrome.menubar");
-    let file = h.app.hits.area_of(bar.child(0)).expect("menu title");
+    let file = h.app.shell.hits.area_of(bar.child(0)).expect("menu title");
     let row = |i: usize| bar.child(0).sub("menu").child(i);
     // the menu is open while the button is still down
     h.mouse(MouseKind::Down, file.x + 1, file.y);
     let r1 = h
         .app
+        .shell
         .hits
         .area_of(row(1))
         .expect("File opened on the press");
     // releasing back on the title after no movement keeps it open
     h.mouse(MouseKind::Up, file.x + 1, file.y);
-    assert!(h.app.hits.area_of(row(0)).is_some(), "still open");
+    assert!(h.app.shell.hits.area_of(row(0)).is_some(), "still open");
     // press the open title: it closes; press again, drag onto a row, release
     h.mouse(MouseKind::Down, file.x + 1, file.y);
     h.mouse(MouseKind::Up, file.x + 1, file.y);
-    assert!(h.app.hits.area_of(row(0)).is_none(), "the press closed it");
+    assert!(
+        h.app.shell.hits.area_of(row(0)).is_none(),
+        "the press closed it"
+    );
     h.mouse(MouseKind::Down, file.x + 1, file.y);
     h.mouse(MouseKind::Drag, r1.x + 2, r1.y);
     h.mouse(MouseKind::Up, r1.x + 2, r1.y);
     assert!(
-        h.app.hits.area_of(row(0)).is_none(),
+        h.app.shell.hits.area_of(row(0)).is_none(),
         "choosing closed the menu"
     );
     // the chosen item's label lands in the status bar
@@ -1682,11 +1730,11 @@ fn a_menu_bar_title_opens_on_the_press_and_a_drag_release_chooses_a_row() {
 fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
     let mut h = Harness::new(120, 40, PageId::Chrome);
     let bar = WidgetId::of("chrome.menubar");
-    let title = |h: &Harness, i: usize| h.app.hits.area_of(bar.child(i)).expect("menu title");
+    let title = |h: &Harness, i: usize| h.app.shell.hits.area_of(bar.child(i)).expect("menu title");
     let first_row = |i: usize| bar.child(i).sub("menu").child(0);
     let open = |h: &Harness| -> Vec<usize> {
         (0..3)
-            .filter(|&i| h.app.hits.area_of(first_row(i)).is_some())
+            .filter(|&i| h.app.shell.hits.area_of(first_row(i)).is_some())
             .collect()
     };
 
@@ -1703,7 +1751,7 @@ fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
     h.mouse(MouseKind::Move, help.x + 1, help.y);
     assert_eq!(open(&h), vec![2], "Help replaced View");
     // moving into the open menu keeps it open
-    let row = h.app.hits.area_of(first_row(2)).unwrap();
+    let row = h.app.shell.hits.area_of(first_row(2)).unwrap();
     h.mouse(MouseKind::Move, row.x + 2, row.y);
     assert_eq!(open(&h), vec![2]);
 
@@ -1732,36 +1780,46 @@ fn a_pass_through_select_closes_and_lets_the_outside_click_land() {
     let mut h = Harness::new(120, 40, PageId::Chips);
     let sort = WidgetId::of("chips").sub("sort");
     let size = WidgetId::of("chips").sub("size");
-    let sort_field = h.app.hits.area_of(sort).unwrap();
-    let size_field = h.app.hits.area_of(size).unwrap();
+    let sort_field = h.app.shell.hits.area_of(sort).unwrap();
+    let size_field = h.app.shell.hits.area_of(size).unwrap();
 
     // "Sort by" keeps the default policy: the outside click only closes
     h.click(sort_field.x + 2, sort_field.y);
-    assert!(h.app.hits.area_of(sort.child(0)).is_some());
+    assert!(h.app.shell.hits.area_of(sort.child(0)).is_some());
     h.click(size_field.x + 2, size_field.y);
-    assert!(h.app.hits.area_of(sort.child(0)).is_none(), "sort closed");
     assert!(
-        h.app.hits.area_of(size.child(0)).is_none(),
+        h.app.shell.hits.area_of(sort.child(0)).is_none(),
+        "sort closed"
+    );
+    assert!(
+        h.app.shell.hits.area_of(size.child(0)).is_none(),
         "size not opened"
     );
 
     // "Page size" passes the click through: it closes and Sort by opens
     h.click(size_field.x + 2, size_field.y);
-    assert!(h.app.hits.area_of(size.child(0)).is_some());
+    assert!(h.app.shell.hits.area_of(size.child(0)).is_some());
     h.click(sort_field.x + 2, sort_field.y);
-    assert!(h.app.hits.area_of(size.child(0)).is_none(), "size closed");
-    assert!(h.app.hits.area_of(sort.child(0)).is_some(), "sort opened");
-    assert_eq!(h.app.focus.current(), Some(sort));
+    assert!(
+        h.app.shell.hits.area_of(size.child(0)).is_none(),
+        "size closed"
+    );
+    assert!(
+        h.app.shell.hits.area_of(sort.child(0)).is_some(),
+        "sort opened"
+    );
+    assert_eq!(h.app.shell.focus.current(), Some(sort));
 }
 
 #[test]
 fn keys_switch_menus_even_with_the_pointer_parked_on_a_title() {
     let mut h = Harness::new(120, 40, PageId::Chrome);
     let bar = WidgetId::of("chrome.menubar");
-    let file = h.app.hits.area_of(bar.child(0)).unwrap();
+    let file = h.app.shell.hits.area_of(bar.child(0)).unwrap();
     h.click(file.x + 1, file.y);
     let open = |h: &Harness, i: usize| {
         h.app
+            .shell
             .hits
             .area_of(bar.child(i).sub("menu").child(0))
             .is_some()
@@ -1781,6 +1839,7 @@ fn keys_switch_menus_even_with_the_pointer_parked_on_a_title() {
     let style = |h: &Harness, row: usize| {
         let r = h
             .app
+            .shell
             .hits
             .area_of(bar.child(0).sub("menu").child(row))
             .unwrap();
@@ -1808,11 +1867,11 @@ fn the_current_page_marker_is_neutral_while_focus_is_on_the_page() {
             .fg
     };
     let t = h.app.theme;
-    h.app.focus.set(Some(nav));
+    h.app.shell.focus.set(Some(nav));
     h.draw();
     assert_eq!(marker(&h), t.accent, "accent while the nav has focus");
     h.key(tab());
-    assert_ne!(h.app.focus.current(), Some(nav));
+    assert_ne!(h.app.shell.focus.current(), Some(nav));
     assert_eq!(marker(&h), t.text_primary, "a fact, not a focus cue");
 }
 
@@ -1893,6 +1952,7 @@ fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
     let term = WidgetId::of("terminal").sub("term");
     let bar = h
         .app
+        .shell
         .hits
         .area_of(h_id_for(term))
         .expect("the prompt line overflows: a horizontal bar");
@@ -1991,7 +2051,7 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
     let mut seen = Vec::new();
     for _ in 0..40 {
         h.key(tab());
-        let Some(f) = h.app.focus.current() else {
+        let Some(f) = h.app.shell.focus.current() else {
             continue;
         };
         if immediate.contains(&f) {
@@ -2007,12 +2067,12 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
     }
     assert_eq!(seen.len(), immediate.len(), "every text stop was reached");
 
-    h.app.focus.focus(field(0));
+    h.app.shell.focus.focus(field(0));
     h.draw();
     assert!(h.term.backend().cursor_visible());
     let page = h.app.page;
     h.type_str("q]i");
-    assert!(!h.app.quit, "q was typed, not quit");
+    assert!(!h.app.shell.quit, "q was typed, not quit");
     assert_eq!(h.app.page, page, "] was typed, not next page");
     assert!(!h.app.inspector, "i was typed, not the inspector");
     assert!(h.text().contains("q]i"), "{}", h.text());
@@ -2020,7 +2080,7 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
     assert!(h.text().contains("payments-gateway"), "Esc reverts");
     h.key(tab());
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(field(1)),
         "Tab lands on the next stop"
     );
@@ -2033,7 +2093,7 @@ fn a_track_press_held_keeps_paging_until_the_thumb_reaches_the_pointer() {
     let mut h = Harness::new(160, 60, PageId::Scrolling);
     let list_area = {
         let id = junie_tui::core::id::WidgetId::of("scrolling").sub("list");
-        h.app.hits.area_of(id).unwrap()
+        h.app.shell.hits.area_of(id).unwrap()
     };
     let (sx, sy) = (list_area.right() - 1, list_area.bottom() - 1);
     h.mouse(MouseKind::Down, sx, sy);

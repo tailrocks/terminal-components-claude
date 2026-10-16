@@ -2,6 +2,7 @@
 //! rebuild the widgets through their builders, hints name only keys that
 //! work, lazy nodes load, and the States rows draw.
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -21,7 +22,7 @@ fn lists(h: &Harness) -> &ListsPage {
 
 fn hint_keys(h: &Harness) -> String {
     h.app.pages[h.app.page.index()]
-        .hints(h.app.focus.current())
+        .hints(h.app.shell.focus.current())
         .iter()
         .map(|(k, _)| *k)
         .collect::<Vec<_>>()
@@ -37,7 +38,7 @@ fn single_cursor(h: &Harness) -> usize {
 #[test]
 fn list_hints_name_ends_keys_that_work_under_both_profiles() {
     let mut h = Harness::new(120, 40, PageId::Lists);
-    h.app.focus.focus(SINGLE);
+    h.app.shell.focus.focus(SINGLE);
     h.draw();
     let keys = hint_keys(&h);
     assert!(keys.contains("Home End"), "{keys}");
@@ -49,7 +50,7 @@ fn list_hints_name_ends_keys_that_work_under_both_profiles() {
     // vim keys without type-ahead: g and G jump, and the hint says so
     h.opt("lists.nav=vim");
     h.opt("lists.type_ahead=off");
-    h.app.focus.focus(SINGLE);
+    h.app.shell.focus.focus(SINGLE);
     h.draw();
     let keys = hint_keys(&h);
     assert!(keys.contains("g G"), "{keys}");
@@ -79,7 +80,7 @@ fn list_options_rebuild_the_lists_through_their_builders() {
     // a custom key map: t toggles every file
     h.opt("lists.keymap=custom");
     assert!(h.text().contains("t ListCmd::ToggleAll"));
-    h.app.focus.focus(MULTI);
+    h.app.shell.focus.focus(MULTI);
     h.key(KeyCode::Char('t'));
     assert!(h.text().contains("10 selected"), "{}", h.text());
     // the empty list: text, or a full empty state with a hint
@@ -119,7 +120,7 @@ fn a_lazy_node_loads_its_children() {
     let mut h = Harness::new(160, 50, PageId::Trees);
     let (x, y) = h.find("orders-db").unwrap();
     h.click(x, y);
-    assert!(h.app.focus.is(CONNECTIONS));
+    assert!(h.app.shell.focus.is(CONNECTIONS));
     assert!(h.text().contains("Expand(orders-db)"), "{}", h.text());
     assert!(h.text().contains("loading…"));
     for _ in 0..6 {
@@ -138,7 +139,7 @@ fn tree_options_rebuild_the_trees_through_their_builders() {
     assert!(h.text().contains("branch_activate Activate"));
     h.opt("trees.keymap=custom");
     assert!(h.text().contains("e TreeCmd::ExpandAll"));
-    h.app.focus.focus(crate::pages::trees::PROJECT);
+    h.app.shell.focus.focus(crate::pages::trees::PROJECT);
     h.draw();
     let keys = hint_keys(&h);
     assert!(keys.contains('e') && !keys.contains('*'), "{keys}");

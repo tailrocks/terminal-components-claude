@@ -1,6 +1,7 @@
 //! Mouse-only navigation in the showcase (docs/audits/design-review-2026-10/mouse.md):
 //! quitting and leaving every dialog work by pointer alone.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -60,6 +61,7 @@ impl Harness {
 
     fn area_of(&self, id: junie_tui::core::id::WidgetId) -> ratatui::layout::Rect {
         self.app
+            .shell
             .hits
             .area_of(id)
             .unwrap_or_else(|| panic!("{id:?} not on screen:\n{}", self.text()))
@@ -73,11 +75,11 @@ fn the_brand_asks_and_quits_by_mouse() {
     let brand = h.area_of(HEADER_BRAND);
     h.click(brand.x, brand.y);
     assert!(h.text().contains("Quit the showcase?"), "{}", h.text());
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     let ok = h.area_of(crate::app::QUIT_DIALOG.sub("ok"));
     let (x, y) = (ok.x + 1, ok.y);
     h.click(x, y);
-    assert!(h.app.quit, "{}", h.text());
+    assert!(h.app.shell.quit, "{}", h.text());
 }
 
 // mouse #13: the help dialog closes by the × in its frame

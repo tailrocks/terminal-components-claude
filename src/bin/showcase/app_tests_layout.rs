@@ -79,7 +79,10 @@ fn splits_zoom_hides_the_other_pane_and_its_seam() {
     assert!(h.find("Output").is_some() && h.find("Editor").is_some());
     h.opt("splitsstacks.maximized=first");
     assert!(h.find("─ Output").is_none(), "{}", h.text());
-    assert!(h.app.hits.area_of(inner).is_none(), "no seam while zoomed");
+    assert!(
+        h.app.shell.hits.area_of(inner).is_none(),
+        "no seam while zoomed"
+    );
     h.opt("splitsstacks.maximized=none");
     let (x, y) = h.at("Zoom output");
     h.click(x + 1, y);
@@ -117,6 +120,7 @@ fn stack_children_shrink_then_scroll_or_clip() {
     let stack = WidgetId::of("splitsstacks").sub("stack");
     assert!(
         h.app
+            .shell
             .hits
             .area_of(junie_tui::widgets::scrollbar::id_for(stack))
             .is_some()
@@ -131,6 +135,7 @@ fn stack_children_shrink_then_scroll_or_clip() {
     assert!(h.text().contains("▸ Connection · 3 rows"));
     assert!(
         h.app
+            .shell
             .hits
             .area_of(junie_tui::widgets::scrollbar::id_for(stack))
             .is_none(),

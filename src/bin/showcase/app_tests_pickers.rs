@@ -2,6 +2,7 @@
 //! remote fetch's loading, error and retry; the command palette's disabled
 //! rows; the live tab switcher; the options; the States grid.
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
