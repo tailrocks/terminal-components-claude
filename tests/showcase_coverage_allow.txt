@@ -195,26 +195,6 @@ ui::ctx::Backdrop::keep_bottom | Popups & tooltips page | SC19
 ui::ctx::Backdrop::keep_top | Popups & tooltips page | SC19
 
 # ui::layout
-ui::layout::SplitDir | Splits & stacks page | SC23
-ui::layout::SplitDir::Horizontal | Splits & stacks page | SC23
-ui::layout::SplitDir::Vertical | Splits & stacks page | SC23
-ui::layout::Maximized | Splits & stacks page | SC23
-ui::layout::Maximized::None | Splits & stacks page | SC23
-ui::layout::Maximized::First | Splits & stacks page | SC23
-ui::layout::Maximized::Second | Splits & stacks page | SC23
-ui::layout::Split | Splits & stacks page | SC23
-ui::layout::Overflow | Splits & stacks page | SC23
-ui::layout::Overflow::Scroll | Splits & stacks page | SC23
-ui::layout::Overflow::Clip | Splits & stacks page | SC23
-ui::layout::StackChild | Splits & stacks page | SC23
-ui::layout::Stack | Splits & stacks page | SC23
-ui::layout::StackScroll | Splits & stacks page | SC23
-ui::layout::StackLayout | Splits & stacks page | SC23
-ui::layout::Stack::gap | Splits & stacks page | SC23
-ui::layout::Stack::overflow | Splits & stacks page | SC23
-ui::layout::Stack::min_child_rows | Splits & stacks page | SC23
-ui::layout::Stack::scrollbar_gap | Splits & stacks page | SC23
-ui::layout::Stack::track_click | Splits & stacks page | SC23
 
 # ui::leave
 ui::leave::Stakes | Help & keys and Quit & leave pages | SC6
@@ -681,11 +661,6 @@ widgets::select::SelectAction | widget actions: the Inspector State log of widge
 widgets::select::SelectAction::Changed | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::splitter
-widgets::splitter::SeamDoubleClick | Splits & stacks page | SC23
-widgets::splitter::SeamDoubleClick::Reset | Splits & stacks page | SC23
-widgets::splitter::SeamDoubleClick::Ignore | Splits & stacks page | SC23
-widgets::splitter::Splitter::hit_pad | Splits & stacks page | SC23
-widgets::splitter::Splitter::double_click | Splits & stacks page | SC23
 
 # widgets::statusbar
 widgets::statusbar::StatusItem::tooltip | shown only while the pointer rests on a status item; Chrome wires one on PR #482, the hover capture is a tooltip scenario | SC19

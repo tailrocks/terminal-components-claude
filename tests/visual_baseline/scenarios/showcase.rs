@@ -109,7 +109,14 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/flows/progress/measured-labels", Bin::Showcase, &["--page", "progress", "--motion", "paused", "--opt", "progress.label_width=measured", "--opt", "progress.reserve_value=off"], BOOT).sends(&["wait:Warm caches"]).pending(),
     Root::new("showcase/planned/meters", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
     Root::new("showcase/planned/notices", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
-    Root::new("showcase/planned/splitsstacks", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["wait:arrives with SC23"]).pending(),
+    // SC23 filled Splits & stacks: the page, its sections, zoom, stacked
+    // panes, a scrolling stack and the seam under the pointer
+    Root::new("showcase/pages/splitsstacks", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["wait:Three panes"]).pending(),
+    Root::new("showcase/sections/splitsstacks-options", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["tab", "2", "wait:Seam double-click"]).pending(),
+    Root::new("showcase/sections/splitsstacks-states", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["tab", "3", "wait:Horizontal seam"]).pending(),
+    Root::new("showcase/flows/splitsstacks/zoomed", Bin::Showcase, &["--page", "splitsstacks", "--opt", "splitsstacks.maximized=second"], BOOT).sends(&["wait:output zoomed"]).pending(),
+    Root::new("showcase/flows/splitsstacks/vertical", Bin::Showcase, &["--page", "splitsstacks", "--opt", "splitsstacks.dir=vertical"], BOOT).sends(&["wait:Three panes"]).pending(),
+    Root::new("showcase/flows/splitsstacks/stack-scrolls", Bin::Showcase, &["--page", "splitsstacks", "--opt", "splitsstacks.min_child_rows=3"], BOOT).sends(&["wait:not in view"]).pending(),
     Root::new("showcase/planned/masterdetail", Bin::Showcase, &["--page", "masterdetail"], BOOT).sends(&["wait:arrives with SC38"]).pending(),
     Root::new("showcase/planned/panetree", Bin::Showcase, &["--page", "panetree"], BOOT).sends(&["wait:arrives with SC45"]).pending(),
     Root::new("showcase/pages/textutilities", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["wait:TextBuffer"]).pending(),
