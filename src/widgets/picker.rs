@@ -111,6 +111,9 @@ pub struct Picker {
     /// How a cut label or detail reveals its full text on hover (see
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
+    /// Which dismissals close the picker without choosing. Default
+    /// [`Dismiss::LIGHT`]: Esc and a click outside both cancel.
+    pub dismiss: crate::ui::popup::Dismiss,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -152,7 +155,19 @@ impl Picker {
             cursor_style: CursorStyle::default(),
             cursor_dirty: true,
             reveal: None,
+            dismiss: crate::ui::popup::Dismiss::LIGHT,
         }
+    }
+
+    pub fn dismiss(mut self, dismiss: crate::ui::popup::Dismiss) -> Self {
+        self.dismiss = dismiss;
+        self
+    }
+
+    /// A click outside the picker: cancels it when its [`Self::dismiss`]
+    /// policy allows.
+    pub fn on_click_outside(&mut self) -> Option<PickerEvent> {
+        self.dismiss.outside_click.then_some(PickerEvent::Cancelled)
     }
 
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
@@ -292,6 +307,9 @@ impl Picker {
                 if self.searchable && !self.query.is_empty() {
                     self.query.clear();
                     return (Outcome::Changed, Some(PickerEvent::QueryChanged));
+                }
+                if !self.dismiss.escape {
+                    return (Outcome::Consumed, None);
                 }
                 (Outcome::Changed, Some(PickerEvent::Cancelled))
             }
@@ -720,6 +738,23 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+
+    #[test]
+    fn dismissal_follows_the_picker_policy() {
+        use crate::ui::popup::Dismiss;
+        let esc = Key {
+            code: KeyCode::Esc,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut p = picker(3);
+        assert_eq!(p.on_key(&esc).1, Some(PickerEvent::Cancelled));
+        assert_eq!(p.on_click_outside(), Some(PickerEvent::Cancelled));
+        let mut form = picker(3).dismiss(Dismiss::ESCAPE);
+        assert_eq!(form.on_click_outside(), None);
+        assert_eq!(form.on_key(&esc).1, Some(PickerEvent::Cancelled));
+        let mut never = picker(3).dismiss(Dismiss::NEVER);
+        assert_eq!(never.on_key(&esc), (Outcome::Consumed, None));
+    }
 
     fn picker(n: usize) -> Picker {
         let mut p = Picker::new(WidgetId::of("p"), "Palette");

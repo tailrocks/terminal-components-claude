@@ -59,10 +59,24 @@ impl FocusRing {
     }
 }
 
+/// Where focus goes when the focused control disappears (a dialog
+/// deleted the focused row, a button vanished with its panel).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FocusFallback {
+    /// The control just before where the lost one sat in the ring (or the
+    /// first, when it was first): focus stays in the same neighbourhood.
+    #[default]
+    Nearest,
+    /// The first control of the ring.
+    First,
+}
+
 /// Focus state shared by the whole application.
 #[derive(Debug, Default, Clone)]
 pub struct Focus {
     current: Option<WidgetId>,
+    /// Ring position of `current` the last time it was validated.
+    last_index: Option<usize>,
 }
 
 impl Focus {
@@ -90,11 +104,32 @@ impl Focus {
         self.current = ring.prev(self.current);
     }
 
-    /// Make sure focus points at something reachable in this ring.
+    /// Make sure focus points at something reachable in this ring, falling
+    /// back to the ring's first control.
     pub fn ensure_valid(&mut self, ring: &FocusRing) {
-        if !self.current.is_some_and(|c| ring.contains(c)) {
-            self.current = ring.first();
+        self.ensure_valid_with(ring, FocusFallback::First);
+    }
+
+    /// Make sure focus points at something reachable in this ring, falling
+    /// back per `fallback` when the focused control is gone.
+    pub fn ensure_valid_with(&mut self, ring: &FocusRing, fallback: FocusFallback) {
+        let reach = ring.reachable();
+        if let Some(i) = self
+            .current
+            .and_then(|c| reach.iter().position(|&id| id == c))
+        {
+            self.last_index = Some(i);
+            return;
         }
+        self.current = match (fallback, self.last_index) {
+            (FocusFallback::Nearest, Some(i)) if !reach.is_empty() => {
+                Some(reach[i.saturating_sub(1).min(reach.len() - 1)])
+            }
+            _ => ring.first(),
+        };
+        self.last_index = self
+            .current
+            .and_then(|c| reach.iter().position(|&id| id == c));
     }
 }
 
@@ -139,6 +174,21 @@ mod tests {
         f.next(&r);
         assert_eq!(f.current(), Some(WidgetId::of("ok")));
         assert!(!r.contains(WidgetId::of("a")));
+    }
+
+    #[test]
+    fn a_vanished_focus_falls_back_to_its_nearest_neighbour() {
+        let mut f = Focus::default();
+        f.focus(WidgetId::of("c"));
+        f.ensure_valid_with(&ring(&["a", "b", "c", "d"]), FocusFallback::Nearest);
+        // "c" was deleted: focus lands on the control before it, not on "a"
+        f.ensure_valid_with(&ring(&["a", "b", "d"]), FocusFallback::Nearest);
+        assert_eq!(f.current(), Some(WidgetId::of("b")));
+        let mut first = Focus::default();
+        first.focus(WidgetId::of("c"));
+        first.ensure_valid_with(&ring(&["a", "b", "c"]), FocusFallback::First);
+        first.ensure_valid_with(&ring(&["a", "b"]), FocusFallback::First);
+        assert_eq!(first.current(), Some(WidgetId::of("a")));
     }
 
     #[test]
