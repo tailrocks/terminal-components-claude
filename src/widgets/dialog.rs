@@ -1037,7 +1037,7 @@ impl Dialog {
         let panel = Panel::framed(None).focused(true);
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
-            .border_type(ratatui::widgets::BorderType::Rounded)
+            .border_set(t.glyphs.border)
             .border_style(t.border(true).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
         let _ = panel;

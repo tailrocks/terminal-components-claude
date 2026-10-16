@@ -34,11 +34,15 @@ pub struct PickerItem {
 }
 
 impl PickerItem {
+    /// The glyph of a new item; it draws as
+    /// [`Glyphs::bullet`](crate::theme::Glyphs::bullet).
+    pub const DEFAULT_GLYPH: &'static str = "·";
+
     pub fn new(label: impl Into<String>) -> Self {
         Self {
             label: label.into(),
             detail: String::new(),
-            glyph: "·",
+            glyph: Self::DEFAULT_GLYPH,
             group: "",
             tag: None,
             matched: vec![],
@@ -650,7 +654,7 @@ impl Picker {
         fill(buf, area, Style::new().bg(bg));
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
-            .border_type(ratatui::widgets::BorderType::Rounded)
+            .border_set(t.glyphs.border)
             .border_style(t.border(true).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
         ctx.hits.register(self.id, area);
@@ -835,7 +839,11 @@ impl Picker {
             buf.set_string(
                 row.x + 1,
                 ry,
-                it.glyph,
+                if it.glyph == PickerItem::DEFAULT_GLYPH {
+                    t.glyphs.bullet
+                } else {
+                    it.glyph
+                },
                 st.fg(if s.focused {
                     t.text_primary
                 } else {

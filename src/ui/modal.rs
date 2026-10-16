@@ -313,7 +313,7 @@ impl<'a> Frame<'a> {
         fill(buf, area, Style::new().bg(bg));
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
-            .border_type(ratatui::widgets::BorderType::Rounded)
+            .border_set(t.glyphs.border)
             .border_style(t.border(true).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
         if let Some(title) = self.title

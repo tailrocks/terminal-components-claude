@@ -45,10 +45,17 @@ pub enum TriState {
 impl TriState {
     /// The checkbox glyph for this state: `[ ]`, `[–]` or `[✓]`.
     pub fn glyph(self) -> &'static str {
+        self.glyph_in(&crate::theme::Glyphs::UNICODE)
+    }
+
+    /// The checkbox glyph for this state from `g`
+    /// ([`Glyphs::check_off`](crate::theme::Glyphs::check_off),
+    /// `check_mixed` or `check_on`).
+    pub fn glyph_in(self, g: &crate::theme::Glyphs) -> &'static str {
         match self {
-            TriState::None => "[ ]",
-            TriState::Mixed => "[–]",
-            TriState::All => "[✓]",
+            TriState::None => g.check_off,
+            TriState::Mixed => g.check_mixed,
+            TriState::All => g.check_on,
         }
     }
 }
