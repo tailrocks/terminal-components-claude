@@ -4,9 +4,10 @@
 //! the read-only info dialog with copyable rows, and the help overlay.
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
+use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
@@ -23,6 +24,8 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::onepassword::OpReference;
 use crate::sim::onepassword::{FieldKind, OpError, SimOnePassword};
 use crate::sim::world::{FsEntry, World};
+
+use super::ModalResult;
 use junie_tui::core::scroll::Scrollable;
 
 /// Dim the page (footer excluded), start the modal barrier and draw an
@@ -78,6 +81,9 @@ pub struct FileBrowser {
     pub dirs_only: bool,
     pub result: Option<BrowserResult>,
     pub area: Rect,
+    /// The flow's progress line above the path (`✓ Source · ...`), set by
+    /// the flow that opens the browser.
+    pub stepper: Option<String>,
 }
 
 impl FileBrowser {
@@ -107,6 +113,7 @@ impl FileBrowser {
             dirs_only,
             result: None,
             area: Rect::ZERO,
+            stepper: None,
         };
         b.load(w);
         b
@@ -431,13 +438,7 @@ impl FileBrowser {
         Outcome::Ignored
     }
 
-    pub fn render(
-        &mut self,
-        screen: Rect,
-        buf: &mut Buffer,
-        ctx: &mut RenderCtx,
-        stepper: Option<&str>,
-    ) {
+    pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let (w, h) = if screen.width < 100 {
             (
                 screen.width.saturating_sub(4).min(76),
@@ -451,7 +452,7 @@ impl FileBrowser {
         let t = ctx.theme;
         let bg = t.surface_elevated;
         let mut y = inner.y;
-        if let Some(s) = stepper {
+        if let Some(s) = &self.stepper {
             buf.set_string(
                 inner.x,
                 y,
@@ -527,6 +528,67 @@ impl FileBrowser {
     }
 }
 
+/// The browser on the app's layer stack: Esc, Cancel or a dismissal its
+/// policy allows report `Cancelled`; Choose reports the path (or URL).
+impl Layer<ModalResult, World> for FileBrowser {
+    fn spec(&self) -> LayerSpec {
+        LayerSpec::modal(self.dismiss).initial_focus(self.initial_focus())
+    }
+    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &World) {
+        FileBrowser::render(self, screen, buf, ctx);
+    }
+    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, World>) -> Outcome {
+        FileBrowser::on_key(self, key, cx.focus, cx.ring, cx.app).or(Outcome::Consumed)
+    }
+    fn on_click_count(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        count: u8,
+        cx: &mut LayerCx<'_, World>,
+    ) -> Outcome {
+        FileBrowser::on_click(self, id, pos, count, cx.focus, cx.app)
+    }
+    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, World>) -> Outcome {
+        FileBrowser::on_click(self, id, pos, 1, cx.focus, cx.app)
+    }
+    fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        FileBrowser::on_press(self, id, pos, count)
+    }
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        FileBrowser::on_drag(self, pressed, pos)
+    }
+    fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
+        FileBrowser::on_wheel(self, delta)
+    }
+    fn on_paste(&mut self, text: &str) -> Outcome {
+        FileBrowser::on_paste(self, text)
+    }
+    fn on_blur(&mut self, change: FocusChange) -> Outcome {
+        junie_tui::core::focus::forward_blur(change, &mut [&mut self.path])
+    }
+    fn on_tick(&mut self, w: &World) -> Outcome {
+        self.tick(w.now_ms())
+    }
+    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
+        vec![
+            hint("Enter", "Open"),
+            hint("Space", "Choose"),
+            hint("g", "Git URL"),
+            hint("Tab", "Next"),
+            hint("Esc", "Cancel"),
+        ]
+    }
+    fn on_dismiss(&mut self, _: DismissReason) {
+        self.result = Some(BrowserResult::Cancelled);
+    }
+    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
+        self.result
+            .take()
+            .map(|r| LayerOut::Close(ModalResult::Browser(r)))
+    }
+}
+
 // ------------------------------------------------------- library dialogs
 
 // The choice, form and info dialogs moved into the library; the paths
@@ -558,6 +620,9 @@ pub struct OpFlow {
     pub item: Option<(String, String)>,
     pub picker: Picker,
     pub result: Option<Option<OpReference>>,
+    /// Closed by a dismissal (an outside click): the owner hears
+    /// `Cancelled`, not a finished chain.
+    pub dismissed: bool,
     pub loading_until: Option<i64>,
     pub last_error: Option<OpError>,
     /// Restricts the field stage to concealed fields.
@@ -574,6 +639,7 @@ impl OpFlow {
             item: None,
             picker: Picker::new(id.sub("picker"), "1Password"),
             result: None,
+            dismissed: false,
             loading_until: None,
             last_error: None,
             concealed_only: true,
@@ -943,6 +1009,43 @@ impl OpFlow {
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.picker.draw(screen, buf, ctx);
+    }
+}
+
+/// The 1Password chain on the app's layer stack: it reads the simulated
+/// service and the clock from the world.
+impl Layer<ModalResult, World> for OpFlow {
+    fn spec(&self) -> LayerSpec {
+        LayerSpec::modal(self.dismiss).initial_focus(self.picker.id)
+    }
+    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &World) {
+        OpFlow::render(self, screen, buf, ctx);
+    }
+    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, World>) -> Outcome {
+        OpFlow::on_key(self, key, cx.app.now_ms(), &cx.app.op).or(Outcome::Consumed)
+    }
+    fn on_click(&mut self, id: WidgetId, _: Position, cx: &mut LayerCx<'_, World>) -> Outcome {
+        OpFlow::on_click(self, id, cx.app.now_ms(), &cx.app.op)
+    }
+    fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
+        OpFlow::on_wheel(self, delta)
+    }
+    fn on_tick(&mut self, w: &World) -> Outcome {
+        self.tick(w.now_ms(), &w.op)
+    }
+    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
+        OpFlow::hints(self)
+    }
+    fn on_dismiss(&mut self, _: DismissReason) {
+        self.dismissed = true;
+    }
+    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
+        if std::mem::take(&mut self.dismissed) {
+            return Some(LayerOut::Close(ModalResult::Cancelled));
+        }
+        self.result
+            .take()
+            .map(|r| LayerOut::Close(ModalResult::Op(r)))
     }
 }
 
