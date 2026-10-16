@@ -220,3 +220,8 @@ Left for later, with reasons:
 - #5: a page whose own crumb has two parts (`Disk › Usage`) is one link in the trail, because it is one page on the stack.
 - #4: `ScrollState::follow` is opt-in for callers that keep the cursor in view from render. The library lists, trees and tables already keep their viewport on wheel; no other render-time `ensure_visible` callers were found in holla or showcase.
 - #11, #12, #19, #20, #25–#30 and #33–#38: see the widget-level pass. #1–#3, #9, #10, #14–#18, #21–#23, #31, #32 and #39 belong to the router, text-editing and selection work, not this pass, and stay open until it records them.
+
+## Found by the showcase Overlays pages (SC17–SC20), for S6
+
+- A page-hosted `InfoDialog` or `HelpOverlay` (both `Dismiss::LIGHT`) does not close on a click outside it: the showcase Dialog kinds page opens them on its layer host, which gives every click to the top layer, but neither modal frame registers a light-dismiss backdrop (only `Picker` does since S6's `79b40b343`), so the click lands on nothing under the modal barrier. `FormDialog` and `ChoiceDialog` default to `Dismiss::ESCAPE`, so they rightly stay. Fix in S6: `modal::Frame` registers `popup::backdrop(owner)` when its overlay's policy allows an outside click, and the frame's owner resolves it as `on_click_outside`, as `Picker` does. Demonstrated, not fixed here (S6 owns pointer routing).
+- The showcase Dialogs page's dialog is the shell's own (`App::dialog`): its outside click already dismisses through the shell (`modal_traps_focus_and_restores_it`), so the page needs nothing.
