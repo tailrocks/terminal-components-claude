@@ -540,7 +540,10 @@ impl FormDialog {
     /// a select's cursor follows the pointer over its options.
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if scrollbar::is_bar_of(pressed, self.id) {
-            return self.on_bar_drag(pressed, pos);
+            return match self.pane().bar_of(pressed) {
+                Some(bar) => self.bar_input(&bar, pos, false).outcome(),
+                None => Outcome::Consumed,
+            };
         }
         if let Some(s) = self.select_owning(pressed) {
             return s.on_drag(pressed, pos);
@@ -591,7 +594,7 @@ impl FormDialog {
         focus: &mut Focus,
     ) -> Outcome {
         if scrollbar::is_bar_of(id, self.id) {
-            return self.on_scrollbar(pos);
+            return self.bar_press(pos).outcome().or(Outcome::Consumed);
         }
         for f in self.fields.iter_mut() {
             let name = f.name.clone();

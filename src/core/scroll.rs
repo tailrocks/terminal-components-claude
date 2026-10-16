@@ -8,7 +8,6 @@
 
 use ratatui::layout::{Position, Rect};
 
-use crate::core::event::Outcome;
 use crate::core::hit::{Axis, Bar};
 use crate::core::id::WidgetId;
 use crate::core::response::Response;
@@ -790,6 +789,23 @@ impl ScrollPane {
         }
     }
 
+    /// The [`Bar`] of this pane with hit id `bar_id` (its axis and the
+    /// track drawn this frame), for a press or drag that names its bar by
+    /// id ([`Scrollable::bar_input`]).
+    pub fn bar_of(&self, bar_id: WidgetId) -> Option<Bar> {
+        let axis = self.axis_of(bar_id)?;
+        let track = match axis {
+            Axis::Vertical => self.v_track,
+            Axis::Horizontal => self.h_track,
+        };
+        Some(Bar {
+            id: bar_id,
+            owner: self.owner?,
+            axis,
+            track,
+        })
+    }
+
     /// A press (`pressed`) or drag on a [`Bar`] the pointer layer grabbed:
     /// the bar names its axis, so nothing is inferred.
     pub fn bar(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
@@ -834,9 +850,6 @@ fn changed(moved: bool) -> Response<()> {
 /// widget only hands out its pane and, when scrolling has side effects
 /// (a log's tail follow, a reading position), reacts in
 /// [`Self::after_scroll`].
-///
-/// The `on_*` methods returning [`Outcome`] are adapters for routers not
-/// yet on `Response`; they go with the per-widget handlers (S6, S15).
 pub trait Scrollable {
     /// The widget's pane.
     fn pane(&mut self) -> &mut ScrollPane;
@@ -886,39 +899,6 @@ pub trait Scrollable {
         let r = self.pane().bar(bar, pos, pressed);
         settle(self, bar.axis, r)
     }
-
-    /// Adapter: [`Self::wheel`] vertically.
-    fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.wheel(Axis::Vertical, delta).outcome()
-    }
-
-    /// Adapter: [`Self::wheel`] horizontally.
-    fn on_wheel_h(&mut self, delta: i32) -> Outcome {
-        self.wheel(Axis::Horizontal, delta).outcome()
-    }
-
-    /// Adapter: [`Self::bar_press`]. The router sent the press to one of
-    /// this widget's bars, so a press beside both tracks is still consumed.
-    fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        match self.bar_press(pos).outcome() {
-            Outcome::Ignored => Outcome::Consumed,
-            o => o,
-        }
-    }
-
-    /// Adapter: [`Self::bar_drag`].
-    fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        self.bar_drag(pos).outcome()
-    }
-
-    /// Adapter: a drag while `pressed` (one of this widget's bar ids) is
-    /// held. The axis follows the id, so a drag works whether or not the
-    /// press was routed first.
-    fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        let axis = self.pane().axis_of(pressed).unwrap_or(Axis::Vertical);
-        let r = self.pane().drag_on(axis, pos);
-        settle(self, axis, r).outcome()
-    }
 }
 
 /// Run the widget's [`Scrollable::after_scroll`] and fold what it changed
@@ -934,6 +914,7 @@ fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::event::Outcome;
 
     /// A pane over 100 rows in a 10-row view and 40 cells in a 10-cell
     /// view, with both tracks drawn: vertical at column 10, rows 0..10;
@@ -1076,26 +1057,43 @@ mod tests {
         log.pane.jump_end();
         // at the end the wheel cannot move, but the follow switching on is
         // a change
-        assert_eq!(log.on_wheel(1), Outcome::Changed);
+        assert_eq!(log.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         assert!(log.follow);
-        assert_eq!(log.on_wheel(1), Outcome::Consumed, "nothing changed");
-        assert_eq!(log.on_wheel(-1), Outcome::Changed);
+        assert_eq!(
+            log.wheel(Axis::Vertical, 1).outcome(),
+            Outcome::Consumed,
+            "nothing changed"
+        );
+        assert_eq!(log.wheel(Axis::Vertical, -1).outcome(), Outcome::Changed);
         assert!(!log.follow);
         // the widget's own wheel handling goes first
         log.first = true;
-        assert_eq!(log.on_wheel(-5), Outcome::Consumed);
+        assert_eq!(log.wheel(Axis::Vertical, -5).outcome(), Outcome::Consumed);
         assert_eq!(log.pane.offset, 89);
         // the bar adapters reach the same pane
         log.pane.scroll_to(80);
-        assert_eq!(log.on_scrollbar(Position::new(10, 9)), Outcome::Changed);
+        assert_eq!(
+            log.bar_press(Position::new(10, 9))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Changed
+        );
         assert!(log.follow, "a page to the end follows again");
         assert_eq!(
-            log.on_scrollbar(Position::new(3, 3)),
+            log.bar_press(Position::new(3, 3))
+                .outcome()
+                .or(Outcome::Consumed),
             Outcome::Consumed,
             "routed to the bar, so consumed"
         );
         let id = WidgetId::of("w").sub("hscrollbar");
-        assert_eq!(log.on_bar_drag(id, Position::new(9, 10)), Outcome::Changed);
+        assert_eq!(
+            match log.pane().bar_of(id) {
+                Some(bar) => log.bar_input(&bar, Position::new(9, 10), false).outcome(),
+                None => Outcome::Consumed,
+            },
+            Outcome::Changed
+        );
         assert!(log.pane.h.at_end());
     }
 

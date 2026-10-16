@@ -1385,16 +1385,21 @@ mod tests {
         let track = editor.scroll.v_track();
         assert_eq!(track.height, 5, "the track is the body, not the status row");
         assert_eq!(
-            editor.on_scrollbar_drag(Position::new(track.x, track.bottom() - 1)),
+            editor
+                .bar_drag(Position::new(track.x, track.bottom() - 1))
+                .outcome(),
             Outcome::Changed
         );
         assert_eq!(editor.scroll.offset, editor.scroll.max_offset());
         assert_eq!(
-            editor.on_scrollbar_drag(Position::new(track.x, track.y)),
+            editor.bar_drag(Position::new(track.x, track.y)).outcome(),
             Outcome::Changed
         );
         assert_eq!(editor.scroll.offset, 0);
-        assert_eq!(editor.on_wheel(-1), Outcome::Consumed);
+        assert_eq!(
+            editor.wheel(Axis::Vertical, -1).outcome(),
+            Outcome::Consumed
+        );
     }
 
     /// Long lines stop a blank column short of the scrollbar instead of
@@ -1589,7 +1594,7 @@ mod tests {
         let mut editor = CodeEditor::new(WidgetId::of("test.editor"), &"line\n".repeat(30));
         editor.begin_edit();
         render(&mut editor, 40, 8);
-        editor.on_wheel(3);
+        editor.wheel(Axis::Vertical, 3).outcome();
         let offset = editor.scroll.offset;
         assert!(offset > 0);
         assert_eq!(render(&mut editor, 40, 8), None);
@@ -1629,7 +1634,10 @@ mod tests {
         assert!(editor.owns(scrollbar::h_id_for(editor.id)));
         let start = thumb(&buf).unwrap();
 
-        assert_eq!(editor.on_wheel_h(1), Outcome::Changed);
+        assert_eq!(
+            editor.wheel(Axis::Horizontal, 1).outcome(),
+            Outcome::Changed
+        );
         assert_eq!(editor.hscroll, HScroll::default().step);
         let (buf, _) = draw_buf(&mut editor, 40, 8);
         assert!(thumb(&buf).unwrap() > start, "the thumb follows");
@@ -1645,11 +1653,14 @@ mod tests {
         let (buf, _) = draw_buf(&mut editor, 40, 8);
         let grab = thumb(&buf).unwrap();
         assert_eq!(
-            editor.on_scrollbar(Position::new(grab, y)),
+            editor
+                .bar_press(Position::new(grab, y))
+                .outcome()
+                .or(Outcome::Consumed),
             Outcome::Consumed
         );
         assert_eq!(
-            editor.on_scrollbar_drag(Position::new(0, y)),
+            editor.bar_drag(Position::new(0, y)).outcome(),
             Outcome::Changed
         );
         assert_eq!(editor.hscroll, 0);
@@ -1658,7 +1669,7 @@ mod tests {
         let mut off = CodeEditor::new(WidgetId::of("test.off"), &text).horizontal(HScroll::off());
         let (buf, _) = draw_buf(&mut off, 40, 8);
         assert!(thumb(&buf).is_none());
-        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
     }
 
     #[test]
@@ -1666,7 +1677,7 @@ mod tests {
         let mut editor = CodeEditor::new(WidgetId::of("test.editor"), &"x".repeat(100));
         editor.begin_edit();
         render(&mut editor, 40, 8);
-        editor.on_wheel_h(3);
+        editor.wheel(Axis::Horizontal, 3).outcome();
         assert_eq!(render(&mut editor, 40, 8), None);
         assert_eq!(editor.cursor_cell(), None);
     }
@@ -1709,7 +1720,7 @@ mod tests {
         let mut editor = CodeEditor::new(WidgetId::of("test.editor"), &"line\n".repeat(30));
         editor.begin_edit();
         render(&mut editor, 40, 8);
-        editor.on_wheel(3);
+        editor.wheel(Axis::Vertical, 3).outcome();
         render(&mut editor, 40, 8);
         assert!(editor.scroll.offset > 0);
         assert!(render(&mut editor, 20, 4).is_some());

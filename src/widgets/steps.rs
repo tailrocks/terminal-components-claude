@@ -462,7 +462,10 @@ mod track_click_tests {
         ctx.track_click = app;
         r.render(area, &mut buf, &mut ctx, theme.surface);
         let bottom = Position::new(r.scroll.v_track().x, r.scroll.v_track().bottom() - 1);
-        assert_eq!(r.on_scrollbar(bottom), Outcome::Changed);
+        assert_eq!(
+            r.bar_press(bottom).outcome().or(Outcome::Consumed),
+            Outcome::Changed
+        );
         r.scroll.offset
     }
 

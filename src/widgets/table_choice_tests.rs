@@ -349,8 +349,8 @@ fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {
         buf
     };
     narrow(&mut t);
-    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
-    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
+    assert_eq!(t.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
+    assert_eq!(t.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
     narrow(&mut t);
     assert_eq!(t.scroll.h.offset, 2, "the Env column is scrolled away");
     t.on_key(&key(KeyCode::Enter));

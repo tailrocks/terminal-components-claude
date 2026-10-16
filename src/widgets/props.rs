@@ -699,7 +699,7 @@ mod reveal_scroll_tests {
         assert_eq!(l.on_key(&right).0, Outcome::Changed);
         frame(&mut l);
         let offset = l.scroll.offset;
-        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         assert_eq!(
             l.scroll.offset, offset,
             "the reveal scrolled, not the sheet"
@@ -802,7 +802,7 @@ mod reveal_scroll_tests {
         assert!(rows[2].contains('↓'), "capped at 3 rows: {rows:#?}");
         assert!(rows[3].contains("row 0"), "{rows:#?}");
         let offset = l.scroll.offset;
-        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         let rows = rows_of(&mut l, 20, 6, focus);
         assert!(rows[0].contains('↑'), "{rows:#?}");
         assert_eq!(l.scroll.offset, offset, "the sheet itself did not move");
@@ -964,7 +964,12 @@ mod track_click_tests {
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         ctx.track_click = app;
         l.render(area, &mut buf, &mut ctx, theme.surface);
-        assert_eq!(l.on_scrollbar(Position::new(19, 9)), Outcome::Changed);
+        assert_eq!(
+            l.bar_press(Position::new(19, 9))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Changed
+        );
         l.scroll.offset
     }
 

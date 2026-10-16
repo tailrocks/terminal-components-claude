@@ -718,7 +718,7 @@ mod tests {
         v.render(area, &mut buf, &mut ctx, theme.canvas);
         let row0: String = (0..60).map(|x| buf[(x, 0)].symbol().to_owned()).collect();
         assert!(row0.starts_with("M src/settlement/retry.rs"));
-        assert_eq!(v.on_wheel(2), Outcome::Changed);
+        assert_eq!(v.wheel(Axis::Vertical, 2).outcome(), Outcome::Changed);
         assert_eq!(v.term.scroll.offset, 2);
         v.render(area, &mut buf, &mut ctx, theme.canvas);
         assert_eq!(v.term.scroll.offset, 2, "render must not undo the wheel");
@@ -806,7 +806,7 @@ mod tests {
             view.render(area, &mut buf, &mut ctx, theme.canvas);
             assert_eq!(view.laid_mode, mode);
             if mode == DiffMode::Review {
-                view.on_wheel(1);
+                view.wheel(Axis::Vertical, 1).outcome();
                 view.render(area, &mut buf, &mut ctx, theme.canvas);
                 assert!(buf.content.iter().any(|cell| cell.symbol() == "X"));
             }

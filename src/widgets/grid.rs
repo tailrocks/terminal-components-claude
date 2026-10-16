@@ -2013,7 +2013,7 @@ impl DataGrid {
             return (Outcome::Changed, None);
         }
         if scrollbar::is_bar_of(id, self.id) {
-            return (self.on_scrollbar(pos), None);
+            return (self.bar_press(pos).outcome().or(Outcome::Consumed), None);
         }
         if let Some(c) = self.locate_header(id) {
             if self.edit.is_some() {
@@ -2108,7 +2108,10 @@ impl DataGrid {
             };
         }
         if scrollbar::is_bar_of(pressed, self.id) {
-            return self.on_bar_drag(pressed, pos);
+            return match self.pane().bar_of(pressed) {
+                Some(bar) => self.bar_input(&bar, pos, false).outcome(),
+                None => Outcome::Consumed,
+            };
         }
         // a drag from a row number paints the rows' marks
         let row_origin = match self.drag {
@@ -3769,7 +3772,7 @@ mod tests {
         );
 
         // a wheel to the right moves one column and the thumb with it
-        assert_eq!(g.on_wheel_h(3), Outcome::Changed);
+        assert_eq!(g.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
         assert_eq!(g.scroll.h.offset, 1);
         let (buf, _) = render_at(&mut g, area, Interaction::default());
         assert!(thumb_x(&buf, y) > Some(g.scroll.h_track().x));
@@ -3804,11 +3807,15 @@ mod tests {
         assert!(!row_text(&buf, area.bottom() - 1).contains(scrollbar::H_THUMB));
         assert_eq!(hits.area_of(scrollbar::h_id_for(g.id)), None);
         assert!(!row_text(&buf, 0).contains('›'), "no hidden-column badge");
-        assert_eq!(g.on_wheel_h(1), Outcome::Changed, "still scrolls");
+        assert_eq!(
+            g.wheel(Axis::Horizontal, 1).outcome(),
+            Outcome::Changed,
+            "still scrolls"
+        );
 
         let mut off = wide_grid().horizontal(HScroll::off());
         render_at(&mut off, area, Interaction::default());
-        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
 
         // content that fits draws no bar by default
         let mut fits = grid();

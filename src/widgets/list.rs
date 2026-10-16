@@ -991,14 +991,14 @@ mod reveal_tests {
         assert!(rows[0].contains("w01"), "{rows:#?}");
         assert!(rows[2].contains("↓"), "capped at 3 rows: {rows:#?}");
         let offset = l.scroll.offset;
-        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         let rows = render_in(&mut l, 16, 6, focus);
         assert!(rows[0].contains("↑"), "{rows:#?}");
         assert_eq!(l.scroll.offset, offset, "the list itself did not move");
         // collapsed, the wheel scrolls the list again
         press(&mut l, KeyCode::Left);
         render_in(&mut l, 16, 6, focus);
-        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         assert_eq!(l.scroll.offset, offset + 1);
     }
 }
@@ -1173,7 +1173,7 @@ mod scroll_tests {
             grey(&b, 5)
         );
         // scrolled: the top row fades too, the cursor row never does
-        l.on_wheel(10);
+        l.wheel(Axis::Vertical, 10).outcome();
         let b = render(&mut l);
         assert!(grey(&b, 0) < grey(&b, 1), "top row fades");
         assert!(grey(&b, 5) < grey(&b, 4));
@@ -1190,33 +1190,39 @@ mod scroll_tests {
             .map(|i| ListItem::new(&format!("Row {i:02}")))
             .collect();
         let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
-        assert_eq!(l.on_wheel(-1), Outcome::Consumed, "nothing above");
+        assert_eq!(
+            l.wheel(Axis::Vertical, -1).outcome(),
+            Outcome::Consumed,
+            "nothing above"
+        );
         render(&mut l);
-        assert_eq!(l.on_wheel(1), Outcome::Changed);
-        assert_eq!(l.on_wheel(-1), Outcome::Changed);
-        assert_eq!(l.on_wheel(-1), Outcome::Consumed);
+        assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
+        assert_eq!(l.wheel(Axis::Vertical, -1).outcome(), Outcome::Changed);
+        assert_eq!(l.wheel(Axis::Vertical, -1).outcome(), Outcome::Consumed);
         // the track is the drawn scrollbar: six rows, thumb one row at the top
         let x = 39;
         assert_eq!(
-            l.on_scrollbar(Position::new(x, 0)),
+            l.bar_press(Position::new(x, 0))
+                .outcome()
+                .or(Outcome::Consumed),
             Outcome::Consumed,
             "a press on the thumb"
         );
-        assert_eq!(l.on_scrollbar_drag(Position::new(x, 1)), Outcome::Changed);
+        assert_eq!(l.bar_drag(Position::new(x, 1)).outcome(), Outcome::Changed);
         let after_one = l.scroll.offset;
         assert!(after_one > 0 && after_one < 10, "{after_one}");
-        assert_eq!(l.on_scrollbar_drag(Position::new(x, 5)), Outcome::Changed);
+        assert_eq!(l.bar_drag(Position::new(x, 5)).outcome(), Outcome::Changed);
         assert_eq!(
             l.scroll.offset,
             l.scroll.max_offset(),
             "the end of the track is the end"
         );
         assert_eq!(
-            l.on_scrollbar_drag(Position::new(x, 40)),
+            l.bar_drag(Position::new(x, 40)).outcome(),
             Outcome::Consumed,
             "past the track clamps"
         );
-        assert_eq!(l.on_scrollbar_drag(Position::new(x, 0)), Outcome::Changed);
+        assert_eq!(l.bar_drag(Position::new(x, 0)).outcome(), Outcome::Changed);
         assert_eq!(l.scroll.offset, 0);
     }
 
@@ -1228,7 +1234,7 @@ mod scroll_tests {
         let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
         let a = render(&mut l);
         assert!(a.contains("Row 00"));
-        l.on_wheel(4);
+        l.wheel(Axis::Vertical, 4).outcome();
         let b = render(&mut l);
         assert!(!b.contains("Row 00"));
         assert!(b.contains("Row 04"));
@@ -1242,7 +1248,7 @@ mod scroll_tests {
         l.on_key(&key);
         render(&mut l);
         assert!(l.scroll.visible_range().contains(&l.cursor));
-        l.on_wheel(-40);
+        l.wheel(Axis::Vertical, -40).outcome();
         assert_eq!(l.scroll.offset, 0);
     }
 
@@ -1291,7 +1297,12 @@ mod track_click_tests {
         let mut buf = Buffer::empty(area);
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         l.render(area, &mut buf, &mut ctx, theme.surface);
-        assert_eq!(l.on_scrollbar(Position::new(19, 9)), Outcome::Changed);
+        assert_eq!(
+            l.bar_press(Position::new(19, 9))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Changed
+        );
         assert_eq!(l.scroll.offset, 10, "one page, not a jump to the end");
     }
 }

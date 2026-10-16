@@ -525,15 +525,15 @@ mod tests {
     fn a_wheel_scroll_survives_the_next_render_and_pages_follow_the_viewport() {
         let mut c = popup(8);
         draw(&mut c, 24);
-        assert_eq!(c.on_wheel(3), Outcome::Changed);
+        assert_eq!(c.wheel(Axis::Vertical, 3).outcome(), Outcome::Changed);
         assert_eq!(c.scroll.offset, 3);
         draw(&mut c, 24);
         assert_eq!(
             c.scroll.offset, 3,
             "a render never pulls the view back to the cursor"
         );
-        assert_eq!(c.on_wheel(-3), Outcome::Changed);
-        assert_eq!(c.on_wheel(-3), Outcome::Consumed);
+        assert_eq!(c.wheel(Axis::Vertical, -3).outcome(), Outcome::Changed);
+        assert_eq!(c.wheel(Axis::Vertical, -3).outcome(), Outcome::Consumed);
         // clipped by a short screen: the page is the viewport, not the config
         let mut short = popup(8);
         draw(&mut short, 6);
