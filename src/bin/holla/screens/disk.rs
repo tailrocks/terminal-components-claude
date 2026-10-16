@@ -38,6 +38,7 @@ use crate::screens::{
 use crate::sim::fs::ScanNode;
 use crate::sim::world::World;
 use junie_tui::ui::text::plural;
+use junie_tui::core::scroll::Scrollable;
 
 pub const TREE: WidgetId = WidgetId::of("disk.tree");
 pub const DETAIL: WidgetId = WidgetId::of("disk.detail");

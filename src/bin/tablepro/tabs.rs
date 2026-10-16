@@ -38,6 +38,7 @@ use crate::app::Cx;
 use crate::db::{Catalog, ColType, Table, Value};
 use crate::model::{self, History, HistoryEntry, HistorySource};
 use crate::sql::{self, PlanNode, Statement};
+use junie_tui::core::scroll::Scrollable;
 
 /// Ctrl+D switches Data / Structure in TablePro, so only Alt+D duplicates
 /// a grid row.

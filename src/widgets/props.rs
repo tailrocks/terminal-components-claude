@@ -3,14 +3,16 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::ScrollState;
+use crate::core::response::Response;
+use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
@@ -250,12 +252,11 @@ struct Geometry {
 pub struct PropsList {
     /// The rows registered in the last render, by id.
     parts: PartMap,
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     pub id: WidgetId,
     pub props: Vec<Prop>,
     pub cursor: usize,
-    pub scroll: ScrollState,
+    /// The scrolled rows and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub area: Rect,
     /// Revealing cut values; `reveal.config` overrides the global default.
     pub reveal: RevealState,
@@ -267,11 +268,6 @@ pub struct PropsList {
     /// the cap are cut with `…` (rows never stack in a list). Default
     /// [`Sheet::default`].
     pub sheet: Sheet,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`].
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
     /// The list's action keys (default [`PropsCmd::default_keymap`]).
@@ -310,15 +306,12 @@ impl PropsList {
             id,
             props,
             cursor: 0,
-            scroll: ScrollState::new(n),
+            scroll: ScrollPane::new(n),
             area: Rect::ZERO,
-            track: Rect::ZERO,
             parts: PartMap::default(),
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
             sheet: Sheet::default(),
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
             nav: NavKeys::DEFAULT,
             keymap: PropsCmd::default_keymap(),
         }
@@ -327,7 +320,7 @@ impl PropsList {
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
@@ -411,51 +404,6 @@ impl PropsList {
         (Outcome::Changed, Some(PropsAction::Activate(row)))
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        // a revealed value longer than its rows reads on before the sheet moves
-        if let Some(o) = self.reveal.on_wheel(delta) {
-            return o;
-        }
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.area.y,
-                1,
-                self.area.height,
-            )
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track follows
-    /// [`Self::track_click`].
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged along the scrollbar after a press.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     /// Cells kept for the `y copy` hint on the focused copyable row.
     fn hint_width(p: &Prop, focused: bool) -> u16 {
         if p.copyable && focused { 8 } else { 0 }
@@ -504,7 +452,7 @@ impl PropsList {
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.parts.clear();
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -610,12 +558,25 @@ impl PropsList {
             ctx.part(&mut self.parts, self.id, Self::row_part(i), row);
             y += h;
         }
-        self.track = Rect::ZERO;
         if let Some(sb) = sp.track {
             crate::ui::fade::scroll_edges_except(buf, ctx, sp.body, &self.scroll, &cursor_rows);
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
+    }
+}
+
+impl Scrollable for PropsList {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
+    }
+
+    /// A revealed value longer than its rows reads on before the view
+    /// moves.
+    fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
+        if axis != Axis::Vertical {
+            return None;
+        }
+        self.reveal.on_wheel(delta).map(Response::from)
     }
 }
 
@@ -908,11 +869,12 @@ mod track_click_tests {
     use crate::core::scroll::TrackClick;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::ui::ctx::Interaction;
+    use ratatui::layout::Position;
 
     fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
         let props = (0..50).map(|i| Prop::new("Key", format!("v{i}"))).collect();
         let mut l = PropsList::new(WidgetId::of("p"), props);
-        l.track_click = click;
+        l.scroll.track_click = click;
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
