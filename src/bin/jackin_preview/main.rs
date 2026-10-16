@@ -9,6 +9,8 @@ mod app_tests;
 #[cfg(test)]
 mod app_tests_chrome;
 #[cfg(test)]
+mod app_tests_copy;
+#[cfg(test)]
 mod app_tests_coverage;
 mod arbiter;
 mod clock;
