@@ -24,7 +24,7 @@ pub const TEXT_INSET: u16 = 4;
 pub struct CompletionItem {
     pub label: String,
     /// One-cell kind glyph (T, V, C, K, F, S, A…).
-    pub glyph: &'static str,
+    pub glyph: std::borrow::Cow<'static, str>,
     pub detail: String,
     pub insert: String,
     /// Byte positions in `label` that matched the typed prefix.
@@ -272,7 +272,7 @@ impl Completion {
             buf.set_string(
                 row.x + 1,
                 y,
-                it.glyph,
+                &it.glyph,
                 st.fg(if s.focused {
                     t.text_primary
                 } else {
@@ -364,7 +364,7 @@ mod tests {
             (0..40)
                 .map(|i| CompletionItem {
                     label: format!("item{i:02}"),
-                    glyph: "T",
+                    glyph: "T".into(),
                     detail: String::new(),
                     insert: format!("item{i:02}"),
                     matched: vec![],

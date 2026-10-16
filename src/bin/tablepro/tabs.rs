@@ -1251,7 +1251,7 @@ impl QueryTab {
             .into_iter()
             .map(|c| CompletionItem {
                 label: c.label.clone(),
-                glyph: c.kind.glyph(),
+                glyph: c.kind.glyph().into(),
                 detail: c.detail,
                 insert: c.insert,
                 matched: c.matched,

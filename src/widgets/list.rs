@@ -70,6 +70,9 @@ pub struct ListBox {
     pub scroll: ScrollState,
     pub area: Rect,
     pub empty_text: String,
+    /// A full empty state (title, hint, error tone) shown instead of
+    /// [`Self::empty_text`] when set. Default `None`.
+    pub empty: Option<crate::widgets::empty::EmptyState>,
     /// Range-select anchor for Shift+arrows in multi mode.
     anchor: Option<usize>,
     /// Revealing cut labels; `reveal.config` overrides the global default.
@@ -112,6 +115,7 @@ impl ListBox {
             area: Rect::ZERO,
             track: Rect::ZERO,
             empty_text: "Nothing here yet".to_owned(),
+            empty: None,
             anchor: None,
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
@@ -224,6 +228,12 @@ impl ListBox {
         let rid = self.row_id(self.cursor);
         let label = item.label.clone();
         self.reveal.inline(ctx, rid, lw as u16, &label, true, room)
+    }
+
+    /// See [`Self::empty`].
+    pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
+        self.empty = Some(state);
+        self
     }
 
     pub fn empty_text(mut self, s: &str) -> Self {
@@ -443,6 +453,10 @@ impl ListBox {
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         if self.items.is_empty() {
+            if let Some(e) = &self.empty {
+                crate::widgets::empty::render(area, buf, t, e, bg);
+                return;
+            }
             let msg = crate::ui::text::truncate(&self.empty_text, area.width as usize);
             let y = area.y + area.height / 2;
             let x = area.x

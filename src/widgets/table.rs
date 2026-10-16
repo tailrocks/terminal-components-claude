@@ -152,6 +152,9 @@ pub struct DataTable {
     /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
     pub blur_action: BlurAction,
     pub empty_text: String,
+    /// A full empty state (title, hint, error tone) shown instead of
+    /// [`Self::empty_text`] when set. Default `None`.
+    pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
     body: Rect,
     col_rects: Vec<Rect>,
@@ -233,6 +236,7 @@ impl DataTable {
             validator: None,
             blur_action: BlurAction::Commit,
             empty_text: "No rows".to_owned(),
+            empty: None,
             area: Rect::ZERO,
             track: Rect::ZERO,
             body: Rect::ZERO,
@@ -543,6 +547,12 @@ impl DataTable {
         self.validator = Some(CellValidator(std::rc::Rc::new(v)));
         self
     }
+    /// See [`Self::empty`].
+    pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
+        self.empty = Some(state);
+        self
+    }
+
     pub fn empty_text(mut self, s: &str) -> Self {
         self.empty_text = s.to_owned();
         self
@@ -1189,6 +1199,10 @@ impl DataTable {
         }
 
         if self.rows.is_empty() {
+            if let Some(e) = &self.empty {
+                crate::widgets::empty::render(body, buf, t, e, bg);
+                return;
+            }
             let msg = crate::ui::text::truncate(&self.empty_text, area.width as usize);
             let y = body.y + body.height / 2;
             let x = body.x
