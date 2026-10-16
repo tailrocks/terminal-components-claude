@@ -7,7 +7,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::reveal::{Reveal, RevealState};
+use crate::ui::reveal::{Reveal, RevealLine, RevealState};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone)]
@@ -87,6 +87,47 @@ impl ListBox {
     pub fn reveal(mut self, config: Reveal) -> Self {
         self.reveal.config = Some(config);
         self
+    }
+
+    /// The footer hint for the reveal key while the focused cursor row is
+    /// cut (`→ Full text`, or `← Collapse` while it shows), as of the last
+    /// render. Apps append it to the list's hints so the key is advertised
+    /// exactly when it does something.
+    pub fn reveal_hint(&self) -> Option<(&'static str, &'static str)> {
+        self.reveal.hint()
+    }
+
+    /// Label and metadata widths of a row in `text_w` cells: the metadata
+    /// hides rather than starve the label.
+    fn label_width(item: &ListItem, text_w: usize) -> (usize, usize) {
+        let label_w = text_w.saturating_sub(2);
+        let meta_w = item
+            .meta
+            .as_ref()
+            .map(|m| crate::ui::text::width(m))
+            .unwrap_or(0);
+        let meta_w = if label_w.saturating_sub(meta_w + 2) < 12 {
+            0
+        } else {
+            meta_w
+        };
+        let lw = label_w.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 });
+        (lw, meta_w)
+    }
+
+    /// The rows the focused cursor row wraps to in place, when the reveal
+    /// is open in [`crate::ui::reveal::RevealMode::InlineWrap`].
+    fn inline_rows(
+        &mut self,
+        ctx: &RenderCtx,
+        text_w: usize,
+        room: u16,
+    ) -> Option<Vec<RevealLine>> {
+        let item = self.items.get(self.cursor).filter(|it| !it.disabled)?;
+        let (lw, _) = Self::label_width(item, text_w);
+        let rid = self.row_id(self.cursor);
+        let label = item.label.clone();
+        self.reveal.inline(ctx, rid, lw as u16, &label, true, room)
     }
 
     pub fn empty_text(mut self, s: &str) -> Self {
@@ -200,6 +241,10 @@ impl ListBox {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        // a revealed label longer than its rows reads on before the list moves
+        if let Some(o) = self.reveal.on_wheel(delta) {
+            return o;
+        }
         if self.scroll.scroll_by(delta as isize) {
             Outcome::Changed
         } else {
@@ -274,16 +319,40 @@ impl ListBox {
             buf.set_string(x, y, &msg, t.muted().bg(bg));
             return;
         }
-        let has_sb = self.scroll.overflows();
-        let text_w = area.width.saturating_sub(if has_sb { 2 } else { 1 }) as usize;
-        for (i, li) in self.scroll.visible_range().enumerate() {
-            let y = area.y + i as u16;
+        let mut has_sb = self.scroll.overflows();
+        let mut text_w = area.width.saturating_sub(if has_sb { 2 } else { 1 }) as usize;
+        // an inline reveal grows the cursor row: the rows it adds come out
+        // of the viewport, and the cursor row stays on screen
+        let mut expanded = None;
+        if focused {
+            expanded = self.inline_rows(ctx, text_w, area.height);
+            if let Some(rows) = &expanded {
+                let extra = rows.len().saturating_sub(1);
+                self.scroll
+                    .set_viewport((area.height as usize).saturating_sub(extra).max(1));
+                self.scroll.ensure_visible(self.cursor);
+                if self.scroll.overflows() != has_sb {
+                    has_sb = self.scroll.overflows();
+                    text_w = area.width.saturating_sub(if has_sb { 2 } else { 1 }) as usize;
+                    expanded = self.inline_rows(ctx, text_w, area.height);
+                }
+            }
+        }
+        let mut y = area.y;
+        for li in self.scroll.visible_range() {
+            if y >= area.bottom() {
+                break;
+            }
             let item = &self.items[li];
+            let block = expanded.as_ref().filter(|_| li == self.cursor);
+            let h = block
+                .map_or(1, |r| r.len() as u16)
+                .clamp(1, area.bottom() - y);
             let row = Rect::new(
                 area.x,
                 y,
                 area.width.saturating_sub(if has_sb { 1 } else { 0 }),
-                1,
+                h,
             );
             let rid = self.row_id(li);
             let mut s = ctx.child_state(self.id, rid, li == self.cursor);
@@ -295,12 +364,14 @@ impl ListBox {
             };
             let st = t.row(s, bg);
             fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            for gy in row.y..row.bottom() {
+                buf.set_string(
+                    row.x,
+                    gy,
+                    t.gutter_symbol(s),
+                    t.gutter(s, st.bg.unwrap_or(bg), false),
+                );
+            }
             let marker = match (self.mode, s.selected) {
                 (SelectMode::Single, true) => "›",
                 (SelectMode::Multi, true) => "✓",
@@ -317,22 +388,21 @@ impl ListBox {
             };
             buf.set_string(row.x + 1, y, marker, ms);
             let label_w = text_w.saturating_sub(2);
-            let meta_w = item
-                .meta
-                .as_ref()
-                .map(|m| crate::ui::text::width(m))
-                .unwrap_or(0);
-            // hide metadata rather than starve the label
-            let meta_w = if label_w.saturating_sub(meta_w + 2) < 12 {
-                0
+            let (lw, meta_w) = Self::label_width(item, text_w);
+            if let Some(rows) = block {
+                // the cursor row wrapped in place: every line, then a
+                // marker when a long text scrolls
+                for (k, line) in rows.iter().take(h as usize).enumerate() {
+                    let ls = if line.more { st.fg(t.text_muted) } else { st };
+                    let text = crate::ui::text::fit(&line.text, lw);
+                    buf.set_string(row.x + 3, y + k as u16, text, ls);
+                }
             } else {
-                meta_w
-            };
-            let lw = label_w.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 });
-            buf.set_string(row.x + 3, y, crate::ui::text::fit(&item.label, lw), st);
-            if !item.disabled {
-                let label = Rect::new(row.x + 3, y, lw as u16, 1);
-                self.reveal.cell(ctx, rid, label, &item.label, s.focused);
+                buf.set_string(row.x + 3, y, crate::ui::text::fit(&item.label, lw), st);
+                if !item.disabled {
+                    let label = Rect::new(row.x + 3, y, lw as u16, 1);
+                    self.reveal.cell(ctx, rid, label, &item.label, s.focused);
+                }
             }
             if let Some(m) = &item.meta
                 && meta_w > 0
@@ -347,6 +417,7 @@ impl ListBox {
                 buf.set_string(mx, y, m, ms);
             }
             ctx.clickable(rid, row);
+            y += h;
         }
         self.track = Rect::ZERO;
         if has_sb {
@@ -382,6 +453,7 @@ mod reveal_tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+    use crate::ui::reveal::RevealMode;
     use ratatui::crossterm::event::KeyModifiers;
 
     const LONG: &str = "a label far too long for the narrow list it lives in";
@@ -456,6 +528,100 @@ mod reveal_tests {
         l.on_key(&key(KeyCode::Down));
         render(&mut l, focus);
         assert_eq!(l.on_key(&key(KeyCode::Right)), Outcome::Ignored);
+    }
+
+    fn press(l: &mut ListBox, code: KeyCode) -> Outcome {
+        l.on_key(&Key {
+            code,
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    /// The list alone in a `w`×`h` buffer (no room for a tooltip beside it).
+    fn render_in(l: &mut ListBox, w: u16, h: u16, interaction: Interaction) -> Vec<String> {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, h));
+        l.render(Rect::new(0, 0, w, h), &mut buf, &mut ctx, theme.canvas);
+        ctx.flush_overlays(&mut buf);
+        (0..h)
+            .map(|y| {
+                (0..w)
+                    .map(|x| buf[(x, y)].symbol().to_owned())
+                    .collect::<String>()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn inline_wrap_grows_the_cursor_row_in_place_and_pushes_the_rest_down() {
+        let mut l = ListBox::new(
+            WidgetId::of("l"),
+            vec![
+                ListItem::new(LONG),
+                ListItem::new("second"),
+                ListItem::new("third"),
+            ],
+            SelectMode::Single,
+        )
+        .reveal(Reveal::default().mode(RevealMode::InlineWrap));
+        let focus = Interaction {
+            focus: Some(l.id),
+            ..Default::default()
+        };
+        let rows = render_in(&mut l, 24, 8, focus);
+        assert!(rows[1].contains("second"), "collapsed: one row each");
+        assert_eq!(l.reveal_hint(), Some(("→", "Full text")));
+        assert_eq!(press(&mut l, KeyCode::Right), Outcome::Changed);
+        let rows = render_in(&mut l, 24, 8, focus);
+        let n = rows.iter().position(|r| r.contains("second")).unwrap();
+        assert!(n > 1, "the rows below moved down: {rows:#?}");
+        let label: Vec<String> = rows[..n]
+            .iter()
+            .map(|r| r.chars().skip(3).collect::<String>().trim().to_owned())
+            .collect();
+        assert_eq!(label.join(" "), LONG, "every line of the label, in place");
+        // the cursor block keeps the one focus gutter on every row
+        for r in &rows[..n] {
+            assert!(r.starts_with('▎'), "{rows:#?}");
+        }
+        assert_eq!(l.reveal_hint(), Some(("←", "Collapse")));
+        press(&mut l, KeyCode::Left);
+        let rows = render_in(&mut l, 24, 8, focus);
+        assert!(rows[1].contains("second"));
+    }
+
+    #[test]
+    fn a_long_inline_reveal_scrolls_with_the_wheel_before_the_list_does() {
+        let long = (1..=30)
+            .map(|i| format!("w{i:02}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let mut items = vec![ListItem::new(&long)];
+        items.extend((0..20).map(|i| ListItem::new(&format!("row {i}"))));
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single)
+            .reveal(Reveal::default().mode(RevealMode::InlineWrap).max_rows(3));
+        let focus = Interaction {
+            focus: Some(l.id),
+            ..Default::default()
+        };
+        render_in(&mut l, 16, 6, focus);
+        press(&mut l, KeyCode::Right);
+        let rows = render_in(&mut l, 16, 6, focus);
+        assert!(rows[0].contains("w01"), "{rows:#?}");
+        assert!(rows[2].contains("↓"), "capped at 3 rows: {rows:#?}");
+        let offset = l.scroll.offset;
+        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        let rows = render_in(&mut l, 16, 6, focus);
+        assert!(rows[0].contains("↑"), "{rows:#?}");
+        assert_eq!(l.scroll.offset, offset, "the list itself did not move");
+        // collapsed, the wheel scrolls the list again
+        press(&mut l, KeyCode::Left);
+        render_in(&mut l, 16, 6, focus);
+        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        assert_eq!(l.scroll.offset, offset + 1);
     }
 }
 

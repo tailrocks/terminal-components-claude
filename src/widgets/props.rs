@@ -227,6 +227,10 @@ impl PropsList {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        // a revealed value longer than its rows reads on before the sheet moves
+        if let Some(o) = self.reveal.on_wheel(delta) {
+            return o;
+        }
         if self.scroll.scroll_by(delta as isize) {
             Outcome::Changed
         } else {
@@ -359,5 +363,51 @@ impl PropsList {
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
+    }
+}
+
+#[cfg(test)]
+mod reveal_scroll_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::KeyModifiers;
+
+    #[test]
+    fn the_wheel_reads_a_long_revealed_value_before_the_sheet_moves() {
+        let long = (1..=60)
+            .map(|i| format!("v{i:02}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let mut props = vec![Prop::new("Path", long)];
+        props.extend((0..12).map(|i| Prop::new("Key", format!("value {i}"))));
+        let mut l = PropsList::new(WidgetId::of("p"), props);
+        let focus = Interaction {
+            focus: Some(l.id),
+            ..Default::default()
+        };
+        let frame = |l: &mut PropsList| {
+            let theme = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, focus, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 24, 5));
+            l.render(Rect::new(0, 0, 24, 5), &mut buf, &mut ctx, theme.canvas);
+            ctx.flush_overlays(&mut buf);
+        };
+        frame(&mut l);
+        let right = Key {
+            code: KeyCode::Right,
+            mods: KeyModifiers::NONE,
+        };
+        assert_eq!(l.on_key(&right).0, Outcome::Changed);
+        frame(&mut l);
+        let offset = l.scroll.offset;
+        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        assert_eq!(
+            l.scroll.offset, offset,
+            "the reveal scrolled, not the sheet"
+        );
     }
 }
