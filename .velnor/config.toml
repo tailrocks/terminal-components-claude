@@ -11,16 +11,6 @@ default_branch = "design/interaction-polish"
 # docs/visual-testing/plan.md §C3: CI runs on ubuntu-24.04.
 runner_label = "ubuntu-24.04"
 
-# Test partitioning for the native nextest step. Keep 1 shard: velnor 0.1.8
-# emits `default_shards = N` as N steps in the same job that all run the
-# identical `cargo nextest run --profile ci …` command (no `--partition`), so
-# more shards only repeat the run. Re-check after a velnor upgrade.
-# [resources]
-# compiler_process_budget = 2
-# test_process_budget = 2
-# [test_sharding]
-# default_shards = 1
-
 [stacks.rust]
 # Plain Cargo; matches the documented gate in AGENTS.md.
 compile_driver = "cargo"
@@ -31,18 +21,81 @@ compile_driver = "cargo"
 test_runner = "cargo_nextest"
 # Ignored tests stay ignored: the PTY visual captures are ignored and run
 # explicitly (docs/visual-testing).
-#
-# VISUAL SMOKE TOGGLE (prepared, disabled). The smoke tier (120x40/truecolor
-# + 72x20/nocolor of every scenario, 890 tests) can run inside the required
-# `Rust / junie-tui` job: set `run_ignored = "all"` here, uncomment the
-# `[profile.ci]` default-filter and pty override in .config/nextest.toml,
-# then `velnor-actions generate`. Enable it only after oracle v0 (plan T18):
-# every scenario re-approved on tuiscotti from an ubuntu-24.04 capture.
-# Today 7,100 scenarios still hold tuisnap approvals (they skip), and the
-# re-approved pilot drifts with every UI change on this branch, so the
-# required check would go red on unrelated work.
+# The visual tiers are separate suites (below), not part of this job.
 run_ignored = "default"
 
 [discovery]
 # Archived evidence workspaces under docs/ are records, not CI units.
 exclude = ["docs/**"]
+
+[agents]
+# .github/CLAUDE.md is a symlink to .github/AGENTS.md (AGENTS.md rule).
+claude_md = "symlink"
+
+# Visual tiers (docs/visual-testing/plan.md §C1) as nextest suites in
+# .github/workflows/suites.yml. Every tier is manual (workflow_dispatch)
+# until oracle v0 (plan T18); docs/ci.md "Visual suites" has the post-T18
+# triggers.
+[workflow.dispatch.inputs.tier]
+type = "choice"
+description = "Visual tier (docs/visual-testing/plan.md C1)"
+default = "smoke"
+options = ["smoke", "full", "narrow", "capture"]
+
+[workflow.dispatch.inputs.filter]
+type = "string"
+description = "Optional nextest filterset, for example test(/^holla::/)"
+
+[[stacks.rust.suites]]
+id = "visual-smoke"
+profile = "smoke"
+run_ignored = "only"
+partitions = 2
+build = "archive"
+timeout_minutes = 30
+test_threads = 4
+triggers = ["workflow_dispatch"]
+dispatch_inputs = { tier = ["smoke"] }
+filter_input = "filter"
+artifacts = [{ name = "visual-smoke-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
+
+[[stacks.rust.suites]]
+id = "visual-full"
+profile = "full"
+run_ignored = "only"
+partitions = 12
+build = "archive"
+timeout_minutes = 60
+test_threads = 4
+triggers = ["workflow_dispatch"]
+dispatch_inputs = { tier = ["full"] }
+filter_input = "filter"
+artifacts = [{ name = "visual-full-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
+
+[[stacks.rust.suites]]
+id = "visual-narrow"
+profile = "narrow"
+run_ignored = "only"
+partitions = 2
+build = "archive"
+timeout_minutes = 60
+test_threads = 4
+triggers = ["workflow_dispatch"]
+dispatch_inputs = { tier = ["narrow"] }
+filter_input = "filter"
+artifacts = [{ name = "visual-narrow-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
+
+[[stacks.rust.suites]]
+id = "visual-capture"
+profile = "capture"
+run_ignored = "only"
+partitions = 12
+build = "archive"
+timeout_minutes = 60
+test_threads = 4
+triggers = ["workflow_dispatch"]
+allow_failure = true
+env = { VISUAL_FULL = "1" }
+dispatch_inputs = { tier = ["capture"] }
+filter_input = "filter"
+artifacts = [{ name = "visual-capture-{shard}", paths = ["target/tuiscotti/actual"], when = "always", retention_days = 14 }]
