@@ -111,6 +111,9 @@ pub struct ContextMenu {
     pub title: Option<String>,
     /// How the menu closes without a choice (Esc, a click outside).
     pub dismiss: Dismiss,
+    /// The last action, kept for the stack while the menu is a
+    /// [`crate::ui::layer::Layer`].
+    pub(crate) pending: Option<MenuAction>,
     /// While open, the menu owns the keyboard, so the page under it shows
     /// no focus (see [`ContextMenu::hides_page_focus`]). Default on.
     pub hide_owner_focus: bool,
@@ -262,6 +265,7 @@ impl ContextMenu {
             area: Rect::ZERO,
             title: None,
             dismiss: Dismiss::LIGHT,
+            pending: None,
             hide_owner_focus: true,
             reveal: None,
             fit: Place::MENU,
