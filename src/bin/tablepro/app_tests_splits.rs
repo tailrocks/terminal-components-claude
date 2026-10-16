@@ -2,7 +2,7 @@
 //! editor / results split and the history list / detail split resize by
 //! mouse (they were fixed or keyboard-only), cell by cell, and a
 //! double-click restores the default. Toolbar buttons show their tooltip
-//! after a rest.
+//! after a rest; the pointer takes the shape of fields and seams.
 
 use junie_tui::core::event::MouseKind;
 use ratatui::layout::Rect;
@@ -111,4 +111,30 @@ fn history_buttons_show_their_tooltip_after_a_rest() {
     // leaving the button and its tooltip hides it
     h.mouse(MouseKind::Move, 0, 0);
     assert!(!h.text().contains("Open the selected query"));
+}
+
+/// The pointer takes the shape of what is under it: an I-beam over a text
+/// field, resize arrows over the seams (it never changed).
+#[test]
+fn the_pointer_shape_follows_fields_and_seams() {
+    use junie_tui::core::shape::{CaretShape, PointerShape, shapes_for};
+    let mut h = H::connected(120, 40);
+    let shape = |h: &H| shapes_for(&h.app.pointer, &h.app.hits).pointer;
+    let seam = h.wb().explorer_seam.area;
+    h.mouse(MouseKind::Move, seam.x, seam.y + 3);
+    assert_eq!(shape(&h), Some(PointerShape::ColResize));
+    let (qx, qy) = h.find("Query 1").expect("the query tab");
+    h.click(qx, qy);
+    let (qs, _) = query_seam(&h);
+    h.mouse(MouseKind::Move, qs.x + 4, qs.y);
+    assert_eq!(shape(&h), Some(PointerShape::RowResize));
+    h.mouse(MouseKind::Move, qs.x + 4, qs.y - 3);
+    assert_eq!(shape(&h), Some(PointerShape::Text), "the SQL editor");
+    h.mouse(MouseKind::Move, qx, qy);
+    assert_eq!(shape(&h), Some(PointerShape::Default), "a tab: the arrow");
+    let caret = shapes_for(&h.app.pointer, &h.app.hits).caret;
+    assert_eq!(caret, Some(CaretShape::Bar), "the macOS caret");
+    // the knob turns pointer shapes off
+    h.app.pointer.config = h.app.pointer.config.pointer_shapes(false);
+    assert_eq!(shape(&h), None);
 }

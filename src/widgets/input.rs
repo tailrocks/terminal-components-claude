@@ -914,6 +914,9 @@ impl TextInput {
             );
         }
         ctx.control(self.id, field, self.disabled);
+        if !self.disabled {
+            ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
+        }
 
         // help / error row
         if area.height >= label_rows + 2 {

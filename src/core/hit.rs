@@ -58,6 +58,8 @@ pub struct HitRegistry {
     barriers: Vec<usize>,
     /// Scrollbars registered this frame.
     bars: Vec<Bar>,
+    /// Pointer shapes declared this frame ([`Self::set_shape`]).
+    shapes: Vec<(WidgetId, super::shape::PointerShape)>,
     /// Edge-autoscroll areas registered this frame, each with the layer
     /// (barrier count) it was registered in, so barriers apply to it too.
     autoscroll: Vec<(usize, Rect)>,
@@ -149,6 +151,19 @@ impl HitRegistry {
 
     /// Register a scrollbar: a clickable region that the pointer layer
     /// also knows as `owner`'s bar on `axis`.
+    /// The pointer shape over `id` (an I-beam over text, a resize arrow
+    /// over a seam); controls without one show the arrow. See
+    /// [`super::shape`].
+    pub fn set_shape(&mut self, id: WidgetId, shape: super::shape::PointerShape) {
+        self.shapes.retain(|(i, _)| *i != id);
+        self.shapes.push((id, shape));
+    }
+
+    /// The pointer shape declared for `id` this frame.
+    pub fn shape_of(&self, id: WidgetId) -> Option<super::shape::PointerShape> {
+        self.shapes.iter().find(|(i, _)| *i == id).map(|(_, s)| *s)
+    }
+
     pub fn register_bar(&mut self, bar: Bar) {
         if bar.track.is_empty() {
             return;

@@ -177,4 +177,7 @@ impl junie_tui::runtime::Application for App {
     fn tick_interval(&self) -> std::time::Duration {
         App::tick_interval(self)
     }
+    fn shapes(&self) -> junie_tui::core::shape::Shapes {
+        junie_tui::core::shape::shapes_for(&self.pointer, &self.hits)
+    }
 }
