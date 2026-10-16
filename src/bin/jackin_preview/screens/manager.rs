@@ -30,7 +30,7 @@ use ratatui::style::{Modifier, Style};
 
 use super::modals::{InfoDialog, InfoResult};
 use super::rowmenu::RowMenu;
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
+use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::agent::Agent;
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::domain::workspace::WorkspaceId;
@@ -434,7 +434,7 @@ impl ManagerScreen {
         let (items, targets) = agent_rows(w, ws, Some(&role));
         p.set_items(items);
         self.picker_targets = targets;
-        cx.open(Modal::Picker(p), ModalTag::new("launch"));
+        cx.open(p, LayerTag::new("launch"));
     }
 
     fn open_session_picker(&mut self, instance: &str, w: &World, cx: &mut Cx) {
@@ -467,7 +467,7 @@ impl ManagerScreen {
         targets.push((Agent::ClaudeCode, Some("__shell__".into())));
         p.set_items(items);
         self.picker_targets = targets;
-        cx.open(Modal::Picker(p), ModalTag::new("session"));
+        cx.open(p, LayerTag::new("session"));
     }
 
     fn activate(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -609,7 +609,7 @@ impl ManagerScreen {
             props,
         )
         .meta("read-only");
-        cx.open(Modal::Info(d), ModalTag::new("info").key(id));
+        cx.open(d, LayerTag::new("info").key(id));
     }
 
     fn stop(&mut self, id: &str, w: &World, cx: &mut Cx) {
@@ -636,7 +636,7 @@ impl ManagerScreen {
             "Stop",
         )
         .cancel_label("Keep running");
-        cx.open(Modal::Dialog(d), ModalTag::new("stop").key(id));
+        cx.open(d, LayerTag::new("stop").key(id));
     }
 
     fn purge(&mut self, id: &str, w: &World, cx: &mut Cx) {
@@ -686,7 +686,7 @@ impl ManagerScreen {
             Some(&short),
             Button::danger(WidgetId::of("manager.purge").sub("ok"), "Purge"),
         );
-        cx.open(Modal::Dialog(d), ModalTag::new("purge").key(id));
+        cx.open(d, LayerTag::new("purge").key(id));
     }
 
     fn delete(&mut self, ws: WorkspaceId, w: &World, cx: &mut Cx) {
@@ -705,7 +705,7 @@ impl ManagerScreen {
             ),
             "Delete",
         );
-        cx.open(Modal::Dialog(d), ModalTag::new("delete").n(ws as usize));
+        cx.open(d, LayerTag::new("delete").n(ws as usize));
     }
 
     fn prewarm(&mut self, ws: WorkspaceId, w: &mut World, cx: &mut Cx) {
@@ -2544,7 +2544,7 @@ impl Screen for ManagerScreen {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,

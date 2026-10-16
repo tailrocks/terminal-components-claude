@@ -23,7 +23,7 @@ use ratatui::style::Modifier;
 
 use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab, mode_label};
 use super::modals::InfoDialog;
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
+use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::agent::{Agent, AuthMode};
 use crate::domain::workspace::RoleName;
 use crate::sim::world::{GlobalConfig, Msg, World};
@@ -311,7 +311,7 @@ impl SettingsScreen {
             None,
             confirm,
         );
-        cx.open(Modal::Dialog(d), ModalTag::new(tag));
+        cx.open(d, LayerTag::new(tag));
     }
 
     fn start_save(&mut self, w: &mut World, cx: &mut Cx) {
@@ -343,7 +343,7 @@ impl SettingsScreen {
             )
             .error()
             .width(66);
-            cx.open(Modal::Info(d), ModalTag::new("savefail"));
+            cx.open(d, LayerTag::new("savefail"));
             return;
         }
         w.global = self.pending.clone();
@@ -384,7 +384,7 @@ impl SettingsScreen {
                 ],
                 Some(0),
             );
-            cx.open(Modal::Dialog(d), ModalTag::new("exit"));
+            cx.open(d, LayerTag::new("exit"));
         } else {
             cx.go(Go::Manager);
         }
@@ -1088,20 +1088,20 @@ impl Screen for SettingsScreen {
         }
     }
 
-    fn picker_items(&mut self, tag: &ModalTag, query: &str, _w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, _w: &World) -> Option<Vec<PickerItem>> {
         if tag.kind == "cfg.role" {
             return Some(self.cfg.role_picker_items(query));
         }
         None
     }
 
-    fn form_changed(&mut self, tag: &ModalTag, form: &mut super::modals::FormDialog, w: &World) {
+    fn form_changed(&mut self, tag: &LayerTag, form: &mut super::modals::FormDialog, w: &World) {
         self.cfg.form_changed(tag, form, w);
     }
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,

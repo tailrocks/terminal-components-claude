@@ -4,7 +4,7 @@
 //! preview. Both offer the unified listing and the review layout.
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
+use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -22,11 +22,13 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
+use super::ModalResult;
 use super::modals::modal_frame;
-use super::{CustomModal, ModalResult};
 use crate::sim::changes::{ChangeSet, ChangedFile, DiffStatus};
 use crate::sim::world::World;
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
+use junie_tui::ui::popup::Dismiss;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InspectMode {
@@ -653,8 +655,30 @@ fn view_hint(mode: junie_tui::widgets::diff::DiffMode) -> Hint {
     )
 }
 
-impl CustomModal for InspectChanges {
-    fn on_key(&mut self, key: &Key, focus: &mut Focus, _ring: &FocusRing, _w: &World) -> Outcome {
+impl InspectChanges {
+    /// Where focus lands when it opens: the list, or the tree in the
+    /// advanced view.
+    pub fn initial_focus(&self) -> WidgetId {
+        match self.mode {
+            InspectMode::Compact => self.id,
+            InspectMode::Advanced => self.tree.id,
+        }
+    }
+}
+
+/// The inspector on the app's layer stack. Light dismiss (Esc at the top
+/// level, an outside click, its close button) reports `Custom("close")`.
+impl Layer<ModalResult, World> for InspectChanges {
+    fn spec(&self) -> LayerSpec {
+        LayerSpec::modal(Dismiss::LIGHT).initial_focus(self.initial_focus())
+    }
+
+    fn on_dismiss(&mut self, _: DismissReason) {
+        self.result = Some(ModalResult::Custom("close".into()));
+    }
+
+    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, World>) -> Outcome {
+        let focus = &mut *cx.focus;
         match key.code {
             KeyCode::Char('v') if key.plain() => {
                 self.diff.toggle_mode();
@@ -672,7 +696,8 @@ impl CustomModal for InspectChanges {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus, _w: &World) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, World>) -> Outcome {
+        let focus = &mut *cx.focus;
         match self.mode {
             InspectMode::Compact => {
                 if self.open {
@@ -763,7 +788,7 @@ impl CustomModal for InspectChanges {
             InspectMode::Compact => "m advanced view".to_owned(),
             InspectMode::Advanced => "Tab tree / diff".to_owned(),
         };
-        let dismiss = super::CustomModal::dismiss(self);
+        let dismiss = Layer::spec(self).dismiss;
         let (area, inner) = modal_frame(screen, buf, ctx, w, h, &self.title, Some(&meta), dismiss);
         self.area = area;
         let bg = ctx.theme.surface_elevated;
@@ -773,18 +798,11 @@ impl CustomModal for InspectChanges {
         }
     }
 
-    fn done(&mut self) -> Option<ModalResult> {
-        self.result.take()
+    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
+        self.result.take().map(LayerOut::Close)
     }
 
-    fn initial_focus(&self) -> WidgetId {
-        match self.mode {
-            InspectMode::Compact => self.id,
-            InspectMode::Advanced => self.tree.id,
-        }
-    }
-
-    fn hints(&self) -> Vec<Hint> {
+    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
         let back = if self.returns_to_exit {
             "Back"
         } else {
@@ -833,10 +851,16 @@ mod tests {
     use crate::domain::fixtures::world_for;
     use crate::scenario::Scenario;
     use crate::sim::changes::changes_for;
+    use junie_tui::core::focus::FocusRing;
     use junie_tui::core::hit::HitRegistry;
     use junie_tui::theme::Theme;
     use junie_tui::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    /// What the inspector reported, if anything.
+    fn done(m: &mut InspectChanges) -> Option<ModalResult> {
+        m.take_result().map(LayerOut::into_inner)
+    }
 
     fn key(code: KeyCode) -> Key {
         Key {
@@ -909,7 +933,12 @@ mod tests {
             buf
         }
         fn key(&mut self, m: &mut InspectChanges, code: KeyCode) -> Outcome {
-            let o = m.on_key(&key(code), &mut self.focus, &self.ring, &self.world);
+            let mut cx = LayerCx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                app: &self.world,
+            };
+            let o = Layer::on_key(m, &key(code), &mut cx);
             self.draw(m);
             o
         }
@@ -951,9 +980,9 @@ mod tests {
         assert!(t.contains("│"), "review columns: {t}");
         rig.key(&mut m, KeyCode::Esc);
         assert!(!m.is_open());
-        assert!(m.done().is_none());
+        assert!(done(&mut m).is_none());
         rig.key(&mut m, KeyCode::Esc);
-        assert_eq!(m.done(), Some(ModalResult::Custom("back".into())));
+        assert_eq!(done(&mut m), Some(ModalResult::Custom("back".into())));
     }
 
     #[test]
@@ -1032,7 +1061,7 @@ mod tests {
         rig.key(&mut m, KeyCode::F(2));
         assert_eq!(m.mode, InspectMode::Advanced);
         rig.key(&mut m, KeyCode::Char('q'));
-        assert_eq!(m.done(), Some(ModalResult::Custom("close".into())));
+        assert_eq!(done(&mut m), Some(ModalResult::Custom("close".into())));
     }
 
     #[test]

@@ -4,7 +4,6 @@
 //! palette and every Capsule dialog, detach, takeover and dirty exit.
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
@@ -34,7 +33,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::Style;
 
 use super::modals::{ChoiceDialog, InfoDialog, InfoResult, modal_frame};
-use super::{CustomModal, Cx, Go, Modal, ModalResult, ModalTag, Screen};
+use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
 use crate::domain::instance::AgentState;
@@ -44,6 +43,7 @@ use crate::sim::pty::{
 };
 use crate::sim::world::{Msg, World};
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
 use junie_tui::ui::text::plural;
 
 pub const STRIP: WidgetId = WidgetId::of("capsule.strip");
@@ -403,7 +403,7 @@ impl CapsuleScreen {
             input,
             "Rename",
         );
-        cx.open(Modal::Dialog(dlg), ModalTag::new("rename").n(tab));
+        cx.open(dlg, LayerTag::new("rename").n(tab));
     }
 
     fn open_about(&mut self, w: &World, cx: &mut Cx) {
@@ -421,7 +421,7 @@ impl CapsuleScreen {
         ];
         let d =
             super::modals::InfoDialog::new(WidgetId::of("capsule.about"), "About", props).width(64);
-        cx.open(Modal::Info(d), ModalTag::new("about"));
+        cx.open(d, LayerTag::new("about"));
     }
 
     /// Runs a menu action by label so menus stay data, not code.
@@ -559,7 +559,7 @@ impl CapsuleScreen {
             super::inspect::InspectMode::Compact,
         )
         .returns_to_exit(from_exit);
-        cx.open(Modal::Custom(Box::new(d)), ModalTag::new("inspect"));
+        cx.open(d, LayerTag::new("inspect"));
     }
 
     fn enter_prefix(&mut self, w: &World) {
@@ -621,7 +621,7 @@ impl CapsuleScreen {
         });
         self.picker_agents.push(None);
         p.set_items(items);
-        cx.open(Modal::Picker(p), ModalTag::new("agent"));
+        cx.open(p, LayerTag::new("agent"));
     }
 
     fn continue_spawn(&mut self, agent: Option<Agent>, w: &World, cx: &mut Cx) {
@@ -652,7 +652,7 @@ impl CapsuleScreen {
                 d.actions.remove(0);
                 d.cancel_index = Some(0);
                 d.initial_focus = d.actions[0].id;
-                cx.open(Modal::Dialog(d), ModalTag::new("spawnfail"));
+                cx.open(d, LayerTag::new("spawnfail"));
             }
             1 => self.spawn(Some(a), offer.accounts.first().cloned(), w, cx),
             _ => {
@@ -702,7 +702,7 @@ impl CapsuleScreen {
                     self.picker_accounts.push(acc.id.clone());
                 }
                 p.set_items(items);
-                cx.open(Modal::Picker(p), ModalTag::new("provider"));
+                cx.open(p, LayerTag::new("provider"));
             }
         }
     }
@@ -908,7 +908,7 @@ impl CapsuleScreen {
         self.palette_cmds = PALETTE.to_vec();
         p.set_items(self.palette_items("", w));
         p.scope = Some(format!("{} of 20", PALETTE.len()));
-        cx.open(Modal::Picker(p), ModalTag::new("palette"));
+        cx.open(p, LayerTag::new("palette"));
     }
 
     fn palette_items(&mut self, query: &str, w: &World) -> Vec<PickerItem> {
@@ -1005,7 +1005,7 @@ impl CapsuleScreen {
                         })
                         .collect(),
                 );
-                cx.open(Modal::Picker(p), ModalTag::new("split"));
+                cx.open(p, LayerTag::new("split"));
             }
             "Zoom / unzoom pane" => self.toggle_zoom(w, cx),
             "Export file" | "Export file and reveal" | "Export file and open" => {
@@ -1017,7 +1017,7 @@ impl CapsuleScreen {
                     .help("Copies to ~/Downloads/jackin/ on the host")
                     .plain_label();
                 let d = Dialog::prompt(WidgetId::of("capsule.export"), cmd, input, "Export");
-                cx.open(Modal::Dialog(d), ModalTag::new("export"));
+                cx.open(d, LayerTag::new("export"));
             }
             "Export selected file"
             | "Export selected file and reveal"
@@ -1072,7 +1072,7 @@ impl CapsuleScreen {
                             })
                             .collect(),
                     );
-                    cx.open(Modal::Picker(p), ModalTag::new("closetarget"));
+                    cx.open(p, LayerTag::new("closetarget"));
                 }
             }
             "Quit" => self.request_exit(w, cx),
@@ -1128,10 +1128,7 @@ impl CapsuleScreen {
             )
         };
         let _ = w;
-        cx.open(
-            Modal::Dialog(d),
-            ModalTag::new(if tab { "closetab" } else { "closepane" }),
-        );
+        cx.open(d, LayerTag::new(if tab { "closetab" } else { "closepane" }));
     }
 
     fn is_dirty(&self, w: &World) -> bool {
@@ -1178,7 +1175,7 @@ impl CapsuleScreen {
                 0,
             )
             .option_tones(vec![Tone::Normal, Tone::Normal, Tone::Normal, Tone::Error]);
-            cx.open(Modal::Choice(c), ModalTag::new("exitdirty"));
+            cx.open(c, LayerTag::new("exitdirty"));
         } else {
             let mut d = Dialog::destructive(
                 WidgetId::of("capsule.exit"),
@@ -1187,7 +1184,7 @@ impl CapsuleScreen {
                 "Quit",
             );
             d.width = 60;
-            cx.open(Modal::Dialog(d), ModalTag::new("exit"));
+            cx.open(d, LayerTag::new("exit"));
         }
     }
 
@@ -1219,7 +1216,7 @@ impl CapsuleScreen {
         {
             dlg.tab = i + 1;
         }
-        cx.open(Modal::Custom(Box::new(dlg)), ModalTag::new("usage"));
+        cx.open(dlg, LayerTag::new("usage"));
     }
 
     fn open_container_info(&mut self, w: &World, cx: &mut Cx) {
@@ -1267,7 +1264,7 @@ impl CapsuleScreen {
         let _ = ws;
         let d = InfoDialog::new(WidgetId::of("capsule.info"), "Debug info", props)
             .meta("Enter copies the row · y copies");
-        cx.open(Modal::Info(d), ModalTag::new("info"));
+        cx.open(d, LayerTag::new("info"));
     }
 
     fn open_github(&mut self, w: &World, cx: &mut Cx) {
@@ -1305,7 +1302,7 @@ impl CapsuleScreen {
                 "Open PR…",
             ))
             .meta("open uses a gated host action");
-        cx.open(Modal::Info(d), ModalTag::new("github"));
+        cx.open(d, LayerTag::new("github"));
     }
 
     fn detach(&mut self, cx: &mut Cx) {
@@ -2326,7 +2323,7 @@ impl Screen for CapsuleScreen {
         Outcome::Consumed
     }
 
-    fn picker_items(&mut self, tag: &ModalTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
         if tag.kind == "palette" {
             return Some(self.palette_items(query, w));
         }
@@ -2335,7 +2332,7 @@ impl Screen for CapsuleScreen {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
@@ -2462,7 +2459,7 @@ impl Screen for CapsuleScreen {
                         Some(&ws),
                         Button::danger(WidgetId::of("capsule.discard").sub("ok"), "Discard"),
                     );
-                    cx.open(Modal::Dialog(d), ModalTag::new("discard"));
+                    cx.open(d, LayerTag::new("discard"));
                 }
             },
             ("inspect", ModalResult::Custom(r)) if r == "back" => {
@@ -2725,8 +2722,20 @@ impl UsageDialog {
     }
 }
 
-impl CustomModal for UsageDialog {
-    fn on_key(&mut self, key: &Key, _focus: &mut Focus, _ring: &FocusRing, w: &World) -> Outcome {
+/// The Usage dialog on the app's layer stack. Light dismiss (Esc on the
+/// tab bar, an outside click, its close button) reports `Custom("close")`.
+impl Layer<ModalResult, World> for UsageDialog {
+    fn spec(&self) -> LayerSpec {
+        LayerSpec::modal(junie_tui::ui::popup::Dismiss::LIGHT)
+            .initial_focus(WidgetId::of("capsule.usage"))
+    }
+
+    fn on_dismiss(&mut self, _: DismissReason) {
+        self.result = Some(ModalResult::Custom("close".into()));
+    }
+
+    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, World>) -> Outcome {
+        let w = cx.app;
         let n = self.accounts.len() + 1;
         match key.code {
             KeyCode::Esc | KeyCode::Char('q') => {
@@ -2777,13 +2786,7 @@ impl CustomModal for UsageDialog {
         }
     }
 
-    fn on_click(
-        &mut self,
-        id: WidgetId,
-        _pos: Position,
-        _focus: &mut Focus,
-        _w: &World,
-    ) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, _pos: Position, _: &mut LayerCx<'_, World>) -> Outcome {
         for (i, _) in self.tab_areas.iter().enumerate() {
             if WidgetId::of("capsule.usage.tab").child(i) == id {
                 self.tab = i;
@@ -2812,15 +2815,11 @@ impl CustomModal for UsageDialog {
         Outcome::Ignored
     }
 
-    fn done(&mut self) -> Option<ModalResult> {
-        self.result.take()
+    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
+        self.result.take().map(LayerOut::Close)
     }
 
-    fn initial_focus(&self) -> WidgetId {
-        WidgetId::of("capsule.usage")
-    }
-
-    fn hints(&self) -> Vec<Hint> {
+    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
         vec![
             hint("r", "Refresh"),
             hint("Tab", "Tabs / body"),
@@ -2840,7 +2839,7 @@ impl CustomModal for UsageDialog {
             h,
             "Usage",
             Some("read-only projection"),
-            super::CustomModal::dismiss(self),
+            Layer::spec(self).dismiss,
         );
         self.area = area;
         let t: &Theme = ctx.theme;

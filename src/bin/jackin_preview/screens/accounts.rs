@@ -32,7 +32,7 @@ use ratatui::style::{Modifier, Style};
 
 use super::modals::{BrowserResult, FileBrowser, FormDialog, FormField, FormValues, OpFlow};
 use super::rowmenu::RowMenu;
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
+use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::account::{
     Account, AccountId, AccountOrigin, CredentialSource, DetectedKind, DuplicateProbe, IssueCode,
     Lifecycle, ValidationState, fingerprint, masked, tail_of,
@@ -632,7 +632,7 @@ impl AccountsScreen {
             .width(70)
             .keep_open_on_save();
         Self::reveal(&mut form, w);
-        cx.open(Modal::Form(form), ModalTag::new("form"));
+        cx.open(form, LayerTag::new("form"));
     }
 
     /// Progressive disclosure: show the fields the current choices need.
@@ -1018,7 +1018,7 @@ impl AccountsScreen {
             &body,
             "Remove",
         );
-        cx.open(Modal::Dialog(d), ModalTag::new("remove").key(id));
+        cx.open(d, LayerTag::new("remove").key(id));
     }
 
     fn toggle_enabled(&mut self, id: &str, w: &mut World, cx: &mut Cx) {
@@ -2245,7 +2245,7 @@ impl Screen for AccountsScreen {
                         input,
                         "Apply",
                     );
-                    cx.open(Modal::Dialog(d), ModalTag::new("filter"));
+                    cx.open(d, LayerTag::new("filter"));
                     return Outcome::Changed;
                 }
                 KeyCode::Char('e') if key.plain() => {
@@ -2609,7 +2609,7 @@ impl Screen for AccountsScreen {
         Outcome::Ignored
     }
 
-    fn form_changed(&mut self, tag: &ModalTag, form: &mut FormDialog, w: &World) {
+    fn form_changed(&mut self, tag: &LayerTag, form: &mut FormDialog, w: &World) {
         if tag.kind == "form" {
             Self::reveal(form, w);
             form.error = None;
@@ -2622,7 +2622,7 @@ impl Screen for AccountsScreen {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
@@ -2632,7 +2632,7 @@ impl Screen for AccountsScreen {
                 match name.as_str() {
                     "choose:op" => {
                         let flow = OpFlow::new(WidgetId::of("accounts.op"), &w.op, w.now_ms());
-                        cx.open(Modal::Op(flow), ModalTag::new("op"));
+                        cx.open(flow, LayerTag::new("op"));
                     }
                     "choose:browse" => {
                         let b = FileBrowser::new(
@@ -2643,7 +2643,7 @@ impl Screen for AccountsScreen {
                             true,
                             w,
                         );
-                        cx.open(Modal::Browser(b), ModalTag::new("browse"));
+                        cx.open(b, LayerTag::new("browse"));
                     }
                     "plain" => {
                         let w2 = w.op.clone();

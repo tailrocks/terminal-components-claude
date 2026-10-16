@@ -11,13 +11,13 @@ use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::layer::{DismissReason, Dismissed, LayerCx, LayerEntry, ShellLayers, Taken};
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, letters_allowed};
-use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::text::truncate;
-use junie_tui::widgets::dialog::{DialogBody, DialogResult};
+use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::picker::PickerAction;
+use junie_tui::widgets::picker::{Picker, PickerAction};
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::too_small::TooSmall;
 use ratatui::Frame;
@@ -31,17 +31,20 @@ use crate::rain::{self, HANDOFF_LEN, IntroState, OutroState, handoff_stage};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::accounts::AccountsScreen;
 use crate::screens::capsule::CapsuleScreen;
+use crate::screens::capsule::UsageDialog;
 use crate::screens::cockpit::CockpitScreen;
 use crate::screens::editor::EditorScreen;
+use crate::screens::inspect::InspectChanges;
 use crate::screens::manager::ManagerScreen;
-use crate::screens::modals::{FormAction, HelpOverlay, InfoResult};
+use crate::screens::modals::{
+    ChoiceDialog, FileBrowser, FormAction, FormDialog, HelpOverlay, InfoDialog, InfoResult, OpFlow,
+};
 use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
 use crate::screens::usage::UsageScreen;
-use crate::screens::{Cx, Go, Modal, ModalResult, ModalTag, Request, Screen};
+use crate::screens::{AppLayer, Cx, Go, LayerTag, ModalResult, Request, Screen};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
@@ -84,27 +87,10 @@ impl Route {
     }
 }
 
-struct ModalEntry {
-    modal: Modal,
-    tag: ModalTag,
-    owner: Route,
-}
-
-impl junie_tui::ui::modal::Modal for ModalEntry {
-    fn dismiss(&self) -> junie_tui::ui::popup::Dismiss {
-        match &self.modal {
-            Modal::Dialog(d) => d.dismiss,
-            Modal::Picker(p) => p.dismiss,
-            Modal::Browser(b) => b.dismiss,
-            Modal::Choice(c) => c.dismiss,
-            Modal::Form(f) => f.dismiss,
-            Modal::Op(o) => o.dismiss,
-            Modal::Info(i) => i.dismiss,
-            Modal::Help(h) => h.dismiss,
-            Modal::Custom(c) => c.dismiss(),
-        }
-    }
-}
+/// The app's layer stack: every layer reads the world and reports a
+/// [`ModalResult`] to the route that opened it.
+type Layers = ShellLayers<ModalResult, World, Route>;
+type Entry = LayerEntry<ModalResult, World, Route>;
 
 #[derive(Default)]
 pub struct Screens {
@@ -170,7 +156,7 @@ pub struct App {
     pub outro: Option<OutroState>,
     pub handoff: Option<u64>,
     pub screens: Screens,
-    modals: ModalStack<ModalEntry>,
+    layers: Layers,
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
@@ -197,10 +183,22 @@ pub struct App {
 }
 
 impl App {
-    /// The top modal (proof accessor).
+    /// The top layer as an `L` (proof accessor).
     #[cfg(test)]
-    pub fn top_modal(&self) -> Option<&Modal> {
-        self.modals.top().map(|e| &e.modal)
+    pub fn top_layer<L: junie_tui::ui::layer::Layer<ModalResult, World>>(&self) -> Option<&L> {
+        self.layers.top_as()
+    }
+
+    /// How many layers are open (proof accessor).
+    #[cfg(test)]
+    pub fn layer_count(&self) -> usize {
+        self.layers.len()
+    }
+
+    /// The top layer's dismissal policy (proof accessor).
+    #[cfg(test)]
+    pub fn top_dismiss(&self) -> Option<junie_tui::ui::popup::Dismiss> {
+        self.layers.top().map(|t| t.layer.spec().dismiss)
     }
 
     /// Pure fixture entry point: one coherent world per scenario.
@@ -217,7 +215,7 @@ impl App {
             outro: None,
             handoff: None,
             screens: Screens::default(),
-            modals: ModalStack::new(),
+            layers: ShellLayers::new(),
             focus: Focus::default(),
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
@@ -347,9 +345,7 @@ impl App {
                 .screens
                 .get(self.route)
                 .is_some_and(|s| s.animating(&self.world))
-            || self.modals.top().is_some_and(|m| {
-                matches!(m.modal, Modal::Op(_) | Modal::Custom(_) | Modal::Browser(_))
-            })
+            || self.layer_animates()
             || !self.world.jobs.is_empty()
             || self.world.daemons.values().any(|d| !d.panes.is_empty())
     }
@@ -393,35 +389,17 @@ impl App {
         out.or(self.forward_blur())
     }
 
-    /// Hand every focus change the input caused to the modals and the
-    /// screens, so fields end their edits on the event path.
+    /// Hand every focus change the input caused to every open layer and
+    /// the screens, so fields end their edits on the event path.
     fn forward_blur(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
         for ch in self.focus.settle(&self.ring) {
-            let mut form_changed = false;
-            for entry in self.modals.iter_mut() {
-                out = out.or(match &mut entry.modal {
-                    Modal::Dialog(d) => d.on_blur(ch),
-                    Modal::Browser(b) => {
-                        junie_tui::core::focus::forward_blur(ch, &mut [&mut b.path])
-                    }
-                    Modal::Form(f) => {
-                        let o = f.on_blur(ch);
-                        form_changed |= !f.events.is_empty();
-                        o
-                    }
-                    _ => Outcome::Ignored,
-                });
+            for entry in self.layers.iter_mut() {
+                out = out.or(entry.layer.on_blur(ch));
             }
-            if form_changed {
-                // the top form's queued Changed reaches its owner, as Enter's does
-                if let Some(top) = self.modals.top_mut()
-                    && let Modal::Form(f) = &mut top.modal
-                {
-                    f.events.clear();
-                }
-                self.form_changed();
-            }
+            // what an ended edit reported (a form field changed) reaches
+            // the owner, as Enter's does
+            out = self.settle_layers(out);
             for route in ROUTES {
                 let mut cx = Cx {
                     focus: &mut self.focus,
@@ -518,15 +496,10 @@ impl App {
             }
             _ => {}
         }
-        // modal ticks
-        if let Some(top) = self.modals.top_mut() {
-            let o = match &mut top.modal {
-                Modal::Op(f) => f.tick(self.world.now_ms(), &self.world.op),
-                Modal::Browser(b) => b.tick(self.world.now_ms()),
-                Modal::Custom(c) => c.on_tick(&self.world),
-                _ => Outcome::Ignored,
-            };
-            out = out.or(o);
+        // the top layer's tick
+        if let Some(top) = self.layers.top_mut() {
+            let o = top.layer.on_tick(&self.world);
+            out = self.settle_layers(out.or(o));
         }
         // screen tick
         let route = self.route;
@@ -595,13 +568,9 @@ impl App {
     }
 
     fn on_paste(&mut self, text: &str) -> Outcome {
-        if let Some(top) = self.modals.top_mut() {
-            return match &mut top.modal {
-                Modal::Dialog(d) => d.on_paste(text),
-                Modal::Browser(b) => b.on_paste(text),
-                Modal::Form(f) => f.on_paste(text),
-                _ => Outcome::Consumed,
-            };
+        if let Some(top) = self.layers.top_mut() {
+            let o = top.layer.on_paste(text).or(Outcome::Consumed);
+            return self.settle_layers(o);
         }
         let route = self.route;
         match self.screens.get_mut(route) {
@@ -660,8 +629,8 @@ impl App {
             }
             _ => {}
         }
-        if !self.modals.is_empty() {
-            return self.modal_key(key);
+        if !self.layers.is_empty() {
+            return self.layer_key(key);
         }
         // back on the page: a quit that waited on the leave question was
         // cancelled
@@ -1019,7 +988,7 @@ impl App {
         ];
         let d = crate::screens::modals::InfoDialog::new(WidgetId::of("host.about"), "About", props)
             .width(64);
-        self.push_modal(Modal::Info(d), ModalTag::new("about"), self.route);
+        self.open_layer(Box::new(d), LayerTag::new("about"), self.route);
     }
 
     /// Row zero of every host screen: the menu bar, then the Construct state
@@ -1072,7 +1041,7 @@ impl App {
     }
 
     fn open_help(&mut self) {
-        if !self.modals.is_empty() {
+        if !self.layers.is_empty() {
             self.set_status("Close the dialog first", Tone::Secondary);
             return;
         }
@@ -1397,25 +1366,16 @@ impl App {
             ],
         };
         let h = HelpOverlay::new(WidgetId::of("help"), &scope, sections);
-        self.push_modal(Modal::Help(h), ModalTag::new("help"), self.route);
+        self.open_layer(Box::new(h), LayerTag::new("help"), self.route);
     }
 
-    // ------------------------------------------------------------ modals
+    // ------------------------------------------------------------ layers
 
-    fn push_modal(&mut self, modal: Modal, tag: ModalTag, owner: Route) {
-        let initial = match &modal {
-            Modal::Dialog(d) => Some(d.initial_focus),
-            Modal::Picker(p) => Some(p.id),
-            Modal::Browser(b) => Some(b.initial_focus()),
-            Modal::Choice(c) => Some(c.initial_focus()),
-            Modal::Form(f) => Some(f.initial_focus()),
-            Modal::Op(o) => Some(o.picker.id),
-            Modal::Info(i) => Some(i.initial_focus()),
-            Modal::Help(h) => Some(h.id),
-            Modal::Custom(c) => Some(c.initial_focus()),
-        };
-        let entry = ModalEntry { modal, tag, owner };
-        self.modals.push(entry, &mut self.focus, initial);
+    /// Open `layer` on top for `owner`: focus moves into it (the stack
+    /// remembers the control it covers, K9) and the page under it shows
+    /// no hover or press.
+    fn open_layer(&mut self, layer: Box<AppLayer>, tag: LayerTag, owner: Route) {
+        self.layers.open(layer, tag, owner, &mut self.focus);
         self.pointer.hover = None;
         self.pointer.pressed = None;
         if let Some(c) = self.screens.capsule.as_mut() {
@@ -1423,18 +1383,106 @@ impl App {
         }
     }
 
-    fn pop_modal(&mut self) -> Option<ModalEntry> {
-        let e = self.modals.pop(&mut self.focus);
-        if self.modals.is_empty()
+    /// A layer closed: the Capsule takes input again once none is open.
+    fn layer_gone(&mut self) {
+        if self.layers.is_empty()
             && let Some(c) = self.screens.capsule.as_mut()
         {
             c.dialog_open = false;
         }
-        e
     }
 
-    fn deliver(&mut self, entry: ModalEntry, result: ModalResult) -> Outcome {
-        let owner = entry.owner;
+    /// Hand what the top layer reported to its owner: an event leaves the
+    /// layer open; a result closes it (the stack gives focus back to the
+    /// control it covered, K9) and reaches the screen that opened it.
+    fn settle_layers(&mut self, mut out: Outcome) -> Outcome {
+        while let Some(taken) = self.layers.take(&mut self.focus) {
+            out = out.or(match taken {
+                Taken::Event(r) => self.layer_event(r),
+                Taken::Closed(entry, r) => {
+                    self.layer_gone();
+                    self.layer_closed(entry, r)
+                }
+            });
+        }
+        out
+    }
+
+    /// An event from the top layer, which stays open: the shell answers
+    /// the ones that need a layer (a picker's rows, a form's dependent
+    /// fields, a copied value); the rest reach the owner.
+    fn layer_event(&mut self, r: ModalResult) -> Outcome {
+        let Some(top) = self.layers.top() else {
+            return Outcome::Ignored;
+        };
+        let (tag, owner) = (top.tag.clone(), top.owner);
+        let r = match r {
+            ModalResult::PickerEvent(PickerAction::QueryChanged) => {
+                self.refresh_picker();
+                return Outcome::Changed;
+            }
+            ModalResult::PickerEvent(_) => return Outcome::Consumed,
+            ModalResult::FormEvent(FormAction::Changed(_)) => {
+                self.form_changed();
+                return Outcome::Changed;
+            }
+            ModalResult::FormEvent(FormAction::Choose(name)) => {
+                ModalResult::FormAction(format!("choose:{name}"), self.top_form_values())
+            }
+            ModalResult::FormEvent(FormAction::Action(name)) => {
+                ModalResult::FormAction(name, self.top_form_values())
+            }
+            ModalResult::Info(InfoResult::Copy(v)) => {
+                self.copy(v);
+                return Outcome::Changed;
+            }
+            r => r,
+        };
+        let scope = r == ModalResult::Scope;
+        let o = self.tell_owner(owner, &tag, r);
+        if scope {
+            // the owner switched scope: it supplies the rows again
+            self.refresh_picker();
+        }
+        o.or(Outcome::Changed)
+    }
+
+    /// A layer closed with `r`: the screen that opened it hears it.
+    fn layer_closed(&mut self, entry: Entry, r: ModalResult) -> Outcome {
+        let cancel_index = entry.get::<Dialog>().and_then(|d| d.cancel_index);
+        let r = match r {
+            ModalResult::Help => return Outcome::Changed,
+            // Save hands over the form's values
+            ModalResult::FormEvent(FormAction::Save) => ModalResult::Form(Some(
+                entry
+                    .get::<FormDialog>()
+                    .map(FormDialog::values)
+                    .unwrap_or_default(),
+            )),
+            // a dismissed dialog resolves to its cancel action, as its Esc
+            // does
+            ModalResult::Dialog { action: None, text } => ModalResult::Dialog {
+                action: cancel_index,
+                text,
+            },
+            r => r,
+        };
+        if entry.tag.kind == "quit" && entry.owner == self.route {
+            if let ModalResult::Dialog {
+                action: Some(a), ..
+            } = r
+                && Some(a) != cancel_index
+            {
+                self.world.arbiter.release_entry();
+                self.quit = true;
+            }
+            return Outcome::Changed;
+        }
+        self.tell_owner(entry.owner, &entry.tag, r)
+    }
+
+    /// Tell `owner`, the screen that opened a layer, what it reported.
+    fn tell_owner(&mut self, owner: Route, tag: &LayerTag, r: ModalResult) -> Outcome {
         let mut cx = Cx {
             focus: &mut self.focus,
             ring: &self.ring,
@@ -1442,30 +1490,44 @@ impl App {
             clicks: 1,
         };
         let o = match self.screens.get_mut(owner) {
-            Some(s) => s.on_modal(&entry.tag, result, &mut self.world, &mut cx),
+            Some(s) => s.on_modal(tag, r, &mut self.world, &mut cx),
             None => Outcome::Changed,
         };
         let reqs = std::mem::take(&mut cx.requests);
         o.or(self.apply_requests(reqs, owner)).or(Outcome::Changed)
     }
 
+    /// The values of the form on top (a chooser or action button
+    /// reports them with its name).
+    fn top_form_values(&self) -> crate::screens::modals::FormValues {
+        self.layers
+            .top_as::<FormDialog>()
+            .map(FormDialog::values)
+            .unwrap_or_default()
+    }
+
+    /// Put `v` on the preview clipboard.
+    fn copy(&mut self, v: String) {
+        self.world.clipboard = Some(v);
+        self.clipboard_gen += 1;
+        self.set_status("Copied to the preview clipboard", Tone::Secondary);
+    }
+
+    /// The picker on top asks its owner for rows matching its query.
     fn refresh_picker(&mut self) {
-        let Some(top) = self.modals.top_mut() else {
+        let Some(top) = self.layers.top() else {
             return;
         };
-        let Modal::Picker(p) = &mut top.modal else {
+        let Some(p) = top.get::<Picker>() else {
             return;
         };
-        let tag = top.tag.clone();
-        let query = p.query.clone();
-        let owner = top.owner;
+        let (tag, owner, query) = (top.tag.clone(), top.owner, p.query.clone());
         let items = self
             .screens
             .get_mut(owner)
             .and_then(|s| s.picker_items(&tag, &query, &self.world));
         if let Some(items) = items
-            && let Some(top) = self.modals.top_mut()
-            && let Modal::Picker(p) = &mut top.modal
+            && let Some(p) = self.layers.top_as_mut::<Picker>()
         {
             let n = items.len();
             p.set_items(items);
@@ -1475,230 +1537,160 @@ impl App {
         }
     }
 
+    /// A field of the form on top changed: its owner reveals or hides the
+    /// fields that depend on it.
     fn form_changed(&mut self) {
-        let Some(top) = self.modals.top_mut() else {
+        let Some(top) = self.layers.top_mut() else {
             return;
         };
-        let tag = top.tag.clone();
-        let owner = top.owner;
-        let Modal::Form(f) = &mut top.modal else {
+        let (tag, owner) = (top.tag.clone(), top.owner);
+        let Some(form) = top.get_mut::<FormDialog>() else {
             return;
         };
-        // temporarily take the form out to hand both to the screen
-        let mut form = std::mem::replace(
-            f,
-            crate::screens::modals::FormDialog::new(WidgetId::of("tmp"), "", vec![]),
-        );
         if let Some(s) = self.screens.get_mut(owner) {
-            s.form_changed(&tag, &mut form, &self.world);
-        }
-        if let Some(top) = self.modals.top_mut()
-            && let Modal::Form(f) = &mut top.modal
-        {
-            *f = form;
+            s.form_changed(&tag, form, &self.world);
         }
     }
 
-    fn modal_key(&mut self, key: Key) -> Outcome {
-        let Some(top) = self.modals.top_mut() else {
+    /// A key while a layer is open: the top layer has it (its own Esc
+    /// honours its dismissal policy); an Esc it passes on dismisses it.
+    fn layer_key(&mut self, key: Key) -> Outcome {
+        let Some(top) = self.layers.top_mut() else {
             return Outcome::Ignored;
         };
-        // help has top priority and never coexists; Ctrl+Q inside a Capsule dialog dismisses
-        let now = self.world.now_ms();
-        match &mut top.modal {
-            Modal::Dialog(d) => {
-                let out = d.on_key(&key, &mut self.focus, &self.ring);
-                if let Some(result) = d.result {
-                    let text = match &d.body {
-                        DialogBody::Input(i) => Some(i.text().to_owned()),
-                        _ => None,
-                    };
-                    let action = match result {
-                        DialogResult::Action(i) => Some(i),
-                        DialogResult::Cancelled => None,
-                    };
-                    let cancel = action.is_none() || action == d.cancel_index;
-                    let entry = self.pop_modal().unwrap();
-                    if entry.tag.kind == "quit" && entry.owner == self.route {
-                        if !cancel {
-                            self.world.arbiter.release_entry();
-                            self.quit = true;
-                        }
-                        return Outcome::Changed;
-                    }
-                    return self.deliver(entry, ModalResult::Dialog { action, text });
-                }
-                out.or(Outcome::Consumed)
-            }
-            Modal::Picker(p) => {
-                let (o, ev) = p.on_key(&key);
-                match ev {
-                    Some(PickerAction::QueryChanged) => {
-                        self.refresh_picker();
-                        Outcome::Changed
-                    }
-                    Some(PickerAction::Chosen(i)) => {
-                        let entry = self.pop_modal().unwrap();
-                        self.deliver(entry, ModalResult::Picked(i))
-                    }
-                    Some(PickerAction::ChosenAlt(i)) => {
-                        let entry = self.pop_modal().unwrap();
-                        self.deliver(entry, ModalResult::PickedAlt(i))
-                    }
-                    Some(PickerAction::NextScope) | Some(PickerAction::PrevScope) => {
-                        let tag = top.tag.clone();
-                        let owner = top.owner;
-                        let mut cx = Cx {
-                            focus: &mut self.focus,
-                            ring: &self.ring,
-                            requests: vec![],
-                            clicks: 1,
-                        };
-                        if let Some(s) = self.screens.get_mut(owner) {
-                            s.on_modal(&tag, ModalResult::Scope, &mut self.world, &mut cx);
-                        }
-                        let reqs = std::mem::take(&mut cx.requests);
-                        self.apply_requests(reqs, owner);
-                        self.refresh_picker();
-                        Outcome::Changed
-                    }
-                    Some(PickerAction::Cancelled) => {
-                        let entry = self.pop_modal().unwrap();
-                        self.deliver(entry, ModalResult::Cancelled)
-                    }
-                    Some(PickerAction::Back)
-                    | Some(PickerAction::Secondary(_))
-                    | Some(PickerAction::Submit)
-                    | None => o.or(Outcome::Consumed),
+        let mut cx = LayerCx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            app: &self.world,
+        };
+        let o = top.layer.on_key(&key, &mut cx);
+        if o == Outcome::Ignored && key.is(KeyCode::Esc) {
+            return self.dismiss_layer(DismissReason::Esc);
+        }
+        self.settle_layers(o.or(Outcome::Consumed))
+    }
+
+    /// Dismiss the top layer for `reason` under its own policy: it closes
+    /// with its cancel result, or stays (a refused outside click flashes
+    /// its frame).
+    fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
+        match self.layers.dismiss(reason, &mut self.focus) {
+            Dismissed::None => Outcome::Ignored,
+            Dismissed::Refused => {
+                let dismiss = self
+                    .layers
+                    .top()
+                    .map(|t| t.layer.spec().dismiss)
+                    .unwrap_or_default();
+                let now = self.now_ms();
+                if reason == DismissReason::OutsideClick
+                    && junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now)
+                {
+                    Outcome::Changed
+                } else {
+                    Outcome::Consumed
                 }
             }
-            Modal::Browser(b) => {
-                let o = b.on_key(&key, &mut self.focus, &self.ring, &self.world);
-                if let Some(r) = b.result.take() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Browser(r));
-                }
-                o.or(Outcome::Consumed)
+            Dismissed::Closed(entry, r) => {
+                self.layer_gone();
+                let o = match r {
+                    Some(r) => self.layer_closed(entry, r),
+                    None => Outcome::Changed,
+                };
+                self.settle_layers(o)
             }
-            Modal::Choice(c) => {
-                let o = c.on_key(&key, &mut self.focus, &self.ring);
-                if let Some(r) = c.result.take() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Choice(r));
-                }
-                o.or(Outcome::Consumed)
+        }
+    }
+
+    /// A completed click while a layer is open: its frame's `×` means what
+    /// Esc means; anything else is the top layer's.
+    fn layer_click(&mut self, id: WidgetId, pos: Position, clicks: u8) -> Outcome {
+        if id == junie_tui::ui::modal::CLOSE {
+            return self.dismiss_layer(DismissReason::CloseButton);
+        }
+        let Some(top) = self.layers.top_mut() else {
+            return Outcome::Ignored;
+        };
+        let mut cx = LayerCx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            app: &self.world,
+        };
+        let o = top.layer.on_click_count(id, pos, clicks, &mut cx);
+        self.settle_layers(o.or(Outcome::Changed))
+    }
+
+    /// Whether the top layer animates (a loading chain, a refresh): the
+    /// shell ticks faster while it does.
+    fn layer_animates(&self) -> bool {
+        self.layers.top().is_some_and(|t| {
+            t.get::<OpFlow>().is_some()
+                || t.get::<FileBrowser>().is_some()
+                || t.get::<InspectChanges>().is_some()
+                || t.get::<UsageDialog>().is_some()
+        })
+    }
+
+    /// Whether a field in the top layer is being edited (the EDIT badge).
+    fn layer_editing(&self) -> bool {
+        self.layers.top().is_some_and(|t| {
+            t.get::<Dialog>().is_some_and(Dialog::is_editing)
+                || t.get::<FormDialog>().is_some_and(FormDialog::is_editing)
+                || t.get::<FileBrowser>().is_some_and(FileBrowser::is_editing)
+        })
+    }
+
+    /// The footer's hints for the top layer: its own, or this app's line
+    /// for the library modals that report none.
+    fn layer_hints(&self) -> Vec<Hint> {
+        let Some(top) = self.layers.top() else {
+            return vec![];
+        };
+        let own = top.layer.hints(self.focus.current());
+        if !own.is_empty() {
+            return own;
+        }
+        if let Some(p) = top.get::<Picker>() {
+            let mut v = vec![];
+            if p.searchable {
+                v.push(hint("Type", "Filter"));
             }
-            Modal::Form(f) => {
-                let o = f.on_key(&key, &mut self.focus, &self.ring);
-                let events = std::mem::take(&mut f.events);
-                let mut out = o.or(Outcome::Consumed);
-                for ev in events {
-                    match ev {
-                        FormAction::Changed(_) => {
-                            self.form_changed();
-                            out = Outcome::Changed;
-                        }
-                        FormAction::Choose(name) => {
-                            let tag = top_tag(&self.modals);
-                            let owner = top_owner(&self.modals);
-                            let values = form_values(&self.modals);
-                            let mut cx = Cx {
-                                focus: &mut self.focus,
-                                ring: &self.ring,
-                                requests: vec![],
-                                clicks: 1,
-                            };
-                            if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(
-                                    &tag,
-                                    ModalResult::FormAction(format!("choose:{name}"), values),
-                                    &mut self.world,
-                                    &mut cx,
-                                );
-                            }
-                            let reqs = std::mem::take(&mut cx.requests);
-                            self.apply_requests(reqs, owner);
-                            return Outcome::Changed;
-                        }
-                        FormAction::Action(name) => {
-                            let tag = top_tag(&self.modals);
-                            let owner = top_owner(&self.modals);
-                            let values = form_values(&self.modals);
-                            let mut cx = Cx {
-                                focus: &mut self.focus,
-                                ring: &self.ring,
-                                requests: vec![],
-                                clicks: 1,
-                            };
-                            if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(
-                                    &tag,
-                                    ModalResult::FormAction(name, values),
-                                    &mut self.world,
-                                    &mut cx,
-                                );
-                            }
-                            let reqs = std::mem::take(&mut cx.requests);
-                            self.apply_requests(reqs, owner);
-                            return Outcome::Changed;
-                        }
-                        FormAction::Save => {
-                            let values = form_values(&self.modals);
-                            let entry = self.pop_modal().unwrap();
-                            return self.deliver(entry, ModalResult::Form(Some(values)));
-                        }
-                        FormAction::Cancel => {
-                            let entry = self.pop_modal().unwrap();
-                            return self.deliver(entry, ModalResult::Form(None));
-                        }
-                    }
-                }
-                out
+            v.push(hint("↑↓", "Move"));
+            v.push(hint("Enter", "Choose"));
+            v.push(if p.searchable && !p.query.is_empty() {
+                hint("Esc", "Clear")
+            } else {
+                hint("Esc", "Cancel")
+            });
+            v
+        } else if top.get::<ChoiceDialog>().is_some() {
+            vec![
+                hint("↑↓", "Choose"),
+                hint("Enter", "Confirm"),
+                hint("Tab", "Buttons"),
+                hint("Esc", "Cancel"),
+            ]
+        } else if let Some(f) = top.get::<FormDialog>() {
+            if f.is_editing() {
+                junie_tui::widgets::keyhint::EDIT_FIELD.to_vec()
+            } else {
+                vec![
+                    hint("Tab", "Next field"),
+                    hint("Enter", "Edit / Save"),
+                    hint("Esc", "Cancel"),
+                ]
             }
-            Modal::Op(f) => {
-                let o = f.on_key(&key, now, &self.world.op);
-                if let Some(r) = f.result.take() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Op(r));
-                }
-                o.or(Outcome::Consumed)
+        } else if let Some(i) = top.get::<InfoDialog>() {
+            let mut v = vec![hint("↑↓", "Move")];
+            if let Some((k, a)) = i.props.reveal.hint() {
+                v.push(hint(k, a));
             }
-            Modal::Info(i) => {
-                let o = i.on_key(&key, &mut self.focus, &self.ring);
-                if let Some(r) = i.result.take() {
-                    let copy = matches!(r, InfoResult::Copy(_));
-                    if copy {
-                        // copying keeps the dialog open
-                        let tag = top_tag(&self.modals);
-                        let owner = top_owner(&self.modals);
-                        if let InfoResult::Copy(v) = &r {
-                            self.world.clipboard = Some(v.clone());
-                            self.clipboard_gen += 1;
-                            self.set_status("Copied to the preview clipboard", Tone::Secondary);
-                        }
-                        let _ = (tag, owner);
-                        return Outcome::Changed;
-                    }
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Info(r));
-                }
-                o.or(Outcome::Consumed)
-            }
-            Modal::Help(h) => {
-                let o = h.on_key(&key);
-                if h.closed {
-                    self.pop_modal();
-                }
-                o.or(Outcome::Consumed)
-            }
-            Modal::Custom(c) => {
-                let o = c.on_key(&key, &mut self.focus, &self.ring, &self.world);
-                if let Some(r) = c.done() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, r);
-                }
-                o.or(Outcome::Consumed)
-            }
+            v.extend([hint("y", "Copy"), hint("Esc", "Close")]);
+            v
+        } else if top.get::<HelpOverlay>().is_some() {
+            vec![hint("↑↓", "Scroll"), hint("Esc", "Close")]
+        } else {
+            vec![]
         }
     }
 
@@ -1711,17 +1703,16 @@ impl App {
         let route = self.route;
         // a form select's press-drag ends on an option
         if let (Some(p), Release::Cancelled) = (pressed, release)
-            && let Some(top) = self.modals.top_mut()
-            && let Modal::Form(f) = &mut top.modal
+            && let Some(top) = self.layers.top_mut()
         {
-            let o = f.on_release(p, m.pos);
+            let o = top.layer.on_release(p, m.pos);
             if o != Outcome::Ignored {
-                return o.or(Outcome::Changed);
+                return self.settle_layers(o.or(Outcome::Changed));
             }
         }
         // drags end here
         if let Some(p) = pressed
-            && self.modals.is_empty()
+            && self.layers.is_empty()
         {
             let mut cx = Cx {
                 focus: &mut self.focus,
@@ -1742,7 +1733,9 @@ impl App {
         let id = match release {
             Release::Click(id) => id,
             // outside a cancelable modal cancels it
-            Release::Outside if !self.modals.is_empty() => return self.modal_outside_click(),
+            Release::Outside if !self.layers.is_empty() => {
+                return self.dismiss_layer(DismissReason::OutsideClick);
+            }
             _ => return Outcome::Changed,
         };
         let now = self.now_ms();
@@ -1750,8 +1743,8 @@ impl App {
         // multi-clicks count by control, cell and time; a field in a
         // modal selects a word or a line with them too
         let clicks = self.pointer.count_click(id, m.pos, now);
-        if !self.modals.is_empty() {
-            return self.modal_click(id, m.pos, clicks);
+        if !self.layers.is_empty() {
+            return self.layer_click(id, m.pos, clicks);
         }
         let double = clicks >= 2;
         if Self::is_host(self.route) && self.host_menu.owns(id) {
@@ -1846,20 +1839,11 @@ impl App {
                 let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
                     return Outcome::Ignored;
                 };
-                if let Some(top) = self.modals.top_mut() {
-                    return match &mut top.modal {
-                        Modal::Info(i)
-                            if pressed == junie_tui::widgets::scrollbar::id_for(i.id) =>
-                        {
-                            i.on_click(pressed, m.pos, &mut self.focus)
-                        }
-                        Modal::Custom(c) => c.on_drag(pressed, m.pos),
-                        // a drag from a press on a field selects its text
-                        Modal::Dialog(d) => d.on_drag(pressed, m.pos),
-                        Modal::Form(f) => f.on_drag(pressed, m.pos).or(Outcome::Consumed),
-                        Modal::Browser(b) => b.on_drag(pressed, m.pos).or(Outcome::Consumed),
-                        _ => Outcome::Consumed,
-                    };
+                // a drag from a press on a field selects its text; on a
+                // scrollbar it moves the thumb
+                if let Some(top) = self.layers.top_mut() {
+                    let o = top.layer.on_drag(pressed, m.pos).or(Outcome::Consumed);
+                    return self.settle_layers(o);
                 }
                 let route = self.route;
                 match self.screens.get_mut(route) {
@@ -1869,7 +1853,7 @@ impl App {
             }
             MouseKind::Down => {
                 let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
-                    return if self.modals.is_empty() {
+                    return if self.layers.is_empty() {
                         self.pointer.dead_space(&mut self.focus);
                         Outcome::Ignored
                     } else {
@@ -1878,10 +1862,10 @@ impl App {
                 };
                 // a press on a modal's own body is dead space inside it:
                 // it ends the focused field's edit in place
-                if !self.modals.is_empty() {
+                if !self.layers.is_empty() {
                     self.pointer.surface_press(&self.hits, id, &mut self.focus);
                 }
-                if self.modals.is_empty()
+                if self.layers.is_empty()
                     && self.pointer.config.focus_on == FocusOn::Press
                     && self.ring.contains(id)
                 {
@@ -1890,29 +1874,18 @@ impl App {
                 // the click count this press starts: the second press of a
                 // double click selects a word in a field
                 let clicks = self.pointer.press_count(id, m.pos, self.now_ms());
-                if let Some(top) = self.modals.top_mut() {
-                    match &mut top.modal {
-                        Modal::Dialog(d) => {
-                            d.on_press(id, m.pos, clicks);
-                        }
-                        Modal::Form(f) => {
-                            f.on_press(id, m.pos, clicks);
-                        }
-                        Modal::Browser(b) => {
-                            b.on_press(id, m.pos, clicks);
-                        }
-                        _ => {}
-                    }
+                if let Some(top) = self.layers.top_mut() {
+                    let _ = top.layer.on_press(id, m.pos, clicks);
                 }
                 // a host menu title opens on the press (MenuBar::open_on)
-                if self.modals.is_empty()
+                if self.layers.is_empty()
                     && Self::is_host(self.route)
                     && self.host_menu.owns(id)
                     && self.host_menu.on_press(id).0 != Outcome::Ignored
                 {
                     return Outcome::Changed;
                 }
-                if self.modals.is_empty() {
+                if self.layers.is_empty() {
                     let route = self.route;
                     let mut cx = Cx {
                         focus: &mut self.focus,
@@ -1954,7 +1927,7 @@ impl App {
             },
             MouseKind::Middle => Outcome::Ignored,
             MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
-                SecondaryRoute::Nothing if self.modals.is_empty() => Outcome::Ignored,
+                SecondaryRoute::Nothing if self.layers.is_empty() => Outcome::Ignored,
                 SecondaryRoute::Nothing | SecondaryRoute::Swallowed => Outcome::Consumed,
                 SecondaryRoute::Target(id) => self.secondary_on(id, m.pos),
                 SecondaryRoute::Outside { backdrop, reopen } => {
@@ -1977,26 +1950,15 @@ impl App {
                 // a horizontal swipe is its own axis: it never scrolls a
                 // vertical list
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
-                if let Some(top) = self.modals.top_mut() {
-                    if horizontal {
-                        // only content with a horizontal axis takes it
-                        return match &mut top.modal {
-                            Modal::Custom(c) => c.on_wheel_h(delta, m.pos),
-                            Modal::Dialog(d) => d.on_wheel_h(delta),
-                            _ => Outcome::Consumed,
-                        };
-                    }
-                    return match &mut top.modal {
-                        Modal::Picker(p) => p.on_wheel(delta),
-                        Modal::Browser(b) => b.on_wheel(delta),
-                        Modal::Form(f) => f.on_wheel(delta),
-                        Modal::Op(o) => o.on_wheel(delta),
-                        Modal::Info(i) => i.on_wheel(delta),
-                        Modal::Help(h) => h.on_wheel(delta),
-                        Modal::Custom(c) => c.on_wheel(delta, m.pos),
-                        Modal::Dialog(d) => d.on_wheel(delta),
-                        Modal::Choice(_) => Outcome::Consumed,
+                if let Some(top) = self.layers.top_mut() {
+                    // only content with a horizontal axis takes a sideways
+                    // notch
+                    let o = if horizontal {
+                        top.layer.on_wheel_h(delta, m.pos)
+                    } else {
+                        top.layer.on_wheel(delta, m.pos)
                     };
+                    return self.settle_layers(o);
                 }
                 // innermost first: a row registered above its list hands
                 // the notch on to the list that scrolls
@@ -2022,7 +1984,7 @@ impl App {
     /// A secondary click on `id`: the page's context menu. Under a modal
     /// (a dialog: no light-dismiss backdrop) it is swallowed.
     fn secondary_on(&mut self, id: WidgetId, pos: Position) -> Outcome {
-        if !self.modals.is_empty() {
+        if !self.layers.is_empty() {
             return Outcome::Consumed;
         }
         let route = self.route;
@@ -2040,236 +2002,6 @@ impl App {
         o.or(self.apply_requests(reqs, route))
     }
 
-    fn modal_outside_click(&mut self) -> Outcome {
-        let Some(top) = self.modals.top_mut() else {
-            return Outcome::Ignored;
-        };
-        match &mut top.modal {
-            Modal::Dialog(d) => {
-                // the dialog's dismiss policy decides (typed acknowledgements
-                // and destructive confirmations ignore a backdrop click)
-                let out = d.on_click_outside();
-                if let Some(result) = d.result {
-                    let action = match result {
-                        DialogResult::Action(i) => Some(i),
-                        DialogResult::Cancelled => None,
-                    };
-                    let entry = self.pop_modal().unwrap();
-                    if entry.tag.kind == "quit" {
-                        return Outcome::Changed;
-                    }
-                    return self.deliver(entry, ModalResult::Dialog { action, text: None });
-                }
-                let dismiss = d.dismiss;
-                let now = self.now_ms();
-                if junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now) {
-                    return Outcome::Changed;
-                }
-                out
-            }
-            // everything else follows its own dismiss policy and closes
-            // with the result its Esc would give
-            _ => {
-                if self.modals.outside_click() != Dismissal::Close {
-                    let dismiss = self
-                        .modals
-                        .top()
-                        .map(junie_tui::ui::modal::Modal::dismiss)
-                        .unwrap_or_default();
-                    let now = self.now_ms();
-                    if junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now) {
-                        return Outcome::Changed;
-                    }
-                    return Outcome::Consumed;
-                }
-                self.dismiss_top_modal()
-            }
-        }
-    }
-
-    /// Close the top modal with the result its Esc gives (an outside
-    /// click its policy allows, or its close button).
-    fn dismiss_top_modal(&mut self) -> Outcome {
-        let Some(entry) = self.pop_modal() else {
-            return Outcome::Ignored;
-        };
-        let result = match &entry.modal {
-            Modal::Help(_) => return Outcome::Changed,
-            Modal::Info(_) => ModalResult::Info(InfoResult::Closed),
-            Modal::Custom(_) => ModalResult::Custom("close".into()),
-            Modal::Browser(_) => {
-                ModalResult::Browser(crate::screens::modals::BrowserResult::Cancelled)
-            }
-            Modal::Choice(_) => ModalResult::Choice(None),
-            Modal::Form(_) => ModalResult::Form(None),
-            _ => ModalResult::Cancelled,
-        };
-        self.deliver(entry, result)
-    }
-
-    fn modal_click(&mut self, id: WidgetId, pos: Position, clicks: u8) -> Outcome {
-        let now = self.world.now_ms();
-        let Some(top) = self.modals.top_mut() else {
-            return Outcome::Ignored;
-        };
-        // the frame's close button means what Esc means (a dialog resolves
-        // it itself, to its cancel action)
-        if id == junie_tui::ui::modal::CLOSE
-            && !matches!(top.modal, Modal::Dialog(_))
-            && junie_tui::ui::modal::Modal::dismiss(&*top).shows_close()
-        {
-            return self.dismiss_top_modal();
-        }
-        match &mut top.modal {
-            Modal::Dialog(d) => {
-                let out = d.on_click_count(id, pos, clicks, &mut self.focus);
-                if let Some(result) = d.result {
-                    let text = match &d.body {
-                        DialogBody::Input(i) => Some(i.text().to_owned()),
-                        _ => None,
-                    };
-                    let action = match result {
-                        DialogResult::Action(i) => Some(i),
-                        DialogResult::Cancelled => None,
-                    };
-                    let cancel = action.is_none() || action == d.cancel_index;
-                    let entry = self.pop_modal().unwrap();
-                    if entry.tag.kind == "quit" {
-                        if !cancel {
-                            self.quit = true;
-                        }
-                        return Outcome::Changed;
-                    }
-                    return self.deliver(entry, ModalResult::Dialog { action, text });
-                }
-                out.or(Outcome::Changed)
-            }
-            Modal::Picker(p) => {
-                if let Some(PickerAction::Chosen(i)) = p.on_click(id) {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Picked(i));
-                }
-                Outcome::Changed
-            }
-            Modal::Browser(b) => {
-                let o = b.on_click(id, pos, clicks, &mut self.focus, &self.world);
-                if let Some(r) = b.result.take() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Browser(r));
-                }
-                o.or(Outcome::Changed)
-            }
-            Modal::Choice(c) => {
-                let o = c.on_click(id, &mut self.focus);
-                if let Some(r) = c.result.take() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Choice(r));
-                }
-                o.or(Outcome::Changed)
-            }
-            Modal::Form(f) => {
-                let o = f.on_click_count(id, pos, clicks, &mut self.focus);
-                let events = std::mem::take(&mut f.events);
-                for ev in events {
-                    match ev {
-                        FormAction::Changed(_) => self.form_changed(),
-                        FormAction::Choose(name) => {
-                            let tag = top_tag(&self.modals);
-                            let owner = top_owner(&self.modals);
-                            let values = form_values(&self.modals);
-                            let mut cx = Cx {
-                                focus: &mut self.focus,
-                                ring: &self.ring,
-                                requests: vec![],
-                                clicks: 1,
-                            };
-                            if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(
-                                    &tag,
-                                    ModalResult::FormAction(format!("choose:{name}"), values),
-                                    &mut self.world,
-                                    &mut cx,
-                                );
-                            }
-                            let reqs = std::mem::take(&mut cx.requests);
-                            self.apply_requests(reqs, owner);
-                            return Outcome::Changed;
-                        }
-                        FormAction::Action(name) => {
-                            let tag = top_tag(&self.modals);
-                            let owner = top_owner(&self.modals);
-                            let values = form_values(&self.modals);
-                            let mut cx = Cx {
-                                focus: &mut self.focus,
-                                ring: &self.ring,
-                                requests: vec![],
-                                clicks: 1,
-                            };
-                            if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(
-                                    &tag,
-                                    ModalResult::FormAction(name, values),
-                                    &mut self.world,
-                                    &mut cx,
-                                );
-                            }
-                            let reqs = std::mem::take(&mut cx.requests);
-                            self.apply_requests(reqs, owner);
-                            return Outcome::Changed;
-                        }
-                        FormAction::Save => {
-                            let values = form_values(&self.modals);
-                            let entry = self.pop_modal().unwrap();
-                            return self.deliver(entry, ModalResult::Form(Some(values)));
-                        }
-                        FormAction::Cancel => {
-                            let entry = self.pop_modal().unwrap();
-                            return self.deliver(entry, ModalResult::Form(None));
-                        }
-                    }
-                }
-                o.or(Outcome::Changed)
-            }
-            Modal::Op(f) => {
-                let o = f.on_click(id, now, &self.world.op);
-                if let Some(r) = f.result.take() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Op(r));
-                }
-                o.or(Outcome::Changed)
-            }
-            Modal::Info(i) => {
-                let o = i.on_click(id, pos, &mut self.focus);
-                if let Some(r) = i.result.take() {
-                    if let InfoResult::Copy(v) = &r {
-                        self.world.clipboard = Some(v.clone());
-                        self.clipboard_gen += 1;
-                        self.set_status("Copied to the preview clipboard", Tone::Secondary);
-                        return Outcome::Changed;
-                    }
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Info(r));
-                }
-                o.or(Outcome::Changed)
-            }
-            Modal::Help(h) => {
-                let o = h.on_click(id);
-                if h.closed {
-                    self.pop_modal();
-                }
-                o.or(Outcome::Changed)
-            }
-            Modal::Custom(c) => {
-                let o = c.on_click(id, pos, &mut self.focus, &self.world);
-                if let Some(r) = c.done() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, r);
-                }
-                o.or(Outcome::Changed)
-            }
-        }
-    }
-
     // ----------------------------------------------------------- requests
 
     fn apply_requests(&mut self, requests: Vec<Request>, owner: Route) -> Outcome {
@@ -2279,21 +2011,17 @@ impl App {
             match r {
                 Request::Status(s) => self.set_status(&s, Tone::Secondary),
                 Request::Error(s) => self.set_status(&s, Tone::Error),
-                Request::Open(m, tag) => self.push_modal(*m, tag, owner),
+                Request::Open(layer, tag) => self.open_layer(layer, tag, owner),
+                // the owner closes its layer without a result
                 Request::Close => {
-                    self.pop_modal();
+                    self.layers.pop(&mut self.focus);
+                    self.layer_gone();
                 }
                 Request::Go(g) => self.go(g),
                 Request::Help => self.open_help(),
-                Request::Copy(s) => {
-                    self.world.clipboard = Some(s);
-                    self.clipboard_gen += 1;
-                    self.set_status("Copied to the preview clipboard", Tone::Secondary);
-                }
+                Request::Copy(s) => self.copy(s),
                 Request::WithForm(f) => {
-                    if let Some(top) = self.modals.top_mut()
-                        && let Modal::Form(form) = &mut top.modal
-                    {
+                    if let Some(form) = self.layers.top_as_mut::<FormDialog>() {
                         f(form);
                     }
                 }
@@ -2512,7 +2240,7 @@ impl App {
             ExitDecision::Outro { elapsed_secs } => {
                 self.outro = Some(OutroState::new(self.motion, elapsed_secs, 0));
                 self.route = Route::Outro;
-                self.modals.clear(&mut self.focus);
+                self.layers.clear(&mut self.focus);
             }
             ExitDecision::StillInside { remaining } => {
                 self.route = Route::Manager;
@@ -2591,7 +2319,7 @@ impl App {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
             ctx.page_under_layer(
-                !self.modals.is_empty()
+                self.layers.hides_page_focus()
                     || self.host_menu.hides_page_focus()
                     || self.screens.get(self.route).is_some_and(|s| s.layer_open()),
             );
@@ -2602,7 +2330,7 @@ impl App {
         self.hits = hits;
         self.pointer.refresh_hover(&self.hits);
         self.ring = ring;
-        if self.modals.is_empty() {
+        if self.layers.is_empty() {
             if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
                 let pf = self.screens.get(self.route).and_then(|s| s.primary_focus());
                 self.focus
@@ -2663,48 +2391,17 @@ impl App {
             }
             r => {
                 self.draw_frame(area, buf, ctx, r);
-                // modals
-                let mut modals = std::mem::take(&mut self.modals);
-                if let Some(entry) = modals.top_mut() {
-                    let hints = self.modal_hints(&entry.modal);
-                    match &mut entry.modal {
-                        Modal::Dialog(d) => d.render_in(
-                            area,
-                            junie_tui::widgets::dialog::body_bounds(area, 1, 1),
-                            buf,
-                            ctx,
-                        ),
-                        Modal::Picker(p) => {
-                            p.hints = hints;
-                            p.draw(area, buf, ctx);
-                        }
-                        Modal::Browser(b) => {
-                            let stepper = self.screens.prelude.as_ref().map(|p| p.stepper_line());
-                            b.render(area, buf, ctx, stepper.as_deref());
-                        }
-                        Modal::Choice(c) => c.render(area, buf, ctx),
-                        Modal::Form(f) => f.render(area, buf, ctx),
-                        Modal::Op(o) => o.render(area, buf, ctx),
-                        Modal::Info(i) => i.render(area, buf, ctx),
-                        Modal::Help(h) => h.render(area, buf, ctx),
-                        Modal::Custom(c) => c.render(area, buf, ctx, &self.world),
-                    }
+                // the layers, bottom to top
+                for entry in self.layers.iter_mut() {
+                    entry.layer.render(area, buf, ctx, &self.world);
                 }
-                let open = !modals.is_empty();
-                self.modals = modals;
-                if open {
+                if !self.layers.is_empty() {
                     // footer hints for the modal
                     let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
                     self.draw_footer(footer, buf, true, ctx.reveal_hint);
                 }
             }
         }
-    }
-
-    /// Pickers draw no hint row of their own: the shell's hint bar is the
-    /// one hint surface.
-    fn modal_hints(&self, _m: &Modal) -> String {
-        String::new()
     }
 
     /// Strip + body + footer for a route (no modals).
@@ -2857,59 +2554,7 @@ impl App {
         let t = self.theme;
         fill(buf, area, t.base());
         let hints: Vec<Hint> = if modal {
-            match self.modals.top().map(|m| &m.modal) {
-                Some(Modal::Picker(p)) => {
-                    let mut v = vec![];
-                    if p.searchable {
-                        v.push(hint("Type", "Filter"));
-                    }
-                    v.push(hint("↑↓", "Move"));
-                    v.push(hint("Enter", "Choose"));
-                    v.push(if p.searchable && !p.query.is_empty() {
-                        hint("Esc", "Clear")
-                    } else {
-                        hint("Esc", "Cancel")
-                    });
-                    v
-                }
-                Some(Modal::Op(o)) => o.hints(),
-                Some(Modal::Dialog(d)) => d.hints(self.focus.current()),
-                Some(Modal::Browser(_)) => vec![
-                    hint("Enter", "Open"),
-                    hint("Space", "Choose"),
-                    hint("g", "Git URL"),
-                    hint("Tab", "Next"),
-                    hint("Esc", "Cancel"),
-                ],
-                Some(Modal::Choice(_)) => vec![
-                    hint("↑↓", "Choose"),
-                    hint("Enter", "Confirm"),
-                    hint("Tab", "Buttons"),
-                    hint("Esc", "Cancel"),
-                ],
-                Some(Modal::Form(f)) => {
-                    if f.is_editing() {
-                        junie_tui::widgets::keyhint::EDIT_FIELD.to_vec()
-                    } else {
-                        vec![
-                            hint("Tab", "Next field"),
-                            hint("Enter", "Edit / Save"),
-                            hint("Esc", "Cancel"),
-                        ]
-                    }
-                }
-                Some(Modal::Info(i)) => {
-                    let mut v = vec![hint("↑↓", "Move")];
-                    if let Some((k, a)) = i.props.reveal.hint() {
-                        v.push(hint(k, a));
-                    }
-                    v.extend([hint("y", "Copy"), hint("Esc", "Close")]);
-                    v
-                }
-                Some(Modal::Help(_)) => vec![hint("↑↓", "Scroll"), hint("Esc", "Close")],
-                Some(Modal::Custom(c)) => c.hints(),
-                _ => vec![],
-            }
+            self.layer_hints()
         } else {
             let focus = self.focus.current();
             self.screens
@@ -2920,13 +2565,8 @@ impl App {
         // the focused cursor row is cut: name the reveal key
         let mut hints = hints;
         junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
-        let editing = self.screens.get(self.route).is_some_and(|s| s.is_editing())
-            || self.modals.top().is_some_and(|m| match &m.modal {
-                Modal::Dialog(d) => d.is_editing(),
-                Modal::Form(f) => f.is_editing(),
-                Modal::Browser(b) => b.is_editing(),
-                _ => false,
-            });
+        let editing =
+            self.screens.get(self.route).is_some_and(|s| s.is_editing()) || self.layer_editing();
         let badge = if editing {
             Some(("EDIT", BadgeKind::Edit))
         } else {
@@ -2963,23 +2603,5 @@ impl App {
         layer.badge = badge;
         layer.status = status;
         HintBar::render(area, buf, &t, &layer);
-    }
-}
-
-fn top_tag(modals: &ModalStack<ModalEntry>) -> ModalTag {
-    modals
-        .top()
-        .map(|m| m.tag.clone())
-        .unwrap_or(ModalTag::new(""))
-}
-
-fn top_owner(modals: &ModalStack<ModalEntry>) -> Route {
-    modals.top().map(|m| m.owner).unwrap_or(Route::Manager)
-}
-
-fn form_values(modals: &ModalStack<ModalEntry>) -> crate::screens::modals::FormValues {
-    match modals.top().map(|m| &m.modal) {
-        Some(Modal::Form(f)) => f.values(),
-        _ => vec![],
     }
 }

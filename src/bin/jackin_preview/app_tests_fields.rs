@@ -9,7 +9,7 @@ use ratatui::crossterm::event::KeyCode;
 use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
-use crate::screens::Modal;
+use junie_tui::widgets::dialog::Dialog;
 
 fn editor() -> H {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -80,8 +80,8 @@ fn dragging_across_the_editor_name_selects_it() {
 }
 
 fn rename_input(h: &H) -> Option<String> {
-    match h.app.top_modal() {
-        Some(Modal::Dialog(d)) => match &d.body {
+    match h.app.top_layer::<Dialog>() {
+        Some(d) => match &d.body {
             DialogBody::Input(i) => i.buffer.selected_text().map(str::to_owned),
             _ => panic!("a prompt"),
         },
@@ -114,8 +114,8 @@ fn a_press_on_the_dialog_body_ends_its_fields_edit() {
     h.ctrl('b');
     h.key(KeyCode::Char(','));
     h.type_str("xy");
-    let editing = |h: &H| match h.app.top_modal() {
-        Some(Modal::Dialog(d)) => match &d.body {
+    let editing = |h: &H| match h.app.top_layer::<Dialog>() {
+        Some(d) => match &d.body {
             DialogBody::Input(i) => (i.editing, i.text().to_owned()),
             _ => panic!("a prompt"),
         },
