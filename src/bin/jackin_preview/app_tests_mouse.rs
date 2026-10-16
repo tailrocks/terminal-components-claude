@@ -155,3 +155,90 @@ fn a_refused_outside_click_flashes_the_form_frame() {
     h.ticks(20);
     assert_eq!(corner(&h), rest);
 }
+
+// mouse #6: a click skips the intro as Enter does
+#[test]
+fn a_click_skips_the_intro() {
+    let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Intro);
+    h.ticks(3);
+    h.click(60, 20);
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    // the knob turns it off
+    let mut off = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
+    off.app.pointer.config = off.app.pointer.config.click_skips_animation(false);
+    off.ticks(3);
+    off.click(60, 20);
+    assert_eq!(off.app.route, Route::Intro);
+}
+
+// mouse #6: a running launch can be cancelled and its build log closed by mouse
+#[test]
+fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() {
+    let mut h = H::new(Scenario::LaunchRunning, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Cockpit);
+    let (x, y) = h.find("Cancel launch…").expect("a Cancel launch button");
+    h.click(x + 1, y);
+    assert!(h.text().contains("Cancel the launch?"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    // the build log, once there is one
+    for _ in 0..80 {
+        if h.app
+            .hits
+            .area_of(crate::screens::cockpit::CHIP_ACTIVITY)
+            .is_some()
+        {
+            break;
+        }
+        h.ticks(3);
+    }
+    let chip = h
+        .app
+        .hits
+        .area_of(crate::screens::cockpit::CHIP_ACTIVITY)
+        .expect("the activity line links to the build log");
+    h.click(chip.x, chip.y);
+    assert!(h.text().contains("Docker build"), "{}", h.text());
+    let x = h
+        .app
+        .hits
+        .area_of(CLOSE)
+        .expect("the log has a close button");
+    h.click(x.x + 1, x.y);
+    assert!(!h.text().contains("Docker build"), "{}", h.text());
+}
+
+// mouse #6: a taken-over capsule offers Reconnect and Workspace manager as buttons
+#[test]
+fn a_taken_over_capsule_reconnects_by_mouse() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Capsule);
+    h.app.screens.capsule.as_mut().unwrap().takeover = Some("laptop".into());
+    h.draw();
+    assert!(h.text().contains("Attach taken over"));
+    let r = h
+        .app
+        .hits
+        .area_of(crate::screens::capsule::TAKEOVER_RECONNECT)
+        .expect("a Reconnect button");
+    assert!(
+        h.text()
+            .lines()
+            .nth(r.y as usize)
+            .unwrap()
+            .contains("Reconnect")
+    );
+    h.click(r.x + 1, r.y);
+    assert!(!h.text().contains("Attach taken over"), "{}", h.text());
+    assert_eq!(h.app.route, Route::Capsule);
+
+    h.app.screens.capsule.as_mut().unwrap().takeover = Some("laptop".into());
+    h.draw();
+    let r = h
+        .app
+        .hits
+        .area_of(crate::screens::capsule::TAKEOVER_LEAVE)
+        .expect("a Workspace manager button");
+    h.click(r.x + 1, r.y);
+    assert_ne!(h.app.route, Route::Capsule, "{}", h.text());
+}
