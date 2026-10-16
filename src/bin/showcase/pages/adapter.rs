@@ -54,11 +54,12 @@ impl shell::Page<Showcase> for dyn Page {
         self.handle(&PageEvent::Tick, cx)
     }
 
-    /// A dialog the page opened closed; any other layer's result (a
-    /// keyboard reference closing) is the shell's.
+    /// A dialog the page opened closed, or another of its layers
+    /// reported; a library result (a keyboard reference closing) is the
+    /// shell's.
     fn on_layer_result(
         &mut self,
-        _tag: &LayerTag,
+        tag: &LayerTag,
         result: LayerRes,
         _: &mut (),
         cx: &mut Cx,
@@ -67,6 +68,7 @@ impl shell::Page<Showcase> for dyn Page {
             LayerRes::Dialog { id, result, value } => {
                 self.handle(&PageEvent::DialogClosed { id, result, value }, cx)
             }
+            LayerRes::Page(report) => self.on_layer(tag, report, cx),
             LayerRes::Lib(_) => Outcome::Ignored,
         }
     }

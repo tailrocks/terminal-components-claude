@@ -204,10 +204,10 @@ fn a_click_outside_an_open_picker_closes_it() {
     let mut h = Harness::new(120, 40, PageId::Pickers);
     let quick = h.area_of(WidgetId::of("pickers").sub("quick"));
     h.click(quick.x + 1, quick.y);
-    assert!(h.app.pages[PageId::Pickers.index()].layer_open(), "open");
+    assert!(!h.app.layers.is_empty(), "open");
     h.click(1, 1);
     assert!(
-        !h.app.pages[PageId::Pickers.index()].layer_open(),
+        h.app.layers.is_empty(),
         "the outside click closed it:\n{}",
         h.text()
     );
