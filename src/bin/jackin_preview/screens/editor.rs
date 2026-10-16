@@ -2081,7 +2081,6 @@ impl Screen for EditorScreen {
         let active = self.tabs.active;
         self.tabs = Tabs::with_items(TABS, items);
         self.tabs.set_active(active);
-        self.tabs.quiet = false;
         self.tabs.render(
             Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 2),
             buf,
