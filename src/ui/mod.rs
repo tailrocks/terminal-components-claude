@@ -9,5 +9,6 @@ pub mod leave;
 pub mod modal;
 pub mod popup;
 pub mod reveal;
+pub mod specimen;
 pub mod text;
 pub mod tooltip;
