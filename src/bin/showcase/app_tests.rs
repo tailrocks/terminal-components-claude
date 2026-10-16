@@ -654,6 +654,8 @@ fn grid_header_seam_drag_resizes_the_column() {
 #[test]
 fn modal_traps_focus_and_restores_it() {
     let mut h = Harness::new(120, 40, PageId::Dialogs);
+    // the section strip is the page's first stop, the first button the second
+    h.key(tab());
     h.key(tab());
     let before = h.app.focus.current();
     h.key(KeyCode::Enter);
@@ -680,6 +682,8 @@ fn modal_traps_focus_and_restores_it() {
 #[test]
 fn prompt_dialog_validates_and_returns_value() {
     let mut h = Harness::new(120, 40, PageId::Dialogs);
+    // past the section strip and the first button
+    h.key(tab());
     h.key(tab());
     h.key(tab());
     h.key(KeyCode::Enter);
