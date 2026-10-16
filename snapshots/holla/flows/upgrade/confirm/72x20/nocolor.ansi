@@ -1,20 +1,21 @@
-  holla❯    File   Go   Help           no project  devbox · development [0m
-  ╭──────────────────────────────────────────────────────────────────╮  [0m
-  │                                                                  │  [0m
- ━│  [0m[1mStart upgrade everything?[0m                                       │─ [0m
-  │                                                                  │  [0m
-  │  Plan       Upgrade everything · upgrade Debian packages and     │  [0m
-  │             global mise tools on devbox                          │  [0m
-  │  Host       devbox                                               │  [0m
-  │                                                                  ││ [0m
-  │  cat /etc/os-release                                             │┃ [0m
-  │  sudo -n true                                                    │┃ [0m
-  │  fuser /var/lib/dpkg/lock-frontend                               │┃ [0m
-  │  df -h /                                                         ││ [0m
-  │  test -f /var/run/reboot-required                                │  [0m
-  │  sudo apt-get update … 8 more                                    │  [0m
-  │                                                                  │  [0m
-  │                                           ▎[0m[1mCancel [0m  [0m[1mStart plan [0m  │  [0m
-  │                                                                  │  [0m
- ~╰──────────────────────────────────────────────────────────────────╯0 [0m
-  [0m[1m← →[0m Ch[0m[1moo[0mse  [0m[1mEnter Co[0mnfirm  [0m[1mEsc[0m Cancel    06 excluded · 08 now blocked [0m
+[0m[2m  holla❯    File   Go   Help          no project  devbox · development  [0m
+[0m[2m  Here › Upgrade everything                                             [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                │── [0m
+[0m[2m  U│  [0m[1;2mStart upgrade everything?[0m[2m                                     │   [0m
+[0m[2m  u│                                                                │   [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m   │  cat /etc/os-release                                           │   [0m
+[0m[2m [0m [0m[2m[│  sudo -n true                                                  │ ┆ [0m
+[0m[2m [0m [0m[2m[│  fuser /var/lib/dpkg/lock-frontend                             │ ┃ [0m
+[0m[2m [0m [0m[2m[│  df -h /                                                       │ ┃ [0m
+[0m[2m [0m [0m[2m[│  test -f /var/run/reboot-required                              │ ┃ [0m
+[0m[2m [0m [0m[2m[│  sudo apt-get update … 8 more                                  │ ┆ [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m   │                                        ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mtart plan [0m[2m  │…  [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m   ╰──────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m───────────╯   [0m
+[0m[2m                                                                        [0m
+[0m[2m ~       review · 7 steps · 2 branches parallel        no color · 72×20 [0m
+      [0m[1m←→[0m Choo[0m[1mse[0m  [0m[1mEnter Ca[0mncel  [0m[1mEsc[0m Cancel  06 excluded · 08 now blocked [0m
+[?25l

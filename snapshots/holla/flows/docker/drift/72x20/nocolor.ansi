@@ -1,5 +1,5 @@
- [0m[1m holla❯ [0m   File   Go   Help           no project  [0m[1mdevbox · development[0m [0m
-                                                                        [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help          no project  [0m[1mdevbox · development[0m  [0m
+  Here › Clean Docker completely › [0m[1mReview[0m                               [0m
  [0m[1m Here › Clean Docker completely › Review  [0m                             [0m
  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────── [0m
   [0m[1mReview · Clean Docker completely[0m · gate 1 of 2 · review the resolve…  [0m
@@ -17,4 +17,5 @@
                                                  ▎[0m[1mCancel [0m   Continue…   [0m
                                                                         [0m
  [0m[1m/work/scratch[0m          review · gate 1 of 2           no color · 72×20 [0m
- …   [0m[1m![0m Plan changed · a new container (tmp-shell-3) appeared · confirm… [0m
+  [0m[1mEsc[0m Cancel  …  [0m[1m![0m Plan changed · a new container (tmp-shell-3) appear… [0m
+[?25l

@@ -1,11 +1,11 @@
- [0m[1m holla❯ [0m   File   Go   Help                                                                    no project  [0m[1mmbp · local[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                                                   no project  [0m[1mmbp · local[0m  [0m
                                                                                                                         [0m
  [0m[1m Here  [0m                                                                                                                [0m
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
  ▎ Search actions and resources…                                                                        scope ‹ here ›  [0m
                                                                                                                         [0m
     Suggested here                                                               Clean IntelliJ metadata… idea · here   [0m
- [0m[1m › Clean IntelliJ metadata …  [0midea   [0m[1m  [0mhere[0m[1m  [0m4 candidates[0m[1m       [0mdestructive[0m[1m [0m                                           [0m
+ [0m[1;7m › Clean IntelliJ metadata …  [0m[7midea   [0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m4 candidates[0m[1;7m       [0m[7mdestructive[0m[1;7m [0m                                           [0m
                                                                                  Does       move every .idea            [0m
     Recent here                                                                             directory and lowercase     [0m
     nothing used here yet                                                                   .iml file below this        [0m
@@ -37,4 +37,5 @@
                                                                                                                         [0m
                                                                                                                         [0m
  [0m[1m~/work/ide[0m                                                                                           no color · 120×40 [0m
-         [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities            [0m
+      [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities      [0m
+[?25h[5;4H[6 q

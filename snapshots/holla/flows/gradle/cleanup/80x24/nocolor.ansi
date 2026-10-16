@@ -1,5 +1,5 @@
- [0m[1m holla❯ [0m   File   Go   Help                android · Gradle build  [0m[1mmbp · local[0m [0m
-                                                                                [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help               android · Gradle build  [0m[1mmbp · local[0m  [0m
+  Here › [0m[1mCleanup › gradle.clean-all[0m                                             [0m
  [0m[1m Here › Cleanup › gradle.clean-all  [0m                                           [0m
  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────── [0m
   [0m[1mCleanup · Gradle outputs[0m                                                      [0m
@@ -21,4 +21,5 @@
                                                                                 [0m
                                                                                 [0m
  [0m[1m~/work/android[0m             4 selected · 49.0 MiB              no color · 80×24 [0m
-      [0m[1m↑↓[0m Move  [0m[1mSpace[0m Select  [0m[1mEnter[0m Open  [0m[1ma[0m All  [0m[1mm[0m Permanent  [0m[1mn[0m Dry run  …       [0m
+ [0m[1m↑↓[0m Move  [0m[1mSpace[0m Select  [0m[1mEnter[0m Open  [0m[1ma[0m All  [0m[1mm[0m Use permanent delete  [0m[1mEsc[0m Back  …  [0m
+[?25l

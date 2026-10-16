@@ -1,6 +1,6 @@
- [0m[1m holla❯ [0m   File   Go   Help                            no project  [0m[1mmbp · local[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                           no project  [0m[1mmbp · local[0m  [0m
                                                                                 [0m
-  Here   [0m[1m brew update [0m✓[0m[1m ×  [0m                                                     [0m
+  Here   [0m[1m brew update [0m✓[0m[1m [0m×[0m[1m  [0m                                                     [0m
  ────────━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────── [0m
   [0m[1mbrew update[0m · succeeded · 0 s · exit 0                                   mbp  [0m
   $ brew update · started by Upgrade Homebrew packages · batch upgrade.brew-p…  [0m
@@ -21,4 +21,5 @@
  ╰────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                 [0m
  [0m[1m~[0m                       succeeded · 0 s                       no color · 80×24 [0m
-     [0m[1m↑↓[0m Scroll  …   [0m[1m![0m Upgrade Homebrew packages · 4 ok · 1 failed · 0 cancelled [0m
+  [0m[1mEsc[0m Back to Here  …  [0m[1m![0m Upgrade Homebrew packages · 4 ok · 1 failed · 0 cance… [0m
+[?25l

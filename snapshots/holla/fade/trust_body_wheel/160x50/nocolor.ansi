@@ -1,5 +1,5 @@
- [0m[1m holla❯ [0m   File   Go   Help                                                                                                   team · Rust project  [0m[1mmbp · local[0m [0m
-                                                                                                                                                                [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                                                                                  team · Rust project  [0m[1mmbp · local[0m  [0m
+  Here › [0m[1mTrust[0m                                                                                                                                                  [0m
  [0m[1m Here › Trust  [0m                                                                                                                                                [0m
  ━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
   [0m[1mTrust ~/work/team/.holla.toml?[0m                                                                                                                                [0m
@@ -19,10 +19,10 @@
   Then         run deploy.preview exactly as declared                                                                                                           [0m
                                                                                                                                                                 [0m
  ╭─ Definition ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── exact content ─╮ [0m
- │  [0m[2mdescription = "push the current branch to the preview stack"                                                                                            [0m│ │ [0m
- │  keywords = ["deploy", "preview"]                                                                                                                        │ │ [0m
- │                                                                                                                                                          │ │ [0m
- │  [[action]]                                                                                                                                              │ │ [0m
+ │  [0m[2mdescription = "push the current branch to the preview stack"                                                                                            [0m┆ │ [0m
+ │  keywords = ["deploy", "preview"]                                                                                                                        ┆ │ [0m
+ │                                                                                                                                                          ┆ │ [0m
+ │  [[action]]                                                                                                                                              ┆ │ [0m
  │  id = "wipe"                                                                                                                                             ┃ │ [0m
  │  label = "Wipe local caches"                                                                                                                             ┃ │ [0m
  │  command = ["sh", "-c", "rm -rf .cache && echo done"]                                                                                                    ┃ │ [0m
@@ -38,13 +38,14 @@
  │                                                                                                                                                          ┃ │ [0m
  │  [[action]]                                                                                                                                              ┃ │ [0m
  │  id = "Bad Id"                                                                                                                                           ┃ │ [0m
- │  label = "x"                                                                                                                                             │ │ [0m
- │  command = ["true"]                                                                                                                                      │ │ [0m
- │  danger = "safe"                                                                                                                                         │ │ [0m
- │  [0m[2m                                                                                                                                                        [0m│ │ [0m
+ │  label = "x"                                                                                                                                             ┆ │ [0m
+ │  command = ["true"]                                                                                                                                      ┆ │ [0m
+ │  danger = "safe"                                                                                                                                         ┆ │ [0m
+ │  [0m[2m                                                                                                                                                        [0m┆ │ [0m
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                                                                                                 [0m
-                                                                                                                                   ▎[0m[1mCancel [0m   [0m[1mTrust this file [0m  [0m
+                                                                                                                                   ▎[0m[1mCancel [0m   [0m[1;7mTrust this file [0m  [0m
                                                                                                                                                                 [0m
  [0m[1m~/work/team[0m   main                                               trust review · one exact file                                               no color · 160×50 [0m
-                                                       [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  [0m[1mEsc[0m Cancel                                                         [0m
+                                                         [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mTab[0m Next  [0m[1mEsc[0m Cancel                                                          [0m
+[?25l
