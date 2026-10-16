@@ -85,6 +85,9 @@ pub struct Dialog {
     /// The theme's button gap, captured at render so the natural height
     /// can be measured without a theme.
     gap: u16,
+    /// The theme's dialog padding (`spacing.dialog`), captured at render
+    /// like `gap`.
+    pad: crate::theme::Insets,
     /// Body scroll position (Text and Facts bodies).
     pub scroll: ScrollState,
     /// The scrollbar track drawn last frame (empty when the body fits).
@@ -132,6 +135,7 @@ impl Dialog {
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
+            pad: crate::theme::Spacing::DEFAULT.dialog,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -164,6 +168,7 @@ impl Dialog {
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
+            pad: crate::theme::Spacing::DEFAULT.dialog,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -196,6 +201,7 @@ impl Dialog {
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
+            pad: crate::theme::Spacing::DEFAULT.dialog,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -247,6 +253,7 @@ impl Dialog {
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
+            pad: crate::theme::Spacing::DEFAULT.dialog,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -474,26 +481,26 @@ impl Dialog {
 
     /// Rows the typed acknowledgement takes in a dialog `width` wide: the
     /// field with its whole (wrapped) label, and the blank row above it.
-    fn ack_rows(ack: Option<&AckInput>, width: u16) -> u16 {
-        ack.map_or(0, |a| a.input.height_for(Self::field_width(width)) + 1)
+    fn ack_rows(&self, ack: Option<&AckInput>, width: u16) -> u16 {
+        ack.map_or(0, |a| a.input.height_for(self.field_width(width)) + 1)
     }
 
     /// Width of an input field: the text column plus the focus gutter to
     /// its left, so the field's label lines up with the title.
-    fn field_width(width: u16) -> u16 {
-        Self::inner_width(width) + TextInput::GUTTER
+    fn field_width(&self, width: u16) -> u16 {
+        self.inner_width(width) + TextInput::GUTTER
     }
 
     /// Text column of a dialog `width` wide: inside the border and the
-    /// two-column padding on each side.
-    fn inner_width(width: u16) -> u16 {
-        width.saturating_sub(6)
+    /// theme's dialog padding (`spacing.dialog.x`) on each side.
+    fn inner_width(&self, width: u16) -> u16 {
+        width.saturating_sub(2 * (1 + self.pad.x))
     }
 
     /// Rows the body's scrolling part needs at `width`: every wrapped line
     /// of a Text body, every fact row of a Facts body. Zero for a prompt.
     fn scroll_rows(&self, width: u16) -> u16 {
-        let inner_w = Self::inner_width(width);
+        let inner_w = self.inner_width(width);
         match &self.body {
             DialogBody::Text(t) => crate::ui::text::wrap(t, inner_w as usize).len() as u16,
             DialogBody::Input(_) => 0,
@@ -506,29 +513,32 @@ impl Dialog {
     fn fixed_rows(&self, width: u16) -> u16 {
         match &self.body {
             DialogBody::Text(_) => 0,
-            DialogBody::Input(i) => i.height_for(Self::field_width(width)),
+            DialogBody::Input(i) => i.height_for(self.field_width(width)),
             DialogBody::Facts { code, ack, .. } => {
-                Self::code_rows(code, Self::inner_width(width), &self.h_cfg)
-                    + Self::ack_rows(ack.as_ref(), width)
+                Self::code_rows(code, self.inner_width(width), &self.h_cfg)
+                    + self.ack_rows(ack.as_ref(), width)
             }
         }
     }
 
-    /// Rows around the body and the actions: border(2) + pad(1) +
-    /// title(1) + gap(1) + gap(1) + pad(1).
-    const CHROME_ROWS: u16 = 7;
+    /// Rows around the body and the actions: border(2) + the padding
+    /// above and below (`spacing.dialog.y` each) + title(1) + gap(1) +
+    /// gap(1).
+    fn chrome_rows(&self) -> u16 {
+        5 + 2 * self.pad.y
+    }
 
     /// Lines the actions take at `width` (more than one only when they
     /// wrap).
     fn action_rows(&self, width: u16) -> u16 {
         self.button_row
-            .rows_at_gap(Self::inner_width(width), &self.actions, self.gap)
+            .rows_at_gap(self.inner_width(width), &self.actions, self.gap)
             .max(1)
     }
 
     /// Natural height at `width`: every row of the body shown.
     pub fn height(&self, width: u16) -> u16 {
-        Self::CHROME_ROWS
+        self.chrome_rows()
             + self.action_rows(width)
             + self.scroll_rows(width)
             + self.fixed_rows(width)
@@ -797,6 +807,8 @@ impl Dialog {
         let t = ctx.theme;
         self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.gap = t.spacing.button_gap;
+        // at least one column of padding: the scrollbar lives there
+        self.pad = crate::theme::Insets::new(t.spacing.dialog.x.max(1), t.spacing.dialog.y);
         // dim backdrop; the footer row stays live because its hints belong to the dialog
         ctx.modal_backdrop(buf, screen);
         let bounds = bounds.intersection(screen);
@@ -826,7 +838,7 @@ impl Dialog {
             .border_style(t.border(true).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
         let _ = panel;
-        let inner = area.inner(ratatui::layout::Margin::new(3, 2));
+        let inner = area.inner(Margin::new(1 + self.pad.x, 1 + self.pad.y));
         if inner.is_empty() {
             return;
         }
@@ -838,7 +850,7 @@ impl Dialog {
         );
         let body_y = inner.y + 2;
         let action_rows = self.action_rows(width);
-        let actions_y = area.bottom().saturating_sub(2 + action_rows);
+        let actions_y = area.bottom().saturating_sub(1 + self.pad.y + action_rows);
         // the scrolling part of the body ends above the parts anchored over
         // the actions; the row right below it is a blank separator, where
         // "↓ N more" goes while there is more below
@@ -853,8 +865,9 @@ impl Dialog {
         }
         self.scroll.clamp();
         let offset = self.scroll.offset as u16;
-        let field_x = inner.x.saturating_sub(TextInput::GUTTER);
-        let field_w = inner.width + TextInput::GUTTER;
+        // the gutter goes in the padding, never over the frame
+        let field_x = inner.x.saturating_sub(TextInput::GUTTER).max(area.x + 1);
+        let field_w = inner.right() - field_x;
         match &mut self.body {
             DialogBody::Text(text) => {
                 let lines = crate::ui::text::wrap(text, inner.width as usize);
@@ -948,7 +961,7 @@ impl Dialog {
         if self.scroll.overflows() && viewport > 0 {
             // the scrollbar sits in the padding just inside the frame, one
             // column off the text, so the text keeps its width
-            self.track = Rect::new(inner.right() + 1, body_y, 1, viewport);
+            self.track = Rect::new(area.right() - 2, body_y, 1, viewport);
             let below = self.scroll.max_offset() - self.scroll.offset;
             if below > 0 && scroll_bottom < actions_y {
                 buf.set_string(
@@ -1452,6 +1465,25 @@ mod tests {
         let mut d = gate(78).outer_margin(Margin::new(0, 0));
         draw(&mut d, screen, bounds);
         assert_eq!(d.area.width, 72);
+    }
+
+    #[test]
+    fn the_padding_comes_from_the_theme_dialog_insets() {
+        let screen = Rect::new(0, 0, 80, 24);
+        let mut theme = Theme::junie();
+        theme.spacing.dialog = crate::theme::Insets::new(4, 2);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(screen);
+        let mut d = Dialog::confirm(WidgetId::of("c"), "Run?", "Run the suite.", "Run");
+        d.render_in(screen, screen, &mut buf, &mut ctx);
+        let a = d.area;
+        let title_at = (a.x..a.right())
+            .find(|&x| buf.cell((x, a.y + 3)).map_or("", |c| c.symbol()) == "R")
+            .unwrap();
+        assert_eq!(title_at, a.x + 5, "border + 4 columns of padding");
+        assert_eq!(a.height, d.height(d.width), "the height counts the padding");
     }
 
     #[test]
