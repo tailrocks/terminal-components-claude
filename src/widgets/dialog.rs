@@ -683,7 +683,10 @@ impl Dialog {
 
     /// The result a dismissal resolves to: the cancel action if there is
     /// one, so the owner handles "closed" and "Cancel" the same way.
-    fn dismissed(&mut self) -> Outcome {
+    /// Resolve to the cancel action (`cancel_index`, else `Cancelled`):
+    /// what Esc, the × and an allowed outside click mean, and what
+    /// [`crate::ui::layer::Overlay::on_dismiss`] resolves to.
+    pub(crate) fn dismissed(&mut self) -> Outcome {
         match self.cancel_index {
             Some(ci) => self.finish(DialogResult::Action(ci)),
             None => self.finish(DialogResult::Cancelled),
