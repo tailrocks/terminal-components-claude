@@ -752,7 +752,13 @@ impl CodeEditor {
                 let first_content = b.start;
                 if first_content >= ls && first_content <= le {
                     marker = "›";
-                    marker_style = fs.fg(if focused { t.accent } else { t.text_secondary });
+                    // the block marker is a position aid beside the
+                    // focus bar, never a second green cue
+                    marker_style = fs.fg(if focused {
+                        t.text_primary
+                    } else {
+                        t.text_secondary
+                    });
                 }
             }
             // a diagnostic owns the marker slot
@@ -1097,6 +1103,31 @@ mod tests {
             code,
             mods: KeyModifiers::NONE,
         }
+    }
+
+    #[test]
+    fn the_block_marker_beside_the_focus_bar_is_not_accent() {
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        fn whole(text: &str) -> Vec<std::ops::Range<usize>> {
+            std::iter::once(0..text.len()).collect()
+        }
+        let mut editor = CodeEditor::new(WidgetId::of("c"), "select 1;").segmenter(whole);
+        let area = Rect::new(0, 0, 40, 6);
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let inter = Interaction {
+            focus: Some(editor.id),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+        editor.render(area, &mut buf, &mut ctx, theme.surface);
+        let marker = buf
+            .content()
+            .iter()
+            .find(|c| c.symbol() == "›")
+            .expect("block marker");
+        assert_eq!(marker.fg, theme.text_primary);
     }
 
     #[test]

@@ -178,3 +178,49 @@ fn disabled_choices_reject_keyboard_and_mouse_changes() {
     radio.on_click(1);
     assert_eq!((radio.cursor, radio.selected), (0, 0));
 }
+
+#[test]
+fn checked_marks_take_the_accent_only_while_the_control_has_focus() {
+    let theme = Theme::junie();
+    let id = WidgetId::of("test.checked");
+    let area = Rect::new(0, 0, 20, 3);
+    let draw = |focus: Option<WidgetId>, which: u8| {
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let inter = Interaction {
+            focus,
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+        match which {
+            0 => Checkbox::new(id, "Choice", true).render(area, &mut buf, &mut ctx, theme.canvas),
+            1 => Toggle::new(id, "Choice", true).render(area, &mut buf, &mut ctx, theme.canvas),
+            _ => RadioGroup::new(id, "Choice", &["First", "Second"], 0).render(
+                area,
+                &mut buf,
+                &mut ctx,
+                theme.canvas,
+            ),
+        }
+        let mark = buf
+            .content()
+            .iter()
+            .find(|c| c.symbol() == "✓" || c.symbol() == "●")
+            .expect("checked mark")
+            .clone();
+        mark.fg
+    };
+    for which in 0..3 {
+        assert_eq!(
+            draw(None, which),
+            theme.text_primary,
+            "control {which} at rest"
+        );
+        assert_eq!(
+            draw(Some(id), which),
+            theme.accent,
+            "control {which} focused"
+        );
+    }
+}

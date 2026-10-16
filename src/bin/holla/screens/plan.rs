@@ -271,7 +271,8 @@ fn render_outline(
         let plain = st.remove_modifier(Modifier::BOLD);
         let mut x = row.x + 1;
         if review {
-            // inclusion marker: checked in the accent, unchecked muted, required faint
+            // inclusion marker: checked in the accent while the list has
+            // focus (primary otherwise), unchecked muted, required faint
             // on the selected row the faint tier would vanish into the
             // tint at 16 colours: step up one rung there
             let quiet = if vs.selected {
@@ -282,7 +283,7 @@ fn render_outline(
             let (mark, ms) = if !s.optional {
                 ("[✓]", plain.fg(quiet))
             } else if s.included {
-                ("[✓]", plain.fg(t.accent))
+                ("[✓]", plain.fg(t.chosen(focused)))
             } else {
                 ("[ ]", plain.fg(t.text_muted))
             };

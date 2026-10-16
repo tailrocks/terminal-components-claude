@@ -1233,3 +1233,26 @@ fn keys_switch_menus_even_with_the_pointer_parked_on_a_title() {
         "cursor moved off the hovered row"
     );
 }
+
+#[test]
+fn the_current_page_marker_is_neutral_while_focus_is_on_the_page() {
+    let mut h = Harness::new(120, 40, PageId::Lists);
+    let nav = WidgetId::of("app.nav");
+    let marker = |h: &Harness| {
+        let side = h.app.sidebar_area();
+        let buf = h.term.backend().buffer();
+        (side.top()..side.bottom())
+            .flat_map(|y| (side.left()..side.right()).map(move |x| (x, y)))
+            .map(|(x, y)| buf[(x, y)].clone())
+            .find(|c| c.symbol() == "›")
+            .expect("current-page marker")
+            .fg
+    };
+    let t = h.app.theme;
+    h.app.focus.set(Some(nav));
+    h.draw();
+    assert_eq!(marker(&h), t.accent, "accent while the nav has focus");
+    h.key(tab());
+    assert_ne!(h.app.focus.current(), Some(nav));
+    assert_eq!(marker(&h), t.text_primary, "a fact, not a focus cue");
+}
