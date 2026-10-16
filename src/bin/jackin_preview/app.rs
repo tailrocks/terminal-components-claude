@@ -236,7 +236,7 @@ impl App {
                 self.enter_manager();
                 self.set_status(
                     &format!(
-                        "Could not confirm running instances: {} · entered without the ritual",
+                        "Could not confirm running instances: {} · list may be incomplete",
                         e.label()
                     ),
                     Tone::Warning,
