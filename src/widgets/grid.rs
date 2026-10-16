@@ -20,7 +20,7 @@ use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
-use crate::ui::text::{fit, fit_right, truncate, truncate_middle, width};
+use crate::ui::text::{fit, fit_right, truncate, truncate_middle, wider_than, width, width_capped};
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::field_common::{EditAction, edit_key};
 use crate::widgets::scrollbar;
@@ -42,13 +42,18 @@ pub enum CellValue {
 
 impl CellValue {
     pub fn text(&self) -> String {
+        self.text_ref().into_owned()
+    }
+    /// [`Self::text`] without copying text and JSON values: rendering
+    /// compares and measures values on every frame and never needs a copy.
+    pub fn text_ref(&self) -> std::borrow::Cow<'_, str> {
         match self {
             CellValue::Null => "NULL".into(),
             CellValue::Default => "DEFAULT".into(),
-            CellValue::Text(s) | CellValue::Json(s) => s.clone(),
-            CellValue::Int(i) => i.to_string(),
-            CellValue::Num(n) => format!("{n:.2}"),
-            CellValue::Bool(b) => b.to_string(),
+            CellValue::Text(s) | CellValue::Json(s) => s.as_str().into(),
+            CellValue::Int(i) => i.to_string().into(),
+            CellValue::Num(n) => format!("{n:.2}").into(),
+            CellValue::Bool(b) => b.to_string().into(),
         }
     }
     /// Text to put in the editor (empty for NULL/DEFAULT).
@@ -377,7 +382,16 @@ pub struct DataGrid {
     /// The keys that duplicate the cursor row. Default Ctrl+D and Alt+D;
     /// an app that gives Ctrl+D another meaning keeps only Alt+D.
     pub duplicate_keys: Vec<Key>,
+    /// How many leading rows [`Self::set_rows`] measures to size columns
+    /// (the 95th percentile of their widths, clamped to each column's
+    /// min/max). Default [`DEFAULT_WIDTH_SAMPLE_ROWS`]; widths are measured
+    /// once per dataset, never per frame.
+    pub width_sample_rows: usize,
 }
+
+/// Rows sampled for column widths by default (see
+/// [`DataGrid::width_sample_rows`]).
+pub const DEFAULT_WIDTH_SAMPLE_ROWS: usize = 200;
 
 const HEADER_SORT_ASC: &str = " ▴";
 const HEADER_SORT_DESC: &str = " ▾";
@@ -427,6 +441,7 @@ impl DataGrid {
             overflow_badges: true,
             h_cfg: HScroll::default(),
             htrack: Rect::ZERO,
+            width_sample_rows: DEFAULT_WIDTH_SAMPLE_ROWS,
             duplicate_keys: vec![
                 Key {
                     code: KeyCode::Char('d'),
@@ -461,6 +476,14 @@ impl DataGrid {
     /// An empty list turns the shortcut off; [`Self::duplicate_row`] stays.
     pub fn duplicate_keys(mut self, keys: &[Key]) -> Self {
         self.duplicate_keys = keys.to_vec();
+        self
+    }
+
+    /// How many leading rows size the columns (default
+    /// [`DEFAULT_WIDTH_SAMPLE_ROWS`]). Takes effect on the next
+    /// [`Self::set_rows`].
+    pub fn width_sample_rows(mut self, rows: usize) -> Self {
+        self.width_sample_rows = rows;
         self
     }
 
@@ -537,17 +560,22 @@ impl DataGrid {
             .iter()
             .enumerate()
             .map(|(ci, c)| {
-                let mut ws: Vec<usize> = self
-                    .rows
-                    .iter()
-                    .take(200)
-                    .map(|r| width(&r.get(ci).map(CellValue::text).unwrap_or_default()))
-                    .collect();
-                ws.sort_unstable();
-                let p95 = ws.get(ws.len() * 95 / 100).copied().unwrap_or(0) as u16;
                 let header = width(&c.name) as u16 + if c.primary { 2 } else { 0 } + 2;
                 // a header never ellipsises below its own name (up to a sane cap)
                 let max = c.max_width.max(header.min(24));
+                // the result is clamped to `max`, so a value only needs
+                // measuring up to it: a long one costs its first cells
+                let mut ws: Vec<usize> = self
+                    .rows
+                    .iter()
+                    .take(self.width_sample_rows)
+                    .map(|r| {
+                        r.get(ci)
+                            .map_or(0, |v| width_capped(&v.text_ref(), max as usize))
+                    })
+                    .collect();
+                ws.sort_unstable();
+                let p95 = ws.get(ws.len() * 95 / 100).copied().unwrap_or(0) as u16;
                 p95.max(header).clamp(c.min_width.min(max), max)
             })
             .collect();
@@ -564,13 +592,20 @@ impl DataGrid {
     }
 
     pub fn row_state(&self, src: usize) -> RowState {
+        self.row_state_with(src, |src| self.pending.cells.keys().any(|(r, _)| *r == src))
+    }
+
+    /// [`Self::row_state`] with the "has an edited cell" test supplied: a
+    /// frame collects the edited rows once instead of scanning every
+    /// pending cell for every visible row.
+    fn row_state_with(&self, src: usize, edited: impl Fn(usize) -> bool) -> RowState {
         if self.row_errors.contains_key(&src) {
             RowState::Error
         } else if self.pending.deleted.contains(&src) {
             RowState::Deleted
         } else if self.pending.inserted.contains(&src) {
             RowState::Inserted
-        } else if self.pending.cells.keys().any(|(r, _)| *r == src) {
+        } else if edited(src) {
             RowState::Modified
         } else {
             RowState::Clean
@@ -1727,7 +1762,8 @@ impl DataGrid {
                 ),
             );
         }
-        for (k, rect) in self.col_rects.clone().iter().enumerate() {
+        for k in 0..self.col_rects.len() {
+            let rect = &self.col_rects[k];
             let ci = self.hscroll.offset + k;
             let col = &self.columns[ci];
             let hid = self.header_id(ci);
@@ -1796,6 +1832,8 @@ impl DataGrid {
         }
 
         // rows
+        let edited_rows: std::collections::HashSet<usize> =
+            self.pending.cells.keys().map(|&(r, _)| r).collect();
         let editing_here = self
             .edit
             .as_ref()
@@ -1851,7 +1889,7 @@ impl DataGrid {
                 .pressed_any(visible_cols.map(|c| self.cell_id(d, c)));
             s.focused = focused && d == self.cursor.0;
             s.selected = self.selected_rows.contains(&src);
-            let state = self.row_state(src);
+            let state = self.row_state_with(src, |r| edited_rows.contains(&r));
             let mut row_style = t.row(s, bg);
             if state == RowState::Deleted {
                 row_style = row_style
@@ -1904,7 +1942,8 @@ impl DataGrid {
                 buf.set_string(row_rect.x + 3, y, &n, ns);
                 ctx.clickable(rid, Rect::new(row_rect.x, y, gutter_w, 1));
             }
-            for (k, rect) in self.col_rects.clone().iter().enumerate() {
+            for k in 0..self.col_rects.len() {
+                let rect = &self.col_rects[k];
                 let ci = self.hscroll.offset + k;
                 let col = &self.columns[ci];
                 let cell_rect = Rect::new(rect.x, y, rect.width, 1);
@@ -1988,13 +2027,14 @@ impl DataGrid {
                     buf.set_string(rect.x, y, &shown, st);
                     // a cut value (long text, JSON) shows in full on hover,
                     // with its real line breaks
-                    if text != v.text() {
+                    let full = v.text_ref();
+                    if text != *full {
                         crate::ui::reveal::truncated(
                             ctx,
                             self.reveal,
                             self.cell_id(d, ci),
                             Rect::new(rect.x, y, rect.width, 1),
-                            &v.text(),
+                            &full,
                         );
                     }
                     if col.references.is_some()
@@ -2154,35 +2194,86 @@ pub fn cell_text(v: &CellValue, kind: CellKind, w: usize) -> String {
         CellValue::Default => "DEFAULT".into(),
         CellValue::Text(s) if s.is_empty() => "''".into(),
         CellValue::Json(j) => {
-            let one: String = j.split_whitespace().collect::<Vec<_>>().join(" ");
             if w < 8 {
-                if one.starts_with('[') {
+                // the first non-blank character of the one-line form
+                if j.trim_start().starts_with('[') {
                     "[…]".into()
                 } else {
                     "{…}".into()
                 }
             } else {
-                truncate(&one, w)
+                truncate(&shown_prefix(w, |limit| one_line_json(j, limit)), w)
             }
         }
         CellValue::Text(s) => {
-            let sanitized: String = s
-                .chars()
-                .take(10_000)
-                .map(|c| match c {
-                    '\n' => '↵',
-                    '\t' => '⇥',
-                    c if c.is_control() => '·',
-                    c => c,
-                })
-                .collect();
             if kind == CellKind::Id {
-                truncate_middle(&sanitized, w)
+                // the middle cut keeps the end too: sanitise all of it
+                truncate_middle(&sanitized(s, usize::MAX).0, w)
             } else {
-                truncate(&sanitized, w)
+                truncate(&shown_prefix(w, |limit| sanitized(s, limit)), w)
             }
         }
-        other => truncate(&other.text(), w),
+        other => truncate(&other.text_ref(), w),
+    }
+}
+
+/// Characters of a text cell shown at most (control characters mapped to
+/// visible marks); a longer value is cut there before it is measured.
+const TEXT_CELL_CHARS: usize = 10_000;
+
+/// The cell form of `s` (`↵`, `⇥`, `·` for line breaks, tabs and other
+/// control characters; at most [`TEXT_CELL_CHARS`] characters), built
+/// until it holds `limit` bytes. Returns it and whether it is complete.
+fn sanitized(s: &str, limit: usize) -> (String, bool) {
+    let mut out = String::new();
+    let mut chars = s.chars();
+    for _ in 0..TEXT_CELL_CHARS {
+        if out.len() >= limit {
+            return (out, false);
+        }
+        let Some(c) = chars.next() else {
+            return (out, true);
+        };
+        out.push(match c {
+            '\n' => '↵',
+            '\t' => '⇥',
+            c if c.is_control() => '·',
+            c => c,
+        });
+    }
+    (out, true)
+}
+
+/// JSON on one line (whitespace runs collapsed to one space), built until
+/// it holds `limit` bytes. Returns it and whether it is complete.
+fn one_line_json(j: &str, limit: usize) -> (String, bool) {
+    let mut out = String::new();
+    for word in j.split_whitespace() {
+        if out.len() >= limit {
+            return (out, false);
+        }
+        if !out.is_empty() {
+            out.push(' ');
+        }
+        out.push_str(word);
+    }
+    (out, true)
+}
+
+/// Display text for `w` cells built from a prefix of a long value:
+/// `make(limit)` returns at least `limit` bytes of the text (or all of it)
+/// and whether that is all. The prefix grows until it is complete or wider
+/// than `w` plus a margin, so truncating it to `w` gives what truncating
+/// the whole text would, at a cost bounded by `w` instead of the value's
+/// length (see [`wider_than`]).
+fn shown_prefix(w: usize, make: impl Fn(usize) -> (String, bool)) -> String {
+    let mut limit = w.saturating_mul(4).saturating_add(64);
+    loop {
+        let (text, complete) = make(limit);
+        if complete || wider_than(&text, w.saturating_add(2)) {
+            return text;
+        }
+        limit = limit.saturating_mul(2);
     }
 }
 
@@ -2652,6 +2743,138 @@ mod tests {
         g.record_cell(0, 1, CellValue::Text("bad".into()));
         g.apply_commit_result(Err((0, "boom".into())));
         assert_eq!(g.row_state(0), RowState::Error);
+    }
+
+    /// `cell_text` before bounded measurement, as the reference.
+    fn cell_text_reference(v: &CellValue, kind: CellKind, w: usize) -> String {
+        match v {
+            CellValue::Null => "NULL".into(),
+            CellValue::Default => "DEFAULT".into(),
+            CellValue::Text(s) if s.is_empty() => "''".into(),
+            CellValue::Json(j) => {
+                let one: String = j.split_whitespace().collect::<Vec<_>>().join(" ");
+                if w < 8 {
+                    if one.starts_with('[') {
+                        "[…]".into()
+                    } else {
+                        "{…}".into()
+                    }
+                } else {
+                    truncate(&one, w)
+                }
+            }
+            CellValue::Text(s) => {
+                let sanitized: String = s
+                    .chars()
+                    .take(10_000)
+                    .map(|c| match c {
+                        '\n' => '↵',
+                        '\t' => '⇥',
+                        c if c.is_control() => '·',
+                        c => c,
+                    })
+                    .collect();
+                if kind == CellKind::Id {
+                    truncate_middle(&sanitized, w)
+                } else {
+                    truncate(&sanitized, w)
+                }
+            }
+            other => truncate(&other.text(), w),
+        }
+    }
+
+    #[test]
+    fn cell_text_from_a_prefix_matches_the_whole_value() {
+        let mut values = vec![
+            CellValue::Null,
+            CellValue::Default,
+            CellValue::Int(-42),
+            CellValue::Num(3.14159),
+            CellValue::Bool(true),
+            CellValue::Text(String::new()),
+            CellValue::Json("  [ 1,\n 2 ]".into()),
+            CellValue::Json("\n\t{\"a\":   {\"b\": [1, 2, 3]}}\n".into()),
+        ];
+        for seed in [
+            "plain words",
+            "multi\nline\ttext\u{7}",
+            "日本語のテキスト",
+            "👩\u{200D}👩\u{200D}👧 ⌚\u{FE0E}",
+            "e\u{301}",
+        ] {
+            for n in [1, 9, 3_000] {
+                values.push(CellValue::Text(seed.repeat(n)));
+                values.push(CellValue::Json(format!(
+                    "{{\"k\": \"{}\"}}",
+                    seed.repeat(n)
+                )));
+            }
+        }
+        // longer than the 10,000-character cap of a text cell
+        values.push(CellValue::Text("ab\n".repeat(6_000)));
+        for v in &values {
+            for kind in [CellKind::Text, CellKind::Id, CellKind::Json] {
+                for w in (0..40).chain([80, 400]) {
+                    assert_eq!(
+                        cell_text(v, kind, w),
+                        cell_text_reference(v, kind, w),
+                        "{kind:?} {w} {v:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// Guard (P2): a cut cell reads a prefix bounded by its width, however
+    /// long the value is.
+    #[test]
+    fn cell_text_reads_a_prefix_bounded_by_the_cell_width() {
+        let long = "word ".repeat(400_000);
+        let asked = std::cell::Cell::new(0);
+        let shown = shown_prefix(40, |limit| {
+            asked.set(asked.get().max(limit));
+            sanitized(&long, limit)
+        });
+        assert!(asked.get() <= 4 * 40 + 64, "read {} bytes", asked.get());
+        assert_eq!(truncate(&shown, 40), truncate(&long, 40));
+        let json = format!("[{}]", "1, ".repeat(400_000));
+        asked.set(0);
+        shown_prefix(40, |limit| {
+            asked.set(asked.get().max(limit));
+            one_line_json(&json, limit)
+        });
+        assert!(asked.get() <= 4 * 40 + 64, "read {} bytes", asked.get());
+    }
+
+    #[test]
+    fn width_sampling_is_configurable_and_reads_only_the_sample() {
+        let cols = vec![ColumnSpec::new("note", CellKind::Text)];
+        let rows = |n: usize, wide_from: usize| GridRows {
+            rows: (0..n)
+                .map(|r| {
+                    vec![CellValue::Text(if r >= wide_from {
+                        "x".repeat(70_000)
+                    } else {
+                        "short".into()
+                    })]
+                })
+                .collect(),
+            total: RowTotal::Exact(n),
+            more: false,
+        };
+        let mut g = DataGrid::new(WidgetId::of("s"), cols.clone());
+        assert_eq!(g.width_sample_rows, DEFAULT_WIDTH_SAMPLE_ROWS);
+        g.set_rows(rows(400, 200));
+        let narrow = g.widths[0];
+        let mut g = DataGrid::new(WidgetId::of("s"), cols).width_sample_rows(400);
+        g.set_rows(rows(400, 200));
+        assert!(
+            g.widths[0] > narrow,
+            "the wider sample sees the long values"
+        );
+        // the long values clamp to the column max
+        assert_eq!(g.widths[0], g.columns[0].max_width.max(8));
     }
 
     #[test]

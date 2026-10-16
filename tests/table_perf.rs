@@ -342,3 +342,48 @@ fn the_wheel_over_rows_routes_to_the_widget_for_the_whole_burst() {
     let hits = frame(&mut tr, area, &theme);
     assert_eq!(burst(&mut tr, &hits, pos), 30, "TreeView");
 }
+
+/// Guard (P2): frame cost does not grow with the length of cut values.
+///
+/// Wall-clock, so the budget is deliberately loose for a debug build on a
+/// shared CI runner: the best of five frames whose visible cells hold
+/// 128 KiB values may cost at most 8× the best of five frames of short
+/// values, plus 25 ms. Before bounded measurement the ratio was over 100×
+/// (release: 0.25 ms against 19–37 ms per frame with 64 KiB cells).
+#[test]
+fn long_cut_values_cost_what_their_visible_part_costs() {
+    let theme = Theme::junie();
+    let area = Rect::new(0, 0, 200, 55);
+    fn best(s: &mut impl Surface, area: Rect, theme: &Theme) -> Duration {
+        (0..5)
+            .map(|_| time(|| drop(frame(s, area, theme))))
+            .min()
+            .unwrap()
+    }
+    let check = |label: &str, short: Duration, long: Duration| {
+        assert!(
+            long <= short * 8 + Duration::from_millis(25),
+            "{label}: {long:?} with long values against {short:?}"
+        );
+    };
+    let (mut short, mut long) = (grid_with(60, 0), grid_with(60, 128 * 1024));
+    // bring the long-value columns (8 and 9) on screen
+    short.hscroll.offset = 6;
+    long.hscroll.offset = 6;
+    frame(&mut short, area, &theme);
+    frame(&mut long, area, &theme);
+    assert!(long.hscroll.offset + long.hscroll.viewport_len > 9);
+    check(
+        "DataGrid",
+        best(&mut short, area, &theme),
+        best(&mut long, area, &theme),
+    );
+    let (mut short, mut long) = (table_with(60, 0), table_with(60, 128 * 1024));
+    short.hscroll.offset = 6;
+    long.hscroll.offset = 6;
+    check(
+        "DataTable",
+        best(&mut short, area, &theme),
+        best(&mut long, area, &theme),
+    );
+}
