@@ -7,6 +7,8 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::Scrollable;
 use junie_tui::core::selection::{SelectionMode, TriState};
 use junie_tui::ui::context::ContextRequest;
@@ -280,37 +282,71 @@ impl TablesPage {
     }
 }
 
-/// A click on one of `t`'s targets: the header checkbox, a row's checkbox,
-/// a header, a cell or the scrollbar. `None` when `id` is not `t`'s.
-fn click(
+/// `ev` routed to `t` when it is `t`'s (its header checkbox, row
+/// checkboxes, headers, seams, cells, scrollbar or wheel). A completed
+/// click on anything but the scrollbar focuses `t`: its rows and headers
+/// are not in the focus ring, so the router does not. `None` when `ev` is
+/// not `t`'s.
+pub fn route_table(
     t: &mut DataTable,
-    id: WidgetId,
-    pos: ratatui::layout::Position,
+    ev: &PointerEvent,
     cx: &mut PageCtx,
 ) -> Option<(Outcome, Option<TableAction>)> {
-    if id == t.check_all_id() {
+    let (out, action) = t.route(ev)?.into_parts();
+    // a wheel over the open choice popup: the table routes it to the popup
+    // but scrolls only on its own regions; the popup takes the wheel first
+    if out == Outcome::Ignored
+        && let Some((axis, delta)) = ev.wheel()
+    {
+        return Some((t.wheel(axis, delta).outcome(), None));
+    }
+    if ev.is(Phase::Click) && ev.bar.is_none() && out != Outcome::Ignored {
         cx.focus.focus(t.id);
-        return Some(t.on_click_check_all());
     }
-    if let Some(d) = t.locate_check(id) {
-        cx.focus.focus(t.id);
-        return Some(t.on_click_check(d));
-    }
-    if let Some(c) = t.locate_header(id) {
-        cx.focus.focus(t.id);
-        return Some((t.on_click_header(c), None));
-    }
-    if let Some((row, col)) = t.locate(id) {
-        cx.focus.focus(t.id);
-        return Some(t.on_click_cell_with(row, col.unwrap_or(0), pos, cx.mods));
-    }
-    if scrollbar::is_bar_of(id, t.id) {
-        return Some((t.on_scrollbar(pos), None));
-    }
-    None
+    Some((out, action))
 }
 
 impl TablesPage {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        if ev.is(Phase::Secondary) {
+            if let Some(c) = self.table.locate_header_menu(ev.id) {
+                cx.focus.focus(self.table.id);
+                let items = self
+                    .table
+                    .header_menu(c)
+                    .into_iter()
+                    .map(|(_, m)| m)
+                    .collect();
+                let title = self.table.columns[c].title.clone();
+                let menu = ContextMenu::new(HEADER_MENU, items)
+                    .at(ev.pos())
+                    .title(title);
+                self.header_menu.open(menu, c);
+                return Outcome::Changed;
+            }
+            let cfg = self.menu.config;
+            let Some(req) = cfg.on_secondary(&mut self.table, ev.id, ev.pos()) else {
+                return Outcome::Ignored;
+            };
+            cx.focus.focus(self.table.id);
+            self.open_menu(req);
+            return Outcome::Changed;
+        }
+        if let Some((out, tev)) = route_table(&mut self.table, ev, cx) {
+            if let Some(TableAction::Activated(r)) = tev {
+                cx.status(format!("Selected {}", self.table.rows[r][1].text));
+            }
+            return out;
+        }
+        if let Some((out, _)) = route_table(&mut self.reviewers, ev, cx) {
+            return out;
+        }
+        if let Some((out, _)) = route_table(&mut self.empty, ev, cx) {
+            return out;
+        }
+        Outcome::Ignored
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         // the table keeps at least four rows; on a short terminal the page
@@ -482,57 +518,7 @@ impl Page for TablesPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Secondary { id, pos } if self.table.locate_header_menu(*id).is_some() => {
-                let Some(c) = self.table.locate_header_menu(*id) else {
-                    return Outcome::Ignored;
-                };
-                cx.focus.focus(self.table.id);
-                let items = self
-                    .table
-                    .header_menu(c)
-                    .into_iter()
-                    .map(|(_, m)| m)
-                    .collect();
-                let title = self.table.columns[c].title.clone();
-                let menu = ContextMenu::new(HEADER_MENU, items).at(*pos).title(title);
-                self.header_menu.open(menu, c);
-                Outcome::Changed
-            }
-            PageEvent::Press { id, pos } if self.table.locate_seam(*id).is_some() => {
-                self.table.on_press(*id, *pos, cx.clicks)
-            }
-            PageEvent::Secondary { id, pos } => {
-                let cfg = self.menu.config;
-                let Some(req) = cfg.on_secondary(&mut self.table, *id, *pos) else {
-                    return Outcome::Ignored;
-                };
-                cx.focus.focus(self.table.id);
-                self.open_menu(req);
-                Outcome::Changed
-            }
-            PageEvent::Click { id, pos } => {
-                if let Some((out, tev)) = click(&mut self.table, *id, *pos, cx) {
-                    if let Some(TableAction::Activated(r)) = tev {
-                        cx.status(format!("Selected {}", self.table.rows[r][1].text));
-                    }
-                    return out;
-                }
-                if let Some((out, _)) = click(&mut self.reviewers, *id, *pos, cx) {
-                    return out;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } if self.table.owns(*pressed) => {
-                self.table.on_drag(*pressed, *pos)
-            }
-            PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),
-            PageEvent::Wheel { id, delta } if self.reviewers.owns(*id) => {
-                self.reviewers.on_wheel(*delta)
-            }
-            PageEvent::Wheel { id, delta } if self.empty.owns(*id) => self.empty.on_wheel(*delta),
-            PageEvent::WheelH { id, delta } if self.table.owns(*id) => {
-                self.table.on_wheel_h(*delta)
-            }
+            PageEvent::Pointer(p) => self.pointer(p, cx),
             _ => Outcome::Ignored,
         }
     }
