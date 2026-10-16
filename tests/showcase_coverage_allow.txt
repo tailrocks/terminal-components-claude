@@ -1328,3 +1328,20 @@ widgets::too_small::TooSmall | TooSmall demo on Status & hints | SC30
 widgets::too_small::TooSmall::brand_style | TooSmall demo on Status & hints | SC30
 widgets::too_small::TooSmall::min | TooSmall demo on Status & hints | SC30
 widgets::too_small::TooSmall::quit_hint | TooSmall demo on Status & hints | SC30
+
+# core::list
+core::list::Cursor | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::Cursor::wrap | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::Cursor::axis | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::Cursor::skip_disabled | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::Moved | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::Moved::Ignored | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::Moved::Stayed | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::Moved::To | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::RowFn | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::KeyStep | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::KeyStep::Nav | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::KeyStep::Type | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::NavProfile | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::NavProfile::Desktop | Cursor/RowSource defaults on the Scrolling page options | SC29
+core::list::NavProfile::Vim | Cursor/RowSource defaults on the Scrolling page options | SC29
