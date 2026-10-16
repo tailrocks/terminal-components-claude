@@ -1763,6 +1763,7 @@ impl Screen for DiskPage {
                 hint("t", "Top files"),
                 hint("p", "Details"),
                 hint("Esc", "Back"),
+                junie_tui::widgets::keyhint::CONTEXT_MENU,
             ],
             View::Overview => vec![
                 hint("↑↓", "Move"),
@@ -1770,6 +1771,7 @@ impl Screen for DiskPage {
                 hint("t", "Top files"),
                 hint("p", "Details"),
                 hint("Esc", "Back"),
+                junie_tui::widgets::keyhint::CONTEXT_MENU,
             ],
             View::TopFiles => vec![
                 hint("↑↓", "Move"),
@@ -1777,6 +1779,7 @@ impl Screen for DiskPage {
                 hint("d", "Delete…"),
                 hint("y", "Copy path"),
                 hint("Esc", "Back"),
+                junie_tui::widgets::keyhint::CONTEXT_MENU,
             ],
         }
     }

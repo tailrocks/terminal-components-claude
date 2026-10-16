@@ -1063,6 +1063,7 @@ impl Screen for PlanReviewPage {
             hint("c", "Review & run…"),
             hint("p", "Details"),
             hint("Esc", "Discard plan"),
+            junie_tui::widgets::keyhint::CONTEXT_MENU,
         ]
     }
 

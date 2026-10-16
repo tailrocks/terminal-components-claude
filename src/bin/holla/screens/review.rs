@@ -23,13 +23,18 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::action::{ArgSpec, Item, Risk};
 use crate::screens::finder::item_facts;
 use crate::screens::{
-    Cx, GateTarget, Go, Screen, StatusBits, heading, plural, risk_tone, scroll_drag, scroll_press,
+    Cx, GateTarget, Go, ModalResult, ModalTag, Screen, StatusBits, heading, open_context, plural,
+    risk_tone, row_choice, scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
+use junie_tui::ui::context::ContextAnchor;
+use junie_tui::widgets::menu::MenuItem;
 
 pub const SEQUENCE: WidgetId = WidgetId::of("gate.sequence");
 pub const GATE_CANCEL: WidgetId = WidgetId::of("gate.cancel");
 pub const GATE_CONTINUE: WidgetId = WidgetId::of("gate.continue");
+/// The command sequence's context menu.
+pub const SEQUENCE_MENU: WidgetId = WidgetId::of("gate.sequence.menu");
 
 // ------------------------------------------------------------------ gate 1
 
@@ -327,6 +332,26 @@ impl GatePage {
     }
 }
 
+impl GatePage {
+    /// The sequence's context menu: copy it, or cancel the gate. Continue
+    /// stays a deliberate press of its button (gate 1 never runs from a
+    /// menu).
+    fn sequence_menu(&self, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
+        let items = vec![
+            MenuItem::new("Copy sequence").shortcut("y").separator(),
+            MenuItem::new("Cancel").shortcut("Esc"),
+        ];
+        open_context(
+            cx,
+            SEQUENCE_MENU,
+            anchor,
+            self.title.clone(),
+            items,
+            ModalTag::new("gate-sequence").key("0:y\u{1b}"),
+        )
+    }
+}
+
 impl Screen for GatePage {
     fn on_key(&mut self, key: &Key, _w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(GATE_CANCEL) {
@@ -399,6 +424,42 @@ impl Screen for GatePage {
             return Outcome::Changed;
         }
         Outcome::Ignored
+    }
+
+    fn on_secondary(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        _w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        if id != SEQUENCE {
+            return Outcome::Ignored;
+        }
+        cx.focus.focus(SEQUENCE);
+        self.sequence_menu(ContextAnchor::Pointer(pos), cx)
+    }
+
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(SEQUENCE) {
+            return Outcome::Ignored;
+        }
+        // the sequence has no cursor row: the menu opens at its top line
+        let at = Position::new(self.sequence_area.x, self.sequence_area.y);
+        self.sequence_menu(ContextAnchor::Pointer(at), cx)
+    }
+
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        if let Some((_, Some(key), _)) = row_choice(tag, "gate-sequence", &result) {
+            return self.on_key(&key, w, cx).or(Outcome::Changed);
+        }
+        Outcome::Changed
     }
 
     fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
@@ -527,6 +588,7 @@ impl Screen for GatePage {
                 hint("y", "Copy sequence"),
                 hint("Tab", "Buttons"),
                 hint("Esc", "Cancel"),
+                junie_tui::widgets::keyhint::CONTEXT_MENU,
             ];
         }
         let enter = [&self.cancel, &self.cont]
