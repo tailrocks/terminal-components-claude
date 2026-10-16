@@ -108,6 +108,12 @@ pub struct Dialog {
     /// [`Backdrop::DEFAULT`]: the footer row, whose hints belong to the
     /// dialog.
     pub backdrop: Backdrop,
+    /// Rows of app chrome the dialog is placed clear of when drawn through
+    /// [`Self::render`] (and so as a layer): `(top, bottom)`, a header
+    /// above and status and footer rows below ([`body_bounds`]). The
+    /// backdrop still dims the whole screen. Default `(0, 0)`: the whole
+    /// screen.
+    pub chrome: (u16, u16),
     /// How the actions are laid out. Default: packed right, the theme's
     /// button gap, and a row that wraps onto a second line rather than cut
     /// or hide an action ([`RowOverflow::Wrap`]).
@@ -325,6 +331,7 @@ impl Dialog {
             placement: Placement::Center,
             anchor: Rect::ZERO,
             backdrop: Backdrop::DEFAULT,
+            chrome: (0, 0),
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -366,6 +373,7 @@ impl Dialog {
             placement: Placement::Center,
             anchor: Rect::ZERO,
             backdrop: Backdrop::DEFAULT,
+            chrome: (0, 0),
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -408,6 +416,7 @@ impl Dialog {
             placement: Placement::Center,
             anchor: Rect::ZERO,
             backdrop: Backdrop::DEFAULT,
+            chrome: (0, 0),
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -491,6 +500,7 @@ impl Dialog {
             placement: Placement::Center,
             anchor: Rect::ZERO,
             backdrop: Backdrop::DEFAULT,
+            chrome: (0, 0),
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -851,6 +861,12 @@ impl Dialog {
         self
     }
 
+    /// See [`Self::chrome`].
+    pub fn chrome(mut self, top: u16, bottom: u16) -> Self {
+        self.chrome = (top, bottom);
+        self
+    }
+
     /// See [`Self::placement`].
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
@@ -1154,7 +1170,8 @@ impl Dialog {
     /// Draw the dialog centred on `screen`. Prefer [`Self::render_in`] with
     /// the app's body area, so the dialog never covers the app's chrome.
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        self.render_in(screen, screen, buf, ctx);
+        let bounds = body_bounds(screen, self.chrome.0, self.chrome.1);
+        self.render_in(screen, bounds, buf, ctx);
     }
 
     /// Dim `screen` and draw the dialog centred in `bounds` (the app's body:
@@ -1796,6 +1813,28 @@ mod tests {
         let mut buf = Buffer::empty(screen);
         d.render_in(screen, bounds, &mut buf, &mut ctx);
         buf
+    }
+
+    /// `chrome` places a dialog drawn through `render` (as a layer is)
+    /// exactly where `render_in` with the app's body bounds would.
+    #[test]
+    fn chrome_rows_place_render_like_render_in_body_bounds() {
+        let screen = Rect::new(0, 0, 60, 20);
+        let mut a = Dialog::confirm(WidgetId::of("c"), "Quit?", "Leave now.", "Quit");
+        let want = draw(&mut a, screen, body_bounds(screen, 1, 2));
+        let mut b = Dialog::confirm(WidgetId::of("c"), "Quit?", "Leave now.", "Quit").chrome(1, 2);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut got = Buffer::empty(screen);
+        b.render(screen, &mut got, &mut ctx);
+        assert_eq!(rows(&got), rows(&want));
+        assert_eq!(a.area, b.area);
+        // the default is the whole screen
+        let mut c = Dialog::confirm(WidgetId::of("c"), "Quit?", "Leave now.", "Quit");
+        let whole = draw(&mut c, screen, screen);
+        assert_ne!(rows(&whole), rows(&want));
     }
 
     fn rows(buf: &Buffer) -> Vec<String> {
