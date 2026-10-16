@@ -135,6 +135,11 @@ pub struct DataTable {
     /// The last scrollbar press landed on the horizontal bar, so the drag
     /// that follows moves columns.
     h_held: bool,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -155,6 +160,8 @@ impl DataTable {
         let n = rows.len();
         let numeric = vec![false; columns.len()];
         Self {
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             id,
             columns,
             rows,
@@ -602,7 +609,7 @@ impl DataTable {
         let moved = if self.h_held {
             scrollbar::press_h(self.htrack, pos, &mut self.hscroll, self.h_cfg.track_click)
         } else {
-            scrollbar::press(self.track(), pos, &mut self.scroll)
+            scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click)
         };
         if moved {
             Outcome::Changed
@@ -662,7 +669,15 @@ impl DataTable {
         }
     }
 
+    /// Override the app-wide vertical track-click policy
+    /// (`TrackClick::Page` pages toward the pointer).
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() || area.height < 2 {
             return;
