@@ -171,9 +171,6 @@ core::shape::ShapeSync | State tab readout of the library dispatcher: shown once
 # ui::ctx
 ui::ctx::Interaction | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 ui::ctx::RenderCtx | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
-ui::ctx::Backdrop | Popups & tooltips page | SC19
-ui::ctx::Backdrop::keep_bottom | Popups & tooltips page | SC19
-ui::ctx::Backdrop::keep_top | Popups & tooltips page | SC19
 
 # ui::layout
 
@@ -183,112 +180,54 @@ ui::modal::Dismissal::None | stacked modals on Dialog kinds (after S5, S7) | SC3
 ui::modal::Dismissal::Close | stacked modals on Dialog kinds (after S5, S7) | SC31
 ui::modal::Dismissal::Keep | stacked modals on Dialog kinds (after S5, S7) | SC31
 ui::modal::ModalStack | stacked modals on Dialog kinds (after S5, S7) | SC31
-ui::modal::FramePlacement | Popups & tooltips page | SC19
-ui::modal::FramePlacement::Upper | Popups & tooltips page | SC19
-ui::modal::FramePlacement::Middle | Popups & tooltips page | SC19
-ui::modal::Frame | Popups & tooltips page | SC19
-ui::modal::Frame::close_button | Popups & tooltips page | SC19
-ui::modal::Frame::dismiss | Popups & tooltips page | SC19
-ui::modal::Frame::title | Popups & tooltips page | SC19
-ui::modal::Frame::meta | Popups & tooltips page | SC19
-ui::modal::Frame::placement | Popups & tooltips page | SC19
-ui::modal::Frame::anchor | Popups & tooltips page | SC19
-ui::modal::Frame::fit | Popups & tooltips page | SC19
-ui::modal::Frame::margin | Popups & tooltips page | SC19
-ui::modal::Frame::min_size | Popups & tooltips page | SC19
-ui::modal::Frame::chrome | Popups & tooltips page | SC19
-ui::modal::Frame::backdrop | Popups & tooltips page | SC19
-ui::modal::Frame::dim | Popups & tooltips page | SC19
-ui::modal::Frame::overlay | Popups & tooltips page: layer API (plan S5) | SC19
+ui::modal::FramePlacement | deprecated: converts to popup::Placement::Center, shown through popupstooltips.frame_placement | permanent
+ui::modal::FramePlacement::Upper | deprecated: converts to popup::Placement::Center, shown through popupstooltips.frame_placement | permanent
+ui::modal::FramePlacement::Middle | deprecated: converts to popup::Placement::Center, shown through popupstooltips.frame_placement | permanent
+ui::modal::Frame::overlay | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 
 # ui::popup
-ui::popup::Dismiss | Popups & tooltips page | SC19
-ui::popup::RefuseFeedback | Popups & tooltips page | SC19
-ui::popup::RefuseFeedback::Flash | Popups & tooltips page | SC19
-ui::popup::RefuseFeedback::None | Popups & tooltips page | SC19
-ui::popup::Dismiss::pass_through | Popups & tooltips page | SC19
-ui::popup::Dismiss::close_button | Popups & tooltips page | SC19
-ui::popup::Dismiss::refuse_feedback | Popups & tooltips page | SC19
-ui::popup::Dismiss::focus_out | Popups & tooltips page: layer API (plan S5) | SC19
-ui::popup::Placement | Popups & tooltips page | SC19
-ui::popup::Placement::Below | Popups & tooltips page | SC19
-ui::popup::Placement::Above | Popups & tooltips page | SC19
-ui::popup::Placement::Right | Popups & tooltips page | SC19
-ui::popup::Placement::Left | Popups & tooltips page | SC19
-ui::popup::Placement::Center | Popups & tooltips page | SC19
-ui::popup::Overflow | Popups & tooltips page | SC19
-ui::popup::Overflow::Shrink | Popups & tooltips page | SC19
-ui::popup::Overflow::Slide | Popups & tooltips page | SC19
-ui::popup::VAlign | Popups & tooltips page | SC19
-ui::popup::VAlign::Center | Popups & tooltips page | SC19
-ui::popup::VAlign::Third | Popups & tooltips page | SC19
-ui::popup::Place | Popups & tooltips page | SC19
-ui::popup::Place::vertical_margin | Popups & tooltips page | SC19
-ui::popup::Place::overflow | Popups & tooltips page | SC19
-ui::popup::Place::margin | Popups & tooltips page | SC19
-ui::popup::Place::v_align | Popups & tooltips page | SC19
-ui::popup::Place::text_inset | Popups & tooltips page | SC19
 
 # ui::reveal
-ui::reveal::RevealMode | Popups & tooltips page | SC19
-ui::reveal::RevealMode::Tooltip | Popups & tooltips page | SC19
-ui::reveal::RevealMode::InlineWrap | Popups & tooltips page | SC19
-ui::reveal::Reveal | Popups & tooltips page | SC19
-ui::reveal::Reveal::hover | Popups & tooltips page | SC19
-ui::reveal::Reveal::keyboard | Popups & tooltips page | SC19
-ui::reveal::Reveal::mode | Popups & tooltips page | SC19
-ui::reveal::Reveal::max_rows | Popups & tooltips page | SC19
-ui::reveal::Reveal::scroll | Popups & tooltips page | SC19
-ui::reveal::Reveal::wheel_lines | Popups & tooltips page | SC19
-ui::reveal::Reveal::delay_ms | Popups & tooltips page | SC19
-ui::reveal::Reveal::wheel_passes_at_ends | Popups & tooltips page | SC19
-ui::reveal::RevealState | Popups & tooltips page | SC19
-ui::reveal::RevealLine | Popups & tooltips page | SC19
+ui::reveal::RevealLine | a reveal's row model (a line or a ↑/↓ N more marker), built and drawn by the library's reveal; shown through the popupstooltips Reveal list | permanent
 
 # ui::text
 ui::specimen::SpecimenState::Loading | no SC2 specimen loads; the Pickers States grid | SC20
 
 # ui::tooltip
-ui::tooltip::Tooltips | Popups & tooltips page | SC19
-ui::tooltip::Tooltips::enabled | Popups & tooltips page | SC19
-ui::tooltip::Tooltips::delay_ms | Popups & tooltips page | SC19
-ui::tooltip::Tooltips::max_width | Popups & tooltips page | SC19
-ui::tooltip::Tip | Popups & tooltips page | SC19
-ui::tooltip::Tip::shortcut | Popups & tooltips page | SC19
-ui::layer::LayerKind | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerKind::Modal | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerKind::Popover | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerKind::Tooltip | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerSpec | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerSpec::anchor | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerSpec::backdrop | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerSpec::initial_focus | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerSpec::restore_focus | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerSpec::inert_below | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerSpec::hides_page_focus | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerCx | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerTag | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerTag::key | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerTag::n | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerEntry | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::Dismissed | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::Dismissed::None | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::Dismissed::Refused | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::Dismissed::Closed | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerOut | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerOut::Close | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::LayerOut::Event | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::Taken | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::Taken::Event | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layer::Taken::Closed | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult::Dialog | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult::Picker | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult::Menu | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult::Form | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult::Choice | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult::Info | Popups & tooltips page: layer API (plan S5) | SC19
-ui::layers::LayerResult::Help | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerKind | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerKind::Modal | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerKind::Popover | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerKind::Tooltip | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerSpec | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerSpec::anchor | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerSpec::backdrop | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerSpec::initial_focus | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerSpec::restore_focus | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerSpec::inert_below | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerSpec::hides_page_focus | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerCx | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerTag | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerTag::key | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerTag::n | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerEntry | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::Dismissed | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::Dismissed::None | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::Dismissed::Refused | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::Dismissed::Closed | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerOut | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerOut::Close | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerOut::Event | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::Taken | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::Taken::Event | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::Taken::Closed | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult::Dialog | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult::Picker | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult::Menu | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult::Form | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult::Choice | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult::Info | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layers::LayerResult::Help | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 
 # widgets::button
 
@@ -422,7 +361,6 @@ widgets::select::SelectAction::Changed | widget actions: the Inspector State log
 # widgets::splitter
 
 # widgets::statusbar
-widgets::statusbar::StatusItem::tooltip | shown only while the pointer rests on a status item; Chrome wires one on PR #482, the hover capture is a tooltip scenario | SC19
 
 # widgets::steps
 

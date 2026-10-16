@@ -76,7 +76,9 @@
 120x40 TrueColor Dialog kinds b49a05839c6bd7dc
 120x40 TrueColor Dialog kinds · Options c2088782c61f9ae9
 120x40 TrueColor Dialog kinds · States 96d1a91b271c99e8
-120x40 TrueColor Popups & tooltips 257969595cbf76ad
+120x40 TrueColor Popups & tooltips 2f8bd17f05fda7fc
+120x40 TrueColor Popups & tooltips · Options 5dd5a9219593e9c0
+120x40 TrueColor Popups & tooltips · States 52517b7ab233dc61
 120x40 TrueColor File browser 28286b9b93d46139
 120x40 TrueColor Progress 1a1d712164baa236
 120x40 TrueColor Progress · Options fd0acc185027fec6
@@ -200,7 +202,9 @@
 120x40 Ansi256 Dialog kinds f724ec2452e1c225
 120x40 Ansi256 Dialog kinds · Options 632fdf99561bf60d
 120x40 Ansi256 Dialog kinds · States 4648ed53e3f9d02b
-120x40 Ansi256 Popups & tooltips bf90f88bd0140225
+120x40 Ansi256 Popups & tooltips dcd8567d875dd887
+120x40 Ansi256 Popups & tooltips · Options 14c8ab5016495103
+120x40 Ansi256 Popups & tooltips · States 0222618eec8cd86b
 120x40 Ansi256 File browser 16bc26a0a80a3a5b
 120x40 Ansi256 Progress 675a44038c64d40c
 120x40 Ansi256 Progress · Options a0dd2bbd1d2fe76a
@@ -324,7 +328,9 @@
 120x40 Ansi16 Dialog kinds 7153e73b57866c3a
 120x40 Ansi16 Dialog kinds · Options 5af61e65e06671df
 120x40 Ansi16 Dialog kinds · States 7833353d19c55653
-120x40 Ansi16 Popups & tooltips 4e9522e58d683be4
+120x40 Ansi16 Popups & tooltips dc4a93acdcfe1e96
+120x40 Ansi16 Popups & tooltips · Options 254ccdea71085714
+120x40 Ansi16 Popups & tooltips · States 5ce7755970909b74
 120x40 Ansi16 File browser feb26c19ec7efca8
 120x40 Ansi16 Progress 6fd73acad1214915
 120x40 Ansi16 Progress · Options 658d88b948b678ce
@@ -448,7 +454,9 @@
 120x40 Mono Dialog kinds b7571e9c8c19e9cb
 120x40 Mono Dialog kinds · Options 7a95bd8aa19af5c4
 120x40 Mono Dialog kinds · States 495cb773930ffd28
-120x40 Mono Popups & tooltips 80e7a1c052872219
+120x40 Mono Popups & tooltips 51b26b80daa0f56d
+120x40 Mono Popups & tooltips · Options 94d169883862b393
+120x40 Mono Popups & tooltips · States a840309a3ea00ba3
 120x40 Mono File browser 1aab5b536f647709
 120x40 Mono Progress ab69fc3484d868b2
 120x40 Mono Progress · Options e8042ce005ff2479
@@ -572,7 +580,9 @@
 80x24 TrueColor Dialog kinds 8d6489ce45af79b1
 80x24 TrueColor Dialog kinds · Options d5dc0c287073adfa
 80x24 TrueColor Dialog kinds · States ac953ad7cfa05246
-80x24 TrueColor Popups & tooltips e186d348be16d8c0
+80x24 TrueColor Popups & tooltips 037555fc1dcffb6a
+80x24 TrueColor Popups & tooltips · Options ae3bc56a3d0e310e
+80x24 TrueColor Popups & tooltips · States 93708ac980085570
 80x24 TrueColor File browser e77bc11de12d5ff4
 80x24 TrueColor Progress 11636df701131731
 80x24 TrueColor Progress · Options 590fd229582eff00
@@ -696,7 +706,9 @@
 80x24 Ansi256 Dialog kinds c70288b03e7df994
 80x24 Ansi256 Dialog kinds · Options 37be6fd783b2ffea
 80x24 Ansi256 Dialog kinds · States f05963afdc6cd538
-80x24 Ansi256 Popups & tooltips d8a2dbd00a3c978f
+80x24 Ansi256 Popups & tooltips a70816a4f12da952
+80x24 Ansi256 Popups & tooltips · Options cfd20e60056e3f0b
+80x24 Ansi256 Popups & tooltips · States f7552075dfa2bfe7
 80x24 Ansi256 File browser cff0d3a0b18090f4
 80x24 Ansi256 Progress a48a20f870c2b99e
 80x24 Ansi256 Progress · Options 78f02699271a5bd4
@@ -820,7 +832,9 @@
 80x24 Ansi16 Dialog kinds c611b96ac37ba069
 80x24 Ansi16 Dialog kinds · Options f6b4d850802c2909
 80x24 Ansi16 Dialog kinds · States ba0286f8cd15f2ff
-80x24 Ansi16 Popups & tooltips c49de95287bc9de7
+80x24 Ansi16 Popups & tooltips 6099bbb5ba2395c8
+80x24 Ansi16 Popups & tooltips · Options 8fbebe3946d02a9a
+80x24 Ansi16 Popups & tooltips · States a4b979bacd936fa8
 80x24 Ansi16 File browser a6e098bd1d8e2797
 80x24 Ansi16 Progress e818e3517323edd6
 80x24 Ansi16 Progress · Options a499bbcd89d120f4
@@ -944,7 +958,9 @@
 80x24 Mono Dialog kinds 8400dfb517cdb637
 80x24 Mono Dialog kinds · Options ce7c3d03a4fb80e9
 80x24 Mono Dialog kinds · States 6f27e28a7d3cf2b1
-80x24 Mono Popups & tooltips fec1c6eebb40f1e5
+80x24 Mono Popups & tooltips 911f1add5ab5f9e2
+80x24 Mono Popups & tooltips · Options a45f451544d14032
+80x24 Mono Popups & tooltips · States 1b3239f341e676f2
 80x24 Mono File browser 165477cfc35a4ee5
 80x24 Mono Progress 184ab38c2e7832c8
 80x24 Mono Progress · Options 7e8a4438ec605b3c
@@ -1068,7 +1084,9 @@
 72x20 TrueColor Dialog kinds 370210ca1e2f0d18
 72x20 TrueColor Dialog kinds · Options 57aded2156c6ce54
 72x20 TrueColor Dialog kinds · States 97365f64f8497aef
-72x20 TrueColor Popups & tooltips 13c2ed53ee92c456
+72x20 TrueColor Popups & tooltips 17a823783b94fb7e
+72x20 TrueColor Popups & tooltips · Options 6ee2d19e0297f246
+72x20 TrueColor Popups & tooltips · States f62f8af1e2a2bf85
 72x20 TrueColor File browser 683d04dd1676c67c
 72x20 TrueColor Progress 5b29a67e626e8cac
 72x20 TrueColor Progress · Options 103072ffb0a1d959
@@ -1192,7 +1210,9 @@
 72x20 Ansi256 Dialog kinds 86fe2b09f65e614b
 72x20 Ansi256 Dialog kinds · Options 2d3667df3bbdbccd
 72x20 Ansi256 Dialog kinds · States f2cdf986a79bcde9
-72x20 Ansi256 Popups & tooltips 4c6f204575262fd8
+72x20 Ansi256 Popups & tooltips 69e84ef825fc7ff1
+72x20 Ansi256 Popups & tooltips · Options b3f5318b0c444cdb
+72x20 Ansi256 Popups & tooltips · States 8a58b376cf4cd389
 72x20 Ansi256 File browser d5c44ca7648f4ed4
 72x20 Ansi256 Progress 28e9be6aa1b88851
 72x20 Ansi256 Progress · Options c88ba7559b46076f
@@ -1316,7 +1336,9 @@
 72x20 Ansi16 Dialog kinds 2d903f898e89923c
 72x20 Ansi16 Dialog kinds · Options b9dc55a3206c4fe1
 72x20 Ansi16 Dialog kinds · States 8c62085a696db389
-72x20 Ansi16 Popups & tooltips c0f6aa04faeb262e
+72x20 Ansi16 Popups & tooltips e75b268d47c28c96
+72x20 Ansi16 Popups & tooltips · Options 8099e2e8b935ce02
+72x20 Ansi16 Popups & tooltips · States 04cdd969e5afb075
 72x20 Ansi16 File browser ce746b9100b882ef
 72x20 Ansi16 Progress a7caf55e4579388d
 72x20 Ansi16 Progress · Options 72b326e074e7e295
@@ -1440,7 +1462,9 @@
 72x20 Mono Dialog kinds 5c6f24c2d02405a6
 72x20 Mono Dialog kinds · Options 7bf07c2a222e16df
 72x20 Mono Dialog kinds · States 2c5d74638d352207
-72x20 Mono Popups & tooltips 3c06fc23dcc087d8
+72x20 Mono Popups & tooltips a30fe1b2996a5954
+72x20 Mono Popups & tooltips · Options bcd39b3f8a63978a
+72x20 Mono Popups & tooltips · States 84ec5d932d6cd527
 72x20 Mono File browser f852e96baa66e4fd
 72x20 Mono Progress d4d5d1955212707d
 72x20 Mono Progress · Options cc2393e57fe071bb
@@ -1564,7 +1588,9 @@
 100x30 TrueColor Dialog kinds 7eccfddaebf3b2d0
 100x30 TrueColor Dialog kinds · Options 738427d0b8f9586b
 100x30 TrueColor Dialog kinds · States 934ab3afa3108ad5
-100x30 TrueColor Popups & tooltips 37d60ec84cc95c03
+100x30 TrueColor Popups & tooltips 84506d3c1122318e
+100x30 TrueColor Popups & tooltips · Options 46cbc023ad5cbfe0
+100x30 TrueColor Popups & tooltips · States fefbf5b62d52de95
 100x30 TrueColor File browser c9bfa16c80e14bca
 100x30 TrueColor Progress cba13b325d1ac869
 100x30 TrueColor Progress · Options 4591d237a8e0653d
@@ -1688,7 +1714,9 @@
 100x30 Ansi256 Dialog kinds 981dda79b930e0d3
 100x30 Ansi256 Dialog kinds · Options 0f870b50d591f0fa
 100x30 Ansi256 Dialog kinds · States 4135fc1c24accbe1
-100x30 Ansi256 Popups & tooltips dd6726af0698c4ac
+100x30 Ansi256 Popups & tooltips 89ad93e36495b7cc
+100x30 Ansi256 Popups & tooltips · Options b64fe592039768f1
+100x30 Ansi256 Popups & tooltips · States 4ca0ea188498a060
 100x30 Ansi256 File browser b5f8598e9567d318
 100x30 Ansi256 Progress 6b3a6c65b3321e36
 100x30 Ansi256 Progress · Options 160d8caed235b950
@@ -1812,7 +1840,9 @@
 100x30 Ansi16 Dialog kinds 2b7fa0fbf766523e
 100x30 Ansi16 Dialog kinds · Options 2887243c1f442207
 100x30 Ansi16 Dialog kinds · States 8778f519347dab50
-100x30 Ansi16 Popups & tooltips 0845b082e9912454
+100x30 Ansi16 Popups & tooltips 3cc3b1e7ac6e2276
+100x30 Ansi16 Popups & tooltips · Options dd7111f4e73e6576
+100x30 Ansi16 Popups & tooltips · States 5ac847cfe3399c0d
 100x30 Ansi16 File browser 7bba5f6667dfad07
 100x30 Ansi16 Progress ab298977a596b39b
 100x30 Ansi16 Progress · Options 24b53837c2b54cc9
@@ -1936,7 +1966,9 @@
 100x30 Mono Dialog kinds 12afcc26cca83115
 100x30 Mono Dialog kinds · Options c1b7185c4154638e
 100x30 Mono Dialog kinds · States 0db4b3ac73ae2049
-100x30 Mono Popups & tooltips 865bfbab7446481f
+100x30 Mono Popups & tooltips 9395a0559d2387a3
+100x30 Mono Popups & tooltips · Options 4d50810af2e6b11f
+100x30 Mono Popups & tooltips · States 3635d43658b2f406
 100x30 Mono File browser 47c139840c91a446
 100x30 Mono Progress c581570ae2d5748e
 100x30 Mono Progress · Options 9689ee3b138c5fba
@@ -2060,7 +2092,9 @@
 160x50 TrueColor Dialog kinds 02573849280d6d1a
 160x50 TrueColor Dialog kinds · Options 359d13ebb3cc0624
 160x50 TrueColor Dialog kinds · States b976b10e45641963
-160x50 TrueColor Popups & tooltips 42ee8ee453bcd5e3
+160x50 TrueColor Popups & tooltips ce026b3d3a322784
+160x50 TrueColor Popups & tooltips · Options 6fe6af4caf189758
+160x50 TrueColor Popups & tooltips · States e6f09084366cfb3c
 160x50 TrueColor File browser 330a62f2c4721dce
 160x50 TrueColor Progress 373a5d552d6365f7
 160x50 TrueColor Progress · Options 0452a084ae04128d
@@ -2184,7 +2218,9 @@
 160x50 Ansi256 Dialog kinds ec940f7c1c63d752
 160x50 Ansi256 Dialog kinds · Options a27dd373493e8ae4
 160x50 Ansi256 Dialog kinds · States 14bdebd208ab843d
-160x50 Ansi256 Popups & tooltips 2bb47718f4100de2
+160x50 Ansi256 Popups & tooltips 061e42127adad5c3
+160x50 Ansi256 Popups & tooltips · Options 1b81a0070a185229
+160x50 Ansi256 Popups & tooltips · States 84654622d14a17ff
 160x50 Ansi256 File browser 6e719c540e5c65c8
 160x50 Ansi256 Progress 32819b56bb3e09a0
 160x50 Ansi256 Progress · Options 823a684523d24277
@@ -2308,7 +2344,9 @@
 160x50 Ansi16 Dialog kinds 3bb0ce05a26e3d62
 160x50 Ansi16 Dialog kinds · Options d23652f586615aaa
 160x50 Ansi16 Dialog kinds · States 7c276f21a7f0cbfb
-160x50 Ansi16 Popups & tooltips 083e19bff1c612f4
+160x50 Ansi16 Popups & tooltips 7a6b801ef4757df4
+160x50 Ansi16 Popups & tooltips · Options 92036e36530f28e7
+160x50 Ansi16 Popups & tooltips · States 871ce3b54895797c
 160x50 Ansi16 File browser 80e49077e9188cdf
 160x50 Ansi16 Progress f160a956cea6ea07
 160x50 Ansi16 Progress · Options 06c2228694ef138f
@@ -2432,7 +2470,9 @@
 160x50 Mono Dialog kinds e0f9c6036f788313
 160x50 Mono Dialog kinds · Options 32108b2df6f0eaaf
 160x50 Mono Dialog kinds · States a0f6a1d26c5e5459
-160x50 Mono Popups & tooltips 539f9a9a527a6cb3
+160x50 Mono Popups & tooltips 22ab732cdfaed653
+160x50 Mono Popups & tooltips · Options bbcb2c9d13a48432
+160x50 Mono Popups & tooltips · States b1248060cc1e0c25
 160x50 Mono File browser 42f772f5c0b28d4e
 160x50 Mono Progress 56f2ddc55a11d101
 160x50 Mono Progress · Options c88ae5321629cd36
