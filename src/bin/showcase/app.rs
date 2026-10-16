@@ -798,8 +798,12 @@ impl App {
                 if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
                     self.focus.focus(id);
                 }
-                self.dispatch(PageEvent::Press { id, pos: m.pos })
-                    .or(Outcome::Changed)
+                // the click count this press starts: the second press of a
+                // double click selects a word in a field
+                self.pointer_clicks = self.pointer.press_count(id, m.pos, self.now_ms());
+                let out = self.dispatch(PageEvent::Press { id, pos: m.pos });
+                self.pointer_clicks = 0;
+                out.or(Outcome::Changed)
             }
             MouseKind::Up => {
                 // a pass-through backdrop: the click closes the popup and

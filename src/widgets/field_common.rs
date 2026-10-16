@@ -1,8 +1,12 @@
 //! Key bindings shared by every text-editing control.
 
-use ratatui::crossterm::event::KeyCode;
+use std::ops::Range;
 
-use crate::core::event::Key;
+use ratatui::crossterm::event::KeyCode;
+use ratatui::layout::Position;
+
+use crate::core::event::{Key, Outcome};
+use crate::core::id::WidgetId;
 use crate::core::text::TextBuffer;
 
 /// Pointer text selection in a text field: what a drag, a double click
@@ -18,6 +22,10 @@ pub struct PointerSelect {
     /// A triple click selects the line (the whole value of a single-line
     /// field).
     pub line: bool,
+    /// A drag that starts on the second press of a double click extends
+    /// the selection by whole words (macOS); off, it extends by
+    /// characters from the press.
+    pub drag_by_word: bool,
 }
 
 impl PointerSelect {
@@ -25,13 +33,32 @@ impl PointerSelect {
         drag: true,
         word: true,
         line: true,
+        drag_by_word: true,
     };
     /// Clicks only place the caret; nothing selects by pointer.
     pub const OFF: Self = Self {
         drag: false,
         word: false,
         line: false,
+        drag_by_word: false,
     };
+
+    pub const fn drag(mut self, on: bool) -> Self {
+        self.drag = on;
+        self
+    }
+    pub const fn word(mut self, on: bool) -> Self {
+        self.word = on;
+        self
+    }
+    pub const fn line(mut self, on: bool) -> Self {
+        self.line = on;
+        self
+    }
+    pub const fn drag_by_word(mut self, on: bool) -> Self {
+        self.drag_by_word = on;
+        self
+    }
 }
 
 impl Default for PointerSelect {
@@ -42,10 +69,39 @@ impl Default for PointerSelect {
 
 /// Pointer gesture bookkeeping shared by the text fields: where the press
 /// landed and whether a drag selected from it since.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct PressState {
     pub at: Option<usize>,
     pub dragged: bool,
+    /// The word the second press of a double click selected: a drag from
+    /// it extends by words ([`PointerSelect::drag_by_word`]).
+    pub word: Option<Range<usize>>,
+}
+
+/// A press with its multi-click `count` at byte `offset`: remember it for
+/// the drag; the second press of a double click selects the word there
+/// and a drag from it extends by words (per `sel`). `true` when the
+/// selection changed.
+pub(crate) fn press_select(
+    buffer: &mut TextBuffer,
+    press: &mut PressState,
+    sel: PointerSelect,
+    offset: usize,
+    count: u8,
+    whole_word: bool,
+) -> bool {
+    *press = PressState {
+        at: Some(offset),
+        dragged: false,
+        word: None,
+    };
+    if count == 2 && sel.word && sel.drag_by_word && !whole_word {
+        let w = buffer.word_range_at(offset);
+        buffer.select_range(w.start, w.end);
+        press.word = Some(w);
+        return true;
+    }
+    false
 }
 
 /// Apply a click with `count` (1 single, 2 double, 3+ triple) at byte
@@ -61,6 +117,7 @@ pub(crate) fn click_select(
 ) {
     let dragged = std::mem::take(&mut press.dragged);
     press.at = None;
+    press.word = None;
     if dragged {
         return;
     }
@@ -79,11 +136,79 @@ pub(crate) fn click_select(
 }
 
 /// A drag to byte `offset`: extend the selection from the press.
+/// After a double-click press ([`press_select`]) it extends by whole
+/// words: the pressed word stays selected and the far end snaps to the
+/// word under the pointer.
 pub(crate) fn drag_select(buffer: &mut TextBuffer, press: &mut PressState, offset: usize) {
     let anchor = press.at.unwrap_or_else(|| buffer.cursor_offset());
     press.at = Some(anchor);
     press.dragged = true;
+    if let Some(w) = press.word.clone() {
+        let to = buffer.word_range_at(offset);
+        if to.start < w.start {
+            buffer.select_range(w.end, to.start);
+        } else {
+            buffer.select_range(w.start, to.end.max(w.end));
+        }
+        return;
+    }
     buffer.select_range(anchor, offset);
+}
+
+/// A text control the pointer selects in: a press, a drag from it and a
+/// completed click with its count. `TextInput` and `TextArea` implement
+/// it; owners route through [`route_press`], [`route_drag`] and
+/// [`route_click`] instead of matching each field by hand.
+pub trait PointerField {
+    /// The hit id the field registers.
+    fn pointer_id(&self) -> WidgetId;
+    /// Button down with the click count it starts
+    /// ([`crate::core::pointer::PointerState::press_count`]).
+    fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome;
+    /// Drag with the button held since a press on the field.
+    fn on_drag(&mut self, pos: Position) -> Outcome;
+    /// A completed click with its multi-click count
+    /// ([`crate::core::pointer::PointerState::count_click`]).
+    fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome;
+}
+
+/// A press on hit `id`: the field it belongs to takes it.
+pub fn route_press(
+    fields: &mut [&mut dyn PointerField],
+    id: WidgetId,
+    pos: Position,
+    count: u8,
+) -> Option<Outcome> {
+    fields
+        .iter_mut()
+        .find(|f| f.pointer_id() == id)
+        .map(|f| f.on_press_count(pos, count))
+}
+
+/// A drag held since a press on `pressed`: the field it belongs to
+/// extends its selection.
+pub fn route_drag(
+    fields: &mut [&mut dyn PointerField],
+    pressed: WidgetId,
+    pos: Position,
+) -> Option<Outcome> {
+    fields
+        .iter_mut()
+        .find(|f| f.pointer_id() == pressed)
+        .map(|f| f.on_drag(pos))
+}
+
+/// A completed click on hit `id` with its count.
+pub fn route_click(
+    fields: &mut [&mut dyn PointerField],
+    id: WidgetId,
+    pos: Position,
+    count: u8,
+) -> Option<Outcome> {
+    fields
+        .iter_mut()
+        .find(|f| f.pointer_id() == id)
+        .map(|f| f.on_click_count(pos, count.max(1)))
 }
 
 pub enum EditAction {
