@@ -102,6 +102,10 @@ pub struct PageCtx<'a> {
     /// Modifier keys held with the pointer event being delivered (Shift
     /// extends a selection, Ctrl/Cmd toggles); empty for keys and ticks.
     pub mods: ratatui::crossterm::event::KeyModifiers,
+    /// Multi-click count of the click being delivered (1 single, 2 double,
+    /// 3 triple; [`junie_tui::core::pointer::PointerState::count_click`]);
+    /// 0 for every other event.
+    pub clicks: u8,
 }
 
 impl PageCtx<'_> {

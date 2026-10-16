@@ -9,7 +9,9 @@ use crate::core::id::WidgetId;
 use crate::core::text::TextBuffer;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
-use crate::widgets::field_common::{EditAction, edit_key};
+use crate::widgets::field_common::{
+    EditAction, PointerSelect, PressState, click_select, drag_select, edit_key,
+};
 
 /// A text validator: `Some(message)` rejects the value.
 #[derive(Clone)]
@@ -67,6 +69,15 @@ pub struct TextInput {
     /// What an edit in progress does when the field loses focus
     /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
     pub blur_action: BlurAction,
+    /// A focused field that is not editing starts editing on the first
+    /// typed character, which lands at the end of the value (macOS fields
+    /// take typing at once). Off by default: Enter, F2 or a click start
+    /// editing, and plain letters stay with the page's shortcuts.
+    pub type_to_edit: bool,
+    /// What a drag, double click and triple click select.
+    /// Default [`PointerSelect::DEFAULT`].
+    pub pointer_select: PointerSelect,
+    press: PressState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,6 +113,9 @@ impl TextInput {
             reveal_tail: 0,
             wrap_label: false,
             blur_action: BlurAction::Commit,
+            type_to_edit: false,
+            pointer_select: PointerSelect::DEFAULT,
+            press: PressState::default(),
         }
     }
 
@@ -149,6 +163,16 @@ impl TextInput {
     /// See [`Self::blur_action`].
     pub fn blur_action(mut self, action: BlurAction) -> Self {
         self.blur_action = action;
+        self
+    }
+    /// See [`Self::type_to_edit`].
+    pub fn type_to_edit(mut self, on: bool) -> Self {
+        self.type_to_edit = on;
+        self
+    }
+    /// See [`Self::pointer_select`].
+    pub fn pointer_select(mut self, sel: PointerSelect) -> Self {
+        self.pointer_select = sel;
         self
     }
 
@@ -290,6 +314,17 @@ impl TextInput {
                 self.begin_edit();
                 return (Outcome::Changed, None);
             }
+            if self.type_to_edit
+                && let KeyCode::Char(c) = key.code
+                && !key.ctrl()
+                && !key.alt()
+            {
+                self.begin_edit();
+                self.buffer.move_doc_end(false);
+                self.buffer.insert_char(c);
+                self.live_validate();
+                return (Outcome::Changed, Some(InputEvent::Changed));
+            }
             return (Outcome::Ignored, None);
         }
         match edit_key(key, false) {
@@ -341,28 +376,74 @@ impl TextInput {
         }
     }
 
+    /// Byte offset of the grapheme under `pos`. Mouse positions use the
+    /// same display geometry as rendering: a masked CJK/emoji grapheme
+    /// occupies one cell, regardless of raw width.
+    fn offset_at(&self, pos: Position) -> usize {
+        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.scroll;
+        let mut width = 0;
+        for (bi, _, gw) in self.display_graphemes(true) {
+            if width + gw > col {
+                return bi;
+            }
+            width += gw;
+        }
+        self.buffer.text().len()
+    }
+
     /// Mouse click on the field. Focus is handled by the app; the click
     /// enters editing (one click, never two) and places the cursor at the
-    /// pointer.
+    /// pointer. Same as [`Self::on_click_count`] with a count of 1.
     pub fn on_click(&mut self, pos: Position) -> Outcome {
+        self.on_click_count(pos, 1)
+    }
+
+    /// A completed click with its multi-click `count`
+    /// ([`crate::core::pointer::PointerState::count_click`]): 1 places the
+    /// caret, 2 selects the word (the whole value when masked), 3 the
+    /// line, per [`Self::pointer_select`]. The release that ends a drag
+    /// keeps the dragged selection.
+    pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
         }
         self.begin_edit();
-        // Mouse positions use the same display geometry as rendering. A
-        // masked CJK/emoji grapheme occupies one cell, regardless of raw width.
-        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.scroll;
-        let mut width = 0;
-        let mut offset = self.buffer.text().len();
-        for (bi, _, gw) in self.display_graphemes(true) {
-            if width + gw > col {
-                offset = bi;
-                break;
-            }
-            width += gw;
+        let offset = self.offset_at(pos);
+        click_select(
+            &mut self.buffer,
+            &mut self.press,
+            self.pointer_select,
+            offset,
+            count,
+            self.masked,
+        );
+        Outcome::Changed
+    }
+
+    /// Button down on the field: remembers where, so a drag selects from
+    /// there. The press alone changes nothing; the completed click (or the
+    /// drag) starts editing.
+    pub fn on_press(&mut self, pos: Position) -> Outcome {
+        if self.disabled {
+            return Outcome::Consumed;
         }
-        self.buffer.select_range(offset, offset);
-        self.buffer.clear_selection();
+        self.press = PressState {
+            at: Some(self.offset_at(pos)),
+            dragged: false,
+        };
+        Outcome::Consumed
+    }
+
+    /// Drag with the button held since a press on the field: starts
+    /// editing and selects from the press to the pointer
+    /// ([`PointerSelect::drag`]).
+    pub fn on_drag(&mut self, pos: Position) -> Outcome {
+        if self.disabled || !self.pointer_select.drag {
+            return Outcome::Ignored;
+        }
+        let offset = self.offset_at(pos);
+        self.begin_edit();
+        drag_select(&mut self.buffer, &mut self.press, offset);
         Outcome::Changed
     }
 
@@ -645,6 +726,92 @@ mod tests {
         assert_eq!(keep.on_blur(), None);
         assert!(keep.editing, "the edit stays open for when focus returns");
         assert_eq!(keep.text(), "");
+    }
+
+    fn plain(c: char) -> Key {
+        Key {
+            code: KeyCode::Char(c),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        }
+    }
+
+    #[test]
+    fn type_to_edit_starts_editing_on_the_first_character_only_when_on() {
+        let mut off = TextInput::new(WidgetId::of("off"), "Name").value("ab");
+        assert_eq!(off.on_key(&plain('x')), (Outcome::Ignored, None));
+        assert!(!off.editing, "default: letters stay with the page");
+        let mut on = TextInput::new(WidgetId::of("on"), "Name")
+            .value("ab")
+            .type_to_edit(true);
+        assert_eq!(
+            on.on_key(&plain('x')),
+            (Outcome::Changed, Some(InputEvent::Changed))
+        );
+        assert!(on.editing);
+        assert_eq!(on.text(), "abx", "typing lands at the end");
+        let esc = Key {
+            code: KeyCode::Esc,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        assert_eq!(on.on_key(&esc).1, Some(InputEvent::Cancelled));
+        assert_eq!(on.text(), "ab", "Esc reverts what typing started");
+        let ctrl = Key {
+            code: KeyCode::Char('s'),
+            mods: ratatui::crossterm::event::KeyModifiers::CONTROL,
+        };
+        assert_eq!(on.on_key(&ctrl).0, Outcome::Ignored, "shortcuts pass");
+        let mut locked = TextInput::new(WidgetId::of("d"), "Name")
+            .type_to_edit(true)
+            .disabled(true);
+        assert_eq!(locked.on_key(&plain('x')).0, Outcome::Ignored);
+    }
+
+    #[test]
+    fn drag_double_and_triple_click_select_text() {
+        let mut i = TextInput::new(WidgetId::of("s"), "Name").value("hello big world");
+        let area = Rect::new(0, 0, 40, 3);
+        let mut buf = Buffer::empty(area);
+        render(&mut i, area, &mut buf);
+        let ta = i.text_area;
+        let at = |col: u16| Position::new(ta.x + col, ta.y);
+        // press at "e", drag to after "ll": the release keeps the selection
+        let (p, d) = (at(1), at(4));
+        i.on_press(p);
+        assert!(!i.editing, "the press alone changes nothing");
+        assert_eq!(i.on_drag(d), Outcome::Changed);
+        assert!(i.editing, "the drag edits");
+        assert_eq!(i.buffer.selected_text(), Some("ell"));
+        i.on_click_count(d, 1);
+        assert_eq!(i.buffer.selected_text(), Some("ell"), "release keeps it");
+        // a plain click afterwards places the caret
+        i.on_click_count(at(2), 1);
+        assert_eq!(i.buffer.selected_text(), None);
+        // double click: the word; triple: the whole line
+        i.on_click_count(at(7), 2);
+        assert_eq!(i.buffer.selected_text(), Some("big"));
+        i.on_click_count(at(7), 3);
+        assert_eq!(i.buffer.selected_text(), Some("hello big world"));
+        // a masked field selects the whole secret on a double click
+        let mut m = TextInput::new(WidgetId::of("m"), "Key")
+            .value("ab cd")
+            .masked();
+        render(&mut m, area, &mut buf);
+        let p = Position::new(m.text_area.x, m.text_area.y);
+        m.on_click_count(p, 2);
+        assert_eq!(m.buffer.selected_text(), Some("ab cd"));
+        // configurable off: clicks only place the caret, drags select nothing
+        let mut off = TextInput::new(WidgetId::of("o"), "Name")
+            .value("hello big world")
+            .pointer_select(PointerSelect::OFF);
+        render(&mut off, area, &mut buf);
+        let ta = off.text_area;
+        let at = |col: u16| Position::new(ta.x + col, ta.y);
+        let (p, d, w) = (at(1), at(4), at(7));
+        off.on_press(p);
+        assert_eq!(off.on_drag(d), Outcome::Ignored);
+        off.on_click_count(w, 2);
+        assert_eq!(off.buffer.selected_text(), None);
+        assert_eq!(off.buffer.cursor(), 7);
     }
 
     #[test]

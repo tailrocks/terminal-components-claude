@@ -258,6 +258,8 @@ pub struct App {
     /// Modifiers held with the pointer event being handled; pages read
     /// them from [`PageCtx::mods`].
     pointer_mods: KeyModifiers,
+    /// Multi-click count of the click being delivered ([`PageCtx::clicks`]).
+    pointer_clicks: u8,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -344,6 +346,7 @@ impl App {
             layout: ShellLayout::default(),
             saved_focus: None,
             pointer_mods: KeyModifiers::NONE,
+            pointer_clicks: 0,
         };
         // Paused fast-forward: page Tick handlers are pure functions of the
         // tick count, so N synchronous dispatches reproduce the exact
@@ -362,6 +365,7 @@ impl App {
                         ring: &app.ring,
                         requests: Vec::new(),
                         mods: KeyModifiers::NONE,
+                        clicks: 0,
                     };
                     app.pages[i].handle(&PageEvent::Tick, &mut cx);
                 }
@@ -504,6 +508,7 @@ impl App {
             ring: &self.ring,
             requests: Vec::new(),
             mods: self.pointer_mods,
+            clicks: self.pointer_clicks,
         };
         let out = self.pages[i].handle(&ev, &mut cx);
         let requests = std::mem::take(&mut cx.requests);
@@ -728,7 +733,9 @@ impl App {
         // The page owns the click; a control the page did not
         // refocus is focused here so keyboard and pointer agree.
         let before = self.focus.current();
+        self.pointer_clicks = self.pointer.count_click(id, m.pos, self.now_ms());
         let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
+        self.pointer_clicks = 0;
         if self.dialog.is_none()
             && self.pointer.config.focus_on == FocusOn::Release
             && self.focus.current() == before

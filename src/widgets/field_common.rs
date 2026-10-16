@@ -5,6 +5,87 @@ use ratatui::crossterm::event::KeyCode;
 use crate::core::event::Key;
 use crate::core::text::TextBuffer;
 
+/// Pointer text selection in a text field: what a drag, a double click
+/// and a triple click select. Shared by `TextInput` and `TextArea`.
+/// [`PointerSelect::DEFAULT`] follows macOS (all on); the click counts come
+/// from [`crate::core::pointer::PointerState::count_click`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PointerSelect {
+    /// A drag from the press selects the text it crosses.
+    pub drag: bool,
+    /// A double click selects the word under the pointer.
+    pub word: bool,
+    /// A triple click selects the line (the whole value of a single-line
+    /// field).
+    pub line: bool,
+}
+
+impl PointerSelect {
+    pub const DEFAULT: Self = Self {
+        drag: true,
+        word: true,
+        line: true,
+    };
+    /// Clicks only place the caret; nothing selects by pointer.
+    pub const OFF: Self = Self {
+        drag: false,
+        word: false,
+        line: false,
+    };
+}
+
+impl Default for PointerSelect {
+    fn default() -> Self {
+        Self::DEFAULT
+    }
+}
+
+/// Pointer gesture bookkeeping shared by the text fields: where the press
+/// landed and whether a drag selected from it since.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct PressState {
+    pub at: Option<usize>,
+    pub dragged: bool,
+}
+
+/// Apply a click with `count` (1 single, 2 double, 3+ triple) at byte
+/// `offset` to `buffer` per `sel`. A release that ends a drag keeps the
+/// dragged selection.
+pub(crate) fn click_select(
+    buffer: &mut TextBuffer,
+    press: &mut PressState,
+    sel: PointerSelect,
+    offset: usize,
+    count: u8,
+    whole_word: bool,
+) {
+    let dragged = std::mem::take(&mut press.dragged);
+    press.at = None;
+    if dragged {
+        return;
+    }
+    if count >= 3 && sel.line {
+        buffer.select_line_at(offset);
+    } else if count == 2 && sel.word {
+        if whole_word {
+            buffer.select_all();
+        } else {
+            buffer.select_word_at(offset);
+        }
+    } else {
+        buffer.select_range(offset, offset);
+        buffer.clear_selection();
+    }
+}
+
+/// A drag to byte `offset`: extend the selection from the press.
+pub(crate) fn drag_select(buffer: &mut TextBuffer, press: &mut PressState, offset: usize) {
+    let anchor = press.at.unwrap_or_else(|| buffer.cursor_offset());
+    press.at = Some(anchor);
+    press.dragged = true;
+    buffer.select_range(anchor, offset);
+}
+
 pub enum EditAction {
     Commit,
     Cancel,
