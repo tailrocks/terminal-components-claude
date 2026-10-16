@@ -313,7 +313,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/forms/valid", Bin::Showcase, &["--page", "forms"], BOOT).sends(&["tab", "enter", "type:Fix the login redirect loop", "enter", "ctrl-s", "wait:Task created ✓"]),
     // S4: `]` cycles to the next page in sidebar tree order; the header
     // crumb (group / page) is the unique proof.
-    Root::new("showcase/flows/nav/cycled", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["]", "wait:/ App shell / Chrome"]),
+    Root::new("showcase/flows/nav/cycled", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["]", "wait:App shell › Chrome"]),
     // S5: nav owns the keyboard; `G` lands the cursor on the last page (the
     // state proof is the focused gutter row in the frame — no text changes).
     Root::new("showcase/flows/nav/end", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["0", "G"]),

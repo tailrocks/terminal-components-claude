@@ -108,7 +108,7 @@ fn the_page_sits_under_tables_and_answers_to_its_names() {
         .collect();
     let at = |s: &str| rows.iter().position(|r| r.contains(s)).unwrap();
     assert!(at("Tables") < at("Cell editors"), "{rows:#?}");
-    assert!(h.text().contains("/ Tables / Cell editors"));
+    assert!(h.text().contains("Tables › Cell editors"));
 }
 
 #[test]

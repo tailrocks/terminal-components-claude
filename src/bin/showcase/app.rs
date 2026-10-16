@@ -22,6 +22,7 @@ use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
+use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::too_small::TooSmall;
@@ -32,6 +33,8 @@ const BRAND: &str = "Junie Design system";
 
 const NAV: WidgetId = WidgetId::of("app.nav");
 const HEADER_HELP: WidgetId = WidgetId::of("app.header.help");
+/// The header's trail: the page's group and label.
+const HEADER_CRUMB: WidgetId = WidgetId::of("app.header.crumb");
 const HEADER_INSPECT: WidgetId = WidgetId::of("app.header.inspect");
 const HELP_DIALOG: WidgetId = WidgetId::of("app.help");
 /// The brand lockup in the header: the app menu's Quit (mouse #40).
@@ -2027,14 +2030,6 @@ impl App {
         x += 6;
         buf.set_string(x, area.y, "Design system", t.secondary());
         x += 14;
-        let entry = &NAV_ENTRIES[self.page.index()];
-        let crumb = if entry.group.is_empty() {
-            format!("/ {}", entry.label)
-        } else {
-            format!("/ {} / {}", entry.group, entry.label)
-        };
-        buf.set_string(x, area.y, &crumb, t.muted());
-        let crumb_w = junie_tui::ui::text::width(&crumb) as u16;
         // right side: capability + actions
         let cap = format!("{} · {}×{}", t.level.label(), self.size.0, self.size.1);
         let mut rx = area.right().saturating_sub(1);
@@ -2053,6 +2048,26 @@ impl App {
             ctx.clickable(id, Rect::new(rx, area.y, w, 1));
             rx = rx.saturating_sub(1);
         }
+        // where the page sits: the library trail, plain text (the sidebar
+        // is how pages are reached); it collapses before the links go
+        let entry = &NAV_ENTRIES[self.page.index()];
+        let segments = [entry.group, entry.label]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .map(|s| (*s).to_owned())
+            .collect();
+        let mut crumbs = Breadcrumb::new(HEADER_CRUMB, segments).clickable(false);
+        let x = x + 1;
+        crumbs.render(
+            Rect::new(x, area.y, rx.saturating_sub(x + 1), 1),
+            buf,
+            ctx,
+            t.canvas,
+        );
+        let crumb_w = crumbs
+            .areas
+            .last()
+            .map_or(0, |r| r.right().saturating_sub(x));
         let cw = junie_tui::ui::text::width(&cap) as u16;
         if rx > x + crumb_w + cw + 2 {
             buf.set_string(rx.saturating_sub(cw + 1), area.y, &cap, t.faint());
