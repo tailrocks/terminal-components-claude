@@ -125,3 +125,21 @@ fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
         "the editor stays open"
     );
 }
+
+#[test]
+fn moving_focus_away_ends_the_explorer_filters_edit() {
+    // the blur fan-out: the shell hands the focus change to the workbench,
+    // whose filter ends its edit and keeps the text
+    let mut h = H::connected(120, 40);
+    let filter = h.wb().explorer_filter.id;
+    h.tab_to(filter);
+    if !h.wb().explorer_filter.editing {
+        h.key(KeyCode::Enter);
+    }
+    h.type_str("ord");
+    assert!(h.wb().explorer_filter.editing);
+    h.key(KeyCode::Tab);
+    assert_ne!(h.app.shell.focus.current(), Some(filter));
+    assert!(!h.wb().explorer_filter.editing, "the edit ended on blur");
+    assert_eq!(h.wb().explorer_filter.text(), "ord", "and kept its text");
+}

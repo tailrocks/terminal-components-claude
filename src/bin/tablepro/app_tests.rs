@@ -1,6 +1,7 @@
 //! End-to-end interaction tests through the real App on a TestBackend.
 
 use crate::filter_editor::FilterEditor;
+use junie_tui::runtime::Application;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::picker::Picker;
 use ratatui::Terminal;
@@ -150,7 +151,7 @@ impl H {
         None
     }
     pub fn focus(&self) -> Option<WidgetId> {
-        self.app.focus.current()
+        self.app.shell.focus.current()
     }
     pub fn wb(&self) -> &crate::workbench::Workbench {
         self.app.workbench.as_ref().unwrap()
@@ -821,7 +822,7 @@ fn mouse_opens_table_and_switches_tabs() {
     let (cx, cy) = h.find("customers").unwrap();
     h.mouse(MouseKind::Move, cx + 30, cy); // somewhere harmless
     h.mouse(MouseKind::Move, cx, cy);
-    assert!(h.app.pointer.hover.is_some());
+    assert!(h.app.shell.pointer.hover.is_some());
 }
 
 #[test]
@@ -859,7 +860,7 @@ fn every_screen_renders_at_representative_sizes() {
         h.key(KeyCode::Esc);
         h.key(KeyCode::Char('?'));
         h.key(KeyCode::Esc);
-        assert!(!h.app.quit);
+        assert!(!h.app.shell.quit);
     }
     let h = H::new(60, 15);
     assert!(h.text().contains("Terminal too small"));
@@ -1271,14 +1272,14 @@ fn hover_follows_the_rows_that_scroll_under_a_still_pointer() {
         .find("customers")
         .unwrap_or_else(|| panic!("{}", h.text()));
     h.mouse(MouseKind::Move, x, y);
-    let before = h.app.pointer.hover;
+    let before = h.app.shell.pointer.hover;
     assert!(before.is_some());
     for _ in 0..4 {
         h.mouse(MouseKind::WheelDown, x, y);
     }
-    let now = h.app.hits.hit(Position::new(x, y));
+    let now = h.app.shell.hits.hit(Position::new(x, y));
     assert_ne!(now, before, "the tree did not scroll\n{}", h.text());
-    assert_eq!(h.app.pointer.hover, now);
+    assert_eq!(h.app.shell.pointer.hover, now);
 }
 
 /// Layout audit #1: on a short terminal the connection form stacked its
@@ -1305,7 +1306,12 @@ fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus()
                 h.tab_to(form.sub("tabs"));
                 h.key(KeyCode::Right);
             }
-            let buttons = h.app.hits.area_of(form.sub("test")).expect("buttons drawn");
+            let buttons = h
+                .app
+                .shell
+                .hits
+                .area_of(form.sub("test"))
+                .expect("buttons drawn");
             let footer = hh - 1;
             let mut seen = std::collections::HashSet::new();
             for _ in 0..40 {
@@ -1314,7 +1320,7 @@ fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus()
                     break;
                 }
                 if fields.contains(&f) {
-                    if let Some(a) = h.app.hits.area_of(f) {
+                    if let Some(a) = h.app.shell.hits.area_of(f) {
                         assert!(
                             a.bottom() <= buttons.y,
                             "{w}x{hh} advanced={advanced}: {f:?} at {a:?} runs into the buttons at {buttons:?}\n{}",
@@ -1357,6 +1363,7 @@ fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
     // beneath both
     assert!(
         h.app
+            .shell
             .hits
             .scroll_stack(Position::new(x, y))
             .contains(&WidgetId::of("connections").sub("form").sub("left"))
@@ -1375,9 +1382,15 @@ fn a_click_marks_focus_as_pointer_focus_until_the_next_key() {
     let mut h = H::connected(120, 40);
     let (x, y) = h.find("customers").unwrap();
     h.click(x, y);
-    assert!(h.app.pointer.pointer_focus, "focus came from the click");
+    assert!(
+        h.app.shell.pointer.pointer_focus,
+        "focus came from the click"
+    );
     h.key(KeyCode::Down);
-    assert!(!h.app.pointer.pointer_focus, "a key shows focus again");
+    assert!(
+        !h.app.shell.pointer.pointer_focus,
+        "a key shows focus again"
+    );
 }
 
 /// Mouse audit #11: the wheel over an overflowing tab strip scrolls it (it
@@ -1396,6 +1409,7 @@ fn the_wheel_over_the_tab_strip_scrolls_it() {
     h.draw();
     let strip = h
         .app
+        .shell
         .hits
         .area_of(crate::workbench::TABSTRIP)
         .unwrap_or_else(|| panic!("{}", h.text()));
@@ -1427,6 +1441,7 @@ fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
     h.draw();
     let more = h
         .app
+        .shell
         .hits
         .area_of(h.wb().strip.more_id())
         .unwrap_or_else(|| panic!("no +N button\n{}", h.text()));
@@ -1454,7 +1469,7 @@ fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
         h.text()
     );
     // Esc closes a reopened menu without switching
-    let more = h.app.hits.area_of(h.wb().strip.more_id()).unwrap();
+    let more = h.app.shell.hits.area_of(h.wb().strip.more_id()).unwrap();
     h.click(more.x + 1, more.y);
     assert!(h.wb().strip.menu_open());
     h.key(KeyCode::Esc);
@@ -1476,7 +1491,7 @@ fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
     assert!(h.term.backend().cursor_visible(), "caret on arrival");
     let active = h.wb().active;
     h.type_str("z[]q");
-    assert!(!h.app.quit, "q was typed, not quit");
+    assert!(!h.app.shell.quit, "q was typed, not quit");
     assert!(!h.wb().maximized, "z was typed, not zoom");
     assert_eq!(
         h.wb().active,
@@ -1565,7 +1580,7 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
         wb.set_active(0);
     }
     h.draw();
-    let more = h.app.hits.area_of(h.wb().strip.more_id()).unwrap();
+    let more = h.app.shell.hits.area_of(h.wb().strip.more_id()).unwrap();
     h.click(more.x + 1, more.y);
     assert!(h.wb().strip.menu_open(), "{}", h.text());
     let text = h.text();
@@ -1593,7 +1608,7 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
 #[test]
 fn down_on_the_strip_opens_the_overflow_menu() {
     let mut h = H::connected(80, 24);
-    h.app.focus.focus(crate::workbench::TABSTRIP);
+    h.app.shell.focus.focus(crate::workbench::TABSTRIP);
     h.draw();
     h.key(KeyCode::Down);
     assert!(!h.wb().strip.menu_open(), "nothing hidden: no menu");
@@ -1604,7 +1619,7 @@ fn down_on_the_strip_opens_the_overflow_menu() {
         }
         wb.set_active(0);
     }
-    h.app.focus.focus(crate::workbench::TABSTRIP);
+    h.app.shell.focus.focus(crate::workbench::TABSTRIP);
     h.draw();
     let hidden = h.wb().strip.hidden().1;
     assert!(hidden > 0, "{}", h.text());
@@ -1624,7 +1639,7 @@ fn down_on_the_strip_opens_the_overflow_menu() {
 fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
     let tree = WidgetId::of("connections").sub("tree");
     let mut h = H::new(120, 36);
-    assert_eq!(h.app.focus.current(), Some(tree));
+    assert_eq!(h.app.shell.focus.current(), Some(tree));
     let name = |h: &H| {
         let i = h.app.connections.selected.unwrap();
         h.app.connections.connections[i].name.clone()
@@ -1640,16 +1655,34 @@ fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
     h.key(KeyCode::Char('?'));
     assert!(h.app.modal().is_some(), "? opens help: {}", h.text());
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.focus.current(), Some(tree));
+    assert_eq!(h.app.shell.focus.current(), Some(tree));
     h.key(KeyCode::Char('q'));
-    assert!(h.app.quit, "q quits from the tree");
+    assert!(h.app.shell.quit, "q quits from the tree");
 }
 
 /// The same rule in the workbench: the explorer tree types, `q` quits.
 #[test]
 fn q_quits_from_the_focused_explorer_tree() {
     let mut h = H::connected(120, 36);
-    assert_eq!(h.app.focus.current(), Some(crate::workbench::EXPLORER));
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(crate::workbench::EXPLORER)
+    );
     h.key(KeyCode::Char('q'));
-    assert!(h.app.quit, "q quits from the explorer");
+    assert!(h.app.shell.quit, "q quits from the explorer");
+}
+
+#[test]
+fn the_frame_that_hides_the_focused_explorer_shows_where_focus_went() {
+    // zooming the tab hides the focused explorer: the same frame shows the
+    // fallback's focus indicator, never a frame with none (the shell's
+    // second pass)
+    let mut h = H::connected(100, 30);
+    let explorer = h.wb().explorer.id;
+    assert_eq!(h.app.shell.focus.current(), Some(explorer));
+    h.key(KeyCode::Char('z'));
+    assert!(h.wb().maximized);
+    let focus = h.app.shell.focus.current();
+    assert!(focus.is_some() && focus != Some(explorer));
+    assert!(h.text().contains('▎'), "one focus indicator\n{}", h.text());
 }

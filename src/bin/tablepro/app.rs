@@ -3,25 +3,24 @@
 
 use std::time::Duration;
 
-use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
-use junie_tui::core::hit::HitRegistry;
+use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
+
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{
     MouseTarget, PointerEvent, PointerHost, PointerParts, PointerRouter,
 };
 use junie_tui::core::response::Response;
-use junie_tui::shell::StatusLine;
+use junie_tui::shell::{self, PageKey, Shell};
 use junie_tui::theme::{BadgeKind, StatusKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
-use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, LayerTag, ShellLayers, Taken,
 };
@@ -30,7 +29,7 @@ use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::grid::CellValue;
-use junie_tui::widgets::hintbar::HintKeys;
+
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{self, Hint, hint};
 use junie_tui::widgets::menu::MenuAction;
@@ -149,13 +148,9 @@ pub struct App {
     pub connections: ConnectionsScreen,
     pub workbench: Option<Workbench>,
     pub history: History,
-    pub focus: Focus,
-    pub ring: FocusRing,
-    pub hits: HitRegistry,
-    /// Hover, press, flash and click-count state.
-    pub pointer: PointerRouter,
-    /// The keys of the footer hints drawn last frame: a click replays one.
-    footer_keys: HintKeys,
+    /// Focus, ring, hit regions, pointer, footer status (its kind, `None`
+    /// neutral), size and quit: the library shell's state.
+    pub shell: Shell<Option<StatusKind>>,
     /// Context menus: which keys open one at the focused cursor, and
     /// whether a right-click moves the cursor onto its row. Default
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key).
@@ -164,19 +159,11 @@ pub struct App {
     pub(crate) clock: WallClock,
     /// Open overlays, bottom to top; each restores the focus it covered.
     pub layers: Layers,
-    pub size: (u16, u16),
     pub tick: u64,
-    /// Tick delivery; see [`Motion`].
-    pub motion: Motion,
-    /// The footer status and its kind (`None`: neutral); see
-    /// [`StatusLine`] for expiry (5 s on the pointer clock) and errors.
-    pub status: StatusLine<Option<StatusKind>>,
-    pub quit: bool,
     /// Which keys ask to quit, through the leave guard. Default
     /// [`QuitKeys::DEFAULT`]: Ctrl+C (cancels a running query first),
     /// Ctrl+Q and `q`; Esc never quits.
     pub quit_keys: QuitKeys,
-    too_small: bool,
     /// Simulated commit in flight: ticks left.
     committing: Option<u32>,
     scope: usize,
@@ -188,29 +175,20 @@ pub struct App {
 impl App {
     pub fn new(theme: Theme) -> Self {
         let connections = ConnectionsScreen::new(crate::db::connections());
-        let mut focus = Focus::default();
-        focus.focus(WidgetId::of("connections").sub("tree"));
+        let mut shell = Shell::new();
+        shell.focus.focus(WidgetId::of("connections").sub("tree"));
         Self {
             theme,
             screen: Screen::Connections,
             connections,
             workbench: None,
             history: History::seeded(),
-            focus,
-            ring: FocusRing::default(),
-            hits: HitRegistry::default(),
-            pointer: PointerRouter::default(),
-            footer_keys: HintKeys::default(),
+            shell,
             context: ContextConfig::DEFAULT,
             clock: WallClock::new(),
             layers: Layers::new(),
-            size: (0, 0),
             tick: 0,
-            motion: Motion::Full,
-            status: StatusLine::new(),
-            quit: false,
             quit_keys: QuitKeys::DEFAULT,
-            too_small: false,
             committing: None,
             scope: 0,
             switcher_targets: vec![],
@@ -226,7 +204,7 @@ impl App {
         let mut wb = Workbench::new(c, Catalog::acme_prod());
         wb.new_query("");
         // start on the explorer so the first Enter opens a table
-        self.focus.focus(crate::workbench::EXPLORER);
+        self.shell.focus.focus(crate::workbench::EXPLORER);
         self.workbench = Some(wb);
         self.screen = Screen::Workbench;
         self.set_status_as(
@@ -242,34 +220,34 @@ impl App {
     /// synchronously (each one exactly what a live tick does), then pins the
     /// decorative phase at `frame`; no tick is delivered afterwards.
     pub fn set_motion(&mut self, motion: Motion, frame: u64) {
-        self.motion = Motion::Full;
+        self.shell.motion = Motion::Full;
         if motion == Motion::Paused {
             for _ in 0..frame {
                 self.advance();
             }
             self.tick = frame;
         }
-        self.motion = motion;
+        self.shell.motion = motion;
     }
 
     pub fn animating(&self) -> bool {
-        if self.motion == Motion::Paused {
+        if self.shell.motion == Motion::Paused {
             return false;
         }
         self.connections.animating()
             || self.workbench.as_ref().is_some_and(|w| w.animating())
-            || self.pointer.has_flash()
+            || self.shell.pointer.has_flash()
             || self.committing.is_some()
     }
 
     pub fn tick_interval(&self) -> Duration {
         // a held drag past a selecting body's edge autoscrolls on the tick
-        if self.pointer.autoscrolling() {
-            return Duration::from_millis(self.pointer.config.autoscroll_ms);
+        if self.shell.pointer.autoscrolling() {
+            return Duration::from_millis(self.shell.pointer.config.autoscroll_ms);
         }
         // a press held on a scrollbar track pages on the tick
-        if self.pointer.track_repeating() {
-            return Duration::from_millis(self.pointer.config.track_repeat_ms);
+        if self.shell.pointer.track_repeating() {
+            return Duration::from_millis(self.shell.pointer.config.track_repeat_ms);
         }
         if self.animating() {
             Duration::from_millis(80)
@@ -295,7 +273,9 @@ impl App {
         } else {
             Tone::Secondary
         };
-        self.status.set_with_at(s, tone, kind, self.clock.now());
+        self.shell
+            .status
+            .set_with_at(s, tone, kind, self.clock.now());
     }
 
     /// Milliseconds on the pointer clock.
@@ -306,62 +286,24 @@ impl App {
     /// The clock a press flash is read against: frozen at the epoch under
     /// paused motion, so a flash stays visible for the capture.
     fn flash_clock(&self) -> u64 {
-        if self.motion == Motion::Paused {
+        if self.shell.motion == Motion::Paused {
             0
         } else {
             self.now_ms()
         }
     }
 
-    pub(crate) fn interaction(&self) -> Interaction {
-        let flash = self.pointer.flashing(self.flash_clock());
-        Interaction {
-            focus: self.focus.current(),
-            hover: self.pointer.hover,
-            pressed: self.pointer.pressed,
-            flash,
-            focus_hidden: false,
-            hover_suppressed: self.pointer.hover_suppressed,
-            pointer_focus: self.pointer.pointer_focus,
-            motion_unreported: !self.pointer.reports_motion(),
-            tick: self.tick,
-            // a paused capture has no clock: hover content shows at once
-            hover_ms: (self.motion != Motion::Paused).then(|| self.pointer.hover_ms(self.now_ms())),
-        }
+    #[cfg(test)]
+    pub(crate) fn interaction(&self) -> junie_tui::ui::ctx::Interaction {
+        self.shell
+            .interaction(self.now_ms(), self.flash_clock(), self.tick)
     }
 
     // ---------------------------------------------------------------- input
 
-    pub fn handle(&mut self, input: Input) -> Outcome {
-        // an error status has been seen once the user acts again
-        let seen = self.status.on_input(&input);
-        let out = self.handle_input(input);
-        let out = if seen { out.or(Outcome::Changed) } else { out };
-        out.or(self.forward_blur())
-    }
-
-    /// Hand every focus change the input caused to every layer and the
-    /// screens, so fields end their edits on the event path.
-    fn forward_blur(&mut self) -> Outcome {
-        let mut out = Outcome::Ignored;
-        for ch in self.focus.settle(&self.ring) {
-            for e in self.layers.iter_mut() {
-                out = out.or(e.layer.on_blur(ch));
-            }
-            out = out.or(self.connections.on_blur(ch));
-            if let Some(w) = self.workbench.as_mut() {
-                out = out.or(w.on_blur(ch));
-            }
-        }
-        out
-    }
-
     fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
-            Input::Resize(w, h) => {
-                self.size = (w, h);
-                Outcome::Changed
-            }
+            Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Paste(text) => {
                 // the top layer takes the paste; nothing under it does
@@ -395,7 +337,7 @@ impl App {
                     }
                     return self.request_quit();
                 }
-                self.pointer.suppress_hover();
+                self.shell.pointer.suppress_hover();
                 // shortcuts first, then type-ahead (one rule, in the library)
                 junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
@@ -423,7 +365,7 @@ impl App {
         let name = w.connection.name.clone();
         self.workbench = None;
         self.screen = Screen::Connections;
-        self.focus.focus(crate::connections::TREE);
+        self.shell.focus.focus(crate::connections::TREE);
         self.set_status(format!("Disconnected from {name}"));
         Outcome::Changed
     }
@@ -432,8 +374,8 @@ impl App {
     /// would replace an edited one.
     fn new_connection(&mut self) -> Outcome {
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: Vec::new(),
             clicks: 1,
         };
@@ -507,7 +449,7 @@ impl App {
             self.open_dialog(d);
             return Outcome::Changed;
         }
-        self.quit = true;
+        self.shell.quit = true;
         Outcome::Consumed
     }
 
@@ -523,7 +465,7 @@ impl App {
     fn on_tick(&mut self) -> Outcome {
         // edge autoscroll is the user's drag, not motion: it runs paused too
         let auto = self.autoscroll();
-        if self.motion == Motion::Paused {
+        if self.shell.motion == Motion::Paused {
             return auto;
         }
         self.advance().or(auto)
@@ -534,16 +476,16 @@ impl App {
     fn advance(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
         if self.animating() {
-            if self.motion == Motion::Full {
+            if self.shell.motion == Motion::Full {
                 self.tick = self.tick.wrapping_add(1);
             }
             out = Outcome::Changed;
         }
         let now = self.now_ms();
-        if self.pointer.expire_flash(now) {
+        if self.shell.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
-        if self.status.expire(self.clock.now()) {
+        if self.shell.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
         if let Some(ConnEvent::Connected(i)) = self.connections.tick() {
@@ -635,7 +577,7 @@ impl App {
                     if let Some(w) = self.workbench.as_mut() {
                         let i = w.new_query(&sql);
                         if let Some(pf) = w.primary_focus() {
-                            self.focus.focus(pf);
+                            self.shell.focus.focus(pf);
                         }
                         if run {
                             let _ = i;
@@ -664,7 +606,7 @@ impl App {
                                 t.load(&cat);
                             }
                             if let Some(pf) = w.primary_focus() {
-                                self.focus.focus(pf);
+                                self.shell.focus.focus(pf);
                             }
                         }
                     }
@@ -704,9 +646,9 @@ impl App {
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
-        if self.too_small {
+        if self.shell.too_small {
             if key.is_char('q') {
-                self.quit = true;
+                self.shell.quit = true;
             }
             return Outcome::Consumed;
         }
@@ -726,7 +668,7 @@ impl App {
         if self.screen == Screen::Workbench
             && !editing
             && let Some(w) = self.workbench.as_ref()
-            && let Some(menu) = context::on_key(w, &self.context, self.focus.current(), &key)
+            && let Some(menu) = context::on_key(w, &self.context, self.shell.focus.current(), &key)
         {
             return self.open_context(menu);
         }
@@ -735,7 +677,7 @@ impl App {
             && let Some(menu) = context::on_key_connections(
                 &self.connections,
                 &self.context,
-                self.focus.current(),
+                self.shell.focus.current(),
                 &key,
             )
         {
@@ -750,8 +692,8 @@ impl App {
         let out = match self.screen {
             Screen::Connections => {
                 let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
+                    focus: &mut self.shell.focus,
+                    ring: &self.shell.ring,
                     requests: Vec::new(),
                     clicks: 1,
                 };
@@ -765,8 +707,8 @@ impl App {
                     return Outcome::Ignored;
                 };
                 let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
+                    focus: &mut self.shell.focus,
+                    ring: &self.shell.ring,
                     requests: Vec::new(),
                     clicks: 1,
                 };
@@ -781,10 +723,10 @@ impl App {
             if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
                 && key.plain()
                 && !editing
-                && let Some(f) = self.focus.current()
+                && let Some(f) = self.shell.focus.current()
             {
                 let now = self.now_ms();
-                self.pointer.flash(f, now);
+                self.shell.pointer.flash(f, now);
             }
             return out;
         }
@@ -795,11 +737,11 @@ impl App {
         // global keys
         match key.code {
             KeyCode::Tab => {
-                self.focus.next(&self.ring);
+                self.shell.focus.next(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::BackTab => {
-                self.focus.prev(&self.ring);
+                self.shell.focus.prev(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::Char('?') => {
@@ -820,7 +762,7 @@ impl App {
                     w.explorer_visible = true;
                     w.maximized = false;
                 }
-                self.focus.focus(crate::workbench::EXPLORER);
+                self.shell.focus.focus(crate::workbench::EXPLORER);
                 Outcome::Changed
             }
             _ => Outcome::Ignored,
@@ -863,7 +805,7 @@ impl App {
                 if let Some(w) = self.workbench.as_mut() {
                     w.new_query("");
                     if let Some(pf) = w.primary_focus() {
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                 }
                 return Some(Outcome::Changed);
@@ -876,7 +818,7 @@ impl App {
                     } else {
                         w.close_tab(i);
                         let pf = w.primary_focus().unwrap_or(crate::workbench::EXPLORER);
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                 }
                 return Some(Outcome::Changed);
@@ -893,7 +835,7 @@ impl App {
                 if let Some(w) = self.workbench.as_mut() {
                     w.open_history(&self.history);
                     if let Some(pf) = w.primary_focus() {
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                 }
                 return Some(Outcome::Changed);
@@ -920,7 +862,7 @@ impl App {
                         } else {
                             t.grid.id
                         };
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                 }
                 return Some(Outcome::Changed);
@@ -935,7 +877,7 @@ impl App {
                         && let Some(WorkTab::Query(q)) = w.active_tab_mut()
                     {
                         q.editor.open_find();
-                        self.focus.focus(q.editor.id);
+                        self.shell.focus.focus(q.editor.id);
                     }
                 } else {
                     self.open_filter_editor(None, None);
@@ -946,7 +888,7 @@ impl App {
                 if let Some(w) = self.workbench.as_mut() {
                     w.maximized = !w.maximized;
                     let maximized = w.maximized;
-                    let f = self.focus.current();
+                    let f = self.shell.focus.current();
                     if let Some(WorkTab::Query(q)) = w.active_tab_mut() {
                         // maximize the pane that has focus inside a query tab
                         let target = if f == Some(q.editor.id) {
@@ -970,10 +912,10 @@ impl App {
                     let i = (w.active + w.tabs.len() - 1) % w.tabs.len();
                     w.set_active(i);
                     if let Some(pf) = w.primary_focus()
-                        && !self.focus.is(crate::workbench::EXPLORER)
-                        && !self.focus.is(crate::workbench::TABSTRIP)
+                        && !self.shell.focus.is(crate::workbench::EXPLORER)
+                        && !self.shell.focus.is(crate::workbench::TABSTRIP)
                     {
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                 }
                 return Some(Outcome::Changed);
@@ -985,10 +927,10 @@ impl App {
                     let i = (w.active + 1) % w.tabs.len();
                     w.set_active(i);
                     if let Some(pf) = w.primary_focus()
-                        && !self.focus.is(crate::workbench::EXPLORER)
-                        && !self.focus.is(crate::workbench::TABSTRIP)
+                        && !self.shell.focus.is(crate::workbench::EXPLORER)
+                        && !self.shell.focus.is(crate::workbench::TABSTRIP)
                     {
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                 }
                 return Some(Outcome::Changed);
@@ -1027,9 +969,9 @@ impl App {
                     }
                     return Outcome::Changed;
                 }
-                let f = self.focus.current();
+                let f = self.shell.focus.current();
                 if f == Some(crate::workbench::TABSTRIP) {
-                    self.focus.focus(crate::workbench::EXPLORER);
+                    self.shell.focus.focus(crate::workbench::EXPLORER);
                     return Outcome::Changed;
                 }
                 if f == Some(crate::workbench::EXPLORER) {
@@ -1042,7 +984,7 @@ impl App {
                     w.explorer.set_filter(None);
                     return Outcome::Changed;
                 }
-                self.focus.focus(crate::workbench::TABSTRIP);
+                self.shell.focus.focus(crate::workbench::TABSTRIP);
                 Outcome::Changed
             }
         }
@@ -1058,12 +1000,12 @@ impl App {
         if let Some(w) = self.workbench.as_mut() {
             w.explorer_visible = show;
             if show {
-                self.focus.focus(crate::workbench::EXPLORER);
-            } else if (self.focus.is(crate::workbench::EXPLORER)
-                || self.focus.is(w.explorer_filter.id))
+                self.shell.focus.focus(crate::workbench::EXPLORER);
+            } else if (self.shell.focus.is(crate::workbench::EXPLORER)
+                || self.shell.focus.is(w.explorer_filter.id))
                 && let Some(pf) = w.primary_focus()
             {
-                self.focus.focus(pf);
+                self.shell.focus.focus(pf);
             }
         }
         Outcome::Changed
@@ -1468,10 +1410,14 @@ impl App {
         // status strip and of the footer on top of its own margin: where
         // `body_bounds(screen, 1, 1)` placed it
         d.outer_margin.vertical += 1;
-        self.layers
-            .open(Box::new(d), LayerTag::new("dialog"), (), &mut self.focus);
-        self.pointer.hover = None;
-        self.pointer.pressed = None;
+        self.layers.open(
+            Box::new(d),
+            LayerTag::new("dialog"),
+            (),
+            &mut self.shell.focus,
+        );
+        self.shell.pointer.hover = None;
+        self.shell.pointer.pressed = None;
     }
 
     fn open_help(&mut self) {
@@ -1530,8 +1476,12 @@ impl App {
         self.scope = 0;
         p.scope = Some("All · Tab scope".into());
         self.switcher_index = Some(index);
-        self.layers
-            .open(Box::new(p), LayerTag::new(SWITCHER), (), &mut self.focus);
+        self.layers.open(
+            Box::new(p),
+            LayerTag::new(SWITCHER),
+            (),
+            &mut self.shell.focus,
+        );
         self.refresh_switcher();
     }
 
@@ -1642,8 +1592,12 @@ impl App {
             .collect();
         p.set_items(items);
         p.cursor = w.active;
-        self.layers
-            .open(Box::new(p), LayerTag::new(TAB_LIST), (), &mut self.focus);
+        self.layers.open(
+            Box::new(p),
+            LayerTag::new(TAB_LIST),
+            (),
+            &mut self.shell.focus,
+        );
     }
 
     fn open_safe_mode_picker(&mut self) {
@@ -1675,8 +1629,12 @@ impl App {
             .position(|s| *s == current)
             .unwrap_or(0);
         p.empty_text = String::new();
-        self.layers
-            .open(Box::new(p), LayerTag::new(SAFE_MODE), (), &mut self.focus);
+        self.layers.open(
+            Box::new(p),
+            LayerTag::new(SAFE_MODE),
+            (),
+            &mut self.shell.focus,
+        );
     }
 
     fn open_filter_editor(
@@ -1714,7 +1672,7 @@ impl App {
             Box::new(editor),
             LayerTag::new("filter"),
             (),
-            &mut self.focus,
+            &mut self.shell.focus,
         );
     }
 
@@ -1742,8 +1700,8 @@ impl App {
             return Outcome::Ignored;
         };
         let mut cx = LayerCx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             app: &(),
         };
         let out = top.layer.on_key(&key, &mut cx);
@@ -1756,7 +1714,7 @@ impl App {
     /// Deliver what the top layer reported: an event to its owner while it
     /// stays open, a final result once it has closed.
     fn take_layer(&mut self) -> Outcome {
-        match self.layers.take(&mut self.focus) {
+        match self.layers.take(&mut self.shell.focus) {
             None => Outcome::Ignored,
             Some(Taken::Event(r)) => self.layer_event(r),
             Some(Taken::Closed(entry, r)) => self.layer_closed(entry, r),
@@ -1766,7 +1724,7 @@ impl App {
     /// Dismiss the top layer for `reason` under its own policy. A refused
     /// outside click flashes the frame when the policy asks for it.
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
-        let dismissed = self.layers.dismiss(reason, &mut self.focus);
+        let dismissed = self.layers.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, dismissed)
     }
 
@@ -1781,7 +1739,11 @@ impl App {
                 {
                     let dismiss = top.layer.spec().dismiss;
                     let now = self.now_ms();
-                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+                    junie_tui::ui::modal::refuse_outside_click(
+                        &mut self.shell.pointer,
+                        dismiss,
+                        now,
+                    );
                     return Outcome::Changed;
                 }
                 Outcome::Consumed
@@ -1823,7 +1785,7 @@ impl App {
                     if let Some(w) = self.workbench.as_mut() {
                         w.close_tab(idx);
                     }
-                    self.layers.pop(&mut self.focus);
+                    self.layers.pop(&mut self.shell.focus);
                     self.open_tab_list();
                 }
                 Outcome::Changed
@@ -1907,7 +1869,7 @@ impl App {
                         w.open_table(&schema, &name, false);
                         let _ = alt;
                         if let Some(pf) = w.primary_focus() {
-                            self.focus.focus(pf);
+                            self.shell.focus.focus(pf);
                         }
                         // reveal in the explorer
                         self.set_status(format!("Opened {schema}.{name}"));
@@ -1932,16 +1894,16 @@ impl App {
                         nw.schema = s.clone();
                         nw.rebuild_for_schema();
                         *w = nw;
-                        self.focus.focus(crate::workbench::EXPLORER);
+                        self.shell.focus.focus(crate::workbench::EXPLORER);
                         self.set_status(format!("Schema {s}"));
                     }
                     SwitchTarget::Database(_) => {
-                        self.focus.focus(crate::workbench::EXPLORER);
+                        self.shell.focus.focus(crate::workbench::EXPLORER);
                     }
                     SwitchTarget::OpenTab(i) => {
                         w.set_active(i);
                         if let Some(pf) = w.primary_focus() {
-                            self.focus.focus(pf);
+                            self.shell.focus.focus(pf);
                         }
                     }
                     SwitchTarget::RecentQuery(id) => {
@@ -1954,7 +1916,7 @@ impl App {
                             .unwrap_or_default();
                         w.new_query(&sql);
                         if let Some(pf) = w.primary_focus() {
-                            self.focus.focus(pf);
+                            self.shell.focus.focus(pf);
                         }
                     }
                 }
@@ -1965,7 +1927,7 @@ impl App {
                 if let Some(w) = self.workbench.as_mut() {
                     w.set_active(idx);
                     if let Some(pf) = w.primary_focus() {
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                 }
                 Outcome::Changed
@@ -2018,7 +1980,7 @@ impl App {
                 "{n} filter{} applied",
                 if n == 1 { "" } else { "s" }
             ));
-            self.focus.focus(gid);
+            self.shell.focus.focus(gid);
         }
         Outcome::Changed
     }
@@ -2026,8 +1988,8 @@ impl App {
     fn dialog_closed(&mut self, id: WidgetId, result: DialogResult) -> Outcome {
         if self.connections.leave.is_dialog(id) {
             let mut cx = Cx {
-                focus: &mut self.focus,
-                ring: &self.ring,
+                focus: &mut self.shell.focus,
+                ring: &self.shell.ring,
                 requests: Vec::new(),
                 clicks: 1,
             };
@@ -2045,7 +2007,7 @@ impl App {
         }
         if id == QUIT_DIALOG {
             if result == DialogResult::Action(1) {
-                self.quit = true;
+                self.shell.quit = true;
             }
             return Outcome::Changed;
         }
@@ -2093,7 +2055,7 @@ impl App {
                     if result == DialogResult::Action(1) {
                         w.close_tab(i);
                         let pf = w.primary_focus().unwrap_or(crate::workbench::EXPLORER);
-                        self.focus.focus(pf);
+                        self.shell.focus.focus(pf);
                     }
                     return Outcome::Changed;
                 }
@@ -2121,8 +2083,8 @@ impl App {
         }
         let clicks = ev.count();
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: Vec::new(),
             clicks,
         };
@@ -2145,7 +2107,10 @@ impl App {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
         }
-        match self.layers.pointer(ev, &mut self.focus, &self.ring, &()) {
+        match self
+            .layers
+            .pointer(ev, &mut self.shell.focus, &self.shell.ring, &())
+        {
             LayerPointer::Handled(out) => self.take_layer().or(out),
             LayerPointer::Dismissed(d) => self.dismissed(DismissReason::OutsideClick, d),
         }
@@ -2156,7 +2121,7 @@ impl App {
     fn chrome_click(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let id = ev.id;
         // a footer hint runs its key (mouse #1)
-        if let Some(key) = self.footer_keys.clicked(ev) {
+        if let Some(key) = self.shell.footer_keys.clicked(ev) {
             return Some(self.on_key(key).or(Outcome::Changed));
         }
         // the explorer's rail and collapse button (mouse #8)
@@ -2197,6 +2162,7 @@ impl App {
                 _ => None,
             };
             let at = self
+                .shell
                 .hits
                 .area_of(id)
                 .map(|r| Position::new(r.x, r.y))
@@ -2237,10 +2203,14 @@ impl App {
     /// Open a context menu; its commands act on `menu.owner`, which takes
     /// the focus the menu returns to.
     fn open_context(&mut self, menu: CtxMenu) -> Outcome {
-        self.focus.focus(menu.owner);
-        self.layers
-            .open(Box::new(menu), LayerTag::new("menu"), (), &mut self.focus);
-        self.pointer.pressed = None;
+        self.shell.focus.focus(menu.owner);
+        self.layers.open(
+            Box::new(menu),
+            LayerTag::new("menu"),
+            (),
+            &mut self.shell.focus,
+        );
+        self.shell.pointer.pressed = None;
         Outcome::Changed
     }
 
@@ -2252,10 +2222,10 @@ impl App {
         let app = m.app.clone();
         // a header command runs on the grid itself
         if let (context::Target::Header(col), Some(action)) = (target, header) {
-            self.focus.focus(owner);
+            self.shell.focus.focus(owner);
             let mut cx = Cx {
-                focus: &mut self.focus,
-                ring: &self.ring,
+                focus: &mut self.shell.focus,
+                ring: &self.shell.ring,
                 requests: Vec::new(),
                 clicks: 1,
             };
@@ -2288,52 +2258,13 @@ impl App {
                 }
             }
         }
-        self.focus.focus(owner);
+        self.shell.focus.focus(owner);
         self.on_key(key).or(Outcome::Changed)
     }
 
     // --------------------------------------------------------------- render
 
-    pub fn render(&mut self, frame: &mut Frame) {
-        let area = frame.area();
-        self.size = (area.width, area.height);
-        let theme = self.theme;
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let interaction = self.interaction();
-        let cursor;
-        {
-            let buf = frame.buffer_mut();
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            ctx.page_under_layer(self.layers.hides_page_focus());
-            self.draw(area, buf, &mut ctx);
-            ctx.flush_overlays(buf);
-            cursor = ctx.cursor;
-        }
-        self.hits = hits;
-        self.pointer.refresh_hover(&self.hits);
-        self.ring = ring;
-        if self.layers.is_empty() {
-            if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
-                self.focus.set(self.ring.first());
-            }
-        } else {
-            self.focus.ensure_valid(&self.ring);
-        }
-        if let Some(pos) = cursor {
-            frame.set_cursor_position(pos);
-        }
-    }
-
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = self.theme;
-        fill(buf, area, t.base());
-        let too_small = TooSmall::new("TablePro");
-        self.too_small = too_small.applies(area);
-        if self.too_small {
-            too_small.render(area, buf, &t);
-            return;
-        }
         let header = Rect::new(area.x, area.y, area.width, 1);
         let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
         let body = Rect::new(
@@ -2465,7 +2396,12 @@ impl App {
         }
         right.push(
             Segment::new(
-                format!("{} · {}×{}", t.level.label(), self.size.0, self.size.1),
+                format!(
+                    "{} · {}×{}",
+                    t.level.label(),
+                    self.shell.size.0,
+                    self.shell.size.1
+                ),
                 Tone::Faint,
             )
             .priority(1),
@@ -2485,13 +2421,13 @@ impl App {
             Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
         };
         let hints: Vec<Hint> = match self.layers.top() {
-            Some(e) => e.layer.hints(self.focus.current()),
+            Some(e) => e.layer.hints(self.shell.focus.current()),
             None => match self.screen {
-                Screen::Connections => self.connections.hints(self.focus.current()),
+                Screen::Connections => self.connections.hints(self.shell.focus.current()),
                 Screen::Workbench => self
                     .workbench
                     .as_ref()
-                    .map(|w| w.hints(self.focus.current()))
+                    .map(|w| w.hints(self.shell.focus.current()))
                     .unwrap_or_default(),
             },
         };
@@ -2506,20 +2442,72 @@ impl App {
         } else {
             None
         };
-        let status = self.status.entry().map(|(text, _, kind)| (text, *kind));
+        let status = self
+            .shell
+            .status
+            .entry()
+            .map(|(text, _, kind)| (text, *kind));
         let (_, spots) = keyhint::render_status_at(area, buf, &t, &hints, badge, status);
-        self.footer_keys = HintKeys::register(ctx, buf, &hints, spots);
+        self.shell.footer_drawn(hints, spots);
+    }
+}
+
+impl shell::App for App {
+    type Status = Option<StatusKind>;
+    fn shell(&self) -> &Shell<Option<StatusKind>> {
+        &self.shell
+    }
+    fn shell_mut(&mut self) -> &mut Shell<Option<StatusKind>> {
+        &mut self.shell
+    }
+    fn theme(&self) -> Theme {
+        self.theme
+    }
+    fn too_small(&self) -> TooSmall<'_> {
+        TooSmall::new("TablePro")
+    }
+    fn now_ms(&self) -> u64 {
+        App::now_ms(self)
+    }
+    fn flash_ms(&self) -> u64 {
+        self.flash_clock()
+    }
+    fn tick(&self) -> u64 {
+        self.tick
+    }
+    fn tick_interval(&self) -> Duration {
+        App::tick_interval(self)
+    }
+    fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        App::draw(self, area, buf, ctx)
+    }
+    fn on_input(&mut self, input: Input) -> Outcome {
+        self.handle_input(input)
+    }
+    /// Every focus change goes to every layer and both screens, so fields
+    /// end their edits on the event path.
+    fn on_blur(&mut self, ch: FocusChange) -> Outcome {
+        let mut out = self.layers.on_blur(ch);
+        out = out.or(self.connections.on_blur(ch));
+        if let Some(w) = self.workbench.as_mut() {
+            out = out.or(w.on_blur(ch));
+        }
+        out
+    }
+    fn layer_open(&self) -> bool {
+        !self.layers.is_empty()
+    }
+    fn page_under_layer(&self) -> bool {
+        self.layers.hides_page_focus()
+    }
+    fn page_key(&self) -> PageKey {
+        PageKey(self.screen as u64)
     }
 }
 
 impl PointerHost for App {
     fn pointer_parts(&mut self) -> PointerParts<'_> {
-        PointerParts {
-            router: &mut self.pointer,
-            hits: &self.hits,
-            focus: &mut self.focus,
-            ring: &self.ring,
-        }
+        self.shell.pointer_parts()
     }
 
     fn layer_open(&self) -> bool {

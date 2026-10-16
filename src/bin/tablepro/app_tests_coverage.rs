@@ -1,5 +1,6 @@
 use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::{Input, MouseKind};
+use junie_tui::runtime::Application;
 use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::scrollbar;
 use ratatui::crossterm::event::KeyCode;
@@ -151,7 +152,7 @@ fn structure_sections_and_workbench_grid_routes() {
         Some(WorkTab::Table(table)) => table.structure_tabs.id,
         _ => panic!("expected table tab"),
     };
-    h.app.focus.focus(structure_id);
+    h.app.shell.focus.focus(structure_id);
     h.draw();
     for (index, digit) in ['1', '2', '3', '4', '5', '6'].into_iter().enumerate() {
         h.key(KeyCode::Char(digit));
@@ -353,11 +354,11 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
     h.ctrl('c');
     assert!(h.app.modal().is_some());
     h.key(KeyCode::Esc);
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     h.ctrl('c');
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 }
 
 impl H {
@@ -440,7 +441,7 @@ fn a_click_on_dead_space_ends_a_form_field_edit_in_place() {
     let focused = h.focus();
     let dead = (2..40)
         .flat_map(|y| (0..120).map(move |x| ratatui::layout::Position::new(x, y)))
-        .find(|p| h.app.hits.hit(*p).is_none())
+        .find(|p| h.app.shell.hits.hit(*p).is_none())
         .expect("some cell holds no control");
     h.click(dead.x, dead.y);
     assert!(!h.app.connections.is_editing(), "the edit ended");
@@ -497,7 +498,7 @@ fn resize_ladder_recovers_drawer_focus_and_hit_regions() {
     assert!(h.text().contains("Terminal too small"));
     h.resize(120, 40);
     assert!(h.text().contains("Filter objects"));
-    assert!(h.app.hits.area_of(explorer).is_some());
+    assert!(h.app.shell.hits.area_of(explorer).is_some());
 
     h.resize(80, 24);
     assert!(h.text().contains("Filter objects"));
@@ -509,7 +510,7 @@ fn resize_ladder_recovers_drawer_focus_and_hit_regions() {
 
     h.resize(160, 50);
     assert!(h.text().contains("Type SQL"));
-    assert!(h.app.hits.area_of(editor).is_some());
+    assert!(h.app.shell.hits.area_of(editor).is_some());
 }
 
 #[test]
@@ -555,7 +556,7 @@ fn structure_sections_render_catalog_evidence() {
         Some(WorkTab::Table(table)) => table.structure_tabs.id,
         _ => panic!("expected table tab"),
     };
-    h.app.focus.focus(structure_id);
+    h.app.shell.focus.focus(structure_id);
     h.draw();
 
     let sections = [
@@ -585,11 +586,13 @@ fn grid_pointer_drag_scrollbar_and_horizontal_wheel_update_state() {
     let grid_id = h.wb_table().grid.id;
     let first = h
         .app
+        .shell
         .hits
         .area_of(h.wb_table().grid.cell_id(0, 0))
         .expect("first grid cell hit");
     let second = h
         .app
+        .shell
         .hits
         .area_of(h.wb_table().grid.cell_id(1, 1))
         .expect("second grid cell hit");
@@ -598,7 +601,7 @@ fn grid_pointer_drag_scrollbar_and_horizontal_wheel_update_state() {
     h.mouse(MouseKind::Up, second.x + 1, second.y);
     assert_eq!(h.wb_table().grid.cursor, (1, 1));
 
-    let grid_area = h.app.hits.area_of(grid_id).expect("grid hit");
+    let grid_area = h.app.shell.hits.area_of(grid_id).expect("grid hit");
     let before = h.wb_table().grid.scroll.offset;
     h.mouse(MouseKind::WheelDown, grid_area.x + 8, grid_area.y + 3);
     assert!(h.wb_table().grid.scroll.offset > before);
@@ -610,6 +613,7 @@ fn grid_pointer_drag_scrollbar_and_horizontal_wheel_update_state() {
     h.draw();
     let scrollbar_area = h
         .app
+        .shell
         .hits
         .area_of(scrollbar::id_for(grid_id))
         .expect("grid scrollbar hit");
@@ -627,7 +631,7 @@ fn grid_pointer_drag_scrollbar_and_horizontal_wheel_update_state() {
     );
     assert!(h.wb_table().grid.scroll.offset > before);
 
-    let grid_area = h.app.hits.area_of(grid_id).expect("grid hit");
+    let grid_area = h.app.shell.hits.area_of(grid_id).expect("grid hit");
     let before = h.wb_table().grid.scroll.h.offset;
     h.mouse(MouseKind::WheelRight, grid_area.x + 8, grid_area.y + 3);
     assert!(h.wb_table().grid.scroll.h.offset > before);
@@ -719,12 +723,17 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
     assert!(grid.scroll.h.overflows(), "11 columns do not fit");
     let hbar_id = scrollbar::h_id_for(grid.id);
     let grid_id = grid.id;
-    let bar = h.app.hits.area_of(hbar_id).expect("horizontal bar hit");
+    let bar = h
+        .app
+        .shell
+        .hits
+        .area_of(hbar_id)
+        .expect("horizontal bar hit");
     let start = h_thumb_x(&h, bar.y).expect("the thumb is drawn");
     assert_eq!(start, bar.x, "first columns: the thumb sits left");
 
     // a sideways wheel moves one column and the thumb follows
-    let grid_area = h.app.hits.area_of(grid_id).expect("grid hit");
+    let grid_area = h.app.shell.hits.area_of(grid_id).expect("grid hit");
     h.mouse(MouseKind::WheelRight, grid_area.x + 8, grid_area.y + 3);
     assert_eq!(h.wb_table().grid.scroll.h.offset, 1);
     assert!(h_thumb_x(&h, bar.y).unwrap() > start);
@@ -778,7 +787,7 @@ fn query_results_are_read_only_and_enter_says_why() {
             _ => None,
         })
         .expect("a result grid");
-    h.app.focus.focus(gid);
+    h.app.shell.focus.focus(gid);
     h.draw();
     let footer = h.text().lines().last().unwrap_or_default().to_owned();
     assert!(!footer.contains("Enter Edit"), "{footer}");
@@ -845,14 +854,14 @@ fn global_chords_reach_past_an_editing_field() {
     );
     let mut h = editing();
     h.ctrl('q');
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     assert!(
         h.text().contains("Unsaved changes"),
         "Ctrl+Q asks: {}",
         h.text()
     );
     h.key(KeyCode::Char('d'));
-    assert!(h.app.quit, "Discard quits");
+    assert!(h.app.shell.quit, "Discard quits");
 }
 
 /// Ctrl+Q quits through the shared quit keys (`QuitKeys`), as in every
@@ -862,18 +871,18 @@ fn global_chords_reach_past_an_editing_field() {
 fn ctrl_q_quits_through_the_leave_guard() {
     let mut h = H::new(120, 40);
     h.ctrl('q');
-    assert!(h.app.quit, "a clean Ctrl+Q quits at once");
+    assert!(h.app.shell.quit, "a clean Ctrl+Q quits at once");
 
     let mut h = edited_form();
     h.ctrl('q');
-    assert!(!h.app.quit, "Ctrl+Q never drops the edit");
+    assert!(!h.app.shell.quit, "Ctrl+Q never drops the edit");
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     h.key(KeyCode::Esc);
-    assert!(!h.app.quit, "Cancel stays");
+    assert!(!h.app.shell.quit, "Cancel stays");
     assert!(h.text().contains("Local PostgreSQL v2"));
     h.ctrl('q');
     h.key(KeyCode::Char('d'));
-    assert!(h.app.quit, "Discard quits");
+    assert!(h.app.shell.quit, "Discard quits");
 }
 
 /// Keyboard audit #6: `e` and `q` never wipe or abandon an edited
@@ -890,7 +899,7 @@ fn an_edited_connection_form_is_never_wiped_without_asking() {
         "Cancel keeps the edit"
     );
     h.key(KeyCode::Char('q'));
-    assert!(!h.app.quit, "q never abandons a dirty form");
+    assert!(!h.app.shell.quit, "q never abandons a dirty form");
     assert!(h.text().contains("Local PostgreSQL v2"));
     // Esc cancels the form, asking first; Discard closes it
     h.key(KeyCode::Esc);
@@ -901,15 +910,15 @@ fn an_edited_connection_form_is_never_wiped_without_asking() {
     );
     h.key(KeyCode::Char('d'));
     assert!(!h.text().contains("Test connection"), "{}", h.text());
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
 
     // Ctrl+C asks too; Discard then quits
     let mut h = edited_form();
     h.ctrl('c');
-    assert!(!h.app.quit, "Ctrl+C never drops the edit");
+    assert!(!h.app.shell.quit, "Ctrl+C never drops the edit");
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     h.key(KeyCode::Char('d'));
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 
     // a clean form closes on Esc without a question
     let mut h = H::new(120, 40);

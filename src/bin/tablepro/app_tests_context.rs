@@ -3,6 +3,7 @@
 use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::{Input, Key, MouseKind};
 use junie_tui::core::id::WidgetId;
+use junie_tui::runtime::Application;
 use junie_tui::ui::context::{ContextConfig, ContextKeys};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -63,7 +64,7 @@ fn table(h: &H) -> &crate::tabs::TableTab {
 
 /// Where hit `id` was drawn this frame.
 fn area(h: &H, id: WidgetId) -> Rect {
-    h.app.hits.area_of(id).expect("drawn this frame")
+    h.app.shell.hits.area_of(id).expect("drawn this frame")
 }
 
 /// Click the open menu's item labelled `label`.
@@ -165,7 +166,11 @@ fn shift_f10_opens_the_grid_menu_under_the_cursor_cell() {
     h.key(KeyCode::Enter);
     assert!(h.app.modal().is_none());
     assert!(
-        h.app.status.text().is_some_and(|s| s.starts_with("Copied")),
+        h.app
+            .shell
+            .status
+            .text()
+            .is_some_and(|s| s.starts_with("Copied")),
         "the grid's y ran"
     );
     // the knob turns the key off
@@ -202,6 +207,7 @@ fn a_right_click_outside_an_open_menu_reopens_it_at_the_new_spot() {
     let i = (0..h.wb().explorer.rows().len())
         .find(|&i| {
             h.app
+                .shell
                 .hits
                 .area_of(h.wb().explorer.row_id(i))
                 .is_some_and(|r| r.y > below)
@@ -305,7 +311,7 @@ fn a_right_click_on_a_connection_row_offers_its_commands() {
 fn shift_f10_on_the_connections_list_opens_its_menu_under_the_cursor() {
     let mut h = H::new(120, 40);
     let tree = h.app.connections.tree().id;
-    h.app.focus.focus(tree);
+    h.app.shell.focus.focus(tree);
     h.draw();
     assert!(
         h.text().contains("Shift+F10 Menu"),
@@ -360,7 +366,7 @@ fn shift_f10_on_the_history_list_toggles_its_scope() {
         Some(WorkTab::History(t)) => t.list.id,
         _ => panic!("expected the history tab"),
     };
-    h.app.focus.focus(list);
+    h.app.shell.focus.focus(list);
     h.draw();
     assert!(
         h.text().contains("Shift+F10 Menu"),
