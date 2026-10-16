@@ -269,7 +269,7 @@ pub struct PropsList {
     /// the cap are cut with `…` (rows never stack in a list). Default
     /// [`Sheet::default`].
     pub sheet: Sheet,
-    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
+    /// Which keys move the cursor (default [`NavKeys::default`]).
     pub nav: NavKeys,
     /// The list's action keys (default [`PropsCmd::default_keymap`]).
     pub keymap: KeyMap<PropsCmd>,
@@ -313,7 +313,7 @@ impl PropsList {
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
             sheet: Sheet::default(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: PropsCmd::default_keymap(),
         }
     }

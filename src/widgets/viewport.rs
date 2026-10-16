@@ -467,7 +467,7 @@ pub struct TextViewport {
     pub scrollbar_gap: u16,
     /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
     pub horizontal: Option<HScroll>,
-    /// Which keys scroll (default [`NavKeys::DEFAULT`]). Shift+arrows
+    /// Which keys scroll (default [`NavKeys::default`]). Shift+arrows
     /// always extend a keyboard selection.
     pub nav: NavKeys,
     /// The viewport's own action keys (default
@@ -545,7 +545,7 @@ impl TextViewport {
             scrollbar_gap: scrollbar::GAP,
             rows_h: 0,
             horizontal: None,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: ViewportCmd::default_keymap(),
         }
     }

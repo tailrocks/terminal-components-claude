@@ -73,8 +73,10 @@ impl NavKeys {
         ..Self::DESKTOP
     };
 
-    /// Today's behaviour: everything on, vim letters included.
-    pub const DEFAULT: Self = Self::VIM;
+    /// The library default, [`Self::DESKTOP`] (APG, WCAG 2.1.4). Widgets
+    /// take [`NavKeys::default`], which follows the installed
+    /// [`crate::core::list::NavProfile`].
+    pub const DEFAULT: Self = Self::DESKTOP;
 
     /// Same as [`Self::DESKTOP`] (the name used before the desktop keys
     /// became the default).
@@ -142,8 +144,12 @@ impl NavKeys {
 }
 
 impl Default for NavKeys {
+    /// The installed [`crate::core::list::NavProfile`]'s keys
+    /// ([`Self::DESKTOP`] unless an app installed [`NavProfile::Vim`]).
+    ///
+    /// [`NavProfile::Vim`]: crate::core::list::NavProfile::Vim
     fn default() -> Self {
-        Self::DEFAULT
+        crate::core::list::NavProfile::current().nav()
     }
 }
 
@@ -389,7 +395,7 @@ mod tests {
 
     #[test]
     fn the_shared_nav_table() {
-        let d = NavKeys::DEFAULT;
+        let d = NavKeys::VIM;
         let table = [
             (KeyCode::Up, Some(Nav::Up)),
             (KeyCode::Down, Some(Nav::Down)),
@@ -420,7 +426,7 @@ mod tests {
 
     #[test]
     fn named_keys_keep_their_modifiers_and_letters_refuse_ctrl_alt() {
-        let d = NavKeys::DEFAULT;
+        let d = NavKeys::VIM;
         assert_eq!(
             d.action(&with(KeyCode::Down, KeyModifiers::SHIFT)),
             Some(Nav::Down)
@@ -475,15 +481,20 @@ mod tests {
             assert_eq!(no_vim.action(&key(KeyCode::Char(c))), None, "{c}");
         }
         assert_eq!(no_vim.action(&key(KeyCode::Down)), Some(Nav::Down));
-        let no_page = NavKeys::DEFAULT.page(false);
+        let no_page = NavKeys::VIM.page(false);
         assert_eq!(no_page.action(&key(KeyCode::PageDown)), None);
         assert_eq!(no_page.action(&key(KeyCode::Char('j'))), Some(Nav::Down));
-        let no_home = NavKeys::DEFAULT.home_end(false);
+        let no_home = NavKeys::VIM.home_end(false);
         assert_eq!(no_home.action(&key(KeyCode::Home)), None);
         assert_eq!(no_home.action(&key(KeyCode::Char('g'))), Some(Nav::Home));
-        let no_arrows = NavKeys::DEFAULT.arrows(false);
+        let no_arrows = NavKeys::VIM.arrows(false);
         assert_eq!(no_arrows.action(&key(KeyCode::Up)), None);
         assert_eq!(NavKeys::default(), NavKeys::DEFAULT);
+        assert_eq!(
+            NavKeys::DEFAULT,
+            NavKeys::DESKTOP,
+            "desktop keys by default (K33)"
+        );
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -546,7 +557,8 @@ mod tests {
 
 /// Every navigable widget reads [`NavKeys`] and its [`KeyMap`]: a remapped
 /// binding fires, the default it replaced does not, and `NavKeys::NO_VIM`
-/// frees the letters.
+/// frees the letters. Each test runs under the `Vim` profile, so the vim
+/// letters are the profile's and `.nav(..)` overrides it.
 #[cfg(test)]
 mod widget_tests {
     use super::*;
@@ -566,11 +578,12 @@ mod widget_tests {
 
     #[test]
     fn list_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::list::{ListBox, ListCmd, ListItem, SelectMode};
         let items = || vec![ListItem::new("a"), ListItem::new("b"), ListItem::new("c")];
         let mut l = ListBox::new(WidgetId::of("l"), items(), SelectMode::Single);
         l.on_key(&c('j'));
-        assert_eq!(l.cursor, 1, "vim on by default");
+        assert_eq!(l.cursor, 1, "vim on under the Vim profile");
         let mut l =
             ListBox::new(WidgetId::of("l"), items(), SelectMode::Single).nav(NavKeys::NO_VIM);
         assert_eq!(l.on_key(&c('j')), Outcome::Ignored);
@@ -597,6 +610,7 @@ mod widget_tests {
 
     #[test]
     fn tree_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::tree::{TreeCmd, TreeNode, TreeView};
         let nodes = || {
             vec![
@@ -638,6 +652,7 @@ mod widget_tests {
 
     #[test]
     fn table_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::table::{Cell, Column, DataTable, TableCmd};
         use ratatui::layout::Constraint;
         let table = || {
@@ -670,6 +685,7 @@ mod widget_tests {
 
     #[test]
     fn select_nav() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::select::Select;
         let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 0);
         s.on_key(&k(KeyCode::Enter));
@@ -691,6 +707,7 @@ mod widget_tests {
 
     #[test]
     fn menus_nav() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::menu::{ContextMenu, MenuBar, MenuItem};
         let menu = || {
             (0..20)
@@ -723,6 +740,7 @@ mod widget_tests {
 
     #[test]
     fn radio_and_steps_nav() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::choice::RadioGroup;
         use crate::widgets::steps::{Step, StepRail};
         let mut r = RadioGroup::new(WidgetId::of("r"), "R", &["a", "b", "c"], 0);
@@ -752,6 +770,7 @@ mod widget_tests {
 
     #[test]
     fn textarea_and_panel_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::panel::{PanelCmd, ScrollPanel};
         use crate::widgets::textarea::TextArea;
         let mut t = TextArea::new(WidgetId::of("t"), "T", 3)
@@ -787,6 +806,7 @@ mod widget_tests {
 
     #[test]
     fn viewport_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::viewport::{TextViewport, ViewportCmd};
         let mut v = TextViewport::new(WidgetId::of("v"));
         assert_ne!(v.on_key(&c('k')).0, Outcome::Ignored);
@@ -812,6 +832,7 @@ mod widget_tests {
 
     #[test]
     fn code_editor_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::code::{CodeCmd, CodeEditor};
         let text = "a\nb\nc\n";
         let mut e = CodeEditor::new(WidgetId::of("e"), text)
@@ -871,6 +892,7 @@ mod widget_tests {
 
     #[test]
     fn grid_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::grid::{GridAction, GridCmd};
         let mut g = grid();
         g.on_key(&c('j'));
@@ -923,6 +945,7 @@ mod widget_tests {
 
     #[test]
     fn tabs_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::tabs::{TabAction, TabCmd, TabItem, Tabs};
         let items = || {
             (0..3)
@@ -962,6 +985,7 @@ mod widget_tests {
 
     #[test]
     fn chips_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::chips::{Chip, ChipAction, ChipBar, ChipCmd};
         let bar = || {
             let mut b = ChipBar::new(WidgetId::of("c"));
@@ -990,6 +1014,7 @@ mod widget_tests {
 
     #[test]
     fn dialog_nav_and_keymap() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::core::focus::{Focus, FocusRing};
         use crate::widgets::dialog::{Dialog, DialogCmd, DialogResult};
         let ring = FocusRing::default();
@@ -1022,6 +1047,7 @@ mod widget_tests {
 
     #[test]
     fn picker_and_completion_nav() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::completion::{Completion, CompletionItem};
         use crate::widgets::picker::{Picker, PickerItem};
         let items = || {
@@ -1084,6 +1110,7 @@ mod widget_tests {
 
     #[test]
     fn props_and_help_nav() {
+        crate::core::list::NavProfile::Vim.install();
         use crate::widgets::help::HelpOverlay;
         use crate::widgets::props::{Prop, PropsList};
         let props = || vec![Prop::new("a", "1"), Prop::new("b", "2")];

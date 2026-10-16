@@ -290,8 +290,8 @@ fn lists_shift_f10_opens_under_the_cursor_row_and_chooses() {
     h.click(h.at("TypeScript"));
     h.key(KeyCode::Down);
     let python = h.at("Python");
-    h.key(KeyCode::Char('j'));
-    h.key(KeyCode::Char('k'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Up);
     assert_eq!(h.shift_f10(), Outcome::Changed);
     let menu = h.menu(LISTS_MENU).expect("Shift+F10 opens the row menu");
     assert_eq!(menu.y, python.1 + 1, "under the cursor row\n{}", h.text());
