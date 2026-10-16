@@ -583,7 +583,7 @@ impl DataGrid {
         let widths = columns.iter().map(|c| c.min_width).collect();
         Self {
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             id,
             columns,
             rows: vec![],

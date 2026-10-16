@@ -674,11 +674,21 @@ fn scrollbar_click_and_drag_move_the_view() {
         h.app.hits.area_of(id).unwrap()
     };
     let sx = list_area.right() - 1;
+    // a track click pages toward the pointer (TrackClick::Page)
     h.mouse(MouseKind::Down, sx, list_area.bottom() - 1);
     h.mouse(MouseKind::Up, sx, list_area.bottom() - 1);
     assert!(!h.text().contains("Row 001"));
+    assert!(!h.text().contains("Row 120"), "one page, not a jump");
+    // the thumb drags to either end
+    let thumb = (list_area.y..list_area.bottom())
+        .find(|&y| {
+            let s = h.term.backend().buffer()[(sx, y)].symbol().to_owned();
+            s == junie_tui::widgets::scrollbar::THUMB
+        })
+        .expect("a thumb");
+    h.mouse(MouseKind::Down, sx, thumb);
+    h.mouse(MouseKind::Drag, sx, list_area.bottom() + 2);
     assert!(h.text().contains("Row 120"));
-    h.mouse(MouseKind::Down, sx, list_area.bottom() - 1);
     h.mouse(MouseKind::Drag, sx, list_area.y);
     h.mouse(MouseKind::Up, sx, list_area.y);
     assert!(h.text().contains("Row 001"));
@@ -1746,4 +1756,39 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
         "Tab lands on the next stop"
     );
     assert!(h.term.backend().cursor_visible());
+}
+
+#[test]
+fn a_track_press_held_keeps_paging_until_the_thumb_reaches_the_pointer() {
+    let mut h = Harness::new(120, 40, PageId::Scrolling);
+    let list_area = {
+        let id = junie_tui::core::id::WidgetId::of("scrolling").sub("list");
+        h.app.hits.area_of(id).unwrap()
+    };
+    let (sx, sy) = (list_area.right() - 1, list_area.bottom() - 1);
+    h.mouse(MouseKind::Down, sx, sy);
+    assert!(!h.text().contains("Row 001"), "the press pages once");
+    assert!(!h.text().contains("Row 120"));
+    assert_eq!(
+        h.app.tick_interval(),
+        std::time::Duration::from_millis(50),
+        "a held track press ticks at track_repeat_ms"
+    );
+    let tick = |h: &mut Harness, ms: u64| {
+        std::thread::sleep(std::time::Duration::from_millis(ms));
+        h.app.handle(Input::Tick);
+        h.draw();
+    };
+    tick(&mut h, 0);
+    tick(&mut h, 320);
+    for _ in 0..10 {
+        tick(&mut h, 60);
+    }
+    assert!(
+        h.text().contains("Row 120"),
+        "held, the track pages on to the end:\n{}",
+        h.text()
+    );
+    h.mouse(MouseKind::Up, sx, sy);
+    assert!(h.app.tick_interval() > std::time::Duration::from_millis(50));
 }
