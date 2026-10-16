@@ -440,6 +440,9 @@ fn ascii_glyphs_keep_the_unicode_widths() {
         (u.key, a.key),
         (u.arrow, a.arrow),
         (u.mask, a.mask),
+        (u.bar_fill, a.bar_fill),
+        (u.bar_empty, a.bar_empty),
+        (u.bar_stale, a.bar_stale),
     ];
     for (x, y) in pairs {
         assert_eq!(x.width(), y.width(), "{x:?} vs {y:?}");
