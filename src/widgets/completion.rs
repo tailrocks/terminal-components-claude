@@ -9,6 +9,7 @@ use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -58,6 +59,10 @@ pub struct Completion {
     /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
     /// editor that owns the list keeps the only focus bar.
     pub cursor_style: CursorStyle,
+    /// Which keys move the list cursor. Default [`Completion::NAV`]: ↑/↓
+    /// and paging only, since letters, ←/→ and Home/End belong to the
+    /// editor the list completes for. Ctrl+N/Ctrl+P always step.
+    pub nav: NavKeys,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +72,15 @@ pub enum CompletionEvent {
 }
 
 impl Completion {
+    /// Default [`Completion::nav`].
+    pub const NAV: NavKeys = NavKeys::NO_VIM.home_end(false);
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
     /// Most rows shown before the list scrolls. Default 8.
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
@@ -94,6 +108,7 @@ impl Completion {
             area: Rect::ZERO,
             dismiss: Dismiss::LIGHT.pass_through(true),
             cursor_style: CursorStyle::default(),
+            nav: Self::NAV,
         }
     }
 
@@ -158,35 +173,27 @@ impl Completion {
         if !self.is_open() {
             return (Outcome::Ignored, None);
         }
+        let last = self.items.len() - 1;
+        let page = self.scroll.viewport_len.max(1);
+        let up_down = key.plain() || key.ctrl();
+        let to = match (self.nav.action(key), key.code) {
+            (Some(Nav::Down), _) if up_down => Some((self.cursor + 1).min(last)),
+            (Some(Nav::Up), _) if up_down => Some(self.cursor.saturating_sub(1)),
+            (Some(Nav::PageDown), _) => Some((self.cursor + page).min(last)),
+            (Some(Nav::PageUp), _) => Some(self.cursor.saturating_sub(page)),
+            (Some(Nav::Home), _) => Some(0),
+            (Some(Nav::End), _) => Some(last),
+            // the editor's emacs keys
+            (_, KeyCode::Char('n')) if key.ctrl() => Some((self.cursor + 1).min(last)),
+            (_, KeyCode::Char('p')) if key.ctrl() => Some(self.cursor.saturating_sub(1)),
+            _ => None,
+        };
+        if let Some(to) = to {
+            self.cursor = to;
+            self.scroll.ensure_visible(self.cursor);
+            return (Outcome::Changed, None);
+        }
         match key.code {
-            KeyCode::Down | KeyCode::Char('n') if key.plain() || key.ctrl() => {
-                if key.code == KeyCode::Char('n') && !key.ctrl() {
-                    return (Outcome::Ignored, None);
-                }
-                self.cursor = (self.cursor + 1).min(self.items.len() - 1);
-                self.scroll.ensure_visible(self.cursor);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Up | KeyCode::Char('p') if key.plain() || key.ctrl() => {
-                if key.code == KeyCode::Char('p') && !key.ctrl() {
-                    return (Outcome::Ignored, None);
-                }
-                self.cursor = self.cursor.saturating_sub(1);
-                self.scroll.ensure_visible(self.cursor);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageDown => {
-                let page = self.scroll.viewport_len.max(1);
-                self.cursor = (self.cursor + page).min(self.items.len() - 1);
-                self.scroll.ensure_visible(self.cursor);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageUp => {
-                let page = self.scroll.viewport_len.max(1);
-                self.cursor = self.cursor.saturating_sub(page);
-                self.scroll.ensure_visible(self.cursor);
-                (Outcome::Changed, None)
-            }
             KeyCode::Tab | KeyCode::Enter => {
                 (Outcome::Changed, Some(CompletionEvent::Accept(self.cursor)))
             }
