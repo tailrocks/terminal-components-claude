@@ -5,7 +5,7 @@ use ratatui::style::Color;
 
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::widgets::button::Button;
@@ -49,11 +49,15 @@ enum NavRow {
 
 impl NavList {
     pub fn item_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::item_part(i))
+    }
+
+    fn item_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        (0..self.items.len()).find(|&i| self.item_id(i) == id)
+        self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
     pub fn width(&self) -> u16 {
@@ -254,7 +258,7 @@ impl NavList {
                         }
                     }
                     if !it.disabled {
-                        ctx.clickable(rid, row);
+                        ctx.register_part(self.id, Self::item_part(i), row);
                     }
                 }
             }

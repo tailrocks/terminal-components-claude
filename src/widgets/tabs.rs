@@ -15,7 +15,8 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
@@ -322,7 +323,7 @@ impl Tabs {
 
     /// The `+N` overflow button.
     pub fn more_id(&self) -> WidgetId {
-        self.id.sub("more")
+        self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
     /// The overflow menu.
@@ -438,41 +439,49 @@ impl Tabs {
         if !self.middle_click_closes {
             return None;
         }
-        let i = self
-            .locate(id)
-            .or_else(|| (0..self.items.len()).find(|&i| self.close_id(i) == id))?;
+        let i = self.locate(id).or_else(|| self.locate_close(id))?;
         self.items[i].closable.then_some(TabAction::Close(i))
     }
 
     pub fn tab_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(PartRef::item(Part::TAB, ItemKey::index(i)))
     }
     pub fn close_id(&self, i: usize) -> WidgetId {
-        self.id.child(i).sub("close")
+        self.id.part(PartRef::item(Part::CLOSE, ItemKey::index(i)))
     }
     pub fn new_id(&self) -> WidgetId {
-        self.id.sub("new")
+        self.id.part(PartRef::of(Part::NEW))
     }
     pub fn left_id(&self) -> WidgetId {
-        self.id.sub("left")
+        self.id.part(PartRef::OVERFLOW_BEFORE)
     }
     pub fn right_id(&self) -> WidgetId {
-        self.id.sub("right")
+        self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
+    /// The tab whose × `id` is.
+    fn locate_close(&self, id: WidgetId) -> Option<usize> {
+        self.id.item_of(id, Part::CLOSE, 0..self.items.len())
+    }
+
+    /// Which tab `id` is, shown or scrolled out of the window.
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        (0..self.items.len()).find(|&i| self.tab_id(i) == id)
+        self.id.item_of(id, Part::TAB, 0..self.items.len())
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id
-            || id == self.new_id()
-            || id == self.more_id()
+            || [
+                PartRef::of(Part::NEW),
+                PartRef::of(Part::OVERFLOW),
+                PartRef::OVERFLOW_BEFORE,
+                PartRef::OVERFLOW_AFTER,
+            ]
+            .into_iter()
+            .any(|p| self.id.part(p) == id)
             || self.menu.as_ref().is_some_and(|(m, _)| m.owns(id))
-            || id == self.left_id()
-            || id == self.right_id()
             || self.locate(id).is_some()
-            || (0..self.items.len()).any(|i| self.close_id(i) == id)
+            || self.locate_close(id).is_some()
     }
 
     /// Tabs hidden before the window and after it.
@@ -611,7 +620,7 @@ impl Tabs {
             return (Outcome::Changed, None);
         }
         for i in 0..self.items.len() {
-            if self.close_id(i) == id {
+            if self.locate_close(id) == Some(i) {
                 return (Outcome::Changed, Some(TabAction::Close(i)));
             }
         }
@@ -739,7 +748,7 @@ impl Tabs {
             };
             buf.set_string(x, y, &text, st);
             if more_left {
-                ctx.clickable(self.left_id(), Rect::new(x, y, 4, 1));
+                ctx.register_part(self.id, PartRef::OVERFLOW_BEFORE, Rect::new(x, y, 4, 1));
             }
             x += 4;
         }
@@ -859,7 +868,7 @@ impl Tabs {
                     );
                 }
             }
-            ctx.clickable(tid, r);
+            ctx.register_part(self.id, PartRef::item(Part::TAB, ItemKey::index(i)), r);
             // close button on top
             if show_close {
                 let tip = Tip::new(t.strings.tip_close_tab);
@@ -867,14 +876,9 @@ impl Tabs {
                     Some(k) => tip.shortcut(&k),
                     None => tip,
                 };
-                self.close_button.with_id(cid).render_in(
-                    close_plate,
-                    cx + 1,
-                    buf,
-                    ctx,
-                    st,
-                    Some(tip),
-                );
+                self.close_button
+                    .part_of(self.id, PartRef::item(Part::CLOSE, ItemKey::index(i)))
+                    .render_in(close_plate, cx + 1, buf, ctx, st, Some(tip));
             }
             x += w + 1;
         }
@@ -894,7 +898,7 @@ impl Tabs {
             };
             buf.set_string(rx, y, &text, st);
             if more_right {
-                ctx.clickable(self.right_id(), Rect::new(rx, y, 4, 1));
+                ctx.register_part(self.id, PartRef::OVERFLOW_AFTER, Rect::new(rx, y, 4, 1));
             }
         }
         if more_w > 0 {
@@ -906,7 +910,7 @@ impl Tabs {
             let st = ctx.title_style(mid, bg);
             let text = format!(" +{hidden}");
             buf.set_string(mx, y, format!("{text:<w$}", w = more_w as usize), st);
-            ctx.clickable(mid, r);
+            ctx.register_part(self.id, PartRef::of(Part::OVERFLOW), r);
         } else {
             self.more_area = Rect::ZERO;
             // nothing hides any more: the menu has nothing to list
@@ -920,14 +924,16 @@ impl Tabs {
                 Some(k) => tip.shortcut(&k),
                 None => tip,
             };
-            IconButton::new(nid, "+").render(
-                nx,
-                y,
-                buf,
-                ctx,
-                ratatui::style::Style::new().bg(bg),
-                Some(tip),
-            );
+            IconButton::new(nid, "+")
+                .part_of(self.id, PartRef::of(Part::NEW))
+                .render(
+                    nx,
+                    y,
+                    buf,
+                    ctx,
+                    ratatui::style::Style::new().bg(bg),
+                    Some(tip),
+                );
         }
         if let Some((menu, _)) = self.menu.as_mut() {
             menu.render(*buf.area(), buf, ctx);

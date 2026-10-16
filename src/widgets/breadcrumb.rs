@@ -10,7 +10,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 
-use crate::core::id::WidgetId;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{truncate, width};
@@ -46,7 +46,11 @@ impl Breadcrumb {
 
     /// The hit id of level `i`.
     pub fn segment_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::segment_part(i))
+    }
+
+    fn segment_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     /// A completed click: the level it goes back to (0 is the outermost),
@@ -56,7 +60,7 @@ impl Breadcrumb {
             return None;
         }
         let last = self.segments.len().checked_sub(1)?;
-        (0..last).find(|&i| self.segment_id(i) == id)
+        self.id.item_of(id, Part::ROW, 0..last)
     }
 
     /// Draw the trail on one row of `area`, left-aligned on `bg`. When it
@@ -119,7 +123,7 @@ impl Breadcrumb {
                 let st = t.interactive(Kind::Title, ctx.state(id), plane).style;
                 let r = put(buf, &mut x, &label, st);
                 if !r.is_empty() {
-                    ctx.clickable(id, r);
+                    ctx.register_part(self.id, Self::segment_part(i), r);
                 }
                 self.areas[i] = r;
                 put(buf, &mut x, &sep, t.faint().bg(bg));

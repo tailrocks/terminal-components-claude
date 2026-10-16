@@ -4,7 +4,8 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
 use crate::theme::Tone;
@@ -145,6 +146,8 @@ pub enum BranchAction {
 
 #[derive(Debug, Clone)]
 pub struct TreeView {
+    /// The rows and disclosures registered in the last render, by id.
+    parts: PartMap,
     /// The scrollbar track as last drawn: presses and drags map through it.
     track: Rect,
     pub id: WidgetId,
@@ -296,6 +299,7 @@ impl TreeView {
             scroll: ScrollState::default(),
             area: Rect::ZERO,
             track: Rect::ZERO,
+            parts: PartMap::default(),
             rows: vec![],
             filter: None,
             reserve_right: 0,
@@ -540,11 +544,12 @@ impl TreeView {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
+    /// A branch's disclosure (`Part::ICON`, as on `main`).
     pub fn toggle_id(&self, i: usize) -> WidgetId {
-        self.id.child(i).sub("toggle")
+        self.id.part(PartRef::item(Part::ICON, ItemKey::index(i)))
     }
 
     fn set_cursor(&mut self, i: usize) {
@@ -900,19 +905,17 @@ impl TreeView {
 
     /// (row, is_toggle) for a widget id.
     pub fn locate(&self, id: WidgetId) -> Option<(usize, bool)> {
-        for i in self.scroll.visible_range() {
-            if self.row_id(i) == id {
-                return Some((i, false));
-            }
-            if self.toggle_id(i) == id {
-                return Some((i, true));
-            }
+        let part = self.parts.get(id)?;
+        let i = part.item?.as_index()?;
+        match part.part {
+            Part::ROW => Some((i, false)),
+            Part::ICON => Some((i, true)),
+            _ => None,
         }
-        None
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
     fn track(&self) -> Rect {
@@ -955,6 +958,7 @@ impl TreeView {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.parts.clear();
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -1031,7 +1035,12 @@ impl TreeView {
             // the label (registered before the early `continue`); the
             // disclosure, registered later, wins hit-testing over it
             if !row.note {
-                ctx.clickable(rid, full);
+                ctx.part(
+                    &mut self.parts,
+                    self.id,
+                    PartRef::item(Part::ROW, ItemKey::index(ri)),
+                    full,
+                );
             }
             if x + 2 >= rect.right() {
                 continue;
@@ -1056,7 +1065,12 @@ impl TreeView {
             };
             buf.set_string(x, y, glyph, gs);
             if row.has_children {
-                ctx.clickable(tid, Rect::new(x, y, 2, 1));
+                ctx.part(
+                    &mut self.parts,
+                    self.id,
+                    PartRef::item(Part::ICON, ItemKey::index(ri)),
+                    Rect::new(x, y, 2, 1),
+                );
             } else if s.selected
                 && !row.busy
                 && let Some(m) = self.selected_marker
@@ -1126,7 +1140,12 @@ impl TreeView {
             }
             // toggle region registered after row so it wins hit-testing
             if row.has_children {
-                ctx.clickable(tid, Rect::new(rect.x + 1 + indent, y, 2, 1));
+                ctx.part(
+                    &mut self.parts,
+                    self.id,
+                    PartRef::item(Part::ICON, ItemKey::index(ri)),
+                    Rect::new(rect.x + 1 + indent, y, 2, 1),
+                );
             }
         }
         // the scroll region also sits above the rows: a wheel burst handled

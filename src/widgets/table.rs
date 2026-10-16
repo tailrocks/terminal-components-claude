@@ -7,7 +7,8 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{ClientPlatform, Key, Outcome};
 use crate::core::focus::BlurAction;
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::selection::{RowSelection, SelectionMode, TriState};
@@ -160,6 +161,8 @@ impl std::fmt::Debug for CellValidator {
 pub struct DataTable {
     /// The scrollbar track as last drawn: presses and drags map through it.
     track: Rect,
+    /// The rows, cells, checkboxes and `▾`s registered in the last render.
+    parts: PartMap,
     pub id: WidgetId,
     pub columns: Vec<Column>,
     pub rows: Vec<Vec<Cell>>,
@@ -321,6 +324,7 @@ impl DataTable {
             empty: None,
             area: Rect::ZERO,
             track: Rect::ZERO,
+            parts: PartMap::default(),
             body: Rect::ZERO,
             col_rects: vec![],
             sizing: ColumnSizing::default(),
@@ -372,8 +376,10 @@ impl DataTable {
     }
 
     /// The `▾` of a constrained cell (drawn on hover and on the cursor).
+    /// The `▾` of a constrained cell: `Part::ACTIONS` of the row (as on
+    /// `main`), one id per cell.
     pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
-        self.cell_id(display, col).sub("open")
+        self.cell_id(display, col).part(PartRef::of(Part::ACTIONS))
     }
 
     /// The cell at (source row, column) holds a value outside its column's
@@ -585,19 +591,21 @@ impl DataTable {
 
     /// Id of the selection checkbox on display row `display`.
     pub fn check_id(&self, display: usize) -> WidgetId {
-        self.id.sub("check").child(display)
+        self.id.part(Self::check_part(display))
+    }
+
+    fn check_part(display: usize) -> PartRef {
+        PartRef::item(Part::MARKER, ItemKey::index(display))
     }
 
     /// Id of the header's "select all / none" checkbox.
     pub fn check_all_id(&self) -> WidgetId {
-        self.id.sub("check_all")
+        self.id.part(PartRef::of(Part::MARKER))
     }
 
     /// The display row whose checkbox `id` is.
     pub fn locate_check(&self, id: WidgetId) -> Option<usize> {
-        self.scroll
-            .visible_range()
-            .find(|&d| self.check_id(d) == id)
+        self.parts.index(id, Part::MARKER)
     }
 
     /// A click on a row's checkbox: toggles that row and moves the cursor
@@ -713,11 +721,11 @@ impl DataTable {
 
     /// The resize seam after column `c` in the header.
     pub fn seam_id(&self, c: usize) -> WidgetId {
-        self.id.sub("seam").child(c)
+        self.id.part(crate::ui::columns::seam_part(c))
     }
 
     pub fn locate_seam(&self, id: WidgetId) -> Option<usize> {
-        (0..self.columns.len()).find(|&c| self.seam_id(c) == id)
+        self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
 
     /// The column whose header menu a secondary click on `id` opens (its
@@ -876,13 +884,22 @@ impl DataTable {
     }
 
     pub fn header_id(&self, col: usize) -> WidgetId {
-        self.id.sub("header").child(col)
+        self.id
+            .part(PartRef::item(Part::HEADER, ItemKey::index(col)))
     }
     pub fn row_id(&self, display: usize) -> WidgetId {
-        self.id.child(display)
+        self.id.part(Self::row_part(display))
     }
+    fn row_part(display: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(display))
+    }
+    /// One id per cell, under its row's id; the part is the row's
+    /// `Part::CELL` (the column comes from the position on `main`).
     pub fn cell_id(&self, display: usize, col: usize) -> WidgetId {
-        self.id.child(display).child(col)
+        self.row_id(display).child(col)
+    }
+    fn cell_part(display: usize) -> PartRef {
+        PartRef::item(Part::CELL, ItemKey::index(display))
     }
 
     /// Replace the dataset, cancelling any edit and clearing row selection.
@@ -1098,15 +1115,9 @@ impl DataTable {
             let (out, r) = c.editor.on_click(id, &self.editor_config);
             return Some((out, self.on_choice(r)));
         }
-        for di in self.scroll.visible_range() {
-            for ci in 0..self.columns.len() {
-                if self.open_id(di, ci) == id {
-                    self.set_cursor(di, ci);
-                    return Some(self.start_edit());
-                }
-            }
-        }
-        None
+        let (di, ci) = self.parts.cell(id, Part::ACTIONS)?;
+        self.set_cursor(di, ci);
+        Some(self.start_edit())
     }
 
     pub fn commit_edit(&mut self) -> Option<TableAction> {
@@ -1598,6 +1609,7 @@ impl DataTable {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.parts.clear();
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.empty_text, old.no_rows, s.no_rows);
@@ -1613,7 +1625,7 @@ impl DataTable {
         // a cell edit that lost focus is ended by `on_blur`, never here
         // where an open constrained editor's popup anchors this frame
         let mut choice_anchor: Option<Rect> = None;
-        let mut open_marks: Vec<(WidgetId, Rect)> = Vec::new();
+        let mut open_marks: Vec<(usize, usize, Rect)> = Vec::new();
 
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
@@ -1690,7 +1702,11 @@ impl DataTable {
             buf.set_string(r.x, header_y, &text, st);
             let head = Rect::new(r.x, header_y, r.width, 1);
             if col.sortable {
-                ctx.clickable(hid, head);
+                ctx.register_part(
+                    self.id,
+                    PartRef::item(Part::HEADER, ItemKey::index(ci)),
+                    head,
+                );
             } else if cut && !ctx.inert {
                 // a cut title reveals on hover even when it does not sort
                 ctx.hits.register_hover(hid, head);
@@ -1699,9 +1715,16 @@ impl DataTable {
                 crate::ui::reveal::truncated(ctx, self.reveal, hid, head, &col.title);
             }
             if self.sizing.resizable {
-                let sid = self.seam_id(ci);
                 let hit = self.sizing.seam_rect(r.right(), header_y, 2, area);
-                crate::ui::columns::render_seam(buf, ctx, sid, hit, r.right(), header_bg, false);
+                crate::ui::columns::render_seam(
+                    buf,
+                    ctx,
+                    (self.id, ci),
+                    hit,
+                    r.right(),
+                    header_bg,
+                    false,
+                );
             }
         }
         if check_w > 0 && area.width > 3 + check_w {
@@ -1719,7 +1742,7 @@ impl DataTable {
             let r = Rect::new(area.x + 3, header_y, 3, 1);
             buf.set_string(r.x, r.y, state.glyph_in(&t.glyphs), st);
             if !self.rows.is_empty() {
-                ctx.clickable(cid, r);
+                ctx.register_part(self.id, PartRef::of(Part::MARKER), r);
             }
         }
         // horizontal overflow indicators
@@ -1961,7 +1984,7 @@ impl DataTable {
                             st.fg(t.text_secondary)
                         };
                         buf.set_string(mark.x, y, t.glyphs.disclosure_open, ms);
-                        open_marks.push((self.open_id(di, ci), mark));
+                        open_marks.push((di, ci, mark));
                     }
                     if flagged && !is_cursor_cell && !is_choice_cell && !affordance {
                         buf.set_string(
@@ -1972,23 +1995,31 @@ impl DataTable {
                         );
                     }
                 }
-                ctx.clickable(self.cell_id(di, ci), cell_rect);
+                let cid = self.cell_id(di, ci);
+                let cell = (Self::cell_part(di), ci);
+                ctx.part_cell(&mut self.parts, cid, self.id, cell, cell_rect);
             }
-            ctx.clickable(rid, row_rect);
+            ctx.part(&mut self.parts, self.id, Self::row_part(di), row_rect);
             // re-register cells on top so cell hover resolves before row
             for ci in 0..self.columns.len() {
                 let r = self.col_rects[ci];
                 if !r.is_empty() {
-                    ctx.clickable(self.cell_id(di, ci), Rect::new(r.x, y, r.width, 1));
+                    let cid = self.cell_id(di, ci);
+                    let cell = (Self::cell_part(di), ci);
+                    let rect = Rect::new(r.x, y, r.width, 1);
+                    ctx.part_cell(&mut self.parts, cid, self.id, cell, rect);
                 }
             }
             if check_w > 0 && area.width > 3 + check_w && !row_disabled {
-                ctx.clickable(self.check_id(di), Rect::new(area.x + 3, y, 3, 1));
+                let rect = Rect::new(area.x + 3, y, 3, 1);
+                ctx.part(&mut self.parts, self.id, Self::check_part(di), rect);
             }
         }
         // a cell's `▾` sits above the cell: a click on it opens the editor
-        for (id, rect) in open_marks {
-            ctx.clickable(id, rect);
+        for (di, ci, rect) in open_marks {
+            let oid = self.open_id(di, ci);
+            let open = (PartRef::item(Part::ACTIONS, ItemKey::index(di)), ci);
+            ctx.part_cell(&mut self.parts, oid, self.id, open, rect);
         }
         if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
             c.editor.render(anchor, buf, ctx, &self.editor_config);
@@ -2047,32 +2078,26 @@ impl DataTable {
 
     /// Resolve which (display row, col) a widget id refers to.
     pub fn locate(&self, id: WidgetId) -> Option<(usize, Option<usize>)> {
-        for di in self.scroll.visible_range() {
-            if self.row_id(di) == id {
-                return Some((di, None));
-            }
-            for ci in 0..self.columns.len() {
-                if self.cell_id(di, ci) == id {
-                    return Some((di, Some(ci)));
-                }
-            }
+        if let Some(di) = self.parts.index(id, Part::ROW) {
+            return Some((di, None));
         }
-        None
+        self.parts
+            .cell(id, Part::CELL)
+            .map(|(di, ci)| (di, Some(ci)))
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
         self.choice.as_ref().is_some_and(|c| c.editor.owns(id))
             || id == self.id
             || scrollbar::is_bar_of(id, self.id)
-            || self.locate(id).is_some()
+            || self.parts.contains(id)
             || self.locate_header(id).is_some()
             || self.locate_seam(id).is_some()
             || id == self.check_all_id()
-            || self.locate_check(id).is_some()
     }
 
     pub fn locate_header(&self, id: WidgetId) -> Option<usize> {
-        (0..self.columns.len()).find(|&c| self.header_id(c) == id)
+        self.id.item_of(id, Part::HEADER, 0..self.columns.len())
     }
 
     pub fn edit_error(&self) -> Option<&str> {

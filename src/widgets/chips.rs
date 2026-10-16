@@ -7,7 +7,7 @@ use ratatui::layout::Rect;
 use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::{ButtonKind, Kind};
 use crate::ui::ctx::{RenderCtx, fill};
@@ -171,7 +171,7 @@ impl ChipBar {
 
     /// The `+N` overflow button.
     pub fn more_id(&self) -> WidgetId {
-        self.id.sub("more")
+        self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
     /// The overflow menu.
@@ -232,16 +232,17 @@ impl ChipBar {
     }
 
     pub fn chip_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
     pub fn close_id(&self, i: usize) -> WidgetId {
-        self.id.child(i).sub("x")
+        self.id.part(PartRef::item(Part::CLOSE, ItemKey::index(i)))
     }
     pub fn add_id(&self) -> WidgetId {
-        self.id.sub("add")
+        self.id.part(PartRef::of(Part::NEW))
     }
+    /// The leading label (`Filters:`), a `Part::TITLE`.
     pub fn lead_id(&self) -> WidgetId {
-        self.id.sub("lead")
+        self.id.part(PartRef::of(Part::TITLE))
     }
 
     /// Cursor positions: 0..n chips, n = add button.
@@ -340,7 +341,14 @@ impl ChipBar {
             || id == self.lead_id()
             || id == self.more_id()
             || self.menu.as_ref().is_some_and(|(m, _)| m.owns(id))
-            || (0..self.chips.len()).any(|i| self.chip_id(i) == id || self.close_id(i) == id)
+            || self
+                .id
+                .item_of(id, Part::ROW, 0..self.chips.len())
+                .is_some()
+            || self
+                .id
+                .item_of(id, Part::CLOSE, 0..self.chips.len())
+                .is_some()
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -361,7 +369,11 @@ impl ChipBar {
             let st = t.interactive(Kind::Title, s, plane).style;
             let text = format!(" {lead} ");
             buf.set_string(x, y, &text, st);
-            ctx.clickable(lid, Rect::new(x, y, width(&text) as u16, 1));
+            ctx.register_part(
+                self.id,
+                PartRef::of(Part::TITLE),
+                Rect::new(x, y, width(&text) as u16, 1),
+            );
             x += width(&text) as u16 + 1;
         }
         let chip_w =
@@ -378,7 +390,7 @@ impl ChipBar {
                         // a button: the title ladder for its hover and press
                         let mid = self.more_id();
                         buf.set_string(x, y, m, ctx.title_style(mid, bg));
-                        ctx.clickable(mid, r);
+                        ctx.register_part(self.id, PartRef::of(Part::OVERFLOW), r);
                         more_area = r;
                     } else {
                         buf.set_string(x, y, m, t.muted().bg(bg));
@@ -404,7 +416,7 @@ impl ChipBar {
             buf.set_string(x, y, it.gutter, it.gutter_style);
             buf.set_string(x + 1, y, truncate(&chip.label, label_w as usize), st);
             if chip.removable {
-                ctx.clickable(cid, r);
+                ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(i)), r);
                 // the × plate centred on the glyph, inside the chip: drawn
                 // and hit as one target, on top of the chip
                 let gx = x + 2 + label_w;
@@ -418,16 +430,11 @@ impl ChipBar {
                     Some(k) => tip.shortcut(&k),
                     None => tip,
                 };
-                self.close_button.with_id(self.close_id(i)).render_in(
-                    Rect::new(left, y, cw, 1),
-                    gx,
-                    buf,
-                    ctx,
-                    st,
-                    Some(tip),
-                );
+                self.close_button
+                    .part_of(self.id, PartRef::item(Part::CLOSE, ItemKey::index(i)))
+                    .render_in(Rect::new(left, y, cw, 1), gx, buf, ctx, st, Some(tip));
             } else {
-                ctx.clickable(cid, r);
+                ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(i)), r);
             }
             x += w + 1;
         }
@@ -443,7 +450,7 @@ impl ChipBar {
                 fill(buf, r, st);
                 buf.set_string(x, y, it.gutter, it.gutter_style);
                 buf.set_string(x + 1, y, add, st);
-                ctx.clickable(aid, r);
+                ctx.register_part(self.id, PartRef::of(Part::NEW), r);
             }
         }
         if !ctx.inert {

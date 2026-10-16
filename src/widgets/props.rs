@@ -7,7 +7,8 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
 use crate::theme::{Theme, Tone};
@@ -247,6 +248,8 @@ struct Geometry {
 /// Copy always copies the full value.
 #[derive(Debug, Clone)]
 pub struct PropsList {
+    /// The rows registered in the last render, by id.
+    parts: PartMap,
     /// The scrollbar track as last drawn: presses and drags map through it.
     track: Rect,
     pub id: WidgetId,
@@ -310,6 +313,7 @@ impl PropsList {
             scroll: ScrollState::new(n),
             area: Rect::ZERO,
             track: Rect::ZERO,
+            parts: PartMap::default(),
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
             sheet: Sheet::default(),
@@ -352,13 +356,17 @@ impl PropsList {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::row_part(i))
+    }
+
+    fn row_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.scroll.visible_range().find(|&i| self.row_id(i) == id)
+        self.parts.index(id, Part::ROW)
     }
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
     fn set_cursor(&mut self, i: usize) {
@@ -495,6 +503,7 @@ impl PropsList {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.parts.clear();
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -598,7 +607,7 @@ impl PropsList {
                     st.fg(t.text_faint).remove_modifier(Modifier::BOLD),
                 );
             }
-            ctx.clickable(rid, row);
+            ctx.part(&mut self.parts, self.id, Self::row_part(i), row);
             y += h;
         }
         self.track = Rect::ZERO;

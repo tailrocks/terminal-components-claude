@@ -321,14 +321,14 @@ impl ColumnSizing {
     }
 }
 
-/// Draw a header seam and register its hit area. At rest it is invisible
-/// (the header keeps its look); under the pointer it shows a rule in the
-/// seam ink, and a heavy rule while held, so rest, hover and pressed
-/// differ.
+/// Draw the header seam after column `col` of `owner` and register it as
+/// `owner`'s `Part::SEAM` of that column. At rest it is invisible (the
+/// header keeps its look); under the pointer it shows a rule in the seam
+/// ink, and a heavy rule while held, so rest, hover and pressed differ.
 pub fn render_seam(
     buf: &mut Buffer,
     ctx: &mut RenderCtx,
-    id: WidgetId,
+    (owner, col): (WidgetId, usize),
     hit: Rect,
     glyph_x: u16,
     bg: Color,
@@ -337,6 +337,8 @@ pub fn render_seam(
     if hit.is_empty() {
         return;
     }
+    let part = seam_part(col);
+    let id = owner.part(part);
     let t = ctx.theme;
     let hovered = ctx.interaction.hovered(id);
     let pressed = held || ctx.interaction.pressed == Some(id);
@@ -354,7 +356,15 @@ pub fn render_seam(
         };
         buf.set_string(glyph_x, hit.y, glyph, style);
     }
-    ctx.clickable(id, hit);
+    ctx.register_part(owner, part, hit);
+}
+
+/// The resize seam after column `col`: a `Part::SEAM` keyed by the column.
+pub fn seam_part(col: usize) -> crate::core::id::PartRef {
+    crate::core::id::PartRef::item(
+        crate::core::id::Part::SEAM,
+        crate::core::id::ItemKey::index(col),
+    )
 }
 
 /// A command of a column header's context menu.
