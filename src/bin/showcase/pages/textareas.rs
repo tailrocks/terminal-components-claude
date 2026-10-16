@@ -81,9 +81,9 @@ impl TextAreasPage {
                     })
                     .esc_reverts(o.on("textareas.esc_reverts"))
                     .nav(match o.value("textareas.nav") {
-                        "no-vim" => NavKeys::NO_VIM,
-                        "no-page" => NavKeys::DEFAULT.page(false),
-                        _ => NavKeys::DEFAULT,
+                        "vim" => NavKeys::VIM,
+                        "no-page" => NavKeys::default().page(false),
+                        _ => NavKeys::default(),
                     })
                     .pointer_select(pointer_select(o, "textareas.pointer_select"))
                     .blur_action(blur_action(o, "textareas.blur_action"))
