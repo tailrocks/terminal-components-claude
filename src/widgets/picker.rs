@@ -171,7 +171,10 @@ pub enum PickerAction {
     Submit,
     /// Secondary action on the cursor row (e.g. close tab).
     Secondary(usize),
+    /// Tab: the owner moves to the next scope and re-supplies items.
     NextScope,
+    /// Shift+Tab: the owner moves to the previous scope (K31).
+    PrevScope,
     Cancelled,
     /// Backspace on an empty query: the owner rewinds one step.
     Back,
@@ -536,6 +539,7 @@ impl Picker {
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerAction::NextScope)),
+            KeyCode::BackTab => (Outcome::Changed, Some(PickerAction::PrevScope)),
             KeyCode::Delete if self.searchable && !self.delete_is_secondary => {
                 if self.delete_forward() {
                     (Outcome::Changed, Some(PickerAction::QueryChanged))
