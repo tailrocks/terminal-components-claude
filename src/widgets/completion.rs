@@ -47,6 +47,9 @@ pub struct Completion {
     /// text. Default: one free cell from every edge, and the item labels
     /// start in the anchor's column ([`TEXT_INSET`]).
     pub fit: crate::ui::popup::Place,
+    /// Which side of the anchor the list opens on. Default
+    /// [`Placement::Below`] (flipping above when there is no room).
+    pub placement: Placement,
     pub area: Rect,
     /// How the list closes without a choice. Default: Esc, or a click
     /// outside that also lands where it was aimed (placing the caret in the
@@ -87,10 +90,23 @@ impl Completion {
             max_rows: 8,
             popup_width: (24, 48),
             fit: crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET),
+            placement: Placement::Below,
             area: Rect::ZERO,
             dismiss: Dismiss::LIGHT.pass_through(true),
             cursor_style: CursorStyle::default(),
         }
+    }
+
+    /// See [`Self::placement`].
+    pub fn placement(mut self, placement: Placement) -> Self {
+        self.placement = placement;
+        self
+    }
+
+    /// See [`Self::fit`].
+    pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
+        self.fit = fit;
+        self
     }
 
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
@@ -223,7 +239,7 @@ impl Completion {
             .clamp(self.popup_width.0 as usize, self.popup_width.1 as usize) as u16;
         let rows = (self.items.len() as u16).min(self.max_rows);
         let h = rows + 2;
-        let area = place_with(screen, self.anchor, w, h, Placement::Below, self.fit);
+        let area = place_with(screen, self.anchor, w, h, self.placement, self.fit);
         self.area = area;
         let inner = area
             .intersection(*buf.area())
@@ -369,6 +385,18 @@ mod tests {
         c.render(Rect::new(0, 0, 60, h), &mut buf, &mut ctx);
         ctx.flush_overlays(&mut buf);
         buf
+    }
+
+    #[test]
+    fn the_list_opens_on_the_configured_side_of_the_anchor() {
+        let mut c = popup(4);
+        c.anchor = Rect::new(10, 10, 1, 1);
+        draw(&mut c, 24);
+        assert_eq!(c.area.y, 11, "below by default: {:?}", c.area);
+        let mut c = popup(4).placement(Placement::Above);
+        c.anchor = Rect::new(10, 10, 1, 1);
+        draw(&mut c, 24);
+        assert_eq!(c.area.bottom(), 10, "above on request: {:?}", c.area);
     }
 
     fn bars(buf: &Buffer) -> usize {
