@@ -72,7 +72,9 @@
 120x40 TrueColor Dialogs 0d9720eb2d375ea7
 120x40 TrueColor Dialogs · Options f8d7bda428a9cb9e
 120x40 TrueColor Dialogs · States 08761b8a93a622ac
-120x40 TrueColor Pickers 8ded9e1ba86ce4cf
+120x40 TrueColor Pickers 48616e1da053c2ef
+120x40 TrueColor Pickers · Options f03b3ecbdc8643d4
+120x40 TrueColor Pickers · States acb06a1a5bd5578f
 120x40 TrueColor Dialog kinds b49a05839c6bd7dc
 120x40 TrueColor Dialog kinds · Options c2088782c61f9ae9
 120x40 TrueColor Dialog kinds · States 96d1a91b271c99e8
@@ -198,7 +200,9 @@
 120x40 Ansi256 Dialogs fbab7745875fbf3a
 120x40 Ansi256 Dialogs · Options 0d952f184afbc564
 120x40 Ansi256 Dialogs · States f8502390430d6020
-120x40 Ansi256 Pickers a0b8f01407bfddc9
+120x40 Ansi256 Pickers 680ff2eb775a419d
+120x40 Ansi256 Pickers · Options f9934ab09cc1ab3d
+120x40 Ansi256 Pickers · States 0980becf1e06d4cf
 120x40 Ansi256 Dialog kinds f724ec2452e1c225
 120x40 Ansi256 Dialog kinds · Options 632fdf99561bf60d
 120x40 Ansi256 Dialog kinds · States 4648ed53e3f9d02b
@@ -324,7 +328,9 @@
 120x40 Ansi16 Dialogs 935b0c23f3644d4e
 120x40 Ansi16 Dialogs · Options 3f5c1471e2460512
 120x40 Ansi16 Dialogs · States b308f25ab0aab6a5
-120x40 Ansi16 Pickers 48e72e975ab736ae
+120x40 Ansi16 Pickers 698c792cce3debe1
+120x40 Ansi16 Pickers · Options a31dbfaf5fdf6bf2
+120x40 Ansi16 Pickers · States d2113995479645a3
 120x40 Ansi16 Dialog kinds 7153e73b57866c3a
 120x40 Ansi16 Dialog kinds · Options 5af61e65e06671df
 120x40 Ansi16 Dialog kinds · States 7833353d19c55653
@@ -450,7 +456,9 @@
 120x40 Mono Dialogs 9eceffef9a430283
 120x40 Mono Dialogs · Options 39b3469c1bb73a99
 120x40 Mono Dialogs · States ae60c981dfdd1c9e
-120x40 Mono Pickers aa859f2c426e3abd
+120x40 Mono Pickers 0abcf816ca7fb422
+120x40 Mono Pickers · Options 3cc0a3a46512f9d7
+120x40 Mono Pickers · States b121dc4ffef0f298
 120x40 Mono Dialog kinds b7571e9c8c19e9cb
 120x40 Mono Dialog kinds · Options 7a95bd8aa19af5c4
 120x40 Mono Dialog kinds · States 495cb773930ffd28
@@ -576,7 +584,9 @@
 80x24 TrueColor Dialogs bc8ec716cf8ae3b8
 80x24 TrueColor Dialogs · Options 3312d1b1a7725335
 80x24 TrueColor Dialogs · States 75dd4e0e621dd1b7
-80x24 TrueColor Pickers 061d64738506ee9b
+80x24 TrueColor Pickers 4cebb13fcee839b1
+80x24 TrueColor Pickers · Options 72f88728e862a2bc
+80x24 TrueColor Pickers · States b2cd306b8f6c9459
 80x24 TrueColor Dialog kinds 8d6489ce45af79b1
 80x24 TrueColor Dialog kinds · Options d5dc0c287073adfa
 80x24 TrueColor Dialog kinds · States ac953ad7cfa05246
@@ -702,7 +712,9 @@
 80x24 Ansi256 Dialogs 3d62d4d590047d39
 80x24 Ansi256 Dialogs · Options f1aaf11cbe508edb
 80x24 Ansi256 Dialogs · States 4bcef7ebc4cb8366
-80x24 Ansi256 Pickers 9a16c50abe5d93ae
+80x24 Ansi256 Pickers b57770580519eb34
+80x24 Ansi256 Pickers · Options 8a7e5fd28709b0de
+80x24 Ansi256 Pickers · States 4b65a1c54afb6f5e
 80x24 Ansi256 Dialog kinds c70288b03e7df994
 80x24 Ansi256 Dialog kinds · Options 37be6fd783b2ffea
 80x24 Ansi256 Dialog kinds · States f05963afdc6cd538
@@ -828,7 +840,9 @@
 80x24 Ansi16 Dialogs 56c8a98b65d0aa08
 80x24 Ansi16 Dialogs · Options f68348f55200a572
 80x24 Ansi16 Dialogs · States bb1cb8ea400c2070
-80x24 Ansi16 Pickers 7cd91f6af6be2894
+80x24 Ansi16 Pickers 03f1b9f73d6f4313
+80x24 Ansi16 Pickers · Options a81c16189d7f0fcd
+80x24 Ansi16 Pickers · States d17b90295527edd7
 80x24 Ansi16 Dialog kinds c611b96ac37ba069
 80x24 Ansi16 Dialog kinds · Options f6b4d850802c2909
 80x24 Ansi16 Dialog kinds · States ba0286f8cd15f2ff
@@ -954,7 +968,9 @@
 80x24 Mono Dialogs 0ef32654a834c59e
 80x24 Mono Dialogs · Options 5da452641fa9ffc4
 80x24 Mono Dialogs · States 604f266a0f1c4946
-80x24 Mono Pickers a9da92f94c143222
+80x24 Mono Pickers 76dd6e15dba346d9
+80x24 Mono Pickers · Options 52bc9010b6ca63c3
+80x24 Mono Pickers · States 1045ec60cb88e4ad
 80x24 Mono Dialog kinds 8400dfb517cdb637
 80x24 Mono Dialog kinds · Options ce7c3d03a4fb80e9
 80x24 Mono Dialog kinds · States 6f27e28a7d3cf2b1
@@ -1080,7 +1096,9 @@
 72x20 TrueColor Dialogs 37134bdcee7d1aff
 72x20 TrueColor Dialogs · Options 7ed8c0c527949bea
 72x20 TrueColor Dialogs · States 65f3d9a534b305cb
-72x20 TrueColor Pickers ee7ad7253239f34b
+72x20 TrueColor Pickers d7af33ce7bddb328
+72x20 TrueColor Pickers · Options bc4c52a9b3b330e7
+72x20 TrueColor Pickers · States 7b707dfc5e6b0a31
 72x20 TrueColor Dialog kinds 370210ca1e2f0d18
 72x20 TrueColor Dialog kinds · Options 57aded2156c6ce54
 72x20 TrueColor Dialog kinds · States 97365f64f8497aef
@@ -1206,7 +1224,9 @@
 72x20 Ansi256 Dialogs 09f4abaf2a42365e
 72x20 Ansi256 Dialogs · Options 1e67f0fbda3e7c06
 72x20 Ansi256 Dialogs · States 5542db03917ac312
-72x20 Ansi256 Pickers 1afd13e26ba5a73f
+72x20 Ansi256 Pickers 08fc76991939c112
+72x20 Ansi256 Pickers · Options affc4cbab859a8bd
+72x20 Ansi256 Pickers · States 93c9bbb4d00f251a
 72x20 Ansi256 Dialog kinds 86fe2b09f65e614b
 72x20 Ansi256 Dialog kinds · Options 2d3667df3bbdbccd
 72x20 Ansi256 Dialog kinds · States f2cdf986a79bcde9
@@ -1332,7 +1352,9 @@
 72x20 Ansi16 Dialogs 3dc30457985dc071
 72x20 Ansi16 Dialogs · Options 8b01db89a0b471dd
 72x20 Ansi16 Dialogs · States d08402bebf277387
-72x20 Ansi16 Pickers 13e6845d56f6ceca
+72x20 Ansi16 Pickers 84638f7eb6916c8c
+72x20 Ansi16 Pickers · Options f7704994993bc46c
+72x20 Ansi16 Pickers · States b6af18906f2c4ace
 72x20 Ansi16 Dialog kinds 2d903f898e89923c
 72x20 Ansi16 Dialog kinds · Options b9dc55a3206c4fe1
 72x20 Ansi16 Dialog kinds · States 8c62085a696db389
@@ -1458,7 +1480,9 @@
 72x20 Mono Dialogs e3f99457636c12d3
 72x20 Mono Dialogs · Options 8aa11263665f9a63
 72x20 Mono Dialogs · States 5e98a97adc4bd8fd
-72x20 Mono Pickers 992d6f778e52366e
+72x20 Mono Pickers ba21e5bc85701efa
+72x20 Mono Pickers · Options 992b2cb790aaae0a
+72x20 Mono Pickers · States a5dc6248ab866ab4
 72x20 Mono Dialog kinds 5c6f24c2d02405a6
 72x20 Mono Dialog kinds · Options 7bf07c2a222e16df
 72x20 Mono Dialog kinds · States 2c5d74638d352207
@@ -1584,7 +1608,9 @@
 100x30 TrueColor Dialogs d8cea65843d6ee22
 100x30 TrueColor Dialogs · Options 30dbb8da989325ed
 100x30 TrueColor Dialogs · States 2ecaec0506223265
-100x30 TrueColor Pickers ac6e2c1e07434542
+100x30 TrueColor Pickers 8321b7984538e1e1
+100x30 TrueColor Pickers · Options a87550ff32e6541c
+100x30 TrueColor Pickers · States 70b97214395ff91e
 100x30 TrueColor Dialog kinds 7eccfddaebf3b2d0
 100x30 TrueColor Dialog kinds · Options 738427d0b8f9586b
 100x30 TrueColor Dialog kinds · States 934ab3afa3108ad5
@@ -1710,7 +1736,9 @@
 100x30 Ansi256 Dialogs ff3ae1a557276bda
 100x30 Ansi256 Dialogs · Options fa9e4f7906fe399e
 100x30 Ansi256 Dialogs · States a6dec54c0af7590b
-100x30 Ansi256 Pickers 2939dde3a09dfa8d
+100x30 Ansi256 Pickers 169b69e450542bd5
+100x30 Ansi256 Pickers · Options dc1fb77aee5c8655
+100x30 Ansi256 Pickers · States 05375eabe10d173f
 100x30 Ansi256 Dialog kinds 981dda79b930e0d3
 100x30 Ansi256 Dialog kinds · Options 0f870b50d591f0fa
 100x30 Ansi256 Dialog kinds · States 4135fc1c24accbe1
@@ -1836,7 +1864,9 @@
 100x30 Ansi16 Dialogs 0e01cfc948ef6b9b
 100x30 Ansi16 Dialogs · Options 63670f46b7d4fcad
 100x30 Ansi16 Dialogs · States 3409a78b0de3ab46
-100x30 Ansi16 Pickers 4b75e4df709ffe31
+100x30 Ansi16 Pickers b541d84397635848
+100x30 Ansi16 Pickers · Options 67e4bc676bb4eee3
+100x30 Ansi16 Pickers · States fe4818232a0a2764
 100x30 Ansi16 Dialog kinds 2b7fa0fbf766523e
 100x30 Ansi16 Dialog kinds · Options 2887243c1f442207
 100x30 Ansi16 Dialog kinds · States 8778f519347dab50
@@ -1962,7 +1992,9 @@
 100x30 Mono Dialogs 3730149a6f015880
 100x30 Mono Dialogs · Options 210bf3355b53b7ac
 100x30 Mono Dialogs · States 645c4cd0a1e07ad1
-100x30 Mono Pickers 1ec9fcab0b695de6
+100x30 Mono Pickers afe49e556ff92091
+100x30 Mono Pickers · Options a59931ffcc3c5d9e
+100x30 Mono Pickers · States 4e0c559b926fc96a
 100x30 Mono Dialog kinds 12afcc26cca83115
 100x30 Mono Dialog kinds · Options c1b7185c4154638e
 100x30 Mono Dialog kinds · States 0db4b3ac73ae2049
@@ -2088,7 +2120,9 @@
 160x50 TrueColor Dialogs 71a7b620e876ea7c
 160x50 TrueColor Dialogs · Options b9922f3d7c445bdf
 160x50 TrueColor Dialogs · States 0d5ac21a3dc97a8f
-160x50 TrueColor Pickers e247ad9442171c41
+160x50 TrueColor Pickers 2899d6073ca8d112
+160x50 TrueColor Pickers · Options 17fc8f657b60f23d
+160x50 TrueColor Pickers · States bc686e538d40ef24
 160x50 TrueColor Dialog kinds 02573849280d6d1a
 160x50 TrueColor Dialog kinds · Options 359d13ebb3cc0624
 160x50 TrueColor Dialog kinds · States b976b10e45641963
@@ -2214,7 +2248,9 @@
 160x50 Ansi256 Dialogs 0f83885bc81b29af
 160x50 Ansi256 Dialogs · Options 314a95549036f66f
 160x50 Ansi256 Dialogs · States 65167ef1b8254394
-160x50 Ansi256 Pickers cb85fa480c575a2d
+160x50 Ansi256 Pickers e1f40aa7c1dcf9e0
+160x50 Ansi256 Pickers · Options 679371aebe0540f0
+160x50 Ansi256 Pickers · States ebb9b056954ec708
 160x50 Ansi256 Dialog kinds ec940f7c1c63d752
 160x50 Ansi256 Dialog kinds · Options a27dd373493e8ae4
 160x50 Ansi256 Dialog kinds · States 14bdebd208ab843d
@@ -2340,7 +2376,9 @@
 160x50 Ansi16 Dialogs 44f5a69aad32aec5
 160x50 Ansi16 Dialogs · Options 0a5b3779b1624a8a
 160x50 Ansi16 Dialogs · States c328f78d544f1ed1
-160x50 Ansi16 Pickers 5624fe8aa2b75ab2
+160x50 Ansi16 Pickers 8d4708acf084c84c
+160x50 Ansi16 Pickers · Options 74182a5c37f7ec0f
+160x50 Ansi16 Pickers · States 88f2dad17a9eaa3c
 160x50 Ansi16 Dialog kinds 3bb0ce05a26e3d62
 160x50 Ansi16 Dialog kinds · Options d23652f586615aaa
 160x50 Ansi16 Dialog kinds · States 7c276f21a7f0cbfb
@@ -2466,7 +2504,9 @@
 160x50 Mono Dialogs c4568b3a5d470fb0
 160x50 Mono Dialogs · Options b83c283ac6238b95
 160x50 Mono Dialogs · States 9717c250d7afc32e
-160x50 Mono Pickers 159bbb3a6e9737e3
+160x50 Mono Pickers 9c8c3c0bd96d89e9
+160x50 Mono Pickers · Options 30e18ca8ab916be0
+160x50 Mono Pickers · States 6d2c12aae7337e24
 160x50 Mono Dialog kinds e0f9c6036f788313
 160x50 Mono Dialog kinds · Options 32108b2df6f0eaaf
 160x50 Mono Dialog kinds · States a0f6a1d26c5e5459
