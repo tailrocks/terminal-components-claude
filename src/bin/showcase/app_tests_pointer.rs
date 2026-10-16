@@ -212,3 +212,39 @@ fn a_click_outside_an_open_picker_closes_it() {
         h.text()
     );
 }
+
+/// SC24 finding (shell, SC34): under `shell.focus_on=release` a click whose
+/// handler hands focus to the control that already holds it (Find while the
+/// code editor is focused) keeps that focus. The router used to focus the
+/// clicked button whenever focus was left unchanged, so the page's choice
+/// was overridden and the find bar opened with focus on the button.
+#[test]
+fn a_click_that_keeps_focus_on_purpose_is_not_overridden_on_release() {
+    let mut h = Harness::new(120, 40, PageId::Editor);
+    h.app
+        .apply_opt(crate::options::parse_opt("shell.focus_on=release").unwrap());
+    h.draw();
+    let code = WidgetId::of("editor").sub("code");
+    let find = WidgetId::of("editor").sub("find");
+    let area = h.area_of(code);
+    h.click(area.x + 2, area.y + 1);
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(code),
+        "the editor focused"
+    );
+    assert!(!h.text().contains("type to find"), "no find yet");
+    let button = h.area_of(find);
+    h.click(button.x + 1, button.y);
+    assert!(
+        h.text().contains("type to find"),
+        "the click opened find:\n{}",
+        h.text()
+    );
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(code),
+        "Find hands focus to the editor, which already had it:\n{}",
+        h.text()
+    );
+}
