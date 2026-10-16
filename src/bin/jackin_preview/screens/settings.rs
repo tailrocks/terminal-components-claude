@@ -733,7 +733,7 @@ impl SettingsScreen {
             }
             KeyCode::Char('d') => {
                 self.pending.agent_modes.insert(a, AuthMode::Sync);
-                cx.status(format!("{} · sync · save to apply", a.label()));
+                cx.status(format!("{} · back to sync · save to apply", a.label()));
             }
             _ => return Outcome::Ignored,
         }
@@ -1236,7 +1236,7 @@ impl Screen for SettingsScreen {
                 }
                 StTab::Agents => {
                     v.push(hint("Space", "Cycle mode"));
-                    v.push(hint("d", "Reset to sync"));
+                    v.push(hint("d", "Remove override"));
                     v.push(hint("c", "Manage accounts"));
                 }
                 t => v.extend(self.cfg.hints(t.cfg().unwrap())),

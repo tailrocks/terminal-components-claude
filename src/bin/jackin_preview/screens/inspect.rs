@@ -621,10 +621,20 @@ fn build_tree(files: &[ChangedFile]) -> (Vec<TreeNode>, Vec<(Vec<usize>, usize)>
     (nodes, leaves)
 }
 
+/// The diff view switch names the view it switches to.
+fn view_hint(mode: junie_tui::widgets::diff::DiffMode) -> Hint {
+    junie_tui::widgets::keyhint::toggle_hint(
+        "v",
+        mode == junie_tui::widgets::diff::DiffMode::Review,
+        "Show unified",
+        "Show side by side",
+    )
+}
+
 impl CustomModal for InspectChanges {
     fn on_key(&mut self, key: &Key, focus: &mut Focus, _ring: &FocusRing, _w: &World) -> Outcome {
         match key.code {
-            KeyCode::Char('d') if key.plain() => {
+            KeyCode::Char('v') if key.plain() => {
                 self.diff.toggle_mode();
                 return Outcome::Changed;
             }
@@ -758,13 +768,13 @@ impl CustomModal for InspectChanges {
                 hint("↑↓", "Scroll"),
                 hint("drag", "Select"),
                 hint("y", "Copy"),
-                hint("d", "Unified / review"),
+                view_hint(self.diff.mode),
                 hint("Esc", "List"),
             ],
             InspectMode::Compact => vec![
                 hint("↑↓", "Move"),
                 hint("Enter", "Open diff"),
-                hint("d", "Unified / review"),
+                view_hint(self.diff.mode),
                 hint("m", "Advanced"),
                 hint("Esc", back),
             ],
@@ -773,7 +783,7 @@ impl CustomModal for InspectChanges {
                     hint("↑↓", "Move"),
                     hint("←→", "Fold"),
                     hint("Tab", "Diff"),
-                    hint("d", "Unified / review"),
+                    view_hint(self.diff.mode),
                     hint("m", "Compact"),
                     hint("Esc", back),
                 ],
@@ -782,7 +792,7 @@ impl CustomModal for InspectChanges {
                     hint("drag", "Select"),
                     hint("y", "Copy"),
                     hint("Tab", "Tree"),
-                    hint("d", "Unified / review"),
+                    view_hint(self.diff.mode),
                     hint("Esc", "Tree"),
                 ],
             },
@@ -908,7 +918,7 @@ mod tests {
             m.selected_file().map(|f| f.path.as_str()),
             Some("src/settlement/mod.rs")
         );
-        rig.key(&mut m, KeyCode::Char('d'));
+        rig.key(&mut m, KeyCode::Char('v'));
         assert_eq!(m.diff_mode(), DiffMode::Review);
         let t = text(&rig.draw(&mut m));
         assert!(t.contains("│"), "review columns: {t}");
