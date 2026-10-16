@@ -333,14 +333,21 @@ impl Select {
     fn option_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
+    /// The option `id` is: the inverse the id-taking methods
+    /// ([`Self::on_click`] and the hover in [`Self::render`]) need until
+    /// S15 hands them the routed part.
+    fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
-    pub fn owns(&self, id: WidgetId) -> bool {
+    /// Whether `id` is the field, its backdrop, its list's bar or an
+    /// option: how a container's id-taking methods (a form's, S15) find
+    /// the select a click belongs to. Routed events use
+    /// [`PointerEvent::on`](crate::core::pointer::PointerEvent::on).
+    pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id
             || id == backdrop_id(self.id)
             || id == self.bar_id()
-            || self.locate(id).is_some()
+            || self.option_of(id).is_some()
     }
 
     fn last(&self) -> usize {
@@ -535,7 +542,7 @@ impl Select {
             self.press = None;
             return (self.on_click_outside(), None);
         }
-        if let Some(i) = self.locate(id) {
+        if let Some(i) = self.option_of(id) {
             self.open = false;
             return (Outcome::Changed, self.choose(i));
         }
@@ -834,7 +841,7 @@ impl Select {
         // highlight, as in a macOS menu
         let hover = ctx.interaction.live_hover();
         if self.hover_moves_cursor && hover != self.last_hover {
-            if let Some(i) = hover.and_then(|h| self.locate(h)) {
+            if let Some(i) = hover.and_then(|h| self.option_of(h)) {
                 self.cursor = i;
                 self.shown_cursor = Some(i);
             }
@@ -1377,7 +1384,6 @@ mod tests {
             .bar(sel.bar_id())
             .expect("the list registers its scrollbar");
         assert_eq!(bar.owner, sel.id);
-        assert!(sel.owns(sel.bar_id()));
         let track = bar.track;
         // the bare track below the thumb pages
         let bottom = Position::new(track.x, track.bottom() - 1);

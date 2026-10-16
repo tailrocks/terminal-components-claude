@@ -90,8 +90,15 @@ fn list_tree_props_and_steps_rows_resolve_to_their_widget() {
             part: row(1)
         })
     );
-    assert_eq!(list.locate(list.row_id(1)), Some(1));
-    assert!(list.owns(list.row_id(0)));
+    // a row's id names its part: what the router hands the list
+    assert_eq!(
+        hits.part_of(list.row_id(1)),
+        Some(Hit {
+            owner: id,
+            part: row(1)
+        })
+    );
+    assert_eq!(hits.part_of(list.row_id(0)).map(|h| h.owner), Some(id));
 
     let id = WidgetId::of("parts.tree");
     let mut tree = TreeView::new(id, vec![TreeNode::dir("dir", vec![TreeNode::leaf("leaf")])]);
@@ -102,8 +109,8 @@ fn list_tree_props_and_steps_rows_resolve_to_their_widget() {
     });
     let icon = PartRef::item(Part::ICON, ItemKey::index(0));
     assert_parts("tree", &hits, id, &[row(0), row(1), icon]);
-    assert_eq!(tree.locate(tree.toggle_id(0)), Some((0, true)));
-    assert_eq!(tree.locate(tree.row_id(1)), Some((1, false)));
+    assert_eq!(hits.part_of(tree.toggle_id(0)).map(|h| h.part), Some(icon));
+    assert_eq!(hits.part_of(tree.row_id(1)).map(|h| h.part), Some(row(1)));
 
     let id = WidgetId::of("parts.props");
     let mut props = PropsList::new(id, vec![Prop::new("a", "1"), Prop::new("b", "2")]);
@@ -143,7 +150,7 @@ fn strip_parts_resolve_to_their_widget() {
         id,
         &[tab(0), tab(1), close, PartRef::of(Part::NEW)],
     );
-    assert_eq!(tabs.locate(tabs.tab_id(1)), Some(1));
+    assert_eq!(hits.part_of(tabs.tab_id(1)).map(|h| h.part), Some(tab(1)));
 
     let id = WidgetId::of("parts.chips");
     let mut chips = ChipBar::new(id);
@@ -213,7 +220,10 @@ fn table_rows_cells_and_headers_resolve_to_the_table() {
         assert_eq!(r.owner, id);
     }
     let cid = table.cell_id(1, 1);
-    assert_eq!(table.locate(cid), Some((1, Some(1))));
-    assert_eq!(table.locate(table.row_id(0)), Some((0, None)));
-    assert_eq!(table.locate_header(table.header_id(1)), Some(1));
+    assert_eq!(hits.part_of(cid).map(|h| h.part), Some(cell));
+    assert_eq!(hits.part_of(table.row_id(0)).map(|h| h.part), Some(row(0)));
+    assert_eq!(
+        hits.part_of(table.header_id(1)).map(|h| h.part),
+        Some(PartRef::item(Part::HEADER, ItemKey::index(1)))
+    );
 }

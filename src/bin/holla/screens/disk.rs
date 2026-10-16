@@ -1437,7 +1437,7 @@ impl Screen for DiskPage {
             }
             Some(Phase::Secondary) => {
                 let row = if self.view == View::Tree {
-                    let Some(req) = cx.context.on_secondary(&mut self.tree, id, pos) else {
+                    let Some(req) = cx.context.on_secondary(&mut self.tree, ev) else {
                         return Outcome::Ignored;
                     };
                     cx.focus.focus(TREE);

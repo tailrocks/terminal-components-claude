@@ -453,11 +453,6 @@ impl ScrollPanel {
         self
     }
 
-    /// The panel itself or one of its scrollbars.
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || scrollbar::is_bar_of(id, self.id)
-    }
-
     /// Lines scroll sideways: not wrapping and the policy allows it.
     fn h_enabled(&self) -> bool {
         !self.wrap && self.scroll.h_cfg.enabled

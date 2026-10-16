@@ -486,7 +486,7 @@ impl Tabs {
         if !self.middle_click_closes {
             return None;
         }
-        let i = self.locate(id).or_else(|| self.locate_close(id))?;
+        let i = self.tab_of(id).or_else(|| self.close_of(id))?;
         self.items[i].closable.then_some(TabAction::Close(i))
     }
 
@@ -506,29 +506,16 @@ impl Tabs {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-    /// The tab whose × `id` is.
-    fn locate_close(&self, id: WidgetId) -> Option<usize> {
+    /// The tab whose × `id` is (the inverse the id-taking methods need
+    /// until S15 hands them the routed part).
+    fn close_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::CLOSE, 0..self.items.len())
     }
 
-    /// Which tab `id` is, shown or scrolled out of the window.
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
+    /// Which tab `id` is, shown or scrolled out of the window (the
+    /// inverse the id-taking methods need until S15).
+    fn tab_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::TAB, 0..self.items.len())
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id
-            || [
-                PartRef::of(Part::NEW),
-                PartRef::of(Part::OVERFLOW),
-                PartRef::OVERFLOW_BEFORE,
-                PartRef::OVERFLOW_AFTER,
-            ]
-            .into_iter()
-            .any(|p| self.id.part(p) == id)
-            || self.menu.as_ref().is_some_and(|(m, _)| m.owns(id))
-            || self.locate(id).is_some()
-            || self.locate_close(id).is_some()
     }
 
     /// Tabs hidden before the window and after it.
@@ -632,7 +619,7 @@ impl Tabs {
 
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<TabAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
-            && menu.owns(id)
+            && menu.contains_id(id)
         {
             let ev = menu.on_click(id);
             return (Outcome::Changed, self.menu_event(ev));
@@ -656,12 +643,10 @@ impl Tabs {
             self.first = (self.first + 1).min(self.max_first);
             return (Outcome::Changed, None);
         }
-        for i in 0..self.items.len() {
-            if self.locate_close(id) == Some(i) {
-                return (Outcome::Changed, Some(TabAction::Close(i)));
-            }
+        if let Some(i) = self.close_of(id) {
+            return (Outcome::Changed, Some(TabAction::Close(i)));
         }
-        if let Some(i) = self.locate(id) {
+        if let Some(i) = self.tab_of(id) {
             self.set_active(i);
             return (Outcome::Changed, Some(TabAction::Activated(i)));
         }
@@ -1509,7 +1494,7 @@ mod tests {
         let (_, hits) = draw_hits(&mut tabs, 40);
         let over = hits.hit_scroll(ratatui::layout::Position::new(10, 0));
         assert!(
-            over.is_some_and(|id| tabs.owns(id)),
+            over.and_then(|id| hits.part_of(id)).map(|h| h.owner) == Some(tabs.id),
             "the wheel over the strip reaches it"
         );
         assert_eq!(tabs.on_wheel(0, 1), Outcome::Changed, "vertical wheel");
@@ -1588,7 +1573,10 @@ mod tests {
         // its rows are targets the strip owns; the last one is Tab11
         let last_row = tabs.menu.as_ref().unwrap().0.row_id(hidden - 1);
         assert!(hits.area_of(last_row).is_some());
-        assert!(tabs.owns(last_row));
+        assert_eq!(
+            hits.part_of(last_row).map(|h| h.owner),
+            Some(tabs.menu_id())
+        );
         assert_eq!(
             tabs.on_click(last_row).1,
             Some(TabAction::Activated(11)),
@@ -1613,7 +1601,7 @@ mod tests {
         let outside = hits
             .hit(ratatui::layout::Position::new(more.x, 15))
             .expect("the menu's backdrop");
-        assert!(tabs.owns(outside));
+        assert_eq!(hits.part_of(outside).map(|h| h.owner), Some(tabs.menu_id()));
         tabs.on_click(outside);
         assert!(!tabs.menu_open());
         // off: no button

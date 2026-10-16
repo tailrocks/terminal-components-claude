@@ -11,7 +11,6 @@ use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::widgets::scrollbar;
 
 /// A node in a tree: label, optional trailing metadata, children.
 #[derive(Debug, Clone)]
@@ -883,21 +882,6 @@ impl TreeView {
             return (Outcome::Changed, Some(TreeAction::Expand(path)));
         }
         (Outcome::Changed, None)
-    }
-
-    /// (row, is_toggle) for a widget id.
-    pub fn locate(&self, id: WidgetId) -> Option<(usize, bool)> {
-        let part = self.parts.get(id)?;
-        let i = part.item?.as_index()?;
-        match part.part {
-            Part::ROW => Some((i, false)),
-            Part::ICON => Some((i, true)),
-            _ => None,
-        }
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
     /// Override the app-wide vertical track-click policy

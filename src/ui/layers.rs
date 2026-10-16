@@ -187,9 +187,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
         );
         Some(out(LayerResult::Picker(ev), closes))
     }
-    fn owns(&self, id: WidgetId) -> bool {
-        Picker::owns(self, id)
-    }
 }
 
 // ------------------------------------------------------------- ContextMenu
@@ -231,9 +228,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
         self.pending
             .take()
             .map(|ev| out(LayerResult::Menu(ev), true))
-    }
-    fn owns(&self, id: WidgetId) -> bool {
-        ContextMenu::owns(self, id)
     }
 }
 

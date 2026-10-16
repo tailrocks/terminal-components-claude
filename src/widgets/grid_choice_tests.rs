@@ -128,7 +128,7 @@ fn alt_down_and_the_mouse_open_and_choose() {
     let (_, hits) = draw(&mut g);
     let mark = g.open_id(0, 1);
     assert!(hits.area_of(mark).is_some(), "▾ on the cursor cell");
-    assert!(g.owns(mark));
+    assert_eq!(hits.part_of(mark).map(|h| h.owner), Some(g.id));
     g.on_click(mark, Position::new(0, 0));
     assert!(g.choice.is_some());
     g.on_click(backdrop_id(g.choice_id()), Position::new(0, 0));
