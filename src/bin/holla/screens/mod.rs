@@ -446,8 +446,6 @@ pub(crate) fn rebuild_on_tick<S, V: PartialEq>(
     }
 }
 
-pub use junie_tui::ui::text::plural;
-
 /// `2 min 14 s` from ticks.
 pub fn ticks_label(ticks: u64) -> String {
     junie_tui::ui::text::duration_secs(ticks * crate::sim::world::TICK_MS as u64 / 1000)
@@ -487,8 +485,6 @@ pub fn heading(
             .bg(bg),
     );
 }
-
-pub use junie_tui::ui::text::truncate_sep;
 
 /// Route a pointer press to a raw `ScrollState` scrollbar. Widget-owned
 /// scroll models expose this directly; Holla's simple screens keep the model

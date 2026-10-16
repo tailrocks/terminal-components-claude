@@ -498,7 +498,7 @@ impl App {
             } else {
                 let text = format!(
                     "stopping {} · {} still cancelling · quitting when every process is gone",
-                    crate::screens::plural(live, "activity", "activities"),
+                    junie_tui::ui::text::plural(live, "activity", "activities"),
                     self.world.cancelling()
                 );
                 self.set_status(&text, Tone::Secondary);
@@ -1083,7 +1083,7 @@ impl App {
         let n = self.world.live_activities();
         if n > 0 || self.world.cleanup_job.is_some() {
             Stakes::Running {
-                what: crate::screens::plural(n.max(1), "activity", "activities"),
+                what: junie_tui::ui::text::plural(n.max(1), "activity", "activities"),
             }
         } else {
             Stakes::Clean
@@ -1116,14 +1116,14 @@ impl App {
             (0, None) => "Nothing is running.".to_owned(),
             (n, None) => format!(
                 "{} still running. Quitting stops what holla started; detached monitors keep running.",
-                crate::screens::plural(n, "activity is", "activities are")
+                junie_tui::ui::text::plural(n, "activity is", "activities are")
             ),
             (0, Some((k, t))) => format!(
                 "A cleanup is running ({k} of {t} items). Committed deletions cannot be stopped; leaving waits for the rest, then quits."
             ),
             (n, Some((k, t))) => format!(
                 "{} still running and a cleanup is at {k} of {t} items. Quitting stops the activities and waits for the cleanup to settle.",
-                crate::screens::plural(n, "activity is", "activities are")
+                junie_tui::ui::text::plural(n, "activity is", "activities are")
             ),
         };
         // leaving a remote box says which box
@@ -1273,7 +1273,7 @@ impl App {
                         self.set_status(
                             &format!(
                                 "stopping {} · quitting when every process is gone",
-                                crate::screens::plural(n, "activity", "activities")
+                                junie_tui::ui::text::plural(n, "activity", "activities")
                             ),
                             Tone::Secondary,
                         );
@@ -1985,7 +1985,7 @@ impl App {
                     },
                     Scope::Children => format!(
                         "children · {}",
-                        crate::screens::plural(loc.children.len(), "project", "projects")
+                        junie_tui::ui::text::plural(loc.children.len(), "project", "projects")
                     ),
                     Scope::System => format!("system · {}", self.world.host.name),
                 };
@@ -2687,7 +2687,7 @@ impl App {
                         self.set_status(
                             &format!(
                                 "cleanup started · {} · quitting waits for it",
-                                crate::screens::plural(n, "item", "items")
+                                junie_tui::ui::text::plural(n, "item", "items")
                             ),
                             Tone::Secondary,
                         );
@@ -2842,7 +2842,7 @@ impl App {
                     &format!(
                         "{} · {} started {}",
                         it.label,
-                        crate::screens::plural(ids.len(), "activity", "activities"),
+                        junie_tui::ui::text::plural(ids.len(), "activity", "activities"),
                         match it.batch_mode {
                             crate::sim::world::BatchMode::Parallel =>
                                 "in parallel · Ctrl+G lists them",
@@ -3553,7 +3553,7 @@ impl App {
         if live > 0 {
             bar.right.push(
                 StatusItem::new(
-                    crate::screens::plural(live, "running", "running"),
+                    junie_tui::ui::text::plural(live, "running", "running"),
                     Tone::Secondary,
                 )
                 .busy()

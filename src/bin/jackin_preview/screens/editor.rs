@@ -28,7 +28,7 @@ use ratatui::style::Modifier;
 
 use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab};
 use super::modals::InfoDialog;
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
+use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Provider;
 use crate::domain::workspace::{
@@ -36,6 +36,7 @@ use crate::domain::workspace::{
     WorkspaceId,
 };
 use crate::sim::world::{Msg, World};
+use junie_tui::ui::text::plural;
 
 pub const TABS: WidgetId = WidgetId::of("editor.tabs");
 pub const NAME: WidgetId = WidgetId::of("editor.name");

@@ -32,11 +32,12 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
 use crate::domain::stack::Spotlight;
 use crate::screens::{
-    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, plural,
-    row_anchor, scroll_drag, scroll_press,
+    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, row_anchor,
+    scroll_drag, scroll_press,
 };
-use crate::sim::fs::{ScanNode, human};
+use crate::sim::fs::ScanNode;
 use crate::sim::world::World;
+use junie_tui::ui::text::plural;
 
 pub const TREE: WidgetId = WidgetId::of("disk.tree");
 pub const DETAIL: WidgetId = WidgetId::of("disk.detail");
@@ -179,7 +180,10 @@ impl DiskPage {
             100
         };
         let foldable = self.fold && n.is_dir && NOISE_NAMES.contains(&name.as_str());
-        let mut meta = format!("{:>9} · {pct:>3}%", human(self.node_size(n)));
+        let mut meta = format!(
+            "{:>9} · {pct:>3}%",
+            junie_tui::ui::text::bytes(self.node_size(n))
+        );
         if let Some(e) = &n.error {
             meta = format!("{meta} · {}", short_error(e));
         }
@@ -371,7 +375,7 @@ impl DiskPage {
             cx.status(format!(
                 "Unselected · {} selected · {}",
                 self.selected.len(),
-                human(self.selected_bytes(w))
+                junie_tui::ui::text::bytes(self.selected_bytes(w))
             ));
         } else {
             // a checked parent dominates its descendants
@@ -381,7 +385,7 @@ impl DiskPage {
             cx.status(format!(
                 "{} selected · {} estimated",
                 plural(self.selected.len(), "item", "items"),
-                human(self.selected_bytes(w))
+                junie_tui::ui::text::bytes(self.selected_bytes(w))
             ));
         }
         self.reviewed = None;
@@ -524,12 +528,15 @@ impl DiskPage {
                 let fs_node = w.fs.get(&path);
                 let mut v = vec![Prop::new("Path", w.location.short(&path)).wrap()];
                 if let Some(n) = node {
-                    v.push(Prop::new("Allocated", human(n.allocated)));
+                    v.push(Prop::new(
+                        "Allocated",
+                        junie_tui::ui::text::bytes(n.allocated),
+                    ));
                     v.push(Prop::new(
                         "Apparent",
                         format!(
                             "{}{}",
-                            human(n.apparent),
+                            junie_tui::ui::text::bytes(n.apparent),
                             if n.apparent > n.allocated {
                                 " · sparse"
                             } else if n.apparent < n.allocated {
@@ -577,7 +584,7 @@ impl DiskPage {
                             "Cached",
                             format!(
                                 "{} · {} · hint only",
-                                human(h.allocated),
+                                junie_tui::ui::text::bytes(h.allocated),
                                 w.clock.ago(h.recorded_secs)
                             ),
                         )
@@ -678,7 +685,7 @@ impl DiskPage {
                             "Cached",
                             format!(
                                 "{} · {} · a hint, not a measurement",
-                                human(b),
+                                junie_tui::ui::text::bytes(b),
                                 w.clock.ago(at)
                             ),
                         )
@@ -717,7 +724,7 @@ impl DiskPage {
                             if r.missing {
                                 "stat failed · the file vanished".into()
                             } else {
-                                format!("{} allocated", human(r.bytes))
+                                format!("{} allocated", junie_tui::ui::text::bytes(r.bytes))
                             },
                         )
                         .tone(if r.missing {
@@ -821,7 +828,11 @@ impl DiskPage {
                         r.label.clone(),
                         match r.cached {
                             Some((b, at)) => {
-                                format!("{:>9} · cached {}", human(b), w.clock.ago(at))
+                                format!(
+                                    "{:>9} · cached {}",
+                                    junie_tui::ui::text::bytes(b),
+                                    w.clock.ago(at)
+                                )
                             }
                             None => format!("{:>9} · unscanned", "–"),
                         },
@@ -839,7 +850,7 @@ impl DiskPage {
                         if r.missing {
                             "stat failed".to_owned()
                         } else {
-                            format!("{:>9}", human(r.bytes))
+                            format!("{:>9}", junie_tui::ui::text::bytes(r.bytes))
                         },
                         String::new(),
                         self.selected.contains(&r.path),
@@ -1195,7 +1206,7 @@ impl Screen for DiskPage {
                             }
                             cx.status(format!(
                                 "Every visible entry selected · {}",
-                                human(self.selected_bytes(w))
+                                junie_tui::ui::text::bytes(self.selected_bytes(w))
                             ));
                         }
                         self.reviewed = None;
@@ -1585,7 +1596,7 @@ impl Screen for DiskPage {
                             (scan.progress(w.tick) * 100.0).round(),
                             scan.revealed(w.tick),
                             self.selected.len(),
-                            human(self.selected_bytes(w))
+                            junie_tui::ui::text::bytes(self.selected_bytes(w))
                         );
                         buf.set_string(
                             area.x + 1,
@@ -1619,10 +1630,10 @@ impl Screen for DiskPage {
                     } else {
                         let mut line = format!(
                             "scan complete · {} allocated · {} entries · {} selected ({})",
-                            human(scan.tree.allocated),
+                            junie_tui::ui::text::bytes(scan.tree.allocated),
                             scan.tree.entries,
                             self.selected.len(),
-                            human(self.selected_bytes(w))
+                            junie_tui::ui::text::bytes(self.selected_bytes(w))
                         );
                         if errors > 0 {
                             line = format!(
@@ -1809,7 +1820,7 @@ impl Screen for DiskPage {
                 format!(
                     "{} selected · {}",
                     self.selected.len(),
-                    human(self.selected_bytes(w))
+                    junie_tui::ui::text::bytes(self.selected_bytes(w))
                 ),
                 false,
             ),
