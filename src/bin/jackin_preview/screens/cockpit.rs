@@ -427,9 +427,9 @@ impl CockpitScreen {
     fn open_quit(&mut self, cx: &mut Cx) {
         let d = Dialog::destructive(
             WidgetId::of("cockpit.quit"),
-            "Exit jackin❯?",
-            "Exiting force-stops the launch immediately. Partially prepared resources are cleaned up on the next launch.",
-            "Exit",
+            "Quit jackin❯?",
+            "Quitting force-stops the launch immediately. Partially prepared resources are cleaned up on the next launch.",
+            "Quit",
         );
         cx.open(Modal::Dialog(d), ModalTag::new("quit"));
     }

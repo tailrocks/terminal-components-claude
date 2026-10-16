@@ -1092,13 +1092,13 @@ impl CapsuleScreen {
                 .unwrap_or_default();
             let c = ChoiceDialog::new(
                 WidgetId::of("capsule.exitdirty"),
-                "Unsaved work — exit?",
+                "Unsaved work — quit?",
                 "",
                 &[
                     "Start a new agent",
                     "Inspect changes",
-                    "Exit & keep changes",
-                    "Exit & discard changes",
+                    "Quit & keep changes",
+                    "Quit & discard changes",
                 ],
                 0,
             )
@@ -1118,9 +1118,9 @@ impl CapsuleScreen {
         } else {
             let mut d = Dialog::destructive(
                 WidgetId::of("capsule.exit"),
-                "Exit jackin❯?",
-                "! Exiting force-stops the container immediately.\n! Work not saved outside the container will be lost.",
-                "Exit",
+                "Quit jackin❯?",
+                "! Quitting force-stops the container immediately.\n! Work not saved outside the container will be lost.",
+                "Quit",
             );
             d.width = 60;
             cx.open(Modal::Dialog(d), ModalTag::new("exit"));
@@ -2334,7 +2334,7 @@ impl Screen for CapsuleScreen {
                     ];
                     let d = Dialog::facts(
                         WidgetId::of("capsule.discard"),
-                        "Exit and discard changes?",
+                        "Quit and discard changes?",
                         facts,
                         vec![],
                         Some(&ws),
