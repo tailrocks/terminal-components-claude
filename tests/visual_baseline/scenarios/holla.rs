@@ -288,6 +288,10 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("holla/flows/menu/go", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "right", "wait:Parent scope"]).dismiss_pending(),
     // H15: Ctrl+Q with live activities opens the quit confirmation.
     Root::new("holla/flows/quit/confirm", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-q", "wait:still running"]).dismiss_pending(),
+    // The same guard from Ctrl+C (57a010b10: it reaches the Plan first, then
+    // quits through the guard) and from File › Quit.
+    Root::new("holla/flows/quit/confirm_ctrl_c", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-c", "wait:still running"]).pending().dismiss_pending(),
+    Root::new("holla/flows/quit/confirm_menu", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "wait:Quit", "up", "enter", "wait:still running"]).pending().dismiss_pending(),
     Root::new("holla/flows/git/batch_picker", Bin::Holla, &["--scenario", "parity-git-batch", "--motion", "reduced"], "holla❯").sends(&["type:Pull 4 sibling", "enter", "right", "enter", "wait:Fast-forward", "wait:2 ok · 2 failed", "ctrl-g", "wait:0 live"]).timeout(15_000).dismiss_pending(),
     Root::new("holla/flows/cargo/clean_confirm", Bin::Holla, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:cargo clean", "enter", "wait:Esc Cancel"]).dismiss_pending(),
     Root::new("holla/flows/upgrade/confirm", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "reduced"], "holla❯").sends(&["down", "down", "down", "down", "down", "space", "c"]).dismiss_pending(),

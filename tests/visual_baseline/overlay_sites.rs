@@ -16,7 +16,7 @@ use std::path::Path;
 use crate::determinism::{code_only, non_test};
 
 /// What opens or draws an overlay in the four apps.
-const OPENERS: [&str; 11] = [
+const OPENERS: [&str; 13] = [
     "req.menu(",
     "ModalTag::new(",
     "Dialog::new(",
@@ -28,6 +28,9 @@ const OPENERS: [&str; 11] = [
     ".push(Modal::",
     "begin_modal(",
     ".menu.open(",
+    // the shared leave guard (`ui::leave::LeaveGuard`) returns its dialog
+    ".request_quit(&",
+    ".request(Leave::",
 ];
 
 /// Lines that mention an opener without opening anything.
@@ -65,7 +68,7 @@ pub const SITES: &[Site] = &[
     rows("holla/app.rs::open_confirm_one", &["holla/flows/cargo/clean_confirm"]),
     gap("holla/app.rs::open_gate2", NO_ROW),
     rows("holla/app.rs::open_help", &["holla/flows/help/overlay"]),
-    rows("holla/app.rs::open_quit_confirm", &["holla/flows/quit/confirm"]),
+    rows("holla/app.rs::open_quit_confirm", &["holla/flows/quit/confirm", "holla/flows/quit/confirm_ctrl_c", "holla/flows/quit/confirm_menu"]),
     gap("holla/app.rs::open_why", NO_ROW),
     gap("holla/app.rs::request_close_tab", NO_ROW),
     gap("holla/screens/activity.rs::chip_menu", NO_ROW),
@@ -114,7 +117,7 @@ pub const SITES: &[Site] = &[
     gap("jackin_preview/screens/editor.rs::accounts_key", NO_ROW),
     gap("jackin_preview/screens/editor.rs::finish_role_load", NO_ROW),
     gap("jackin_preview/screens/editor.rs::finish_save", NO_ROW),
-    gap("jackin_preview/screens/editor.rs::leave", NO_ROW),
+    rows("jackin_preview/screens/editor.rs::leave", &["jackin/editor/quit_guard"]),
     rows("jackin_preview/screens/editor.rs::open_preview", &["jackin/editor/save_preview"]),
     gap("jackin_preview/screens/editor.rs::open_role_picker", NO_ROW),
     gap("jackin_preview/screens/editor.rs::open_trust_dialog", NO_ROW),
@@ -130,11 +133,12 @@ pub const SITES: &[Site] = &[
     gap("jackin_preview/screens/modals.rs::new", NO_ROW),
     gap("jackin_preview/screens/prelude.rs::open", NO_ROW),
     gap("jackin_preview/screens/settings.rs::finish_save", NO_ROW),
-    gap("jackin_preview/screens/settings.rs::leave", NO_ROW),
+    rows("jackin_preview/screens/settings.rs::leave", &["jackin/settings/quit_guard"]),
     rows("jackin_preview/screens/settings.rs::open_preview", &["jackin/settings/save_preview"]),
     // ---------------------------------------------------------- showcase --
     rows("showcase/app.rs::open_help", &["showcase/flows/help/overlay"]),
     rows("showcase/app.rs::open_quit", &["showcase/overlays/quit_confirm"]),
+    rows("showcase/app.rs::request_quit", &["showcase/overlays/settings_quit_guard"]),
     rows("showcase/pages/chrome.rs::open_context", &["showcase/flows/chrome/context", "showcase/overlays/chrome_context_row"]),
     rows("showcase/pages/dialogs.rs::open", &["showcase/flows/dialogs/open", "showcase/flows/dialogs/prompt", "showcase/flows/dialogs/destructive"]),
     rows("showcase/pages/grid.rs::on_event", &["showcase/flows/datagrid/preview"]),
@@ -161,10 +165,11 @@ pub const SITES: &[Site] = &[
     rows("tablepro/app.rs::open_safe_mode_picker", &["tablepro/overlays/safemode_picker"]),
     rows("tablepro/app.rs::open_switcher", &["tablepro/overlays/picker_open"]),
     rows("tablepro/app.rs::open_tab_list", &["tablepro/overlays/tablist_open", "tablepro/overlays/tablist_tables"]),
-    rows("tablepro/app.rs::request_quit", &["tablepro/workbench/quit_confirm"]),
+    rows("tablepro/app.rs::request_quit", &["tablepro/workbench/quit_confirm", "tablepro/connections/form_quit_guard"]),
     rows("tablepro/app.rs::run_active", &["tablepro/ack/gate"]),
     rows("tablepro/context.rs::finish", &["tablepro/overlays/explorer_context", "tablepro/overlays/connections_context"]),
     rows("tablepro/connections.rs::action", &["tablepro/connections/delete_dialog"]),
+    rows("tablepro/connections.rs::leave_form", &["tablepro/connections/form_leave_esc", "tablepro/connections/form_leave_edit", "tablepro/connections/form_leave_new"]),
 ];
 
 fn enclosing_fn(line: &str) -> Option<&str> {
