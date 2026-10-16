@@ -323,10 +323,31 @@ impl StateGrid {
 
     /// Draw the grid at the context's colour level.
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.render_rows(0..self.rows.len(), true, area, buf, ctx, bg);
+    }
+
+    /// Height of each row, top to bottom (the header row not included).
+    pub fn row_heights(&self) -> Vec<u16> {
+        self.rows.iter().map(|&r| self.row_height(r)).collect()
+    }
+
+    /// Draw `rows` (indices into [`Self::rows`]) at the context's colour
+    /// level, under the column header when `header`: an owner that
+    /// scrolls the grid row by row (a [`crate::ui::layout::Stack`] child
+    /// per row) draws each band with it.
+    pub fn render_rows(
+        &mut self,
+        rows: std::ops::Range<usize>,
+        header: bool,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
         self.rendered.clear();
         let tick = ctx.interaction.tick;
         let theme = ctx.theme;
-        self.draw(theme, tick, area, buf, bg);
+        self.draw_rows(theme, tick, rows, header, area, buf, bg);
     }
 
     /// Height of [`Self::render_levels`] in `width` columns.
@@ -351,11 +372,10 @@ impl StateGrid {
     /// name. Panes sit side by side when they fit (four, then two) and
     /// stack otherwise; whatever does not fit `area` is cut.
     pub fn render_levels(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        self.rendered.clear();
-        let tick = ctx.interaction.tick;
         let (w, h) = self.size();
         let per_row = Self::per_row(w, area.width);
         let area = area.intersection(buf.area);
+        let mut drawn: Option<Vec<SpecimenState>> = None;
         for (i, level) in LEVELS.into_iter().enumerate() {
             let col = (i % per_row) as u16;
             let band = (i / per_row) as u16;
@@ -366,33 +386,69 @@ impl StateGrid {
             if pane.is_empty() {
                 continue;
             }
-            let own;
-            let t: &Theme = if ctx.theme.level == level {
-                ctx.theme
-            } else {
-                own = Theme::for_level(level);
-                &own
-            };
-            let bg = t.surface;
-            crate::ui::ctx::fill(buf, pane, Style::new().bg(bg));
-            buf.set_string(pane.x, pane.y, level.label(), t.muted().bg(bg));
-            let body = Rect::new(
-                pane.x,
-                pane.y + 1,
-                pane.width,
-                pane.height.saturating_sub(1),
-            );
-            let before = self.rendered.clone();
-            self.rendered.clear();
-            self.draw(t, tick, body, buf, bg);
+            self.render_level(level, pane, buf, ctx);
             // a row counts when every pane drew it
-            if i > 0 {
-                self.rendered.retain(|r| before.contains(r));
-            }
+            let rows = std::mem::take(&mut self.rendered);
+            drawn = Some(match drawn {
+                None => rows,
+                Some(mut d) => {
+                    d.retain(|r| rows.contains(r));
+                    d
+                }
+            });
         }
+        self.rendered = drawn.unwrap_or_default();
+    }
+
+    /// One "Compare levels" pane: the grid at `level`, on that level's
+    /// surface under the level's name (one title row, then the grid).
+    pub fn render_level(
+        &mut self,
+        level: ColorLevel,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+    ) {
+        self.rendered.clear();
+        let tick = ctx.interaction.tick;
+        let pane = area.intersection(buf.area);
+        if pane.is_empty() {
+            return;
+        }
+        let own;
+        let t: &Theme = if ctx.theme.level == level {
+            ctx.theme
+        } else {
+            own = Theme::for_level(level);
+            &own
+        };
+        let bg = t.surface;
+        crate::ui::ctx::fill(buf, pane, Style::new().bg(bg));
+        buf.set_string(pane.x, pane.y, level.label(), t.muted().bg(bg));
+        let body = Rect::new(
+            pane.x,
+            pane.y + 1,
+            pane.width,
+            pane.height.saturating_sub(1),
+        );
+        self.draw(t, tick, body, buf, bg);
     }
 
     fn draw(&mut self, t: &Theme, tick: u64, area: Rect, buf: &mut Buffer, bg: Color) {
+        self.draw_rows(t, tick, 0..self.rows.len(), true, area, buf, bg);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_rows(
+        &mut self,
+        t: &Theme,
+        tick: u64,
+        rows: std::ops::Range<usize>,
+        header: bool,
+        area: Rect,
+        buf: &mut Buffer,
+        bg: Color,
+    ) {
         let area = area.intersection(buf.area);
         if area.is_empty() {
             return;
@@ -400,20 +456,26 @@ impl StateGrid {
         let mark = self.mark(t);
         let col_x = |k: usize| area.x + self.label_width + k as u16 * self.column_width;
         let fits = |k: usize| col_x(k) + self.column_width <= area.right() + 1;
-        for (k, (label, _)) in self.columns.iter().enumerate() {
-            if !fits(k) {
-                break;
+        let mut y = area.y;
+        if header {
+            for (k, (label, _)) in self.columns.iter().enumerate() {
+                if !fits(k) {
+                    break;
+                }
+                let room = self.column_width.saturating_sub(1) as usize;
+                buf.set_string(
+                    col_x(k),
+                    area.y,
+                    crate::ui::text::fit(label, room),
+                    t.muted().bg(bg),
+                );
             }
-            let room = self.column_width.saturating_sub(1) as usize;
-            buf.set_string(
-                col_x(k),
-                area.y,
-                crate::ui::text::fit(label, room),
-                t.muted().bg(bg),
-            );
+            y += 1;
         }
-        let mut y = area.y + 1;
-        for &state in &self.rows {
+        let end = rows.end.min(self.rows.len());
+        let start = rows.start.min(end);
+        for i in start..end {
+            let state = self.rows[i];
             let h = self.row_height(state);
             if y + h > area.bottom() {
                 break;
@@ -735,5 +797,33 @@ mod tests {
         let narrow_field = 1 + 2 + 3 + 2 + 1;
         let x0 = g.label_width;
         assert!(buf[(x0 + 24, narrow_field)].bg != buf[(x0 + 1, narrow_field)].bg);
+    }
+
+    /// An owner that scrolls row by row draws bands: a band without the
+    /// header starts with its first row, and only that band is recorded.
+    #[test]
+    fn a_band_draws_its_rows_only() {
+        let t = Theme::junie();
+        let mut g = grid();
+        assert_eq!(g.row_heights(), vec![1; 5]);
+        let area = Rect::new(0, 0, 60, 2);
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        g.render_rows(1..3, false, area, &mut buf, &mut ctx, t.surface);
+        assert!(row_text(&buf, 0).starts_with("focused"));
+        assert!(row_text(&buf, 1).starts_with("pressed"));
+        assert_eq!(
+            g.rendered_rows(),
+            &[SpecimenState::Focused, SpecimenState::Pressed]
+        );
+        // a single pane is titled with its level
+        let area = Rect::new(0, 0, 60, 7);
+        let mut buf = Buffer::empty(area);
+        g.render_level(ColorLevel::Ansi16, area, &mut buf, &mut ctx);
+        assert!(row_text(&buf, 0).starts_with("16 colors"));
+        assert!(row_text(&buf, 1).contains("Primary"));
+        assert_eq!(g.rendered_rows().len(), 5);
     }
 }
