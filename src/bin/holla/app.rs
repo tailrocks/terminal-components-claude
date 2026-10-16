@@ -11,6 +11,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::text::{truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::button::Button;
@@ -76,7 +77,17 @@ pub(crate) struct ModalEntry {
     modal: Modal,
     tag: ModalTag,
     owner: usize,
-    saved_focus: Option<WidgetId>,
+}
+
+impl junie_tui::ui::modal::Modal for ModalEntry {
+    fn dismiss(&self) -> junie_tui::ui::popup::Dismiss {
+        match &self.modal {
+            Modal::Dialog(d) => d.dismiss,
+            Modal::Picker(p) => p.dismiss,
+            Modal::Menu(m) => m.dismiss,
+            Modal::Text(t) => t.dismiss,
+        }
+    }
 }
 
 /// What an alternatives-menu row does.
@@ -101,7 +112,7 @@ pub struct App {
     pub world: World,
     pub tabs: Vec<TabEntry>,
     pub active: usize,
-    pub(crate) modals: Vec<ModalEntry>,
+    pub(crate) modals: ModalStack<ModalEntry>,
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
@@ -140,7 +151,7 @@ impl App {
                 stack: vec![Box::new(FinderPage::new(None))],
             }],
             active: 0,
-            modals: vec![],
+            modals: ModalStack::new(),
             focus: Focus::default(),
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
@@ -347,11 +358,11 @@ impl App {
         }
         if self
             .modals
-            .last()
+            .top()
             .is_some_and(|m| m.tag.kind == "activities")
         {
             let items = self.activity_picker_items();
-            if let Some(top) = self.modals.last_mut()
+            if let Some(top) = self.modals.top_mut()
                 && let Modal::Picker(p) = &mut top.modal
             {
                 p.refresh_items(items);
@@ -477,7 +488,7 @@ impl App {
     }
 
     fn on_paste(&mut self, text: &str) -> Outcome {
-        if let Some(top) = self.modals.last_mut() {
+        if let Some(top) = self.modals.top_mut() {
             return match &mut top.modal {
                 Modal::Dialog(d) => d.on_paste(text),
                 Modal::Picker(p) => {
@@ -1027,23 +1038,18 @@ impl App {
             Modal::Menu(m) => Some(m.id),
             Modal::Text(t) => Some(t.id),
         };
-        self.modals.push(ModalEntry {
+        let entry = ModalEntry {
             modal,
             tag,
             owner: self.active,
-            saved_focus: self.focus.current(),
-        });
-        self.focus.set(initial);
+        };
+        self.modals.push(entry, &mut self.focus, initial);
         self.pointer.hover = None;
         self.pointer.pressed = None;
     }
 
     fn pop_modal(&mut self) -> Option<ModalEntry> {
-        let e = self.modals.pop();
-        if let Some(e) = &e {
-            self.focus.set(e.saved_focus);
-        }
-        e
+        self.modals.pop(&mut self.focus)
     }
 
     fn deliver(&mut self, entry: ModalEntry, result: ModalResult) -> Outcome {
@@ -1181,7 +1187,7 @@ impl App {
     }
 
     fn modal_key(&mut self, key: Key) -> Outcome {
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match &mut top.modal {
@@ -1248,7 +1254,7 @@ impl App {
     /// jump keeps the picker open with the error in its status row.
     fn files_jump_event(&mut self, ev: Option<PickerEvent>, o: Outcome) -> Outcome {
         let active = self.active;
-        let query = match self.modals.last() {
+        let query = match self.modals.top() {
             Some(ModalEntry {
                 modal: Modal::Picker(p),
                 ..
@@ -1270,7 +1276,7 @@ impl App {
                     && let Some(ModalEntry {
                         modal: Modal::Picker(p),
                         ..
-                    }) = self.modals.last_mut()
+                    }) = self.modals.top_mut()
                 {
                     p.refresh_items(items);
                     p.status = status;
@@ -1281,7 +1287,7 @@ impl App {
             | Some(PickerEvent::ChosenAlt(_))
             | Some(PickerEvent::Submit) => {
                 // Submit: a typed path with no suggestion resolves on its own
-                let selected = match (&ev, self.modals.last()) {
+                let selected = match (&ev, self.modals.top()) {
                     (Some(PickerEvent::Submit), _) => None,
                     (
                         _,
@@ -1332,7 +1338,7 @@ impl App {
                             && let Some(ModalEntry {
                                 modal: Modal::Picker(p),
                                 ..
-                            }) = self.modals.last_mut()
+                            }) = self.modals.top_mut()
                         {
                             p.refresh_items(items);
                             p.status = status;
@@ -1353,7 +1359,7 @@ impl App {
     }
 
     fn modal_click(&mut self, id: WidgetId, pos: Position) -> Outcome {
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match &mut top.modal {
@@ -1405,7 +1411,7 @@ impl App {
     }
 
     fn modal_outside_click(&mut self) -> Outcome {
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match &mut top.modal {
@@ -1423,7 +1429,11 @@ impl App {
                 }
                 out
             }
-            Modal::Picker(_) | Modal::Menu(_) | Modal::Text(_) => {
+            // everything else follows its own dismiss policy
+            _ => {
+                if self.modals.outside_click() != Dismissal::Close {
+                    return Outcome::Consumed;
+                }
                 let entry = self.pop_modal().unwrap();
                 self.deliver(entry, ModalResult::Cancelled)
             }
@@ -1519,7 +1529,7 @@ impl App {
                     return Outcome::Ignored;
                 };
                 if !self.modals.is_empty() {
-                    if let Some(Modal::Text(t)) = self.modals.last_mut().map(|m| &mut m.modal)
+                    if let Some(Modal::Text(t)) = self.modals.top_mut().map(|m| &mut m.modal)
                         && pressed == junie_tui::widgets::scrollbar::id_for(t.id)
                     {
                         return t.on_scrollbar_drag(m.pos);
@@ -1593,7 +1603,7 @@ impl App {
                 // a horizontal swipe is its own axis: it never scrolls a
                 // vertical list
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
-                if let Some(top) = self.modals.last_mut() {
+                if let Some(top) = self.modals.top_mut() {
                     if horizontal {
                         return Outcome::Consumed;
                     }
@@ -2964,7 +2974,7 @@ impl App {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
             let layer = self.menu.hides_page_focus()
-                || self.modals.last().is_some_and(|e| match &e.modal {
+                || self.modals.top().is_some_and(|e| match &e.modal {
                     Modal::Menu(m) => m.hides_page_focus(),
                     _ => true,
                 });
@@ -3019,7 +3029,8 @@ impl App {
             return;
         }
         self.draw_frame(area, buf, ctx);
-        if let Some(mut entry) = self.modals.pop() {
+        let mut modals = std::mem::take(&mut self.modals);
+        if let Some(entry) = modals.top_mut() {
             match &mut entry.modal {
                 Modal::Dialog(d) => d.render_in(
                     area,
@@ -3035,7 +3046,10 @@ impl App {
                 }
                 Modal::Text(m) => m.render(area, buf, ctx),
             }
-            self.modals.push(entry);
+        }
+        let open = !modals.is_empty();
+        self.modals = modals;
+        if open {
             let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
             self.draw_footer(footer, buf, true, ctx.reveal_hint);
         }
@@ -3281,7 +3295,7 @@ impl App {
         let t = self.theme;
         fill(buf, area, t.base());
         let hints: Vec<Hint> = if modal {
-            match self.modals.last().map(|m| &m.modal) {
+            match self.modals.top().map(|m| &m.modal) {
                 Some(Modal::Picker(p)) => {
                     let mut v = vec![];
                     if p.searchable {
@@ -3321,7 +3335,7 @@ impl App {
         let mut hints = hints;
         junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
         let editing =
-            self.modals.last().is_some_and(|m| match &m.modal {
+            self.modals.top().is_some_and(|m| match &m.modal {
                 Modal::Dialog(d) => d.is_editing(),
                 _ => false,
             }) || (!modal && self.top().is_some_and(|s| s.is_editing()) && self.active == 0);

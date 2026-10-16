@@ -89,8 +89,10 @@ pub trait CustomModal {
     fn done(&mut self) -> Option<ModalResult>;
     fn initial_focus(&self) -> WidgetId;
     fn hints(&self) -> Vec<Hint>;
-    fn cancel_on_outside_click(&self) -> bool {
-        true
+    /// Which dismissals close it (Esc, a click outside). Default
+    /// [`Dismiss::LIGHT`].
+    fn dismiss(&self) -> junie_tui::ui::popup::Dismiss {
+        junie_tui::ui::popup::Dismiss::LIGHT
     }
 }
 
