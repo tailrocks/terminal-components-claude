@@ -911,10 +911,10 @@ impl ManagerScreen {
             let y = inner.y + k as u16;
             let row = &self.rows[i];
             let rid = Self::row_id(i);
-            let mut s = ctx.state(rid);
-            if ctx.interaction.hovered(Self::toggle_id(i)) {
-                s.hovered = true;
-            }
+            // the expander is part of the row; Enter flashes the cursor row
+            let mut s = ctx.child_state(TREE, rid, cursor == Some(i));
+            s.hovered |= ctx.interaction.hovered(Self::toggle_id(i));
+            s.pressed |= ctx.interaction.pressed(Self::toggle_id(i));
             s.focused = focused && cursor == Some(i);
             s.selected = cursor == Some(i);
             let st = t.row(s, bg);
