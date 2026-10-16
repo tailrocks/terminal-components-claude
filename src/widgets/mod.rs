@@ -16,6 +16,7 @@ pub mod empty;
 pub mod field_common;
 pub mod form_dialog;
 pub mod grid;
+mod grid_specimen;
 pub mod help;
 pub mod hintbar;
 pub mod icon_button;

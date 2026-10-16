@@ -1,28 +1,47 @@
 //! Data grid: typed cells, a pending-change queue with preview / discard /
-//! save, fetch-more paging, local sort, and row-level errors from a commit.
+//! a typed-token save review, fetch-more paging, local sort, filters on a
+//! cell's value, and row-level errors from a commit.
+//!
+//! Playground: the `customers` grid, its filter chips, its schema (what
+//! each `ColumnSpec` says) and its commands (the grid's key map and the
+//! `GridAction` each one asks the page for). Options: every grid knob,
+//! rebuilt through `DataGrid`'s builders. States: an editable grid, one with
+//! pending changes and a read-only one, drawn by `DataGrid` itself.
 
 use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
-use junie_tui::core::event::Outcome;
+use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, hint_key, label_for};
+use junie_tui::core::scroll::{HScroll, Scrollable, ScrollbarVisibility, TrackClick};
+use junie_tui::ui::columns::HeaderLabels;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
+use junie_tui::widgets::chips::{Chip, ChipBar};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
+use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::grid::{
-    CellKind, CellValue, ColumnSpec, DataGrid, GridAction, GridRows, RowTotal,
+    CellKind, CellValue, ColumnSpec, DataGrid, GridAction, GridCmd, GridRows, RowState, RowTotal,
 };
-use junie_tui::widgets::option_editor::{ColumnEditor, Options};
+use junie_tui::widgets::option_editor::{Affordance, ColumnEditor, EditorConfig, Options};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::props::Prop;
+use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("grid");
 const PREVIEW: WidgetId = ID.sub("preview");
+const REVIEW: WidgetId = ID.sub("review");
 const PAGE: usize = 40;
 const ALL: usize = 96;
+/// The table the grid edits: the save review asks for it.
+const TABLE: &str = "customers";
 
 const NAMES: &[&str] = &[
     "Northwind Traders",
@@ -80,18 +99,19 @@ fn row(i: usize) -> Vec<CellValue> {
         CellValue::Num(mrr),
         CellValue::Bool(i % 5 != 3),
         renewed,
+        CellValue::Int(201 + (i % 4) as i64),
         notes,
     ]
 }
 
-fn page(from: usize) -> GridRows {
+fn page(from: usize, total: RowTotal) -> GridRows {
     let to = (from + PAGE).min(ALL);
     GridRows {
         rows: (from..to).map(row).collect(),
         total: if to >= ALL {
             RowTotal::Exact(ALL)
         } else {
-            RowTotal::Estimated(4_812)
+            total
         },
         more: to < ALL,
     }
@@ -106,43 +126,361 @@ fn literal(v: &CellValue) -> String {
     }
 }
 
+fn columns() -> Vec<ColumnSpec> {
+    vec![
+        ColumnSpec::new("id", CellKind::Id)
+            .primary()
+            .read_only()
+            .nullable(false)
+            .type_label("integer"),
+        ColumnSpec::new("customer", CellKind::Text)
+            .nullable(false)
+            .type_label("text"),
+        // four plans: a segmented strip (the option-count ladder)
+        ColumnSpec::new("plan", CellKind::Enum)
+            .enum_values(PLANS)
+            .editor(ColumnEditor::for_options(Options::values(PLANS)))
+            .nullable(false)
+            .type_label("plan_tier"),
+        ColumnSpec::new("seats", CellKind::Number)
+            .nullable(false)
+            .type_label("integer"),
+        ColumnSpec::new("mrr", CellKind::Number)
+            .read_only()
+            .type_label("numeric(10,2)"),
+        ColumnSpec::new("active", CellKind::Bool)
+            .nullable(false)
+            .type_label("boolean"),
+        ColumnSpec::new("renewed_at", CellKind::Timestamp).type_label("date"),
+        ColumnSpec::new("account_id", CellKind::Number)
+            .references("accounts")
+            .type_label("integer"),
+        ColumnSpec::new("notes", CellKind::Json).type_label("jsonb"),
+    ]
+}
+
+/// Every option of the page, as value indices (`datagrid.*`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct Knobs {
+    access: usize,
+    rows: usize,
+    total: usize,
+    row_numbers: usize,
+    overflow_badges: usize,
+    labels: usize,
+    type_ahead: usize,
+    affordance: usize,
+    keymap: usize,
+    duplicate_keys: usize,
+    nav: usize,
+    width_sample_rows: usize,
+    seams: usize,
+    track_click: usize,
+    horizontal: usize,
+    validator: usize,
+    blur_action: usize,
+}
+
+/// `datagrid.<name>` keys, in [`Knobs`] order.
+const KEYS: [&str; 17] = [
+    "datagrid.access",
+    "datagrid.rows",
+    "datagrid.total",
+    "datagrid.row_numbers",
+    "datagrid.overflow_badges",
+    "datagrid.labels",
+    "datagrid.type_ahead",
+    "datagrid.affordance",
+    "datagrid.keymap",
+    "datagrid.duplicate_keys",
+    "datagrid.nav",
+    "datagrid.width_sample_rows",
+    "datagrid.seams",
+    "datagrid.track_click",
+    "datagrid.horizontal",
+    "datagrid.validator",
+    "datagrid.blur_action",
+];
+
+impl Knobs {
+    fn defaults() -> Self {
+        let mut k = Self::default();
+        for key in KEYS {
+            let opt = crate::options::find(key).expect("a datagrid option");
+            *k.slot(key) = opt.default;
+        }
+        k
+    }
+
+    fn slot(&mut self, key: &str) -> &mut usize {
+        match key {
+            "datagrid.access" => &mut self.access,
+            "datagrid.rows" => &mut self.rows,
+            "datagrid.total" => &mut self.total,
+            "datagrid.row_numbers" => &mut self.row_numbers,
+            "datagrid.overflow_badges" => &mut self.overflow_badges,
+            "datagrid.labels" => &mut self.labels,
+            "datagrid.type_ahead" => &mut self.type_ahead,
+            "datagrid.affordance" => &mut self.affordance,
+            "datagrid.keymap" => &mut self.keymap,
+            "datagrid.duplicate_keys" => &mut self.duplicate_keys,
+            "datagrid.nav" => &mut self.nav,
+            "datagrid.width_sample_rows" => &mut self.width_sample_rows,
+            "datagrid.seams" => &mut self.seams,
+            "datagrid.track_click" => &mut self.track_click,
+            "datagrid.horizontal" => &mut self.horizontal,
+            "datagrid.validator" => &mut self.validator,
+            _ => &mut self.blur_action,
+        }
+    }
+
+    fn total(&self) -> RowTotal {
+        [
+            RowTotal::Estimated(4_812),
+            RowTotal::Exact(4_812),
+            RowTotal::Unknown,
+        ][self.total]
+    }
+}
+
+/// Why a read-only grid is read-only (`datagrid.access`).
+const READ_ONLY: [Option<&str>; 4] = [
+    None,
+    Some("customer_summary is a view: it cannot be edited"),
+    Some("customers has no primary key: rows cannot be told apart"),
+    Some("Query results are read-only: open the table to edit"),
+];
+
+/// A key map an app might choose instead of the defaults: `x` clears, `o`
+/// inserts, `d` toggles delete, Ctrl+R reloads (`datagrid.keymap`).
+fn custom_keymap() -> KeyMap<GridCmd> {
+    let mut map: KeyMap<GridCmd> = GridCmd::default_keymap()
+        .into_iter()
+        .filter(|(_, c)| {
+            !matches!(
+                c,
+                GridCmd::ClearCell | GridCmd::InsertRow | GridCmd::ToggleDelete | GridCmd::Refresh
+            )
+        })
+        .collect();
+    map.extend([
+        (KeyBinding::char('x'), GridCmd::ClearCell),
+        (KeyBinding::char('o'), GridCmd::InsertRow),
+        (KeyBinding::char('d'), GridCmd::ToggleDelete),
+        (KeyBinding::ctrl('r'), GridCmd::Refresh),
+    ]);
+    map
+}
+
+/// Seats must stay within the plan limit (`datagrid.validator=strict`).
+fn strict(spec: &ColumnSpec, text: &str) -> Result<CellValue, String> {
+    let v = junie_tui::widgets::grid::Validator::default();
+    let parsed = (v.0)(spec, text)?;
+    match (&*spec.name, &parsed) {
+        ("seats", CellValue::Int(n)) if *n > 500 => Err("Seats above the plan limit (500)".into()),
+        ("customer", CellValue::Text(s)) if s.trim().len() < 3 => {
+            Err("A customer name has at least 3 letters".into())
+        }
+        _ => Ok(parsed),
+    }
+}
+
+/// The grid as the options say, through `DataGrid`'s builders.
+fn build(k: &Knobs) -> DataGrid {
+    let mut grid = DataGrid::new(ID.sub("grid"), columns())
+        .editable(k.access == 0)
+        .overflow_badges(k.overflow_badges == 1)
+        .type_ahead(k.type_ahead > 0)
+        .type_ahead_column((k.type_ahead == 2).then_some(1))
+        .editor_config(EditorConfig {
+            affordance: [Affordance::Focused, Affordance::Always, Affordance::Never][k.affordance],
+            ..EditorConfig::default()
+        })
+        .nav([NavKeys::DEFAULT, NavKeys::NO_VIM][k.nav])
+        .width_sample_rows([200, 8][k.width_sample_rows])
+        .resizable_columns(k.seams != 1)
+        .seam_hit_w(if k.seams == 2 { 3 } else { 2 })
+        .empty(match k.rows {
+            2 => EmptyState::error("Could not load customers")
+                .hint("connection reset by peer · r retries"),
+            _ => EmptyState::new("No customers match").hint("Clear the filters to see every row"),
+        });
+    if k.keymap == 1 {
+        grid = grid.keymap(custom_keymap());
+    }
+    if k.duplicate_keys == 1 {
+        grid = grid.duplicate_keys(&[Key {
+            code: KeyCode::Char('D'),
+            mods: KeyModifiers::NONE,
+        }]);
+    }
+    if k.labels == 1 {
+        grid = grid.bar_labels(["Review SQL", "Revert", "Apply"]);
+        grid.header_labels = HeaderLabels {
+            sort_asc: "Sort A to Z",
+            sort_desc: "Sort Z to A",
+            clear_sort: "Unsort",
+            autofit: "Fit Width",
+            reset_widths: "Default Widths",
+        };
+    }
+    if k.track_click > 0 {
+        grid =
+            grid.track_click([TrackClick::Page, TrackClick::Page, TrackClick::Jump][k.track_click]);
+    }
+    if k.horizontal == 1 {
+        grid = grid.horizontal(HScroll {
+            bar: ScrollbarVisibility::Never,
+            ..HScroll::default()
+        });
+    }
+    if k.validator == 1 {
+        grid = grid.validator(strict);
+    }
+    grid.read_only_reason = READ_ONLY[k.access].map(str::to_owned);
+    grid.row_numbers = k.row_numbers == 1;
+    grid.blur_action = [BlurAction::Commit, BlurAction::Cancel][k.blur_action];
+    grid.local_sort = true;
+    grid.set_rows(if k.rows == 0 {
+        page(0, k.total())
+    } else {
+        GridRows {
+            rows: Vec::new(),
+            total: RowTotal::Exact(0),
+            more: false,
+        }
+    });
+    grid
+}
+
+/// What each command does, and the action it asks the page for.
+const COMMANDS: &[(GridCmd, &str)] = &[
+    (GridCmd::ClearCell, "Set NULL · CellChanged"),
+    (GridCmd::ToggleDelete, "Delete row · RowDeleted"),
+    (GridCmd::InsertRow, "Insert row · RowInserted"),
+    (GridCmd::DuplicateRow, "Duplicate row · RowInserted"),
+    (GridCmd::Copy, "Copy · Copy"),
+    (GridCmd::CopyWithHeader, "Copy with header · Copy"),
+    (GridCmd::Commit, "Save review · CommitRequested"),
+    (GridCmd::Sort, "Sort · SortRequested"),
+    (GridCmd::ClearSort, "Clear sort · SortRequested"),
+    (GridCmd::FilterOnCell, "Filter on cell · FilterOnCell"),
+    (GridCmd::OpenFilters, "Filters · OpenFilters"),
+    (GridCmd::ClearFilters, "Clear filters · ClearFilters"),
+    (GridCmd::Refresh, "Reload · Refresh"),
+    (GridCmd::Undo, "Undo a cell, delete or insert"),
+    (GridCmd::Discard, "Discard · DiscardRequested"),
+    (GridCmd::PreviewSql, "Preview SQL · PreviewSql"),
+    (
+        GridCmd::FollowReference,
+        "Follow account_id · FollowReference",
+    ),
+    (GridCmd::SelectAll, "Mark every row"),
+];
+
+/// The fixed keys and what they ask for.
+const FIXED: &[(&str, &str)] = &[
+    (
+        "Enter / F2",
+        "Edit · OpenViewer on JSON · ReadOnly says why not",
+    ),
+    ("Enter (read-only)", "Activated"),
+    ("Space", "Mark the row"),
+    (
+        "Tab at the last cell",
+        "LeaveForward · Shift+Tab LeaveBackward",
+    ),
+    ("past the last row", "FetchMore"),
+];
+
+/// The States grid: an editable grid, one with a pending change of every
+/// kind and a read-only one.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let cols = || {
+        vec![
+            ColumnSpec::new("id", CellKind::Id).primary().read_only(),
+            ColumnSpec::new("customer", CellKind::Text),
+            ColumnSpec::new("seats", CellKind::Number),
+        ]
+    };
+    let rows = || GridRows {
+        rows: (0..2)
+            .map(|i| {
+                let r = row(i);
+                vec![r[0].clone(), r[1].clone(), r[3].clone()]
+            })
+            .collect(),
+        total: RowTotal::Exact(3),
+        more: false,
+    };
+    let mut clean = DataGrid::new(id.child(0), cols());
+    clean.set_rows(GridRows {
+        rows: (0..3)
+            .map(|i| {
+                let r = row(i);
+                vec![r[0].clone(), r[1].clone(), r[3].clone()]
+            })
+            .collect(),
+        total: RowTotal::Exact(3),
+        more: false,
+    });
+    let mut changed = DataGrid::new(id.child(1), cols());
+    changed.set_rows(rows());
+    changed.record_cell(0, 2, CellValue::Int(40));
+    changed.toggle_delete(1);
+    changed.insert_row();
+    let mut read_only = DataGrid::new(id.child(2), cols()).editable(false);
+    read_only.read_only_reason = READ_ONLY[1].map(str::to_owned);
+    read_only.set_rows(rows());
+    StateGrid::new(id)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Selected,
+            Editing,
+            Error,
+            Empty,
+            Loading,
+            Overflow,
+            Narrow,
+        ])
+        .column_width(56)
+        .narrow_width(30)
+        .column("Editable", clean)
+        .column("Pending changes", changed)
+        .column("Read-only (view)", read_only)
+}
+
 pub struct GridPage {
-    grid: DataGrid,
+    template: Template,
+    knobs: Knobs,
+    pub grid: DataGrid,
+    /// One chip per filter set from a cell's value.
+    filters: ChipBar,
+    /// `(column, value)` of each filter chip.
+    filter_values: Vec<(usize, CellValue)>,
+    sections: crate::pages::layout::Sections,
     commit_ticks: u8,
     saved: u32,
 }
 
 impl GridPage {
     pub fn new() -> Self {
-        let columns = vec![
-            ColumnSpec::new("id", CellKind::Id)
-                .primary()
-                .read_only()
-                .nullable(false)
-                .type_label("integer"),
-            ColumnSpec::new("customer", CellKind::Text)
-                .nullable(false)
-                .type_label("text"),
-            // four plans: a segmented strip (the option-count ladder)
-            ColumnSpec::new("plan", CellKind::Enum)
-                .enum_values(PLANS)
-                .editor(ColumnEditor::for_options(Options::values(PLANS)))
-                .nullable(false),
-            ColumnSpec::new("seats", CellKind::Number)
-                .nullable(false)
-                .type_label("integer"),
-            ColumnSpec::new("mrr", CellKind::Number)
-                .read_only()
-                .type_label("numeric(10,2)"),
-            ColumnSpec::new("active", CellKind::Bool).nullable(false),
-            ColumnSpec::new("renewed_at", CellKind::Timestamp).type_label("date"),
-            ColumnSpec::new("notes", CellKind::Json),
-        ];
-        let mut grid = DataGrid::new(ID.sub("grid"), columns).editable(true);
-        grid.local_sort = true;
-        grid.set_rows(page(0));
+        let knobs = Knobs::defaults();
+        let mut filters = ChipBar::new(ID.sub("filters"));
+        filters.lead = Some("Filters".into());
         Self {
-            grid,
+            template: Template::new(ID, states_grid()),
+            grid: build(&knobs),
+            knobs,
+            filters,
+            filter_values: Vec::new(),
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
             commit_ticks: 0,
             saved: 0,
         }
@@ -157,7 +495,7 @@ impl GridPage {
                 continue;
             }
             out.push(format!(
-                "UPDATE customers SET {} = {} WHERE id = {};",
+                "UPDATE {TABLE} SET {} = {} WHERE id = {};",
                 self.grid.columns[*c].name,
                 literal(v),
                 self.grid.value(*r, 0).text()
@@ -173,7 +511,7 @@ impl GridPage {
                 .map(|(_, col)| col.name.as_str())
                 .collect();
             if cols.is_empty() {
-                out.push("INSERT INTO customers DEFAULT VALUES;".into());
+                out.push(format!("INSERT INTO {TABLE} DEFAULT VALUES;"));
             } else {
                 let vals: Vec<String> = self
                     .grid
@@ -184,7 +522,7 @@ impl GridPage {
                     .map(literal)
                     .collect();
                 out.push(format!(
-                    "INSERT INTO customers ({}) VALUES ({});",
+                    "INSERT INTO {TABLE} ({}) VALUES ({});",
                     cols.join(", "),
                     vals.join(", ")
                 ));
@@ -192,11 +530,54 @@ impl GridPage {
         }
         for r in &self.grid.pending.deleted {
             out.push(format!(
-                "DELETE FROM customers WHERE id = {};",
+                "DELETE FROM {TABLE} WHERE id = {};",
                 self.grid.value(*r, 0).text()
             ));
         }
         out
+    }
+
+    /// The pending changes as a dialog: the preview (Copy SQL), or the
+    /// save review that asks for the table's name before it saves.
+    fn changes_dialog(&self, review: bool) -> Dialog {
+        let code = self.statements();
+        let (changed, inserted, deleted) = self.grid.pending.counts();
+        let facts = vec![
+            Prop::new("Statements", code.len().to_string()),
+            Prop::new(
+                "Rows",
+                format!("{changed} changed · {inserted} inserted · {deleted} deleted"),
+            ),
+            Prop::new("Target", TABLE),
+        ];
+        if review {
+            Dialog::facts(
+                REVIEW,
+                "Save changes",
+                facts,
+                code,
+                Some(TABLE),
+                Button::primary(REVIEW.sub("ok"), "Save"),
+            )
+        } else {
+            Dialog::facts(
+                PREVIEW,
+                "Pending changes",
+                facts,
+                code,
+                None,
+                Button::primary(PREVIEW.sub("ok"), "Copy SQL"),
+            )
+        }
+    }
+
+    fn set_filters(&mut self) {
+        self.grid.filtered_cols = self.filter_values.iter().map(|(c, _)| *c).collect();
+        self.filters.chips = self
+            .filter_values
+            .iter()
+            .map(|(c, v)| Chip::new(&format!("{} = {}", self.grid.columns[*c].name, v.text())))
+            .collect();
     }
 
     fn on_event(&mut self, ev: Option<GridAction>, cx: &mut PageCtx) {
@@ -208,61 +589,53 @@ impl GridPage {
             Some(GridAction::RowDeleted(_)) => cx.status("Row queued for deletion · u undoes"),
             Some(GridAction::FetchMore) => {
                 let from = self.grid.len();
-                self.grid.append_rows(page(from));
+                self.grid.append_rows(page(from, self.knobs.total()));
                 cx.status(format!("Fetched rows {}–{}", from + 1, self.grid.len()));
             }
             Some(GridAction::Refresh) => {
-                self.grid.set_rows(page(0));
+                self.grid.set_rows(page(0, self.knobs.total()));
                 cx.status("Reloaded from the source");
             }
             Some(GridAction::CommitRequested) => {
                 if self.grid.pending.is_empty() {
                     cx.status("Nothing to save");
                 } else {
-                    self.grid.set_loading(true);
-                    self.commit_ticks = 4;
-                    cx.status("Saving…");
+                    cx.open(self.changes_dialog(true));
                 }
             }
             Some(GridAction::DiscardRequested) => {
                 self.grid.discard();
                 cx.status("Changes discarded");
             }
-            Some(GridAction::PreviewSql) => {
-                let code = self.statements();
-                let (changed, inserted, deleted) = self.grid.pending.counts();
-                cx.open(Dialog::facts(
-                    PREVIEW,
-                    "Pending changes",
-                    vec![
-                        Prop::new("Statements", code.len().to_string()),
-                        Prop::new(
-                            "Rows",
-                            format!("{changed} changed · {inserted} inserted · {deleted} deleted"),
-                        ),
-                        Prop::new("Target", "customers"),
-                    ],
-                    code,
-                    None,
-                    Button::primary(PREVIEW.sub("ok"), "Copy SQL"),
-                ));
-            }
+            Some(GridAction::PreviewSql) => cx.open(self.changes_dialog(false)),
             Some(GridAction::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
-            Some(GridAction::FollowReference { row, .. }) => {
-                cx.status(format!("Would follow the reference on row {}", row + 1))
-            }
+            Some(GridAction::FollowReference { row, col }) => cx.status(format!(
+                "Follow {} = {} into {}",
+                self.grid.columns[col].name,
+                self.grid.value(row, col).text(),
+                self.grid.columns[col].references.as_deref().unwrap_or("?")
+            )),
             Some(GridAction::OpenViewer { row, col }) => cx.status(format!(
                 "Would open the viewer for {} on row {}",
                 self.grid.columns[col].name,
                 row + 1
             )),
-            Some(GridAction::FilterOnCell { col, value }) => cx.status(format!(
-                "Would filter {} = {}",
-                self.grid.columns[col].name,
-                value.text()
-            )),
+            Some(GridAction::FilterOnCell { col, value }) => {
+                self.filter_values.retain(|(c, _)| *c != col);
+                self.filter_values.push((col, value));
+                self.set_filters();
+                cx.status("Filter added · F clears the filters");
+            }
             Some(GridAction::OpenFilters) => cx.status("The filter editor belongs to the app"),
-            Some(GridAction::ClearFilters) => cx.status("No filters to clear"),
+            Some(GridAction::ClearFilters) => {
+                if self.filter_values.is_empty() {
+                    cx.status("No filters to clear");
+                } else {
+                    self.filter_values.clear();
+                    self.set_filters();
+                    cx.status("Filters cleared");
+                }
+            }
             Some(GridAction::Activated(r)) => cx.status(format!("Row {} activated", r + 1)),
             Some(GridAction::LeaveForward) => cx.focus_next(),
             Some(GridAction::LeaveBackward) => cx.focus_prev(),
@@ -295,6 +668,148 @@ impl GridPage {
             }
         }
     }
+
+    /// What the schema card says about each column, from its `ColumnSpec`.
+    fn schema(&self) -> Vec<Prop> {
+        self.grid
+            .columns
+            .iter()
+            .map(|c| {
+                let mut v = vec![format!("{:?}", c.kind), c.type_label.clone()];
+                if c.primary {
+                    v.push("primary key".into());
+                }
+                if !c.nullable {
+                    v.push("not null".into());
+                }
+                if c.read_only {
+                    v.push("read-only".into());
+                }
+                if let Some(r) = &c.references {
+                    v.push(format!("references {r}"));
+                }
+                if !c.enum_values.is_empty() {
+                    v.push(format!("one of {}", c.enum_values.join(", ")));
+                }
+                if !matches!(c.editor, ColumnEditor::Text) {
+                    v.push("▾ picks from a fixed set".into());
+                }
+                Prop::new(&c.name, v.join(" · "))
+            })
+            .collect()
+    }
+
+    /// The commands as the grid's key map binds them now.
+    fn commands(&self) -> Vec<Prop> {
+        let mut out: Vec<Prop> = COMMANDS
+            .iter()
+            .map(|(cmd, what)| {
+                let keys = label_for(&self.grid.keymap, *cmd).unwrap_or_else(|| "—".into());
+                Prop::new(&keys, *what)
+            })
+            .collect();
+        out.extend(FIXED.iter().map(|(k, w)| Prop::new(k, *w)));
+        out
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let focus = if ctx.interaction.has_focus(self.grid.id)
+            || self
+                .grid
+                .bar_ids()
+                .iter()
+                .any(|b| ctx.interaction.has_focus(*b))
+        {
+            Some(0)
+        } else {
+            None
+        };
+        let schema = self.schema();
+        let commands = self.commands();
+        let filters_h = u16::from(!self.filter_values.is_empty());
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::flex(12, 26.max(area.height.saturating_sub(46))),
+                StackChild::fixed(3),
+                StackChild::fixed(schema.len() as u16 + 3),
+                StackChild::fixed(commands.len() as u16 + 3),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
+        match l.slot(0) {
+            Some(card) => {
+                let focused = ctx.interaction.focused(self.grid.id)
+                    || self
+                        .grid
+                        .bar_ids()
+                        .iter()
+                        .any(|b| ctx.interaction.focused(*b));
+                let panel = Panel::card(Some(TABLE)).focused(focused);
+                let bg = panel.bg(t);
+                let inner = panel.render(card, buf, t);
+                if filters_h > 0 {
+                    let r = Rect::new(inner.x, inner.y, inner.width, 1);
+                    self.filters.render(r, buf, ctx, bg);
+                }
+                let body = Rect::new(
+                    inner.x,
+                    inner.y + filters_h,
+                    inner.width,
+                    inner.height.saturating_sub(filters_h),
+                );
+                self.grid.render(body, buf, ctx, bg);
+                let meta = match &self.grid.read_only_reason {
+                    Some(_) if !self.grid.editable => {
+                        format!("read-only · {}", self.grid.position_label())
+                    }
+                    _ => self.grid.position_label(),
+                };
+                panel.draw_meta(card, buf, t, &meta);
+            }
+            None => ctx.focus_stop(self.grid.id),
+        }
+        if let Some(r) = l.slot(1) {
+            // the change marks, as the grid draws them
+            let marks = [
+                (RowState::Modified, "modified"),
+                (RowState::Inserted, "inserted"),
+                (RowState::Deleted, "deleted"),
+                (RowState::Error, "error"),
+            ];
+            let legend = marks
+                .iter()
+                .map(|(s, name)| format!("{} {name}", t.change_glyph(*s).0))
+                .collect::<Vec<_>>()
+                .join("   ");
+            let pending = self
+                .grid
+                .pending_label()
+                .unwrap_or_else(|| "no pending changes".into());
+            let props = vec![
+                Prop::new("Change marks", legend),
+                Prop::new("Pending", pending),
+            ];
+            props::render(
+                Rect::new(r.x + 2, r.y, r.width.saturating_sub(4), 2),
+                buf,
+                t,
+                &props,
+                t.canvas,
+            );
+        }
+        for (slot, title, props) in [(2, "Schema", schema), (3, "Commands", commands)] {
+            if let Some(r) = l.slot(slot) {
+                let panel = Panel::card(Some(title));
+                let bg = panel.bg(t);
+                let inner = panel.render(r, buf, t);
+                props::render(inner, buf, t, &props, bg);
+            }
+        }
+    }
 }
 
 impl Page for GridPage {
@@ -320,22 +835,33 @@ impl Page for GridPage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let focused = ctx.interaction.focused(self.grid.id)
-            || self
-                .grid
-                .bar_ids()
-                .iter()
-                .any(|b| ctx.interaction.focused(*b));
-        let panel = Panel::card(Some("customers")).focused(focused);
-        let bg = panel.bg(t);
-        let card = Rect::new(area.x, area.y, area.width, area.height.min(30));
-        let inner = panel.render(card, buf, t);
-        self.grid.render(inner, buf, ctx, bg);
-        panel.draw_meta(card, buf, t, &self.grid.position_label());
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        KEYS.contains(&key).then(|| *self.knobs.clone().slot(key))
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if !KEYS.contains(&key) {
+            return;
+        }
+        let n = crate::options::find(key).map_or(1, |o| o.values.len());
+        *self.knobs.slot(key) = value.min(n - 1);
+        self.grid = build(&self.knobs);
+        self.filter_values.clear();
+        self.set_filters();
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
         if let PageEvent::Blur(ch) = ev {
             if ch.from != self.grid.id {
                 return Outcome::Ignored;
@@ -343,6 +869,9 @@ impl Page for GridPage {
             let (out, gev) = self.grid.on_blur();
             self.on_event(gev, cx);
             return out;
+        }
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
         }
         match ev {
             PageEvent::Tick => {
@@ -401,11 +930,22 @@ impl Page for GridPage {
                 cx.status(format!("Copied {} statements", self.statements().len()));
                 Outcome::Changed
             }
+            PageEvent::DialogClosed { id, result, .. }
+                if *id == REVIEW && *result == DialogResult::Action(1) =>
+            {
+                self.grid.set_loading(true);
+                self.commit_ticks = 4;
+                cx.status("Saving…");
+                Outcome::Changed
+            }
             _ => Outcome::Ignored,
         }
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         if self.grid.is_editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
         }
@@ -417,12 +957,35 @@ impl Page for GridPage {
         if self.grid.cell_editable() {
             h.push(("Enter", "Edit"));
         }
-        h.extend([
-            ("s", "Sort"),
-            ("Space", "Select row"),
-            ("+ -", "Insert / delete"),
-            ("u", "Undo"),
-        ]);
+        // the keys the grid's key map binds now (`datagrid.keymap`)
+        let key = |cmd| hint_key(&self.grid.keymap, cmd);
+        if let Some(k) = key(GridCmd::Sort) {
+            h.push((k, "Sort"));
+        }
+        h.push(("Space", "Select row"));
+        if self.grid.editable {
+            for (cmd, what) in [
+                (GridCmd::InsertRow, "Insert"),
+                (GridCmd::ToggleDelete, "Delete"),
+                (GridCmd::Undo, "Undo"),
+            ] {
+                if let Some(k) = key(cmd) {
+                    h.push((k, what));
+                }
+            }
+        }
         h
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
