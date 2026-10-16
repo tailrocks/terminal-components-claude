@@ -530,7 +530,7 @@ impl App {
         let attached = self.attached();
         if attached {
             // an attached program owns the keyboard except for the detach chord
-            if key.ctrl() && matches!(key.code, KeyCode::Char(']') | KeyCode::Char('5')) {
+            if key.ctrl_char(']') {
                 return self.with_top(|s, w, cx| s.on_key(&key, w, cx));
             }
             let o = self.with_top(|s, w, cx| s.on_key(&key, w, cx));

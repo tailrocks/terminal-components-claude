@@ -304,3 +304,17 @@ fn the_usage_dialog_tab_strip_draws_no_focus_bar() {
     assert!(!rule.is_empty(), "{}", h.text());
     assert!(rule.iter().all(|c| c.fg == t.accent));
 }
+
+#[test]
+fn legacy_ctrl_4_from_the_terminal_opens_the_palette() {
+    // copy #5: a legacy-encoding terminal reports Ctrl+\ as Ctrl+4; the
+    // library's key decoding maps it back, so the capsule's Ctrl+\ works
+    use junie_tui::core::event::Input;
+    use ratatui::crossterm::event::{Event, KeyEvent, KeyModifiers};
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 24);
+    let raw = Event::Key(KeyEvent::new(KeyCode::Char('4'), KeyModifiers::CONTROL));
+    let input = Input::from_crossterm(raw).expect("a key");
+    h.app.handle(input);
+    h.draw();
+    assert!(h.text().contains("Command palette"), "{}", h.text());
+}
