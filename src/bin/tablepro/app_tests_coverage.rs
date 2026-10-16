@@ -794,6 +794,43 @@ fn edited_form() -> H {
     h
 }
 
+/// The global chords work while the connection Name field is editing: the
+/// field binds neither Ctrl+N nor Ctrl+Q, so it passes them on (the shared
+/// `field_common::unbound_key`) and each asks before dropping the edit.
+#[test]
+fn global_chords_reach_past_an_editing_field() {
+    let editing = || {
+        let mut h = H::new(120, 40);
+        let (x, y) = h.find("Local PostgreSQL").unwrap();
+        h.click(x, y);
+        h.key(KeyCode::Char('e'));
+        if !h.app.connections.is_editing() {
+            h.key(KeyCode::Enter);
+        }
+        h.key(KeyCode::End);
+        h.type_str(" v2");
+        assert!(h.app.connections.is_editing());
+        h
+    };
+    let mut h = editing();
+    h.ctrl('n');
+    assert!(
+        h.text().contains("Unsaved changes"),
+        "Ctrl+N asks: {}",
+        h.text()
+    );
+    let mut h = editing();
+    h.ctrl('q');
+    assert!(!h.app.quit);
+    assert!(
+        h.text().contains("Unsaved changes"),
+        "Ctrl+Q asks: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('d'));
+    assert!(h.app.quit, "Discard quits");
+}
+
 /// Ctrl+Q quits through the shared quit keys (`QuitKeys`), as in every
 /// other app: at once when nothing is unsaved, through Save / Discard /
 /// Cancel over an edited connection form.

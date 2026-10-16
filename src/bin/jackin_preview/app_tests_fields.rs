@@ -19,6 +19,26 @@ fn editor() -> H {
     h
 }
 
+/// Ctrl+Q reaches past the editing Name field: the field binds no Ctrl+Q
+/// and passes it on (`field_common::unbound_key`), and the edited editor
+/// asks Save / Discard / Cancel before quitting.
+#[test]
+fn ctrl_q_reaches_past_an_editing_name_field() {
+    let mut h = editor();
+    h.app.focus.focus(crate::screens::editor::NAME);
+    h.draw();
+    h.key(KeyCode::End);
+    h.type_str("-x");
+    assert!(
+        h.app.screens.editor.as_ref().unwrap().name.editing,
+        "{}",
+        h.text()
+    );
+    h.ctrl('q');
+    assert!(!h.app.quit, "an edit is never dropped without asking");
+    assert!(h.text().contains("Discard"), "Ctrl+Q asks: {}", h.text());
+}
+
 fn name_selection(h: &H) -> Option<String> {
     let e = h.app.screens.editor.as_ref().expect("the editor");
     e.name.buffer.selected_text().map(str::to_owned)

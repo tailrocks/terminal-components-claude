@@ -731,7 +731,11 @@ impl App {
                     self.go(Go::Settings);
                     return Outcome::Changed;
                 }
-                KeyCode::Char('q') if key.ctrl() => {
+                KeyCode::Char(_)
+                    if key.ctrl()
+                        && self.quit_keys.classify(&key, KeyContext::default())
+                            == Some(LeaveKey::Quit) =>
+                {
                     return self.request_quit();
                 }
                 _ => {}
@@ -768,6 +772,21 @@ impl App {
             KeyCode::BackTab => {
                 self.focus.prev(&self.ring);
                 Outcome::Changed
+            }
+            // a quit chord an editing field passed on (fields bind no
+            // Ctrl+Q): through the same guard
+            KeyCode::Char(_)
+                if host
+                    && key.ctrl()
+                    && self.quit_keys.classify(
+                        &key,
+                        KeyContext {
+                            text_focus: editing,
+                            ..KeyContext::default()
+                        },
+                    ) == Some(LeaveKey::Quit) =>
+            {
+                self.request_quit()
             }
             KeyCode::Char('q') if key.plain() && !editing && host => {
                 // a letter never leaves unsaved edits (keyboard audit #4)

@@ -549,7 +549,8 @@ impl TextInput {
             // passes on from an immediate edit, so a list under a search
             // field and the page's shortcuts still answer it
             EditAction::None if entry == EditEntry::Immediate => (Outcome::Ignored, None),
-            EditAction::None => (Outcome::Consumed, None),
+            // an unbound chord passes on from any edit (Ctrl+Q, Ctrl+N)
+            EditAction::None => (crate::widgets::field_common::unbound_key(key), None),
             action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
                 Some(Applied::Edited) => {
                     self.live_validate();
@@ -1246,6 +1247,66 @@ mod tests {
             .disabled(true);
         assert!(!locked.wants_text_input());
         assert_eq!(locked.on_key(&plain('x')).0, Outcome::Ignored);
+    }
+
+    /// A field consumes only the keys it uses: while editing, under every
+    /// entry mode and preset, an unbound Ctrl / Alt / Cmd chord (Ctrl+Q,
+    /// Ctrl+N, Alt+X, Cmd+K) passes on to the container, while the bound
+    /// chords (readline keys, the preset's text keys, Cmd+A) still edit.
+    #[test]
+    fn an_editing_field_passes_unbound_chords_on() {
+        use ratatui::crossterm::event::KeyModifiers as M;
+        for entry in [
+            EditEntry::Immediate,
+            EditEntry::TypeToEdit,
+            EditEntry::Explicit,
+        ] {
+            for keys in [FieldKeys::Emacs, FieldKeys::Desktop] {
+                let mut i = TextInput::new(WidgetId::of("c"), "Name")
+                    .value("abc")
+                    .edit_entry(entry)
+                    .field_keys(keys);
+                i.begin_edit();
+                for (c, m) in [
+                    ('q', M::CONTROL),
+                    ('n', M::CONTROL),
+                    ('x', M::ALT),
+                    ('k', M::SUPER),
+                ] {
+                    assert_eq!(
+                        i.on_key(&key(KeyCode::Char(c), m)),
+                        (Outcome::Ignored, None),
+                        "{entry:?} {keys:?}: {m:?}+{c} passes on"
+                    );
+                    assert!(i.editing, "the edit stays open");
+                }
+                assert_eq!(i.text(), "abc");
+                // a bound chord still edits: Cmd+A everywhere, Ctrl+E
+                // (Emacs line end) or Ctrl+A (Desktop select all)
+                assert_eq!(
+                    i.on_key(&key(KeyCode::Char('a'), M::SUPER)).0,
+                    Outcome::Changed,
+                    "{entry:?} {keys:?}: Cmd+A"
+                );
+                let bound = match keys {
+                    FieldKeys::Emacs => 'e',
+                    FieldKeys::Desktop => 'a',
+                };
+                assert_eq!(
+                    i.on_key(&key(KeyCode::Char(bound), M::CONTROL)).0,
+                    Outcome::Changed,
+                    "{entry:?} {keys:?}: Ctrl+{bound}"
+                );
+                // an unbound plain key stays with a modal edit
+                if entry != EditEntry::Immediate {
+                    assert_eq!(
+                        i.on_key(&bare(KeyCode::F(5))).0,
+                        Outcome::Consumed,
+                        "{entry:?}: F5 stays with the edit"
+                    );
+                }
+            }
+        }
     }
 
     #[test]

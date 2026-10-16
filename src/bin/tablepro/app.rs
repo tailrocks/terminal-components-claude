@@ -427,6 +427,22 @@ impl App {
         Outcome::Changed
     }
 
+    /// Ctrl+N on the connection list: a new form, asking first when it
+    /// would replace an edited one.
+    fn new_connection(&mut self) -> Outcome {
+        let mut cx = Cx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: Vec::new(),
+            clicks: 1,
+        };
+        let o = self
+            .connections
+            .leave_form(crate::connections::FormLeave::New, &mut cx);
+        let reqs = std::mem::take(&mut cx.requests);
+        o.or(self.apply_requests(reqs))
+    }
+
     /// What the quit keys need to know about the keyboard's target
     /// ([`QuitKeys::classify`]).
     fn key_context(&self) -> KeyContext {
@@ -709,19 +725,10 @@ impl App {
             Screen::Connections => self.connections.is_editing(),
             Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
         };
+        // an editing field has the first chance at a chord; one it does not
+        // bind passes on and reaches the same chord below
         if key.ctrl_char('n') && self.screen == Screen::Connections && !editing {
-            // a new form never replaces edits without asking
-            let mut cx = Cx {
-                focus: &mut self.focus,
-                ring: &self.ring,
-                requests: Vec::new(),
-                clicks: 1,
-            };
-            let o = self
-                .connections
-                .leave_form(crate::connections::FormLeave::New, &mut cx);
-            let reqs = std::mem::take(&mut cx.requests);
-            return o.or(self.apply_requests(reqs));
+            return self.new_connection();
         }
         if self.screen == Screen::Workbench
             && !editing
@@ -787,6 +794,10 @@ impl App {
                 self.pointer.flash(f, now);
             }
             return out;
+        }
+        // a chord the editing field passed on (it binds no Ctrl+N)
+        if key.ctrl_char('n') && self.screen == Screen::Connections {
+            return self.new_connection();
         }
         // global keys
         match key.code {
