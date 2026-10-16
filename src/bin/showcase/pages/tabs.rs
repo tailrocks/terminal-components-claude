@@ -116,8 +116,8 @@ fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
         .middle_click_closes(o.on("tabs.middle_click"))
         .overflow_menu(o.on("tabs.overflow_menu"))
         .nav(match o.get("tabs.nav") {
-            1 => NavKeys::NO_VIM,
-            _ => NavKeys::DEFAULT,
+            1 => NavKeys::VIM,
+            _ => NavKeys::DESKTOP,
         });
     if o.get("tabs.close_button") == 1 {
         // a custom `×`: red on hover, like a destructive close
