@@ -17,7 +17,7 @@
 //! | [`ColumnEditor::Select`] | a list | Enter, Space, click |
 //! | [`ColumnEditor::Combo`] | a search line over a filtered list | Enter, click |
 //! | [`ColumnEditor::Radio`] | a list of radio rows with descriptions | Enter, Space, click |
-//! | [`ColumnEditor::Toggle`] | nothing: two values flip in place | at once |
+//! | [`ColumnEditor::Checkbox`] | nothing: two values flip in place | at once |
 //! | [`ColumnEditor::Segmented`] | a one-row strip of segments | Enter, Space, click |
 //! | [`ColumnEditor::Tags`] | a checklist (several values) | Space toggles, Enter commits |
 
@@ -123,8 +123,10 @@ pub enum ColumnEditor {
     Combo(Options),
     /// Pick one from radio rows that can carry descriptions.
     Radio(Options),
-    /// Two values (`[off, on]`) that flip in place.
-    Toggle(Options),
+    /// Two values (`[off, on]`, a boolean) shown as a checkbox that flips
+    /// in place: a checkbox, not a switch (switches apply settings at once;
+    /// a cell is data).
+    Checkbox(Options),
     /// Pick one of a few short values on a one-row segmented strip.
     Segmented(Options),
     /// Pick any number of values; the cell stores them joined by
@@ -140,7 +142,7 @@ impl ColumnEditor {
             Self::Select(o)
             | Self::Combo(o)
             | Self::Radio(o)
-            | Self::Toggle(o)
+            | Self::Checkbox(o)
             | Self::Segmented(o)
             | Self::Tags(o) => Some(o),
         }
@@ -151,9 +153,35 @@ impl ColumnEditor {
         self.options().is_some()
     }
 
-    /// The editor opens a popup (every constrained editor but Toggle).
+    /// The editor opens a popup (every constrained editor but Checkbox).
     pub fn has_popup(&self) -> bool {
-        self.is_constrained() && !matches!(self, Self::Toggle(_))
+        self.is_constrained() && !matches!(self, Self::Checkbox(_))
+    }
+
+    /// The editor the option-count ladder picks: 2 values a checkbox, 3–5
+    /// a segmented strip, 6–15 a dropdown, more a searchable combo box.
+    /// Radio (values with descriptions) and Tags (several values) are
+    /// chosen explicitly.
+    pub fn for_options(options: Options) -> Self {
+        match options.len() {
+            0..=2 => Self::Checkbox(options),
+            3..=5 => Self::Segmented(options),
+            6..=15 => Self::Select(options),
+            _ => Self::Combo(options),
+        }
+    }
+
+    /// A Checkbox cell's state: `Some(true)` for its second (on) value,
+    /// `Some(false)` for the first, `None` for anything else.
+    pub fn checked(&self, raw: &str) -> Option<bool> {
+        let Self::Checkbox(opts) = self else {
+            return None;
+        };
+        match opts.find(raw)? {
+            0 => Some(false),
+            1 => Some(true),
+            _ => None,
+        }
     }
 
     fn parts<'a>(&self, raw: &'a str, cfg: &EditorConfig) -> Vec<&'a str> {
@@ -202,10 +230,10 @@ impl ColumnEditor {
         opts.find(raw).and_then(|i| opts.0[i].tone)
     }
 
-    /// The value a Toggle flips `raw` to: the other of its two values (an
+    /// The value a Checkbox flips `raw` to: the other of its two values (an
     /// unknown value becomes the first enabled one).
     pub fn toggled(&self, raw: &str) -> Option<String> {
-        let Self::Toggle(opts) = self else {
+        let Self::Checkbox(opts) = self else {
             return None;
         };
         let enabled: Vec<&OptionItem> = opts.0.iter().filter(|o| !o.is_disabled()).collect();
@@ -238,9 +266,9 @@ pub struct EditorConfig {
     /// Typing jumps to the option whose label starts with the typed
     /// prefix (Select, Radio, Tags, Segmented). Default on.
     pub type_ahead: bool,
-    /// Editable popup cells show a trailing `▾` on hover and on the cursor
-    /// cell. Default on.
-    pub affordance: bool,
+    /// Where editable popup cells show their trailing `▾`. Default
+    /// [`Affordance::Focused`].
+    pub affordance: Affordance,
     /// A value outside the options is drawn in the error tone with `!`.
     /// Default on.
     pub flag_out_of_set: bool,
@@ -260,12 +288,25 @@ impl Default for EditorConfig {
             popup_width: (14, 48),
             cursor_style: CursorStyle::Fill,
             type_ahead: true,
-            affordance: true,
+            affordance: Affordance::Focused,
             flag_out_of_set: true,
             tag_separator: ", ",
             placement: Placement::Below,
         }
     }
+}
+
+/// Which editable option cells show the `▾` that opens their editor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Affordance {
+    /// The focused cursor cell and the hovered cell only: the table stays
+    /// quiet until a cell is the one being worked on.
+    #[default]
+    Focused,
+    /// Every editable option cell.
+    Always,
+    /// None (the keyboard and a second click still open the editor).
+    Never,
 }
 
 /// What a key or a click did to an open [`ChoiceEditor`].
@@ -314,7 +355,7 @@ pub struct ChoiceEditor {
 
 impl ChoiceEditor {
     /// Open `editor` on a cell holding `raw`; `None` for editors without a
-    /// popup (Text, Toggle).
+    /// popup (Text, Checkbox).
     pub fn open(
         id: WidgetId,
         editor: &ColumnEditor,
@@ -327,7 +368,7 @@ impl ChoiceEditor {
             ColumnEditor::Radio(_) => Kind::Radio,
             ColumnEditor::Segmented(_) => Kind::Segmented,
             ColumnEditor::Tags(_) => Kind::Tags,
-            ColumnEditor::Text | ColumnEditor::Toggle(_) => return None,
+            ColumnEditor::Text | ColumnEditor::Checkbox(_) => return None,
         };
         let options = editor.options()?.clone();
         let current = options.find(raw);
@@ -904,7 +945,19 @@ mod tests {
         assert!(!tags.out_of_set("api, db", &cfg));
         assert!(tags.out_of_set("api, cache", &cfg));
         assert!(!ColumnEditor::Text.out_of_set("anything", &cfg));
-        let toggle = ColumnEditor::Toggle(Options::values(&["off", "on"]));
+        let toggle = ColumnEditor::Checkbox(Options::values(&["off", "on"]));
+        assert_eq!(toggle.checked("on"), Some(true));
+        assert_eq!(toggle.checked("off"), Some(false));
+        assert_eq!(toggle.checked("maybe"), None);
+        let ladder = |n: usize| {
+            let values: Vec<String> = (0..n).map(|i| format!("v{i}")).collect();
+            let refs: Vec<&str> = values.iter().map(String::as_str).collect();
+            ColumnEditor::for_options(Options::values(&refs))
+        };
+        assert!(matches!(ladder(2), ColumnEditor::Checkbox(_)));
+        assert!(matches!(ladder(4), ColumnEditor::Segmented(_)));
+        assert!(matches!(ladder(9), ColumnEditor::Select(_)));
+        assert!(matches!(ladder(30), ColumnEditor::Combo(_)));
         assert_eq!(toggle.toggled("off").as_deref(), Some("on"));
         assert_eq!(toggle.toggled("on").as_deref(), Some("off"));
         assert_eq!(toggle.toggled("maybe").as_deref(), Some("off"));
