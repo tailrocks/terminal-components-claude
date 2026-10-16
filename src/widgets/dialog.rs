@@ -1164,6 +1164,10 @@ impl Dialog {
         count: u8,
         focus: &mut crate::core::focus::Focus,
     ) -> Outcome {
+        // the close button in the frame: what Esc does
+        if id == crate::ui::modal::CLOSE && self.dismiss.shows_close() {
+            return self.dismissed();
+        }
         if let Some(inp) = self.input_mut()
             && inp.id == id
         {
@@ -1269,9 +1273,12 @@ impl Dialog {
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
             .border_set(t.glyphs.border)
-            .border_style(t.border(true).bg(bg));
+            .border_style(crate::ui::modal::border_style(ctx, bg));
         ratatui::widgets::Widget::render(block, area, buf);
         let _ = panel;
+        if self.dismiss.shows_close() {
+            crate::ui::modal::close_button(area, buf, ctx, bg);
+        }
         let inner = area.inner(Margin::new(1 + self.pad.x, 1 + self.pad.y));
         if inner.is_empty() {
             return;

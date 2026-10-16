@@ -1969,6 +1969,9 @@ pub struct Strings {
     /// The reason on a menu item a preview or demo does not implement.
     /// `Not in this preview`.
     pub not_in_preview: &'static str,
+    /// The button that closes a reference overlay with nothing to decide
+    /// (the help overlay). `Done`.
+    pub done: &'static str,
 }
 
 impl Strings {
@@ -2025,6 +2028,7 @@ impl Strings {
         help_title: "Keyboard shortcuts",
         help_footer: "↑↓ Scroll · Esc Close",
         not_in_preview: "Not in this preview",
+        done: "Done",
     };
 
     /// [`Self::DEFAULT`] with 7-bit punctuation (`...`, `|`, `^v`), to pair
