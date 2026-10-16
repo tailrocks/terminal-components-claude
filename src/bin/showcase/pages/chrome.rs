@@ -293,6 +293,14 @@ impl Page for ChromePage {
                 }
                 Outcome::Ignored
             }
+            // a title opens its menu on the press (MenuBar::open_on)
+            PageEvent::Press { id, .. } if self.bar.owns(*id) => {
+                let (o, ev) = self.bar.on_press(*id);
+                if let Some(MenuBarEvent::Opened(_)) = ev {
+                    cx.focus.focus(BAR);
+                }
+                o
+            }
             PageEvent::Click { id, .. } => {
                 if self.bar.owns(*id) || self.bar.is_open() {
                     let (o, ev) = self.bar.on_click(*id);

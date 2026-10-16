@@ -1327,6 +1327,37 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
 }
 
 #[test]
+fn a_menu_bar_title_opens_on_the_press_and_a_drag_release_chooses_a_row() {
+    let mut h = Harness::new(120, 40, PageId::Chrome);
+    let bar = WidgetId::of("chrome.menubar");
+    let file = h.app.hits.area_of(bar.child(0)).expect("menu title");
+    let row = |i: usize| bar.child(0).sub("menu").child(i);
+    // the menu is open while the button is still down
+    h.mouse(MouseKind::Down, file.x + 1, file.y);
+    let r1 = h
+        .app
+        .hits
+        .area_of(row(1))
+        .expect("File opened on the press");
+    // releasing back on the title after no movement keeps it open
+    h.mouse(MouseKind::Up, file.x + 1, file.y);
+    assert!(h.app.hits.area_of(row(0)).is_some(), "still open");
+    // press the open title: it closes; press again, drag onto a row, release
+    h.mouse(MouseKind::Down, file.x + 1, file.y);
+    h.mouse(MouseKind::Up, file.x + 1, file.y);
+    assert!(h.app.hits.area_of(row(0)).is_none(), "the press closed it");
+    h.mouse(MouseKind::Down, file.x + 1, file.y);
+    h.mouse(MouseKind::Drag, r1.x + 2, r1.y);
+    h.mouse(MouseKind::Up, r1.x + 2, r1.y);
+    assert!(
+        h.app.hits.area_of(row(0)).is_none(),
+        "choosing closed the menu"
+    );
+    // the chosen item's label lands in the status bar
+    assert!(h.text().contains("Split right"), "{}", h.text());
+}
+
+#[test]
 fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
     let mut h = Harness::new(120, 40, PageId::Chrome);
     let bar = WidgetId::of("chrome.menubar");
@@ -1355,10 +1386,12 @@ fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
     h.mouse(MouseKind::Move, row.x + 2, row.y);
     assert_eq!(open(&h), vec![2]);
 
-    // as on macOS the pointer reaching File already opened it, so the click
-    // lands on the open title and closes the menu
+    // as on macOS the pointer reaching File already opened it, so the press
+    // lands on the open title and closes the menu; the release keeps it shut
+    h.mouse(MouseKind::Move, file.x + 1, file.y);
+    assert_eq!(open(&h), vec![0], "pointing at File swapped the menu");
     h.mouse(MouseKind::Down, file.x + 1, file.y);
-    assert_eq!(open(&h), vec![0], "pressing File swapped the menu");
+    assert!(open(&h).is_empty(), "pressing the open title closes it");
     h.mouse(MouseKind::Up, file.x + 1, file.y);
     assert!(open(&h).is_empty());
 

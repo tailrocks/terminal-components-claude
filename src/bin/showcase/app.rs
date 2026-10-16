@@ -605,6 +605,7 @@ impl App {
             focus_hidden: false,
             hover_suppressed: self.pointer.hover_suppressed,
             pointer_focus: self.pointer.pointer_focus,
+            motion_unreported: !self.pointer.reports_motion(),
             tick: self.tick,
         }
     }
@@ -1031,6 +1032,16 @@ impl App {
                     None => out,
                 }
             }
+            MouseKind::SecondaryDrag => self.pointer.on_secondary_drag(&self.hits, m.pos),
+            // press, drag onto a context-menu row, release: the release
+            // chooses it, delivered as a click on the row
+            MouseKind::SecondaryUp => match self.pointer.on_secondary_up(&self.hits, m.pos) {
+                Some(id) => {
+                    self.pointer.press(id);
+                    self.on_release(m, Some(id))
+                }
+                None => Outcome::Ignored,
+            },
             MouseKind::Middle => Outcome::Ignored,
             MouseKind::Secondary => {
                 let route = self.pointer.route_secondary(&self.hits, m.pos);

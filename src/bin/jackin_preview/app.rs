@@ -364,6 +364,7 @@ impl App {
             focus_hidden: false,
             hover_suppressed: self.pointer.hover_suppressed,
             pointer_focus: self.pointer.pointer_focus,
+            motion_unreported: !self.pointer.reports_motion(),
             tick: (self.world.now_ms() / 80) as u64,
         }
     }
@@ -1800,6 +1801,14 @@ impl App {
                         _ => {}
                     }
                 }
+                // a host menu title opens on the press (MenuBar::open_on)
+                if self.modals.is_empty()
+                    && Self::is_host(self.route)
+                    && self.host_menu.owns(id)
+                    && self.host_menu.on_press(id).0 != Outcome::Ignored
+                {
+                    return Outcome::Changed;
+                }
                 if self.modals.is_empty() {
                     let route = self.route;
                     let mut cx = Cx {
@@ -1830,6 +1839,16 @@ impl App {
                     None => out,
                 }
             }
+            MouseKind::SecondaryDrag => self.pointer.on_secondary_drag(&self.hits, m.pos),
+            // press, drag onto a context-menu row, release: the release
+            // chooses it, delivered as a click on the row
+            MouseKind::SecondaryUp => match self.pointer.on_secondary_up(&self.hits, m.pos) {
+                Some(id) => {
+                    self.pointer.press(id);
+                    self.on_release(m, Some(id))
+                }
+                None => Outcome::Ignored,
+            },
             MouseKind::Middle => Outcome::Ignored,
             MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
                 SecondaryRoute::Nothing if self.modals.is_empty() => Outcome::Ignored,
