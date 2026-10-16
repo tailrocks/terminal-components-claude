@@ -112,8 +112,8 @@ impl Harness {
     fn status(&self) -> String {
         self.app
             .status
-            .as_ref()
-            .map(|(s, _)| s.clone())
+            .text()
+            .map(str::to_owned)
             .unwrap_or_default()
     }
 }

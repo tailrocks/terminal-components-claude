@@ -11,11 +11,7 @@ use crate::screens::Go;
 use crate::sim::launch::LaunchPlan;
 
 fn status(h: &H) -> String {
-    h.app
-        .status
-        .as_ref()
-        .map(|(s, _, _)| s.clone())
-        .unwrap_or_default()
+    h.app.status.text().map(str::to_owned).unwrap_or_default()
 }
 
 /// Words that belong to the preview's implementation, not to the operator.

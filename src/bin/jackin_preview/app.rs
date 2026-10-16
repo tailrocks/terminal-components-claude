@@ -2,11 +2,13 @@
 //! host control plane, cockpit, handoff, Capsule, outro), the modal stack,
 //! focus/hover/press state, the identity strip and the footer.
 
+use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
+use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, letters_allowed};
@@ -175,7 +177,9 @@ pub struct App {
     pub hits: HitRegistry,
     /// Hover, press, flash and click-count state.
     pub pointer: PointerState,
-    pub status: Option<(String, Tone, i64)>,
+    /// The footer status ([`StatusLine`]: 5 s on the world clock; an
+    /// error stays until the next action).
+    pub status: StatusLine,
     pub size: (u16, u16),
     pub quit: bool,
     /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Esc never
@@ -219,7 +223,7 @@ impl App {
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
             pointer: PointerState::default(),
-            status: None,
+            status: StatusLine::new(),
             size: (0, 0),
             quit: false,
             quit_keys: QuitKeys::DEFAULT,
@@ -332,7 +336,7 @@ impl App {
     }
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
-        self.status = Some((s.to_owned(), tone, self.world.now_ms() + 5_000));
+        self.status.set_at(s, tone, self.world.clock.now());
     }
 
     fn animating(&self) -> bool {
@@ -383,7 +387,10 @@ impl App {
     // ------------------------------------------------------------- input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        // an error status has been seen once the user acts again
+        let seen = self.status.on_input(&input);
         let out = self.handle_input(input);
+        let out = if seen { out.or(Outcome::Changed) } else { out };
         out.or(self.forward_blur())
     }
 
@@ -469,10 +476,7 @@ impl App {
         if let Some(pos) = self.pointer.track_repeat_due(self.now_ms()) {
             out = out.or(self.on_mouse(Mouse::new(MouseKind::Down, pos)));
         }
-        if let Some((_, _, until)) = &self.status
-            && self.world.now_ms() >= *until
-        {
-            self.status = None;
+        if self.status.expire(self.world.clock.now()) {
             out = Outcome::Changed;
         }
         if let Some(at) = self.exit_after_status
@@ -2949,7 +2953,7 @@ impl App {
         } else {
             None
         };
-        let status = self.status.as_ref().map(|(s, tone, _)| (s.as_str(), *tone));
+        let status = self.status.get();
         // still-inside feedback takes the status slot when present
         let still = self
             .screens

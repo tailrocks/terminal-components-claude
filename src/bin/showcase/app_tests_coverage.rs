@@ -129,7 +129,7 @@ impl Harness {
     }
 
     fn status(&self) -> Option<String> {
-        self.app.status.as_ref().map(|(value, _)| value.clone())
+        self.app.status.text().map(str::to_owned)
     }
 
     fn assert_status(&self, expected: &str) {
