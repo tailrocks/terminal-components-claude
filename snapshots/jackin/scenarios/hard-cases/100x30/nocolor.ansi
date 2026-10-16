@@ -1,4 +1,4 @@
- [0m[1m jackin❯ [0m   File   Go   Help               Workspaces  ! instance index unreadable  ▲ daemon stale [0m
+ [0m[1;7m jackin❯ [0m   File   Go   Help              Workspaces  ! instance index unreadable  ▲ daemon stale  [0m
                                                                                                     [0m
  ╭─[0m[1m Workspaces [0m─────────────────────────────────────────────────────────────────────── 3 running ─╮ [0m
  │ [0m[1m▎   Current directory                                              [0msaved as payments-platform[0m[1m [0m │ [0m
@@ -27,4 +27,5 @@
    ◉ 7f3a  the-architect · Claude Code · running                                                    [0m
                                                                                                     [0m
                                                                                                     [0m
-  …   [0m[1m▲[0m Could not confirm running instances: instance index unreadable · entered without the ritual [0m
+  [0m[1m?[0m Help  …  [0m[1m▲[0m Could not confirm running instances: instance index unreadable · list may be incomp… [0m
+[?25l
