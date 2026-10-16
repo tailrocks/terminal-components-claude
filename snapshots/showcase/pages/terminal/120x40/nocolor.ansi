@@ -27,14 +27,15 @@
                           │    #14 COPY rust-toolchain.toml ./                  ┃ │ │                                   [0m
    Screens                │  ✓ Build container                                  ┃ │ │                                   [0m
    Settings               │  [0m[1m▶ Resolve credentials[0m                              ┃ │ │                                   [0m
-   Task runner            │    1Password  Engineering › Anthropic · Work › crede┃ │ │                                   [0m
+   Task runner            │    1Password  Engineering › Anthropic · Work › cred ┃ │ │                                   [0m
                           │  ✓ Resolve credentials                              ┃ │ │                                   [0m
                           │  [0m[1m▶ Start agent[0m                                      ┃ │ │                                   [0m
                           │    claude --resume  pid 4188                        ┃ │ │                                   [0m
                           │  ✓ Start agent                                      ┃ │ │                                   [0m
                           │  [0m[1m▶ Ready[0m                                            ┃ │ │                                   [0m
                           │  ✓ Ready                                            ┃ │ │                                   [0m
-                          │  [0m[1mpayments-platform ❯ [0m                               ┃ │ │   [0m[1mRun [0m   Run with a failure       [0m
+                          │  [0m[1mpayments-platform ❯ [0m                               ┃ │ │   [0m[1;7mRun [0m   Run with a failure       [0m
                           ╰───────────────────────────────────────────────────────╯ │                                   [0m
                                                                                                                         [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                             [0m
+[?25l
