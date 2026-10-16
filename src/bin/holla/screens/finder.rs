@@ -1412,7 +1412,7 @@ impl Screen for FinderPage {
             }
             Some(Phase::Click) => {
                 // a double click on an item runs it
-                if cx.clicks >= 2
+                if ev.count() >= 2
                     && let Some(i) = self.locate_row(id)
                     && matches!(self.rows[i], Row::Item(..))
                 {
