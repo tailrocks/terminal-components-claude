@@ -38,14 +38,16 @@ use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::too_small::TooSmall;
 
-use crate::connections::{ConnEvent, ConnectionsScreen};
+use crate::connections::ConnectionsScreen;
 use crate::context::{self, CtxMenu};
 use crate::db::{Catalog, Environment, SafeMode};
 use crate::filter_editor::{FilterDone, FilterEditor};
 use crate::model::{History, SwitchTarget, SwitcherIndex};
+use crate::pages::Tablepro;
 use crate::sql::{self, Decision};
 use crate::tabs::{Filter, FilterOp};
 use crate::workbench::{WorkTab, Workbench};
+use junie_tui::shell::Page;
 
 const STRIP_SAFE: WidgetId = WidgetId::of("strip.safe");
 const STRIP_SCOPE: WidgetId = WidgetId::of("strip.scope");
@@ -74,6 +76,8 @@ pub enum Act {
     OpenTableFiltered(String, String, String),
     OpenViewer(String, CellValue),
     ConfirmCloseTab(usize),
+    /// A connection finished connecting: open its workbench.
+    Connected(usize),
 }
 
 /// What a tablepro page asks of the shell (the library request).
@@ -300,14 +304,7 @@ impl App {
                     let out = top.layer.on_paste(&text).or(Outcome::Consumed);
                     return self.take_layer().or(out);
                 }
-                match self.screen {
-                    Screen::Connections => self.connections.on_paste(&text),
-                    Screen::Workbench => self
-                        .workbench
-                        .as_mut()
-                        .map(|w| w.on_paste(&text))
-                        .unwrap_or(Outcome::Ignored),
-                }
+                self.with_page(|p, h, cx| p.on_paste(&text, h, cx))
             }
             Input::Key(key) => {
                 // the chord quit keys (Ctrl+C, Ctrl+Q) work everywhere,
@@ -373,10 +370,7 @@ impl App {
     /// What the quit keys need to know about the keyboard's target
     /// ([`QuitKeys::classify`]).
     fn key_context(&self) -> KeyContext {
-        let editing = match self.screen {
-            Screen::Connections => self.connections.is_editing(),
-            Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
-        };
+        let editing = self.shown().is_some_and(|p| p.is_editing());
         KeyContext {
             text_focus: editing,
             dirty: self.connections.form_dirty(),
@@ -472,10 +466,10 @@ impl App {
         if self.shell.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
-        if let Some(ConnEvent::Connected(i)) = self.connections.tick() {
-            self.connect(i);
-            out = Outcome::Changed;
-        }
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
+        let o = Page::on_tick(&mut self.connections, &mut self.history, &mut cx);
+        let reqs = cx.take();
+        out = out.or(o).or(self.apply_requests(reqs));
         if let Some(left) = self.committing.as_mut() {
             *left = left.saturating_sub(1);
             if *left == 0 {
@@ -522,6 +516,49 @@ impl App {
         out
     }
 
+    /// The page shown ([`Screen`]): Connections, or the Workbench once a
+    /// connection is open.
+    fn shown(&self) -> Option<&dyn Page<Tablepro>> {
+        match self.screen {
+            Screen::Connections => Some(&self.connections),
+            Screen::Workbench => self.workbench.as_ref().map(|w| w as &dyn Page<Tablepro>),
+        }
+    }
+
+    /// The page shown and the history it reads, borrowed apart.
+    fn shown_mut(&mut self) -> (Option<&mut dyn Page<Tablepro>>, &mut History) {
+        let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
+            Screen::Connections => Some(&mut self.connections),
+            Screen::Workbench => self
+                .workbench
+                .as_mut()
+                .map(|w| w as &mut dyn Page<Tablepro>),
+        };
+        (page, &mut self.history)
+    }
+
+    /// Hand an event to the shown page in a fresh [`Cx`], then apply what
+    /// it asked for.
+    fn with_page(
+        &mut self,
+        f: impl FnOnce(&mut dyn Page<Tablepro>, &mut History, &mut Cx) -> Outcome,
+    ) -> Outcome {
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
+        let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
+            Screen::Connections => Some(&mut self.connections),
+            Screen::Workbench => self
+                .workbench
+                .as_mut()
+                .map(|w| w as &mut dyn Page<Tablepro>),
+        };
+        let o = match page {
+            Some(p) => f(p, &mut self.history, &mut cx),
+            None => Outcome::Ignored,
+        };
+        let reqs = cx.take();
+        o.or(self.apply_requests(reqs))
+    }
+
     fn apply_requests(&mut self, requests: Vec<Request>) -> Outcome {
         let mut out = Outcome::Ignored;
         for r in requests {
@@ -549,6 +586,7 @@ impl App {
     /// An action a page asked for ([`Act`]).
     fn act(&mut self, a: Act) {
         match a {
+            Act::Connected(i) => self.connect(i),
             Act::EditFilter(i) => self.open_filter_editor(i, None),
             Act::FilterOnCell(col, v) => {
                 let val = match &v {
@@ -656,10 +694,7 @@ impl App {
             return self.layer_key(key);
         }
         // global chords that work everywhere (not while editing text)
-        let editing = match self.screen {
-            Screen::Connections => self.connections.is_editing(),
-            Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
-        };
+        let editing = self.shown().is_some_and(|p| p.is_editing());
         // an editing field has the first chance at a chord; one it does not
         // bind passes on and reaches the same chord below
         if key.ctrl_char('n') && self.screen == Screen::Connections && !editing {
@@ -689,26 +724,10 @@ impl App {
             return o;
         }
         // screen-level handling
-        let out = match self.screen {
-            Screen::Connections => {
-                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-                let (o, _) = self.connections.on_key(&key, &mut cx);
-                let reqs = cx.take();
-                let o2 = self.apply_requests(reqs);
-                o.or(o2)
-            }
-            Screen::Workbench => {
-                let Some(mut w) = self.workbench.take() else {
-                    return Outcome::Ignored;
-                };
-                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-                let o = w.on_key(&key, &mut cx, &mut self.history);
-                let reqs = cx.take();
-                self.workbench = Some(w);
-                let o2 = self.apply_requests(reqs);
-                o.or(o2)
-            }
-        };
+        if self.screen == Screen::Workbench && self.workbench.is_none() {
+            return Outcome::Ignored;
+        }
+        let out = self.with_page(|p, h, cx| p.on_key(&key, h, cx));
         if out.consumed() {
             if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
                 && key.plain()
@@ -2069,17 +2088,7 @@ impl App {
         {
             return o;
         }
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let o = match self.screen {
-            Screen::Connections => self.connections.pointer(ev, &mut cx).0,
-            Screen::Workbench => match self.workbench.as_mut() {
-                Some(w) => w.pointer(ev, &mut cx, &mut self.history),
-                None => Outcome::Ignored,
-            },
-        };
-        let reqs = cx.take();
-        let o2 = self.apply_requests(reqs);
-        o.or(o2)
+        self.with_page(|p, h, cx| p.pointer(ev, h, cx))
     }
 
     /// An event while a layer is open: the frame's `×` means what Esc
@@ -2251,13 +2260,9 @@ impl App {
             area.height.saturating_sub(4),
         );
         self.draw_strip(header, buf, ctx);
-        match self.screen {
-            Screen::Connections => self.connections.render(body, buf, ctx),
-            Screen::Workbench => {
-                if let Some(w) = self.workbench.as_mut() {
-                    w.render(body, buf, ctx, &self.history);
-                }
-            }
+        let (page, history) = self.shown_mut();
+        if let Some(p) = page {
+            p.render(body, buf, ctx, history);
         }
         self.draw_footer(footer, buf, ctx);
         // overlays, bottom to top
@@ -2393,20 +2398,13 @@ impl App {
 
     fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        let editing = match self.screen {
-            Screen::Connections => self.connections.is_editing(),
-            Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
-        };
+        let editing = self.shown().is_some_and(|p| p.is_editing());
         let hints: Vec<Hint> = match self.layers.top() {
             Some(e) => e.layer.hints(self.shell.focus.current()),
-            None => match self.screen {
-                Screen::Connections => self.connections.hints(self.shell.focus.current()),
-                Screen::Workbench => self
-                    .workbench
-                    .as_ref()
-                    .map(|w| w.hints(self.shell.focus.current()))
-                    .unwrap_or_default(),
-            },
+            None => self
+                .shown()
+                .map(|p| p.hints(self.shell.focus.current(), &self.history))
+                .unwrap_or_default(),
         };
         let mut hints = hints;
         // the focused cursor row is cut: name the reveal key
@@ -2465,11 +2463,18 @@ impl shell::App for App {
     /// end their edits on the event path.
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.layers.on_blur(ch);
-        out = out.or(self.connections.on_blur(ch));
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
+        out = out.or(Page::on_blur(
+            &mut self.connections,
+            ch,
+            &mut self.history,
+            &mut cx,
+        ));
         if let Some(w) = self.workbench.as_mut() {
-            out = out.or(w.on_blur(ch));
+            out = out.or(Page::on_blur(w, ch, &mut self.history, &mut cx));
         }
-        out
+        let reqs = cx.take();
+        out.or(self.apply_requests(reqs))
     }
     fn layer_open(&self) -> bool {
         !self.layers.is_empty()
