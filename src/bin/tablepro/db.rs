@@ -121,6 +121,18 @@ impl Environment {
             Environment::Production => "production",
         }
     }
+
+    /// The library's environment kind: its badge glyph and tone come from
+    /// [`junie_tui::theme::Theme::env`].
+    pub fn kind(self) -> junie_tui::theme::EnvKind {
+        use junie_tui::theme::EnvKind;
+        match self {
+            Environment::Local => EnvKind::Local,
+            Environment::Development => EnvKind::Development,
+            Environment::Staging => EnvKind::Staging,
+            Environment::Production => EnvKind::Production,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

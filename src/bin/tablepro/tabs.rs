@@ -11,7 +11,7 @@ use ratatui::style::Modifier;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::keymap::hint_key;
-use junie_tui::theme::{SyntaxTone, Tone};
+use junie_tui::theme::{StatusKind, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::widgets::button::Button;
@@ -338,6 +338,7 @@ pub fn highlight_sql(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
                 sql::TokKind::Keyword => SyntaxTone::Keyword,
                 sql::TokKind::Ident => SyntaxTone::Ident,
                 sql::TokKind::Number => SyntaxTone::Number,
+                sql::TokKind::Literal => SyntaxTone::Literal,
                 sql::TokKind::String => SyntaxTone::Str,
                 sql::TokKind::Operator => SyntaxTone::Operator,
                 sql::TokKind::Punct => SyntaxTone::Punct,
@@ -1611,7 +1612,7 @@ impl QueryTab {
     ) {
         let running = self.running.is_some();
         let mut buttons = vec![
-            Button::secondary(TOOLBAR_RUN, "Run")
+            Button::primary(TOOLBAR_RUN, "Run")
                 .tooltip("Run the statement at the cursor")
                 .shortcut("Ctrl+R")
                 .disabled(running),
@@ -1731,27 +1732,35 @@ impl QueryTab {
             String::new()
         };
         if !status_line.is_empty() {
-            let is_err = self
+            // a finished statement leads with its status (Theme::status):
+            // ✓ rows or affected, ✗ failed
+            let done = self
                 .results
                 .get(self.active_result)
-                .is_some_and(|r| matches!(r.body, ResultBody::Error { .. }))
-                && self.running.is_none();
-            let st = if is_err {
-                t.error_fg()
-            } else if self.running.is_some() {
-                t.secondary()
-            } else {
-                t.muted()
+                .filter(|_| self.running.is_none())
+                .and_then(|r| match r.body {
+                    ResultBody::Error { .. } => Some(StatusKind::Fail),
+                    ResultBody::Rows(_) | ResultBody::Affected { .. } => Some(StatusKind::Ok),
+                    _ => None,
+                });
+            let st = match done {
+                Some(StatusKind::Fail) => t.status_label(StatusKind::Fail),
+                _ if self.running.is_some() => t.secondary(),
+                _ => t.muted(),
             };
-            buf.set_string(
-                bottom.x + 1,
-                y,
-                junie_tui::ui::text::truncate(
-                    &status_line,
-                    bottom.width.saturating_sub(2) as usize,
-                ),
-                st.bg(bg),
-            );
+            let line = match done {
+                Some(kind) => format!("{} {status_line}", t.status(kind).0),
+                None => status_line,
+            };
+            let shown =
+                junie_tui::ui::text::truncate(&line, bottom.width.saturating_sub(2) as usize);
+            buf.set_string(bottom.x + 1, y, &shown, st.bg(bg));
+            if let Some(kind) = done
+                && !shown.is_empty()
+            {
+                let (glyph, gs) = t.status(kind);
+                buf.set_string(bottom.x + 1, y, glyph, gs.bg(bg));
+            }
             if self.running.is_some() {
                 buf.set_string(
                     bottom.x + 1,
@@ -1940,7 +1949,7 @@ impl QueryTab {
                                     t.secondary()
                                 };
                                 let share = info.share * 100.0;
-                                let share_style = if share > 50.0 {
+                                let share_style = if share > HOT_SHARE * 100.0 {
                                     t.primary().fg(t.warning).add_modifier(Modifier::BOLD)
                                 } else if share > 20.0 {
                                     t.primary().add_modifier(Modifier::BOLD)
@@ -1966,7 +1975,11 @@ impl QueryTab {
                                 let sh = format!(
                                     "{:>4} {}",
                                     share.round() as u32,
-                                    if share > 50.0 { "▲" } else { " " }
+                                    if share > HOT_SHARE * 100.0 {
+                                        t.glyphs.warning
+                                    } else {
+                                        " "
+                                    }
                                 );
                                 buf.set_string(cols_x + 34, y, &sh, share_style.bg(bgc));
                             }
@@ -2059,6 +2072,10 @@ impl QueryTab {
 
 /// LIMIT nodes report a smaller total than their inputs, so cost share is
 /// measured against the most expensive node rather than the root.
+/// A plan node taking more than this share of the total is hot: `▲` and
+/// its name in warning.
+const HOT_SHARE: f64 = 0.5;
+
 /// Width of the EXPLAIN metric columns: cost, rows, actual and the share
 /// with its hot marker (`{:>13} {:>8} {:>10} {:>4} ▲`).
 const PLAN_COLS_W: u16 = 40;
@@ -2132,11 +2149,15 @@ fn plan_to_tree(node: &PlanNode, nodes: &mut Vec<PlanInfo>, root_total: f64) -> 
         .iter()
         .map(|c| plan_to_tree(c, nodes, root_total))
         .collect();
-    let n = if children.is_empty() {
+    let mut n = if children.is_empty() {
         TreeNode::leaf(&label)
     } else {
         TreeNode::dir(&label, children)
     };
+    // the hot node names itself in warning, beside its `▲` share
+    if share > HOT_SHARE {
+        n = n.label_tone(Tone::Warning);
+    }
     n.meta(&idx.to_string())
 }
 
@@ -2432,6 +2453,9 @@ pub struct HistoryTab {
     pub search: TextInput,
     pub scope_all: bool,
     pub failed_only: bool,
+    /// A run longer than this many milliseconds is slow: its duration
+    /// takes the warning tone in the list and the detail. Default 1000.
+    pub slow_ms: u32,
     pub filtered: Vec<usize>,
     pub open_btn: Button,
     pub rerun_btn: Button,
@@ -2457,6 +2481,7 @@ impl HistoryTab {
                 .plain_label(),
             scope_all: false,
             failed_only: false,
+            slow_ms: 1000,
             filtered: vec![],
             // the tooltips name the list keys that do the same
             open_btn: Button::primary(id.sub("open"), "Open in new tab")
@@ -2495,6 +2520,9 @@ impl HistoryTab {
                 }
                 let meta = format!("{} · {}", e.when(), e.duration());
                 let mut it = ListItem::new(&junie_tui::ui::text::truncate(&label, 90)).meta(&meta);
+                if e.duration_ms.is_some_and(|ms| ms > self.slow_ms) {
+                    it = it.meta_tone(Tone::Warning);
+                }
                 it.disabled = false;
                 it
             })
@@ -2670,7 +2698,13 @@ impl HistoryTab {
                 format!("{} · {}.{}", e.connection, e.database, e.schema),
             )
             .tone(Tone::Secondary),
-            Prop::new("Duration", e.duration()).tone(Tone::Secondary),
+            Prop::new("Duration", e.duration()).tone(
+                if e.duration_ms.is_some_and(|ms| ms > self.slow_ms) {
+                    Tone::Warning
+                } else {
+                    Tone::Secondary
+                },
+            ),
             Prop::new(
                 "Rows",
                 e.rows

@@ -107,25 +107,38 @@ item uses the library API above; none needs a new token.
 
 ### tablepro
 
-| Element | Where | Change |
-|---|---|---|
-| `◆ production` header badge (staging, development, local segments next to it) | `src/bin/tablepro/app.rs:2799-2803` | `Theme::env(EnvKind::…)` glyph and style instead of Normal / Secondary / Muted / Faint |
-| `env_tone` | `src/bin/tablepro/connections.rs:306` | map to `Tone::Danger` / `Warning` / `Info` / `Muted` (or use `Theme::env`) |
-| Tree environment glyphs `◆ ◇ ·` | `src/bin/tablepro/connections.rs:352-357` | glyphs from `Theme::glyphs.env_*`, ink from `Theme::env` |
-| Detail "Environment" value | `src/bin/tablepro/connections.rs:1329` | follows `env_tone` |
-| Write gate title "Execute write query?" | `src/bin/tablepro/app.rs:1164-1170` | `▲` warning glyph before the title on production |
-| Write gate "Target" line | `src/bin/tablepro/app.rs:1178-1189` | `env_production` tone when the target is production |
-| Write gate Execute button | `src/bin/tablepro/app.rs:1240-1244` | `Button::danger` whenever the env is production (not only for destructive statements) |
-| `set_status` takes no tone | `src/bin/tablepro/app.rs:290` | take a `StatusKind`: Ok for "Connected to" (`app.rs:244-245`), "Saved" (`app.rs:1425-1426`, `1970`, `connections.rs:944`); Fail for failures; Info or Warn for cancelled (`app.rs:396, 848, 1086, 2164`) and the Safe Mode block (`app.rs:1155`) |
-| Statement results "ok" / "failed" | `src/bin/tablepro/tabs.rs:1170-1189` | `Theme::status` Ok / Fail |
-| Toolbar Run | `src/bin/tablepro/tabs.rs:1613` | Run as the primary action (accent ink or `▶` accent glyph); Run all and Explain stay subtle (`1617`, `1621`) |
-| Test connection result | `src/bin/tablepro/connections.rs:1642-1646` | `Theme::status(Ok/Fail)` (today `✓` in secondary) |
-| SSL on/off | `src/bin/tablepro/connections.rs:1301, 1340` | "on" in success with `✓` |
-| Explain hot node name | `src/bin/tablepro/tabs.rs:1942-1970` | node name in `warning` when it is the hot node (the `▲` share is already right) |
-| History slow durations | `src/bin/tablepro/tabs.rs:2495`, detail `2672` | `warning` above a threshold |
-| Safe badge | `src/bin/tablepro/app.rs:2823-2828` | `safe` in success with a glyph; Silent on production stays warning |
-| Brand `▪` | `src/bin/tablepro/app.rs:2780` | `Tone::Active` (the accent, as in showcase), not `Tone::Success` |
-| SQL `TRUE`/`FALSE`/`NULL` | `src/bin/tablepro/sql.rs:35, 100-101, 193-196`; mapping `src/bin/tablepro/tabs.rs:338-344` | a `TokKind::Literal` mapped to `SyntaxTone::Literal` (numbers already take the literal hue) |
+All done. Each row is held by a test in
+`src/bin/tablepro/app_tests_colour.rs` that drives the real app and
+reads the rendered cells (each failed on the code before the change).
+
+| Element | Where | Change | Status |
+|---|---|---|---|
+| `◆ production` header badge (staging, development, local segments next to it) | `src/bin/tablepro/app.rs:2799-2803` | `Theme::env(EnvKind::…)` glyph and style instead of Normal / Secondary / Muted / Faint | Done: glyph `Glyphs::env`, tone `EnvKind::tone`, bold where `Theme::env` is bold (`strip_brand_is_the_accent_and_the_environment_badge_comes_from_theme_env`, `strip_environment_badges_take_each_environment_tone`) |
+| `env_tone` | `src/bin/tablepro/connections.rs:306` | map to `Tone::Danger` / `Warning` / `Info` / `Muted` (or use `Theme::env`) | Done: `Environment::kind().tone()` |
+| Tree environment glyphs `◆ ◇ ·` | `src/bin/tablepro/connections.rs:352-357` | glyphs from `Theme::glyphs.env_*`, ink from `Theme::env` | Done: `TreeNode::glyph_tone`, glyphs synced from the theme's set at render (`connection_tree_and_detail_show_environments_in_their_tones`) |
+| Detail "Environment" value | `src/bin/tablepro/connections.rs:1329` | follows `env_tone` | Done (same test) |
+| Write gate title "Execute write query?" | `src/bin/tablepro/app.rs:1164-1170` | `▲` warning glyph before the title on production | Done: `Dialog::title_status(StatusKind::Warn)` (`write_gate_on_production_warns_names_the_target_and_arms_a_danger_button`) |
+| Write gate "Target" line | `src/bin/tablepro/app.rs:1178-1189` | `env_production` tone when the target is production | Done (same test) |
+| Write gate Execute button | `src/bin/tablepro/app.rs:1240-1244` | `Button::danger` whenever the env is production (not only for destructive statements) | Done (same test; `write_gate_off_production_keeps_a_plain_title_and_primary_execute` holds the other environments) |
+| `set_status` takes no tone | `src/bin/tablepro/app.rs:290` | take a `StatusKind`: Ok for "Connected to" (`app.rs:244-245`), "Saved" (`app.rs:1425-1426`, `1970`, `connections.rs:944`); Fail for failures; Info or Warn for cancelled (`app.rs:396, 848, 1086, 2164`) and the Safe Mode block (`app.rs:1155`) | Done: `set_status_as` / `Cx::status_as`, drawn by `keyhint::render_status`. Cancelled is Info (the user asked for it); the Safe Mode blocks (run and save), "save or discard before disconnecting" and "Fix the highlighted fields" are Warn. No footer status reports a failure today (failures show in the result pane and the connection card), so nothing takes Fail yet (`footer_status_carries_its_kind`) |
+| Statement results "ok" / "failed" | `src/bin/tablepro/tabs.rs:1170-1189` | `Theme::status` Ok / Fail | Done on the result pane's status line, where they are read: `✓ 3 rows · …` (glyph success, text muted), `✗ failed · …` (glyph bold error, text `status_label(Fail)`) (`statement_results_lead_with_their_status`). `last_status` also feeds the tab picker's detail text, which is plain text |
+| Toolbar Run | `src/bin/tablepro/tabs.rs:1613` | Run as the primary action (accent ink or `▶` accent glyph); Run all and Explain stay subtle (`1617`, `1621`) | Done: `Button::primary` (`toolbar_run_is_the_primary_action`) |
+| Test connection result | `src/bin/tablepro/connections.rs:1642-1646` | `Theme::status(Ok/Fail)` (today `✓` in secondary) | Done: glyph from `Theme::status`, message in `status_label` (`test_connection_result_takes_the_status_glyph_and_tone`) |
+| SSL on/off | `src/bin/tablepro/connections.rs:1301, 1340` | "on" in success with `✓` | Done: SSL and SSH are separate rows so only SSL takes the tone (`ssl_on_is_a_passed_check_in_the_detail_card`) |
+| Explain hot node name | `src/bin/tablepro/tabs.rs:1942-1970` | node name in `warning` when it is the hot node (the `▲` share is already right) | Done: `TreeNode::label_tone(Tone::Warning)`; the `▲` now comes from `Theme::glyphs` (`explain_names_the_hot_node_in_warning`) |
+| History slow durations | `src/bin/tablepro/tabs.rs:2495`, detail `2672` | `warning` above a threshold | Done: `HistoryTab::slow_ms` (default 1000) and `ListItem::meta_tone`; the detail's Duration follows (`history_marks_slow_durations_in_warning`) |
+| Safe badge | `src/bin/tablepro/app.rs:2823-2828` | `safe` in success with a glyph; Silent on production stays warning | Done: `✓ safe` / `✓ safe+` from `Theme::status(Ok)`; Silent on production also gains the `▲` of `Theme::status(Warn)`, so its warning keeps a glyph like every status (`strip_safe_badge_is_a_passed_check_and_silent_production_a_warning`) |
+| Brand `▪` | `src/bin/tablepro/app.rs:2780` | `Tone::Active` (the accent, as in showcase), not `Tone::Success` | Done (strip test above) |
+| SQL `TRUE`/`FALSE`/`NULL` | `src/bin/tablepro/sql.rs:35, 100-101, 193-196`; mapping `src/bin/tablepro/tabs.rs:338-344` | a `TokKind::Literal` mapped to `SyntaxTone::Literal` (numbers already take the literal hue) | Done: the parser still reads them as words (`sql_booleans_and_null_take_the_literal_hue`) |
+
+Library additions for these rows: `StatusKind::tone`, `EnvKind::tone`,
+`Glyphs::env`, `keyhint::render_status`, `Dialog::title_status`,
+`TreeNode::glyph_tone` / `label_tone`, `ListItem::meta_tone`, each with
+a unit test beside it. Defaults draw exactly as before.
+
+Visual: the tablepro captures are all still pending tuiscotti
+re-approval (legacy tuisnap approvals, skipped unless `VISUAL_FULL=1`),
+so no tablepro capture gates these changes and none was re-approved.
 
 ### showcase
 
