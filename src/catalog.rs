@@ -660,6 +660,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::dialog::Dialog::placement"),
     Capability::builder("widgets::dialog::Dialog::anchor"),
     Capability::builder("widgets::dialog::Dialog::confirm_index"),
+    Capability::builder("widgets::dialog::Dialog::title_status"),
     // widgets::diff
     Capability::ty("widgets::diff::DiffLineKind"),
     Capability::variant("widgets::diff::DiffLineKind::Context"),
@@ -919,6 +920,7 @@ pub static CAPABILITIES: &[Capability] = &[
     // widgets::list
     Capability::ty("widgets::list::ListItem"),
     Capability::builder("widgets::list::ListItem::meta"),
+    Capability::builder("widgets::list::ListItem::meta_tone"),
     Capability::builder("widgets::list::ListItem::disabled"),
     Capability::ty("widgets::list::ClickAction"),
     Capability::variant("widgets::list::ClickAction::Activate"),
@@ -1308,6 +1310,8 @@ pub static CAPABILITIES: &[Capability] = &[
     // widgets::tree
     Capability::ty("widgets::tree::TreeNode"),
     Capability::builder("widgets::tree::TreeNode::glyph"),
+    Capability::builder("widgets::tree::TreeNode::glyph_tone"),
+    Capability::builder("widgets::tree::TreeNode::label_tone"),
     Capability::builder("widgets::tree::TreeNode::meta"),
     Capability::ty("widgets::tree::FlatRow"),
     Capability::ty("widgets::tree::TreeAction"),
