@@ -941,9 +941,7 @@ impl FinderPage {
                         let chosen = is_cursor && ci == self.explore_cursor;
                         let cw = widths[ci];
                         // each cell is its own clickable on the row's plane
-                        let mut cs = ctx
-                            .title_style(cid, st.bg.unwrap_or(bg))
-                            .fg(t.text_primary);
+                        let mut cs = ctx.title_style(cid, st.bg.unwrap_or(bg)).fg(t.text_primary);
                         if chosen {
                             cs = cs.add_modifier(Modifier::BOLD);
                             buf.set_string(x, y, "›", st.fg(t.row_ink(&cr, t.text_secondary)));
