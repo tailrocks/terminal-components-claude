@@ -132,9 +132,9 @@ fresh-process test in `tests/holla_pty.rs`, not a capture.
 **3. Baseline matrix — the full visual pass:**
 
 ```sh
-VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'  # actuals in target/tuiscotti/
-open target/tuiscotti/expected target/tuiscotti/actual target/tuiscotti/diff                   # review mismatches
-VISUAL_ACCEPT=holla cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'            # approve after review
+VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'test(/^holla::/)'  # actuals in target/tuiscotti/
+open target/tuiscotti/expected target/tuiscotti/actual target/tuiscotti/diff  # review mismatches
+cargo xtask visual accept 'test(/^holla::/)'                                 # approve after review
 ```
 
 The holla slice is 194 captures: all 34 scenarios at four sizes plus mono,

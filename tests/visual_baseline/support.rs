@@ -185,7 +185,8 @@ impl Artifact {
 /// Decision (docs/visual-testing/tuiscotti-migration.md): one `.ansi` with a
 /// cursor trailer per scenario. `.png`/`.html` are review evidence only,
 /// written under `target/tuiscotti/` on a mismatch. Changing this list
-/// changes the gate, `accept_actuals` and `store_integrity` together.
+/// changes the gate and `store_integrity`; `cargo xtask visual accept`
+/// (xtask/src/main.rs) copies `.ansi` only and must follow it.
 pub const COMMITTED: &[Artifact] = &[Artifact::Ansi];
 
 /// Extensions the retired tuisnap engine committed for every scenario; the
@@ -197,7 +198,8 @@ pub const LEGACY_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
 /// [`LEGACY_EXTS`]). Re-approved scenarios gate (with `--run-ignored`);
 /// every other one is pending re-approval and runs only with
 /// `VISUAL_FULL=1`. Re-approving a group is therefore a pure `snapshots/`
-/// change made by `accept_actuals`; no code list has to follow it.
+/// change made by `cargo xtask visual accept`; no code list has to follow
+/// it.
 pub fn is_reapproved(name: &str) -> bool {
     let root = approved_root();
     LEGACY_EXTS.iter().all(|ext| {
@@ -272,7 +274,7 @@ fn render_png_html(frame: &Frame, title: &str) -> (Vec<u8>, Vec<u8>) {
 /// expected `.png`/`.html` rebuilt from the approved `.ansi`
 /// (`target/tuiscotti/expected/`), and a red-overlay diff PNG
 /// (`target/tuiscotti/diff/`). Fail-closed: a missing approved artifact
-/// fails; approval is never implicit (`accept_actuals` in `main.rs`).
+/// fails; approval is never implicit (`cargo xtask visual accept`).
 pub fn gate(name: &str, frame: &Frame) -> Result<(), String> {
     tuiscotti::grouped::validate_name(name).map_err(|e| e.to_string())?;
     frame

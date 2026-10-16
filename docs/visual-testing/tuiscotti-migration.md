@@ -29,10 +29,19 @@ The visual baseline suite (`tests/visual_baseline/`) runs on
   PNG/HTML rebuilt from the approved `.ansi`
   (`target/tuiscotti/expected/`) and a diff PNG
   (`target/tuiscotti/diff/`).
-- **Approval.** `accept_actuals` (ignored test, excluded by the nextest
-  default filter) copies reviewed actuals for one `VISUAL_ACCEPT` prefix
-  into `snapshots/` and removes that scenario's legacy files. It is local
-  only, never CI.
+- **Approval.** `cargo xtask visual accept '<nextest filterset>'` copies
+  the reviewed actual `.ansi` of every matching scenario into `snapshots/`
+  and removes that scenario's legacy files; it refuses to run when `CI` is
+  set. It replaced the `accept_actuals` ignored test and its
+  `VISUAL_ACCEPT` variable.
+- **One test per scenario.** The suite is a `harness = false`
+  (libtest-mimic) binary. Scenarios are typed table rows
+  (`tests/visual_baseline/scenarios/`), expanded by `MATRIX` into one test
+  per size and colour, named `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`.
+  Every one of the 7,625 stored names is unchanged and resolves to the
+  identical binary, argv, geometry, colour, boot needle, steps and timeout
+  as the hand-written `Case::new` roots it replaced (both harnesses dumped
+  every combo; the diff was empty).
 - **Terminal modes.** No snapshot format records them, so
   `modes::*_boot_sets_terminal_modes` asserts 1049, 1003, 1006 and 2004 on
   each app's live emulator state.
@@ -42,27 +51,48 @@ The visual baseline suite (`tests/visual_baseline/`) runs on
 A scenario is re-approved when its approved files are exactly the
 committed set (`support::is_reapproved`). Only re-approved scenarios run
 in the gate (`--run-ignored only -E 'binary(visual_baseline)'`). Every
-other scenario still holds tuisnap's four files, is skipped, and runs only
-with `VISUAL_FULL=1`, where it fails until it is re-approved.
-`store_integrity` accepts either set per scenario and nothing else.
+other scenario still holds tuisnap's four files, or has no approval yet,
+is skipped, and runs only with `VISUAL_FULL=1`, where it fails until it is
+approved. `store_integrity` accepts either file set per stored scenario,
+requires every non-pending scenario, and rejects files outside the tables.
+`cargo xtask visual list` prints the state of each scenario.
 
 | Group | Scenarios | Status |
 |---|---|---|
-| `showcase/pages` (18 legacy pages + `selectable`) | 475 | re-approved (pilot) |
+| `showcase/pages` (18 legacy pages + `selectable`) | 475 | re-approved (pilot); `showcase/pages/chrome` (25) stale since the row context menus landed (2026-10-16), awaiting re-approval by the owner of that change |
 | `showcase/flows/selectable` (new) | 50 | approved on tuiscotti |
-| every other group | 7,100 | pending re-approval |
+| every other stored group | 7,100 | pending re-approval (tuisnap files) |
+| new coverage rows (`.pending()`: 29 element, 7 overlay and 10 resize roots; 92 overlay dismissals) | 3,450 | no approval yet |
+| narrow tier (`40x12`, `60x18`) | 1,056 | no approval yet |
+
+Known breakage found while adding coverage: `jackin/cockpit/cancel_confirm`
+(stored, tuisnap files) no longer reaches its `wait:Cancel the launch?`
+needle on the current app, so it and its dismissal rows fail under
+`VISUAL_FULL=1` before any comparison.
 
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
 matrix and the OS that generates baselines (CI runs ubuntu-24.04) before
 the rest is re-approved. Re-approve one group at a time:
 
 ```sh
-VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(/<group>_/)'
+VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(/^<app>::<group>::/)'
 # review target/tuiscotti/{actual,expected,diff}
-VISUAL_ACCEPT=<app>/<group>/ cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'
+cargo xtask visual accept 'test(/^<app>::<group>::/)'
 ```
 
 Commit the `snapshots/` change on its own, apart from code.
+
+## Harness measurements (one test per scenario)
+
+Same machine and HEAD, gated run (`--run-ignored only -E
+'binary(visual_baseline)'`, 525 re-approved scenarios, everything else
+skipping), nextest `pty` group at 8 threads:
+
+| Harness | Tests | Wall time |
+|---|---|---|
+| one test per root, 25 combos in series | 305 | 277 s (the streaming `terminal` root alone: 236 s) |
+| one test per scenario | 8,201 | 135 s |
+| smoke profile, one test per scenario (42 gated) | 886 | 15 s |
 
 ## Pilot measurements (`showcase/pages`, 18 roots × 25 captures)
 
