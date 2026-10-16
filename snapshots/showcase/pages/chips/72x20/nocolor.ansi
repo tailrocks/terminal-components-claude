@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Inputs & forms / Chips & i Inspector   ? Help  [0m
                                                                         [0m
- [0m[1mComponents[0m      25  [0m[1mChips & selects[0m  Removable chips, a popup select,… [0m
+ [0m[1mComponents[0m      54  [0m[1mChips & selects[0m  Removable chips, a popup select,… [0m
                                                                         [0m
     Overview      ┃    Filters                              2 active   ┃[0m
   ▸ App shell     ┃                                                    ┃[0m
@@ -10,11 +10,11 @@
       Text areas  ┃                                                    ┆[0m
  [0m[1m▎  › Chips & se… [0m┃                                                    ┆[0m
       Forms       ┃                                                    ┆[0m
-  ▸ Tables        ┃                                                    ┆[0m
-  ▸ Navigation    ┃                                                    ┆[0m
-  ▸ Overlays      ┃                                                    ┆[0m
-  ▸ Feedback      ┆                                                    ┆[0m
- [0m[2m ▸ Layout        [0m┆                                                    ┆[0m
+      Checks & r… ┃                                                    ┆[0m
+      Toolbars    ┆                                                    ┆[0m
+  ▸ Tables        ┆                                                    ┆[0m
+  ▸ Navigation    ┆                                                    ┆[0m
+ [0m[2m ▸ Overlays      [0m┆                                                    ┆[0m
                                                                        ┆[0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m

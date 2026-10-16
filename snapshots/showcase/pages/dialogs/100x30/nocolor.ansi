@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Overlays / Dialogs               no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
- [0m[1mComponents[0m      25  [0m[1mDialogs[0m  Focus is trapped, the page dims, Esc always cancels                   [0m
+ [0m[1mComponents[0m      54  [0m[1mDialogs[0m  Focus is trapped, the page dims, Esc always cancels                   [0m
                                                                                                     [0m
     Overview           Open a dialog                                                                [0m
   ▸ App shell                                                                                       [0m
@@ -10,13 +10,13 @@
   ▾ Overlays           Prompt: editing inside a modal, Enter submits, validation blocks             [0m
  [0m[1m▎  › Dialogs      [0m    Destructive: ▲ title status, Cancel focused first, action in danger style    [0m
       Pickers          Task: Migrate sessions table                                                 [0m
+      Dialog kinds                                                                                  [0m
+      Popups & to…                                                                                  [0m
+      File browser     Results                                                                      [0m
   ▸ Feedback                                                                                        [0m
-  ▸ Layout                                                                                          [0m
-  ▸ Text & code        Results                                                                      [0m
+  ▸ Layout             Nothing yet                                                                  [0m
+  ▸ Text & code                                                                                     [0m
   ▸ Screens                                                                                         [0m
-                       Nothing yet                                                                  [0m
-                                                                                                    [0m
-                                                                                                    [0m
                                                                                                     [0m
                                                                                                     [0m
                                                                                                     [0m

@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Scrolling                                                                           no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
- [0m[1mComponents[0m           25  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows           [0m
+ [0m[1mComponents[0m           54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows           [0m
                                                                                                                                                                 [0m
     Overview                Wrapped text                 1–41 of 78      Long list                   1–41 of 120      Log        1961–2000 of 2000 · following  [0m
   ▸ App shell                                                                                                                                                   [0m
@@ -12,11 +12,11 @@
   ▾ Layout                  review before anything is merged.     ┃         Row 006                            ┃       727.05s  error  test checkout::place… ┆  [0m
       Panels                                                      ┃         Row 007                    flagged ┃       727.42s  info   test workers::schedu… ┆  [0m
  [0m[1m▎  › Scrolling         [0m    Each step is visible. You can pause,  ┃         Row 008                            ┃       727.79s  info   Linking target/debug… ┆  [0m
-  ▸ Text & code             redirect, or take over at any point,  ┃         Row 009                            ┃       728.16s  info   Resolving workspace … ┆  [0m
-  ▸ Screens                 and every change lands as an ordinary ┃         Row 010                            ┃       728.53s  info   Fetching crates.io i… ┆  [0m
-                            diff in your working tree.            ┃         Row 011                            ┃       728.90s  info   Compiling proc-macro… ┆  [0m
-                                                                  ┃         Row 012                            ┃       729.27s  info   Compiling serde v1.0… ┆  [0m
-                            The design system in this prototype   ┃         Row 013                            ┃       729.64s  warn   unused import: `std:… ┆  [0m
+      Splits & stacks       redirect, or take over at any point,  ┃         Row 009                            ┃       728.16s  info   Resolving workspace … ┆  [0m
+      Master-detail         and every change lands as an ordinary ┃         Row 010                            ┃       728.53s  info   Fetching crates.io i… ┆  [0m
+      Pane tree             diff in your working tree.            ┃         Row 011                            ┃       728.90s  info   Compiling proc-macro… ┆  [0m
+  ▸ Text & code                                                   ┃         Row 012                            ┃       729.27s  info   Compiling serde v1.0… ┆  [0m
+  ▸ Screens                 The design system in this prototype   ┃         Row 013                            ┃       729.64s  warn   unused import: `std:… ┆  [0m
                             exists so that the terminal version   ┃         Row 014                    flagged ┃       730.01s  info   Compiling tokio v1.4… ┆  [0m
                             of that experience feels as           ┃         Row 015                            ┆       730.38s  info   Running unittests sr… ┆  [0m
                             deliberate as the web version: quiet  ┃         Row 016                            ┆       730.75s  info   test api::auth::test… ┆  [0m

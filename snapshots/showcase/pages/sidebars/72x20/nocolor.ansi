@@ -1,20 +1,20 @@
  ▪ [0m[1mJunie[0m Design system / Navigation / Sidebars    i Inspector   ? Help  [0m
                                                                         [0m
- [0m[1mComponents[0m      25  [0m[1mSidebars[0m  Sections, current item, focus cursor, h… [0m
+ [0m[1mComponents[0m      54  [0m[1mSidebars[0m  Sections, current item, focus cursor, h… [0m
                                                                         [0m
-    Overview                                         Tasks              [0m
-  ▸ App shell           Workspace               ┃                       [0m
-  ▸ Inputs & forms    › T Tasks               3 ┃    One focus stop.    [0m
-  ▸ Tables              R Runs                  ┃    ↑↓ move the        [0m
-  ▾ Navigation          B Branches              ┃    cursor, Enter      [0m
-      Lists                                     ┃    opens.             [0m
-      Trees             Project                 ┃                       [0m
- [0m[1m▎  › Sidebars     [0m     M Members               ┃    ›  current item ·  [0m
-  ▸ Overlays            E Environment           ┆    persists when      [0m
-  ▸ Feedback         [0m[2m   $ Billing               [0m┆    focus leaves       [0m
-  ▸ Layout           [0m[2m                           [0m┆    ▎  keyboard        [0m
-  ▸ Text & code                                      cursor · only      [0m
-  ▸ Screens            Collapse                      while focused   …  [0m
+    Overview      ┃                                  Tasks              [0m
+  ▸ App shell     ┃     Workspace               ┃                       [0m
+  ▸ Inputs & for… ┃   › T Tasks               3 ┃    One focus stop.    [0m
+  ▸ Tables        ┃     R Runs                  ┃    ↑↓ move the        [0m
+  ▾ Navigation    ┃     B Branches              ┃    cursor, Enter      [0m
+      Lists       ┃                             ┃    opens.             [0m
+      Trees       ┃     Project                 ┃                       [0m
+ [0m[1m▎  › Sidebars    [0m┃     M Members               ┃    ›  current item ·  [0m
+      Tabs        ┃     E Environment           ┆    persists when      [0m
+      Menus       ┃  [0m[2m   $ Billing               [0m┆    focus leaves       [0m
+  ▸ Overlays      ┃  [0m[2m                           [0m┆    ▎  keyboard        [0m
+  ▸ Feedback      ┆                                  cursor · only      [0m
+ [0m[2m ▸ Layout        [0m┆    Collapse                      while focused   …  [0m
                                                                         [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m

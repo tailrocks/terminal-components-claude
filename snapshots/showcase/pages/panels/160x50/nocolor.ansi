@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Panels                                                                              no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
- [0m[1mComponents[0m           25  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice                                                     [0m
+ [0m[1mComponents[0m           54  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice                                                     [0m
                                                                                                                                                                 [0m
     Overview                Titled card                                            surface    ╭─ Framed · split pane                                          ─╮[0m
   ▸ App shell                                                                                 │  Junie works through a task the way a careful engineer         │[0m
@@ -12,11 +12,11 @@
   ▾ Layout                                                                                    │  at any point, and every change lands as an ordinary diff in   │[0m
  [0m[1m▎  › Panels            [0m                                                                      │  your working tree.                                            │[0m
       Scrolling             Untitled card. Same surface, content starts at the padding        │                                                                │[0m
-  ▸ Text & code             edge.                                                             │  The design system in this prototype exists so that the        │[0m
-  ▸ Screens                                                                                   │  terminal version of that experience feels as deliberate as    │[0m
-                                                                                              │  the web version: quiet surfaces, one accent, clear focus,     │[0m
-                                                                                              │  and no decoration that does not carry information.            │[0m
-                                                                                              │                                                                │[0m
+      Splits & stacks       edge.                                                             │  The design system in this prototype exists so that the        │[0m
+      Master-detail                                                                           │  terminal version of that experience feels as deliberate as    │[0m
+      Pane tree                                                                               │  the web version: quiet surfaces, one accent, clear focus,     │[0m
+  ▸ Text & code                                                                               │  and no decoration that does not carry information.            │[0m
+  ▸ Screens                                                                                   │                                                                │[0m
                             Nested                                                            │  Scroll with the mouse wheel, PageUp/PageDown, or the arrow    │[0m
                                                                                               │  keys while this panel has focus. The scrollbar on the right   │[0m
                             Target                          A group inside a card is a        │  shows where you are and how much remains.                     │[0m

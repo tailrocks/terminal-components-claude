@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Selection                                   no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
- [0m[1mComponents[0m           25  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation          [0m
+ [0m[1mComponents[0m           54  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation          [0m
                                                                                                                         [0m
     Overview                Members                                                                         1–11 of 12  [0m
   ▸ App shell                                                                                                           [0m
@@ -11,13 +11,13 @@
       Data grid                [ ] Bo Lindqvist           Editor  Invited    EU      —        bo@northwind.dev       ┃  [0m
  [0m[1m▎  › Selection         [0m       [ ] Eli Nakamura           Viewer  Active     APAC    —        eli@contractor.io      ┃  [0m
       Cell editors             [ ] Fay Okafor             Editor  Active     US      Yes      fay@northwind.dev      ┃  [0m
-  ▸ Navigation                 [ ] Gus Petrov             Viewer  Suspended  EU      —        gus@northwind.dev      ┃  [0m
-  ▸ Overlays                   [ ] Hana Sato              Editor  Active     APAC    —        hana@northwind.dev     ┃  [0m
-  ▸ Feedback                   [ ] Ivo Brandt             Admin   Active     EU      Yes      ivo@northwind.dev      ┃  [0m
-  ▸ Layout                     [ ] June Park              Viewer  Invited    US      —        june@northwind.dev     ┃  [0m
-  ▸ Text & code             [0m[2m   [ ] Kai Mensah             Editor  Active     APAC    —        kai@northwind.dev      [0m┆  [0m
-  ▸ Screens                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄   [0m
-                                                                                                                        [0m
+      Columns                  [ ] Gus Petrov             Viewer  Suspended  EU      —        gus@northwind.dev      ┃  [0m
+  ▸ Navigation                 [ ] Hana Sato              Editor  Active     APAC    —        hana@northwind.dev     ┃  [0m
+  ▸ Overlays                   [ ] Ivo Brandt             Admin   Active     EU      Yes      ivo@northwind.dev      ┃  [0m
+  ▸ Feedback                   [ ] June Park              Viewer  Invited    US      —        june@northwind.dev     ┃  [0m
+  ▸ Layout                  [0m[2m   [ ] Kai Mensah             Editor  Active     APAC    —        kai@northwind.dev      [0m┆  [0m
+  ▸ Text & code                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄   [0m
+  ▸ Screens                                                                                                             [0m
                                                                                                                         [0m
                             Details                                                                                     [0m
                                                                                                                         [0m

@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Navigation / Trees                                   no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
- [0m[1mComponents[0m           25  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar never moves                                    [0m
+ [0m[1mComponents[0m           54  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar never moves                                    [0m
                                                                                                                         [0m
     Overview                Project                                   1–15 of 16      Selection                         [0m
   ▸ App shell                                                                                                           [0m
@@ -10,13 +10,13 @@
       Lists                    ▸ workers                                       ┃      cursor  src                       [0m
  [0m[1m▎  › Trees             [0m         config.rs                              1.9 KB ┃      visible 16 rows                   [0m
       Sidebars                   lib.rs                                  640 B ┃      open    5 folders                 [0m
-  ▸ Overlays                     main.rs                                1.2 KB ┃                                        [0m
-  ▸ Feedback                 ▾ tests                                           ┃                                        [0m
-  ▸ Layout                       checkout.rs                            5.3 KB ┃                                        [0m
-  ▸ Text & code                  auth_flow.rs                           3.0 KB ┃                                        [0m
-  ▸ Screens                    ▸ fixtures                                      ┃                                        [0m
-                             ▾ docs                                            ┃                                        [0m
-                                 architecture.md                        7.7 KB ┃                                        [0m
+      Tabs                       main.rs                                1.2 KB ┃                                        [0m
+      Menus                  ▾ tests                                           ┃                                        [0m
+  ▸ Overlays                     checkout.rs                            5.3 KB ┃                                        [0m
+  ▸ Feedback                     auth_flow.rs                           3.0 KB ┃                                        [0m
+  ▸ Layout                     ▸ fixtures                                      ┃                                        [0m
+  ▸ Text & code              ▾ docs                                            ┃                                        [0m
+  ▸ Screens                      architecture.md                        7.7 KB ┃                                        [0m
                                  webhooks.md                            2.2 KB ┃                                        [0m
                             [0m[2m   Cargo.toml                               1.4 KB [0m┆                                        [0m
                                                                                                                         [0m

@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Navigation / Sidebars            no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
- [0m[1mComponents[0m      25  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, collapsed mode; text f… [0m
+ [0m[1mComponents[0m      54  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, collapsed mode; text f… [0m
                                                                                                     [0m
     Overview                                         Tasks                                          [0m
   ▸ App shell           Workspace               │                                                   [0m
@@ -10,13 +10,13 @@
       Lists                                     │    ›  current item · persists when focus leaves   [0m
       Trees             Project                 │    ▎  keyboard cursor · only while focused        [0m
  [0m[1m▎  › Sidebars     [0m     M Members               │    ░  hover · follows the pointer                 [0m
-  ▸ Overlays            E Environment           │                                                   [0m
-  ▸ Feedback         [0m[2m   $ Billing               [0m│    Disabled items are skipped and ignore the      [0m
-  ▸ Layout                                      │    pointer.                                       [0m
-  ▸ Text & code         Preferences             │    Collapsed mode keeps rows and markers,         [0m
-  ▸ Screens             K Keyboard              │    initials only.                                 [0m
-                        A Appearance            │                                                   [0m
-                                                │                                                   [0m
+      Tabs              E Environment           │                                                   [0m
+      Menus          [0m[2m   $ Billing               [0m│    Disabled items are skipped and ignore the      [0m
+  ▸ Overlays                                    │    pointer.                                       [0m
+  ▸ Feedback            Preferences             │    Collapsed mode keeps rows and markers,         [0m
+  ▸ Layout              K Keyboard              │    initials only.                                 [0m
+  ▸ Text & code         A Appearance            │                                                   [0m
+  ▸ Screens                                     │                                                   [0m
                                                 │                                                   [0m
                                                 │                                                   [0m
                                                                                                     [0m

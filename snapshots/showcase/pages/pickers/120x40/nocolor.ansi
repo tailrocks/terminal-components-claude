@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Overlays / Pickers                                   no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
- [0m[1mComponents[0m           25  [0m[1mPickers[0m  One modal list for files, tabs and levels: search, scope, tag, alternate action      [0m
+ [0m[1mComponents[0m           54  [0m[1mPickers[0m  One modal list for files, tabs and levels: search, scope, tag, alternate action      [0m
                                                                                                                         [0m
     Overview                Open a picker                                                                               [0m
   ▸ App shell                                                                                                           [0m
@@ -10,13 +10,13 @@
   ▾ Overlays                                                                                                            [0m
       Dialogs                                                                                                           [0m
  [0m[1m▎  › Pickers           [0m                                                                                                [0m
-  ▸ Feedback                Result                                                                                      [0m
-  ▸ Layout                                                                                                              [0m
-  ▸ Text & code             Chosen          nothing yet                                                                 [0m
-  ▸ Screens                 Detail          —                                                                           [0m
-                            Level           Safe Mode                                                                   [0m
-                            Open tabs       Query 1 · orders · order_items · History                                    [0m
-                            Pickers opened  0                                                                           [0m
+      Dialog kinds          Result                                                                                      [0m
+      Popups & tooltips                                                                                                 [0m
+      File browser          Chosen          nothing yet                                                                 [0m
+  ▸ Feedback                Detail          —                                                                           [0m
+  ▸ Layout                  Level           Safe Mode                                                                   [0m
+  ▸ Text & code             Open tabs       Query 1 · orders · order_items · History                                    [0m
+  ▸ Screens                 Pickers opened  0                                                                           [0m
                                                                                                                         [0m
                                                                                                                         [0m
                                                                                                                         [0m

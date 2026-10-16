@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Screens / Settings               no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
- [0m[1mComponents[0m      25  [0m[1mProject settings[0m  Composed: tabs, form, editable table, list, dialogs          [0m
+ [0m[1mComponents[0m      54  [0m[1mProject settings[0m  Composed: tabs, form, editable table, list, dialogs          [0m
                                                                                                     [0m
     Overview         [0m[1m General  [0m  Members    Environment                                             [0m
   ▸ App shell        ━━━━━━━━━━─────────────────────────────────────────────────────────────────────[0m
@@ -14,15 +14,15 @@
   ▾ Screens              Handles checkout, invoicing an…                                            [0m
  [0m[1m▎  › Settings     [0m                                            ○── Auto-merge approved PRs off      [0m
       Task runner                                              ──● Protect main branch on           [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                        [0m[1;7mSave changes [0m  No changes                                                   [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
+      Query workb…                                                                                  [0m
+      Connections                                                                                   [0m
+      Finder                                                                                        [0m
+      Disk cleanup                                                                                  [0m
+      Activity                                                                                      [0m
+      Workspaces        [0m[1;7mSave changes [0m  No changes                                                   [0m
+      Accounts & …                                                                                  [0m
+      Launch cock…                                                                                  [0m
+      Read-only r…                                                                                  [0m
                                                                                                     [0m
                                                                                                     [0m
                                                                                                     [0m

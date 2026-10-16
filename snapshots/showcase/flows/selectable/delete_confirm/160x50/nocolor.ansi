@@ -1,6 +1,6 @@
 [0m[2m ▪ Junie Design system / Tables / Selection                                                                           no color · 160×50   i Inspector   ? Help  [0m
 [0m[2m                                                                                                                                                                [0m
-[0m[2m Components           25  Selectable table  Select rows, edit one or many together, delete with a confirmation                                                  [0m
+[0m[2m Components           54  Selectable table  Select rows, edit one or many together, delete with a confirmation                                                  [0m
 [0m[2m                                                                                                                                                                [0m
 [0m[2m [0m [0m[2m  Overview                Members                                                                    2 selected     Edit 2 members                            [0m
 [0m[2m [0m [0m[2m▸ App shell                                                                                                                                                   [0m
@@ -11,13 +11,13 @@
 [0m[2m [0m [0m[2m    Data grid             [0m [0m[2m  [ ] Bo Lindqvist        Editor  Invited    EU      —        bo@northwind.dev             Region                                  [0m
 [0m[2m [0m [0m[2m  › Selection             [0m [0m[2m  [ ] Eli Nakamura        Viewer  Active     APAC    —        eli@contractor.io          [0m [0m[2m — mixed —      ▾   [0m [0m[2m[–] On call         [0m
 [0m[2m [0m [0m[2m    Cell editors          [0m [0m[2m  [ ] Fay Okafor          Editor  Active     US      Yes      fay@northwind.dev                                                    [0m
-[0m[2m [0m [0m[2m▸ Navigation              [0m [0m[2m  [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev            Notes                                   [0m
-[0m[2m [0m [0m[2m▸ Overlays                [0m [0m[2m  [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev         [0m [0m[2m — mixed —                               [0m
-[0m[2m [0m [0m[2m▸ Feedback                [0m [0m[2m  [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
-[0m[2m [0m [0m[2m▸ Layout                  [0m [0m[2m  [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
-[0m[2m [0m [0m[2m▸ Text & code             [0m [0m[2m  [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
-[0m[2m [0m [0m[2m▸ Screens                 [0m [0m[2m  [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
-[0m[2m                                                                                                                      [0m [0m[2mApply   [0m [0m[2mRevert   [0m [0m[2mDelete…               [0m
+[0m[2m [0m [0m[2m    Columns               [0m [0m[2m  [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev            Notes                                   [0m
+[0m[2m [0m [0m[2m▸ Navigation              [0m [0m[2m  [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev         [0m [0m[2m — mixed —                               [0m
+[0m[2m [0m [0m[2m▸ Overlays                [0m [0m[2m  [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
+[0m[2m [0m [0m[2m▸ Feedback                [0m [0m[2m  [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
+[0m[2m [0m [0m[2m▸ Layout                  [0m [0m[2m  [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
+[0m[2m [0m [0m[2m▸ Text & code             [0m [0m[2m  [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
+[0m[2m [0m [0m[2m▸ Screens                                                                                                           [0m [0m[2mApply   [0m [0m[2mRevert   [0m [0m[2mDelete…               [0m
 [0m[2m                                                     ╭──────────────────────────────────────────────── × ─╮                                                     [0m
 [0m[2m                                                     │                                                    │                                                     [0m
 [0m[2m                                                     │  [0m[1;2mDelete 2 members?[0m[2m                                 │                                                     [0m
