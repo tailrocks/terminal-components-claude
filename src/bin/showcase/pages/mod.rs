@@ -101,7 +101,6 @@ pub enum PageEvent {
 /// What a layer the shell holds reports to the page that opened it
 /// ([`junie_tui::shell::Page::on_layer_result`]).
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // reported once the shell's layer stack holds the dialogs
 pub enum LayerRes {
     /// A library layer's own result (a keyboard reference closed).
     Lib(LayerResult),
