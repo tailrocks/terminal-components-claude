@@ -1,14 +1,461 @@
-//! Splits & stacks (Layout): a planned page (plan §7.2), registered with its
-//! `--page` slug so parallel steps do not collide. SC23 replaces this
-//! stub with the page.
+//! Splits & stacks (plan §7 SC23): three panes from two nested `Split`s
+//! with draggable `Splitter` seams (min sizes, a clamped default, double
+//! click, hit padding, zoom through `Split::toggle_max`), and a `Stack` of
+//! flexible children that shrink, then scroll or clip. Options:
+//! `crate::options::SPLITS_STACKS`.
 
-use crate::pages::Page;
-use crate::pages::stub::StubPage;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
+use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use junie_tui::core::event::Outcome;
+use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::TrackClick;
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::{
+    Maximized, Overflow, Split, SplitDir, Stack, StackChild, StackLayout, StackScroll,
+};
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::widgets::button::Button;
+use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::splitter::{SeamDoubleClick, Splitter};
+
+const ID: WidgetId = WidgetId::of("splitsstacks");
+const OUTER: WidgetId = WidgetId::of("splitsstacks").sub("outer");
+const INNER: WidgetId = WidgetId::of("splitsstacks").sub("inner");
+const STACK: WidgetId = WidgetId::of("splitsstacks").sub("stack");
+/// Rows the stack demo gets: less than its children want.
+const STACK_ROWS: u16 = 8;
+
+const EXPLORER: &[&str] = &[
+    "▾ src",
+    "  ▸ core",
+    "  ▸ ui",
+    "  ▾ widgets",
+    "      splitter.rs",
+    "      progress.rs",
+    "  lib.rs",
+    "Cargo.toml",
+];
+const EDITOR: &[&str] = &[
+    "pub fn toggle_max(&mut self, which: Maximized) {",
+    "    self.maximized = if self.maximized == which {",
+    "        Maximized::None",
+    "    } else {",
+    "        which",
+    "    };",
+    "}",
+];
+const OUTPUT: &[&str] = &[
+    "   Compiling junie-tui v0.4.0",
+    "    Finished `dev` profile in 4.12s",
+    "     Running tests (14 passed)",
+];
+/// The stack's children: a title and the rows it would like.
+const CARDS: [(&str, u16); 5] = [
+    ("Connection", 3),
+    ("Credentials", 3),
+    ("Network", 3),
+    ("Advanced", 3),
+    ("Danger zone", 3),
+];
 
 pub fn page() -> Box<dyn Page> {
-    Box::new(StubPage::new(
-        "Splits & stacks",
-        "SC23",
-        "Split directions, sizes and zoom, splitter drag and reset, Stack overflow policies",
-    ))
+    Box::new(SplitsStacksPage::new())
+}
+
+pub struct SplitsStacksPage {
+    template: Template,
+    opts: PageValues,
+    outer: Split,
+    inner: Split,
+    outer_seam: Splitter,
+    inner_seam: Splitter,
+    /// The rects each split was laid out in, for the seams' drags.
+    outer_area: Rect,
+    inner_area: Rect,
+    zoom: [Button; 3],
+    stack: Stack,
+    scroll: StackScroll,
+    sections: crate::pages::layout::Sections,
+}
+
+impl SplitsStacksPage {
+    pub fn new() -> Self {
+        let opts = PageValues::new(page_options(PageId::SplitsStacks));
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts,
+            outer: Split::new(30, 16, 24),
+            inner: Split::new(60, 3, 3),
+            outer_seam: Splitter::new(OUTER, SplitDir::Horizontal),
+            inner_seam: Splitter::new(INNER, SplitDir::Vertical),
+            outer_area: Rect::ZERO,
+            inner_area: Rect::ZERO,
+            zoom: [
+                Button::secondary(ID.sub("zoom-editor"), "Zoom editor"),
+                Button::secondary(ID.sub("zoom-output"), "Zoom output"),
+                Button::secondary(ID.sub("restore"), "Restore"),
+            ],
+            stack: Stack::default(),
+            scroll: StackScroll::default(),
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        };
+        page.rebuild();
+        page
+    }
+
+    fn dir(&self) -> SplitDir {
+        match self.opts.value("splitsstacks.dir") {
+            "vertical" => SplitDir::Vertical,
+            _ => SplitDir::Horizontal,
+        }
+    }
+
+    /// The splits, seams and stack from the option values, through their
+    /// constructors and builders.
+    fn rebuild(&mut self) {
+        let o = &self.opts;
+        let percent = o.number("splitsstacks.percent").unwrap_or(30);
+        let min = o.number("splitsstacks.min").unwrap_or(16);
+        // the minima are cells along the split axis: columns side by
+        // side, rows when stacked
+        self.outer = match self.dir() {
+            SplitDir::Horizontal => Split::new(percent, min, 24),
+            SplitDir::Vertical => Split::new(percent, (min / 5).max(3), 6),
+        };
+        let mut inner = Split::new(60, 3, 3);
+        match o.value("splitsstacks.maximized") {
+            "first" => inner.toggle_max(Maximized::First),
+            "second" => inner.toggle_max(Maximized::Second),
+            _ => {}
+        }
+        self.inner = inner;
+        let dir = self.dir();
+        let across = match dir {
+            SplitDir::Horizontal => SplitDir::Vertical,
+            SplitDir::Vertical => SplitDir::Horizontal,
+        };
+        let double = match o.value("splitsstacks.double_click") {
+            "ignore" => SeamDoubleClick::Ignore,
+            _ => SeamDoubleClick::Reset,
+        };
+        let pad = o.number("splitsstacks.hit_pad").unwrap_or(1);
+        self.outer_seam = Splitter::new(OUTER, dir).hit_pad(pad).double_click(double);
+        self.inner_seam = Splitter::new(INNER, across)
+            .hit_pad(pad)
+            .double_click(double);
+        self.stack = Stack::default()
+            .gap(o.number("splitsstacks.gap").unwrap_or(0))
+            .overflow(match o.value("splitsstacks.overflow") {
+                "clip" => Overflow::Clip,
+                _ => Overflow::Scroll,
+            })
+            .min_child_rows(o.number("splitsstacks.min_child_rows").unwrap_or(1))
+            .scrollbar_gap(o.number("splitsstacks.scrollbar_gap").unwrap_or(1))
+            .track_click(match o.value("splitsstacks.track_click") {
+                "jump" => TrackClick::Jump,
+                _ => TrackClick::Page,
+            });
+        self.scroll.reset();
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let focus = self
+            .zoom
+            .iter()
+            .any(|b| ctx.interaction.has_focus(b.id))
+            .then_some(0);
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::flex(12, 18),
+                StackChild::fixed(3 + 1 + STACK_ROWS),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
+        match l.slot(0) {
+            Some(r) => self.render_panes(r, buf, ctx),
+            None => self.zoom.iter().for_each(|b| ctx.focus_stop(b.id)),
+        }
+        if let Some(r) = l.slot(1) {
+            self.render_stack(r, buf, ctx);
+        }
+    }
+
+    fn render_panes(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let dir = self.dir();
+        let meta = format!(
+            "{}% · min {} · {}",
+            self.outer.percent,
+            self.outer.min_first,
+            match self.inner.maximized {
+                Maximized::None => "drag a seam, double-click resets",
+                Maximized::First => "editor zoomed",
+                Maximized::Second => "output zoomed",
+            }
+        );
+        let panel = Panel::card(Some("Three panes")).meta(&meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        // the zoom buttons, then the panes under them
+        let widths: Vec<u16> = self.zoom.iter().map(Button::width).collect();
+        let rects = junie_tui::widgets::button::row_layout(
+            Rect::new(inner.x, inner.y, inner.width, 1),
+            &widths,
+            2,
+        );
+        for (b, r) in self.zoom.iter_mut().zip(rects) {
+            b.render(r, buf, ctx, bg);
+        }
+        let body = Rect::new(
+            inner.x,
+            inner.y + 2,
+            inner.width,
+            inner.height.saturating_sub(2),
+        );
+        self.outer_area = body;
+        let (first, second) = self.outer.layout(dir, body, 1);
+        let seam = self.outer.handle(dir, body, 1);
+        pane(first, buf, ctx, "Explorer", EXPLORER);
+        self.outer_seam.render(seam, buf, ctx, bg);
+        let across = self.inner_seam.dir;
+        self.inner_area = second;
+        let (top, bottom) = self.inner.layout(across, second, 1);
+        let seam = self.inner.handle(across, second, 1);
+        pane(top, buf, ctx, "Editor", EDITOR);
+        self.inner_seam.render(seam, buf, ctx, bg);
+        pane(bottom, buf, ctx, "Output", OUTPUT);
+    }
+
+    fn render_stack(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let want: u16 = CARDS.iter().map(|c| c.1).sum();
+        let meta = format!("{} rows wanted, {STACK_ROWS} given", want);
+        let panel = Panel::card(Some("Stack")).meta(&meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        let region = Rect::new(
+            inner.x,
+            inner.y,
+            inner.width.min(60),
+            inner.height.min(STACK_ROWS),
+        );
+        let children: Vec<StackChild> = CARDS.iter().map(|c| StackChild::flex(1, c.1)).collect();
+        let l: StackLayout = self.stack.layout(region, &children, &mut self.scroll, None);
+        Stack::chrome(&l, region, buf, ctx, STACK, &self.scroll);
+        for (i, (title, _)) in CARDS.iter().enumerate() {
+            let Some(r) = l.slot(i) else { continue };
+            let style = t.secondary().bg(t.surface_elevated);
+            for y in r.y..r.bottom() {
+                buf.set_string(r.x, y, " ".repeat(r.width as usize), style);
+            }
+            let head = format!(
+                "▸ {title} · {}",
+                junie_tui::ui::text::plural(r.height as usize, "row", "rows")
+            );
+            buf.set_string(
+                r.x + 1,
+                r.y,
+                junie_tui::ui::text::truncate(&head, r.width.saturating_sub(2) as usize),
+                t.primary().bg(t.surface_elevated),
+            );
+        }
+        let hidden = l.hidden_above + l.hidden_below;
+        if hidden > 0 && inner.width > region.width + 4 {
+            buf.set_string(
+                region.right() + 2,
+                region.y,
+                format!("{hidden} not in view"),
+                t.faint().bg(bg),
+            );
+        }
+    }
+
+    fn zoom_clicked(&mut self, i: usize) -> Outcome {
+        match i {
+            0 => self.inner.toggle_max(Maximized::First),
+            1 => self.inner.toggle_max(Maximized::Second),
+            _ => {
+                self.inner.reset();
+                self.outer.reset();
+            }
+        }
+        Outcome::Changed
+    }
+
+    /// The seam a press, drag or click is on, with its split and area.
+    fn seam(&mut self, id: WidgetId) -> Option<(&mut Splitter, &mut Split, Rect)> {
+        if id == OUTER {
+            Some((&mut self.outer_seam, &mut self.outer, self.outer_area))
+        } else if id == INNER {
+            Some((&mut self.inner_seam, &mut self.inner, self.inner_area))
+        } else {
+            None
+        }
+    }
+}
+
+/// A framed pane with its lines; nothing when the split hid it.
+fn pane(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, title: &str, lines: &[&str]) {
+    if area.width < 4 || area.height < 3 {
+        return;
+    }
+    let t = ctx.theme;
+    let panel = Panel::framed(Some(title));
+    let bg = panel.bg(t);
+    let inner = panel.render(area, buf, t);
+    for (i, line) in lines.iter().enumerate() {
+        let y = inner.y + i as u16;
+        if y >= inner.bottom() {
+            break;
+        }
+        buf.set_string(
+            inner.x,
+            y,
+            junie_tui::ui::text::truncate(line, inner.width as usize),
+            t.secondary().bg(bg),
+        );
+    }
+}
+
+/// The States grid: a vertical and a horizontal seam at rest, under the
+/// pointer and dragged.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    StateGrid::new(id)
+        .label_width(12)
+        .column_width(20)
+        .rows(&[Rest, Hover, Pressed])
+        .column(
+            "Vertical seam",
+            Splitter::new(id.child(0), SplitDir::Horizontal),
+        )
+        .column(
+            "Horizontal seam",
+            Splitter::new(id.child(1), SplitDir::Vertical),
+        )
+}
+
+impl Page for SplitsStacksPage {
+    fn title(&self) -> &'static str {
+        "Splits & stacks"
+    }
+    fn blurb(&self) -> &'static str {
+        "Split panes with draggable seams and zoom, stacks that shrink, scroll or clip"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
+        let clicks = cx.clicks;
+        match ev {
+            PageEvent::Press { id, pos } => {
+                if let Some((seam, split, area)) = self.seam(*id) {
+                    seam.on_press(split, area, 1, *pos);
+                    return Outcome::Consumed;
+                }
+                if *id == scrollbar::id_for(STACK) && self.scroll.on_scrollbar(*pos) {
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Drag { pressed, pos } => {
+                if let Some((seam, split, area)) = self.seam(*pressed) {
+                    return seam.on_drag(split, area, 1, *pos);
+                }
+                if *pressed == scrollbar::id_for(STACK) && self.scroll.on_scrollbar_drag(*pos) {
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Click { id, .. } => {
+                if let Some((seam, split, _)) = self.seam(*id) {
+                    return seam.on_click(split, clicks);
+                }
+                if let Some(i) = self.zoom.iter().position(|b| b.id == *id) {
+                    cx.focus.focus(*id);
+                    if self.zoom[i].on_click() {
+                        return self.zoom_clicked(i);
+                    }
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Wheel { id, delta } if *id == STACK => {
+                if self.scroll.on_wheel(*delta) {
+                    Outcome::Changed
+                } else {
+                    Outcome::Consumed
+                }
+            }
+            PageEvent::Key(key) => {
+                let Some(f) = cx.focus.current() else {
+                    return Outcome::Ignored;
+                };
+                let Some(i) = self.zoom.iter().position(|b| b.id == f) else {
+                    return Outcome::Ignored;
+                };
+                let (o, act) = self.zoom[i].on_key(key);
+                if act {
+                    return self.zoom_clicked(i);
+                }
+                o
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        vec![("Enter", "Activate"), ("Tab", "Next")]
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
 }

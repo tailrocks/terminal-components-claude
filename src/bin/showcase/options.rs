@@ -259,6 +259,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Toolbars => TOOLBARS,
         PageId::Progress => PROGRESS,
         PageId::EmptyError => EMPTY_ERROR,
+        PageId::SplitsStacks => SPLITS_STACKS,
         _ => &[],
     }
 }
@@ -925,6 +926,49 @@ pub static EMPTY_ERROR: &[Opt] = &[
         "emptyerror.reason",
         "Read-only reason",
         &["view", "no-key", "result"],
+    ),
+];
+
+/// Splits & stacks (SC23): the split, its seams and the stack.
+pub static SPLITS_STACKS: &[Opt] = &[
+    Opt::new(
+        "splitsstacks.dir",
+        "Split direction",
+        &["horizontal", "vertical"],
+    ),
+    Opt::new("splitsstacks.percent", "First pane %", &["30", "50", "70"]),
+    Opt::new("splitsstacks.min", "First pane minimum", &["16", "40"]),
+    Opt::new(
+        "splitsstacks.maximized",
+        "Zoomed pane",
+        &["none", "first", "second"],
+    ),
+    Opt::new(
+        "splitsstacks.double_click",
+        "Seam double-click",
+        &["reset", "ignore"],
+    ),
+    Opt::new("splitsstacks.hit_pad", "Seam hit padding", &["1", "0", "3"]),
+    Opt::new(
+        "splitsstacks.overflow",
+        "Stack overflow",
+        &["scroll", "clip"],
+    ),
+    Opt::new(
+        "splitsstacks.min_child_rows",
+        "Stack child minimum",
+        &["1", "3"],
+    ),
+    Opt::new("splitsstacks.gap", "Stack gap", &["0", "1"]),
+    Opt::new(
+        "splitsstacks.scrollbar_gap",
+        "Stack scrollbar gap",
+        &["1", "0", "2"],
+    ),
+    Opt::new(
+        "splitsstacks.track_click",
+        "Stack track click",
+        &["page", "jump"],
     ),
 ];
 
