@@ -60,6 +60,14 @@ libtest-mimic = "0.8.2"
 sha2 = "0.11"
 tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "3382e57dd03283001d9d1bc4f1186b424c52797c" }
 
+# Optimize dependencies in dev and test builds (tuiscotti's recommendation,
+# docs/upstream/tuiscotti-feedback.md P6): the review PNG/HTML rendered for
+# a visual mismatch drops from seconds to tens of milliseconds. Our own
+# crates stay unoptimized for fast rebuilds. Numbers in
+# docs/visual-testing/tuiscotti-migration.md ("Dev opt-level overrides").
+[profile.dev.package."*"]
+opt-level = 3
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
