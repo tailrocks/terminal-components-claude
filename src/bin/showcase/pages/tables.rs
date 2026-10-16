@@ -174,8 +174,8 @@ impl Page for TablesPage {
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
         vec![
-            ("↑ ↓", "Move"),
-            ("← →", "Columns"),
+            ("↑↓", "Move"),
+            ("←→", "Columns"),
             ("s", "Sort column"),
             ("Enter", "Select"),
         ]

@@ -480,9 +480,9 @@ impl Page for TaskRunnerPage {
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.log.id) {
-            vec![("↑ ↓", "Scroll"), ("f", "Follow"), ("r", "Run")]
+            vec![("↑↓", "Scroll"), ("f", "Follow"), ("r", "Run")]
         } else if focus == Some(self.tree.id) {
-            vec![("↑ ↓", "Move"), ("← →", "Fold")]
+            vec![("↑↓", "Move"), ("←→", "Fold")]
         } else {
             vec![("r", "Run pipeline"), ("Enter", "Activate")]
         }

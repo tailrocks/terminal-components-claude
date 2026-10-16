@@ -724,16 +724,16 @@ impl TableTab {
         }
         match focus {
             Some(f) if f == self.mode_tabs.id => {
-                vec![hint("← →", "Data / Structure"), hint("Ctrl+D", "Toggle")]
+                vec![hint("←→", "Data / Structure"), hint("Ctrl+D", "Toggle")]
             }
             Some(f) if f == self.chips.id => vec![
                 hint("Enter", "Edit filter"),
                 hint("Space", "Enable"),
-                hint("Del", "Remove"),
+                hint("Delete", "Remove"),
                 hint("+", "Add"),
             ],
             Some(f) if f == self.structure_tabs.id => {
-                vec![hint("← →", "Section"), hint("1-6", "Jump")]
+                vec![hint("←→", "Section"), hint("1–6", "Jump")]
             }
             Some(f) if f == self.grid.id => {
                 let mut h = vec![
@@ -752,7 +752,7 @@ impl TableTab {
                 }
                 h
             }
-            _ => vec![hint("↑ ↓", "Move"), hint("Ctrl+D", "Structure")],
+            _ => vec![hint("↑↓", "Move"), hint("Ctrl+D", "Structure")],
         }
     }
 
@@ -1282,7 +1282,7 @@ impl QueryTab {
         }
         if self.completion.is_open() {
             return vec![
-                hint("↑ ↓", "Move"),
+                hint("↑↓", "Move"),
                 hint("Enter", "Accept"),
                 hint("Esc", "Close"),
             ];
@@ -1321,12 +1321,12 @@ impl QueryTab {
                 hint("/", "Find"),
             ],
             Some(f) if f == self.result_tabs.id => vec![
-                hint("← →", "Result"),
+                hint("←→", "Result"),
                 hint("p", "Pin"),
                 hint("x", "Close"),
                 hint("Enter", "Go to statement"),
             ],
-            _ => vec![hint("↑ ↓", "Move")],
+            _ => vec![hint("↑↓", "Move")],
         }
     }
 
@@ -2379,7 +2379,7 @@ impl HistoryTab {
                 hint("/", "Search"),
                 hint("c s", "Scope · Status"),
             ],
-            _ => vec![hint("↑ ↓", "Move"), hint("/", "Search")],
+            _ => vec![hint("↑↓", "Move"), hint("/", "Search")],
         }
     }
 

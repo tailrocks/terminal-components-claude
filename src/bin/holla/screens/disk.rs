@@ -1553,7 +1553,7 @@ impl Screen for DiskPage {
         match self.view {
             View::Tree => vec![
                 hint("↑↓", "Move"),
-                hint("← →", "Fold / open"),
+                hint("←→", "Fold / open"),
                 hint("Space", "Select"),
                 hint("s", "Sort"),
                 hint("f", "Fold noise"),

@@ -418,7 +418,7 @@ impl Page for SidebarsPage {
             t,
         );
         let lines = [
-            "One focus stop. ↑ ↓ move the cursor, Enter opens.",
+            "One focus stop. ↑↓ move the cursor, Enter opens.",
             "",
             "›  current item · persists when focus leaves",
             "▎  keyboard cursor · only while focused",
@@ -490,6 +490,6 @@ impl Page for SidebarsPage {
     }
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
-        vec![("↑ ↓", "Move"), ("Enter", "Open")]
+        vec![("↑↓", "Move"), ("Enter", "Open")]
     }
 }

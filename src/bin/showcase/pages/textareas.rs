@@ -155,7 +155,7 @@ impl Page for TextAreasPage {
                 ("Tab", "Next"),
             ]
         } else {
-            vec![("Enter", "Edit"), ("↑ ↓", "Scroll")]
+            vec![("Enter", "Edit"), ("↑↓", "Scroll")]
         }
     }
 }

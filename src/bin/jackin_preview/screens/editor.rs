@@ -2132,11 +2132,11 @@ impl Screen for EditorScreen {
         }
         let mut v = vec![];
         if focus == Some(TABS) {
-            v.push(hint("← →", "Tab"));
+            v.push(hint("←→", "Tab"));
             v.push(hint("1–5", "Jump"));
             v.push(hint("Enter", "Body"));
         } else if matches!(focus, Some(CANCEL) | Some(SAVE)) {
-            v.push(hint("← →", "Choose"));
+            v.push(hint("←→", "Choose"));
             v.push(hint("Enter", "Run"));
         } else {
             match self.tab {

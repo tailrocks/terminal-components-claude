@@ -169,8 +169,8 @@ impl Page for DiffPage {
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.view.id()) {
             vec![
-                ("↑ ↓", "Scroll"),
-                ("← →", "Pan"),
+                ("↑↓", "Scroll"),
+                ("←→", "Pan"),
                 ("drag", "Select"),
                 ("y", "Copy"),
                 ("Esc", "Clear"),

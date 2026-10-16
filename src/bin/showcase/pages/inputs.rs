@@ -46,7 +46,7 @@ impl InputsPage {
                 .help("Managed by the organization"),
             TextInput::new(ID.child(4), "Search files")
                 .placeholder("Type a path or symbol…")
-                .help("Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U"),
+                .help("Selection: Shift+←→  ·  words: Ctrl+←→  ·  clear: Ctrl+U"),
             TextInput::new(ID.child(5), "API key")
                 .masked()
                 .reveal_tail(4)
@@ -255,7 +255,7 @@ impl Page for InputsPage {
             vec![
                 ("Enter", "Commit"),
                 ("Esc", "Cancel"),
-                ("Shift+← →", "Select"),
+                ("Shift+←→", "Select"),
                 ("Ctrl+U", "Clear"),
             ]
         } else {

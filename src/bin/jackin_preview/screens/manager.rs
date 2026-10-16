@@ -2445,7 +2445,7 @@ impl Screen for ManagerScreen {
             return v;
         }
         if self.actions.iter().any(|b| Some(b.id) == focus) {
-            v.push(hint("← →", "Choose"));
+            v.push(hint("←→", "Choose"));
             v.push(hint("Enter", "Run"));
             v.push(hint("Esc", "Back"));
             return v;
