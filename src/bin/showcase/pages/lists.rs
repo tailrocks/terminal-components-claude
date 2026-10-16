@@ -5,6 +5,7 @@ use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
@@ -48,7 +49,15 @@ impl ListsPage {
         ];
         let items = files
             .iter()
-            .map(|(n, m, d)| ListItem::new(n).meta(m).disabled(*d))
+            .map(|(n, m, d)| {
+                // the change kind in its tone; generated and locked stay muted
+                let tone = match *m {
+                    "new" => Tone::Success,
+                    "modified" => Tone::Warning,
+                    _ => Tone::Muted,
+                };
+                ListItem::new(n).meta(m).meta_tone(tone).disabled(*d)
+            })
             .collect();
         let mut multi = ListBox::new(ID.sub("multi"), items, SelectMode::Multi);
         multi.checked[0] = true;
