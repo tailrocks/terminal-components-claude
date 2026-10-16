@@ -512,7 +512,7 @@ impl EditorScreen {
                 ),
                 "Save",
             )
-            .with_actions(
+            .actions(
                 vec![
                     Button::subtle(WidgetId::of("editor.exit.cancel"), "Cancel"),
                     Button::danger(WidgetId::of("editor.exit.discard"), "Discard"),
