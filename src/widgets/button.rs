@@ -1,10 +1,9 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::theme::ButtonKind;
+use crate::theme::{ButtonKind, Kind};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use ratatui::crossterm::event::KeyCode;
@@ -130,20 +129,13 @@ impl Button {
             s.pressed = false;
         }
         let t = ctx.theme;
-        let mut style = t.button(self.kind, s, bg);
-        // a busy button dims its label, but on the accent fill (primary) the
-        // secondary grey is unreadable: keep the on-accent ink there
-        let filled = self.kind == ButtonKind::Primary && !self.disabled;
-        let busy_ink = if filled {
-            t.text_on_accent
-        } else {
-            t.text_secondary
-        };
-        if self.busy {
-            style = style.fg(busy_ink).remove_modifier(Modifier::BOLD);
-        }
-        let on_accent = self.kind == ButtonKind::Primary && !self.disabled;
-        let gutter = t.gutter(s, style.bg.unwrap_or(bg), on_accent);
+        // the resolver owns every state, busy included: a busy label dims,
+        // on the accent fill it keeps the on-accent ink
+        let it = t.interactive(Kind::Button(self.kind), s, t.plane_of(bg));
+        let style = it.style;
+        let filled = it.on_fill;
+        let busy_ink = style.fg.unwrap_or(t.text_secondary);
+        let gutter = it.gutter_style;
         let mut text = String::new();
         if self.busy {
             text.push_str(super::progress::spinner_frame(ctx.interaction.tick));
@@ -154,7 +146,7 @@ impl Button {
         }
         text.push_str(&self.label);
         let text = crate::ui::text::fit(&text, (w as usize).saturating_sub(2));
-        buf.set_string(area.x, area.y, t.gutter_symbol(s), gutter);
+        buf.set_string(area.x, area.y, it.gutter, gutter);
         buf.set_string(area.x + 1, area.y, &text, style);
         // marker colour: accent when on, muted when off
         if let Some(on) = self.on
