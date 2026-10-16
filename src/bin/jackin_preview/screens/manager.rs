@@ -18,7 +18,7 @@ use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::panel::{Panel, PanelFocus};
 use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::progress::spinner_frame;
 use junie_tui::widgets::props::{self, Prop};
@@ -1239,8 +1239,17 @@ impl ManagerScreen {
                 .meta(&scope_word)
                 .render(area, buf, t)
         } else {
+            // a workspace's card is itself the focus stop (an instance's
+            // pane rows carry their own `▎`): its title shows the bar
+            let card_is_stop =
+                ctx.interaction.focused(DETAIL) && !matches!(self.selected, RowKey::Instance(_));
             Panel::card(Some(&title))
                 .focused(focused)
+                .focus_mark(if card_is_stop {
+                    PanelFocus::Bar
+                } else {
+                    PanelFocus::Title
+                })
                 .meta(&scope_word)
                 .render(area, buf, t)
         };
