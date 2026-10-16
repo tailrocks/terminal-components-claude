@@ -323,42 +323,7 @@ widgets::completion::CompletionAction::Accept | widget actions: the Inspector St
 widgets::completion::CompletionAction::Dismiss | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::dialog
-widgets::dialog::DialogBody | Dialogs page variants and options | SC17
-widgets::dialog::DialogBody::Text | Dialogs page variants and options | SC17
-widgets::dialog::DialogBody::Input | Dialogs page variants and options | SC17
-widgets::dialog::DialogBody::Facts | Dialogs page variants and options | SC17
-widgets::dialog::AckInput | Dialogs page variants and options | SC17
-widgets::dialog::DialogResult | Dialogs page variants and options | SC17
-widgets::dialog::DialogResult::Action | Dialogs page variants and options | SC17
-widgets::dialog::DialogResult::Cancelled | Dialogs page variants and options | SC17
-widgets::dialog::AckEnter | Dialogs page variants and options | SC17
-widgets::dialog::AckEnter::Submit | Dialogs page variants and options | SC17
-widgets::dialog::AckEnter::NextField | Dialogs page variants and options | SC17
-widgets::dialog::DialogCmd | Dialogs page variants and options | SC17
-widgets::dialog::DialogCmd::Confirm | Dialogs page variants and options | SC17
-widgets::dialog::DialogCmd::Cancel | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::width | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::accelerators | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::keymap | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::nav | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::ack_enter | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::mnemonics | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::guard_dirty_prompt | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::cancel_label | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::dismiss | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::close_button | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::edit_entry | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::actions | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::with_actions | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::button_row | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::body_scroll | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::max_height | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::outer_margin | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::backdrop | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::chrome | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::placement | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::anchor | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::confirm_index | Dialogs page variants and options | SC17
+widgets::dialog::Dialog::with_actions | deprecated alias of Dialog::actions, shown through dialogs (Unsaved changes, Push failed) | permanent
 
 # widgets::diff
 widgets::diff::DiffLineKind | Diff and Terminal page options | SC25

@@ -225,8 +225,9 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/menus", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["wait:Actions menu"]).pending(),
     Root::new("showcase/sections/menus-options", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "2", "wait:Actions placement"]).pending(),
     Root::new("showcase/sections/menus-states", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "3", "wait:Commands"]).pending(),
-    // SC28 Focus & navigation: the ring, the nav map and the keys card,
-    // the option table and how each control shows focus.
+    // SC17: the Dialogs page's Options and States sections.
+    Root::new("showcase/sections/dialogs-options", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "2", "wait:Placement"]).pending(),
+    Root::new("showcase/sections/dialogs-states", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "3", "wait:Run task now?"]).pending(),
     Root::new("showcase/pages/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:Nav map"]).pending(),
     Root::new("showcase/sections/focusnavigation-options", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "2", "wait:List nav keys"]).pending(),
     Root::new("showcase/sections/focusnavigation-states", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "3", "wait:Tab strip"]).pending(),
@@ -317,9 +318,10 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/inspector/options", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["i", "wait:Options"]).click("Options").pending(),
     // SC1: a shell option set at launch through `--opt` (ASCII glyphs).
     Root::new("showcase/flows/inspector/opt-glyphs", Bin::Showcase, &["--page", "buttons", "--opt", "shell.glyphs=ascii"], BOOT).pending(),
-    Root::new("showcase/flows/dialogs/open", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "enter"]).dismiss_pending(),
+    // SC17: the section strip is the page's first stop, the first button the second.
+    Root::new("showcase/flows/dialogs/open", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "enter"]).dismiss_pending(),
     // S1: the prompt dialog (second button), input prefilled and validated.
-    Root::new("showcase/flows/dialogs/prompt", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "enter", "wait:Shown in the task list"]).dismiss_pending(),
+    Root::new("showcase/flows/dialogs/prompt", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "tab", "enter", "wait:Shown in the task list"]).dismiss_pending(),
     // S2: the destructive dialog (fourth button), Cancel focused first.
     Root::new("showcase/flows/dialogs/destructive", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["d", "wait:Delete branch?"]).dismiss_pending(),
     Root::new("showcase/flows/pickers/open", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "enter"]).dismiss_pending(),
@@ -356,6 +358,14 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/menus_row_keyboard", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "tab", "shift-f10", "wait:Duplicate"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/menus_row_pointer", Bin::Showcase, &["--page", "menus"], BOOT).right_click("README.md").pending().dismiss_pending(),
     Root::new("showcase/overlays/menus_actions", Bin::Showcase, &["--page", "menus"], BOOT).click("Actions ▾").pending().dismiss_pending(),
+    // SC17 Dialogs: the read-only viewer, the first drop gate (facts and
+    // code), the multi-action failure, the long body that scrolls, and a
+    // confirm anchored under its button.
+    Root::new("showcase/overlays/dialogs_viewer", Bin::Showcase, &["--page", "dialogs"], BOOT).click("View config").pending().dismiss_pending(),
+    Root::new("showcase/overlays/dialogs_gate", Bin::Showcase, &["--page", "dialogs"], BOOT).click("Drop table…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/dialogs_push", Bin::Showcase, &["--page", "dialogs"], BOOT).click("Push failed…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/dialogs_notes", Bin::Showcase, &["--page", "dialogs"], BOOT).click("Release notes").pending().dismiss_pending(),
+    Root::new("showcase/overlays/dialogs_anchored", Bin::Showcase, &["--page", "dialogs", "--opt", "dialogs.placement=below"], BOOT).click("Confirm run").pending().dismiss_pending(),
     Root::new("showcase/overlays/emptyerror_row_actions", Bin::Showcase, &["--page", "emptyerror"], BOOT).click("Row actions ▾").pending().dismiss_pending(),
     // mouse #40: the brand asks before quitting.
     Root::new("showcase/overlays/quit_confirm", Bin::Showcase, &["--page", "overview"], BOOT).click("Junie").pending().dismiss_pending(),

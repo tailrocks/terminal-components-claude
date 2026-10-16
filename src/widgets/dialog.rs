@@ -652,13 +652,13 @@ impl Dialog {
         self
     }
 
-    /// Set how the dialog closes without an action.
     /// A status glyph before the title (see [`Dialog::title_status`]).
     pub fn title_status(mut self, kind: StatusKind) -> Self {
         self.title_status = Some(kind);
         self
     }
 
+    /// Set how the dialog closes without an action.
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
@@ -883,6 +883,7 @@ impl Dialog {
         self
     }
 
+    /// See [`Self::confirm_index`].
     pub fn confirm_index(mut self, index: Option<usize>) -> Self {
         self.confirm_index = index;
         self
