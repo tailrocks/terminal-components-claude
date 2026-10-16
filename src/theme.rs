@@ -390,14 +390,29 @@ mod palette {
     pub const GREEN_60: Color = rgb(0x2e9a38);
     pub const GREEN_10: Color = rgb(0x0a1c0c);
     pub const ON_GREEN: Color = rgb(0x19191c);
-    pub const RED: Color = rgb(0xe44545);
+    /// Error text and glyphs: ≥ 4.5:1 on canvas, surface, card, field and
+    /// raised (the old #e44545 was 4.4:1 on a card).
+    pub const RED: Color = rgb(0xf05d5d);
+    /// Error text lifted for the popover plane, where [`RED`] is 3.2:1.
+    pub const RED_STRONG: Color = rgb(0xff8a8a);
+    /// Success lifted for the popover plane, where [`SUCCESS`] is 4.1:1.
+    pub const SUCCESS_STRONG: Color = rgb(0x56d364);
+    /// Muted text: ≥ 4.5:1 on canvas, surface, card and field, and the
+    /// same grey as its 256-colour pin (245).
+    pub const MUTED: Color = rgb(0x8a8a8a);
     pub const RED_20: Color = rgb(0x2e0f0f);
     /// Soft rose: a destructive label at rest on a neutral plane.
     pub const RED_SOFT: Color = rgb(0xe8a0a0);
     /// Deep red: the highlight of a destructive menu row under the cursor.
     pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
-    pub const PURPLE: Color = rgb(0x8787ff);
+    /// Information, links and running labels: a light blue in the family
+    /// of the highlight fill, apart from the accent green.
+    pub const BLUE_INFO: Color = rgb(0x79b8ff);
+    /// Syntax: string literals (teal).
+    pub const SYNTAX_STRING: Color = rgb(0x8bd5ca);
+    /// Syntax: numbers, booleans and NULL (lavender).
+    pub const SYNTAX_LITERAL: Color = rgb(0xc6a0f6);
 
     // Interactive ladders: rest → hover → pressed per plane. Adjacent steps
     // are at least 1.2:1 apart so each state reads on its own.
@@ -473,7 +488,22 @@ pub struct Theme {
     pub error_bg: Color,
     pub warning: Color,
     pub success: Color,
+    /// Information: links, running labels, the healthy run of a meter,
+    /// the development environment.
     pub info: Color,
+    /// Link ink ([`Self::link`] adds the underline on hover and focus).
+    pub link: Color,
+    /// Error text on planes where [`Self::error`] falls under 4.5:1 (the
+    /// popover). [`Self::tone_on`] and [`Self::legible`] pick it.
+    pub error_strong: Color,
+    /// Success on planes where [`Self::success`] falls under 4.5:1.
+    pub success_strong: Color,
+    /// Syntax: keywords (bold). Only in code ([`Self::syntax`]).
+    pub syntax_keyword: Color,
+    /// Syntax: string literals and JSON values.
+    pub syntax_string: Color,
+    /// Syntax: numbers, booleans and NULL (italic).
+    pub syntax_literal: Color,
 
     /// Text selection and grid range tint (see [`Self::selection`]).
     pub selection_bg: Color,
@@ -538,7 +568,7 @@ impl Theme {
             border_strong: WHITE_30,
             text_primary: WHITE,
             text_secondary: WHITE_70,
-            text_muted: WHITE_50,
+            text_muted: MUTED,
             text_faint: WHITE_43,
             text_ghost: WHITE_15,
             text_on_accent: ON_GREEN,
@@ -553,7 +583,13 @@ impl Theme {
             error_bg: RED_20,
             warning: AMBER,
             success: SUCCESS,
-            info: PURPLE,
+            info: BLUE_INFO,
+            link: BLUE_INFO,
+            error_strong: RED_STRONG,
+            success_strong: SUCCESS_STRONG,
+            syntax_keyword: BLUE_INFO,
+            syntax_string: SYNTAX_STRING,
+            syntax_literal: SYNTAX_LITERAL,
             accent_bg_hover: GREEN_35,
             selection_bg: BLUE_20,
             danger_label: RED_LABEL,
@@ -637,6 +673,12 @@ impl Theme {
             warning,
             success,
             info,
+            link,
+            error_strong,
+            success_strong,
+            syntax_keyword,
+            syntax_string,
+            syntax_literal,
             accent_bg_hover,
             danger_label,
             selection_bg
@@ -709,8 +751,17 @@ impl Theme {
         self.accent_bg_subtle = i(22);
         self.focus = i(78);
         self.success = i(71);
+        self.success_strong = i(77);
         self.disabled = i(239);
-        self.error = i(167);
+        // 203 keeps error text ≥ 4.5:1 on the raised plane (167 was 4.1:1)
+        self.error = i(203);
+        self.error_strong = i(210);
+        self.warning = i(214);
+        self.info = i(111);
+        self.link = i(111);
+        self.syntax_keyword = i(111);
+        self.syntax_string = i(116);
+        self.syntax_literal = i(183);
         self.error_soft = i(174);
         self.danger_label = i(203);
         self.error_bg = i(52);
@@ -758,12 +809,23 @@ impl Theme {
         self.accent_pressed = Green;
         self.accent_bg = Black;
         self.accent_bg_hover = DarkGray;
-        self.selection_bg = Blue;
+        // the highlight fill is Blue: text selection is reversed video
+        // instead ([`Theme::selection`]), so a menu cursor and a selection
+        // never look alike
+        self.selection_bg = Black;
         self.accent_bg_subtle = Black;
         self.focus = LightGreen;
         self.success = Green;
+        self.success_strong = Green;
         self.disabled = DarkGray;
         self.error = LightRed;
+        self.error_strong = LightRed;
+        self.warning = Yellow;
+        self.info = LightBlue;
+        self.link = LightBlue;
+        self.syntax_keyword = LightBlue;
+        self.syntax_string = Cyan;
+        self.syntax_literal = LightMagenta;
         self.error_soft = LightRed;
         self.danger_label = LightRed;
         self.error_bg = Black;
@@ -815,8 +877,13 @@ impl Theme {
         self.accent_bg_subtle = Black;
         self.focus = White;
         self.success = White;
+        self.success_strong = White;
         self.disabled = DarkGray;
         self.error = White;
+        self.error_strong = White;
+        // NO_COLOR strips the hues: glyphs and modifiers carry the status,
+        // link and syntax roles (status glyphs, the link underline, bold
+        // keywords, italic literals)
         self.error_soft = White;
         self.danger_label = White;
         self.error_bg = Black;
@@ -1308,15 +1375,38 @@ impl Theme {
         }
     }
 
-    /// `fg` if it reads on `bg` (≥ 4.5:1), otherwise the most legible of
-    /// the primary and on-accent inks. Colours the terminal resolves (named
-    /// and indexed) are measured against the xterm defaults.
+    /// `fg` if it reads on `bg` (≥ 4.5:1). Otherwise the closest step that
+    /// does: an error or success hue takes its strong step
+    /// ([`Self::error_strong`], [`Self::success_strong`]); a text-ladder
+    /// ink steps up the ladder (faint → muted → secondary), never jumping
+    /// to primary, so a faint segment does not become the brightest thing
+    /// on a bar. Only when no step reads (a coloured fill) does it fall
+    /// back to the most legible of the primary and on-accent inks. Colours
+    /// the terminal resolves (named and indexed) are measured against the
+    /// xterm defaults.
     pub fn legible(&self, fg: Color, bg: Color) -> Color {
         let Some(c) = contrast_ratio(fg, bg) else {
             return fg;
         };
         if c >= 4.5 {
             return fg;
+        }
+        let reads = |ink: Color| contrast_ratio(ink, bg).is_some_and(|r| r >= 4.5);
+        let strong = if fg == self.error || fg == self.danger_label {
+            Some(self.error_strong)
+        } else if fg == self.success {
+            Some(self.success_strong)
+        } else {
+            None
+        };
+        if let Some(ink) = strong.filter(|&ink| reads(ink)) {
+            return ink;
+        }
+        let ladder = [self.text_faint, self.text_muted, self.text_secondary];
+        if let Some(pos) = ladder.iter().position(|&ink| ink == fg)
+            && let Some(&ink) = ladder[pos + 1..].iter().find(|&&ink| reads(ink))
+        {
+            return ink;
         }
         [self.text_primary, self.text_on_accent]
             .into_iter()
@@ -1481,9 +1571,11 @@ impl Theme {
     /// Text selection and a grid range: a cool tint of its own, apart
     /// from the pressed planes and from the current find match (popover).
     /// Stays visible when `NO_COLOR` suppresses colours.
+    /// At 16 colours the highlight fill already takes the only blue, so
+    /// the selection is reversed video there too.
     pub fn selection(&self) -> Style {
         let style = Style::new().fg(self.text_primary).bg(self.selection_bg);
-        if self.level == ColorLevel::Mono {
+        if matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono) {
             style.add_modifier(Modifier::REVERSED)
         } else {
             style
@@ -1515,19 +1607,112 @@ impl Theme {
             Tone::Error => self.error,
             Tone::Warning => self.warning,
             Tone::Success => self.success,
+            Tone::Info => self.info,
+            Tone::Active => self.accent,
+            Tone::Danger => self.danger_label,
         }
     }
 
-    /// Restrained syntax palette: structure through weight and the text
-    /// ladder, not hue.
+    /// [`Self::tone`] made readable on `bg` ([`Self::legible`]): the
+    /// popover takes the strong error and success steps, muted text steps
+    /// up the ladder.
+    pub fn tone_on(&self, tone: Tone, bg: Color) -> Color {
+        self.legible(self.tone(tone), bg)
+    }
+
+    /// A link: [`Self::link`] ink, underlined when hovered or focused (the
+    /// underline is also its cue without colour).
+    pub fn link_style(&self, hovered_or_focused: bool) -> Style {
+        let style = Style::new().fg(self.link);
+        if hovered_or_focused || self.level == ColorLevel::Mono {
+            style.add_modifier(Modifier::UNDERLINED)
+        } else {
+            style
+        }
+    }
+
+    /// The glyph and style of a status (a task, a check, a connection):
+    /// the glyph is mandatory, so colour is never the only cue. Glyphs come
+    /// from [`Self::glyphs`]; a running status shows the first spinner
+    /// frame ([`Self::status_at`] animates it).
+    pub fn status(&self, kind: StatusKind) -> (&'static str, Style) {
+        self.status_at(kind, 0)
+    }
+
+    /// [`Self::status`] at animation tick `tick` (the running spinner).
+    pub fn status_at(&self, kind: StatusKind, tick: u64) -> (&'static str, Style) {
+        let g = &self.glyphs;
+        let glyph = match kind {
+            StatusKind::Ok => g.done,
+            StatusKind::Fail => g.fail,
+            StatusKind::Warn => g.warning,
+            StatusKind::Pending => g.dirty,
+            StatusKind::Running => g.spinner_frame(tick),
+            StatusKind::Queued => g.dot_off,
+            StatusKind::Info => g.info,
+            StatusKind::Skipped => g.dash,
+        };
+        let mut style = Style::new().fg(self.status_color(kind));
+        if kind == StatusKind::Fail {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        (glyph, style)
+    }
+
+    /// The label beside a status glyph: the glyph's hue, except running,
+    /// whose label is information (the spinner keeps the accent).
+    pub fn status_label(&self, kind: StatusKind) -> Style {
+        Style::new().fg(match kind {
+            StatusKind::Running => self.info,
+            k => self.status_color(k),
+        })
+    }
+
+    fn status_color(&self, kind: StatusKind) -> Color {
+        match kind {
+            StatusKind::Ok => self.success,
+            StatusKind::Fail => self.error,
+            StatusKind::Warn | StatusKind::Pending => self.warning,
+            StatusKind::Running => self.accent,
+            StatusKind::Queued => self.text_muted,
+            StatusKind::Info => self.info,
+            StatusKind::Skipped => self.text_faint,
+        }
+    }
+
+    /// The glyph and style of a deployment environment badge: production
+    /// is the danger label in bold with `◆`, staging the warning with `◇`,
+    /// development information with `·`, local muted with no glyph.
+    pub fn env(&self, env: EnvKind) -> (&'static str, Style) {
+        let g = &self.glyphs;
+        match env {
+            EnvKind::Production => (
+                g.env_production,
+                Style::new()
+                    .fg(self.danger_label)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            EnvKind::Staging => (g.env_staging, Style::new().fg(self.warning)),
+            EnvKind::Development => (g.env_development, Style::new().fg(self.info)),
+            EnvKind::Local => ("", Style::new().fg(self.text_muted)),
+        }
+    }
+
+    /// Syntax palette, for code only: keywords in the information blue
+    /// (bold), strings teal, literals (numbers, booleans, NULL) lavender
+    /// and italic; identifiers stay primary, operators muted, comments
+    /// faint italic. Weight and italic keep the classes apart without
+    /// colour.
     pub fn syntax(&self, tone: SyntaxTone) -> Style {
         match tone {
             SyntaxTone::Keyword => Style::new()
-                .fg(self.text_primary)
+                .fg(self.syntax_keyword)
                 .add_modifier(Modifier::BOLD),
             SyntaxTone::Ident | SyntaxTone::Plain => Style::new().fg(self.text_primary),
-            SyntaxTone::Str => Style::new().fg(self.text_secondary),
-            SyntaxTone::Number => Style::new().fg(self.text_secondary),
+            SyntaxTone::Str => Style::new().fg(self.syntax_string),
+            SyntaxTone::Number | SyntaxTone::Literal => Style::new()
+                .fg(self.syntax_literal)
+                .add_modifier(Modifier::ITALIC),
             SyntaxTone::Operator | SyntaxTone::Punct => Style::new().fg(self.text_muted),
             SyntaxTone::Comment => Style::new()
                 .fg(self.text_faint)
@@ -1546,7 +1731,8 @@ impl Theme {
 }
 
 /// Text tone for values, segments, cells. Maps to the alpha ladder plus the
-/// three semantic colours; never to the accent.
+/// semantic colours. Only [`Tone::Active`] uses the accent, for live or
+/// running state; status hues appear only where they carry meaning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tone {
     #[default]
@@ -1557,6 +1743,56 @@ pub enum Tone {
     Error,
     Warning,
     Success,
+    /// Information: links, running labels, ids, refreshing.
+    Info,
+    /// Live or running (the accent as a foreground). Never "done".
+    Active,
+    /// A destructive or production label ([`Theme::danger_label`]).
+    Danger,
+}
+
+/// A status [`Theme::status`] draws: each has its own glyph, so colour is
+/// never the only cue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StatusKind {
+    /// Done, passed, connected: `✓` in success.
+    Ok,
+    /// Failed: `✗` in error, bold.
+    Fail,
+    /// Needs attention: `▲` in warning.
+    Warn,
+    /// Pending or dirty: `•` in warning.
+    Pending,
+    /// Running: the spinner in the accent; its label in info.
+    Running,
+    /// Waiting its turn: `○` muted.
+    Queued,
+    /// Information: `i` in info.
+    Info,
+    /// Skipped: `–` faint.
+    Skipped,
+}
+
+impl StatusKind {
+    pub const ALL: [StatusKind; 8] = [
+        StatusKind::Ok,
+        StatusKind::Fail,
+        StatusKind::Warn,
+        StatusKind::Pending,
+        StatusKind::Running,
+        StatusKind::Queued,
+        StatusKind::Info,
+        StatusKind::Skipped,
+    ];
+}
+
+/// A deployment environment [`Theme::env`] badges.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnvKind {
+    Production,
+    Staging,
+    Development,
+    Local,
 }
 
 /// Language-agnostic syntax classes for the code editor.
@@ -1565,6 +1801,8 @@ pub enum SyntaxTone {
     Keyword,
     Ident,
     Number,
+    /// Booleans and NULL: the literal hue, like numbers.
+    Literal,
     Str,
     Operator,
     Punct,
@@ -1678,6 +1916,16 @@ pub struct Glyphs {
     pub spinner: &'static [&'static str],
     /// A finished task or step. `✓`.
     pub done: &'static str,
+    /// A failed task or check ([`Theme::status`]). `✗`.
+    pub fail: &'static str,
+    /// An information marker ([`Theme::status`]). `i`.
+    pub info: &'static str,
+    /// The production environment ([`Theme::env`]). `◆`.
+    pub env_production: &'static str,
+    /// The staging environment. `◇`.
+    pub env_staging: &'static str,
+    /// The development environment. `·`.
+    pub env_development: &'static str,
     /// A cut or renamed value continues: `old → new`. `→`.
     pub arrow: &'static str,
     /// Filled part of a horizontal bar (progress, meter, active tab). `━`.
@@ -1753,6 +2001,11 @@ impl Glyphs {
         scroll_h_thumb: "━",
         spinner: &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
         done: "✓",
+        fail: "✗",
+        info: "i",
+        env_production: "◆",
+        env_staging: "◇",
+        env_development: "·",
         arrow: "→",
         bar_fill: "━",
         bar_empty: "─",
@@ -1810,6 +2063,11 @@ impl Glyphs {
         scroll_h_thumb: "=",
         spinner: &["|", "/", "-", "\\"],
         done: "+",
+        fail: "X",
+        info: "i",
+        env_production: "#",
+        env_staging: "~",
+        env_development: ".",
         arrow: ">",
         bar_fill: "=",
         bar_empty: "-",
@@ -2832,5 +3090,229 @@ mod tests {
         // hover is lighter than rest in truecolor
         let t = Theme::junie();
         assert!(luminance(t.ladders.handle.hover) > luminance(t.ladders.handle.rest));
+    }
+
+    /// Every plane a token can land on, by name, at truecolor.
+    fn text_planes(t: &Theme) -> [(&'static str, Color); 5] {
+        [
+            ("canvas", t.canvas),
+            ("surface", t.surface),
+            ("card", t.surface_elevated),
+            ("field", t.field),
+            ("raised", t.surface_overlay),
+        ]
+    }
+
+    #[test]
+    fn semantic_hues_read_on_every_plane_they_can_land_on() {
+        let t = Theme::junie();
+        let tokens = [
+            ("info", t.info),
+            ("link", t.link),
+            ("error", t.error),
+            ("warning", t.warning),
+            ("success", t.success),
+            ("danger_label", t.danger_label),
+            ("syntax_keyword", t.syntax_keyword),
+            ("syntax_string", t.syntax_string),
+            ("syntax_literal", t.syntax_literal),
+            ("accent", t.accent),
+        ];
+        for (name, fg) in tokens {
+            for (plane, bg) in text_planes(&t) {
+                let c = contrast(fg, bg);
+                assert!(c >= 4.5, "{name} on {plane} = {c:.2}");
+            }
+        }
+        // muted text reads on the planes text sits on; raised and popover
+        // step it up through `legible`
+        for (plane, bg) in &text_planes(&t)[..4] {
+            let c = contrast(t.text_muted, *bg);
+            assert!(c >= 4.5, "text_muted on {plane} = {c:.2}");
+        }
+        // the popover: the strong steps and the tone resolver
+        for tone in [
+            Tone::Error,
+            Tone::Success,
+            Tone::Warning,
+            Tone::Info,
+            Tone::Danger,
+            Tone::Muted,
+            Tone::Faint,
+            Tone::Secondary,
+        ] {
+            for bg in [t.popover, t.surface_overlay, t.field_hover] {
+                let ink = t.tone_on(tone, bg);
+                let c = contrast(ink, bg);
+                assert!(c >= 4.5, "{tone:?} on {bg:?} = {c:.2} ({ink:?})");
+            }
+        }
+        assert_eq!(t.tone_on(Tone::Error, t.popover), t.error_strong);
+        assert_eq!(t.tone_on(Tone::Success, t.popover), t.success_strong);
+        assert_eq!(t.tone_on(Tone::Error, t.surface_elevated), t.error);
+    }
+
+    #[test]
+    fn semantic_hues_read_at_256_colours() {
+        let t = Theme::for_level(ColorLevel::Ansi256);
+        let pins = [
+            (t.info, 111),
+            (t.link, 111),
+            (t.warning, 214),
+            (t.success, 71),
+            (t.error, 203),
+            (t.text_muted, 245),
+            (t.syntax_keyword, 111),
+            (t.syntax_string, 116),
+            (t.syntax_literal, 183),
+        ];
+        for (c, i) in pins {
+            assert_eq!(c, Color::Indexed(i));
+        }
+        for fg in [
+            t.info,
+            t.error,
+            t.warning,
+            t.success,
+            t.syntax_string,
+            t.syntax_literal,
+        ] {
+            for bg in [
+                t.canvas,
+                t.surface,
+                t.surface_elevated,
+                t.field,
+                t.surface_overlay,
+            ] {
+                let c = contrast_ratio(fg, bg).unwrap();
+                assert!(c >= 4.5, "{fg:?} on {bg:?} = {c:.2}");
+            }
+        }
+        for tone in [Tone::Error, Tone::Success, Tone::Muted] {
+            let ink = t.tone_on(tone, t.popover);
+            let c = contrast_ratio(ink, t.popover).unwrap();
+            assert!(c >= 4.5, "{tone:?} on the popover = {c:.2}");
+        }
+    }
+
+    #[test]
+    fn semantic_hues_stay_apart_at_reduced_levels() {
+        for level in [ColorLevel::Ansi256, ColorLevel::Ansi16] {
+            let t = Theme::for_level(level);
+            let hues = [
+                ("info", t.info),
+                ("warning", t.warning),
+                ("success", t.success),
+                ("error", t.error),
+                ("accent", t.accent),
+            ];
+            for (i, (a, x)) in hues.iter().enumerate() {
+                for (b, y) in &hues[i + 1..] {
+                    assert_ne!(x, y, "{level:?}: {a} and {b} collide");
+                }
+            }
+            let syntax = [t.syntax_keyword, t.syntax_string, t.syntax_literal];
+            for (i, a) in syntax.iter().enumerate() {
+                assert!(!syntax[i + 1..].contains(a), "{level:?}: syntax hues collide");
+                assert_ne!(*a, t.text_primary, "{level:?}");
+            }
+            // the menu cursor fill and the text selection never look alike
+            let sel = t.selection();
+            assert!(
+                sel.bg != Some(t.highlight) || sel.add_modifier.contains(Modifier::REVERSED),
+                "{level:?}"
+            );
+            // ink on the highlight fill stays primary (info would collide)
+            let row = t.cursor_row(
+                VisualState {
+                    focused: true,
+                    ..Default::default()
+                },
+                t.popover,
+                CursorStyle::Fill,
+            );
+            assert_eq!(t.row_ink(&row, t.info), t.text_primary, "{level:?}");
+        }
+        let t = Theme::for_level(ColorLevel::Ansi16);
+        assert_eq!(t.info, Color::LightBlue);
+        assert_ne!(t.selection_bg, t.highlight);
+        assert!(t.selection().add_modifier.contains(Modifier::REVERSED));
+    }
+
+    #[test]
+    fn statuses_carry_a_glyph_at_every_level_and_glyph_set() {
+        for level in ColorLevel::ALL {
+            for glyphs in [Glyphs::UNICODE, Glyphs::ASCII] {
+                let t = Theme::for_level(level).with_glyphs(glyphs);
+                let mut seen = vec![];
+                for kind in StatusKind::ALL {
+                    let (g, st) = t.status(kind);
+                    assert_eq!(crate::ui::text::width(g), 1, "{kind:?}: one cell");
+                    assert!(st.fg.is_some(), "{kind:?}");
+                    if kind != StatusKind::Running {
+                        assert!(!seen.contains(&g), "{level:?} {kind:?}: {g} reused");
+                        seen.push(g);
+                    }
+                    if glyphs == Glyphs::ASCII {
+                        assert!(g.is_ascii(), "{kind:?}: {g}");
+                    }
+                }
+                // the running glyph animates with the spinner
+                assert_eq!(
+                    t.status_at(StatusKind::Running, 1).0,
+                    t.glyphs.spinner_frame(1)
+                );
+                // environments: production is bold (its mono cue), the
+                // others have their own glyph
+                let (g, st) = t.env(EnvKind::Production);
+                assert!(st.add_modifier.contains(Modifier::BOLD));
+                assert_eq!(crate::ui::text::width(g), 1);
+                let envs: Vec<_> = [EnvKind::Production, EnvKind::Staging, EnvKind::Development]
+                    .map(|e| t.env(e).0)
+                    .to_vec();
+                assert!(envs[0] != envs[1] && envs[1] != envs[2] && envs[0] != envs[2]);
+            }
+        }
+        let t = Theme::junie();
+        assert_eq!(t.status(StatusKind::Ok), ("✓", Style::new().fg(t.success)));
+        assert_eq!(t.status_label(StatusKind::Running).fg, Some(t.info));
+        assert_eq!(t.status(StatusKind::Running).1.fg, Some(t.accent));
+        // a link is underlined when hovered or focused, and always in mono
+        assert!(!t.link_style(false).add_modifier.contains(Modifier::UNDERLINED));
+        assert!(t.link_style(true).add_modifier.contains(Modifier::UNDERLINED));
+        let mono = Theme::for_level(ColorLevel::Mono);
+        assert!(mono.link_style(false).add_modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn syntax_classes_differ_without_colour() {
+        let t = Theme::for_level(ColorLevel::Mono);
+        let kw = t.syntax(SyntaxTone::Keyword);
+        let lit = t.syntax(SyntaxTone::Literal);
+        let id = t.syntax(SyntaxTone::Ident);
+        assert!(kw.add_modifier.contains(Modifier::BOLD));
+        assert!(lit.add_modifier.contains(Modifier::ITALIC));
+        assert_eq!(id.add_modifier, Modifier::empty());
+        assert_eq!(t.syntax(SyntaxTone::Number), lit);
+        // truecolor: hue for keywords, strings and literals only
+        let t = Theme::junie();
+        assert_eq!(t.syntax(SyntaxTone::Keyword).fg, Some(t.syntax_keyword));
+        assert_eq!(t.syntax(SyntaxTone::Str).fg, Some(t.syntax_string));
+        assert_eq!(t.syntax(SyntaxTone::Literal).fg, Some(t.syntax_literal));
+        assert_eq!(t.syntax(SyntaxTone::Ident).fg, Some(t.text_primary));
+    }
+
+    #[test]
+    fn legible_steps_up_the_text_ladder_instead_of_jumping_to_primary() {
+        let t = Theme::junie();
+        // faint on the canvas is 4.4:1: muted, not white
+        assert_eq!(t.legible(t.text_faint, t.canvas), t.text_muted);
+        // muted on the popover: secondary
+        assert_eq!(t.legible(t.text_muted, t.popover), t.text_secondary);
+        // a readable ink is kept
+        assert_eq!(t.legible(t.text_faint, t.canvas), t.text_muted);
+        assert_eq!(t.legible(t.text_secondary, t.canvas), t.text_secondary);
+        // a fill still takes the best of primary and on-accent
+        assert_eq!(t.legible(t.text_muted, t.accent), t.text_on_accent);
     }
 }
