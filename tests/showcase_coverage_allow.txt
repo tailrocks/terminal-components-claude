@@ -691,6 +691,7 @@ runtime::Coalesce | State tab readout of the library dispatcher: shown once the 
 runtime::TerminalSession | runtime plumbing exercised by every run; no visible surface | permanent
 runtime::SizeWatch | runtime plumbing exercised by every run; no visible surface | permanent
 runtime::InputPump | runtime plumbing exercised by every run; no visible surface | permanent
+runtime::FocusClickGuard | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # state
 state::loading | no SC2 specimen loads (Button, TextInput); Pickers PickerStatus::Loading | SC20

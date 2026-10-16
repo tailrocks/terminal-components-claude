@@ -1676,6 +1676,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::ty("runtime::TerminalSession"),
     Capability::ty("runtime::SizeWatch"),
     Capability::ty("runtime::InputPump"),
+    Capability::ty("runtime::FocusClickGuard"),
     // cross-cutting visual states (plan §7.1 SCP2)
     Capability::state("state::rest"),
     Capability::state("state::hover"),
