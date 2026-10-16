@@ -2,40 +2,40 @@
                                                                                                                         [0m
  [0m[1mComponents[0m           54  [0m[1mOverview[0m  Tokens and principles behind every component                                        [0m
                                                                                                                         [0m
- [0m[1m▎› Overview            [0m    Tokens                                          Principles                                  [0m
-  ▸ App shell                                                                                                           [0m
-  ▸ Inputs & forms              ▏ canvas                        Black       [0m[1mColour carries meaning[0m                      [0m
-  ▸ Tables                      ▏ surface                       Black       One accent hue for focus and primary        [0m
-  ▸ Navigation                  ▏ surface.elevated              Black       action; status hues only where they carry   [0m
-  ▸ Overlays                    ▏ surface.overlay            DarkGray       meaning; syntax hues only in code.          [0m
-  ▸ Feedback                    ▏ field                         Black                                                   [0m
-  ▸ Layout                      ▏ popover                    DarkGray       [0m[1mNever colour alone[0m                          [0m
-  ▸ Text & code                 ▏ border.subtle              DarkGray       Every status has its glyph: ✓ done, ✗       [0m
-  ▸ Screens                     ▏ border.strong                  Gray       failed, ▲ attention, • pending, i info.     [0m
-                                ▏ text.primary                  White                                                   [0m
-                                ▏ text.secondary                 Gray       [0m[1mAlpha ladder[0m                                [0m
-                                ▏ text.muted                     Gray       Text and borders step down in white         [0m
-                                ▏ text.faint                     Gray       opacity, never in arbitrary grays.          [0m
-                                ▏ accent                        White                                                   [0m
-                                ▏ accent.hover                  White       [0m[1mState is geometry[0m                           [0m
-                                ▏ accent.pressed                White       Hover lifts the surface, focus adds a bar,  [0m
-                                ▏ accent.bg                     Black       selection adds a marker, editing shows the  [0m
-                                ▏ highlight                  DarkGray       cursor.                                     [0m
-                                ▏ selection                  DarkGray                                                   [0m
-                                ▏ success                       White       [0m[1mThree planes[0m                                [0m
-                                ▏ info                           Gray       Canvas, surface, elevated. Depth comes      [0m
-                                ▏ warning                        Gray       from lightness, not borders.                [0m
-                                ▏ error                         White                                                   [0m
-                                ▏ danger                        White                                                   [0m
-                                                                            State language                              [0m
-                                                                                                                        [0m
-                            Roles                                           ▎  focus                                    [0m
-                                                                            ░  hover lifts the surface                  [0m
-                            Status ✓ ok [0m[1m✗[0m failed ▲ warn • pending           ›  current / chosen                         [0m
-                                   ⠋ running ○ queued i info – skipped      ✓  checked                                  [0m
-                            Env    [0m[1m◆ production[0m ◇ staging                   !  error                                    [0m
-                                   · development local                      ▁  editing: cursor + underline              [0m
-                                                                                                                        [0m
+ [0m[1m▎› Overview            [0m  [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                  Tokens · planes and text                                                                   ┃[0m
+  ▸ Navigation                                                                                                         ┃[0m
+  ▸ Overlays                    ▏ canvas                                                                       Black   ┃[0m
+  ▸ Feedback                    ▏ surface                                                                      Black   ┃[0m
+  ▸ Layout                      ▏ surface.elevated                                                             Black   ┃[0m
+  ▸ Text & code                 ▏ surface.overlay                                                           DarkGray   ┆[0m
+  ▸ Screens                     ▏ field                                                                        Black   ┆[0m
+                                ▏ field.hover                                                                  Black   ┆[0m
+                                ▏ popover                                                                   DarkGray   ┆[0m
+                                ▏ highlight                                                                 DarkGray   ┆[0m
+                                ▏ highlight.danger                                                          DarkGray   ┆[0m
+                                ▏ selection                                                                 DarkGray   ┆[0m
+                                ▏ border.subtle                                                             DarkGray   ┆[0m
+                                ▏ border.strong                                                                 Gray   ┆[0m
+                                ▏ scroll.track                                                              DarkGray   ┆[0m
+                                ▏ text.primary                                                                 White   ┆[0m
+                                ▏ text.secondary                                                                Gray   ┆[0m
+                                ▏ text.muted                                                                    Gray   ┆[0m
+                                ▏ text.faint                                                                    Gray   ┆[0m
+                                ▏ text.ghost                                                                DarkGray   ┆[0m
+                                ▏ text.on_accent                                                               Black   ┆[0m
+                                ▏ disabled                                                                  DarkGray   ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
+                                                                                                                       ┆[0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
 [?25l

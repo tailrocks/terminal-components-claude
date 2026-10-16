@@ -2,50 +2,50 @@
                                                                                                                                                                 [0m
  [0m[1mComponents[0m           54  [0m[1mOverview[0m  Tokens and principles behind every component                                                                                [0m
                                                                                                                                                                 [0m
- [0m[1m▎› Overview            [0m    Tokens                                          Principles                                                                          [0m
-  ▸ App shell                                                                                                                                                   [0m
-  ▸ Inputs & forms              ▏ canvas                        Black       [0m[1mColour carries meaning[0m                                                              [0m
-  ▸ Tables                      ▏ surface                       Black       One accent hue for focus and primary action; status hues only where they carry      [0m
-  ▸ Navigation                  ▏ surface.elevated              Black       meaning; syntax hues only in code.                                                  [0m
-  ▸ Overlays                    ▏ surface.overlay            DarkGray                                                                                           [0m
-  ▸ Feedback                    ▏ field                         Black       [0m[1mNever colour alone[0m                                                                  [0m
-  ▸ Layout                      ▏ popover                    DarkGray       Every status has its glyph: ✓ done, ✗ failed, ▲ attention, • pending, i info.       [0m
-  ▸ Text & code                 ▏ border.subtle              DarkGray                                                                                           [0m
-  ▸ Screens                     ▏ border.strong                  Gray       [0m[1mAlpha ladder[0m                                                                        [0m
-                                ▏ text.primary                  White       Text and borders step down in white opacity, never in arbitrary grays.              [0m
-                                ▏ text.secondary                 Gray                                                                                           [0m
-                                ▏ text.muted                     Gray       [0m[1mState is geometry[0m                                                                   [0m
-                                ▏ text.faint                     Gray       Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows   [0m
-                                ▏ accent                        White       the cursor.                                                                         [0m
-                                ▏ accent.hover                  White                                                                                           [0m
-                                ▏ accent.pressed                White       [0m[1mThree planes[0m                                                                        [0m
-                                ▏ accent.bg                     Black       Canvas, surface, elevated. Depth comes from lightness, not borders.                 [0m
-                                ▏ highlight                  DarkGray                                                                                           [0m
-                                ▏ selection                  DarkGray       [0m[1mQuiet chrome[0m                                                                        [0m
-                                ▏ success                       White       Bold is reserved for the focused control. No box around a thing unless the box      [0m
-                                ▏ info                           Gray       carries meaning.                                                                    [0m
-                                ▏ warning                        Gray                                                                                           [0m
-                                ▏ error                         White                                                                                           [0m
-                                ▏ danger                        White       State language                                                                      [0m
-                                                                                                                                                                [0m
-                                                                            ▎  focus                                                                            [0m
-                            Roles                                           ░  hover lifts the surface                                                          [0m
-                                                                            ›  current / chosen                                                                 [0m
-                            Status ✓ ok [0m[1m✗[0m failed ▲ warn • pending           ✓  checked                                                                          [0m
-                                   ⠋ running ○ queued i info – skipped      !  error                                                                            [0m
-                            Env    [0m[1m◆ production[0m ◇ staging                   ▁  editing: cursor + underline                                                      [0m
-                                   · development local                      ○  disabled: faint, no hover                                                        [0m
-                            Tone   normal secondary muted faint active                                                                                          [0m
-                                   info success warning error danger                                                                                            [0m
-                            Code   [0m[1mlet[0m ok = [0m[3mtrue[0m, [0m[3m42[0m, "text"; [0m[3m// note[0m                                                                                           [0m
-                            Link   [0m[4mdocs/colour.md[0m                                                                                                               [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
+ [0m[1m▎› Overview            [0m  [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                                                              [0m
+  ▸ Tables                  Tokens · planes and text                                           Tokens · accent and status                                      ┃[0m
+  ▸ Navigation                                                                                                                                                 ┃[0m
+  ▸ Overlays                    ▏ canvas                                             Black         ▏ accent                                            White   ┃[0m
+  ▸ Feedback                    ▏ surface                                            Black         ▏ accent.hover                                      White   ┃[0m
+  ▸ Layout                      ▏ surface.elevated                                   Black         ▏ accent.pressed                                    White   ┃[0m
+  ▸ Text & code                 ▏ surface.overlay                                 DarkGray         ▏ accent.bg                                         Black   ┃[0m
+  ▸ Screens                     ▏ field                                              Black         ▏ accent.bg.subtle                                  Black   ┃[0m
+                                ▏ field.hover                                        Black         ▏ accent.bg.hover                                   Black   ┃[0m
+                                ▏ popover                                         DarkGray         ▏ focus                                             White   ┃[0m
+                                ▏ highlight                                       DarkGray         ▏ link                                               Gray   ┃[0m
+                                ▏ highlight.danger                                DarkGray         ▏ success                                           White   ┃[0m
+                                ▏ selection                                       DarkGray         ▏ success.strong                                    White   ┃[0m
+                                ▏ border.subtle                                   DarkGray         ▏ info                                               Gray   ┃[0m
+                                ▏ border.strong                                       Gray         ▏ warning                                            Gray   ┃[0m
+                                ▏ scroll.track                                    DarkGray         ▏ error                                             White   ┃[0m
+                                ▏ text.primary                                       White         ▏ error.bg                                          Black   ┃[0m
+                                ▏ text.secondary                                      Gray         ▏ error.soft                                        White   ┃[0m
+                                ▏ text.muted                                          Gray         ▏ error.strong                                      White   ┃[0m
+                                ▏ text.faint                                          Gray         ▏ danger                                            White   ┃[0m
+                                ▏ text.ghost                                      DarkGray         ▏ syntax.keyword                                     Gray   ┃[0m
+                                ▏ text.on_accent                                     Black         ▏ syntax.string                                      Gray   ┆[0m
+                                ▏ disabled                                        DarkGray         ▏ syntax.literal                                    White   ┆[0m
+                                                                                                                                                               ┆[0m
+                                                                                                                                                               ┆[0m
+                            Glyphs and strings                                                 Ladders · theme.ladders                                         ┆[0m
+                                                                                                                                                               ┆[0m
+                            Glyphs         UNICODE           ASCII                             Ladder: rest hover pressed · Plane::up                          ┆[0m
+                            checks         [✓] [ ] [–]       [x] [ ] [-]                       Canvas                          → Raised                        ┆[0m
+                            radio, toggle  (●) ( ) ──● ○──   (*) ( ) --* o--                   Surface                         → Raised                        ┆[0m
+                            chevrons       ▴ ▾ ▾ ▸           ^ v v >                           Card                            → Raised                        ┆[0m
+                            status         ✓ ✗ ▲ i           + X ! i                           Field                           → Raised                        ┆[0m
+                            scrollbar      ┆┃┆               :#:                               Raised                          → Popover                       ┆[0m
+                            meter          ━━─               ==-                               Popover                         → Popover                       ┆[0m
+                            more, close    … ▾ ×             ~ v x                             Highlight                       → Highlight                     ┆[0m
+                                                                                               HighlightDanger                 → HighlightDanger               ┆[0m
+                            Strings        DEFAULT           override                          Accent                          → Accent                        ┆[0m
+                            more_cut       … {} more         ... {} more                       Danger                          → Danger                        ┆[0m
+                            search         Type to search…   Type to search...                 handle           ┃    ┃    ┃                                    ┆[0m
+                            empty_list     Nothing here yet  Nothing here yet                  seam             │    │    │                                    ┆[0m
+                            loading        Loading rows…     Loading rows...                                                                                   ┆[0m
+                                                                                                                                                               ┆[0m
                                                                                                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
 [?25l
