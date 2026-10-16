@@ -23,7 +23,7 @@ use junie_tui::theme::{BadgeKind, StatusKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::layer::{
-    DismissReason, Dismissed, LayerCx, LayerEntry, LayerTag, ShellLayers, Taken,
+    DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, LayerTag, ShellLayers, Taken,
 };
 use junie_tui::ui::layers::LayerResult;
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys};
@@ -1766,7 +1766,14 @@ impl App {
     /// Dismiss the top layer for `reason` under its own policy. A refused
     /// outside click flashes the frame when the policy asks for it.
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
-        match self.layers.dismiss(reason, &mut self.focus) {
+        let dismissed = self.layers.dismiss(reason, &mut self.focus);
+        self.dismissed(reason, dismissed)
+    }
+
+    /// What a dismissal of the top layer did: a refused outside click
+    /// flashes the frame when the policy asks for it.
+    fn dismissed(&mut self, reason: DismissReason, d: Dismissed<ModalResult>) -> Outcome {
+        match d {
             Dismissed::None => Outcome::Ignored,
             Dismissed::Refused => {
                 if reason == DismissReason::OutsideClick
@@ -2132,22 +2139,16 @@ impl App {
     }
 
     /// An event while a layer is open: the frame's `×` means what Esc
-    /// means, under the layer's own policy; anything else (a popup's own
-    /// backdrop included) is the layer's.
+    /// means and a click on its backdrop is an outside click, both under
+    /// the layer's own policy; anything else is the layer's.
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
         }
-        let Some(top) = self.layers.top_mut() else {
-            return Outcome::Ignored;
-        };
-        let mut cx = LayerCx {
-            focus: &mut self.focus,
-            ring: &self.ring,
-            app: &(),
-        };
-        let out = top.layer.pointer(ev, &mut cx);
-        self.take_layer().or(out)
+        match self.layers.pointer(ev, &mut self.focus, &self.ring, &()) {
+            LayerPointer::Handled(out) => self.take_layer().or(out),
+            LayerPointer::Dismissed(d) => self.dismissed(DismissReason::OutsideClick, d),
+        }
     }
 
     /// A click on the chrome around the screens; `None` when it is not

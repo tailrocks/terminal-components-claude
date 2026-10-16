@@ -1597,6 +1597,13 @@ impl App {
     /// reference takes every event the router resolved (the page beneath
     /// is unreachable behind their barrier); `None` when neither is open.
     fn modal_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
+        // a click on the frame's backdrop is a click outside it
+        if (self.dialog.is_some() || self.help.is_some())
+            && ev.is(junie_tui::core::intent::Phase::Click)
+            && ev.id == junie_tui::ui::modal::BACKDROP
+        {
+            return Some(PointerHost::outside(self, ev.pos()).outcome());
+        }
         if let Some(d) = self.dialog.as_mut() {
             let out = d.pointer_in(ev, &mut self.focus).outcome();
             if d.result.is_some() {
