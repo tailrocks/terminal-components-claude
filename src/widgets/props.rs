@@ -195,18 +195,26 @@ pub fn render_with(
             break;
         }
         if let Some(label) = row.label {
-            buf.set_string(
-                area.x,
-                y,
-                crate::ui::text::truncate(label, area.width as usize),
-                t.muted().bg(bg),
-            );
+            let shown = crate::ui::text::truncate(label, area.width as usize);
+            buf.set_string(area.x, y, &shown, t.muted().bg(bg));
+            let cut = Rect::new(area.x, y, crate::ui::text::width(&shown) as u16, 1);
+            crate::ui::reveal::queue_cut(cut, label);
         }
         let style = ratatui::style::Style::new()
             .fg(t.tone(row.prop.tone))
             .bg(bg);
         if !row.value.is_empty() {
             buf.set_string(area.x + row.value_x, y, &row.value, style);
+            if !row.prop.wrap {
+                // a value cut to the sheet reveals its full text on hover
+                let cut = Rect::new(
+                    area.x + row.value_x,
+                    y,
+                    crate::ui::text::width(&row.value) as u16,
+                    1,
+                );
+                crate::ui::reveal::queue_cut(cut, &row.prop.value);
+            }
         }
         y += 1;
     }
@@ -606,5 +614,58 @@ mod tests {
         assert!(row.contains("orders"), "{row:?}");
         let first: String = (0..40).map(|x| buf[(x, 0)].symbol()).collect();
         assert!(first.contains('…') && first.contains("value"), "{first:?}");
+    }
+}
+
+#[cfg(test)]
+mod static_reveal_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::ui::ctx::Interaction;
+    use ratatui::layout::Position;
+
+    const PATH: &str = "/Users/alex/work/ide/a/b/c/d/e/deep.iml";
+
+    fn frame(hover: Option<WidgetId>) -> (String, HitRegistry) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let interaction = Interaction {
+            hover,
+            ..Default::default()
+        };
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 3));
+        {
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            let props = [Prop::new("Mode", "Trash"), Prop::new("Path", PATH)];
+            render(
+                Rect::new(0, 0, 24, 3),
+                &mut buf,
+                &theme,
+                &props,
+                theme.canvas,
+            );
+            ctx.flush_overlays(&mut buf);
+        }
+        let text = (0..3)
+            .map(|y| (0..60).map(|x| buf[(x, y)].symbol()).collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n");
+        (text, hits)
+    }
+
+    #[test]
+    fn a_static_sheet_reveals_a_cut_value_on_hover() {
+        let (text, hits) = frame(None);
+        assert!(!text.contains(PATH), "cut: {text}");
+        // labels are 4 cells + 2: the value starts at column 6, row 1
+        let id = hits
+            .hover_at(Position::new(8, 1))
+            .expect("the cut value hovers");
+        assert_eq!(id, crate::ui::reveal::cut_id(Rect::new(6, 1, 1, 1)));
+        assert_eq!(hits.hover_at(Position::new(8, 0)), None, "Trash fits");
+        let (text, _) = frame(Some(id));
+        assert!(text.contains(PATH), "{text}");
     }
 }
