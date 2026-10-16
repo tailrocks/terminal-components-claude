@@ -365,7 +365,7 @@ fn page_text_under_a_modal_dims_but_never_disappears_at_16_colours() {
     h.app.theme = Theme::for_level(junie_tui::theme::ColorLevel::Ansi16);
     h.draw();
     h.ctrl('o');
-    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert!(h.app.top_as::<junie_tui::widgets::picker::Picker>().is_some());
     assert_reads(&h, "Query 1", "selected tab under the picker");
 }
 
