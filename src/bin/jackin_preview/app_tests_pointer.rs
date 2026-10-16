@@ -106,3 +106,21 @@ fn the_wheel_over_the_session_strip_moves_its_window() {
     h.mouse(MouseKind::WheelDown, tab.x, tab.y);
     assert_ne!(row(&h), before, "the wheel moved the strip\n{}", h.text());
 }
+
+/// The host menu bar opens a title on the press (MenuBar::open_on through
+/// its MouseTarget); a click away from it closes it.
+#[test]
+fn the_host_menu_opens_on_the_press_and_a_click_away_closes_it() {
+    let mut h = manager();
+    let (x, y) = h.find("File").expect("the host menu names File");
+    h.mouse(MouseKind::Down, x, y);
+    assert!(
+        h.app.host_menu.is_open(),
+        "the press opened File\n{}",
+        h.text()
+    );
+    h.mouse(MouseKind::Up, x, y);
+    assert!(h.app.host_menu.is_open(), "the click kept File open");
+    h.click(h.app.size.0 - 3, h.app.size.1 / 2);
+    assert!(!h.app.host_menu.is_open(), "a click away closed the menu");
+}
