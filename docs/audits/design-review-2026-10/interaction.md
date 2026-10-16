@@ -51,3 +51,23 @@ Audited HEAD `c69bb13`. The working tree has uncommitted changes from someone el
 Recommended order: #1, then #2–#7. #1 is the shared pointer router; it removes the per-app copies that most other findings trace back to. #2–#7 need it plus the `Dismiss`/`Modal` plumbing.
 
 My HEAD snapshot for reference is under `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/audit-interaction/head/`.
+## Reveal of truncated text: coverage notes
+
+Follow-ups to the truncated-text reveal (`src/ui/reveal.rs`).
+
+- **Static `props::render` sheets** (dialog facts, inspector panes, help
+  sheets) render without a `RenderCtx`, so they could not register a hover
+  region. They now queue each cut value with `ui::reveal::queue_cut`; the
+  next overlay flush turns it into a hover-only region (clicks still reach
+  the content beneath) with the expansion tooltip, under the global
+  `RenderCtx::reveal` policy. Panel titles use the same path.
+- **No keyboard reveal on static sheets, by design.** A static sheet is not
+  a focus stop and has no cursor row, so there is no row for `→` to
+  expand. A sheet whose values must be readable from the keyboard uses
+  `PropsList` (focusable, cursor row, `→` reveal, inline or tooltip).
+- **Wrapped values** (`Prop::wrap`) are never cut, so they register no
+  reveal; rows clipped off the bottom of a sheet are a scrolling concern
+  (layout audit #3), not a reveal one.
+- **Scrolling** of a reveal longer than its rows needs per-widget state:
+  it works for `RevealState` owners (ListBox, PropsList). Pointer-only
+  reveals (`ui::reveal::truncated`, queued cuts) end with `↓ N more`.

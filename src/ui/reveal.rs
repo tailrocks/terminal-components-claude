@@ -519,55 +519,58 @@ pub fn advertise<T>(
 }
 
 thread_local! {
-    /// Cut titles drawn this frame by chrome that renders without a
-    /// [`RenderCtx`] (panel title rows), registered at the next overlay
-    /// flush.
-    static TITLES: std::cell::RefCell<Vec<(Rect, String)>> =
+    /// Cut text drawn this frame by code that renders without a
+    /// [`RenderCtx`] (panel title rows, static property sheets),
+    /// registered at the next overlay flush.
+    static CUTS: std::cell::RefCell<Vec<(Rect, String)>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
 
-/// Most cut titles queued per frame: a panel rendered over and over
-/// without a frame to flush it never grows the queue.
-const TITLES_MAX: usize = 64;
+/// Most cut texts queued per frame: chrome rendered over and over without
+/// a frame to flush it never grows the queue.
+const CUTS_MAX: usize = 64;
 
-/// Queue a title shown cut to `area` whose full text is `full`, for chrome
-/// that draws without a [`RenderCtx`] (panel titles). At the next overlay
-/// flush its cells become a hover-only region (clicks still reach the
-/// panel) that shows the expansion tooltip under the global
-/// [`RenderCtx::reveal`] policy. Text that fits is ignored.
-pub fn queue_title(area: Rect, full: &str) {
+/// Queue text shown cut to `area` whose full text is `full`, for code that
+/// draws without a [`RenderCtx`] (panel titles, [`props::render`] sheets).
+/// At the next overlay flush its cells become a hover-only region (clicks
+/// still reach what is beneath) that shows the expansion tooltip under the
+/// global [`RenderCtx::reveal`] policy. Text that fits is ignored. There
+/// is no keyboard reveal: such text has no focus or cursor row.
+///
+/// [`props::render`]: crate::widgets::props::render
+pub fn queue_cut(area: Rect, full: &str) {
     if !is_cut(area, full) {
         return;
     }
-    TITLES.with(|q| {
+    CUTS.with(|q| {
         let mut q = q.borrow_mut();
         q.retain(|(a, _)| *a != area);
-        if q.len() < TITLES_MAX {
+        if q.len() < CUTS_MAX {
             q.push((area, full.to_owned()));
         }
     });
 }
 
-/// Drop titles queued outside a frame (a new frame starts clean).
-pub(crate) fn clear_titles() {
-    TITLES.with(|q| q.borrow_mut().clear());
+/// Drop text queued outside a frame (a new frame starts clean).
+pub(crate) fn clear_cuts() {
+    CUTS.with(|q| q.borrow_mut().clear());
 }
 
-/// The hover id of a cut title at `area`: by position, so two panels with
-/// the same title reveal each their own.
-pub fn title_id(area: Rect) -> WidgetId {
-    WidgetId::of("junie.reveal.title").child(((area.x as usize) << 16) | area.y as usize)
+/// The hover id of queued cut text at `area`: by position, so two panels
+/// with the same title reveal each their own.
+pub fn cut_id(area: Rect) -> WidgetId {
+    WidgetId::of("junie.reveal.cut").child(((area.x as usize) << 16) | area.y as usize)
 }
 
-/// Register the queued cut titles as hover regions with their reveal.
-/// Behind a modal (`inert`) they are dropped: nothing beneath it reveals.
-pub(crate) fn flush_titles(ctx: &mut RenderCtx) {
-    let titles = TITLES.with(|q| std::mem::take(&mut *q.borrow_mut()));
+/// Register the queued cut text as hover regions with their reveal.
+/// Behind a modal (`inert`) it is dropped: nothing beneath it reveals.
+pub(crate) fn flush_cuts(ctx: &mut RenderCtx) {
+    let cuts = CUTS.with(|q| std::mem::take(&mut *q.borrow_mut()));
     if ctx.inert {
         return;
     }
-    for (area, full) in titles {
-        let id = title_id(area);
+    for (area, full) in cuts {
+        let id = cut_id(area);
         if ctx.reveal.hover {
             ctx.hits.register_hover(id, area);
         }
