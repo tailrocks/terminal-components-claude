@@ -245,6 +245,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Overview => OVERVIEW,
         PageId::Tabs => TABS,
         PageId::Menus => MENUS,
+        PageId::Dialogs => DIALOGS,
         PageId::Buttons => BUTTONS,
         PageId::Inputs => INPUTS,
         PageId::TextAreas => TEXTAREAS,
@@ -1034,6 +1035,62 @@ pub static MENUS: &[Opt] = &[
     Opt::new("menus.shift_f10", "Shift+F10", OFF_ON).default(1),
     Opt::new("menus.menu_key", "Menu key", OFF_ON).default(1),
     Opt::new("menus.extra_key", "Extra key", &["none", "m"]),
+];
+
+/// The Dialogs page (SC17): the `Dialog` builders, applied to every
+/// dialog the page opens and read back in its "Applied" card.
+pub static DIALOGS: &[Opt] = &[
+    Opt::new("dialogs.width", "Width", &["auto", "44", "80"]),
+    Opt::new(
+        "dialogs.placement",
+        "Placement",
+        &["center", "below", "above", "right", "left"],
+    ),
+    Opt::new("dialogs.chrome", "Chrome rows", &["0-0", "3-2"]),
+    Opt::new(
+        "dialogs.outer_margin",
+        "Outer margin",
+        &["3x1", "0x0", "8x3"],
+    ),
+    Opt::new("dialogs.max_height", "Max height", &["none", "14", "9"]),
+    Opt::new("dialogs.body_scroll", "Body scrolls", OFF_ON).default(1),
+    Opt::new(
+        "dialogs.backdrop",
+        "Backdrop",
+        &["default", "full", "keep-top"],
+    ),
+    Opt::new(
+        "dialogs.dismiss",
+        "Dismiss",
+        &["auto", "light", "escape", "never"],
+    ),
+    Opt::new("dialogs.close_button", "× button", &["default", "danger"]),
+    Opt::new("dialogs.accelerators", "Accelerators", &["off", "y-n"]),
+    Opt::new("dialogs.keymap", "Key map", &["default", "ctrl"]),
+    Opt::new("dialogs.mnemonics", "Mnemonics", OFF_ON).default(1),
+    Opt::new("dialogs.nav", "Nav keys", &["desktop", "vim"]),
+    Opt::new(
+        "dialogs.ack_enter",
+        "Enter in token",
+        &["submit", "next-field"],
+    ),
+    Opt::new("dialogs.guard_dirty", "Guard edited prompt", OFF_ON).default(1),
+    Opt::new(
+        "dialogs.edit_entry",
+        "Field edit entry",
+        &["immediate", "type-to-edit", "explicit"],
+    ),
+    Opt::new(
+        "dialogs.button_row",
+        "Button row",
+        &["end-wrap", "start-wrap", "end-more"],
+    ),
+    Opt::new("dialogs.cancel_label", "Cancel label", &["cancel", "keep"]),
+    Opt::new(
+        "dialogs.confirm_index",
+        "Token gates",
+        &["action", "nothing"],
+    ),
 ];
 
 /// The Tabs page (SC14): the editor strip's builders.

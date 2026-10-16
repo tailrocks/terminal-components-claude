@@ -4075,4 +4075,142 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tree::TreeView::type_ahead_timeout",
         Option("scrolling", "scrolling.timeout"),
     ),
+    // SC17: Dialogs
+    (
+        "widgets::dialog::DialogBody",
+        Demo("dialogs", "Text · Input · Facts"),
+    ),
+    (
+        "widgets::dialog::DialogBody::Text",
+        Demo("dialogs", "Text body"),
+    ),
+    (
+        "widgets::dialog::DialogBody::Input",
+        Demo("dialogs", "Input body"),
+    ),
+    (
+        "widgets::dialog::DialogBody::Facts",
+        Demo("dialogs", "Facts · Close only"),
+    ),
+    ("widgets::dialog::AckInput", StateRow("dialogs", "editing")),
+    (
+        "widgets::dialog::DialogResult",
+        Demo("dialogs", "DialogResult"),
+    ),
+    (
+        "widgets::dialog::DialogResult::Action",
+        Demo("dialogs", "Action(i) or Cancelled"),
+    ),
+    (
+        "widgets::dialog::DialogResult::Cancelled",
+        Demo("dialogs", "Action(i) or Cancelled"),
+    ),
+    (
+        "widgets::dialog::AckEnter",
+        Option("dialogs", "dialogs.ack_enter"),
+    ),
+    (
+        "widgets::dialog::AckEnter::Submit",
+        Option("dialogs", "dialogs.ack_enter=submit"),
+    ),
+    (
+        "widgets::dialog::AckEnter::NextField",
+        Option("dialogs", "dialogs.ack_enter=next-field"),
+    ),
+    (
+        "widgets::dialog::DialogCmd",
+        Option("dialogs", "dialogs.keymap"),
+    ),
+    (
+        "widgets::dialog::DialogCmd::Confirm",
+        Option("dialogs", "dialogs.keymap=ctrl"),
+    ),
+    (
+        "widgets::dialog::DialogCmd::Cancel",
+        Option("dialogs", "dialogs.keymap=ctrl"),
+    ),
+    (
+        "widgets::dialog::Dialog::width",
+        Option("dialogs", "dialogs.width"),
+    ),
+    (
+        "widgets::dialog::Dialog::accelerators",
+        Option("dialogs", "dialogs.accelerators"),
+    ),
+    (
+        "widgets::dialog::Dialog::keymap",
+        Option("dialogs", "dialogs.keymap"),
+    ),
+    (
+        "widgets::dialog::Dialog::nav",
+        Option("dialogs", "dialogs.nav"),
+    ),
+    (
+        "widgets::dialog::Dialog::ack_enter",
+        Option("dialogs", "dialogs.ack_enter"),
+    ),
+    (
+        "widgets::dialog::Dialog::mnemonics",
+        Option("dialogs", "dialogs.mnemonics"),
+    ),
+    (
+        "widgets::dialog::Dialog::guard_dirty_prompt",
+        Option("dialogs", "dialogs.guard_dirty"),
+    ),
+    (
+        "widgets::dialog::Dialog::cancel_label",
+        Option("dialogs", "dialogs.cancel_label"),
+    ),
+    (
+        "widgets::dialog::Dialog::dismiss",
+        Option("dialogs", "dialogs.dismiss"),
+    ),
+    (
+        "widgets::dialog::Dialog::close_button",
+        Option("dialogs", "dialogs.close_button"),
+    ),
+    (
+        "widgets::dialog::Dialog::edit_entry",
+        Option("dialogs", "dialogs.edit_entry"),
+    ),
+    (
+        "widgets::dialog::Dialog::actions",
+        Demo("dialogs", "Retry · Force push"),
+    ),
+    (
+        "widgets::dialog::Dialog::button_row",
+        Option("dialogs", "dialogs.button_row"),
+    ),
+    (
+        "widgets::dialog::Dialog::body_scroll",
+        Option("dialogs", "dialogs.body_scroll"),
+    ),
+    (
+        "widgets::dialog::Dialog::max_height",
+        Option("dialogs", "dialogs.max_height"),
+    ),
+    (
+        "widgets::dialog::Dialog::outer_margin",
+        Option("dialogs", "dialogs.outer_margin"),
+    ),
+    (
+        "widgets::dialog::Dialog::backdrop",
+        Option("dialogs", "dialogs.backdrop"),
+    ),
+    (
+        "widgets::dialog::Dialog::chrome",
+        Option("dialogs", "dialogs.chrome"),
+    ),
+    (
+        "widgets::dialog::Dialog::placement",
+        Option("dialogs", "dialogs.placement=center"),
+    ),
+    (
+        "widgets::dialog::Dialog::anchor",
+        Option("dialogs", "dialogs.placement=below"),
+    ),
+    (
+        "widgets::dialog::Dialog::confirm_index",
+        Option("dialogs", "dialogs.confirm_index"),
+    ),
 ];
