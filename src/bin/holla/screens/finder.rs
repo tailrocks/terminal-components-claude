@@ -761,14 +761,12 @@ impl FinderPage {
         let readout = format!("scope ‹ {} ›", self.scope_word());
         let rw = width(&readout) as u16 + 2;
         let rx = area.right().saturating_sub(rw);
-        let hovered = ctx.interaction.hovered(SCOPE);
-        let mut rs = if self.scope == Scope::Here {
-            t.muted().bg(bg)
-        } else {
-            t.secondary().bg(bg)
-        };
-        if hovered {
-            rs = rs.fg(t.text_primary).bg(t.lift(bg));
+        // the scope readout is a link: the shared ladder, a quieter ink at
+        // the default scope while at rest
+        let mut rs = ctx.title_style(SCOPE, bg);
+        let lifted = ctx.interaction.hovered(SCOPE) || ctx.interaction.pressed(SCOPE);
+        if self.scope == Scope::Here && !lifted {
+            rs = rs.fg(t.legible(t.text_muted, rs.bg.unwrap_or(bg)));
         }
         buf.set_string(rx, area.y, format!(" {readout} "), rs);
         self.scope_area = Rect::new(rx, area.y, rw, 1);
@@ -913,16 +911,14 @@ impl FinderPage {
                         let it = &self.items[*idx];
                         let cid = EXPLORE_CELL.child(ci);
                         let chosen = is_cursor && ci == self.explore_cursor;
-                        let hovered = ctx.interaction.hovered(cid);
+
                         let text = format!(" {} ", it.label);
                         let cw = width(&text) as u16;
                         if x + cw > row.right() {
                             break;
                         }
-                        let mut cs = st.fg(t.text_primary).remove_modifier(Modifier::BOLD);
-                        if hovered {
-                            cs = cs.bg(t.lift(st.bg.unwrap_or(bg)));
-                        }
+                        // each cell is its own clickable on the row's plane
+                        let mut cs = ctx.title_style(cid, st.bg.unwrap_or(bg)).fg(t.text_primary);
                         if chosen {
                             cs = cs.add_modifier(Modifier::BOLD);
                             buf.set_string(x, y, "›", st.fg(t.row_ink(&cr, t.text_secondary)));
