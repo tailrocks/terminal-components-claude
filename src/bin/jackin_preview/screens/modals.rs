@@ -1264,6 +1264,29 @@ impl FormDialog {
         Outcome::Consumed
     }
 
+    /// A control lost focus: the form field ends its edit; a committed
+    /// value marks the form dirty and queues `Changed` like Enter does.
+    pub fn on_blur(&mut self, ch: junie_tui::core::focus::FocusChange) -> Outcome {
+        for f in self.fields.iter_mut() {
+            match &mut f.kind {
+                FieldKindW::Input(i) if i.id == ch.from => {
+                    return match i.on_blur() {
+                        Some(InputEvent::Committed) => {
+                            self.dirty = true;
+                            self.events.push(FormEvent::Changed(f.name.clone()));
+                            Outcome::Changed
+                        }
+                        Some(_) => Outcome::Changed,
+                        None => Outcome::Ignored,
+                    };
+                }
+                FieldKindW::Select(s) if s.id == ch.from => return s.on_blur(),
+                _ => {}
+            }
+        }
+        Outcome::Ignored
+    }
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         for f in self.fields.iter_mut() {
             if let FieldKindW::Input(i) = &mut f.kind
