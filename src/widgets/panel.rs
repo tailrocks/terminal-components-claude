@@ -174,6 +174,18 @@ impl<'a> Panel<'a> {
         late.title_row(row.x, row.y, row.width, buf, t, bg);
     }
 
+    /// Mark a card body whose content was cut at its bottom edge: a faint
+    /// `…` in the last cell of `inner`'s last row, so clipped prose never
+    /// looks complete. Call it after drawing the content.
+    pub fn mark_clipped(&self, inner: Rect, buf: &mut Buffer, t: &Theme) {
+        let inner = inner.intersection(*buf.area());
+        if inner.is_empty() {
+            return;
+        }
+        let bg = self.bg(t);
+        buf.set_string(inner.right() - 1, inner.bottom() - 1, "…", t.faint().bg(bg));
+    }
+
     /// Draw the panel chrome and return the content area, or `None` when
     /// the panel has no content row at all (a card squeezed to its title,
     /// a rect past the bottom of the screen). Prefer it to [`Self::render`]
@@ -846,6 +858,17 @@ mod scroll_panel_tests {
             .title_min(4)
             .render(Rect::new(0, 0, 24, 3), &mut buf, &t);
         assert!(row(&buf, 0).contains("70–100 of 120"), "{}", row(&buf, 0));
+    }
+
+    /// Layout audit #17: card prose cut at the bottom read as complete.
+    #[test]
+    fn a_clipped_card_body_ends_in_an_ellipsis() {
+        let t = Theme::junie();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 4));
+        let p = Panel::card(Some("Notes"));
+        let inner = p.render(Rect::new(0, 0, 20, 4), &mut buf, &t);
+        p.mark_clipped(inner, &mut buf, &t);
+        assert_eq!(buf[(inner.right() - 1, inner.bottom() - 1)].symbol(), "…");
     }
 
     #[test]
