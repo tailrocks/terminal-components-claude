@@ -707,5 +707,92 @@ class FileAndInstructionTests(unittest.TestCase):
                 queue.instruction_packet(root, ["owned/leaf"])
 
 
+class EvidenceMutationTests(unittest.TestCase):
+    def test_append_evidence_changes_only_revision_and_target_evidence(self):
+        before = records(
+            task("VIS-01", priority="P0", paths=["tools/visibility/status.py"], token="claim-vis-01"),
+            task("VIS-02", priority="P1", paths=["tools/visibility/queue.py"], token="claim-vis-02"),
+            revision=5,
+        )
+        original = copy.deepcopy(before)
+
+        changed = queue.append_evidence_record(
+            before, "VIS-01", "claim-vis-01", "Follow-up evidence.", 5
+        )
+
+        expected = copy.deepcopy(original)
+        expected["queue_revision"] = 6
+        expected["tasks"][0]["evidence"].append("Follow-up evidence.")
+        self.assertEqual(changed, expected)
+        self.assertEqual(before, original, "record mutation must not modify its input")
+
+    def test_append_evidence_rejects_stale_wrong_duplicate_and_lower_priority(self):
+        value = records(
+            task("VIS-01", priority="P0", paths=["tools/visibility/status.py"], token="claim-vis-01"),
+            task("VIS-02", priority="P1", paths=["tools/visibility/queue.py"], token="claim-vis-02"),
+            revision=5,
+        )
+        original = copy.deepcopy(value)
+        invalid_calls = (
+            ("VIS-01", "claim-vis-01", "new evidence", 4),
+            ("VIS-01", "wrong-token", "new evidence", 5),
+            ("VIS-01", "claim-vis-01", "Accepted scope.", 5),
+            ("VIS-02", "claim-vis-02", "lower-priority evidence", 5),
+        )
+        for work_id, token, evidence, revision in invalid_calls:
+            with self.subTest(work_id=work_id, evidence=evidence):
+                with self.assertRaises(queue.QueueError):
+                    queue.append_evidence_record(value, work_id, token, evidence, revision)
+                self.assertEqual(value, original, "rejected evidence must not mutate input")
+
+    def test_reviewer_handoff_preserves_claim_and_records_audit_evidence(self):
+        before = records(
+            task(
+                "VIS-01", priority="P0", state="blocked", owner="/builder",
+                reviewer="/old-reviewer", token="claim-vis-01",
+            ),
+            revision=5,
+        )
+        original = copy.deepcopy(before)
+
+        changed = queue.reviewer_handoff_record(
+            before, "VIS-01", "claim-vis-01", "/old-reviewer",
+            "/new-reviewer", "Review coverage changed.", 5,
+        )
+
+        expected = copy.deepcopy(original)
+        expected["queue_revision"] = 6
+        expected["tasks"][0]["reviewer"] = "/new-reviewer"
+        expected["tasks"][0]["evidence"].append(
+            "reviewer handoff at queue revision 6: /old-reviewer -> /new-reviewer; Review coverage changed."
+        )
+        self.assertEqual(changed, expected)
+        self.assertEqual(before, original, "record mutation must not modify its input")
+
+    def test_reviewer_handoff_rejects_invalid_assignments_without_mutation(self):
+        value = records(
+            task(
+                "VIS-01", priority="P0", owner="/builder",
+                reviewer="/old-reviewer", token="claim-vis-01",
+            ),
+            revision=5,
+        )
+        original = copy.deepcopy(value)
+        invalid_calls = (
+            ("/wrong-reviewer", "/new-reviewer", "reason"),
+            ("/old-reviewer", "/old-reviewer", "reason"),
+            ("/old-reviewer", "/builder", "reason"),
+            ("/old-reviewer", "/new-reviewer", "   "),
+        )
+        for expected_reviewer, new_reviewer, evidence in invalid_calls:
+            with self.subTest(new_reviewer=new_reviewer, evidence=evidence):
+                with self.assertRaises(queue.QueueError):
+                    queue.reviewer_handoff_record(
+                        value, "VIS-01", "claim-vis-01", expected_reviewer,
+                        new_reviewer, evidence, 5,
+                    )
+                self.assertEqual(value, original, "rejected handoff must not mutate input")
+
+
 if __name__ == "__main__":
     unittest.main()
