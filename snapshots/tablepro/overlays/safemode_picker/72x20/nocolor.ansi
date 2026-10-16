@@ -7,7 +7,7 @@
 [0m[2m E│   [0m [0m[2mSilent            Writes run without asking. Destr…           ││ [0m
 [0m[2m x│    Alert             Every write asks for confirmatio…           ││ [0m
 [0m[2m p│    Alert (Full)      Every statement, reads included,…           ││ [0m
-[0m[2m l│ [0m[1;2;7m [0m[2;7m›[0m[1;2;7m Safe Mode         [0m[2;7mWrites ask for confirmation and …[0m[1;2;7m [0m[2;7mcurrent[0m[1;2;7m  [0m[2m ││ [0m
+[0m[2m l│ [0m[1;2m▎[0m[2m›[0m[1;2m Safe Mode         [0m[2mWrites ask for confirmation and …[0m[1;2m [0m[2mcurrent[0m[1;2m  [0m[2m ││ [0m
 [0m[2m o│    Safe Mode (Full)  Every statement asks for confirm…           ││ [0m
 [0m[2m r│    Read-Only         Writes are refused. Reads and ex…           ││ [0m
 [0m[2m e│                                                                  ││ [0m
