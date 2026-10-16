@@ -5,12 +5,12 @@
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
-  ▾ Tables        ┃    [0m[1mMembers[0m                3 selected · 2–4 of 12   ┃[0m
+  ▾ Tables        ┃    [0m[1mMembers[0m                3 selected · 3–5 of 12   ┃[0m
       Basic table ┃                                                    ┃[0m
       Editable    ┃       [–] Name              Role    Status    …    ┃[0m
-      Data grid   ┃       [✓] Ari Moreno        Admin   Active     ┃   ┃[0m
-    › [0m[1mSelection  [0m ┃       [✓] Cleo Barnes       Editor  Active     ┆   ┃[0m
-      Cell edito… ┃    [0m[1m▎  [✓] Bo Lindqvist      Editor  Invited    [0m┆   ┆[0m
+      Data grid   ┃       [✓] Cleo Barnes       Editor  Active     ┃   ┃[0m
+    › [0m[1mSelection  [0m ┃    [0m[1m▎  [✓] Bo Lindqvist      Editor  Invited    [0m┆   ┃[0m
+      Cell edito… ┃       [ ] Eli Nakamura      Viewer  Active     ┆   ┆[0m
       Columns     ┃           ━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┆[0m
   ▸ Navigation    ┆                                                    ┆[0m
   ▸ Overlays      ┆                                                    ┆[0m
