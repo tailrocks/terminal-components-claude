@@ -20,6 +20,8 @@ mod app_tests_fields;
 #[cfg(test)]
 mod app_tests_flows;
 #[cfg(test)]
+mod app_tests_mouse;
+#[cfg(test)]
 mod app_tests_parity;
 #[cfg(test)]
 mod app_tests_proofs;
