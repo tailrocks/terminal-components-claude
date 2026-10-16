@@ -1,11 +1,11 @@
- [0m[1m holla❯ [0m   File   Go   Help                                         acme › frontend · Node project · pnpm  [0m[1mmbp · local[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                        acme › frontend · Node project · pnpm  [0m[1mmbp · local[0m  [0m
                                                                                                                         [0m
  [0m[1m Here  [0m                                                                                                                [0m
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
  ▎ [0m[4mtest[0m                                                                                                 scope ‹ here ›  [0m
                                                                                                                         [0m
     Results · 17                                                                 Run tests                task · here   [0m
- [0m[1m › Run tests                  [0mtask    [0m[1m  [0mhere   [0m[1m  [0malias test[0m[1m                 [0m                                           [0m
+ [0m[1;7m › Run tests                  [0m[7mtask    [0m[1;7m  [0m[7mhere   [0m[1;7m  [0m[7malias test[0m[1;7m                 [0m                                           [0m
     pnpm test                  script    here     package.json…                  Does       vitest after a build ·      [0m
     Run test                   task      parent   defined by ~…                             runs in                     [0m
     Run //services/api:test    task      sibling  defined by ~…                             ~/work/acme/apps/fronten    [0m
@@ -36,5 +36,6 @@
                                                                                             · Alias · Why here?         [0m
                                                                                                                         [0m
                                                                                                                         [0m
- [0m[1m~/work/acme/apps/frontend[0m   main   ↑1 • 2                                                            no color · 120×40 [0m
-              [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear                 [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1   • 2                                                          no color · 120×40 [0m
+           [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear           [0m
+[?25h[5;8H[6 q
