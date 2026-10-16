@@ -1539,3 +1539,28 @@ fn saving_a_new_account_without_a_name_marks_the_field_and_stays() {
     let name = crate::screens::accounts::FORM.sub("name");
     assert_eq!(h.app.focus.current(), Some(name), "{text}");
 }
+
+#[test]
+fn tab_reaches_the_fields_below_a_short_add_account_form() {
+    // at 72x20 the New account form scrolls; Credential source and the
+    // 1Password reference sat below its body, undrawn, and Tab went from
+    // Provider straight to the buttons
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 72, 20);
+    h.key(KeyCode::Char('a'));
+    let source = crate::screens::accounts::FORM.sub("source");
+    let mut seen = false;
+    for _ in 0..4 {
+        h.key(KeyCode::Tab);
+        if h.app.focus.current() == Some(source) {
+            seen = true;
+            break;
+        }
+    }
+    let text = h.text();
+    assert!(seen, "Tab reaches Credential source: {text}");
+    let (_, y) = h
+        .find("1Password item")
+        .expect("the focused group is in view");
+    let row = text.lines().nth(y as usize).unwrap_or("");
+    assert!(row.contains('▎'), "the focus gutter is on it: {text}");
+}
