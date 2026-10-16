@@ -74,8 +74,8 @@ pub struct ChipBar {
     /// Which keys move between chips (default [`NavKeys::DEFAULT`]: ←/→,
     /// `h`/`l`, Home/End, `g`/`G`).
     pub nav: NavKeys,
-    /// The bar's action keys (default [`ChipAction::default_keymap`]).
-    pub keymap: KeyMap<ChipAction>,
+    /// The bar's action keys (default [`ChipCmd::default_keymap`]).
+    pub keymap: KeyMap<ChipCmd>,
     /// Hit width of a chip's `×` in cells, centred on the glyph and kept
     /// inside the chip (a one-cell target is too small to hit reliably).
     /// Default 3.
@@ -94,7 +94,7 @@ pub struct ChipBar {
 
 /// A [`ChipBar`] action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChipAction {
+pub enum ChipCmd {
     /// Remove the cursor chip (when removable). Default Delete, Backspace
     /// and `x`.
     Remove,
@@ -104,14 +104,14 @@ pub enum ChipAction {
     ClearAll,
 }
 
-impl Actions for ChipAction {
+impl Actions for ChipCmd {
     fn default_keymap() -> KeyMap<Self> {
         vec![
-            (KeyBinding::key(KeyCode::Delete), ChipAction::Remove),
-            (KeyBinding::key(KeyCode::Backspace), ChipAction::Remove),
-            (KeyBinding::char('x'), ChipAction::Remove),
-            (KeyBinding::char('+'), ChipAction::Add),
-            (KeyBinding::char('X'), ChipAction::ClearAll),
+            (KeyBinding::key(KeyCode::Delete), ChipCmd::Remove),
+            (KeyBinding::key(KeyCode::Backspace), ChipCmd::Remove),
+            (KeyBinding::char('x'), ChipCmd::Remove),
+            (KeyBinding::char('+'), ChipCmd::Add),
+            (KeyBinding::char('X'), ChipCmd::ClearAll),
         ]
     }
 }
@@ -137,7 +137,7 @@ impl ChipBar {
             area: Rect::ZERO,
             overflow_marker: true,
             nav: NavKeys::DEFAULT,
-            keymap: ChipAction::default_keymap(),
+            keymap: ChipCmd::default_keymap(),
             close_target_w: 3,
             overflow_menu: true,
             menu: None,
@@ -209,7 +209,7 @@ impl ChipBar {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<ChipAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<ChipCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -254,13 +254,13 @@ impl ChipBar {
             return (Outcome::Ignored, None);
         }
         match action {
-            Some(ChipAction::Remove)
+            Some(ChipCmd::Remove)
                 if self.cursor < self.chips.len() && self.chips[self.cursor].removable =>
             {
                 return (Outcome::Changed, Some(ChipEvent::Remove(self.cursor)));
             }
-            Some(ChipAction::Add) => return (Outcome::Changed, Some(ChipEvent::Add)),
-            Some(ChipAction::ClearAll) => return (Outcome::Changed, Some(ChipEvent::ClearAll)),
+            Some(ChipCmd::Add) => return (Outcome::Changed, Some(ChipEvent::Add)),
+            Some(ChipCmd::ClearAll) => return (Outcome::Changed, Some(ChipEvent::ClearAll)),
             _ => {}
         }
         let to = match self.nav.action(key).filter(|_| key.plain()) {

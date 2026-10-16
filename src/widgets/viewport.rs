@@ -432,13 +432,13 @@ pub struct TextViewport {
     /// always extend a keyboard selection.
     pub nav: NavKeys,
     /// The viewport's own action keys (default
-    /// [`ViewportAction::default_keymap`]).
-    pub keymap: KeyMap<ViewportAction>,
+    /// [`ViewportCmd::default_keymap`]).
+    pub keymap: KeyMap<ViewportCmd>,
 }
 
 /// A [`TextViewport`] action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ViewportAction {
+pub enum ViewportCmd {
     /// Toggle following the tail. Default `f`.
     ToggleFollow,
     /// Copy the selection ([`ViewportEvent::Copy`]). Default Cmd+C where
@@ -450,15 +450,15 @@ pub enum ViewportAction {
     SelectAll,
 }
 
-impl Actions for ViewportAction {
+impl Actions for ViewportCmd {
     fn default_keymap() -> KeyMap<Self> {
         let mut map = vec![
-            (KeyBinding::char('f'), ViewportAction::ToggleFollow),
-            (KeyBinding::cmd('c'), ViewportAction::Copy),
-            (KeyBinding::char('y'), ViewportAction::Copy),
+            (KeyBinding::char('f'), ViewportCmd::ToggleFollow),
+            (KeyBinding::cmd('c'), ViewportCmd::Copy),
+            (KeyBinding::char('y'), ViewportCmd::Copy),
         ];
         map.extend(crate::core::keymap::select_all_bindings(
-            ViewportAction::SelectAll,
+            ViewportCmd::SelectAll,
         ));
         map
     }
@@ -472,7 +472,7 @@ impl TextViewport {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<ViewportAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<ViewportCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -514,7 +514,7 @@ impl TextViewport {
             track_click: None,
             v_click: TrackClick::Page,
             nav: NavKeys::DEFAULT,
-            keymap: ViewportAction::default_keymap(),
+            keymap: ViewportCmd::default_keymap(),
         }
     }
 
@@ -1689,20 +1689,20 @@ impl TextViewport {
             return (o, Some(ViewportEvent::SelectionChanged));
         }
         match lookup(&self.keymap, key) {
-            Some(ViewportAction::ToggleFollow) => {
+            Some(ViewportCmd::ToggleFollow) => {
                 self.set_follow(!self.follow);
                 return (
                     Outcome::Changed,
                     Some(ViewportEvent::FollowChanged(self.follow)),
                 );
             }
-            Some(ViewportAction::SelectAll) => {
+            Some(ViewportCmd::SelectAll) => {
                 return match self.select_all() {
                     Outcome::Changed => (Outcome::Changed, Some(ViewportEvent::SelectionChanged)),
                     o => (o, None),
                 };
             }
-            Some(ViewportAction::Copy) => {
+            Some(ViewportCmd::Copy) => {
                 return match self.selected_text() {
                     Some(t) => (Outcome::Changed, Some(ViewportEvent::Copy(t))),
                     None => (Outcome::Consumed, None),
@@ -2871,12 +2871,9 @@ mod cmd_copy_tests {
             ev,
             Some(ViewportEvent::Copy("line 0\nline 1\nline 2".into()))
         );
-        assert_eq!(hint_key(&v.keymap, ViewportAction::Copy), Some("y"));
+        assert_eq!(hint_key(&v.keymap, ViewportCmd::Copy), Some("y"));
         crate::core::keyboard::set_super_delivered(true);
         let label = KeyBinding::cmd('c').label();
-        assert_eq!(
-            hint_key(&v.keymap, ViewportAction::Copy),
-            Some(label.as_str())
-        );
+        assert_eq!(hint_key(&v.keymap, ViewportCmd::Copy), Some(label.as_str()));
     }
 }

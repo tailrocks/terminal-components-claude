@@ -244,8 +244,8 @@ pub struct DataTable {
     pub disabled: BTreeSet<usize>,
     /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
-    /// The table's own action keys (default [`TableAction::default_keymap`]).
-    pub keymap: KeyMap<TableAction>,
+    /// The table's own action keys (default [`TableCmd::default_keymap`]).
+    pub keymap: KeyMap<TableCmd>,
     /// Typing a prefix jumps to the first enabled row whose cell in
     /// [`Self::type_ahead_column`] starts with it (macOS table type-select).
     /// Off by default: plain letters keep their vim and action bindings.
@@ -263,7 +263,7 @@ pub struct DataTable {
 
 /// A [`DataTable`] action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TableAction {
+pub enum TableCmd {
     /// Sort by the cursor column (again: reverse). Default `s`.
     SortByColumn,
     /// Multi mode: select every enabled row. Default Cmd+A where the
@@ -272,10 +272,10 @@ pub enum TableAction {
     SelectAll,
 }
 
-impl Actions for TableAction {
+impl Actions for TableCmd {
     fn default_keymap() -> KeyMap<Self> {
-        let mut map = vec![(KeyBinding::char('s'), TableAction::SortByColumn)];
-        map.extend(select_all_bindings(TableAction::SelectAll));
+        let mut map = vec![(KeyBinding::char('s'), TableCmd::SortByColumn)];
+        map.extend(select_all_bindings(TableCmd::SelectAll));
         map
     }
 }
@@ -339,7 +339,7 @@ impl DataTable {
             toggle_mods: Self::toggle_mods_for(ClientPlatform::current()),
             disabled: BTreeSet::new(),
             nav: NavKeys::DEFAULT,
-            keymap: TableAction::default_keymap(),
+            keymap: TableCmd::default_keymap(),
             type_ahead: false,
             type_ahead_column: None,
             typeahead: Default::default(),
@@ -400,7 +400,7 @@ impl DataTable {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<TableAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<TableCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -632,7 +632,7 @@ impl DataTable {
         }
     }
 
-    /// Multi-mode keys: Space, Shift+movement, Esc ([`TableAction::SelectAll`]
+    /// Multi-mode keys: Space, Shift+movement, Esc ([`TableCmd::SelectAll`]
     /// is a key-map action).
     fn on_key_multi(&mut self, key: &Key) -> Option<(Outcome, Option<TableEvent>)> {
         let changed = |c: bool| {
@@ -1270,8 +1270,8 @@ impl DataTable {
         let (r, c) = (self.cursor_row, self.cursor_col);
         if let Some(action) = lookup(&self.keymap, key) {
             return match action {
-                TableAction::SortByColumn => (self.sort_by(c), None),
-                TableAction::SelectAll if self.multi() => {
+                TableCmd::SortByColumn => (self.sort_by(c), None),
+                TableCmd::SelectAll if self.multi() => {
                     if self.select_all() {
                         (Outcome::Changed, Some(TableEvent::SelectionChanged))
                     } else {
@@ -1279,7 +1279,7 @@ impl DataTable {
                     }
                 }
                 // single selection: nothing to select all of
-                TableAction::SelectAll => (Outcome::Ignored, None),
+                TableCmd::SelectAll => (Outcome::Ignored, None),
             };
         }
         // Alt+↓ opens a constrained cell's popup; plain ↓ stays row
@@ -3006,8 +3006,8 @@ mod select_all_tests {
         };
         let mut single = table(SelectionMode::Single);
         assert_eq!(single.on_key(&ctrl_a).0, Outcome::Ignored);
-        let mut t = table(SelectionMode::Multi)
-            .keymap(vec![(KeyBinding::alt('a'), TableAction::SelectAll)]);
+        let mut t =
+            table(SelectionMode::Multi).keymap(vec![(KeyBinding::alt('a'), TableCmd::SelectAll)]);
         assert_eq!(
             t.on_key(&ctrl_a).0,
             Outcome::Ignored,
