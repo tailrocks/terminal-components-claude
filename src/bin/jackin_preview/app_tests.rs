@@ -1564,3 +1564,33 @@ fn tab_reaches_the_fields_below_a_short_add_account_form() {
     let row = text.lines().nth(y as usize).unwrap_or("");
     assert!(row.contains('▎'), "the focus gutter is on it: {text}");
 }
+
+/// The rows holding a `▎` focus bar.
+fn focus_bars(h: &H) -> Vec<String> {
+    h.text()
+        .lines()
+        .filter(|l| l.contains('▎'))
+        .map(str::to_owned)
+        .collect()
+}
+
+#[test]
+fn a_detail_card_that_holds_focus_shows_the_one_focus_bar() {
+    // the manager's workspace card and the accounts inspector are focus
+    // stops themselves; since cards mark focus-within by the title alone
+    // (e95590552), focus on them showed no `▎` anywhere on screen
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Tab);
+    let bars = focus_bars(&h);
+    assert_eq!(bars.len(), 1, "{}", h.text());
+    assert!(bars[0].contains("▎Current directory"), "{}", h.text());
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    let bars = focus_bars(&h);
+    assert_eq!(bars.len(), 1, "{}", h.text());
+    assert!(bars[0].contains("▎Claude · Work"), "{}", h.text());
+}
