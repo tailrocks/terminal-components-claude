@@ -1041,3 +1041,21 @@ fn the_switcher_is_the_only_layer_showing_focus() {
     // a fixed-choice picker marks its cursor with a fill, like a menu
     assert_eq!(cues(&h), (0, 0), "{}", h.text());
 }
+
+#[test]
+fn cell_edit_footer_says_apply_not_commit() {
+    // "Commit" collides with the database commit behind Ctrl+S
+    let mut h = H::connected(120, 40);
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter); // orders
+    for _ in 0..6 {
+        h.key(KeyCode::Right);
+    }
+    h.key(KeyCode::Enter);
+    let f = footer(&h);
+    assert!(f.contains("Enter Apply"), "{f}");
+    assert!(f.contains("Esc Cancel"), "{f}");
+    assert!(!f.contains("Commit"), "{f}");
+}
