@@ -8,7 +8,8 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
@@ -65,6 +66,8 @@ impl Step {
 
 #[derive(Debug, Clone)]
 pub struct StepRail {
+    /// The rows registered in the last render, by id.
+    parts: PartMap,
     /// The scrollbar track as last drawn: presses and drags map through it.
     track: Rect,
     pub id: WidgetId,
@@ -102,6 +105,7 @@ impl StepRail {
             scroll: ScrollState::new(n),
             area: Rect::ZERO,
             track: Rect::ZERO,
+            parts: PartMap::default(),
             numbered: true,
             track_click: None,
             v_click: crate::core::scroll::TrackClick::Page,
@@ -153,15 +157,19 @@ impl StepRail {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::row_part(i))
+    }
+
+    fn row_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.scroll.visible_range().find(|&i| self.row_id(i) == id)
+        self.parts.index(id, Part::ROW)
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
     fn set_cursor(&mut self, i: usize) {
@@ -239,6 +247,7 @@ impl StepRail {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.parts.clear();
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -346,7 +355,7 @@ impl StepRail {
                 buf.set_string(row.right().saturating_sub(mw as u16 + 1), y, m, meta_style);
             }
             if self.selectable {
-                ctx.clickable(rid, row);
+                ctx.part(&mut self.parts, self.id, Self::row_part(i), row);
             }
             let _ = frontier;
         }
