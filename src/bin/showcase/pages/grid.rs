@@ -303,6 +303,14 @@ impl Page for GridPage {
     fn blurb(&self) -> &'static str {
         "Typed cells, a pending-change queue, paging and local sort"
     }
+    fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
+        if !self.grid.pending.is_empty() {
+            junie_tui::ui::leave::Stakes::Unsaved { changes: 0 }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
     fn editing(&self) -> bool {
         self.grid.is_editing()
     }
