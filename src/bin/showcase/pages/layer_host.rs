@@ -23,8 +23,11 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::DismissReason;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::layer::{Dismissed, Layer, LayerCx, LayerEntry, LayerTag, ShellLayers, Taken};
+use junie_tui::ui::layer::{
+    Dismissed, Layer, LayerCx, LayerEntry, LayerPointer, LayerTag, ShellLayers, Taken,
+};
 use junie_tui::ui::layers::LayerResult;
 use junie_tui::widgets::keyhint::Hint as KeyHint;
 
@@ -83,6 +86,9 @@ impl LayerHost {
     /// handles the event); otherwise the outcome and what the layers
     /// reported, in order.
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Option<(Outcome, Vec<Report>)> {
+        if let PageEvent::Pointer(p) = ev {
+            return self.pointer(p, cx);
+        }
         let top = self.layers.top_mut()?;
         let mut lcx = LayerCx {
             focus: cx.focus,
@@ -101,28 +107,30 @@ impl LayerHost {
                 }
             }
             PageEvent::Paste(text) => top.layer.on_paste(text),
-            // a click on a backdrop the layer leaves alone is an outside
-            // click: a dismissal under its policy (a refused one flashes
-            // the frame)
-            PageEvent::Pointer(p) => {
-                let dismiss = top.layer.spec().dismiss;
-                let out = top.layer.pointer(p, &mut lcx);
-                if out == Outcome::Ignored
-                    && p.is(junie_tui::core::intent::Phase::Click)
-                    && p.part().part == junie_tui::core::id::Part::BACKDROP
-                {
-                    let out = self.dismiss(DismissReason::OutsideClick, cx.focus, &mut reports);
-                    if out == Outcome::Consumed {
-                        cx.refuse_outside_click(dismiss);
-                    }
-                    out
-                } else {
-                    out
-                }
-            }
+            PageEvent::Pointer(_) => return None,
             PageEvent::Blur(change) => top.layer.on_blur(*change),
             PageEvent::Tick => top.layer.on_tick(&()),
             PageEvent::DialogClosed { .. } => return None,
+        };
+        self.drain(cx.focus, &mut reports);
+        Some((out, reports))
+    }
+
+    /// A pointer event for the top layer ([`ShellLayers::pointer`]): a
+    /// click on its backdrop is an outside click under its policy, and a
+    /// refused one flashes the frame.
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Option<(Outcome, Vec<Report>)> {
+        let dismiss = self.layers.top()?.layer.spec().dismiss;
+        let mut reports = Vec::new();
+        let out = match self.layers.pointer(ev, cx.focus, cx.ring, &()) {
+            LayerPointer::Handled(out) => out,
+            LayerPointer::Dismissed(d) => {
+                let out = Self::dismissed(d, &mut reports);
+                if out == Outcome::Consumed {
+                    cx.refuse_outside_click(dismiss);
+                }
+                out
+            }
         };
         self.drain(cx.focus, &mut reports);
         Some((out, reports))
@@ -135,7 +143,13 @@ impl LayerHost {
         focus: &mut Focus,
         reports: &mut Vec<Report>,
     ) -> Outcome {
-        match self.layers.dismiss(reason, focus) {
+        let d = self.layers.dismiss(reason, focus);
+        Self::dismissed(d, reports)
+    }
+
+    /// What a dismissal did; a closed layer's result is reported.
+    fn dismissed(d: Dismissed<LayerResult>, reports: &mut Vec<Report>) -> Outcome {
+        match d {
             Dismissed::None => Outcome::Ignored,
             Dismissed::Refused => Outcome::Consumed,
             Dismissed::Closed(entry, result) => {
