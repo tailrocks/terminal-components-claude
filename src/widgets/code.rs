@@ -91,6 +91,9 @@ pub struct CodeEditor {
     cached_for: u64,
     /// Manual scrolling survives redraws until editing/cursor/content changes.
     rendered_state: Option<(usize, u64, bool)>,
+    /// Blank columns between the text and the scrollbar (default
+    /// [`scrollbar::GAP`]).
+    pub scrollbar_gap: u16,
 }
 
 fn hash_text(s: &str) -> u64 {
@@ -129,7 +132,14 @@ impl CodeEditor {
             cached_spans: vec![],
             cached_for: 0,
             rendered_state: None,
+            scrollbar_gap: scrollbar::GAP,
         }
+    }
+
+    /// Blank columns between the text and the scrollbar.
+    pub fn scrollbar_gap(mut self, gap: u16) -> Self {
+        self.scrollbar_gap = gap;
+        self
     }
 
     pub fn highlighter(mut self, h: Highlighter) -> Self {
@@ -688,7 +698,14 @@ impl CodeEditor {
         let text_area = Rect::new(
             area.x + gutter_w,
             area.y,
-            area.width.saturating_sub(gutter_w + u16::from(has_sb)),
+            area.width.saturating_sub(
+                gutter_w
+                    + if has_sb {
+                        scrollbar::reserve(self.scrollbar_gap)
+                    } else {
+                        0
+                    },
+            ),
             body_h,
         );
         let viewport_changed =
@@ -1077,6 +1094,28 @@ mod tests {
         );
         assert_eq!(editor.scroll.offset, 0);
         assert_eq!(editor.on_wheel(-1, false), Outcome::Consumed);
+    }
+
+    /// Long lines stop a blank column short of the scrollbar instead of
+    /// running into its track (layout audit #14).
+    #[test]
+    fn long_lines_keep_the_gap_before_the_scrollbar() {
+        let text: Vec<String> = (1..=40)
+            .map(|i| format!("{i} {}", "x".repeat(60)))
+            .collect();
+        let mut editor = CodeEditor::new(WidgetId::of("c"), &text.join("\n"));
+        render(&mut editor, 40, 6);
+        let track = editor.track;
+        assert_eq!(track.x, 39);
+        assert_eq!(
+            editor.text_area.right(),
+            38,
+            "one blank column before the bar"
+        );
+        let tight = CodeEditor::new(WidgetId::of("c"), &text.join("\n")).scrollbar_gap(0);
+        let mut tight = tight;
+        render(&mut tight, 40, 6);
+        assert_eq!(tight.text_area.right(), 39);
     }
 
     fn render(editor: &mut CodeEditor, width: u16, height: u16) -> Option<Position> {

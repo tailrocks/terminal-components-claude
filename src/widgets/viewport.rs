@@ -397,6 +397,9 @@ pub struct TextViewport {
     /// wrapped sub-row at the top of the viewport.
     reading: Option<(u64, usize)>,
     work: WorkCounters,
+    /// Blank columns between the text and the scrollbar (default
+    /// [`scrollbar::GAP`]).
+    pub scrollbar_gap: u16,
 }
 
 impl TextViewport {
@@ -426,7 +429,14 @@ impl TextViewport {
             layout_size: None,
             reading: None,
             work: WorkCounters::default(),
+            scrollbar_gap: scrollbar::GAP,
         }
+    }
+
+    /// Blank columns between the text and the scrollbar.
+    pub fn scrollbar_gap(mut self, gap: u16) -> Self {
+        self.scrollbar_gap = gap;
+        self
     }
 
     pub fn with_lines(id: WidgetId, lines: Vec<Line>) -> Self {
@@ -876,7 +886,10 @@ impl TextViewport {
             // width that settled last time is tried first, so a live stream
             // that already overflows extends its index at the scrollbar
             // width instead of rebuilding at both widths every frame.
-            let narrow = area.width.saturating_sub(1);
+            // overflowing text keeps the gap clear of the scrollbar
+            let narrow = area
+                .width
+                .saturating_sub(scrollbar::reserve(self.scrollbar_gap));
             let preferred = if self.layout_width == narrow && self.wrap == self.layout_wrap {
                 narrow
             } else {
@@ -1873,11 +1886,11 @@ mod tests {
         w.follow = false;
         w.push(vec![Span::plain("aaaaaaaaa bbbbbbbbb ccccccccc")]);
         w.push(vec![Span::plain("second")]);
-        render(&mut w, 11, 2);
+        render(&mut w, 12, 2);
         w.scroll.scroll_to(1);
         w.remember_reading();
         w.push(vec![Span::plain("third")]);
-        let buf = render(&mut w, 11, 2);
+        let buf = render(&mut w, 12, 2);
         assert_eq!(row(&buf, 0), "bbbbbbbbb");
     }
 
