@@ -1262,3 +1262,38 @@ fn the_current_page_marker_is_neutral_while_focus_is_on_the_page() {
     assert_ne!(h.app.focus.current(), Some(nav));
     assert_eq!(marker(&h), t.text_primary, "a fact, not a focus cue");
 }
+
+#[test]
+fn a_cut_list_row_advertises_the_reveal_key_in_the_footer() {
+    // narrow enough that some file names in the lists are cut
+    let mut h = Harness::new(72, 20, PageId::Lists);
+    let footer = |h: &Harness| h.row(19);
+    h.key(tab());
+    let mut seen = None;
+    'lists: for _ in 0..3 {
+        for _ in 0..14 {
+            if footer(&h).contains("→ Full text") {
+                seen = Some(h.text());
+                break 'lists;
+            }
+            assert!(
+                !footer(&h).contains("Full text") || footer(&h).contains("→ Full text"),
+                "{}",
+                footer(&h)
+            );
+            h.key(KeyCode::Down);
+        }
+        h.key(tab());
+    }
+    assert!(seen.is_some(), "some cut row is reached:\n{}", h.text());
+    // the hint names what the key does now: → opens, ← collapses
+    assert_eq!(h.key(KeyCode::Right), Outcome::Changed);
+    assert!(footer(&h).contains("← Collapse"), "{}", footer(&h));
+    h.key(KeyCode::Left);
+    assert!(footer(&h).contains("→ Full text"), "{}", footer(&h));
+    // a row that fits says nothing about the reveal key
+    h.key(KeyCode::Home);
+    if !footer(&h).contains("→ Full text") {
+        assert!(!footer(&h).contains("Full text"));
+    }
+}

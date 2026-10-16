@@ -2375,7 +2375,7 @@ impl App {
                     self.modals.push(entry);
                     // footer hints for the modal
                     let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-                    self.draw_footer(footer, buf, true);
+                    self.draw_footer(footer, buf, true, ctx.reveal_hint);
                 }
             }
         }
@@ -2419,7 +2419,7 @@ impl App {
         if let Some(s) = self.screens.get_mut(route) {
             s.render(body, buf, ctx, &self.world);
         }
-        self.draw_footer(footer, buf, false);
+        self.draw_footer(footer, buf, false, ctx.reveal_hint);
     }
 
     fn construct_state(&self, route: Route) -> (&'static str, Tone) {
@@ -2523,7 +2523,13 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, modal: bool) {
+    fn draw_footer(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        modal: bool,
+        reveal: Option<(&'static str, &'static str)>,
+    ) {
         let t = self.theme;
         fill(buf, area, t.base());
         let hints: Vec<Hint> = if modal {
@@ -2587,6 +2593,9 @@ impl App {
                 .map(|s| s.hints(focus, &self.world))
                 .unwrap_or_default()
         };
+        // the focused cursor row is cut: name the reveal key
+        let mut hints = hints;
+        junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
         let editing = self.screens.get(self.route).is_some_and(|s| s.is_editing())
             || self.modals.last().is_some_and(|m| match &m.modal {
                 Modal::Dialog(d) => d.is_editing(),

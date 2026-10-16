@@ -1208,6 +1208,8 @@ impl App {
             for (k, v) in page.hints(self.focus.current()) {
                 hints.push((k, v));
             }
+            // the focused cursor row is cut: name the reveal key
+            junie_tui::ui::reveal::advertise(&mut hints, ctx.reveal_hint, |h| h.0, |k, a| (k, a));
             if !page.editing() && !hints.iter().any(|(key, _)| *key == "Tab") {
                 hints.push(("Tab", "Next"));
             }

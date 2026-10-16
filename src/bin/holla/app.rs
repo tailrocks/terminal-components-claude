@@ -3037,7 +3037,7 @@ impl App {
             }
             self.modals.push(entry);
             let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-            self.draw_footer(footer, buf, true);
+            self.draw_footer(footer, buf, true, ctx.reveal_hint);
         }
     }
 
@@ -3154,7 +3154,7 @@ impl App {
             s.render(body, buf, ctx, &self.world);
         }
         self.draw_status(status, buf, ctx);
-        self.draw_footer(footer, buf, false);
+        self.draw_footer(footer, buf, false, ctx.reveal_hint);
     }
 
     /// Row zero: the menu bar, then the project crumb and the host identity
@@ -3271,7 +3271,13 @@ impl App {
         bar.render(area, buf, ctx);
     }
 
-    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, modal: bool) {
+    fn draw_footer(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        modal: bool,
+        reveal: Option<(&'static str, &'static str)>,
+    ) {
         let t = self.theme;
         fill(buf, area, t.base());
         let hints: Vec<Hint> = if modal {
@@ -3311,6 +3317,9 @@ impl App {
                     .unwrap_or_default()
             }
         };
+        // the focused cursor row is cut: name the reveal key
+        let mut hints = hints;
+        junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
         let editing =
             self.modals.last().is_some_and(|m| match &m.modal {
                 Modal::Dialog(d) => d.is_editing(),
