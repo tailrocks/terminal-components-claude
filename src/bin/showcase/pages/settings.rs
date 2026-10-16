@@ -434,7 +434,7 @@ impl Page for SettingsPage {
                     cx.focus.focus(self.members.id);
                     return self.members.on_click_cell(row, col.unwrap_or(0), *pos).0;
                 }
-                if id == scrollbar::id_for(self.members.id) {
+                if scrollbar::is_bar_of(id, self.members.id) {
                     return self.members.on_scrollbar(*pos);
                 }
                 if id == self.remove.id {
@@ -471,7 +471,7 @@ impl Page for SettingsPage {
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } => {
-                if *pressed == scrollbar::id_for(self.members.id) {
+                if scrollbar::is_bar_of(*pressed, self.members.id) {
                     return self.members.on_scrollbar_drag(*pos);
                 }
                 if *pressed == scrollbar::id_for(self.env.id) {
