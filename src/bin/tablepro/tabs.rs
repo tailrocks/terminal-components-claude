@@ -1040,8 +1040,10 @@ impl QueryTab {
         }
     }
 
+    /// The editor (or its find bar) or a result cell takes typed keys:
+    /// letter shortcuts (`z`, `[`, `]`, `q`) wait.
     pub fn is_editing(&self) -> bool {
-        self.editor.editing || self.active_grid().is_some_and(|g| g.is_editing())
+        self.editor.wants_text_input() || self.active_grid().is_some_and(|g| g.is_editing())
     }
 
     /// Statements to run: selection, statement at cursor, or all.
@@ -1309,13 +1311,14 @@ impl QueryTab {
                 hint("Esc", "Close"),
             ];
         }
-        if self.editor.editing {
-            return vec![
+        if self.editor.wants_text_input() {
+            let mut h = vec![
                 hint("Ctrl+R", "Run"),
                 hint("Alt+R", "Run all"),
                 hint("Ctrl+Space", "Complete"),
-                hint("Esc", "Done editing"),
             ];
+            h.extend(self.editor.hints());
+            return h;
         }
         if let Some(g) = self.active_grid()
             && focus == Some(g.id)

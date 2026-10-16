@@ -1,10 +1,10 @@
 120x40 TrueColor Overview f454e24937824b5a
 120x40 TrueColor Chrome bd30803a00ca4309
 120x40 TrueColor Buttons ea825e348de4db4c
-120x40 TrueColor Inputs f10744be948d16de
-120x40 TrueColor Text areas c9fe8c0b0ee7d947
+120x40 TrueColor Inputs f58f09e06bc924bf
+120x40 TrueColor Text areas e4d219164830eced
 120x40 TrueColor Chips & selects 129a3b0b29e0bcb4
-120x40 TrueColor Forms 53f4fcc4c5ea4e12
+120x40 TrueColor Forms 6d87728f159e3b7c
 120x40 TrueColor Basic table 20ac63cfbac3b09d
 120x40 TrueColor Editable 6a299361cc7f0355
 120x40 TrueColor Data grid 74c34c2082c2c5d3
@@ -18,7 +18,7 @@
 120x40 TrueColor Progress a1c74d770b859d4d
 120x40 TrueColor Panels 42fa8cb671ca6c3e
 120x40 TrueColor Scrolling 5aaedd347d5de493
-120x40 TrueColor Code editor 3362dc09516fe644
+120x40 TrueColor Code editor c8d804f39a0c604b
 120x40 TrueColor Diff b9a31d170c3b7cf0
 120x40 TrueColor Terminal 0fe64cfc5a5c4db4
 120x40 TrueColor Settings e8761de856f32d20
@@ -26,10 +26,10 @@
 120x40 Ansi256 Overview fa710d525ed822cf
 120x40 Ansi256 Chrome 377bb40be7d2777c
 120x40 Ansi256 Buttons 117ffd192ef05b7b
-120x40 Ansi256 Inputs 9c86496a727baf97
-120x40 Ansi256 Text areas f12935d9a201bf7b
+120x40 Ansi256 Inputs cd45ea48750b69a5
+120x40 Ansi256 Text areas f0d5e0fcda996c2f
 120x40 Ansi256 Chips & selects 0434e6b5eb1566a1
-120x40 Ansi256 Forms b42b1157d068663b
+120x40 Ansi256 Forms 91ef7d926e4e2769
 120x40 Ansi256 Basic table ea8ebb0f1ac7a582
 120x40 Ansi256 Editable 94078e8b1da21c82
 120x40 Ansi256 Data grid 75561c8e7746e20d
@@ -43,7 +43,7 @@
 120x40 Ansi256 Progress df694b7ccd7fa61d
 120x40 Ansi256 Panels b5f89259217ff3cd
 120x40 Ansi256 Scrolling d2655fee33a03a2d
-120x40 Ansi256 Code editor 74e954c92ead03a4
+120x40 Ansi256 Code editor d8eb260f4814eb6a
 120x40 Ansi256 Diff 48aa490f8134286a
 120x40 Ansi256 Terminal 5193ad701a6160cf
 120x40 Ansi256 Settings 30c31765a0cfea22
@@ -51,10 +51,10 @@
 120x40 Ansi16 Overview 1877c5962be2577b
 120x40 Ansi16 Chrome edb8e4d874284795
 120x40 Ansi16 Buttons e6f37293ca52ab7b
-120x40 Ansi16 Inputs 3fddcdf30a7ee506
-120x40 Ansi16 Text areas 10e4adea852ec8ba
+120x40 Ansi16 Inputs c336b4fa1bf2272e
+120x40 Ansi16 Text areas a4458d285bdd7ad4
 120x40 Ansi16 Chips & selects bbd5c1cf0ef6de3b
-120x40 Ansi16 Forms 5e99a5f1890dfafe
+120x40 Ansi16 Forms 5580d40fadca7fcd
 120x40 Ansi16 Basic table a8e99a19a6126ae1
 120x40 Ansi16 Editable 27e1664233f9a1cc
 120x40 Ansi16 Data grid 9ba9ec85b4a78e04
@@ -68,7 +68,7 @@
 120x40 Ansi16 Progress 6b9d13219ca694d0
 120x40 Ansi16 Panels a16f1d3f4d642b6d
 120x40 Ansi16 Scrolling 5ae165723215556a
-120x40 Ansi16 Code editor 8809e33e98373dfa
+120x40 Ansi16 Code editor 613f9f73f4cdddee
 120x40 Ansi16 Diff 6dfd2a1630dc04fd
 120x40 Ansi16 Terminal 89203bc41177fedb
 120x40 Ansi16 Settings fb89b4851b4fe3c5
@@ -76,10 +76,10 @@
 120x40 Mono Overview ea153de28a839d5a
 120x40 Mono Chrome e1d2d5bbfe73e3a8
 120x40 Mono Buttons 40cff27da9801d3e
-120x40 Mono Inputs 07e46f36e5af613d
-120x40 Mono Text areas 1dde8dfd31d4068d
+120x40 Mono Inputs f30f61ae8f33fc25
+120x40 Mono Text areas 242c67be9ccb3907
 120x40 Mono Chips & selects cdb6af6793d30487
-120x40 Mono Forms 00c919496761cfc9
+120x40 Mono Forms bb802b6f9cbca1d4
 120x40 Mono Basic table eed57c0288bd555c
 120x40 Mono Editable d682eaac21dc9a0a
 120x40 Mono Data grid 51ada8dedd61b8e6
@@ -93,7 +93,7 @@
 120x40 Mono Progress c259118ac30d233c
 120x40 Mono Panels 6d9707a6bc4a1842
 120x40 Mono Scrolling 7ab07be8389ec6a1
-120x40 Mono Code editor 917e8bceb5ef5c31
+120x40 Mono Code editor 83e39244187b6093
 120x40 Mono Diff c3b99828c1efbbcf
 120x40 Mono Terminal 23b47ea4799f36ae
 120x40 Mono Settings 8344caf5f21dbc72
@@ -101,10 +101,10 @@
 80x24 TrueColor Overview 9d20c4de81e45dd1
 80x24 TrueColor Chrome b15cc19bc437dbd0
 80x24 TrueColor Buttons 5884b205c9f97093
-80x24 TrueColor Inputs ac165b45e581e5b8
-80x24 TrueColor Text areas 7002e47a8bf90cd2
+80x24 TrueColor Inputs 6d32185bff25b7c1
+80x24 TrueColor Text areas 95dfadc0fb2943ac
 80x24 TrueColor Chips & selects 31eeeb08885df2fd
-80x24 TrueColor Forms fb71ed91e1af7d6e
+80x24 TrueColor Forms 8a7c7a659d6bf320
 80x24 TrueColor Basic table 5899412486f3c6e3
 80x24 TrueColor Editable 3f90db771d56497e
 80x24 TrueColor Data grid 56dca7b3a9b5b8f8
@@ -118,7 +118,7 @@
 80x24 TrueColor Progress a32ed04366e52f6f
 80x24 TrueColor Panels 35e9039c0aabf3fd
 80x24 TrueColor Scrolling 8dc84f01f4a2e795
-80x24 TrueColor Code editor e2d3d2aaee620407
+80x24 TrueColor Code editor 1b56f0a9f7a0d36e
 80x24 TrueColor Diff 9c860eaf4f37e961
 80x24 TrueColor Terminal 53d874fae1207e1f
 80x24 TrueColor Settings e34255fc6e0479a0
@@ -126,10 +126,10 @@
 80x24 Ansi256 Overview 10aab20c6e3db8cc
 80x24 Ansi256 Chrome aa3af337238a099b
 80x24 Ansi256 Buttons 3b555645c0a88cf3
-80x24 Ansi256 Inputs 7da6d8b537d88606
-80x24 Ansi256 Text areas f0b9bdfb728f4468
+80x24 Ansi256 Inputs 1ce876577f5d0b48
+80x24 Ansi256 Text areas aa34e106eba126fe
 80x24 Ansi256 Chips & selects eb9801f7fe3dfd35
-80x24 Ansi256 Forms 8399b03a4fd9024f
+80x24 Ansi256 Forms 1d576d97a01f61a5
 80x24 Ansi256 Basic table 0beab8032d585dbb
 80x24 Ansi256 Editable dbecaed3a85adee0
 80x24 Ansi256 Data grid f2b10a7f67c6edbe
@@ -143,7 +143,7 @@
 80x24 Ansi256 Progress 87659687076e7a97
 80x24 Ansi256 Panels 49ecad96d9883f93
 80x24 Ansi256 Scrolling 8eae1613b65682f1
-80x24 Ansi256 Code editor 3b40897609f13310
+80x24 Ansi256 Code editor 2432915f74d1099a
 80x24 Ansi256 Diff 7ff7eba47a626fe8
 80x24 Ansi256 Terminal 9f66f50284044595
 80x24 Ansi256 Settings 506037c3a2129594
@@ -151,10 +151,10 @@
 80x24 Ansi16 Overview bea8eca0a30b884c
 80x24 Ansi16 Chrome 9e59a050a52b2904
 80x24 Ansi16 Buttons c44897dcba707620
-80x24 Ansi16 Inputs c52a685e4242fbb2
-80x24 Ansi16 Text areas 8bdbb22039c167ee
+80x24 Ansi16 Inputs 77c026914b21449a
+80x24 Ansi16 Text areas 59e70eb16b8ba7c0
 80x24 Ansi16 Chips & selects 53ec903414ecf37a
-80x24 Ansi16 Forms 979e9579cf933898
+80x24 Ansi16 Forms 73ed41e6e1a5beab
 80x24 Ansi16 Basic table 8c57e70ffd5433da
 80x24 Ansi16 Editable 0a6319a3fed84455
 80x24 Ansi16 Data grid 7ced89750fc60171
@@ -168,7 +168,7 @@
 80x24 Ansi16 Progress 189f88286adf0ca0
 80x24 Ansi16 Panels 7c5fa8b62b041257
 80x24 Ansi16 Scrolling 114c97f2d0ea8319
-80x24 Ansi16 Code editor 8a52e5c0853ca11b
+80x24 Ansi16 Code editor 09e00d48dc183fe1
 80x24 Ansi16 Diff 2e9a6359eb0fa931
 80x24 Ansi16 Terminal 2b2ebfe842b02c10
 80x24 Ansi16 Settings ae2948a7e50e1286
@@ -176,10 +176,10 @@
 80x24 Mono Overview 1184cf1e57db37c9
 80x24 Mono Chrome 32651e0cceb26cf6
 80x24 Mono Buttons ab29549b2f3f986c
-80x24 Mono Inputs 442e2ca36514f91e
-80x24 Mono Text areas bfe3a584219cf104
+80x24 Mono Inputs fd672625e951cdaa
+80x24 Mono Text areas d562be1f233caa8e
 80x24 Mono Chips & selects 78a5ac9aa9618632
-80x24 Mono Forms 5c3456d2bd492b1a
+80x24 Mono Forms 7201fe214d7d5835
 80x24 Mono Basic table cc237b6ed862e87c
 80x24 Mono Editable b7c09e301157ddad
 80x24 Mono Data grid a644e1c000b82cb4
@@ -193,7 +193,7 @@
 80x24 Mono Progress 3975939d73568018
 80x24 Mono Panels ef5256bb640cb7c5
 80x24 Mono Scrolling a94cb09d9e976c96
-80x24 Mono Code editor 3aeca4795e3810a3
+80x24 Mono Code editor 59ef8986bc7dc71b
 80x24 Mono Diff 5c2dacb10cb77720
 80x24 Mono Terminal 10bc9864bb152990
 80x24 Mono Settings 94fb5b73198b0694
@@ -201,10 +201,10 @@
 72x20 TrueColor Overview 14e5e9b6e902e4c9
 72x20 TrueColor Chrome 40e821bce704ed8d
 72x20 TrueColor Buttons 7696077baf0f52a0
-72x20 TrueColor Inputs 51b29cc89f871cda
-72x20 TrueColor Text areas cb4efd5786fb2a40
+72x20 TrueColor Inputs 4ccc330f163eb969
+72x20 TrueColor Text areas bb302a9ab6eec06b
 72x20 TrueColor Chips & selects f1da8216751d3b3c
-72x20 TrueColor Forms 36dbb0eace5309f4
+72x20 TrueColor Forms afb9df37cdd9bd52
 72x20 TrueColor Basic table fb13468337509773
 72x20 TrueColor Editable fd943b4d9e804368
 72x20 TrueColor Data grid e064c8a359502802
@@ -218,7 +218,7 @@
 72x20 TrueColor Progress 75f7bed3ba78f4ba
 72x20 TrueColor Panels a02acc1e4806907e
 72x20 TrueColor Scrolling 9112595e19a7705d
-72x20 TrueColor Code editor 023b75f75e5f97f0
+72x20 TrueColor Code editor 2b0b3dccebd00557
 72x20 TrueColor Diff 5e7a0934db65b488
 72x20 TrueColor Terminal 85d8c8a25bfef3a5
 72x20 TrueColor Settings 8b29a7a8a2559b4b
@@ -226,10 +226,10 @@
 72x20 Ansi256 Overview 2cb4002b56919111
 72x20 Ansi256 Chrome 5180dc6c9ea0e556
 72x20 Ansi256 Buttons af9a060294a9e087
-72x20 Ansi256 Inputs 6482a65f33965105
-72x20 Ansi256 Text areas 9ae8597b0e58b6fe
+72x20 Ansi256 Inputs 9b491a42161dd12c
+72x20 Ansi256 Text areas 0069fab680480bb1
 72x20 Ansi256 Chips & selects ac8ba5d805b6fd90
-72x20 Ansi256 Forms 56e58a848d8bc54f
+72x20 Ansi256 Forms 8ea2b5925fb522e5
 72x20 Ansi256 Basic table 06a596a47b0c1f26
 72x20 Ansi256 Editable cd51636e421d6290
 72x20 Ansi256 Data grid 9366fa320b4ffbfb
@@ -243,7 +243,7 @@
 72x20 Ansi256 Progress 23924fa2b0601948
 72x20 Ansi256 Panels 5cf04166e1720ed3
 72x20 Ansi256 Scrolling 2a0c18ca3eff467c
-72x20 Ansi256 Code editor 68fc43779dfad3d9
+72x20 Ansi256 Code editor 76e0601593fbf77d
 72x20 Ansi256 Diff d387cbe49f8c259d
 72x20 Ansi256 Terminal 282f406fcf3ffa6c
 72x20 Ansi256 Settings 092a1e6fe2336ebd
@@ -251,10 +251,10 @@
 72x20 Ansi16 Overview bf74838a646896d1
 72x20 Ansi16 Chrome db56275edc25efb3
 72x20 Ansi16 Buttons dabbdacfb6d3b668
-72x20 Ansi16 Inputs b6220e28166fa79c
-72x20 Ansi16 Text areas cc03448728affd13
+72x20 Ansi16 Inputs b1b51b22e832d151
+72x20 Ansi16 Text areas 06e44dc5d8671678
 72x20 Ansi16 Chips & selects 0974961950281fe1
-72x20 Ansi16 Forms daee80e00ba4f0f6
+72x20 Ansi16 Forms ffa43221cb3413b5
 72x20 Ansi16 Basic table 6e21f5030ad0b537
 72x20 Ansi16 Editable 7a4c6c770e130355
 72x20 Ansi16 Data grid b349fadf69f499fc
@@ -268,7 +268,7 @@
 72x20 Ansi16 Progress 8eed56c7115dff89
 72x20 Ansi16 Panels 3e95fe5778101ebb
 72x20 Ansi16 Scrolling 88a67f2754ab737e
-72x20 Ansi16 Code editor 60530739f334752a
+72x20 Ansi16 Code editor 30a77206a63fc2c4
 72x20 Ansi16 Diff fc268bafee926b04
 72x20 Ansi16 Terminal 989c39af164b70cc
 72x20 Ansi16 Settings fceb51b5678c3fef
@@ -276,10 +276,10 @@
 72x20 Mono Overview f00a0954ccad2fe1
 72x20 Mono Chrome b92408980fae404f
 72x20 Mono Buttons 1d3c92ecba885a7a
-72x20 Mono Inputs 66ae0f9cb5b59b6a
-72x20 Mono Text areas 9c74b07e10cac463
+72x20 Mono Inputs accdfe9784d7badb
+72x20 Mono Text areas f08b84045d73d2ec
 72x20 Mono Chips & selects 019cb2b6decf38c7
-72x20 Mono Forms ec903cdccb6d8356
+72x20 Mono Forms ef72946c82a5e641
 72x20 Mono Basic table 225e815bb5f9a625
 72x20 Mono Editable ca2cfeef4408fc1d
 72x20 Mono Data grid 968dea96d8fd42cb
@@ -293,7 +293,7 @@
 72x20 Mono Progress 4f4566ef3b684c7f
 72x20 Mono Panels 022d387fd4a75017
 72x20 Mono Scrolling bd718bc63111ee56
-72x20 Mono Code editor 61228588eec3fd7a
+72x20 Mono Code editor 7ddcbd10c29e81d2
 72x20 Mono Diff 6416cf2e6ff398a9
 72x20 Mono Terminal 69a3f7be38494320
 72x20 Mono Settings 9ddaa1374ef7b235
@@ -301,10 +301,10 @@
 100x30 TrueColor Overview 6faa01c232182a0a
 100x30 TrueColor Chrome 7a87e2c0b8caa93a
 100x30 TrueColor Buttons d86abbc34b6b38f7
-100x30 TrueColor Inputs f34b8e7aa80651d1
-100x30 TrueColor Text areas 58b3934c540bcffe
+100x30 TrueColor Inputs 4a36c9ca39de0e3c
+100x30 TrueColor Text areas aecea1e2de805fea
 100x30 TrueColor Chips & selects 33dc936f3155563e
-100x30 TrueColor Forms 9bc91de07335ef6f
+100x30 TrueColor Forms 0627fc80c273d2a9
 100x30 TrueColor Basic table 71a21c7f43831427
 100x30 TrueColor Editable b67c03de9e3a2832
 100x30 TrueColor Data grid 9a79ee3a967aff27
@@ -318,7 +318,7 @@
 100x30 TrueColor Progress 2710c7ba182b21c0
 100x30 TrueColor Panels 57b9e67720dc478d
 100x30 TrueColor Scrolling f150fb339c99aacb
-100x30 TrueColor Code editor cd56f5e0fc998f63
+100x30 TrueColor Code editor d09d6f6d99b5078e
 100x30 TrueColor Diff 245f8bdc0252d4a8
 100x30 TrueColor Terminal 75939490d4e97f83
 100x30 TrueColor Settings 514443afcab34d78
@@ -326,10 +326,10 @@
 100x30 Ansi256 Overview 12ec9d75990c18fd
 100x30 Ansi256 Chrome 486565fe43e46237
 100x30 Ansi256 Buttons 6968cea9f9e9d291
-100x30 Ansi256 Inputs e771c1b1ea326baa
-100x30 Ansi256 Text areas bb4ca4819dae9b7c
+100x30 Ansi256 Inputs eacbf3d625abb4a2
+100x30 Ansi256 Text areas 690d878853620b12
 100x30 Ansi256 Chips & selects 4c376b38201c6355
-100x30 Ansi256 Forms fc28a44dc1320554
+100x30 Ansi256 Forms a7355b74b5b81c9e
 100x30 Ansi256 Basic table ce1ba8cd2dfff2ce
 100x30 Ansi256 Editable 88fb619425c5d566
 100x30 Ansi256 Data grid e809dd2d9ed1827d
@@ -343,7 +343,7 @@
 100x30 Ansi256 Progress 966a6c98569d07bb
 100x30 Ansi256 Panels 0ffe628a2befe0ec
 100x30 Ansi256 Scrolling 186902f346d88fc4
-100x30 Ansi256 Code editor 2df7a862ce9bc4a4
+100x30 Ansi256 Code editor 679b6e87ff1aa3a0
 100x30 Ansi256 Diff 2523a7f8b70cc84c
 100x30 Ansi256 Terminal 44b72add730d6e01
 100x30 Ansi256 Settings 15bf0fae58ebdc2e
@@ -351,10 +351,10 @@
 100x30 Ansi16 Overview 925b5d3b3fa4f175
 100x30 Ansi16 Chrome 53f586c4f57709aa
 100x30 Ansi16 Buttons 325459ac7fa1433e
-100x30 Ansi16 Inputs cf7bfc78c0b692f2
-100x30 Ansi16 Text areas f135857f338429f1
+100x30 Ansi16 Inputs 067ec474ce17eb3e
+100x30 Ansi16 Text areas 9ed97549ccc5ebcf
 100x30 Ansi16 Chips & selects 7ee283d5191ad03d
-100x30 Ansi16 Forms 5021a35ee704fa01
+100x30 Ansi16 Forms d43d9aa85c3ed6fc
 100x30 Ansi16 Basic table dd98118b39a5b594
 100x30 Ansi16 Editable 3fa79bd5dd04d156
 100x30 Ansi16 Data grid 117cf31bbf8a4464
@@ -368,7 +368,7 @@
 100x30 Ansi16 Progress e3f0b781c8928070
 100x30 Ansi16 Panels baede92faefb4925
 100x30 Ansi16 Scrolling 84dbdbf0d759da45
-100x30 Ansi16 Code editor 06fe4ff26d13e689
+100x30 Ansi16 Code editor 3df9ce58fee848d5
 100x30 Ansi16 Diff 4372a30d71195858
 100x30 Ansi16 Terminal cdd1c006f528fab4
 100x30 Ansi16 Settings 5e7e0fea81d2f97a
@@ -376,10 +376,10 @@
 100x30 Mono Overview 6ad9f5b452df842e
 100x30 Mono Chrome c0fb9a8dd5a038c3
 100x30 Mono Buttons 59ea620966d21199
-100x30 Mono Inputs 827b34c57091696f
-100x30 Mono Text areas bfb15d9f41d2e1a8
+100x30 Mono Inputs dd8bdf26400376b7
+100x30 Mono Text areas 0c1dab6aa077f170
 100x30 Mono Chips & selects aacec749faa539f8
-100x30 Mono Forms 682ca54d4b5d9f0a
+100x30 Mono Forms 2795f5b2fd44fe75
 100x30 Mono Basic table 27b19e0eebb77996
 100x30 Mono Editable 9b9271a5e3ed7765
 100x30 Mono Data grid b4257d19e54a62aa
@@ -393,7 +393,7 @@
 100x30 Mono Progress d2f9c0818f0557b7
 100x30 Mono Panels 6257bd562ee672d9
 100x30 Mono Scrolling 42b07c689aa2778d
-100x30 Mono Code editor 59cac0b158717cfc
+100x30 Mono Code editor c82fc2fe12de8bf6
 100x30 Mono Diff cb536b33bc7823d4
 100x30 Mono Terminal c87cdbe69dd46971
 100x30 Mono Settings 17ce6a98900f9f7f
@@ -401,10 +401,10 @@
 160x50 TrueColor Overview b62e357d0becc851
 160x50 TrueColor Chrome 6727b5a2dedc86bc
 160x50 TrueColor Buttons 80f2e64745e638a5
-160x50 TrueColor Inputs 5a562693250281e2
-160x50 TrueColor Text areas 3022734659ffeaf0
+160x50 TrueColor Inputs 3778904068bc0b97
+160x50 TrueColor Text areas e6209b584a6a6dc0
 160x50 TrueColor Chips & selects 6d6121a3366d1fc1
-160x50 TrueColor Forms 815b1310b980c7eb
+160x50 TrueColor Forms f138b1c556d0b0c5
 160x50 TrueColor Basic table 3e1d12bc8716004c
 160x50 TrueColor Editable 8b91d3d383fc3dfb
 160x50 TrueColor Data grid 2b59a8189950c800
@@ -418,7 +418,7 @@
 160x50 TrueColor Progress d92d4ee9d3c1f29d
 160x50 TrueColor Panels 72b7844f9711f44e
 160x50 TrueColor Scrolling 8f8413b14542ecbb
-160x50 TrueColor Code editor b42a964cceff9e58
+160x50 TrueColor Code editor 34f85ede3e34e731
 160x50 TrueColor Diff 54ca804a7a49406c
 160x50 TrueColor Terminal 99e2f1594860fd33
 160x50 TrueColor Settings 8ef2dfa0a432285b
@@ -426,10 +426,10 @@
 160x50 Ansi256 Overview ac7fd8080d38cc25
 160x50 Ansi256 Chrome 5148553c5ff5c7b9
 160x50 Ansi256 Buttons 0f9169ab65b86724
-160x50 Ansi256 Inputs 70b264fb732a2171
-160x50 Ansi256 Text areas 0852fc0a669609ce
+160x50 Ansi256 Inputs 9390bc212d285eb9
+160x50 Ansi256 Text areas 396e60c367285168
 160x50 Ansi256 Chips & selects e3fca3406f1cb73a
-160x50 Ansi256 Forms 70f70bbbbdcaab44
+160x50 Ansi256 Forms 812df4970f32078e
 160x50 Ansi256 Basic table 5ef116b28f9c12f3
 160x50 Ansi256 Editable 5204975566f4fcbf
 160x50 Ansi256 Data grid 2bff441e7dcd990e
@@ -443,7 +443,7 @@
 160x50 Ansi256 Progress d8e99f9635832583
 160x50 Ansi256 Panels 7f9953c338414a2b
 160x50 Ansi256 Scrolling 73480abfdba65428
-160x50 Ansi256 Code editor 353ae1dfe2ef2bb4
+160x50 Ansi256 Code editor 286d430cc1f22252
 160x50 Ansi256 Diff a8736d32258ff6d6
 160x50 Ansi256 Terminal 957b1c5d27f55ae8
 160x50 Ansi256 Settings f53fec05a2c593b3
@@ -451,10 +451,10 @@
 160x50 Ansi16 Overview 65a3b7c26e7d2ebd
 160x50 Ansi16 Chrome b5a3987b229d58b8
 160x50 Ansi16 Buttons e6178ffa689f98e4
-160x50 Ansi16 Inputs 6e67ce86da046b08
-160x50 Ansi16 Text areas 1fde21bd8c022852
+160x50 Ansi16 Inputs 52f80e2aed72101c
+160x50 Ansi16 Text areas 091d942c60df9a69
 160x50 Ansi16 Chips & selects b4497244f891c2d0
-160x50 Ansi16 Forms 55a9858908661335
+160x50 Ansi16 Forms 3e5279a883cc8f30
 160x50 Ansi16 Basic table f484f60378e24461
 160x50 Ansi16 Editable c9dcfe326e2222ab
 160x50 Ansi16 Data grid 84b5b69b4773aec7
@@ -468,7 +468,7 @@
 160x50 Ansi16 Progress e4d716984d3710e7
 160x50 Ansi16 Panels b148f067f38f09a0
 160x50 Ansi16 Scrolling 3bff6ccf1efef147
-160x50 Ansi16 Code editor 3a46d2721994f0c7
+160x50 Ansi16 Code editor 2d980a22ad418491
 160x50 Ansi16 Diff 39d2721d9203b134
 160x50 Ansi16 Terminal 4f128ef10462167e
 160x50 Ansi16 Settings a35da8e7404039bb
@@ -476,10 +476,10 @@
 160x50 Mono Overview 48451f20a66ef786
 160x50 Mono Chrome ba1bf124831b6ea9
 160x50 Mono Buttons d678495b3c477afb
-160x50 Mono Inputs 760bcdcc2e07f9fd
-160x50 Mono Text areas cf6614b8e75b0f6d
+160x50 Mono Inputs 1048c619b5f50421
+160x50 Mono Text areas 27f5ba2d6174a29c
 160x50 Mono Chips & selects d4ba5513bb5bf3ca
-160x50 Mono Forms e4afeacbd000aec0
+160x50 Mono Forms b8510ac9c72734e7
 160x50 Mono Basic table bc524aac8c457778
 160x50 Mono Editable d21106bb7a6dea64
 160x50 Mono Data grid 350171412564206d
@@ -493,7 +493,7 @@
 160x50 Mono Progress fb7743b5d7a462b3
 160x50 Mono Panels 75cde645c7d962d3
 160x50 Mono Scrolling ae1fdad5c055a84c
-160x50 Mono Code editor 6ae053523eab1ece
+160x50 Mono Code editor b93729581cf3b566
 160x50 Mono Diff b90b76958e2e9bb6
 160x50 Mono Terminal ba2e80a6769225ef
 160x50 Mono Settings 251af0fa18af44d4

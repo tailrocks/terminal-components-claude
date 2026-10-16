@@ -553,9 +553,11 @@ impl Page for EditorPage {
         if self.completion.is_open() {
             vec![("↑↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
         } else if self.editor.editing {
+            // Tab indents while editing: Esc ends the edit, then Tab leaves
             vec![
                 ("Ctrl+Space", "Complete"),
                 ("Ctrl+R", "Run block"),
+                ("Tab", "Indent"),
                 ("Esc", "Done"),
             ]
         } else {
