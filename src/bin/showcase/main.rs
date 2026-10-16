@@ -24,6 +24,8 @@ mod app_tests_selectable;
 #[cfg(test)]
 mod app_tests_tables;
 #[cfg(test)]
+mod app_tests_tabs;
+#[cfg(test)]
 mod app_tests_template;
 #[cfg(test)]
 mod catalog_scan;
