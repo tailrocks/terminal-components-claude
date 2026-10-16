@@ -7,6 +7,7 @@ use ratatui::layout::Rect;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
@@ -392,12 +393,8 @@ impl Page for GridPage {
             PageEvent::Drag { pressed, pos } if self.grid.owns(*pressed) => {
                 self.grid.on_drag(*pressed, *pos)
             }
-            PageEvent::Wheel { id, delta } if self.grid.owns(*id) => {
-                self.grid.on_wheel(*delta, false)
-            }
-            PageEvent::WheelH { id, delta } if self.grid.owns(*id) => {
-                self.grid.on_wheel(*delta, true)
-            }
+            PageEvent::Wheel { id, delta } if self.grid.owns(*id) => self.grid.on_wheel(*delta),
+            PageEvent::WheelH { id, delta } if self.grid.owns(*id) => self.grid.on_wheel_h(*delta),
             PageEvent::DialogClosed { id, result, .. }
                 if *id == PREVIEW && *result == DialogResult::Action(1) =>
             {

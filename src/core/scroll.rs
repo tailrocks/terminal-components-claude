@@ -435,6 +435,39 @@ impl ScrollPane {
         ScrollState::new(content_len).into()
     }
 
+    // The vertical state's movers, forwarded so `pane.set_content(self.n())`
+    // borrows the field (two-phase) instead of going through `DerefMut`.
+
+    /// [`ScrollState::set_content`] on the vertical state.
+    pub fn set_content(&mut self, len: usize) {
+        self.v.set_content(len);
+    }
+
+    /// [`ScrollState::set_viewport`] on the vertical state.
+    pub fn set_viewport(&mut self, len: usize) {
+        self.v.set_viewport(len);
+    }
+
+    /// [`ScrollState::scroll_by`] on the vertical state.
+    pub fn scroll_by(&mut self, delta: isize) -> bool {
+        self.v.scroll_by(delta)
+    }
+
+    /// [`ScrollState::scroll_to`] on the vertical state.
+    pub fn scroll_to(&mut self, offset: usize) -> bool {
+        self.v.scroll_to(offset)
+    }
+
+    /// [`ScrollState::ensure_visible`] on the vertical state.
+    pub fn ensure_visible(&mut self, index: usize) -> bool {
+        self.v.ensure_visible(index)
+    }
+
+    /// [`ScrollState::follow`] on the vertical state.
+    pub fn follow(&mut self, cursor: usize) -> bool {
+        self.v.follow(cursor)
+    }
+
     /// Builder for [`Self::h_cfg`].
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.h_cfg = policy;

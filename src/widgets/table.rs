@@ -7,10 +7,12 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{ClientPlatform, Key, Outcome};
 use crate::core::focus::BlurAction;
+use crate::core::hit::Axis;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
-use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
+use crate::core::response::Response;
+use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::selection::{RowSelection, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
@@ -159,8 +161,6 @@ impl std::fmt::Debug for CellValidator {
 
 #[derive(Debug, Clone)]
 pub struct DataTable {
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     /// The rows, cells, checkboxes and `▾`s registered in the last render.
     parts: PartMap,
     pub id: WidgetId,
@@ -175,8 +175,9 @@ pub struct DataTable {
     /// When false the whole row is the navigation unit.
     pub cell_nav: bool,
     pub selected: Option<usize>,
-    pub scroll: ScrollState,
-    pub hscroll: ScrollState,
+    /// Rows (`scroll`, the vertical state) and columns (`scroll.h`) with both bars
+    /// ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub edit: Option<EditState>,
     /// Checks a cell edit: `Some(message)` rejects the value. A closure,
     /// so it can capture state (an enum list, a schema).
@@ -210,18 +211,6 @@ pub struct DataTable {
     /// The `…` marks at the header's edges when columns are hidden on
     /// that side.
     pub overflow_marks: bool,
-    /// The policy resolved at the last render (events use it).
-    h_cfg: HScroll,
-    /// The horizontal scrollbar track as last drawn.
-    htrack: Rect,
-    /// The last scrollbar press landed on the horizontal bar, so the drag
-    /// that follows moves columns.
-    h_held: bool,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// How many rows can be selected. Default [`SelectionMode::Single`].
     pub selection_mode: SelectionMode,
     /// The selected source rows in [`SelectionMode::Multi`].
@@ -303,8 +292,6 @@ impl DataTable {
         let n = rows.len();
         let numeric = vec![false; columns.len()];
         Self {
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
             id,
             columns,
             rows,
@@ -314,8 +301,7 @@ impl DataTable {
             cursor_col: 0,
             cell_nav: false,
             selected: None,
-            scroll: ScrollState::new(n),
-            hscroll: ScrollState::default(),
+            scroll: ScrollPane::new(n).columns(true),
             edit: None,
             validator: None,
             blur_action: BlurAction::Commit,
@@ -323,7 +309,6 @@ impl DataTable {
             strings: crate::theme::Strings::DEFAULT,
             empty: None,
             area: Rect::ZERO,
-            track: Rect::ZERO,
             parts: PartMap::default(),
             body: Rect::ZERO,
             col_rects: vec![],
@@ -333,9 +318,6 @@ impl DataTable {
             reveal: None,
             horizontal: None,
             overflow_marks: true,
-            h_cfg: HScroll::default(),
-            htrack: Rect::ZERO,
-            h_held: false,
             selection_mode: SelectionMode::Single,
             selection: RowSelection::new(),
             selection_column: false,
@@ -974,18 +956,19 @@ impl DataTable {
     fn ensure_col_visible(&mut self) {
         // horizontal scroll is in columns
         let n = self.columns.len();
-        if self.hscroll.viewport_len == 0 {
+        if self.scroll.h.viewport_len == 0 {
             return;
         }
-        if self.cursor_col < self.hscroll.offset {
-            self.hscroll.offset = self.cursor_col;
-        } else if self.cursor_col >= self.hscroll.offset + self.hscroll.viewport_len {
-            self.hscroll.offset = self.cursor_col + 1 - self.hscroll.viewport_len;
+        if self.cursor_col < self.scroll.h.offset {
+            self.scroll.h.offset = self.cursor_col;
+        } else if self.cursor_col >= self.scroll.h.offset + self.scroll.h.viewport_len {
+            self.scroll.h.offset = self.cursor_col + 1 - self.scroll.h.viewport_len;
         }
-        self.hscroll.offset = self
-            .hscroll
+        self.scroll.h.offset = self
+            .scroll
+            .h
             .offset
-            .min(n.saturating_sub(self.hscroll.viewport_len));
+            .min(n.saturating_sub(self.scroll.h.viewport_len));
     }
 
     pub fn begin_edit(&mut self) -> Outcome {
@@ -1352,11 +1335,11 @@ impl DataTable {
                 (Outcome::Changed, None)
             }
             Nav::Left => {
-                self.hscroll.scroll_by(-1);
+                self.scroll.h.scroll_by(-1);
                 (Outcome::Changed, None)
             }
             Nav::Right => {
-                self.hscroll.scroll_by(1);
+                self.scroll.h.scroll_by(1);
                 (Outcome::Changed, None)
             }
             Nav::PageUp => {
@@ -1487,85 +1470,6 @@ impl DataTable {
         (Outcome::Changed, None)
     }
 
-    /// Horizontal wheel: one column per notch.
-    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
-        if !self.h_cfg.enabled {
-            return Outcome::Ignored;
-        }
-        let before = self.hscroll.offset;
-        self.hscroll.scroll_by(delta.signum() as isize);
-        if self.hscroll.offset == before {
-            Outcome::Consumed
-        } else {
-            Outcome::Changed
-        }
-    }
-
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if let Some(c) = self.choice.as_mut() {
-            // the open popup takes the wheel
-            return c.editor.on_wheel(delta);
-        }
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.body.y,
-                1,
-                self.body.height,
-            )
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on either scrollbar (or a completed click):
-    /// a press on the thumb grabs it, a press on the track jumps to it. A
-    /// press on the horizontal bar (its id is [`scrollbar::h_id_for`])
-    /// moves columns.
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        self.h_held = !self.htrack.is_empty() && self.htrack.contains(pos);
-        let moved = if self.h_held {
-            scrollbar::press_h(self.htrack, pos, &mut self.hscroll, self.h_cfg.track_click)
-        } else {
-            scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click)
-        };
-        if moved {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged while holding `pressed` (either of this
-    /// widget's scrollbar ids): the axis follows the id, so a drag works
-    /// whether or not the press was routed first.
-    pub fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        self.h_held = pressed == scrollbar::h_id_for(self.id);
-        self.on_scrollbar_drag(pos)
-    }
-
-    /// The pointer dragged along the scrollbar it pressed.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        let moved = if self.h_held && !self.htrack.is_empty() {
-            scrollbar::drag_h(self.htrack, pos, &mut self.hscroll)
-        } else {
-            scrollbar::drag(self.track(), pos, &mut self.scroll)
-        };
-        if moved {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     /// Compute column rects for the visible columns.
     fn layout_columns(&mut self, area: Rect) {
         let n = self.columns.len();
@@ -1573,7 +1477,7 @@ impl DataTable {
         let gap = 2u16;
         let mut fit = 0usize;
         let mut used = 0u16;
-        for i in self.hscroll.offset..n {
+        for i in self.scroll.h.offset..n {
             let w = self.sizing.width(i, self.columns[i].min_width());
             let need = if fit == 0 { w } else { w + gap };
             if used + need > area.width {
@@ -1582,11 +1486,11 @@ impl DataTable {
             used += need;
             fit += 1;
         }
-        let fit = fit.max(1).min(n - self.hscroll.offset.min(n));
-        self.hscroll.content_len = n;
-        self.hscroll.viewport_len = fit;
-        self.hscroll.clamp();
-        let visible = self.hscroll.offset..(self.hscroll.offset + fit).min(n);
+        let fit = fit.max(1).min(n - self.scroll.h.offset.min(n));
+        self.scroll.h.content_len = n;
+        self.scroll.h.viewport_len = fit;
+        self.scroll.h.clamp();
+        let visible = self.scroll.h.offset..(self.scroll.h.offset + fit).min(n);
         let constraints: Vec<Constraint> = visible
             .clone()
             .map(|i| match self.sizing.user(i) {
@@ -1604,7 +1508,7 @@ impl DataTable {
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
@@ -1613,7 +1517,7 @@ impl DataTable {
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.empty_text, old.no_rows, s.no_rows);
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() || area.height < 2 {
             return;
@@ -1631,7 +1535,7 @@ impl DataTable {
         ctx.scrollable(self.id, area);
         // gutter (1) + columns + scrollbar (1)
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
-        self.h_cfg = h_cfg;
+        self.scroll.h_cfg = h_cfg;
         // the viewport is settled once both bars are known: setting a
         // provisional taller one first would clamp the offset and drop
         // the cursor row off the bottom
@@ -1656,7 +1560,7 @@ impl DataTable {
         let mut body = Rect::new(area.x, area.y + 1, area.width, area.height - 1);
         // the horizontal bar takes the bottom row; losing it can make the
         // rows overflow, which costs a column for the vertical bar
-        let has_hb = !self.rows.is_empty() && body.height > 1 && h_cfg.shows_bar(&self.hscroll);
+        let has_hb = !self.rows.is_empty() && body.height > 1 && h_cfg.shows_bar(&self.scroll.h);
         if has_hb {
             body.height -= 1;
             if !has_sb && rows_len > body.height as usize {
@@ -1746,9 +1650,9 @@ impl DataTable {
             }
         }
         // horizontal overflow indicators
-        if self.overflow_marks && self.hscroll.overflows() {
-            let more_right = self.hscroll.offset + self.hscroll.viewport_len < self.columns.len();
-            let more_left = self.hscroll.offset > 0;
+        if self.overflow_marks && self.scroll.h.overflows() {
+            let more_right = self.scroll.h.offset + self.scroll.h.viewport_len < self.columns.len();
+            let more_left = self.scroll.h.offset > 0;
             if more_left {
                 let st = t.faint().bg(header_bg);
                 buf.set_string(area.x + 1, header_y, t.glyphs.ellipsis, st);
@@ -2028,7 +1932,6 @@ impl DataTable {
         // before the next frame (see `runtime::Coalesce`) then routes to the
         // widget, not to a row whose display index it already scrolled away
         ctx.scrollable(self.id, area);
-        self.track = Rect::ZERO;
         if has_sb {
             crate::ui::fade::scroll_edges_except(
                 buf,
@@ -2049,10 +1952,8 @@ impl DataTable {
                     .collect::<Vec<_>>(),
             );
             let sb = Rect::new(area.right() - 1, body.y, 1, body.height);
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
-        self.htrack = Rect::ZERO;
         if has_hb {
             // under the columns; the corner under the vertical bar stays blank
             let y = body.bottom();
@@ -2063,16 +1964,7 @@ impl DataTable {
                 Style::new().bg(bg),
             );
             let hb = Rect::new(cols_area.x, y, right.saturating_sub(cols_area.x), 1);
-            self.htrack = hb;
-            scrollbar::render_horizontal_with(
-                hb,
-                buf,
-                ctx,
-                self.id,
-                &self.hscroll,
-                focused,
-                h_cfg.bar == ScrollbarVisibility::Always,
-            );
+            self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
     }
 
@@ -2151,6 +2043,18 @@ impl crate::core::focus::BlurTarget for DataTable {
         } else {
             Outcome::Ignored
         }
+    }
+}
+
+impl Scrollable for DataTable {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
+    }
+
+    /// An open choice popup takes the vertical wheel.
+    fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
+        let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
+        Some(c.editor.on_wheel(delta).into())
     }
 }
 
@@ -2288,18 +2192,22 @@ mod tests {
         let area = Rect::new(0, 0, 40, 7);
         let (buf, hits) = draw(&mut t, area);
         let y = area.bottom() - 1;
-        assert_eq!(thumb_x(&buf, y), Some(t.htrack.x), "thumb at the left");
         assert_eq!(
-            hits.hit(Position::new(t.htrack.x + 2, y)),
+            thumb_x(&buf, y),
+            Some(t.scroll.h_track().x),
+            "thumb at the left"
+        );
+        assert_eq!(
+            hits.hit(Position::new(t.scroll.h_track().x + 2, y)),
             Some(scrollbar::h_id_for(t.id))
         );
         assert!(t.owns(scrollbar::h_id_for(t.id)));
 
         assert_eq!(t.on_wheel_h(3), Outcome::Changed);
-        assert_eq!(t.hscroll.offset, 1, "one column per notch");
+        assert_eq!(t.scroll.h.offset, 1, "one column per notch");
         let (buf, _) = draw(&mut t, area);
         let grab = thumb_x(&buf, y).unwrap();
-        assert!(grab > t.htrack.x);
+        assert!(grab > t.scroll.h_track().x);
 
         // the shared scrollbar entry point tells the bars apart by position
         assert_eq!(t.on_scrollbar(Position::new(grab, y)), Outcome::Consumed);
@@ -2307,7 +2215,7 @@ mod tests {
             t.on_scrollbar_drag(Position::new(area.right(), y)),
             Outcome::Changed
         );
-        assert_eq!(t.hscroll.offset, t.hscroll.max_offset());
+        assert_eq!(t.scroll.h.offset, t.scroll.h.max_offset());
         assert_eq!(t.scroll.offset, 0, "rows did not move");
 
         let mut off = wide_table().horizontal(HScroll::off());

@@ -1577,7 +1577,13 @@ impl QueryTab {
             return Outcome::Ignored;
         };
         match &mut r.body {
-            ResultBody::Rows(g) if g.owns(id) => g.on_wheel(delta, horizontal),
+            ResultBody::Rows(g) if g.owns(id) => {
+                if horizontal {
+                    g.on_wheel_h(delta)
+                } else {
+                    g.on_wheel(delta)
+                }
+            }
             ResultBody::Plan { tree, raw, .. } => {
                 if tree.owns(id) {
                     if horizontal {
