@@ -6,26 +6,26 @@
 [0m[2m [0m [0m[2m▸ App shell                                                                                      ┃[0m
 [0m[2m [0m [0m[2m▸ Inputs & forms        [–] Name                         Role    Status     Region  On call …    ┃[0m
 [0m[2m [0m [0m[2m▾ Tables             [0m [0m[2m  [ ] Dana Whitfield               Owner   Active     EU      Yes      ┃   ┃[0m
-[0m[2m [0m [0m[2m    Basic table      [0m [0m[2m  [✓] Ari Moreno                   Admin   Active     US      Yes      │   ┃[0m
-[0m[2m [0m [0m[2m    Editable         [0m [0m[2m  [✓] Cleo Barnes                  Editor  Active     EU      —        │   ┃[0m
-[0m[2m [0m [0m[2m    Data grid        ╭──────────────────────────────────────────────── × ─╮──────────────────    ┃[0m
+[0m[2m [0m [0m[2m    Basic table      [0m [0m[2m  [✓] Ari Moreno                   Admin   Active     US      Yes      ┆   ┃[0m
+[0m[2m [0m [0m[2m    Editable         [0m [0m[2m  [✓] Cleo Barnes                  Editor  Active     EU      —        ┆   ┃[0m
+[0m[2m [0m [0m[2m    Data grid        ╭──────────────────────────────────────────────── × ─╮┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┃[0m
 [0m[2m [0m [0m[2m  › Selection        │                                                    │                      ┃[0m
 [0m[2m [0m [0m[2m    Cell editors     │  [0m[1;2mDelete 2 members?[0m[2m                                 │                      ┃[0m
 [0m[2m [0m [0m[2m▸ Navigation         │                                                    │                      ┃[0m
 [0m[2m [0m [0m[2m▸ Overlays           │  They lose access to the workspace right away.     │                      ┃[0m
 [0m[2m [0m [0m[2m▸ Feedback           │  This can't be undone.                             │                      ┃[0m
-[0m[2m [0m [0m[2m▸ Layout             │                                                    │                      │[0m
-[0m[2m [0m [0m[2m▸ Text & code        │                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │                      │[0m
-[0m[2m [0m [0m[2m▸ Screens            │                                                    │                      │[0m
-[0m[2m                       ╰────────────────────────────────────────────────────╯                      │[0m
-[0m[2m                                                                                                   │[0m
-[0m[2m                                                                                                   │[0m
-[0m[2m                                                                                                   │[0m
-[0m[2m                                                                                                   │[0m
-[0m[2m                                                                                                   │[0m
-[0m[2m                                                                                                   │[0m
-[0m[2m                                                                                                   │[0m
-[0m[2m                                                                                                   │[0m
+[0m[2m [0m [0m[2m▸ Layout             │                                                    │                      ┆[0m
+[0m[2m [0m [0m[2m▸ Text & code        │                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │                      ┆[0m
+[0m[2m [0m [0m[2m▸ Screens            │                                                    │                      ┆[0m
+[0m[2m                       ╰────────────────────────────────────────────────────╯                      ┆[0m
+[0m[2m                                                                                                   ┆[0m
+[0m[2m                                                                                                   ┆[0m
+[0m[2m                                                                                                   ┆[0m
+[0m[2m                                                                                                   ┆[0m
+[0m[2m                                                                                                   ┆[0m
+[0m[2m                                                                                                   ┆[0m
+[0m[2m                                                                                                   ┆[0m
+[0m[2m                                                                                                   ┆[0m
 [0m[2m                                                                                                    [0m
  [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mEsc[0m Cancel                                                                [0m
 [?25l

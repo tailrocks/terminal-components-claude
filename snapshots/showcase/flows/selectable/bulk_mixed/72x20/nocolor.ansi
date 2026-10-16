@@ -6,16 +6,16 @@
   ▸ App shell     ┃                                                    ┃[0m
   ▸ Inputs & for… ┃       [–] Name              Role    Status    …    ┃[0m
   ▾ Tables        ┃       [✓] Ari Moreno        Admin   Active     ┃   ┃[0m
-      Basic table ┃       [✓] Cleo Barnes       Editor  Active     │   ┃[0m
-      Editable    ┃    [0m[1m▎  [✓] Bo Lindqvist      Editor  Invited    [0m│   ┃[0m
-      Data grid   ┃           ━━━━━━━━━━━━━━━──────────────────────    ┃[0m
-    › [0m[1mSelection  [0m ┃                                                    │[0m
-      Cell edito… ┃                                                    │[0m
-  ▸ Navigation    ┃                                                    │[0m
-  ▸ Overlays      ┃                                                    │[0m
-  ▸ Feedback      │                                                    │[0m
- [0m[2m ▸ Layout        [0m│                                                    │[0m
-                                                                       │[0m
+      Basic table ┃       [✓] Cleo Barnes       Editor  Active     ┆   ┃[0m
+      Editable    ┃    [0m[1m▎  [✓] Bo Lindqvist      Editor  Invited    [0m┆   ┃[0m
+      Data grid   ┃           ━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┃[0m
+    › [0m[1mSelection  [0m ┃                                                    ┆[0m
+      Cell edito… ┃                                                    ┆[0m
+  ▸ Navigation    ┃                                                    ┆[0m
+  ▸ Overlays      ┃                                                    ┆[0m
+  ▸ Feedback      ┆                                                    ┆[0m
+ [0m[2m ▸ Layout        [0m┆                                                    ┆[0m
+                                                                       ┆[0m
                                                                         [0m
  [0m[1mSpace[0m Select  [0m[1mShift+↑↓[0m Extend  [0m[1mEsc[0m Clear selection  …                  [0m
 [?25l

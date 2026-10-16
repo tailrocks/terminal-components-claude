@@ -6,20 +6,20 @@
 [0m[2m [0m [0m[2m▸ App shell                                                                  ┃[0m
 [0m[2m [0m [0m[2m▸ Inputs & forms        [–] Name              Role    Status     Region …    ┃[0m
 [0m[2m [0m [0m[2m▾ Tables   ╭─────────[0m─[0m[2m────────────────────────────────────── × ─╮EU      ┃   ┃[0m
-[0m[2m [0m [0m[2m    Basic t│         [0m [0m[2m                                          │US      │   ┃[0m
-[0m[2m [0m [0m[2m    Editabl│  [0m[1;2mDelete [0m[1m2[0m[1;2m members?[0m[2m                                 │EU      │   ┃[0m
-[0m[2m [0m [0m[2m    Data gr│                                                    │────────    ┃[0m
+[0m[2m [0m [0m[2m    Basic t│         [0m [0m[2m                                          │US      ┆   ┃[0m
+[0m[2m [0m [0m[2m    Editabl│  [0m[1;2mDelete [0m[1m2[0m[1;2m members?[0m[2m                                 │EU      ┆   ┃[0m
+[0m[2m [0m [0m[2m    Data gr│                                                    │┄┄┄┄┄┄┄┄    ┃[0m
 [0m[2m [0m [0m[2m  › Selecti│  They lose access to the workspace right away.     │            ┃[0m
 [0m[2m [0m [0m[2m    Cell ed│  This can't be undone.                             │            ┃[0m
-[0m[2m [0m [0m[2m▸ Navigatio│                                                    │            │[0m
-[0m[2m [0m [0m[2m▸ Overlays │                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │            │[0m
-[0m[2m [0m [0m[2m▸ Feedback │                                                    │            │[0m
-[0m[2m [0m [0m[2m▸ Layout   ╰────────────────────────────────────────────────────╯            │[0m
-[0m[2m [0m [0m[2m▸ Text & code                                                                │[0m
-[0m[2m [0m [0m[2m▸ Screens                                                                    │[0m
-[0m[2m                                                                               │[0m
-[0m[2m                                                                               │[0m
-[0m[2m                                                                               │[0m
+[0m[2m [0m [0m[2m▸ Navigatio│                                                    │            ┆[0m
+[0m[2m [0m [0m[2m▸ Overlays │                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │            ┆[0m
+[0m[2m [0m [0m[2m▸ Feedback │                                                    │            ┆[0m
+[0m[2m [0m [0m[2m▸ Layout   ╰────────────────────────────────────────────────────╯            ┆[0m
+[0m[2m [0m [0m[2m▸ Text & code                                                                ┆[0m
+[0m[2m [0m [0m[2m▸ Screens                                                                    ┆[0m
+[0m[2m                                                                               ┆[0m
+[0m[2m                                                                               ┆[0m
+[0m[2m                                                                               ┆[0m
 [0m[2m                                                                                [0m
  [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mEsc[0m Cancel                                            [0m
 [?25l
