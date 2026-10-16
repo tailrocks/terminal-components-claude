@@ -25,6 +25,7 @@ layer (see `AGENTS.md`), with a regression test, in its own commit.
 | `duplication-screens.md` | Hand-built screen UI that belongs in library components |
 | `colour-showcase-tablepro.md` | Colour as meaning in showcase and tablepro: semantic roles, syntax and environment hues |
 | `colour-holla-jackin.md` | Colour as meaning in holla and jackin: live, done, health and quota states |
+| `colour-follow-ups.md` | The resolved colour tokens the library shipped, decisions between the two colour reviews, and the colour follow-ups per app |
 
 The three duplication reviews are consolidated into one plan:
 [`docs/architecture/shared-components-plan.md`](../../architecture/shared-components-plan.md).
