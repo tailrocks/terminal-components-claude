@@ -223,6 +223,9 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::StatusHints => STATUS_HINTS,
         PageId::TextUtilities => TEXT_UTILITIES,
         PageId::Grid => DATA_GRID,
+        PageId::Editable => EDITABLE,
+        PageId::Selectable => SELECTION,
+        PageId::CellEditors => CELL_EDITORS,
         _ => &[],
     }
 }
@@ -491,6 +494,88 @@ impl PageValues {
         self.value(key).parse().ok()
     }
 }
+
+/// Cell editors (SC13): every `EditorConfig` field
+/// (`pages/celleditors.rs`, `config`).
+static CELL_EDITORS: &[Opt] = &[
+    Opt::new("celleditors.dismiss", "Dismiss", &["light", "escape"]),
+    Opt::new("celleditors.blur", "On blur", &["cancel", "commit"]),
+    Opt::new("celleditors.max_rows", "Popup rows", &["8", "4", "12"]),
+    Opt::new(
+        "celleditors.popup_width",
+        "Popup width",
+        &["14-48", "14-24", "30-60"],
+    ),
+    Opt::new("celleditors.cursor_style", "Popup cursor", &["fill", "bar"]),
+    Opt::new("celleditors.type_ahead", "Type-ahead", OFF_ON).default(1),
+    Opt::new(
+        "celleditors.affordance",
+        "▾ affordance",
+        &["focused", "always", "never"],
+    ),
+    Opt::new(
+        "celleditors.flag_out_of_set",
+        "Flag values outside the set",
+        OFF_ON,
+    )
+    .default(1),
+    Opt::new(
+        "celleditors.tag_separator",
+        "Tag separator",
+        &["comma", "dot"],
+    ),
+    Opt::new(
+        "celleditors.placement",
+        "Popup placement",
+        &["below", "above"],
+    ),
+];
+
+/// Selection (SC13): the multi-select members table
+/// (`pages/selectable.rs`, `members_table`).
+static SELECTION: &[Opt] = &[
+    Opt::new("selection.esc_clears", "Esc clears the selection", OFF_ON).default(1),
+    Opt::new(
+        "selection.toggle_mods",
+        "Toggle click",
+        &["platform", "ctrl", "alt"],
+    ),
+    Opt::new(
+        "selection.disabled_rows",
+        "Disabled rows",
+        &["owner", "none"],
+    ),
+    Opt::new("selection.check_column", "Checkbox column", OFF_ON).default(1),
+];
+
+/// Editable (SC13): the cell-navigating `DataTable`'s knobs
+/// (`pages/editable.rs`, `build`).
+static EDITABLE: &[Opt] = &[
+    Opt::new("editable.rows", "Rows", &["tasks", "empty"]),
+    Opt::new("editable.type_ahead", "Type-ahead", &["off", "any", "task"]),
+    Opt::new(
+        "editable.affordance",
+        "▾ affordance",
+        &["focused", "always", "never"],
+    ),
+    Opt::new("editable.overflow_marks", "Overflow marks", OFF_ON).default(1),
+    Opt::new("editable.numeric", "Numeric ID and Changes", OFF_ON).default(1),
+    Opt::new("editable.nav", "Vim keys", &["on", "off"]),
+    Opt::new("editable.keymap", "Key map", &["default", "custom"]),
+    Opt::new("editable.horizontal", "Horizontal bar", &["auto", "never"]),
+    Opt::new("editable.reveal", "Reveal cut cells", OFF_ON).default(1),
+    Opt::new(
+        "editable.track_click",
+        "Track click",
+        &["shell", "page", "jump"],
+    ),
+    Opt::new("editable.blur_action", "On blur", &["commit", "cancel"]),
+    Opt::new(
+        "editable.header_labels",
+        "Header menu labels",
+        &["default", "custom"],
+    ),
+];
 
 /// Data grid (SC12): every `DataGrid` knob, each rebuilding the grid
 /// through its builder (`pages/grid.rs`, `build`).

@@ -448,3 +448,191 @@ fn grid_states_draw_every_row() {
         assert!(seen.contains(&s), "{s:?} in {seen:?}");
     }
 }
+
+fn editable_page(h: &Harness) -> &crate::pages::editable::EditablePage {
+    h.app.pages[PageId::Editable.index()]
+        .as_any()
+        .and_then(|a| a.downcast_ref())
+        .expect("the Editable page")
+}
+
+fn cell_editors_page(h: &Harness) -> &crate::pages::celleditors::CellEditorsPage {
+    h.app.pages[PageId::CellEditors.index()]
+        .as_any()
+        .and_then(|a| a.downcast_ref())
+        .expect("the Cell editors page")
+}
+
+/// Focus `id` and draw.
+fn focus(h: &mut Harness, id: junie_tui::core::id::WidgetId) {
+    h.app.focus.focus(id);
+    h.draw();
+}
+
+#[test]
+fn editable_keymap_option_rebinds_sort_and_the_hint_follows() {
+    let mut h = Harness::new(160, 50, PageId::Editable);
+    let id = editable_page(&h).table.id;
+    focus(&mut h, id);
+    assert!(h.text().contains("s Sort"), "{}", h.text());
+    h.opt("editable.keymap=custom");
+    let id = editable_page(&h).table.id;
+    focus(&mut h, id);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(editable_page(&h).table.sort, None, "s no longer sorts");
+    h.key(KeyCode::Char('o'));
+    assert!(editable_page(&h).table.sort.is_some(), "o sorts");
+    assert!(h.text().contains("o Sort"), "{}", h.text());
+}
+
+#[test]
+fn editable_rows_and_type_ahead_options_rebuild_the_table() {
+    let mut h = Harness::new(160, 50, PageId::Editable);
+    h.opt("editable.rows=empty");
+    assert!(h.text().contains("No tasks yet"), "{}", h.text());
+    h.opt("editable.rows=tasks");
+    h.opt("editable.type_ahead=task");
+    let id = editable_page(&h).table.id;
+    focus(&mut h, id);
+    h.key(KeyCode::Char('H'));
+    let t = &editable_page(&h).table;
+    let src = t.source_row(t.cursor_row);
+    assert_eq!(t.rows[src][1].text, "Harden CSP headers");
+}
+
+#[test]
+fn selection_options_reach_the_members_table() {
+    let mut h = Harness::new(160, 50, PageId::Selectable);
+    let page = |h: &Harness| -> junie_tui::widgets::table::DataTable {
+        let p: &crate::pages::selectable::SelectablePage = h.app.pages[PageId::Selectable.index()]
+            .as_any()
+            .and_then(|a| a.downcast_ref())
+            .expect("the Selection page");
+        p.table.clone()
+    };
+    assert!(page(&h).esc_clears && page(&h).is_disabled(0));
+    h.opt("selection.esc_clears=off");
+    h.opt("selection.disabled_rows=none");
+    h.opt("selection.toggle_mods=alt");
+    let t = page(&h);
+    assert!(!t.esc_clears && !t.is_disabled(0));
+    assert_eq!(t.toggle_mods, KeyModifiers::ALT);
+    // Esc keeps the selection now
+    focus(&mut h, t.id);
+    h.key(KeyCode::Char(' '));
+    assert_eq!(page(&h).selected_rows(), vec![0], "the owner row selects");
+    h.key(KeyCode::Esc);
+    assert_eq!(page(&h).selected_rows(), vec![0], "Esc does not clear it");
+    h.opt("selection.check_column=off");
+    assert!(!page(&h).selection_column);
+}
+
+#[test]
+fn a_standalone_choice_editor_commits_cancels_and_tabs_on() {
+    let mut h = Harness::new(220, 80, PageId::CellEditors);
+    let pick = cell_editors_page(&h).pick.id;
+    focus(&mut h, pick);
+    h.key(KeyCode::Enter);
+    assert!(cell_editors_page(&h).chooser.is_some(), "Enter opens it");
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    let p = cell_editors_page(&h);
+    assert!(p.chooser.is_none());
+    assert_eq!(p.region, "eu-west-2", "the next region");
+    assert!(h.text().contains("last: Commit"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Esc);
+    assert_eq!(cell_editors_page(&h).region, "eu-west-2");
+    assert!(h.text().contains("last: Cancel"));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    assert_eq!(cell_editors_page(&h).region, "eu-west-3");
+    assert_ne!(h.app.focus.current(), Some(pick), "Tab moves on");
+    // a click on an option commits it
+    focus(&mut h, pick);
+    h.key(KeyCode::Enter);
+    let option = cell_editors_page(&h)
+        .chooser
+        .as_ref()
+        .expect("the open list")
+        .option_id(6);
+    let r = h
+        .app
+        .hits
+        .area_of(option)
+        .unwrap_or_else(|| panic!("eu-west-1 is on screen\n{}", h.text()));
+    h.click(r.x + 1, r.y);
+    assert_eq!(cell_editors_page(&h).region, "eu-west-1");
+}
+
+#[test]
+fn cell_editor_options_set_the_editor_config() {
+    let mut h = Harness::new(160, 50, PageId::CellEditors);
+    h.opt("celleditors.affordance=always");
+    h.opt("celleditors.max_rows=4");
+    h.opt("celleditors.placement=above");
+    h.opt("celleditors.tag_separator=dot");
+    let cfg = &cell_editors_page(&h).table.editor_config;
+    assert_eq!(
+        cfg.affordance,
+        junie_tui::widgets::option_editor::Affordance::Always
+    );
+    assert_eq!(cfg.max_rows, 4);
+    assert_eq!(cfg.placement, junie_tui::ui::popup::Placement::Above);
+    // tags read with the new separator, and every option cell shows its ▾
+    let text = h.text();
+    assert!(text.contains("api · web"), "{text}");
+    assert!(
+        line_with(&text, "billing-worker").matches('▾').count() >= 3,
+        "{text}"
+    );
+}
+
+#[test]
+fn sc13_states_grids_draw_their_rows() {
+    use junie_tui::ui::specimen::SpecimenState::*;
+    for (page, rows) in [
+        (
+            PageId::Editable,
+            vec![
+                Rest, Hover, Pressed, Focused, Editing, Error, Disabled, Empty, Overflow, Narrow,
+            ],
+        ),
+        (
+            PageId::Selectable,
+            vec![
+                Rest,
+                Hover,
+                Pressed,
+                Focused,
+                FocusedHover,
+                Selected,
+                Disabled,
+                Empty,
+                Narrow,
+            ],
+        ),
+        (
+            PageId::CellEditors,
+            vec![
+                Rest, Hover, Focused, Editing, Error, Disabled, Empty, Overflow, Narrow,
+            ],
+        ),
+    ] {
+        let mut h = Harness::new(220, 80, page);
+        h.section(Section::States);
+        let mut seen = Vec::new();
+        for _ in 0..12 {
+            for s in h.app.pages[page.index()].template().unwrap().state_rows() {
+                if !seen.contains(s) {
+                    seen.push(*s);
+                }
+            }
+            h.mouse(MouseKind::WheelDown, 120, 40);
+        }
+        for s in rows {
+            assert!(seen.contains(&s), "{page:?}: {s:?} in {seen:?}");
+        }
+    }
+}
