@@ -432,6 +432,8 @@ impl Scenario {
     /// Run this capture through the gate. A scenario without a tuiscotti
     /// approval is skipped unless `VISUAL_FULL=1` ([`support::capture_enabled`]).
     pub fn run(&self) {
+        // no actual from an earlier run survives this one (`accept`)
+        support::clear_actual(&self.name);
         if !support::capture_enabled(&self.name) {
             return;
         }
