@@ -8,7 +8,6 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::Axis;
-use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::list::{Cursor, Navigable, RowSource};
@@ -251,8 +250,6 @@ struct Geometry {
 /// Copy always copies the full value.
 #[derive(Debug, Clone)]
 pub struct PropsList {
-    /// The rows registered in the last render, by id.
-    parts: PartMap,
     pub id: WidgetId,
     pub props: Vec<Prop>,
     pub cursor: usize,
@@ -309,7 +306,6 @@ impl PropsList {
             cursor: 0,
             scroll: ScrollPane::new(n),
             area: Rect::ZERO,
-            parts: PartMap::default(),
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
             sheet: Sheet::default(),
@@ -357,10 +353,10 @@ impl PropsList {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The drawn row `id` is: the inverse an owner's id-taking click (an
-    /// info dialog's, S15) needs.
+    /// The row `id` is: the inverse an owner's id-taking click (an info
+    /// dialog's, S15) needs.
     pub(crate) fn row_of(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
+        self.id.item_of(id, Part::ROW, 0..self.props.len())
     }
 
     fn set_cursor(&mut self, i: usize) {
@@ -457,7 +453,6 @@ impl PropsList {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        self.parts.clear();
         self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -561,7 +556,7 @@ impl PropsList {
                     st.fg(t.text_faint).remove_modifier(Modifier::BOLD),
                 );
             }
-            ctx.part(&mut self.parts, self.id, Self::row_part(i), row);
+            ctx.register_part(self.id, Self::row_part(i), row);
             y += h;
         }
         if let Some(sb) = sp.track {

@@ -1892,9 +1892,9 @@ impl DataTable {
                 }
                 let cid = self.cell_id(di, ci);
                 let cell = (Self::cell_part(di), ci);
-                ctx.part_cell(&mut self.parts, cid, self.id, cell, cell_rect);
+                ctx.register_part_as(cid, self.id, cell.0, cell_rect);
             }
-            ctx.part(&mut self.parts, self.id, Self::row_part(di), row_rect);
+            ctx.register_part(self.id, Self::row_part(di), row_rect);
             // re-register cells on top so cell hover resolves before row
             for ci in 0..self.columns.len() {
                 let r = self.col_rects[ci];
@@ -1902,19 +1902,21 @@ impl DataTable {
                     let cid = self.cell_id(di, ci);
                     let cell = (Self::cell_part(di), ci);
                     let rect = Rect::new(r.x, y, r.width, 1);
-                    ctx.part_cell(&mut self.parts, cid, self.id, cell, rect);
+                    ctx.register_part_as(cid, self.id, cell.0, rect);
                 }
             }
             if check_w > 0 && area.width > 3 + check_w && !row_disabled {
                 let rect = Rect::new(area.x + 3, y, 3, 1);
-                ctx.part(&mut self.parts, self.id, Self::check_part(di), rect);
+                ctx.register_part(self.id, Self::check_part(di), rect);
             }
         }
         // a cell's `▾` sits above the cell: a click on it opens the editor
         for (di, ci, rect) in open_marks {
             let oid = self.open_id(di, ci);
             let open = (PartRef::item(Part::ACTIONS, ItemKey::index(di)), ci);
-            ctx.part_cell(&mut self.parts, oid, self.id, open, rect);
+            // the id-taking `on_click_editor` (S15) maps a `▾` back to its cell
+            self.parts.record_cell(oid, open.0, open.1);
+            ctx.register_part_as(oid, self.id, open.0, rect);
         }
         if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
             c.editor.render(anchor, buf, ctx, &self.editor_config);

@@ -2612,7 +2612,7 @@ impl DataGrid {
                     )
                 };
                 buf.set_string(row_rect.x + gutter_w, y, &text, st.fg(t.text_muted));
-                ctx.part(&mut self.parts, self.id, PartRef::of(Part::ROW), row_rect);
+                ctx.register_part(self.id, PartRef::of(Part::ROW), row_rect);
                 continue;
             }
             let src = self.order[d];
@@ -2682,7 +2682,9 @@ impl DataGrid {
                     .remove_modifier(Modifier::BOLD | Modifier::CROSSED_OUT);
                 buf.set_string(row_rect.x + 3, y, &n, ns);
                 let rect = Rect::new(row_rect.x, y, gutter_w, 1);
-                ctx.part(&mut self.parts, self.id, Self::rownum_part(d), rect);
+                let part = Self::rownum_part(d);
+                self.parts.record(self.id.part(part), part);
+                ctx.register_part(self.id, part, rect);
             }
             for k in 0..self.col_rects.len() {
                 let rect = &self.col_rects[k];
@@ -2863,14 +2865,16 @@ impl DataGrid {
                 }
                 let cid = self.cell_id(d, ci);
                 let cell = (Self::cell_part(d), ci);
-                ctx.part_cell(&mut self.parts, cid, self.id, cell, cell_rect);
+                self.parts.record_cell(cid, cell.0, cell.1);
+                ctx.register_part_as(cid, self.id, cell.0, cell_rect);
             }
         }
         // a cell's `▾` sits above the cell: a click on it opens the editor
         for (d, ci, rect) in open_marks {
             let oid = self.open_id(d, ci);
             let open = (PartRef::item(Part::ACTIONS, ItemKey::index(d)), ci);
-            ctx.part_cell(&mut self.parts, oid, self.id, open, rect);
+            self.parts.record_cell(oid, open.0, open.1);
+            ctx.register_part_as(oid, self.id, open.0, rect);
         }
         if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
             c.editor.render(anchor, buf, ctx, &self.editor_config);

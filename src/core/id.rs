@@ -65,10 +65,11 @@ impl WidgetId {
     }
 
     /// The inverse of [`Self::part`] over a known set of positional items:
-    /// which `i` in `items` makes `id` this widget's `part` `i`. For a
-    /// collection whose items all exist whether drawn or not (tabs, menu
-    /// rows, select options); a widget that only knows what it drew reads
-    /// its [`PartMap`](super::hit::PartMap) instead.
+    /// which `i` in `items` makes `id` this widget's `part` `i`. Only for
+    /// the id-taking methods S15 deletes; a routed event names its part
+    /// already ([`PointerEvent::index_of`]).
+    ///
+    /// [`PointerEvent::index_of`]: crate::core::pointer::PointerEvent::index_of
     pub fn item_of(
         self,
         id: WidgetId,
