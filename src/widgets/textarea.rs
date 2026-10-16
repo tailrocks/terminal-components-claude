@@ -258,6 +258,11 @@ impl TextArea {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
+        // Ctrl+C copies only a selection; with nothing selected it is not
+        // the field's, so it reaches the app's quit guard
+        if key.ctrl_char('c') && self.buffer.selected_text().is_none() {
+            return (Outcome::Ignored, None);
+        }
         let entry = self.entry();
         if !self.editing {
             if entry == EditEntry::Immediate && !self.focus_seen {
