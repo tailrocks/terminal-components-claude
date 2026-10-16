@@ -85,10 +85,7 @@ impl CommonArgs {
 /// The `Motion:` line of an application's after-help text, naming its
 /// `<APP>_NO_MOTION` variable.
 pub fn motion_help(env_var: &str) -> String {
-    format!(
-        "Motion:    explicit --motion wins; otherwise {env_var}=1 selects reduced motion; \
-         --motion paused pins tick-derived surfaces at --frame N for capture"
-    )
+    format!("Motion:    explicit --motion wins; otherwise {env_var}=1 selects reduced motion")
 }
 
 /// Parse the process arguments into `C` with `after_help` appended to its

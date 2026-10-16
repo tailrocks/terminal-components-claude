@@ -68,9 +68,10 @@ fn parse_scenario(value: &str) -> Result<Scenario, String> {
 
 fn cli_after_help() -> String {
     let scenarios = scenario_names();
+    let motion = junie_tui::cli::motion_help(NO_MOTION_ENV);
     format!(
         "Scenarios: {scenarios}\n\
-         Motion:    explicit --motion wins; otherwise {NO_MOTION_ENV}=1 selects reduced motion\n\
+         {motion}\n\
          Frame:     with --motion paused, the exact fixture tick to render (intro, cockpit, outro phases)\n\n\
          Keys: Tab/Shift+Tab focus · ↑↓ move · Enter launch/activate · Esc back · u Accounts & Usage · s Settings · ? help · q quit\n\
          Everything is simulated in memory; the real Jackin CLI is never touched."

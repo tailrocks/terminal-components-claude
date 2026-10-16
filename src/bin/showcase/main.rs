@@ -29,6 +29,9 @@ use crate::app::{App, NavExpand, PageId};
 use clap::{Parser, ValueEnum};
 use junie_tui::cli::CommonArgs;
 
+/// Set to `1` (anything but empty or `0`) for reduced motion.
+const NO_MOTION_ENV: &str = "SHOWCASE_NO_MOTION";
+
 /// Which sidebar groups are open (`NavExpand`).
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum NavArg {
@@ -72,20 +75,23 @@ fn parse_page(value: &str) -> Result<PageId, String> {
 }
 
 fn cli_after_help() -> String {
-    "Motion:    --motion paused pins tick-derived surfaces at --frame N for capture\n\n\
-     Keys: Tab/Shift+Tab focus · arrows move · Enter/Space activate · Esc back · [ ] pages · ? help · q quit"
-        .to_string()
+    format!(
+        "{}\n\
+         Frame:     with --motion paused, the exact tick to render\n\n\
+         Keys: Tab/Shift+Tab focus · arrows move · Enter/Space activate · Esc back · [ ] pages · ? help · q quit",
+        junie_tui::cli::motion_help(NO_MOTION_ENV)
+    )
 }
 
 fn main() -> std::io::Result<()> {
     let cli: Cli = junie_tui::cli::parse(cli_after_help());
-    let motion = cli.common.motion.unwrap_or_default();
+    let motion = cli.common.motion(NO_MOTION_ENV);
     let mut app = App::with_motion(cli.common.theme(), motion, cli.common.frame);
     if let Some(p) = cli.page {
         app.goto(p);
     }
     app.set_nav_expand(cli.nav.map(NavExpand::from).unwrap_or_default());
-    junie_tui::runtime::run(&mut app)
+    junie_tui::shell::run(&mut app)
 }
 
 junie_tui::impl_application!(App);
