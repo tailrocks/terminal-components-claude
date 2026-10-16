@@ -129,7 +129,7 @@ impl ListBox {
     /// is open in [`crate::ui::reveal::RevealMode::InlineWrap`].
     fn inline_rows(
         &mut self,
-        ctx: &RenderCtx,
+        ctx: &mut RenderCtx,
         text_w: usize,
         room: u16,
     ) -> Option<Vec<RevealLine>> {

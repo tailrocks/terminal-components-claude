@@ -320,7 +320,7 @@ impl RevealState {
     /// available, so the reveal key works).
     pub fn inline(
         &mut self,
-        ctx: &RenderCtx,
+        ctx: &mut RenderCtx,
         id: WidgetId,
         width: u16,
         full: &str,
@@ -331,6 +331,7 @@ impl RevealState {
             return None;
         }
         self.available = true;
+        self.advertise(ctx);
         if !self.open
             || self.effective.keyboard.is_none()
             || self.effective.mode != RevealMode::InlineWrap
@@ -366,6 +367,7 @@ impl RevealState {
         let cut = is_cut(area, full);
         if cut && cursor && !ctx.inert {
             self.available = true;
+            self.advertise(ctx);
             if self.open && self.effective.keyboard.is_some() && !self.inlined {
                 self.track(id);
                 let feed = self.feed();
@@ -378,6 +380,14 @@ impl RevealState {
             show(ctx, area, full, Source::Pointer, feed);
         }
         cut
+    }
+
+    /// The focused cursor row is cut: publish the reveal key hint for the
+    /// app's footer ([`RenderCtx::reveal_hint`]).
+    fn advertise(&self, ctx: &mut RenderCtx) {
+        if let Some(h) = self.hint() {
+            ctx.reveal_hint = Some(h);
+        }
     }
 
     fn feed(&self) -> Feed {
@@ -485,6 +495,27 @@ pub fn truncated(
         show(ctx, area, full, Source::Pointer, feed);
     }
     cut
+}
+
+/// Put the frame's reveal key hint ([`RenderCtx::reveal_hint`]: `→ Full
+/// text` while the focused cursor row is cut, `← Collapse` while it shows)
+/// into a footer's hints. It goes after the first hint (usually the move
+/// keys), so a narrow footer that drops hints from the right keeps it, and
+/// is skipped when its key is already advertised. `key_of` reads a hint's
+/// key, `make` builds one, so any hint type works.
+pub fn advertise<T>(
+    hints: &mut Vec<T>,
+    reveal: Option<(&'static str, &'static str)>,
+    key_of: impl Fn(&T) -> &str,
+    make: impl FnOnce(&'static str, &'static str) -> T,
+) {
+    let Some((key, label)) = reveal else {
+        return;
+    };
+    if hints.iter().any(|h| key_of(h) == key) {
+        return;
+    }
+    hints.insert(hints.len().min(1), make(key, label));
 }
 
 thread_local! {
