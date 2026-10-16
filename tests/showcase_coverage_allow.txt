@@ -1071,6 +1071,7 @@ widgets::statusbar::Emphasis::Strong | Chrome and Status & hints pages | SC4
 widgets::statusbar::Emphasis::Chip | Chrome and Status & hints pages | SC4
 widgets::statusbar::StatusItem::busy | Chrome and Status & hints pages | SC4
 widgets::statusbar::StatusItem::meter | Chrome and Status & hints pages | SC4
+widgets::statusbar::StatusItem::meter_stale | Chrome and Status & hints pages | SC4
 widgets::statusbar::StatusItem::priority | Chrome and Status & hints pages | SC4
 widgets::statusbar::StatusItem::clickable | Chrome and Status & hints pages | SC4
 widgets::statusbar::StatusItem::tooltip | Chrome and Status & hints pages | SC4

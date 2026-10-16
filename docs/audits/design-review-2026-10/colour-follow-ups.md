@@ -114,9 +114,10 @@ text ladder (muted to secondary). The tests
   owners that would rather not show a level they cannot vouch for.
   Tests: `stale_meter_keeps_its_level_with_a_cue_that_survives_mono`,
   `stale_composes_with_tones_and_the_faint_style_is_an_override` in
-  `src/widgets/progress.rs`. The jackin owners can now pass their quota
-  tone with `.stale(true)` instead of `MeterTone::Stale`, so a stale
-  quota warning stays a warning (usage, accounts and capsule meters).
+  `src/widgets/progress.rs`. The jackin owners pass their quota tone
+  with `.stale(true)` instead of `MeterTone::Stale`, so a stale quota
+  warning stays a warning (usage, accounts and capsule meters; see the
+  jackin row "Session meter while stale").
 - **Done: a running progress bar is `Tone::Active`.** A determinate
   `ProgressStatus::Active` run used the secondary grey; it now takes the
   accent as live state, the hue of the indeterminate sweep and of the
@@ -242,5 +243,5 @@ All done; the regression tests are in `src/bin/jackin_preview/app_tests_colour.r
 | Running instance `◉` and "running" | `src/bin/jackin_preview/screens/manager.rs:220` (also `1349, 1636, 2839`), meta `1177, 1194` | `Tone::Active` on the glyph and the word | Done: one `instance_mark` / `instance_line` for the tree, detail list, roster card and summary; `running` in `Tone::Active`. The panel metas at `1177, 1194` stay one faint string: `Panel::meta` has no per-part tone, and the instance rows below them already carry the live state (`a_running_instance_shows_live_state_in_the_accent`) |
 | "N running" counts | `src/bin/jackin_preview/app.rs:1046, 2788` | count secondary with an `Active` dot | Done: `Segment::lead` (new) puts `Glyphs::dot_on` in `Tone::Active` before the secondary count, in both the capsule menu bar and the strip (`the_running_count_is_secondary_behind_a_live_dot`) |
 | Run-id chip in warning | `src/bin/jackin_preview/screens/cockpit.rs:971-976` | `Theme::link_style` / info | Done: `Theme::link_style` (underlined on hover or focus) over the chip's title ladder (`the_debug_run_id_chip_is_a_link_not_a_warning`) |
-| Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | library done (stale keeps the level, dashed run); pass the quota tone with `Meter::stale(true)` to keep a domain warning | Done by the library: `MeterTone::Stale` now derives its level from the shared thresholds ("Formerly deferred" above), so the capsule status bar's stale 76% session meter shows its warning level beside its `stale` chip. The status-bar meter is a `StatusItem::meter`, which takes a tone and no stale flag, so it keeps `MeterTone::Stale`; no app change |
+| Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | library done (stale keeps the level, dashed run); pass the quota tone with `Meter::stale(true)` to keep a domain warning | Done: one `accounts::quota_tone` (a `QuotaTone`: the domain tone plus a stale flag) replaces the three `MeterTone::Stale` mappings (accounts detail, usage overview and detail, capsule usage dialog and status bar; the capsule dialog's own copy is gone). A stale or failed refresh keeps the window's domain level (`Warning`, `Exhausted`) and draws it stale, so a stale 90% quota warning is a warning (`▲`, dashed `╍` run in the status bar, italic warning block in the detail) rather than the shared thresholds' danger `!`. `StatusItem::meter_stale` (new) carries the flag to the status-bar meter. Showcase keeps `MeterTone::Stale` as the tone's own demo; holla and tablepro have no stale meters (`a_stale_quota_warning_keeps_its_warning_level`) |
 | Capsule tab suffixes | `src/bin/jackin_preview/screens/capsule.rs:1512-1528` | finished agents use `TabItem::done` (today `○` for Done) | Done: `AgentState::Done` sets `TabItem::done` (`a_finished_capsule_tab_is_done`) |
