@@ -379,6 +379,37 @@ pub trait Screen {
     }
 }
 
+/// The Health value as spans, shared by Usage and Accounts: the health
+/// word (blocked and degraded in error bold, attention in warning, the
+/// rest primary), then each issue in the tone of what it says
+/// ([`OverallSummary::issue_parts`]).
+pub fn health_spans(
+    s: &crate::domain::usage::OverallSummary,
+) -> Vec<junie_tui::widgets::viewport::Span> {
+    use crate::domain::usage::HealthWord;
+    use junie_tui::theme::Tone;
+    use junie_tui::widgets::viewport::Span;
+    let word = Span::new(
+        s.health.label(),
+        match s.health {
+            HealthWord::Blocked | HealthWord::Degraded => Tone::Error,
+            HealthWord::Attention => Tone::Warning,
+            _ => Tone::Normal,
+        },
+    );
+    let word = if matches!(s.health, HealthWord::Blocked | HealthWord::Degraded) {
+        word.bold()
+    } else {
+        word
+    };
+    let mut v = vec![word];
+    for (text, tone) in s.issue_parts() {
+        v.push(Span::new(" · ", Tone::Muted));
+        v.push(Span::new(text, tone));
+    }
+    v
+}
+
 pub fn plural(n: usize, one: &str, many: &str) -> String {
     if n == 1 {
         format!("{n} {one}")

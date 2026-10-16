@@ -523,42 +523,58 @@ impl OverallSummary {
 
     /// `4 warnings · 1 exhausted · 2 stale · …` (only non-zero parts).
     pub fn issues_line(&self) -> String {
+        let parts: Vec<String> = self.issue_parts().into_iter().map(|(p, _)| p).collect();
+        parts.join(" · ")
+    }
+
+    /// The parts of [`Self::issues_line`], each with the tone of what it
+    /// says: exhausted and failed are errors, warnings and stale need
+    /// attention, refreshing is information, and the plain counts
+    /// (quota not visible, unresolved identities, no warnings) stay
+    /// primary.
+    pub fn issue_parts(&self) -> Vec<(String, junie_tui::theme::Tone)> {
+        use junie_tui::theme::Tone;
         let c = &self.counts;
         let mut parts = vec![];
         if c.warnings > 0 {
-            parts.push(format!("{} warning{}", c.warnings, plural(c.warnings)));
+            parts.push((
+                format!("{} warning{}", c.warnings, plural(c.warnings)),
+                Tone::Warning,
+            ));
         }
         if c.exhausted > 0 {
-            parts.push(format!("{} exhausted", c.exhausted));
+            parts.push((format!("{} exhausted", c.exhausted), Tone::Error));
         }
         if c.stale > 0 {
-            parts.push(format!("{} stale", c.stale));
+            parts.push((format!("{} stale", c.stale), Tone::Warning));
         }
         if c.refreshing > 0 {
-            parts.push(format!("{} refreshing", c.refreshing));
+            parts.push((format!("{} refreshing", c.refreshing), Tone::Info));
         }
         if c.failed > 0 {
-            parts.push(format!("{} failed", c.failed));
+            parts.push((format!("{} failed", c.failed), Tone::Error));
         }
         if c.unsupported > 0 {
-            parts.push(format!("{} quota not visible", c.unsupported));
+            parts.push((format!("{} quota not visible", c.unsupported), Tone::Normal));
         }
         if c.unresolved_identity > 0 {
-            parts.push(format!(
-                "{} identit{} unresolved",
-                c.unresolved_identity,
-                if c.unresolved_identity == 1 {
-                    "y"
-                } else {
-                    "ies"
-                }
+            parts.push((
+                format!(
+                    "{} identit{} unresolved",
+                    c.unresolved_identity,
+                    if c.unresolved_identity == 1 {
+                        "y"
+                    } else {
+                        "ies"
+                    }
+                ),
+                Tone::Normal,
             ));
         }
         if parts.is_empty() {
-            "no warnings".into()
-        } else {
-            parts.join(" · ")
+            parts.push(("no warnings".into(), Tone::Normal));
         }
+        parts
     }
 }
 

@@ -1043,7 +1043,11 @@ impl App {
         right.push(Segment::new(state, tone).priority(6));
         match self.world.arbiter.running() {
             Ok(0) => right.push(Segment::new("no instances", Tone::Muted).priority(5)),
-            Ok(n) => right.push(Segment::new(format!("{n} running"), Tone::Muted).priority(5)),
+            Ok(n) => right.push(
+                Segment::new(format!("{n} running"), Tone::Secondary)
+                    .lead(self.theme.glyphs.dot_on, Tone::Active)
+                    .priority(5),
+            ),
             Err(e) => right.push(Segment::new(format!("! {}", e.label()), Tone::Error).priority(8)),
         }
         if self.world.daemon_health == crate::sim::world::DaemonHealth::Stale {
@@ -2785,7 +2789,11 @@ impl App {
         let mut left = vec![Segment::new(state, tone).priority(9)];
         match self.world.arbiter.running() {
             Ok(0) => left.push(Segment::new("no instances", Tone::Muted).priority(8)),
-            Ok(n) => left.push(Segment::new(format!("{n} running"), Tone::Secondary).priority(8)),
+            Ok(n) => left.push(
+                Segment::new(format!("{n} running"), Tone::Secondary)
+                    .lead(t.glyphs.dot_on, Tone::Active)
+                    .priority(8),
+            ),
             Err(e) => left.push(Segment::new(format!("! {}", e.label()), Tone::Error).priority(8)),
         }
         if self.world.daemon_health == crate::sim::world::DaemonHealth::Stale {
