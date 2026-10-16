@@ -363,7 +363,11 @@ impl Page for ChromePage {
         self.layer(focus)
             .hints
             .iter()
-            .map(|h| (h.key, h.action))
+            // the chrome layers are all literal hints, so every action is borrowed
+            .filter_map(|h| match h.action {
+                std::borrow::Cow::Borrowed(a) => Some((h.key, a)),
+                std::borrow::Cow::Owned(_) => None,
+            })
             .collect()
     }
 }

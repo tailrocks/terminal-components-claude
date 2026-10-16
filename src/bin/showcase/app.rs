@@ -1212,18 +1212,9 @@ impl App {
         let t = self.theme;
         let page = &self.pages[self.page.index()];
         let mut hints: Vec<(&'static str, &'static str)> = Vec::new();
+        let mut dialog_hints = None;
         if let Some(d) = self.dialog.as_ref() {
-            if d.is_editing() {
-                hints.push(("Enter", "Confirm"));
-                hints.push(("Esc", "Cancel"));
-            } else {
-                hints.push(("← →", "Choose"));
-                hints.push(("Enter", "Confirm"));
-                hints.push(("Esc", "Cancel"));
-                if matches!(d.body, DialogBody::Text(_)) && d.id != HELP_DIALOG {
-                    hints.push(("y / n", "Quick answer"));
-                }
-            }
+            dialog_hints = Some(d.hints(self.focus.current()));
         } else if self.focus.is(NAV) {
             hints.push(("↑ ↓", "Move"));
             hints.push(("Enter", "Open"));
@@ -1237,10 +1228,12 @@ impl App {
                 hints.push(("Tab", "Next"));
             }
         }
-        let hints: Vec<_> = hints
-            .into_iter()
-            .map(|(key, action)| junie_tui::widgets::keyhint::hint(key, action))
-            .collect();
+        let hints: Vec<_> = dialog_hints.unwrap_or_else(|| {
+            hints
+                .into_iter()
+                .map(|(key, action)| junie_tui::widgets::keyhint::hint(key, action))
+                .collect()
+        });
         let badge = (page.editing() && self.dialog.is_none()).then_some(("EDIT", BadgeKind::Edit));
         junie_tui::widgets::keyhint::render(
             area,

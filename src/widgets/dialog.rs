@@ -19,6 +19,7 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::Dismiss;
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::input::{InputEvent, TextInput};
+use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::panel::Panel;
 
 #[derive(Debug, Clone)]
@@ -165,6 +166,96 @@ impl Dialog {
             DialogBody::Facts { ack: Some(a), .. } => a.input.text().trim() == a.token,
             _ => true,
         }
+    }
+
+    /// The footer hints for this dialog, built from its state so they can
+    /// never disagree with what the keys do: Enter names the focused
+    /// button, y and n name the real primary and cancel actions, Esc names
+    /// what a dismissal resolves to, and a typed acknowledgement says what
+    /// to type. `focused` is the widget that has keyboard focus.
+    pub fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        let cancel_label = self
+            .cancel_index
+            .and_then(|i| self.actions.get(i))
+            .map(|b| b.label.clone());
+        let dismiss_hint = || {
+            self.dismiss.escape.then(|| {
+                Hint::new(
+                    "Esc",
+                    cancel_label.clone().unwrap_or_else(|| "Close".into()),
+                )
+            })
+        };
+        let mut v = Vec::new();
+        let input = match &self.body {
+            DialogBody::Input(i) => Some(i),
+            DialogBody::Facts { ack: Some(a), .. } => Some(&a.input),
+            _ => None,
+        };
+        if let Some(inp) = input
+            && focused == Some(inp.id)
+        {
+            if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
+                // Enter only moves on to the buttons; the gated one stays
+                // disabled until the token is typed
+                v.push(Hint::new("Type", format!("\"{}\" to confirm", a.token)));
+                v.push(hint("Enter", "Next"));
+            } else if inp.editing {
+                let primary = self
+                    .actions
+                    .iter()
+                    .find(|b| b.kind == ButtonKind::Primary)
+                    .map(|b| b.label.clone());
+                v.push(Hint::new(
+                    "Enter",
+                    primary.unwrap_or_else(|| "Apply".into()),
+                ));
+            } else {
+                v.push(hint("Enter", "Edit"));
+                v.push(hint("Tab", "Next"));
+            }
+            if inp.editing {
+                // Esc reverts the field first; the dialog stays open
+                v.push(hint("Esc", "Cancel"));
+            } else {
+                v.extend(dismiss_hint());
+            }
+            return v;
+        }
+        // the gated action is disabled until armed, even before a redraw
+        let usable =
+            |i: usize, b: &Button| !b.disabled && (Some(i) != self.confirm_index || self.armed());
+        let enabled = self
+            .actions
+            .iter()
+            .enumerate()
+            .filter(|(i, b)| usable(*i, b))
+            .count();
+        if enabled > 1 {
+            v.push(hint("←→", "Choose"));
+        }
+        if let Some((_, b)) = self
+            .actions
+            .iter()
+            .enumerate()
+            .find(|(i, b)| Some(b.id) == focused && usable(*i, b))
+        {
+            v.push(Hint::new("Enter", b.label.clone()));
+        }
+        v.extend(dismiss_hint());
+        // the quick answers exist for plain text dialogs only (see on_key)
+        if matches!(self.body, DialogBody::Text(_))
+            && let Some(p) = self
+                .actions
+                .iter()
+                .find(|b| matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled)
+        {
+            v.push(Hint::new("y", p.label.clone()));
+            if let Some(c) = cancel_label {
+                v.push(Hint::new("n", c));
+            }
+        }
+        v
     }
 
     /// Set how the dialog closes without an action.
@@ -677,5 +768,56 @@ mod tests {
         for b in &actions {
             assert!(inner.contains(Position::new(b.x, b.y)), "{b:?} in {area:?}");
         }
+    }
+
+    fn hint_text(hints: &[Hint]) -> String {
+        hints
+            .iter()
+            .map(|h| format!("{} {}", h.key, h.action))
+            .collect::<Vec<_>>()
+            .join(" · ")
+    }
+
+    #[test]
+    fn a_destructive_dialog_names_the_focused_cancel_button_not_confirm() {
+        let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete");
+        // destructive dialogs open on Cancel, so Enter cancels
+        let text = hint_text(&d.hints(Some(d.initial_focus)));
+        assert_eq!(
+            text,
+            "←→ Choose · Enter Cancel · Esc Cancel · y Delete · n Cancel"
+        );
+        assert!(!text.contains("Confirm"), "{text}");
+        // moving to the destructive button renames Enter
+        let text = hint_text(&d.hints(Some(d.actions[1].id)));
+        assert!(text.contains("Enter Delete"), "{text}");
+    }
+
+    #[test]
+    fn a_typed_acknowledgement_says_what_to_type_and_hides_the_gated_action() {
+        let d = gate(78);
+        let text = hint_text(&d.hints(Some(d.initial_focus)));
+        assert_eq!(
+            text,
+            "Type \"TRASH 4 UNDER /Users/alex/work/ide ON mbp\" to confirm · Enter Next · Esc Cancel"
+        );
+        // on the buttons, the unarmed action offers no choice and no Enter
+        let text = hint_text(&d.hints(Some(d.actions[1].id)));
+        assert_eq!(text, "Esc Cancel");
+    }
+
+    #[test]
+    fn a_prompt_names_its_primary_action_while_editing() {
+        let input = TextInput::new(WidgetId::of("name"), "Name");
+        let mut d = Dialog::prompt(WidgetId::of("p"), "Rename", input, "Rename");
+        let focused = Some(d.initial_focus);
+        assert_eq!(
+            hint_text(&d.hints(focused)),
+            "Enter Edit · Tab Next · Esc Cancel"
+        );
+        if let DialogBody::Input(i) = &mut d.body {
+            i.begin_edit();
+        }
+        assert_eq!(hint_text(&d.hints(focused)), "Enter Rename · Esc Cancel");
     }
 }

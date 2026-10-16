@@ -3263,34 +3263,7 @@ impl App {
                     v.push(hint("Esc", "Cancel"));
                     v
                 }
-                Some(Modal::Dialog(d)) => {
-                    if d.is_editing() {
-                        vec![
-                            hint("Type", "Phrase"),
-                            hint("Enter", "Next"),
-                            hint("Esc", "Cancel"),
-                        ]
-                    } else if matches!(d.body, DialogBody::Facts { .. }) {
-                        vec![
-                            hint("← →", "Choose"),
-                            hint("Enter", "Confirm"),
-                            hint("Esc", "Cancel"),
-                        ]
-                    } else if matches!(d.body, DialogBody::Input(_)) {
-                        vec![
-                            hint("Enter", "Edit / Save"),
-                            hint("Tab", "Next"),
-                            hint("Esc", "Cancel"),
-                        ]
-                    } else {
-                        vec![
-                            hint("← →", "Choose"),
-                            hint("Enter", "Confirm"),
-                            hint("Esc", "Cancel"),
-                            hint("y / n", "Quick answer"),
-                        ]
-                    }
-                }
+                Some(Modal::Dialog(d)) => d.hints(self.focus.current()),
                 Some(Modal::Menu(_)) => vec![
                     hint("↑↓", "Move"),
                     hint("Enter", "Choose"),
