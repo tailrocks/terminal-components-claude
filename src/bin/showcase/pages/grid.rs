@@ -17,7 +17,9 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, hint_key, label_for};
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::{HScroll, Scrollable, ScrollbarVisibility, TrackClick};
 use junie_tui::ui::columns::HeaderLabels;
 use junie_tui::ui::ctx::RenderCtx;
@@ -33,7 +35,6 @@ use junie_tui::widgets::grid::{
 use junie_tui::widgets::option_editor::{Affordance, ColumnEditor, EditorConfig, Options};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
-use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("grid");
 const PREVIEW: WidgetId = ID.sub("preview");
@@ -467,9 +468,50 @@ pub struct GridPage {
     sections: crate::pages::layout::Sections,
     commit_ticks: u8,
     saved: u32,
+    /// The held press is the grid's (see [`Self::pointer`]).
+    held_press: bool,
 }
 
 impl GridPage {
+    /// The grid's pointer events: cells, headers, seams (a drag resizes
+    /// the column, a double press fits it), row numbers, its bars, its
+    /// pending-bar buttons and an open editor's popup.
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        let held = self.held_press;
+        if ev.phase().is_some() && !ev.is(Phase::Drag) {
+            self.held_press = false;
+        }
+        let r = match self.grid.route(ev) {
+            Some(r) => r,
+            // a held drag whose cell scrolled out of the frame resolves to
+            // no owner (the router keeps the held id, not its owner): the
+            // grid that took the press keeps the drag, so it autoscrolls
+            None if held && ev.is(Phase::Drag) => self.grid.pointer(ev),
+            None => return Outcome::Ignored,
+        };
+        if ev.is(Phase::Press) {
+            self.held_press = true;
+        }
+        let (o, gev) = r.into_parts();
+        // a wheel over the open choice popup: the grid routes it to the
+        // popup but scrolls only on its own regions; the popup takes it
+        if o == Outcome::Ignored
+            && let Some((axis, delta)) = ev.wheel()
+        {
+            return self.grid.wheel(axis, delta).outcome();
+        }
+        if ev.is(Phase::Click) {
+            // the scrollbar scrolls without taking focus
+            if self.grid.bar_ids().contains(&ev.id) {
+                cx.focus.focus(ev.id);
+            } else if ev.bar.is_none() {
+                cx.focus.focus(self.grid.id);
+            }
+        }
+        self.on_event(gev, cx);
+        o
+    }
+
     pub fn new() -> Self {
         let knobs = Knobs::defaults();
         let mut filters = ChipBar::new(ID.sub("filters"));
@@ -483,6 +525,7 @@ impl GridPage {
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
             commit_ticks: 0,
             saved: 0,
+            held_press: false,
         }
     }
 
@@ -901,29 +944,7 @@ impl Page for GridPage {
                 Outcome::Ignored
             }
             PageEvent::Paste(text) => self.grid.on_paste(text),
-            PageEvent::Click { id, pos } => {
-                if !self.grid.owns(*id) {
-                    return Outcome::Ignored;
-                }
-                // the scrollbar scrolls without taking focus
-                if self.grid.bar_ids().contains(id) {
-                    cx.focus.focus(*id);
-                } else if *id != scrollbar::id_for(self.grid.id) {
-                    cx.focus.focus(self.grid.id);
-                }
-                let (o, ev) = self.grid.on_click(*id, *pos);
-                self.on_event(ev, cx);
-                o
-            }
-            // a header seam: drag resizes the column, a double press fits it
-            PageEvent::Press { id, pos } if self.grid.locate_seam(*id).is_some() => {
-                self.grid.on_press(*id, *pos, cx.clicks)
-            }
-            PageEvent::Drag { pressed, pos } if self.grid.owns(*pressed) => {
-                self.grid.on_drag(*pressed, *pos)
-            }
-            PageEvent::Wheel { id, delta } if self.grid.owns(*id) => self.grid.on_wheel(*delta),
-            PageEvent::WheelH { id, delta } if self.grid.owns(*id) => self.grid.on_wheel_h(*delta),
+            PageEvent::Pointer(p) => self.pointer(p, cx),
             PageEvent::DialogClosed { id, result, .. }
                 if *id == PREVIEW && *result == DialogResult::Action(1) =>
             {

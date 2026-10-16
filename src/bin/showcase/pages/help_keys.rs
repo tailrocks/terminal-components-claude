@@ -18,6 +18,7 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, label_for};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::popup::Dismiss;
@@ -323,7 +324,7 @@ impl Page for HelpKeysPage {
                 }
                 true
             }
-            PageEvent::Click { id, .. } if *id == OPEN => self.open.on_click(),
+            PageEvent::Pointer(p) if p.is(Phase::Click) && p.on(OPEN) => self.open.on_click(),
             _ => return Outcome::Ignored,
         };
         if open {
