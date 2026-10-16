@@ -66,6 +66,21 @@ impl TabItem {
         self.done = done;
         self
     }
+    /// Mark the tab's content unsaved (the `dirty` field).
+    pub fn dirty(mut self, dirty: bool) -> Self {
+        self.dirty = dirty;
+        self
+    }
+    /// Mark the tab working (the `busy` field): a spinner.
+    pub fn busy(mut self, busy: bool) -> Self {
+        self.busy = busy;
+        self
+    }
+    /// Mark the tab failed (the `error` field): a `!` in the error hue.
+    pub fn error(mut self, error: bool) -> Self {
+        self.error = error;
+        self
+    }
 }
 
 #[derive(Debug, Clone)]

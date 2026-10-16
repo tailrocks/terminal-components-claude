@@ -1139,43 +1139,6 @@ widgets::table::DataTable::numeric | Editable, Selection and Cell editors page o
 widgets::table::DataTable::empty | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::track_click | Editable, Selection and Cell editors page options | SC13
 
-# widgets::tabs
-widgets::tabs::TabItem | Tabs page | SC14
-widgets::tabs::TabItem::closable | Tabs page | SC14
-widgets::tabs::TabItem::prefix | Tabs page | SC14
-widgets::tabs::TabItem::suffix | Tabs page | SC14
-widgets::tabs::TabItem::done | Tabs page | SC14
-widgets::tabs::CloseReveal | Tabs page | SC14
-widgets::tabs::CloseReveal::Always | Tabs page | SC14
-widgets::tabs::CloseReveal::Hover | Tabs page | SC14
-widgets::tabs::TabRule | Tabs page | SC14
-widgets::tabs::TabRule::Auto | Tabs page | SC14
-widgets::tabs::TabRule::Accent | Tabs page | SC14
-widgets::tabs::TabRule::Neutral | Tabs page | SC14
-widgets::tabs::TabRule::FocusOnly | Tabs page | SC14
-widgets::tabs::TabCmd | Tabs page | SC14
-widgets::tabs::TabCmd::Close | Tabs page | SC14
-widgets::tabs::TabCmd::New | Tabs page | SC14
-widgets::tabs::TabCmd::Jump | Tabs page | SC14
-widgets::tabs::TabAction | Tabs page | SC14
-widgets::tabs::TabAction::Activated | Tabs page | SC14
-widgets::tabs::TabAction::Close | Tabs page | SC14
-widgets::tabs::TabAction::New | Tabs page | SC14
-widgets::tabs::Tabs::rule | Tabs page | SC14
-widgets::tabs::Tabs::wrap | Tabs page | SC14
-widgets::tabs::Tabs::nav | Tabs page | SC14
-widgets::tabs::Tabs::keymap | Tabs page | SC14
-widgets::tabs::Tabs::digit_jump | Tabs page | SC14
-widgets::tabs::Tabs::close_keys | Tabs page | SC14
-widgets::tabs::Tabs::new_key | Tabs page | SC14
-widgets::tabs::Tabs::allow_new | Tabs page | SC14
-widgets::tabs::Tabs::overflow_menu | Tabs page | SC14
-widgets::tabs::Tabs::more_button | Tabs page: a custom +N button | SC14
-widgets::tabs::Tabs::close_target_w | Tabs page | SC14
-widgets::tabs::Tabs::close_button | Tabs page | SC14
-widgets::tabs::Tabs::close_reveal | Tabs page | SC14
-widgets::tabs::Tabs::middle_click_closes | Tabs page | SC14
-
 # widgets::textarea
 widgets::textarea::TextArea::edit_entry | Inputs and Text areas page options | SC8
 widgets::textarea::TextArea::focus_select | Inputs and Text areas page options | SC8
