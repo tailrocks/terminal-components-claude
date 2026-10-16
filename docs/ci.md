@@ -45,6 +45,18 @@ reopened, ready_for_review), on pushes to `design/interaction-polish`, and
 in merge queues. Runner: `ubuntu-24.04`; toolchain Rust 1.98.1 and
 cargo-nextest 0.9.148 through Mise.
 
+The Rust version in CI is velnor's own pin, not ours: velnor 0.1.8
+hardcodes `RUST_VERSION = "1.98.1"` (`crates/velnor-actions-mise/src/catalog.rs:50`)
+and exports `RUSTUP_TOOLCHAIN: 1.98.1` on every job, so CI ignores
+`rust-toolchain.toml` and a repository `mise.toml` (both checked with
+`velnor-actions generate --output-dir`). Local development follows
+`rust-toolchain.toml` (latest stable, see `docs/dependencies.md`), while
+`rust-version` in `Cargo.toml` stays at the CI toolchain so CI still builds
+and clippy's `incompatible_msrv` flags std APIs newer than CI. Run
+`RUSTUP_TOOLCHAIN=1.98.1 cargo clippy --workspace --all-targets -- -D warnings`
+before pushing to mirror CI. Raise both once a velnor release pins a newer
+Rust.
+
 | Job | What it runs |
 |---|---|
 | `Actionlint` | actionlint 1.7.12 + shellcheck on the workflows |
