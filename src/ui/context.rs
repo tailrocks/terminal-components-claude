@@ -15,6 +15,7 @@
 //! re-opens at the new spot) is
 //! [`PointerState::route_secondary`](crate::core::pointer::PointerState::route_secondary).
 
+use crate::core::list::Navigable;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 
@@ -196,7 +197,9 @@ pub trait ContextSource {
     type Target: Copy;
     /// The target a hit id stands for, if it is one of the widget's items.
     fn context_target(&self, id: WidgetId) -> Option<Self::Target>;
-    /// Move the cursor onto `target`.
+    /// Move the cursor onto `target` (through the widget's
+    /// [`crate::core::list::Cursor::select`]: a target out of range is
+    /// ignored).
     fn context_select(&mut self, target: Self::Target);
     /// The cursor's target and where its menu opens, `None` when empty.
     fn context_cursor(&self) -> Option<ContextRequest<Self::Target>>;
@@ -217,8 +220,8 @@ impl ContextSource for ListBox {
         self.locate(id)
     }
     fn context_select(&mut self, row: usize) {
-        if row < self.items.len() {
-            self.cursor = row;
+        if let Some(i) = Navigable::cursor(self).select(row, self).index() {
+            self.cursor = i;
         }
     }
     fn context_cursor(&self) -> Option<ContextRequest<usize>> {
@@ -238,7 +241,9 @@ impl ContextSource for TreeView {
         self.locate(id).map(|(i, _)| i)
     }
     fn context_select(&mut self, row: usize) {
-        self.cursor = row;
+        if let Some(i) = Navigable::cursor(self).select(row, self).index() {
+            self.cursor = i;
+        }
     }
     fn context_cursor(&self) -> Option<ContextRequest<usize>> {
         self.cursor_path()?;
@@ -261,8 +266,8 @@ impl ContextSource for DataTable {
             .map(|(r, c)| (r, c.unwrap_or(self.cursor_col)))
     }
     fn context_select(&mut self, (row, col): (usize, usize)) {
-        if row < self.rows.len() {
-            self.cursor_row = row;
+        if let Some(r) = Navigable::cursor(self).select(row, self).index() {
+            self.cursor_row = r;
             if self.cell_nav && col < self.columns.len() {
                 self.cursor_col = col;
             }
@@ -304,8 +309,10 @@ impl ContextSource for DataGrid {
             .or_else(|| self.locate_rownum(id).map(|r| (r, self.cursor.1)))
     }
     fn context_select(&mut self, cell: (usize, usize)) {
-        if cell.0 < self.len() && cell.1 < self.columns.len() {
-            self.cursor = cell;
+        if cell.1 < self.columns.len()
+            && let Some(r) = Navigable::cursor(self).select(cell.0, self).index()
+        {
+            self.cursor = (r, cell.1);
         }
     }
     fn context_cursor(&self) -> Option<ContextRequest<(usize, usize)>> {
@@ -333,8 +340,8 @@ impl ContextSource for Tabs {
         self.locate(id)
     }
     fn context_select(&mut self, tab: usize) {
-        if tab < self.items.len() {
-            self.cursor = tab;
+        if let Some(i) = Navigable::cursor(self).select(tab, self).index() {
+            self.cursor = i;
         }
     }
     fn context_cursor(&self) -> Option<ContextRequest<usize>> {
@@ -393,6 +400,30 @@ mod tests {
         Key { code, mods }
     }
 
+    #[test]
+    fn context_select_goes_through_the_cursor_and_ignores_stale_targets() {
+        use crate::widgets::tree::{TreeNode, TreeView};
+        // a target from a previous frame (the tree collapsed since) must not
+        // leave the cursor past the rows
+        let mut t = TreeView::new(
+            WidgetId::of("t"),
+            vec![TreeNode::leaf("a"), TreeNode::leaf("b")],
+        );
+        t.context_select(1);
+        assert_eq!(t.cursor, 1);
+        t.context_select(7);
+        assert_eq!(t.cursor, 1, "out of range is ignored");
+        assert!(t.context_cursor().is_some());
+        let mut l = ListBox::new(
+            WidgetId::of("l"),
+            vec![ListItem::new("a"), ListItem::new("b").disabled(true)],
+            SelectMode::Single,
+        );
+        l.context_select(1);
+        assert_eq!(l.cursor, 1, "a pointer may target a disabled row");
+        l.context_select(2);
+        assert_eq!(l.cursor, 1);
+    }
     #[test]
     fn a_secondary_click_on_a_row_selects_it_and_opens_at_the_pointer() {
         let mut l = list();
