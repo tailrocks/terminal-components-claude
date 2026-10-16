@@ -109,6 +109,10 @@ pub struct Case {
     /// `sleep:<ms>`, `wait:<needle>`.
     pub sends: &'static [&'static str],
     pub timeout_ms: u64,
+    /// Variables set over [`PINNED_ENV`] for this capture only: a scenario
+    /// that opts into a state the pinned set turns off (holla's usage
+    /// history, `HOLLA_NO_HISTORY=0`). Empty for almost every capture.
+    pub env: &'static [(&'static str, &'static str)],
 }
 
 impl Case {
@@ -131,6 +135,7 @@ impl Case {
             needle,
             sends: &[],
             timeout_ms: TIMEOUT_MS,
+            env: &[],
         }
     }
 }
@@ -789,7 +794,7 @@ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
     if matches!(case.color, Color::NoColorEnv) {
         tui = tui.env("NO_COLOR", "1");
     }
-    for (key, value) in extra {
+    for (key, value) in case.env.iter().chain(extra) {
         tui = tui.env(key, value);
     }
     let inner = tui
