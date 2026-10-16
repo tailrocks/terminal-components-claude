@@ -1721,10 +1721,10 @@ impl App {
                 let reqs = std::mem::take(&mut cx.requests);
                 o.or(self.apply_requests(reqs, route))
             }
-            // nothing here scrolls sideways, and a sideways swipe must
-            // never scroll rows
-            MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Consumed,
-            MouseKind::WheelUp | MouseKind::WheelDown => {
+            MouseKind::WheelUp
+            | MouseKind::WheelDown
+            | MouseKind::WheelLeft
+            | MouseKind::WheelRight => {
                 let delta = self.pointer.wheel_delta(m.kind);
                 // a horizontal swipe is its own axis: it never scrolls a
                 // vertical list
