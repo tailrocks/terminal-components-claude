@@ -146,7 +146,7 @@ impl<'a> RenderCtx<'a> {
             hscroll: crate::core::scroll::HScroll::default(),
             reveal_hint: None,
             reveal_slot: {
-                crate::ui::reveal::clear_titles();
+                crate::ui::reveal::clear_cuts();
                 crate::ui::reveal::Slot::default()
             },
         }
@@ -262,7 +262,7 @@ impl<'a> RenderCtx<'a> {
     /// application calls this once after drawing its frame.
     pub fn flush_overlays(&mut self, buf: &mut Buffer) {
         // cut titles drawn by context-free chrome reveal like any cut cell
-        crate::ui::reveal::flush_titles(self);
+        crate::ui::reveal::flush_cuts(self);
         while !self.overlays.is_empty() {
             let queued = std::mem::take(&mut self.overlays);
             for (inert, draw) in queued {
