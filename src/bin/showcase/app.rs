@@ -912,6 +912,7 @@ impl App {
 
     /// A button release at `m.pos` over `hit`.
     fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
+        let pressed = self.pointer.pressed;
         let id = match self.pointer.release(hit) {
             Release::Click(id) => id,
             Release::Outside => {
@@ -923,7 +924,18 @@ impl App {
                 }
                 return Outcome::Changed;
             }
-            Release::Cancelled => return Outcome::Changed,
+            Release::Cancelled => {
+                // the press-drag of a select ends on an option
+                return match pressed {
+                    Some(pressed) if self.dialog.is_none() => self
+                        .dispatch(PageEvent::Release {
+                            pressed,
+                            pos: m.pos,
+                        })
+                        .or(Outcome::Changed),
+                    _ => Outcome::Changed,
+                };
+            }
         };
         if let Some(d) = self.dialog.as_mut() {
             let out = d.on_click(id, m.pos, &mut self.focus);
@@ -1108,14 +1120,19 @@ impl App {
                 if let Some(d) = self.dialog.as_mut() {
                     return d.on_wheel(delta);
                 }
-                let Some(id) = self.hits.hit_scroll(m.pos) else {
-                    return Outcome::Ignored;
-                };
-                let out = if self.nav.owns(id) {
-                    self.nav.on_wheel(delta)
-                } else {
-                    self.dispatch(PageEvent::Wheel { id, delta })
-                };
+                // the notch goes to the innermost owner that takes it: a
+                // field (or its label) inside a scrolling stack passes it on
+                let mut out = Outcome::Ignored;
+                for id in self.hits.scroll_stack(m.pos) {
+                    out = if self.nav.owns(id) {
+                        self.nav.on_wheel(delta)
+                    } else {
+                        self.dispatch(PageEvent::Wheel { id, delta })
+                    };
+                    if out != Outcome::Ignored {
+                        break;
+                    }
+                }
                 // the rows under the pointer change with the scroll: hover
                 // is re-resolved once the new frame has registered its hits
                 self.pointer.scrolled(m.pos, out);
