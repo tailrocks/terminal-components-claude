@@ -953,3 +953,35 @@ fn terminal_reaches_success_failure_and_splitter_states() {
     assert!(!failure.app.pages[PageId::Terminal.index()].animating());
     assert!(failure.text().contains("failed"));
 }
+
+/// Mouse audit #30: chips past the `+N` marker were unreachable by mouse.
+/// The marker opens a menu of them; clicking one edits it.
+#[test]
+fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
+    let mut h = Harness::new(80, 40, PageId::Chips);
+    let filters = WidgetId::of("chips").sub("filters");
+    h.focus(filters);
+    for _ in 0..4 {
+        h.key(KeyCode::Char('+'));
+    }
+    let more = h.area(filters.sub("more"));
+    let marker: String = (more.x..more.right())
+        .map(|x| h.term.backend().buffer()[(x, more.y)].symbol().to_owned())
+        .collect();
+    assert!(marker.starts_with('+'), "{marker:?}\n{}", h.text());
+    h.click(more.x, more.y);
+    // the last chip added is hidden behind the marker and listed below it
+    let label = "seats between 5 and 50";
+    let text = h.text();
+    let (x, y) = text
+        .lines()
+        .enumerate()
+        .skip(more.y as usize + 1)
+        .find_map(|(y, line)| {
+            let col = line.find(label)?;
+            Some((line[..col].chars().count() as u16, y as u16))
+        })
+        .unwrap_or_else(|| panic!("{label} not listed\n{text}"));
+    h.click(x, y);
+    h.assert_status(&format!("Would open the editor for {label}"));
+}
