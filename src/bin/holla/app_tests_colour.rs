@@ -215,3 +215,32 @@ fn a_succeeded_activity_tab_is_done() {
     let x = row[..i].chars().count() as u16;
     assert_eq!(Some(cell(&h, x, 2).fg), style.fg, "{row}");
 }
+
+#[test]
+fn details_on_the_cursor_row_stay_readable_on_its_fill() {
+    // the Files result row under the cursor is an accent-tinted fill; the
+    // parent path drew muted on it (256 colours: 245 on 22, 2.3:1)
+    for level in [
+        junie_tui::theme::ColorLevel::TrueColor,
+        junie_tui::theme::ColorLevel::Ansi256,
+    ] {
+        let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 72, 20);
+        h.app.theme = Theme::for_level(level);
+        h.ticks(4);
+        crate::app_tests_parity::open(&mut h, "Find files under home");
+        h.type_str("readme");
+        let (_, y) = h.find("README.md").expect("a result");
+        let row = h.row(y);
+        let i = row.find("~/").unwrap_or_else(|| panic!("{row}"));
+        let px = row[..i].chars().count() as u16;
+        let c = cell(&h, px, y);
+        assert_ne!(c.bg, cell(&h, 0, y + 1).bg, "the cursor row is a fill");
+        let r = junie_tui::theme::contrast_ratio(c.fg, c.bg).unwrap();
+        assert!(
+            r >= 4.5,
+            "{level:?}: parent path {:?} on {:?} is {r:.2}:1",
+            c.fg,
+            c.bg
+        );
+    }
+}
