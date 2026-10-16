@@ -512,7 +512,7 @@ pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> V
             s.diff_review
         )),
     ]);
-    let sep = || Span::new(format!(" {} ", g.scroll_track), Tone::Faint);
+    let sep = || Span::new(format!(" {} ", g.divider), Tone::Faint);
     out.push(vec![
         Span::muted(fit(s.diff_old, col)),
         sep(),
