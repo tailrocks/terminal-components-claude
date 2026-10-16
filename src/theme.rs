@@ -18,6 +18,28 @@ use ratatui::style::{Color, Modifier, Style};
 
 use crate::ui::ctx::VisualState;
 
+/// How the cursor row of a list is marked. See [`Theme::cursor_row`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CursorStyle {
+    /// Highlight fill, no focus bar: for lists whose focus belongs to an
+    /// owner (popup lists under a search field, an editor, a select).
+    #[default]
+    Fill,
+    /// Focus bar plus the focused-row tint: for lists that are themselves
+    /// the focus stop.
+    Bar,
+}
+
+/// A resolved list row: its style and its gutter cell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CursorRow {
+    pub style: Style,
+    pub gutter: &'static str,
+    pub gutter_style: Style,
+    /// The row carries the cursor fill (see [`Theme::row_ink`]).
+    pub on_fill: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColorLevel {
     TrueColor,
@@ -386,6 +408,57 @@ impl Theme {
             }
         }
         st
+    }
+
+    /// A row of a list whose keyboard focus belongs to something else (a
+    /// popup list driven by a search field, an editor or a select field).
+    /// With [`CursorStyle::Fill`] the cursor row is a highlight fill and
+    /// carries no focus bar, so the owner's `▎` stays the only focus
+    /// indicator on screen; [`CursorStyle::Bar`] is the in-page list look.
+    pub fn cursor_row(&self, s: VisualState, bg: Color, cursor: CursorStyle) -> CursorRow {
+        match cursor {
+            CursorStyle::Bar => {
+                let style = self.row(s, bg);
+                CursorRow {
+                    style,
+                    gutter: self.gutter_symbol(s),
+                    gutter_style: self.gutter(s, style.bg.unwrap_or(bg), false),
+                    on_fill: false,
+                }
+            }
+            CursorStyle::Fill => {
+                let plain = VisualState {
+                    focused: false,
+                    selected: false,
+                    ..s
+                };
+                let mut style = self.row(plain, bg);
+                let on_fill = s.focused && !s.disabled && !s.pressed;
+                if on_fill {
+                    style = style
+                        .fg(self.text_primary)
+                        .bg(self.highlight)
+                        .add_modifier(Modifier::BOLD);
+                    if self.level == ColorLevel::Mono {
+                        style = style.add_modifier(Modifier::REVERSED);
+                    }
+                }
+                CursorRow {
+                    style,
+                    gutter: " ",
+                    gutter_style: style,
+                    on_fill,
+                }
+            }
+        }
+    }
+
+    /// Secondary ink (details, groups, tags, kind glyphs) on a row from
+    /// [`Self::cursor_row`]: muted tones are unreadable on the highlight
+    /// fill, so there they become primary text and keep hierarchy by
+    /// weight instead.
+    pub fn row_ink(&self, row: &CursorRow, ink: Color) -> Color {
+        if row.on_fill { self.text_primary } else { ink }
     }
 
     /// One step lighter than `bg`, used for hover.
