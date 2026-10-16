@@ -383,6 +383,9 @@ mod palette {
     pub const WHITE_43: Color = rgb(0x737373);
     /// Subtle borders: visible on the canvas, surfaces and cards.
     pub const WHITE_23: Color = rgb(0x3a3a3a);
+    /// Scrollbar track: a dotted rail between the subtle and the strong
+    /// border greys, so it is neither, and well below the thumb at rest.
+    pub const WHITE_28: Color = rgb(0x474747);
     /// Success: its own green, apart from the accent that marks focus.
     pub const SUCCESS: Color = rgb(0x3fb950);
     pub const GREEN: Color = rgb(0x48e054);
@@ -467,6 +470,11 @@ pub struct Theme {
 
     pub border_subtle: Color,
     pub border_strong: Color,
+    /// Scrollbar track ink ([`Self::scrollbar_track`]): the dotted rail
+    /// under the thumb. Its own token, apart from [`Self::border_subtle`],
+    /// so a track never reads as a panel border, and clearly fainter than
+    /// the thumb at rest ([`Ladders::handle`]).
+    pub scroll_track: Color,
 
     pub text_primary: Color,
     pub text_secondary: Color,
@@ -566,6 +574,7 @@ impl Theme {
             error_soft: RED_SOFT,
             border_subtle: WHITE_23,
             border_strong: WHITE_30,
+            scroll_track: WHITE_28,
             text_primary: WHITE,
             text_secondary: WHITE_70,
             text_muted: MUTED,
@@ -655,6 +664,7 @@ impl Theme {
             error_soft,
             border_subtle,
             border_strong,
+            scroll_track,
             text_primary,
             text_secondary,
             text_muted,
@@ -736,6 +746,7 @@ impl Theme {
         self.highlight_danger = i(88);
         self.border_subtle = i(238);
         self.border_strong = i(242);
+        self.scroll_track = i(239);
         self.text_primary = i(231);
         self.text_secondary = i(249);
         self.text_muted = i(245);
@@ -796,6 +807,9 @@ impl Theme {
         self.highlight_danger = Red;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
+        // the only grey below the thumb's Gray: the dotted glyph, not the
+        // colour, keeps the track apart from a border here
+        self.scroll_track = DarkGray;
         self.text_primary = White;
         self.text_secondary = Gray;
         self.text_muted = Gray;
@@ -862,6 +876,9 @@ impl Theme {
         self.highlight_danger = DarkGray;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
+        // the only grey below the thumb's Gray: the dotted glyph, not the
+        // colour, keeps the track apart from a border here
+        self.scroll_track = DarkGray;
         self.text_primary = White;
         self.text_secondary = Gray;
         self.text_muted = Gray;
@@ -1608,8 +1625,10 @@ impl Theme {
         }
     }
 
+    /// The scrollbar track: [`Glyphs::scroll_track`] /
+    /// [`Glyphs::scroll_h_track`] (dotted) in [`Self::scroll_track`] ink.
     pub fn scrollbar_track(&self) -> Style {
-        Style::new().fg(self.border_subtle)
+        Style::new().fg(self.scroll_track)
     }
 
     /// A scrollbar thumb at rest, hovered or pressed (held, dragged): one
@@ -1946,15 +1965,24 @@ pub struct Glyphs {
     /// The menu-bar title that holds the titles that do not fit
     /// ([`crate::widgets::menu::Overflow::Chevron`]). `»`.
     pub more_titles: &'static str,
-    /// Vertical scrollbar track; also a vertical divider. `│`.
+    /// Vertical scrollbar track: a dotted rail, so a track never reads as
+    /// a panel border or a [`Self::divider`]. `┆`. Set it to
+    /// [`Self::divider`] for a solid track, or `" "` to hide it.
     pub scroll_track: &'static str,
     /// Vertical scrollbar thumb in every state (rest, hover, held: colour
     /// carries the state); also a held divider. `┃`.
     pub scroll_thumb: &'static str,
-    /// Horizontal scrollbar track; also a horizontal divider. `─`.
+    /// Horizontal scrollbar track, the same dash family as
+    /// [`Self::scroll_track`]. `┄`. [`Self::h_divider`] for a solid track,
+    /// `" "` to hide it.
     pub scroll_h_track: &'static str,
     /// Horizontal scrollbar thumb in every state; also a held divider. `━`.
     pub scroll_h_thumb: &'static str,
+    /// A vertical divider between panes (a splitter seam at rest, a pane
+    /// edge that is not scrolling, a column separator). `│`.
+    pub divider: &'static str,
+    /// A horizontal divider between stacked panes. `─`.
+    pub h_divider: &'static str,
     /// Spinner animation frames, one cell each. Braille dots.
     pub spinner: &'static [&'static str],
     /// A finished task or step. `✓`.
@@ -2048,10 +2076,12 @@ impl Glyphs {
         overflow_left: "‹",
         overflow_right: "›",
         more_titles: "»",
-        scroll_track: "│",
+        scroll_track: "┆",
         scroll_thumb: "┃",
-        scroll_h_track: "─",
+        scroll_h_track: "┄",
         scroll_h_thumb: "━",
+        divider: "│",
+        h_divider: "─",
         spinner: &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
         done: "✓",
         fail: "✗",
@@ -2110,10 +2140,14 @@ impl Glyphs {
         overflow_left: "<",
         overflow_right: ">",
         more_titles: ">",
-        scroll_track: "|",
+        // dotted rails (`:` `.`) like the Unicode `┆` `┄`, so a track never
+        // reads as the `|` `-` of a border or divider; one thumb on both axes
+        scroll_track: ":",
         scroll_thumb: "#",
-        scroll_h_track: "-",
-        scroll_h_thumb: "=",
+        scroll_h_track: ".",
+        scroll_h_thumb: "#",
+        divider: "|",
+        h_divider: "-",
         spinner: &["|", "/", "-", "\\"],
         done: "+",
         fail: "X",
