@@ -1548,7 +1548,7 @@ impl Screen for DiskPage {
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if focus == Some(DETAIL) {
-            return vec![hint("↑↓", "Scroll"), hint("Esc", "List")];
+            return vec![hint("↑↓", "Scroll"), hint("Esc", "Back to list")];
         }
         match self.view {
             View::Tree => vec![

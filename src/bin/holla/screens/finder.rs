@@ -1528,7 +1528,7 @@ impl Screen for FinderPage {
                 hint("↑↓", "Scroll"),
                 hint("y", "Copy command"),
                 hint("Enter", "Run"),
-                hint("Esc", "Results"),
+                hint("Esc", "Back to results"),
             ];
         }
         let mut v = vec![

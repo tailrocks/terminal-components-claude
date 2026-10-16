@@ -1751,7 +1751,7 @@ impl Screen for FilesPage {
                 hint("Shift+↑↓", "Select"),
                 hint("y", "Copy"),
                 hint("/", "Find"),
-                hint("Esc", "List"),
+                hint("Esc", "Back to list"),
             ];
         }
         match self.mode {
