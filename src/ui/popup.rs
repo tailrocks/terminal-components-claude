@@ -194,8 +194,9 @@ pub enum Overflow {
 /// blurs the owner behind the policy's back (SC10 finding).
 pub fn backdrop(ctx: &mut RenderCtx, owner: WidgetId, dismiss: Dismiss, screen: Rect) {
     if !ctx.inert {
-        ctx.hits.register_backdrop(
+        ctx.hits.register_backdrop_of(
             backdrop_id(owner),
+            owner,
             screen,
             dismiss.outside_click && dismiss.pass_through,
         );

@@ -28,8 +28,11 @@ use ratatui::layout::{Position, Rect};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusChange, FocusRing};
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 pub use crate::core::intent::DismissReason;
+use crate::core::intent::Phase;
+use crate::core::pointer::PointerEvent;
 use crate::core::response::Response;
 use crate::ui::ctx::{Backdrop, RenderCtx};
 use crate::ui::modal::{Modal, ModalStack};
@@ -223,6 +226,26 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, app: &W);
     /// A key while it is the top layer.
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome;
+    /// A pointer event the router resolved to this layer
+    /// ([`crate::core::pointer::PointerRouter`]): the one entry an app's
+    /// host calls. The default hands each phase to the per-gesture
+    /// handlers below (a press, a completed click with its count, a drag
+    /// of the held press, a release away from it, a wheel on either axis).
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
+        if let Some((axis, delta)) = ev.wheel() {
+            return match axis {
+                Axis::Vertical => self.on_wheel(delta, ev.pos()),
+                Axis::Horizontal => self.on_wheel_h(delta, ev.pos()),
+            };
+        }
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press(ev.id, ev.pos(), ev.count()),
+            Some(Phase::Click) => self.on_click_count(ev.id, ev.pos(), ev.count(), cx),
+            Some(Phase::Drag) => self.on_drag(ev.id, ev.pos()),
+            Some(Phase::Release) => self.on_release(ev.id, ev.pos()),
+            _ => Outcome::Ignored,
+        }
+    }
     /// A completed click on `id` inside it.
     fn on_click(&mut self, _id: WidgetId, _pos: Position, _cx: &mut LayerCx<'_, W>) -> Outcome {
         Outcome::Consumed
