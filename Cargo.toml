@@ -31,6 +31,13 @@ path = "src/bin/jackin_preview/main.rs"
 name = "holla"
 path = "src/bin/holla/main.rs"
 
+# Visual suite (docs/visual-testing): one test per scenario, generated from
+# the scenario tables by a libtest-mimic main instead of `#[test]` fns.
+[[test]]
+name = "visual_baseline"
+path = "tests/visual_baseline/main.rs"
+harness = false
+
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
@@ -38,6 +45,7 @@ unicode-width = "0.2"
 unicode-segmentation = "1"
 
 [dev-dependencies]
+libtest-mimic = "0.8.2"
 tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274" }
 
 [profile.release]
