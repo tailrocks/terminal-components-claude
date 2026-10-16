@@ -154,6 +154,15 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// Keep `id` in the Tab order without drawing it: a control scrolled
+    /// out of a [`Stack`](crate::ui::layout::Stack) stays reachable by
+    /// keyboard, and focusing it scrolls it into view on the next frame.
+    pub fn focus_stop(&mut self, id: WidgetId) {
+        if !self.inert {
+            self.ring.register(id);
+        }
+    }
+
     /// Register a clickable-only region (no keyboard focus).
     pub fn clickable(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {
