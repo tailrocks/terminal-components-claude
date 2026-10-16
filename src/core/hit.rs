@@ -135,6 +135,22 @@ impl HitRegistry {
         self.regions.is_empty()
     }
 
+    /// Clip every region registered at index `from` or later to `area`:
+    /// regions are cut to the visible part, and dropped when nothing of
+    /// them is left. Backs [`RenderCtx::clip`](crate::ui::ctx::RenderCtx::clip),
+    /// so a widget drawn into a clip rect is never clickable outside it.
+    pub fn clip_since(&mut self, from: usize, area: Rect) {
+        let from = from.min(self.regions.len());
+        let mut kept = Vec::with_capacity(self.regions.len() - from);
+        for mut r in self.regions.drain(from..) {
+            r.area = r.area.intersection(area);
+            if !r.area.is_empty() {
+                kept.push(r);
+            }
+        }
+        self.regions.extend(kept);
+    }
+
     pub fn area_of(&self, id: WidgetId) -> Option<Rect> {
         self.regions
             .iter()

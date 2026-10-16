@@ -122,6 +122,17 @@ impl<'a> Panel<'a> {
         late.title_row(row.x, row.y, row.width, buf, t, bg);
     }
 
+    /// Draw the panel chrome and return the content area, or `None` when
+    /// the panel has no content row at all (a card squeezed to its title,
+    /// a rect past the bottom of the screen). Prefer it to [`Self::render`]
+    /// for content that must not be drawn when there is no room for it:
+    /// `render` returns an empty rect in that case, whose `x`/`y` still
+    /// point at the panel's edge.
+    pub fn try_render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> Option<Rect> {
+        let inner = self.render(area, buf, t);
+        (!inner.is_empty()).then_some(inner)
+    }
+
     /// Draw the panel chrome and return the inner content area.
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> Rect {
         let area = area.intersection(*buf.area());
