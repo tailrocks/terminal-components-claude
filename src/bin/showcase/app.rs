@@ -13,7 +13,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release};
+use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release, SecondaryRoute};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{BadgeKind, Theme};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
@@ -809,14 +809,33 @@ impl App {
             }
             MouseKind::Middle => Outcome::Ignored,
             MouseKind::Secondary => {
-                let hit = self.pointer.on_secondary(&self.hits, m.pos);
+                let route = self.pointer.route_secondary(&self.hits, m.pos);
+                // a dialog registers no light-dismiss backdrop: a secondary
+                // click inside or outside it stays swallowed
                 if self.dialog.is_some() {
                     return Outcome::Consumed;
                 }
-                let Some(id) = hit else {
-                    return Outcome::Ignored;
-                };
-                self.dispatch(PageEvent::Secondary { id, pos: m.pos })
+                match route {
+                    SecondaryRoute::Nothing => Outcome::Ignored,
+                    SecondaryRoute::Swallowed => Outcome::Consumed,
+                    SecondaryRoute::Target(id) => {
+                        self.dispatch(PageEvent::Secondary { id, pos: m.pos })
+                    }
+                    SecondaryRoute::Outside { backdrop, reopen } => {
+                        // the open popup closes exactly as a primary click
+                        // on its backdrop closes it ...
+                        self.pointer.press(backdrop);
+                        let out = self.on_release(m, Some(backdrop)).or(Outcome::Changed);
+                        // ... then the control beneath gets the secondary
+                        // click, so its menu opens at the new spot
+                        match reopen {
+                            Some(id) if self.dialog.is_none() => {
+                                out.or(self.dispatch(PageEvent::Secondary { id, pos: m.pos }))
+                            }
+                            _ => out,
+                        }
+                    }
+                }
             }
             MouseKind::WheelLeft | MouseKind::WheelRight => {
                 let delta = if m.kind == MouseKind::WheelLeft {
