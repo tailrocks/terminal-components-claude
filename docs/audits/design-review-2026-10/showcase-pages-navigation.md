@@ -93,3 +93,27 @@ fix, with the reason.
    drawn, so an app gives the toolbar its `width()`; a `»` menu of the
    hidden items (as `Tabs` has `+N`) belongs with the S5 overflow work.
    The States grid has no overflow row for that reason.
+
+## SC5 Breadcrumbs & rails
+
+1. **No rail section on the Sidebars page.** The plan asks for the
+   `SidebarRail` beside the Sidebars page's hand-made `NavList`. That page
+   is rebuilt on the library `NavList` by S17/SC36, and its approved
+   captures would change for a second copy of the demo the Breadcrumbs &
+   rails page already shows live (rail, collapse button, `RailAction`,
+   `collapsed_rail`) and in its States grid. SC36 shows the rail on
+   Sidebars when it moves the list into the library.
+2. **No narrow drawer.** Below 100 columns tablepro turns its explorer into
+   a drawer (`workbench.rs`, the explorer takes the body while focused). That
+   is app layout code; a copy on the page would be a second implementation
+   of the same rule. The library drawer is S19 (master-detail, SC38), where
+   the page can show it.
+3. **`0` does not expand the rail.** `0` is the showcase shell's "jump to
+   navigation" key. The rail opens by a click anywhere on it and by Ctrl+B,
+   which the page hints advertise.
+4. **Trails collapse their outer levels, not their middle.** The plan's
+   "middle collapse" reads as the macOS path bar shrinking middle items.
+   `Breadcrumb` drops the outermost levels into a leading `…` and always
+   keeps the current page (Windows Explorer's address bar does the same);
+   its tests pin that rule. The current page itself is now cut in the
+   middle when it is too wide (library fix, regression test).

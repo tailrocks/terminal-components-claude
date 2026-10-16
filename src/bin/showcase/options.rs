@@ -260,6 +260,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Progress => PROGRESS,
         PageId::EmptyError => EMPTY_ERROR,
         PageId::SplitsStacks => SPLITS_STACKS,
+        PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
         _ => &[],
     }
 }
@@ -773,6 +774,21 @@ static TEXT_UTILITIES: &[Opt] = &[
         "Reveal",
         &["tooltip", "inline", "off"],
     ),
+];
+
+/// Breadcrumbs & rails (SC5): the trail's links, its width, and the
+/// collapsible sidebar's rail.
+static BREADCRUMBS_RAILS: &[Opt] = &[
+    Opt::new("breadcrumbsrails.clickable", "Links", OFF_ON).default(1),
+    Opt::new(
+        "breadcrumbsrails.width",
+        "Deep trail width",
+        &["full", "48", "32", "20"],
+    ),
+    Opt::new("breadcrumbsrails.collapsed", "Sidebar collapsed", OFF_ON),
+    Opt::new("breadcrumbsrails.collapsed_rail", "Collapsed rail", OFF_ON)
+        .default(1)
+        .needs(&[("breadcrumbsrails.collapsed", "on")]),
 ];
 
 /// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through
