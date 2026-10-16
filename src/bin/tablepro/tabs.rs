@@ -720,7 +720,7 @@ impl TableTab {
         }
         match focus {
             Some(f) if f == self.mode_tabs.id => {
-                vec![hint("←→", "Data / Structure"), hint("Ctrl+D", "Toggle")]
+                vec![hint("←→", "Switch"), hint("Ctrl+D", "Data / Structure")]
             }
             Some(f) if f == self.chips.id => vec![
                 hint("Enter", "Edit filter"),
@@ -748,7 +748,7 @@ impl TableTab {
                 }
                 h
             }
-            _ => vec![hint("↑↓", "Move"), hint("Ctrl+D", "Structure")],
+            _ => vec![hint("↑↓", "Move"), hint("Ctrl+D", "Data / Structure")],
         }
     }
 
@@ -1288,7 +1288,7 @@ impl QueryTab {
                 hint("Ctrl+R", "Run"),
                 hint("Alt+R", "Run all"),
                 hint("Ctrl+Space", "Complete"),
-                hint("Esc", "Done"),
+                hint("Esc", "Done editing"),
             ];
         }
         if let Some(g) = self.active_grid()

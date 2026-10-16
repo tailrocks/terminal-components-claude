@@ -1750,7 +1750,12 @@ impl Screen for FilesPage {
                 hint("Enter", "Open / preview"),
                 hint("←", "Parent"),
                 hint("g", "Go to path"),
-                hint("Ctrl+H", "Hidden"),
+                junie_tui::widgets::keyhint::toggle_hint(
+                    "Ctrl+H",
+                    self.show_hidden,
+                    "Hide hidden",
+                    "Show hidden",
+                ),
                 hint("Alt+Enter", "Actions"),
                 hint("/", "Find"),
                 hint("Esc", "Back"),

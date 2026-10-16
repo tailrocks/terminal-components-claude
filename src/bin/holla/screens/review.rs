@@ -1232,7 +1232,7 @@ impl Screen for ArgsPage {
         vec![
             hint("Enter", "Edit"),
             hint("Tab", "Next"),
-            hint("Ctrl+S", "Run"),
+            hint("Ctrl+S", "Run task"),
             hint("Esc", "Cancel"),
         ]
     }

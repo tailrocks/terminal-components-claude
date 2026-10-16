@@ -1562,14 +1562,14 @@ impl Screen for DiskPage {
                 hint("r", "Rescan"),
                 hint("x", "Cancel scan"),
                 hint("t", "Top files"),
-                hint("p", "Facts"),
+                hint("p", "Details"),
                 hint("Esc", "Back"),
             ],
             View::Overview => vec![
                 hint("↑↓", "Move"),
                 hint("Enter", "Analyze"),
                 hint("t", "Top files"),
-                hint("p", "Facts"),
+                hint("p", "Details"),
                 hint("Esc", "Back"),
             ],
             View::TopFiles => vec![
