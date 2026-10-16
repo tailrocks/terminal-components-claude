@@ -9,6 +9,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::ReleaseFrom;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
 use crate::theme::{CursorStyle, Kind, Plane};
@@ -151,9 +152,64 @@ pub struct ContextMenu {
     /// their vim and action bindings.
     pub type_ahead: bool,
     typeahead: crate::core::typeahead::TypeAhead,
+    /// Press, drag, release: a secondary release over an enabled row
+    /// chooses it when the pointer moved at least one cell from the
+    /// secondary press that opened the menu (macOS and Windows context
+    /// menus). The release of a plain right-click never chooses. Default
+    /// on. Apps deliver it through
+    /// [`PointerState::on_secondary_up`](crate::core::pointer::PointerState::on_secondary_up).
+    pub release_selects: bool,
+    /// Primary presses that may complete on a row (a menu-bar title:
+    /// press the title, drag onto a row, release). Set by [`MenuBar`].
+    release_from: Vec<WidgetId>,
+    /// The cursor was last placed by the pointer.
+    hovering: bool,
+    /// The pointer left the rows after placing the cursor: no row is
+    /// highlighted (macOS), until the pointer or a key brings it back.
+    cursor_hidden: bool,
+    /// The tick the last hover auto-scroll ran on.
+    scrolled_tick: Option<u64>,
 }
 
 impl ContextMenu {
+    /// See [`Self::release_selects`].
+    pub fn release_selects(mut self, on: bool) -> Self {
+        self.release_selects = on;
+        self
+    }
+
+    /// The ▲ marker above a scrolled menu: hovering it scrolls up one row
+    /// per tick, a click pages up.
+    pub fn more_above_id(&self) -> WidgetId {
+        self.id.sub("more-above")
+    }
+
+    /// The ▼ marker below a menu with more rows: hovering it scrolls down
+    /// one row per tick, a click pages down.
+    pub fn more_below_id(&self) -> WidgetId {
+        self.id.sub("more-below")
+    }
+
+    /// The row highlighted as the cursor, if any: none after the pointer
+    /// left the rows it was moving over.
+    pub fn highlighted(&self) -> Option<usize> {
+        (!self.cursor_hidden && !self.items.is_empty()).then_some(self.cursor)
+    }
+
+    /// A click on a ▲/▼ marker pages the menu; `true` when `id` is one.
+    fn page_marker(&mut self, id: WidgetId) -> bool {
+        let page = self.viewport().max(1) as i32;
+        if id == self.more_above_id() {
+            self.on_wheel(-page);
+            true
+        } else if id == self.more_below_id() {
+            self.on_wheel(page);
+            true
+        } else {
+            false
+        }
+    }
+
     /// See [`Self::max_rows`].
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
@@ -217,6 +273,11 @@ impl ContextMenu {
             nav: NavKeys::DEFAULT,
             type_ahead: false,
             typeahead: Default::default(),
+            release_selects: true,
+            release_from: Vec::new(),
+            hovering: false,
+            cursor_hidden: false,
+            scrolled_tick: None,
         }
     }
 
@@ -300,7 +361,11 @@ impl ContextMenu {
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == backdrop_id(self.id) || self.locate(id).is_some()
+        id == self.id
+            || id == backdrop_id(self.id)
+            || id == self.more_above_id()
+            || id == self.more_below_id()
+            || self.locate(id).is_some()
     }
 
     /// Frame-inclusive size.
@@ -352,6 +417,14 @@ impl ContextMenu {
         if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
+        }
+        // the keyboard takes the cursor back from the pointer; with no row
+        // highlighted, Enter has nothing to choose
+        self.hovering = false;
+        let hidden = std::mem::take(&mut self.cursor_hidden);
+        if hidden && matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) {
+            self.cursor_hidden = true;
+            return (Outcome::Consumed, None);
         }
         if let KeyCode::Char(c) = key.code
             && self.type_ahead
@@ -410,9 +483,13 @@ impl ContextMenu {
     /// A completed click on `id`: a row chooses it, anywhere else dismisses
     /// (when the [`Dismiss`] policy allows an outside click).
     pub fn on_click(&mut self, id: WidgetId) -> Option<MenuEvent> {
+        if self.page_marker(id) {
+            return None;
+        }
         match self.locate(id) {
             Some(i) if !self.items[i].disabled => {
                 self.cursor = i;
+                self.cursor_hidden = false;
                 Some(MenuEvent::Chosen(i))
             }
             Some(_) => None,
@@ -459,11 +536,35 @@ impl ContextMenu {
             self.cursor_dirty = false;
         }
         self.offset = self.offset.min(self.lines().saturating_sub(view));
-        if let Some(h) = ctx.interaction.live_hover()
-            && let Some(i) = self.locate(h)
-            && !self.items[i].disabled
-        {
-            self.cursor = i;
+        let hover = ctx.interaction.live_hover();
+        // resting on a ▲/▼ marker scrolls one row per tick (macOS)
+        let tick = ctx.interaction.tick;
+        let step = if hover == Some(self.more_above_id()) {
+            -1
+        } else if hover == Some(self.more_below_id()) {
+            1
+        } else {
+            0
+        };
+        if step == 0 {
+            self.scrolled_tick = None;
+        } else if self.scrolled_tick != Some(tick) {
+            self.scrolled_tick = Some(tick);
+            self.on_wheel(step);
+        }
+        match hover.and_then(|h| self.locate(h)) {
+            Some(i) if !self.items[i].disabled => {
+                self.cursor = i;
+                self.hovering = true;
+                self.cursor_hidden = false;
+            }
+            // the pointer left the rows it was moving over: no row stays
+            // highlighted (a stale highlight outside the menu)
+            _ if self.hovering => {
+                self.hovering = false;
+                self.cursor_hidden = true;
+            }
+            _ => {}
         }
     }
 
@@ -503,25 +604,43 @@ impl ContextMenu {
             y += 1;
         }
         let first = self.offset;
+        let marker_row = |y: u16| Rect::new(area.x + 1, y, area.width.saturating_sub(2), 1);
+        let marker = |ctx: &RenderCtx, id: WidgetId| {
+            // rest, hover and press read apart (a pressed marker pages)
+            let s = ctx.state(id);
+            if s.pressed {
+                t.primary().bg(bg).add_modifier(Modifier::BOLD)
+            } else if s.hovered {
+                t.primary().bg(bg)
+            } else {
+                t.muted().bg(bg)
+            }
+        };
         if first > 0 {
+            let id = self.more_above_id();
             buf.set_string(
                 area.right().saturating_sub(3),
                 area.y,
                 t.glyphs.more_above,
-                t.muted().bg(bg),
+                marker(ctx, id),
             );
+            ctx.clickable(id, marker_row(area.y));
         }
+        let cursor = self.highlighted();
         // an open menu is always the active control: its cursor row carries
         // the selection tint whoever holds keyboard focus
         let mut line = 0usize;
         for (i, item) in self.items.iter().enumerate() {
             if y >= inner.bottom() {
+                let id = self.more_below_id();
+                let yb = area.bottom().saturating_sub(1);
                 buf.set_string(
                     area.right().saturating_sub(3),
-                    area.bottom().saturating_sub(1),
+                    yb,
                     t.glyphs.more_below,
-                    t.muted().bg(bg),
+                    marker(ctx, id),
                 );
+                ctx.clickable(id, marker_row(yb));
                 break;
             }
             if line < first {
@@ -543,8 +662,8 @@ impl ContextMenu {
             }
             line += 1 + usize::from(item.separator_after);
             let rid = self.row_id(i);
-            let mut s = ctx.child_state(self.id, rid, i == self.cursor);
-            s.focused = i == self.cursor;
+            let mut s = ctx.child_state(self.id, rid, cursor == Some(i));
+            s.focused = cursor == Some(i);
             s.disabled = item.disabled;
             s.error = item.danger;
             let row = Rect::new(inner.x, y, inner.width, 1);
@@ -586,6 +705,16 @@ impl ContextMenu {
                 }
             }
             ctx.clickable(rid, row);
+            if !item.disabled {
+                // press-drag-release: a release here may complete a press
+                // that started elsewhere
+                if self.release_selects {
+                    ctx.hits.accept_release(rid, ReleaseFrom::Secondary);
+                }
+                for &from in &self.release_from {
+                    ctx.hits.accept_release(rid, ReleaseFrom::Press(from));
+                }
+            }
             y += 1;
             if item.separator_after && y < inner.bottom() {
                 for x in inner.x + 1..inner.right().saturating_sub(1) {
@@ -614,6 +743,19 @@ pub enum MenuBarEvent {
     Closed,
     /// The brand lockup was activated.
     Brand,
+}
+
+/// When a press on a [`MenuBar`] title opens its menu.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OpenOn {
+    /// On button down (macOS, Windows and GNOME menu bars): the menu is
+    /// open while the button is still held, so the press can drag onto a
+    /// row and release to choose it ([`MenuBar::press_drag`]). Pressing the
+    /// open title closes it.
+    #[default]
+    Press,
+    /// On a completed click (button released over the title).
+    Release,
 }
 
 /// What a [`MenuBar`] does with titles that do not fit its row.
@@ -646,7 +788,11 @@ pub struct MenuBar {
     pub dismiss: Dismiss,
     /// With a menu open, pointing at another title opens that menu (the
     /// macOS and Windows menu-bar convention). Off: only a click or the
-    /// arrow keys switch menus.
+    /// arrow keys switch menus. It needs any-motion mouse tracking: while
+    /// the terminal has reported no motion without a button held
+    /// ([`Interaction::motion_unreported`](crate::ui::ctx::Interaction::motion_unreported)),
+    /// only a press dragged across the titles switches, and a click or
+    /// ←/→ (APG menubar) switch otherwise.
     pub hover_switch: bool,
     /// ←/→ past the last title lands on the first and back. Default on.
     pub wrap: bool,
@@ -664,6 +810,17 @@ pub struct MenuBar {
     /// The chevron title as last drawn ([`Overflow::Chevron`] with hidden
     /// titles), else `Rect::ZERO`.
     pub more_area: Rect,
+    /// When a press on a title opens its menu. Default [`OpenOn::Press`].
+    /// Owners route presses through [`MenuBar::on_press`]; without that
+    /// the bar opens on the completed click.
+    pub open_on: OpenOn,
+    /// Press a title, drag onto a row, release: the release chooses the
+    /// row (the desktop menu-bar gesture). A release back on the title
+    /// keeps the menu open. Default on.
+    pub press_drag: bool,
+    /// The title whose press [`MenuBar::on_press`] already acted on: its
+    /// click (the release) does nothing more.
+    press_handled: Option<WidgetId>,
 }
 
 impl MenuBar {
@@ -691,7 +848,43 @@ impl MenuBar {
             overflow: Overflow::Hide,
             more_area: Rect::ZERO,
             type_ahead: false,
+            open_on: OpenOn::Press,
+            press_drag: true,
+            press_handled: None,
         }
+    }
+
+    /// See [`Self::open_on`].
+    pub fn open_on(mut self, open_on: OpenOn) -> Self {
+        self.open_on = open_on;
+        self
+    }
+
+    /// See [`Self::press_drag`].
+    pub fn press_drag(mut self, on: bool) -> Self {
+        self.press_drag = on;
+        self
+    }
+
+    /// A button down on `id`. Under [`OpenOn::Press`] a title opens its
+    /// menu right away (or closes it when it is the open one); the click
+    /// that follows does nothing more. Anything else is left to
+    /// [`Self::on_click`].
+    pub fn on_press(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarEvent>) {
+        self.press_handled = None;
+        if self.open_on != OpenOn::Press {
+            return (Outcome::Ignored, None);
+        }
+        let Some(i) = self.title_at(id) else {
+            return (Outcome::Ignored, None);
+        };
+        self.press_handled = Some(id);
+        if self.open_index() == Some(i) {
+            self.close();
+            return (Outcome::Changed, Some(MenuBarEvent::Closed));
+        }
+        self.open_menu(i);
+        (Outcome::Changed, Some(MenuBarEvent::Opened(i)))
     }
 
     /// See [`Self::type_ahead`].
@@ -958,6 +1151,12 @@ impl MenuBar {
     /// fires `Brand`, anything else while open closes the menu (when the
     /// [`Dismiss`] policy allows; the click is consumed either way).
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarEvent>) {
+        // the press on this title already opened (or closed) its menu: the
+        // release over it keeps that state
+        let handled = self.press_handled.take();
+        if handled.is_some() && handled == Some(id) && self.title_at(id).is_some() {
+            return (Outcome::Consumed, None);
+        }
         if self.open.is_some() && id == backdrop_id(self.id) {
             if !self.dismiss.outside_click {
                 return (Outcome::Consumed, None);
@@ -979,6 +1178,9 @@ impl MenuBar {
         }
         let from_chevron = self.chevron() && self.cursor == self.labels.len();
         if let Some(menu) = self.open.as_mut() {
+            if menu.page_marker(id) {
+                return (Outcome::Changed, None);
+            }
             return match menu.on_click(id) {
                 Some(MenuEvent::Chosen(item)) if from_chevron => self.choose_hidden(item),
                 Some(MenuEvent::Chosen(item)) => {
@@ -1036,8 +1238,17 @@ impl MenuBar {
             return;
         }
         // with a menu open, pointing at another title opens that one
-        // (unless `hover_switch` is off)
-        self.on_hover(ctx.interaction.live_hover());
+        // (unless `hover_switch` is off). A terminal that reports no motion
+        // without a button held never moves hover with the pointer, so
+        // there only a press dragged across the titles switches; a click
+        // and the arrow keys do the rest
+        let dragging = ctx
+            .interaction
+            .pressed
+            .is_some_and(|p| self.title_at(p).is_some());
+        if !ctx.interaction.motion_unreported || dragging {
+            self.on_hover(ctx.interaction.live_hover());
+        }
         let t = ctx.theme;
         fill(buf, area, Style::new().bg(bg));
         ctx.control(self.id, area, false);
@@ -1139,6 +1350,20 @@ impl MenuBar {
                 None => {}
             }
         }
+        // press a title, drag onto a row, release: any title's press may
+        // complete on a row (the drag can switch menus on the way)
+        m.release_from = if self.press_drag {
+            let mut from: Vec<WidgetId> = (0..self.labels.len())
+                .filter(|&i| self.areas.get(i).is_some_and(|r| !r.is_empty()))
+                .map(|i| self.id.child(i))
+                .collect();
+            if !self.more_area.is_empty() {
+                from.push(self.id.sub("more"));
+            }
+            from
+        } else {
+            Vec::new()
+        };
         m.prepare(*buf.area(), ctx);
         let menu = m.clone();
         let (id, dismiss) = (self.id, self.dismiss);
@@ -1379,6 +1604,181 @@ mod tests {
         bar.open_menu(1);
         let (_, ev) = bar.on_key(&key(KeyCode::Esc));
         assert_eq!(ev, Some(MenuBarEvent::Closed));
+    }
+
+    fn two_menus() -> MenuBar {
+        MenuBar::new(
+            WidgetId::of("bar"),
+            vec![
+                ("File", vec![MenuItem::new("New"), MenuItem::new("Quit")]),
+                ("View", vec![MenuItem::new("Zoom")]),
+            ],
+        )
+    }
+
+    /// Render `bar` (and its open menu) under `interaction`; the frame's
+    /// hit regions.
+    fn bar_hits(bar: &mut MenuBar, interaction: Interaction) -> HitRegistry {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
+        bar.render(Rect::new(0, 0, 60, 1), &mut buf, &mut ctx, t.canvas);
+        ctx.flush_overlays(&mut buf);
+        hits
+    }
+
+    #[test]
+    fn a_title_opens_on_the_press_and_its_release_keeps_it_open() {
+        let mut bar = two_menus();
+        bar_hits(&mut bar, Interaction::default());
+        let file = bar.label_id(0);
+        assert_eq!(bar.on_press(file).1, Some(MenuBarEvent::Opened(0)));
+        assert_eq!(bar.on_click(file), (Outcome::Consumed, None), "release");
+        assert_eq!(bar.open_index(), Some(0));
+        // pressing the open title closes it, its release keeps it shut
+        assert_eq!(bar.on_press(file).1, Some(MenuBarEvent::Closed));
+        assert_eq!(bar.on_click(file).1, None);
+        assert!(!bar.is_open());
+        // OpenOn::Release: the press does nothing, the click toggles
+        let mut bar = two_menus().open_on(OpenOn::Release);
+        bar_hits(&mut bar, Interaction::default());
+        assert_eq!(bar.on_press(file), (Outcome::Ignored, None));
+        assert_eq!(bar.on_click(file).1, Some(MenuBarEvent::Opened(0)));
+    }
+
+    #[test]
+    fn a_press_on_a_title_may_release_on_a_row_of_its_menu() {
+        let mut bar = two_menus();
+        bar_hits(&mut bar, Interaction::default());
+        bar.on_press(bar.label_id(0));
+        let hits = bar_hits(&mut bar, Interaction::default());
+        let quit = bar.label_id(0).sub("menu").child(1);
+        assert!(hits.accepts_release(quit, ReleaseFrom::Press(bar.label_id(0))));
+        // a drag across the titles switches menus: any title's press counts
+        assert!(hits.accepts_release(quit, ReleaseFrom::Press(bar.label_id(1))));
+        let (_, ev) = bar.on_click(quit);
+        assert_eq!(ev, Some(MenuBarEvent::Chosen(0, 1)));
+        // press_drag off: a release elsewhere cancels the click
+        let mut bar = two_menus().press_drag(false);
+        bar_hits(&mut bar, Interaction::default());
+        bar.on_press(bar.label_id(0));
+        let hits = bar_hits(&mut bar, Interaction::default());
+        assert!(!hits.accepts_release(quit, ReleaseFrom::Press(bar.label_id(0))));
+    }
+
+    #[test]
+    fn hover_switching_waits_for_reported_motion() {
+        let mut bar = two_menus();
+        bar_hits(&mut bar, Interaction::default());
+        bar.open_menu(0);
+        let view = bar.label_id(1);
+        let no_motion = Interaction {
+            hover: Some(view),
+            motion_unreported: true,
+            ..Default::default()
+        };
+        bar_hits(&mut bar, no_motion);
+        assert_eq!(bar.open_index(), Some(0), "a stale hover does not switch");
+        // a press dragged across the titles still switches
+        let dragging = Interaction {
+            pressed: Some(bar.label_id(0)),
+            ..no_motion
+        };
+        bar_hits(&mut bar, dragging);
+        assert_eq!(bar.open_index(), Some(1));
+        bar.open_menu(0);
+        bar_hits(
+            &mut bar,
+            Interaction {
+                hover: Some(view),
+                ..Default::default()
+            },
+        );
+        assert_eq!(bar.open_index(), Some(1), "with motion, hover switches");
+    }
+
+    #[test]
+    fn a_context_menu_row_accepts_a_secondary_release_unless_turned_off() {
+        let t = Theme::junie();
+        let mut m = ContextMenu::new(WidgetId::of("m"), items()).at(Position::new(5, 2));
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
+        m.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
+        assert!(hits.accepts_release(m.row_id(0), ReleaseFrom::Secondary));
+        assert!(
+            !hits.accepts_release(m.row_id(1), ReleaseFrom::Secondary),
+            "a disabled row is never chosen"
+        );
+        let mut off = m.clone().release_selects(false);
+        let mut hits = HitRegistry::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        off.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
+        assert!(!hits.accepts_release(m.row_id(0), ReleaseFrom::Secondary));
+    }
+
+    #[test]
+    fn the_highlight_clears_when_the_pointer_leaves_the_rows() {
+        let t = Theme::junie();
+        let mut m = ContextMenu::new(WidgetId::of("m"), items()).at(Position::new(1, 1));
+        let hover = |id| Interaction {
+            hover: id,
+            ..Default::default()
+        };
+        let row3 = m.row_id(3);
+        paint_menu(&mut m, &t, hover(Some(row3)));
+        assert_eq!(m.highlighted(), Some(3));
+        let buf = paint_menu(&mut m, &t, hover(Some(WidgetId::of("page"))));
+        assert_eq!(m.highlighted(), None, "no stale highlight outside");
+        let (x, y) = row_y(&buf, "Close");
+        assert_eq!(buf[(x, y)].bg, t.popover, "the row is back at rest");
+        assert_eq!(m.on_key(&key(KeyCode::Enter)), (Outcome::Consumed, None));
+        // a key brings the cursor back
+        m.on_key(&key(KeyCode::Down));
+        assert!(m.highlighted().is_some());
+        // a keyboard cursor never hides on its own
+        paint_menu(&mut m, &t, hover(None));
+        assert!(m.highlighted().is_some());
+    }
+
+    #[test]
+    fn the_overflow_markers_page_on_click_and_scroll_on_hover() {
+        let t = Theme::junie();
+        let items: Vec<MenuItem> = (0..30)
+            .map(|i| MenuItem::new(format!("item {i:02}")))
+            .collect();
+        let mut m = ContextMenu::new(WidgetId::of("m"), items).max_rows(5);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
+        m.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
+        let below = m.more_below_id();
+        let r = hits.area_of(below).expect("the down marker is a target");
+        assert_eq!(hits.hit(Position::new(r.x + 1, r.y)), Some(below));
+        assert!(hits.area_of(m.more_above_id()).is_none(), "nothing above");
+        assert!(m.owns(below));
+        assert_eq!(m.on_click(below), None);
+        assert_eq!(m.offset, 5, "a click pages down");
+        // resting on the up marker scrolls one row per tick
+        let above = m.more_above_id();
+        let at = |tick| Interaction {
+            hover: Some(above),
+            tick,
+            ..Default::default()
+        };
+        paint_menu(&mut m, &t, at(1));
+        assert_eq!(m.offset, 4);
+        paint_menu(&mut m, &t, at(1));
+        assert_eq!(m.offset, 4, "once per tick");
+        paint_menu(&mut m, &t, at(2));
+        assert_eq!(m.offset, 3);
     }
 
     #[test]

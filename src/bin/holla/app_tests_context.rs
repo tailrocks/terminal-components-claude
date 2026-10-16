@@ -196,3 +196,27 @@ fn files_rows_open_their_actions_at_the_pointer_and_under_the_cursor() {
     h.key(KeyCode::Esc);
     assert_eq!(h.app.focus.current(), Some(files::LIST));
 }
+
+#[test]
+fn a_right_press_dragged_onto_a_menu_row_chooses_it_on_release() {
+    let mut h = rust();
+    let (x, y) = h.find("Run tests").unwrap();
+    // a plain right-click: the release where it opened chooses nothing
+    right_click(&mut h, x + 12, y);
+    h.mouse(MouseKind::SecondaryUp, x + 12, y);
+    assert_eq!(h.app.focus.current(), Some(ALTERNATIVES), "{}", h.text());
+    h.key(KeyCode::Esc);
+    // press, drag onto a row, release: the row is chosen
+    right_click(&mut h, x + 12, y);
+    let (ax, ay) = h
+        .find("Arguments…")
+        .unwrap_or_else(|| panic!("no row\n{}", h.text()));
+    h.mouse(MouseKind::SecondaryDrag, ax + 1, ay);
+    h.mouse(MouseKind::SecondaryUp, ax + 1, ay);
+    assert_ne!(
+        h.app.focus.current(),
+        Some(ALTERNATIVES),
+        "the menu closed on the choice\n{}",
+        h.text()
+    );
+}
