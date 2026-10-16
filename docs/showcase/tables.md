@@ -179,3 +179,12 @@ explicitly).
 - Bulk apply of a popup choice to every selected row from the table
   itself; the Selection page's bulk form covers it.
 - A free-text "create option" mode for Combo (the request is fixed sets).
+- DataTable in single-selection, row mode still activates a row on its
+  first click (`TableEvent::Activated`); "select on one click, activate on
+  a double click or Enter" for every data view is a cross-app change to
+  the table's click model (tablepro, holla and jackin use it) and belongs
+  with that work, not with the cell editors, which already follow it
+  (first click moves the cursor, a second click or the `▾` opens).
+- Space opens a constrained cell in DataTable but not in DataGrid, where
+  Space marks the row (the grid's documented selection key); Enter, F2
+  and Alt+↓ open there.
