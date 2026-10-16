@@ -60,7 +60,7 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 4] = [
 ];
 
 /// `text` with comments removed and string/char literal contents blanked.
-fn code_only(text: &str) -> String {
+pub fn code_only(text: &str) -> String {
     let c: Vec<char> = text.chars().collect();
     let mut out = String::with_capacity(text.len());
     let mut i = 0;
@@ -156,7 +156,7 @@ fn contains_word(line: &str, pat: &str) -> bool {
 
 /// Non-test part of a source file: everything before a `#[cfg(test)]`
 /// that introduces a module.
-fn non_test(text: &str) -> &str {
+pub fn non_test(text: &str) -> &str {
     let mut offset = 0;
     let mut lines = text.split_inclusive('\n').peekable();
     while let Some(line) = lines.next() {
