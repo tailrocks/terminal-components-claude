@@ -301,6 +301,8 @@ impl App {
             hover_suppressed: self.pointer.hover_suppressed,
             pointer_focus: self.pointer.pointer_focus,
             tick: self.tick,
+            // a paused capture has no clock: hover content shows at once
+            hover_ms: (self.motion != Motion::Paused).then(|| self.pointer.hover_ms(self.now_ms())),
         }
     }
 

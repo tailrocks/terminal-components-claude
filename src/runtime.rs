@@ -380,6 +380,9 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
     let mut dirty = true;
     let mut last_tick = Instant::now();
     let mut pump = InputPump::new(app.coalesce());
+    // hover content held back by a frame (a delayed reveal or tooltip):
+    // that frame and when it may show
+    let mut hover_due: Option<(u64, Instant)> = None;
     loop {
         #[cfg(unix)]
         if job_control::take_request() {
@@ -398,7 +401,18 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
             return Ok(());
         }
         let interval = app.tick_interval();
-        let wait = interval.saturating_sub(last_tick.elapsed());
+        let mut wait = interval.saturating_sub(last_tick.elapsed());
+        // hover content waiting for the pointer to rest (a delayed reveal
+        // or tooltip) shows on time, not at the next tick
+        let now = Instant::now();
+        hover_due = match (crate::ui::reveal::hover_wait(), hover_due) {
+            (None, _) => None,
+            (Some((frame, _)), Some((seen, due))) if frame == seen => Some((seen, due)),
+            (Some((frame, ms)), _) => Some((frame, now + Duration::from_millis(ms))),
+        };
+        if let Some((_, due)) = hover_due {
+            wait = wait.min(due.saturating_duration_since(now));
+        }
         // an input held back for the previous frame is ready without polling
         if pump.has_pending() || poll_uninterrupted(wait)? {
             pump.set_policy(app.coalesce());
@@ -414,6 +428,10 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                     terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 }
             }
+        }
+        if hover_due.is_some_and(|(_, due)| due <= now + wait) {
+            // the pointer has rested long enough: draw the held-back content
+            dirty = true;
         }
         if last_tick.elapsed() >= interval {
             last_tick = Instant::now();
