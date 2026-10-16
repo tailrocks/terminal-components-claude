@@ -284,3 +284,19 @@ fn the_header_row_has_the_same_inset_on_both_sides() {
         );
     }
 }
+
+#[test]
+fn a_hidden_reason_column_gives_its_room_to_the_labels() {
+    let h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 72, 20);
+    let t = h.text();
+    // the reason column does not fit at 72 columns: the labels take its
+    // room instead of being cut beside blank cells
+    assert!(
+        t.contains("Remove all unused images"),
+        "the label is not cut while the row has room\n{t}"
+    );
+    assert!(
+        t.contains("destructive"),
+        "the safety class never drops\n{t}"
+    );
+}

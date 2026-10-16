@@ -11,6 +11,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
+use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
@@ -577,26 +578,31 @@ impl Picker {
         let has_sb = self.scroll.overflows();
         let row_w = list.width.saturating_sub(u16::from(has_sb));
         // column widths come from every item, not just the visible ones,
-        // so scrolling never shifts the columns
-        let label_col = (self
-            .items
-            .iter()
-            .map(|i| width(&i.label) as u16)
-            .max()
-            .unwrap_or(6))
-        .clamp(6, (row_w * 45 / 100).max(6));
-        let tag_col = self
-            .items
-            .iter()
-            .filter_map(|i| i.tag.map(|t| width(t) as u16))
-            .max()
-            .unwrap_or(0);
-        let group_col = self
-            .items
-            .iter()
-            .map(|i| width(i.group) as u16)
-            .max()
-            .unwrap_or(0);
+        // so scrolling never shifts the columns; one solver shares the row
+        // between label and detail by what they measure, so neither is cut
+        // beside cells the other does not use
+        let measure = |f: &dyn Fn(&PickerItem) -> u16| self.items.iter().map(f).max().unwrap_or(0);
+        let label_need = measure(&|i| width(&i.label) as u16).max(6);
+        let detail_need = measure(&|i| width(&i.detail) as u16);
+        let tag_col = measure(&|i| i.tag.map_or(0, |t| width(t) as u16));
+        let group_col = measure(&|i| width(i.group) as u16);
+        let label_cap = label_need.min((row_w * 45 / 100).max(6));
+        let mut cols = vec![
+            Col::content(label_cap.min(12), label_cap),
+            // the detail gives way first when the row is short
+            Col::content(detail_need.min(4), detail_need)
+                .flex(1, u16::MAX)
+                .droppable(0),
+        ];
+        if tag_col > 0 {
+            cols.push(Col::fixed(tag_col));
+        }
+        if group_col > 0 {
+            cols.push(Col::fixed(group_col));
+        }
+        let widths = columns::solve(&cols, row_w.saturating_sub(4), 2);
+        let label_col = widths[0];
+        let detail_col = widths[1];
         let mut last_group = "";
         for (k, i) in self.scroll.visible_range().enumerate() {
             let ry = list.y + k as u16;
@@ -673,7 +679,7 @@ impl Picker {
             }
             if !it.detail.is_empty() {
                 let dx = row.x + 3 + label_col + 2;
-                let room = rx.saturating_sub(dx + 1) as usize;
+                let room = (detail_col as usize).min(rx.saturating_sub(dx + 1) as usize);
                 if room >= 4 {
                     buf.set_string(
                         dx,
