@@ -896,7 +896,7 @@ impl Picker {
                         rx,
                         ry,
                         it.group,
-                        st.fg(t.row_ink(&cr, t.text_faint))
+                        st.fg(t.row_ink(&cr, t.legible(t.text_muted, st.bg.unwrap_or(bg))))
                             .remove_modifier(Modifier::BOLD),
                     );
                 }

@@ -807,11 +807,18 @@ impl TextInput {
         if label_rows > 1 {
             // the wrapped label carries no suffix marks
         } else if self.required && !self.disabled && name_w + 4 <= area.width as usize {
+            // the marker is neutral (the accent means focus); it takes the
+            // error tone only once the field is invalid
+            let ink = if self.error.is_some() {
+                t.tone_on(crate::theme::Tone::Error, bg)
+            } else {
+                t.tone_on(crate::theme::Tone::Muted, bg)
+            };
             buf.set_string(
                 area.x + 2 + name_w as u16 + 1,
                 area.y,
                 "*",
-                t.accent_fg().bg(bg),
+                ratatui::style::Style::new().fg(ink).bg(bg),
             );
         } else if show_optional {
             buf.set_string(
@@ -1527,6 +1534,23 @@ mod tests {
         assert_eq!(i.error.as_deref(), Some("guest is not a role"));
         i = i.value("admin");
         assert!(i.validate());
+    }
+
+    #[test]
+    fn the_required_marker_is_neutral_until_the_field_is_invalid() {
+        let theme = Theme::junie();
+        let mut input = TextInput::new(WidgetId::of("required"), "Name").required(true);
+        let area = Rect::new(0, 0, 30, 3);
+        let mut buf = Buffer::empty(area);
+        render(&mut input, area, &mut buf);
+        // "Name" starts at x = 2; the marker sits one cell after it
+        let star = &buf[(2 + 4 + 1, 0)];
+        assert_eq!(star.symbol(), "*");
+        assert_eq!(star.fg, theme.text_muted, "the accent means focus");
+        assert!(!input.validate());
+        let mut buf = Buffer::empty(area);
+        render(&mut input, area, &mut buf);
+        assert_eq!(buf[(2 + 4 + 1, 0)].fg, theme.error);
     }
 
     #[test]
