@@ -41,8 +41,8 @@ const FORBIDDEN: [&str; 13] = [
 const INSTANT_ALLOWED: [(&str, usize, &str); 4] = [
     (
         "src/runtime.rs",
-        3,
-        "tick timer and input-burst coalescing: when a frame is drawn, not what it shows",
+        4,
+        "tick timer, input-burst coalescing and the redraw when delayed hover content is due: when a frame is drawn, not what it shows",
     ),
     (
         "src/core/typeahead.rs",
