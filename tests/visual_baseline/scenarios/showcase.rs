@@ -82,10 +82,44 @@ pub const ELEMENTS: &[Root] = &[
     Root::new("showcase/hover/buttons", Bin::Showcase, &["--page", "buttons"], BOOT).live(interact::hover_buttons),
     Root::new("showcase/hover/lists", Bin::Showcase, &["--page", "lists"], BOOT).live(interact::hover_lists),
     Root::new("showcase/hover/tables", Bin::Showcase, &["--page", "tables"], BOOT).live(interact::hover_tables),
+    // Pending coverage (plan §C2): hover, held press, disabled, selected+hover.
+    Root::new("showcase/elements/buttons/run-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Run task").pending(),
+    Root::new("showcase/elements/buttons/run-pressed", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).press("Run task").pending(),
+    Root::new("showcase/elements/buttons/disabled-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Disabled primary").pending(),
+    Root::new("showcase/elements/buttons/disabled-pressed", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).press("Disabled primary").pending(),
+    Root::new("showcase/elements/toggles/verbose-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Verbose").pending(),
+    Root::new("showcase/elements/nav/item-hover", Bin::Showcase, &["--page", "overview"], BOOT).hover("Text areas").pending(),
+    Root::new("showcase/elements/nav/item-pressed", Bin::Showcase, &["--page", "overview", "--motion", "paused"], BOOT).press("Text areas").pending(),
+    Root::new("showcase/elements/selectable/selected-hover", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected"]).hover("Ari Moreno").pending(),
+    Root::new("showcase/elements/lists/selected-hover", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "space"]).hover("Python").pending(),
+    Root::new("showcase/elements/lists/row-pressed", Bin::Showcase, &["--page", "lists", "--motion", "paused"], BOOT).press("Python").pending(),
 ];
 
 #[rustfmt::skip]
 pub const OVERLAYS: &[Root] = &[
+    // Open overlays captured by existing journeys (names unchanged), with
+    // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
+    Root::new("showcase/flows/help/overlay", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["?"]).dismiss_pending(),
+    Root::new("showcase/flows/inspector/open", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["i"]).dismiss_pending(),
+    Root::new("showcase/flows/dialogs/open", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "enter"]).dismiss_pending(),
+    // S1: the prompt dialog (second button), input prefilled and validated.
+    Root::new("showcase/flows/dialogs/prompt", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "enter", "wait:Shown in the task list"]).dismiss_pending(),
+    // S2: the destructive dialog (fourth button), Cancel focused first.
+    Root::new("showcase/flows/dialogs/destructive", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["d", "wait:Delete branch?"]).dismiss_pending(),
+    Root::new("showcase/flows/pickers/open", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "enter"]).dismiss_pending(),
+    // S8: the menu bar is the page's first stop; Enter opens the File menu.
+    Root::new("showcase/flows/chrome/menu", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "enter", "wait:New tab"]).dismiss_pending(),
+    // S9: right click on a session row opens its context menu.
+    Root::new("showcase/flows/chrome/context", Bin::Showcase, &["--page", "chrome"], BOOT).live(interact::chrome_context).dismiss_pending(),
+    // S7: two typed characters open the completion popup (i = edit mode).
+    Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "i", "type:cl", "wait:Client"]).dismiss_pending(),
+    // datagrid_preview: `p` opens the Pending changes facts dialog with the
+    // exact UPDATE statements.
+    Root::new("showcase/flows/datagrid/preview", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "p", "wait:UPDATE customers SET seats = 600"]).dismiss_pending(),
+    Root::new("showcase/flows/selectable/delete_confirm", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]).dismiss_pending(),
+    // Pending: overlays reached by pointer, with both dismissals.
+    Root::new("showcase/overlays/chrome_context_row", Bin::Showcase, &["--page", "chrome"], BOOT).right_click("Codex (Primary)").pending().dismiss_pending(),
+    Root::new("showcase/overlays/lists_context", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "shift-f10"]).pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
@@ -102,26 +136,17 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/tables/selected", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "down", "down"]),
     Root::new("showcase/flows/editable/editing", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "enter"]),
     Root::new("showcase/flows/datagrid/selected", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "down", "right"]),
-    Root::new("showcase/flows/dialogs/open", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "enter"]),
-    Root::new("showcase/flows/pickers/open", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "enter"]),
     Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "space"]),
     // The same paused endpoint keeps the subsequent scroll actions deterministic.
     Root::new("showcase/flows/scrolling/scrolled", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "down", "down", "down"]),
     Root::new("showcase/flows/settings/toggled", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "space"]),
-    Root::new("showcase/flows/help/overlay", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["?"]),
-    Root::new("showcase/flows/inspector/open", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["i"]),
     // Selectable table journeys (keyboard only, so every size runs the same
     // steps): Tab focuses the table, the owner row is disabled, Space selects
     // Ari, Shift+Down extends over Cleo and Bo — two roles, so the editor bulk
     // edits with `— mixed —`; `d` on two selected rows asks `Delete 2 members?`.
     Root::new("showcase/flows/selectable/bulk_mixed", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "shift-down", "wait:3 selected"]),
-    Root::new("showcase/flows/selectable/delete_confirm", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]),
     // ------------------------------------------------------- new flows (§3.7) --
 
-    // S1: the prompt dialog (second button), input prefilled and validated.
-    Root::new("showcase/flows/dialogs/prompt", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "enter", "wait:Shown in the task list"]),
-    // S2: the destructive dialog (fourth button), Cancel focused first.
-    Root::new("showcase/flows/dialogs/destructive", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["d", "wait:Delete branch?"]),
     // S3: required field filled, Ctrl+S, then wait out the 1.8 s wall-clock
     // Busy window — the Done message is the stable end state (the bash
     // `sleep:1200` predates the 1800 ms busy constant; `wait:` is exact).
@@ -134,10 +159,6 @@ pub const JOURNEYS: &[Root] = &[
     // S6: the Level picker (third button) is not searchable; one down from the
     // current level, Enter sets it — the footer status confirms the choice.
     Root::new("showcase/flows/pickers/level", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "tab", "enter", "down", "enter", "wait:Chose Safe Mode (Full)"]),
-    // S7: two typed characters open the completion popup (i = edit mode).
-    Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "i", "type:cl", "wait:Client"]),
-    // S8: the menu bar is the page's first stop; Enter opens the File menu.
-    Root::new("showcase/flows/chrome/menu", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "enter", "wait:New tab"]),
     // S10: cell edit committed; the panel meta counts edits.
     Root::new("showcase/flows/editable/committed", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "enter", "type:x", "enter", "wait:1 edits"]),
     // S11: fifth stop is the Auto-merge toggle; space twice round-trips it —
@@ -158,9 +179,6 @@ pub const JOURNEYS: &[Root] = &[
     // — deterministic: row 1001 is marked `!`, row 1002 stays `•`. The 4-tick
     // saving window is ridden out by the wait.
     Root::new("showcase/flows/datagrid/failed", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save failed"]),
-    // datagrid_preview: `p` opens the Pending changes facts dialog with the
-    // exact UPDATE statements.
-    Root::new("showcase/flows/datagrid/preview", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "p", "wait:UPDATE customers SET seats = 600"]),
     // pickers_tabs: the Switch tab picker (second button).
     Root::new("showcase/flows/pickers/tabs", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "enter", "wait:Filter tabs…"]),
     // chips_select_open: second stop is the Sort by select; Enter opens its
@@ -206,8 +224,6 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/terminal/mid", Bin::Showcase, &["--page", "terminal", "--motion", "paused", "--frame", "60"], BOOT),
     // ---------------------------------------------------------- pointer flows --
     Root::new("showcase/flows/diff/drag-selected", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "enter", "wait:● Review"]).live(interact::diff_drag_select),
-    // S9: right click on a session row opens its context menu.
-    Root::new("showcase/flows/chrome/context", Bin::Showcase, &["--page", "chrome"], BOOT).live(interact::chrome_context),
     // S12: the inspector registers no scroll region, so the capturable form is
     // the inspector open while a wheel scroll runs under it (the repainted
     // inspector shows the pointer's `mouse` row from the same interaction).
@@ -237,4 +253,7 @@ pub const JOURNEYS: &[Root] = &[
 pub const RESIZES: &[Root] = &[
     Root::new("showcase/resize/overview_shrunk", Bin::Showcase, &["--page", "overview"], BOOT).timeout(15_000).resize((120, 40), interact::showcase_overview_resize),
     Root::new("showcase/resize/overview_grown", Bin::Showcase, &["--page", "overview"], BOOT).timeout(15_000).resize((80, 24), interact::showcase_overview_resize),
+    // Pending: grow and shrink across the layout breakpoints.
+    Root::new("showcase/resize/lists_from160x50", Bin::Showcase, &["--page", "lists"], BOOT).timeout(15_000).resize((160, 50), interact::resize_case).pending(),
+    Root::new("showcase/resize/lists_from72x20", Bin::Showcase, &["--page", "lists"], BOOT).timeout(15_000).resize((72, 20), interact::resize_case).pending(),
 ];

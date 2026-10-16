@@ -266,10 +266,36 @@ pub const SURFACES: &[Root] = &[
 
 #[rustfmt::skip]
 pub const ELEMENTS: &[Root] = &[
+    // Pending coverage (plan §C2): hover, held press (paused), selected+hover.
+    Root::new("holla/elements/menubar/file-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("File").pending(),
+    Root::new("holla/elements/menubar/file-pressed", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").press("File").pending(),
+    Root::new("holla/elements/results/row-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("Open btm").pending(),
+    Root::new("holla/elements/results/row-pressed", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").press("Open btm").pending(),
+    Root::new("holla/elements/results/selected-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("› Show system resources").pending(),
+    Root::new("holla/elements/explore/tab-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("Disk").pending(),
 ];
 
 #[rustfmt::skip]
 pub const OVERLAYS: &[Root] = &[
+    // Open overlays captured by existing journeys (names unchanged), with
+    // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
+    Root::new("holla/flows/help/overlay", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f1"]).dismiss_pending(),
+    Root::new("holla/flows/activities/overlay", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-g"]).dismiss_pending(),
+    // H3/H4: F10 opens the File menu, Right crosses to Go (the
+    // app_tests_flows.rs menu proof, PTY form).
+    Root::new("holla/flows/menu/file", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "wait:Alternatives…"]).dismiss_pending(),
+    Root::new("holla/flows/menu/go", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "right", "wait:Parent scope"]).dismiss_pending(),
+    // H15: Ctrl+Q with live activities opens the quit confirmation.
+    Root::new("holla/flows/quit/confirm", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-q", "wait:still running"]).dismiss_pending(),
+    Root::new("holla/flows/git/batch_picker", Bin::Holla, &["--scenario", "parity-git-batch", "--motion", "reduced"], "holla❯").sends(&["type:Pull 4 sibling", "enter", "right", "enter", "wait:Fast-forward", "wait:2 ok · 2 failed", "ctrl-g", "wait:0 live"]).timeout(15_000).dismiss_pending(),
+    Root::new("holla/flows/cargo/clean_confirm", Bin::Holla, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:cargo clean", "enter", "wait:Esc Cancel"]).dismiss_pending(),
+    Root::new("holla/flows/upgrade/confirm", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "reduced"], "holla❯").sends(&["down", "down", "down", "down", "down", "space", "c"]).dismiss_pending(),
+    // No dismissal rows: under reduced motion the screen behind the prompt
+    // keeps animating, so a dismissed frame never settles.
+    Root::new("holla/flows/trust/prompt", Bin::Holla, &["--scenario", "monorepo-child", "--motion", "reduced"], "holla❯").sends(&["type:test", "enter"]),
+    // Pending: pointer-opened menus, with both dismissals.
+    Root::new("holla/overlays/file_menu_click", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").click("File").pending().dismiss_pending(),
+    Root::new("holla/overlays/results_context", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").right_click("Open btm").pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
@@ -282,7 +308,6 @@ pub const JOURNEYS: &[Root] = &[
     // finder_query-selected below).
     Root::new("holla/flows/finder/query", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull"]),
     Root::new("holla/flows/finder/query-selected", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "ctrl-a"]),
-    Root::new("holla/flows/trust/prompt", Bin::Holla, &["--scenario", "monorepo-child", "--motion", "reduced"], "holla❯").sends(&["type:test", "enter"]),
     Root::new("holla/flows/files/results", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "type:readme"]),
     Root::new("holla/flows/files/unicode", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "ctrl-u", "type:café"]),
     Root::new("holla/flows/browser/hidden", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "ctrl-h"]),
@@ -293,10 +318,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("holla/flows/cleanup/plan", Bin::Holla, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], "holla❯").sends(&["c"]),
     Root::new("holla/flows/cleanup/gate-1", Bin::Holla, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], "holla❯").sends(&["c", "c"]),
     Root::new("holla/flows/upgrade/excluded", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "reduced"], "holla❯").sends(&["down", "down", "down", "down", "down", "space"]),
-    Root::new("holla/flows/upgrade/confirm", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "reduced"], "holla❯").sends(&["down", "down", "down", "down", "down", "space", "c"]),
     Root::new("holla/flows/remote/gate-1", Bin::Holla, &["--scenario", "remote-host", "--motion", "reduced"], "holla❯").sends(&["type:restart payments", "enter"]),
-    Root::new("holla/flows/help/overlay", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f1"]),
-    Root::new("holla/flows/activities/overlay", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-g"]),
     // ------------------------------------------------------- flows (new, H1-H21) --
 
     // H1: Alt+Enter alternatives menu. `alt-enter` is not chord-expressible, so
@@ -307,10 +329,6 @@ pub const JOURNEYS: &[Root] = &[
     // H2: Alt+1 jumps to the second tab (frontend dev); the strip's spinner
     // glyphs are tick frames, so the clock stays frozen.
     Root::new("holla/flows/activities/jump", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["alt-1"]),
-    // H3/H4: F10 opens the File menu, Right crosses to Go (the
-    // app_tests_flows.rs menu proof, PTY form).
-    Root::new("holla/flows/menu/file", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "wait:Alternatives…"]),
-    Root::new("holla/flows/menu/go", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "right", "wait:Parent scope"]),
     // H5/H6: the two-gate remote action. Gate 1 continues with Right+Enter (its
     // `y` copies the sequence, review.rs) — the spec's `y` was a misread. Paused:
     // the gate-1 facts render `live · N s ago`.
@@ -339,8 +357,6 @@ pub const JOURNEYS: &[Root] = &[
     // H14: Ctrl+G with nothing started (the h_flow_activities_empty state, on
     // the spec's first-use fixture).
     Root::new("holla/flows/activities/empty", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-g", "wait:Nothing has been started yet"]),
-    // H15: Ctrl+Q with live activities opens the quit confirmation.
-    Root::new("holla/flows/quit/confirm", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-q", "wait:still running"]),
     // H16: trust accepted (Cancel is the default focus; Right arms Trust). The
     // accept runs the task, which lands on its arguments page — the post-accept
     // state; the `Trusted …` status line outlives the settle (5 virtual seconds).
@@ -412,13 +428,11 @@ pub const JOURNEYS: &[Root] = &[
     // h_hp06: the sibling batch run to completion, then the activities picker
     // over it (2 succeeded, 2 failed).
     Root::new("holla/flows/git/batch", Bin::Holla, &["--scenario", "parity-git-batch", "--motion", "reduced"], "holla❯").sends(&["type:Pull 4 sibling", "enter", "right", "enter", "wait:Fast-forward"]).timeout(15_000),
-    Root::new("holla/flows/git/batch_picker", Bin::Holla, &["--scenario", "parity-git-batch", "--motion", "reduced"], "holla❯").sends(&["type:Pull 4 sibling", "enter", "right", "enter", "wait:Fast-forward", "wait:2 ok · 2 failed", "ctrl-g", "wait:0 live"]).timeout(15_000),
     // h_hp07: the capped script list and the discovery-diagnostic row.
     Root::new("holla/flows/task/sources", Bin::Holla, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:yarn", "wait:yarn s00"]),
     Root::new("holla/flows/task/sources_diagnostic", Bin::Holla, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Taskfile", "wait:discovery diagnostic"]),
     // h_hp08: the cargo clean row and its one-confirmation dialog.
     Root::new("holla/flows/cargo/clean", Bin::Holla, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:cargo clean", "wait:900.0 MiB"]),
-    Root::new("holla/flows/cargo/clean_confirm", Bin::Holla, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:cargo clean", "enter", "wait:Esc Cancel"]),
     // h_hp09: the daemon-stage stop-all failure, then the remove-all gates.
     // The gates are taken from a fresh boot under paused: the legacy chain
     // reached them over the failed tab, but that prefix leaves the gate's
@@ -509,4 +523,7 @@ pub const JOURNEYS: &[Root] = &[
 pub const RESIZES: &[Root] = &[
     Root::new("holla/resize/rust-dirty_shrunk", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").timeout(30_000).resize((120, 40), interact::resize_case),
     Root::new("holla/resize/rust-dirty_grown", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").timeout(30_000).resize((80, 24), interact::resize_case),
+    // Pending: a second fixture across the breakpoints.
+    Root::new("holla/resize/first-use_from160x50", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").timeout(30_000).resize((160, 50), interact::resize_case).pending(),
+    Root::new("holla/resize/first-use_from72x20", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").timeout(30_000).resize((72, 20), interact::resize_case).pending(),
 ];
