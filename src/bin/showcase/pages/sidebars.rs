@@ -436,7 +436,6 @@ impl Page for SidebarsPage {
             "Collapsed mode keeps rows and markers, initials only.",
         ];
         let mut y = inner.y;
-        let mut clipped = false;
         for (i, l) in lines.iter().enumerate() {
             let accent = (2..=4).contains(&i);
             for (j, wl) in junie_tui::ui::text::wrap(l, inner.width as usize)
@@ -444,7 +443,6 @@ impl Page for SidebarsPage {
                 .enumerate()
             {
                 if y >= inner.bottom() {
-                    clipped |= !wl.is_empty();
                     break;
                 }
                 if accent && j == 0 {
@@ -457,9 +455,6 @@ impl Page for SidebarsPage {
                 }
                 y += 1;
             }
-        }
-        if clipped {
-            panel.mark_clipped(inner, buf, t);
         }
     }
 

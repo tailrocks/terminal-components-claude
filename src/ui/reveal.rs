@@ -47,7 +47,7 @@ use crate::core::id::WidgetId;
 use crate::theme::ColorLevel;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{self, Placement};
-use crate::ui::text::{truncate, wider_than, width, wrap};
+use crate::ui::text::{truncate, width, wrap};
 
 /// How the keyboard reveal shows the full text of the cursor row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -579,7 +579,7 @@ pub(crate) fn flush_cuts(ctx: &mut RenderCtx) {
 }
 
 fn is_cut(area: Rect, full: &str) -> bool {
-    !area.is_empty() && wider_than(full, area.width as usize)
+    !area.is_empty() && width(full) > area.width as usize
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
