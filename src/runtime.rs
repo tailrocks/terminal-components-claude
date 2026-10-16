@@ -764,13 +764,31 @@ fn reset_frame_colors(buffer: &mut Buffer) {
 /// Drain any input that is already queued (stale key presses from the
 /// command that started the application) so it cannot skip an opening
 /// sequence. Returns how many events were discarded.
+///
+/// A terminal in its usual line-buffered (canonical) mode holds keys typed
+/// without Enter where `poll` cannot see them; they become readable the
+/// moment raw mode starts. So the drain runs in raw mode, and puts back the
+/// mode it found.
 pub fn drain_pending_input() -> std::io::Result<usize> {
-    let mut n = 0;
-    while event::poll(Duration::ZERO)? {
-        let _ = event::read()?;
-        n += 1;
+    let was_raw = ratatui::crossterm::terminal::is_raw_mode_enabled()?;
+    if !was_raw {
+        enable_raw_mode()?;
     }
-    Ok(n)
+    let mut n = 0;
+    let drained = loop {
+        match event::poll(Duration::ZERO) {
+            Ok(false) => break Ok(n),
+            Ok(true) => match event::read() {
+                Ok(_) => n += 1,
+                Err(e) => break Err(e),
+            },
+            Err(e) => break Err(e),
+        }
+    };
+    if !was_raw {
+        disable_raw_mode()?;
+    }
+    drained
 }
 
 #[cfg(test)]

@@ -20,8 +20,23 @@ use crate::runtime::Application;
 /// starts (key presses typed into the launching shell) is discarded first,
 /// so it cannot act on the first screen or skip an opening sequence.
 pub fn run(app: &mut impl Application) -> std::io::Result<()> {
+    if let Some(delay) = start_delay() {
+        std::thread::sleep(delay);
+    }
     let _ = crate::runtime::drain_pending_input();
     crate::runtime::run(app)
+}
+
+/// Test instrumentation: `JUNIE_TUI_START_DELAY_MS` holds [`run`] for that
+/// long before it discards queued input, so a PTY test can type keys
+/// "before startup" deterministically
+/// (`tests/visual_baseline/startup_input.rs`). Unset in normal use.
+fn start_delay() -> Option<std::time::Duration> {
+    std::env::var("JUNIE_TUI_START_DELAY_MS")
+        .ok()?
+        .parse()
+        .ok()
+        .map(std::time::Duration::from_millis)
 }
 
 /// Implement [`Application`](crate::runtime::Application) for an app struct
