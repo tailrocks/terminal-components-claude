@@ -2114,7 +2114,11 @@ impl Screen for CapsuleScreen {
         Outcome::Consumed
     }
 
-    fn on_press(&mut self, _id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_press(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        // a menu-bar title opens on the press (MenuBar::open_on)
+        if self.menubar.owns(id) && self.menubar.on_press(id).0 != Outcome::Ignored {
+            return Outcome::Changed;
+        }
         // anchor a text selection on the press so the drag that follows can
         // extend it; the release completes the click
         if let Some(pid) = self.pane_at(pos) {
