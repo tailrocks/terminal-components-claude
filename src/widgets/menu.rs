@@ -115,6 +115,10 @@ pub struct ContextMenu {
     /// Narrowest label column in cells (the frame and gutters add 6).
     /// Default 8.
     pub min_width: u16,
+    /// A control whose rectangle this frame becomes the anchor when it is
+    /// registered (a keyboard-opened context menu follows its cursor row);
+    /// `anchor` is the fallback. See [`ContextMenu::anchor_control`].
+    pub anchor_to: Option<WidgetId>,
 }
 
 impl ContextMenu {
@@ -139,6 +143,7 @@ impl ContextMenu {
             reveal: None,
             edge_margin: 1,
             min_width: 8,
+            anchor_to: None,
         }
     }
 
@@ -173,6 +178,14 @@ impl ContextMenu {
     /// Anchor at a pointer position (a context click).
     pub fn at(self, pos: Position) -> Self {
         self.anchor(Rect::new(pos.x, pos.y, 1, 1), Placement::Below)
+    }
+
+    /// Anchor below the control `id` as drawn this frame (a cursor row,
+    /// a cell, a tab), falling back to `fallback` when it is not drawn
+    /// before the menu renders.
+    pub fn anchor_control(mut self, id: WidgetId, fallback: Rect) -> Self {
+        self.anchor_to = Some(id);
+        self.anchor(fallback, Placement::Below)
     }
 
     pub fn title(mut self, t: impl Into<String>) -> Self {
@@ -327,6 +340,9 @@ impl ContextMenu {
     /// State changes happen here, so [`ContextMenu::paint`] can run later
     /// (as an overlay) on a copy.
     fn prepare(&mut self, screen: Rect, ctx: &RenderCtx) {
+        if let Some(r) = self.anchor_to.and_then(|id| ctx.hits.area_of(id)) {
+            self.anchor = r;
+        }
         self.area = self.placed(screen).intersection(screen);
         if let Some(h) = ctx.interaction.live_hover()
             && let Some(i) = self.locate(h)
