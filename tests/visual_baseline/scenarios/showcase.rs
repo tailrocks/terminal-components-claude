@@ -115,7 +115,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/flows/buttons/row-wrapped", Bin::Showcase, &["--page", "buttons", "--opt", "buttons.row_width=30", "--opt", "buttons.row_overflow=wrap"], BOOT).pending(),
     Root::new("showcase/elements/buttons/tool-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Format").pending(),
     Root::new("showcase/sections/buttons-states", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
-    Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
+    Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:Edit entry"]).pending(),
+    // SC8: the Text areas sections, the custom text key map, wrapped labels
+    Root::new("showcase/sections/textareas-options", Bin::Showcase, &["--page", "textareas"], BOOT).sends(&["tab", "2", "wait:Esc reverts"]).pending(),
+    Root::new("showcase/sections/textareas-states", Bin::Showcase, &["--page", "textareas"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/flows/inputs/custom-keymap", Bin::Showcase, &["--page", "inputs", "--opt", "inputs.text_keymap=custom"], BOOT).pending(),
+    Root::new("showcase/flows/inputs/wrapped-labels", Bin::Showcase, &["--page", "inputs", "--opt", "inputs.wrap_label=on"], BOOT).pending(),
     Root::new("showcase/sections/inputs-states", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     // SC11: Columns and Basic table options (their option tables) and States.
     Root::new("showcase/sections/columns-options", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["tab", "2", "wait:Header menu labels"]).pending(),
