@@ -30,7 +30,7 @@ use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::BlurAction;
-use crate::core::id::WidgetId;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::theme::{CursorStyle, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id, place_with, surface_for};
@@ -402,12 +402,16 @@ impl ChoiceEditor {
     }
 
     pub fn option_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::option_part(i))
+    }
+
+    fn option_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     /// The option index a widget id names.
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        (0..self.options.len()).find(|&i| self.option_id(i) == id)
+        self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
@@ -818,7 +822,7 @@ impl ChoiceEditor {
                 buf.set_string(nx, y, truncate(n, (note_w - 2) as usize), ns);
             }
             if !rs.disabled {
-                ctx.clickable(rid, row);
+                ctx.register_part(self.id, Self::option_part(i), row);
             }
         }
         let more_above = self.scroll > 0;
@@ -888,7 +892,7 @@ impl ChoiceEditor {
                 }
                 buf.set_string(x + 1, inner.y, &o.label, ls);
                 if !rs.disabled {
-                    ctx.clickable(rid, seg);
+                    ctx.register_part(me.id, Self::option_part(i), seg);
                 }
                 x += sw;
                 if i + 1 < me.options.len() && x < inner.right() {

@@ -7,7 +7,8 @@
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::hit::PartMap;
+use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
@@ -58,6 +59,8 @@ struct Special {
 }
 
 pub struct CleanupPage {
+    /// The list rows registered in the last render, by id.
+    parts: PartMap,
     /// Filter: one category id, or a special recursive cleanup.
     pub filter: Option<String>,
     cats: Vec<InsightCategory>,
@@ -81,9 +84,15 @@ pub struct CleanupPage {
     pub reviewed: Option<u64>,
 }
 
+/// List row `i` as a part of [`LIST`].
+fn row_part(i: usize) -> PartRef {
+    PartRef::item(Part::ROW, ItemKey::index(i))
+}
+
 impl CleanupPage {
     pub fn new(filter: Option<&str>) -> Self {
         Self {
+            parts: PartMap::default(),
             filter: filter.map(str::to_owned),
             cats: vec![],
             special: None,
@@ -583,6 +592,7 @@ impl CleanupPage {
     }
 
     fn render_list(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
+        self.parts.clear();
         let t = ctx.theme;
         let bg = t.canvas;
         let focused = ctx.interaction.focused(LIST);
@@ -607,7 +617,7 @@ impl CleanupPage {
                 ),
                 Row::Category(ci) => {
                     let c = &self.cats[*ci];
-                    let rid = LIST.child(i);
+                    let rid = LIST.part(row_part(i));
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     s.selected = i == self.cursor;
@@ -687,12 +697,12 @@ impl CleanupPage {
                             }),
                         );
                     }
-                    ctx.clickable(rid, row);
+                    ctx.part(&mut self.parts, LIST, row_part(i), row);
                 }
                 Row::Candidate(ci, ki) => {
                     let c = &self.cats[*ci];
                     let k = &c.candidates[*ki];
-                    let rid = LIST.child(i);
+                    let rid = LIST.part(row_part(i));
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     s.selected = i == self.cursor;
@@ -770,7 +780,7 @@ impl CleanupPage {
                             plain.fg(if ineligible { quiet } else { t.text_faint }),
                         );
                     }
-                    ctx.clickable(rid, row);
+                    ctx.part(&mut self.parts, LIST, row_part(i), row);
                 }
             }
         }
@@ -860,7 +870,7 @@ impl CleanupPage {
     }
 
     fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.scroll.visible_range().find(|&i| LIST.child(i) == id)
+        self.parts.index(id, Part::ROW)
     }
 
     /// The context menu of row `row` (a category or a candidate): the
