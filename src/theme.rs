@@ -1882,6 +1882,9 @@ pub struct Strings {
     /// Its body; `{}` is what would be lost.
     /// `Save before leaving? {} would be lost.`
     pub leave_unsaved_body: &'static str,
+    /// The body when leaving can only discard; `{}` is what would be
+    /// lost. `{} will be discarded.`
+    pub leave_discard_body: &'static str,
     /// What would be lost, uncounted. `Unsaved changes`.
     pub leave_unsaved_some: &'static str,
     /// What would be lost, one. `1 unsaved change`.
@@ -1981,6 +1984,7 @@ impl Strings {
         grid_row_deleted: "This row is marked for deletion",
         leave_unsaved_title: "Unsaved changes",
         leave_unsaved_body: "Save before leaving? {} would be lost.",
+        leave_discard_body: "{} will be discarded.",
         leave_unsaved_some: "Unsaved changes",
         leave_unsaved_one: "1 unsaved change",
         leave_unsaved_many: "{} unsaved changes",
