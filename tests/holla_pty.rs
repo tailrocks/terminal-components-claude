@@ -276,7 +276,8 @@ fn frame(args: &[&str], env: &[(&str, Option<&str>)]) -> (Sgr, String) {
     std::thread::sleep(Duration::from_millis(150));
     pty.send(b"\x1b[Z");
     std::thread::sleep(Duration::from_millis(150));
-    pty.send(b"\x1b");
+    // Ctrl+Q on a clean shell quits (Esc never quits, keyboard audit #21)
+    pty.send(b"\x11");
     let code = pty.wait_exit();
     assert_eq!(code, 0, "clean exit: {:?}", pty.text());
     let text = pty.text();
@@ -392,7 +393,8 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
     // discovery ticks keep landing while the flood drains: the frame changes
     pty.wait_for("a redraw during the flood", |t| t.len() > before + 64);
     // a quit queued behind the flood is honoured once the flood is consumed
-    pty.send(b"\x1b");
+    // (Ctrl+Q: Esc never quits, keyboard audit #21)
+    pty.send(b"\x11");
     let code = pty.wait_exit();
     let elapsed = start.elapsed();
     assert_eq!(code, 0, "clean exit after the flood: {:?}", pty.text());

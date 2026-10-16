@@ -602,7 +602,8 @@ fn finder_file_and_modal_mouse_contracts() {
     assert!(modal.app.modals.is_empty(), "outside click left Text modal");
 
     let mut quit = H::new(Scenario::ActivitiesMulti, Motion::Paused, 40, 120, 40);
-    quit.key(KeyCode::Esc);
+    // Esc never quits; Ctrl+Q asks while activities run
+    quit.ctrl(KeyCode::Char('q'));
     assert!(!quit.app.modals.is_empty());
     let p = outside(&quit);
     quit.mouse(MouseKind::Down, p.x, p.y);

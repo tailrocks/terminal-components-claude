@@ -1671,8 +1671,9 @@ impl Screen for FinderPage {
             cx.go(Go::Pop);
             Outcome::Changed
         } else {
-            cx.go(Go::Quit);
-            Outcome::Changed
+            // the root has nowhere to go back to; the shell decides whether
+            // Esc may quit (`QuitKeys::esc_quits`, off by default)
+            Outcome::Ignored
         }
     }
 }

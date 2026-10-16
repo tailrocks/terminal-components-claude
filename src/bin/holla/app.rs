@@ -12,6 +12,7 @@ use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, Stakes};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::text::{truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
@@ -143,6 +144,9 @@ pub struct App {
     pub quitting: bool,
     /// The query that led to the last invocation, for query learning.
     pub last_query: Option<String>,
+    /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Ctrl+C
+    /// (after the page) and Ctrl+Q; Esc never quits.
+    pub quit_keys: QuitKeys,
 }
 
 impl App {
@@ -180,6 +184,8 @@ impl App {
             clipboard_gen: 0,
             quitting: false,
             last_query: None,
+            // `q` is a search letter here, never a quit key
+            quit_keys: QuitKeys::DEFAULT.letter(None),
         };
         app.start();
         // frames advance through the scripted timeline, then freeze
@@ -602,7 +608,7 @@ impl App {
     fn on_key(&mut self, key: Key) -> Outcome {
         if self.too_small {
             if key.is_char('q') || key.ctrl_char('c') {
-                self.quit = true;
+                self.request_quit();
             }
             return Outcome::Consumed;
         }
@@ -660,13 +666,26 @@ impl App {
                 self.open_help();
                 return Outcome::Changed;
             }
-            KeyCode::Char('q') if key.ctrl() => {
-                self.open_quit_confirm();
-                return Outcome::Changed;
-            }
-            KeyCode::Char('c') if key.ctrl() => {
-                self.quit = true;
-                return Outcome::Consumed;
+            KeyCode::Char('q' | 'c') if key.ctrl() => {
+                let kc = KeyContext {
+                    text_focus: typing,
+                    ..KeyContext::default()
+                };
+                match self.quit_keys.classify(&key, kc) {
+                    Some(LeaveKey::Quit) => {
+                        // the page has the first chance at Ctrl+C (the Plan
+                        // tab cancels its remaining steps)
+                        if key.ctrl_char('c') {
+                            let o = self.with_top(|s, w, cx| s.on_key(&key, w, cx));
+                            if o != Outcome::Ignored {
+                                return o;
+                            }
+                        }
+                        self.request_quit();
+                        return Outcome::Changed;
+                    }
+                    Some(LeaveKey::Copy) | None => {}
+                }
             }
             KeyCode::Char('g') if key.ctrl() => {
                 self.open_activities();
@@ -753,7 +772,20 @@ impl App {
                     self.activate_tab(0);
                     return Outcome::Changed;
                 }
-                self.with_top(|s, w, cx| s.on_esc_top(w, cx))
+                let o = self.with_top(|s, w, cx| s.on_esc_top(w, cx));
+                if o != Outcome::Ignored {
+                    return o;
+                }
+                let kc = KeyContext {
+                    text_focus: typing,
+                    ..KeyContext::default()
+                };
+                if self.quit_keys.classify(&key, kc) == Some(LeaveKey::Quit) {
+                    self.request_quit();
+                } else {
+                    self.set_status("Esc never quits · Ctrl+Q quits", Tone::Secondary);
+                }
+                Outcome::Changed
             }
             _ => Outcome::Ignored,
         }
@@ -808,7 +840,7 @@ impl App {
                 }
             }
             "Close tab" => self.go(Go::CloseTab),
-            "Quit" => self.open_quit_confirm(),
+            "Quit" => self.request_quit(),
             "Here" => self.activate_tab(0),
             "Activities…" => self.open_activities(),
             "Parent scope" => self.go(Go::Scope(Scope::Parent)),
@@ -907,10 +939,7 @@ impl App {
                             "Ctrl+↑ / Ctrl+↓",
                             "scope outward (parent, system) / inward (children)",
                         ),
-                        (
-                            "Esc",
-                            "clear query › scope back to here › back a page › quit",
-                        ),
+                        ("Esc", "clear query › scope back to here › back a page"),
                         (
                             "Aliases",
                             "gp pull · du disk usage · test the test task here · d then u · dc docker cleanup",
@@ -970,7 +999,10 @@ impl App {
                     "Ctrl+G",
                     "activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close tab",
                 ),
-                ("Ctrl+Q", "quit with confirmation · Ctrl+C quit now"),
+                (
+                    "Ctrl+Q",
+                    "quit · asks only while work runs · Ctrl+C the same",
+                ),
                 (
                     "Mouse",
                     "click selects · double-click runs · right-click alternatives · wheel scrolls under the pointer",
@@ -1000,6 +1032,34 @@ impl App {
         )
         .width(74);
         self.push_modal(Modal::Text(m), ModalTag::new("why"));
+    }
+
+    /// What quitting now would stop: live activities and a running
+    /// cleanup. A clean quit asks nothing.
+    pub fn quit_stakes(&self) -> Stakes {
+        let n = self.world.live_activities();
+        if n > 0 || self.world.cleanup_job.is_some() {
+            Stakes::Running {
+                what: crate::screens::plural(n.max(1), "activity", "activities"),
+            }
+        } else {
+            Stakes::Clean
+        }
+    }
+
+    /// Every quit (Ctrl+Q, Ctrl+C, the menu, Esc when allowed) goes
+    /// through here: a clean quit leaves at once, running work asks first.
+    fn request_quit(&mut self) {
+        if self.quitting {
+            self.set_status(
+                "Already stopping · the shell leaves when every process is gone",
+                Tone::Secondary,
+            );
+        } else if self.quit_stakes().is_clean() {
+            self.quit = true;
+        } else {
+            self.open_quit_confirm();
+        }
     }
 
     fn open_quit_confirm(&mut self) {
@@ -1924,18 +1984,6 @@ impl App {
             }
             Go::Restart(id) => self.run_derived(&format!("activity.{id}.restart"), ""),
             Go::CloseTab => self.request_close_tab(),
-            Go::Quit => {
-                if self.quitting {
-                    self.set_status(
-                        "Already stopping · the shell leaves when every process is gone",
-                        Tone::Secondary,
-                    );
-                } else if self.world.live_activities() > 0 {
-                    self.open_quit_confirm();
-                } else {
-                    self.quit = true;
-                }
-            }
             Go::Reload => {
                 self.reload_project_config();
                 self.enter_top();
