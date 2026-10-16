@@ -23,6 +23,8 @@ layer (see `AGENTS.md`), with a regression test, in its own commit.
 | `duplication-shell.md` | Duplicated shell logic across the four apps: routing, modals, focus, hints, help, quit |
 | `duplication-widgets.md` | Duplicated interaction and state logic inside the library widgets |
 | `duplication-screens.md` | Hand-built screen UI that belongs in library components |
+| `colour-showcase-tablepro.md` | Colour as meaning in showcase and tablepro: semantic roles, syntax and environment hues |
+| `colour-holla-jackin.md` | Colour as meaning in holla and jackin: live, done, health and quota states |
 
 The three duplication reviews are consolidated into one plan:
 [`docs/architecture/shared-components-plan.md`](../../architecture/shared-components-plan.md).
