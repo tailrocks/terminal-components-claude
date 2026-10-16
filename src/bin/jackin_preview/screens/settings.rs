@@ -1188,7 +1188,7 @@ impl Screen for SettingsScreen {
             })
             .collect();
         let active = self.tabs.active;
-        self.tabs = Tabs::with_items(TABS, items);
+        self.tabs.set_items(items);
         self.tabs.set_active(active);
         self.tabs.render(
             Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 2),

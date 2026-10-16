@@ -1771,6 +1771,15 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
+                // the tab strip scrolls one tab per notch, on either axis
+                if self.strip.owns(id) {
+                    let step = delta.signum();
+                    return if horizontal {
+                        self.strip.on_wheel(step, 0)
+                    } else {
+                        self.strip.on_wheel(0, step)
+                    };
+                }
                 let out = if horizontal {
                     self.with_top(|s, w, _| s.on_wheel_h(id, delta, m.pos, w))
                 } else {
@@ -3322,9 +3331,7 @@ impl App {
         self.draw_menu(header, buf, ctx);
         // tab strip
         let items = self.strip_items();
-        let first = self.strip.first;
-        self.strip = Tabs::with_items(TABS, items);
-        self.strip.first = first;
+        self.strip.set_items(items);
         self.strip.set_active(self.active);
         self.strip.render(strip, buf, ctx, t.canvas);
         // body
