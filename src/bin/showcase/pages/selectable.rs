@@ -22,7 +22,8 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{ClientPlatform, Outcome};
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::selection::SelectionMode;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
@@ -881,6 +882,86 @@ impl SelectablePage {
         }
     }
 
+    /// The page's pointer events: a secondary click opens the row menu;
+    /// the table takes its checkboxes, headers, cells, bar and wheel (a
+    /// click focuses it); a select opens on the press, follows the drag and
+    /// chooses on the release (press-drag-release); the fields, the toggle
+    /// and the buttons take their clicks.
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        if ev.is(Phase::Secondary) {
+            let cfg = self.menu.config;
+            let Some(req) = cfg.on_secondary(&mut self.table, ev.id, ev.pos()) else {
+                return Outcome::Ignored;
+            };
+            cx.focus.focus(self.table.id);
+            self.open_menu(req);
+            return Outcome::Changed;
+        }
+        let click = ev.is(Phase::Click);
+        let mut routed = false;
+        let out = self.table_input(cx, |t| match t.route(ev) {
+            Some(r) => {
+                routed = true;
+                r.into_parts()
+            }
+            None => (Outcome::Ignored, None),
+        });
+        if routed {
+            if click && ev.bar.is_none() && out != Outcome::Ignored {
+                cx.focus.focus(self.table.id);
+            }
+            return out;
+        }
+        for input in [&mut self.name, &mut self.email, &mut self.notes] {
+            if let Some(r) = input.route(ev) {
+                if click {
+                    cx.focus.focus(input.id);
+                }
+                return r.outcome();
+            }
+        }
+        for sel in self.selects() {
+            if let Some(r) = sel.route(ev) {
+                // the press that opens the list focuses the field (the
+                // release that would focus it is no click)
+                if (click || ev.is(Phase::Press)) && ev.id == sel.id {
+                    cx.focus.focus(sel.id);
+                }
+                // a wheel over the closed field passes on
+                if r.outcome() == Outcome::Ignored && ev.wheel().is_some() {
+                    break;
+                }
+                return r.outcome();
+            }
+        }
+        if let Some(r) = self.on_call.route(ev) {
+            return r.outcome();
+        }
+        let buttons = [
+            self.apply.route(ev),
+            self.revert.route(ev),
+            self.delete.route(ev),
+        ];
+        for (i, r) in buttons.into_iter().enumerate() {
+            let Some(r) = r else {
+                continue;
+            };
+            if r.into_action().is_some() {
+                match i {
+                    0 => self.do_apply(cx),
+                    1 => self.do_revert(cx),
+                    _ => self.ask_delete(cx),
+                }
+            }
+            return if click {
+                Outcome::Changed
+            } else {
+                Outcome::Ignored
+            };
+        }
+        Outcome::Ignored
+    }
+
     fn route_input(
         input: &mut TextInput,
         key: &junie_tui::core::event::Key,
@@ -1074,127 +1155,7 @@ impl Page for SelectablePage {
                 }
                 self.table.on_paste(text)
             }
-            PageEvent::Secondary { id, pos } => {
-                let cfg = self.menu.config;
-                let Some(req) = cfg.on_secondary(&mut self.table, *id, *pos) else {
-                    return Outcome::Ignored;
-                };
-                cx.focus.focus(self.table.id);
-                self.open_menu(req);
-                Outcome::Changed
-            }
-            PageEvent::Click { id, pos } => {
-                let id = *id;
-                if id == self.table.check_all_id() {
-                    cx.focus.focus(self.table.id);
-                    return self.table_input(cx, |t| t.on_click_check_all());
-                }
-                if let Some(d) = self.table.locate_check(id) {
-                    cx.focus.focus(self.table.id);
-                    return self.table_input(cx, |t| t.on_click_check(d));
-                }
-                if let Some(c) = self.table.locate_header(id) {
-                    cx.focus.focus(self.table.id);
-                    return self.table.on_click_header(c);
-                }
-                if let Some((row, col)) = self.table.locate(id) {
-                    cx.focus.focus(self.table.id);
-                    let (pos, mods) = (*pos, cx.mods);
-                    return self.table_input(cx, |t| {
-                        t.on_click_cell_with(row, col.unwrap_or(0), pos, mods)
-                    });
-                }
-                if scrollbar::is_bar_of(id, self.table.id) {
-                    return self.table.on_scrollbar(*pos);
-                }
-                for input in [&mut self.name, &mut self.email, &mut self.notes] {
-                    if id == input.id {
-                        cx.focus.focus(id);
-                        return input.on_click(*pos);
-                    }
-                }
-                for sel in self.selects() {
-                    if sel.owns(id) {
-                        if id == sel.id {
-                            cx.focus.focus(sel.id);
-                        }
-                        return sel.on_click(id).0;
-                    }
-                }
-                if id == self.on_call.id {
-                    return self.on_call.on_click();
-                }
-                if id == self.apply.id {
-                    if self.apply.on_click() {
-                        self.do_apply(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                if id == self.revert.id {
-                    if self.revert.on_click() {
-                        self.do_revert(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                if id == self.delete.id {
-                    if self.delete.on_click() {
-                        self.ask_delete(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Press { id, pos } if scrollbar::is_bar_of(*id, self.table.id) => {
-                self.table.on_scrollbar(*pos)
-            }
-            PageEvent::Drag { pressed, pos } if scrollbar::is_bar_of(*pressed, self.table.id) => {
-                self.table.on_bar_drag(*pressed, *pos)
-            }
-            // a select opens on the press, follows the drag and chooses
-            // on the release (press-drag-release)
-            PageEvent::Press { id, pos } => {
-                for sel in self.selects() {
-                    if sel.owns(*id) {
-                        // the press that opens the list focuses the field
-                        // (the release that would focus it is no click)
-                        if *id == sel.id {
-                            cx.focus.focus(sel.id);
-                        }
-                        return sel.on_press(*id, *pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                for sel in self.selects() {
-                    if sel.owns(*pressed) {
-                        return sel.on_drag(*pressed, *pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Release { pressed, pos } => {
-                for sel in self.selects() {
-                    if sel.owns(*pressed) {
-                        return sel.on_release(*pos).0;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                for sel in self.selects() {
-                    if sel.open && sel.owns(*id) {
-                        return sel.on_wheel(*delta);
-                    }
-                }
-                if self.table.owns(*id) {
-                    return self.table.on_wheel(*delta);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::WheelH { id, delta } if self.table.owns(*id) => {
-                self.table.on_wheel_h(*delta)
-            }
+            PageEvent::Pointer(p) => self.pointer(p, cx),
             PageEvent::DialogClosed { id, result, .. } if *id == DISCARD => {
                 let Some((sel, cursor)) = self.pending.take() else {
                     return Outcome::Changed;
