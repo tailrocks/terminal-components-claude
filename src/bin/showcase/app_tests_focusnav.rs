@@ -39,18 +39,8 @@ fn tab_moves_through_the_ring_and_the_page_reads_the_change_back() {
 
 #[test]
 fn a_removed_focused_tag_falls_back_per_the_shell_option() {
+    // the showcase shows the library default (`FocusFallback::Nearest`)
     let mut h = harness();
-    let beta = page(&h).tags[1].id;
-    h.focus(beta);
-    h.key(KeyCode::Delete);
-    let first = h.app.ring.first();
-    assert_eq!(
-        h.app.focus.current(),
-        first,
-        "default: the ring's first stop"
-    );
-    let mut h = harness();
-    h.opt("shell.focus_fallback=nearest");
     let (alpha, beta) = (page(&h).tags[0].id, page(&h).tags[1].id);
     h.focus(beta);
     h.key(KeyCode::Delete);
@@ -58,9 +48,27 @@ fn a_removed_focused_tag_falls_back_per_the_shell_option() {
     assert_eq!(
         h.app.focus.current(),
         Some(alpha),
-        "nearest: the stop before the removed one"
+        "default nearest: the stop before the removed one"
     );
     assert_eq!(h.bars(), 1);
+    let mut h = harness();
+    h.opt("shell.focus_fallback=first");
+    let beta = page(&h).tags[1].id;
+    h.focus(beta);
+    h.key(KeyCode::Delete);
+    let first = h.app.ring.first();
+    assert_eq!(h.app.focus.current(), first, "first: the ring's first stop");
+    assert_eq!(h.bars(), 1);
+}
+
+#[test]
+fn the_showcase_focus_fallback_is_the_library_default() {
+    let h = harness();
+    assert_eq!(
+        h.app.focus_fallback,
+        junie_tui::core::focus::FocusFallback::default(),
+        "the showcase shows library defaults unless an option says otherwise"
+    );
 }
 
 #[test]

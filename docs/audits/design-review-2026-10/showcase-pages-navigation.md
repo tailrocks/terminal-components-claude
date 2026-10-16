@@ -63,10 +63,22 @@ fix, with the reason.
    `shell.focus_fallback` policy and draws once more when focus moved.
    Proof: `app_tests_focusnav::a_removed_focused_tag_falls_back_per_the_shell_option`
    (one `▎` in the same frame).
-3. **The showcase keeps `FocusFallback::First` as its default**, the
-   library's is `Nearest`. Every other page assumes focus returns to the
-   sidebar when a page's control vanishes on navigation; `Nearest` is one
-   option away and is what the Focus & navigation page demonstrates.
+3. **Fixed: the showcase defaulted to `FocusFallback::First`**, the
+   library's default is `Nearest`; the showcase must show library
+   defaults. `shell.focus_fallback` now defaults to `nearest` and `first`
+   stays one option away. Switching showed a library defect: a click that
+   focused a control which cannot take focus (the disabled API token
+   field) sent `Nearest` to the stop before the previous focus, so another
+   field started editing. `Focus::ensure_valid_with` now keeps focus on the
+   control that last held it while that control is still in the ring
+   (`First` keeps its rule). Proof:
+   `core::focus::tests::focus_moved_onto_an_unfocusable_control_stays_where_it_was`,
+   `app_tests_focusnav::the_showcase_focus_fallback_is_the_library_default`,
+   `app_tests_focusnav::a_removed_focused_tag_falls_back_per_the_shell_option`
+   (default nearest, then `first`) and
+   `app_tests_coverage::inputs_paste_validation_and_disabled_field`, whose
+   last assertion changed from "nothing edits" (true under `First` only
+   because focus left for the sidebar) to "focus stays on Branch".
 4. **`Ctrl+click is right-click` has no option of its own.** It follows
    the client platform (`InputConfig::for_platform`), which
    `shell.platform` already sets; a separate auto/off/on option would
