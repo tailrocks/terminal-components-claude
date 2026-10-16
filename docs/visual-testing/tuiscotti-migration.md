@@ -10,9 +10,11 @@ The visual baseline suite (`tests/visual_baseline/`) runs on
 - **Driver.** Every capture is tuiscotti Workflow 2:
   `tui::Tui::new([CARGO_BIN_EXE_<bin>, args…])` with an explicit
   environment (`env_clear(true)`, `TERM=xterm-256color`,
-  `COLORTERM=truecolor`, `LANG`/`LC_ALL=C.UTF-8`, `TZ=UTC`, `HOME` under
-  `target/tuiscotti/home`, a minimal `PATH`, `HOLLA_NO_HISTORY=1`,
-  `NO_COLOR=1` only for `nocolor`, crate root as cwd). Readiness is a
+  `COLORTERM=truecolor`, `LANG`/`LC_ALL=C.UTF-8`, `TZ=UTC`,
+  `SHELL=/bin/sh`, a minimal `PATH`, `HOLLA_NO_HISTORY=1`, `NO_COLOR=1`
+  only for `nocolor`, and an emptied per-scenario
+  `target/tuiscotti/home/<name>` as both `HOME` and cwd; the default-run
+  check `isolation::env_isolation` proves nothing else leaks). Readiness is a
   content wait (a text `Locator` on physical rows), then
   `wait_stable_quiet(400 ms)`, then `render::frame_from_screen`. Argv,
   needles, send steps and timeouts are unchanged.
