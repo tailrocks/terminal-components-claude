@@ -441,7 +441,9 @@ pub struct TextViewport {
 pub enum ViewportAction {
     /// Toggle following the tail. Default `f`.
     ToggleFollow,
-    /// Copy the selection ([`ViewportEvent::Copy`]). Default `y`.
+    /// Copy the selection ([`ViewportEvent::Copy`]). Default Cmd+C where
+    /// the terminal delivers Cmd, and `y` (a hint names the first
+    /// deliverable).
     Copy,
     /// Select every retained line, ready for Copy. Default Cmd+A where the
     /// terminal delivers Cmd, and Ctrl+A ([`crate::core::keymap::SELECT_ALL`]).
@@ -452,6 +454,7 @@ impl Actions for ViewportAction {
     fn default_keymap() -> KeyMap<Self> {
         let mut map = vec![
             (KeyBinding::char('f'), ViewportAction::ToggleFollow),
+            (KeyBinding::cmd('c'), ViewportAction::Copy),
             (KeyBinding::char('y'), ViewportAction::Copy),
         ];
         map.extend(crate::core::keymap::select_all_bindings(
@@ -2830,5 +2833,50 @@ mod select_all_tests {
                 Outcome::Consumed
             );
         }
+    }
+}
+
+/// Cmd+C copies the selection, as `y` does; the hint names it only once
+/// the terminal delivers Cmd.
+#[cfg(test)]
+mod cmd_copy_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::core::keymap::hint_key;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::KeyModifiers as M;
+
+    #[test]
+    fn cmd_a_then_cmd_c_copies_and_the_hint_falls_back_to_y() {
+        let lines = (0..3)
+            .map(|i| vec![Span::plain(format!("line {i}"))])
+            .collect();
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines);
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 5));
+        v.render(Rect::new(0, 0, 30, 5), &mut buf, &mut ctx, t.canvas);
+        let cmd = |c| Key {
+            code: KeyCode::Char(c),
+            mods: M::SUPER,
+        };
+        v.on_key(&cmd('a'));
+        let (out, ev) = v.on_key(&cmd('c'));
+        assert_eq!(out, Outcome::Changed);
+        assert_eq!(
+            ev,
+            Some(ViewportEvent::Copy("line 0\nline 1\nline 2".into()))
+        );
+        assert_eq!(hint_key(&v.keymap, ViewportAction::Copy), Some("y"));
+        crate::core::keyboard::set_super_delivered(true);
+        let label = KeyBinding::cmd('c').label();
+        assert_eq!(
+            hint_key(&v.keymap, ViewportAction::Copy),
+            Some(label.as_str())
+        );
     }
 }

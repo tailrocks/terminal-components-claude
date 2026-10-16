@@ -655,13 +655,44 @@ impl CodeEditor {
         }
     }
 
+    /// The text command `key` is bound to in the editor's text key map
+    /// (its own, or the preset's [`FieldKeys::text_keymap`]).
+    fn text_cmd(&self, key: &Key) -> Option<crate::core::edit::TextCmd> {
+        match &self.text_keymap {
+            Some(map) => lookup(map, key),
+            None => lookup(&self.keys.text_keymap(), key),
+        }
+    }
+
     fn nav_key(&mut self, key: &Key) -> (Outcome, Option<EditorEvent>) {
-        // Select All works outside an edit too (a read-only document
-        // selects for Copy)
-        if matches!(self.edit_action(key), EditAction::SelectAll) {
-            self.buffer.select_all();
-            self.after_change();
-            return (Outcome::Changed, Some(EditorEvent::CursorMoved));
+        use crate::core::edit::TextCmd;
+        // The text commands work outside an edit too: Select All, Copy and
+        // the Cmd caret moves select and copy from a read-only document;
+        // Cmd+X/V/Z pick the edit up where it can edit. The preset's
+        // control keys for those (Ctrl+W, Ctrl+Y, Ctrl+Z) and a Copy with
+        // nothing selected stay with the page, as before.
+        if let Some(cmd) = self.text_cmd(key) {
+            match cmd {
+                TextCmd::Cut | TextCmd::Paste | TextCmd::Undo | TextCmd::Redo if !key.cmd() => {}
+                TextCmd::Copy if self.buffer.selected_text().is_none() => {}
+                TextCmd::Cut | TextCmd::Paste | TextCmd::Undo | TextCmd::Redo => {
+                    if self.read_only {
+                        return (Outcome::Consumed, None);
+                    }
+                    self.begin_edit();
+                    return self.on_key(key);
+                }
+                _ => {
+                    let action = crate::widgets::field_common::text_cmd_action(cmd, true);
+                    if apply_edit(&mut self.buffer, &mut self.undo, action, key.code, true)
+                        .is_none()
+                    {
+                        return (Outcome::Ignored, None);
+                    }
+                    self.after_change();
+                    return (Outcome::Changed, Some(EditorEvent::CursorMoved));
+                }
+            }
         }
         if let Some(action) = lookup(&self.keymap, key) {
             return self.on_action(action);

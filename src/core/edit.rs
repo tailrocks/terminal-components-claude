@@ -68,9 +68,14 @@ impl FocusSelect {
 /// The control-key preset of text fields.
 ///
 /// Both presets share the platform-neutral keys: arrows, Home/End,
-/// Backspace/Delete, Ctrl/Alt+arrows by word, Ctrl+Z undo and
-/// Ctrl+Shift+Z redo, and Cmd+A select all wherever the terminal delivers
-/// Cmd (the kitty keyboard protocol, [`crate::core::keyboard`]).
+/// Backspace/Delete, Ctrl/Alt+arrows by word, Alt+Backspace delete word,
+/// Ctrl+Z undo and Ctrl+Shift+Z redo. Both also answer the macOS standard
+/// editing chords wherever the terminal delivers Cmd (the kitty keyboard
+/// protocol, [`crate::core::keyboard`]; [`CMD_TEXT_KEYS`]): Cmd+A select
+/// all, Cmd+C/X/V copy, cut and paste, Cmd+Z undo, Cmd+Shift+Z redo,
+/// Cmd+←/→ line start and end, Cmd+↑/↓ text start and end (multi-line),
+/// the arrows with Shift selecting. Cmd never conflicts with a readline
+/// key, so the chords are additive to both presets.
 ///
 /// The default follows the client platform ([`Self::for_platform`]):
 /// macOS fields answer the Cocoa bindings, where Ctrl+A is line start and
@@ -81,7 +86,7 @@ pub enum FieldKeys {
     /// The Cocoa text-system bindings macOS fields answer to: Ctrl+A/E
     /// line start/end, Ctrl+K kill to end, Ctrl+U kill to start, Ctrl+W
     /// delete the word (cut the selection when there is one), Ctrl+Y yank,
-    /// Alt+B/F by word, Ctrl+L select all.
+    /// Alt+W copy, Alt+B/F by word, Ctrl+L select all.
     Emacs,
     /// Windows and Linux desktop bindings: Ctrl+A select all, Ctrl+C copy,
     /// Ctrl+X cut, Ctrl+V paste, Ctrl+Y redo. Also the profile for a macOS
@@ -99,20 +104,81 @@ impl FieldKeys {
         }
     }
 
-    /// The preset's text commands: Cmd+A, then Ctrl+L ([`Self::Emacs`]) or
-    /// Ctrl+A ([`Self::Desktop`]) select all. A hint names the first
-    /// binding the terminal delivers ([`crate::core::keymap::hint_key`]).
+    /// The preset's text commands: the Cmd chords first ([`CMD_TEXT_KEYS`],
+    /// the same under both presets), then the preset's own control keys
+    /// (Ctrl+L select all, Alt+W copy, Ctrl+W cut, Ctrl+Y paste under
+    /// [`Self::Emacs`]; Ctrl+A, Ctrl+C, Ctrl+X, Ctrl+W cut, Ctrl+V and
+    /// Ctrl+Y redo under [`Self::Desktop`]), then Ctrl+Z undo and
+    /// Ctrl+Shift+Z redo. A hint names the first binding the terminal
+    /// delivers ([`crate::core::keymap::hint_key`]): the Cmd chord once Cmd
+    /// is confirmed, else the preset's key.
     pub fn text_keymap(self) -> KeyMap<TextCmd> {
-        let preset = match self {
-            Self::Emacs => KeyBinding::ctrl('l'),
-            Self::Desktop => KeyBinding::ctrl('a'),
-        };
-        vec![
-            (KeyBinding::cmd('a'), TextCmd::SelectAll),
-            (preset, TextCmd::SelectAll),
-        ]
+        let mut map: KeyMap<TextCmd> = CMD_TEXT_KEYS.to_vec();
+        match self {
+            Self::Emacs => map.extend([
+                (KeyBinding::ctrl('l'), TextCmd::SelectAll),
+                (KeyBinding::alt('w'), TextCmd::Copy),
+                (KeyBinding::ctrl('w'), TextCmd::Cut),
+                (KeyBinding::ctrl('y'), TextCmd::Paste),
+            ]),
+            Self::Desktop => map.extend([
+                (KeyBinding::ctrl('a'), TextCmd::SelectAll),
+                (KeyBinding::ctrl('c'), TextCmd::Copy),
+                (KeyBinding::ctrl('x'), TextCmd::Cut),
+                (KeyBinding::ctrl('w'), TextCmd::Cut),
+                (KeyBinding::ctrl('v'), TextCmd::Paste),
+                (KeyBinding::ctrl('y'), TextCmd::Redo),
+            ]),
+        }
+        map.extend([
+            // Shift+Z first: the plain Ctrl+Z binding ignores Shift
+            (KeyBinding::ctrl('z').shift(), TextCmd::Redo),
+            (KeyBinding::ctrl('Z'), TextCmd::Redo),
+            (KeyBinding::ctrl('z'), TextCmd::Undo),
+        ]);
+        map
     }
 }
+
+/// The macOS standard editing chords every text control answers under
+/// both [`FieldKeys`] presets, where the terminal delivers Cmd: Cmd+A,
+/// Cmd+C/X/V, Cmd+Shift+Z redo (listed before Cmd+Z, which ignores
+/// Shift), Cmd+Z, Cmd+←/→ and Cmd+↑/↓, and the arrows with Shift
+/// selecting.
+pub const CMD_TEXT_KEYS: [(KeyBinding, TextCmd); 15] = {
+    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+    const CMD: KeyModifiers = KeyModifiers::SUPER;
+    const CMD_SHIFT: KeyModifiers = KeyModifiers::SUPER.union(KeyModifiers::SHIFT);
+    [
+        (KeyBinding::cmd('a'), TextCmd::SelectAll),
+        (KeyBinding::cmd('c'), TextCmd::Copy),
+        (KeyBinding::cmd('x'), TextCmd::Cut),
+        (KeyBinding::cmd('v'), TextCmd::Paste),
+        (KeyBinding::cmd('z').shift(), TextCmd::Redo),
+        (KeyBinding::cmd('Z'), TextCmd::Redo),
+        (KeyBinding::cmd('z'), TextCmd::Undo),
+        (KeyBinding::new(KeyCode::Left, CMD), TextCmd::LineStart),
+        (KeyBinding::new(KeyCode::Right, CMD), TextCmd::LineEnd),
+        (KeyBinding::new(KeyCode::Up, CMD), TextCmd::DocStart),
+        (KeyBinding::new(KeyCode::Down, CMD), TextCmd::DocEnd),
+        (
+            KeyBinding::new(KeyCode::Left, CMD_SHIFT),
+            TextCmd::SelectToLineStart,
+        ),
+        (
+            KeyBinding::new(KeyCode::Right, CMD_SHIFT),
+            TextCmd::SelectToLineEnd,
+        ),
+        (
+            KeyBinding::new(KeyCode::Up, CMD_SHIFT),
+            TextCmd::SelectToDocStart,
+        ),
+        (
+            KeyBinding::new(KeyCode::Down, CMD_SHIFT),
+            TextCmd::SelectToDocEnd,
+        ),
+    ]
+};
 
 impl Default for FieldKeys {
     /// [`Self::for_platform`] for [`ClientPlatform::current`].
@@ -123,11 +189,39 @@ impl Default for FieldKeys {
 
 /// A text command a key can be bound to, on top of a [`FieldKeys`]
 /// preset. A text control's `text_keymap(..)` builder replaces the
-/// preset's bindings ([`FieldKeys::text_keymap`]).
+/// preset's bindings ([`FieldKeys::text_keymap`]); the readline keys
+/// (Ctrl+A/E/K/U/H, Alt+B/F) stay with the preset.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextCmd {
     /// Select the whole value (Cmd+A; Ctrl+A or Ctrl+L per preset).
     SelectAll,
+    /// Copy the selection (Cmd+C; Ctrl+C or Alt+W per preset).
+    Copy,
+    /// Copy the selection, then delete it (Cmd+X; Ctrl+X or Ctrl+W).
+    Cut,
+    /// Insert the clipboard's text (Cmd+V; Ctrl+V or Ctrl+Y per preset).
+    Paste,
+    /// Step back one edit (Cmd+Z, Ctrl+Z).
+    Undo,
+    /// Re-apply an undone edit (Cmd+Shift+Z, Ctrl+Shift+Z; Ctrl+Y under
+    /// [`FieldKeys::Desktop`]).
+    Redo,
+    /// Caret to the start of the line (Cmd+←).
+    LineStart,
+    /// Caret to the end of the line (Cmd+→).
+    LineEnd,
+    /// Caret to the start of the text (Cmd+↑; multi-line controls only).
+    DocStart,
+    /// Caret to the end of the text (Cmd+↓; multi-line controls only).
+    DocEnd,
+    /// Extend the selection to the line start (Cmd+Shift+←).
+    SelectToLineStart,
+    /// Extend the selection to the line end (Cmd+Shift+→).
+    SelectToLineEnd,
+    /// Extend the selection to the text start (Cmd+Shift+↑; multi-line).
+    SelectToDocStart,
+    /// Extend the selection to the text end (Cmd+Shift+↓; multi-line).
+    SelectToDocEnd,
 }
 
 impl Actions for TextCmd {

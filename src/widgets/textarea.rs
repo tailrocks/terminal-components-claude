@@ -14,7 +14,7 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use crate::widgets::field_common::{
     Applied, EditAction, PointerField, PointerSelect, PressState, apply_edit, click_select,
-    drag_select, edit_key_with, press_select,
+    drag_select, edit_key_with, paste_clipboard, press_select,
 };
 use crate::widgets::input::InputEvent;
 use crate::widgets::scrollbar;
@@ -316,6 +316,11 @@ impl TextArea {
                 self.begin_edit();
                 self.buffer.select_all();
                 return (Outcome::Changed, None);
+            } else if matches!(self.edit_action(key), EditAction::Paste) {
+                // Paste (Cmd+V, the preset's key) goes the bracketed-paste
+                // way, which picks the edit up where typing would
+                let o = paste_clipboard(|t| self.on_paste(t));
+                return (o, (o == Outcome::Changed).then_some(InputEvent::Changed));
             } else if entry != EditEntry::Explicit
                 && let KeyCode::Char(c) = key.code
                 && !key.chord()
