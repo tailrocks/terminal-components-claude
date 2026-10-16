@@ -265,6 +265,7 @@ impl GridPage {
             Some(GridEvent::Activated(r)) => cx.status(format!("Row {} activated", r + 1)),
             Some(GridEvent::LeaveForward) => cx.focus_next(),
             Some(GridEvent::LeaveBackward) => cx.focus_prev(),
+            Some(GridEvent::ReadOnly { reason }) => cx.status(reason),
             Some(GridEvent::SortRequested(_)) | None => {}
         }
     }
@@ -402,13 +403,17 @@ impl Page for GridPage {
         if focus.is_some_and(|f| self.grid.bar_ids().contains(&f)) {
             return vec![("Enter", "Activate"), ("Tab", "Next")];
         }
-        vec![
-            ("↑↓←→", "Cell"),
-            ("Enter", "Edit"),
+        let mut h = vec![("↑↓←→", "Cell")];
+        // Edit only where Enter edits (keyboard audit #25)
+        if self.grid.cell_editable() {
+            h.push(("Enter", "Edit"));
+        }
+        h.extend([
             ("s", "Sort"),
             ("Space", "Select row"),
             ("+ -", "Insert / delete"),
             ("u", "Undo"),
-        ]
+        ]);
+        h
     }
 }
