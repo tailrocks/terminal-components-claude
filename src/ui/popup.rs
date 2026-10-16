@@ -4,13 +4,62 @@
 //! nothing beneath it is clickable. Unlike a dialog it does not dim the page
 //! and does not necessarily trap focus: the owner decides which keys it
 //! swallows.
+//!
+//! Dismissal is a policy, not page code: [`Dismiss`] says whether Esc and a
+//! click outside close a popup or a dialog. A popup that light-dismisses
+//! registers a backdrop region over the whole screen, owned by its widget
+//! ([`backdrop_id`]), so a click anywhere outside reaches the owner instead
+//! of falling into a dead zone under the hit barrier.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 
+use crate::core::id::WidgetId;
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
+
+/// How a popup or a dialog may be closed without choosing anything.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Dismiss {
+    /// Esc closes it.
+    pub escape: bool,
+    /// A click outside it (on the page, or on a dialog's dimmed backdrop)
+    /// closes it. The click is consumed: it does not also activate what is
+    /// underneath, as with desktop menus and popovers.
+    pub outside_click: bool,
+}
+
+impl Dismiss {
+    /// Esc and an outside click both close (menus, selects, plain dialogs).
+    pub const LIGHT: Self = Self {
+        escape: true,
+        outside_click: true,
+    };
+    /// Only Esc closes: a stray click cannot throw away a decision in
+    /// progress (destructive confirmations, typed acknowledgements).
+    pub const ESCAPE: Self = Self {
+        escape: true,
+        outside_click: false,
+    };
+    /// Only an explicit action closes it.
+    pub const NEVER: Self = Self {
+        escape: false,
+        outside_click: false,
+    };
+}
+
+impl Default for Dismiss {
+    fn default() -> Self {
+        Self::LIGHT
+    }
+}
+
+/// The id a light-dismiss backdrop registers for `owner`. A completed click
+/// on it means "clicked outside the popup".
+pub const fn backdrop_id(owner: WidgetId) -> WidgetId {
+    owner.sub("popup.backdrop")
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Placement {
@@ -21,7 +70,10 @@ pub enum Placement {
 }
 
 /// Compute the popup rectangle for a desired size next to `anchor` inside
-/// `screen`. Never returns a rect outside the screen.
+/// `screen`. Never returns a rect outside the screen. An anchored popup
+/// never covers its anchor: it goes below, flips above, or, when neither
+/// side has the full height, takes the roomier side and gets shorter (the
+/// owner scrolls its content).
 pub fn place(screen: Rect, anchor: Rect, width: u16, height: u16, placement: Placement) -> Rect {
     let width = width.min(screen.width).max(1);
     let height = height.min(screen.height).max(1);
@@ -37,14 +89,19 @@ pub fn place(screen: Rect, anchor: Rect, width: u16, height: u16, placement: Pla
             )
         }
         Placement::Below => {
-            let below = anchor.bottom();
+            let below = anchor.bottom().clamp(screen.y, screen.bottom());
             let room_below = screen.bottom().saturating_sub(below);
-            let y = if room_below >= height {
-                below
-            } else if anchor.y >= screen.y + height {
-                anchor.y - height
+            let room_above = anchor.y.saturating_sub(screen.y).min(screen.height);
+            let (y, height) = if room_below >= height {
+                (below, height)
+            } else if room_above >= height {
+                (anchor.y - height, height)
+            } else if room_below >= room_above && room_below > 0 {
+                (below, room_below)
+            } else if room_above > 0 {
+                (screen.y, room_above)
             } else {
-                screen.bottom().saturating_sub(height)
+                (screen.bottom().saturating_sub(height), height)
             };
             let x = anchor
                 .x
@@ -59,6 +116,19 @@ pub fn place(screen: Rect, anchor: Rect, width: u16, height: u16, placement: Pla
 /// too fussy: popups use the elevated plane and a subtle frame) and claim
 /// the hit barrier. Returns the inner content area.
 pub fn surface(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, t: &Theme) -> Rect {
+    surface_for(area, buf, ctx, t, None)
+}
+
+/// [`surface`] for a popup owned by `owner` under `dismiss`: with
+/// `outside_click`, every cell outside the popup becomes the owner's
+/// [`backdrop_id`] region, so a click outside reaches the owner.
+pub fn surface_for(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    t: &Theme,
+    owner: Option<(WidgetId, Dismiss)>,
+) -> Rect {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return area;
@@ -72,8 +142,12 @@ pub fn surface(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, t: &Theme) -> 
     // everything registered before the popup is unreachable by the mouse;
     // keyboard focus is left to the owner
     ctx.hits.push_barrier();
-    ctx.hits
-        .register(crate::core::id::WidgetId::of("popup.surface"), area);
+    if let Some((owner, dismiss)) = owner
+        && dismiss.outside_click
+    {
+        ctx.clickable(backdrop_id(owner), *buf.area());
+    }
+    ctx.hits.register(WidgetId::of("popup.surface"), area);
     area.inner(ratatui::layout::Margin::new(1, 1))
 }
 
@@ -98,6 +172,20 @@ mod tests {
         assert_eq!(place(screen, right, 40, 8, Placement::Below).right(), 100);
         let tall = place(screen, anchor, 40, 60, Placement::Below);
         assert!(tall.height <= 30);
+    }
+
+    #[test]
+    fn a_popup_that_fits_neither_side_shrinks_on_the_roomier_side_and_never_covers_the_anchor() {
+        let screen = Rect::new(0, 0, 80, 20);
+        // 12 rows below, 7 above: below wins, 12 rows tall
+        let anchor = Rect::new(4, 7, 20, 1);
+        let r = place(screen, anchor, 30, 16, Placement::Below);
+        assert_eq!(r, Rect::new(4, 8, 30, 12));
+        // 4 rows below, 15 above: above wins, 15 rows tall
+        let anchor = Rect::new(4, 15, 20, 1);
+        let r = place(screen, anchor, 30, 18, Placement::Below);
+        assert_eq!(r, Rect::new(4, 0, 30, 15));
+        assert!(r.bottom() <= anchor.y);
     }
 
     #[test]

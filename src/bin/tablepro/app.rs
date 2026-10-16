@@ -2107,6 +2107,7 @@ impl App {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
             self.draw(area, buf, &mut ctx);
+            ctx.flush_overlays(buf);
             cursor = ctx.cursor;
         }
         self.hits = hits;
@@ -2350,20 +2351,7 @@ impl App {
     ) {
         let t = ctx.theme;
         // dim like a dialog, keep the footer
-        let dim = Rect::new(
-            screen.x,
-            screen.y,
-            screen.width,
-            screen.height.saturating_sub(1),
-        );
-        for pos in dim.positions() {
-            if let Some(c) = buf.cell_mut(pos) {
-                let st = t.backdrop(c.style());
-                c.set_style(st);
-                c.modifier = ratatui::style::Modifier::empty();
-            }
-        }
-        ctx.begin_modal();
+        ctx.modal_backdrop(buf, screen);
         let w = 64u16.min(screen.width.saturating_sub(4));
         let h = 15u16.min(screen.height.saturating_sub(2));
         let area = junie_tui::ui::popup::place(

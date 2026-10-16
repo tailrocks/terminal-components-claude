@@ -838,7 +838,6 @@ impl App {
     fn draw_host_menu(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
         let t = self.theme;
         self.sync_host_menu();
-        self.host_menu.on_hover(ctx.interaction.hover);
         self.host_menu.render(area, buf, ctx, t.canvas);
         let used = self
             .host_menu
@@ -1759,10 +1758,8 @@ impl App {
         };
         match &mut top.modal {
             Modal::Dialog(d) => {
-                // typed acknowledgements and destructive prompts stay open
-                if matches!(d.body, DialogBody::Facts { ack: Some(_), .. }) {
-                    return Outcome::Consumed;
-                }
+                // the dialog's dismiss policy decides (typed acknowledgements
+                // and destructive confirmations ignore a backdrop click)
                 let out = d.on_click_outside();
                 if let Some(result) = d.result {
                     let action = match result {
@@ -2260,6 +2257,7 @@ impl App {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
             self.draw(area, buf, &mut ctx);
+            ctx.flush_overlays(buf);
             cursor = ctx.cursor;
         }
         self.hits = hits;
@@ -2410,9 +2408,6 @@ impl App {
             s.render(body, buf, ctx, &self.world);
         }
         self.draw_footer(footer, buf, false);
-        if Self::is_host(route) {
-            self.host_menu.render_open(area, buf, ctx);
-        }
     }
 
     fn construct_state(&self, route: Route) -> (&'static str, Tone) {

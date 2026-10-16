@@ -867,6 +867,7 @@ mod tests {
                 &mut ring,
             );
             m.render(area, &mut buf, &mut ctx, &self.world);
+            ctx.flush_overlays(&mut buf);
             self.ring = ring;
             buf
         }
