@@ -390,6 +390,42 @@ fn input_editing_commit_and_revert() {
 }
 
 #[test]
+fn clicking_another_field_commits_through_the_owner() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    let name_row = h.find_row("payments-gateway").unwrap();
+    let (x, _) = h.find("payments-gateway").unwrap();
+    h.click(x + 2, name_row);
+    assert!(h.app.pages[PageId::Inputs.index()].editing());
+    h.key(KeyCode::End);
+    h.type_str("-v3");
+    // a click on the Branch field moves focus: the name field commits on
+    // the event path and the page's Committed handler runs
+    let (bx, by) = h.find("feat/").unwrap();
+    h.click(bx, by);
+    assert!(
+        h.text().contains("Project name saved"),
+        "the owner saw Committed"
+    );
+    assert!(h.text().contains("payments-gateway-v3"));
+}
+
+#[test]
+fn clicking_dead_space_ends_the_edit_and_keeps_focus() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    let name_row = h.find_row("payments-gateway").unwrap();
+    let (x, _) = h.find("payments-gateway").unwrap();
+    h.click(x + 2, name_row);
+    h.type_str("X");
+    let focused = h.app.focus.current();
+    let (dx, dy) = h.find("State reference").unwrap();
+    assert_eq!(h.app.hits.hit(Position::new(dx, dy)), None, "dead space");
+    h.click(dx, dy);
+    assert!(!h.app.pages[PageId::Inputs.index()].editing(), "edit ended");
+    assert_eq!(h.app.focus.current(), focused, "focus stays on the field");
+    assert!(h.text().contains("Project name saved"));
+}
+
+#[test]
 fn textarea_scrolls_with_wheel_and_keys() {
     let mut h = Harness::new(120, 40, PageId::TextAreas);
     assert!(h.text().contains(" 1. Read"));

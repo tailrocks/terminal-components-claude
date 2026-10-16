@@ -114,6 +114,23 @@ impl Page for EditablePage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let PageEvent::Blur(ch) = ev {
+            if ch.from != self.table.id {
+                return Outcome::Ignored;
+            }
+            return match self.table.on_blur() {
+                Some(TableEvent::Committed { .. }) => {
+                    self.edits += 1;
+                    cx.status("Cell saved");
+                    Outcome::Changed
+                }
+                Some(TableEvent::Cancelled) => {
+                    cx.status("Edit cancelled");
+                    Outcome::Changed
+                }
+                _ => Outcome::Ignored,
+            };
+        }
         match ev {
             PageEvent::Key(key) => {
                 if !cx.focus.is(self.table.id) {

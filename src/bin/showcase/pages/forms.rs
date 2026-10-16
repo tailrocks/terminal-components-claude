@@ -3,6 +3,7 @@ use ratatui::layout::Rect;
 
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
+use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
@@ -226,6 +227,12 @@ impl Page for FormsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let PageEvent::Blur(ch) = ev {
+            return forward_blur(
+                *ch,
+                &mut [&mut self.name, &mut self.reviewer, &mut self.description],
+            );
+        }
         match ev {
             PageEvent::Tick => {
                 if let Submit::Busy(ticks) = self.state {

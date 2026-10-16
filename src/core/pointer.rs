@@ -82,6 +82,10 @@ pub struct PointerConfig {
     /// A secondary click outside an open popup. Default
     /// [`SecondaryOutside::Reopen`].
     pub secondary_outside: SecondaryOutside,
+    /// A press on dead space (no control under the pointer) ends the
+    /// focused control's edit in place ([`super::focus::Focus::end_edit`]),
+    /// as clicking a macOS window background ends field editing.
+    pub end_edit_on_dead_space: bool,
 }
 
 impl PointerConfig {
@@ -94,6 +98,7 @@ impl PointerConfig {
         hover_refresh_after_scroll: true,
         flash_ms: 140,
         secondary_outside: SecondaryOutside::Reopen,
+        end_edit_on_dead_space: true,
     };
 
     pub const fn focus_on(mut self, focus_on: FocusOn) -> Self {
@@ -122,6 +127,10 @@ impl PointerConfig {
     }
     pub const fn secondary_outside(mut self, policy: SecondaryOutside) -> Self {
         self.secondary_outside = policy;
+        self
+    }
+    pub const fn end_edit_on_dead_space(mut self, on: bool) -> Self {
+        self.end_edit_on_dead_space = on;
         self
     }
 }
@@ -227,6 +236,15 @@ impl PointerState {
         self.hover = hit;
         self.grab = hit.and_then(|id| hits.bar(id));
         hit
+    }
+
+    /// A press that hit no control: ends the focused control's edit in
+    /// place, per [`PointerConfig::end_edit_on_dead_space`]. Applications
+    /// call it when [`Self::on_down`] returns `None` outside a modal.
+    pub fn dead_space(&self, focus: &mut super::focus::Focus) {
+        if self.config.end_edit_on_dead_space {
+            focus.end_edit();
+        }
     }
 
     /// The scrollbar the held press started on, if any: drags go to its

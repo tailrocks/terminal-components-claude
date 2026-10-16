@@ -6,6 +6,7 @@ use ratatui::layout::{Constraint, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::selection::{RowSelection, SelectionMode, TriState};
@@ -131,6 +132,9 @@ pub struct DataTable {
     pub hscroll: ScrollState,
     pub edit: Option<EditState>,
     pub validator: Option<fn(col: usize, &str) -> Option<String>>,
+    /// What a cell edit in progress does when the table loses focus
+    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+    pub blur_action: BlurAction,
     pub empty_text: String,
     pub area: Rect,
     body: Rect,
@@ -211,6 +215,7 @@ impl DataTable {
             hscroll: ScrollState::default(),
             edit: None,
             validator: None,
+            blur_action: BlurAction::Commit,
             empty_text: "No rows".to_owned(),
             area: Rect::ZERO,
             track: Rect::ZERO,
@@ -687,6 +692,19 @@ impl DataTable {
 
     pub fn cancel_edit(&mut self) -> Option<TableEvent> {
         self.edit.take().map(|_| TableEvent::Cancelled)
+    }
+
+    /// Focus left the table (see [`crate::core::focus::Focus::take_changes`]).
+    /// A cell edit in progress ends per [`Self::blur_action`] and reports
+    /// `Committed` or `Cancelled` like Enter or Esc (an invalid value stays
+    /// open with its error and reports nothing).
+    pub fn on_blur(&mut self) -> Option<TableEvent> {
+        self.edit.as_ref()?;
+        match self.blur_action {
+            BlurAction::Commit => self.commit_edit(),
+            BlurAction::Cancel => self.cancel_edit(),
+            BlurAction::Keep => None,
+        }
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TableEvent>) {
@@ -1446,6 +1464,21 @@ mod ordered {
     }
 }
 
+impl crate::core::focus::BlurTarget for DataTable {
+    fn blur_id(&self) -> WidgetId {
+        self.id
+    }
+    fn blur(&mut self) -> Outcome {
+        let editing = self.edit.is_some();
+        self.on_blur();
+        if editing && self.edit.is_none() {
+            Outcome::Changed
+        } else {
+            Outcome::Ignored
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1618,6 +1651,30 @@ mod tests {
         t.cursor_row = 1; // alpha
         t.sort_by(0);
         assert_eq!(t.source_row(t.cursor_row), 1);
+    }
+
+    #[test]
+    fn blur_commits_cancels_or_keeps_the_cell_edit() {
+        let edited = |action| {
+            let mut t = table();
+            t.blur_action = action;
+            assert_eq!(t.on_blur(), None);
+            t.begin_edit();
+            t.edit.as_mut().unwrap().buffer.set_text("renamed");
+            t
+        };
+        let mut commit = edited(BlurAction::Commit);
+        assert_eq!(
+            commit.on_blur(),
+            Some(TableEvent::Committed { row: 0, col: 0 })
+        );
+        assert_eq!(commit.rows[0][0].text, "renamed");
+        let mut cancel = edited(BlurAction::Cancel);
+        assert_eq!(cancel.on_blur(), Some(TableEvent::Cancelled));
+        assert_ne!(cancel.rows[0][0].text, "renamed");
+        let mut keep = edited(BlurAction::Keep);
+        assert_eq!(keep.on_blur(), None);
+        assert!(keep.edit.is_some());
     }
 
     #[test]
