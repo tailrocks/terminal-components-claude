@@ -1023,6 +1023,7 @@ widgets::scrollbar::VSplit | Panels and Scrolling page options | SC22
 widgets::segments::Segment::bold | Chrome and Status & hints pages | SC4
 widgets::segments::Segment::clickable | Chrome and Status & hints pages | SC4
 widgets::segments::Segment::priority | Chrome and Status & hints pages | SC4
+widgets::segments::Segment::lead | Chrome and Status & hints pages | SC4
 
 # widgets::select
 widgets::select::SelectArrows | Chips & selects page options | SC10
