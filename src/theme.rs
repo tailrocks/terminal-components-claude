@@ -302,10 +302,23 @@ impl Theme {
             None => self.canvas,
         };
         // scale the alpha ladder instead of collapsing it: hierarchy survives
+        // a dark plane under the cell: canvas-coloured ink there is a blank,
+        // not text; on any lighter fill it is reversed text and must stay
+        let dark_plane = style.bg.is_none_or(|c| {
+            [
+                self.canvas,
+                self.surface,
+                self.surface_elevated,
+                self.field,
+                self.field_hover,
+            ]
+            .contains(&c)
+        });
         let fg = match style.fg {
             // Preserve cells with no visible foreground when dimming a plane.
             Some(c) if Some(c) == style.bg => bg,
-            Some(c) if c == self.canvas || c == self.surface => bg,
+            Some(c) if (c == self.canvas || c == self.surface) && dark_plane => bg,
+            Some(c) if c == self.canvas || c == self.surface => self.text_muted,
             Some(c)
                 if c == self.text_primary
                     || c == self.accent
@@ -692,6 +705,17 @@ mod tests {
     fn contrast(a: Color, b: Color) -> f64 {
         let (x, y) = (luminance(a), luminance(b));
         (x.max(y) + 0.05) / (x.min(y) + 0.05)
+    }
+
+    #[test]
+    fn the_modal_backdrop_keeps_reversed_text_readable() {
+        let t = Theme::junie();
+        // dark ink on a light fill (a pressed or reversed cell) under a modal
+        let st = t.backdrop(Style::new().fg(t.canvas).bg(t.text_primary));
+        assert_ne!(st.fg, st.bg);
+        // canvas ink on the canvas is a blank and stays one
+        let st = t.backdrop(Style::new().fg(t.canvas).bg(t.canvas));
+        assert_eq!(st.fg, st.bg);
     }
 
     #[test]
