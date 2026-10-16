@@ -1,25 +1,37 @@
-//! Existing DiffView in unified, review and empty states. Copy requests are
-//! retained in this demo; no system clipboard or repository access occurs.
-//! Fixtures are synchronous, so loading and error states do not apply.
+//! Diff (plan §7 SC25): a changes list of files in every `DiffStatus`
+//! beside a `DiffView` that follows the list's cursor (the two stack when
+//! narrow), unified or old / new review, the no-file state, and the
+//! view's States grid. Copy requests are retained in this demo; no system
+//! clipboard or repository access occurs. Options: `crate::options::DIFF`.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::diff::{DiffFile, DiffHunk, DiffLine, DiffMode, DiffStatus, DiffView};
+use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::viewport::ViewportAction;
 
 const ID: WidgetId = WidgetId::of("diff");
+/// Width of the changes list beside the diff.
+const LIST_W: u16 = 38;
 
 pub struct DiffPage {
+    template: Template,
+    opts: PageValues,
     view: DiffView,
+    files: ListBox,
     review: Button,
     empty: Button,
     copied: Option<String>,
@@ -48,32 +60,149 @@ fn sample() -> DiffFile {
     }
 }
 
+/// The change set: one file per status.
+fn changes() -> Vec<DiffFile> {
+    vec![
+        sample(),
+        DiffFile {
+            path: "docs/retries.md".into(),
+            status: DiffStatus::Added,
+            hunks: vec![DiffHunk {
+                old_start: 0,
+                new_start: 1,
+                lines: vec![
+                    DiffLine::add("# Retries"),
+                    DiffLine::add(""),
+                    DiffLine::add("Workers retry five times with exponential backoff."),
+                ],
+            }],
+        },
+        DiffFile {
+            path: "src/legacy_backoff.rs".into(),
+            status: DiffStatus::Deleted,
+            hunks: vec![DiffHunk {
+                old_start: 1,
+                new_start: 0,
+                lines: vec![
+                    DiffLine::remove("pub fn linear(attempt: u32) -> u64 {"),
+                    DiffLine::remove("    200 * attempt as u64"),
+                    DiffLine::remove("}"),
+                ],
+            }],
+        },
+        DiffFile {
+            path: "src/backoff/retry.rs".into(),
+            status: DiffStatus::Renamed {
+                from: "src/retry.rs".into(),
+            },
+            hunks: vec![DiffHunk {
+                old_start: 1,
+                new_start: 1,
+                lines: vec![
+                    DiffLine::remove("use crate::legacy_backoff::linear;"),
+                    DiffLine::add("use super::exponential;"),
+                    DiffLine::context("pub async fn fetch(url: &str) -> Result<Body, Error> {"),
+                ],
+            }],
+        },
+    ]
+}
+
 impl DiffPage {
     pub fn new() -> Self {
-        let mut view = DiffView::new(ID.sub("view"));
-        view.set_file(Some(sample()));
-        Self {
-            view,
+        let items = changes()
+            .iter()
+            .map(|f| ListItem::new(&f.header()).meta(&f.summary()))
+            .collect();
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::Diff)),
+            view: DiffView::new(ID.sub("view")),
+            files: ListBox::new(ID.sub("files"), items, SelectMode::Single),
             review: Button::toggle(ID.sub("review"), "Review", false),
             empty: Button::toggle(ID.sub("empty"), "Empty", false),
             copied: None,
-        }
+        };
+        page.update_controls();
+        page
     }
 
+    /// The view from the controls and the options: the file under the
+    /// list's cursor (or none), in the mode the Review toggle picks.
     fn update_controls(&mut self) {
-        self.view.set_mode(if self.review.on == Some(true) {
-            DiffMode::Review
-        } else {
-            DiffMode::Unified
-        });
-        self.view.set_file(if self.empty.on == Some(true) {
+        let review = self.review.on == Some(true);
+        if review != (self.view.mode == DiffMode::Review) {
+            self.view.set_mode(self.view.mode.toggled());
+        }
+        let none = self.empty.on == Some(true) || self.opts.value("diff.file") == "none";
+        self.view.set_file(if none {
             None
         } else {
-            Some(sample())
+            changes().into_iter().nth(self.files.cursor)
         });
         self.view.term.clear_selection();
         self.copied = None;
     }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let controls = Rect::new(area.x, area.y, area.width, area.height.min(1));
+        let rects = row_layout(controls, &[self.review.width(), self.empty.width()], 2);
+        self.review.render(rects[0], buf, ctx, ctx.theme.canvas);
+        self.empty.render(rects[1], buf, ctx, ctx.theme.canvas);
+        let body = Rect::new(
+            area.x,
+            area.y.saturating_add(2).min(area.bottom()),
+            area.width,
+            area.height.saturating_sub(2),
+        );
+        // a narrow page stacks the list over the diff
+        let body = match self.opts.value("diff.width") {
+            "narrow" => Rect::new(body.x, body.y, body.width.min(48), body.height),
+            _ => body,
+        };
+        let (list, diff) = crate::pages::layout::columns(body, LIST_W, 2);
+        let t = ctx.theme;
+        let panel = Panel::framed(Some("Changes"))
+            .meta("4 files")
+            .focused(ctx.interaction.focused(self.files.id));
+        let bg = panel.bg(t);
+        let inner = panel.render(list, buf, t);
+        self.files.render(inner, buf, ctx, bg);
+        let panel = Panel::framed(Some("Diff")).focused(ctx.interaction.focused(self.view.id()));
+        let inner = panel.render(diff, buf, ctx.theme);
+        self.view.render(inner, buf, ctx, ctx.theme.canvas);
+    }
+}
+
+/// The States grid: the view unified and in review, at rest, focused, with
+/// no file and in a narrow slot (where review falls back to unified).
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let file = DiffFile {
+        path: "retry.toml".into(),
+        status: DiffStatus::Modified,
+        hunks: vec![DiffHunk {
+            old_start: 1,
+            new_start: 1,
+            lines: vec![
+                DiffLine::remove("attempts = 3"),
+                DiffLine::add("attempts = 5"),
+                DiffLine::context("enabled = true"),
+            ],
+        }],
+    };
+    let mut unified = DiffView::new(id.child(0));
+    unified.set_file(Some(file.clone()));
+    let mut review = DiffView::new(id.child(1));
+    review.set_file(Some(file));
+    review.set_mode(DiffMode::Review);
+    StateGrid::new(id)
+        .label_width(10)
+        .column_width(42)
+        .rows(&[Rest, Focused, Empty, Narrow])
+        .column("Unified", unified)
+        .column("Review", review)
 }
 
 impl Page for DiffPage {
@@ -86,22 +215,21 @@ impl Page for DiffPage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let controls = Rect::new(area.x, area.y, area.width, area.height.min(1));
-        let rects = row_layout(controls, &[self.review.width(), self.empty.width()], 2);
-        self.review.render(rects[0], buf, ctx, ctx.theme.canvas);
-        self.empty.render(rects[1], buf, ctx, ctx.theme.canvas);
-        let body = Rect::new(
-            area.x,
-            area.y.saturating_add(2).min(area.bottom()),
-            area.width,
-            area.height.saturating_sub(2),
-        );
-        let panel = Panel::framed(Some("Diff")).focused(ctx.interaction.focused(self.view.id()));
-        let inner = panel.render(body, buf, ctx.theme);
-        self.view.render(inner, buf, ctx, ctx.theme.canvas);
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
         match ev {
             PageEvent::Key(key) => {
                 if cx.focus.is(self.review.id) || cx.focus.is(self.empty.id) {
@@ -115,6 +243,14 @@ impl Page for DiffPage {
                         self.update_controls();
                     }
                     return outcome;
+                }
+                if cx.focus.is(self.files.id) {
+                    let before = self.files.cursor;
+                    let o = self.files.on_key(key);
+                    if self.files.cursor != before {
+                        self.update_controls();
+                    }
+                    return o;
                 }
                 if cx.focus.is(self.view.id()) {
                     let (outcome, event) = self.view.on_key(key);
@@ -143,6 +279,15 @@ impl Page for DiffPage {
                         return Outcome::Changed;
                     }
                 }
+                if let Some(row) = self.files.locate(*id) {
+                    cx.focus.focus(self.files.id);
+                    let before = self.files.cursor;
+                    let o = self.files.on_click(row);
+                    if self.files.cursor != before {
+                        self.update_controls();
+                    }
+                    return o;
+                }
                 if *id == self.view.id() {
                     cx.focus.focus(self.view.id());
                     return Outcome::Consumed;
@@ -169,6 +314,9 @@ impl Page for DiffPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         if focus == Some(self.view.id()) {
             vec![
                 ("↑↓", "Scroll"),
@@ -177,9 +325,40 @@ impl Page for DiffPage {
                 ("y", "Copy"),
                 ("Esc", "Clear"),
             ]
+        } else if focus == Some(self.files.id) {
+            vec![("↑↓", "File"), ("Tab", "Next control")]
         } else {
             vec![("Enter", "Toggle"), ("Tab", "Next control")]
         }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        // the Review toggle and the mode option are one setting
+        if key == "diff.mode" {
+            return Some(usize::from(self.review.on == Some(true)));
+        }
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            if key == "diff.mode" {
+                self.review.on = Some(self.opts.value("diff.mode") == "review");
+            }
+            self.update_controls();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
 
@@ -194,7 +373,7 @@ mod tests {
     use ratatui::layout::Position;
 
     fn render(page: &mut DiffPage, width: u16, level: ColorLevel) -> (Buffer, FocusRing) {
-        let area = Rect::new(0, 0, width, 16);
+        let area = Rect::new(0, 0, width, 20);
         let mut buf = Buffer::empty(area);
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -217,7 +396,13 @@ mod tests {
             assert!(text(&buf).contains("+ attempts = 5"));
             assert_eq!(
                 ring.reachable(),
-                &[page.review.id, page.empty.id, page.view.id()]
+                &[
+                    page.template.tabs.id,
+                    page.review.id,
+                    page.empty.id,
+                    page.files.id,
+                    page.view.id()
+                ]
             );
             page.review.on = Some(true);
             page.update_controls();

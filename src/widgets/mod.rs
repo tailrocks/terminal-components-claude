@@ -41,6 +41,7 @@ pub mod statusbar;
 pub mod steps;
 pub mod table;
 mod table_specimen;
+mod viewport_specimen;
 pub mod tabs;
 pub mod textarea;
 pub mod too_small;
