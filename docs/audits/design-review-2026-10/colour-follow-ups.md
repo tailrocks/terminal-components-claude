@@ -76,6 +76,10 @@ text ladder (muted to secondary). The tests
 - Help overlay: keys primary bold, descriptions secondary.
 - Picker group labels: muted, stepped up through `legible` on the
   popover (faint was 2.2:1 there).
+- Added for the app follow-ups: `HintLayer::status_parts` (a hint-bar
+  status whose parts keep their own tones; the message tone still picks
+  the `!` / `▲` mark) and `viewport::render_spans` (one line of `Span`s
+  outside a viewport, each tone legible on its plane, cut with `…`).
 
 ### Decisions where the reviews differed
 
@@ -137,18 +141,20 @@ item uses the library API above; none needs a new token.
 
 ### holla
 
-| Element | Where | Change |
-|---|---|---|
-| Batch toast "N ok · N failed · N cancelled" | `src/bin/holla/app.rs:548, 553` | per-segment tones: ok success, failed error, cancelled muted; an all-ok batch in success |
-| Output line tones, failure output | `src/bin/holla/screens/activity.rs:90-98` (errors from `src/bin/holla/domain/activity.rs:173, 433`) | `LineTone::Success` to `Tone::Success`; stderr body primary with a red `!` gutter, red only on the status chip |
-| "succeeded" meta | `src/bin/holla/screens/plan.rs:196` | success |
-| Required vs optional step checkboxes | `src/bin/holla/screens/plan.rs:303-309` | required: faint with a lock cue; toggleable: `t.chosen(focused)` |
-| Cleanup history outcome "trashed" | `src/bin/holla/screens/snapshot.rs:784, 1137-1145` (label `src/bin/holla/domain/cleanup.rs:849`) | `Theme::status(Ok)` for trashed |
-| Checked boxes always accent | `src/bin/holla/screens/cleanup.rs:646, 718` | `t.chosen(focused)` |
-| Status bar `↓ ↑ •` counts | `src/bin/holla/app.rs:3519-3524` (text `src/bin/holla/domain/stack.rs:178-184`) | `↓↑` info, dirty `•` warning, conflicts error |
-| Finder section headings | `src/bin/holla/screens/mod.rs:489` (`fn heading`, 474) | `t.muted()` (faint is 4.4:1 on canvas) |
-| Disk filesystem meter | `src/bin/holla/screens/disk.rs:1670` | `MeterTone::Level { warn: 80, crit: 95 }` |
-| Activity tabs | `src/bin/holla/app.rs:3389-3401` | `Succeeded` sets `TabItem::done` instead of the `✓` suffix |
+All done; the regression tests are in `src/bin/holla/app_tests_colour.rs`.
+
+| Element | Where | Change | Status |
+|---|---|---|---|
+| Batch toast "N ok · N failed · N cancelled" | `src/bin/holla/app.rs:548, 553` | per-segment tones: ok success, failed error, cancelled muted; an all-ok batch in success | Done: `App::set_status_parts` through `HintLayer::status_parts`; a zero count stays muted (`a_batch_summary_colours_each_count_by_what_it_says`) |
+| Output line tones, failure output | `src/bin/holla/screens/activity.rs:90-98` (errors from `src/bin/holla/domain/activity.rs:173, 433`) | `LineTone::Success` to `Tone::Success`; stderr body primary with a red `!` gutter, red only on the status chip | Done: error lines get a bold error `! ` gutter and a primary body (`failure_output_is_primary_text_behind_a_red_gutter`) |
+| "succeeded" meta | `src/bin/holla/screens/plan.rs:196` | success | Done: the outcome line is spans (`viewport::render_spans`), failed in error (`a_finished_plan_says_succeeded_in_success_and_failed_in_error`) |
+| Required vs optional step checkboxes | `src/bin/holla/screens/plan.rs:303-309` | required: faint with a lock cue; toggleable: `t.chosen(focused)` | Done: toggleable already took `t.chosen(focused)`; the lock cue is the row note `required` (or `required · <privilege>`) beside the faint marker, words rather than a new glyph (`a_required_plan_step_says_why_it_cannot_be_toggled`) |
+| Cleanup history outcome "trashed" | `src/bin/holla/screens/snapshot.rs:784, 1137-1145` (label `src/bin/holla/domain/cleanup.rs:849`) | `Theme::status(Ok)` for trashed | Done: history rows and report items draw `Theme::status(Ok)` before `trashed`, the row in success (`a_trashed_cleanup_record_carries_the_done_status`) |
+| Checked boxes always accent | `src/bin/holla/screens/cleanup.rs:646, 718` | `t.chosen(focused)` | Done: the category mark too (`a_checked_cleanup_category_is_primary_until_its_list_has_focus`) |
+| Status bar `↓ ↑ •` counts | `src/bin/holla/app.rs:3519-3524` (text `src/bin/holla/domain/stack.rs:178-184`) | `↓↑` info, dirty `•` warning, conflicts error | Done: `GitState::state_parts`, one status item per part; conflicts read `N conflicts` (`the_git_state_in_the_status_bar_is_toned_per_part`) |
+| Finder section headings | `src/bin/holla/screens/mod.rs:489` (`fn heading`, 474) | `t.muted()` (faint is 4.4:1 on canvas) | Done: `Theme::tone_on(Muted, bg)` (`section_headings_are_muted_not_faint`) |
+| Disk filesystem meter | `src/bin/holla/screens/disk.rs:1670` | `MeterTone::Level { warn: 80, crit: 95 }` | Done: `disk::FS_METER`, also on the status-bar root filesystem meter (`a_filesystem_meter_warns_at_its_own_thresholds`) |
+| Activity tabs | `src/bin/holla/app.rs:3389-3401` | `Succeeded` sets `TabItem::done` instead of the `✓` suffix | Done: also finished plan tabs (`a_succeeded_activity_tab_is_done`) |
 
 ### jackin
 
