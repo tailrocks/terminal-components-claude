@@ -19,6 +19,8 @@ use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
+use crate::ui::tooltip::Tip;
+use crate::widgets::icon_button::IconButton;
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -80,10 +82,14 @@ pub struct Tabs {
     /// The strip's action keys (default [`TabCmd::default_keymap`]:
     /// `x`/Delete close, `n` new, digits 1-9 jump).
     pub keymap: KeyMap<TabCmd>,
-    /// Hit width of a tab's `×` in cells, centred on the glyph and kept
-    /// inside the tab (a one-cell target is too small to hit reliably).
-    /// Default 3.
-    pub close_target_w: u16,
+    /// The template of every tab's `×` (its id is replaced per tab): a
+    /// plate centred on the glyph and kept inside the tab, drawn and hit
+    /// as one target (a one-cell target is too small to hit reliably).
+    /// Default [`IconButton::close`]: three cells, neutral hover, tooltip
+    /// `Close tab` with the first [`TabCmd::Close`] key.
+    pub close_button: IconButton,
+    /// When a closable tab shows its `×`. Default [`CloseReveal::Always`].
+    pub close_reveal: CloseReveal,
     /// An overflowing strip shows a `+N` button (N tabs hidden) that opens
     /// a menu of the hidden tabs; choosing one activates it (the
     /// overflow list of browser and editor tab bars). Default `true`.
@@ -101,6 +107,20 @@ pub struct Tabs {
     /// independent of the active tab: `‹`/`›` and the wheel move it freely,
     /// and a render only brings the active tab back when it changed.
     revealed: Option<usize>,
+}
+
+/// When a closable tab shows its `×`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CloseReveal {
+    /// On every closable tab: the affordance is always discoverable,
+    /// pointer or not.
+    #[default]
+    Always,
+    /// Only on the active tab, the keyboard cursor tab (while the strip
+    /// has focus) and the tab under the pointer (the browser idiom for
+    /// crowded strips). The `×`'s cells stay reserved, so nothing reflows
+    /// under the pointer.
+    Hover,
 }
 
 /// Colour of the active tab's underline.
@@ -186,7 +206,8 @@ impl Tabs {
             wrap: false,
             nav: NavKeys::DEFAULT,
             keymap: TabCmd::default_keymap(),
-            close_target_w: 3,
+            close_button: IconButton::close(WidgetId::of("tabs.close")),
+            close_reveal: CloseReveal::Always,
             overflow_menu: true,
             menu: None,
             more_area: Rect::ZERO,
@@ -210,7 +231,8 @@ impl Tabs {
             wrap: false,
             nav: NavKeys::DEFAULT,
             keymap: TabCmd::default_keymap(),
-            close_target_w: 3,
+            close_button: IconButton::close(WidgetId::of("tabs.close")),
+            close_reveal: CloseReveal::Always,
             overflow_menu: true,
             menu: None,
             more_area: Rect::ZERO,
@@ -343,9 +365,22 @@ impl Tabs {
         }
     }
 
-    /// See [`Self::close_target_w`].
+    /// The `×` plate `cells` wide, drawn and hit (default 3): sets the
+    /// padding of [`Self::close_button`].
     pub fn close_target_w(mut self, cells: u16) -> Self {
-        self.close_target_w = cells;
+        self.close_button = self.close_button.plate(cells);
+        self
+    }
+
+    /// See [`Self::close_button`].
+    pub fn close_button(mut self, button: IconButton) -> Self {
+        self.close_button = button;
+        self
+    }
+
+    /// See [`Self::close_reveal`].
+    pub fn close_reveal(mut self, reveal: CloseReveal) -> Self {
+        self.close_reveal = reveal;
         self
     }
 
@@ -769,19 +804,25 @@ impl Tabs {
                 buf.set_string(cx + 1, y, t.glyphs.dirty, st.fg(t.warning));
                 cx += 2;
             }
-            // the ×'s hit target: `close_target_w` cells centred on the
-            // glyph, kept inside the tab
-            let close_hit = {
-                let cw = self.close_target_w.max(1).min(w);
-                let left = (cx + 1).saturating_sub((cw - 1) / 2).max(x);
-                let left = left.min(x + w - cw);
+            // the × plate: centred on the glyph, kept inside the tab; drawn
+            // and hit as one target, after the tab so it sits on top
+            let cid = self.close_id(i);
+            let show_close = it.closable
+                && match self.close_reveal {
+                    CloseReveal::Always => true,
+                    CloseReveal::Hover => {
+                        let cs = ctx.state(cid);
+                        active || s.focused || s.hovered || cs.hovered || cs.pressed
+                    }
+                };
+            let close_plate = {
+                let cw = self.close_button.width(t).max(1).min(w);
+                let left = (cx + 1)
+                    .saturating_sub(self.close_button.pad)
+                    .max(x)
+                    .min(x + w - cw);
                 Rect::new(left, y, cw, 1)
             };
-            if it.closable {
-                let cid = self.close_id(i);
-                let cs = t.close_glyph(ctx.state(cid), st);
-                buf.set_string(cx + 1, y, t.glyphs.close, cs);
-            }
             if active && area.height >= 2 {
                 let accent = match self.rule {
                     TabRule::Auto => !ctx.interaction.focus_hidden,
@@ -802,8 +843,20 @@ impl Tabs {
             }
             ctx.clickable(tid, r);
             // close button on top
-            if it.closable {
-                ctx.clickable(self.close_id(i), close_hit);
+            if show_close {
+                let tip = Tip::new(t.strings.tip_close_tab);
+                let tip = match crate::core::keymap::label_for(&self.keymap, TabCmd::Close) {
+                    Some(k) => tip.shortcut(&k),
+                    None => tip,
+                };
+                self.close_button.with_id(cid).render_in(
+                    close_plate,
+                    cx + 1,
+                    buf,
+                    ctx,
+                    st,
+                    Some(tip),
+                );
             }
             x += w + 1;
         }
@@ -844,9 +897,19 @@ impl Tabs {
         if self.allow_new {
             let nx = area.right().saturating_sub(new_w);
             let nid = self.new_id();
-            let st = ctx.title_style(nid, bg);
-            buf.set_string(nx, y, " + ", st);
-            ctx.clickable(nid, Rect::new(nx, y, 3, 1));
+            let tip = Tip::new(t.strings.tip_new_tab);
+            let tip = match crate::core::keymap::label_for(&self.keymap, TabCmd::New) {
+                Some(k) => tip.shortcut(&k),
+                None => tip,
+            };
+            IconButton::new(nid, "+").render(
+                nx,
+                y,
+                buf,
+                ctx,
+                ratatui::style::Style::new().bg(bg),
+                Some(tip),
+            );
         }
         if let Some((menu, _)) = self.menu.as_mut() {
             menu.render(*buf.area(), buf, ctx);
@@ -1383,6 +1446,112 @@ mod tests {
         assert_eq!(
             hits.hit(ratatui::layout::Position::new(cx - 1, 0)),
             Some(one.tab_id(0))
+        );
+    }
+
+    // docs/design/close-button.md: hovering or pressing a tab's × lights
+    // its whole three-cell plate (the target it hits), not the glyph alone
+    #[test]
+    fn the_close_plate_lights_as_wide_as_it_hits_at_every_level() {
+        use crate::theme::ColorLevel;
+        for level in ColorLevel::ALL {
+            let theme = Theme::for_level(level);
+            let mut tabs = Tabs::with_items(
+                WidgetId::of("t"),
+                vec![
+                    TabItem::new("Query 1").prefix("≡").closable(),
+                    TabItem::new("Query 2").prefix("≡").closable(),
+                ],
+            );
+            tabs.set_active(1);
+            let draw = |tabs: &mut Tabs, inter: Interaction| {
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let mut buf = Buffer::empty(Rect::new(0, 0, 60, 2));
+                {
+                    let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+                    tabs.render(Rect::new(0, 0, 60, 2), &mut buf, &mut ctx, theme.canvas);
+                }
+                (buf, hits)
+            };
+            let look = |b: &Buffer, x: u16| {
+                let c = &b[(x, 0)];
+                ((level != ColorLevel::Mono).then_some(c.bg), c.modifier)
+            };
+            for i in [0, 1] {
+                let cid = tabs.close_id(i);
+                let (rest, hits) = draw(&mut tabs, Interaction::default());
+                let plate = hits.area_of(cid).unwrap();
+                assert_eq!(plate.width, 3);
+                assert_eq!(rest[(plate.x + 1, 0)].symbol(), theme.glyphs.close);
+                for (name, inter) in [
+                    (
+                        "hover",
+                        Interaction {
+                            hover: Some(cid),
+                            ..Default::default()
+                        },
+                    ),
+                    (
+                        "pressed",
+                        Interaction {
+                            hover: Some(cid),
+                            pressed: Some(cid),
+                            ..Default::default()
+                        },
+                    ),
+                ] {
+                    let (lit, _) = draw(&mut tabs, inter);
+                    let ctx = format!("{level:?} tab {i} {name}");
+                    for x in plate.left()..plate.right() {
+                        assert_ne!(look(&lit, x), look(&rest, x), "{x}: {ctx}");
+                        assert_eq!(look(&lit, x), look(&lit, plate.x), "{x}: {ctx}");
+                    }
+                    // the tab's label does not take the hover
+                    let label = tabs.areas[i].x + 3;
+                    assert_eq!(look(&lit, label), look(&rest, label), "{ctx}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn close_reveal_hover_shows_the_x_on_the_active_and_the_hovered_tab_only() {
+        let mut tabs = Tabs::with_items(
+            WidgetId::of("t"),
+            vec![
+                TabItem::new("General").closable(),
+                TabItem::new("Logs").closable(),
+                TabItem::new("Mounts").closable(),
+            ],
+        )
+        .close_reveal(CloseReveal::Hover);
+        tabs.set_active(0);
+        let (buf, hits) = draw_hits(&mut tabs, 60);
+        let has_x = |buf: &Buffer, r: Rect| (r.x..r.right()).any(|x| buf[(x, 0)].symbol() == "×");
+        assert!(has_x(&buf, tabs.areas[0]), "the active tab keeps its ×");
+        assert!(!has_x(&buf, tabs.areas[1]));
+        assert!(hits.area_of(tabs.close_id(1)).is_none(), "no hidden target");
+        let widths: Vec<u16> = tabs.areas.iter().map(|r| r.width).collect();
+        // hovering a tab shows its × where it always was: nothing reflows
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 2));
+        {
+            let inter = Interaction {
+                hover: Some(tabs.tab_id(1)),
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+            tabs.render(Rect::new(0, 0, 60, 2), &mut buf, &mut ctx, theme.canvas);
+        }
+        assert!(has_x(&buf, tabs.areas[1]));
+        assert_eq!(hits.area_of(tabs.close_id(1)).map(|r| r.width), Some(3));
+        assert!(!has_x(&buf, tabs.areas[2]));
+        assert_eq!(
+            widths,
+            tabs.areas.iter().map(|r| r.width).collect::<Vec<_>>()
         );
     }
 

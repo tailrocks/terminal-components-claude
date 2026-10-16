@@ -16,6 +16,8 @@ use crate::core::id::WidgetId;
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::ui::text::{truncate, width};
+use crate::ui::tooltip::Tip;
+use crate::widgets::icon_button::IconButton;
 
 /// The close button (`×`) a modal frame draws in its top border when its
 /// [`Dismiss`] policy lets Esc close it ([`Dismiss::shows_close`]). Only
@@ -27,7 +29,8 @@ pub const CLOSE: WidgetId = WidgetId::of("modal.close");
 /// refused outside click flashes it ([`refuse_outside_click`]).
 pub const SURFACE: WidgetId = WidgetId::of("modal.surface");
 
-/// Cells the close button takes on the top border: ` × `.
+/// Cells the default close button takes on the top border: ` × `, the
+/// glyph on a one-cell-padded plate ([`IconButton::DEFAULT_PAD`]).
 pub const CLOSE_WIDTH: u16 = 3;
 
 /// Feedback for a click outside a modal whose policy refused to close it:
@@ -59,27 +62,43 @@ pub fn border_style(ctx: &RenderCtx, bg: ratatui::style::Color) -> Style {
     }
 }
 
-/// Draw the close button into the top border of `area` (a framed modal on
-/// `bg`) and register it as [`CLOSE`]. Returns the button's rectangle, or
-/// `Rect::ZERO` when the frame is too narrow to hold it beside a title.
+/// Draw the default close button into the top border of `area` (a framed
+/// modal on `bg`) and register it as [`CLOSE`]. Returns the button's
+/// plate, or `Rect::ZERO` when the frame is too narrow to hold it beside a
+/// title. See [`close_button_with`].
 pub fn close_button(
     area: Rect,
     buf: &mut Buffer,
     ctx: &mut RenderCtx,
     bg: ratatui::style::Color,
 ) -> Rect {
-    if area.width < 16 || area.height < 3 {
+    close_button_with(&IconButton::close(CLOSE), area, buf, ctx, bg)
+}
+
+/// Draw `button` (always under the id [`CLOSE`]) into the top border of
+/// `area`: its plate ends two cells in from the right corner, so the `─╮`
+/// lead-in stays and the corner never moves. Hovered or pressed, the whole
+/// plate lights, not only the glyph; the hit region is the plate. Its
+/// tooltip defaults to `Close · Esc` ([`Strings::tip_close`]).
+///
+/// [`Strings::tip_close`]: crate::theme::Strings::tip_close
+pub fn close_button_with(
+    button: &IconButton,
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    bg: ratatui::style::Color,
+) -> Rect {
+    let t = ctx.theme;
+    let w = button.width(t);
+    if area.width < 16 || area.height < 3 || area.width < w + 10 {
         return Rect::ZERO;
     }
-    let t = ctx.theme;
-    let r = Rect::new(area.right() - 2 - CLOSE_WIDTH, area.y, CLOSE_WIDTH, 1);
     let host = t.border(true).bg(bg);
-    let st = t.close_glyph(ctx.state(CLOSE), host);
-    buf.set_string(r.x, r.y, " ", host);
-    buf.set_string(r.x + 1, r.y, t.glyphs.close, st);
-    buf.set_string(r.x + 2, r.y, " ", host);
-    ctx.clickable(CLOSE, r);
-    r
+    let tip = Tip::new(t.strings.tip_close).shortcut("Esc");
+    button
+        .with_id(CLOSE)
+        .render(area.right() - 2 - w, area.y, buf, ctx, host, Some(tip))
 }
 
 /// A layer that sits above the page and decides how it may be dismissed.
@@ -284,6 +303,10 @@ pub struct Frame<'a> {
     /// in the top border when [`Dismiss::shows_close`]. `None` (a frame
     /// that does not say how it closes) draws none.
     pub dismiss: Option<Dismiss>,
+    /// The close button drawn when [`Self::dismiss`] shows one (its id is
+    /// always [`CLOSE`]). Default [`IconButton::close`]: a three-cell
+    /// plate, neutral hover, `Close · Esc` tooltip.
+    pub close_button: IconButton,
 }
 
 impl<'a> Frame<'a> {
@@ -304,7 +327,14 @@ impl<'a> Frame<'a> {
             backdrop: true,
             dim: Backdrop::DEFAULT,
             dismiss: None,
+            close_button: IconButton::close(CLOSE),
         }
+    }
+
+    /// See [`Self::close_button`].
+    pub fn close_button(mut self, button: IconButton) -> Self {
+        self.close_button = button;
+        self
     }
 
     /// See [`Self::dismiss`].
@@ -397,17 +427,17 @@ impl<'a> Frame<'a> {
             ctx.hits.register_surface(SURFACE, area);
         }
         let close = match self.dismiss {
-            Some(d) if d.shows_close() => close_button(area, buf, ctx, bg),
+            Some(d) if d.shows_close() => close_button_with(&self.close_button, area, buf, ctx, bg),
             _ => Rect::ZERO,
         };
-        // the meta sits left of the close button
-        let reserve = if close.is_empty() { 0 } else { CLOSE_WIDTH + 1 };
+        // the title and the meta sit left of the close button
+        let reserve = if close.is_empty() { 0 } else { close.width + 1 };
         if let Some(title) = self.title
-            && area.width > 6
+            && area.width > 6 + reserve
         {
             let tt = format!(
                 " {} ",
-                truncate(title, area.width.saturating_sub(6) as usize)
+                truncate(title, area.width.saturating_sub(6 + reserve) as usize)
             );
             buf.set_string(area.x + 2, area.y, &tt, t.title().bg(bg));
             if let Some(m) = self.meta {
@@ -499,5 +529,75 @@ mod tests {
             .anchor(field, Placement::Below)
             .area(screen);
         assert_eq!((r.x, r.y), (10, 5));
+    }
+
+    /// Draw a 30-wide frame with `title`; `hover` the close button.
+    fn framed(
+        t: &crate::theme::Theme,
+        title: &str,
+        hover: bool,
+    ) -> (Buffer, crate::core::hit::HitRegistry, Rect) {
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let inter = crate::ui::ctx::Interaction {
+            hover: hover.then_some(CLOSE),
+            ..Default::default()
+        };
+        let screen = Rect::new(0, 0, 60, 20);
+        let mut buf = Buffer::empty(screen);
+        let area = {
+            let mut ctx = RenderCtx::new(t, inter, &mut hits, &mut ring);
+            Frame::new(30, 8)
+                .title(title)
+                .dismiss(Dismiss::LIGHT)
+                .backdrop(false)
+                .render(screen, &mut buf, &mut ctx)
+                .0
+        };
+        (buf, hits, area)
+    }
+
+    // docs/design/close-button.md: the frame's × is a three-cell plate two
+    // cells in from the corner; hovered, all three cells light; the corner
+    // and its lead-in never move; a long title stops before it
+    #[test]
+    fn the_frame_close_plate_keeps_the_corner_and_lights_whole() {
+        for level in crate::theme::ColorLevel::ALL {
+            let t = crate::theme::Theme::for_level(level);
+            let (rest, hits, area) = framed(&t, "Rename task", false);
+            let plate = hits.area_of(CLOSE).expect("the frame draws ×");
+            assert_eq!(plate, Rect::new(area.right() - 5, area.y, CLOSE_WIDTH, 1));
+            let row = |b: &Buffer| -> String {
+                (area.right() - 6..area.right())
+                    .map(|x| b[(x, area.y)].symbol())
+                    .collect()
+            };
+            let corner =
+                format!(" {} ─╮", t.glyphs.close).replace('─', t.glyphs.border.horizontal_top);
+            let corner = corner.replace('╮', t.glyphs.border.top_right);
+            assert!(row(&rest).ends_with(&corner), "{:?} {level:?}", row(&rest));
+            let (lit, _, _) = framed(&t, "Rename task", true);
+            assert_eq!(row(&lit), row(&rest), "hover keeps every glyph");
+            let look = |b: &Buffer, x: u16| {
+                let c = &b[(x, area.y)];
+                (
+                    (level != crate::theme::ColorLevel::Mono).then_some(c.bg),
+                    c.modifier,
+                )
+            };
+            for x in plate.left()..plate.right() {
+                assert_ne!(look(&lit, x), look(&rest, x), "{x} {level:?}");
+                assert_eq!(look(&lit, x), look(&lit, plate.x), "{x} {level:?}");
+            }
+            for x in [plate.x - 1, plate.right(), plate.right() + 1] {
+                assert_eq!(look(&lit, x), look(&rest, x), "{x} {level:?}");
+            }
+        }
+        // a title too long for the border is cut before the close button
+        let t = crate::theme::Theme::junie();
+        let (buf, hits, area) = framed(&t, &"Long title ".repeat(6), false);
+        let plate = hits.area_of(CLOSE).unwrap();
+        assert_eq!(buf[(plate.x + 1, area.y)].symbol(), "×");
+        assert_eq!(buf[(plate.x - 1, area.y)].symbol(), "─");
     }
 }

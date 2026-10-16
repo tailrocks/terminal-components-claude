@@ -12,6 +12,8 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::{ButtonKind, Kind};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
+use crate::ui::tooltip::Tip;
+use crate::widgets::icon_button::IconButton;
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
 /// How many items of a horizontal run fit in `avail` cells (`widths` each,
@@ -76,10 +78,12 @@ pub struct ChipBar {
     pub nav: NavKeys,
     /// The bar's action keys (default [`ChipCmd::default_keymap`]).
     pub keymap: KeyMap<ChipCmd>,
-    /// Hit width of a chip's `×` in cells, centred on the glyph and kept
-    /// inside the chip (a one-cell target is too small to hit reliably).
-    /// Default 3.
-    pub close_target_w: u16,
+    /// The template of every chip's `×` (its id is replaced per chip): a
+    /// plate centred on the glyph and kept inside the chip, drawn and hit
+    /// as one target (a one-cell target is too small to hit reliably).
+    /// Default [`IconButton::close`]: three cells, neutral hover, tooltip
+    /// `Remove` with the first [`ChipCmd::Remove`] key.
+    pub close_button: IconButton,
     /// The `+N` marker is a button: a click opens a menu of the chips that
     /// do not fit, and choosing one activates it. Default `true` (with
     /// [`Self::overflow_marker`]).
@@ -138,7 +142,7 @@ impl ChipBar {
             overflow_marker: true,
             nav: NavKeys::DEFAULT,
             keymap: ChipCmd::default_keymap(),
-            close_target_w: 3,
+            close_button: IconButton::close(WidgetId::of("chips.remove")),
             overflow_menu: true,
             menu: None,
             shown: 0,
@@ -146,9 +150,16 @@ impl ChipBar {
         }
     }
 
-    /// See [`Self::close_target_w`].
+    /// The `×` plate `cells` wide, drawn and hit (default 3): sets the
+    /// padding of [`Self::close_button`].
     pub fn close_target_w(mut self, cells: u16) -> Self {
-        self.close_target_w = cells;
+        self.close_button = self.close_button.plate(cells);
+        self
+    }
+
+    /// See [`Self::close_button`].
+    pub fn close_button(mut self, button: IconButton) -> Self {
+        self.close_button = button;
         self
     }
 
@@ -393,17 +404,28 @@ impl ChipBar {
             buf.set_string(x, y, it.gutter, it.gutter_style);
             buf.set_string(x + 1, y, truncate(&chip.label, label_w as usize), st);
             if chip.removable {
-                let xid = self.close_id(i);
-                let xs = t.close_glyph(ctx.state(xid), st);
-                buf.set_string(x + 2 + label_w, y, t.glyphs.close, xs);
                 ctx.clickable(cid, r);
-                // `close_target_w` cells centred on the ×, inside the chip
-                let cw = self.close_target_w.max(1).min(w);
-                let left = (x + 2 + label_w)
-                    .saturating_sub((cw - 1) / 2)
+                // the × plate centred on the glyph, inside the chip: drawn
+                // and hit as one target, on top of the chip
+                let gx = x + 2 + label_w;
+                let cw = self.close_button.width(t).max(1).min(w);
+                let left = gx
+                    .saturating_sub(self.close_button.pad)
                     .max(x)
                     .min(x + w - cw);
-                ctx.clickable(xid, Rect::new(left, y, cw, 1));
+                let tip = Tip::new(t.strings.tip_remove);
+                let tip = match crate::core::keymap::label_for(&self.keymap, ChipCmd::Remove) {
+                    Some(k) => tip.shortcut(&k),
+                    None => tip,
+                };
+                self.close_button.with_id(self.close_id(i)).render_in(
+                    Rect::new(left, y, cw, 1),
+                    gx,
+                    buf,
+                    ctx,
+                    st,
+                    Some(tip),
+                );
             } else {
                 ctx.clickable(cid, r);
             }
@@ -495,6 +517,56 @@ mod tests {
             t.ladder(Plane::Raised).pressed,
             "× presses on its chip's plane"
         );
+    }
+
+    // docs/design/close-button.md: the × is a three-cell plate, drawn as
+    // wide as it hits, on hover and on press, at every colour level
+    #[test]
+    fn the_remove_plate_lights_as_wide_as_it_hits() {
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let mut b = bar();
+            b.chips[0].removable = true;
+            let x_id = b.close_id(0);
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut rest = Buffer::empty(Rect::new(0, 0, 40, 1));
+            {
+                let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+                b.render(Rect::new(0, 0, 40, 1), &mut rest, &mut ctx, t.canvas);
+            }
+            let plate = hits.area_of(x_id).expect("the × registers");
+            assert_eq!(plate.width, 3, "{level:?}");
+            assert_eq!(rest[(plate.x + 1, 0)].symbol(), t.glyphs.close);
+            let look = |buf: &Buffer, x: u16| {
+                let c = &buf[(x, 0)];
+                ((level != ColorLevel::Mono).then_some(c.bg), c.modifier)
+            };
+            for (name, inter) in [
+                (
+                    "hover",
+                    Interaction {
+                        hover: Some(x_id),
+                        ..Default::default()
+                    },
+                ),
+                (
+                    "pressed",
+                    Interaction {
+                        hover: Some(x_id),
+                        pressed: Some(x_id),
+                        ..Default::default()
+                    },
+                ),
+            ] {
+                let lit = draw(&mut b, &t, inter);
+                for x in plate.left()..plate.right() {
+                    assert_ne!(look(&lit, x), look(&rest, x), "{name} {x} {level:?}");
+                    assert_eq!(look(&lit, x), look(&lit, plate.x), "{name} {x} {level:?}");
+                }
+                assert_eq!(look(&lit, plate.x - 1), look(&rest, plate.x - 1));
+            }
+        }
     }
 
     #[test]

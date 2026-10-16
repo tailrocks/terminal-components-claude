@@ -634,7 +634,7 @@ Shape is glyph vocabulary on a character grid.
 | `↓` | more rows available | the fetch-more virtual row |
 | `‹` `›` | hidden content in that direction | tab strip overflow; `‹N` / `N›` hidden-column counts |
 | `…` | truncated or clipped | ends of text, horizontal scroll edges, collapsed JSON |
-| `×` | close / remove | tabs, chips; faint until hovered |
+| `×` | close / remove | modal frames, tabs, chips; faint until hovered, then a 3-cell plate (` × `) that is also its hit area (`IconButton`, docs/design/close-button.md) |
 | `● ○` | on / off | toggle button, radio `(●)`, switch knob |
 | `[✓] [ ]` | checked / unchecked | checkbox |
 | `◆ ◇` | production / staging | environment identity in the strip and connection list |
