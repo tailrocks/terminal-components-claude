@@ -56,20 +56,29 @@ pub struct NavKeys {
 }
 
 impl NavKeys {
-    /// Today's behaviour: everything on, vim letters included.
-    pub const DEFAULT: Self = Self {
+    /// Desktop keys: arrows, paging and Home/End; letters stay free for
+    /// type-ahead, typing or app shortcuts (APG, WCAG 2.1.4). What
+    /// [`crate::core::list::NavProfile::Desktop`] uses.
+    pub const DESKTOP: Self = Self {
         arrows: true,
-        vim: true,
+        vim: false,
         page: true,
         home_end: true,
     };
 
-    /// Desktop keys only: arrows, paging and Home/End; letters stay free
-    /// for typing or app shortcuts.
-    pub const NO_VIM: Self = Self {
-        vim: false,
-        ..Self::DEFAULT
+    /// Everything on, vim letters included. What
+    /// [`crate::core::list::NavProfile::Vim`] uses.
+    pub const VIM: Self = Self {
+        vim: true,
+        ..Self::DESKTOP
     };
+
+    /// Today's behaviour: everything on, vim letters included.
+    pub const DEFAULT: Self = Self::VIM;
+
+    /// Same as [`Self::DESKTOP`] (the name used before the desktop keys
+    /// became the default).
+    pub const NO_VIM: Self = Self::DESKTOP;
 
     /// See [`Self::vim`].
     pub const fn vim(mut self, on: bool) -> Self {
@@ -298,6 +307,14 @@ pub trait Actions: Copy + PartialEq + Sized + 'static {
 /// The action `key` is bound to in `map`.
 pub fn lookup<A: Copy>(map: &[(KeyBinding, A)], key: &Key) -> Option<A> {
     map.iter().find(|(b, _)| b.matches(key)).map(|&(_, a)| a)
+}
+
+/// True when `key` is a Ctrl, Alt or Cmd character chord that `map` does
+/// not bind. Such a chord never performs a widget's plain action (Ctrl+J is
+/// not `j`, Alt+A is not type-ahead): it is left to the app. Every widget
+/// asks this one guard first (until the key router asks it for them, S8a).
+pub fn unassigned_chord<A: Copy>(key: &Key, map: &[(KeyBinding, A)]) -> bool {
+    matches!(key.code, KeyCode::Char(_)) && key.chord() && lookup(map, key).is_none()
 }
 
 /// The first key bound to `action`, if any.
