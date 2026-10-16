@@ -791,3 +791,34 @@ fn the_finder_cursor_row_is_a_fill_and_the_query_keeps_the_only_bar() {
         "the cursor row is the highlight fill"
     );
 }
+
+#[test]
+fn unavailable_alternatives_are_disabled_in_the_menu_not_failing_on_choice() {
+    // every alternative the preview cannot run is offered disabled, so no
+    // enabled menu row ends in "not available in the preview"
+    let mut unsupported = vec![];
+    for sc in Scenario::ALL {
+        let h = H::new(sc, Motion::Reduced, 0, 120, 40);
+        for it in h.app.world.items() {
+            for a in &it.alternatives {
+                if !h.app.alternative_supported(&a.item) {
+                    unsupported.push((sc, it.id.clone(), a.label.clone()));
+                }
+            }
+        }
+    }
+    let (sc, id, label) = unsupported
+        .first()
+        .cloned()
+        .expect("the catalogue has an alternative the preview cannot run");
+    let mut h = H::new(sc, Motion::Reduced, 0, 160, 50);
+    h.app
+        .open_alternatives(&id, ratatui::layout::Rect::new(2, 6, 10, 1));
+    h.draw();
+    let t = h.text();
+    let row = t
+        .lines()
+        .find(|l| l.contains(label.as_str()))
+        .unwrap_or_else(|| panic!("{label} listed\n{t}"));
+    assert!(row.contains("Not in this preview"), "{row}");
+}
