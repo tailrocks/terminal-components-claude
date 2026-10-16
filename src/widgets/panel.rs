@@ -661,6 +661,114 @@ impl Scrollable for ScrollPanel {
     }
 }
 
+/// A panel drawn in a forced state for a States grid
+/// ([`crate::ui::specimen`]): its chrome (title row, meta, the card fill
+/// or the frame) over one content row. Focused shows how focus-within
+/// reads under its [`PanelFocus`] (the title, or the title with the bar,
+/// which the grid depicts); overflow gives it a meta far longer than its
+/// title row, which gives way to the title.
+impl crate::ui::specimen::Specimen for Panel<'static> {
+    fn specimen_id(&self) -> WidgetId {
+        WidgetId::of("panel-specimen")
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Focused | Overflow | Narrow)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        4
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        _bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let t = ctx.theme;
+        let panel = Panel {
+            title: self.title,
+            kind: self.kind,
+            focused: state == Focused,
+            meta: if state == Overflow {
+                Some("a meta far longer than the title row")
+            } else {
+                self.meta
+            },
+            badge: self.badge,
+            bg_override: self.bg_override,
+            focus_mark: self.focus_mark,
+            title_min: self.title_min,
+            meta_short: self.meta_short,
+            pad_x: self.pad_x,
+        };
+        let inner = panel.render(area, buf, t);
+        if !inner.is_empty() {
+            let text = crate::ui::text::truncate("content", inner.width as usize);
+            buf.set_string(inner.x, inner.y, text, t.secondary().bg(panel.bg(t)));
+        }
+    }
+}
+
+/// A scrolling panel drawn in a forced state for a States grid
+/// ([`crate::ui::specimen`]), four rows tall in the secondary ink. The
+/// pointer states are its scrollbar's: hover lights the thumb, a press
+/// holds it in the accent (the one-glyph thumb rule). Overflow has more
+/// lines than rows (the faded edge and the bar), empty has none, and the
+/// narrow slot cuts its lines.
+impl crate::ui::specimen::Specimen for ScrollPanel {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Hover | Pressed | Empty | Overflow | Narrow)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        4
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut panel = self.clone();
+        match state {
+            Empty => panel.lines.clear(),
+            // the bar's states need a bar: content longer than the rows
+            Hover | Pressed | Overflow => {
+                let n = panel.lines.len();
+                panel
+                    .lines
+                    .extend((n + 1..=12.max(n)).map(|i| format!("line {i}")));
+            }
+            _ => {}
+        }
+        let bar = scrollbar::id_for(panel.id);
+        match state {
+            Hover => ctx.interaction.hover = Some(bar),
+            Pressed => {
+                ctx.interaction.hover = Some(bar);
+                ctx.interaction.pressed = Some(bar);
+            }
+            _ => {}
+        }
+        panel.render(area, buf, ctx, bg, |t, _| t.secondary());
+    }
+}
+
 #[cfg(test)]
 mod scroll_panel_tests {
     use super::*;

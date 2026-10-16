@@ -1,23 +1,46 @@
+//! Panels (Layout, plan §7.5 SC22): the `Panel` surface (card and framed,
+//! its title row, meta and focus mark) and the `ScrollPanel` inside it.
+//!
+//! - **Playground**: a titled card with meta, an untitled card, a card
+//!   holding a group, a framed split pane of wrapped prose and a card
+//!   holding a scrolling log.
+//! - **Options** (`panels.*`): the card focus mark, how much of the title a
+//!   long meta leaves, the card padding, the meta's short form, and the
+//!   scrolling panels' wrap, tail, sideways policy, track click, keys and
+//!   follow key.
+//! - **States**: a card, a card whose focus is its own bar and a framed
+//!   pane at rest, focused, overflowing and narrow.
+//!
+//! The page is wiring and demo data only.
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::keymap::{KeyBinding, NavKeys, hint_key};
+use junie_tui::core::scroll::{HScroll, Scrollable, ScrollbarVisibility, TrackClick};
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::widgets::keyhint;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
-use junie_tui::widgets::panel::{Panel, ScrollPanel};
+use junie_tui::widgets::panel::{Panel, PanelCmd, PanelFocus, ScrollPanel};
 use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("panels");
 
 pub struct PanelsPage {
-    prose: ScrollPanel,
-    log: ScrollPanel,
-    nested: ListBox,
+    template: Template,
+    opts: PageValues,
+    pub prose: ScrollPanel,
+    pub log: ScrollPanel,
+    pub nested: ListBox,
     sections: crate::pages::layout::Sections,
 }
 
@@ -37,15 +60,6 @@ pub fn log_style(t: &Theme, line: &str) -> ratatui::style::Style {
 
 impl PanelsPage {
     pub fn new() -> Self {
-        let prose = ScrollPanel::new(
-            ID.sub("prose"),
-            crate::data::prose()
-                .split('\n')
-                .map(str::to_owned)
-                .collect(),
-        )
-        .wrap(true);
-        let log = ScrollPanel::new(ID.sub("log"), crate::data::log_lines(60));
         let nested = ListBox::new(
             ID.sub("nested"),
             vec![
@@ -55,28 +69,87 @@ impl PanelsPage {
             ],
             SelectMode::Single,
         );
-        Self {
-            prose,
-            log,
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::Panels)),
+            prose: ScrollPanel::new(ID.sub("prose"), vec![]),
+            log: ScrollPanel::new(ID.sub("log"), vec![]),
             nested,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        };
+        page.rebuild();
+        page
+    }
+
+    /// Build both scrolling panels from the option values through their
+    /// builders, keeping their positions.
+    fn rebuild(&mut self) {
+        let o = &self.opts;
+        let nav = match o.value("panels.nav") {
+            "vim" => NavKeys::VIM,
+            "no-paging" => NavKeys::DESKTOP.page(false),
+            _ => NavKeys::default(),
+        };
+        let keymap = match o.value("panels.keymap") {
+            "t" => vec![(KeyBinding::char('t'), PanelCmd::Follow)],
+            _ => vec![(KeyBinding::char('f'), PanelCmd::Follow)],
+        };
+        let click = match o.value("panels.track_click") {
+            "page" => Some(TrackClick::Page),
+            "jump" => Some(TrackClick::Jump),
+            _ => None,
+        };
+        let sideways = match o.value("panels.hscroll") {
+            "off" => Some(HScroll::off()),
+            "bar-always" => Some(HScroll::default().bar(ScrollbarVisibility::Always)),
+            "bar-never" => Some(HScroll::default().bar(ScrollbarVisibility::Never)),
+            "step-1" => Some(HScroll::default().step(1)),
+            "jump" => Some(HScroll::default().track_click(TrackClick::Jump)),
+            _ => None,
+        };
+        let text = crate::data::prose()
+            .split('\n')
+            .map(str::to_owned)
+            .collect();
+        let mut prose = ScrollPanel::new(ID.sub("prose"), text)
+            .wrap(o.on("panels.wrap"))
+            .nav(nav)
+            .keymap(keymap.clone());
+        let mut log = ScrollPanel::new(ID.sub("log"), crate::data::log_lines(60))
+            .tail(o.on("panels.tail"))
+            .nav(nav)
+            .keymap(keymap);
+        if let Some(c) = click {
+            prose = prose.track_click(c);
+            log = log.track_click(c);
         }
+        if let Some(h) = sideways {
+            log = log.horizontal(h);
+        }
+        if !o.on("panels.tail") {
+            log.scroll.v.offset = self.log.scroll.offset;
+        }
+        prose.scroll.v.offset = self.prose.scroll.offset;
+        self.prose = prose;
+        self.log = log;
     }
 
     fn panels(&mut self) -> [&mut ScrollPanel; 2] {
         [&mut self.prose, &mut self.log]
     }
-}
 
-impl Page for PanelsPage {
-    fn title(&self) -> &'static str {
-        "Panels"
-    }
-    fn blurb(&self) -> &'static str {
-        "Cards group; a frame only where a pane needs an edge; nothing boxed twice"
+    /// A card with this page's chrome options.
+    fn card<'a>(&self, title: Option<&'a str>) -> Panel<'a> {
+        let mut p = Panel::card(title)
+            .pad_x(self.opts.number("panels.pad_x").unwrap_or(2))
+            .title_min(self.opts.number("panels.title_min").unwrap_or(12));
+        if self.opts.value("panels.focus_mark") == "bar" {
+            p = p.focus_mark(PanelFocus::Bar);
+        }
+        p
     }
 
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, area.width / 2 - 1, 2);
         // the left column's cards scroll as whole sections on a short
@@ -95,18 +168,22 @@ impl Page for PanelsPage {
         );
 
         // titled card
-        let panel = Panel::card(Some("Titled card")).meta("surface");
+        let panel = self.card(Some("Titled card")).meta("surface");
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(0).and_then(|r| panel.try_render(r, buf, t)) {
-            for (i, line) in junie_tui::ui::text::wrap("A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.", inner.width as usize).iter().enumerate() {
-            if i < inner.height as usize {
-                buf.set_string(inner.x, inner.y + i as u16, line, t.secondary().bg(bg));
+            let text = "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.";
+            for (i, line) in junie_tui::ui::text::wrap(text, inner.width as usize)
+                .iter()
+                .enumerate()
+            {
+                if i < inner.height as usize {
+                    buf.set_string(inner.x, inner.y + i as u16, line, t.secondary().bg(bg));
+                }
             }
-        }
         }
 
         // untitled card
-        let panel = Panel::card(None);
+        let panel = self.card(None);
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(1).and_then(|r| panel.try_render(r, buf, t)) {
             for (i, line) in junie_tui::ui::text::wrap(
@@ -123,7 +200,7 @@ impl Page for PanelsPage {
         }
 
         // nested: card containing a framed pane containing a list
-        let panel = Panel::card(Some("Nested"));
+        let panel = self.card(Some("Nested"));
         let bg = panel.bg(t);
         match lrows.slot(2).and_then(|r| panel.try_render(r, buf, t)) {
             Some(inner) => self.render_nested(inner, buf, ctx, bg),
@@ -132,7 +209,126 @@ impl Page for PanelsPage {
         self.render_panes(r, buf, ctx);
     }
 
+    fn render_nested(
+        &mut self,
+        inner: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        let t = ctx.theme;
+        // nested grouping is a muted label and indent, never a second box
+        buf.set_string(inner.x, inner.y, "Target", t.muted().bg(bg));
+        let group = Rect::new(
+            inner.x,
+            inner.y + 1,
+            inner.width.min(30),
+            inner.height.saturating_sub(1).min(3),
+        );
+        self.nested.render(group, buf, ctx, bg);
+        let note_x = group.right() + 2;
+        if note_x + 20 < inner.right() {
+            let note = "A group inside a card is a muted label plus indent. The focus bar stays on the control.";
+            for (i, line) in junie_tui::ui::text::wrap(note, (inner.right() - note_x) as usize)
+                .iter()
+                .enumerate()
+            {
+                if (i as u16) < inner.height {
+                    buf.set_string(note_x, inner.y + i as u16, line, t.muted().bg(bg));
+                }
+            }
+        }
+    }
+
+    fn render_panes(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        // right: two framed scrollable panes
+        let rrows = crate::pages::layout::rows(r, &[r.height / 2, 0]);
+        let pf = ctx.interaction.focused(self.prose.id);
+        let panel = Panel::framed(Some("Framed · split pane"))
+            .focused(pf)
+            .title_min(self.opts.number("panels.title_min").unwrap_or(12));
+        let bg = panel.bg(t);
+        let inner = panel.render(rrows[0], buf, t);
+        self.prose.render(inner, buf, ctx, bg, prose_style);
+        panel.draw_meta(
+            rrows[0],
+            buf,
+            t,
+            &scrollbar::position_label(&self.prose.scroll),
+        );
+
+        let lf = ctx.interaction.focused(self.log.id);
+        let card = Rect::new(
+            rrows[1].x,
+            rrows[1].y + 1,
+            rrows[1].width,
+            rrows[1].height.saturating_sub(1),
+        );
+        let panel = self.card(Some("Card · scrollable")).focused(lf);
+        let bg = panel.bg(t);
+        let inner = panel.render(card, buf, t);
+        self.log.render(inner, buf, ctx, bg, log_style);
+        // the label is read after the content laid itself out
+        let pos = scrollbar::position_label(&self.log.scroll);
+        // the custom short form keeps the range and drops the total
+        let short = pos.split(" of ").next().unwrap_or_default().to_owned();
+        let panel = if self.opts.value("panels.meta_short") == "custom" {
+            panel.meta_short(&short)
+        } else {
+            panel
+        };
+        let meta = if self.log.follow {
+            format!("{pos} · following")
+        } else {
+            pos.clone()
+        };
+        panel.draw_meta(card, buf, t, &meta);
+    }
+}
+
+/// The States grid: a card, a card that is itself the focus stop (its
+/// title carries the bar) and a framed pane, each drawn by `Panel`.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    StateGrid::new(id)
+        .label_width(14)
+        .column_width(24)
+        .narrow_width(12)
+        .rows(&[Rest, Focused, Overflow, Narrow])
+        .column("Card", Panel::card(Some("Settings")).meta("3 items"))
+        .column(
+            "Card · bar mark",
+            Panel::card(Some("Log")).focus_mark(PanelFocus::Bar).meta("live"),
+        )
+        .column("Framed", Panel::framed(Some("Preview")).meta("1–9 of 24"))
+}
+
+impl Page for PanelsPage {
+    fn title(&self) -> &'static str {
+        "Panels"
+    }
+    fn blurb(&self) -> &'static str {
+        "Cards group; a frame only where a pane needs an edge; nothing boxed twice"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
         if let Some(o) = self.sections.handle(ev) {
             return o;
         }
@@ -151,14 +347,25 @@ impl Page for PanelsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, pos } => {
+            PageEvent::Press { id, pos } => {
+                for p in self.panels() {
+                    if scrollbar::is_bar_of(*id, p.id) {
+                        return p.on_scrollbar(*pos);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Click { id, .. } => {
                 if let Some(row) = self.nested.locate(*id) {
                     cx.focus.focus(self.nested.id);
                     return self.nested.on_click(row);
                 }
                 for p in self.panels() {
+                    // the completed click after a press on a bar: the grab
+                    // ends
                     if scrollbar::is_bar_of(*id, p.id) {
-                        return p.on_scrollbar(*pos);
+                        p.pane().release();
+                        return Outcome::Consumed;
                     }
                     if p.id == *id {
                         return Outcome::Changed;
@@ -198,77 +405,56 @@ impl Page for PanelsPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         if focus == Some(self.nested.id) {
-            vec![("↑↓", "Move"), ("Enter", "Choose")]
-        } else if focus == Some(self.log.id) {
-            vec![("↑↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
-        } else {
-            vec![("↑↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            return vec![("↑↓", "Move"), ("Enter", "Choose")];
         }
-    }
-}
-
-impl PanelsPage {
-    fn render_nested(
-        &mut self,
-        inner: Rect,
-        buf: &mut Buffer,
-        ctx: &mut RenderCtx,
-        bg: ratatui::style::Color,
-    ) {
-        let t = ctx.theme;
-        // nested grouping is a muted label and indent, never a second box
-        buf.set_string(inner.x, inner.y, "Target", t.muted().bg(bg));
-        let group = Rect::new(
-            inner.x,
-            inner.y + 1,
-            inner.width.min(30),
-            inner.height.saturating_sub(1).min(3),
-        );
-        self.nested.render(group, buf, ctx, bg);
-        let note_x = group.right() + 2;
-        if note_x + 20 < inner.right() {
-            for (i, line) in junie_tui::ui::text::wrap("A group inside a card is a muted label plus indent. The focus bar stays on the control.", (inner.right() - note_x) as usize).iter().enumerate() {
-                if (i as u16) < inner.height {
-                    buf.set_string(note_x, inner.y + i as u16, line, t.muted().bg(bg));
-                }
-            }
-        }
-    }
-
-    fn render_panes(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        // right: two framed scrollable panes
-        let rrows = crate::pages::layout::rows(r, &[r.height / 2, 0]);
-        let pf = ctx.interaction.focused(self.prose.id);
-        let panel = Panel::framed(Some("Framed · split pane")).focused(pf);
-        let bg = panel.bg(t);
-        let inner = panel.render(rrows[0], buf, t);
-        self.prose.render(inner, buf, ctx, bg, prose_style);
-        panel.draw_meta(
-            rrows[0],
-            buf,
-            t,
-            &scrollbar::position_label(&self.prose.scroll),
-        );
-
-        let lf = ctx.interaction.focused(self.log.id);
-        let panel = Panel::card(Some("Card · scrollable")).focused(lf);
-        let bg = panel.bg(t);
-        let card = Rect::new(
-            rrows[1].x,
-            rrows[1].y + 1,
-            rrows[1].width,
-            rrows[1].height.saturating_sub(1),
-        );
-        let inner = panel.render(card, buf, t);
-        self.log.render(inner, buf, ctx, bg, log_style);
-        let pos = scrollbar::position_label(&self.log.scroll);
-        let meta = if self.log.follow {
-            format!("{pos} · following")
+        let panel = if focus == Some(self.log.id) {
+            &self.log
         } else {
-            pos
+            &self.prose
         };
-        panel.draw_meta(card, buf, t, &meta);
+        // read from the panel's live keys: a key it does not take is never
+        // advertised (`g G` only under the vim keys)
+        let mut v = Vec::new();
+        if let Some(k) = keyhint::step_keys(&panel.nav) {
+            v.push((k, "Scroll"));
+        }
+        if let Some(k) = keyhint::page_keys(&panel.nav) {
+            v.push((k, "Page"));
+        }
+        if let Some(k) = keyhint::ends_keys(&panel.nav) {
+            v.push((k, "Ends"));
+        }
+        if panel.tail
+            && let Some(k) = hint_key(&panel.keymap, PanelCmd::Follow)
+        {
+            v.push((k, "Follow tail"));
+        }
+        v
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }

@@ -1189,9 +1189,18 @@ fn titles(h: &Harness) -> String {
         .unwrap_or_default()
 }
 
+/// Rows of the thumb in column `x`, within the long list's bar (the page
+/// has more bars below it in the same column).
 fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
     let buf = h.term.backend().buffer();
-    (0..buf.area.height)
+    let bar = h
+        .app
+        .hits
+        .area_of(junie_tui::widgets::scrollbar::id_for(
+            WidgetId::of("scrolling").sub("list"),
+        ))
+        .expect("the list scrollbar is registered");
+    (bar.y..bar.bottom())
         .filter(|&y| {
             let sym = buf[(x, y)].symbol();
             sym == junie_tui::widgets::scrollbar::THUMB
@@ -1255,16 +1264,24 @@ fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick
         title.contains(&format!("1–{drawn} of")) || title.contains(&format!("1–{drawn}/")),
         "the list label matches the rows drawn at 80x24: {title}"
     );
+    // (its long lines scroll sideways: the horizontal bar takes a row; the
+    // log shares the page with two more bands, so its rows follow its card)
+    let log = h
+        .app
+        .hits
+        .area_of(WidgetId::of("scrolling").sub("log"))
+        .unwrap();
+    let first = 401 - (log.height as u32 - 1) + 1;
     assert!(
-        // (its long lines scroll sideways: the horizontal bar takes a row)
-        title.contains("388–401 of") || title.contains("388–401/401"),
-        "the log label survives at 80x24: {title}"
+        title.contains(&format!("{first}–401 of")) || title.contains(&format!("{first}–401/401")),
+        "the log label survives at 80x24 and matches its rows: {title}"
     );
 }
 
 #[test]
 fn a_press_on_the_thumb_grabs_it_and_a_drag_moves_the_view_with_the_pointer() {
-    let mut h = Harness::new(120, 40, PageId::Scrolling);
+    // the long list's card takes the rows the page's other bands leave
+    let mut h = Harness::new(160, 60, PageId::Scrolling);
     let x = list_scrollbar_x(&h);
     let thumb = thumb_rows(&h, x);
     assert!(thumb.len() >= 3, "{thumb:?}");
@@ -1279,6 +1296,7 @@ fn a_press_on_the_thumb_grabs_it_and_a_drag_moves_the_view_with_the_pointer() {
     // one row of pointer motion moves the view by a few rows, not a page
     let thumb_top = thumb[0];
     h.mouse(MouseKind::Drag, x, grab_y + 1);
+    let after_one = first_list_row(&h);
     let after_one = first_list_row(&h);
     assert!(after_one > 1 && after_one <= 6, "{after_one}");
     assert_eq!(
@@ -1336,7 +1354,9 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
         "reaching the end resumes: {}",
         titles(&h)
     );
-    // prose: `f` is not a verb there and End is only a jump
+    // prose: `f` is not a verb there and End is only a jump (the
+    // section strip is the page's first stop)
+    h.key(KeyCode::Tab);
     h.key(KeyCode::Tab);
     assert_eq!(
         h.app.focus.current(),
@@ -1998,7 +2018,8 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
 
 #[test]
 fn a_track_press_held_keeps_paging_until_the_thumb_reaches_the_pointer() {
-    let mut h = Harness::new(120, 40, PageId::Scrolling);
+    // the long list's card takes the rows the page's other bands leave
+    let mut h = Harness::new(160, 60, PageId::Scrolling);
     let list_area = {
         let id = junie_tui::core::id::WidgetId::of("scrolling").sub("list");
         h.app.hits.area_of(id).unwrap()

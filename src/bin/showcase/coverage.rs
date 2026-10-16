@@ -3070,4 +3070,276 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::toolbar::Toolbar::gap",
         Option("toolbars", "toolbars.gap"),
     ),
+    (
+        "core::scroll::ScrollState",
+        Option("scrolling", "scrolling.context"),
+    ),
+    (
+        "core::scroll::ScrollState::with_follow_cursor",
+        Option("scrolling", "scrolling.follow"),
+    ),
+    (
+        "core::scroll::ScrollState::with_context",
+        Option("scrolling", "scrolling.context"),
+    ),
+    (
+        "core::scroll::FollowCursor",
+        Option("scrolling", "scrolling.follow"),
+    ),
+    (
+        "core::scroll::FollowCursor::OnMove",
+        Option("scrolling", "scrolling.follow=on-move"),
+    ),
+    (
+        "core::scroll::FollowCursor::Always",
+        Option("scrolling", "scrolling.follow=always"),
+    ),
+    (
+        "core::scroll::ScrollbarVisibility",
+        Option("scrolling", "scrolling.hbar"),
+    ),
+    (
+        "core::scroll::ScrollbarVisibility::Auto",
+        Option("scrolling", "scrolling.hbar=auto"),
+    ),
+    (
+        "core::scroll::ScrollbarVisibility::Always",
+        Option("scrolling", "scrolling.hbar=always"),
+    ),
+    (
+        "core::scroll::ScrollbarVisibility::Never",
+        Option("scrolling", "scrolling.hbar=never"),
+    ),
+    (
+        "core::scroll::TrackClick",
+        Option("scrolling", "scrolling.track_click"),
+    ),
+    (
+        "core::scroll::TrackClick::Jump",
+        Option("scrolling", "scrolling.track_click=jump"),
+    ),
+    (
+        "core::scroll::TrackClick::Page",
+        Option("scrolling", "scrolling.track_click=page"),
+    ),
+    (
+        "core::scroll::ScrollPane",
+        Demo("scrolling", "Hand-drawn"),
+    ),
+    (
+        "core::scroll::ScrollPane::horizontal",
+        Option("scrolling", "scrolling.hbar"),
+    ),
+    (
+        "core::scroll::ScrollPane::track_click",
+        Option("scrolling", "scrolling.track_click"),
+    ),
+    (
+        "core::scroll::ScrollPane::columns",
+        Option("scrolling", "scrolling.columns"),
+    ),
+    (
+        "widgets::scrollbar::Bars",
+        Demo("scrolling", "Hand-drawn"),
+    ),
+    (
+        "widgets::scrollbar::VSplit",
+        Demo("scrolling", "Divider or scrollbar"),
+    ),
+    (
+        "core::scroll::HScroll",
+        Option("panels", "panels.hscroll"),
+    ),
+    (
+        "core::scroll::HScroll::bar",
+        Option("panels", "panels.hscroll=bar-always"),
+    ),
+    (
+        "core::scroll::HScroll::step",
+        Option("panels", "panels.hscroll=step-1"),
+    ),
+    (
+        "core::scroll::HScroll::track_click",
+        Option("panels", "panels.hscroll=jump"),
+    ),
+    (
+        "widgets::panel::PanelFocus",
+        Option("panels", "panels.focus_mark"),
+    ),
+    (
+        "widgets::panel::PanelFocus::Title",
+        Option("panels", "panels.focus_mark=title"),
+    ),
+    (
+        "widgets::panel::PanelFocus::Bar",
+        Option("panels", "panels.focus_mark=bar"),
+    ),
+    (
+        "widgets::panel::Panel::focused",
+        StateRow("panels", "focused"),
+    ),
+    (
+        "widgets::panel::Panel::focus_mark",
+        Option("panels", "panels.focus_mark"),
+    ),
+    (
+        "widgets::panel::Panel::meta",
+        Demo("panels", "surface"),
+    ),
+    (
+        "widgets::panel::Panel::meta_short",
+        Option("panels", "panels.meta_short"),
+    ),
+    (
+        "widgets::panel::Panel::pad_x",
+        Option("panels", "panels.pad_x"),
+    ),
+    (
+        "widgets::panel::Panel::title_min",
+        Option("panels", "panels.title_min"),
+    ),
+    (
+        "widgets::panel::PanelCmd",
+        Option("panels", "panels.keymap"),
+    ),
+    (
+        "widgets::panel::PanelCmd::Follow",
+        Option("panels", "panels.keymap"),
+    ),
+    (
+        "widgets::panel::ScrollPanel::nav",
+        Option("panels", "panels.nav"),
+    ),
+    (
+        "widgets::panel::ScrollPanel::keymap",
+        Option("panels", "panels.keymap"),
+    ),
+    (
+        "widgets::panel::ScrollPanel::horizontal",
+        Option("panels", "panels.hscroll"),
+    ),
+    (
+        "widgets::panel::ScrollPanel::wrap",
+        Option("panels", "panels.wrap"),
+    ),
+    (
+        "widgets::panel::ScrollPanel::tail",
+        Option("panels", "panels.tail"),
+    ),
+    (
+        "widgets::panel::ScrollPanel::track_click",
+        Option("panels", "panels.track_click"),
+    ),
+    (
+        "core::list::Cursor",
+        Demo("scrolling", "Cursor"),
+    ),
+    (
+        "core::list::Cursor::wrap",
+        Option("scrolling", "scrolling.wrap"),
+    ),
+    (
+        "core::list::Cursor::axis",
+        Demo("scrolling", "· vertical ·"),
+    ),
+    (
+        "core::list::Cursor::skip_disabled",
+        Option("scrolling", "scrolling.skip_disabled"),
+    ),
+    (
+        "core::list::Moved",
+        Demo("scrolling", "Moved: To · Stayed · Ignored"),
+    ),
+    (
+        "core::list::Moved::Ignored",
+        Demo("scrolling", "Moved: To · Stayed · Ignored"),
+    ),
+    (
+        "core::list::Moved::Stayed",
+        Demo("scrolling", "Moved: To · Stayed · Ignored"),
+    ),
+    (
+        "core::list::Moved::To",
+        Demo("scrolling", "Moved: To · Stayed · Ignored"),
+    ),
+    (
+        "core::list::RowFn",
+        Demo("scrolling", "RowFn"),
+    ),
+    (
+        "core::list::KeyStep",
+        Demo("scrolling", "KeyStep: Nav · Type"),
+    ),
+    (
+        "core::list::KeyStep::Nav",
+        Demo("scrolling", "KeyStep: Nav · Type"),
+    ),
+    (
+        "core::list::KeyStep::Type",
+        Demo("scrolling", "KeyStep: Nav · Type"),
+    ),
+    (
+        "core::list::NavProfile",
+        Option("scrolling", "scrolling.profile"),
+    ),
+    (
+        "core::list::NavProfile::Desktop",
+        Option("scrolling", "scrolling.profile=desktop"),
+    ),
+    (
+        "core::list::NavProfile::Vim",
+        Option("scrolling", "scrolling.profile=vim"),
+    ),
+    (
+        "core::list::TypeAheadPrecedence",
+        Option("scrolling", "scrolling.precedence"),
+    ),
+    (
+        "core::list::TypeAheadPrecedence::Shortcuts",
+        Option("scrolling", "scrolling.precedence=shortcuts"),
+    ),
+    (
+        "core::list::TypeAheadPrecedence::TypeAhead",
+        Option("scrolling", "scrolling.precedence=type-ahead"),
+    ),
+    (
+        "widgets::grid::DataGrid::type_ahead_precedence",
+        Option("scrolling", "scrolling.precedence"),
+    ),
+    (
+        "widgets::grid::DataGrid::type_ahead_timeout",
+        Option("scrolling", "scrolling.timeout"),
+    ),
+    (
+        "widgets::list::ListBox::type_ahead_precedence",
+        Option("scrolling", "scrolling.precedence"),
+    ),
+    (
+        "widgets::list::ListBox::type_ahead_timeout",
+        Option("scrolling", "scrolling.timeout"),
+    ),
+    (
+        "widgets::select::Select::type_ahead_precedence",
+        Option("scrolling", "scrolling.precedence"),
+    ),
+    (
+        "widgets::select::Select::type_ahead_timeout",
+        Option("scrolling", "scrolling.timeout"),
+    ),
+    (
+        "widgets::table::DataTable::type_ahead_precedence",
+        Option("scrolling", "scrolling.precedence"),
+    ),
+    (
+        "widgets::table::DataTable::type_ahead_timeout",
+        Option("scrolling", "scrolling.timeout"),
+    ),
+    (
+        "widgets::tree::TreeView::type_ahead_precedence",
+        Option("scrolling", "scrolling.precedence"),
+    ),
+    (
+        "widgets::tree::TreeView::type_ahead_timeout",
+        Option("scrolling", "scrolling.timeout"),
+    ),
 ];

@@ -257,9 +257,57 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::CellEditors => CELL_EDITORS,
         PageId::FocusNavigation => FOCUS_NAV,
         PageId::Toolbars => TOOLBARS,
+        PageId::Panels => PANELS,
+        PageId::Scrolling => SCROLLING,
         _ => &[],
     }
 }
+
+/// Panels (SC22): `Panel` chrome and the `ScrollPanel` knobs.
+pub static PANELS: &[Opt] = &[
+    Opt::new("panels.focus_mark", "Card focus mark", &["title", "bar"]),
+    Opt::new("panels.title_min", "Title keeps", &["12", "4", "20"]),
+    Opt::new("panels.pad_x", "Card padding", &["2", "1", "0"]),
+    Opt::new("panels.meta_short", "Short meta", &["auto", "custom"]),
+    Opt::new("panels.wrap", "Wrap prose", OFF_ON).default(1),
+    Opt::new("panels.tail", "Log follows its tail", OFF_ON),
+    Opt::new(
+        "panels.hscroll",
+        "Log sideways",
+        &["theme", "off", "bar-always", "bar-never", "step-1", "jump"],
+    ),
+    Opt::new("panels.track_click", "Track click", &["app", "page", "jump"]),
+    Opt::new("panels.nav", "Keys", &["desktop", "vim", "no-paging"]),
+    Opt::new("panels.keymap", "Follow key", &["f", "t"]),
+];
+
+/// Scrolling (SC22, SC29): `ScrollState`, `ScrollPane` and the cursor
+/// model (`NavProfile`, type-ahead, its pause and precedence).
+pub static SCROLLING: &[Opt] = &[
+    Opt::new("scrolling.context", "Context rows", &["0", "1", "2"]).default(1),
+    Opt::new("scrolling.follow", "Mirror follows", &["on-move", "always"]),
+    Opt::new("scrolling.track_click", "Track click", &["app", "page", "jump"]),
+    Opt::new(
+        "scrolling.hbar",
+        "Sideways bar",
+        &["auto", "always", "never"],
+    ),
+    Opt::new("scrolling.columns", "Sideways by column", OFF_ON).default(1),
+    Opt::new("scrolling.profile", "Profile", &["desktop", "vim"]),
+    Opt::new(
+        "scrolling.type_ahead",
+        "Type-ahead",
+        &["profile", "on", "off"],
+    ),
+    Opt::new("scrolling.timeout", "Type-ahead pause", &["0.5s", "1s", "2s"]).default(1),
+    Opt::new(
+        "scrolling.precedence",
+        "Letters go to",
+        &["shortcuts", "type-ahead"],
+    ),
+    Opt::new("scrolling.wrap", "Wrap at the ends", OFF_ON),
+    Opt::new("scrolling.skip_disabled", "Skip disabled", OFF_ON).default(1),
+];
 
 /// Buttons (SC7): `Button`, `ButtonRow`, `IconButton` and the States grid.
 pub static BUTTONS: &[Opt] = &[

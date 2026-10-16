@@ -1,22 +1,125 @@
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+//! Scrolling (Layout, plan §7.5 SC22 and SC29): one scroll model
+//! (`ScrollState`, `ScrollPane`, `Scrollable`) and one cursor model
+//! (`Cursor`, `RowSource`, `NavProfile`, type-ahead) in every collection.
+//!
+//! - **Playground**: wrapped prose, a long list and a following log; a
+//!   hand-drawn table on a bare `ScrollPane` (rows painted by the page, the
+//!   faded edge and both bars by `draw_with_fade`/`draw_h`) that follows the
+//!   list's cursor; the divider-or-scrollbar rule on two small panes; a
+//!   readout of the list's `Cursor` and of what the last key was
+//!   (`KeyStep`, `Moved`); and type-ahead in a select, a tree, a table and
+//!   a grid under the same pause and precedence.
+//! - **Options** (`scrolling.*`): context rows, follow policy, track click,
+//!   the horizontal bar and unit of the hand-drawn pane, the navigation
+//!   profile, type-ahead, its pause and its precedence, wrap and
+//!   skip-disabled.
+//! - **States**: a scrolling panel at rest, with its thumb hovered and
+//!   held, empty, overflowing and narrow.
+//!
+//! The page is wiring and demo data only: scrolling, bars, fades, cursor
+//! moves and type-ahead are the library's.
 
+use std::collections::BTreeSet;
+use std::time::Duration;
+
+use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::KeyCode;
+use ratatui::layout::{Constraint, Rect};
+
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
-use junie_tui::core::event::Outcome;
+use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::list::{
+    Cursor, KeyStep, Moved, NavProfile, Navigable, RowFn, RowSource, TypeAheadPrecedence,
+};
+use junie_tui::core::scroll::{
+    FollowCursor, HScroll, ScrollPane, ScrollState, Scrollable, ScrollbarVisibility, TrackClick,
+};
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text::{fit, slice_cells, truncate};
+use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
+use junie_tui::widgets::keyhint;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
 use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::select::Select;
+use junie_tui::widgets::table::{Cell, Column, DataTable};
+use junie_tui::widgets::tree::{TreeNode, TreeView};
 
 const ID: WidgetId = WidgetId::of("scrolling");
+/// The hand-drawn table's pane (the page paints its rows).
+const HAND: WidgetId = ID.sub("hand");
+/// The divider demo: content that fits, and content that overflows.
+const FITS: WidgetId = ID.sub("fits");
+const OVER: WidgetId = ID.sub("over");
+
+/// Every tenth row is retired (disabled): skip-disabled steps over it.
+fn retired(i: usize) -> bool {
+    i % 10 == 9
+}
+
+const SERVICES: &[&str] = &[
+    "api", "auth", "billing", "cache", "db", "edge", "feeds", "gateway", "jobs", "logs",
+];
+const REGIONS: &[&str] = &[
+    "ap-south-1",
+    "ap-southeast-2",
+    "ca-central-1",
+    "eu-central-1",
+    "eu-north-1",
+    "eu-west-1",
+    "eu-west-2",
+    "me-south-1",
+    "sa-east-1",
+    "us-east-1",
+    "us-east-2",
+    "us-west-2",
+];
+/// The hand-drawn table's columns: title and cells per column.
+const HAND_COLS: &[&str] = &["Host", "Region", "Latency", "CPU", "Memory", "Uptime"];
+const HAND_W: usize = 14;
+
+/// The hand-drawn table's cells for row `i`.
+fn hand_row(i: usize) -> [String; 6] {
+    [
+        format!("{}-{:02}", SERVICES[i % SERVICES.len()], i / SERVICES.len() + 1),
+        REGIONS[i % REGIONS.len()].to_owned(),
+        format!("{} ms", 8 + (i * 37) % 90),
+        format!("{}%", (i * 53) % 100),
+        format!("{:.1} GiB", 1.0 + ((i * 29) % 60) as f32 / 10.0),
+        format!("{} d", 1 + (i * 17) % 300),
+    ]
+}
 
 pub struct ScrollingPage {
-    prose: ScrollPanel,
-    list: ListBox,
-    log: ScrollPanel,
+    template: Template,
+    opts: PageValues,
+    sections: crate::pages::layout::Sections,
+    pub prose: ScrollPanel,
+    pub list: ListBox,
+    pub log: ScrollPanel,
+    /// A bare pane the page draws a table into (`ScrollPane` builders,
+    /// `draw_with_fade`, `draw_h`, `follow`).
+    pub hand: ScrollPane,
+    /// Divider demo panes.
+    pub fits: ScrollPane,
+    pub over: ScrollPane,
+    /// Type-ahead in other collections.
+    pub region: Select,
+    pub tree: TreeView,
+    pub table: DataTable,
+    pub grid: DataGrid,
+    /// Rows flagged with the page's `f` shortcut.
+    pub flagged: BTreeSet<usize>,
+    /// What the last key on the list meant and did.
+    pub last: Option<(KeyStep, Moved)>,
 }
 
 fn prose_style(t: &Theme, _l: &str) -> ratatui::style::Style {
@@ -30,32 +133,240 @@ impl ScrollingPage {
             text.extend(crate::data::prose().split('\n').map(str::to_owned));
             text.push(String::new());
         }
-        let items = (1..=120)
-            .map(|i| {
-                ListItem::new(&format!("Row {i:03}")).meta(if i % 7 == 0 { "flagged" } else { "" })
-            })
-            .collect();
         let log = ScrollPanel::new(ID.sub("log"), crate::data::log_lines(400)).tail(true);
-        Self {
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::Scrolling)),
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
             prose: ScrollPanel::new(ID.sub("prose"), text).wrap(true),
-            list: ListBox::new(ID.sub("list"), items, SelectMode::Single),
+            list: ListBox::new(ID.sub("list"), vec![], SelectMode::Single),
             log,
+            hand: ScrollPane::default(),
+            fits: ScrollPane::default(),
+            over: ScrollPane::default(),
+            region: Select::new(ID.sub("region"), "Region", REGIONS, 5),
+            tree: TreeView::new(ID.sub("tree"), vec![]),
+            table: DataTable::new(ID.sub("table"), vec![], vec![]),
+            grid: DataGrid::new(ID.sub("grid"), vec![]),
+            flagged: BTreeSet::new(),
+            last: None,
+        };
+        page.rebuild();
+        page
+    }
+
+    fn profile(&self) -> NavProfile {
+        match self.opts.value("scrolling.profile") {
+            "vim" => NavProfile::Vim,
+            _ => NavProfile::Desktop,
         }
     }
-}
 
-impl Page for ScrollingPage {
-    fn title(&self) -> &'static str {
-        "Scrolling"
-    }
-    fn blurb(&self) -> &'static str {
-        "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows"
+    fn precedence(&self) -> TypeAheadPrecedence {
+        match self.opts.value("scrolling.precedence") {
+            "type-ahead" => TypeAheadPrecedence::TypeAhead,
+            _ => TypeAheadPrecedence::Shortcuts,
+        }
     }
 
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
+    fn timeout(&self) -> Duration {
+        match self.opts.value("scrolling.timeout") {
+            "0.5s" => Duration::from_millis(500),
+            "2s" => Duration::from_secs(2),
+            _ => Duration::from_secs(1),
+        }
+    }
+
+    fn type_ahead(&self) -> bool {
+        match self.opts.value("scrolling.type_ahead") {
+            "on" => true,
+            "off" => false,
+            _ => self.profile().type_ahead(),
+        }
+    }
+
+    fn track_click(&self) -> Option<TrackClick> {
+        match self.opts.value("scrolling.track_click") {
+            "page" => Some(TrackClick::Page),
+            "jump" => Some(TrackClick::Jump),
+            _ => None,
+        }
+    }
+
+    /// Build every widget from the option values through its builders,
+    /// keeping where the user was.
+    fn rebuild(&mut self) {
+        let o = &self.opts;
+        let nav = self.profile().nav();
+        let type_ahead = self.type_ahead();
+        let precedence = self.precedence();
+        let timeout = self.timeout();
+        let context = o.number("scrolling.context").unwrap_or(1) as usize;
+        let follow = match o.value("scrolling.follow") {
+            "always" => FollowCursor::Always,
+            _ => FollowCursor::OnMove,
+        };
+
+        let items = (1..=120)
+            .map(|i| {
+                let idx = i - 1;
+                let item = ListItem::new(&format!("Row {i:03}"));
+                if retired(idx) {
+                    item.meta("retired").disabled(true)
+                } else if self.flagged.contains(&idx) {
+                    item.meta("flagged")
+                } else {
+                    item
+                }
+            })
+            .collect();
+        let mut list = ListBox::new(ID.sub("list"), items, SelectMode::Single)
+            .nav(nav)
+            .type_ahead(type_ahead)
+            .type_ahead_timeout(timeout)
+            .type_ahead_precedence(precedence)
+            .wrap(o.on("scrolling.wrap"))
+            .skip_disabled(o.on("scrolling.skip_disabled"));
+        if let Some(click) = self.track_click() {
+            list = list.track_click(click);
+        }
+        list.cursor = self.list.cursor;
+        list.scroll.v = list.scroll.v.with_context(context);
+        list.scroll.v.offset = self.list.scroll.offset;
+        self.list = list;
+
+        let bar = match o.value("scrolling.hbar") {
+            "always" => ScrollbarVisibility::Always,
+            "never" => ScrollbarVisibility::Never,
+            _ => ScrollbarVisibility::Auto,
+        };
+        let mut hand = ScrollPane::default()
+            .horizontal(HScroll::default().bar(bar))
+            .columns(o.on("scrolling.columns"));
+        if let Some(click) = self.track_click() {
+            hand = hand.track_click(click);
+        }
+        hand.v = ScrollState::new(120)
+            .with_context(context)
+            .with_follow_cursor(follow);
+        hand.v.offset = self.hand.v.offset;
+        self.hand = hand;
+
+        self.region = Select::new(ID.sub("region"), "Region", REGIONS, self.region.selected)
+            .nav(nav)
+            .type_ahead(type_ahead)
+            .type_ahead_timeout(timeout)
+            .type_ahead_precedence(precedence);
+
+        let services = SERVICES
+            .iter()
+            .map(|s| TreeNode::leaf_meta(s, "service"))
+            .collect();
+        let mut tree = TreeView::new(ID.sub("tree"), services)
+            .nav(nav)
+            .type_ahead(type_ahead)
+            .type_ahead_timeout(timeout)
+            .type_ahead_precedence(precedence);
+        tree.cursor = self.tree.cursor;
+        self.tree = tree;
+
+        let rows = REGIONS
+            .iter()
+            .map(|r| vec![Cell::new(*r)])
+            .collect();
+        let mut table = DataTable::new(
+            ID.sub("table"),
+            vec![Column::new("Region", Constraint::Min(10))],
+            rows,
+        )
+        .nav(nav)
+        .type_ahead_timeout(timeout)
+        .type_ahead_precedence(precedence);
+        table.cursor_row = self.table.cursor_row;
+        self.table = table;
+
+        let mut grid = DataGrid::new(
+            ID.sub("grid"),
+            vec![ColumnSpec::new("Service", CellKind::Text)],
+        )
+        .nav(nav)
+        .type_ahead_timeout(timeout)
+        .type_ahead_precedence(precedence);
+        grid.set_rows(GridRows {
+            rows: SERVICES
+                .iter()
+                .map(|s| vec![CellValue::Text((*s).to_owned())])
+                .collect(),
+            total: RowTotal::Exact(SERVICES.len()),
+            more: false,
+        });
+        grid.cursor = self.grid.cursor;
+        self.grid = grid;
+    }
+
+    /// The list's flag: the page's own single-letter shortcut, so the
+    /// precedence option has something to decide.
+    fn toggle_flag(&mut self) -> Outcome {
+        let i = self.list.cursor;
+        if retired(i) {
+            return Outcome::Consumed;
+        }
+        if !self.flagged.remove(&i) {
+            self.flagged.insert(i);
+        }
+        self.list.items[i].meta = self.flagged.contains(&i).then(|| "flagged".to_owned());
+        Outcome::Changed
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let has = |id| ctx.interaction.has_focus(id);
+        let focus = if [self.prose.id, self.list.id, self.log.id]
+            .into_iter()
+            .any(has)
+        {
+            Some(0)
+        } else if [self.region.id, self.tree.id, self.table.id, self.grid.id]
+            .into_iter()
+            .any(has)
+        {
+            Some(2)
+        } else {
+            None
+        };
+        // the scrolling cards take every row the other two bands leave
+        let top = area.height.saturating_sub(10 + 8 + 2).max(11);
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::fixed(top),
+                StackChild::fixed(10),
+                StackChild::fixed(8),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
+        match l.slot(0) {
+            Some(r) => self.render_scrollers(r, buf, ctx),
+            None => [self.prose.id, self.list.id, self.log.id]
+                .into_iter()
+                .for_each(|id| ctx.focus_stop(id)),
+        }
+        if let Some(r) = l.slot(1) {
+            self.render_mechanics(r, buf, ctx);
+        }
+        match l.slot(2) {
+            Some(r) => self.render_collections(r, buf, ctx),
+            None => [self.region.id, self.tree.id, self.table.id, self.grid.id]
+                .into_iter()
+                .for_each(|id| ctx.focus_stop(id)),
+        }
+    }
+
+    /// Three columns of `area` with one blank column between them.
+    fn thirds(area: Rect) -> [Rect; 3] {
         let third = area.width / 3;
-        let cols = [
+        [
             Rect::new(area.x, area.y, third.saturating_sub(1), area.height),
             Rect::new(
                 area.x + third + 1,
@@ -69,13 +380,22 @@ impl Page for ScrollingPage {
                 area.width.saturating_sub(2 * third + 2),
                 area.height,
             ),
-        ];
+        ]
+    }
+
+    fn render_scrollers(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let cols = Self::thirds(area);
+        // narrow cards keep one column of padding, so the position labels
+        // ("271–278/279") survive at 80 columns
+        let pad = if cols[0].width < 22 { 1 } else { 2 };
         // titles first, content second, the position last: a label read
         // after the content laid itself out is exact on the first frame,
         // after a resize and after every tick. This page is about the
         // position labels, so they keep priority over the titles (a title
         // keeps 4 cells here, not the default `TITLE_MIN`)
         let panel = Panel::card(Some("Wrapped text"))
+            .pad_x(pad)
             .focused(ctx.interaction.focused(self.prose.id))
             .title_min(4);
         let bg = panel.bg(t);
@@ -89,6 +409,7 @@ impl Page for ScrollingPage {
         );
 
         let panel = Panel::card(Some("Long list"))
+            .pad_x(pad)
             .focused(ctx.interaction.focused(self.list.id))
             .title_min(4);
         let bg = panel.bg(t);
@@ -102,7 +423,10 @@ impl Page for ScrollingPage {
         );
 
         let lf = ctx.interaction.focused(self.log.id);
-        let panel = Panel::card(Some("Log")).focused(lf).title_min(4);
+        let panel = Panel::card(Some("Log"))
+            .pad_x(pad)
+            .focused(lf)
+            .title_min(4);
         let bg = panel.bg(t);
         let inner = panel.render(cols[2], buf, t);
         self.log
@@ -116,7 +440,335 @@ impl Page for ScrollingPage {
         panel.draw_meta(cols[2], buf, t, &meta);
     }
 
+    /// The hand-drawn table, the divider rule and the cursor readout.
+    fn render_mechanics(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let cols = Self::thirds(area);
+        self.render_hand(cols[0], buf, ctx);
+        self.render_dividers(cols[1], buf, ctx);
+        self.render_cursor(cols[2], buf, ctx);
+    }
+
+    /// A table the page paints itself on a bare `ScrollPane`: the pane
+    /// keeps both offsets, follows the list's cursor and draws the faded
+    /// edge and both bars.
+    fn render_hand(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("Hand-drawn")).title_min(4);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        self.hand.begin(ctx.track_click);
+        if inner.height < 3 || inner.width < 8 {
+            return;
+        }
+        // header row, then the rows; the bottom row is the horizontal bar
+        let header = Rect::new(inner.x, inner.y, inner.width, 1);
+        let shows_h = self.hand.h_cfg.bar != ScrollbarVisibility::Never;
+        // the rows, the vertical bar on their right and the horizontal bar
+        // under them, its track short of the corner
+        let region = Rect::new(inner.x, inner.y + 1, inner.width, inner.height - 1);
+        let bars = scrollbar::Bars::split(region, true, shows_h);
+        let body = Rect::new(region.x, region.y, region.width, bars.content.height);
+        let text_w = bars.content.width as usize;
+        let columns = self.hand.columns;
+        let content_w = HAND_COLS.len() * HAND_W;
+        if columns {
+            self.hand.h.set_content(HAND_COLS.len());
+            self.hand.h.set_viewport((text_w / HAND_W).max(1));
+        } else {
+            self.hand.h.set_content(content_w);
+            self.hand.h.set_viewport(text_w);
+        }
+        self.hand.v.set_content(120);
+        self.hand.v.set_viewport(body.height as usize);
+        // the pane follows the list's cursor per its FollowCursor
+        self.hand.follow(self.list.cursor);
+        let line = |cells: &[String]| -> String {
+            let full: String = cells.iter().map(|c| fit(c, HAND_W)).collect();
+            if columns {
+                let from = self.hand.h.offset * HAND_W;
+                slice_cells(&full, from, text_w)
+            } else {
+                slice_cells(&full, self.hand.h.offset, text_w)
+            }
+        };
+        let titles: Vec<String> = HAND_COLS.iter().map(|s| (*s).to_owned()).collect();
+        buf.set_string(header.x, header.y, line(&titles), t.muted().bg(bg));
+        for (k, i) in self.hand.v.visible_range().enumerate() {
+            let style = if i == self.list.cursor {
+                t.primary().bg(bg)
+            } else {
+                t.secondary().bg(bg)
+            };
+            buf.set_string(body.x, body.y + k as u16, line(&hand_row(i)), style);
+        }
+        ctx.scrollable(HAND, body);
+        self.hand.draw_with_fade(body, buf, ctx, HAND, false, &[]);
+        if let Some(hb) = bars.horizontal {
+            self.hand.draw_h(hb, buf, ctx, HAND, false);
+        }
+    }
+
+    /// The divider rule: one column is a solid divider while the content
+    /// fits and a scrollbar (dotted track, thumb) once it overflows.
+    fn render_dividers(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("Divider or scrollbar")).title_min(4);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        self.fits.begin(ctx.track_click);
+        self.over.begin(ctx.track_click);
+        if inner.height < 3 || inner.width < 12 {
+            return;
+        }
+        let half = inner.width / 2;
+        let rows = inner.height - 1;
+        let panes: [(&mut ScrollPane, WidgetId, &str, usize, Rect); 2] = [
+            (
+                &mut self.fits,
+                FITS,
+                "fits",
+                rows as usize,
+                Rect::new(inner.x, inner.y, half.saturating_sub(1), inner.height),
+            ),
+            (
+                &mut self.over,
+                OVER,
+                "overflows",
+                30,
+                Rect::new(
+                    inner.x + half + 1,
+                    inner.y,
+                    inner.width - half - 1,
+                    inner.height,
+                ),
+            ),
+        ];
+        for (pane, id, caption, n, r) in panes {
+            buf.set_string(r.x, r.y, truncate(caption, r.width as usize), t.muted().bg(bg));
+            let body = Rect::new(r.x, r.y + 1, r.width, rows);
+            pane.v.set_content(n);
+            pane.v.set_viewport(rows as usize);
+            // the column is the pane's edge at every size: reserve it
+            let split = scrollbar::split(body, true, scrollbar::GAP);
+            for (k, i) in pane.v.visible_range().enumerate() {
+                let text = truncate(&format!("item {}", i + 1), split.content.width as usize);
+                buf.set_string(body.x, body.y + k as u16, text, t.secondary().bg(bg));
+            }
+            ctx.scrollable(id, body);
+            if let Some(col) = split.track {
+                pane.draw_divider(col, buf, ctx, id, false);
+            }
+        }
+    }
+
+    /// The list's cursor as the library sees it, and the last key.
+    fn render_cursor(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("Cursor")).title_min(4);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        let c: Cursor = self.list.cursor();
+        let axis = match c.axis {
+            Axis::Vertical => "vertical",
+            Axis::Horizontal => "horizontal",
+        };
+        let on = |b: bool| if b { "on" } else { "off" };
+        // the rows a type-ahead would search, through the closure adapter
+        // a filtered view passes (here: every enabled row)
+        let items = &self.list.items;
+        let enabled = |i: usize| !items[i].disabled;
+        let label = |i: usize| items[i].label.as_str();
+        let rows = RowFn {
+            len: items.len(),
+            enabled: &enabled,
+            label: &label,
+        };
+        let open = (0..rows.len()).filter(|&i| rows.enabled(i)).count();
+        let last = match self.last {
+            Some((step, moved)) => format!("{} → {}", step_text(step), moved_text(moved)),
+            None => "no key yet".to_owned(),
+        };
+        let precedence = match self.precedence() {
+            TypeAheadPrecedence::Shortcuts => "shortcuts first",
+            TypeAheadPrecedence::TypeAhead => "type-ahead first",
+        };
+        let profile = match self.profile() {
+            NavProfile::Desktop => "Desktop",
+            NavProfile::Vim => "Vim",
+        };
+        let lines = [
+            format!("row {} · {axis} · wrap {}", c.index + 1, on(c.wrap)),
+            format!(
+                "skip disabled {} · RowFn {open}/{}",
+                on(c.skip_disabled),
+                rows.len()
+            ),
+            format!("Last: {last}"),
+            "KeyStep: Nav · Type".to_owned(),
+            "Moved: To · Stayed · Ignored".to_owned(),
+            format!(
+                "{profile} · type-ahead {} · {}",
+                on(self.list.type_ahead),
+                self.opts.value("scrolling.timeout")
+            ),
+            format!("letters: {precedence}"),
+        ];
+        for (k, l) in lines.iter().enumerate() {
+            let y = inner.y + k as u16;
+            if y >= inner.bottom() {
+                break;
+            }
+            let style = if k == 3 || k == 4 {
+                t.faint()
+            } else {
+                t.secondary()
+            };
+            buf.set_string(
+                inner.x,
+                y,
+                truncate(l, inner.width as usize),
+                style.bg(bg),
+            );
+        }
+    }
+
+    /// Type-ahead in four more collections, under the same pause and
+    /// precedence.
+    fn render_collections(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("Type to jump · select, tree, table, grid")).title_min(4);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        if inner.is_empty() {
+            for id in [self.region.id, self.tree.id, self.table.id, self.grid.id] {
+                ctx.focus_stop(id);
+            }
+            return;
+        }
+        let w = inner.width / 4;
+        let cell = |i: u16| {
+            Rect::new(
+                inner.x + i * w,
+                inner.y,
+                w.saturating_sub(2),
+                inner.height,
+            )
+        };
+        let r = cell(0);
+        self.region
+            .render(Rect::new(r.x, r.y, r.width, 2.min(r.height)), buf, ctx, bg);
+        self.tree.render(cell(1), buf, ctx, bg);
+        self.table.render(cell(2), buf, ctx, bg);
+        let g = cell(3);
+        self.grid.render(
+            Rect::new(g.x, g.y, inner.right().saturating_sub(g.x), g.height),
+            buf,
+            ctx,
+            bg,
+        );
+    }
+
+    fn on_list_key(&mut self, key: &Key) -> Outcome {
+        let before = self.list.cursor;
+        let step = KeyStep::of(key, &self.list.nav, self.list.type_ahead);
+        let o = self.list.on_key(key);
+        // the page's own letter shortcut, after the list: under
+        // `TypeAheadPrecedence::Shortcuts` the list yields `f`
+        if o == Outcome::Ignored && key.plain() && key.code == KeyCode::Char('f') {
+            return self.toggle_flag();
+        }
+        if let Some(step) = step {
+            let moved = match o {
+                Outcome::Ignored => Moved::Ignored,
+                _ if self.list.cursor != before => Moved::To(self.list.cursor),
+                _ => Moved::Stayed(self.list.cursor),
+            };
+            self.last = Some((step, moved));
+        }
+        o
+    }
+
+    fn panes(&mut self) -> [(&mut ScrollPane, WidgetId); 3] {
+        [
+            (&mut self.hand, HAND),
+            (&mut self.fits, FITS),
+            (&mut self.over, OVER),
+        ]
+    }
+}
+
+fn step_text(step: KeyStep) -> String {
+    match step {
+        KeyStep::Nav(nav) => format!("Nav({nav:?})"),
+        KeyStep::Type(c) => format!("Type('{c}')"),
+    }
+}
+
+fn moved_text(moved: Moved) -> String {
+    match moved {
+        Moved::To(i) => format!("To(row {})", i + 1),
+        Moved::Stayed(i) => format!("Stayed(row {})", i + 1),
+        Moved::Ignored => "Ignored".to_owned(),
+    }
+}
+
+/// The States grid: a scrolling panel in every state it has, drawn by the
+/// panel itself (the pointer states are its thumb's).
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let lines = |n: usize| -> Vec<String> {
+        (1..=n)
+            .map(|i| format!("line {i} of the panel"))
+            .collect()
+    };
+    StateGrid::new(id)
+        .label_width(14)
+        .column_width(24)
+        .narrow_width(14)
+        .rows(&[Rest, Hover, Pressed, Empty, Overflow, Narrow])
+        .column("Lines", ScrollPanel::new(id.child(0), lines(3)))
+        .column(
+            "Wrapped",
+            ScrollPanel::new(
+                id.child(1),
+                vec!["A wrapped paragraph that runs longer than its row.".to_owned()],
+            )
+            .wrap(true),
+        )
+        .column(
+            "Log tail",
+            ScrollPanel::new(id.child(2), crate::data::log_lines(3)).tail(true),
+        )
+}
+
+impl Page for ScrollingPage {
+    fn title(&self) -> &'static str {
+        "Scrolling"
+    }
+    fn blurb(&self) -> &'static str {
+        "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
         match ev {
             PageEvent::Tick => {
                 // keep the log alive so follow-tail is observable
@@ -140,21 +792,33 @@ impl Page for ScrollingPage {
                     return self.log.on_key(key);
                 }
                 if f == self.list.id {
-                    return self.list.on_key(key);
+                    return self.on_list_key(key);
+                }
+                if f == self.region.id {
+                    return self.region.on_key(key).0;
+                }
+                if f == self.tree.id {
+                    return self.tree.on_key(key).0;
+                }
+                if f == self.table.id {
+                    return self.table.on_key(key).0;
+                }
+                if f == self.grid.id {
+                    return self.grid.on_key(key).0;
                 }
                 Outcome::Ignored
             }
-            PageEvent::Press { id, pos } | PageEvent::Click { id, pos } => {
-                if let Some(row) = self.list.locate(*id) {
-                    if matches!(ev, PageEvent::Press { .. }) {
-                        return Outcome::Ignored;
+            PageEvent::Press { id, pos } => {
+                if self.region.owns(*id) {
+                    if *id == self.region.id {
+                        cx.focus.focus(self.region.id);
                     }
-                    cx.focus.focus(self.list.id);
-                    return self.list.on_click(row);
+                    return self.region.on_press(*id, *pos);
                 }
-                // the press grabs the thumb or jumps to the track; the
-                // completed click after a drag then finds the thumb under
-                // the pointer and moves nothing
+                if self.list.locate(*id).is_some() {
+                    return Outcome::Ignored;
+                }
+                // the press grabs the thumb or pages the track
                 if *id == scrollbar::id_for(self.list.id) {
                     return self.list.on_scrollbar(*pos);
                 }
@@ -163,9 +827,63 @@ impl Page for ScrollingPage {
                         return p.on_scrollbar(*pos);
                     }
                 }
+                for (pane, owner) in self.panes() {
+                    if scrollbar::is_bar_of(*id, owner) {
+                        return pane.press(*pos).outcome().or(Outcome::Consumed);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Click { id, pos } => {
+                if self.region.owns(*id) {
+                    if *id == self.region.id {
+                        cx.focus.focus(self.region.id);
+                    }
+                    return self.region.on_click(*id).0;
+                }
+                if let Some(row) = self.list.locate(*id) {
+                    cx.focus.focus(self.list.id);
+                    return self.list.on_click(row);
+                }
+                if let Some((i, toggle)) = self.tree.locate(*id) {
+                    cx.focus.focus(self.tree.id);
+                    return if toggle {
+                        self.tree.on_click_toggle(i).0
+                    } else {
+                        self.tree.on_click_row(i).0
+                    };
+                }
+                if let Some((row, col)) = self.table.locate(*id) {
+                    cx.focus.focus(self.table.id);
+                    return self.table.on_click_cell(row, col.unwrap_or(0), *pos).0;
+                }
+                if self.grid.owns(*id) {
+                    cx.focus.focus(self.grid.id);
+                    return self.grid.on_click(*id, *pos).0;
+                }
+                // the completed click after a press on a bar: the grab ends
+                if *id == scrollbar::id_for(self.list.id) {
+                    self.list.pane().release();
+                    return Outcome::Consumed;
+                }
+                for p in [&mut self.prose, &mut self.log] {
+                    if scrollbar::is_bar_of(*id, p.id) {
+                        p.pane().release();
+                        return Outcome::Consumed;
+                    }
+                }
+                for (pane, owner) in self.panes() {
+                    if scrollbar::is_bar_of(*id, owner) {
+                        pane.release();
+                        return Outcome::Consumed;
+                    }
+                }
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } => {
+                if self.region.owns(*pressed) {
+                    return self.region.on_drag(*pressed, *pos);
+                }
                 if *pressed == scrollbar::id_for(self.list.id) {
                     return self.list.on_scrollbar_drag(*pos);
                 }
@@ -174,15 +892,49 @@ impl Page for ScrollingPage {
                         return p.on_bar_drag(*pressed, *pos);
                     }
                 }
+                for (pane, owner) in self.panes() {
+                    if scrollbar::is_bar_of(*pressed, owner) {
+                        return pane.drag(*pos).outcome();
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Release { pressed, pos } => {
+                if self.region.owns(*pressed) {
+                    return self.region.on_release(*pos).0;
+                }
+                for (pane, owner) in self.panes() {
+                    if scrollbar::is_bar_of(*pressed, owner) {
+                        pane.release();
+                        return Outcome::Consumed;
+                    }
+                }
                 Outcome::Ignored
             }
             PageEvent::Wheel { id, delta } => {
+                if self.region.open && self.region.owns(*id) {
+                    return self.region.on_wheel(*delta);
+                }
                 if self.list.owns(*id) {
                     return self.list.on_wheel(*delta);
                 }
                 for p in [&mut self.prose, &mut self.log] {
                     if p.owns(*id) {
                         return p.on_wheel(*delta);
+                    }
+                }
+                if self.tree.owns(*id) {
+                    return self.tree.on_wheel(*delta);
+                }
+                if self.table.owns(*id) {
+                    return self.table.on_wheel(*delta);
+                }
+                if self.grid.owns(*id) {
+                    return self.grid.on_wheel(*delta);
+                }
+                for (pane, owner) in self.panes() {
+                    if *id == owner || scrollbar::is_bar_of(*id, owner) {
+                        return pane.wheel(Axis::Vertical, *delta).outcome().or(Outcome::Consumed);
                     }
                 }
                 Outcome::Ignored
@@ -192,6 +944,9 @@ impl Page for ScrollingPage {
                     if p.owns(*id) {
                         return p.on_wheel_h(*delta);
                     }
+                }
+                if *id == HAND || scrollbar::is_bar_of(*id, HAND) {
+                    return self.hand.wheel(Axis::Horizontal, *delta).outcome();
                 }
                 Outcome::Ignored
             }
@@ -203,13 +958,79 @@ impl Page for ScrollingPage {
         self.log.follow && self.log.lines.len() < 2000
     }
 
+    fn layer_open(&self) -> bool {
+        self.template.popup_open() || self.region.open
+    }
+
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
-        if focus == Some(self.log.id) {
-            vec![("↑↓", "Scroll"), ("f", "Follow"), ("G", "End")]
-        } else if focus == Some(self.list.id) {
-            vec![("↑↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
-        } else {
-            vec![("↑↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        if let Some(h) = self.template.hints(focus) {
+            return h;
         }
+        // every navigation hint reads the focused widget's live keys, so a
+        // key the profile does not deliver is never advertised
+        let nav_hints = |nav, step: &'static str| -> Vec<Hint> {
+            let mut v = Vec::new();
+            if let Some(k) = keyhint::step_keys(nav) {
+                v.push((k, step));
+            }
+            if let Some(k) = keyhint::page_keys(nav) {
+                v.push((k, "Page"));
+            }
+            if let Some(k) = keyhint::ends_keys(nav) {
+                v.push((k, "Ends"));
+            }
+            v
+        };
+        if focus == Some(self.log.id) {
+            let mut v = nav_hints(&self.log.nav, "Scroll");
+            if let Some(k) = junie_tui::core::keymap::hint_key(
+                &self.log.keymap,
+                junie_tui::widgets::panel::PanelCmd::Follow,
+            ) {
+                v.push((k, "Follow"));
+            }
+            v
+        } else if focus == Some(self.list.id) {
+            let mut v = nav_hints(&self.list.nav, "Move");
+            // `f` reaches the page only while shortcuts come first
+            if !self.list.type_ahead || self.precedence() == TypeAheadPrecedence::Shortcuts {
+                v.push(("f", "Flag"));
+            }
+            v
+        } else if focus == Some(self.prose.id) {
+            nav_hints(&self.prose.nav, "Scroll")
+        } else if focus == Some(self.region.id) {
+            vec![("Enter", "Open"), ("↑↓", "Choose")]
+        } else if focus == Some(self.tree.id) {
+            nav_hints(&self.tree.nav, "Move")
+        } else if focus == Some(self.table.id) {
+            nav_hints(&self.table.nav, "Move")
+        } else if focus == Some(self.grid.id) {
+            nav_hints(&self.grid.nav, "Move")
+        } else {
+            vec![("Tab", "Next")]
+        }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
