@@ -76,12 +76,42 @@ pub const fn backdrop_id(owner: WidgetId) -> WidgetId {
     owner.sub("popup.backdrop")
 }
 
+/// Where a popup goes relative to its anchor. One enum for every floating
+/// layer (selects, completion, context menus, menu bar drop-downs,
+/// pickers, modal frames), resolved by [`place_with`].
+///
+/// An anchored placement never covers its anchor while either side has
+/// room: it flips to the opposite side when the preferred one is too
+/// small. What happens when neither side has room is [`Place::overflow`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Placement {
-    /// Below the anchor, flipping above when there is no room.
+    /// Below the anchor, left edges aligned, flipping above when there is
+    /// no room.
     Below,
-    /// Centered on the screen (quick switcher).
+    /// Above the anchor, left edges aligned, flipping below when there is
+    /// no room.
+    Above,
+    /// Right of the anchor, top edges aligned, flipping to the left when
+    /// there is no room (a submenu).
+    Right,
+    /// Left of the anchor, top edges aligned, flipping to the right when
+    /// there is no room.
+    Left,
+    /// Centered in the bounds, ignoring the anchor (dialogs, the quick
+    /// switcher); [`Place::v_align`] picks the vertical position.
     Center,
+}
+
+/// What an anchored popup does when neither side of its anchor has room
+/// for its full size.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Overflow {
+    /// Take the roomier side and get shorter (or narrower); the owner
+    /// scrolls its content. It never covers the anchor. The default.
+    Shrink,
+    /// Keep the full size and slide back inside the bounds, over the
+    /// anchor if need be (menus, which do not scroll).
+    Slide,
 }
 
 /// Register `owner`'s light-dismiss backdrop over `screen` per `dismiss`.
@@ -115,14 +145,23 @@ pub struct Place {
     /// padding). An anchored popup moves left by this much so its text
     /// starts in the anchor's column (completion under typed text).
     pub text_inset: u16,
+    /// Cells kept free from the top and bottom edges; `None` uses
+    /// [`Self::margin`]. Menus keep `Some(0)`: they may touch the bottom
+    /// row, only their sides keep off the screen edges.
+    pub vertical_margin: Option<u16>,
+    /// What happens when neither side of the anchor has room.
+    pub overflow: Overflow,
 }
 
 impl Place {
-    /// The default: one free cell from every edge, centred, no inset.
+    /// The default: one free cell from every edge, centred, no inset,
+    /// shrinking when neither side has room.
     pub const DEFAULT: Self = Self {
         margin: 1,
         v_align: VAlign::Center,
         text_inset: 0,
+        vertical_margin: None,
+        overflow: Overflow::Shrink,
     };
     /// Flush with the screen edges, for tooltips drawn over the very cell
     /// they explain.
@@ -130,7 +169,31 @@ impl Place {
         margin: 0,
         v_align: VAlign::Center,
         text_inset: 0,
+        vertical_margin: None,
+        overflow: Overflow::Shrink,
     };
+    /// Menus (context menus, menu bar drop-downs): one free column on each
+    /// side, none above or below, full height kept ([`Overflow::Slide`]),
+    /// because a menu does not scroll.
+    pub const MENU: Self = Self {
+        margin: 1,
+        v_align: VAlign::Center,
+        text_inset: 0,
+        vertical_margin: Some(0),
+        overflow: Overflow::Slide,
+    };
+
+    /// See [`Self::vertical_margin`].
+    pub const fn vertical_margin(mut self, margin: Option<u16>) -> Self {
+        self.vertical_margin = margin;
+        self
+    }
+
+    /// See [`Self::overflow`].
+    pub const fn overflow(mut self, overflow: Overflow) -> Self {
+        self.overflow = overflow;
+        self
+    }
 
     pub const fn margin(mut self, margin: u16) -> Self {
         self.margin = margin;
@@ -179,7 +242,10 @@ pub fn place_with(
     let height = height.min(screen.height).max(1);
     // the margin is given up, never the popup's size
     let mx = fit.margin.min(screen.width.saturating_sub(width) / 2);
-    let my = fit.margin.min(screen.height.saturating_sub(height) / 2);
+    let my = fit
+        .vertical_margin
+        .unwrap_or(fit.margin)
+        .min(screen.height.saturating_sub(height) / 2);
     let bounds = Rect::new(
         screen.x + mx,
         screen.y + my,
@@ -200,27 +266,90 @@ pub fn place_with(
                 height,
             )
         }
-        Placement::Below => {
-            let below = anchor.bottom().clamp(bounds.y, bounds.bottom());
-            let room_below = bounds.bottom().saturating_sub(below);
-            let room_above = anchor.y.saturating_sub(bounds.y).min(bounds.height);
-            let (y, height) = if room_below >= height {
-                (below, height)
-            } else if room_above >= height {
-                (anchor.y - height, height)
-            } else if room_below >= room_above && room_below > 0 {
-                (below, room_below)
-            } else if room_above > 0 {
-                (bounds.y, room_above)
-            } else {
-                (bounds.bottom().saturating_sub(height), height)
-            };
+        Placement::Below | Placement::Above => {
+            let (y, height) = side(
+                (bounds.y, bounds.bottom()),
+                (anchor.y, anchor.bottom()),
+                height,
+                placement == Placement::Below,
+                fit.overflow,
+            );
             let x = anchor
                 .x
                 .saturating_sub(fit.text_inset)
                 .min(bounds.right().saturating_sub(width))
                 .max(bounds.x);
             Rect::new(x, y, width, height)
+        }
+        Placement::Right | Placement::Left => {
+            let (x, width) = side(
+                (bounds.x, bounds.right()),
+                (anchor.x, anchor.right()),
+                width,
+                placement == Placement::Right,
+                fit.overflow,
+            );
+            let y = anchor
+                .y
+                .min(bounds.bottom().saturating_sub(height))
+                .max(bounds.y);
+            Rect::new(x, y, width, height)
+        }
+    }
+}
+
+/// One axis of an anchored placement: the popup's start and length on
+/// `bounds` (start, end) next to `anchor` (start, end), after the end side
+/// (`after`, below or right) or before it, flipping and then overflowing.
+fn side(
+    bounds: (u16, u16),
+    anchor: (u16, u16),
+    len: u16,
+    after: bool,
+    overflow: Overflow,
+) -> (u16, u16) {
+    let (lo, hi) = bounds;
+    let past = anchor.1.clamp(lo, hi);
+    let room_after = hi.saturating_sub(past);
+    let room_before = anchor.0.saturating_sub(lo).min(hi - lo);
+    let at_after = |n: u16| (past, n);
+    let at_before = |n: u16| (anchor.0 - n, n);
+    let (first_room, second_room) = if after {
+        (room_after, room_before)
+    } else {
+        (room_before, room_after)
+    };
+    let pick = |is_after: bool, n: u16| if is_after { at_after(n) } else { at_before(n) };
+    if first_room >= len {
+        return pick(after, len);
+    }
+    if second_room >= len {
+        return pick(!after, len);
+    }
+    match overflow {
+        Overflow::Slide => {
+            if after {
+                (hi.saturating_sub(len).max(lo), len)
+            } else {
+                (lo, len)
+            }
+        }
+        Overflow::Shrink => {
+            // the roomier side wins; a tie goes to the preferred side
+            let after_wins = if after {
+                room_after >= room_before
+            } else {
+                room_after > room_before
+            };
+            if after_wins && room_after > 0 {
+                at_after(room_after)
+            } else if room_before > 0 {
+                at_before(room_before)
+            } else if room_after > 0 {
+                at_after(room_after)
+            } else {
+                (hi.saturating_sub(len), len)
+            }
         }
     }
 }
@@ -336,5 +465,60 @@ mod tests {
         let fit = Place::DEFAULT.text_inset(4);
         let r = place_with(screen, anchor, 30, 6, Placement::Below, fit);
         assert_eq!(r.x + 4, anchor.x);
+    }
+
+    #[test]
+    fn above_prefers_the_top_and_flips_below() {
+        let screen = Rect::new(0, 0, 80, 20);
+        let anchor = Rect::new(10, 10, 5, 1);
+        assert_eq!(
+            place(screen, anchor, 20, 6, Placement::Above),
+            Rect::new(10, 4, 20, 6)
+        );
+        let high = Rect::new(10, 2, 5, 1);
+        assert_eq!(
+            place(screen, high, 20, 6, Placement::Above),
+            Rect::new(10, 3, 20, 6)
+        );
+    }
+
+    #[test]
+    fn right_opens_beside_the_anchor_and_flips_left_at_the_edge() {
+        let screen = Rect::new(0, 0, 80, 20);
+        let anchor = Rect::new(10, 4, 12, 1);
+        assert_eq!(
+            place(screen, anchor, 20, 6, Placement::Right),
+            Rect::new(22, 4, 20, 6)
+        );
+        // no room on the right: it opens on the left, never over the anchor
+        let edge = Rect::new(60, 4, 12, 1);
+        let r = place(screen, edge, 20, 6, Placement::Right);
+        assert_eq!(r, Rect::new(40, 4, 20, 6));
+        assert_eq!(
+            place(screen, anchor, 20, 6, Placement::Left),
+            Rect::new(22, 4, 20, 6),
+            "no room on the left: flips right"
+        );
+        let narrow = Rect::new(0, 0, 40, 20);
+        assert_eq!(
+            place(narrow, Rect::new(10, 4, 20, 1), 20, 6, Placement::Left),
+            Rect::new(1, 4, 9, 6),
+            "too little room either side: the preferred side on a tie, narrower"
+        );
+        // low anchor: the popup moves up to stay on screen
+        let low = Rect::new(10, 17, 12, 1);
+        assert_eq!(place(screen, low, 20, 6, Placement::Right).bottom(), 19);
+    }
+
+    #[test]
+    fn slide_keeps_the_full_size_when_neither_side_has_room() {
+        let screen = Rect::new(0, 0, 40, 12);
+        let anchor = Rect::new(2, 5, 4, 1);
+        let shrunk = place(screen, anchor, 20, 8, Placement::Below);
+        assert!(shrunk.height < 8);
+        let menu = place_with(screen, anchor, 20, 8, Placement::Below, Place::MENU);
+        assert_eq!(menu, Rect::new(2, 4, 20, 8));
+        let up = place_with(screen, anchor, 20, 8, Placement::Above, Place::MENU);
+        assert_eq!(up, Rect::new(2, 0, 20, 8));
     }
 }
