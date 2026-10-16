@@ -100,11 +100,17 @@ pub fn render(
         }
     }
     let draw = |buf: &mut Buffer, ctx: &mut RenderCtx, x: u16, s: &Segment| {
-        let hovered = s.id.is_some_and(|id| ctx.interaction.hovered(id));
-        let mut st = ratatui::style::Style::new().fg(t.tone(s.tone)).bg(bg);
-        if hovered {
-            st = st.bg(t.lift(bg)).fg(t.text_primary);
-        }
+        // a clickable segment walks the ladder; its tone survives hover
+        let mut st = match s.id {
+            Some(id) => {
+                let mut vs = ctx.state(id);
+                vs.focused = false;
+                t.interactive(crate::theme::Kind::Title, vs, t.plane_of(bg))
+                    .style
+            }
+            None => ratatui::style::Style::new().bg(bg),
+        };
+        st = st.fg(t.legible(t.tone(s.tone), st.bg.unwrap_or(bg)));
         if s.bold {
             st = st.add_modifier(Modifier::BOLD);
         }
