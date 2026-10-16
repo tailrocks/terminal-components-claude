@@ -17,6 +17,7 @@ use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::button::Button;
@@ -187,6 +188,10 @@ pub struct App {
     pub motion: Motion,
     pub status: Option<(String, Instant)>,
     pub quit: bool,
+    /// Which keys ask to quit, through the leave guard. Default
+    /// [`QuitKeys::DEFAULT`]: Ctrl+C (cancels a running query first),
+    /// Ctrl+Q and `q`; Esc never quits.
+    pub quit_keys: QuitKeys,
     too_small: bool,
     /// Simulated commit in flight: ticks left.
     committing: Option<u32>,
@@ -217,6 +222,7 @@ impl App {
             motion: Motion::Full,
             status: None,
             quit: false,
+            quit_keys: QuitKeys::DEFAULT,
             too_small: false,
             committing: None,
             scope: 0,
@@ -376,9 +382,14 @@ impl App {
                 }
             }
             Input::Key(key) => {
-                if key.ctrl_char('c') {
-                    // cancel a running query first; otherwise quit
-                    if let Some(w) = self.workbench.as_mut()
+                // the chord quit keys (Ctrl+C, Ctrl+Q) work everywhere,
+                // through the leave guard
+                if key.ctrl()
+                    && self.quit_keys.classify(&key, self.key_context()) == Some(LeaveKey::Quit)
+                {
+                    // Ctrl+C cancels a running query first; otherwise quit
+                    if key.ctrl_char('c')
+                        && let Some(w) = self.workbench.as_mut()
                         && let Some(WorkTab::Query(q)) = w.active_tab_mut()
                         && q.cancel()
                     {
@@ -414,6 +425,20 @@ impl App {
         self.focus.focus(crate::connections::TREE);
         self.set_status(format!("Disconnected from {name}"));
         Outcome::Changed
+    }
+
+    /// What the quit keys need to know about the keyboard's target
+    /// ([`QuitKeys::classify`]).
+    fn key_context(&self) -> KeyContext {
+        let editing = match self.screen {
+            Screen::Connections => self.connections.is_editing(),
+            Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
+        };
+        KeyContext {
+            text_focus: editing,
+            dirty: self.connections.form_dirty(),
+            selection: false,
+        }
     }
 
     fn request_quit(&mut self) -> Outcome {
@@ -778,15 +803,10 @@ impl App {
                 Outcome::Changed
             }
             // `q` never fires over a field or a dirty form (keyboard audit #6)
-            KeyCode::Char('q')
+            KeyCode::Char(_)
                 if key.plain()
-                    && junie_tui::ui::leave::letters_allowed(
-                        junie_tui::ui::leave::KeyContext {
-                            text_focus: editing,
-                            dirty: self.connections.form_dirty(),
-                            selection: false,
-                        },
-                    ) =>
+                    && self.quit_keys.classify(&key, self.key_context())
+                        == Some(LeaveKey::Quit) =>
             {
                 self.request_quit()
             }
@@ -1462,7 +1482,7 @@ impl App {
                 "Shift+F10",
                 "menu of the focused row, cell or tab · right-click at the pointer",
             )
-            .key("q", "quit")
+            .key("q / Ctrl+Q", "quit")
             .text();
         let mut d = Dialog::confirm(HELP_DIALOG, "Keyboard", &text, "Close");
         d.actions.remove(0);

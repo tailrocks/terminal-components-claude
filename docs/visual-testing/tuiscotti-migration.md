@@ -133,9 +133,15 @@ byte-identical over the full tier (675 captures):
 (`.request_quit(&`, `.request(Leave::`), so `tablepro/connections.rs::leave_form`,
 `tablepro/app.rs::request_quit` and `showcase/app.rs::request_quit` are
 sites with these rows, and jackin's `editor.rs::leave` / `settings.rs::leave`
-are no longer gaps. On this HEAD Ctrl+Q does nothing in tablepro (its
-quit keys are Ctrl+C, `q` and the menu; reported, not changed here), so
-its rows use Ctrl+C.
+are no longer gaps. When these rows were added Ctrl+Q did nothing in
+tablepro (its quit keys were hand-coded Ctrl+C and `q`), so its rows use
+Ctrl+C.
+
+### Harness-found bugs
+
+| Bug | Root cause | Fix | Status |
+|---|---|---|---|
+| tablepro ignored Ctrl+Q (even over an edited connection form; its menu advertised it) | the app matched Ctrl+C and `q` by hand instead of the shared `QuitKeys` | `App::quit_keys` (`QuitKeys::DEFAULT`) classifies every key: Ctrl+C / Ctrl+Q before routing (Ctrl+C still cancels a running query first), `q` after the page; help lists `q / Ctrl+Q` | fixed; `app_tests_coverage::ctrl_q_quits_through_the_leave_guard` |
 
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
 matrix and the OS that generates baselines (CI runs ubuntu-24.04) before
