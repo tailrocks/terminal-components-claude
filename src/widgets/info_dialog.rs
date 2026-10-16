@@ -5,6 +5,7 @@
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
 use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
@@ -44,6 +45,29 @@ pub struct InfoDialog {
     /// Copies of copyable values by row index.
     pub copy_values: Vec<Option<String>>,
     pub error_title: bool,
+    /// Which keys scroll the detail text (default [`NavKeys::DEFAULT`]).
+    pub nav: NavKeys,
+    /// The dialog's action keys (default [`InfoAction::default_keymap`]).
+    pub keymap: KeyMap<InfoAction>,
+}
+
+/// An [`InfoDialog`] action a key can be bound to. Esc and Enter always
+/// close.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InfoAction {
+    /// Close the dialog. Default `q`.
+    Close,
+    /// Copy the first copyable value. Default `y`.
+    Copy,
+}
+
+impl Actions for InfoAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::char('q'), InfoAction::Close),
+            (KeyBinding::char('y'), InfoAction::Copy),
+        ]
+    }
 }
 
 impl InfoDialog {
@@ -68,7 +92,21 @@ impl InfoDialog {
             area: Rect::ZERO,
             copy_values,
             error_title: false,
+            nav: NavKeys::DEFAULT,
+            keymap: InfoAction::default_keymap(),
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<InfoAction>) -> Self {
+        self.keymap = keymap;
+        self
     }
 
     pub fn intro(mut self, lines: Vec<(String, Tone)>) -> Self {
@@ -166,8 +204,33 @@ impl InfoDialog {
                 return o;
             }
         }
+        match lookup(&self.keymap, key) {
+            Some(InfoAction::Close) => {
+                self.result = Some(InfoResult::Closed);
+                return Outcome::Changed;
+            }
+            Some(InfoAction::Copy) => {
+                // copy the first copyable value
+                if let Some(Some(v)) = self.copy_values.iter().find(|v| v.is_some()) {
+                    self.result = Some(InfoResult::Copy(v.clone()));
+                }
+                return Outcome::Changed;
+            }
+            None => {}
+        }
+        match self.nav.action(key) {
+            Some(Nav::Down) => {
+                self.detail_scroll.scroll_by(1);
+                return Outcome::Changed;
+            }
+            Some(Nav::Up) => {
+                self.detail_scroll.scroll_by(-1);
+                return Outcome::Changed;
+            }
+            _ => {}
+        }
         match key.code {
-            KeyCode::Esc | KeyCode::Char('q') => {
+            KeyCode::Esc => {
                 self.result = Some(InfoResult::Closed);
                 Outcome::Changed
             }
@@ -181,21 +244,6 @@ impl InfoDialog {
             }
             KeyCode::BackTab => {
                 focus.prev(ring);
-                Outcome::Changed
-            }
-            KeyCode::Char('y') => {
-                // copy the first copyable value
-                if let Some(Some(v)) = self.copy_values.iter().find(|v| v.is_some()) {
-                    self.result = Some(InfoResult::Copy(v.clone()));
-                }
-                Outcome::Changed
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                self.detail_scroll.scroll_by(1);
-                Outcome::Changed
-            }
-            KeyCode::Up | KeyCode::Char('k') => {
-                self.detail_scroll.scroll_by(-1);
                 Outcome::Changed
             }
             _ => Outcome::Consumed,

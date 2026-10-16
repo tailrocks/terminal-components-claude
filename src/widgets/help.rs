@@ -9,13 +9,30 @@ use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::core::keymap::{Nav, NavKeys};
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::modal::Frame;
 use crate::ui::popup::Placement;
 use crate::ui::text::{truncate, width};
 use crate::widgets::scrollbar;
+
+/// A [`HelpOverlay`] action a key can be bound to. Esc (per the
+/// [`Dismiss`](crate::ui::popup::Dismiss) policy) and Enter always close.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HelpAction {
+    /// Close the overlay. Default `?` and `q`.
+    Close,
+}
+
+impl Actions for HelpAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::char('?'), HelpAction::Close),
+            (KeyBinding::char('q'), HelpAction::Close),
+        ]
+    }
+}
 
 pub struct HelpOverlay {
     /// Which dismissals close it. Default `Dismiss::LIGHT`.
@@ -32,6 +49,8 @@ pub struct HelpOverlay {
     pub hint: String,
     /// Which keys scroll (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
+    /// The overlay's action keys (default [`HelpAction::default_keymap`]).
+    pub keymap: KeyMap<HelpAction>,
     /// The theme's strings as of the last render: a title and hint still
     /// reading them follow a change ([`crate::theme::Strings::follow`]).
     strings: crate::theme::Strings,
@@ -41,6 +60,12 @@ impl HelpOverlay {
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<HelpAction>) -> Self {
+        self.keymap = keymap;
         self
     }
 
@@ -66,6 +91,7 @@ impl HelpOverlay {
             title: crate::theme::Strings::DEFAULT.help_title.into(),
             hint: crate::theme::Strings::DEFAULT.help_footer.into(),
             nav: NavKeys::DEFAULT,
+            keymap: HelpAction::default_keymap(),
             strings: crate::theme::Strings::DEFAULT,
         }
     }
@@ -93,9 +119,13 @@ impl HelpOverlay {
             };
             return Outcome::Changed;
         }
+        if let Some(HelpAction::Close) = lookup(&self.keymap, key) {
+            self.closed = true;
+            return Outcome::Changed;
+        }
         match key.code {
             KeyCode::Esc if !self.dismiss.escape => Outcome::Consumed,
-            KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Enter => {
+            KeyCode::Esc | KeyCode::Enter => {
                 self.closed = true;
                 Outcome::Changed
             }
