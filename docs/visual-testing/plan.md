@@ -356,6 +356,19 @@ from research-formats):
 | U7 | Provenance stores `argv[0]` file name only (no absolute path) | `frame_from_screen` provenance |
 | U8 | CLI `accept` for the grouped store with a filter | `crates/tuiscotti-cli/src/cli.rs:159` |
 
+## P. Performance (table scrolling)
+
+PO request (2026-10-16): table components lag when scrolling. Findings,
+measurements and status live in
+`docs/audits/design-review-2026-10/performance.md`.
+
+| Rule | Detail |
+|---|---|
+| Measure first | `tests/table_perf.rs` (widgets alone, 500 / 10k / 100k rows) and `src/bin/tablepro/perf_tests.rs` (real app: customers table, query results) print per-event and per-frame cost; run them with `--cargo-profile release --run-ignored only --no-capture`. |
+| Fix in the library | Runtime input coalescing, bounded text measurement, grid width sampling; every knob configurable with a default. |
+| Guard deterministically | Counting assertions (frames per burst, regions per frame, bytes read) over wall-clock thresholds; any time budget is generous and documented. |
+| No visual change | Perf work must leave every rendered cell identical; a visual diff is a bug. |
+
 ## H. Task list
 
 Owner types: **harness** (tests/visual_baseline, xtask), **app** (one binary),
@@ -395,6 +408,7 @@ commits, `cargo nextest run --all-targets` + clippy + fmt green before push.
 | T27 | `main` holla re-implementation + 23 `parity-*` scenarios | main-app | `crates/holla-*` | ratchet N/N |
 | T28 | `main` L8–L14 | main-lib | termrock crates | as T24 |
 | T29 | M7 sign-off: nightly full + narrow green on `main`; report to PO | main session | `docs/visual-testing/` | §A table all green |
+| T31 | Table scrolling performance (§P): coalesce input bursts in the runtime, bound per-cell text work, configurable width sampling, regression guards | lib | `src/runtime.rs`, `src/ui/text.rs`, `src/ui/reveal.rs`, `src/widgets/grid.rs`, `tests/table_perf.rs` | a wheel burst draws one frame; frame cost independent of row count and cell length; before/after in `performance.md` |
 | T30 | Upstream U1–U8 to tuiscotti; switch our wrapper to `ArtifactSet::AnsiCursor`; bump the pin | harness | tuiscotti fork PRs, `support.rs` | wrapper deleted; gate unchanged (full run green) |
 
 **Order and parallelism:** T0 → T1–T5 (parallel; disjoint files) → T6–T10

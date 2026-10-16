@@ -15,6 +15,7 @@ layer (see `AGENTS.md`), with a regression test, in its own commit.
 | `api.md` | Hardcoded behaviour that must become configuration |
 | `copy.md` | Copy, key hints and feedback |
 | `hscroll.md` | Horizontal scrolling and position for wide content |
+| `performance.md` | Scrolling cost of tables, grids, lists and trees |
 
 Line numbers refer to the code at the time of each audit and drift as
 fixes land.

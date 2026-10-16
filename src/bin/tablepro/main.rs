@@ -11,6 +11,8 @@ mod app_tests_coverage;
 mod connections;
 mod db;
 mod model;
+#[cfg(test)]
+mod perf_tests;
 mod sql;
 mod tabs;
 mod workbench;
