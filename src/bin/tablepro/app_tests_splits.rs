@@ -120,7 +120,7 @@ fn history_buttons_show_their_tooltip_after_a_rest() {
 fn the_pointer_shape_follows_fields_and_seams() {
     use junie_tui::core::shape::{CaretShape, PointerShape, shapes_for};
     let mut h = H::connected(120, 40);
-    let shape = |h: &H| shapes_for(&h.app.pointer, &h.app.hits).pointer;
+    let shape = |h: &H| shapes_for(&h.app.shell.pointer, &h.app.shell.hits).pointer;
     let seam = h.wb().explorer_seam.area;
     h.mouse(MouseKind::Move, seam.x, seam.y + 3);
     assert_eq!(shape(&h), Some(PointerShape::ColResize));
@@ -133,9 +133,9 @@ fn the_pointer_shape_follows_fields_and_seams() {
     assert_eq!(shape(&h), Some(PointerShape::Text), "the SQL editor");
     h.mouse(MouseKind::Move, qx, qy);
     assert_eq!(shape(&h), Some(PointerShape::Default), "a tab: the arrow");
-    let caret = shapes_for(&h.app.pointer, &h.app.hits).caret;
+    let caret = shapes_for(&h.app.shell.pointer, &h.app.shell.hits).caret;
     assert_eq!(caret, Some(CaretShape::Bar), "the macOS caret");
     // the knob turns pointer shapes off
-    h.app.pointer.config = h.app.pointer.config.pointer_shapes(false);
+    h.app.shell.pointer.config = h.app.shell.pointer.config.pointer_shapes(false);
     assert_eq!(shape(&h), None);
 }

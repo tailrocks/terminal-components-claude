@@ -1,6 +1,7 @@
 //! `--motion` / `--frame`: captures pin every tick-derived and
 //! wall-clock-derived state (docs/visual-testing/plan.md §B3).
 
+use junie_tui::runtime::Application;
 use std::time::Duration;
 
 use clap::Parser;
@@ -88,10 +89,10 @@ fn paused_frame_matches_live_ticks() {
 fn paused_holds_the_press_flash() {
     let id = WidgetId::of("motion-test");
     let mut full = H::connected(80, 24);
-    full.app.pointer.flash(id, 0);
+    full.app.shell.pointer.flash(id, 0);
     let mut paused = H::connected(80, 24);
     paused.app.set_motion(Motion::Paused, 0);
-    paused.app.pointer.flash(id, 0);
+    paused.app.shell.pointer.flash(id, 0);
     std::thread::sleep(Duration::from_millis(200));
     assert_eq!(full.app.interaction().flash, None);
     assert_eq!(paused.app.interaction().flash, Some(id));

@@ -32,7 +32,12 @@ fn a_middle_click_on_a_query_tab_closes_it() {
     let before = h.wb().tabs.len();
     let last = before - 1;
     let tab = strip.part(PartRef::item(Part::TAB, ItemKey::index(last)));
-    let r = h.app.hits.area_of(tab).expect("the last tab is drawn");
+    let r = h
+        .app
+        .shell
+        .hits
+        .area_of(tab)
+        .expect("the last tab is drawn");
     h.mouse(MouseKind::Middle, r.x + 1, r.y);
     assert_eq!(h.wb().tabs.len(), before - 1, "{}", h.text());
 }
@@ -78,6 +83,7 @@ fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
     // a cell of the open list: a row part of the select
     let row = h
         .app
+        .shell
         .hits
         .regions()
         .iter()
@@ -99,6 +105,7 @@ fn a_press_on_the_switcher_scrollbar_pages_its_list() {
     let switcher = WidgetId::of("switcher");
     let bar = h
         .app
+        .shell
         .hits
         .regions()
         .iter()
