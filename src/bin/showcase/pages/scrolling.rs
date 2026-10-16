@@ -153,7 +153,7 @@ impl Page for ScrollingPage {
                     return self.list.on_scrollbar(*pos);
                 }
                 for p in [&mut self.prose, &mut self.log] {
-                    if scrollbar::id_for(p.id) == *id {
+                    if scrollbar::is_bar_of(*id, p.id) {
                         return p.on_scrollbar(*pos);
                     }
                 }
@@ -164,7 +164,7 @@ impl Page for ScrollingPage {
                     return self.list.on_scrollbar_drag(*pos);
                 }
                 for p in [&mut self.prose, &mut self.log] {
-                    if scrollbar::id_for(p.id) == *pressed {
+                    if scrollbar::is_bar_of(*pressed, p.id) {
                         return p.on_scrollbar_drag(*pos);
                     }
                 }
@@ -175,8 +175,16 @@ impl Page for ScrollingPage {
                     return self.list.on_wheel(*delta);
                 }
                 for p in [&mut self.prose, &mut self.log] {
-                    if p.id == *id || scrollbar::id_for(p.id) == *id {
+                    if p.owns(*id) {
                         return p.on_wheel(*delta);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::WheelH { id, delta } => {
+                for p in [&mut self.prose, &mut self.log] {
+                    if p.owns(*id) {
+                        return p.on_wheel_h(*delta);
                     }
                 }
                 Outcome::Ignored
