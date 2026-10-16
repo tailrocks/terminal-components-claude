@@ -90,6 +90,13 @@ pub struct Reveal {
     /// [`on_pointer_wheel`]). Default 3, the pointer's default. A
     /// [`RevealState`] owner passes its own wheel delta instead.
     pub wheel_lines: u16,
+    /// How long the pointer rests on a cut cell before its expansion
+    /// tooltip shows (ms). Default 300: sweeping across a list does not
+    /// flash a tooltip per row. The keyboard reveal is immediate.
+    pub delay_ms: u64,
+    /// At either end of a scrolling tooltip the wheel goes on to the
+    /// content beneath (default on), instead of stalling there.
+    pub wheel_passes_at_ends: bool,
 }
 
 impl Reveal {
@@ -101,6 +108,8 @@ impl Reveal {
         max_rows: 0,
         scroll: false,
         wheel_lines: 3,
+        delay_ms: 300,
+        wheel_passes_at_ends: true,
     };
 
     pub const fn hover(mut self, on: bool) -> Self {
@@ -130,6 +139,16 @@ impl Reveal {
 
     pub const fn wheel_lines(mut self, lines: u16) -> Self {
         self.wheel_lines = lines;
+        self
+    }
+
+    pub const fn delay_ms(mut self, ms: u64) -> Self {
+        self.delay_ms = ms;
+        self
+    }
+
+    pub const fn wheel_passes_at_ends(mut self, on: bool) -> Self {
+        self.wheel_passes_at_ends = on;
         self
     }
 
@@ -163,6 +182,8 @@ impl Default for Reveal {
             max_rows: 0,
             scroll: true,
             wheel_lines: 3,
+            delay_ms: 300,
+            wheel_passes_at_ends: true,
         }
     }
 }
@@ -307,7 +328,15 @@ impl RevealState {
     /// rows (the open keyboard reveal, or the pointer's tooltip). `None`
     /// when nothing scrolls: the owner scrolls its own content.
     pub fn on_wheel(&mut self, delta: i32) -> Option<Outcome> {
-        self.scrolls().then(|| self.scroll_by(delta))
+        if !self.scrolls() {
+            return None;
+        }
+        let out = self.scroll_by(delta);
+        // at an end the wheel goes on to the content, per policy
+        if out == Outcome::Consumed && self.effective.wheel_passes_at_ends {
+            return None;
+        }
+        Some(out)
     }
 
     fn scroll_by(&mut self, delta: i32) -> Outcome {
@@ -396,7 +425,12 @@ impl RevealState {
                 show(ctx, id, area, full, Source::Keyboard, feed);
             }
         }
-        if self.effective.hover && cut && !ctx.inert && ctx.interaction.live_hover() == Some(id) {
+        if self.effective.hover
+            && cut
+            && !ctx.inert
+            && ctx.interaction.live_hover() == Some(id)
+            && hover_ready(ctx, self.effective.delay_ms)
+        {
             self.track(id);
             let feed = self.feed();
             show(ctx, id, area, full, Source::Pointer, feed);
@@ -523,7 +557,12 @@ pub fn truncated(
 ) -> bool {
     let cfg = config.unwrap_or(ctx.reveal);
     let cut = is_cut(area, full);
-    if cfg.hover && cut && !ctx.inert && ctx.interaction.live_hover() == Some(id) {
+    if cfg.hover
+        && cut
+        && !ctx.inert
+        && ctx.interaction.live_hover() == Some(id)
+        && hover_ready(ctx, cfg.delay_ms)
+    {
         let feed = POINTER.with(|p| {
             let mut p = p.borrow_mut();
             if p.target != Some(id) {
@@ -532,6 +571,7 @@ pub fn truncated(
             }
             p.wheel_lines = cfg.wheel_lines;
             p.scrolls = cfg.scroll;
+            p.passes = cfg.wheel_passes_at_ends;
             Feed {
                 scroll: if cfg.scroll { p.scroll } else { 0 },
                 max_rows: cfg.max_rows,
@@ -556,6 +596,8 @@ struct PointerTip {
     drawn: Option<Rect>,
     wheel_lines: u16,
     scrolls: bool,
+    /// [`Reveal::wheel_passes_at_ends`] of the drawn tooltip.
+    passes: bool,
 }
 
 thread_local! {
@@ -567,14 +609,50 @@ thread_local! {
 /// this frame draws it again.
 pub(crate) fn begin_frame() {
     POINTER.with(|p| p.borrow_mut().drawn = None);
+    HOVER_WAIT.with(|w| w.set(None));
+    FRAME.with(|f| f.set(f.get().wrapping_add(1)));
+}
+
+thread_local! {
+    /// The shortest wait (ms) before hover content held back this frame
+    /// may show ([`hover_ready`]); `None` when nothing waits.
+    static HOVER_WAIT: std::cell::Cell<Option<u64>> = const { std::cell::Cell::new(None) };
+    /// Frames started, so a reader tells one frame's wait from the next.
+    static FRAME: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// Whether hover content that waits `delay_ms` for the pointer to rest may
+/// show this frame, per [`crate::ui::ctx::Interaction::hover_ms`]. When it
+/// must still wait, the time left is recorded for [`hover_wait`], so
+/// the runtime draws again once it has passed (no input arrives to cause
+/// a frame while the pointer rests).
+pub fn hover_ready(ctx: &RenderCtx, delay_ms: u64) -> bool {
+    let Some(rested) = ctx.interaction.hover_ms else {
+        return true;
+    };
+    if rested >= delay_ms {
+        return true;
+    }
+    let left = delay_ms - rested;
+    HOVER_WAIT.with(|w| w.set(Some(w.get().map_or(left, |v| v.min(left)))));
+    false
+}
+
+/// How long (ms) after the last frame hover content it held back may show
+/// ([`hover_ready`]), with that frame's number: the runtime draws again
+/// then.
+pub fn hover_wait() -> Option<(u64, u64)> {
+    let frame = FRAME.with(|f| f.get());
+    HOVER_WAIT.with(|w| w.get()).map(|ms| (frame, ms))
 }
 
 /// The wheel over a pointer-only tooltip ([`truncated`], [`queue_cut`])
 /// longer than its rows scrolls the tooltip, the way a [`RevealState`]
 /// owner scrolls its own. `None` when the event is not a vertical wheel
 /// over such a tooltip, as last drawn: the app handles it as usual. At
-/// either end the tooltip still holds the wheel (`Consumed`), so the
-/// content beneath does not jump while the text is being read.
+/// either end the wheel goes on to the content beneath
+/// ([`Reveal::wheel_passes_at_ends`], default on); off, the tooltip holds
+/// it (`Consumed`).
 /// [`crate::runtime`] calls this before dispatching each input.
 pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
     let crate::core::event::Input::Mouse(m) = input else {
@@ -594,6 +672,10 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
         }
         let next =
             (p.scroll as i32 + dy * p.wheel_lines.max(1) as i32).clamp(0, extent.max as i32) as u16;
+        if next == p.scroll && p.passes {
+            // at an end the wheel goes on to the content beneath
+            return None;
+        }
         Some(if next == p.scroll {
             Outcome::Consumed
         } else {
@@ -987,6 +1069,98 @@ mod tests {
         assert_eq!(buf[(4, 2)].bg, Theme::junie().popover);
     }
 
+    /// The expansion tooltip waits for the pointer to rest
+    /// ([`Reveal::delay_ms`], 300) and says when to draw again (it showed
+    /// at once, flashing one tooltip per row while sweeping a list).
+    #[test]
+    fn the_hover_reveal_waits_for_the_pointer_to_rest() {
+        let id = WidgetId::of("cell");
+        let area = Rect::new(4, 2, 20, 1);
+        let at = |ms: Option<u64>, cfg: Option<Reveal>| {
+            let hover = Interaction {
+                hover: Some(id),
+                hover_ms: ms,
+                ..Default::default()
+            };
+            let buf = frame(80, 6, hover, |buf, ctx| {
+                cut_cell(buf, area);
+                truncated(ctx, cfg, id, area, FULL);
+            });
+            (row_text(&buf, 2).trim() == FULL, hover_wait().map(|w| w.1))
+        };
+        assert_eq!(at(Some(0), None), (false, Some(300)));
+        assert_eq!(at(Some(120), None), (false, Some(180)));
+        assert_eq!(at(Some(300), None), (true, None));
+        assert_eq!(at(None, None), (true, None), "no clock: at once");
+        assert_eq!(
+            at(Some(0), Some(Reveal::default().delay_ms(0))),
+            (true, None)
+        );
+        // the keyboard reveal does not wait
+        let mut state = RevealState::default();
+        let focus = Interaction {
+            focus: Some(id),
+            hover_ms: Some(0),
+            ..Default::default()
+        };
+        frame(80, 6, focus, |buf, ctx| {
+            state.begin(ctx);
+            cut_cell(buf, area);
+            state.cell(ctx, id, area, FULL, true);
+        });
+        state.open = true;
+        let buf = frame(80, 6, focus, |buf, ctx| {
+            state.begin(ctx);
+            cut_cell(buf, area);
+            state.cell(ctx, id, area, FULL, true);
+        });
+        assert_eq!(row_text(&buf, 2).trim(), FULL);
+    }
+
+    /// At the ends of a scrolling pointer tooltip the wheel goes on to the
+    /// content beneath (it stalled there).
+    #[test]
+    fn the_wheel_passes_through_at_a_pointer_tooltips_ends() {
+        use crate::core::event::{Input, Mouse, MouseKind};
+        use ratatui::layout::Position;
+        let id = WidgetId::of("long");
+        let area = Rect::new(0, 0, 10, 1);
+        let text = numbered(30);
+        let draw = |cfg: Reveal| {
+            let hover = Interaction {
+                hover: Some(id),
+                ..Default::default()
+            };
+            frame(30, 6, hover, |_, ctx| {
+                truncated(ctx, Some(cfg), id, area, &text);
+            });
+        };
+        let wheel = |kind| Input::Mouse(Mouse::new(kind, Position::new(1, 1)));
+        draw(Reveal::default());
+        // at the top, up passes; down scrolls the tooltip
+        assert_eq!(on_pointer_wheel(&wheel(MouseKind::WheelUp)), None);
+        assert_eq!(
+            on_pointer_wheel(&wheel(MouseKind::WheelDown)),
+            Some(Outcome::Changed)
+        );
+        draw(Reveal::default());
+        while on_pointer_wheel(&wheel(MouseKind::WheelDown)) == Some(Outcome::Changed) {
+            draw(Reveal::default());
+        }
+        assert_eq!(
+            on_pointer_wheel(&wheel(MouseKind::WheelDown)),
+            None,
+            "the end"
+        );
+        // the policy holds the wheel at the ends instead
+        let hold = Reveal::default().wheel_passes_at_ends(false);
+        draw(hold);
+        assert_eq!(
+            on_pointer_wheel(&wheel(MouseKind::WheelDown)),
+            Some(Outcome::Consumed)
+        );
+    }
+
     #[test]
     fn nothing_shows_without_hover_or_when_the_text_fits() {
         let id = WidgetId::of("cell");
@@ -1139,7 +1313,7 @@ mod tests {
         let paged = screen_text(&buf);
         assert!(!paged.contains("line01 "), "{paged}");
         assert!(paged.contains("↑"), "{paged}");
-        // the wheel reaches the end; past it the event is still the reveal's
+        // the wheel reaches the end; past it the wheel goes on to the content
         while state.on_wheel(3) == Some(Outcome::Changed) {
             long_reveal(&mut state, &text);
         }
@@ -1147,6 +1321,10 @@ mod tests {
         let end = screen_text(&buf);
         assert!(end.contains("line40"), "{end}");
         assert!(!end.contains("↓"), "{end}");
+        assert_eq!(state.on_wheel(1), None, "the wheel passes at the end");
+        // a policy holds it there instead
+        state.config = Some(Reveal::default().wheel_passes_at_ends(false));
+        long_reveal(&mut state, &text);
         assert_eq!(state.on_wheel(1), Some(Outcome::Consumed));
         // PgUp goes back
         assert_eq!(state.on_key(&key(KeyCode::PageUp)), Some(Outcome::Changed));

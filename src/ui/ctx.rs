@@ -47,6 +47,12 @@ pub struct Interaction {
     /// does not follow the pointer, so hover-driven behaviour (a menu-bar
     /// hover switch) is not relied on. Default `false`.
     pub motion_unreported: bool,
+    /// How long the pointer has rested on [`Self::hover`], in ms
+    /// ([`crate::core::pointer::PointerState::hover_ms`]). Delayed hover
+    /// content (an expansion tooltip after [`crate::ui::reveal::Reveal::delay_ms`],
+    /// a tooltip) waits on it. `None` (the default,
+    /// and for a paused capture): the time is unknown and nothing waits.
+    pub hover_ms: Option<u64>,
 }
 
 /// When a control shows its focus indicator.
