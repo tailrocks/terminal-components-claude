@@ -1341,6 +1341,33 @@ impl Scrollable for CodeEditor {
     }
 }
 
+/// The editor's pointer gestures, as the apps route them: a wheel or a
+/// bar press scrolls it; a completed click enters editing and places the
+/// caret ([`CodeEditor::on_click`]); a drag from it selects
+/// ([`CodeEditor::on_drag`]).
+impl crate::core::pointer::MouseTarget for CodeEditor {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::intent::Phase;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r;
+        }
+        match ev.phase() {
+            Some(Phase::Click) => self.on_click(ev.pos()).into(),
+            Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
+            _ => crate::core::response::Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

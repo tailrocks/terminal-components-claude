@@ -1055,6 +1055,33 @@ impl PointerField for TextInput {
     }
 }
 
+/// The field's pointer gestures: a press anchors a drag with the click
+/// count it starts ([`TextInput::on_press_count`]), a drag selects
+/// ([`TextInput::on_drag`]) and a completed click places the caret or
+/// selects a word or the line ([`TextInput::on_click_count`]). Focus is
+/// the router's ([`crate::core::pointer::PointerConfig::focus_on`]).
+impl crate::core::pointer::MouseTarget for TextInput {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::intent::Phase;
+        let pos = ev.pos();
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press_count(pos, ev.count().max(1)).into(),
+            Some(Phase::Drag) => self.on_drag(pos).into(),
+            Some(Phase::Click) => self.on_click_count(pos, ev.count().max(1)).into(),
+            _ => crate::core::response::Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
