@@ -98,7 +98,7 @@ pub fn render_vertical(
             buf.set_string(area.x, y, TRACK, track);
         }
     }
-    ctx.clickable(sb_id, area);
+    ctx.scrollbar(sb_id, area, container, crate::core::hit::Axis::Vertical);
 }
 
 /// Render a horizontal scrollbar into a 1-row area: the mirror of
@@ -146,7 +146,7 @@ pub fn render_horizontal_with(
         }
     }
     if scroll.overflows() {
-        ctx.clickable(sb_id, area);
+        ctx.scrollbar(sb_id, area, container, crate::core::hit::Axis::Horizontal);
     }
 }
 
@@ -261,6 +261,24 @@ pub fn press_h(track: Rect, pos: Position, scroll: &mut ScrollState, click: Trac
 /// [`drag`] for a horizontal `track`.
 pub fn drag_h(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     scroll.drag_track(track_col(track, pos), track.width as usize)
+}
+
+/// A pointer press or drag on a [`Bar`](crate::core::hit::Bar), routed by
+/// the pointer layer: `scroll` is the owner's state on the bar's axis.
+/// Returns whether the offset changed.
+pub fn apply(
+    bar: &crate::core::hit::Bar,
+    pos: Position,
+    pressed: bool,
+    scroll: &mut ScrollState,
+) -> bool {
+    use crate::core::hit::Axis;
+    match (bar.axis, pressed) {
+        (Axis::Vertical, true) => press(bar.track, pos, scroll),
+        (Axis::Vertical, false) => drag(bar.track, pos, scroll),
+        (Axis::Horizontal, true) => press_h(bar.track, pos, scroll, TrackClick::Jump),
+        (Axis::Horizontal, false) => drag_h(bar.track, pos, scroll),
+    }
 }
 
 /// "12–24 of 120" style position label.

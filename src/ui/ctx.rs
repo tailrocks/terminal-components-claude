@@ -179,6 +179,24 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// Register `owner`'s scrollbar on `axis`, drawn in `track`.
+    pub fn scrollbar(
+        &mut self,
+        id: WidgetId,
+        track: Rect,
+        owner: WidgetId,
+        axis: crate::core::hit::Axis,
+    ) {
+        if !self.inert {
+            self.hits.register_bar(crate::core::hit::Bar {
+                id,
+                owner,
+                axis,
+                track,
+            });
+        }
+    }
+
     /// Register a wheel-scrollable container.
     pub fn scrollable(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {

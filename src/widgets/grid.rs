@@ -1402,7 +1402,7 @@ impl DataGrid {
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if pressed == scrollbar::id_for(self.id) {
-            return self.on_scrollbar(pos);
+            return self.on_scrollbar_drag(pos);
         }
         if pressed == scrollbar::h_id_for(self.id) {
             return self.on_hscrollbar_drag(pos);
@@ -2401,6 +2401,23 @@ mod tests {
     /// The thumb's first column on the grid's horizontal bar.
     fn thumb_x(buf: &Buffer, y: u16) -> Option<u16> {
         (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
+    }
+
+    #[test]
+    fn dragging_the_vertical_thumb_keeps_the_grabbed_row_under_the_pointer() {
+        let mut g = grid();
+        let area = Rect::new(0, 0, 60, 9);
+        let (_, hits) = render_at(&mut g, area, Interaction::default());
+        let bar = scrollbar::id_for(g.id);
+        let track = hits.area_of(bar).expect("vertical bar");
+        let (start, len) = g.scroll.thumb(track.height as usize);
+        assert!(len >= 2 && start == 0, "{start} {len}");
+        // grab the thumb on its second row, then pull it down two rows: a
+        // drag is a drag, not a fresh press that would leave it in place
+        g.on_drag(bar, Position::new(track.x, track.y + 1));
+        g.on_drag(bar, Position::new(track.x, track.y + 3));
+        let (moved, _) = g.scroll.thumb(track.height as usize);
+        assert_eq!(moved, 2, "offset {}", g.scroll.offset);
     }
 
     #[test]
