@@ -26,6 +26,7 @@ use super::modals::modal_frame;
 use super::{CustomModal, ModalResult};
 use crate::sim::changes::{ChangeSet, ChangedFile, DiffStatus};
 use crate::sim::world::World;
+use junie_tui::core::scroll::Scrollable;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InspectMode {

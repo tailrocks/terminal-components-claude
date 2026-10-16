@@ -7,6 +7,7 @@ use crate::core::focus::{Focus, FocusRing};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
+use crate::core::scroll::Scrollable;
 use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;

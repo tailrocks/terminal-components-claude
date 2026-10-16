@@ -1,13 +1,15 @@
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
-use crate::core::scroll::ScrollState;
+use crate::core::response::Response;
+use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
@@ -71,8 +73,6 @@ pub enum SelectMode {
 /// row (see [`crate::ui::reveal`]).
 #[derive(Debug, Clone)]
 pub struct ListBox {
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     /// The rows registered in the last render, by id.
     parts: PartMap,
     pub id: WidgetId,
@@ -81,7 +81,8 @@ pub struct ListBox {
     pub mode: SelectMode,
     pub chosen: Option<usize>,
     pub checked: Vec<bool>,
-    pub scroll: ScrollState,
+    /// The scrolled rows and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub area: Rect,
     pub empty_text: String,
     /// The theme's strings as of the last render: default text still
@@ -102,11 +103,6 @@ pub struct ListBox {
     pub skip_disabled: bool,
     /// What a single click on a row does. Default [`ClickAction::Activate`].
     pub click: ClickAction,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// Typing a prefix jumps to the matching row (macOS lists). Off by
     /// default: plain letters keep their vim and action bindings.
     pub type_ahead: bool,
@@ -146,17 +142,14 @@ impl ListBox {
     pub fn new(id: WidgetId, items: Vec<ListItem>, mode: SelectMode) -> Self {
         let n = items.len();
         Self {
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
             id,
             items,
             cursor: 0,
             mode,
             chosen: None,
             checked: vec![false; n],
-            scroll: ScrollState::new(n),
+            scroll: ScrollPane::new(n),
             area: Rect::ZERO,
-            track: Rect::ZERO,
             parts: PartMap::default(),
             empty_text: crate::theme::Strings::DEFAULT.empty_list.to_owned(),
             strings: crate::theme::Strings::DEFAULT,
@@ -455,18 +448,6 @@ impl ListBox {
         }
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        // a revealed label longer than its rows reads on before the list moves
-        if let Some(o) = self.reveal.on_wheel(delta) {
-            return o;
-        }
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     /// Which drawn row a widget id refers to.
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
         self.parts.index(id, Part::ROW)
@@ -477,42 +458,10 @@ impl ListBox {
         id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.area.y,
-                1,
-                self.area.height,
-            )
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged along the scrollbar after a press.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
@@ -521,7 +470,7 @@ impl ListBox {
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.empty_text, old.empty_list, s.empty_list);
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -658,7 +607,6 @@ impl ListBox {
         // before the next frame (see `runtime::Coalesce`) then routes to the
         // widget, not to a row whose display index it already scrolled away
         ctx.scrollable(self.id, area);
-        self.track = Rect::ZERO;
         if let Some(sb) = sp.track {
             crate::ui::fade::scroll_edges_except(
                 buf,
@@ -673,9 +621,23 @@ impl ListBox {
                     .into_iter()
                     .collect::<Vec<_>>(),
             );
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
+    }
+}
+
+impl Scrollable for ListBox {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
+    }
+
+    /// A revealed label longer than its rows reads on before the list
+    /// moves.
+    fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
+        if axis != Axis::Vertical {
+            return None;
+        }
+        self.reveal.on_wheel(delta).map(Response::from)
     }
 }
 
@@ -910,6 +872,7 @@ mod reveal_tests {
 #[cfg(test)]
 mod scroll_tests {
     use super::*;
+    use ratatui::layout::Position;
 
     fn disabled_list() -> ListBox {
         ListBox::new(
@@ -1125,6 +1088,7 @@ mod track_click_tests {
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+    use ratatui::layout::Position;
 
     #[test]
     fn a_list_track_click_can_page() {
