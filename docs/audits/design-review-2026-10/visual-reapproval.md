@@ -1,7 +1,7 @@
 # Visual re-approval against `visual-baseline` (tablepro, holla, jackin)
 
-Status: 2026-10-17. tablepro re-approved (gates). holla classified, not
-yet accepted (resume below). jackin not started.
+Status: 2026-10-17. tablepro and jackin re-approved (gate). holla
+classified, not yet accepted (resume below).
 
 Until this pass every tablepro, holla and jackin capture was a legacy
 tuisnap approval: skipped unless `VISUAL_FULL=1`, so nothing gated those
@@ -48,6 +48,12 @@ Per app, on the branch HEAD:
 | tablepro, every dialog and (after 5d7422edb) every picker | the tab pane under the layer drew its focused title and border: a second focus cue under a modal | the pane read the raw focus ("anything but the explorer or the strip"); a layer that takes focus made it "focused" | `fix(tablepro): the tab pane under a modal or picker shows no focus`: `Interaction::shown_focus` (None under a layer) | tablepro `the_pane_under_a_picker_shows_no_focus` |
 
 | holla, Files results and browser, Disk tree, Cleanup lists, plan steps | the details on the selected row (an accent-tinted fill, `#173f1c`; 256: 22) kept their plane inks: the parent path at 3.45:1 (256: 2.3:1), warning metas at 4.3:1; the baseline row was grey at 4.7:1 | holla draws these rows by hand and never stepped its inks up for the fill, as the library lists do with `Theme::row_ink` | `fix(holla): details on a cursor row stay readable on its fill`: `ui::ctx::legible_on_fill` runs every ink on a row fill through `Theme::legible` | holla `details_on_the_cursor_row_stay_readable_on_its_fill` |
+| jackin, every hand-drawn list (manager tree, detail panes and roster, accounts tree, usage list, editor roles and accounts, settings trust and agents, inspect files, the config tables) | same as holla: `saved as payments-platform` at 3.45:1 (256: 2.3:1), the mount row's `rw worktree host` at 256 3.8:1, `4 roles` at 2.5:1 (256: 1.5:1), a health `!` at 3.6:1 | jackin draws these rows by hand too | `fix(jackin): details on a cursor row stay readable on its fill` (7403f8920): every row loop calls `legible_on_fill`; the helper now leaves the focus gutter alone (a graphic in the focus ink; stepping it up turned the one focus bar white on holla's and jackin's cursor rows at 256 colours) | jackin `details_on_a_cursor_row_stay_readable_on_its_fill`, `ui::ctx::a_row_fill_steps_its_text_up_and_keeps_the_focus_gutter` |
+| jackin `accounts/add_form_required` | Save on the New account form with an empty Display name never marked the field; only the owner's form-level `Display name is required` said so (the baseline showed `Required` under the field) | since `ValidateOn::Change` (f7e8b7538) an edit that passes a field does not judge it, and `FormDialog` Save never validated | `fix(form): Save marks the first invalid field instead of saving past it` (2a71f8dcf): Save validates every visible enabled input, marks and focuses the first invalid one and does not save | `form_dialog::save_marks_the_first_invalid_field_and_does_not_save`, jackin `saving_a_new_account_without_a_name_marks_the_field_and_stays` |
+| jackin `accounts/add_form` at 72x20 | Tab went from Provider straight to the buttons: Credential source and the 1Password reference could not be reached by keyboard | `FormDialog` drew, and so registered for focus, only the fields inside its scrolled body | `fix(form): fields scrolled out of a short form stay in the Tab order` (669dcd9cf): `RenderCtx::focus_stop` for each undrawn field | `form_dialog::fields_scrolled_out_of_the_body_stay_in_the_tab_order`, jackin `tab_reaches_the_fields_below_a_short_add_account_form` |
+| jackin `manager/detail_drawer`, `accounts/drawer` (100x30 and wider) | Tab onto the workspace card or the account inspector left no `▎` anywhere on screen | both cards are focus stops themselves; since cards mark focus-within by the title alone (e95590552) only the title's weight changed | `fix(jackin): a detail card that holds focus shows the one focus bar` (5e4728c8b): `PanelFocus::Bar` while the card itself holds focus | jackin `a_detail_card_that_holds_focus_shows_the_one_focus_bar` |
+| jackin Accounts overview (`accounts/filter`, `audit/accounts`, every size up to 120x40) | the Health summary was cut to one line (`… 2 stale · 1 refres…`); the baseline wrapped it and listed every issue | its toned parts (6348ef7ed) went through `render_spans`, which draws one line | `fix(jackin): the accounts Health line wraps instead of cutting its issues` (ab0e6f60a): `widgets::viewport::wrap_spans` | `viewport::toned_spans_wrap_by_word_and_keep_their_tones`, jackin `the_accounts_health_line_wraps_instead_of_cutting_its_issues` |
+| jackin `usage/overview`, `audit/accounts` | xAI's on-demand window (100% of the month's spend, reported available) drew the danger `!` and error run beside `✓ current` | `quota_tone` left healthy windows on `MeterTone::Normal`, which re-derives the level from 60/85 (a942f1081) while the domain already classifies the window | `fix(jackin): a quota meter follows its window status, not the percentage` (b118a51ff): available windows are `MeterTone::Fixed(Low)` | jackin `a_meter_follows_its_window_status_not_the_percentage` |
 | holla, every Here page with a Recent section (about 30 roots) | with `HOLLA_NO_HISTORY=1` (pinned by the harness) the first frame listed learned use (`Pull git here used 20 times on mbp`, `everything used here is suggested above`) where the baseline said `nothing used here yet` | `main` swapped in the disabled store after the Here page was built; the finder used to rebuild every tick and hid it, and since it rebuilds only on a view change the stale rows stay | `fix(holla): HOLLA_NO_HISTORY holds from the first frame`: `App::launch` applies the opt-out before the first page | holla `the_history_opt_out_holds_from_the_first_frame` |
 
 Each fix moved approved showcase captures that had the defect in them;
@@ -61,6 +67,7 @@ digest in `tests/showcase_baseline.txt`).
 |---|---|---|
 | `holla/flows/cleanup/report`, `cleanup/linux_report`, `docker/drift`, `docker/done` | Tab, Enter after the gate-2 phrase and its Enter. A matching typed confirm submits on Enter (3ec122eb2), so the two keys acted on the next screen: the report roots captured Cleanup history (and timed out at 160x50), the Docker roots never reached their state | the stale Tab, Enter dropped; every combo matches its baseline frame apart from attributed changes |
 | `holla/flows/brew/services_stop_failed` | `wait:Bootstrap failed`; at 72x20 the `! ` stderr gutter (299b941d2) wraps it across two rows, so the wait timed out | `wait:exit 1` (the status line), as `docker/remove_failed` |
+| `jackin/accounts/add_form_required` | `enter`, `enter` on the empty Display name: the first commits the edit focus started, which no longer judges an untouched field (f7e8b7538), the second starts the edit again, so `Required` never appeared | `backtab` (wraps from the name to Save), `enter`: Save marks the field (fix above) |
 | `tablepro/table/filtered`, `tablepro/table/sorted-filtered` | Shift+Tab, Shift+Tab, Enter, Ctrl+L, `pending`, Enter. Since 1da20cc01 focus already selects the value, so Enter applied the prefilled `delivered` and Ctrl+L, outside the field, opened the Safety level picker; the capture showed `status = 'delivered'` and `▲ silent` | Shift+Tab, Shift+Tab, `pending`, Enter (the app test `sort_and_filter_on_table_tab` since 1da20cc01) |
 
 ## tablepro
@@ -175,15 +182,108 @@ scripts of this pass or by hand:
    with `--partition hash:k/4`).
 2. If holla source moved since this pass (S5 holla was landing), re-run
    the residual review against `visual-baseline` for the moved roots.
+   The jackin pass moved a shared piece holla uses: the cursor-row focus
+   gutter keeps the focus ink at 256 colours (7403f8920, every holla
+   list with a cursor fill).
 3. `cargo xtask visual determinism` over the same filter, then
    `cargo xtask visual accept` of it (all 3,125), and commit the
    snapshots alone as `test(visual): holla re-approval against
    visual-baseline`.
 
-## jackin (not started)
+## jackin
 
-1,200 stored captures, all still legacy. Before re-approving, check
-jackin's hand-drawn rows (`screens/{accounts,manager,usage,editor,
-settings,inspect,config}.rs` draw details on `Theme::row`) for the
-cursor-row contrast defect fixed in holla; `ui::ctx::legible_on_fill`
-is the fix.
+1,200 captures (48 roots x 5 sizes x 5 colours): **1,200 accepted, 0
+pending.** Captured on the branch after S6 (pointer routing, e9d2406b7)
+and the six fixes above; the narrow tier (40x12, 60x18) has no
+baseline frame and stays pending. 1,190 captures differ from their
+baseline frame (1,125 in text, 65 in style only); 10 are identical
+(`intro/f300` and `scenarios/outro-last` in `none` and `nocolor`).
+None is left unexplained.
+
+Captures touched per attributed cause (a capture usually has several;
+counted by text feature over all 1,200):
+
+| Captures | Cause |
+|---|---|
+| 660 | footer vocabulary: `←→`/`↑↓` (e97f56b7a); pinned `Esc Back` / `? Help` and the status leaving them room, so a normal hint such as `Ctrl+S Save` or `Ctrl+Q Quit` drops first on a crowded row (f0cb83a02); one meaning per letter, `t Disable`, `d Remove…`, `! Open shell`, `x Cancel launch…` (c3515f652); `Enter <button>` (66e5268fc); `Ctrl+B Pane commands…`, `Enter Detail` (04647eb25); `Enter Edit fields` (66e5268fc); `EDIT Enter Apply` on a focused field (1da20cc01, 88fd384a5) |
+| 460 | running state and status as colour roles: `● 2 running` in the identity strip, `✓ current` / `✗ provider unavailable` / `✗ Kimi · discovered` status glyphs, `▲ daemon stale` (6348ef7ed) |
+| 370 | dotted scrollbar track `┆` / `┄` (ef2f81640) |
+| 250 | modal close plate `─ × ─╮` (9f06503a2, e1325c04f) |
+| 175 | meter level glyph `▲` / `!` beside medium and high meters, stale meters dashed `╍` (a942f1081, 0bd69d581, 83758d825) |
+| 100 | horizontal bars under capsule panes, one content row fewer (b68c2210e, 5edf2bba8) |
+| 100 | cockpit `Cancel launch…` button and the `Keep launching` / `Cancel launch` pair (31eaf284a, 934985f8d) |
+| 50 | focused tab strip carries the `▎` on its cursor tab (`▎General`) (5d0c4467b, cafc01a74) |
+| 65 | style only, brand screens (`intro/f300`, `scenarios/first-use`, `scenarios/outro-last`): muted `#808080` to `#8a8a8a` and faint to `#737373` (256: 244 to 245, 238 to 242; 16: DarkGray to Gray), the on-accent ink 233 to 232 (0610904df) |
+| read by hand | popups and pickers truly centred instead of the upper third (6612b4443); app modals and dialogs sit in the body with the dialog margin, one row lower, never on the menu bar (e9a9c1941, d2d6896b9); help overlay: at most 80% of the screen, two columns, `1–29 of 30`, a `Done` button (755237d5d, 9f06503a2), `Ctrl+Q quit · asks only about…` (8a8c20253); no focus under a menu or modal (`▎ Current` under the File menu goes) (1d9055e8b); popup lists mark the cursor with a fill (948e926d8), the fixed-choice launch pickers included (no `▎` on screen while one is open; owner question below); wrapped values hang under the column gap (`readable` under `quota access`) (f2c4e04cb); usage limit labels take the width they measure (d09f244c9); the account drawer's actions wrap onto a second row instead of `Remov…` (72dff1756); the General tab scrolls instead of drawing on the Save row at 72x20 (a1091ba6e); disabled palette entries say why (`Not in this preview`) (00643499a); status copy `list may be incomplete` (7d3bb70e0); `Quit jackin❯?` (d6797b63c); the health and meter fixes above |
+
+Layout consequences counted with their cause: a popup centred over the
+page shows different page text beside it (the word check flags these:
+`Tab details`, `saved as payments-platform`, pane text at the capsule
+sizes), a horizontal bar takes a pane's last row so its tail scrolls by
+one, header spacing follows the `●` dot.
+
+Palette checks on the accepted frames: text is palette-independent; the
+only `fg == bg` cells are the popup menu frames at 16 colours and `none`
+(`capsule/menu`, `manager/menu_open`, 20 captures), which the baseline
+has too (recorded under holla). Text that fell below 4.5:1 from 4.5:1
+or more on an unchanged row is page text under a modal backdrop (the
+backdrop's dim, as in holla), the tab rule under a backdrop (`━`, ghost
+by design), and graphics at 3:1 or more (`◉`, `✓`, scrollbar thumbs, the
+focus gutter on the row fill at 256 colours, 4.4:1).
+
+Recorded, not fixed:
+
+- 16 colours: on the selected tab's DarkGray plane (5d0c4467b) the
+  capsule tab number `1` draws LightGray at 3.2:1 (`capsule/zoom`, every
+  capsule root) and the editor's dirty `•` Yellow at 2.4:1
+  (`editor/mounts_dirty`). The same family as holla's 16-colour tab
+  glyphs above: the Tabs widget does not step its extra inks up on the
+  selected plane. A library fix (Tabs runs its inks through
+  `Theme::legible` on the selected fill) moves every app's 16-colour tab
+  captures, so it is left for one pass over all four apps.
+
+Owner confirmation needed (jackin):
+
+- `usage/overview` (every size): the worst window became a meter
+  (6348ef7ed) and its label keeps a fixed 10 cells, so `Weekly · Opus`
+  reads `Weekly · …`, `On-demand usage` `On-demand…`, `Amp Free · daily`
+  `Amp Free …` while the status column has room to spare at 120x40. Keep,
+  or let the label measure its width through `ui::columns` (as the
+  usage limits do since d09f244c9)?
+- Footers that run out of room drop normal hints from the right while
+  `Esc` and `?` stay (f0cb83a02): `editor/mounts_dirty` at 160x50 drops
+  `Ctrl+S Save` beside `• 1 change`, the capsule drops `Ctrl+Q Quit`.
+  Should `Ctrl+S` be a pinned key while a screen has unsaved changes?
+- `accounts/add_form_required` now shows the Save outcome (the field
+  marked, focus on it) rather than a validated Enter on the field; the
+  frame matches the baseline's apart from `EDIT` in the footer (focus
+  starts the edit, 1da20cc01). Confirm Save-time validation as the
+  standard for every `FormDialog` (2a71f8dcf).
+- `manager/launch_picker`, `hard_launch_picker` (and tablepro's Safe
+  Mode picker, holla's Activities): a fixed-choice picker marks its
+  cursor with a fill and no `▎`, so no focus bar shows anywhere while it
+  is open; the baseline drew the bar on the cursor row. This is the
+  recorded design of the focus audit (focus.md #1: "a non-searchable
+  picker also uses the fill only, matching the menu"; menus show no bar
+  either), and tablepro `the_switcher_is_the_only_layer_showing_focus`
+  and showcase `the_chooser_stacks_a_picker_over_the_form_and_returns_to_it`
+  lock it. It sits against the rule "exactly one keyboard-focus indicator
+  is visible": confirm the menu exception covers fixed-choice pickers,
+  or give them `CursorStyle::Bar` (a fix was tried in this pass and
+  dropped for that decision).
+- `quota_tone`: available windows are now always healthy (b118a51ff),
+  so the domain's `QuotaStatus` (from_pct thresholds, overridable per
+  window) alone decides a quota meter's level. Confirm the domain is
+  the authority over the library's 60/85.
+
+How it was checked (scratch scripts, not in the tree): capture of all
+48 roots at the canonical sizes (`VISUAL_FULL=1`, two partitions);
+residual review with the transforms dotted track, close plate, running
+dot, meter glyph, horizontal bar rows, rule lengths; every 120x40 frame
+read by hand, the other sizes by residual and by the words gained or
+lost beyond the 120x40 frame; `cargo xtask visual determinism` per half
+(accounts, audit, capsule, cockpit, editor: 550 identical; intro,
+manager, scenarios, settings, usage: 650 identical); the accepted files'
+sha list equals the reviewed one; `cargo xtask visual accept` per half
+(3926afdad). Re-captured after rebasing onto S7 part 1 (the library
+Shell, 4400f40ab): no jackin frame moved.
