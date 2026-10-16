@@ -14,6 +14,8 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::{FocusVisible, RenderCtx};
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
@@ -613,23 +615,27 @@ impl Page for ButtonsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, .. } => {
-                if let Some(i) = self.buttons.iter().position(|b| b.id == *id) {
-                    if self.buttons[i].on_click() {
+            PageEvent::Pointer(ev) if ev.is(Phase::Click) => {
+                if let Some(i) = self.buttons.iter().position(|b| ev.on(b.id)) {
+                    if self.buttons[i]
+                        .route(ev)
+                        .and_then(|r| r.into_action())
+                        .is_some()
+                    {
                         self.activated(i, cx);
                     }
                     return Outcome::Changed;
                 }
-                if let Some(i) = self.tools.iter().position(|b| b.id == *id) {
+                if let Some(i) = self.tools.iter().position(|b| ev.on(b.id)) {
                     self.tool(i, cx);
                     return Outcome::Changed;
                 }
-                if let Some(b) = self.icons.iter().find(|b| b.id == *id) {
+                if let Some(b) = self.icons.iter().find(|b| ev.on(b.id)) {
                     let what = b.tip.as_ref().map_or("Icon", |t| t.text.as_str());
                     cx.status(format!("{what} ✓"));
                     return Outcome::Changed;
                 }
-                self.on_row_click(*id, cx).unwrap_or(Outcome::Ignored)
+                self.on_row_click(ev.id, cx).unwrap_or(Outcome::Ignored)
             }
             _ => Outcome::Ignored,
         }

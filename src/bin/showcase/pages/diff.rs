@@ -12,15 +12,15 @@ use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::diff::{DiffFile, DiffHunk, DiffLine, DiffMode, DiffStatus, DiffView};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::viewport::ViewportAction;
 
 const ID: WidgetId = WidgetId::of("diff");
@@ -264,53 +264,41 @@ impl Page for DiffPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Press { id, pos } if *id == self.view.id() => {
-                cx.focus.focus(self.view.id());
-                self.view.on_click(*pos)
-            }
-            PageEvent::Click { id, pos } => {
-                if *id == self.review.id || *id == self.empty.id {
-                    let button = if *id == self.review.id {
+            PageEvent::Pointer(ev) => {
+                if ev.is(Phase::Click) && (ev.on(self.review.id) || ev.on(self.empty.id)) {
+                    let button = if ev.on(self.review.id) {
                         &mut self.review
                     } else {
                         &mut self.empty
                     };
                     cx.focus.focus(button.id);
-                    if button.on_click() {
+                    if button.route(ev).and_then(|r| r.into_action()).is_some() {
                         self.update_controls();
                         return Outcome::Changed;
                     }
+                    return Outcome::Ignored;
                 }
-                if let Some(row) = self.files.locate(*id) {
-                    cx.focus.focus(self.files.id);
-                    let before = self.files.cursor;
-                    let o = self.files.on_click(row);
+                let before = self.files.cursor;
+                if let Some(r) = self.files.route(ev) {
+                    if ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
+                        cx.focus.focus(self.files.id);
+                    }
+                    let o = r.outcome();
                     if self.files.cursor != before {
                         self.update_controls();
                     }
                     return o;
                 }
-                if *id == self.view.id() {
+                if ev.on(self.view.id())
+                    && ev.bar.is_none()
+                    && matches!(ev.phase(), Some(Phase::Press | Phase::Click | Phase::Drag))
+                {
                     cx.focus.focus(self.view.id());
-                    return Outcome::Consumed;
                 }
-                if scrollbar::is_bar_of(*id, self.view.id()) {
-                    return self.view.on_scrollbar(*pos);
-                }
-                Outcome::Ignored
+                self.view
+                    .route(ev)
+                    .map_or(Outcome::Ignored, |r| r.outcome())
             }
-            PageEvent::Drag { pressed, pos } => {
-                if scrollbar::is_bar_of(*pressed, self.view.id()) {
-                    return self.view.on_bar_drag(*pressed, *pos);
-                }
-                if *pressed == self.view.id() {
-                    cx.focus.focus(self.view.id());
-                    return self.view.on_drag(*pos);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } if self.view.owns(*id) => self.view.on_wheel(*delta),
-            PageEvent::WheelH { id, delta } if self.view.owns(*id) => self.view.on_wheel_h(*delta),
             _ => Outcome::Ignored,
         }
     }
@@ -369,6 +357,7 @@ mod tests {
     use super::*;
     use junie_tui::core::focus::{Focus, FocusRing};
     use junie_tui::core::hit::HitRegistry;
+    use junie_tui::core::pointer::PointerEvent;
     use junie_tui::theme::{ColorLevel, Theme};
     use junie_tui::ui::ctx::Interaction;
     use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -438,37 +427,28 @@ mod tests {
         });
         page.handle(&enter, &mut cx);
         assert_eq!(page.view.mode, DiffMode::Review);
+        let hits = HitRegistry::default();
+        let ptr = |phase, id, pos| {
+            PageEvent::Pointer(PointerEvent::new(
+                &hits,
+                phase,
+                id,
+                pos,
+                1,
+                KeyModifiers::NONE,
+            ))
+        };
         page.handle(
-            &PageEvent::Click {
-                id: page.review.id,
-                pos: Position::new(1, 0),
-            },
+            &ptr(Phase::Click, page.review.id, Position::new(1, 0)),
             &mut cx,
         );
         assert_eq!(page.view.mode, DiffMode::Unified);
         render(&mut page, 100, ColorLevel::Mono);
         let pos = page.view.term.area.as_position();
-        page.handle(
-            &PageEvent::Press {
-                id: page.view.id(),
-                pos,
-            },
-            &mut cx,
-        );
-        page.handle(
-            &PageEvent::Drag {
-                pressed: page.view.id(),
-                pos: Position::new(pos.x + 12, pos.y),
-            },
-            &mut cx,
-        );
-        page.handle(
-            &PageEvent::Click {
-                id: page.view.id(),
-                pos: Position::new(pos.x + 12, pos.y),
-            },
-            &mut cx,
-        );
+        let end = Position::new(pos.x + 12, pos.y);
+        page.handle(&ptr(Phase::Press, page.view.id(), pos), &mut cx);
+        page.handle(&ptr(Phase::Drag, page.view.id(), end), &mut cx);
+        page.handle(&ptr(Phase::Click, page.view.id(), end), &mut cx);
         page.handle(
             &PageEvent::Key(junie_tui::core::event::Key {
                 code: KeyCode::Char('y'),
@@ -478,10 +458,14 @@ mod tests {
         );
         assert!(page.copied.as_ref().is_some_and(|text| !text.is_empty()));
         page.handle(
-            &PageEvent::Wheel {
-                id: page.view.id(),
-                delta: 3,
-            },
+            &PageEvent::Pointer(PointerEvent::wheel_on(
+                &hits,
+                page.view.id(),
+                junie_tui::core::hit::Axis::Vertical,
+                3,
+                pos,
+                KeyModifiers::NONE,
+            )),
             &mut cx,
         );
         assert_eq!(page.view.term.scroll.offset, 3);
