@@ -1730,7 +1730,7 @@ impl DataGrid {
             if d >= self.rows.len() {
                 // fetch-more virtual row
                 let mid = self.more_id();
-                let mut s = ctx.state(mid);
+                let mut s = ctx.child_state(self.id, mid, d == self.cursor.0);
                 s.focused = focused && d == self.cursor.0;
                 let st = t.row(s, bg);
                 fill(buf, row_rect, st);
@@ -1757,13 +1757,16 @@ impl DataGrid {
             }
             let src = self.order[d];
             let rid = self.rownum_id(d);
-            let mut s = ctx.state(rid);
-            let hovered_cell = (self.hscroll.offset
-                ..self.hscroll.offset + self.hscroll.viewport_len)
+            let mut s = ctx.child_state(self.id, rid, d == self.cursor.0);
+            let visible_cols = self.hscroll.offset..self.hscroll.offset + self.hscroll.viewport_len;
+            let hovered_cell = visible_cols
+                .clone()
                 .find(|&c| ctx.interaction.hovered(self.cell_id(d, c)));
-            if hovered_cell.is_some() {
-                s.hovered = true;
-            }
+            // cell hover and press count as the row's
+            s.hovered |= hovered_cell.is_some();
+            s.pressed |= ctx
+                .interaction
+                .pressed_any(visible_cols.map(|c| self.cell_id(d, c)));
             s.focused = focused && d == self.cursor.0;
             s.selected = self.selected_rows.contains(&src);
             let state = self.row_state(src);
@@ -1872,7 +1875,7 @@ impl DataGrid {
                         st = st.fg(t.text_secondary);
                     }
                     if self.in_range(d, ci) && !is_cursor {
-                        st = st.bg(t.popover);
+                        st = st.patch(t.selection());
                     }
                     if dirty {
                         // changed values read in the warning tone; underline stays the editing token
@@ -1882,20 +1885,9 @@ impl DataGrid {
                         st = st.fg(t.error).remove_modifier(Modifier::ITALIC);
                     }
                     if is_cursor {
-                        st = Style::new()
-                            .fg(if state == RowState::Deleted {
-                                t.text_muted
-                            } else {
-                                t.canvas
-                            })
-                            .bg(if err.is_some() {
-                                t.error
-                            } else {
-                                t.text_primary
-                            })
-                            .add_modifier(Modifier::BOLD);
-                        if err.is_some() {
-                            st = st.fg(t.text_primary);
+                        st = t.cell_cursor(err.is_some(), s.pressed);
+                        if state == RowState::Deleted {
+                            st = st.add_modifier(Modifier::CROSSED_OUT);
                         }
                     } else if hovered_cell == Some(ci)
                         && self.editable

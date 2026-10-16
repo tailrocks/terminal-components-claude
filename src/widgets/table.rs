@@ -711,13 +711,14 @@ impl DataTable {
                 1,
             );
             let rid = self.row_id(di);
-            let mut s = ctx.state(rid);
-            // cell hover counts as row hover
+            let mut s = ctx.child_state(self.id, rid, di == self.cursor_row);
+            // cell hover and press count as the row's
             let hovered_cell =
                 (0..self.columns.len()).find(|&c| ctx.interaction.hovered(self.cell_id(di, c)));
-            if hovered_cell.is_some() {
-                s.hovered = true;
-            }
+            s.hovered |= hovered_cell.is_some();
+            s.pressed |= ctx
+                .interaction
+                .pressed_any((0..self.columns.len()).map(|c| self.cell_id(di, c)));
             s.focused = focused && di == self.cursor_row;
             s.selected = self.selected == Some(src);
             let row_style = t.row(s, bg);
@@ -789,14 +790,8 @@ impl DataTable {
                     }
                 } else {
                     if is_cursor_cell {
-                        // cell cursor: reversed on the cell only
-                        st = Style::new()
-                            .fg(t.canvas)
-                            .bg(t.text_primary)
-                            .add_modifier(Modifier::BOLD);
-                        if cell.error.is_some() {
-                            st = st.bg(t.error).fg(t.text_primary);
-                        }
+                        // cell cursor: the cursor fill on the cell only
+                        st = t.cell_cursor(cell.error.is_some(), s.pressed);
                     } else if cell.error.is_some() {
                         st = st.fg(t.error);
                     } else if col.editable && self.cell_nav && s.hovered && hovered_cell == Some(ci)
@@ -1176,5 +1171,80 @@ mod tests {
         let (_, ev) = t.on_key(&tab);
         assert_eq!(ev, Some(TableEvent::LeaveForward));
         assert!(!t.is_editing());
+    }
+
+    fn render_with(table: &mut DataTable, interaction: Interaction) -> Buffer {
+        let area = Rect::new(0, 0, 40, 5);
+        let mut buf = Buffer::empty(area);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+        table.render(area, &mut buf, &mut ctx, theme.surface);
+        buf
+    }
+
+    fn row_of(buf: &Buffer, text: &str) -> u16 {
+        (0..buf.area.height)
+            .find(|&y| {
+                (0..buf.area.width)
+                    .map(|x| buf[(x, y)].symbol())
+                    .collect::<String>()
+                    .contains(text)
+            })
+            .unwrap()
+    }
+
+    #[test]
+    fn a_press_on_a_cell_or_the_keyboard_flash_presses_the_row() {
+        let theme = Theme::junie();
+        let pressed = theme.ladder(crate::theme::Plane::Surface).pressed;
+        let mut t = table();
+        // pointer held on a cell (cells register above the row)
+        let cell = t.cell_id(0, 0);
+        let buf = render_with(
+            &mut t,
+            Interaction {
+                hover: Some(cell),
+                pressed: Some(cell),
+                ..Default::default()
+            },
+        );
+        let y = row_of(&buf, "beta");
+        assert_eq!(buf[(0, y)].bg, pressed, "cell press is the row's press");
+        // Enter on the focused table flashes the container id
+        let id = t.id;
+        let buf = render_with(
+            &mut t,
+            Interaction {
+                focus: Some(id),
+                flash: Some(id),
+                ..Default::default()
+            },
+        );
+        let y = row_of(&buf, "beta");
+        assert_eq!(
+            buf[(0, y)].bg,
+            pressed,
+            "keyboard flash lands on the cursor row"
+        );
+    }
+
+    #[test]
+    fn the_cell_cursor_is_the_cursor_fill_not_a_white_flood() {
+        let theme = Theme::junie();
+        let mut t = table();
+        let id = t.id;
+        let buf = render_with(
+            &mut t,
+            Interaction {
+                focus: Some(id),
+                ..Default::default()
+            },
+        );
+        let y = row_of(&buf, "beta");
+        let x = (0..40).find(|&x| buf[(x, y)].symbol() == "b").unwrap();
+        assert_eq!(buf[(x, y)].bg, theme.highlight);
+        assert_eq!(buf[(x, y)].fg, theme.text_primary);
     }
 }
