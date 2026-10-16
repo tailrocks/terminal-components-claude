@@ -251,10 +251,11 @@ fn track_col(track: Rect, pos: Position) -> usize {
 }
 
 /// The pointer went down on `track`: on the thumb this grabs it, on the
-/// bare track it jumps the thumb under the pointer. Returns whether the
-/// offset changed. `track` must be the rectangle the scrollbar was drawn in.
+/// bare track it acts per the default [`TrackClick`] (one page toward the
+/// pointer). Returns whether the offset changed. `track` must be the
+/// rectangle the scrollbar was drawn in.
 pub fn press(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
-    scroll.press_track(track_row(track, pos), track.height as usize)
+    press_with(track, pos, scroll, TrackClick::default())
 }
 
 /// [`press`] under a track-click policy: with [`TrackClick::Page`] a
@@ -291,11 +292,23 @@ pub fn apply(
     pressed: bool,
     scroll: &mut ScrollState,
 ) -> bool {
+    apply_with(bar, pos, pressed, scroll, TrackClick::default())
+}
+
+/// [`apply`] under a track-click policy (`click` decides what a press on
+/// the bare track does, on either axis).
+pub fn apply_with(
+    bar: &crate::core::hit::Bar,
+    pos: Position,
+    pressed: bool,
+    scroll: &mut ScrollState,
+    click: TrackClick,
+) -> bool {
     use crate::core::hit::Axis;
     match (bar.axis, pressed) {
-        (Axis::Vertical, true) => press(bar.track, pos, scroll),
+        (Axis::Vertical, true) => press_with(bar.track, pos, scroll, click),
         (Axis::Vertical, false) => drag(bar.track, pos, scroll),
-        (Axis::Horizontal, true) => press_h(bar.track, pos, scroll, TrackClick::Jump),
+        (Axis::Horizontal, true) => press_h(bar.track, pos, scroll, click),
         (Axis::Horizontal, false) => drag_h(bar.track, pos, scroll),
     }
 }
