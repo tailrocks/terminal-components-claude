@@ -73,6 +73,13 @@ impl Interaction {
     pub fn focused(&self, id: WidgetId) -> bool {
         !self.focus_hidden && self.has_focus(id)
     }
+    /// [`Self::focused`] for an owner that may have opened its own popup
+    /// (a tab strip's or chip bar's `+N` menu, a select's list): while
+    /// `layer_open`, the popup is the topmost layer and the owner under
+    /// it shows no focus, so exactly one indicator stays on screen.
+    pub fn focused_under(&self, id: WidgetId, layer_open: bool) -> bool {
+        !layer_open && self.focused(id)
+    }
     /// Whether `id` holds keyboard focus, shown or not. Use this for
     /// behaviour (commit an edit on blur, close a dropdown): a layer
     /// opening above a control hides its focus but does not blur it.
