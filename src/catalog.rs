@@ -753,6 +753,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::dialog::Dialog::max_height"),
     Capability::builder("widgets::dialog::Dialog::outer_margin"),
     Capability::builder("widgets::dialog::Dialog::backdrop"),
+    Capability::builder("widgets::dialog::Dialog::chrome"),
     Capability::builder("widgets::dialog::Dialog::placement"),
     Capability::builder("widgets::dialog::Dialog::anchor"),
     Capability::builder("widgets::dialog::Dialog::confirm_index"),
