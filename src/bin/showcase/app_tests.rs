@@ -773,7 +773,8 @@ fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick
         "the list label matches the rows drawn at 80x24: {title}"
     );
     assert!(
-        title.contains("387–401 of"),
+        // (its long lines scroll sideways: the horizontal bar takes a row)
+        title.contains("388–401 of"),
         "the log label survives at 80x24: {title}"
     );
 }

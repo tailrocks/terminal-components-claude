@@ -184,6 +184,9 @@ fn command_palette_scrolls_with_the_wheel_and_keeps_the_selection() {
     assert!(h.text().contains("Command palette"));
     let (x, y) = h.find("New tab").unwrap();
     let before = h.text();
+    // a sideways swipe never scrolls the rows
+    h.mouse(MouseKind::WheelRight, x, y + 2);
+    assert_eq!(h.text(), before, "a sideways wheel scrolled vertically");
     h.mouse(MouseKind::WheelDown, x, y + 2);
     let after = h.text();
     assert_ne!(before, after, "wheel did not move the rows");
