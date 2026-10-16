@@ -277,7 +277,7 @@ impl Dialog {
         let KeyCode::Char(c) = key.code else {
             return None;
         };
-        if !self.mnemonics_live() || key.ctrl() || key.alt() {
+        if !self.mnemonics_live() || key.chord() {
             return None;
         }
         let c = c.to_lowercase().next().unwrap_or(c);

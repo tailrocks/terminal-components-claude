@@ -1,6 +1,7 @@
 //! Terminal runtime shared by every application built on the library:
 //! one terminal-session guard that owns raw mode, the alternate screen,
-//! mouse capture, bracketed paste, cursor visibility and line-wrap state
+//! mouse capture, bracketed paste, the kitty keyboard protocol
+//! ([`crate::core::keyboard`]), cursor visibility and line-wrap state
 //! (restored on every exit path, including panics), an event loop that
 //! drains unchanged input while rendering state changes before the next queued
 //! event, and animation ticks on demand.
@@ -40,7 +41,8 @@ use ratatui::style::Color;
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
-use crate::core::event::{Input, Key, Mouse, MouseKind, Outcome};
+use crate::core::event::{Input, InputConfig, Key, Mouse, MouseKind, Outcome};
+use crate::core::keyboard::{self, KeyboardProtocol};
 
 pub trait Application {
     fn handle(&mut self, input: Input) -> Outcome;
@@ -156,8 +158,8 @@ fn is_navigation(key: &Key) -> bool {
 }
 
 /// Owns every piece of terminal state the application changes and puts it
-/// back in reverse order when dropped: bracketed paste and mouse capture
-/// off, cursor shown, line wrap re-enabled, alternate screen left, raw mode
+/// back in reverse order when dropped: the kitty keyboard flags popped,
+/// bracketed paste and mouse capture off, cursor shown, line wrap re-enabled, alternate screen left, raw mode
 /// off. A panic inside the event loop unwinds through the guard, so the
 /// host shell is restored before the panic message is printed.
 pub struct TerminalSession {
@@ -224,6 +226,14 @@ impl TerminalSession {
                 EnableMouseCapture,
                 EnableBracketedPaste
             )?;
+            // progressive enhancement: Cmd (super) chords reach the app
+            // where the terminal speaks the kitty keyboard protocol
+            if let Some(push) = keyboard::session::enter(KeyboardProtocol::current(), || {
+                ratatui::crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false)
+            }) {
+                out.write_all(push.as_bytes())?;
+                out.flush()?;
+            }
             let backend = ratatui::backend::CrosstermBackend::new(out);
             ratatui::Terminal::new(backend)
         })?;
@@ -273,6 +283,12 @@ impl TerminalSession {
             EnableMouseCapture,
             EnableBracketedPaste
         ) {
+            restore_terminal();
+            return Err(e);
+        }
+        if let Some(push) = keyboard::session::resume()
+            && let Err(e) = out.write_all(push.as_bytes()).and_then(|()| out.flush())
+        {
             restore_terminal();
             return Err(e);
         }
@@ -355,6 +371,9 @@ fn restore_terminal() {
     let mut out = stdout();
     // the arrow pointer and the terminal's own caret, if they were set
     let _ = out.write_all(crate::core::shape::reset_sequence().as_bytes());
+    if let Some(pop) = keyboard::session::leave() {
+        let _ = out.write_all(pop.as_bytes());
+    }
     let _ = execute!(out, DisableBracketedPaste, DisableMouseCapture, Show);
     let _ = out.write_all(ENABLE_WRAP.as_bytes());
     let _ = execute!(out, LeaveAlternateScreen);
@@ -468,7 +487,13 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
 
 fn next_ready_input() -> std::io::Result<Option<Input>> {
     while event::poll(Duration::ZERO)? {
-        if let Some(input) = Input::from_crossterm(event::read()?) {
+        let config = InputConfig {
+            // the protocol reports Ctrl+\\ and friends as themselves
+            legacy_ctrl_punctuation: !keyboard::active(),
+            ..InputConfig::default()
+        };
+        if let Some(input) = Input::from_crossterm_with(event::read()?, config) {
+            keyboard::observe(&input);
             return Ok(Some(input));
         }
     }

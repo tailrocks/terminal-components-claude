@@ -1099,7 +1099,7 @@ impl Screen for DiskPage {
                 _ => {}
             }
         }
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             return Outcome::Ignored;
         }
         // shared letters first
