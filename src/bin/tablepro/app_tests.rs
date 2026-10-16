@@ -1020,6 +1020,10 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     let f = footer(&h);
     assert!(f.contains("Type \"orders\" to confirm"), "{f}");
     assert!(f.contains("Enter Next"), "{f}");
+    // the Safe Mode fact says what to do, without jargon
+    let t = h.text();
+    assert!(t.contains("type to confirm"), "{t}");
+    assert!(!t.contains("deliberate"), "{t}");
 }
 
 #[test]
