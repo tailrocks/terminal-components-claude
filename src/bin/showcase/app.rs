@@ -17,7 +17,7 @@ use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release, Se
 use junie_tui::theme::{BadgeKind, Theme};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
-use junie_tui::widgets::dialog::{Dialog, DialogBody};
+use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
 
@@ -28,6 +28,10 @@ const NAV: WidgetId = WidgetId::of("app.nav");
 const HEADER_HELP: WidgetId = WidgetId::of("app.header.help");
 const HEADER_INSPECT: WidgetId = WidgetId::of("app.header.inspect");
 const HELP_DIALOG: WidgetId = WidgetId::of("app.help");
+/// The brand lockup in the header: the app menu's Quit (mouse #40).
+pub const HEADER_BRAND: WidgetId = WidgetId::of("app.header.brand");
+/// The quit confirmation the brand opens.
+pub const QUIT_DIALOG: WidgetId = WidgetId::of("app.quit");
 
 /// Tick delivery mode: `Paused` pins every tick-derived glyph at
 /// `--frame N` (the pages are fast-forwarded synchronously at startup) so
@@ -798,6 +802,14 @@ impl App {
             }
             return Outcome::Changed;
         }
+        // the brand's quit confirmation: Quit goes through the same guard
+        // as the q key
+        if d.id == QUIT_DIALOG {
+            if d.result == Some(DialogResult::Action(1)) {
+                return self.request_quit();
+            }
+            return Outcome::Changed;
+        }
         if d.id != HELP_DIALOG
             && let Some(result) = d.result
         {
@@ -947,6 +959,17 @@ impl App {
         }
     }
 
+    /// The pointer's way to quit: the brand opens a confirmation.
+    fn open_quit(&mut self) {
+        let d = Dialog::confirm(
+            QUIT_DIALOG,
+            "Quit the showcase?",
+            "Pages keep no state between runs.",
+            "Quit",
+        );
+        self.open_dialog(d);
+    }
+
     fn open_help(&mut self) {
         let text = "Tab / Shift+Tab   move keyboard focus\n\
                     ↑↓←→              move inside the focused control\n\
@@ -1008,6 +1031,10 @@ impl App {
         }
         if id == HEADER_HELP {
             self.open_help();
+            return Outcome::Changed;
+        }
+        if id == HEADER_BRAND {
+            self.open_quit();
             return Outcome::Changed;
         }
         if id == scrollbar::id_for(NAV) {
@@ -1439,9 +1466,23 @@ impl App {
     fn draw_header(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let mut x = area.x + 1;
-        buf.set_string(x, area.y, "▪", t.accent_fg());
+        // the brand is the app menu's way to quit: it lifts on hover and
+        // press, and keeps its look at rest
+        let brand = Rect::new(x, area.y, 7, 1);
+        let lifted = ctx.interaction.hovered(HEADER_BRAND) || ctx.interaction.pressed(HEADER_BRAND);
+        let ladder = ctx.title_style(HEADER_BRAND, t.canvas);
+        let (mark, name) = if lifted {
+            (ladder.fg(t.accent), ladder)
+        } else {
+            (t.accent_fg(), t.title())
+        };
+        buf.set_string(x, area.y, "▪", mark);
+        if lifted {
+            buf.set_string(x + 1, area.y, " ", ladder);
+        }
         x += 2;
-        buf.set_string(x, area.y, "Junie", t.title());
+        buf.set_string(x, area.y, "Junie", name);
+        ctx.clickable(HEADER_BRAND, brand);
         x += 6;
         buf.set_string(x, area.y, "Design system", t.secondary());
         x += 14;

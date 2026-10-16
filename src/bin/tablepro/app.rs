@@ -46,6 +46,8 @@ const STRIP_SAFE: WidgetId = WidgetId::of("strip.safe");
 const STRIP_SCOPE: WidgetId = WidgetId::of("strip.scope");
 const STRIP_CONN: WidgetId = WidgetId::of("strip.conn");
 const STRIP_HELP: WidgetId = WidgetId::of("strip.help");
+/// The TablePro segment of the status strip: the app menu (mouse #40).
+pub const STRIP_APP: WidgetId = WidgetId::of("strip.app");
 const HELP_DIALOG: WidgetId = WidgetId::of("dialog.help");
 const SAFETY_DIALOG: WidgetId = WidgetId::of("dialog.safety");
 const DISCARD_DIALOG: WidgetId = WidgetId::of("dialog.discard");
@@ -390,6 +392,28 @@ impl App {
             }
             Input::Mouse(m) => self.on_mouse(m),
         }
+    }
+
+    /// Close the workbench and go back to the connection list. Pending row
+    /// changes or an unsaved query keep it open: the status says why.
+    fn disconnect(&mut self) -> Outcome {
+        let Some(w) = self.workbench.as_ref() else {
+            return Outcome::Ignored;
+        };
+        let dirty = w.pending_total() > 0
+            || w.tabs
+                .iter()
+                .any(|t| matches!(t, WorkTab::Query(q) if q.dirty()));
+        if dirty {
+            self.set_status("Save or discard the pending changes before disconnecting".into());
+            return Outcome::Changed;
+        }
+        let name = w.connection.name.clone();
+        self.workbench = None;
+        self.screen = Screen::Connections;
+        self.focus.focus(crate::connections::TREE);
+        self.set_status(format!("Disconnected from {name}"));
+        Outcome::Changed
     }
 
     fn request_quit(&mut self) -> Outcome {
@@ -2268,11 +2292,19 @@ impl App {
             self.refresh_switcher();
             return Outcome::Changed;
         }
-        if id == STRIP_CONN {
-            if self.screen == Screen::Workbench {
-                self.open_tab_list();
-            }
-            return Outcome::Changed;
+        // the app menu: quit, open tabs, disconnect (mouse #40)
+        if id == STRIP_APP || id == STRIP_CONN {
+            let name = match (self.screen, self.workbench.as_ref()) {
+                (Screen::Workbench, Some(w)) => Some(w.connection.name.clone()),
+                _ => None,
+            };
+            let at = self
+                .hits
+                .area_of(id)
+                .map(|r| Position::new(r.x, r.y))
+                .unwrap_or(m.pos);
+            let menu = context::app_menu(name.as_deref(), at);
+            return self.open_context(menu);
         }
         match self.screen {
             Screen::Connections => {
@@ -2521,6 +2553,7 @@ impl App {
         };
         let (key, target, owner) = (m.keys.get(i).copied().flatten(), m.target, m.owner);
         let header = m.header.get(i).copied();
+        let app = m.app.clone();
         self.close_modal();
         // a header command runs on the grid itself
         if let (context::Target::Header(col), Some(action)) = (target, header) {
@@ -2537,6 +2570,17 @@ impl App {
             };
             let reqs = std::mem::take(&mut cx.requests);
             return self.apply_requests(reqs).or(o).or(Outcome::Changed);
+        }
+        if let context::Target::App = target {
+            return match app.get(i) {
+                Some(context::AppCommand::OpenTabs) => {
+                    self.open_tab_list();
+                    Outcome::Changed
+                }
+                Some(context::AppCommand::Disconnect) => self.disconnect(),
+                Some(context::AppCommand::Quit) => self.request_quit(),
+                None => Outcome::Changed,
+            };
         }
         let Some(key) = key else {
             return Outcome::Changed;
@@ -2703,7 +2747,10 @@ impl App {
         let t = self.theme;
         let mut left = vec![
             Segment::new("▪", Tone::Success).priority(9),
-            Segment::new("TablePro", Tone::Normal).bold().priority(9),
+            Segment::new("TablePro", Tone::Normal)
+                .bold()
+                .clickable(STRIP_APP)
+                .priority(9),
         ];
         let mut right = vec![];
         match self.screen {

@@ -6,7 +6,7 @@ use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Position;
 
-use crate::app::{App, PageId};
+use crate::app::{App, HEADER_BRAND, PageId};
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
 use junie_tui::theme::Theme;
 use junie_tui::ui::modal::CLOSE;
@@ -64,6 +64,20 @@ impl Harness {
             .area_of(id)
             .unwrap_or_else(|| panic!("{id:?} not on screen:\n{}", self.text()))
     }
+}
+
+// mouse #40: the brand is the pointer's way to quit
+#[test]
+fn the_brand_asks_and_quits_by_mouse() {
+    let mut h = Harness::new(120, 40, PageId::Overview);
+    let brand = h.area_of(HEADER_BRAND);
+    h.click(brand.x, brand.y);
+    assert!(h.text().contains("Quit the showcase?"), "{}", h.text());
+    assert!(!h.app.quit);
+    let ok = h.area_of(crate::app::QUIT_DIALOG.sub("ok"));
+    let (x, y) = (ok.x + 1, ok.y);
+    h.click(x, y);
+    assert!(h.app.quit, "{}", h.text());
 }
 
 // mouse #13: the help dialog closes by the × in its frame

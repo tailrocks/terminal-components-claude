@@ -44,6 +44,47 @@ pub enum Target {
     Connection(usize),
     /// A column header (or its resize seam) of the active tab's grid.
     Header(usize),
+    /// The app menu (the TablePro and connection segments of the status
+    /// strip): its items run [`AppCommand`]s.
+    App,
+}
+
+/// A command of the app menu: the pointer's way to quit, to see the open
+/// tabs and to leave a connection (mouse audit #40).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AppCommand {
+    /// The open-tabs list (Ctrl+G).
+    OpenTabs,
+    /// Close the workbench and go back to the connection list, where
+    /// another connection can be opened.
+    Disconnect,
+    /// Quit, asking first when work would be lost (Ctrl+Q).
+    Quit,
+}
+
+/// The app menu at `pos`: Open tabs… and Disconnect while connected (to
+/// `connection`), then Quit.
+pub fn app_menu(connection: Option<&str>, pos: Position) -> CtxMenu {
+    let mut items = vec![];
+    let mut app = vec![];
+    if connection.is_some() {
+        items.push(MenuItem::new("Open tabs…").shortcut("Ctrl+G"));
+        app.push(AppCommand::OpenTabs);
+        items.push(MenuItem::new("Disconnect").separator());
+        app.push(AppCommand::Disconnect);
+    }
+    items.push(MenuItem::new("Quit TablePro").shortcut("Ctrl+Q"));
+    app.push(AppCommand::Quit);
+    let keys = vec![None; items.len()];
+    let title = connection.unwrap_or("TablePro").to_owned();
+    CtxMenu {
+        menu: ContextMenu::new(MENU, items).at(pos).title(title),
+        target: Target::App,
+        owner: crate::workbench::EXPLORER,
+        keys,
+        header: Vec::new(),
+        app,
+    }
 }
 
 /// An open context menu: the popover, what it is about, the widget its
@@ -56,6 +97,8 @@ pub struct CtxMenu {
     /// For a [`Target::Header`] menu: the command of each item (header
     /// commands run on the grid, not as a replayed key).
     pub header: Vec<HeaderAction>,
+    /// For a [`Target::App`] menu: the command of each item.
+    pub app: Vec<AppCommand>,
 }
 
 fn plain(code: KeyCode) -> Key {
@@ -126,6 +169,7 @@ pub fn on_secondary(
             owner,
             keys,
             header,
+            app: Vec::new(),
         });
     }
     let req = match w.active_tab_mut()? {
@@ -195,7 +239,7 @@ pub fn select(w: &mut Workbench, target: Target) {
                 h.list.context_select(row);
             }
         }
-        Target::Connection(_) | Target::Header(_) => {}
+        Target::Connection(_) | Target::Header(_) | Target::App => {}
     }
 }
 
@@ -372,7 +416,9 @@ fn build(w: &Workbench, req: ContextRequest<Target>) -> CtxMenu {
             _ => (String::new(), w.explorer.id, vec![]),
         },
         Target::History(row) => history_items(w, row),
-        Target::Connection(_) | Target::Header(_) => (String::new(), w.explorer.id, vec![]),
+        Target::Connection(_) | Target::Header(_) | Target::App => {
+            (String::new(), w.explorer.id, vec![])
+        }
     };
     finish(req, title, owner, items)
 }
@@ -390,6 +436,7 @@ fn finish(req: ContextRequest<Target>, title: String, owner: WidgetId, items: It
         owner,
         keys,
         header: Vec::new(),
+        app: Vec::new(),
     }
 }
 
