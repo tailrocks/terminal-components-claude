@@ -334,7 +334,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 **S2 drift fixes** (each in its commit body, with a regression test that fails on the parent):
 1. showcase `--motion reduced` ran as full motion; it now keeps the decorative phase still while the pages' work advances (SVg8).
 2. `<APP>_NO_MOTION` everywhere: `SHOWCASE_NO_MOTION` and `TABLEPRO_NO_MOTION` join holla's and jackin's; the `Motion:` help line comes from `cli::motion_help`.
-3. showcase and tablepro now drain stale input at start (`shell::run`), as holla and jackin did.
+3. showcase and tablepro now drain stale input at start (`shell::run`), as holla and jackin did. The drain runs in raw mode: in a line-buffered terminal, keys typed without Enter were invisible to it and acted on the first screen in all four apps (`tests/visual_baseline/startup_input.rs`, with `JUNIE_TUI_START_DELAY_MS`).
 4. Status TTL: information goes 5 s after it is set on the app's clock (showcase used 4 s); a paused capture still never ages it (SV11).
 5. Error statuses (`Tone::Error`, tablepro `StatusKind::Fail`) no longer time out: they stay until the next action (key, paste, button press) or a newer message (SV11, WCAG 2.2.1).
 
