@@ -28,8 +28,8 @@
                                                                                                                         [0m
                             Capacity meters are never green: low ≤ 59 % white, medium ≤ 84 % warning, high error. Line a[0m
                             Low        ━━━━━━━━━────────────── 38% used        [0m[1m 38% used   [0m                             [0m
-                            Medium     ━━━━━━━━━━━━━━━━━────── 72% used        [0m[1m 72% used              [0m                  [0m
-                            High       ━━━━━━━━━━━━━━━━━━━━━── 91% used        [0m[1m 91% used                    [0m            [0m
+                            Medium     ━━━━━━━━━━━━━━━━━────── 72% used ▲      [0m[1m 72% used              [0m          ▲       [0m
+                            High       ━━━━━━━━━━━━━━━━━━━━━── 91% used !      [0m[1m 91% used                    [0m    !       [0m
                             Warning    ━━━━━━━━━━━━━━━━━━━──── 82% used ▲      [0m[1m 82% used                 [0m       ▲       [0m
                             Exhausted  ━━━━━━━━━━━━━━━━━━━━━━ 100% used[0m[1m ![0m      [0m[1m 100% used                       ![0m       [0m
                             Stale      ━━━━━━━━━━━━─────────── 54% used        [0m[1m 54% used        [0m                        [0m
