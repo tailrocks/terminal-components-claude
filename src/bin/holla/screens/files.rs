@@ -452,14 +452,15 @@ impl FilesPage {
         self.scroll.ensure_visible(self.cursor);
     }
 
-    fn current_hit(&self) -> Option<&FindHit> {
-        self.hits.get(self.cursor)
+    fn selected_path(&self) -> Option<String> {
+        self.path_at(self.cursor)
     }
 
-    fn selected_path(&self) -> Option<String> {
+    /// The path of display row `i`.
+    fn path_at(&self, i: usize) -> Option<String> {
         match self.mode {
-            Mode::Browse => self.current().map(|e| e.path),
-            Mode::Find => self.current_hit().map(|h| h.path.clone()),
+            Mode::Browse => self.visible().get(i).map(|e| e.path.clone()),
+            Mode::Find => self.hits.get(i).map(|h| h.path.clone()),
         }
     }
 
@@ -468,6 +469,17 @@ impl FilesPage {
             cx.status("Select a file or folder first");
             return Outcome::Changed;
         };
+        let anchor = Rect::new(
+            self.list_area.x + 4,
+            self.list_area.y + (self.cursor.saturating_sub(self.scroll.offset)) as u16,
+            1,
+            1,
+        );
+        self.open_actions_at(path, anchor, cx)
+    }
+
+    /// The file actions menu for `path`, below `anchor`.
+    fn open_actions_at(&mut self, path: String, anchor: Rect, cx: &mut Cx) -> Outcome {
         let items = vec![
             MenuItem::new("Open in the OS").shortcut("Enter"),
             MenuItem::new("Reveal in the file manager"),
@@ -475,12 +487,6 @@ impl FilesPage {
             MenuItem::new("Analyze disk usage").separator(),
             MenuItem::new("Preview here"),
         ];
-        let anchor = Rect::new(
-            self.list_area.x + 4,
-            self.list_area.y + (self.cursor.saturating_sub(self.scroll.offset)) as u16,
-            1,
-            1,
-        );
         let m = ContextMenu::new(WidgetId::of("files.actions"), items)
             .anchor(anchor, Placement::Below)
             .title(truncate_middle(path.as_str(), 40));
@@ -1495,16 +1501,28 @@ impl Screen for FilesPage {
     fn on_secondary(
         &mut self,
         id: WidgetId,
-        _pos: Position,
+        pos: Position,
         _w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
-        if let Some(i) = self.scroll.visible_range().find(|&i| LIST.child(i) == id) {
-            self.cursor = i;
+        if let Some(i) = self.scroll.visible_range().find(|&i| LIST.child(i) == id)
+            && let Some(path) = self.path_at(i)
+        {
+            if cx.context.moves_cursor {
+                self.cursor = i;
+            }
             cx.focus.focus(LIST);
-            return self.open_actions(cx);
+            // the menu opens at the pointer, about the row under it
+            return self.open_actions_at(path, Rect::new(pos.x, pos.y, 1, 1), cx);
         }
         Outcome::Ignored
+    }
+
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(LIST) {
+            return Outcome::Ignored;
+        }
+        self.open_actions(cx)
     }
 
     fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
