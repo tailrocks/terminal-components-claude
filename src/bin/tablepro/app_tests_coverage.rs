@@ -768,3 +768,68 @@ fn query_results_are_read_only_and_enter_says_why() {
         h.text()
     );
 }
+
+/// Open the Local PostgreSQL form and append ` v2` to its name, leaving
+/// focus on the engine select (not a text field).
+fn edited_form() -> H {
+    let mut h = H::new(120, 40);
+    let (x, y) = h.find("Local PostgreSQL").unwrap();
+    h.click(x, y);
+    h.key(KeyCode::Char('e'));
+    assert!(h.text().contains("Test connection"), "{}", h.text());
+    if !h.app.connections.is_editing() {
+        h.key(KeyCode::Enter);
+    }
+    h.type_str(" v2");
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Tab);
+    assert!(!h.app.connections.is_editing());
+    assert!(h.text().contains("Local PostgreSQL v2"), "{}", h.text());
+    h
+}
+
+/// Keyboard audit #6: `e` and `q` never wipe or abandon an edited
+/// connection form; Esc and quitting ask Save / Discard / Cancel.
+#[test]
+fn an_edited_connection_form_is_never_wiped_without_asking() {
+    let mut h = edited_form();
+    h.key(KeyCode::Char('e'));
+    assert!(h.text().contains("Unsaved changes"), "e asks: {}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(h.app.modal().is_none());
+    assert!(
+        h.text().contains("Local PostgreSQL v2"),
+        "Cancel keeps the edit"
+    );
+    h.key(KeyCode::Char('q'));
+    assert!(!h.app.quit, "q never abandons a dirty form");
+    assert!(h.text().contains("Local PostgreSQL v2"));
+    // Esc cancels the form, asking first; Discard closes it
+    h.key(KeyCode::Esc);
+    assert!(
+        h.text().contains("Unsaved changes"),
+        "Esc asks: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('d'));
+    assert!(!h.text().contains("Test connection"), "{}", h.text());
+    assert!(!h.app.quit);
+
+    // Ctrl+C asks too; Discard then quits
+    let mut h = edited_form();
+    h.ctrl('c');
+    assert!(!h.app.quit, "Ctrl+C never drops the edit");
+    assert!(h.text().contains("Unsaved changes"), "{}", h.text());
+    h.key(KeyCode::Char('d'));
+    assert!(h.app.quit);
+
+    // a clean form closes on Esc without a question
+    let mut h = H::new(120, 40);
+    let (x, y) = h.find("Local PostgreSQL").unwrap();
+    h.click(x, y);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Esc);
+    assert!(h.app.modal().is_none());
+    assert!(!h.text().contains("Test connection"), "{}", h.text());
+}
