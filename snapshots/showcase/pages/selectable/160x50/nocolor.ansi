@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Selectable table                                                                   no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations         │  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation                                                  [0m
+   Overview            │                                                                                                                                        [0m
+                       │    Members                                                                                   Details                                   [0m
+   Components          │                                                                                                                                        [0m
+   Buttons             │       [ ] Name                Role    Status     Region  On call  Email                …                                               [0m
+   Inputs              │       [0m[2m[ ][0m Dana Whitfield      Owner   Active     EU      Yes      dana@northwind.dev                                                   [0m
+   Text areas          │       [ ] Ari Moreno          Admin   Active     US      Yes      ari@northwind.dev                                                    [0m
+   Forms               │       [ ] Cleo Barnes         Editor  Active     EU      —        cleo@northwind.dev                                                   [0m
+   Lists               │       [ ] Bo Lindqvist        Editor  Invited    EU      —        bo@northwind.dev                      No member selected             [0m
+   Trees               │       [ ] Eli Nakamura        Viewer  Active     APAC    —        eli@contractor.io                                                    [0m
+   Tables              │       [ ] Fay Okafor          Editor  Active     US      Yes      fay@northwind.dev              Select rows in the table to edit      [0m
+   Editable tables     │       [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev             them here. Space selects, Shift+↑↓     [0m
+   Panels              │       [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev               extends, Ctrl+A selects all.        [0m
+   Sidebars            │       [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
+   Dialogs             │       [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
+   Progress            │       [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
+   Scrolling           │       [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
+   Terminal            │                                                                                                                                        [0m
+   Code editor         │                                                                                                                                        [0m
+   Diff                │                                                                                                                                        [0m
+   Data grid           │                                                                                                                                        [0m
+   Chips & selects     │                                                                                                                                        [0m
+   Pickers             │                                                                                                                                        [0m
+   Chrome              │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+   Screens             │                                                                                                                                        [0m
+   Settings            │                                                                                                                                        [0m
+   Task runner         │                                                                                                                                        [0m
+[0m[1m▎› Selectable table    [0m│                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │                                                                                                                                        [0m
+                       │           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────                                               [0m
+                       │                                                                                                                                        [0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                     [0m
+[?25l
