@@ -21,11 +21,7 @@ use crate::screens::manager::RowKey;
 use crate::sim::launch::LaunchPlan;
 
 fn status(h: &H) -> &str {
-    h.app
-        .status
-        .as_ref()
-        .map(|(s, _, _)| s.as_str())
-        .unwrap_or("")
+    h.app.status.text().unwrap_or("")
 }
 
 fn outside(h: &H) -> Position {

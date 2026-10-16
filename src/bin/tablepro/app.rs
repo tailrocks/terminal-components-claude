@@ -2,19 +2,20 @@
 //! pickers, filter editor), identity strip, footer hints, routing.
 
 use junie_tui::core::focus::forward_blur;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
-use junie_tui::clock::WallClock;
+use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
+use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, StatusKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
@@ -179,9 +180,9 @@ pub struct App {
     pub tick: u64,
     /// Tick delivery; see [`Motion`].
     pub motion: Motion,
-    /// The footer status: its text, when it was set, and its kind
-    /// (`None`: neutral).
-    pub status: Option<(String, Instant, Option<StatusKind>)>,
+    /// The footer status and its kind (`None`: neutral); see
+    /// [`StatusLine`] for expiry (5 s on the pointer clock) and errors.
+    pub status: StatusLine<Option<StatusKind>>,
     pub quit: bool,
     /// Which keys ask to quit, through the leave guard. Default
     /// [`QuitKeys::DEFAULT`]: Ctrl+C (cancels a running query first),
@@ -215,7 +216,7 @@ impl App {
             size: (0, 0),
             tick: 0,
             motion: Motion::Full,
-            status: None,
+            status: StatusLine::new(),
             quit: false,
             quit_keys: QuitKeys::DEFAULT,
             too_small: false,
@@ -296,7 +297,13 @@ impl App {
     }
 
     fn put_status(&mut self, s: String, kind: Option<StatusKind>) {
-        self.status = Some((s, Instant::now(), kind));
+        // a failure is an error: it stays until the next action
+        let tone = if kind == Some(StatusKind::Fail) {
+            Tone::Error
+        } else {
+            Tone::Secondary
+        };
+        self.status.set_with_at(s, tone, kind, self.clock.now());
     }
 
     /// Milliseconds on the pointer clock.
@@ -334,7 +341,10 @@ impl App {
     // ---------------------------------------------------------------- input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        // an error status has been seen once the user acts again
+        let seen = self.status.on_input(&input);
         let out = self.handle_input(input);
+        let out = if seen { out.or(Outcome::Changed) } else { out };
         out.or(self.forward_blur())
     }
 
@@ -559,10 +569,7 @@ impl App {
         if self.pointer.expire_flash(self.now_ms()) {
             out = Outcome::Changed;
         }
-        if let Some((_, at, _)) = &self.status
-            && at.elapsed() > Duration::from_secs(5)
-        {
-            self.status = None;
+        if self.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
         if let Some(ConnEvent::Connected(i)) = self.connections.tick() {
@@ -2956,7 +2963,7 @@ impl App {
         } else {
             None
         };
-        let status = self.status.as_ref().map(|s| (s.0.as_str(), s.2));
+        let status = self.status.entry().map(|(text, _, kind)| (text, *kind));
         keyhint::render_status(area, buf, &t, &hints, badge, status);
     }
 

@@ -309,3 +309,33 @@ fn a_hidden_reason_column_gives_its_room_to_the_labels() {
         "the safety class never drops\n{t}"
     );
 }
+
+/// SV11 (WCAG 2.2.1, 4.1.3): an information status goes 5 s after it is
+/// set on the world clock; an error status stays until the next action.
+/// Before S2 the error expired after 5 s too.
+#[test]
+fn an_error_status_waits_for_the_next_action_and_information_expires() {
+    use crate::sim::world::TICK_MS;
+    use junie_tui::theme::Tone;
+    let five_s = 5_000_u64.div_ceil(TICK_MS as u64) as usize;
+    let mut h = H::new(Scenario::FirstUse, Motion::Full, 0, 100, 30);
+    h.app.set_status("Saved", Tone::Secondary);
+    h.ticks(five_s - 1);
+    assert_eq!(h.app.status.text(), Some("Saved"), "information stays 5 s");
+    assert!(h.text().contains("Saved"));
+    h.ticks(1);
+    assert!(h.app.status.is_none(), "information goes after 5 s");
+
+    h.app.set_status("Disk full", Tone::Error);
+    h.ticks(4 * five_s);
+    assert_eq!(
+        h.app.status.text(),
+        Some("Disk full"),
+        "an error never times out"
+    );
+    assert!(h.text().contains("Disk full"));
+    // the next action: a key with no binding
+    h.key(KeyCode::F(24));
+    assert!(h.app.status.is_none(), "the error goes on the next action");
+    assert!(!h.text().contains("Disk full"));
+}
