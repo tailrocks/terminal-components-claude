@@ -1276,6 +1276,7 @@ theme::Theme::field_hover | Overview theme token tables | SC3
 theme::Theme::highlight_danger | Overview theme token tables | SC3
 theme::Theme::error_soft | Overview theme token tables | SC3
 theme::Theme::text_ghost | Overview theme token tables | SC3
+theme::Theme::scroll_track | Overview theme token tables (drawn by every scrollbar track today) | SC3
 theme::Theme::text_on_accent | Overview theme token tables | SC3
 theme::Theme::accent_bg_subtle | Overview theme token tables | SC3
 theme::Theme::focus | Overview theme token tables | SC3

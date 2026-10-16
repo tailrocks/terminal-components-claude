@@ -1426,6 +1426,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::token("theme::Theme::error_soft"),
     Capability::token("theme::Theme::border_subtle"),
     Capability::token("theme::Theme::border_strong"),
+    Capability::token("theme::Theme::scroll_track"),
     Capability::token("theme::Theme::text_primary"),
     Capability::token("theme::Theme::text_secondary"),
     Capability::token("theme::Theme::text_muted"),
