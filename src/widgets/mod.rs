@@ -3,6 +3,7 @@
 //! returning [`Outcome`](crate::core::event::Outcome).
 
 pub mod brand;
+pub mod breadcrumb;
 pub mod button;
 pub mod chips;
 pub mod choice;
