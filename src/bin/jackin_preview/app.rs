@@ -1671,6 +1671,16 @@ impl App {
         let pressed = self.pointer.pressed;
         let release = self.pointer.release(hit);
         let route = self.route;
+        // a form select's press-drag ends on an option
+        if let (Some(p), Release::Cancelled) = (pressed, release)
+            && let Some(top) = self.modals.top_mut()
+            && let Modal::Form(f) = &mut top.modal
+        {
+            let o = f.on_release(p, m.pos);
+            if o != Outcome::Ignored {
+                return o.or(Outcome::Changed);
+            }
+        }
         // drags end here
         if let Some(p) = pressed
             && self.modals.is_empty()

@@ -545,6 +545,7 @@ impl Page for EditorPage {
             | PageEvent::Secondary { .. }
             | PageEvent::WheelH { .. }
             | PageEvent::Press { .. }
+            | PageEvent::Release { .. }
             | PageEvent::Blur(_) => Outcome::Ignored,
         }
     }
