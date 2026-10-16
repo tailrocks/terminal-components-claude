@@ -11,6 +11,7 @@ use ratatui::style::{Color, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::ui::ctx::RenderCtx;
 
 // Buffer string writes clip to the whole buffer, not the widget rectangle.
@@ -143,9 +144,18 @@ pub struct RadioGroup {
     pub cursor: usize,
     pub disabled: bool,
     pub areas: Vec<Rect>,
+    /// Which keys move the choice (default [`NavKeys::DEFAULT`]: ↑/↓, `k`/`j`,
+    /// Home/End and `g`/`G`).
+    pub nav: NavKeys,
 }
 
 impl RadioGroup {
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
     pub fn new(id: WidgetId, label: &str, options: &[&str], selected: usize) -> Self {
         Self {
             id,
@@ -155,6 +165,7 @@ impl RadioGroup {
             cursor: selected,
             disabled: false,
             areas: vec![],
+            nav: NavKeys::DEFAULT,
         }
     }
 
@@ -166,17 +177,20 @@ impl RadioGroup {
         if self.disabled {
             return Outcome::Ignored;
         }
+        let last = self.options.len().saturating_sub(1);
+        let to = match self.nav.action(key) {
+            Some(Nav::Up) if key.plain() => Some(self.cursor.saturating_sub(1)),
+            Some(Nav::Down) if key.plain() => Some((self.cursor + 1).min(last)),
+            Some(Nav::Home) if key.plain() => Some(0),
+            Some(Nav::End) if key.plain() => Some(last),
+            _ => None,
+        };
+        if let Some(to) = to {
+            self.cursor = to;
+            self.selected = self.cursor;
+            return Outcome::Changed;
+        }
         match key.code {
-            KeyCode::Up | KeyCode::Char('k') if key.plain() => {
-                self.cursor = self.cursor.saturating_sub(1);
-                self.selected = self.cursor;
-                Outcome::Changed
-            }
-            KeyCode::Down | KeyCode::Char('j') if key.plain() => {
-                self.cursor = (self.cursor + 1).min(self.options.len().saturating_sub(1));
-                self.selected = self.cursor;
-                Outcome::Changed
-            }
             KeyCode::Char(' ') | KeyCode::Enter if key.plain() => {
                 self.selected = self.cursor;
                 Outcome::Changed

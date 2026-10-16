@@ -572,4 +572,120 @@ mod widget_tests {
             "the open menu inherits the bar's keys"
         );
     }
+
+    #[test]
+    fn radio_and_steps_nav() {
+        use crate::widgets::choice::RadioGroup;
+        use crate::widgets::steps::{Step, StepRail};
+        let mut r = RadioGroup::new(WidgetId::of("r"), "R", &["a", "b", "c"], 0);
+        r.on_key(&c('j'));
+        assert_eq!(r.selected, 1);
+        r.on_key(&k(KeyCode::End));
+        assert_eq!(
+            r.selected, 2,
+            "End picks the last choice, as in the other lists"
+        );
+        let mut r =
+            RadioGroup::new(WidgetId::of("r"), "R", &["a", "b", "c"], 0).nav(NavKeys::NO_VIM);
+        assert_eq!(r.on_key(&c('j')), Outcome::Ignored);
+        assert_eq!(r.on_key(&k(KeyCode::Down)), Outcome::Changed);
+        assert_eq!(r.selected, 1);
+
+        let steps = || vec![Step::new("a"), Step::new("b"), Step::new("c")];
+        let mut s = StepRail::new(WidgetId::of("s"), steps()).selectable(true);
+        s.on_key(&c('j'));
+        assert_eq!(s.cursor, 1);
+        let mut s = StepRail::new(WidgetId::of("s"), steps())
+            .selectable(true)
+            .nav(NavKeys::NO_VIM);
+        assert_eq!(s.on_key(&c('j')), Outcome::Ignored);
+        assert_eq!(s.cursor, 0);
+    }
+
+    #[test]
+    fn textarea_and_panel_nav_and_keymap() {
+        use crate::widgets::panel::{PanelAction, ScrollPanel};
+        use crate::widgets::textarea::TextArea;
+        let mut t = TextArea::new(WidgetId::of("t"), "T", 3);
+        assert_ne!(t.on_key(&c('j')).0, Outcome::Ignored);
+        let mut t = TextArea::new(WidgetId::of("t"), "T", 3).nav(NavKeys::NO_VIM);
+        assert_eq!(t.on_key(&c('j')).0, Outcome::Ignored);
+        assert_ne!(t.on_key(&k(KeyCode::Down)).0, Outcome::Ignored);
+
+        let lines = || (0..50).map(|i| format!("line {i}")).collect::<Vec<_>>();
+        let mut p = ScrollPanel::new(WidgetId::of("p"), lines());
+        assert_ne!(p.on_key(&c('j')), Outcome::Ignored);
+        let mut p = ScrollPanel::new(WidgetId::of("p"), lines()).nav(NavKeys::NO_VIM);
+        assert_eq!(p.on_key(&c('j')), Outcome::Ignored);
+
+        let mut p = ScrollPanel::new(WidgetId::of("p"), lines()).tail(true);
+        p.on_key(&c('f'));
+        assert!(!p.follow, "`f` pauses following by default");
+        let mut p = ScrollPanel::new(WidgetId::of("p"), lines())
+            .tail(true)
+            .keymap(vec![(KeyBinding::char('t'), PanelAction::Follow)]);
+        assert_eq!(
+            p.on_key(&c('f')),
+            Outcome::Ignored,
+            "the default is unbound"
+        );
+        assert!(p.follow);
+        p.on_key(&c('t'));
+        assert!(!p.follow, "the remapped key fires");
+    }
+
+    #[test]
+    fn viewport_nav_and_keymap() {
+        use crate::widgets::viewport::{TextViewport, ViewportAction};
+        let mut v = TextViewport::new(WidgetId::of("v"));
+        assert_ne!(v.on_key(&c('k')).0, Outcome::Ignored);
+        let mut v = TextViewport::new(WidgetId::of("v")).nav(NavKeys::NO_VIM);
+        assert_eq!(v.on_key(&c('k')).0, Outcome::Ignored);
+
+        let mut v = TextViewport::new(WidgetId::of("v"));
+        assert!(v.follow);
+        v.on_key(&c('f'));
+        assert!(!v.follow, "`f` toggles following by default");
+        let mut v = TextViewport::new(WidgetId::of("v"))
+            .keymap(vec![(KeyBinding::char('p'), ViewportAction::ToggleFollow)]);
+        assert_eq!(
+            v.on_key(&c('f')).0,
+            Outcome::Ignored,
+            "the default is unbound"
+        );
+        assert_eq!(v.on_key(&c('y')).0, Outcome::Ignored, "so is the copy key");
+        assert!(v.follow);
+        v.on_key(&c('p'));
+        assert!(!v.follow, "the remapped key fires");
+    }
+
+    #[test]
+    fn code_editor_nav_and_keymap() {
+        use crate::widgets::code::{CodeAction, CodeEditor};
+        let text = "a\nb\nc\n";
+        let mut e = CodeEditor::new(WidgetId::of("e"), text);
+        e.on_key(&c('j'));
+        assert_eq!(e.buffer.cursor_pos().line, 1);
+        let mut e = CodeEditor::new(WidgetId::of("e"), text).nav(NavKeys::NO_VIM);
+        assert_eq!(e.on_key(&c('j')).0, Outcome::Ignored);
+        assert_eq!(e.buffer.cursor_pos().line, 0);
+
+        let mut e = CodeEditor::new(WidgetId::of("e"), text);
+        e.on_key(&c('/'));
+        assert!(e.find.is_some(), "`/` opens find by default");
+        let mut e = CodeEditor::new(WidgetId::of("e"), text)
+            .keymap(vec![(KeyBinding::ctrl('f'), CodeAction::Find)]);
+        assert_eq!(
+            e.on_key(&c('/')).0,
+            Outcome::Ignored,
+            "the default is unbound"
+        );
+        assert_eq!(e.on_key(&c('i')).0, Outcome::Ignored, "so is `i`");
+        assert!(!e.editing);
+        e.on_key(&Key {
+            code: KeyCode::Char('f'),
+            mods: KeyModifiers::CONTROL,
+        });
+        assert!(e.find.is_some(), "the remapped key fires");
+    }
 }
