@@ -391,7 +391,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::progress::MeterTone::Stale",
-        Demo("progress", "Stale ━"),
+        Demo("progress", "Stale ╍"),
     ),
     (
         "widgets::progress::MeterTone::Refreshing",
