@@ -8,11 +8,12 @@ use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Moved, Navigable, RowSource};
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{ScrollPane, ScrollState, Scrollable};
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for};
@@ -41,7 +42,8 @@ pub struct Completion {
     pub id: WidgetId,
     pub items: Vec<CompletionItem>,
     pub cursor: usize,
-    pub scroll: ScrollState,
+    /// The rows and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub anchor: Rect,
     /// Bytes before the cursor to replace on accept.
     pub replace_len: usize,
@@ -102,7 +104,7 @@ impl Completion {
             id,
             items: vec![],
             cursor: 0,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             anchor: Rect::ZERO,
             replace_len: 0,
             max_rows: 8,
@@ -142,7 +144,7 @@ impl Completion {
     pub fn open(&mut self, items: Vec<CompletionItem>, anchor: Rect, replace_len: usize) {
         self.items = items;
         self.cursor = 0;
-        self.scroll = ScrollState::new(self.items.len());
+        self.scroll.v = ScrollState::new(self.items.len());
         self.anchor = anchor;
         self.replace_len = replace_len;
     }
@@ -224,16 +226,9 @@ impl Completion {
         Some(CompletionAction::Accept(i))
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.parts.clear();
+        self.scroll.begin(ctx.track_click);
         if !self.is_open() {
             return;
         }
@@ -264,6 +259,11 @@ impl Completion {
         // recorded here
         for i in self.scroll.visible_range() {
             self.parts.record(self.row_id(i), Self::row_part(i));
+        }
+        // and so is the bar's track, for presses and drags
+        if self.scroll.overflows() && inner.width >= 2 {
+            let track = Rect::new(inner.right() - 1, inner.y, 1, inner.height);
+            self.scroll.set_track(self.id, Axis::Vertical, track);
         }
         // drawn as an overlay: above whatever is rendered after the editor
         let me = self.clone();
@@ -336,25 +336,7 @@ impl Completion {
             ctx.register_part(self.id, Self::row_part(i), row);
         }
         if has_sb {
-            crate::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    inner.x,
-                    inner.y,
-                    (inner.right() - 1).saturating_sub(inner.x),
-                    inner.height,
-                ),
-                &self.scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(inner.right() - 1, inner.y, 1, inner.height),
-                buf,
-                ctx,
-                self.id,
-                &self.scroll,
-                true,
-            );
+            scrollbar::render_with_fade(inner, buf, ctx, self.id, &self.scroll, true);
         }
     }
 }
@@ -371,6 +353,12 @@ impl RowSource for Completion {
 impl Navigable for Completion {
     fn cursor(&self) -> Cursor {
         Cursor::new(self.cursor)
+    }
+}
+
+impl Scrollable for Completion {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
     }
 }
 
