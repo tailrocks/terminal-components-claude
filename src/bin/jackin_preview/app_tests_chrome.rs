@@ -204,3 +204,52 @@ fn command_palette_scrolls_with_the_wheel_and_keeps_the_selection() {
         h.text()
     );
 }
+
+#[test]
+fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    let (x, y) = h.find("Help").unwrap();
+    h.click(x, y);
+    let (x, y) = h.find("About jackin-preview").unwrap();
+    h.click(x, y);
+    let product = "jackin-preview · deterministic redesign preview";
+    let construct = "simulated · nothing here touches a real container";
+    assert!(h.text().contains("Scenario"), "{}", h.text());
+    assert!(!h.text().contains(product), "cut at rest: {}", h.text());
+    assert!(
+        last_row(&h).contains("→ Full text"),
+        "the reveal key is hinted on a cut cursor row: {}",
+        last_row(&h)
+    );
+    // keyboard: → expands the cursor row, ← collapses it
+    h.key(KeyCode::Right);
+    assert!(h.text().contains(product), "{}", h.text());
+    assert!(last_row(&h).contains("← Collapse"), "{}", last_row(&h));
+    h.key(KeyCode::Left);
+    assert!(!h.text().contains(product), "{}", h.text());
+    // the reveal follows the cursor; Esc closes the reveal, not the dialog
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    assert!(h.text().contains(construct), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(!h.text().contains(construct), "{}", h.text());
+    assert!(
+        h.text().contains("Scenario"),
+        "dialog still open: {}",
+        h.text()
+    );
+    // pointer: resting on a cut value shows its expansion tooltip
+    let (vx, vy) = h.find("simulated").unwrap();
+    h.mouse(MouseKind::Move, vx + 2, vy);
+    assert!(h.text().contains(construct), "{}", h.text());
+    let (px, py) = h.find("Scenario").unwrap();
+    h.mouse(MouseKind::Move, px, py);
+    assert!(!h.text().contains(construct), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(
+        !h.text().contains("deterministic"),
+        "dialog closed: {}",
+        h.text()
+    );
+}
