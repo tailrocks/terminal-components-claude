@@ -1,4 +1,4 @@
- [0m[1m jackin❯ [0m   File   Go   Help                     Workspaces › payments-platform › edit  • 1 change [0m
+ [0m[1;7m jackin❯ [0m   File   Go   Help                    Workspaces › payments-platform › edit  • 1 change  [0m
                                                                                                     [0m
                                                                                                     [0m
    General   [0m[1m Mounts •  [0m  Roles    Environments    Accounts                                         [0m
@@ -25,6 +25,7 @@
                                                                                                     [0m
                                                                                                     [0m
                                                                                                     [0m
-                                                                              Cancel     [0m[1mSave… [0m     [0m
+                                                                              Cancel     [0m[1;7mSave… [0m     [0m
                                                                                                     [0m
-          [0m[1mEnter[0m Edit…  [0m[1mr[0m Read-only  [0m[1mi[0m Isolation  …   /workspace/payments-platform · isolation clone [0m
+              [0m[1mEnter[0m Edit…  [0m[1mr[0m Read-only  [0m[1mEsc[0m Back  …  /workspace/payments-platform · isolation clone [0m
+[?25l

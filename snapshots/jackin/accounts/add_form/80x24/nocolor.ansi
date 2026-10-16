@@ -1,24 +1,25 @@
-  jackin❯    File   Go   Help               Accounts › Overview  ⠋ refreshing 1 [0m
-     ╭─[0m[1m New account [0m───────────────────────────────────── form · unsaved ─╮     [0m
- ╭─ A│   [0m[1mDisplay name *                                                 [0m ┃│3 ─╮ [0m
- │   │ ▎ Personal, Work, Team…                                           ┃│ ┃ │ [0m
- │   │                                                                   ┃│ ┃ │ [0m
- │   │                                                                   ┃│ ┃ │ [0m
- │   │   Purpose label  optional                                         ┃│ ┃ │ [0m
- │   │   personal · work · experiments                                   ┃│ ┃ │ [0m
- │   │                                                                   ┃│ │ │ [0m
- │   │                                                                   ┃│ │ │ [0m
- │   │   Provider                                                        ┃│ │ │ [0m
- │   │   Claude Code · Anthropic / Claude                             ▾  ┃│ │ │ [0m
- │   │                                                                   ┃│ │ │ [0m
- │   │                                                                   ┃│ │ │ [0m
- ╰───│   Agent runtime Claude Code · provider Anthropic / Claude · usa…  ││───╯ [0m
-     │                                                                   ││     [0m
-   Ov│   Credential source                                               ││ls   [0m
-     │  (●) 1Password item / field  (recommended)                        ││     [0m
-   He[0m[2m│  ( ) Local agent folder                                           [0m││ …   [0m
-   Re│                                                                    │     [0m
-   So│                                                                    │     [0m
-     │              Enter plain text instead   Validate   Cancel   [0m[1mSave [0m  │     [0m
-     ╰────────────────────────────────────────────────────────────────────╯     [0m
-      [0m[1m     [0m     [0m[1mTab[0m N[0m[1me[0mxt field  [0m[1mEnter[0m Edit /[0m[1m [0mSave  [0m[1mEsc [0mCancel  [0m[1m   [0m              [0m
+[0m[2m  jackin❯    File   Go   Help              Accounts › Overview  ⠋ refreshing 1  [0m
+[0m[2m                                                                                [0m
+[0m[2m ╭─ A╭─[0m[1;2m New account [0m[2m───────────────────────────────── form · unsaved ─ × ─╮3 ─╮ [0m
+[0m[2m │ [0m [0m[2m │   [0m[1;2mDisplay name *                                                 [0m[2m ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │ ▎ Personal, Work, Team…                                           ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │   Purpose label  optional                                         ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │   personal · work · experiments                                   ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │   Provider                                                        ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │   Claude Code · Anthropic / Claude                             ▾  ┆│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┆│ ┆ │ [0m
+[0m[2m ╰───│                                                                   ┆│───╯ [0m
+[0m[2m     │   Agent runtime Claude Code · provider Anthropic / Claude · usa…  ┆│     [0m
+[0m[2m   Ov│                                                                   ┆│ls   [0m
+[0m[2m     │   Credential source                                               ┆│     [0m
+[0m[2m   He│                                                                    │ …   [0m
+[0m[2m   Re│                                                                    │     [0m
+[0m[2m   So│              Enter plain text instead   Validate   Cancel   [0m[1;2;7mSave [0m[2m  │     [0m
+[0m[2m     ╰────────────────────────────────────────────────────────────────────╯     [0m
+[0m[2m                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1m     [0m      [0m[1mEnter[0m Apply  [0m[1mEsc[0m Ca[0m[1mn[0mcel  [0m[1mTab[0m Next fie[0m[1ml[0md       [0m[1m   [0m           [0m
+[?25h[5;10H[6 q
