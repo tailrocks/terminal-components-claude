@@ -4,9 +4,11 @@
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::ScrollState;
+use crate::core::response::Response;
+use crate::core::scroll::ScrollPane;
 use crate::core::scroll::Scrollable;
 use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
@@ -47,7 +49,7 @@ pub struct InfoDialog {
     pub intro: Vec<(String, Tone)>,
     pub props: PropsList,
     pub detail: Vec<String>,
-    pub detail_scroll: ScrollState,
+    pub detail_scroll: ScrollPane,
     pub actions: Vec<Button>,
     pub close: Button,
     pub width: u16,
@@ -105,7 +107,7 @@ impl InfoDialog {
             intro: vec![],
             props: PropsList::new(id.sub("props"), props),
             detail: vec![],
-            detail_scroll: ScrollState::default(),
+            detail_scroll: ScrollPane::default(),
             actions: vec![],
             close: Button::secondary(id.sub("close"), crate::theme::Strings::DEFAULT.close),
             strings: crate::theme::Strings::DEFAULT,
@@ -285,18 +287,7 @@ impl InfoDialog {
             return self.props.on_scrollbar(pos);
         }
         if id == scrollbar::id_for(self.id) {
-            let track = Rect::new(
-                self.area.right() - 2,
-                self.area.y + 1,
-                1,
-                self.area.height.saturating_sub(2),
-            );
-            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
-                track,
-                pos,
-                &self.detail_scroll,
-            ));
-            return Outcome::Changed;
+            return self.on_scrollbar(pos);
         }
         for i in 0..self.actions.len() {
             if self.actions[i].id == id {
@@ -317,16 +308,20 @@ impl InfoDialog {
         Outcome::Consumed
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.detail.is_empty() {
-            self.props.on_wheel(delta)
-        } else {
-            self.detail_scroll.scroll_by(delta as isize);
-            Outcome::Changed
+    /// The pointer moved while held on a scrollbar: the detail text's or
+    /// the property sheet's.
+    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if scrollbar::is_bar_of(pressed, self.props.id) {
+            return self.props.on_bar_drag(pressed, pos);
         }
+        if scrollbar::is_bar_of(pressed, self.id) {
+            return self.on_bar_drag(pressed, pos);
+        }
+        Outcome::Ignored
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        self.detail_scroll.begin(ctx.track_click);
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.close.label, old.close, s.close);
@@ -393,20 +388,10 @@ impl InfoDialog {
                 buf.set_string(inner.x, y + k as u16, &wrapped[i], t.secondary().bg(bg));
             }
             if self.detail_scroll.overflows() {
-                crate::ui::fade::scroll_edges(
-                    buf,
-                    ctx,
-                    Rect::new(area.x, y, (area.right() - 2).saturating_sub(area.x), dh),
-                    &self.detail_scroll,
-                );
-                scrollbar::render_vertical(
-                    Rect::new(area.right() - 2, y, 1, dh),
-                    buf,
-                    ctx,
-                    self.id,
-                    &self.detail_scroll,
-                    true,
-                );
+                // the bar sits in the padding just inside the frame
+                let body = Rect::new(area.x, y, (area.right() - 1).saturating_sub(area.x), dh);
+                self.detail_scroll
+                    .draw_with_fade(body, buf, ctx, self.id, true, &[]);
             }
         }
         let ay = inner.bottom().saturating_sub(1);
@@ -424,6 +409,19 @@ impl InfoDialog {
         for i in self.props.scroll.visible_range() {
             ctx.hits.raise(self.props.row_id(i));
         }
+    }
+}
+
+impl Scrollable for InfoDialog {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.detail_scroll
+    }
+
+    /// Without a detail text the property sheet takes the wheel.
+    fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
+        self.detail
+            .is_empty()
+            .then(|| self.props.wheel(axis, delta))
     }
 }
 
