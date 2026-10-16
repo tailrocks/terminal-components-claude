@@ -409,6 +409,10 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         );
         assert!(text.contains("\x1b[?2004l"), "bracketed paste released");
         assert!(
+            text.contains("\x1b[?1004l"),
+            "focus reporting released (SIg1)"
+        );
+        assert!(
             text.contains("\x1b[?7h"),
             "line wrap re-enabled for the shell"
         );
@@ -434,6 +438,10 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
             "mouse capture re-enabled"
         );
         assert!(after.contains("\x1b[?2004h"), "bracketed paste re-enabled");
+        assert!(
+            after.contains("\x1b[?1004h"),
+            "focus reporting re-enabled (SIg1)"
+        );
         assert!(
             after.contains("holla"),
             "cycle {cycle}: the frame is drawn again after continuation: {after:?}"
