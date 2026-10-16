@@ -667,6 +667,28 @@ fn chrome_secondary_click_opens_and_selects_context_action() {
 }
 
 #[test]
+fn an_open_context_menu_hides_the_page_focus_under_it() {
+    let mut h = Harness::new(140, 45, PageId::Chrome);
+    let (x, y) = h.find("2 Codex (Primary)").expect("session row");
+    let bars = |h: &Harness| {
+        let buf = h.term.backend().buffer();
+        buf.content().iter().filter(|c| c.symbol() == "▎").count()
+    };
+    h.mouse(MouseKind::Secondary, x, y);
+    assert!(h.text().contains("Change title"));
+    // the panel title, the session row and the nav would each draw a bar
+    assert_eq!(bars(&h), 0, "the menu owns the keyboard\n{}", h.text());
+    let t = h.app.theme;
+    let buf = h.term.backend().buffer();
+    assert!(
+        !buf.content().iter().any(|c| c.bg == t.accent_bg),
+        "no focused-row tint under the menu"
+    );
+    h.key(KeyCode::Esc);
+    assert!(bars(&h) >= 1, "focus returns with the menu closed");
+}
+
+#[test]
 fn panels_route_wheel_and_nested_list_clicks() {
     let mut h = Harness::new(140, 45, PageId::Panels);
     let prose = WidgetId::of("panels").sub("prose");

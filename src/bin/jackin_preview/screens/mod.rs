@@ -316,6 +316,12 @@ pub trait Screen {
     fn animating(&self, _w: &World) -> bool {
         false
     }
+    /// True while the screen draws a keyboard-owned layer above itself (an
+    /// open menu): the shell then renders the page with no focus indicator
+    /// ([`RenderCtx::page_under_layer`]).
+    fn layer_open(&self) -> bool {
+        false
+    }
     /// The route became active.
     fn enter(&mut self, _w: &mut World, _cx: &mut Cx) {}
     /// Where keyboard focus lands when nothing better is known.

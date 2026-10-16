@@ -296,7 +296,7 @@ impl TextInput {
         if self.disabled {
             s.hovered = false;
         }
-        if !s.focused && self.editing {
+        if !ctx.interaction.has_focus(self.id) && self.editing {
             // lost focus while editing (e.g. mouse click elsewhere): commit
             self.commit();
             s.editing = false;

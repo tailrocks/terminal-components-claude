@@ -1818,6 +1818,13 @@ impl CapsuleScreen {
 }
 
 impl Screen for CapsuleScreen {
+    fn layer_open(&self) -> bool {
+        self.menubar.hides_page_focus()
+            || self
+                .tab_menu
+                .as_ref()
+                .is_some_and(|(_, m)| m.hides_page_focus())
+    }
     fn enter(&mut self, _w: &mut World, cx: &mut Cx) {
         cx.focus.focus(PANES);
     }

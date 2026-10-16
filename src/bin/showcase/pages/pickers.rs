@@ -304,6 +304,9 @@ impl PickersPage {
 }
 
 impl Page for PickersPage {
+    fn layer_open(&self) -> bool {
+        self.picker.is_some()
+    }
     fn title(&self) -> &'static str {
         "Pickers"
     }

@@ -289,7 +289,7 @@ impl Select {
             s.hovered = false;
             self.open = false;
         }
-        if !s.focused {
+        if !ctx.interaction.has_focus(self.id) {
             self.open = false;
         }
         let label_style = if self.disabled {
