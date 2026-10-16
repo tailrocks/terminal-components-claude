@@ -17,9 +17,11 @@ use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, label_for};
-use junie_tui::core::scroll::{Scrollable, TrackClick};
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::core::scroll::TrackClick;
 use junie_tui::core::typeahead::TypeAhead;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextRequest;
@@ -462,12 +464,12 @@ impl Page for ListsPage {
                 }
                 l.on_key(key)
             }
-            PageEvent::Secondary { id, pos } => {
+            PageEvent::Pointer(ev) if ev.is(Phase::Secondary) => {
                 let cfg = self.menu.config;
                 let hit = self
                     .lists()
                     .into_iter()
-                    .find_map(|l| cfg.on_secondary(l, *id, *pos).map(|req| (l.id, req)));
+                    .find_map(|l| cfg.on_secondary(l, ev.id, ev.pos()).map(|req| (l.id, req)));
                 let Some((list, req)) = hit else {
                     return Outcome::Ignored;
                 };
@@ -475,31 +477,13 @@ impl Page for ListsPage {
                 self.open_menu(list, req);
                 Outcome::Changed
             }
-            PageEvent::Click { id, pos } => {
-                let clicks = cx.clicks;
+            PageEvent::Pointer(ev) => {
                 for l in self.lists() {
-                    if let Some(row) = l.locate(*id) {
-                        cx.focus.focus(l.id);
-                        return l.on_click_count(row, clicks.max(1));
-                    }
-                    if scrollbar::id_for(l.id) == *id {
-                        return l.on_scrollbar(*pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                for l in self.lists() {
-                    if scrollbar::id_for(l.id) == *pressed {
-                        return l.on_scrollbar_drag(*pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                for l in self.lists() {
-                    if l.owns(*id) {
-                        return l.on_wheel(*delta);
+                    if let Some(r) = l.route(ev) {
+                        if ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
+                            cx.focus.focus(l.id);
+                        }
+                        return r.outcome();
                     }
                 }
                 Outcome::Ignored

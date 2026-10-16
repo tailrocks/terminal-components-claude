@@ -10,8 +10,10 @@ use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
@@ -292,24 +294,28 @@ impl Page for ChecksRadiosPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, .. } => {
-                if let Some(i) = self.checks.iter().position(|c| c.id == *id) {
-                    let o = self.checks[i].on_click();
+            PageEvent::Pointer(ev) => {
+                if let Some(i) = self.checks.iter().position(|c| ev.on(c.id)) {
+                    let o = self.checks[i]
+                        .route(ev)
+                        .map_or(Outcome::Ignored, |r| r.outcome());
                     if o == Outcome::Changed {
                         self.checked(i);
                     }
                     return o;
                 }
                 for r in &mut self.radios {
-                    if let Some(i) = (0..r.options.len()).find(|&i| r.option_id(i) == *id) {
-                        if !r.disabled {
+                    if ev.on(r.id) {
+                        if ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() && !r.disabled {
                             cx.focus.focus(r.id);
                         }
-                        return r.on_click(i);
+                        return r.route(ev).map_or(Outcome::Ignored, |o| o.outcome());
                     }
                 }
-                if let Some(t) = self.toggles.iter_mut().find(|t| t.id == *id) {
-                    return t.on_click();
+                for t in &mut self.toggles {
+                    if let Some(r) = t.route(ev) {
+                        return r.outcome();
+                    }
                 }
                 Outcome::Ignored
             }
