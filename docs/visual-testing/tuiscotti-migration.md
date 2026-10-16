@@ -149,10 +149,15 @@ a re-approved surface re-runs the group and approves it with the change;
 the groups a branch touched. With `VISUAL_REVIEW=0` the whole pilot runs
 in about 115 s even when every capture mismatches.
 
-Pitfall: `accept` copies whatever actual exists for a matching scenario,
-including a stale one from an earlier `VISUAL_FULL=1` run of a pending
-row. Narrow the filterset to what you just ran, or clear
-`target/tuiscotti/actual/` first.
+`accept` copies only actuals of the current run. Every scenario test
+first deletes its old actual files (a skipped scenario or one that fails
+before its capture leaves none), and every capture writes a
+`<name>.run` stamp next to its `.ansi` (`run=` the nextest run id,
+`fnv1a64=` a hash of the `.ansi`). `accept` takes the run of the newest
+stamp in its selection and refuses, writing nothing, when any selected
+actual is unstamped, rewritten since, or from an earlier run (such as a
+pending row run with `VISUAL_FULL=1` before), listing those scenarios.
+Re-run them, narrow the filterset, or delete them.
 
 | Size | Before (4 files) | After (`.ansi`) |
 |---|---|---|
