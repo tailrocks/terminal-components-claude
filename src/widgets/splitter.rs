@@ -216,6 +216,42 @@ impl Splitter {
     }
 }
 
+/// In a States grid a seam is drawn three rows tall (a vertical seam) or
+/// a dozen cells wide (a horizontal one), in rest, hover and pressed.
+impl crate::ui::specimen::Specimen for Splitter {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Hover | Pressed)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        match self.dir {
+            SplitDir::Horizontal => 3,
+            SplitDir::Vertical => 1,
+        }
+    }
+
+    fn specimen(
+        &self,
+        _state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let strip = match self.dir {
+            SplitDir::Horizontal => Rect::new(area.x + 1, area.y, 1, area.height),
+            SplitDir::Vertical => Rect::new(area.x, area.y, area.width.min(12), 1),
+        };
+        let mut s = *self;
+        s.render(strip, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
