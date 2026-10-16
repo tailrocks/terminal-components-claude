@@ -35,6 +35,7 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 | `clap` (`4.6`) | 4.6.6 | 4.6.7 | 4.6.7 | none |
 | `unicode-width` (`0.2`) | 0.2.0 | 0.2.0 | 0.2.2 | tuiscotti `Cargo.toml:32` `=0.2.0` |
 | `unicode-segmentation` (`1`) | 1.13.3 | 1.13.3 | 1.13.3 | none |
+| `libc` (`0.2`, Unix only) | 0.2.190 | 0.2.190 | 0.2.190 | none; added for the runtime's terminal input re-arm (below) |
 | `libtest-mimic` (dev, `0.8.2`) | 0.8.2 | 0.8.2 | 0.8.2 | none |
 | `sha2` (dev) | `0.10` / 0.10.9 | `0.11` / 0.11.0 | 0.11.1 | tuiscotti `Cargo.toml:30` `=0.11.0` |
 | `tuiscotti` (dev, git `rev`) | `a47c9aae` | `a47c9aae` | `a47c9aae` (`main`) | none |
@@ -53,6 +54,15 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 | `crossterm` (second copy) | 0.28.1 | 0.29.0 | tuiscotti `Cargo.toml:22` `=0.28.1` |
 | `generic-array` | 0.14.7 | 0.14.9 | `crypto-common 0.1.7` pins `=0.14.7` (optional `termwiz` path of ratatui, not built) |
 | `psm` | 0.1.24 | 0.1.32 | `pest 2.9.4` pins `=0.1.24` (same optional `termwiz` path, not built) |
+
+`crossterm` 0.29 reads the terminal on an edge-triggered readiness (mio)
+and stops after the first read that yields an event, so input queued past
+one 1 KiB read stays in the kernel until more arrives (on Linux the
+`holla_pty` flood never saw its quit). The runtime does not patch it:
+`runtime::poll_input` checks the terminal with a level-triggered `poll` and,
+when bytes are queued that crossterm has not seen, re-applies the
+terminal's own attributes (`tcsetattr`, `TCSANOW`), which wakes the reader.
+Drop the re-arm once crossterm reads until `WouldBlock`.
 
 The tuiscotti pins are tracked upstream in
 `docs/upstream/tuiscotti-feedback.md` P2. Only `unicode-width` reaches the
