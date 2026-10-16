@@ -982,6 +982,9 @@ impl App {
                     if d.result.is_some() {
                         return self.close_dialog().or(out);
                     }
+                    let dismiss = d.dismiss;
+                    let now = self.now_ms();
+                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
                 }
                 return Outcome::Changed;
             }
