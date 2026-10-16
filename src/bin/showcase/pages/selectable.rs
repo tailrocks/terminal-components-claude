@@ -3,15 +3,26 @@
 //! inspector that edits the selected member, bulk-edits the fields several
 //! members share (`— mixed —` where they differ), applies or reverts, and
 //! deletes after a confirmation that names the count.
+//!
+//! A click selects one row, Shift+click extends, and Space or the row's
+//! checkbox toggles it on every platform. The client platform's toggle
+//! click is a shortcut beside them: Option+click on macOS (where
+//! Ctrl+click is the secondary click that opens the row menu; some macOS
+//! terminals keep Option+click, so it is a fallback), Ctrl+click elsewhere
+//! (`DataTable::toggle_mods_for`, named in the footer by
+//! `keyhint::modifier_click`). A right click or Shift+F10 opens the row
+//! menu (Edit, Delete…).
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Rect};
 
+use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
-use junie_tui::core::event::Outcome;
+use junie_tui::core::event::{ClientPlatform, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::selection::SelectionMode;
+use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::button::{Button, row_layout};
@@ -19,6 +30,8 @@ use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::keyhint;
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::select::Select;
@@ -27,6 +40,7 @@ use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
 const ID: WidgetId = WidgetId::of("selectable");
 const DELETE: WidgetId = WidgetId::of("selectable.delete_dialog");
 const DISCARD: WidgetId = WidgetId::of("selectable.discard_dialog");
+const MENU: WidgetId = WidgetId::of("selectable.menu");
 /// The placeholder a bulk edit shows where the selected members differ.
 pub const MIXED: &str = "— mixed —";
 /// Width of the editor beside the table on a wide page.
@@ -237,19 +251,35 @@ pub struct SelectablePage {
     pub feedback: Option<String>,
     /// Changing the selection while the editor has unsaved edits asks
     /// "Discard unsaved changes?" (Keep editing / Discard) first. Default
-    /// on; off, the new selection loads and the edits are dropped. (The
-    /// table's toggle-click modifiers are `table.toggle_mods`: Ctrl or Cmd
-    /// by default, `DataTable::TOGGLE_WITH_ALT` adds Option+click for
-    /// macOS, where Ctrl+click is a secondary click.)
+    /// on; off, the new selection loads and the edits are dropped.
     pub confirm_discard: bool,
+    /// Whose conventions the toggle click follows and the footer names:
+    /// the table's `toggle_mods` is `DataTable::toggle_mods_for` this
+    /// platform (Option+click on macOS, Ctrl+click elsewhere). Default
+    /// [`ClientPlatform::current`]; see [`Self::for_platform`].
+    pub platform: ClientPlatform,
+    /// The row menu: which display row (and column) it is about.
+    menu: RowMenu<(usize, usize)>,
     /// The selection (and cursor row) a change asked for while the
     /// discard question is open: Discard applies it.
     pending: Option<(junie_tui::core::selection::RowSelection, usize)>,
     sections: crate::pages::layout::Sections,
 }
 
+/// What the row menu's items do.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RowAction {
+    Edit,
+    Delete,
+}
+
 impl SelectablePage {
     pub fn new() -> Self {
+        Self::for_platform(ClientPlatform::current())
+    }
+
+    /// The page with `platform`'s toggle click (and footer hint).
+    pub fn for_platform(platform: ClientPlatform) -> Self {
         let members = members();
         let table = DataTable::new(
             ID.sub("members"),
@@ -260,6 +290,7 @@ impl SelectablePage {
         .selection_column(true)
         // the workspace owner is listed but cannot be edited here
         .disabled_rows(&[0])
+        .toggle_mods(DataTable::toggle_mods_for(platform))
         .empty_text("No members yet");
         let mut page = Self {
             members,
@@ -283,6 +314,8 @@ impl SelectablePage {
             notes_mixed: false,
             feedback: None,
             confirm_discard: true,
+            platform,
+            menu: RowMenu::default(),
             pending: None,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
         };
@@ -557,6 +590,66 @@ impl SelectablePage {
         }
     }
 
+    /// What display row `row` offers: the table's own Enter and `d`.
+    fn row_items(&self, row: usize) -> Vec<(RowAction, MenuItem)> {
+        let src = self.table.source_row(row);
+        let locked = self.table.is_disabled(src);
+        let item = |label: &str, key: &'static str| {
+            let m = MenuItem::new(label);
+            if locked {
+                m.reason("Unavailable")
+            } else {
+                m.shortcut(key)
+            }
+        };
+        vec![
+            (RowAction::Edit, item("Edit", "Enter").separator()),
+            (RowAction::Delete, item("Delete…", "d")),
+        ]
+    }
+
+    fn open_menu(&mut self, req: ContextRequest<(usize, usize)>) {
+        let src = self.table.source_row(req.target.0);
+        let title = self.members[src].name.clone();
+        let items = self
+            .row_items(req.target.0)
+            .into_iter()
+            .map(|(_, m)| m)
+            .collect();
+        self.menu
+            .open(req.menu(MENU, items).title(title), req.target);
+    }
+
+    /// Item `i` of the menu about `cell`: the same path Enter or `d` takes,
+    /// on that row (selected first when it is not part of the selection).
+    fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut PageCtx) -> Outcome {
+        let Some(&(action, _)) = self.row_items(cell.0).get(i) else {
+            return Outcome::Consumed;
+        };
+        let src = self.table.source_row(cell.0);
+        match action {
+            RowAction::Edit => self.edit_row(src, cx),
+            RowAction::Delete => {
+                self.table_input(cx, |t| {
+                    if t.selection.contains(src) {
+                        return (Outcome::Consumed, None);
+                    }
+                    let disabled = t.disabled.clone();
+                    let changed = t.selection.select_only(src, |r| !disabled.contains(&r));
+                    (
+                        Outcome::Changed,
+                        changed.then_some(TableEvent::SelectionChanged),
+                    )
+                });
+                // the discard question comes first when the editor is dirty
+                if self.pending.is_none() {
+                    self.ask_delete(cx);
+                }
+            }
+        }
+        Outcome::Changed
+    }
+
     fn selects(&mut self) -> [&mut Select; 3] {
         [&mut self.role, &mut self.status, &mut self.region]
     }
@@ -701,6 +794,7 @@ impl Page for SelectablePage {
             self.render_table(Rect::new(area.x, area.y, tw, area.height), buf, ctx);
             let eh = area.height.min(EDITOR_H);
             self.render_editor(Rect::new(area.x + tw + 1, area.y, EDITOR_W, eh), buf, ctx);
+            self.menu.render(area, buf, ctx);
             return;
         }
         // stacked: the page scrolls by whole cards on a short terminal
@@ -733,9 +827,20 @@ impl Page for SelectablePage {
         if let Some(r) = l.slot(1) {
             self.render_editor(r, buf, ctx);
         }
+        self.menu.render(area, buf, ctx);
+    }
+
+    fn layer_open(&self) -> bool {
+        self.menu.hides_page_focus()
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some((out, chosen)) = self.menu.handle(ev) {
+            return match chosen {
+                Some((cell, i)) => self.choose(cell, i, cx).or(out),
+                None => out,
+            };
+        }
         if let Some(o) = self.sections.handle(ev) {
             return o;
         }
@@ -749,6 +854,12 @@ impl Page for SelectablePage {
                     return Outcome::Ignored;
                 };
                 if f == self.table.id {
+                    if !self.table.is_editing()
+                        && let Some(req) = self.menu.config.on_key(&self.table, key)
+                    {
+                        self.open_menu(req);
+                        return Outcome::Changed;
+                    }
                     if !self.table.is_editing()
                         && (key.is_char('d') || key.is(KeyCode::Delete))
                         && !self.table.selected_rows().is_empty()
@@ -805,6 +916,15 @@ impl Page for SelectablePage {
                     }
                 }
                 self.table.on_paste(text)
+            }
+            PageEvent::Secondary { id, pos } => {
+                let cfg = self.menu.config;
+                let Some(req) = cfg.on_secondary(&mut self.table, *id, *pos) else {
+                    return Outcome::Ignored;
+                };
+                cx.focus.focus(self.table.id);
+                self.open_menu(req);
+                Outcome::Changed
             }
             PageEvent::Click { id, pos } => {
                 let id = *id;
@@ -918,6 +1038,9 @@ impl Page for SelectablePage {
         if self.editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next field")];
         }
+        if self.menu.is_open() {
+            return MENU_HINTS.to_vec();
+        }
         let selected = !self.table.selected_rows().is_empty();
         let save = ("Ctrl+S", "Apply changes");
         match focus {
@@ -928,6 +1051,13 @@ impl Page for SelectablePage {
                     ("Ctrl+A", "Select all"),
                 ];
                 if selected {
+                    // with rows selected, the click that adds or removes
+                    // one, beside the keys that extend
+                    if let Some(click) =
+                        keyhint::modifier_click(self.table.toggle_mods, self.platform)
+                    {
+                        h.insert(2, (click, "Toggle row"));
+                    }
                     h.push(("Enter", "Edit"));
                     h.push(("d", "Delete…"));
                     h.push(("Esc", "Clear selection"));
@@ -938,6 +1068,7 @@ impl Page for SelectablePage {
                 if self.dirty() {
                     h.push(save);
                 }
+                h.push(OPEN_HINT);
                 h
             }
             Some(f) if f == self.name.id || f == self.email.id || f == self.notes.id => {

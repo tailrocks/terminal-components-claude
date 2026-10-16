@@ -5,7 +5,7 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier};
 
-use crate::core::event::{Key, Outcome};
+use crate::core::event::{ClientPlatform, Key, Outcome};
 use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
@@ -128,7 +128,13 @@ pub struct EditState {
 ///   toggles the cursor row, Shift+↑↓ (Home/End, PageUp/PageDown) extends a
 ///   range, Ctrl/Cmd+A selects all, Esc clears ([`DataTable::esc_clears`]).
 ///   A click selects only that row, Shift-click extends, a click with
-///   [`DataTable::toggle_mods`] (or on the checkbox) toggles.
+///   [`DataTable::toggle_mods`] toggles: Option or Cmd when the client
+///   terminal is on macOS, Ctrl or Cmd elsewhere
+///   ([`DataTable::toggle_mods_for`]). The modified click is a shortcut,
+///   not the only way: Space and a click on the row's checkbox
+///   ([`DataTable::selection_column`]) toggle with no modifier, which
+///   matters on macOS, where iTerm2 and Terminal.app may keep
+///   Option+click for themselves (moving the cursor, block selection).
 /// - [`SelectionMode::None`]: Enter activates, nothing stays marked.
 ///
 /// Selection is keyed by source row, so it survives sorting and scrolling.
@@ -216,12 +222,15 @@ pub struct DataTable {
     /// Esc clears a multi selection (and is consumed) before it reaches
     /// the app. Default `true`, as in Finder and Mail.
     pub esc_clears: bool,
-    /// Modifiers that make a click toggle one row in multi mode. Default
-    /// [`DataTable::TOGGLE_CTRL_CMD`] (Ctrl or Cmd); Shift always extends.
-    /// On macOS Ctrl+click is a secondary click by default
-    /// (`InputConfig::ctrl_click_secondary`) and many terminals do not
-    /// report Cmd, so an app can opt into [`DataTable::TOGGLE_WITH_ALT`]
-    /// to toggle with Option+click too.
+    /// Modifiers that make a click toggle one row in multi mode; Shift
+    /// always extends. Default [`DataTable::toggle_mods_for`] the client
+    /// terminal's platform ([`ClientPlatform::current`]):
+    /// [`DataTable::TOGGLE_OPTION_CMD`] (Option or Cmd) on macOS, where
+    /// Ctrl+click is a secondary click (`InputConfig::ctrl_click_secondary`)
+    /// and many terminals do not report Cmd; [`DataTable::TOGGLE_CTRL_CMD`]
+    /// (Ctrl or Cmd) elsewhere. [`DataTable::TOGGLE_WITH_ALT`] accepts all
+    /// three. Option+click is a fallback (some macOS terminals keep it);
+    /// Space and the checkbox column always toggle without a modifier.
     pub toggle_mods: KeyModifiers,
     /// Source rows that can be read but never selected or activated.
     pub disabled: BTreeSet<usize>,
@@ -311,7 +320,7 @@ impl DataTable {
             selection: RowSelection::new(),
             selection_column: false,
             esc_clears: true,
-            toggle_mods: Self::TOGGLE_CTRL_CMD,
+            toggle_mods: Self::toggle_mods_for(ClientPlatform::current()),
             disabled: BTreeSet::new(),
             nav: NavKeys::DEFAULT,
             keymap: TableAction::default_keymap(),
@@ -398,15 +407,32 @@ impl DataTable {
         self
     }
 
-    /// Ctrl or Cmd toggles a row: the default [`Self::toggle_mods`].
+    /// Ctrl or Cmd toggles a row: the default [`Self::toggle_mods`] off
+    /// macOS.
     pub const TOGGLE_CTRL_CMD: KeyModifiers = KeyModifiers::CONTROL.union(KeyModifiers::SUPER);
-    /// Ctrl, Cmd or Alt (Option) toggles a row: for macOS, where
-    /// Ctrl+click is a secondary click and Cmd rarely reaches a terminal
-    /// app, so Option+click is the toggle that does.
+    /// Option (Alt) or Cmd toggles a row: the default [`Self::toggle_mods`]
+    /// on macOS, where Ctrl+click is a secondary click and Cmd rarely
+    /// reaches a terminal app. iTerm2 and Terminal.app can keep
+    /// Option+click (cursor moves, block selection), so it is a fallback
+    /// beside Space and the checkbox column, not the only way.
+    pub const TOGGLE_OPTION_CMD: KeyModifiers = KeyModifiers::ALT.union(KeyModifiers::SUPER);
+    /// Ctrl, Cmd or Alt (Option) toggles a row.
     pub const TOGGLE_WITH_ALT: KeyModifiers = Self::TOGGLE_CTRL_CMD.union(KeyModifiers::ALT);
 
+    /// The default toggle-click modifiers on `platform`:
+    /// [`Self::TOGGLE_OPTION_CMD`] on macOS, [`Self::TOGGLE_CTRL_CMD`]
+    /// elsewhere.
+    pub const fn toggle_mods_for(platform: ClientPlatform) -> KeyModifiers {
+        match platform {
+            ClientPlatform::MacOs => Self::TOGGLE_OPTION_CMD,
+            ClientPlatform::Other => Self::TOGGLE_CTRL_CMD,
+        }
+    }
+
     /// Modifiers that make a click toggle a row (default
-    /// [`Self::TOGGLE_CTRL_CMD`]; [`Self::TOGGLE_WITH_ALT`] adds Alt).
+    /// [`Self::toggle_mods_for`] the client platform; pass
+    /// `DataTable::toggle_mods_for(platform)` to follow another platform,
+    /// or any set such as [`Self::TOGGLE_WITH_ALT`]).
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
@@ -2498,7 +2524,7 @@ mod tests {
 
     #[test]
     fn multi_clicks_follow_desktop_modifiers() {
-        let mut t = members();
+        let mut t = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::Other));
         let p = Position::new(0, 0);
         let (_, ev) = t.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         assert_eq!(ev, Some(TableEvent::SelectionChanged));
@@ -2524,18 +2550,77 @@ mod tests {
         alt.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         alt.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
         assert_eq!(alt.selected_rows(), vec![1, 2]);
-        // the default keeps Ctrl or Cmd: Alt+click selects only the row
-        let mut def = members();
-        assert_eq!(def.toggle_mods, DataTable::TOGGLE_CTRL_CMD);
+        // Ctrl or Cmd off macOS: Alt+click selects only the row
+        let mut def = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::Other));
         def.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         def.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
         assert_eq!(def.selected_rows(), vec![2]);
-        // the macOS option keeps Ctrl and Cmd and adds Option+click
-        let mut mac = members().toggle_mods(DataTable::TOGGLE_WITH_ALT);
+        // TOGGLE_WITH_ALT accepts Ctrl, Cmd and Option
+        let mut all = members().toggle_mods(DataTable::TOGGLE_WITH_ALT);
+        all.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
+        all.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
+        all.on_click_cell_with(3, 0, p, KeyModifiers::SUPER);
+        all.on_click_cell_with(5, 0, p, KeyModifiers::CONTROL);
+        assert_eq!(all.selected_rows(), vec![1, 2, 3, 5]);
+    }
+
+    #[test]
+    fn toggle_click_default_is_option_on_macos_and_ctrl_elsewhere() {
+        assert_eq!(
+            DataTable::toggle_mods_for(ClientPlatform::MacOs),
+            DataTable::TOGGLE_OPTION_CMD
+        );
+        assert_eq!(
+            DataTable::toggle_mods_for(ClientPlatform::Other),
+            DataTable::TOGGLE_CTRL_CMD
+        );
+        // the default follows the one shared client-platform detector
+        assert_eq!(
+            members().toggle_mods,
+            DataTable::toggle_mods_for(ClientPlatform::current())
+        );
+        let p = Position::new(0, 0);
+        // macOS: Option+click (or Cmd+click) toggles; a Ctrl+click that
+        // still reaches the table (ctrl_click_secondary off) selects only
+        let mut mac = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::MacOs));
         mac.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         mac.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
         mac.on_click_cell_with(3, 0, p, KeyModifiers::SUPER);
         assert_eq!(mac.selected_rows(), vec![1, 2, 3]);
+        mac.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
+        assert_eq!(mac.selected_rows(), vec![1, 3], "Option+click toggles off");
+        mac.on_click_cell_with(5, 0, p, KeyModifiers::CONTROL);
+        assert_eq!(mac.selected_rows(), vec![5]);
+        // elsewhere: Ctrl+click toggles, Alt+click selects only
+        let mut other = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::Other));
+        other.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
+        other.on_click_cell_with(2, 0, p, KeyModifiers::CONTROL);
+        assert_eq!(other.selected_rows(), vec![1, 2]);
+        other.on_click_cell_with(3, 0, p, KeyModifiers::ALT);
+        assert_eq!(other.selected_rows(), vec![3]);
+    }
+
+    #[test]
+    fn checkbox_and_space_toggle_without_a_modifier_on_every_platform() {
+        // the modified click is a shortcut; a terminal that keeps
+        // Option+click (or an app that turns modifiers off) still toggles
+        for mods in [
+            DataTable::toggle_mods_for(ClientPlatform::MacOs),
+            DataTable::toggle_mods_for(ClientPlatform::Other),
+            KeyModifiers::NONE,
+        ] {
+            let mut t = members().selection_column(true).toggle_mods(mods);
+            t.on_click_check(1);
+            t.on_click_check(3);
+            assert_eq!(t.selected_rows(), vec![1, 3], "{mods:?}");
+            t.on_click_check(1);
+            assert_eq!(t.selected_rows(), vec![3], "{mods:?}");
+            t.cursor_row = 2;
+            t.on_key(&k(KeyCode::Char(' '), KeyModifiers::NONE));
+            assert_eq!(t.selected_rows(), vec![2, 3], "{mods:?}");
+            t.on_key(&k(KeyCode::Char(' '), KeyModifiers::NONE));
+            assert_eq!(t.selected_rows(), vec![3], "{mods:?}");
+        }
     }
 
     #[test]
