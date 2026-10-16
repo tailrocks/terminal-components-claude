@@ -518,7 +518,8 @@ pub enum GridAction {
     InsertRow,
     /// Duplicate the cursor row. Default Ctrl+D and Alt+D.
     DuplicateRow,
-    /// Copy the cell, range or marked rows. Default `y`.
+    /// Copy the cell, range or marked rows. Default Cmd+C where the
+    /// terminal delivers Cmd, and `y` (a hint names the first deliverable).
     Copy,
     /// Copy with the column names. Default `Y`.
     CopyWithHeader,
@@ -560,6 +561,7 @@ impl Actions for GridAction {
             (KeyBinding::char('+'), GridAction::InsertRow),
             (KeyBinding::ctrl('d'), GridAction::DuplicateRow),
             (KeyBinding::alt('d'), GridAction::DuplicateRow),
+            (KeyBinding::cmd('c'), GridAction::Copy),
             (KeyBinding::char('y'), GridAction::Copy),
             (KeyBinding::char('Y'), GridAction::CopyWithHeader),
             (KeyBinding::ctrl('s'), GridAction::Commit),
@@ -4144,5 +4146,44 @@ mod select_all_tests {
             assert_eq!(g.selected_rows.len(), 4);
             assert_eq!(g.cursor.0, 0, "never a type-ahead `a`");
         }
+    }
+}
+
+/// Cmd+C copies the cell, range or marked rows, as `y` does; the hint
+/// names it only once the terminal delivers Cmd.
+#[cfg(test)]
+mod cmd_copy_tests {
+    use super::*;
+    use crate::core::keymap::hint_key;
+    use ratatui::crossterm::event::KeyModifiers;
+
+    #[test]
+    fn cmd_c_copies_the_marked_rows_and_the_hint_falls_back_to_y() {
+        let mut g = DataGrid::new(
+            WidgetId::of("g"),
+            vec![ColumnSpec::new("name", CellKind::Text)],
+        );
+        g.set_rows(GridRows {
+            rows: (0..3)
+                .map(|i| vec![CellValue::Text(format!("a{i}"))])
+                .collect(),
+            total: RowTotal::Exact(3),
+            more: false,
+        });
+        let cmd = |c| Key {
+            code: KeyCode::Char(c),
+            mods: KeyModifiers::SUPER,
+        };
+        g.on_key(&cmd('a'));
+        let (out, ev) = g.on_key(&cmd('c'));
+        assert_eq!(out, Outcome::Changed);
+        match ev {
+            Some(GridEvent::Copy(text)) => assert!(text.contains("a2"), "{text}"),
+            other => panic!("Cmd+C copies: {other:?}"),
+        }
+        assert_eq!(hint_key(&g.keymap, GridAction::Copy), Some("y"));
+        crate::core::keyboard::set_super_delivered(true);
+        let label = KeyBinding::cmd('c').label();
+        assert_eq!(hint_key(&g.keymap, GridAction::Copy), Some(label.as_str()));
     }
 }

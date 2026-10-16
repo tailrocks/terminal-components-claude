@@ -1906,3 +1906,53 @@ fn inputs_select_all_follows_the_client_platform() {
         );
     }
 }
+
+/// The macOS editing chords in a text field, per client platform (both run
+/// on any host): Cmd+A, Cmd+X then Cmd+V round-trip the value through the
+/// clipboard hook (the system clipboard), Cmd+Z undoes the paste and
+/// Cmd+Shift+Z redoes it. Cmd is additive to both presets.
+#[test]
+fn inputs_cmd_cut_and_paste_round_trip_through_the_clipboard_hook() {
+    use junie_tui::core::edit::{FieldKeys, clipboard};
+    use junie_tui::core::event::ClientPlatform;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    for platform in [ClientPlatform::MacOs, ClientPlatform::Other] {
+        let seen = Rc::new(RefCell::new(Vec::<String>::new()));
+        let hook = seen.clone();
+        clipboard::set_hook(move |t| hook.borrow_mut().push(t.to_owned()));
+        let mut h = Harness::new(120, 40, PageId::Inputs);
+        h.app.theme = Theme::junie().with_field_keys(FieldKeys::for_platform(platform));
+        h.draw();
+        let (x, y) = h.find("payments-gateway").expect("the Project name field");
+        h.click(x + 2, y);
+        h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
+        let value = selected_on_row(&h, y);
+        assert!(value.starts_with("payments-gateway"), "{platform:?}");
+        h.key_mod(KeyCode::Char('x'), KeyModifiers::SUPER);
+        assert_eq!(
+            seen.borrow().last().map(|t| t.trim_end().to_owned()),
+            Some(value.trim_end().to_owned()),
+            "Cmd+X on {platform:?} hands the cut to the hook"
+        );
+        assert!(
+            !h.row(y).contains("payments-gateway"),
+            "Cmd+X emptied the field: {}",
+            h.row(y)
+        );
+        h.key_mod(KeyCode::Char('v'), KeyModifiers::SUPER);
+        assert!(
+            h.row(y).contains("payments-gateway"),
+            "Cmd+V pasted it back on {platform:?}: {}",
+            h.row(y)
+        );
+        h.key_mod(KeyCode::Char('z'), KeyModifiers::SUPER);
+        assert!(!h.row(y).contains("payments-gateway"), "Cmd+Z undoes");
+        h.key_mod(
+            KeyCode::Char('Z'),
+            KeyModifiers::SUPER | KeyModifiers::SHIFT,
+        );
+        assert!(h.row(y).contains("payments-gateway"), "Cmd+Shift+Z redoes");
+        clipboard::clear_hook();
+    }
+}
