@@ -264,3 +264,71 @@ fn an_app_modal_frame_closes_by_its_close_button() {
     assert!(!h.text().contains("read-only projection"), "{}", h.text());
     assert_eq!(h.app.route, Route::Capsule);
 }
+
+/// Every drawn roster row, as (column of its `◉`, its y, the instance id
+/// suffix it names).
+fn roster_rows(h: &H) -> Vec<(u16, u16, String)> {
+    let Some(card) = h.app.hits.area_of(crate::screens::manager::ROSTER) else {
+        return vec![];
+    };
+    let mut rows = vec![];
+    for (y, line) in h.text().lines().enumerate() {
+        let Some(at) = line.find("◉ ") else {
+            continue;
+        };
+        let x = line[..at].chars().count() as u16;
+        if !card.contains(Position::new(x, y as u16)) {
+            continue;
+        }
+        let rest = &line[at + "◉ ".len()..];
+        let id = rest.split_whitespace().next().unwrap_or("").to_owned();
+        if !id.is_empty() {
+            rows.push((x, y as u16, id));
+        }
+    }
+    rows
+}
+
+/// A click on a running instance in the manager's roster selects that
+/// instance, whichever row of the card it is drawn on (the rows used to
+/// be told apart by their y, and the click guessed the instance from a
+/// fixed offset, so a row could select its neighbour).
+#[test]
+fn a_roster_click_selects_the_instance_of_that_row() {
+    use crate::screens::manager::RowKey;
+    let mut checked = 0;
+    for scenario in Scenario::ALL {
+        let mut h = H::new(scenario, Motion::Reduced, 0, 200, 50);
+        for _ in 0..8 {
+            h.ticks(3);
+            if h.app.route == Route::Manager {
+                break;
+            }
+            h.key(KeyCode::Enter);
+        }
+        if h.app.route != Route::Manager {
+            continue;
+        }
+        h.draw();
+        let rows = roster_rows(&h);
+        if rows.len() < 2 {
+            continue;
+        }
+        for (x, y, short) in rows.iter().rev() {
+            h.click(*x, *y);
+            let RowKey::Instance(id) = &h.app.screens.manager.selected else {
+                panic!(
+                    "{scenario:?}: the row at y {y} selected {:?}",
+                    h.app.screens.manager.selected
+                );
+            };
+            assert_eq!(
+                id.trim_start_matches("jk-"),
+                short,
+                "{scenario:?}: row at y {y}"
+            );
+            checked += 1;
+        }
+    }
+    assert!(checked >= 2, "no scenario shows two running instances");
+}
