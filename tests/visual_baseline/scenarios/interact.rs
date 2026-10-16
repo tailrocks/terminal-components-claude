@@ -125,7 +125,7 @@ pub fn showcase_overview_resize(case: &Case, cols: u16, rows: u16) {
     resize_geometry(&mut s, cols, rows);
     s.send_key("ctrl-l").expect("redraw tick");
     std::thread::sleep(Duration::from_millis(700));
-    find(&mut s, "Foundations / Overview");
+    find(&mut s, "Design system / Overview");
     support::settle_and_gate(&mut s, &case.name);
 }
 
