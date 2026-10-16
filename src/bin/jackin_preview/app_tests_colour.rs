@@ -309,3 +309,26 @@ fn details_on_a_cursor_row_stay_readable_on_its_fill() {
         );
     }
 }
+
+#[test]
+fn a_meter_follows_its_window_status_not_the_percentage() {
+    // xAI's on-demand window is 100% of this month's spend and the
+    // provider reports it available: the status cell said `✓ current`
+    // while the meter beside it re-derived danger from 100% and drew `!`
+    let t = theme();
+    let h = usage();
+    let (x, y) = find(&h, "xAI ");
+    let r = row(&h, y);
+    assert!(r.contains("100%"), "{r}");
+    let after: String = r.chars().skip(x as usize).collect();
+    let pct = after.find("100%").expect("the meter value");
+    let tail = &after[pct + 4..];
+    let next = tail.trim_start().chars().next();
+    assert_ne!(next, Some('!'), "no danger mark: {r}");
+    assert_ne!(next, Some('▲'), "no warning mark: {r}");
+    // its run is the healthy (info) hue, not error
+    let filled = (x..x + 60)
+        .map(|cx| cell(&h, cx, y).bg)
+        .find(|bg| *bg != t.canvas && *bg != t.surface);
+    assert_ne!(filled, Some(t.error), "{r}");
+}
