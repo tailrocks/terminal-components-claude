@@ -144,11 +144,7 @@ impl InputsPage {
     pub fn new() -> Self {
         let opts = PageValues::new(page_options(PageId::Inputs));
         let mut page = Self {
-            template: Template::new(ID, states_grid()).with_options(
-                ID,
-                "Inputs",
-                page_options(PageId::Inputs),
-            ),
+            template: Template::new(ID, states_grid()),
             opts,
             fields: Vec::new(),
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
@@ -405,19 +401,13 @@ impl Page for InputsPage {
         let body = self.template.render(area, buf, ctx);
         match self.template.section() {
             Section::Playground => self.render_playground(body, buf, ctx),
-            Section::Options => {
-                self.template.sync_options(|k| self.opts.get(k));
-                self.template.render_options(body, buf, ctx);
-            }
+            Section::Options => self.template.render_options(body, buf, ctx),
             Section::States => self.template.render_states(body, buf, ctx),
         }
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
-            if let Some(set) = self.template.take_option() {
-                self.set_option(set.key, set.value);
-            }
             return o;
         }
         if let PageEvent::Blur(ch) = ev {
