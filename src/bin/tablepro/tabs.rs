@@ -358,11 +358,6 @@ pub fn segment_sql(src: &str) -> Vec<Range<usize>> {
         .collect()
 }
 
-/// A query timer's elapsed time ([`duration_ms`]).
-pub fn duration_label(ms: u32) -> String {
-    duration_ms(u64::from(ms))
-}
-
 // ------------------------------------------------------------- table tab
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1182,7 +1177,7 @@ impl QueryTab {
                         } else {
                             "ok".into()
                         },
-                        duration_label(total_ms)
+                        duration_ms(u64::from(total_ms))
                     ),
                     false,
                 ));
@@ -1688,7 +1683,7 @@ impl QueryTab {
             format!(
                 "{} running {} · Esc cancels",
                 junie_tui::widgets::progress::spinner_frame(ctx.interaction.tick),
-                duration_label(r.started_ticks * 80)
+                duration_ms(u64::from(r.started_ticks * 80))
             )
         } else if let Some(rs) = self.results.get(self.active_result) {
             match &rs.body {
@@ -1706,15 +1701,17 @@ impl QueryTab {
                     } else {
                         format!("{} rows", junie_tui::ui::text::thousands(total))
                     };
-                    format!("{rows} · {}", duration_label(rs.duration_ms))
+                    format!("{rows} · {}", duration_ms(u64::from(rs.duration_ms)))
                 }
                 ResultBody::Affected { rows, verb } => format!(
                     "{verb} · {} row{} affected · {}",
                     rows,
                     if *rows == 1 { "" } else { "s" },
-                    duration_label(rs.duration_ms)
+                    duration_ms(u64::from(rs.duration_ms))
                 ),
-                ResultBody::Error { .. } => format!("failed · {}", duration_label(rs.duration_ms)),
+                ResultBody::Error { .. } => {
+                    format!("failed · {}", duration_ms(u64::from(rs.duration_ms)))
+                }
                 ResultBody::Plan {
                     planning_ms,
                     execution_ms,
@@ -1798,7 +1795,7 @@ impl QueryTab {
                             &[
                                 Prop::new("Statement", verb.clone()),
                                 Prop::new("Rows affected", junie_tui::ui::text::thousands(*rows)),
-                                Prop::new("Duration", duration_label(rs.duration_ms))
+                                Prop::new("Duration", duration_ms(u64::from(rs.duration_ms)))
                                     .tone(Tone::Muted),
                             ],
                             cbg,

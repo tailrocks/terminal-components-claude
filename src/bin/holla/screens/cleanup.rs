@@ -28,11 +28,11 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::catalog::{InsightCategory, insight_candidates, observe_process};
 use crate::domain::cleanup::{self, DeleteItem, DeletePlan, Eligibility, Mode, ProcessObservation};
 use crate::screens::{
-    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, plural,
-    row_anchor, row_choice, scroll_drag, scroll_press,
+    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, row_anchor,
+    row_choice, scroll_drag, scroll_press,
 };
-use crate::sim::fs::human;
 use crate::sim::world::World;
+use junie_tui::ui::text::plural;
 
 pub const LIST: WidgetId = WidgetId::of("cleanup.list");
 pub const DETAIL: WidgetId = WidgetId::of("cleanup.detail");
@@ -343,7 +343,7 @@ impl CleanupPage {
                 cx.status(format!(
                     "{} selected · {}",
                     plural(self.checked.len(), "item", "items"),
-                    human(self.selected_bytes())
+                    junie_tui::ui::text::bytes(self.selected_bytes())
                 ));
             }
         }
@@ -377,7 +377,7 @@ impl CleanupPage {
             "{} · {} selected · {}{}",
             self.cats[ci].category.label,
             plural(self.checked.len(), "item", "items"),
-            human(self.selected_bytes()),
+            junie_tui::ui::text::bytes(self.selected_bytes()),
             if skipped > 0 {
                 format!(" · {skipped} ineligible stay unselected")
             } else {
@@ -434,7 +434,7 @@ impl CleanupPage {
                         "Size",
                         format!(
                             "{}{}",
-                            human(c.bytes()),
+                            junie_tui::ui::text::bytes(c.bytes()),
                             if c.candidates.iter().any(|k| k.partial) {
                                 " · partial (unreadable entries)"
                             } else {
@@ -515,7 +515,7 @@ impl CleanupPage {
                         "Size",
                         format!(
                             "{}{}",
-                            human(k.bytes),
+                            junie_tui::ui::text::bytes(k.bytes),
                             if k.partial { " · lower bound" } else { "" }
                         ),
                     ),
@@ -668,7 +668,7 @@ impl CleanupPage {
                     let label_w = (row_w * 34 / 100).clamp(16, 40);
                     buf.set_string(row.x + 7, y, fit(&label, label_w as usize), st);
                     let mut x = row.x + 7 + label_w + 2;
-                    let size = format!("{:>9}", human(c.bytes()));
+                    let size = format!("{:>9}", junie_tui::ui::text::bytes(c.bytes()));
                     if x + 10 <= row.right() {
                         buf.set_string(x, y, &size, plain.fg(t.text_secondary));
                     }
@@ -694,7 +694,7 @@ impl CleanupPage {
                         buf.set_string(
                             x,
                             y,
-                            crate::screens::truncate_sep(&meta, avail),
+                            junie_tui::ui::text::truncate_sep(&meta, avail),
                             plain.fg(match c.process {
                                 ProcessObservation::NotRunning => t.text_muted,
                                 _ => t.warning,
@@ -747,7 +747,7 @@ impl CleanupPage {
                         buf.set_string(
                             x,
                             y,
-                            format!("{:>9}", human(k.bytes)),
+                            format!("{:>9}", junie_tui::ui::text::bytes(k.bytes)),
                             plain.fg(t.text_secondary),
                         );
                     }
@@ -1099,7 +1099,7 @@ impl Screen for CleanupPage {
                 } else {
                     format!(
                         "Every eligible candidate selected · {}",
-                        human(self.selected_bytes())
+                        junie_tui::ui::text::bytes(self.selected_bytes())
                     )
                 });
                 self.rebuild(w);
@@ -1278,9 +1278,9 @@ impl Screen for CleanupPage {
         let line = format!(
             "{} · {} · {} selected ({}) · {}{}",
             plural(self.cats.len(), "category", "categories"),
-            human(total),
+            junie_tui::ui::text::bytes(total),
             self.selected_items().len(),
-            human(self.selected_bytes()),
+            junie_tui::ui::text::bytes(self.selected_bytes()),
             match self.mode {
                 Mode::Trash => "Trash",
                 Mode::Permanent => "PERMANENT",
@@ -1420,7 +1420,7 @@ impl Screen for CleanupPage {
                     format!(
                         "{} selected · {}{}",
                         self.selected_items().len(),
-                        human(self.selected_bytes()),
+                        junie_tui::ui::text::bytes(self.selected_bytes()),
                         if self.dry_run { " · dry run" } else { "" }
                     ),
                     Tone::Secondary,
@@ -1472,7 +1472,7 @@ pub fn plan_facts(plan: &DeletePlan, w: &World) -> Vec<Prop> {
             }),
             (Mode::Permanent, false) => "PERMANENT · unlink and remove_dir_all · cannot be undone".into(),
         }).tone(if plan.mode == Mode::Permanent && !plan.dry_run { Tone::Error } else { Tone::Normal }).wrap(),
-        Prop::new("Estimate", format!("{} allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee", human(plan.estimate()))).wrap(),
+        Prop::new("Estimate", format!("{} allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee", junie_tui::ui::text::bytes(plan.estimate()))).wrap(),
         Prop::new("Denied", if denied == 0 { "none · every path passed the lexical, protected-root, user-data and symlink rules".to_owned() } else { format!("{denied} would be skipped at commit by the safety rules") }).tone(if denied > 0 { Tone::Warning } else { Tone::Muted }).wrap(),
     ];
     if !guarded.is_empty() {

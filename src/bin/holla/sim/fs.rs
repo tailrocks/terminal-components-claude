@@ -1074,9 +1074,6 @@ pub fn sanitize(s: &str) -> String {
     out
 }
 
-/// Human byte size in binary units.
-pub use junie_tui::ui::text::bytes as human;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1395,9 +1392,12 @@ mod tests {
 
     #[test]
     fn human_sizes_and_sanitise() {
-        assert_eq!(human(512), "512 B");
-        assert_eq!(human(1536), "1.5 KiB");
-        assert_eq!(human(5 * 1024 * 1024 * 1024), "5.0 GiB");
+        assert_eq!(junie_tui::ui::text::bytes(512), "512 B");
+        assert_eq!(junie_tui::ui::text::bytes(1536), "1.5 KiB");
+        assert_eq!(
+            junie_tui::ui::text::bytes(5 * 1024 * 1024 * 1024),
+            "5.0 GiB"
+        );
         assert_eq!(sanitize("a\tb\u{7}c"), "a    b�c");
     }
 }

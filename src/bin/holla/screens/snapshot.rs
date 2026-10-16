@@ -23,10 +23,11 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
 use crate::screens::{
-    Cx, Go, ModalResult, ModalTag, Screen, StatusBits, open_context, plural, row_choice,
-    scroll_drag, scroll_press,
+    Cx, Go, ModalResult, ModalTag, Screen, StatusBits, open_context, row_choice, scroll_drag,
+    scroll_press,
 };
 use crate::sim::world::World;
+use junie_tui::ui::text::plural;
 
 pub const BODY: WidgetId = WidgetId::of("snapshot.body");
 /// The body's context menu.
@@ -816,7 +817,7 @@ impl SnapshotPage {
                         crate::domain::cleanup::Outcome::Removed
                             | crate::domain::cleanup::Outcome::Trashed
                     ) {
-                        crate::sim::fs::human(r.size)
+                        junie_tui::ui::text::bytes(r.size)
                     } else {
                         "0 B".to_owned()
                     };
@@ -1107,13 +1108,13 @@ impl SnapshotPage {
                                 "Bytes",
                                 format!(
                                     "{} {} · {} freed now{}",
-                                    crate::sim::fs::human(r.bytes),
+                                    junie_tui::ui::text::bytes(r.bytes),
                                     if r.dry_run {
                                         "would leave the tree"
                                     } else {
                                         "left the tree"
                                     },
-                                    crate::sim::fs::human(r.freed_now),
+                                    junie_tui::ui::text::bytes(r.freed_now),
                                     if r.mode == crate::domain::cleanup::Mode::Trash && !r.dry_run {
                                         " · the rest returns when the Trash is emptied"
                                     } else {
@@ -1164,7 +1165,7 @@ impl SnapshotPage {
                                 format!(
                                     "{:<14}{:>10}   {}{}",
                                     label,
-                                    crate::sim::fs::human(it.bytes),
+                                    junie_tui::ui::text::bytes(it.bytes),
                                     w.location.short(&it.path),
                                     it.error
                                         .as_ref()

@@ -1491,7 +1491,7 @@ impl Workbench {
             .to_owned(),
             WorkTab::Query(q) => q
                 .last_duration
-                .map(crate::tabs::duration_label)
+                .map(|ms| junie_tui::ui::text::duration_ms(u64::from(ms)))
                 .unwrap_or_default(),
             WorkTab::History(_) => format!("{} entries", history.entries.len()),
         };

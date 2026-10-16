@@ -22,12 +22,13 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use super::{Cx, Go, Screen, plural};
+use super::{Cx, Go, Screen};
 use crate::domain::account::{Account, AccountId, IssueCode, Lifecycle};
 use crate::domain::agent::UsageSurface;
 use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus};
 use crate::sim::provider;
 use crate::sim::world::{Msg, World};
+use junie_tui::ui::text::plural;
 
 /// One line of the Usage overview.
 enum OvLine {
