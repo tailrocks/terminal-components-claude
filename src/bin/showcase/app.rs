@@ -16,6 +16,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
 use junie_tui::widgets::dialog::{Dialog, DialogBody};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
@@ -397,6 +398,13 @@ pub struct App {
     pub last_key: Option<String>,
     pub status: Option<(String, Instant)>,
     pub quit: bool,
+    /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Ctrl+C
+    /// (after the page), Ctrl+Q and `q` (never over a field or unsaved
+    /// edits); Esc never quits.
+    pub quit_keys: QuitKeys,
+    /// The quit guard: unsaved page edits ask Cancel / Discard (pages
+    /// save on their own, so the shell offers no Save).
+    leave: LeaveGuard<()>,
     pub motion: Motion,
     nav_reveal: bool,
     /// Type-to-filter in the sidebar (`/`): the query while filtering.
@@ -491,6 +499,8 @@ impl App {
             last_key: None,
             status: None,
             quit: false,
+            quit_keys: QuitKeys::DEFAULT,
+            leave: LeaveGuard::new(WidgetId::of("showcase.leave")).save(false),
             motion,
             nav_reveal: true,
             nav_filter: None,
@@ -667,10 +677,6 @@ impl App {
                 self.dispatch(PageEvent::Paste(text))
             }
             Input::Key(key) => {
-                if key.ctrl_char('c') {
-                    self.quit = true;
-                    return Outcome::Consumed;
-                }
                 self.last_key = Some(describe_key(&key));
                 self.pointer.suppress_hover();
                 self.on_key(key)
@@ -738,6 +744,29 @@ impl App {
         out
     }
 
+    /// What quitting would lose across every page.
+    pub fn quit_stakes(&self) -> Stakes {
+        self.pages
+            .iter()
+            .fold(Stakes::Clean, |acc, p| acc.max(p.leave_stakes()))
+    }
+
+    /// Every quit goes through here: a clean showcase quits at once,
+    /// unsaved page edits ask Cancel / Discard first.
+    fn request_quit(&mut self) -> Outcome {
+        let stakes = self.quit_stakes();
+        match self.leave.request_quit(&stakes, &self.theme.strings) {
+            Ok(_) => {
+                self.quit = true;
+                Outcome::Consumed
+            }
+            Err(d) => {
+                self.open_dialog(*d);
+                Outcome::Changed
+            }
+        }
+    }
+
     fn open_dialog(&mut self, d: Dialog) {
         self.saved_focus = self.focus.current();
         self.focus.set(Some(d.initial_focus));
@@ -751,6 +780,14 @@ impl App {
             return Outcome::Ignored;
         };
         self.focus.set(self.saved_focus.take());
+        if self.leave.owns(d.id) {
+            if let Some(result) = d.result
+                && let Resolved::Discard(_) = self.leave.resolve(result)
+            {
+                self.quit = true;
+            }
+            return Outcome::Changed;
+        }
         if d.id != HELP_DIALOG
             && let Some(result) = d.result
         {
@@ -768,8 +805,8 @@ impl App {
 
     fn on_key(&mut self, key: Key) -> Outcome {
         if self.layout.too_small {
-            if key.is_char('q') {
-                self.quit = true;
+            if key.is_char('q') || key.ctrl_char('c') {
+                return self.request_quit();
             }
             return Outcome::Consumed;
         }
@@ -833,6 +870,20 @@ impl App {
             }
             return out;
         }
+        // the page had the first chance (Ctrl+C copies a selection there);
+        // the quit keys go through the guard
+        let kc = KeyContext {
+            text_focus: was_editing,
+            dirty: !self.quit_stakes().is_clean(),
+            selection: false,
+        };
+        if self.quit_keys.classify(&key, kc) == Some(LeaveKey::Quit) {
+            return self.request_quit();
+        }
+        if key.is_char('q') && kc.dirty {
+            self.set_status("Unsaved changes · Ctrl+Q asks before quitting".into());
+            return Outcome::Changed;
+        }
         let shell_letter = matches!(key.code, KeyCode::Char('q' | 'i' | '?' | '[' | ']' | '0'));
         if type_ahead && !shell_letter {
             let out = self.nav_event(|nav| nav.on_key(&key));
@@ -849,10 +900,6 @@ impl App {
             KeyCode::BackTab => {
                 self.focus.prev(&self.ring);
                 Outcome::Changed
-            }
-            KeyCode::Char('q') if key.plain() => {
-                self.quit = true;
-                Outcome::Consumed
             }
             KeyCode::Char('?') => {
                 self.open_help();
