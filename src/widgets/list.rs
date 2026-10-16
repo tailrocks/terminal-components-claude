@@ -103,14 +103,14 @@ pub struct ListBox {
     /// Which keys move the cursor (default [`NavKeys::DEFAULT`]: arrows,
     /// vim letters, paging, Home/End).
     pub nav: NavKeys,
-    /// The list's own action keys (default [`ListAction::default_keymap`]).
-    pub keymap: KeyMap<ListAction>,
+    /// The list's own action keys (default [`ListCmd::default_keymap`]).
+    pub keymap: KeyMap<ListCmd>,
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
 /// A [`ListBox`] action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ListAction {
+pub enum ListCmd {
     /// Multi mode: check every enabled row, or uncheck all when all are
     /// checked. Default `a`.
     ToggleAll,
@@ -121,10 +121,10 @@ pub enum ListAction {
     SelectAll,
 }
 
-impl Actions for ListAction {
+impl Actions for ListCmd {
     fn default_keymap() -> KeyMap<Self> {
-        let mut map = vec![(KeyBinding::char('a'), ListAction::ToggleAll)];
-        map.extend(select_all_bindings(ListAction::SelectAll));
+        let mut map = vec![(KeyBinding::char('a'), ListCmd::ToggleAll)];
+        map.extend(select_all_bindings(ListCmd::SelectAll));
         map
     }
 }
@@ -155,7 +155,7 @@ impl ListBox {
             type_ahead: false,
             wrap: false,
             nav: NavKeys::DEFAULT,
-            keymap: ListAction::default_keymap(),
+            keymap: ListCmd::default_keymap(),
             typeahead: Default::default(),
         }
     }
@@ -167,7 +167,7 @@ impl ListBox {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<ListAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<ListCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -337,8 +337,7 @@ impl ListBox {
             // an unassigned modified chord never performs a plain action
             return Outcome::Ignored;
         }
-        if self.mode == SelectMode::Single
-            && lookup(&self.keymap, key) == Some(ListAction::SelectAll)
+        if self.mode == SelectMode::Single && lookup(&self.keymap, key) == Some(ListCmd::SelectAll)
         {
             // nothing to select all of: the chord stays the app's
             return Outcome::Ignored;
@@ -364,7 +363,7 @@ impl ListBox {
             && self.mode == SelectMode::Multi
         {
             return match action {
-                ListAction::ToggleAll => {
+                ListCmd::ToggleAll => {
                     let all = self
                         .items
                         .iter()
@@ -378,7 +377,7 @@ impl ListBox {
                     }
                     Outcome::Changed
                 }
-                ListAction::SelectAll => {
+                ListCmd::SelectAll => {
                     let mut changed = false;
                     for (it, c) in self.items.iter().zip(self.checked.iter_mut()) {
                         if !it.disabled && !*c {

@@ -15,12 +15,12 @@ use junie_tui::theme::{SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar};
+use junie_tui::widgets::chips::{Chip, ChipBar, ChipCmd};
 use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorEvent, Severity};
 use junie_tui::widgets::completion::{Completion, CompletionEvent, CompletionItem};
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::grid::{
-    CellKind, CellValue, ColumnSpec, DataGrid, GridAction, GridEvent, GridRows, RowTotal,
+    CellKind, CellValue, ColumnSpec, DataGrid, GridCmd, GridEvent, GridRows, RowTotal,
 };
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -30,7 +30,7 @@ use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir};
-use junie_tui::widgets::tabs::{TabAction, TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabCmd, TabEvent, TabItem, Tabs};
 use junie_tui::widgets::tree::{TreeNode, TreeView};
 
 use crate::app::Cx;
@@ -737,8 +737,8 @@ impl TableTab {
                 // action keys come from the chip bar's keymap
                 let km = &self.chips.keymap;
                 let mut h = vec![hint("Enter", "Edit filter"), hint("Space", "Enable")];
-                h.extend(hint_key(km, ChipAction::Remove).map(|k| hint(k, "Remove")));
-                h.extend(hint_key(km, ChipAction::Add).map(|k| hint(k, "Add")));
+                h.extend(hint_key(km, ChipCmd::Remove).map(|k| hint(k, "Remove")));
+                h.extend(hint_key(km, ChipCmd::Add).map(|k| hint(k, "Add")));
                 h
             }
             Some(f) if f == self.structure_tabs.id => {
@@ -753,14 +753,14 @@ impl TableTab {
                     h.push(hint("Enter", "Edit"));
                 }
                 if self.grid.editable
-                    && let Some(k) = hint_key(km, GridAction::DuplicateRow)
+                    && let Some(k) = hint_key(km, GridCmd::DuplicateRow)
                 {
                     h.push(hint(k, "Duplicate row"));
                 }
-                h.extend(hint_key(km, GridAction::Sort).map(|k| hint(k, "Sort")));
-                h.extend(hint_key(km, GridAction::FilterOnCell).map(|k| hint(k, "Filter")));
+                h.extend(hint_key(km, GridCmd::Sort).map(|k| hint(k, "Sort")));
+                h.extend(hint_key(km, GridCmd::FilterOnCell).map(|k| hint(k, "Filter")));
                 if self.dirty_count() > 0 {
-                    h.extend(hint_key(km, GridAction::Commit).map(|k| hint(k, "Save")));
+                    h.extend(hint_key(km, GridCmd::Commit).map(|k| hint(k, "Save")));
                 } else {
                     h.push(hint("Space", "Select row"));
                 }
@@ -1334,12 +1334,12 @@ impl QueryTab {
                 hints.push(hint("Enter", "Edit"));
             }
             if g.editable
-                && let Some(k) = hint_key(km, GridAction::DuplicateRow)
+                && let Some(k) = hint_key(km, GridCmd::DuplicateRow)
             {
                 hints.push(hint(k, "Duplicate row"));
             }
-            hints.extend(hint_key(km, GridAction::Sort).map(|k| hint(k, "Sort")));
-            hints.extend(hint_key(km, GridAction::Copy).map(|k| hint(k, "Copy")));
+            hints.extend(hint_key(km, GridCmd::Sort).map(|k| hint(k, "Sort")));
+            hints.extend(hint_key(km, GridCmd::Copy).map(|k| hint(k, "Copy")));
             hints.push(junie_tui::widgets::keyhint::CONTEXT_MENU);
             return hints;
         }
@@ -1354,7 +1354,7 @@ impl QueryTab {
             Some(f) if f == self.result_tabs.id => {
                 let mut h = vec![hint("←→", "Result"), hint("p", "Pin")];
                 h.extend(
-                    hint_key(&self.result_tabs.keymap, TabAction::Close).map(|k| hint(k, "Close")),
+                    hint_key(&self.result_tabs.keymap, TabCmd::Close).map(|k| hint(k, "Close")),
                 );
                 h.push(hint("Enter", "Go to statement"));
                 h

@@ -607,7 +607,7 @@ impl Workbench {
             v.extend(
                 junie_tui::core::keymap::hint_key(
                     &self.strip.keymap,
-                    junie_tui::widgets::tabs::TabAction::Close,
+                    junie_tui::widgets::tabs::TabCmd::Close,
                 )
                 .map(|k| hint(k, "Close")),
             );

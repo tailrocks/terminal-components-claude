@@ -47,8 +47,8 @@ pub struct InfoDialog {
     pub error_title: bool,
     /// Which keys scroll the detail text (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
-    /// The dialog's action keys (default [`InfoAction::default_keymap`]).
-    pub keymap: KeyMap<InfoAction>,
+    /// The dialog's action keys (default [`InfoCmd::default_keymap`]).
+    pub keymap: KeyMap<InfoCmd>,
     /// The theme's strings as of the last render; a Close label still
     /// reading them follows a change ([`crate::theme::Strings::follow`]).
     strings: crate::theme::Strings,
@@ -57,18 +57,18 @@ pub struct InfoDialog {
 /// An [`InfoDialog`] action a key can be bound to. Esc and Enter always
 /// close.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InfoAction {
+pub enum InfoCmd {
     /// Close the dialog. Default `q`.
     Close,
     /// Copy the first copyable value. Default `y`.
     Copy,
 }
 
-impl Actions for InfoAction {
+impl Actions for InfoCmd {
     fn default_keymap() -> KeyMap<Self> {
         vec![
-            (KeyBinding::char('q'), InfoAction::Close),
-            (KeyBinding::char('y'), InfoAction::Copy),
+            (KeyBinding::char('q'), InfoCmd::Close),
+            (KeyBinding::char('y'), InfoCmd::Copy),
         ]
     }
 }
@@ -97,7 +97,7 @@ impl InfoDialog {
             copy_values,
             error_title: false,
             nav: NavKeys::DEFAULT,
-            keymap: InfoAction::default_keymap(),
+            keymap: InfoCmd::default_keymap(),
         }
     }
 
@@ -108,7 +108,7 @@ impl InfoDialog {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<InfoAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<InfoCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -209,11 +209,11 @@ impl InfoDialog {
             }
         }
         match lookup(&self.keymap, key) {
-            Some(InfoAction::Close) => {
+            Some(InfoCmd::Close) => {
                 self.result = Some(InfoResult::Closed);
                 return Outcome::Changed;
             }
-            Some(InfoAction::Copy) => {
+            Some(InfoCmd::Copy) => {
                 // copy the first copyable value
                 if let Some(Some(v)) = self.copy_values.iter().find(|v| v.is_some()) {
                     self.result = Some(InfoResult::Copy(v.clone()));
