@@ -226,7 +226,19 @@ pub fn manifest_path(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(rel)
 }
 
+/// The store the gate reads: `baselines/oracle/` once a capture was
+/// imported into it (`ORACLE.toml` `pending = false`, see
+/// [`crate::oracle`]), else the legacy [`snapshots_root`].
 pub fn approved_root() -> PathBuf {
+    if crate::oracle::active() {
+        crate::oracle::root()
+    } else {
+        snapshots_root()
+    }
+}
+
+/// The legacy store (tuisnap approvals and the re-approved pilot).
+pub fn snapshots_root() -> PathBuf {
     manifest_path("snapshots")
 }
 
