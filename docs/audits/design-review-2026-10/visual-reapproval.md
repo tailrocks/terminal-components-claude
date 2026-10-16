@@ -143,6 +143,11 @@ contrast checks were re-run on all 3,125:
 - Palette, `fg == bg` and contrast results are the classified ones (40
   popup-frame cells at 16 colours and `none`; four status bars cut at a
   palette label of another width).
+- After the acceptance the branch took 7403f8920 (`legible_on_fill`
+  leaves the focus gutter alone) and the tuiscotti 3382e57 pin
+  (ccfac7676): 88 captures at 256 colours (19 roots) changed one cell,
+  the `▎` on a cursor row's fill back to the focus ink (78 on 22) from
+  the stepped-up white; re-approved with it by name. Nothing else moved.
 
 Attributed differences (all sizes went through the same residual
 review; counts are roots):
