@@ -395,7 +395,7 @@ fn accounts_plain_key_is_masked_everywhere_and_remove_asks_first() {
         !format!("{:?}", a.source).contains("abcdef"),
         "fingerprint must not embed the key"
     );
-    h.key(KeyCode::Char('x'));
+    h.key(KeyCode::Char('d'));
     assert!(h.text().contains("Remove account Spare?"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(h.app.world.accounts.get("acct-anthropic-spare").is_some());
