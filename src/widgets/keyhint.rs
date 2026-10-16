@@ -49,10 +49,11 @@ use std::borrow::Cow;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyModifiers;
 use ratatui::layout::Rect;
+use ratatui::style::Style;
 
 use crate::core::event::ClientPlatform;
 
-use crate::theme::{BadgeKind, HintAlign, HintBarStyle, Theme, Tone};
+use crate::theme::{BadgeKind, HintAlign, HintBarStyle, StatusKind, Theme, Tone};
 
 /// The key-label vocabulary. Every hint names keys the same way: arrow
 /// pairs without a space, ranges with an en dash, `Delete` in full.
@@ -346,6 +347,62 @@ fn fit(hints: &[Hint], room: u16, style: &HintBarStyle) -> (Vec<usize>, Vec<bool
     (keep, full)
 }
 
+/// Like [`render`], with a status of a [`StatusKind`]: its glyph and
+/// colour from [`Theme::status`] (`✓ Saved` in success, `✗` bold in
+/// error, `▲` in warning, `i` in info), the message in
+/// [`Theme::status_label`]. `None` for the kind is a neutral message,
+/// drawn as [`render`] draws it.
+pub fn render_status(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Option<StatusKind>)>,
+) -> usize {
+    let right = right.map(|(text, kind)| match kind {
+        Some(kind) => {
+            let (mark, mark_style) = t.status(kind);
+            Right {
+                text,
+                mark,
+                mark_style,
+                style: t.status_label(kind),
+            }
+        }
+        None => Right::toned(t, text, Tone::Secondary),
+    });
+    render_right(area, buf, t, hints, badge, right, &t.hintbar)
+}
+
+/// The status at the right edge: a message, and the glyph that leads it
+/// (empty for none).
+struct Right<'a> {
+    text: &'a str,
+    mark: &'a str,
+    mark_style: Style,
+    style: Style,
+}
+
+impl<'a> Right<'a> {
+    /// A toned status: an error leads with a bold `!`, a warning with a
+    /// bold `▲`, so the weight survives monochrome.
+    fn toned(t: &'a Theme, text: &'a str, tone: Tone) -> Self {
+        let mark = match tone {
+            Tone::Error => "!",
+            Tone::Warning => t.glyphs.warning,
+            _ => "",
+        };
+        let style = Style::new().fg(t.tone(tone));
+        Self {
+            text,
+            mark,
+            mark_style: style.add_modifier(ratatui::style::Modifier::BOLD),
+            style,
+        }
+    }
+}
+
 /// [`render_toned`] with an explicit [`HintBarStyle`].
 pub fn render_styled(
     area: Rect,
@@ -354,6 +411,19 @@ pub fn render_styled(
     hints: &[Hint],
     badge: Option<(&str, BadgeKind)>,
     right: Option<(&str, Tone)>,
+    style: &HintBarStyle,
+) -> usize {
+    let right = right.map(|(r, tone)| Right::toned(t, r, tone));
+    render_right(area, buf, t, hints, badge, right, style)
+}
+
+fn render_right(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<Right<'_>>,
     style: &HintBarStyle,
 ) -> usize {
     let area = area.intersection(*buf.area());
@@ -370,13 +440,14 @@ pub fn render_styled(
         }
     }
     let mut right_w = 0u16;
-    if let Some((r, tone)) = right {
+    if let Some(Right {
+        text: r,
+        mark,
+        mark_style,
+        style: st,
+    }) = right
+    {
         // the glyph carries the meaning in monochrome, the tone in colour
-        let mark = match tone {
-            Tone::Error => "!",
-            Tone::Warning => t.glyphs.warning,
-            _ => "",
-        };
         let text = if mark.is_empty() {
             r.to_owned()
         } else {
@@ -398,15 +469,9 @@ pub fn render_styled(
         let text = crate::ui::text::truncate(&text, available);
         let w = crate::ui::text::width(&text) as u16;
         if w > 0 {
-            let st = ratatui::style::Style::new().fg(t.tone(tone));
             buf.set_string(area.right() - w - 1, area.y, &text, st);
             if !mark.is_empty() {
-                buf.set_string(
-                    area.right() - w - 1,
-                    area.y,
-                    mark,
-                    st.add_modifier(ratatui::style::Modifier::BOLD),
-                );
+                buf.set_string(area.right() - w - 1, area.y, mark, mark_style);
             }
             right_w = w + 3;
         }
@@ -536,6 +601,38 @@ mod tests {
             assert!(row.contains('…'), "{row:?}");
             assert!(!row.contains("Cancel"));
         }
+    }
+
+    #[test]
+    fn a_status_kind_draws_its_glyph_and_label_from_theme_status() {
+        let t = Theme::junie();
+        for kind in StatusKind::ALL {
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
+            render_status(
+                *buf.area(),
+                &mut buf,
+                &t,
+                &[],
+                None,
+                Some(("Saved", Some(kind))),
+            );
+            let (glyph, st) = t.status(kind);
+            let row = row_text(&buf, 40);
+            assert!(row.contains(&format!("{glyph} Saved")), "{kind:?}: {row:?}");
+            let x = (0..40).find(|&x| buf[(x, 0)].symbol() == glyph).unwrap();
+            assert_eq!(buf[(x, 0)].fg, st.fg.unwrap(), "{kind:?}");
+            assert_eq!(
+                buf[(x + 2, 0)].fg,
+                t.status_label(kind).fg.unwrap(),
+                "{kind:?}"
+            );
+        }
+        // no kind: the neutral status `render` draws
+        let mut a = Buffer::empty(Rect::new(0, 0, 40, 1));
+        let mut b = Buffer::empty(Rect::new(0, 0, 40, 1));
+        render_status(*a.area(), &mut a, &t, &[], None, Some(("Copied", None)));
+        render(*b.area(), &mut b, &t, &[], None, Some("Copied"));
+        assert_eq!(a, b);
     }
 
     #[test]
