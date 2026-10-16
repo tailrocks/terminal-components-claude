@@ -616,6 +616,14 @@ pub struct App {
     pub tooltips: junie_tui::ui::tooltip::Tooltips,
     /// App-wide truncated-text reveal (`shell.reveal`).
     pub reveal: junie_tui::ui::reveal::Reveal,
+    /// How the runtime turns raw terminal events into input
+    /// (`Application::input_config`), from the shell options.
+    pub input: junie_tui::core::event::InputConfig,
+    /// The keyboard-protocol policy the session starts with
+    /// (`Application::keyboard_protocol`); read once, at launch.
+    pub keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol,
+    /// Where focus goes when the focused control disappears.
+    pub focus_fallback: junie_tui::core::focus::FocusFallback,
     /// Focus to restore when the Inspector overlay closes.
     inspector_focus: Option<WidgetId>,
     pub size: (u16, u16),
@@ -764,6 +772,9 @@ impl App {
             track_click: junie_tui::core::scroll::TrackClick::Page,
             tooltips: junie_tui::ui::tooltip::Tooltips::default(),
             reveal: junie_tui::ui::reveal::Reveal::default(),
+            input: junie_tui::core::event::InputConfig::default(),
+            keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol::current(),
+            focus_fallback: junie_tui::core::focus::FocusFallback::First,
             inspector_focus: None,
             size: (0, 0),
             tick: frame,
@@ -1430,6 +1441,34 @@ impl App {
         } else {
             Reveal::OFF
         };
+        // the input normalisation follows the client platform (Ctrl+click
+        // is a right click on macOS only)
+        let mut input = junie_tui::core::event::InputConfig::for_platform(
+            platform.unwrap_or_else(ClientPlatform::current),
+        );
+        input.shift_wheel_horizontal = o.on("shell.shift_wheel_horizontal");
+        input.legacy_ctrl_punctuation = o.on("shell.legacy_ctrl_punctuation");
+        self.input = input;
+        {
+            use junie_tui::core::keyboard::KeyboardProtocol as P;
+            self.keyboard_protocol =
+                [P::current(), P::On, P::Off][o.get("shell.keyboard_protocol")];
+        }
+        self.focus_fallback = [
+            junie_tui::core::focus::FocusFallback::First,
+            junie_tui::core::focus::FocusFallback::Nearest,
+        ][o.get("shell.focus_fallback")];
+    }
+
+    /// The input normalisation the runtime applies (the shell's
+    /// `Application::input_config`).
+    pub fn input_config(&self) -> junie_tui::core::event::InputConfig {
+        self.input
+    }
+
+    /// The keyboard-protocol policy the session starts with.
+    pub fn keyboard_protocol(&self) -> junie_tui::core::keyboard::KeyboardProtocol {
+        self.keyboard_protocol
     }
 
     /// The live configuration the behaviour options drive, for tests and
@@ -1437,7 +1476,7 @@ impl App {
     #[allow(dead_code)]
     pub fn live_config(&self) -> String {
         format!(
-            "{:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
+            "{:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
             self.pointer.config,
             self.theme.edit_entry,
             self.theme.field_keys,
@@ -1445,7 +1484,10 @@ impl App {
             self.motion,
             self.track_click,
             self.tooltips,
-            self.reveal
+            self.reveal,
+            self.input,
+            self.keyboard_protocol,
+            self.focus_fallback
         )
     }
 
@@ -1879,38 +1921,55 @@ impl App {
         let area = frame.area();
         self.size = (area.width, area.height);
         let theme = self.theme;
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let interaction = self.interaction();
-        let mut cursor = None;
-        {
-            let buf = frame.buffer_mut();
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            // the app-wide defaults the shell options set
-            ctx.track_click = self.track_click;
-            ctx.tooltips = self.tooltips;
-            ctx.reveal = self.reveal;
-            ctx.page_under_layer(
-                self.dialog.is_some()
-                    || self.inspector_overlay()
-                    || self.pages[self.page.index()].layer_open(),
-            );
-            self.draw(area, buf, &mut ctx);
-            ctx.flush_overlays(buf);
-            cursor = cursor.or(ctx.cursor);
-        }
-        self.hits = hits;
-        self.ring = ring;
-        self.pointer.refresh_hover(&self.hits);
-        // keep focus valid against the freshly built ring
-        if self.dialog.is_none() {
-            if !self.layout.too_small
-                && !self.focus.current().is_some_and(|c| self.ring.contains(c))
+        let mut cursor;
+        // a second pass when the focused control vanished this frame: the
+        // fallback picks the new focus from the ring the first pass built,
+        // and the frame must show it (one focus indicator, never none)
+        let mut pass = 0;
+        loop {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = self.interaction();
+            cursor = None;
             {
-                self.focus.set(self.ring.first());
+                let buf = frame.buffer_mut();
+                if pass > 0 {
+                    buf.reset();
+                }
+                let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+                // the app-wide defaults the shell options set
+                ctx.track_click = self.track_click;
+                ctx.tooltips = self.tooltips;
+                ctx.reveal = self.reveal;
+                ctx.page_under_layer(
+                    self.dialog.is_some()
+                        || self.inspector_overlay()
+                        || self.pages[self.page.index()].layer_open(),
+                );
+                self.draw(area, buf, &mut ctx);
+                ctx.flush_overlays(buf);
+                cursor = cursor.or(ctx.cursor);
             }
-        } else {
-            self.focus.ensure_valid(&self.ring);
+            self.hits = hits;
+            self.ring = ring;
+            self.pointer.refresh_hover(&self.hits);
+            // keep focus valid against the freshly built ring
+            let before = self.focus.current();
+            if self.dialog.is_none() {
+                // focus that lost its control falls back per the shell
+                // option (the ring position is recorded each frame for
+                // `Nearest`)
+                if !self.layout.too_small {
+                    self.focus
+                        .ensure_valid_with(&self.ring, self.focus_fallback);
+                }
+            } else {
+                self.focus.ensure_valid(&self.ring);
+            }
+            pass += 1;
+            if pass > 1 || before.is_none() || self.focus.current() == before {
+                break;
+            }
         }
         if let Some(pos) = cursor {
             frame.set_cursor_position(pos);
