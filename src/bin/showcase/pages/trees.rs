@@ -18,9 +18,11 @@ use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, hint_key};
-use junie_tui::core::scroll::{Scrollable, TrackClick};
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::core::scroll::TrackClick;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
@@ -534,47 +536,32 @@ impl Page for TreesPage {
                 self.on_action(id, a, cx);
                 o
             }
-            PageEvent::Secondary { id, pos } => {
+            PageEvent::Pointer(ev) if ev.is(Phase::Secondary) => {
                 let cfg = self.menu.config;
-                let Some(req) = cfg.on_secondary(&mut self.tree, *id, *pos) else {
+                let Some(req) = cfg.on_secondary(&mut self.tree, ev.id, ev.pos()) else {
                     return Outcome::Ignored;
                 };
                 cx.focus.focus(self.tree.id);
                 self.open_menu(req);
                 Outcome::Changed
             }
-            PageEvent::Click { id, pos } => {
-                let mods = cx.mods;
+            PageEvent::Pointer(ev) => {
                 for tid in [PROJECT, CONNECTIONS] {
                     let Some(t) = self.tree_mut(tid) else {
                         continue;
                     };
-                    if let Some((row, toggle)) = t.locate(*id) {
+                    // Alt-click opens or closes the whole subtree
+                    let Some(r) = t.route(ev) else {
+                        continue;
+                    };
+                    if ev.is(Phase::Click)
+                        && (ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some())
+                    {
                         cx.focus.focus(tid);
-                        // Alt-click opens or closes the whole subtree
-                        let (o, a) = t.on_click_with(row, toggle, mods);
-                        self.on_action(tid, a, cx);
-                        return o;
                     }
-                    if *id == scrollbar::id_for(tid) {
-                        return t.on_scrollbar(*pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                for t in [&mut self.tree, &mut self.conns] {
-                    if *pressed == scrollbar::id_for(t.id) {
-                        return t.on_scrollbar_drag(*pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                for t in [&mut self.tree, &mut self.conns] {
-                    if t.owns(*id) {
-                        return t.on_wheel(*delta);
-                    }
+                    let (o, a) = r.into_parts();
+                    self.on_action(tid, a, cx);
+                    return o;
                 }
                 Outcome::Ignored
             }

@@ -5,8 +5,9 @@ use ratatui::layout::Rect;
 
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::{EnvKind, Glyphs, StatusKind, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
@@ -365,60 +366,40 @@ impl Page for TaskRunnerPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, pos } => {
-                if let Some((row, toggle)) = self.tree.locate(*id) {
-                    cx.focus.focus(self.tree.id);
-                    return if toggle {
-                        self.tree.on_click_toggle(row).0
-                    } else {
-                        self.tree.on_click_row(row).0
-                    };
-                }
-                if *id == self.run.id {
-                    if self.run.on_click() {
-                        self.start(cx);
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.tree.route(ev) {
+                    if ev.is(Phase::Click)
+                        && (ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some())
+                    {
+                        cx.focus.focus(self.tree.id);
                     }
-                    return Outcome::Changed;
+                    return r.outcome();
                 }
-                if *id == self.cancel.id {
-                    if self.cancel.on_click() {
-                        cx.open(Dialog::destructive(
-                            CANCEL_DLG,
-                            "Cancel pipeline?",
-                            "Running tasks stop immediately. Finished tasks keep their results.",
-                            "Cancel pipeline",
-                        )
-                        .cancel_label("Keep running"));
+                if let Some(r) = self.log.route(ev) {
+                    return r.outcome();
+                }
+                if ev.is(Phase::Click) {
+                    if let Some(r) = self.run.route(ev) {
+                        if r.into_action().is_some() {
+                            self.start(cx);
+                        }
+                        return Outcome::Changed;
                     }
-                    return Outcome::Changed;
-                }
-                if scrollbar::is_bar_of(*id, self.log.id) {
-                    return self.log.on_scrollbar(*pos);
-                }
-                if *id == scrollbar::id_for(self.tree.id) {
-                    return self.tree.on_scrollbar(*pos);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                if scrollbar::is_bar_of(*pressed, self.log.id) {
-                    return self.log.on_bar_drag(*pressed, *pos);
-                }
-                if *pressed == scrollbar::id_for(self.tree.id) {
-                    return self.tree.on_scrollbar_drag(*pos);
+                    if let Some(r) = self.cancel.route(ev) {
+                        if r.into_action().is_some() {
+                            cx.open(Dialog::destructive(
+                                CANCEL_DLG,
+                                "Cancel pipeline?",
+                                "Running tasks stop immediately. Finished tasks keep their results.",
+                                "Cancel pipeline",
+                            )
+                            .cancel_label("Keep running"));
+                        }
+                        return Outcome::Changed;
+                    }
                 }
                 Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } => {
-                if self.tree.owns(*id) {
-                    return self.tree.on_wheel(*delta);
-                }
-                if self.log.owns(*id) {
-                    return self.log.on_wheel(*delta);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::WheelH { id, delta } if self.log.owns(*id) => self.log.on_wheel_h(*delta),
             PageEvent::DialogClosed { id, result, .. } if *id == CANCEL_DLG => {
                 if *result == DialogResult::Action(1) {
                     self.cancel_now(cx);

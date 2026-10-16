@@ -25,7 +25,9 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::edit::EditEntry;
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys};
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::StatusKind;
 use junie_tui::ui::ctx::{Backdrop, RenderCtx};
 use junie_tui::ui::popup::{Dismiss, Placement};
@@ -671,12 +673,16 @@ impl Page for DialogsPage {
                 }
                 o
             }
-            PageEvent::Click { id, .. } => {
-                let Some(i) = self.buttons.iter().position(|b| b.id == *id) else {
+            PageEvent::Pointer(ev) if ev.is(Phase::Click) => {
+                let Some(i) = self.buttons.iter().position(|b| ev.on(b.id)) else {
                     return Outcome::Ignored;
                 };
-                cx.focus.focus(*id);
-                if self.buttons[i].on_click() {
+                cx.focus.focus(ev.id);
+                if self.buttons[i]
+                    .route(ev)
+                    .and_then(|r| r.into_action())
+                    .is_some()
+                {
                     self.open(i, cx);
                 }
                 Outcome::Changed
