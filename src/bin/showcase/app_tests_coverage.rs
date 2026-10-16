@@ -496,7 +496,11 @@ fn grid_pending_save_and_discard_lifecycle() {
     h.key(KeyCode::Enter);
     h.assert_status("1 pending");
 
+    // the save review asks for the table's name first
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    assert!(h.app.dialog.is_some(), "Ctrl+S opens the save review");
+    h.type_str("customers");
+    h.key(KeyCode::Enter);
     h.assert_status("Saving…");
     for _ in 0..4 {
         h.tick();
@@ -525,7 +529,8 @@ fn grid_fetch_refresh_and_viewer_paths_are_reachable() {
     h.assert_status("Reloaded from the source");
 
     h.key_mod(KeyCode::Home, KeyModifiers::CONTROL);
-    for _ in 0..7 {
+    // notes is the ninth column (after account_id)
+    for _ in 0..8 {
         h.key(KeyCode::Right);
     }
     h.key(KeyCode::Enter);
@@ -906,9 +911,12 @@ fn grid_validates_copies_filters_previews_and_reports_server_errors() {
     h.key(KeyCode::Char('y'));
     h.assert_status_prefix("Copied ");
     h.key(KeyCode::Char('f'));
-    h.assert_status_prefix("Would filter seats = ");
+    h.assert_status_prefix("Filter added");
+    assert!(h.text().contains("seats = "), "a filter chip");
     h.key(KeyCode::Char('/'));
     h.assert_status("The filter editor belongs to the app");
+    h.key(KeyCode::Char('F'));
+    h.assert_status("Filters cleared");
     h.key(KeyCode::Char('F'));
     h.assert_status("No filters to clear");
 
@@ -917,6 +925,8 @@ fn grid_validates_copies_filters_previews_and_reports_server_errors() {
     h.type_str("600");
     h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    h.type_str("customers");
+    h.key(KeyCode::Enter);
     for _ in 0..4 {
         h.tick();
     }

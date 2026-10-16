@@ -13,7 +13,9 @@ use super::{Bin, Root, interact};
 
 const BOOT: &str = "Junie Design system";
 
+// the first Tab stop of a templated page is its section strip
 const GRID_EDITS: &[&str] = &[
+    "tab",
     "tab",
     "right",
     "right",
@@ -121,6 +123,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/columns-narrow-row", Bin::Showcase, &["--page", "columns", "--opt", "columns.width=28"], BOOT).sends(&["wait:dropped"]).pending(),
     Root::new("showcase/sections/basictable-options", Bin::Showcase, &["--page", "basictable"], BOOT).sends(&["tab", "2", "wait:Selection"]).pending(),
     Root::new("showcase/sections/basictable-states", Bin::Showcase, &["--page", "basictable"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    // SC12: Data grid options, States, a read-only grid and the save review.
+    Root::new("showcase/sections/datagrid-options", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "2", "wait:Duplicate row keys"]).pending(),
+    Root::new("showcase/sections/datagrid-states", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/datagrid-read-only", Bin::Showcase, &["--page", "datagrid", "--opt", "datagrid.access=view"], BOOT).sends(&["tab", "tab", "enter", "wait:customer_summary is a view"]).pending(),
+    Root::new("showcase/sections/datagrid-error-empty", Bin::Showcase, &["--page", "datagrid", "--opt", "datagrid.rows=error"], BOOT).sends(&["wait:Could not load customers"]).pending(),
+    Root::new("showcase/flows/datagrid/save-review", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save changes"]).pending(),
+    Root::new("showcase/flows/datagrid/filter-chip", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "f", "wait:plan = enterprise"]).pending(),
     Root::new("showcase/sections/basictable-multi", Bin::Showcase, &["--page", "basictable", "--opt", "basictable.selection=multi"], BOOT).sends(&["wait:[ ] #1040"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
@@ -200,7 +209,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "type:cl", "wait:Client"]).dismiss_pending(),
     // datagrid_preview: `p` opens the Pending changes facts dialog with the
     // exact UPDATE statements.
-    Root::new("showcase/flows/datagrid/preview", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "p", "wait:UPDATE customers SET seats = 600"]).dismiss_pending(),
+    Root::new("showcase/flows/datagrid/preview", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "p", "wait:UPDATE customers SET seats = 600"]).dismiss_pending(),
     Root::new("showcase/flows/selectable/delete_confirm", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]).dismiss_pending(),
     // Pending: overlays reached by pointer, with both dismissals.
     Root::new("showcase/overlays/chrome_context_row", Bin::Showcase, &["--page", "chrome"], BOOT).right_click("Codex (Primary)").pending().dismiss_pending(),
@@ -225,7 +234,7 @@ pub const JOURNEYS: &[Root] = &[
     // the first Tab stop is the page's section strip (SC2 template)
     Root::new("showcase/flows/tables/selected", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "tab", "down", "down"]),
     Root::new("showcase/flows/editable/editing", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "enter"]),
-    Root::new("showcase/flows/datagrid/selected", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "down", "right"]),
+    Root::new("showcase/flows/datagrid/selected", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "down", "right"]),
     Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "space"]),
     // The same paused endpoint keeps the subsequent scroll actions deterministic.
     Root::new("showcase/flows/scrolling/scrolled", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "down", "down", "down"]),
@@ -269,7 +278,7 @@ pub const JOURNEYS: &[Root] = &[
     // datagrid_failed: the "server" rejects seats > 500 (grid.rs finish_commit)
     // — deterministic: row 1001 is marked `!`, row 1002 stays `•`. The 4-tick
     // saving window is ridden out by the wait.
-    Root::new("showcase/flows/datagrid/failed", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save failed"]),
+    Root::new("showcase/flows/datagrid/failed", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "type:customers", "enter", "wait:Save failed"]),
     // pickers_tabs: the Switch tab picker (second button).
     Root::new("showcase/flows/pickers/tabs", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "enter", "wait:Filter tabs…"]),
     // chips_select_open: second stop is the Sort by select at every size;

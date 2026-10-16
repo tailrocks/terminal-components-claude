@@ -350,3 +350,11 @@ It is drawn with `VisualState`, so it stays exact. Separately, a "Compare levels
 Add a coverage test next to `app_tests_coverage.rs`. It lists each public builder and enum variant (a list like the one I generated) and fails unless at least one showcase option or state-grid row references it. That stops new knobs from shipping without a showcase entry.
 
 The generated inventory files are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/inv-scripts/`: `grouped.txt` lists per type which builders are and are not called, and `matrix.md` is the table above. I made no edits, commits or pushes, and did not touch the `visual-baseline` tag.
+
+## Findings from the Tables page steps (SC11–SC13)
+
+| # | Finding | Decision |
+|---|---|---|
+| T1 | `DataGrid` drew a followable reference's `→` over the last cell of the value: a right-aligned number lost its last digit (`201` → `20→`), a long text its `…`. | Fixed in SC12 (`grid.rs`, `a_reference_arrow_never_covers_the_value`). |
+| T2 | `ColumnSpec::type_label` is documented as "shown under the name when `type_row` is on", but `DataGrid` has no type row and never draws it. | Recorded: a header type row changes the grid's header height and so its scroll viewport, which S3 (ScrollPane) is moving now; it belongs with the grid's next header change. The Data grid page shows each column's type label on its Schema card meanwhile. |
+

@@ -20,7 +20,9 @@
 120x40 TrueColor Basic table · Options 9f5c1d31bdef509e
 120x40 TrueColor Basic table · States 16f37f3c06daa466
 120x40 TrueColor Editable 14a38a280772586a
-120x40 TrueColor Data grid 546bba4070fabd3c
+120x40 TrueColor Data grid 76efdad3c653ef3f
+120x40 TrueColor Data grid · Options 35190a0cd5ee6d04
+120x40 TrueColor Data grid · States ad0b9b2b9d328664
 120x40 TrueColor Selection 44053638cb30e46e
 120x40 TrueColor Cell editors 32301785728d17ed
 120x40 TrueColor Columns 2394032c77825a3b
@@ -84,7 +86,9 @@
 120x40 Ansi256 Basic table · Options 0d20e1b70391ee88
 120x40 Ansi256 Basic table · States c0646eb0d9b50c65
 120x40 Ansi256 Editable 52585cead536525f
-120x40 Ansi256 Data grid cd93a06c653a3844
+120x40 Ansi256 Data grid 479f2d40ef989296
+120x40 Ansi256 Data grid · Options dfe94fe138719ea7
+120x40 Ansi256 Data grid · States 09f4da487917ba2a
 120x40 Ansi256 Selection 0fe4a38a2035d862
 120x40 Ansi256 Cell editors 2f2fba822014f5b2
 120x40 Ansi256 Columns bdfe30590ed8022e
@@ -148,7 +152,9 @@
 120x40 Ansi16 Basic table · Options 622640114d97a2c9
 120x40 Ansi16 Basic table · States 53ce0662da40c3e9
 120x40 Ansi16 Editable 57b7b4d05e142644
-120x40 Ansi16 Data grid 2262d5e9f79e832e
+120x40 Ansi16 Data grid 62be4472ed1c512d
+120x40 Ansi16 Data grid · Options 8761916af8554e12
+120x40 Ansi16 Data grid · States 442b71018f8ac0ec
 120x40 Ansi16 Selection f466baa18e9bd51a
 120x40 Ansi16 Cell editors 127eec5b40bdc2c5
 120x40 Ansi16 Columns a03a5c09b3890b6e
@@ -212,7 +218,9 @@
 120x40 Mono Basic table · Options 4d26638b6039e06a
 120x40 Mono Basic table · States 33f699d194f179e0
 120x40 Mono Editable 1cf0dabc139ffc5e
-120x40 Mono Data grid e7ae18f2cdbd715c
+120x40 Mono Data grid 2fd3fd7fe3a864e2
+120x40 Mono Data grid · Options c0a3a2a9fd8005e3
+120x40 Mono Data grid · States bb63aee81a36fcf8
 120x40 Mono Selection 412307d489873206
 120x40 Mono Cell editors 3fd25543b551d506
 120x40 Mono Columns bee531d594bbb01f
@@ -276,7 +284,9 @@
 80x24 TrueColor Basic table · Options 39ddbee6c6959efb
 80x24 TrueColor Basic table · States c962fdca3f94c616
 80x24 TrueColor Editable 7884e8417640dd47
-80x24 TrueColor Data grid cc70368abd6d9aa4
+80x24 TrueColor Data grid e3432ff9a22de910
+80x24 TrueColor Data grid · Options 245e001e6cdde9d1
+80x24 TrueColor Data grid · States c6fde803b28052fd
 80x24 TrueColor Selection ed4ead50ab84873f
 80x24 TrueColor Cell editors 6f6518a82d45cb5b
 80x24 TrueColor Columns 32ddc64e3507554b
@@ -340,7 +350,9 @@
 80x24 Ansi256 Basic table · Options 8796b86f6006014f
 80x24 Ansi256 Basic table · States 6001ef2031f5fa78
 80x24 Ansi256 Editable a7222f22d4e6c583
-80x24 Ansi256 Data grid b20bf09d338b44c1
+80x24 Ansi256 Data grid 8b932d9d66268ee4
+80x24 Ansi256 Data grid · Options 394a9bf6053b0c67
+80x24 Ansi256 Data grid · States c6581486e54549a5
 80x24 Ansi256 Selection 6f8ed3f20b45fc6b
 80x24 Ansi256 Cell editors 78d36159824bc2a5
 80x24 Ansi256 Columns 97b8c9a7ac286603
@@ -404,7 +416,9 @@
 80x24 Ansi16 Basic table · Options 58698821727436c0
 80x24 Ansi16 Basic table · States 8498e9d1a730352c
 80x24 Ansi16 Editable 2cc11bca74ee727f
-80x24 Ansi16 Data grid c7af5e32b5974337
+80x24 Ansi16 Data grid fb3e5e5d2198e20a
+80x24 Ansi16 Data grid · Options 5884d8d6e26a44f5
+80x24 Ansi16 Data grid · States 1b5cdf5e3fb2d099
 80x24 Ansi16 Selection 31ee36146d9bf803
 80x24 Ansi16 Cell editors eb4063102bba3f83
 80x24 Ansi16 Columns 365cb882aa188992
@@ -468,7 +482,9 @@
 80x24 Mono Basic table · Options 44b65fa63e78b794
 80x24 Mono Basic table · States 5c8c09e5f0675306
 80x24 Mono Editable f689d6a353b2cc3f
-80x24 Mono Data grid 9302d2fdf91ee216
+80x24 Mono Data grid 4e57a7587d1936c6
+80x24 Mono Data grid · Options f81541412b3a5f89
+80x24 Mono Data grid · States 8a896c457d479ef3
 80x24 Mono Selection 0eff2c6254bef20b
 80x24 Mono Cell editors ce67c814012bfcf7
 80x24 Mono Columns 58e6d69393b764a6
@@ -532,7 +548,9 @@
 72x20 TrueColor Basic table · Options 9c409f93ae9fb84b
 72x20 TrueColor Basic table · States 9e28c94db6afb8df
 72x20 TrueColor Editable 3f17b28647ae182b
-72x20 TrueColor Data grid 9b9cc046854b0e6b
+72x20 TrueColor Data grid b80e078364f391a6
+72x20 TrueColor Data grid · Options 89c4ab633ae57529
+72x20 TrueColor Data grid · States c66d91ada75c5950
 72x20 TrueColor Selection e4f9a9b3b7ed4863
 72x20 TrueColor Cell editors 4b7d203b73f0b63a
 72x20 TrueColor Columns be62c42d690d790c
@@ -596,7 +614,9 @@
 72x20 Ansi256 Basic table · Options 4e68722545cd9977
 72x20 Ansi256 Basic table · States 4ac794fea6272466
 72x20 Ansi256 Editable ed4e8199bc193017
-72x20 Ansi256 Data grid d99f2a17289429e7
+72x20 Ansi256 Data grid eb74e0a722df18af
+72x20 Ansi256 Data grid · Options 0c04ab74a3ef3b37
+72x20 Ansi256 Data grid · States f88d1bcd2eb66dac
 72x20 Ansi256 Selection 9b173b269cc558fc
 72x20 Ansi256 Cell editors 618af0c8bece7b51
 72x20 Ansi256 Columns 03613b2adf283145
@@ -660,7 +680,9 @@
 72x20 Ansi16 Basic table · Options 74f88c32316a6488
 72x20 Ansi16 Basic table · States 6f2f3a569af5c162
 72x20 Ansi16 Editable cd713326650adaf5
-72x20 Ansi16 Data grid df6ec9c2ebb1496e
+72x20 Ansi16 Data grid 6531b3f5e43afb03
+72x20 Ansi16 Data grid · Options 7284e5090b99eb8f
+72x20 Ansi16 Data grid · States 6eb4ec6afb7429fb
 72x20 Ansi16 Selection 04694996cc958fa5
 72x20 Ansi16 Cell editors 49b3ea4277b0ff0e
 72x20 Ansi16 Columns 2270299cf6c2d193
@@ -724,7 +746,9 @@
 72x20 Mono Basic table · Options d03718c8b052d95c
 72x20 Mono Basic table · States ce7fc9ef1e97d1fc
 72x20 Mono Editable decea2ae81344595
-72x20 Mono Data grid 08022a5af30e2a49
+72x20 Mono Data grid 9b6b40b0eb0a6377
+72x20 Mono Data grid · Options 56460addcc868911
+72x20 Mono Data grid · States 7cfb7131ac6bad51
 72x20 Mono Selection 3b74826e471eec69
 72x20 Mono Cell editors e50069e1dc1f0100
 72x20 Mono Columns 997e628d739abacf
@@ -788,7 +812,9 @@
 100x30 TrueColor Basic table · Options c08b994067466923
 100x30 TrueColor Basic table · States 1380ab0c7735b794
 100x30 TrueColor Editable f79279dcf8689dae
-100x30 TrueColor Data grid 25f1367cfb8f12bb
+100x30 TrueColor Data grid f537459226ad9abe
+100x30 TrueColor Data grid · Options df5c866472bd42e5
+100x30 TrueColor Data grid · States 81942661acce3aa3
 100x30 TrueColor Selection 69b51d71af1dbda6
 100x30 TrueColor Cell editors 06571c86004220cf
 100x30 TrueColor Columns cec4ff67ee927cf4
@@ -852,7 +878,9 @@
 100x30 Ansi256 Basic table · Options 9ce72a0509d9f50c
 100x30 Ansi256 Basic table · States 6aa19d63c8908e16
 100x30 Ansi256 Editable f6986baeebcf9d24
-100x30 Ansi256 Data grid 5f6f9fc164d06c22
+100x30 Ansi256 Data grid b117ddf2ca6c9c3e
+100x30 Ansi256 Data grid · Options 0e75a2f936d1aef3
+100x30 Ansi256 Data grid · States 21826d0e8c8de26b
 100x30 Ansi256 Selection 4af90294be8b8ecb
 100x30 Ansi256 Cell editors a10b6d2ff5b22549
 100x30 Ansi256 Columns 31b3256714b13749
@@ -916,7 +944,9 @@
 100x30 Ansi16 Basic table · Options a9bf16bb0a447252
 100x30 Ansi16 Basic table · States 90e43c8c34fcf0b3
 100x30 Ansi16 Editable 902d8594bd0fe49a
-100x30 Ansi16 Data grid 54a8512da54875fe
+100x30 Ansi16 Data grid 6306ddcf2368b921
+100x30 Ansi16 Data grid · Options ab82eb2adb675dd3
+100x30 Ansi16 Data grid · States c74f057f5a5bdc77
 100x30 Ansi16 Selection f16143061fef8927
 100x30 Ansi16 Cell editors 8c40386cc31b671f
 100x30 Ansi16 Columns 6f78f631daaa54b7
@@ -980,7 +1010,9 @@
 100x30 Mono Basic table · Options 15e6189df9fc2ec1
 100x30 Mono Basic table · States 0e2fc7cc31db62e2
 100x30 Mono Editable 184a9b0309843dfd
-100x30 Mono Data grid 67efc57b4f1e5df8
+100x30 Mono Data grid c7e3710d2e070ce8
+100x30 Mono Data grid · Options 8b8c5b335748bbb8
+100x30 Mono Data grid · States bb4d8a06883046de
 100x30 Mono Selection 54955d3b95ee64cc
 100x30 Mono Cell editors 4d6321f0a8d4d5f4
 100x30 Mono Columns 5324296e37cf7498
@@ -1044,7 +1076,9 @@
 160x50 TrueColor Basic table · Options 6db1b17b71542a2d
 160x50 TrueColor Basic table · States 6a7602846e14bf85
 160x50 TrueColor Editable 7dcf640cff6e21f8
-160x50 TrueColor Data grid 26d1bf7c98839618
+160x50 TrueColor Data grid 98d3e541098174e2
+160x50 TrueColor Data grid · Options b4c441824477854d
+160x50 TrueColor Data grid · States ac3138cb340ce250
 160x50 TrueColor Selection dfe494e481eee311
 160x50 TrueColor Cell editors b06c0c3ed5ea8f41
 160x50 TrueColor Columns b4394725fd6a7f1f
@@ -1108,7 +1142,9 @@
 160x50 Ansi256 Basic table · Options f079fad5065b07d7
 160x50 Ansi256 Basic table · States 4fce6622889b84ea
 160x50 Ansi256 Editable c4a909ee11e49cb0
-160x50 Ansi256 Data grid 46d9bd1e54fe588b
+160x50 Ansi256 Data grid a7717348732ab30d
+160x50 Ansi256 Data grid · Options 6540f5e7fc1cd6de
+160x50 Ansi256 Data grid · States 4d917a92b0922a0b
 160x50 Ansi256 Selection 941d71d08135ae04
 160x50 Ansi256 Cell editors 159926ad7d15d6f1
 160x50 Ansi256 Columns dcfb9ff500ad8cb2
@@ -1172,7 +1208,9 @@
 160x50 Ansi16 Basic table · Options 453893abeff7de9c
 160x50 Ansi16 Basic table · States 40415aee86fe59f9
 160x50 Ansi16 Editable 5203a6e1c81e0ef9
-160x50 Ansi16 Data grid 0811c3b0a126c6d1
+160x50 Ansi16 Data grid 68fc3a4d15ae9236
+160x50 Ansi16 Data grid · Options 3042dc1ed064972b
+160x50 Ansi16 Data grid · States 2243a62e302e3c71
 160x50 Ansi16 Selection 7cb2c4c077da25a4
 160x50 Ansi16 Cell editors cc50f2c1a62a6c8f
 160x50 Ansi16 Columns 6b7125807745b71b
@@ -1236,7 +1274,9 @@
 160x50 Mono Basic table · Options c14057a22c05cbf9
 160x50 Mono Basic table · States ea04f3508781d428
 160x50 Mono Editable 3e824e94b82880ce
-160x50 Mono Data grid 1f9be20abaf4d31b
+160x50 Mono Data grid f293d24af1bae98f
+160x50 Mono Data grid · Options 3ca37af21bd0231e
+160x50 Mono Data grid · States fdd2a123a87a7ec4
 160x50 Mono Selection 5fe5e54f5a6fa6ae
 160x50 Mono Cell editors cdb1b24528826acd
 160x50 Mono Columns cd4f9e5d5f1fb129
