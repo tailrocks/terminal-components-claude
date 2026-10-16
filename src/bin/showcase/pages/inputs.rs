@@ -10,7 +10,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::edit::{EditEntry, FieldKeys, FocusSelect, TextCmd};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::BlurAction;
@@ -231,7 +231,7 @@ impl InputsPage {
         &self.fields[i]
     }
 
-    fn focused_index(&self, cx: &PageCtx) -> Option<usize> {
+    fn focused_index(&self, cx: &Cx) -> Option<usize> {
         let f = cx.focus.current()?;
         self.fields.iter().position(|i| i.id == f)
     }
@@ -408,7 +408,7 @@ impl Page for InputsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

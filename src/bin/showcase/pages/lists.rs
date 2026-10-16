@@ -15,7 +15,7 @@ use crate::app::PageId;
 use crate::options::page_options;
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -439,7 +439,7 @@ impl Page for ListsPage {
         self.menu.hides_page_focus() || self.template.popup_open()
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some((out, chosen)) = self.menu.handle(ev) {
             return match chosen {
                 Some((target, i)) => self.choose(target, i).or(out),

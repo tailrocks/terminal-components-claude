@@ -4,7 +4,7 @@ use ratatui::layout::{Constraint, Rect};
 use crate::data::TaskStatus;
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -215,7 +215,7 @@ impl TablesPage {
 
     /// Item `i` of the menu about `cell`: the same path the item's key or
     /// header click takes.
-    fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut PageCtx) -> Outcome {
+    fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut Cx) -> Outcome {
         let Some(&(action, _)) = self.cell_items(cell).get(i) else {
             return Outcome::Consumed;
         };
@@ -289,7 +289,7 @@ impl TablesPage {
 pub fn route_table(
     t: &mut DataTable,
     ev: &PointerEvent,
-    cx: &mut PageCtx,
+    cx: &mut Cx,
 ) -> Option<(Outcome, Option<TableAction>)> {
     let (out, action) = t.route(ev)?.into_parts();
     if ev.is(Phase::Click) && ev.bar.is_none() && out != Outcome::Ignored {
@@ -299,7 +299,7 @@ pub fn route_table(
 }
 
 impl TablesPage {
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             if let Some(c) = self.table.header_menu_at(ev) {
                 cx.focus.focus(self.table.id);
@@ -468,7 +468,7 @@ impl Page for TablesPage {
         Some(&mut self.template)
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }
