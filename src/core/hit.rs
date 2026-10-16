@@ -16,14 +16,18 @@ pub struct HitRegion {
     /// A region that only serves as a scroll container: wheel events are
     /// routed to it, but it is not hoverable/clickable on its own.
     pub scroll_only: bool,
+    /// A light-dismiss backdrop whose click also reaches the region
+    /// beneath it (see [`HitRegistry::pass_through_target`]).
+    pub pass_through: bool,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct HitRegistry {
     regions: Vec<HitRegion>,
-    /// Regions registered while a modal barrier is active shadow everything
-    /// registered before the barrier.
-    barrier: Option<usize>,
+    /// Barrier stack: each entry is the region index a layer starts at.
+    /// Only the top layer is reachable; the one below it is what a
+    /// pass-through backdrop lets a click fall into.
+    barriers: Vec<usize>,
 }
 
 impl HitRegistry {
@@ -35,6 +39,21 @@ impl HitRegistry {
             id,
             area,
             scroll_only: false,
+            pass_through: false,
+        });
+    }
+
+    /// Register a light-dismiss backdrop for a popup layer. With
+    /// `pass_through`, a click on it also lands on what is beneath.
+    pub fn register_backdrop(&mut self, id: WidgetId, area: Rect, pass_through: bool) {
+        if area.is_empty() {
+            return;
+        }
+        self.regions.push(HitRegion {
+            id,
+            area,
+            scroll_only: false,
+            pass_through,
         });
     }
 
@@ -46,19 +65,47 @@ impl HitRegistry {
             id,
             area,
             scroll_only: true,
+            pass_through: false,
         });
     }
 
     /// Everything registered before this call is unreachable by the mouse.
     pub fn push_barrier(&mut self) {
-        self.barrier = Some(self.regions.len());
+        self.barriers.push(self.regions.len());
     }
 
     fn reachable(&self) -> &[HitRegion] {
-        match self.barrier {
-            Some(start) => &self.regions[start..],
+        match self.barriers.last() {
+            Some(&start) => &self.regions[start..],
             None => &self.regions,
         }
+    }
+
+    /// The layer directly under the top barrier.
+    fn beneath(&self) -> &[HitRegion] {
+        match self.barriers.as_slice() {
+            [] => &[],
+            [top] => &self.regions[..*top],
+            [.., below, top] => &self.regions[*below..*top],
+        }
+    }
+
+    /// When `id` is a pass-through backdrop under `pos`, the clickable
+    /// region beneath it that the same click should also reach.
+    pub fn pass_through_target(&self, id: WidgetId, pos: Position) -> Option<WidgetId> {
+        let top = self
+            .reachable()
+            .iter()
+            .rev()
+            .find(|r| !r.scroll_only && r.area.contains(pos))?;
+        if top.id != id || !top.pass_through {
+            return None;
+        }
+        self.beneath()
+            .iter()
+            .rev()
+            .find(|r| !r.scroll_only && r.area.contains(pos))
+            .map(|r| r.id)
     }
 
     /// Topmost hoverable/clickable widget under the position.
@@ -123,6 +170,23 @@ mod tests {
         h.register(b, Rect::new(2, 2, 3, 3));
         assert_eq!(h.hit(Position::new(1, 1)), None);
         assert_eq!(h.hit(Position::new(3, 3)), Some(b));
+    }
+
+    #[test]
+    fn pass_through_backdrops_reveal_the_layer_beneath() {
+        let mut h = HitRegistry::default();
+        let below = WidgetId::of("below");
+        let back = WidgetId::of("back");
+        let solid = WidgetId::of("solid");
+        h.register(below, Rect::new(0, 0, 10, 10));
+        h.push_barrier();
+        h.register_backdrop(back, Rect::new(0, 0, 10, 10), true);
+        let p = Position::new(2, 2);
+        assert_eq!(h.hit(p), Some(back));
+        assert_eq!(h.pass_through_target(back, p), Some(below));
+        h.push_barrier();
+        h.register_backdrop(solid, Rect::new(0, 0, 10, 10), false);
+        assert_eq!(h.pass_through_target(solid, p), None);
     }
 
     #[test]

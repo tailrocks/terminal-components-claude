@@ -664,9 +664,7 @@ impl MenuBar {
         }
         ctx.overlay(move |buf, ctx| {
             ctx.hits.push_barrier();
-            if dismiss.outside_click {
-                ctx.clickable(backdrop_id(id), *buf.area());
-            }
+            crate::ui::popup::backdrop(ctx, id, dismiss, *buf.area());
             for (tid, r) in titles {
                 ctx.clickable(tid, r);
             }

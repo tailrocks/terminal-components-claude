@@ -1430,6 +1430,88 @@ impl App {
 
     // ------------------------------------------------------------- mouse
 
+    /// A button release at `m.pos` over `hit`.
+    fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
+        let pressed = self.pressed.take();
+        let Some(id) = hit else {
+            if !self.modals.is_empty() && pressed.is_none() {
+                return self.modal_outside_click();
+            }
+            if self.menu.is_open() {
+                self.menu.close();
+            }
+            return Outcome::Changed;
+        };
+        if pressed != Some(id) {
+            return Outcome::Changed;
+        }
+        self.flash = Some((id, self.world.now_ms() + 140));
+        let double = self
+            .last_click
+            .take()
+            .is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
+        self.last_click = Some((id, self.world.now_ms()));
+        if !self.modals.is_empty() {
+            return self.modal_click(id, m.pos);
+        }
+        if self.menu.owns(id) {
+            let (o, ev) = self.menu.on_click(id);
+            return match ev {
+                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                    let label = self.menu.menus[mi][ii].label.clone();
+                    self.run_menu(&label)
+                }
+                Some(MenuBarEvent::Brand) => {
+                    self.open_about();
+                    Outcome::Changed
+                }
+                _ => o.or(Outcome::Changed),
+            };
+        }
+        if self.menu.is_open() {
+            self.menu.close();
+            return Outcome::Changed;
+        }
+        if self.strip.owns(id) {
+            let (_, ev) = self.strip.on_click(id);
+            match ev {
+                Some(TabEvent::Activated(i)) => self.activate_tab(i),
+                Some(TabEvent::Close(i)) => {
+                    self.active = i;
+                    self.go(Go::CloseTab);
+                }
+                _ => {}
+            }
+            return Outcome::Changed;
+        }
+        if id == STATUS_RUNNING {
+            self.open_activities();
+            return Outcome::Changed;
+        }
+        if id == STATUS_PATH {
+            let p = self.world.location.cwd.clone();
+            self.copy(p);
+            return Outcome::Changed;
+        }
+        if id == STATUS_GIT {
+            self.go(Go::Run {
+                item: "git.status".into(),
+                args: vec![],
+            });
+            return Outcome::Changed;
+        }
+        let o = self.with_top(|s, w, cx| {
+            if double {
+                let d = s.on_double_click(id, m.pos, w, cx);
+                if d.consumed() {
+                    return d;
+                }
+            }
+            s.on_click(id, m.pos, w, cx)
+        });
+        o.or(Outcome::Changed)
+    }
+
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
         match m.kind {
             MouseKind::Move => {
@@ -1479,84 +1561,19 @@ impl App {
             }
             MouseKind::Up => {
                 let hit = self.hits.hit(m.pos);
-                let pressed = self.pressed.take();
-                let Some(id) = hit else {
-                    if !self.modals.is_empty() && pressed.is_none() {
-                        return self.modal_outside_click();
+                // a pass-through backdrop: the click closes the popup and
+                // then lands on what is beneath it, as a click of its own
+                let beneath = hit
+                    .filter(|id| self.pressed == Some(*id))
+                    .and_then(|id| self.hits.pass_through_target(id, m.pos));
+                let out = self.on_release(m, hit);
+                match beneath {
+                    Some(below) => {
+                        self.pressed = Some(below);
+                        out.or(self.on_release(m, Some(below)))
                     }
-                    if self.menu.is_open() {
-                        self.menu.close();
-                    }
-                    return Outcome::Changed;
-                };
-                if pressed != Some(id) {
-                    return Outcome::Changed;
+                    None => out,
                 }
-                self.flash = Some((id, self.world.now_ms() + 140));
-                let double = self
-                    .last_click
-                    .take()
-                    .is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
-                self.last_click = Some((id, self.world.now_ms()));
-                if !self.modals.is_empty() {
-                    return self.modal_click(id, m.pos);
-                }
-                if self.menu.owns(id) {
-                    let (o, ev) = self.menu.on_click(id);
-                    return match ev {
-                        Some(MenuBarEvent::Chosen(mi, ii)) => {
-                            let label = self.menu.menus[mi][ii].label.clone();
-                            self.run_menu(&label)
-                        }
-                        Some(MenuBarEvent::Brand) => {
-                            self.open_about();
-                            Outcome::Changed
-                        }
-                        _ => o.or(Outcome::Changed),
-                    };
-                }
-                if self.menu.is_open() {
-                    self.menu.close();
-                    return Outcome::Changed;
-                }
-                if self.strip.owns(id) {
-                    let (_, ev) = self.strip.on_click(id);
-                    match ev {
-                        Some(TabEvent::Activated(i)) => self.activate_tab(i),
-                        Some(TabEvent::Close(i)) => {
-                            self.active = i;
-                            self.go(Go::CloseTab);
-                        }
-                        _ => {}
-                    }
-                    return Outcome::Changed;
-                }
-                if id == STATUS_RUNNING {
-                    self.open_activities();
-                    return Outcome::Changed;
-                }
-                if id == STATUS_PATH {
-                    let p = self.world.location.cwd.clone();
-                    self.copy(p);
-                    return Outcome::Changed;
-                }
-                if id == STATUS_GIT {
-                    self.go(Go::Run {
-                        item: "git.status".into(),
-                        args: vec![],
-                    });
-                    return Outcome::Changed;
-                }
-                let o = self.with_top(|s, w, cx| {
-                    if double {
-                        let d = s.on_double_click(id, m.pos, w, cx);
-                        if d.consumed() {
-                            return d;
-                        }
-                    }
-                    s.on_click(id, m.pos, w, cx)
-                });
-                o.or(Outcome::Changed)
             }
             MouseKind::Secondary => {
                 let hit = self.hits.hit(m.pos);

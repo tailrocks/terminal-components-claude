@@ -1864,6 +1864,120 @@ impl App {
 
     // ---------------------------------------------------------------- mouse
 
+    /// A button release at `m.pos` over `hit`.
+    fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
+        let pressed = self.pressed.take();
+        let Some(id) = hit else {
+            // click outside a modal cancels it (dialogs decide themselves)
+            if let Some(modal) = self.modal.as_mut()
+                && pressed.is_none()
+            {
+                match modal {
+                    Modal::Dialog(d) => {
+                        let out = d.on_click_outside();
+                        if let Some(result) = d.result {
+                            let did = d.id;
+                            self.close_modal();
+                            return self.dialog_closed(did, result, None).or(out);
+                        }
+                    }
+                    Modal::Picker(..) | Modal::Filter(_) => {
+                        self.close_modal();
+                        return Outcome::Changed;
+                    }
+                }
+            }
+            return Outcome::Changed;
+        };
+        if pressed != Some(id) {
+            return Outcome::Changed;
+        }
+        self.flash = Some((id, Instant::now()));
+        if let Some(modal) = self.modal.as_mut() {
+            return match modal {
+                Modal::Dialog(d) => {
+                    let out = d.on_click(id, m.pos, &mut self.focus);
+                    if let Some(result) = d.result {
+                        let did = d.id;
+                        let value = match &d.body {
+                            DialogBody::Input(i) => Some(i.text().to_owned()),
+                            _ => None,
+                        };
+                        self.close_modal();
+                        return self.dialog_closed(did, result, value).or(out);
+                    }
+                    out.or(Outcome::Changed)
+                }
+                Modal::Picker(kind, p, _) => {
+                    let kind = *kind;
+                    if let Some(PickerEvent::Chosen(i)) = p.on_click(id) {
+                        return self.picker_chosen(kind, i, false);
+                    }
+                    Outcome::Changed
+                }
+                Modal::Filter(f) => {
+                    let o = Self::filter_click(f, id, m.pos, &mut self.focus);
+                    match o {
+                        FilterOutcome::Keep(o) => o,
+                        FilterOutcome::Apply => self.apply_filter(),
+                        FilterOutcome::Cancel => {
+                            self.close_modal();
+                            Outcome::Changed
+                        }
+                    }
+                }
+            };
+        }
+        if id == STRIP_HELP {
+            self.open_help();
+            return Outcome::Changed;
+        }
+        if id == STRIP_SAFE {
+            self.open_safe_mode_picker();
+            return Outcome::Changed;
+        }
+        if id == STRIP_SCOPE {
+            self.open_switcher();
+            self.scope = 2;
+            self.refresh_switcher();
+            return Outcome::Changed;
+        }
+        if id == STRIP_CONN {
+            if self.screen == Screen::Workbench {
+                self.open_tab_list();
+            }
+            return Outcome::Changed;
+        }
+        match self.screen {
+            Screen::Connections => {
+                let mut cx = Cx {
+                    focus: &mut self.focus,
+                    ring: &self.ring,
+                    requests: Vec::new(),
+                };
+                let (o, _) = self.connections.on_click(id, m.pos, &mut cx);
+                let reqs = std::mem::take(&mut cx.requests);
+                let o2 = self.apply_requests(reqs);
+                o.or(o2).or(Outcome::Changed)
+            }
+            Screen::Workbench => {
+                let Some(mut w) = self.workbench.take() else {
+                    return Outcome::Changed;
+                };
+                let mut cx = Cx {
+                    focus: &mut self.focus,
+                    ring: &self.ring,
+                    requests: Vec::new(),
+                };
+                let o = w.on_click(id, m.pos, &mut cx, &mut self.history);
+                let reqs = std::mem::take(&mut cx.requests);
+                self.workbench = Some(w);
+                let o2 = self.apply_requests(reqs);
+                o.or(o2).or(Outcome::Changed)
+            }
+        }
+    }
+
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
         match m.kind {
             MouseKind::Move => {
@@ -1915,115 +2029,18 @@ impl App {
             }
             MouseKind::Up => {
                 let hit = self.hits.hit(m.pos);
-                let pressed = self.pressed.take();
-                let Some(id) = hit else {
-                    // click outside a modal cancels it (dialogs decide themselves)
-                    if let Some(modal) = self.modal.as_mut()
-                        && pressed.is_none()
-                    {
-                        match modal {
-                            Modal::Dialog(d) => {
-                                let out = d.on_click_outside();
-                                if let Some(result) = d.result {
-                                    let did = d.id;
-                                    self.close_modal();
-                                    return self.dialog_closed(did, result, None).or(out);
-                                }
-                            }
-                            Modal::Picker(..) | Modal::Filter(_) => {
-                                self.close_modal();
-                                return Outcome::Changed;
-                            }
-                        }
+                // a pass-through backdrop: the click closes the popup and
+                // then lands on what is beneath it, as a click of its own
+                let beneath = hit
+                    .filter(|id| self.pressed == Some(*id))
+                    .and_then(|id| self.hits.pass_through_target(id, m.pos));
+                let out = self.on_release(m, hit);
+                match beneath {
+                    Some(below) => {
+                        self.pressed = Some(below);
+                        out.or(self.on_release(m, Some(below)))
                     }
-                    return Outcome::Changed;
-                };
-                if pressed != Some(id) {
-                    return Outcome::Changed;
-                }
-                self.flash = Some((id, Instant::now()));
-                if let Some(modal) = self.modal.as_mut() {
-                    return match modal {
-                        Modal::Dialog(d) => {
-                            let out = d.on_click(id, m.pos, &mut self.focus);
-                            if let Some(result) = d.result {
-                                let did = d.id;
-                                let value = match &d.body {
-                                    DialogBody::Input(i) => Some(i.text().to_owned()),
-                                    _ => None,
-                                };
-                                self.close_modal();
-                                return self.dialog_closed(did, result, value).or(out);
-                            }
-                            out.or(Outcome::Changed)
-                        }
-                        Modal::Picker(kind, p, _) => {
-                            let kind = *kind;
-                            if let Some(PickerEvent::Chosen(i)) = p.on_click(id) {
-                                return self.picker_chosen(kind, i, false);
-                            }
-                            Outcome::Changed
-                        }
-                        Modal::Filter(f) => {
-                            let o = Self::filter_click(f, id, m.pos, &mut self.focus);
-                            match o {
-                                FilterOutcome::Keep(o) => o,
-                                FilterOutcome::Apply => self.apply_filter(),
-                                FilterOutcome::Cancel => {
-                                    self.close_modal();
-                                    Outcome::Changed
-                                }
-                            }
-                        }
-                    };
-                }
-                if id == STRIP_HELP {
-                    self.open_help();
-                    return Outcome::Changed;
-                }
-                if id == STRIP_SAFE {
-                    self.open_safe_mode_picker();
-                    return Outcome::Changed;
-                }
-                if id == STRIP_SCOPE {
-                    self.open_switcher();
-                    self.scope = 2;
-                    self.refresh_switcher();
-                    return Outcome::Changed;
-                }
-                if id == STRIP_CONN {
-                    if self.screen == Screen::Workbench {
-                        self.open_tab_list();
-                    }
-                    return Outcome::Changed;
-                }
-                match self.screen {
-                    Screen::Connections => {
-                        let mut cx = Cx {
-                            focus: &mut self.focus,
-                            ring: &self.ring,
-                            requests: Vec::new(),
-                        };
-                        let (o, _) = self.connections.on_click(id, m.pos, &mut cx);
-                        let reqs = std::mem::take(&mut cx.requests);
-                        let o2 = self.apply_requests(reqs);
-                        o.or(o2).or(Outcome::Changed)
-                    }
-                    Screen::Workbench => {
-                        let Some(mut w) = self.workbench.take() else {
-                            return Outcome::Changed;
-                        };
-                        let mut cx = Cx {
-                            focus: &mut self.focus,
-                            ring: &self.ring,
-                            requests: Vec::new(),
-                        };
-                        let o = w.on_click(id, m.pos, &mut cx, &mut self.history);
-                        let reqs = std::mem::take(&mut cx.requests);
-                        self.workbench = Some(w);
-                        let o2 = self.apply_requests(reqs);
-                        o.or(o2).or(Outcome::Changed)
-                    }
+                    None => out,
                 }
             }
             MouseKind::Secondary => Outcome::Ignored,

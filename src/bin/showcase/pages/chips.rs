@@ -9,6 +9,7 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipEvent};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::panel::Panel;
@@ -57,7 +58,10 @@ impl ChipsPage {
                 0,
             )
             .help("Applies to the next query"),
-            page_size: Select::new(ID.sub("size"), "Page size", &["25", "50", "100", "500"], 1),
+            // demonstrates the pass-through policy: a click outside the open
+            // list closes it and also reaches the control beneath
+            page_size: Select::new(ID.sub("size"), "Page size", &["25", "50", "100", "500"], 1)
+                .dismiss(Dismiss::LIGHT.pass_through(true)),
             engine: Select::new(ID.sub("engine"), "Engine", &["PostgreSQL"], 0)
                 .disabled(true)
                 .help("Fixed by the connection"),
