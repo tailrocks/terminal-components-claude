@@ -10,6 +10,7 @@ pub mod inspect;
 pub mod manager;
 pub mod modals;
 pub mod prelude;
+pub mod rowmenu;
 pub mod settings;
 pub mod usage;
 
