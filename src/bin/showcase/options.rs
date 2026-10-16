@@ -208,6 +208,8 @@ pub static SHELL: &[Opt] = &[
         "Focus fallback",
         &["first", "nearest"],
     )
+    // the library default (`FocusFallback::default()`)
+    .default(1)
     .behaviour(),
     Opt::new(
         "shell.shift_wheel_horizontal",
