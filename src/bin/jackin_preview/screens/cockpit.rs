@@ -21,7 +21,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use super::modals::{InfoDialog, InfoResult};
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
+use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
 use crate::domain::fixtures::PrecedenceLevel;
@@ -280,7 +280,7 @@ impl CockpitScreen {
                     d.cancel_index = Some(2);
                     d.initial_focus = d.actions[0].id;
                     d.width = 70;
-                    cx.open(Modal::Dialog(d), ModalTag::new("cred"));
+                    cx.open(d, LayerTag::new("cred"));
                 }
                 LaunchEvent::Failed(f) => {
                     self.frozen_at = Some(self.tick);
@@ -392,7 +392,7 @@ impl CockpitScreen {
             .meta("run id is the only copyable value")
             .width(70);
         let _ = w;
-        cx.open(Modal::Info(d), ModalTag::new("failure"));
+        cx.open(d, LayerTag::new("failure"));
     }
 
     fn open_info(&mut self, w: &World, cx: &mut Cx) {
@@ -425,7 +425,7 @@ impl CockpitScreen {
         }
         let d =
             InfoDialog::new(WidgetId::of("cockpit.info"), "Debug info", props).meta("read-only");
-        cx.open(Modal::Info(d), ModalTag::new("info"));
+        cx.open(d, LayerTag::new("info"));
     }
 
     fn open_quit(&mut self, cx: &mut Cx) {
@@ -435,7 +435,7 @@ impl CockpitScreen {
             "Quitting force-stops the launch immediately. Partially prepared resources are cleaned up on the next launch.",
             "Quit",
         );
-        cx.open(Modal::Dialog(d), ModalTag::new("quit"));
+        cx.open(d, LayerTag::new("quit"));
     }
 
     fn cancel(&mut self, w: &mut World, cx: &mut Cx) {
@@ -467,7 +467,7 @@ impl CockpitScreen {
             "Cancel launch",
         )
         .cancel_label("Keep launching");
-        cx.open(Modal::Dialog(d), ModalTag::new("cancel"));
+        cx.open(d, LayerTag::new("cancel"));
         Outcome::Changed
     }
 
@@ -716,7 +716,7 @@ impl Screen for CockpitScreen {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,

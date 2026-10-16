@@ -19,9 +19,8 @@ use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::leave::Stakes;
-use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::Hint;
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::picker::PickerItem;
 use junie_tui::widgets::segments::Segment;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -33,89 +32,17 @@ use crate::domain::onepassword::OpReference;
 use crate::domain::workspace::{Workspace, WorkspaceId};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
-use modals::{
-    BrowserResult, ChoiceDialog, FileBrowser, FormDialog, FormValues, HelpOverlay, InfoDialog,
-    InfoResult, OpFlow,
-};
+use junie_tui::ui::layer::Layer;
+pub use junie_tui::ui::layer::LayerTag;
+use junie_tui::ui::layers::LayerResult;
+use junie_tui::widgets::menu::MenuAction;
+use junie_tui::widgets::picker::PickerAction;
+use modals::{BrowserResult, FormAction, FormDialog, FormValues, InfoResult};
 
-/// Identifies a modal's purpose and target for its owning screen.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModalTag {
-    pub kind: &'static str,
-    pub key: String,
-    pub n: usize,
-}
-
-impl ModalTag {
-    pub fn new(kind: &'static str) -> Self {
-        Self {
-            kind,
-            key: String::new(),
-            n: 0,
-        }
-    }
-    pub fn key(mut self, k: impl Into<String>) -> Self {
-        self.key = k.into();
-        self
-    }
-    pub fn n(mut self, n: usize) -> Self {
-        self.n = n;
-        self
-    }
-}
-
-/// A screen-specific modal that still lives on the shared modal stack.
-pub trait CustomModal {
-    fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing, w: &World) -> Outcome;
-    fn on_click(
-        &mut self,
-        _id: WidgetId,
-        _pos: Position,
-        _focus: &mut Focus,
-        _w: &World,
-    ) -> Outcome {
-        Outcome::Consumed
-    }
-    /// Wheel over the modal; `pos` lets a modal with several regions route it.
-    fn on_wheel(&mut self, _delta: i32, _pos: Position) -> Outcome {
-        Outcome::Consumed
-    }
-    /// Horizontal wheel (or Shift+wheel) over the modal: only content with
-    /// a horizontal axis reacts.
-    fn on_wheel_h(&mut self, _delta: i32, _pos: Position) -> Outcome {
-        Outcome::Consumed
-    }
-    /// Pointer drag that started on `pressed` inside the modal.
-    fn on_drag(&mut self, _pressed: WidgetId, _pos: Position) -> Outcome {
-        Outcome::Consumed
-    }
-    fn on_tick(&mut self, _w: &World) -> Outcome {
-        Outcome::Ignored
-    }
-    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World);
-    fn done(&mut self) -> Option<ModalResult>;
-    fn initial_focus(&self) -> WidgetId;
-    fn hints(&self) -> Vec<Hint>;
-    /// Which dismissals close it (Esc, a click outside). Default
-    /// [`Dismiss::LIGHT`].
-    fn dismiss(&self) -> junie_tui::ui::popup::Dismiss {
-        junie_tui::ui::popup::Dismiss::LIGHT
-    }
-}
-
-#[allow(clippy::large_enum_variant)]
-pub enum Modal {
-    Dialog(Dialog),
-    Picker(Picker),
-    Browser(FileBrowser),
-    Choice(ChoiceDialog),
-    Form(FormDialog),
-    Op(OpFlow),
-    Info(InfoDialog),
-    Help(HelpOverlay),
-    Custom(Box<dyn CustomModal>),
-}
-
+/// What a layer reports to the screen that opened it. Library modals
+/// report a [`LayerResult`], converted once here; the app's own layers
+/// (the file browser, the 1Password chain, the Capsule's custom modals)
+/// report a `ModalResult` directly.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModalResult {
     /// `action` is the pressed button index (None = cancelled); `text` the
@@ -128,16 +55,52 @@ pub enum ModalResult {
     PickedAlt(usize),
     /// Picker Tab: cycle scope (owner re-supplies rows).
     Scope,
+    /// A picker event the shell handles itself (the query changed: the
+    /// owner re-supplies rows) or that nobody needs (Back, Submit).
+    PickerEvent(PickerAction),
     Cancelled,
     Browser(BrowserResult),
     Choice(Option<usize>),
     Form(Option<FormValues>),
     /// Named button on a form other than Save/Cancel (e.g. Validate).
     FormAction(String, FormValues),
+    /// A form event before the shell attaches the form's values (Save,
+    /// a chooser or action button) or answers it itself (a field
+    /// changed). Screens never receive it.
+    FormEvent(FormAction),
     Op(Option<OpReference>),
     Info(InfoResult),
+    /// The help overlay closed; nobody is told.
+    Help,
     Custom(String),
 }
+
+impl From<LayerResult> for ModalResult {
+    fn from(r: LayerResult) -> Self {
+        match r {
+            LayerResult::Dialog { action, text } => ModalResult::Dialog { action, text },
+            LayerResult::Picker(PickerAction::Chosen(i))
+            | LayerResult::Menu(MenuAction::Chosen(i)) => ModalResult::Picked(i),
+            LayerResult::Picker(PickerAction::ChosenAlt(i)) => ModalResult::PickedAlt(i),
+            LayerResult::Picker(PickerAction::NextScope | PickerAction::PrevScope) => {
+                ModalResult::Scope
+            }
+            LayerResult::Picker(PickerAction::Cancelled) | LayerResult::Menu(_) => {
+                ModalResult::Cancelled
+            }
+            LayerResult::Picker(ev) => ModalResult::PickerEvent(ev),
+            LayerResult::Form(FormAction::Cancel) => ModalResult::Form(None),
+            LayerResult::Form(ev) => ModalResult::FormEvent(ev),
+            LayerResult::Choice(c) => ModalResult::Choice(c),
+            LayerResult::Info(r) => ModalResult::Info(r),
+            LayerResult::Help => ModalResult::Help,
+        }
+    }
+}
+
+/// Every layer on the app's stack: it reads the world while it draws and
+/// handles input, and reports a [`ModalResult`] to its owner.
+pub type AppLayer = dyn Layer<ModalResult, World>;
 
 /// Navigation the app performs on a screen's behalf.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -189,7 +152,7 @@ pub enum Go {
 pub enum Request {
     Status(String),
     Error(String),
-    Open(Box<Modal>, ModalTag),
+    Open(Box<AppLayer>, LayerTag),
     Close,
     Go(Go),
     Copy(String),
@@ -219,8 +182,9 @@ impl Cx<'_> {
     pub fn error(&mut self, s: impl Into<String>) {
         self.requests.push(Request::Error(s.into()));
     }
-    pub fn open(&mut self, modal: Modal, tag: ModalTag) {
-        self.requests.push(Request::Open(Box::new(modal), tag));
+    /// Open `layer` on the app's layer stack, owned by this screen.
+    pub fn open(&mut self, layer: impl Layer<ModalResult, World>, tag: LayerTag) {
+        self.requests.push(Request::Open(Box::new(layer), tag));
     }
     pub fn close(&mut self) {
         self.requests.push(Request::Close);
@@ -319,7 +283,7 @@ pub trait Screen {
     }
     fn on_modal(
         &mut self,
-        _tag: &ModalTag,
+        _tag: &LayerTag,
         _result: ModalResult,
         _w: &mut World,
         _cx: &mut Cx,
@@ -329,14 +293,14 @@ pub trait Screen {
     /// Rows for a picker this screen opened; `None` keeps the current rows.
     fn picker_items(
         &mut self,
-        _tag: &ModalTag,
+        _tag: &LayerTag,
         _query: &str,
         _w: &World,
     ) -> Option<Vec<PickerItem>> {
         None
     }
     /// A form field changed: reveal/hide dependent fields.
-    fn form_changed(&mut self, _tag: &ModalTag, _form: &mut FormDialog, _w: &World) {}
+    fn form_changed(&mut self, _tag: &LayerTag, _form: &mut FormDialog, _w: &World) {}
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World);
     fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint>;
     /// Scope crumb after the Construct state: `Workspaces › api-server`.
