@@ -508,12 +508,6 @@ widgets::diff::DiffFile | Diff and Terminal page options | SC25
 widgets::diff::DiffMode::toggled | Diff and Terminal page options | SC25
 
 # widgets::empty
-widgets::empty::EmptyKind | Progress and Empty & error pages | SC21
-widgets::empty::EmptyKind::Empty | Progress and Empty & error pages | SC21
-widgets::empty::EmptyKind::Error | Progress and Empty & error pages | SC21
-widgets::empty::EmptyAction | Progress and Empty & error pages | SC21
-widgets::empty::EmptyState::actions | Progress and Empty & error pages | SC21
-widgets::empty::EmptyState::hint | Progress and Empty & error pages | SC21
 
 # widgets::field_common
 widgets::field_common::EditAction | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -811,9 +805,6 @@ widgets::picker::Picker::dismiss | Pickers page options | SC20
 widgets::picker::Picker::cursor_style | Pickers page options | SC20
 
 # widgets::progress
-widgets::progress::BarLayout | Progress and Empty & error pages | SC21
-widgets::progress::BarLayout::label_width | Progress and Empty & error pages | SC21
-widgets::progress::BarLayout::reserve_value | Progress and Empty & error pages | SC21
 
 # widgets::props
 

@@ -166,10 +166,10 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
     let red_fills = buffer.content().iter().filter(|c| c.bg == t.error).count();
     assert_eq!(red_fills, 0, "no red block fills");
 
-    let (x, y) = h.find("Halfway");
+    let (x, y) = h.find("Push to registry");
     let run = (x..x + 30)
         .find(|&cx| h.cell(cx, y).symbol() == t.glyphs.bar_fill)
-        .expect("halfway run");
+        .expect("running run");
     assert_eq!(h.cell(run, y).fg, t.accent, "a running bar is active");
 
     // owner thresholds: 88% of a disk is attention, not danger

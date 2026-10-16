@@ -222,6 +222,8 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Chrome => CHROME,
         PageId::StatusHints => STATUS_HINTS,
         PageId::TextUtilities => TEXT_UTILITIES,
+        PageId::Progress => PROGRESS,
+        PageId::EmptyError => EMPTY_ERROR,
         _ => &[],
     }
 }
@@ -708,6 +710,32 @@ pub static TABS: &[Opt] = &[
     Opt::new("tabs.overflow_menu", "Overflow +N", OFF_ON).default(1),
     Opt::new("tabs.more_button", "+N button", &["default", "tight"]),
     Opt::new("tabs.count", "Tabs", &["few", "many"]).default(1),
+];
+
+/// Progress (SC21): the bar layout every bar shares, and the meters'
+/// visual and stale style.
+pub static PROGRESS: &[Opt] = &[
+    Opt::new(
+        "progress.label_width",
+        "Label column",
+        &["16", "measured", "10"],
+    ),
+    Opt::new("progress.reserve_value", "Reserve the value column", OFF_ON).default(1),
+    Opt::new("progress.meter_visual", "Meter visual", &["line", "block"]),
+    Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// Empty & error (SC21): the empty state's kind, hint and actions, and
+/// the read-only reason.
+pub static EMPTY_ERROR: &[Opt] = &[
+    Opt::new("emptyerror.kind", "Kind", &["empty", "error"]),
+    Opt::new("emptyerror.hint", "Hint", OFF_ON).default(1),
+    Opt::new("emptyerror.actions", "Actions", &["none", "one", "two"]).default(2),
+    Opt::new(
+        "emptyerror.reason",
+        "Read-only reason",
+        &["view", "no-key", "result"],
+    ),
 ];
 
 /// Every option `--opt` accepts: the shell-wide ones, then each page's.

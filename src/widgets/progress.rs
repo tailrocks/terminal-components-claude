@@ -621,6 +621,217 @@ pub fn render_spinner(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: 
     buf.set_string(area.x + 2, area.y, label, t.secondary().bg(bg));
 }
 
+/// One progress bar as a value: the label, the ratio (`None` for an
+/// indeterminate sweep), the status and the [`BarLayout`]. It draws through
+/// [`render_bar_with`] or [`render_indeterminate_with`], so a bar kept in
+/// a list (a job table, a States grid) looks exactly like a drawn one.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProgressBar {
+    pub label: String,
+    /// `Some(0.0..=1.0)` for a determinate bar, `None` for an
+    /// indeterminate one (the status is then ignored).
+    pub ratio: Option<f64>,
+    pub status: ProgressStatus,
+    pub layout: BarLayout,
+}
+
+impl ProgressBar {
+    /// A determinate bar, [`ProgressStatus::Active`].
+    pub fn new(label: &str, ratio: f64) -> Self {
+        Self {
+            label: label.to_owned(),
+            ratio: Some(ratio),
+            status: ProgressStatus::Active,
+            layout: BarLayout::default(),
+        }
+    }
+    /// An indeterminate bar: work whose size is not known yet.
+    pub fn indeterminate(label: &str) -> Self {
+        Self {
+            ratio: None,
+            ..Self::new(label, 0.0)
+        }
+    }
+    pub fn status(mut self, status: ProgressStatus) -> Self {
+        self.status = status;
+        self
+    }
+    pub fn layout(mut self, layout: BarLayout) -> Self {
+        self.layout = layout;
+        self
+    }
+
+    pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        match self.ratio {
+            Some(r) => {
+                render_bar_with(area, buf, ctx, &self.label, r, self.status, bg, self.layout)
+            }
+            None => render_indeterminate_with(area, buf, ctx, &self.label, bg, self.layout),
+        }
+    }
+}
+
+/// The aggregate of a set of tasks, for a header over their bars:
+/// `3 of 6 done · 2 running · 1 failed`. Clauses with a zero count are
+/// left out; only the failed clause takes the error tone (the word is the
+/// cue without colour), the rest stay secondary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Tally {
+    pub done: usize,
+    pub total: usize,
+    pub running: usize,
+    pub paused: usize,
+    pub failed: usize,
+}
+
+impl Tally {
+    /// Count `statuses`: done, running (active), paused and failed
+    /// (error) tasks out of all of them.
+    pub fn of(statuses: impl IntoIterator<Item = ProgressStatus>) -> Self {
+        let mut t = Self::default();
+        for s in statuses {
+            t.total += 1;
+            match s {
+                ProgressStatus::Done => t.done += 1,
+                ProgressStatus::Active => t.running += 1,
+                ProgressStatus::Paused => t.paused += 1,
+                ProgressStatus::Error => t.failed += 1,
+            }
+        }
+        t
+    }
+
+    /// The clauses in order, each with whether it is the failed one.
+    fn clauses(&self) -> Vec<(String, bool)> {
+        let mut out = vec![(format!("{} of {} done", self.done, self.total), false)];
+        for (n, what, failed) in [
+            (self.running, "running", false),
+            (self.paused, "paused", false),
+            (self.failed, "failed", true),
+        ] {
+            if n > 0 {
+                out.push((format!("{n} {what}"), failed));
+            }
+        }
+        out
+    }
+
+    /// The plain text: `3 of 6 done · 2 running · 1 failed`.
+    pub fn text(&self) -> String {
+        self.clauses()
+            .into_iter()
+            .map(|(c, _)| c)
+            .collect::<Vec<_>>()
+            .join(" · ")
+    }
+
+    /// Draw on `area`'s first row, cut to its width. Returns the columns
+    /// drawn.
+    pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, bg: Color) -> u16 {
+        let area = area.intersection(*buf.area());
+        if area.is_empty() {
+            return 0;
+        }
+        let t = ctx.theme;
+        let mut x = area.x;
+        for (i, (clause, failed)) in self.clauses().into_iter().enumerate() {
+            let sep = if i == 0 { "" } else { " · " };
+            let tone = if failed { t.error_fg() } else { t.secondary() };
+            for (s, style) in [(sep.to_owned(), t.faint()), (clause, tone)] {
+                let room = area.right().saturating_sub(x) as usize;
+                if room == 0 {
+                    return x - area.x;
+                }
+                let s = crate::ui::text::truncate(&s, room);
+                buf.set_string(x, area.y, &s, style.bg(bg));
+                x += width(&s) as u16;
+            }
+        }
+        x - area.x
+    }
+}
+
+/// The id a non-interactive sample answers to in a States grid.
+const SAMPLE_ID: crate::core::id::WidgetId = crate::core::id::WidgetId::of("progress-sample");
+
+impl crate::ui::specimen::Specimen for ProgressBar {
+    fn specimen_id(&self) -> crate::core::id::WidgetId {
+        SAMPLE_ID
+    }
+
+    /// A bar is not interactive: its states are its content (empty,
+    /// still loading, failed, a long label, a narrow slot).
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        match state {
+            Rest | Empty | Loading | Error | Narrow => true,
+            // a long label needs a label to lengthen
+            Overflow => !self.label.is_empty(),
+            _ => false,
+        }
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut b = self.clone();
+        match state {
+            Empty => b.ratio = b.ratio.map(|_| 0.0),
+            Loading => b.ratio = None,
+            Error => b.status = ProgressStatus::Error,
+            Overflow => b.label = format!("{} and a long label", b.label),
+            _ => {}
+        }
+        b.render(area, buf, ctx, bg);
+    }
+}
+
+impl crate::ui::specimen::Specimen for Meter {
+    fn specimen_id(&self) -> crate::core::id::WidgetId {
+        SAMPLE_ID
+    }
+
+    /// A meter is not interactive: loading is a refresh in flight, error
+    /// a failed read, empty no quota to show.
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Empty | Loading | Error | Overflow | Narrow)
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut m = self.clone();
+        match state {
+            Empty => {
+                m.tone = MeterTone::Unknown;
+                m.used_pct = None;
+                m.value.clear();
+            }
+            Loading => m.tone = MeterTone::Refreshing,
+            Error => {
+                m.tone = MeterTone::Error;
+                m.value = "read failed".into();
+            }
+            Overflow => m.value = format!("{} of a long quota name", m.value),
+            _ => {}
+        }
+        m.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -628,6 +839,71 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+
+    #[test]
+    fn tally_counts_statuses_and_tones_only_the_failed_clause() {
+        use ProgressStatus::*;
+        let tally = Tally::of([Done, Done, Active, Error, Paused]);
+        assert_eq!(
+            tally.text(),
+            "2 of 5 done · 1 running · 1 paused · 1 failed"
+        );
+        assert_eq!(Tally::of([Done, Done]).text(), "2 of 2 done");
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 1));
+        let w = tally.render(Rect::new(0, 0, 60, 1), &mut buf, &ctx, theme.canvas);
+        assert_eq!(w as usize, width(&tally.text()));
+        let failed = tally.text().find("1 failed").unwrap();
+        let fx = width(&tally.text()[..failed]) as u16;
+        assert_eq!(buf[(fx, 0)].fg, theme.error);
+        assert_eq!(buf[(0, 0)].fg, theme.text_secondary);
+        // cut to the room it has
+        let mut buf = Buffer::empty(Rect::new(0, 0, 8, 1));
+        assert_eq!(
+            tally.render(Rect::new(0, 0, 8, 1), &mut buf, &ctx, theme.canvas),
+            8
+        );
+    }
+
+    #[test]
+    fn a_progress_bar_value_draws_like_the_free_functions() {
+        let theme = Theme::junie();
+        let draw = |f: &dyn Fn(&mut Buffer, &mut RenderCtx)| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
+            f(&mut buf, &mut ctx);
+            buf
+        };
+        let area = Rect::new(0, 0, 40, 1);
+        let layout = BarLayout::default().label_width(8);
+        let a = draw(&|b, c| {
+            ProgressBar::new("Upload", 0.4)
+                .status(ProgressStatus::Paused)
+                .layout(layout)
+                .render(area, b, c, theme.canvas)
+        });
+        let b = draw(&|b, c| {
+            render_bar_with(
+                area,
+                b,
+                c,
+                "Upload",
+                0.4,
+                ProgressStatus::Paused,
+                theme.canvas,
+                layout,
+            )
+        });
+        assert_eq!(a, b);
+        let a = draw(&|b, c| ProgressBar::indeterminate("Sync").render(area, b, c, theme.canvas));
+        let b = draw(&|b, c| render_indeterminate(area, b, c, "Sync", theme.canvas));
+        assert_eq!(a, b);
+    }
 
     fn render(m: &Meter, w: u16) -> (Buffer, Theme) {
         let theme = Theme::junie();

@@ -95,6 +95,59 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
+    // SC21: Progress, Empty & error
+    (
+        "widgets::progress::BarLayout",
+        Option("progress", "progress.label_width"),
+    ),
+    (
+        "widgets::progress::BarLayout::label_width",
+        Option("progress", "progress.label_width"),
+    ),
+    (
+        "widgets::progress::BarLayout::reserve_value",
+        Option("progress", "progress.reserve_value"),
+    ),
+    (
+        "widgets::progress::ProgressBar",
+        StateRow("progress", "loading"),
+    ),
+    (
+        "widgets::progress::ProgressBar::status",
+        Demo("progress", "Integration ━"),
+    ),
+    (
+        "widgets::progress::ProgressBar::layout",
+        Option("progress", "progress.label_width"),
+    ),
+    (
+        "widgets::progress::Tally",
+        Demo("progress", "2 of 7 done · 3 running · 1 paused · 1 failed"),
+    ),
+    (
+        "widgets::empty::EmptyKind",
+        Option("emptyerror", "emptyerror.kind"),
+    ),
+    (
+        "widgets::empty::EmptyKind::Empty",
+        Option("emptyerror", "emptyerror.kind=empty"),
+    ),
+    (
+        "widgets::empty::EmptyKind::Error",
+        Option("emptyerror", "emptyerror.kind=error"),
+    ),
+    (
+        "widgets::empty::EmptyAction",
+        Option("emptyerror", "emptyerror.actions"),
+    ),
+    (
+        "widgets::empty::EmptyState::actions",
+        Option("emptyerror", "emptyerror.actions"),
+    ),
+    (
+        "widgets::empty::EmptyState::hint",
+        Option("emptyerror", "emptyerror.hint"),
+    ),
     // SC26: Text utilities
     (
         "core::text::TextBuffer",
@@ -1473,19 +1526,19 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::progress::ProgressStatus",
-        Demo("progress", "Completed ━"),
+        Demo("progress", "Build image ━"),
     ),
     (
         "widgets::progress::ProgressStatus::Done",
-        Demo("progress", "Completed ━"),
+        Demo("progress", "Build image ━"),
     ),
     (
         "widgets::progress::ProgressStatus::Error",
-        Demo("progress", "Failed ━"),
+        Demo("progress", "Integration ━"),
     ),
     (
         "widgets::progress::ProgressStatus::Paused",
-        Demo("progress", "Paused ━"),
+        Demo("progress", "Migrate schema ━"),
     ),
     (
         "widgets::progress::Meter",
@@ -1549,7 +1602,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::progress::ProgressStatus::Active",
-        Demo("progress", "Halfway ━"),
+        Demo("progress", "Push to registry ━"),
     ),
     (
         "widgets::progress::MeterTone::Normal",

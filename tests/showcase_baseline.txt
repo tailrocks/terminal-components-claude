@@ -52,8 +52,12 @@
 120x40 TrueColor Dialog kinds 9bcd7de5ab51f37e
 120x40 TrueColor Popups & tooltips e4e4bd2884078943
 120x40 TrueColor File browser ed04763efe80e9e8
-120x40 TrueColor Progress fa0c787c76c7306b
-120x40 TrueColor Empty & error fec95d10cfcbd9f7
+120x40 TrueColor Progress eb4199640bc29019
+120x40 TrueColor Progress · Options e0e3bb1289699119
+120x40 TrueColor Progress · States b447a33f29c9b304
+120x40 TrueColor Empty & error 0057288f7019d929
+120x40 TrueColor Empty & error · Options 7fdf17099f7c1080
+120x40 TrueColor Empty & error · States 7dea1f4a78e9b31c
 120x40 TrueColor Meters fa2bcef71b8f67ae
 120x40 TrueColor Notices 4c1a06895c403b3f
 120x40 TrueColor Panels ac115838f705f8fb
@@ -134,8 +138,12 @@
 120x40 Ansi256 Dialog kinds cc14d945208c869a
 120x40 Ansi256 Popups & tooltips face3ed29d6274b6
 120x40 Ansi256 File browser d4502a20bc625982
-120x40 Ansi256 Progress 0a0a802226b8a9e6
-120x40 Ansi256 Empty & error c392cc6d89cf2c15
+120x40 Ansi256 Progress 7881c212e38039ef
+120x40 Ansi256 Progress · Options 2a0b2bd704e035d1
+120x40 Ansi256 Progress · States 21a4dcb16a75c045
+120x40 Ansi256 Empty & error a13b19eab5971f35
+120x40 Ansi256 Empty & error · Options d17be7660c756c95
+120x40 Ansi256 Empty & error · States d16a9e0417970371
 120x40 Ansi256 Meters 5c26621d66f7849a
 120x40 Ansi256 Notices cc46dbfb5b682011
 120x40 Ansi256 Panels a7e20db65d93060c
@@ -216,8 +224,12 @@
 120x40 Ansi16 Dialog kinds c1fe92b2f6989c1e
 120x40 Ansi16 Popups & tooltips a0ffc2e236cac037
 120x40 Ansi16 File browser 1ac120b01f8e4526
-120x40 Ansi16 Progress bcfe2f82d00ad0dd
-120x40 Ansi16 Empty & error 2708f0aa2f86b51d
+120x40 Ansi16 Progress e3eaa0b43b3b008f
+120x40 Ansi16 Progress · Options b3b2e0d808932bb4
+120x40 Ansi16 Progress · States ce69a88ed29f8678
+120x40 Ansi16 Empty & error f1538cc6a234431e
+120x40 Ansi16 Empty & error · Options 5f62ebe6373bf6a5
+120x40 Ansi16 Empty & error · States 65af35222cfd9520
 120x40 Ansi16 Meters e42a163f9de1d6f2
 120x40 Ansi16 Notices 113210632723e615
 120x40 Ansi16 Panels 87d40cd5c60bd75d
@@ -298,8 +310,12 @@
 120x40 Mono Dialog kinds ea29e7f29ee54289
 120x40 Mono Popups & tooltips dfc72d6a7dc53340
 120x40 Mono File browser 646ac7feaaa2487f
-120x40 Mono Progress 3b5613136fd7ac77
-120x40 Mono Empty & error 8cb7ec9749964494
+120x40 Mono Progress 9fe861bf3d59712c
+120x40 Mono Progress · Options 539bcbe694930b27
+120x40 Mono Progress · States 6541d9bd9582af08
+120x40 Mono Empty & error 8da4cfbb8b309c5f
+120x40 Mono Empty & error · Options 90bce9ac44a1c9e0
+120x40 Mono Empty & error · States 0541dc8f52ebf45f
 120x40 Mono Meters 2b3d53fc371b6d13
 120x40 Mono Notices ecac5d8357f5a0dc
 120x40 Mono Panels 7e6a38e9d796a33c
@@ -380,8 +396,12 @@
 80x24 TrueColor Dialog kinds 4d6f17d05c81dc64
 80x24 TrueColor Popups & tooltips 75a01d80c0ac135a
 80x24 TrueColor File browser 1e1d2bc4c8b97a55
-80x24 TrueColor Progress 682a9dda48ff5b6e
-80x24 TrueColor Empty & error 889a19af5d8abd74
+80x24 TrueColor Progress 0fde6085335531e8
+80x24 TrueColor Progress · Options 6e6b4d152bec7ccb
+80x24 TrueColor Progress · States 3932a9c3916ef87e
+80x24 TrueColor Empty & error 8b4caef654fd0ff1
+80x24 TrueColor Empty & error · Options 4ae1865e9b5afc07
+80x24 TrueColor Empty & error · States 3de14e80e09086dc
 80x24 TrueColor Meters 72e75b7643da962f
 80x24 TrueColor Notices 1fe06f47210b4aa0
 80x24 TrueColor Panels 71247df21fac7390
@@ -462,8 +482,12 @@
 80x24 Ansi256 Dialog kinds 93225a5e284aaa17
 80x24 Ansi256 Popups & tooltips ce58ac0f3bc14514
 80x24 Ansi256 File browser 5d0b99a17ce1950d
-80x24 Ansi256 Progress 860000b1c19ca3c1
-80x24 Ansi256 Empty & error f1c7e8de4eaee772
+80x24 Ansi256 Progress cc3748522126ca6b
+80x24 Ansi256 Progress · Options 7b8b0f34427ba3f1
+80x24 Ansi256 Progress · States 014e7e51321bbd98
+80x24 Ansi256 Empty & error 293fe77b68dce0ee
+80x24 Ansi256 Empty & error · Options 4e24889617aacfd9
+80x24 Ansi256 Empty & error · States bdcd3628e9cd9c26
 80x24 Ansi256 Meters 450ad6e034328025
 80x24 Ansi256 Notices 761e13777b1d9736
 80x24 Ansi256 Panels 7f1d429ddbfa1019
@@ -544,8 +568,12 @@
 80x24 Ansi16 Dialog kinds cf763be8bfac4e64
 80x24 Ansi16 Popups & tooltips 76f2d5d9844b3c0a
 80x24 Ansi16 File browser c5242347dfc7ad41
-80x24 Ansi16 Progress 8852fbc41544f5c2
-80x24 Ansi16 Empty & error c1d26f9c77e90848
+80x24 Ansi16 Progress b06639785e465494
+80x24 Ansi16 Progress · Options b76f2d8dd5df1476
+80x24 Ansi16 Progress · States 1f4f919668628084
+80x24 Ansi16 Empty & error cb375d2ed4482334
+80x24 Ansi16 Empty & error · Options c36c8d6c07f9b4a4
+80x24 Ansi16 Empty & error · States 722e731f6d6ffc6e
 80x24 Ansi16 Meters 32cc9619cfe61e79
 80x24 Ansi16 Notices 51036bf12e627406
 80x24 Ansi16 Panels c73d5e5cbccb148b
@@ -626,8 +654,12 @@
 80x24 Mono Dialog kinds 6bbefff909830cb6
 80x24 Mono Popups & tooltips 89887fc5eaecc84c
 80x24 Mono File browser d4d27e158e9ab4cf
-80x24 Mono Progress 6ca77862a2d8b526
-80x24 Mono Empty & error a60756772c826ae6
+80x24 Mono Progress 6a3f6b1e4448e646
+80x24 Mono Progress · Options d133e12f93eb1a16
+80x24 Mono Progress · States 9e242068abdf93ae
+80x24 Mono Empty & error 8e3271d7729defe0
+80x24 Mono Empty & error · Options 366a4efa94943ce0
+80x24 Mono Empty & error · States 35eebaaddf5e4abc
 80x24 Mono Meters 9cf1e05c237d72af
 80x24 Mono Notices 992eb31ce2d864f4
 80x24 Mono Panels 23da455a1041fc6b
@@ -708,8 +740,12 @@
 72x20 TrueColor Dialog kinds 48277cb3eaaf470c
 72x20 TrueColor Popups & tooltips a3cd4868d2651a34
 72x20 TrueColor File browser 6681c0d9dadef8ad
-72x20 TrueColor Progress 55f6b5e69f652c9f
-72x20 TrueColor Empty & error 3e92cc98bfcdecf7
+72x20 TrueColor Progress e2609cf60efed409
+72x20 TrueColor Progress · Options b6e41bf1b0311432
+72x20 TrueColor Progress · States 01c8d0f0ca6ed595
+72x20 TrueColor Empty & error 25afd8f8c26ab1e9
+72x20 TrueColor Empty & error · Options c4eee0f7aa1e2d1a
+72x20 TrueColor Empty & error · States ffe35387b7b780a0
 72x20 TrueColor Meters 6d3ce6f3bbc7ea87
 72x20 TrueColor Notices d9184e61e0017ce8
 72x20 TrueColor Panels 3f57b1a1ac20a3e2
@@ -790,8 +826,12 @@
 72x20 Ansi256 Dialog kinds c62cc59a80e841ff
 72x20 Ansi256 Popups & tooltips 759f7ed973b3e8f8
 72x20 Ansi256 File browser 9f1830491ae9fd8d
-72x20 Ansi256 Progress 82ce0c7e03dea6de
-72x20 Ansi256 Empty & error 77290b9b490f6b6d
+72x20 Ansi256 Progress ab695faf1484daf4
+72x20 Ansi256 Progress · Options cb053d9daa3b0a8e
+72x20 Ansi256 Progress · States cb168c97fd99e549
+72x20 Ansi256 Empty & error e917b70d269f8ba7
+72x20 Ansi256 Empty & error · Options 92eaf129092fc38a
+72x20 Ansi256 Empty & error · States ad962217d2e689b5
 72x20 Ansi256 Meters 1febcaf1cf6eb7a5
 72x20 Ansi256 Notices 757deae394e69336
 72x20 Ansi256 Panels a4ef825bd955ad22
@@ -872,8 +912,12 @@
 72x20 Ansi16 Dialog kinds d9445354c62b96ec
 72x20 Ansi16 Popups & tooltips 7607a65ae0dee4ea
 72x20 Ansi16 File browser 2fff71e7a4689169
-72x20 Ansi16 Progress 903f9ce77b6f3a0f
-72x20 Ansi16 Empty & error 35705b50a2f98d67
+72x20 Ansi16 Progress 653b2ac41b4830c3
+72x20 Ansi16 Progress · Options f9dcadd8a8c380b7
+72x20 Ansi16 Progress · States dd7604eb8a699ee5
+72x20 Ansi16 Empty & error afaeab1a4f9aaa2a
+72x20 Ansi16 Empty & error · Options a281433465f0aed5
+72x20 Ansi16 Empty & error · States 7cca08d16e47c2f7
 72x20 Ansi16 Meters 7eaed315c92fb8e1
 72x20 Ansi16 Notices c24a6b2a963b90b6
 72x20 Ansi16 Panels e750e20b9a811925
@@ -954,8 +998,12 @@
 72x20 Mono Dialog kinds 712c065403de81fe
 72x20 Mono Popups & tooltips 2c0e506113084464
 72x20 Mono File browser cdecc0826b9be927
-72x20 Mono Progress 69a33e7c599f5939
-72x20 Mono Empty & error 48c570fb36650cfd
+72x20 Mono Progress e83def44a9a1bc7b
+72x20 Mono Progress · Options cc23e08609ef8c9d
+72x20 Mono Progress · States 4920f6f7db0ba63d
+72x20 Mono Empty & error d87e85353137d1fe
+72x20 Mono Empty & error · Options e87b55840db0149f
+72x20 Mono Empty & error · States 8f9db1dbe12be611
 72x20 Mono Meters 63c8359217ff41b7
 72x20 Mono Notices 747f771e6a578f94
 72x20 Mono Panels 520a6e389378b4e3
@@ -1036,8 +1084,12 @@
 100x30 TrueColor Dialog kinds 8f1cf3f551dad033
 100x30 TrueColor Popups & tooltips 86d5076601afd80d
 100x30 TrueColor File browser da2cfcc5cb651fbf
-100x30 TrueColor Progress 2d78266778551532
-100x30 TrueColor Empty & error 1c0a2b4ef62c771a
+100x30 TrueColor Progress 369c516e597d3148
+100x30 TrueColor Progress · Options 30716b0e2d042a3a
+100x30 TrueColor Progress · States 8ad227a0446654f0
+100x30 TrueColor Empty & error d8b6a7be655cc8df
+100x30 TrueColor Empty & error · Options 564ad696ca55e4d5
+100x30 TrueColor Empty & error · States 5af29192ccb8149f
 100x30 TrueColor Meters 513f3748bfe30551
 100x30 TrueColor Notices a02f8a60d4402c8e
 100x30 TrueColor Panels 936df7cc5038d920
@@ -1118,8 +1170,12 @@
 100x30 Ansi256 Dialog kinds b8138abeda59c541
 100x30 Ansi256 Popups & tooltips 29e673ac52c01fc7
 100x30 Ansi256 File browser e8ba97ddca1417f1
-100x30 Ansi256 Progress 3e1793549bf4e4ec
-100x30 Ansi256 Empty & error e6567ac1b6558e76
+100x30 Ansi256 Progress a6a021e444ab7757
+100x30 Ansi256 Progress · Options d2887f5b4de0ec45
+100x30 Ansi256 Progress · States f6a1478616b81825
+100x30 Ansi256 Empty & error 239ca0e0c7b7c319
+100x30 Ansi256 Empty & error · Options 570b11b3aed5a611
+100x30 Ansi256 Empty & error · States e5a585054489fe2a
 100x30 Ansi256 Meters 9558aab0636ba461
 100x30 Ansi256 Notices 5cdaba48ad83cda2
 100x30 Ansi256 Panels 357fe986a1324758
@@ -1200,8 +1256,12 @@
 100x30 Ansi16 Dialog kinds 4e0f2d31a5a1bb8b
 100x30 Ansi16 Popups & tooltips f65929c45e42dc91
 100x30 Ansi16 File browser 5d322e1acb415bcd
-100x30 Ansi16 Progress bf03f778b6c3f120
-100x30 Ansi16 Empty & error b6237def9d9d6878
+100x30 Ansi16 Progress 3f53f4f26606df49
+100x30 Ansi16 Progress · Options b07a2287a56cdf53
+100x30 Ansi16 Progress · States 834b9b82f20c1b57
+100x30 Ansi16 Empty & error 5ee7c5e40f0d83d6
+100x30 Ansi16 Empty & error · Options cbcf8cdde1c2c8c2
+100x30 Ansi16 Empty & error · States d2dea79729029577
 100x30 Ansi16 Meters ceb2836b8b001671
 100x30 Ansi16 Notices c24c935414c5df6a
 100x30 Ansi16 Panels ad46fbbb82109edb
@@ -1282,8 +1342,12 @@
 100x30 Mono Dialog kinds 91d45c90a6ec8808
 100x30 Mono Popups & tooltips 8d1418453d6f3320
 100x30 Mono File browser 1bab105ae7eaf1f4
-100x30 Mono Progress de481ec395348601
-100x30 Mono Empty & error 7fff28044613edb5
+100x30 Mono Progress 2f09166e9fb54e7c
+100x30 Mono Progress · Options d23d1f0298c0ee44
+100x30 Mono Progress · States e8bb5491e940bcb9
+100x30 Mono Empty & error 325413158a592481
+100x30 Mono Empty & error · Options 49bd911efdc5ae5b
+100x30 Mono Empty & error · States 9c413f8b52aa5b5c
 100x30 Mono Meters 45a0f89c2404a5ec
 100x30 Mono Notices 192553afc5ea9d5b
 100x30 Mono Panels daca8f078aa55bf9
@@ -1364,8 +1428,12 @@
 160x50 TrueColor Dialog kinds 04f7b8b37e313803
 160x50 TrueColor Popups & tooltips f4bc8b95176950c1
 160x50 TrueColor File browser ba5d7208a6862f8f
-160x50 TrueColor Progress da9942510c0dcb1d
-160x50 TrueColor Empty & error 8f8f21236304f3ca
+160x50 TrueColor Progress fc46516eac0c19e0
+160x50 TrueColor Progress · Options f48911c3bfb63fbe
+160x50 TrueColor Progress · States d039bc43da8c507a
+160x50 TrueColor Empty & error b14c75e786ff10a8
+160x50 TrueColor Empty & error · Options 4d7980688b1366fb
+160x50 TrueColor Empty & error · States 239ca85f37b9db63
 160x50 TrueColor Meters c62314670bdb5c25
 160x50 TrueColor Notices d3810a1fa7c4e1ba
 160x50 TrueColor Panels 914206f691b01618
@@ -1446,8 +1514,12 @@
 160x50 Ansi256 Dialog kinds 66bf13a56ed4d6ad
 160x50 Ansi256 Popups & tooltips c4af229e39410b45
 160x50 Ansi256 File browser 5a00b431161dc041
-160x50 Ansi256 Progress a96487f9ae93339a
-160x50 Ansi256 Empty & error 6e8aa5197fc259b2
+160x50 Ansi256 Progress 33cca66df89a6803
+160x50 Ansi256 Progress · Options 7be71ced90725b6c
+160x50 Ansi256 Progress · States 6a83d7f05a396399
+160x50 Ansi256 Empty & error f4ac8633a8494682
+160x50 Ansi256 Empty & error · Options 380e97b04615fe40
+160x50 Ansi256 Empty & error · States a7f94f829b52ae86
 160x50 Ansi256 Meters 3d9c7d5de4467b41
 160x50 Ansi256 Notices fce949951cd0f7ce
 160x50 Ansi256 Panels ded5de99a6cc0927
@@ -1528,8 +1600,12 @@
 160x50 Ansi16 Dialog kinds dea566158382c983
 160x50 Ansi16 Popups & tooltips 28c671dbd8b411e1
 160x50 Ansi16 File browser 76799059b5e2e26d
-160x50 Ansi16 Progress ff21d04f36a3e77a
-160x50 Ansi16 Empty & error f807895df94c8ea4
+160x50 Ansi16 Progress 7441c77229766421
+160x50 Ansi16 Progress · Options ea1c538e1a59657d
+160x50 Ansi16 Progress · States 88e5f5dbbc2a1105
+160x50 Ansi16 Empty & error 9bbb57ef50470bc7
+160x50 Ansi16 Empty & error · Options 12217b5cda6c6128
+160x50 Ansi16 Empty & error · States 06ea02fbd9dfc202
 160x50 Ansi16 Meters 6b01a74be9db9115
 160x50 Ansi16 Notices 6e12da6bae94fb24
 160x50 Ansi16 Panels 0ba68ff7d48d677a
@@ -1610,8 +1686,12 @@
 160x50 Mono Dialog kinds 0d3b9681db92cb38
 160x50 Mono Popups & tooltips 4847828a9ec27ff0
 160x50 Mono File browser 445715f0f264a204
-160x50 Mono Progress 10a058e158e04118
-160x50 Mono Empty & error 202da0772b9c0de1
+160x50 Mono Progress 2fafa43a952a4e0b
+160x50 Mono Progress · Options 10c83cc9e63b6914
+160x50 Mono Progress · States b865aba3c2151228
+160x50 Mono Empty & error ca7af8f0b6778b4e
+160x50 Mono Empty & error · Options b4c6fea48cabacdf
+160x50 Mono Empty & error · States c6e48d6d96beb7d1
 160x50 Mono Meters 838c0b3bbcc297c8
 160x50 Mono Notices af989a97e5bdebc1
 160x50 Mono Panels 79ba6dc40468d97b
