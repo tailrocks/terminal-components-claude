@@ -42,6 +42,8 @@ mod app_tests_template;
 #[cfg(test)]
 mod app_tests_text;
 #[cfg(test)]
+mod app_tests_toolbars;
+#[cfg(test)]
 mod catalog_scan;
 mod coverage;
 mod data;

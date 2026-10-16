@@ -43,5 +43,6 @@ mod table_specimen;
 pub mod tabs;
 pub mod textarea;
 pub mod too_small;
+pub mod toolbar;
 pub mod tree;
 pub mod viewport;
