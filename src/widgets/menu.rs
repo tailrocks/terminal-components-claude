@@ -650,7 +650,9 @@ impl MenuBar {
         ctx.control(self.id, area, false);
         let focused = ctx.interaction.focused(self.id);
         let plane = t.plane_of(bg);
-        let mut x = area.x + 1;
+        // titles and the brand carry one cell of padding of their own: the
+        // text lands on the theme's chrome edge
+        let mut x = area.x + t.spacing.chrome_edge.saturating_sub(1);
         if let Some(b) = &self.brand {
             let w = b.render_clickable(x, area.y, buf, ctx, self.brand_id());
             self.brand_area = Rect::new(x, area.y, w, 1);
