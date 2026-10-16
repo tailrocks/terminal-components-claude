@@ -7,6 +7,7 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
@@ -45,6 +46,7 @@ pub struct TaskRunnerPage {
     cancel: Button,
     running: bool,
     ticks: u64,
+    sections: crate::pages::layout::Sections,
 }
 
 fn targets() -> Vec<TreeNode> {
@@ -108,6 +110,7 @@ impl TaskRunnerPage {
             cancel: Button::secondary(ID.sub("cancel"), "Cancel"),
             running: false,
             ticks: 0,
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
         }
     }
 
@@ -213,156 +216,90 @@ impl Page for TaskRunnerPage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let (l, r) = crate::pages::layout::columns(area, 30, 2);
-        let panel = Panel::card(Some("Targets")).focused(ctx.interaction.focused(self.tree.id));
-        let bg = panel.bg(t);
-        let th = (self.tree.rows().len() as u16 + 3).min(l.height);
-        let inner = panel.render(Rect::new(l.x, l.y, l.width, th), buf, ctx.theme);
-        self.tree.render(inner, buf, ctx, bg);
-
-        let rrows = crate::pages::layout::rows(r, &[self.tasks.len() as u16 + 5, 1, 0]);
-        let done = self
-            .tasks
-            .iter()
-            .filter(|t| t.state == TaskState::Done)
-            .count();
-        let meta = format!("{done} of {} done", self.tasks.len());
-        let title = if self.running {
-            "Pipeline · running"
-        } else {
-            "Pipeline"
-        };
-        let panel = Panel::card(Some(title)).meta(&meta);
-        let bg = panel.bg(t);
-        let inner = panel.render(rrows[0], buf, t);
-        for (i, task) in self.tasks.iter().enumerate() {
-            let y = inner.y + i as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            let label = format!("{:<12}", task.name);
-            match task.state {
-                TaskState::Queued => {
-                    buf.set_string(inner.x, y, &label, t.muted().bg(bg));
-                    buf.set_string(inner.x + 14, y, "queued", t.faint().bg(bg));
-                }
-                TaskState::Cancelled => {
-                    buf.set_string(inner.x, y, &label, t.muted().bg(bg));
-                    buf.set_string(inner.x + 14, y, "cancelled", t.faint().bg(bg));
-                }
-                TaskState::Running => {
-                    buf.set_string(
-                        inner.x,
-                        y,
-                        spinner_frame(ctx.interaction.tick),
-                        t.accent_fg().bg(bg),
-                    );
-                    buf.set_string(
-                        inner.x + 2,
-                        y,
-                        junie_tui::ui::text::truncate(&label, 10),
-                        t.primary().bg(bg),
-                    );
-                    render_bar(
-                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
-                        buf,
-                        ctx,
-                        "",
-                        task.progress,
-                        ProgressStatus::Active,
-                        bg,
-                    );
-                }
-                TaskState::Done => {
-                    buf.set_string(inner.x, y, "✓", t.secondary().bg(bg));
-                    buf.set_string(
-                        inner.x + 2,
-                        y,
-                        junie_tui::ui::text::truncate(&label, 10),
-                        t.secondary().bg(bg),
-                    );
-                    render_bar(
-                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
-                        buf,
-                        ctx,
-                        "",
-                        1.0,
-                        ProgressStatus::Done,
-                        bg,
-                    );
-                }
-                TaskState::Failed => {
-                    buf.set_string(inner.x, y, "!", t.error_fg().bg(bg));
-                    buf.set_string(
-                        inner.x + 2,
-                        y,
-                        junie_tui::ui::text::truncate(&label, 10),
-                        t.primary().bg(bg),
-                    );
-                    render_bar(
-                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
-                        buf,
-                        ctx,
-                        "",
-                        task.progress,
-                        ProgressStatus::Error,
-                        bg,
-                    );
-                }
-            }
-        }
-        let ay = inner.bottom().saturating_sub(1);
-        if self.running {
-            render_indeterminate(
-                Rect::new(inner.x, ay - 1, inner.width.min(64), 1),
-                buf,
-                ctx,
-                "Overall   ",
-                bg,
-            );
-        }
+        // sections keep their full height and the page scrolls by section
+        // on a short terminal: squeezed, the pipeline's rows ran into its
+        // own buttons ("Run pipeline qu Cancel")
+        let tree_h = self.tree.rows().len() as u16 + 3;
+        let pipe_h = self.tasks.len() as u16 + 5;
+        let has = |id| ctx.interaction.has_focus(id);
+        let in_tree = has(self.tree.id);
+        let in_pipe = has(self.run.id) || has(self.cancel.id);
+        let in_log = has(self.log.id);
         self.run.disabled = self.running;
         self.cancel.disabled = !self.running;
-        let widths = [self.run.width(), self.cancel.width()];
-        if widths[0] + 2 + widths[1] <= inner.width {
-            let rects = row_layout(Rect::new(inner.x, ay, inner.width, 1), &widths, 2);
-            self.run.render(rects[0], buf, ctx, bg);
-            self.cancel.render(rects[1], buf, ctx, bg);
-        } else if self.running {
-            // narrow: only the actionable button; never truncate a label
-            self.cancel
-                .render(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
-        } else {
-            self.run
-                .render(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
-        }
-
-        let lf = ctx.interaction.focused(self.log.id);
-        let panel = Panel::card(Some("Log")).focused(lf);
-        let bg = panel.bg(t);
-        let inner = panel.render(rrows[2], buf, t);
-        self.log.render(inner, buf, ctx, bg, |t, line| {
-            if line.starts_with('✗') || line.contains("failure") || line.contains("cancelled") {
-                t.error_fg()
-            } else if line.starts_with('✓') || line.ends_with('✓') {
-                t.accent_fg()
-            } else if line.starts_with('▶') {
-                t.primary()
+        let log_kid = |h: u16| StackChild::flex(5, h.max(5));
+        let (tree_slot, pipe_slot, log_slot) = if area.width >= 30 + 2 + 20 {
+            let l = Rect::new(area.x, area.y, 30, area.height);
+            let r = Rect::new(area.x + 32, area.y, area.width - 32, area.height);
+            let focus = if in_pipe {
+                Some(0)
+            } else if in_log {
+                Some(1)
             } else {
-                t.secondary()
-            }
-        });
-        let pos = scrollbar::position_label(&self.log.scroll);
-        let meta = if self.log.follow {
-            format!("{pos} · following")
+                None
+            };
+            let s = self.sections.layout(
+                r,
+                &[
+                    StackChild::fixed(pipe_h),
+                    log_kid(r.height.saturating_sub(pipe_h + 1)),
+                ],
+                focus,
+                buf,
+                ctx,
+            );
+            (
+                Some(Rect::new(l.x, l.y, l.width, tree_h.min(l.height))),
+                s.slot(0),
+                s.slot(1),
+            )
         } else {
-            pos
+            let focus = if in_tree {
+                Some(0)
+            } else if in_pipe {
+                Some(1)
+            } else if in_log {
+                Some(2)
+            } else {
+                None
+            };
+            let s = self.sections.layout(
+                area,
+                &[
+                    StackChild::flex(6, tree_h),
+                    StackChild::fixed(pipe_h),
+                    log_kid(area.height.saturating_sub(tree_h + pipe_h + 2)),
+                ],
+                focus,
+                buf,
+                ctx,
+            );
+            (s.slot(0), s.slot(1), s.slot(2))
         };
-        panel.draw_meta(rrows[2], buf, t, &meta);
+        match tree_slot {
+            Some(r) => self.render_targets(r, buf, ctx),
+            None => ctx.focus_stop(self.tree.id),
+        }
+        match pipe_slot {
+            Some(r) => self.render_pipeline(r, buf, ctx),
+            None => {
+                for b in [&self.run, &self.cancel] {
+                    if !b.disabled {
+                        ctx.focus_stop(b.id);
+                    }
+                }
+            }
+        }
+        match log_slot {
+            Some(r) => self.render_log(r, buf, ctx),
+            None => ctx.focus_stop(self.log.id),
+        }
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
         match ev {
             PageEvent::Tick => {
                 if self.step(cx) {
@@ -487,5 +424,160 @@ impl Page for TaskRunnerPage {
         } else {
             vec![("r", "Run pipeline"), ("Enter", "Activate")]
         }
+    }
+}
+
+impl TaskRunnerPage {
+    fn render_targets(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let panel = Panel::card(Some("Targets")).focused(ctx.interaction.focused(self.tree.id));
+        let bg = panel.bg(ctx.theme);
+        if let Some(inner) = panel.try_render(r, buf, ctx.theme) {
+            self.tree.render(inner, buf, ctx, bg);
+        }
+    }
+
+    fn render_pipeline(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let done = self
+            .tasks
+            .iter()
+            .filter(|t| t.state == TaskState::Done)
+            .count();
+        let meta = format!("{done} of {} done", self.tasks.len());
+        let title = if self.running {
+            "Pipeline · running"
+        } else {
+            "Pipeline"
+        };
+        let panel = Panel::card(Some(title)).meta(&meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(r, buf, t);
+        for (i, task) in self.tasks.iter().enumerate() {
+            let y = inner.y + i as u16;
+            if y >= inner.bottom() {
+                break;
+            }
+            let label = format!("{:<12}", task.name);
+            match task.state {
+                TaskState::Queued => {
+                    buf.set_string(inner.x, y, &label, t.muted().bg(bg));
+                    buf.set_string(inner.x + 14, y, "queued", t.faint().bg(bg));
+                }
+                TaskState::Cancelled => {
+                    buf.set_string(inner.x, y, &label, t.muted().bg(bg));
+                    buf.set_string(inner.x + 14, y, "cancelled", t.faint().bg(bg));
+                }
+                TaskState::Running => {
+                    buf.set_string(
+                        inner.x,
+                        y,
+                        spinner_frame(ctx.interaction.tick),
+                        t.accent_fg().bg(bg),
+                    );
+                    buf.set_string(
+                        inner.x + 2,
+                        y,
+                        junie_tui::ui::text::truncate(&label, 10),
+                        t.primary().bg(bg),
+                    );
+                    render_bar(
+                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
+                        buf,
+                        ctx,
+                        "",
+                        task.progress,
+                        ProgressStatus::Active,
+                        bg,
+                    );
+                }
+                TaskState::Done => {
+                    buf.set_string(inner.x, y, "✓", t.secondary().bg(bg));
+                    buf.set_string(
+                        inner.x + 2,
+                        y,
+                        junie_tui::ui::text::truncate(&label, 10),
+                        t.secondary().bg(bg),
+                    );
+                    render_bar(
+                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
+                        buf,
+                        ctx,
+                        "",
+                        1.0,
+                        ProgressStatus::Done,
+                        bg,
+                    );
+                }
+                TaskState::Failed => {
+                    buf.set_string(inner.x, y, "!", t.error_fg().bg(bg));
+                    buf.set_string(
+                        inner.x + 2,
+                        y,
+                        junie_tui::ui::text::truncate(&label, 10),
+                        t.primary().bg(bg),
+                    );
+                    render_bar(
+                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
+                        buf,
+                        ctx,
+                        "",
+                        task.progress,
+                        ProgressStatus::Error,
+                        bg,
+                    );
+                }
+            }
+        }
+        let ay = inner.bottom().saturating_sub(1);
+        if self.running {
+            render_indeterminate(
+                Rect::new(inner.x, ay - 1, inner.width.min(64), 1),
+                buf,
+                ctx,
+                "Overall   ",
+                bg,
+            );
+        }
+        self.run.disabled = self.running;
+        self.cancel.disabled = !self.running;
+        let widths = [self.run.width(), self.cancel.width()];
+        if widths[0] + 2 + widths[1] <= inner.width {
+            let rects = row_layout(Rect::new(inner.x, ay, inner.width, 1), &widths, 2);
+            self.run.render(rects[0], buf, ctx, bg);
+            self.cancel.render(rects[1], buf, ctx, bg);
+        } else if self.running {
+            // narrow: only the actionable button; never truncate a label
+            self.cancel
+                .render(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
+        } else {
+            self.run
+                .render(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
+        }
+    }
+
+    fn render_log(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let lf = ctx.interaction.focused(self.log.id);
+        let panel = Panel::card(Some("Log")).focused(lf);
+        let bg = panel.bg(t);
+        let inner = panel.render(r, buf, t);
+        self.log.render(inner, buf, ctx, bg, |t, line| {
+            if line.starts_with('✗') || line.contains("failure") || line.contains("cancelled") {
+                t.error_fg()
+            } else if line.starts_with('✓') || line.ends_with('✓') {
+                t.accent_fg()
+            } else if line.starts_with('▶') {
+                t.primary()
+            } else {
+                t.secondary()
+            }
+        });
+        let pos = scrollbar::position_label(&self.log.scroll);
+        let meta = if self.log.follow {
+            format!("{pos} · following")
+        } else {
+            pos
+        };
+        panel.draw_meta(r, buf, t, &meta);
     }
 }

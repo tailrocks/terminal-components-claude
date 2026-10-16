@@ -9,6 +9,7 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipEvent};
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -34,6 +35,7 @@ pub struct ChipsPage {
     page_size: Select,
     engine: Select,
     last: String,
+    sections: crate::pages::layout::Sections,
 }
 
 impl ChipsPage {
@@ -66,6 +68,7 @@ impl ChipsPage {
                 .disabled(true)
                 .help("Fixed by the connection"),
             last: "nothing yet".into(),
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
         }
     }
 
@@ -133,139 +136,52 @@ impl Page for ChipsPage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[6, 1, 8, 1, 0]);
-
-        // filters
-        let focused = ctx.interaction.focused(self.filters.id);
-        let active = self.filters.chips.iter().filter(|c| c.enabled).count();
-        let meta = format!("{active} active");
-        let panel = Panel::card(Some("Filters")).focused(focused).meta(&meta);
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[0], buf, t);
-        self.filters
-            .render(Rect::new(inner.x, inner.y, inner.width, 1), buf, ctx, bg);
-        if inner.y + 2 < inner.bottom() {
-            buf.set_string(
-                inner.x,
-                inner.y + 2,
-                junie_tui::ui::text::truncate(
-                    &format!("last action: {}", self.last),
-                    inner.width as usize,
-                ),
-                t.muted().bg(bg),
-            );
-        }
-
-        // selects
-        let (l, r) = crate::pages::layout::columns(rows[2], (rows[2].width / 2).max(30), 2);
-        let panel = Panel::card(Some("Selects"));
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[2], buf, t);
-        let third = inner.width / 3;
-        let cells = [
-            Rect::new(inner.x, inner.y, third.saturating_sub(2), Select::HEIGHT),
-            Rect::new(
-                inner.x + third,
-                inner.y,
-                third.saturating_sub(2),
-                Select::HEIGHT,
-            ),
-            Rect::new(
-                inner.x + third * 2,
-                inner.y,
-                inner.width.saturating_sub(third * 2),
-                Select::HEIGHT,
-            ),
-        ];
-        let _ = (l, r);
-        // an open list is an overlay: it lands above everything drawn below
-        for (sel, cell) in self.selects().into_iter().zip(cells) {
-            sel.render(cell, buf, ctx, bg);
-        }
-
-        // strip (full width), then properties beside an empty state
-        let rest = rows[4];
-        let strip_h = rest.height.min(7);
-        let panel = Panel::card(Some("Segment strip"));
-        let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(rest.x, rest.y, rest.width, strip_h), buf, t);
-        let left = [
-            Segment::new("▪", Tone::Success).priority(9),
-            Segment::new("Acme", Tone::Normal).bold().priority(9),
-            Segment::new("◆ production", Tone::Normal)
-                .bold()
-                .priority(8),
-            Segment::new("acme_prod › public", Tone::Secondary).priority(6),
-            Segment::new("safe", Tone::Normal).bold().priority(7),
-        ];
-        let right = [
-            Segment::new("3 pending", Tone::Warning).priority(5),
-            Segment::new("truecolor · 120×40", Tone::Muted).priority(2),
-            Segment::new("? help", Tone::Muted).priority(3),
-        ];
-        segments::render(
-            Rect::new(inner.x, inner.y, inner.width, 1),
+        // whole sections scroll on a short terminal; nothing is drawn
+        // past the page into the row above the footer
+        let has = |id| ctx.interaction.has_focus(id);
+        let focus = if has(self.filters.id) {
+            Some(0)
+        } else if has(self.sort.id) || has(self.page_size.id) || has(self.engine.id) {
+            Some(1)
+        } else {
+            None
+        };
+        let rows = self.sections.layout(
+            area,
+            &[
+                StackChild::fixed(6),
+                StackChild::fixed(8),
+                StackChild::fixed(7),
+                StackChild::flex(3, 11),
+            ],
+            focus,
             buf,
             ctx,
-            &left,
-            &right,
-            bg,
         );
-        let narrow = Rect::new(inner.x, inner.y + 2, inner.width.min(44), 1).intersection(inner);
-        segments::render(narrow, buf, ctx, &left, &right, bg);
-        if inner.y + 3 < inner.bottom() {
-            buf.set_string(
-                inner.x,
-                inner.y + 3,
-                junie_tui::ui::text::truncate(
-                    "the same strip at 44 columns: low-priority segments leave first, from the right",
-                    inner.width as usize,
-                ),
-                t.faint().bg(bg),
-            );
+        match rows.slot(0) {
+            Some(r) => self.render_filters(r, buf, ctx),
+            None => ctx.focus_stop(self.filters.id),
         }
-
-        let below = Rect::new(
-            rest.x,
-            rest.y + strip_h + 1,
-            rest.width,
-            rest.height.saturating_sub(strip_h + 1),
-        );
-        if below.height < 3 {
-            return;
+        match rows.slot(1) {
+            Some(r) => self.render_selects(r, buf, ctx),
+            None => {
+                for sel in self.selects() {
+                    ctx.focus_stop(sel.id);
+                }
+            }
         }
-        let (l, r) = crate::pages::layout::columns(below, (below.width * 55 / 100).max(36), 2);
-        let panel = Panel::card(Some("Properties"));
-        let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(11)), buf, t);
-        let props = vec![
-            Prop::new("Engine", "PostgreSQL 16.3"),
-            Prop::new("Host", "prod-db-1.acme.io:5432"),
-            Prop::new("Environment", "production"),
-            Prop::new(
-                "Safe Mode",
-                "Writes ask for confirmation and a deliberate acknowledgement.",
-            )
-            .wrap(),
-            Prop::new("Last used", "1 hour ago").tone(Tone::Muted),
-        ];
-        props::render(inner, buf, t, &props, bg);
-
-        let panel = Panel::card(Some("Empty state"));
-        let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(11)), buf, t);
-        empty::render(
-            inner,
-            buf,
-            t,
-            &EmptyState::new("No results yet")
-                .hint("A title and one hint, centred in whatever is left"),
-            bg,
-        );
+        if let Some(r) = rows.slot(2) {
+            render_strip(r, buf, ctx);
+        }
+        if let Some(r) = rows.slot(3) {
+            render_below(r, buf, ctx);
+        }
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
         match ev {
             PageEvent::Key(key) => {
                 let Some(f) = cx.focus.current() else {
@@ -341,4 +257,134 @@ impl Page for ChipsPage {
             vec![("Tab", "Next")]
         }
     }
+}
+
+impl ChipsPage {
+    fn render_filters(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+
+        // filters
+        let focused = ctx.interaction.focused(self.filters.id);
+        let active = self.filters.chips.iter().filter(|c| c.enabled).count();
+        let meta = format!("{active} active");
+        let panel = Panel::card(Some("Filters")).focused(focused).meta(&meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        self.filters
+            .render(Rect::new(inner.x, inner.y, inner.width, 1), buf, ctx, bg);
+        if inner.y + 2 < inner.bottom() {
+            buf.set_string(
+                inner.x,
+                inner.y + 2,
+                junie_tui::ui::text::truncate(
+                    &format!("last action: {}", self.last),
+                    inner.width as usize,
+                ),
+                t.muted().bg(bg),
+            );
+        }
+    }
+
+    fn render_selects(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("Selects"));
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        let third = inner.width / 3;
+        let cells = [
+            Rect::new(inner.x, inner.y, third.saturating_sub(2), Select::HEIGHT),
+            Rect::new(
+                inner.x + third,
+                inner.y,
+                third.saturating_sub(2),
+                Select::HEIGHT,
+            ),
+            Rect::new(
+                inner.x + third * 2,
+                inner.y,
+                inner.width.saturating_sub(third * 2),
+                Select::HEIGHT,
+            ),
+        ];
+        // an open list is an overlay: it lands above everything drawn below
+        for (sel, cell) in self.selects().into_iter().zip(cells) {
+            sel.render(cell, buf, ctx, bg);
+        }
+    }
+}
+
+/// The segment strip at full width and at 44 columns.
+fn render_strip(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    let t = ctx.theme;
+    let panel = Panel::card(Some("Segment strip"));
+    let bg = panel.bg(t);
+    let inner = panel.render(area, buf, t);
+    let left = [
+        Segment::new("▪", Tone::Success).priority(9),
+        Segment::new("Acme", Tone::Normal).bold().priority(9),
+        Segment::new("◆ production", Tone::Normal)
+            .bold()
+            .priority(8),
+        Segment::new("acme_prod › public", Tone::Secondary).priority(6),
+        Segment::new("safe", Tone::Normal).bold().priority(7),
+    ];
+    let right = [
+        Segment::new("3 pending", Tone::Warning).priority(5),
+        Segment::new("truecolor · 120×40", Tone::Muted).priority(2),
+        Segment::new("? help", Tone::Muted).priority(3),
+    ];
+    segments::render(
+        Rect::new(inner.x, inner.y, inner.width, 1),
+        buf,
+        ctx,
+        &left,
+        &right,
+        bg,
+    );
+    let narrow = Rect::new(inner.x, inner.y + 2, inner.width.min(44), 1).intersection(inner);
+    segments::render(narrow, buf, ctx, &left, &right, bg);
+    if inner.y + 3 < inner.bottom() {
+        buf.set_string(
+            inner.x,
+            inner.y + 3,
+            junie_tui::ui::text::truncate(
+                "the same strip at 44 columns: low-priority segments leave first, from the right",
+                inner.width as usize,
+            ),
+            t.faint().bg(bg),
+        );
+    }
+}
+
+/// Properties beside an empty state.
+fn render_below(below: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    let t = ctx.theme;
+    let (l, r) = crate::pages::layout::columns(below, (below.width * 55 / 100).max(36), 2);
+    let panel = Panel::card(Some("Properties"));
+    let bg = panel.bg(t);
+    let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(11)), buf, t);
+    let props = vec![
+        Prop::new("Engine", "PostgreSQL 16.3"),
+        Prop::new("Host", "prod-db-1.acme.io:5432"),
+        Prop::new("Environment", "production"),
+        Prop::new(
+            "Safe Mode",
+            "Writes ask for confirmation and a deliberate acknowledgement.",
+        )
+        .wrap(),
+        Prop::new("Last used", "1 hour ago").tone(Tone::Muted),
+    ];
+    props::render(inner, buf, t, &props, bg);
+
+    let panel = Panel::card(Some("Empty state"));
+    let bg = panel.bg(t);
+    let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(11)), buf, t);
+    empty::render(
+        inner,
+        buf,
+        t,
+        &EmptyState::new("No results yet")
+            .hint("A title and one hint, centred in whatever is left"),
+        bg,
+    );
 }
