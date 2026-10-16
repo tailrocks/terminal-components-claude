@@ -2746,7 +2746,7 @@ impl Screen for AccountsScreen {
 
     fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint> {
         if self.menu.is_open() {
-            return RowMenu::<Sel, &str>::hints();
+            return super::rowmenu::hints();
         }
         if focus == Some(INSPECTOR) {
             return vec![
