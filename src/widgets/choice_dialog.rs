@@ -203,6 +203,7 @@ impl ChoiceDialog {
         let (area, inner) = crate::ui::modal::Frame::new(self.width, h)
             .title(&self.title)
             .meta(None)
+            .dismiss(self.dismiss)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;

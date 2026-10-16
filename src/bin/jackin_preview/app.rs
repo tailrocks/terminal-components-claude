@@ -1938,29 +1938,51 @@ impl App {
                     }
                     return self.deliver(entry, ModalResult::Dialog { action, text: None });
                 }
+                let dismiss = d.dismiss;
+                let now = self.now_ms();
+                if junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now) {
+                    return Outcome::Changed;
+                }
                 out
             }
             // everything else follows its own dismiss policy and closes
             // with the result its Esc would give
             _ => {
                 if self.modals.outside_click() != Dismissal::Close {
+                    let dismiss = self
+                        .modals
+                        .top()
+                        .map(junie_tui::ui::modal::Modal::dismiss)
+                        .unwrap_or_default();
+                    let now = self.now_ms();
+                    if junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now) {
+                        return Outcome::Changed;
+                    }
                     return Outcome::Consumed;
                 }
-                let entry = self.pop_modal().unwrap();
-                let result = match &entry.modal {
-                    Modal::Help(_) => return Outcome::Changed,
-                    Modal::Info(_) => ModalResult::Info(InfoResult::Closed),
-                    Modal::Custom(_) => ModalResult::Custom("close".into()),
-                    Modal::Browser(_) => {
-                        ModalResult::Browser(crate::screens::modals::BrowserResult::Cancelled)
-                    }
-                    Modal::Choice(_) => ModalResult::Choice(None),
-                    Modal::Form(_) => ModalResult::Form(None),
-                    _ => ModalResult::Cancelled,
-                };
-                self.deliver(entry, result)
+                self.dismiss_top_modal()
             }
         }
+    }
+
+    /// Close the top modal with the result its Esc gives (an outside
+    /// click its policy allows, or its close button).
+    fn dismiss_top_modal(&mut self) -> Outcome {
+        let Some(entry) = self.pop_modal() else {
+            return Outcome::Ignored;
+        };
+        let result = match &entry.modal {
+            Modal::Help(_) => return Outcome::Changed,
+            Modal::Info(_) => ModalResult::Info(InfoResult::Closed),
+            Modal::Custom(_) => ModalResult::Custom("close".into()),
+            Modal::Browser(_) => {
+                ModalResult::Browser(crate::screens::modals::BrowserResult::Cancelled)
+            }
+            Modal::Choice(_) => ModalResult::Choice(None),
+            Modal::Form(_) => ModalResult::Form(None),
+            _ => ModalResult::Cancelled,
+        };
+        self.deliver(entry, result)
     }
 
     fn modal_click(&mut self, id: WidgetId, pos: Position, clicks: u8) -> Outcome {
@@ -1968,6 +1990,14 @@ impl App {
         let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
+        // the frame's close button means what Esc means (a dialog resolves
+        // it itself, to its cancel action)
+        if id == junie_tui::ui::modal::CLOSE
+            && !matches!(top.modal, Modal::Dialog(_))
+            && junie_tui::ui::modal::Modal::dismiss(&*top).shows_close()
+        {
+            return self.dismiss_top_modal();
+        }
         match &mut top.modal {
             Modal::Dialog(d) => {
                 let out = d.on_click_count(id, pos, clicks, &mut self.focus);
@@ -2100,7 +2130,13 @@ impl App {
                 }
                 o.or(Outcome::Changed)
             }
-            Modal::Help(_) => Outcome::Changed,
+            Modal::Help(h) => {
+                let o = h.on_click(id);
+                if h.closed {
+                    self.pop_modal();
+                }
+                o.or(Outcome::Changed)
+            }
             Modal::Custom(c) => {
                 let o = c.on_click(id, pos, &mut self.focus, &self.world);
                 if let Some(r) = c.done() {

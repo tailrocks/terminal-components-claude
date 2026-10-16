@@ -2065,11 +2065,26 @@ impl App {
                             self.close_modal();
                             return self.dialog_closed(did, result, None).or(out);
                         }
+                        let dismiss = d.dismiss;
+                        let now = self.now_ms();
+                        junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
                     }
                     // everything else follows its own dismiss policy
                     _ => {
                         if self.modals.outside_click() == Dismissal::Close {
                             self.close_modal();
+                        } else {
+                            let dismiss = self
+                                .modals
+                                .top()
+                                .map(junie_tui::ui::modal::Modal::dismiss)
+                                .unwrap_or_default();
+                            let now = self.now_ms();
+                            junie_tui::ui::modal::refuse_outside_click(
+                                &mut self.pointer,
+                                dismiss,
+                                now,
+                            );
                         }
                         return Outcome::Changed;
                     }

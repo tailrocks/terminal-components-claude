@@ -15,6 +15,7 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::modal::Frame;
 use crate::ui::popup::Placement;
 use crate::ui::text::{truncate, width};
+use crate::widgets::button::Button;
 use crate::widgets::scrollbar;
 
 /// A [`HelpOverlay`] action a key can be bound to. Esc (per the
@@ -51,6 +52,13 @@ pub struct HelpOverlay {
     pub nav: NavKeys,
     /// The overlay's action keys (default [`HelpAction::default_keymap`]).
     pub keymap: KeyMap<HelpAction>,
+    /// Largest share of the screen the overlay takes, in percent of its
+    /// width and height. Default 80, so the dimmed page stays visible
+    /// around it and a click there closes it (under `Dismiss::LIGHT`).
+    pub max_percent: u16,
+    /// The button that closes the overlay by pointer. Its label follows
+    /// [`crate::theme::Strings::done`].
+    pub done: Button,
     /// The theme's strings as of the last render: a title and hint still
     /// reading them follow a change ([`crate::theme::Strings::follow`]).
     strings: crate::theme::Strings,
@@ -92,8 +100,28 @@ impl HelpOverlay {
             hint: crate::theme::Strings::DEFAULT.help_footer.into(),
             nav: NavKeys::DEFAULT,
             keymap: HelpAction::default_keymap(),
+            max_percent: 80,
+            done: Button::secondary(id.sub("done"), crate::theme::Strings::DEFAULT.done),
             strings: crate::theme::Strings::DEFAULT,
         }
+    }
+
+    /// See [`Self::max_percent`] (clamped to 20..=100).
+    pub fn max_percent(mut self, percent: u16) -> Self {
+        self.max_percent = percent.clamp(20, 100);
+        self
+    }
+
+    /// A completed click inside the overlay: the Done button and the
+    /// frame's close button close it.
+    pub fn on_click(&mut self, id: WidgetId) -> Outcome {
+        if id == self.done.id && self.done.on_click()
+            || id == crate::ui::modal::CLOSE && self.dismiss.shows_close()
+        {
+            self.closed = true;
+            return Outcome::Changed;
+        }
+        Outcome::Consumed
     }
 
     pub fn title(mut self, title: &str) -> Self {
@@ -143,12 +171,15 @@ impl HelpOverlay {
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.title, old.help_title, s.help_title);
         crate::theme::Strings::follow(&mut self.hint, old.help_footer, s.help_footer);
-        let w = screen.width.saturating_sub(4);
-        let h = screen.height.saturating_sub(3);
+        crate::theme::Strings::follow(&mut self.done.label, old.done, s.done);
+        let pct = |n: u16| (u32::from(n) * u32::from(self.max_percent) / 100) as u16;
+        let w = screen.width.saturating_sub(4).min(pct(screen.width));
+        let h = screen.height.saturating_sub(3).min(pct(screen.height));
         let (area, inner) = Frame::new(w, h)
             .title(&self.title)
             .meta(Some(&self.scope))
             .placement(Placement::Center)
+            .dismiss(self.dismiss)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;
@@ -223,19 +254,33 @@ impl HelpOverlay {
             );
             let pos = scrollbar::position_label(&self.scroll);
             let pw = width(&pos) as u16;
+            // left of the close button when the frame draws one
+            let reserve = if self.dismiss.shows_close() {
+                crate::ui::modal::CLOSE_WIDTH + 1
+            } else {
+                0
+            };
             buf.set_string(
-                area.right().saturating_sub(pw + 4),
+                area.right().saturating_sub(pw + 4 + reserve),
                 area.y,
                 format!(" {pos} "),
                 t.faint().bg(bg),
             );
         }
         let y = inner.bottom().saturating_sub(1);
+        let bw = self.done.width();
+        let room = inner.width.saturating_sub(bw + 2);
         buf.set_string(
             inner.x,
             y,
-            truncate(&self.hint, inner.width as usize),
+            truncate(&self.hint, room as usize),
             t.faint().bg(bg),
+        );
+        self.done.render(
+            Rect::new(inner.right().saturating_sub(bw), y, bw, 1),
+            buf,
+            ctx,
+            bg,
         );
     }
 }

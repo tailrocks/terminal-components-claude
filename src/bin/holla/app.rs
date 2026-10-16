@@ -1525,11 +1525,25 @@ impl App {
                     let entry = self.pop_modal().unwrap();
                     return self.deliver(entry, ModalResult::Dialog { action, text: None });
                 }
+                let dismiss = d.dismiss;
+                let now = self.now_ms();
+                if junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now) {
+                    return Outcome::Changed;
+                }
                 out
             }
             // everything else follows its own dismiss policy
             _ => {
                 if self.modals.outside_click() != Dismissal::Close {
+                    let dismiss = self
+                        .modals
+                        .top()
+                        .map(junie_tui::ui::modal::Modal::dismiss)
+                        .unwrap_or_default();
+                    let now = self.now_ms();
+                    if junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now) {
+                        return Outcome::Changed;
+                    }
                     return Outcome::Consumed;
                 }
                 let entry = self.pop_modal().unwrap();
