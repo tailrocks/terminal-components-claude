@@ -10,6 +10,7 @@ use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::theme::{CursorStyle, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, backdrop_id, place_with};
@@ -142,6 +143,9 @@ pub struct ContextMenu {
     /// The cursor moved since the last render: the next render scrolls it
     /// into view. The wheel leaves it alone.
     cursor_dirty: bool,
+    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
+    /// PageUp/PageDown move by the rows shown.
+    pub nav: NavKeys,
 }
 
 impl ContextMenu {
@@ -205,7 +209,14 @@ impl ContextMenu {
             max_rows: u16::MAX,
             offset: 0,
             cursor_dirty: true,
+            nav: NavKeys::DEFAULT,
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
     }
 
     /// Cells kept free between the menu and the screen's left and right
@@ -329,25 +340,31 @@ impl ContextMenu {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
+        if let Some(nav) = self.nav.action(key) {
+            match nav {
+                Nav::Down => self.step(1),
+                Nav::Up => self.step(-1),
+                Nav::PageDown | Nav::PageUp => {
+                    let delta = if nav == Nav::PageDown { 1 } else { -1 };
+                    let wrap = std::mem::replace(&mut self.wrap, false);
+                    for _ in 0..self.viewport().max(1) {
+                        self.step(delta);
+                    }
+                    self.wrap = wrap;
+                }
+                Nav::Home => {
+                    self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
+                    self.cursor_dirty = true;
+                }
+                Nav::End => {
+                    self.cursor = self.items.iter().rposition(|i| !i.disabled).unwrap_or(0);
+                    self.cursor_dirty = true;
+                }
+                Nav::Left | Nav::Right => return (Outcome::Consumed, None),
+            }
+            return (Outcome::Changed, None);
+        }
         match key.code {
-            KeyCode::Down | KeyCode::Char('j') => {
-                self.step(1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Up | KeyCode::Char('k') => {
-                self.step(-1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Home | KeyCode::Char('g') => {
-                self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
-                self.cursor_dirty = true;
-                (Outcome::Changed, None)
-            }
-            KeyCode::End | KeyCode::Char('G') => {
-                self.cursor = self.items.iter().rposition(|i| !i.disabled).unwrap_or(0);
-                self.cursor_dirty = true;
-                (Outcome::Changed, None)
-            }
             KeyCode::Enter | KeyCode::Char(' ') => {
                 if self.items.get(self.cursor).is_some_and(|i| !i.disabled) {
                     (Outcome::Changed, Some(MenuEvent::Chosen(self.cursor)))
@@ -582,9 +599,18 @@ pub struct MenuBar {
     /// With a menu open the keyboard is in the menu, so the page under it
     /// shows no focus (see [`MenuBar::hides_page_focus`]). Default on.
     pub hide_owner_focus: bool,
+    /// Which keys move between titles and through an open menu (default
+    /// [`NavKeys::DEFAULT`]; the open menu inherits it).
+    pub nav: NavKeys,
 }
 
 impl MenuBar {
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
     pub fn new(id: WidgetId, entries: Vec<(&str, Vec<MenuItem>)>) -> Self {
         Self {
             id,
@@ -599,6 +625,7 @@ impl MenuBar {
             hover_switch: true,
             wrap: true,
             hide_owner_focus: true,
+            nav: NavKeys::DEFAULT,
         }
     }
 
@@ -668,7 +695,8 @@ impl MenuBar {
         self.cursor = i;
         let anchor = self.areas.get(i).copied().unwrap_or(Rect::new(0, 0, 1, 1));
         let menu = ContextMenu::new(self.label_id(i).sub("menu"), self.menus[i].clone())
-            .anchor(anchor, Placement::Below);
+            .anchor(anchor, Placement::Below)
+            .nav(self.nav);
         self.open = Some(menu);
     }
 
@@ -682,14 +710,15 @@ impl MenuBar {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
+        let nav = self.nav.action(key);
         if let Some(menu) = self.open.as_mut() {
-            match key.code {
-                KeyCode::Left | KeyCode::Char('h') if n > 1 => {
+            match nav {
+                Some(Nav::Left) if n > 1 => {
                     let i = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
                     self.open_menu(i);
                     return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
                 }
-                KeyCode::Right | KeyCode::Char('l') if n > 1 => {
+                Some(Nav::Right) if n > 1 => {
                     let i = crate::core::nav::step_index(self.cursor, n, 1, self.wrap);
                     self.open_menu(i);
                     return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
@@ -711,16 +740,22 @@ impl MenuBar {
                 None => (o, None),
             };
         }
-        match key.code {
-            KeyCode::Left | KeyCode::Char('h') if n > 0 => {
+        match nav {
+            Some(Nav::Left) if n > 0 => {
                 self.cursor = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
-                (Outcome::Changed, None)
+                return (Outcome::Changed, None);
             }
-            KeyCode::Right | KeyCode::Char('l') if n > 0 => {
+            Some(Nav::Right) if n > 0 => {
                 self.cursor = crate::core::nav::step_index(self.cursor, n, 1, self.wrap);
-                (Outcome::Changed, None)
+                return (Outcome::Changed, None);
             }
-            KeyCode::Enter | KeyCode::Down | KeyCode::Char(' ') if n > 0 => {
+            _ => {}
+        }
+        match key.code {
+            _ if n > 0
+                && (matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
+                    || nav == Some(Nav::Down)) =>
+            {
                 let i = self.cursor;
                 self.open_menu(i);
                 (Outcome::Changed, Some(MenuBarEvent::Opened(i)))
