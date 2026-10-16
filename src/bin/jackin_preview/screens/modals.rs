@@ -7,9 +7,9 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
-use junie_tui::theme::{ButtonKind, Theme, Tone};
+use junie_tui::theme::{ButtonKind, Tone};
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::text::{truncate, width};
+use junie_tui::ui::text::truncate;
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup};
 use junie_tui::widgets::input::{InputEvent, TextInput};
@@ -53,16 +53,6 @@ pub fn modal_frame(
             junie_tui::ui::modal::FramePlacement::Upper
         })
         .render(screen, buf, ctx)
-}
-
-fn hint_row(buf: &mut Buffer, inner: Rect, t: &Theme, text: &str) {
-    let y = inner.bottom().saturating_sub(1);
-    buf.set_string(
-        inner.x,
-        y,
-        truncate(text, inner.width as usize),
-        t.faint().bg(t.surface_elevated),
-    );
 }
 
 // ------------------------------------------------------------ file browser
@@ -2275,159 +2265,4 @@ impl InfoDialog {
 
 // ------------------------------------------------------------------ help
 
-pub struct HelpOverlay {
-    /// Which dismissals close it. Default `Dismiss::LIGHT`.
-    pub dismiss: junie_tui::ui::popup::Dismiss,
-    pub id: WidgetId,
-    pub scope: String,
-    pub sections: Vec<(String, Vec<(String, String)>)>,
-    pub scroll: ScrollState,
-    pub area: Rect,
-    pub closed: bool,
-}
-
-impl HelpOverlay {
-    pub fn new(id: WidgetId, scope: &str, sections: Vec<(&str, Vec<(&str, &str)>)>) -> Self {
-        Self {
-            dismiss: junie_tui::ui::popup::Dismiss::LIGHT,
-            id,
-            scope: scope.to_owned(),
-            sections: sections
-                .into_iter()
-                .map(|(t, rows)| {
-                    (
-                        t.to_owned(),
-                        rows.into_iter()
-                            .map(|(k, a)| (k.to_owned(), a.to_owned()))
-                            .collect(),
-                    )
-                })
-                .collect(),
-            scroll: ScrollState::default(),
-            area: Rect::ZERO,
-            closed: false,
-        }
-    }
-
-    pub fn on_key(&mut self, key: &Key) -> Outcome {
-        match key.code {
-            KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Enter => {
-                self.closed = true;
-                Outcome::Changed
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                self.scroll.scroll_by(1);
-                Outcome::Changed
-            }
-            KeyCode::Up | KeyCode::Char('k') => {
-                self.scroll.scroll_by(-1);
-                Outcome::Changed
-            }
-            KeyCode::PageDown => {
-                self.scroll.page_down();
-                Outcome::Changed
-            }
-            KeyCode::PageUp => {
-                self.scroll.page_up();
-                Outcome::Changed
-            }
-            _ => Outcome::Consumed,
-        }
-    }
-
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
-    }
-
-    pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let w = screen.width.saturating_sub(4);
-        let h = screen.height.saturating_sub(3);
-        let (area, inner) = modal_frame(
-            screen,
-            buf,
-            ctx,
-            w,
-            h,
-            "Keyboard shortcuts",
-            Some(&self.scope),
-            true,
-        );
-        self.area = area;
-        let t = ctx.theme;
-        let bg = t.surface_elevated;
-        // columns: as many as fit at 36 cells each
-        let col_w = 36u16;
-        let cols = (inner.width / col_w).clamp(1, 3) as usize;
-        // flatten sections into column blocks
-        let mut blocks: Vec<Vec<(String, String, bool)>> = vec![];
-        for (title, rows) in &self.sections {
-            let mut b = vec![(title.clone(), String::new(), true)];
-            for (k, a) in rows {
-                b.push((k.clone(), a.clone(), false));
-            }
-            b.push((String::new(), String::new(), false));
-            blocks.push(b);
-        }
-        // distribute blocks round-robin into columns
-        let mut columns: Vec<Vec<(String, String, bool)>> = vec![vec![]; cols];
-        for (i, b) in blocks.into_iter().enumerate() {
-            columns[i % cols].extend(b);
-        }
-        let total = columns.iter().map(Vec::len).max().unwrap_or(0);
-        let body_h = inner.height.saturating_sub(1);
-        self.scroll.set_content(total);
-        self.scroll.set_viewport(body_h as usize);
-        ctx.scrollable(self.id, inner);
-        for (ci, col) in columns.iter().enumerate() {
-            let x = inner.x + ci as u16 * col_w;
-            for (k, i) in self.scroll.visible_range().enumerate() {
-                let Some((key, action, heading)) = col.get(i) else {
-                    continue;
-                };
-                let y = inner.y + k as u16;
-                if *heading {
-                    buf.set_string(x, y, key, t.secondary().bg(bg).add_modifier(Modifier::BOLD));
-                } else {
-                    buf.set_string(x, y, truncate(key, 12), t.key_hint_key().bg(bg));
-                    buf.set_string(
-                        x + 13,
-                        y,
-                        truncate(action, (col_w - 15) as usize),
-                        t.key_hint_action().bg(bg),
-                    );
-                }
-            }
-        }
-        if self.scroll.overflows() {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    inner.y,
-                    (area.right() - 2).saturating_sub(area.x),
-                    body_h,
-                ),
-                &self.scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(area.right() - 2, inner.y, 1, body_h),
-                buf,
-                ctx,
-                self.id,
-                &self.scroll,
-                true,
-            );
-            let pos = scrollbar::position_label(&self.scroll);
-            let pw = width(&pos) as u16;
-            buf.set_string(
-                area.right().saturating_sub(pw + 4),
-                area.y,
-                format!(" {pos} "),
-                t.faint().bg(bg),
-            );
-        }
-        hint_row(buf, inner, t, "↑↓ Scroll · Esc Close");
-    }
-}
+pub use junie_tui::widgets::help::HelpOverlay;
