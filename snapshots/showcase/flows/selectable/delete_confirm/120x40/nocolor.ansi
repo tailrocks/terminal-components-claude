@@ -15,8 +15,8 @@
 [0m[2m [0m [0m[2m▸ Overlays                [0m [0m[2m  [ ] Hana Sato              Editor  Active     APAC    —        hana@northwind.dev     ┃  [0m
 [0m[2m [0m [0m[2m▸ Feedback                [0m [0m[2m  [ ╭──────────────────────────────────────────────── × ─╮s      ivo@northwind.dev      ┃  [0m
 [0m[2m [0m [0m[2m▸ Layout                  [0m [0m[2m  [ │                                                    │       june@northwind.dev     ┃  [0m
-[0m[2m [0m [0m[2m▸ Text & code             [0m [0m[2m  [ │  [0m[1;2mDelete 2 members?[0m[2m                                 │       kai@northwind.dev      │  [0m
-[0m[2m [0m [0m[2m▸ Screens                      │                                                    │━━━━━━━━━━━━━━━━━━────────────   [0m
+[0m[2m [0m [0m[2m▸ Text & code             [0m [0m[2m  [ │  [0m[1;2mDelete 2 members?[0m[2m                                 │       kai@northwind.dev      ┆  [0m
+[0m[2m [0m [0m[2m▸ Screens                      │                                                    │━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄   [0m
 [0m[2m                                 │  They lose access to the workspace right away.     │                                 [0m
 [0m[2m                                 │  This can't be undone.                             │                                 [0m
 [0m[2m                            Edit │                                                    │                                 [0m
