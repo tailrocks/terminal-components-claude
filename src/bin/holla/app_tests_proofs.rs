@@ -436,10 +436,10 @@ fn batched_and_separated_event_sequences_agree_on_focus_hits_drafts_and_cursor()
         v.push(key(KeyCode::Tab));
         v.push(key(KeyCode::F(1)));
         v.push(key(KeyCode::Esc));
-        v.push(Input::Mouse(Mouse {
-            kind: MouseKind::Move,
-            pos: Position::new(3, 4),
-        }));
+        v.push(Input::Mouse(Mouse::new(
+            MouseKind::Move,
+            Position::new(3, 4),
+        )));
         v
     };
     let mut batched = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);

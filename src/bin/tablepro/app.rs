@@ -2036,7 +2036,7 @@ impl App {
                     None => out,
                 }
             }
-            MouseKind::Secondary => Outcome::Ignored,
+            MouseKind::Secondary | MouseKind::Middle => Outcome::Ignored,
             MouseKind::WheelUp
             | MouseKind::WheelDown
             | MouseKind::WheelLeft

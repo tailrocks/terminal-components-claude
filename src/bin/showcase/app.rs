@@ -741,6 +741,7 @@ impl App {
                     None => out,
                 }
             }
+            MouseKind::Middle => Outcome::Ignored,
             MouseKind::Secondary => {
                 let hit = self.pointer.on_secondary(&self.hits, m.pos);
                 if self.dialog.is_some() {
@@ -1270,10 +1271,10 @@ mod click_regressions {
         assert!(app.nav_scroll.offset > 0);
         let focus = app.focus.current();
         let cursor = app.nav_cursor;
-        app.handle(Input::Mouse(Mouse {
-            kind: MouseKind::WheelUp,
-            pos: Position::new(2, 4),
-        }));
+        app.handle(Input::Mouse(Mouse::new(
+            MouseKind::WheelUp,
+            Position::new(2, 4),
+        )));
         let offset = app.nav_scroll.offset;
         term.draw(|frame| app.render(frame)).unwrap();
         assert_eq!(
@@ -1294,10 +1295,10 @@ mod click_regressions {
         );
         let track = app.hits.area_of(scrollbar::id_for(NAV)).unwrap();
         for kind in [MouseKind::Down, MouseKind::Up] {
-            app.handle(Input::Mouse(Mouse {
+            app.handle(Input::Mouse(Mouse::new(
                 kind,
-                pos: Position::new(track.x, track.y),
-            }));
+                Position::new(track.x, track.y),
+            )));
             term.draw(|frame| app.render(frame)).unwrap();
         }
         assert_eq!(app.nav_scroll.offset, 0);
@@ -1321,27 +1322,18 @@ mod click_regressions {
             let pos = Position::new(area.x + 2, area.y + area.height / 2);
             // the press alone focuses nothing; the completed click focuses
             // and edits in one go, and a second click only keeps editing
-            app.handle(Input::Mouse(Mouse {
-                kind: MouseKind::Down,
-                pos,
-            }));
+            app.handle(Input::Mouse(Mouse::new(MouseKind::Down, pos)));
             term.draw(|frame| app.render(frame)).unwrap();
             assert!(!app.pages[page.index()].editing(), "{page:?}: press alone");
             for _click in 0..2 {
-                app.handle(Input::Mouse(Mouse {
-                    kind: MouseKind::Up,
-                    pos,
-                }));
+                app.handle(Input::Mouse(Mouse::new(MouseKind::Up, pos)));
                 term.draw(|frame| app.render(frame)).unwrap();
                 assert_eq!(app.focus.current(), Some(id), "{page:?}");
                 assert!(
                     app.pages[page.index()].editing(),
                     "{page:?}: one click edits"
                 );
-                app.handle(Input::Mouse(Mouse {
-                    kind: MouseKind::Down,
-                    pos,
-                }));
+                app.handle(Input::Mouse(Mouse::new(MouseKind::Down, pos)));
             }
         }
     }
