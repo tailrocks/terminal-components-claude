@@ -11,7 +11,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{ScrollPane, ScrollState, Scrollable};
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
@@ -97,7 +97,8 @@ pub struct Picker {
     pub query: String,
     pub items: Vec<PickerItem>,
     pub cursor: usize,
-    pub scroll: ScrollState,
+    /// The rows and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub width: u16,
     pub max_rows: u16,
     /// Where the picker sits and how it keeps off the screen edges.
@@ -190,7 +191,7 @@ impl Picker {
             query: String::new(),
             items: vec![],
             cursor: 0,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             width: 64,
             max_rows: 12,
             fit: crate::ui::popup::Place::DEFAULT,
@@ -341,7 +342,7 @@ impl Picker {
     pub fn set_items(&mut self, items: Vec<PickerItem>) {
         self.items = items;
         self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
-        self.scroll = ScrollState::new(self.items.len());
+        self.scroll.v = ScrollState::new(self.items.len());
         self.cursor_dirty = true;
     }
 
@@ -629,17 +630,6 @@ impl Picker {
         Some(PickerAction::Chosen(i))
     }
 
-    /// Wheel scrolls the viewport and keeps the selection where it is.
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        let before = self.scroll.offset;
-        self.scroll.scroll_by(delta as isize);
-        if self.scroll.offset == before {
-            Outcome::Consumed
-        } else {
-            Outcome::Changed
-        }
-    }
-
     /// Dim `screen` and draw the picker with its [`Self::hints`] row.
     pub fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let hints = std::mem::take(&mut self.hints);
@@ -654,6 +644,7 @@ impl Picker {
     }
 
     fn paint(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
+        self.scroll.begin(ctx.track_click);
         self.parts.clear();
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
@@ -953,25 +944,8 @@ impl Picker {
             }
         }
         if has_sb {
-            crate::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    list.x,
-                    list.y,
-                    (list.right() - 1).saturating_sub(list.x),
-                    list.height,
-                ),
-                &self.scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(list.right() - 1, list.y, 1, list.height),
-                buf,
-                ctx,
-                self.id,
-                &self.scroll,
-                true,
-            );
+            self.scroll
+                .draw_with_fade(list, buf, ctx, self.id, true, &[]);
         }
         // hints row: owners with a shell-level hint bar pass an empty string
         if !hints.is_empty() {
@@ -983,6 +957,12 @@ impl Picker {
                 t.faint().bg(bg),
             );
         }
+    }
+}
+
+impl Scrollable for Picker {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
     }
 }
 
