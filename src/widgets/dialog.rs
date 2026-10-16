@@ -1276,9 +1276,11 @@ impl Dialog {
             .border_style(crate::ui::modal::border_style(ctx, bg));
         ratatui::widgets::Widget::render(block, area, buf);
         let _ = panel;
-        if self.dismiss.shows_close() {
-            crate::ui::modal::close_button(area, buf, ctx, bg);
-        }
+        let close = if self.dismiss.shows_close() {
+            crate::ui::modal::close_button(area, buf, ctx, bg)
+        } else {
+            Rect::ZERO
+        };
         let inner = area.inner(Margin::new(1 + self.pad.x, 1 + self.pad.y));
         if inner.is_empty() {
             return;
@@ -1453,6 +1455,9 @@ impl Dialog {
         }
         for b in &self.actions {
             ctx.hits.register(b.id, b.area);
+        }
+        if !close.is_empty() {
+            ctx.clickable(crate::ui::modal::CLOSE, close);
         }
         if !self.track.is_empty() {
             scrollbar::render_vertical(self.track, buf, ctx, self.id, &self.scroll, true);
