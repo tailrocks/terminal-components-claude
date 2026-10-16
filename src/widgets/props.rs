@@ -11,7 +11,7 @@ use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::reveal::{Reveal, RevealState};
+use crate::ui::reveal::{Reveal, RevealLine, RevealState};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -227,12 +227,22 @@ pub enum PropsEvent {
     Activate(usize),
 }
 
+/// The columns of a [`PropsList`] row at one scrollbar split.
+#[derive(Debug, Clone, Copy)]
+struct Geometry {
+    row_w: u16,
+    label_w: u16,
+    value_right: u16,
+}
+
 /// Interactive facts: one focus stop with a row cursor, `y` copies the
 /// copyable row under the cursor, Enter activates it.
 ///
 /// A value cut to fit keeps its `…` and reveals the full text on demand
 /// (see [`crate::ui::reveal`]): hovering it shows an expansion tooltip, and
 /// the reveal key (`→` by default) expands the cursor row until `←` or Esc.
+/// With [`RevealMode::InlineWrap`](crate::ui::reveal::RevealMode) the
+/// cursor row's value wraps in place instead, and the rows below move down.
 /// Copy always copies the full value.
 #[derive(Debug, Clone)]
 pub struct PropsList {
@@ -392,6 +402,52 @@ impl PropsList {
         }
     }
 
+    /// Cells kept for the `y copy` hint on the focused copyable row.
+    fn hint_width(p: &Prop, focused: bool) -> u16 {
+        if p.copyable && focused { 8 } else { 0 }
+    }
+
+    /// Where the label column and the values sit, for a row body and
+    /// content area from [`scrollbar::split`].
+    fn geometry(&self, body: Rect, content: Rect) -> Geometry {
+        let row_w = body.width;
+        // values end one cell short of the row, or the gap short of the bar
+        let value_right = content.right().min(body.right().saturating_sub(1));
+        // the labels start after the 2-cell gutter; a list never stacks, so
+        // a starved sheet keeps its capped column and cuts the longer labels
+        let label_area = row_w.saturating_sub(2);
+        let widths = self
+            .props
+            .iter()
+            .map(|p| crate::ui::text::width(&p.label) as u16 + 2);
+        let label_w = column(widths, label_area, self.sheet).unwrap_or_else(|| {
+            (label_area as u32 * self.sheet.label_max_share.min(100) as u32 / 100) as u16
+        });
+        Geometry {
+            row_w,
+            label_w: label_w.max(3),
+            value_right,
+        }
+    }
+
+    /// The rows the focused cursor row's value wraps to in place, when the
+    /// reveal is open in [`crate::ui::reveal::RevealMode::InlineWrap`].
+    fn inline_rows(
+        &mut self,
+        ctx: &mut RenderCtx,
+        geo: Geometry,
+        room: u16,
+    ) -> Option<Vec<RevealLine>> {
+        let p = self.props.get(self.cursor)?;
+        let vx = self.area.x + 2 + geo.label_w;
+        let vw = geo
+            .value_right
+            .saturating_sub(vx + Self::hint_width(p, true));
+        let rid = self.row_id(self.cursor);
+        let value = p.value.clone();
+        self.reveal.inline(ctx, rid, vw, &value, true, room)
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -405,37 +461,60 @@ impl PropsList {
         self.scroll.set_viewport(area.height as usize);
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
-        let has_sb = self.scroll.overflows();
-        let sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
-        let row_w = sp.body.width;
-        // values end one cell short of the row, or the gap short of the bar
-        let value_right = sp.content.right().min(sp.body.right().saturating_sub(1));
-        // the labels start after the 2-cell gutter; a list never stacks, so
-        // a starved sheet keeps its capped column and cuts the longer labels
-        let label_area = row_w.saturating_sub(2);
-        let widths = self
-            .props
-            .iter()
-            .map(|p| crate::ui::text::width(&p.label) as u16 + 2);
-        let label_w = column(widths, label_area, self.sheet).unwrap_or_else(|| {
-            (label_area as u32 * self.sheet.label_max_share.min(100) as u32 / 100) as u16
-        });
-        let label_w = label_w.max(3);
-        for (k, i) in self.scroll.visible_range().enumerate() {
-            let y = area.y + k as u16;
+        let mut has_sb = self.scroll.overflows();
+        let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
+        let mut geo = self.geometry(sp.body, sp.content);
+        // an inline reveal grows the cursor row: the rows it adds come out
+        // of the viewport, and the cursor row stays on screen
+        let mut expanded = None;
+        if focused {
+            expanded = self.inline_rows(ctx, geo, area.height);
+            if let Some(rows) = &expanded {
+                let extra = rows.len().saturating_sub(1);
+                self.scroll
+                    .set_viewport((area.height as usize).saturating_sub(extra).max(1));
+                self.scroll.ensure_visible(self.cursor);
+                if self.scroll.overflows() != has_sb {
+                    has_sb = self.scroll.overflows();
+                    sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
+                    geo = self.geometry(sp.body, sp.content);
+                    expanded = self.inline_rows(ctx, geo, area.height);
+                }
+            }
+        }
+        let Geometry {
+            row_w,
+            label_w,
+            value_right,
+        } = geo;
+        let mut y = area.y;
+        let mut cursor_rows = Vec::new();
+        for i in self.scroll.visible_range() {
+            if y >= area.bottom() {
+                break;
+            }
             let p = &self.props[i];
             let rid = self.row_id(i);
             let mut s = ctx.child_state(self.id, rid, i == self.cursor);
             s.focused = focused && i == self.cursor;
-            let row = Rect::new(area.x, y, row_w, 1);
+            let block = expanded.as_ref().filter(|_| i == self.cursor);
+            let h = block
+                .map_or(1, |r| r.len() as u16)
+                .clamp(1, area.bottom() - y);
+            let row = Rect::new(area.x, y, row_w, h);
+            if i == self.cursor {
+                cursor_rows.extend(row.y..row.bottom());
+            }
             let st = t.row(s, bg);
             fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            for gy in row.y..row.bottom() {
+                buf.set_string(
+                    row.x,
+                    gy,
+                    t.gutter_symbol(s),
+                    t.gutter(s, st.bg.unwrap_or(bg), false),
+                );
+            }
             buf.set_string(
                 row.x + 2,
                 y,
@@ -443,21 +522,27 @@ impl PropsList {
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
             let vx = row.x + 2 + label_w;
-            let hint_w: u16 = if p.copyable && s.focused { 8 } else { 0 };
+            let hint_w = Self::hint_width(p, s.focused);
             let vw = value_right.saturating_sub(vx + hint_w) as usize;
-            buf.set_string(
-                vx,
-                y,
-                crate::ui::text::truncate(&p.value, vw),
-                st.fg(t.tone(p.tone)),
-            );
-            self.reveal.cell(
-                ctx,
-                rid,
-                Rect::new(vx, y, vw as u16, 1),
-                &p.value,
-                s.focused,
-            );
+            let vs = st.fg(t.tone(p.tone));
+            if let Some(lines) = block {
+                // the cursor row wrapped in place: every line of the value,
+                // then a marker when a long value scrolls
+                for (k, line) in lines.iter().take(h as usize).enumerate() {
+                    let ls = if line.more { st.fg(t.text_muted) } else { vs };
+                    let text = crate::ui::text::truncate(&line.text, vw);
+                    buf.set_string(vx, y + k as u16, text, ls);
+                }
+            } else {
+                buf.set_string(vx, y, crate::ui::text::truncate(&p.value, vw), vs);
+                self.reveal.cell(
+                    ctx,
+                    rid,
+                    Rect::new(vx, y, vw as u16, 1),
+                    &p.value,
+                    s.focused,
+                );
+            }
             if hint_w > 0 {
                 buf.set_string(
                     row.right().saturating_sub(7),
@@ -467,22 +552,11 @@ impl PropsList {
                 );
             }
             ctx.clickable(rid, row);
+            y += h;
         }
         self.track = Rect::ZERO;
         if let Some(sb) = sp.track {
-            crate::ui::fade::scroll_edges_except(
-                buf,
-                ctx,
-                sp.body,
-                &self.scroll,
-                &self
-                    .scroll
-                    .visible_range()
-                    .position(|i| i == self.cursor)
-                    .map(|k| area.y + k as u16)
-                    .into_iter()
-                    .collect::<Vec<_>>(),
-            );
+            crate::ui::fade::scroll_edges_except(buf, ctx, sp.body, &self.scroll, &cursor_rows);
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
@@ -532,6 +606,108 @@ mod reveal_scroll_tests {
             l.scroll.offset, offset,
             "the reveal scrolled, not the sheet"
         );
+    }
+
+    fn rows_of(l: &mut PropsList, w: u16, h: u16, focus: Interaction) -> Vec<String> {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, focus, &mut hits, &mut ring);
+        let area = Rect::new(0, 0, w, h);
+        let mut buf = Buffer::empty(area);
+        l.render(area, &mut buf, &mut ctx, theme.canvas);
+        ctx.flush_overlays(&mut buf);
+        (0..h)
+            .map(|y| (0..w).map(|x| buf[(x, y)].symbol()).collect::<String>())
+            .collect()
+    }
+
+    /// `RevealMode::InlineWrap` wraps the cursor row's value in place (it
+    /// used to fall back to the tooltip): the rows below move down, the
+    /// focus gutter covers the whole block, and `←` puts it back.
+    #[test]
+    fn inline_wrap_grows_the_cursor_row_and_pushes_the_rest_down() {
+        let long = "alpha bravo charlie delta echo foxtrot golf hotel";
+        let mut l = PropsList::new(
+            WidgetId::of("p"),
+            vec![
+                Prop::new("Path", long),
+                Prop::new("Next", "second"),
+                Prop::new("Last", "third"),
+            ],
+        )
+        .reveal(Reveal::default().mode(crate::ui::reveal::RevealMode::InlineWrap));
+        let focus = Interaction {
+            focus: Some(l.id),
+            ..Default::default()
+        };
+        let rows = rows_of(&mut l, 24, 8, focus);
+        assert!(rows[1].contains("second"), "collapsed: {rows:#?}");
+        let right = Key {
+            code: KeyCode::Right,
+            mods: KeyModifiers::NONE,
+        };
+        assert_eq!(l.on_key(&right).0, Outcome::Changed);
+        let rows = rows_of(&mut l, 24, 8, focus);
+        let n = rows.iter().position(|r| r.contains("second")).unwrap();
+        assert!(n > 1, "the rows below moved down: {rows:#?}");
+        // the value column starts after the label column ("Path" + gap)
+        let vx = rows[0]
+            .find("alpha")
+            .map(|b| rows[0][..b].chars().count())
+            .unwrap();
+        let value: Vec<String> = rows[..n]
+            .iter()
+            .map(|r| r.chars().skip(vx).collect::<String>().trim().to_owned())
+            .collect();
+        assert_eq!(value.join(" "), long, "every line of the value, in place");
+        assert!(!rows.iter().any(|r| r.contains('…')), "{rows:#?}");
+        for r in &rows[..n] {
+            assert!(r.starts_with('▎'), "one gutter over the block: {rows:#?}");
+        }
+        let left = Key {
+            code: KeyCode::Left,
+            mods: KeyModifiers::NONE,
+        };
+        assert_eq!(l.on_key(&left).0, Outcome::Changed);
+        let rows = rows_of(&mut l, 24, 8, focus);
+        assert!(rows[1].contains("second"));
+    }
+
+    /// A value longer than the sheet wraps up to its rows and scrolls with
+    /// the wheel before the sheet itself does.
+    #[test]
+    fn a_long_inline_value_scrolls_before_the_sheet() {
+        let long = (1..=40)
+            .map(|i| format!("w{i:02}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let mut props = vec![Prop::new("K", &long)];
+        props.extend((0..20).map(|i| Prop::new("K", format!("row {i}"))));
+        let mut l = PropsList::new(WidgetId::of("p"), props).reveal(
+            Reveal::default()
+                .mode(crate::ui::reveal::RevealMode::InlineWrap)
+                .max_rows(3),
+        );
+        let focus = Interaction {
+            focus: Some(l.id),
+            ..Default::default()
+        };
+        rows_of(&mut l, 20, 6, focus);
+        let right = Key {
+            code: KeyCode::Right,
+            mods: KeyModifiers::NONE,
+        };
+        l.on_key(&right);
+        let rows = rows_of(&mut l, 20, 6, focus);
+        assert!(rows[0].contains("w01"), "{rows:#?}");
+        assert!(rows[2].contains('↓'), "capped at 3 rows: {rows:#?}");
+        assert!(rows[3].contains("row 0"), "{rows:#?}");
+        let offset = l.scroll.offset;
+        assert_eq!(l.on_wheel(1), Outcome::Changed);
+        let rows = rows_of(&mut l, 20, 6, focus);
+        assert!(rows[0].contains('↑'), "{rows:#?}");
+        assert_eq!(l.scroll.offset, offset, "the sheet itself did not move");
     }
 }
 
