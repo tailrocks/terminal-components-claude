@@ -10,6 +10,7 @@ use ratatui::style::Modifier;
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
+use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Placement, backdrop_id, place, surface_for};
 use crate::ui::text::{truncate, width};
@@ -41,6 +42,9 @@ pub struct Completion {
     /// outside that also lands where it was aimed (placing the caret in the
     /// editor underneath).
     pub dismiss: Dismiss,
+    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
+    /// editor that owns the list keeps the only focus bar.
+    pub cursor_style: CursorStyle,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +65,13 @@ impl Completion {
             max_rows: 8,
             area: Rect::ZERO,
             dismiss: Dismiss::LIGHT.pass_through(true),
+            cursor_style: CursorStyle::default(),
         }
+    }
+
+    pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
+        self.cursor_style = cursor_style;
+        self
     }
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
@@ -213,15 +223,11 @@ impl Completion {
             let rid = self.row_id(i);
             let mut s = ctx.state(rid);
             s.focused = i == self.cursor;
-            let st = t.row(s, bg);
+            let cr = t.cursor_row(s, bg, self.cursor_style);
+            let st = cr.style;
             let row = Rect::new(inner.x, y, inner.width.saturating_sub(u16::from(has_sb)), 1);
             fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            buf.set_string(row.x, y, cr.gutter, cr.gutter_style);
             buf.set_string(
                 row.x + 1,
                 y,
@@ -229,7 +235,7 @@ impl Completion {
                 st.fg(if s.focused {
                     t.text_primary
                 } else {
-                    t.text_muted
+                    t.row_ink(&cr, t.text_muted)
                 })
                 .remove_modifier(Modifier::BOLD),
             );
@@ -263,7 +269,8 @@ impl Completion {
                     dx,
                     y,
                     &it.detail,
-                    st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                    st.fg(t.row_ink(&cr, t.text_muted))
+                        .remove_modifier(Modifier::BOLD),
                 );
             }
             ctx.clickable(rid, row);
@@ -319,7 +326,7 @@ mod tests {
         c
     }
 
-    fn draw(c: &mut Completion, h: u16) {
+    fn draw(c: &mut Completion, h: u16) -> Buffer {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -327,6 +334,35 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 60, h));
         c.render(Rect::new(0, 0, 60, h), &mut buf, &mut ctx);
         ctx.flush_overlays(&mut buf);
+        buf
+    }
+
+    fn bars(buf: &Buffer) -> usize {
+        buf.content().iter().filter(|c| c.symbol() == "▎").count()
+    }
+
+    #[test]
+    fn the_cursor_row_is_a_fill_so_the_editor_keeps_the_only_focus_bar() {
+        let t = Theme::junie();
+        let mut c = popup(8);
+        let buf = draw(&mut c, 24);
+        assert_eq!(bars(&buf), 0, "no second focus bar beside the editor's");
+        let row = c.area.y + 1;
+        let label = buf[(c.area.x + 4, row)].style();
+        assert_eq!(
+            label.bg,
+            Some(t.highlight),
+            "cursor row is the highlight fill"
+        );
+        assert_ne!(
+            label.bg,
+            Some(t.accent_bg),
+            "green stays reserved for focus"
+        );
+        // the in-page look stays available
+        let mut barred = popup(8).cursor_style(CursorStyle::Bar);
+        let buf = draw(&mut barred, 24);
+        assert_eq!(bars(&buf), 1);
     }
 
     #[test]

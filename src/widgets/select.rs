@@ -14,6 +14,7 @@ use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Placement, backdrop_id, place, surface_for};
 
@@ -40,6 +41,10 @@ pub struct Select {
     pub popup_width: (u16, u16),
     /// First option row shown in the open list.
     pub scroll: usize,
+    /// How the open list marks its cursor row. Default
+    /// [`CursorStyle::Fill`]: the field owns the list and keeps the only
+    /// focus bar.
+    pub cursor_style: CursorStyle,
     /// Option rows the open list showed in the last frame.
     visible_rows: usize,
 }
@@ -72,6 +77,7 @@ impl Select {
             placement: Placement::Below,
             popup_width: Self::POPUP_WIDTH,
             scroll: 0,
+            cursor_style: CursorStyle::default(),
             visible_rows: Self::MAX_ROWS as usize,
         }
     }
@@ -89,6 +95,10 @@ impl Select {
     }
     pub fn popup_width(mut self, min: u16, max: u16) -> Self {
         self.popup_width = (min.max(1), max.max(min.max(1)));
+        self
+    }
+    pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
+        self.cursor_style = cursor_style;
         self
     }
     pub fn help(mut self, h: &str) -> Self {
@@ -345,12 +355,13 @@ impl Select {
             self.scroll = self.cursor + 1 - visible;
         }
         self.scroll = self.scroll.min(self.options.len().saturating_sub(visible));
-        let (id, cursor, selected, scroll, dismiss) = (
+        let (id, cursor, selected, scroll, dismiss, cursor_style) = (
             self.id,
             self.cursor,
             self.selected,
             self.scroll,
             self.dismiss,
+            self.cursor_style,
         );
         let options: Vec<(WidgetId, String)> = self
             .options
@@ -376,17 +387,14 @@ impl Select {
                 let mut rs = ctx.state(*rid);
                 rs.focused = i == cursor;
                 rs.selected = i == selected;
-                let st = t.row(rs, t.surface_elevated);
+                let cr = t.cursor_row(rs, t.surface_elevated, cursor_style);
+                let st = cr.style;
                 let row = Rect::new(inner.x, y, inner.width, 1);
                 fill(buf, row, st);
-                buf.set_string(
-                    row.x,
-                    y,
-                    t.gutter_symbol(rs),
-                    t.gutter(rs, st.bg.unwrap_or(t.surface_elevated), false),
-                );
+                buf.set_string(row.x, y, cr.gutter, cr.gutter_style);
                 if rs.selected {
-                    buf.set_string(row.x + 1, y, "›", st.fg(t.accent));
+                    // the chosen value is a fact, not a position: neutral
+                    buf.set_string(row.x + 1, y, "›", st.fg(t.row_ink(&cr, t.text_secondary)));
                 }
                 buf.set_string(
                     row.x + 3,
@@ -416,5 +424,58 @@ impl Select {
                 );
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn draw(sel: &mut Select) -> Buffer {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let interaction = Interaction {
+            focus: Some(sel.id),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 16));
+        sel.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, t.canvas);
+        ctx.flush_overlays(&mut buf);
+        buf
+    }
+
+    #[test]
+    fn the_open_list_marks_its_cursor_with_a_fill_and_the_choice_neutrally() {
+        let t = Theme::junie();
+        let mut sel = Select::new(WidgetId::of("s"), "Mode", &["One", "Two", "Three"], 0);
+        sel.open = true;
+        sel.cursor = 1;
+        let buf = draw(&mut sel);
+        let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
+        assert_eq!(bars, 1, "only the field carries the focus bar");
+        let chosen = (0..16)
+            .find_map(|y| {
+                (0..40)
+                    .find(|&x| buf[(x, y)].symbol() == "›")
+                    .map(|x| (x, y))
+            })
+            .expect("chosen marker");
+        assert_eq!(
+            buf[chosen].fg, t.text_secondary,
+            "chosen is neutral, not accent"
+        );
+        // the cursor row (one below the chosen row) is the highlight fill
+        let cursor = (chosen.0 + 2, chosen.1 + 1);
+        assert_eq!(buf[cursor].bg, t.highlight);
+        // the bar look stays available
+        let mut barred = sel.clone().cursor_style(CursorStyle::Bar);
+        let buf = draw(&mut barred);
+        let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
+        assert_eq!(bars, 2);
     }
 }
