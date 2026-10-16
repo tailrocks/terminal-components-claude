@@ -9,6 +9,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
 use junie_tui::widgets::input::{InputEvent, TextInput};
@@ -84,6 +85,8 @@ struct ConnForm {
     cancel_btn: Button,
     save_btn: Button,
     save_connect_btn: Button,
+    /// Scroll of the form's column stacks, per tab: `[tab][column]`.
+    stacks: [[StackScroll; 2]; 2],
 }
 
 fn port_validator(s: &str) -> Option<String> {
@@ -208,6 +211,7 @@ impl ConnForm {
             cancel_btn: Button::subtle(f.sub("cancel"), "Cancel"),
             save_btn: Button::secondary(f.sub("save"), "Save"),
             save_connect_btn: Button::primary(f.sub("saveconnect"), "Save & connect"),
+            stacks: Default::default(),
         }
     }
 
@@ -818,7 +822,56 @@ impl ConnectionsScreen {
         }
     }
 
+    /// The form column stack whose wheel region is `id`, or whose
+    /// scrollbar is `id` (`true`).
+    fn form_stack(&mut self, id: WidgetId) -> Option<(&mut StackScroll, bool)> {
+        let form = self.form.as_mut()?;
+        let tab = form.tabs.active.min(1);
+        let f = ID.sub("form");
+        [f.sub("left"), f.sub("right")]
+            .into_iter()
+            .zip(form.stacks[tab].iter_mut())
+            .find_map(|(sid, st)| {
+                if sid == id {
+                    Some((st, false))
+                } else if junie_tui::widgets::scrollbar::id_for(sid) == id {
+                    Some((st, true))
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Wheel over a scroll region of the screen (the form's columns).
+    pub fn on_wheel(&mut self, id: WidgetId, delta: i32) -> Outcome {
+        match self.form_stack(id) {
+            Some((st, _)) => {
+                if st.on_wheel(delta) {
+                    Outcome::Changed
+                } else {
+                    Outcome::Consumed
+                }
+            }
+            None => Outcome::Ignored,
+        }
+    }
+
+    /// A drag after a press on `pressed` (a form column's scrollbar).
+    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        match self.form_stack(pressed) {
+            Some((st, true)) => {
+                st.on_scrollbar_drag(pos);
+                Outcome::Changed
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
     fn on_form_click(&mut self, id: WidgetId, pos: Position, cx: &mut crate::app::Cx) -> Outcome {
+        if let Some((st, true)) = self.form_stack(id) {
+            st.on_scrollbar(pos);
+            return Outcome::Changed;
+        }
         let Some(form) = self.form.as_mut() else {
             return Outcome::Ignored;
         };
@@ -1171,89 +1224,176 @@ impl ConnectionsScreen {
         );
         let (lc, rc) = junie_tui::ui::layout::Split::new(58, 30, 24).horizontal(body, 4);
         let fh = TextInput::HEIGHT;
-        if form.tabs.active == 0 {
-            let mut y = lc.y;
-            form.name
-                .render(Rect::new(lc.x, y, lc.width, fh), buf, ctx, bg);
-            y += fh;
-            form.engine
-                .render(Rect::new(lc.x, y, lc.width, Select::HEIGHT), buf, ctx, bg);
-            y += Select::HEIGHT;
-            let (hl, hr) = junie_tui::ui::layout::Split::new(70, 12, 8)
-                .horizontal(Rect::new(lc.x, y, lc.width, fh), 2);
-            form.host.render(hl, buf, ctx, bg);
-            form.port.render(hr, buf, ctx, bg);
-            y += fh;
-            form.database
-                .render(Rect::new(lc.x, y, lc.width, fh), buf, ctx, bg);
-            y += fh;
-            form.user
-                .render(Rect::new(lc.x, y, lc.width, fh), buf, ctx, bg);
-            y += fh;
-            form.password
-                .render(Rect::new(lc.x, y, lc.width, fh), buf, ctx, bg);
-            y += fh;
-            form.prompt_pw
-                .render(Rect::new(lc.x, y, lc.width, 1), buf, ctx, bg);
-            let mut y = rc.y;
-            form.env.render(
-                Rect::new(rc.x, y, rc.width, form.env.height()),
-                buf,
-                ctx,
-                bg,
-            );
-            y += form.env.height() + 1;
-            form.group
-                .render(Rect::new(rc.x, y, rc.width, Select::HEIGHT), buf, ctx, bg);
-            y += Select::HEIGHT;
-            form.safe.render(
-                Rect::new(rc.x, y, rc.width, form.safe.height()),
-                buf,
-                ctx,
-                bg,
-            );
-            y += form.safe.height();
-            let desc = SafeMode::ALL[form.safe.selected.min(5)].description();
-            for (i, l) in junie_tui::ui::text::wrap(desc, rc.width.saturating_sub(2) as usize)
-                .iter()
-                .take(2)
-                .enumerate()
-            {
-                if y + (i as u16) < body.bottom() {
-                    buf.set_string(rc.x + 2, y + i as u16, l, t.muted().bg(bg));
+        // each column is a measured stack: on a short terminal it scrolls
+        // by whole fields and keeps the focused one in view, instead of
+        // running into the buttons and the hint bar
+        let stack = Stack::default();
+        let focus = ctx.interaction.focus;
+        let tab = form.tabs.active.min(1);
+        let lid = ID.sub("form").sub("left");
+        let rid = ID.sub("form").sub("right");
+        if tab == 0 {
+            let lkids = [
+                StackChild::fixed(fh),
+                StackChild::fixed(Select::HEIGHT),
+                StackChild::fixed(fh),
+                StackChild::fixed(fh),
+                StackChild::fixed(fh),
+                StackChild::fixed(fh),
+                StackChild::fixed(1),
+            ];
+            let lfocus = [
+                &[form.name.id][..],
+                &[form.engine.id],
+                &[form.host.id, form.port.id],
+                &[form.database.id],
+                &[form.user.id],
+                &[form.password.id],
+                &[form.prompt_pw.id],
+            ]
+            .iter()
+            .position(|ids| focus.is_some_and(|f| ids.contains(&f)));
+            let l = stack.layout(lc, &lkids, &mut form.stacks[0][0], lfocus);
+            match l.slot(0) {
+                Some(r) => form.name.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.name.id),
+            }
+            match l.slot(1) {
+                Some(r) => form.engine.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.engine.id),
+            }
+            match l.slot(2) {
+                Some(r) => {
+                    let (hl, hr) = junie_tui::ui::layout::Split::new(70, 12, 8).horizontal(r, 2);
+                    form.host.render(hl, buf, ctx, bg);
+                    form.port.render(hr, buf, ctx, bg);
+                }
+                None => {
+                    ctx.focus_stop(form.host.id);
+                    ctx.focus_stop(form.port.id);
                 }
             }
+            for (i, inp) in [&mut form.database, &mut form.user, &mut form.password]
+                .into_iter()
+                .enumerate()
+            {
+                match l.slot(3 + i) {
+                    Some(r) => inp.render(r, buf, ctx, bg),
+                    None => ctx.focus_stop(inp.id),
+                }
+            }
+            match l.slot(6) {
+                Some(r) => form.prompt_pw.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.prompt_pw.id),
+            }
+            Stack::chrome(&l, lc, buf, ctx, lid, &form.stacks[0][0]);
+
+            let desc = SafeMode::ALL[form.safe.selected.min(5)].description();
+            let desc_lines: Vec<String> =
+                junie_tui::ui::text::wrap(desc, rc.width.saturating_sub(2) as usize)
+                    .into_iter()
+                    .take(2)
+                    .collect();
+            let rkids = [
+                StackChild::fixed(form.env.height()),
+                StackChild::fixed(1),
+                StackChild::fixed(Select::HEIGHT),
+                StackChild::fixed(form.safe.height()),
+                StackChild::flex(0, desc_lines.len() as u16),
+            ];
+            let rfocus = [form.env.id, form.env.id, form.group.id, form.safe.id]
+                .iter()
+                .position(|&id| focus == Some(id));
+            let rl = stack.layout(rc, &rkids, &mut form.stacks[0][1], rfocus);
+            match rl.slot(0) {
+                Some(r) => form.env.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.env.id),
+            }
+            match rl.slot(2) {
+                Some(r) => form.group.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.group.id),
+            }
+            match rl.slot(3) {
+                Some(r) => form.safe.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.safe.id),
+            }
+            if let Some(r) = rl.slot(4) {
+                for (i, line) in desc_lines.iter().take(r.height as usize).enumerate() {
+                    let line =
+                        junie_tui::ui::text::truncate(line, r.width.saturating_sub(2) as usize);
+                    buf.set_string(r.x + 2, r.y + i as u16, line, t.muted().bg(bg));
+                }
+            }
+            Stack::chrome(&rl, rc, buf, ctx, rid, &form.stacks[0][1]);
         } else {
-            let mut y = lc.y;
-            form.ssl
-                .render(Rect::new(lc.x, y, lc.width, 1), buf, ctx, bg);
-            y += 2;
-            form.ssh
-                .render(Rect::new(lc.x, y, lc.width, 1), buf, ctx, bg);
-            y += 1;
             form.ssh_host.disabled = !form.ssh.on;
             form.ssh_user.disabled = !form.ssh.on;
-            form.ssh_host
-                .render(Rect::new(lc.x, y, lc.width, fh), buf, ctx, bg);
-            y += fh;
-            form.ssh_user
-                .render(Rect::new(lc.x, y, lc.width, fh), buf, ctx, bg);
-            y += fh;
-            form.local_only
-                .render(Rect::new(lc.x, y, lc.width, 1), buf, ctx, bg);
-            form.startup.render(
-                Rect::new(rc.x, rc.y, rc.width, form.startup.height()),
-                buf,
-                ctx,
-                bg,
-            );
-            let y2 = rc.y + form.startup.height() + 1;
-            buf.set_string(
-                rc.x + 2,
-                y2,
-                "External clients: read only",
-                t.muted().bg(bg),
-            );
+            let lkids = [
+                StackChild::fixed(1),
+                StackChild::fixed(1),
+                StackChild::fixed(1),
+                StackChild::fixed(fh),
+                StackChild::fixed(fh),
+                StackChild::fixed(1),
+            ];
+            let lfocus = [
+                form.ssl.id,
+                form.ssl.id,
+                form.ssh.id,
+                form.ssh_host.id,
+                form.ssh_user.id,
+                form.local_only.id,
+            ]
+            .iter()
+            .position(|&id| focus == Some(id));
+            let l = stack.layout(lc, &lkids, &mut form.stacks[1][0], lfocus);
+            match l.slot(0) {
+                Some(r) => form.ssl.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.ssl.id),
+            }
+            match l.slot(2) {
+                Some(r) => form.ssh.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.ssh.id),
+            }
+            for (i, inp) in [&mut form.ssh_host, &mut form.ssh_user]
+                .into_iter()
+                .enumerate()
+            {
+                match l.slot(3 + i) {
+                    Some(r) => inp.render(r, buf, ctx, bg),
+                    None if !inp.disabled => ctx.focus_stop(inp.id),
+                    None => {}
+                }
+            }
+            match l.slot(5) {
+                Some(r) => form.local_only.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.local_only.id),
+            }
+            Stack::chrome(&l, lc, buf, ctx, lid, &form.stacks[1][0]);
+
+            let rkids = [
+                StackChild::flex(3, form.startup.height()),
+                StackChild::fixed(1),
+                StackChild::fixed(1),
+            ];
+            let rfocus = (focus == Some(form.startup.id)).then_some(0);
+            let rl = stack.layout(rc, &rkids, &mut form.stacks[1][1], rfocus);
+            match rl.slot(0) {
+                Some(r) => form.startup.render(r, buf, ctx, bg),
+                None => ctx.focus_stop(form.startup.id),
+            }
+            if let Some(r) = rl.slot(2) {
+                buf.set_string(
+                    r.x + 2,
+                    r.y,
+                    junie_tui::ui::text::truncate(
+                        "External clients: read only",
+                        r.width.saturating_sub(2) as usize,
+                    ),
+                    t.muted().bg(bg),
+                );
+            }
+            Stack::chrome(&rl, rc, buf, ctx, rid, &form.stacks[1][1]);
         }
         // footer: test + actions
         let ay = inner.bottom().saturating_sub(1);
