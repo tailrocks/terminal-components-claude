@@ -115,6 +115,11 @@ pub const EDIT_FIELD: [Hint; 3] = [
     hint("Tab", "Next field"),
 ];
 
+/// The hint for the keyboard context menu ([`crate::ui::context::ContextKeys`]
+/// default): `Shift+F10 Menu`. A screen whose focused widget has a context
+/// menu lists it last, so a narrow bar drops it first.
+pub const CONTEXT_MENU: Hint = hint("Shift+F10", "Menu");
+
 /// [`EDIT_FIELD`] for a grid cell: Tab moves to the next cell.
 pub const EDIT_CELL: [Hint; 3] = [
     hint("Enter", "Apply"),

@@ -754,6 +754,7 @@ impl TableTab {
                 } else {
                     h.push(hint("Space", "Select row"));
                 }
+                h.push(junie_tui::widgets::keyhint::CONTEXT_MENU);
                 h
             }
             _ => vec![hint("↑↓", "Move"), hint("Ctrl+D", "Data / Structure")],
@@ -1314,6 +1315,7 @@ impl QueryTab {
             if g.editable {
                 hints.insert(2, hint("Alt+D", "Duplicate row"));
             }
+            hints.push(junie_tui::widgets::keyhint::CONTEXT_MENU);
             return hints;
         }
         match focus {
@@ -2415,6 +2417,7 @@ impl HistoryTab {
                 hint("y", "Copy"),
                 hint("/", "Search"),
                 hint("c s", "Scope · Status"),
+                junie_tui::widgets::keyhint::CONTEXT_MENU,
             ],
             _ => vec![hint("↑↓", "Move"), hint("/", "Search")],
         }
