@@ -1,5 +1,5 @@
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier};
 
@@ -185,6 +185,11 @@ pub struct TreeView {
     /// navigation sidebar: the current page). Accent while the tree has
     /// focus, primary ink otherwise. Default `None`.
     pub selected_marker: Option<&'static str>,
+    /// An Alt-click (Option-click) on a branch's disclosure or row expands
+    /// or collapses it with every descendant, as Option-click on a
+    /// disclosure triangle does in macOS outline views. Default `true`;
+    /// off, the modifier is ignored and the click toggles one level.
+    pub alt_click_recursive: bool,
 }
 
 /// A [`TreeView`] action a key can be bound to.
@@ -280,6 +285,7 @@ impl TreeView {
             typeahead: Default::default(),
             divider: false,
             selected_marker: None,
+            alt_click_recursive: true,
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -337,6 +343,11 @@ impl TreeView {
     /// See [`Self::selected_marker`].
     pub fn selected_marker(mut self, marker: Option<&'static str>) -> Self {
         self.selected_marker = marker;
+        self
+    }
+
+    pub fn alt_click_recursive(mut self, on: bool) -> Self {
+        self.alt_click_recursive = on;
         self
     }
 
@@ -775,6 +786,83 @@ impl TreeView {
         self.toggle(i)
     }
 
+    /// A completed click on row `i` (its disclosure when `toggle`) with the
+    /// modifiers held. Alt on a branch (per [`Self::alt_click_recursive`])
+    /// opens or closes the whole subtree; otherwise it is
+    /// [`Self::on_click_toggle`] / [`Self::on_click_row`].
+    pub fn on_click_with(
+        &mut self,
+        i: usize,
+        toggle: bool,
+        mods: KeyModifiers,
+    ) -> (Outcome, Option<TreeEvent>) {
+        if self.alt_click_recursive
+            && mods.contains(KeyModifiers::ALT)
+            && self.rows.get(i).is_some_and(|r| r.has_children && !r.note)
+        {
+            self.set_cursor(i);
+            return self.toggle_recursive(i);
+        }
+        if toggle {
+            self.on_click_toggle(i)
+        } else {
+            self.on_click_row(i)
+        }
+    }
+
+    /// Open (when row `i` is closed) or close (when open) the branch at row
+    /// `i` together with every loaded descendant branch. A lazy branch
+    /// still asks for its first level ([`TreeEvent::Expand`]); deeper
+    /// levels load as they are opened.
+    pub fn toggle_recursive(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
+        let Some(row) = self.rows.get(i) else {
+            return (Outcome::Consumed, None);
+        };
+        if !row.has_children {
+            return (Outcome::Consumed, None);
+        }
+        let path = row.path.clone();
+        let open = !row.expanded;
+        fn walk(
+            nodes: &[TreeNode],
+            path: &mut Path,
+            open: bool,
+            exp: &mut std::collections::HashSet<Path>,
+        ) {
+            for (k, n) in nodes.iter().enumerate() {
+                path.push(k);
+                if !n.children.is_empty() {
+                    if open {
+                        exp.insert(path.clone());
+                    } else {
+                        exp.remove(path);
+                    }
+                    walk(&n.children, path, open, exp);
+                }
+                path.pop();
+            }
+        }
+        let lazy = self
+            .node(&path)
+            .is_some_and(|n| n.lazy && n.children.is_empty());
+        if let Some(children) = self.node(&path).map(|n| n.children.clone()) {
+            walk(&children, &mut path.clone(), open, &mut self.expanded);
+        }
+        if open {
+            self.expanded.insert(path.clone());
+            if lazy && let Some(n) = self.node_mut(&path) {
+                n.busy = true;
+            }
+        } else {
+            self.expanded.remove(&path);
+        }
+        self.refold(i);
+        if open && lazy {
+            return (Outcome::Changed, Some(TreeEvent::Expand(path)));
+        }
+        (Outcome::Changed, None)
+    }
+
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
         if self.scroll.scroll_by(delta as isize) {
             Outcome::Changed
@@ -895,6 +983,11 @@ impl TreeView {
             // the expander is part of the row: its hover and press are the row's
             s.hovered |= ctx.interaction.hovered(tid);
             s.pressed |= ctx.interaction.pressed(tid);
+            if row.note {
+                // a note is text, not a control: it never hovers or presses
+                s.hovered = false;
+                s.pressed = false;
+            }
             s.focused = focused && ri == self.cursor;
             s.selected = self.selected.as_ref() == Some(&row.path);
             let st = t.row(s, bg);
@@ -907,6 +1000,12 @@ impl TreeView {
             );
             let indent = (row.depth as u16) * self.indent;
             let mut x = rect.x + 1 + indent;
+            // the row is a target even when its indent leaves no room for
+            // the label (registered before the early `continue`); the
+            // disclosure, registered later, wins hit-testing over it
+            if !row.note {
+                ctx.clickable(rid, full);
+            }
             if x + 2 >= rect.right() {
                 continue;
             }
@@ -989,7 +1088,6 @@ impl TreeView {
                     st.fg(t.text_muted),
                 );
             }
-            ctx.clickable(rid, full);
             // toggle region registered after row so it wins hit-testing
             if row.has_children {
                 ctx.clickable(tid, Rect::new(rect.x + 1 + indent, y, 2, 1));
@@ -1402,5 +1500,82 @@ mod scroll_tests {
             TreeView::new(WidgetId::of("t"), vec![TreeNode::leaf("x")]).reserve_right(30);
         render(&mut narrow);
         assert_eq!(narrow.trailing(), Rect::ZERO);
+    }
+
+    #[test]
+    fn deep_rows_stay_clickable_and_notes_are_inert() {
+        let theme = Theme::junie();
+        // a chain deep enough that its indent leaves no room for a label
+        let mut deep = TreeNode::leaf("leaf");
+        for k in 0..12 {
+            deep = TreeNode::dir(&format!("d{k}"), vec![deep]);
+        }
+        let mut t = TreeView::new(
+            WidgetId::of("t"),
+            vec![deep, TreeNode::note("nothing here")],
+        );
+        t.expand_all();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 16, 20);
+        let mut buf = Buffer::empty(area);
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            t.render(area, &mut buf, &mut ctx, theme.canvas);
+        }
+        let deepest = t.rows().iter().position(|r| r.label == "leaf").unwrap();
+        assert!(16 <= 1 + t.rows()[deepest].depth as u16 * t.indent + 2);
+        assert_eq!(
+            hits.hit(Position::new(0, deepest as u16)),
+            Some(t.row_id(deepest)),
+            "a row indented past the label column is still a click target"
+        );
+        let note = t.rows().iter().position(|r| r.note).unwrap();
+        assert_ne!(
+            hits.hit(Position::new(5, note as u16)),
+            Some(t.row_id(note)),
+            "a note row is not a control"
+        );
+        // hovered, the note row draws exactly as at rest
+        let rest = buf[(5, note as u16)].style();
+        let mut hits = HitRegistry::default();
+        let mut buf = Buffer::empty(area);
+        let hover = Interaction {
+            hover: Some(t.row_id(note)),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
+        t.render(area, &mut buf, &mut ctx, theme.canvas);
+        assert_eq!(buf[(5, note as u16)].style(), rest);
+    }
+
+    #[test]
+    fn alt_click_opens_and_closes_the_whole_subtree() {
+        let mut t = TreeView::new(
+            WidgetId::of("t"),
+            vec![TreeNode::dir(
+                "root",
+                vec![TreeNode::dir(
+                    "a",
+                    vec![TreeNode::dir("b", vec![TreeNode::leaf("c")])],
+                )],
+            )],
+        );
+        // root starts open; close it, then Alt-click opens every level
+        t.on_click_toggle(0);
+        assert_eq!(t.rows().len(), 1);
+        t.on_click_with(0, true, KeyModifiers::ALT);
+        let labels: Vec<_> = t.rows().iter().map(|r| r.label.clone()).collect();
+        assert_eq!(labels, ["root", "a", "b", "c"]);
+        // Alt-click on the row closes it with every descendant
+        t.on_click_with(0, false, KeyModifiers::ALT);
+        assert_eq!(t.rows().len(), 1);
+        t.on_click_toggle(0);
+        assert_eq!(t.rows().len(), 2, "descendants were closed too");
+        // the knob turns it off: a plain one-level toggle
+        let mut t = t.alt_click_recursive(false);
+        t.on_click_toggle(0);
+        t.on_click_with(0, true, KeyModifiers::ALT);
+        assert_eq!(t.rows().len(), 2);
     }
 }
