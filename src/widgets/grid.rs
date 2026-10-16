@@ -21,6 +21,7 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
 use crate::theme::Theme;
+use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::text::{fit, fit_right, truncate, truncate_middle, wider_than, width, width_capped};
 use crate::widgets::button::{Button, row_layout_right};
@@ -438,6 +439,11 @@ pub struct DataGrid {
     /// after edge autoscroll moved its origin out of view.
     drag: Option<GridDrag>,
     widths: Vec<u16>,
+    /// User column widths from dragging a header seam or autofit
+    /// ([`ColumnSizing`]); `sizing.resizable` turns the seams off.
+    pub sizing: ColumnSizing,
+    /// Labels of the header context menu ([`Self::header_menu`]).
+    pub header_labels: HeaderLabels,
     col_rects: Vec<Rect>,
     show_bar: bool,
     bar: [Button; 3],
@@ -609,6 +615,8 @@ impl DataGrid {
             body: Rect::ZERO,
             drag: None,
             widths,
+            sizing: ColumnSizing::default(),
+            header_labels: HeaderLabels::DEFAULT,
             col_rects: vec![],
             show_bar: true,
             bar: [
@@ -847,6 +855,85 @@ impl DataGrid {
     pub fn width_sample_rows(mut self, rows: usize) -> Self {
         self.width_sample_rows = rows;
         self
+    }
+
+    /// Header seams resize columns by drag (double-click autofits).
+    /// Default on.
+    pub fn resizable_columns(mut self, on: bool) -> Self {
+        self.sizing.resizable = on;
+        self
+    }
+
+    /// Hit width of a header seam in cells (default
+    /// [`crate::ui::columns::DEFAULT_SEAM_W`]).
+    pub fn seam_hit_w(mut self, cells: u16) -> Self {
+        self.sizing.seam_w = cells.max(1);
+        self
+    }
+
+    /// The width column `c` draws at: its user width, else the measured one.
+    fn col_w(&self, c: usize) -> u16 {
+        self.sizing
+            .width(c, self.widths.get(c).copied().unwrap_or(0))
+    }
+
+    /// Fit column `c` to its header and the values of the visible rows
+    /// (no wider than the grid), as a user width.
+    pub fn autofit(&mut self, c: usize) {
+        let Some(col) = self.columns.get(c) else {
+            return;
+        };
+        let cap = (self.area.width.saturating_sub(4) as usize).max(8);
+        let sorted = self.sort.is_some_and(|(sc, _)| sc == c);
+        let mut need = width(&col.name)
+            + if col.primary { 2 } else { 0 }
+            + if self.filtered_cols.contains(&c) {
+                2
+            } else {
+                0
+            }
+            + if sorted { 2 } else { 0 };
+        for d in self.scroll.visible_range() {
+            if let Some(&src) = self.order.get(d) {
+                need = need.max(width_capped(&self.value(src, c).text_ref(), cap));
+            }
+        }
+        self.sizing.set(c, need.min(cap) as u16);
+    }
+
+    /// The header context menu of column `c`: sort, autofit and reset
+    /// widths, each paired with the action [`Self::on_header_action`] runs.
+    pub fn header_menu(&self, c: usize) -> Vec<(HeaderAction, crate::widgets::menu::MenuItem)> {
+        let sortable = self.columns.get(c).is_some_and(|col| col.sortable);
+        let sorted = self.sort.and_then(|(sc, d)| (sc == c).then_some(d));
+        crate::ui::columns::header_menu(
+            &self.header_labels,
+            sortable,
+            sorted,
+            self.sizing.resizable,
+            !self.sizing.is_default(),
+        )
+    }
+
+    /// Run a header menu command on column `c`.
+    pub fn on_header_action(
+        &mut self,
+        c: usize,
+        action: HeaderAction,
+    ) -> (Outcome, Option<GridEvent>) {
+        match action {
+            HeaderAction::SortAsc => self.request_sort(Some((c, SortDir::Asc))),
+            HeaderAction::SortDesc => self.request_sort(Some((c, SortDir::Desc))),
+            HeaderAction::ClearSort => self.request_sort(None),
+            HeaderAction::Autofit => {
+                self.autofit(c);
+                (Outcome::Changed, None)
+            }
+            HeaderAction::ResetWidths => {
+                self.sizing.reset();
+                (Outcome::Changed, None)
+            }
+        }
     }
 
     // ---- data -------------------------------------------------------
@@ -1777,6 +1864,18 @@ impl DataGrid {
     pub fn cell_id(&self, display: usize, c: usize) -> WidgetId {
         self.id.child(display).child(c)
     }
+    /// The resize seam after column `c` in the header.
+    pub fn seam_id(&self, c: usize) -> WidgetId {
+        self.id.sub("seam").child(c)
+    }
+    pub fn locate_seam(&self, id: WidgetId) -> Option<usize> {
+        (0..self.columns.len()).find(|&c| self.seam_id(c) == id)
+    }
+    /// The column whose header menu a secondary click on `id` opens (its
+    /// header or its seam).
+    pub fn locate_header_menu(&self, id: WidgetId) -> Option<usize> {
+        self.locate_header(id).or_else(|| self.locate_seam(id))
+    }
     pub fn rownum_id(&self, display: usize) -> WidgetId {
         self.id.sub("rownum").child(display)
     }
@@ -1800,6 +1899,7 @@ impl DataGrid {
             || id == self.right_id()
             || self.locate(id).is_some()
             || self.locate_header(id).is_some()
+            || self.locate_seam(id).is_some()
             || self.locate_rownum(id).is_some()
             || self.bar.iter().any(|b| b.id == id)
             || matches!(self.drag, Some(GridDrag::Cells(d) | GridDrag::Rows { id: d, .. }) if d == id)
@@ -1826,7 +1926,32 @@ impl DataGrid {
             .find(|&d| self.rownum_id(d) == id)
     }
 
+    /// Button down on `id` with the click count it starts: a press on a
+    /// header seam starts a resize (keeping the grab offset); the second
+    /// press of a double click autofits the column.
+    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        let Some(c) = self.locate_seam(id) else {
+            return Outcome::Ignored;
+        };
+        if !self.sizing.resizable {
+            return Outcome::Consumed;
+        }
+        if count >= 2 {
+            self.sizing.release();
+            self.autofit(c);
+            return Outcome::Changed;
+        }
+        let w = self.col_w(c);
+        self.sizing.press(c, w, pos.x);
+        Outcome::Changed
+    }
+
     pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridEvent>) {
+        if self.locate_seam(id).is_some() {
+            // the release of a seam press or drag: the resize is done
+            self.sizing.release();
+            return (Outcome::Consumed, None);
+        }
         if let Some(c) = self.choice.as_mut() {
             if c.editor.owns(id) {
                 let (out, r) = c.editor.on_click(id, &self.editor_config);
@@ -1952,6 +2077,12 @@ impl DataGrid {
     }
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if self.locate_seam(pressed).is_some() {
+            return match self.sizing.drag_to(pos.x) {
+                Some(_) => Outcome::Changed,
+                None => Outcome::Consumed,
+            };
+        }
         if pressed == scrollbar::id_for(self.id) {
             return self.on_scrollbar_drag(pos);
         }
@@ -2209,7 +2340,7 @@ impl DataGrid {
         let mut fit = 0;
         let mut used = 0u16;
         for i in self.hscroll.offset..n {
-            let w = self.widths[i];
+            let w = self.col_w(i);
             let need = if fit == 0 { w } else { w + gap };
             if used + need > area.width {
                 break;
@@ -2224,7 +2355,7 @@ impl DataGrid {
         self.col_rects.clear();
         let mut x = area.x;
         for i in self.hscroll.offset..(self.hscroll.offset + fit).min(n) {
-            let w = self.widths[i].min(area.right().saturating_sub(x));
+            let w = self.col_w(i).min(area.right().saturating_sub(x));
             self.col_rects.push(Rect::new(x, area.y, w, area.height));
             x += w + gap;
         }
@@ -2399,7 +2530,9 @@ impl DataGrid {
             // the key glyph is drawn over the prefix's first cell, faint
             let prefix = if col.primary { "  " } else { "" };
             let avail = (rect.width as usize).saturating_sub(width(&suffix) + width(prefix));
-            let title = format!("{prefix}{}{suffix}", truncate(&col.name, avail.max(1)));
+            let shown = truncate(&col.name, avail.max(1));
+            let cut = shown != col.name;
+            let title = format!("{prefix}{shown}{suffix}");
             let text = if col.kind.right_aligned() {
                 fit_right(&title, rect.width as usize)
             } else {
@@ -2414,8 +2547,21 @@ impl DataGrid {
                 };
                 buf.set_string(px, header_y, t.glyphs.key, st.fg(t.text_faint));
             }
+            let head = Rect::new(rect.x, header_y, rect.width, 1);
             if col.sortable {
-                ctx.clickable(hid, Rect::new(rect.x, header_y, rect.width, 1));
+                ctx.clickable(hid, head);
+            } else if cut && !ctx.inert {
+                // a cut title reveals on hover even when it does not sort
+                ctx.hits.register_hover(hid, head);
+            }
+            if cut {
+                crate::ui::reveal::truncated(ctx, self.reveal, hid, head, &col.name);
+            }
+            if self.sizing.resizable {
+                let sid = self.seam_id(ci);
+                let hit = self.sizing.seam_rect(rect.right(), header_y, 2, grid_area);
+                let held = self.sizing.dragging() == Some(ci);
+                crate::ui::columns::render_seam(buf, ctx, sid, hit, rect.right(), bg, held);
             }
         }
         let hidden_right = self
@@ -3254,6 +3400,127 @@ mod tests {
     /// The thumb's first column on the grid's horizontal bar.
     fn thumb_x(buf: &Buffer, y: u16) -> Option<u16> {
         (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
+    }
+
+    /// The first cell on header row `y` whose hit is `id`.
+    fn hit_x(hits: &HitRegistry, y: u16, w: u16, id: WidgetId) -> Option<u16> {
+        (0..w).find(|&x| hits.hit(Position::new(x, y)) == Some(id))
+    }
+
+    #[test]
+    fn dragging_a_header_seam_resizes_the_column_cell_by_cell() {
+        let mut g = wide_grid();
+        let area = Rect::new(0, 0, 100, 8);
+        let (_, hits) = render_at(&mut g, area, Interaction::default());
+        let before = g.col_rects[0].width;
+        let sid = g.seam_id(0);
+        // the seam sits in the gap right after the first column
+        let x = hit_x(&hits, area.y, area.width, sid).expect("a seam after column 0");
+        assert_eq!(x, g.col_rects[0].right());
+        assert_eq!(
+            g.on_press(sid, Position::new(x + 1, 0), 1),
+            Outcome::Changed
+        );
+        // the first move does not jump: the grab offset is kept
+        g.on_drag(sid, Position::new(x + 1, 0));
+        render_at(&mut g, area, Interaction::default());
+        assert_eq!(g.col_rects[0].width, before);
+        g.on_drag(sid, Position::new(x + 6, 0));
+        let (buf, _) = render_at(&mut g, area, Interaction::default());
+        assert_eq!(g.col_rects[0].width, before + 5);
+        assert_eq!(g.col_rects[1].x, x + 5 + 2, "the next column follows");
+        // held, the seam shows the heavy rule; the release ends the drag
+        let glyphs = Theme::junie().glyphs;
+        assert_eq!(buf[(x + 5, 0)].symbol(), glyphs.scroll_thumb);
+        g.on_click(sid, Position::new(x + 6, 0));
+        assert_eq!(g.on_drag(sid, Position::new(x + 9, 0)), Outcome::Consumed);
+        let (rest, _) = render_at(&mut g, area, Interaction::default());
+        let hover = Interaction {
+            hover: Some(sid),
+            ..Default::default()
+        };
+        let (hovered, _) = render_at(&mut g, area, hover);
+        assert_eq!(rest[(x + 5, 0)].symbol(), " ", "invisible at rest");
+        assert_eq!(hovered[(x + 5, 0)].symbol(), glyphs.scroll_track);
+        // off: no seam is registered
+        let mut g = wide_grid().resizable_columns(false);
+        let (_, hits) = render_at(&mut g, area, Interaction::default());
+        assert_eq!(hit_x(&hits, 0, area.width, g.seam_id(0)), None);
+    }
+
+    #[test]
+    fn double_clicking_a_seam_autofits_and_the_header_menu_resets() {
+        let cols = vec![
+            ColumnSpec::new("id", CellKind::Number),
+            ColumnSpec::new("name", CellKind::Text),
+        ];
+        let mut g = DataGrid::new(WidgetId::of("fit"), cols);
+        g.set_rows(GridRows {
+            rows: vec![vec![CellValue::Int(1), CellValue::Text("Ada".into())]],
+            total: RowTotal::Exact(1),
+            more: false,
+        });
+        let area = Rect::new(0, 0, 60, 6);
+        render_at(&mut g, area, Interaction::default());
+        let sid = g.seam_id(1);
+        let w0 = g.col_rects[1].width;
+        g.on_press(sid, Position::new(0, 0), 1);
+        g.on_drag(sid, Position::new(20, 0));
+        render_at(&mut g, area, Interaction::default());
+        assert_eq!(g.col_rects[1].width, w0 + 20, "dragged wider");
+        // a double click on the seam fits the header and the values
+        g.on_press(sid, Position::new(20, 0), 2);
+        render_at(&mut g, area, Interaction::default());
+        assert_eq!(g.col_rects[1].width, 4, "\"name\" is the widest text");
+        // the header menu sorts, autofits and resets
+        let menu = g.header_menu(1);
+        let labels: Vec<_> = menu.iter().map(|(_, m)| m.label.as_str()).collect();
+        assert_eq!(
+            labels,
+            [
+                "Sort Ascending",
+                "Sort Descending",
+                "Clear Sort",
+                "Size Column to Fit",
+                "Reset Column Widths"
+            ]
+        );
+        assert!(menu[2].1.disabled, "nothing to clear");
+        assert!(!menu[4].1.disabled, "a user width exists");
+        g.on_header_action(1, HeaderAction::ResetWidths);
+        assert!(g.sizing.is_default());
+        g.on_header_action(1, HeaderAction::SortDesc);
+        assert_eq!(g.sort, Some((1, SortDir::Desc)));
+        assert_eq!(g.locate_header_menu(g.header_id(1)), Some(1));
+        assert_eq!(g.locate_header_menu(sid), Some(1));
+    }
+
+    #[test]
+    fn a_cut_header_title_reveals_on_hover() {
+        let long = "customer_lifetime_value_in_reporting_currency";
+        let cols = vec![ColumnSpec::new(long, CellKind::Number)];
+        let mut g = DataGrid::new(WidgetId::of("cut"), cols);
+        g.set_rows(GridRows {
+            rows: vec![vec![CellValue::Int(1)]],
+            total: RowTotal::Exact(1),
+            more: false,
+        });
+        let area = Rect::new(0, 0, 80, 8);
+        let (buf, _) = render_at(&mut g, area, Interaction::default());
+        assert!(!row_text(&buf, 0).contains(long), "the title is cut");
+        let theme = Theme::junie();
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let hover = Interaction {
+            hover: Some(g.header_id(0)),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
+        g.render(area, &mut buf, &mut ctx, theme.surface);
+        ctx.flush_overlays(&mut buf);
+        let all: String = (0..area.height).map(|y| row_text(&buf, y)).collect();
+        assert!(all.contains(long), "{all}");
     }
 
     #[test]
