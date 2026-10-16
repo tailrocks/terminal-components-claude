@@ -1,6 +1,6 @@
- [0m[1m holla❯ [0m   File   Go   Help                   no project  [0m[1mdevbox · development[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                  no project  [0m[1mdevbox · development[0m  [0m
                                                                                 [0m
-  Here   [0m[1m Clean Docker completely [0m✓[0m[1m ×  [0m                                         [0m
+  Here   [0m[1m Clean Docker completely [0m✓[0m[1m [0m×[0m[1m  [0m                                         [0m
  ────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────── [0m
   [0m[1mClean Docker completely[0m · 7 of 7 done               finished · 14 s · devbox  [0m
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓                  [0m
@@ -21,4 +21,5 @@
   Next   Docker disk usage                                                      [0m
                                                                                 [0m
  [0m[1m/work/scratch[0m                 finished · 7 ok                 no color · 80×24 [0m
-  [0m[1m↑↓[0m Step  [0m[1mEnter[0m Maximise output  [0m[1mx[0m Close  …   Clean Docker completely finished [0m
+                 [0m[1m↑↓[0m Step  [0m[1mEsc[0m Back to Here  …  Clean Docker completely finished [0m
+[?25l

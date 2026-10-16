@@ -1,5 +1,5 @@
- [0m[1m holla❯ [0m   File   Go   Help                     acme › frontend · Node project · pnpm  [0m[1mmbp · local[0m [0m
-                                                                                                    [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                    acme › frontend · Node project · pnpm  [0m[1mmbp · local[0m  [0m
+  Here › [0m[1mTrust[0m                                                                                      [0m
  [0m[1m Here › Trust  [0m                                                                                    [0m
  ━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────── [0m
   [0m[1mTrust ~/work/acme/apps/frontend/mise.toml?[0m                                                        [0m
@@ -17,14 +17,15 @@
  │    run = "pnpm dev"                                                                          ┃ │ [0m
  │    description = "vite development server"                                                   ┃ │ [0m
  │  [tasks.build]                                                                               ┃ │ [0m
- │    run = "pnpm build"                                                                        │ │ [0m
- │    description = "production build"                                                          │ │ [0m
- │  [tasks.test]                                                                                │ │ [0m
- │    run = "pnpm test"                                                                         │ │ [0m
- │  [0m[2m  depends = ["//apps/frontend:build"]                                                       [0m│ │ [0m
+ │    run = "pnpm build"                                                                        ┆ │ [0m
+ │    description = "production build"                                                          ┆ │ [0m
+ │  [tasks.test]                                                                                ┆ │ [0m
+ │    run = "pnpm test"                                                                         ┆ │ [0m
+ │  [0m[2m  depends = ["//apps/frontend:build"]                                                       [0m┆ │ [0m
  ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                                     [0m
-                                                                       ▎[0m[1mCancel [0m   [0m[1mTrust this file [0m  [0m
+                                                                       ▎[0m[1mCancel [0m   [0m[1;7mTrust this file [0m  [0m
                                                                                                     [0m
- [0m[1m~/work/acme/apps/frontend[0m   main   ↑1 • 2     trust review · one exact file      no color · 100×30 [0m
-                         [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  [0m[1mEsc[0m Cancel                           [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1   • 2    trust review · one exact file     no color · 100×30 [0m
+                           [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mTab[0m Next  [0m[1mEsc[0m Cancel                            [0m
+[?25l
