@@ -76,6 +76,9 @@ pub struct TextArea {
     keys: FieldKeys,
     undo: UndoStack,
     focus_seen: bool,
+    /// The edit in progress was started by focus, so it may end quietly
+    /// with the focus.
+    focus_edit: bool,
 }
 
 impl TextArea {
@@ -109,6 +112,7 @@ impl TextArea {
             keys: FieldKeys::default(),
             undo: UndoStack::new(),
             focus_seen: false,
+            focus_edit: false,
         }
     }
 
@@ -147,6 +151,22 @@ impl TextArea {
     pub fn is_dirty(&self) -> bool {
         self.editing && self.buffer.text() != self.snapshot
     }
+    /// The footer hints for this area while it holds focus:
+    /// [`crate::widgets::keyhint::EDIT_TEXT`] while editing (Esc
+    /// "Cancel" under [`Self::esc_reverts`]), `Enter Edit · ↑↓ Scroll`
+    /// after Esc ended the edit.
+    pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
+        use crate::widgets::keyhint::{EDIT_TEXT, hint};
+        if self.disabled {
+            Vec::new()
+        } else if self.editing && self.esc_reverts {
+            vec![hint("Tab", "Next field"), hint("Esc", "Cancel")]
+        } else if self.editing {
+            EDIT_TEXT.to_vec()
+        } else {
+            vec![hint("Enter", "Edit"), hint("↑↓", "Scroll")]
+        }
+    }
 
     /// See [`Self::pointer_select`].
     /// See [`Self::nav`].
@@ -171,7 +191,6 @@ impl TextArea {
     /// `Committed` (or `Cancelled`, which restores the text from before
     /// editing) so the owner's hooks run; `None` when not editing.
     pub fn on_blur(&mut self) -> Option<InputEvent> {
-        self.focus_seen = false;
         if !self.editing {
             return None;
         }
@@ -225,6 +244,7 @@ impl TextArea {
         if !self.disabled {
             if !self.editing {
                 self.snapshot = self.buffer.text().to_owned();
+                self.focus_edit = false;
             }
             self.editing = true;
             self.follow_cursor = true;
@@ -395,6 +415,9 @@ impl TextArea {
         if self.disabled {
             return Outcome::Consumed;
         }
+        // the pointer owns this focus: the click places the caret
+        self.focus_seen = true;
+        self.focus_edit = false;
         let offset = self.offset_at(pos);
         if press_select(
             &mut self.buffer,
@@ -443,6 +466,16 @@ impl TextArea {
         if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate && !self.editing {
             self.begin_edit();
             self.focus_select.apply(&mut self.buffer);
+            self.focus_edit = true;
+        } else if !ctx.interaction.has_focus(self.id)
+            && self.entry == EditEntry::Immediate
+            && self.editing
+            && self.focus_edit
+            && !self.is_dirty()
+        {
+            // a clean edit focus started ends with the focus even when the
+            // owner never forwarded the blur
+            self.commit();
         }
         self.focus_seen = has_focus;
         let area = area.intersection(*buf.area());
@@ -523,9 +556,14 @@ impl TextArea {
         }
         self.last_cursor = Some(cur);
         self.follow_cursor = false;
-        if text.is_empty() && !s.editing {
+        if text.is_empty() {
+            // the placeholder stays until the first character, with the
+            // caret on it while editing (macOS)
             let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
+            if s.editing && inner.width > 0 {
+                ctx.set_cursor(Position::new(inner.x, inner.y));
+            }
         } else {
             let sel = self.buffer.selection();
             let mut line_start = 0usize;
@@ -722,7 +760,9 @@ mod tests {
 
     #[test]
     fn drag_double_and_triple_click_select_text() {
-        let mut a = TextArea::new(WidgetId::of("s"), "Notes", 4).value("one two\nthree four");
+        let mut a = TextArea::new(WidgetId::of("s"), "Notes", 4)
+            .value("one two\nthree four")
+            .edit_entry(crate::core::edit::EditEntry::Explicit);
         let area = Rect::new(0, 0, 30, 6);
         let mut buf = Buffer::empty(area);
         render(&mut a, area, &mut buf, ColorLevel::TrueColor);
@@ -765,6 +805,8 @@ mod tests {
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         let mut a = TextArea::new(WidgetId::of("r"), "Notes", 3).value("v");
         a.begin_edit();
+        // dirty: a clean immediate edit ends quietly with the focus
+        a.buffer.insert_str("w");
         let area = Rect::new(0, 0, 30, 5);
         let mut buf = Buffer::empty(area);
         a.render(area, &mut buf, &mut ctx, theme.canvas);
@@ -808,7 +850,9 @@ mod tests {
             .map(|i| format!("line {i}"))
             .collect::<Vec<_>>()
             .join("\n");
-        let mut ta = TextArea::new(WidgetId::of("t"), "Notes", 4).value(&text);
+        let mut ta = TextArea::new(WidgetId::of("t"), "Notes", 4)
+            .value(&text)
+            .edit_entry(crate::core::edit::EditEntry::Explicit);
         let theme = crate::theme::Theme::junie();
         let mut hits = crate::core::hit::HitRegistry::default();
         let mut ring = crate::core::focus::FocusRing::default();
@@ -866,6 +910,42 @@ mod tests {
             code,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         }
+    }
+
+    /// Keyboard audit #1, #15 and #16: focus starts the edit with the caret
+    /// at the end; Enter is a newline; Tab applies and asks the ring to
+    /// move on; Esc is "Done" (keeps the text) and a typed letter picks the
+    /// edit up again; `esc_reverts` restores the text instead.
+    #[test]
+    fn immediate_entry_esc_is_done_and_tab_moves_on() {
+        let area = Rect::new(0, 0, 30, 6);
+        let mut buf = Buffer::empty(area);
+        let mut a = TextArea::new(WidgetId::of("a"), "Notes", 3).value("one");
+        assert!(render(&mut a, area, &mut buf, ColorLevel::TrueColor).is_some());
+        assert!(a.editing, "focus alone starts the edit");
+        a.on_key(&key(KeyCode::Enter));
+        a.on_key(&key(KeyCode::Char('x')));
+        assert_eq!(
+            a.buffer.text(),
+            "one\nx",
+            "caret at the end, Enter a newline"
+        );
+        assert_eq!(a.on_key(&key(KeyCode::Esc)).1, Some(InputEvent::Committed));
+        assert!(!a.editing);
+        assert_eq!(a.buffer.text(), "one\nx", "Esc is Done: the text stays");
+        a.on_key(&key(KeyCode::Char('y')));
+        assert!(a.editing, "typing picks the edit up again");
+        assert_eq!(
+            a.on_key(&key(KeyCode::Tab)).1,
+            Some(InputEvent::CommittedTab { backward: false })
+        );
+        let mut r = TextArea::new(WidgetId::of("r"), "Notes", 3)
+            .value("keep")
+            .esc_reverts(true);
+        render(&mut r, area, &mut buf, ColorLevel::TrueColor);
+        r.on_key(&key(KeyCode::Char('x')));
+        assert_eq!(r.on_key(&key(KeyCode::Esc)).1, Some(InputEvent::Cancelled));
+        assert_eq!(r.buffer.text(), "keep");
     }
 
     #[test]

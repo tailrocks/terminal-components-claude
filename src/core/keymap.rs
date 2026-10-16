@@ -632,9 +632,12 @@ mod widget_tests {
     fn textarea_and_panel_nav_and_keymap() {
         use crate::widgets::panel::{PanelAction, ScrollPanel};
         use crate::widgets::textarea::TextArea;
-        let mut t = TextArea::new(WidgetId::of("t"), "T", 3);
+        let mut t = TextArea::new(WidgetId::of("t"), "T", 3)
+            .edit_entry(crate::core::edit::EditEntry::Explicit);
         assert_ne!(t.on_key(&c('j')).0, Outcome::Ignored);
-        let mut t = TextArea::new(WidgetId::of("t"), "T", 3).nav(NavKeys::NO_VIM);
+        let mut t = TextArea::new(WidgetId::of("t"), "T", 3)
+            .edit_entry(crate::core::edit::EditEntry::Explicit)
+            .nav(NavKeys::NO_VIM);
         assert_eq!(t.on_key(&c('j')).0, Outcome::Ignored);
         assert_ne!(t.on_key(&k(KeyCode::Down)).0, Outcome::Ignored);
 
@@ -689,17 +692,22 @@ mod widget_tests {
     fn code_editor_nav_and_keymap() {
         use crate::widgets::code::{CodeAction, CodeEditor};
         let text = "a\nb\nc\n";
-        let mut e = CodeEditor::new(WidgetId::of("e"), text);
+        let mut e = CodeEditor::new(WidgetId::of("e"), text)
+            .edit_entry(crate::core::edit::EditEntry::Explicit);
         e.on_key(&c('j'));
         assert_eq!(e.buffer.cursor_pos().line, 1);
-        let mut e = CodeEditor::new(WidgetId::of("e"), text).nav(NavKeys::NO_VIM);
+        let mut e = CodeEditor::new(WidgetId::of("e"), text)
+            .edit_entry(crate::core::edit::EditEntry::Explicit)
+            .nav(NavKeys::NO_VIM);
         assert_eq!(e.on_key(&c('j')).0, Outcome::Ignored);
         assert_eq!(e.buffer.cursor_pos().line, 0);
 
-        let mut e = CodeEditor::new(WidgetId::of("e"), text);
+        let mut e = CodeEditor::new(WidgetId::of("e"), text)
+            .edit_entry(crate::core::edit::EditEntry::Explicit);
         e.on_key(&c('/'));
         assert!(e.find.is_some(), "`/` opens find by default");
         let mut e = CodeEditor::new(WidgetId::of("e"), text)
+            .edit_entry(crate::core::edit::EditEntry::Explicit)
             .keymap(vec![(KeyBinding::ctrl('f'), CodeAction::Find)]);
         assert_eq!(
             e.on_key(&c('/')).0,
