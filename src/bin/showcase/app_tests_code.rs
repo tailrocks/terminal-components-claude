@@ -336,3 +336,4 @@ fn terminal_states_grid_shows_viewports_and_the_rail() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
+

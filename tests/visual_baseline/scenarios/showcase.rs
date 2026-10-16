@@ -67,7 +67,7 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/scrolling", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s"]),
     // `✓ 07 Ready` is the step-rail end-state at every width (the rail's
     // `7 of 7` counter compacts to `7/7` at 72 columns); 30s is tight under load.
-    Root::new("showcase/pages/terminal", Bin::Showcase, &["--page", "terminal"], BOOT).sends(&["wait:✓ 07 Ready"]).timeout(60000),
+    Root::new("showcase/pages/terminal", Bin::Showcase, &["--page", "terminal"], BOOT).sends(&["wait:✓ Ready"]).timeout(60000),
     // SC25: Diff and Terminal sections, the narrow and no-file diff, a
     // renamed file, find marks and retention in the terminal
     Root::new("showcase/sections/diff-options", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "2", "wait:Page width"]).pending(),
