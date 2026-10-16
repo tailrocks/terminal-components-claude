@@ -10,9 +10,11 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
+use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
@@ -25,13 +27,16 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::catalog::{InsightCategory, insight_candidates, observe_process};
 use crate::domain::cleanup::{self, DeleteItem, DeletePlan, Eligibility, Mode, ProcessObservation};
 use crate::screens::{
-    Cx, Go, Page, Screen, StatusBits, heading, plural, scroll_drag, scroll_press,
+    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, plural,
+    row_anchor, row_choice, scroll_drag, scroll_press,
 };
 use crate::sim::fs::human;
 use crate::sim::world::World;
 
 pub const LIST: WidgetId = WidgetId::of("cleanup.list");
 pub const DETAIL: WidgetId = WidgetId::of("cleanup.detail");
+/// A row's context menu.
+pub const ROW_MENU: WidgetId = WidgetId::of("cleanup.row.menu");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Row {
@@ -857,6 +862,119 @@ impl CleanupPage {
     fn locate(&self, id: WidgetId) -> Option<usize> {
         self.scroll.visible_range().find(|&i| LIST.child(i) == id)
     }
+
+    /// The context menu of row `row` (a category or a candidate): the
+    /// page's own keys. Each item stands for the key at its index in the
+    /// tag (`row:keys`).
+    fn row_menu(&self, row: usize, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
+        let mut items = vec![];
+        let mut keys = String::new();
+        let title = match self.rows.get(row) {
+            Some(Row::Category(ci)) => {
+                let c = &self.cats[*ci];
+                let open = self.open.contains(ci);
+                items.push(
+                    MenuItem::new(if open { "Collapse" } else { "Expand" }).shortcut("Enter"),
+                );
+                keys.push('\n');
+                let eligible: Vec<&String> = c
+                    .candidates
+                    .iter()
+                    .filter(|k| k.eligibility.selectable())
+                    .map(|k| &k.path)
+                    .collect();
+                let all =
+                    !eligible.is_empty() && eligible.iter().all(|p| self.checked.contains(*p));
+                let mut select = MenuItem::new(if all {
+                    "Unselect category"
+                } else {
+                    "Select category"
+                })
+                .shortcut("Space")
+                .separator();
+                if eligible.is_empty() {
+                    select = select.reason("No eligible candidate in this category");
+                }
+                items.push(select);
+                keys.push(' ');
+                c.category.label.to_string()
+            }
+            Some(Row::Candidate(ci, ki)) => {
+                let k = &self.cats[*ci].candidates[*ki];
+                let mut select = MenuItem::new(if self.checked.contains(&k.path) {
+                    "Unselect"
+                } else {
+                    "Select"
+                })
+                .shortcut("Space");
+                if let Eligibility::Ineligible(why) = &k.eligibility {
+                    select = select.reason(why.clone());
+                }
+                items.push(select);
+                items.push(MenuItem::new("Copy path").shortcut("y").separator());
+                keys.push_str(" y");
+                k.path.clone()
+            }
+            _ => return Outcome::Ignored,
+        };
+        let eligible = self
+            .cats
+            .iter()
+            .flat_map(|c| c.candidates.iter())
+            .filter(|k| k.eligibility.selectable())
+            .collect::<Vec<_>>();
+        let all = !eligible.is_empty() && eligible.iter().all(|k| self.checked.contains(&k.path));
+        let mut every = MenuItem::new(if all {
+            "Unselect everything"
+        } else {
+            "Select every eligible"
+        })
+        .shortcut("a");
+        if eligible.is_empty() {
+            every = every.reason("Nothing here is eligible");
+        }
+        items.push(every);
+        items.push(
+            MenuItem::new(if self.drawer {
+                "Hide details"
+            } else {
+                "Show details"
+            })
+            .shortcut("p")
+            .separator(),
+        );
+        keys.push_str("ap");
+        items.push(
+            MenuItem::new(if self.mode == Mode::Permanent {
+                "Use Trash"
+            } else {
+                "Use permanent delete"
+            })
+            .shortcut("m"),
+        );
+        items.push(
+            MenuItem::new(if self.dry_run {
+                "Switch to live run"
+            } else {
+                "Switch to dry run"
+            })
+            .shortcut("n"),
+        );
+        let mut review = MenuItem::new("Review deletion…").shortcut("d").danger();
+        if self.selected_items().is_empty() {
+            review = review.reason("Select at least one eligible candidate first");
+        }
+        items.push(review);
+        keys.push_str("mnd");
+        open_context(
+            cx,
+            ROW_MENU,
+            anchor,
+            title,
+            items,
+            ModalTag::new("cleanup-row").key(format!("{row}:{keys}")),
+        )
+    }
 }
 
 impl Screen for CleanupPage {
@@ -1183,6 +1301,52 @@ impl Screen for CleanupPage {
         }
     }
 
+    fn on_secondary(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        _w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        let Some(i) = self.locate(id) else {
+            return Outcome::Ignored;
+        };
+        if !matches!(
+            self.rows.get(i),
+            Some(Row::Category(_) | Row::Candidate(..))
+        ) {
+            return Outcome::Ignored;
+        }
+        if cx.context.moves_cursor {
+            self.cursor = i;
+        }
+        cx.focus.focus(LIST);
+        self.row_menu(i, ContextAnchor::Pointer(pos), cx)
+    }
+
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(LIST) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(LIST, self.cursor, self.list_area, self.scroll.offset);
+        self.row_menu(self.cursor, anchor, cx)
+    }
+
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        if let Some((row, Some(key), _)) = row_choice(tag, "cleanup-row", &result) {
+            // the chosen item runs its key on the row it was opened for
+            self.cursor = row.min(self.rows.len().saturating_sub(1));
+            return self.on_key(&key, w, cx).or(Outcome::Changed);
+        }
+        Outcome::Changed
+    }
+
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if focus == Some(DETAIL) {
             return vec![hint("↑↓", "Scroll"), hint("Esc", "Back to list")];
@@ -1208,6 +1372,7 @@ impl Screen for CleanupPage {
         v.push(hint("d", "Review deletion"));
         v.push(hint("p", "Details"));
         v.push(hint("Esc", "Back"));
+        v.push(junie_tui::widgets::keyhint::CONTEXT_MENU);
         v
     }
 
