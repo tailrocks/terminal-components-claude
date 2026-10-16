@@ -556,7 +556,7 @@ impl App {
     /// pages, so fields end their edits on the event path.
     fn forward_blur(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
-        for ch in self.focus.take_changes() {
+        for ch in self.focus.settle(&self.ring) {
             if let Some(d) = self.dialog.as_mut() {
                 out = out.or(d.on_blur(ch));
             }

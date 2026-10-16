@@ -4,6 +4,14 @@
 //! Language knowledge stays outside: the widget only receives spans.
 //!
 //! Two modes like every text control: focused (navigation) and editing.
+//! How focus becomes an edit is the editor's [`EditEntry`] (default the
+//! theme's, [`EditEntry::Immediate`]: focus starts the edit and the caret
+//! shows at once). While editing Tab indents (unless
+//! [`CodeEditor::tab_leaves`]), Esc ends the edit keeping the text
+//! ("Done"; [`CodeEditor::esc_reverts`] reverts instead), and then Tab or
+//! Shift+Tab leave. Ctrl+Tab and Ctrl+Shift+Tab always leave where the
+//! terminal delivers them (the kitty keyboard protocol); hints never
+//! advertise them.
 
 use std::ops::Range;
 
@@ -13,7 +21,9 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::core::edit::{EditEntry, EditKind, FieldKeys, UndoStack};
 use crate::core::event::{Key, Outcome};
+use crate::core::focus::request_focus_next;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
@@ -21,7 +31,7 @@ use crate::core::text::TextBuffer;
 use crate::theme::SyntaxTone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{find_ranges, width};
-use crate::widgets::field_common::{EditAction, edit_key};
+use crate::widgets::field_common::{Applied, EditAction, apply_edit, edit_key_with};
 use crate::widgets::scrollbar;
 
 pub type Highlighter = fn(&str) -> Vec<(Range<usize>, SyntaxTone)>;
@@ -118,6 +128,24 @@ pub struct CodeEditor {
     /// The reading-mode action keys (default
     /// [`CodeAction::default_keymap`]).
     pub keymap: KeyMap<CodeAction>,
+    /// How focus starts an edit. `None` (default) follows the theme's
+    /// [`crate::theme::Theme::edit_entry`] ([`EditEntry::Immediate`]).
+    /// A read-only editor never edits.
+    pub edit_entry: Option<EditEntry>,
+    entry: EditEntry,
+    /// Esc reverts the document to what it was when the edit began
+    /// instead of keeping it. Default `false` (Esc is "Done"; Ctrl+Z
+    /// undoes).
+    pub esc_reverts: bool,
+    /// The control-key preset. `None` (default) follows the theme's
+    /// [`crate::theme::Theme::field_keys`].
+    pub field_keys: Option<FieldKeys>,
+    keys: FieldKeys,
+    /// Undo history of the document (Ctrl+Z, Ctrl+Shift+Z).
+    undo: UndoStack,
+    /// The document as the edit began, for [`Self::esc_reverts`].
+    snapshot: Option<String>,
+    focus_seen: bool,
 }
 
 /// A [`CodeEditor`] reading-mode action a key can be bound to.
@@ -200,7 +228,47 @@ impl CodeEditor {
             h_held: false,
             nav: NavKeys::DEFAULT,
             keymap: CodeAction::default_keymap(),
+            edit_entry: None,
+            entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,
+            esc_reverts: false,
+            field_keys: None,
+            keys: FieldKeys::default(),
+            undo: UndoStack::new(),
+            snapshot: None,
+            focus_seen: false,
         }
+    }
+
+    /// See [`Self::edit_entry`].
+    pub fn edit_entry(mut self, entry: EditEntry) -> Self {
+        self.edit_entry = Some(entry);
+        self.entry = entry;
+        self
+    }
+    /// See [`Self::esc_reverts`].
+    pub fn esc_reverts(mut self, on: bool) -> Self {
+        self.esc_reverts = on;
+        self
+    }
+    /// See [`Self::tab_leaves`].
+    pub fn tab_leaves(mut self, on: bool) -> Self {
+        self.tab_leaves = on;
+        self
+    }
+    /// See [`Self::field_keys`].
+    pub fn field_keys(mut self, keys: FieldKeys) -> Self {
+        self.field_keys = Some(keys);
+        self.keys = keys;
+        self
+    }
+    /// The entry policy in effect.
+    pub fn entry(&self) -> EditEntry {
+        self.edit_entry.unwrap_or(self.entry)
+    }
+    /// The focused editor takes printable keys before page and app letter
+    /// shortcuts: the document or its find bar is being edited.
+    pub fn wants_text_input(&self) -> bool {
+        self.find.as_ref().is_some_and(|f| f.editing) || (self.editing && !self.read_only)
     }
 
     /// See [`Self::nav`].
@@ -273,6 +341,7 @@ impl CodeEditor {
     }
 
     pub fn set_text(&mut self, text: &str) {
+        self.undo.clear();
         self.buffer.set_text(text);
         self.buffer.move_doc_start(false);
         self.diagnostics.clear();
@@ -341,6 +410,9 @@ impl CodeEditor {
 
     pub fn begin_edit(&mut self) {
         if !self.read_only {
+            if !self.editing {
+                self.snapshot = Some(self.buffer.text().to_owned());
+            }
             self.editing = true;
         }
     }
@@ -450,9 +522,34 @@ impl CodeEditor {
             self.commit();
         }
         if !self.editing {
-            return self.nav_key(key);
+            if self.entry() == EditEntry::Immediate && !self.focus_seen && !self.read_only {
+                // focus arrived and this key beat the first render
+                self.begin_edit();
+            } else {
+                return self.nav_key(key);
+            }
         }
-        match edit_key(key, true) {
+        // Ctrl+Tab / Ctrl+Shift+Tab always leave, where the terminal
+        // delivers them
+        if matches!(key.code, KeyCode::Tab | KeyCode::BackTab) && key.ctrl() {
+            let backward = key.code == KeyCode::BackTab || key.shift();
+            self.commit();
+            request_focus_next(backward);
+            return (Outcome::Changed, Some(EditorEvent::Leave { backward }));
+        }
+        let action = edit_key_with(key, true, self.keys);
+        match action {
+            EditAction::Cancel if self.esc_reverts => {
+                if let Some(snap) = self.snapshot.take()
+                    && snap != self.buffer.text()
+                {
+                    self.undo.record(&self.buffer, EditKind::Other);
+                    self.buffer.set_text(snap);
+                    self.after_change();
+                }
+                self.commit();
+                (Outcome::Changed, Some(EditorEvent::Committed))
+            }
             EditAction::Cancel | EditAction::Commit => {
                 self.commit();
                 (Outcome::Changed, Some(EditorEvent::Committed))
@@ -460,8 +557,10 @@ impl CodeEditor {
             EditAction::Tab { backward } => {
                 if self.tab_leaves {
                     self.commit();
+                    request_focus_next(backward);
                     return (Outcome::Changed, Some(EditorEvent::Leave { backward }));
                 }
+                self.undo.record(&self.buffer, EditKind::Other);
                 if backward {
                     self.dedent_selection();
                 } else if self.buffer.has_selection_lines() {
@@ -473,32 +572,8 @@ impl CodeEditor {
                 self.after_change();
                 (Outcome::Changed, Some(EditorEvent::Changed))
             }
-            EditAction::Apply(f) => {
-                if self.read_only {
-                    return (Outcome::Consumed, None);
-                }
-                let before = self.buffer.text().len();
-                let before_hash = hash_text(self.buffer.text());
-                f(&mut self.buffer);
-                let changed = self.buffer.text().len() != before
-                    || hash_text(self.buffer.text()) != before_hash;
-                self.after_change();
-                (
-                    Outcome::Changed,
-                    Some(if changed {
-                        EditorEvent::Changed
-                    } else {
-                        EditorEvent::CursorMoved
-                    }),
-                )
-            }
-            EditAction::Insert(c) => {
-                if self.read_only {
-                    return (Outcome::Consumed, None);
-                }
-                self.buffer.insert_char(c);
-                self.after_change();
-                (Outcome::Changed, Some(EditorEvent::Changed))
+            EditAction::Apply(_) | EditAction::Insert(_) if self.read_only => {
+                (Outcome::Consumed, None)
             }
             EditAction::None => match key.code {
                 KeyCode::PageUp => {
@@ -517,6 +592,24 @@ impl CodeEditor {
                 }
                 _ => (Outcome::Ignored, None),
             },
+            action => {
+                let applied = apply_edit(
+                    &mut self.buffer,
+                    &mut self.undo,
+                    action,
+                    key.code,
+                    self.read_only,
+                );
+                self.after_change();
+                (
+                    Outcome::Changed,
+                    Some(if applied == Some(Applied::Edited) {
+                        EditorEvent::Changed
+                    } else {
+                        EditorEvent::CursorMoved
+                    }),
+                )
+            }
         }
     }
 
@@ -779,6 +872,7 @@ impl CodeEditor {
         if !self.editing || self.read_only {
             return Outcome::Ignored;
         }
+        self.undo.record(&self.buffer, EditKind::Other);
         self.buffer.insert_str(text);
         self.after_change();
         Outcome::Changed
@@ -807,6 +901,15 @@ impl CodeEditor {
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
+        self.keys = self.field_keys.unwrap_or(ctx.theme.field_keys);
+        // focus newly gained starts an immediate edit: the caret shows the
+        // moment Tab lands here
+        let shown = ctx.interaction.focused(self.id) && !ctx.inert;
+        if shown && !self.focus_seen && self.entry == EditEntry::Immediate && !self.read_only {
+            self.begin_edit();
+        }
+        self.focus_seen = shown;
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;

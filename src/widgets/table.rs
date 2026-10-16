@@ -822,6 +822,22 @@ impl DataTable {
                     f(&mut e.buffer);
                     (Outcome::Changed, None)
                 }
+                action @ (EditAction::Undo
+                | EditAction::Redo
+                | EditAction::Copy
+                | EditAction::Cut
+                | EditAction::Paste) => {
+                    // a cell edit is short-lived: clipboard keys work, its
+                    // undo is Esc
+                    crate::widgets::field_common::apply_edit(
+                        &mut e.buffer,
+                        &mut crate::core::edit::UndoStack::new(),
+                        action,
+                        key.code,
+                        false,
+                    );
+                    (Outcome::Changed, None)
+                }
                 EditAction::Insert(c) => {
                     e.buffer.insert_char(c);
                     if e.error.is_some() {
