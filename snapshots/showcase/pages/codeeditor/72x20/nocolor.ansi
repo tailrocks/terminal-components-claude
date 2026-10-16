@@ -5,8 +5,8 @@
     Overview           retry.rs                               3 blocks  [0m
   ▸ App shell                                                           [0m
   ▸ Inputs & forms      ›  1 [0m[3m// Retry a request with exponential ba…[0m ┃  [0m
-  ▸ Tables                 2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Resul… │  [0m
-  ▸ Navigation               ━━━━━━━━━━━━━━━━━━━━━━━━───────────────    [0m
+  ▸ Tables                 2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Resul… ┆  [0m
+  ▸ Navigation               ━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    [0m
   ▸ Overlays                                                1–2 of 26   [0m
   ▸ Feedback                                                            [0m
   ▸ Layout             State                                            [0m
