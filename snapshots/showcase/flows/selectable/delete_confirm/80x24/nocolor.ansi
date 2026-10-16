@@ -2,11 +2,11 @@
 [0m[2m                                                                                [0m
 [0m[2m Components      54  Selectable table  Select rows, edit one or many together,… [0m
 [0m[2m                                                                                [0m
-[0m[2m [0m [0m[2m  Overview           Members                        2 selected · 1–3 of 12   ┃[0m
+[0m[2m [0m [0m[2m  Overview           Members                        2 selected · 2–4 of 12   ┃[0m
 [0m[2m [0m [0m[2m▸ App shell                                                                  ┃[0m
 [0m[2m [0m [0m[2m▸ Inputs & forms        [–] Name              Role    Status     Region …    ┃[0m
-[0m[2m [0m [0m[2m▾ Tables   ╭─────────[0m─[0m[2m────────────────────────────────────── × ─╮EU      ┃   ┃[0m
-[0m[2m [0m [0m[2m    Basic t│         [0m [0m[2m                                          │US      ┆   ┃[0m
+[0m[2m [0m [0m[2m▾ Tables   ╭─────────[0m─[0m[2m────────────────────────────────────── × ─╮US      ┃   ┃[0m
+[0m[2m [0m [0m[2m    Basic t│         [0m [0m[2m                                          │EU      ┆   ┃[0m
 [0m[2m [0m [0m[2m    Editabl│  [0m[1;2mDelete [0m[1m2[0m[1;2m members?[0m[2m                                 │EU      ┆   ┃[0m
 [0m[2m [0m [0m[2m    Data gr│                                                    │┄┄┄┄┄┄┄┄    ┃[0m
 [0m[2m [0m [0m[2m  › Selecti│  They lose access to the workspace right away.     │            ┃[0m
