@@ -571,6 +571,17 @@ impl App {
         {
             return self.open_context(menu);
         }
+        if self.screen == Screen::Connections
+            && !editing
+            && let Some(menu) = context::on_key_connections(
+                &self.connections,
+                &self.context,
+                self.focus.current(),
+                &key,
+            )
+        {
+            return self.open_context(menu);
+        }
         if self.screen == Screen::Workbench
             && let Some(o) = self.workbench_chord(&key, editing)
         {
@@ -1275,6 +1286,10 @@ impl App {
             .key(
                 "Ctrl+Y",
                 "query history · Ctrl+L Safe Mode · Ctrl+B explorer · z zoom",
+            )
+            .key(
+                "Shift+F10",
+                "menu of the focused row, cell or tab · right-click at the pointer",
             )
             .key("q", "quit")
             .text();
@@ -2232,7 +2247,17 @@ impl App {
         }
         let cfg = self.context;
         let menu = match (self.screen, self.workbench.as_mut()) {
-            (Screen::Workbench, Some(w)) => context::on_secondary(w, &cfg, id, m.pos),
+            (Screen::Workbench, Some(w)) => {
+                let menu = context::on_secondary(w, &cfg, id, m.pos);
+                // the detail pane follows the row the menu is about
+                if let Some(WorkTab::History(h)) = w.active_tab_mut() {
+                    h.sync_detail_public(&self.history);
+                }
+                menu
+            }
+            (Screen::Connections, _) => {
+                context::on_secondary_connections(&mut self.connections, &cfg, id, m.pos)
+            }
             _ => None,
         };
         match menu {
@@ -2263,8 +2288,13 @@ impl App {
         let Some(key) = key else {
             return Outcome::Changed;
         };
-        if let Some(w) = self.workbench.as_mut() {
-            context::select(w, target);
+        match target {
+            context::Target::Connection(row) => self.connections.select_row(row),
+            _ => {
+                if let Some(w) = self.workbench.as_mut() {
+                    context::select(w, target);
+                }
+            }
         }
         self.focus.focus(owner);
         self.on_key(key).or(Outcome::Changed)
