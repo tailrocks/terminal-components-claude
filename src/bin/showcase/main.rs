@@ -8,6 +8,8 @@ mod app_tests_catalog;
 #[cfg(test)]
 mod app_tests_celleditors;
 #[cfg(test)]
+mod app_tests_colour;
+#[cfg(test)]
 mod app_tests_context;
 #[cfg(test)]
 mod app_tests_coverage;

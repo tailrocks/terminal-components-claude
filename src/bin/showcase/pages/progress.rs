@@ -8,7 +8,8 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{
-    Meter, MeterTone, MeterVisual, ProgressStatus, render_bar, render_indeterminate, render_spinner,
+    Meter, MeterLevel, MeterTone, MeterVisual, ProgressStatus, StaleStyle, render_bar,
+    render_indeterminate, render_spinner,
 };
 
 const ID: WidgetId = WidgetId::of("progress");
@@ -136,19 +137,49 @@ impl Page for ProgressPage {
             buf.set_string(
                 inner.x,
                 inner.y + 9,
-                "Capacity meters are never green: low ≤ 59 % white, medium ≤ 84 % warning, high error. Line and block visuals.",
+                junie_tui::ui::text::truncate(
+                    "Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !. Stale keeps its level, dashed.",
+                    inner.width as usize,
+                ),
                 t.muted().bg(bg),
             );
+            // left: one meter per tone, line visual; right: the options
+            // (block visual, owner thresholds, a fixed level, staleness on
+            // a domain tone, the faint stale style). Red appears only as a
+            // run or a glyph, never as a filled block (colour follow-ups).
             let meters: [(&str, Option<u8>, MeterTone); 9] = [
                 ("Low       ", Some(38), MeterTone::Normal),
                 ("Medium    ", Some(72), MeterTone::Normal),
                 ("High      ", Some(91), MeterTone::Normal),
                 ("Warning   ", Some(82), MeterTone::Warning),
                 ("Exhausted ", Some(100), MeterTone::Exhausted),
-                ("Stale     ", Some(54), MeterTone::Stale),
+                ("Stale     ", Some(76), MeterTone::Stale),
                 ("Refreshing", Some(54), MeterTone::Refreshing),
                 ("Error     ", None, MeterTone::Error),
                 ("Unknown   ", None, MeterTone::Unknown),
+            ];
+            let disk = MeterTone::Level { warn: 80, crit: 95 };
+            let options: [Meter; 6] = [
+                Meter::new(Some(38))
+                    .value("38% used · block")
+                    .visual(MeterVisual::Block),
+                Meter::new(Some(72))
+                    .value("72% disk, warns at 80")
+                    .tone(disk),
+                Meter::new(Some(88))
+                    .value("88% disk, critical at 95")
+                    .tone(disk),
+                Meter::new(Some(30))
+                    .value("30% · fixed high")
+                    .tone(MeterTone::Fixed(MeterLevel::High)),
+                Meter::new(Some(82))
+                    .value("82% · stale warning")
+                    .tone(MeterTone::Warning)
+                    .stale(true),
+                Meter::new(Some(76))
+                    .value("76% · faint stale style")
+                    .tone(MeterTone::Stale)
+                    .stale_style(StaleStyle::Faint),
             ];
             let col_w = inner.width.saturating_sub(12) / 2;
             for (i, (label, pct, tone)) in meters.iter().enumerate() {
@@ -162,16 +193,15 @@ impl Page for ProgressPage {
                     MeterTone::Unknown => String::new(),
                     _ => format!("{}% used", pct.unwrap_or(0)),
                 };
-                for (k, visual) in [MeterVisual::Line, MeterVisual::Block]
-                    .into_iter()
-                    .enumerate()
-                {
-                    let x = inner.x + 11 + k as u16 * (col_w + 1);
-                    Meter::new(*pct)
-                        .value(value.clone())
-                        .tone(*tone)
-                        .visual(visual)
-                        .render(Rect::new(x, y, col_w.min(34), 1), buf, ctx, bg);
+                Meter::new(*pct).value(value).tone(*tone).render(
+                    Rect::new(inner.x + 11, y, col_w.min(34), 1),
+                    buf,
+                    ctx,
+                    bg,
+                );
+                if let Some(m) = options.get(i) {
+                    let x = inner.x + 11 + col_w + 1;
+                    m.render(Rect::new(x, y, col_w.min(34), 1), buf, ctx, bg);
                 }
             }
         }

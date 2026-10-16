@@ -986,21 +986,9 @@ widgets::picker::Picker::dismiss | Pickers page options | SC20
 widgets::picker::Picker::cursor_style | Pickers page options | SC20
 
 # widgets::progress
-widgets::progress::ProgressStatus::Active | Progress and Empty & error pages | SC21
 widgets::progress::BarLayout | Progress and Empty & error pages | SC21
 widgets::progress::BarLayout::label_width | Progress and Empty & error pages | SC21
 widgets::progress::BarLayout::reserve_value | Progress and Empty & error pages | SC21
-widgets::progress::MeterTone::Normal | Progress and Empty & error pages | SC21
-widgets::progress::MeterTone::Level | Progress and Empty & error pages | SC21
-widgets::progress::MeterTone::Fixed | Progress and Empty & error pages | SC21
-widgets::progress::Meter::value | Progress and Empty & error pages | SC21
-widgets::progress::Meter::tone | Progress and Empty & error pages | SC21
-widgets::progress::Meter::visual | Progress and Empty & error pages | SC21
-widgets::progress::Meter::stale | Progress and Empty & error pages | SC21
-widgets::progress::Meter::stale_style | Progress and Empty & error pages | SC21
-widgets::progress::StaleStyle | Progress and Empty & error pages | SC21
-widgets::progress::StaleStyle::Dashed | Progress and Empty & error pages | SC21
-widgets::progress::StaleStyle::Faint | Progress and Empty & error pages | SC21
 
 # widgets::props
 widgets::props::Prop::copyable | Text utilities page | SC26
@@ -1344,7 +1332,6 @@ theme::SyntaxTone | Overview theme token tables | SC3
 theme::SyntaxTone::Keyword | Overview theme token tables | SC3
 theme::SyntaxTone::Ident | Overview theme token tables | SC3
 theme::SyntaxTone::Number | Overview theme token tables | SC3
-theme::SyntaxTone::Literal | Overview theme token tables | SC3
 theme::SyntaxTone::Str | Overview theme token tables | SC3
 theme::SyntaxTone::Operator | Overview theme token tables | SC3
 theme::SyntaxTone::Punct | Overview theme token tables | SC3

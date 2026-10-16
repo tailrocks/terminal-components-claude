@@ -6,14 +6,13 @@ use ratatui::layout::Rect;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::theme::StatusKind;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
-use junie_tui::widgets::progress::{
-    ProgressStatus, render_bar, render_indeterminate, spinner_frame,
-};
+use junie_tui::widgets::progress::{ProgressStatus, render_bar, render_indeterminate};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::tree::TreeNode;
 use junie_tui::widgets::tree::TreeView;
@@ -458,73 +457,44 @@ impl TaskRunnerPage {
                 break;
             }
             let label = format!("{:<12}", task.name);
+            let name = junie_tui::ui::text::truncate(&label, 10);
+            let bar = Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1);
+            // every state leads with its `Theme::status` glyph, so colour
+            // is never the only cue (colour follow-ups, showcase)
+            let kind = match task.state {
+                TaskState::Queued => StatusKind::Queued,
+                TaskState::Running => StatusKind::Running,
+                TaskState::Done => StatusKind::Ok,
+                TaskState::Failed => StatusKind::Fail,
+                TaskState::Cancelled => StatusKind::Skipped,
+            };
+            let (glyph, glyph_style) = t.status_at(kind, ctx.interaction.tick);
+            buf.set_string(inner.x, y, glyph, glyph_style.bg(bg));
+            let name_style = match task.state {
+                TaskState::Queued | TaskState::Cancelled => t.muted(),
+                TaskState::Done => t.secondary(),
+                // the running label is information, as `Theme::status_label`
+                TaskState::Running => t.status_label(kind),
+                TaskState::Failed => t.primary(),
+            };
+            buf.set_string(inner.x + 2, y, &name, name_style.bg(bg));
+            let word = |buf: &mut Buffer, text: &str| {
+                // the state word in the status hue, stepped up to read on
+                // the card (skipped is faint)
+                let fg = t.tone_on(kind.tone(), bg);
+                buf.set_string(bar.x, y, text, ratatui::style::Style::new().fg(fg).bg(bg));
+            };
             match task.state {
-                TaskState::Queued => {
-                    buf.set_string(inner.x, y, &label, t.muted().bg(bg));
-                    buf.set_string(inner.x + 14, y, "queued", t.faint().bg(bg));
-                }
-                TaskState::Cancelled => {
-                    buf.set_string(inner.x, y, &label, t.muted().bg(bg));
-                    buf.set_string(inner.x + 14, y, "cancelled", t.faint().bg(bg));
-                }
+                TaskState::Queued => word(buf, "queued"),
+                TaskState::Cancelled => word(buf, "cancelled"),
                 TaskState::Running => {
-                    buf.set_string(
-                        inner.x,
-                        y,
-                        spinner_frame(ctx.interaction.tick),
-                        t.accent_fg().bg(bg),
-                    );
-                    buf.set_string(
-                        inner.x + 2,
-                        y,
-                        junie_tui::ui::text::truncate(&label, 10),
-                        t.primary().bg(bg),
-                    );
-                    render_bar(
-                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
-                        buf,
-                        ctx,
-                        "",
-                        task.progress,
-                        ProgressStatus::Active,
-                        bg,
-                    );
+                    render_bar(bar, buf, ctx, "", task.progress, ProgressStatus::Active, bg);
                 }
                 TaskState::Done => {
-                    buf.set_string(inner.x, y, "✓", t.secondary().bg(bg));
-                    buf.set_string(
-                        inner.x + 2,
-                        y,
-                        junie_tui::ui::text::truncate(&label, 10),
-                        t.secondary().bg(bg),
-                    );
-                    render_bar(
-                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
-                        buf,
-                        ctx,
-                        "",
-                        1.0,
-                        ProgressStatus::Done,
-                        bg,
-                    );
+                    render_bar(bar, buf, ctx, "", 1.0, ProgressStatus::Done, bg);
                 }
                 TaskState::Failed => {
-                    buf.set_string(inner.x, y, "!", t.error_fg().bg(bg));
-                    buf.set_string(
-                        inner.x + 2,
-                        y,
-                        junie_tui::ui::text::truncate(&label, 10),
-                        t.primary().bg(bg),
-                    );
-                    render_bar(
-                        Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1),
-                        buf,
-                        ctx,
-                        "",
-                        task.progress,
-                        ProgressStatus::Error,
-                        bg,
-                    );
+                    render_bar(bar, buf, ctx, "", task.progress, ProgressStatus::Error, bg);
                 }
             }
         }
