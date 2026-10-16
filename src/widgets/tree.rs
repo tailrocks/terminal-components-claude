@@ -201,8 +201,8 @@ pub struct TreeView {
     pub type_ahead: bool,
     typeahead: crate::core::typeahead::TypeAhead,
     /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+    /// type-ahead ([`TypeAheadPrecedence`](crate::core::list::TypeAheadPrecedence)). Default `None`: the app-wide
+    /// [`TypeAheadPrecedence::current`](crate::core::list::TypeAheadPrecedence::current) (shortcuts first).
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     /// Keep the last column as a divider at every size: a track when the
     /// rows fit, the scrollbar when they overflow (a sidebar edge). Off by

@@ -346,7 +346,7 @@ pub trait Screen {
 /// The Health value as spans, shared by Usage and Accounts: the health
 /// word (blocked and degraded in error bold, attention in warning, the
 /// rest primary), then each issue in the tone of what it says
-/// ([`OverallSummary::issue_parts`]).
+/// ([`OverallSummary::issue_parts`](crate::domain::usage::OverallSummary::issue_parts)).
 pub fn health_spans(
     s: &crate::domain::usage::OverallSummary,
 ) -> Vec<junie_tui::widgets::viewport::Span> {

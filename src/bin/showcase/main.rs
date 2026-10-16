@@ -103,7 +103,7 @@ struct Cli {
     #[arg(long, value_enum, value_name = "POLICY")]
     nav: Option<NavArg>,
     /// Set a live option at launch, as the Inspector's Options tab would
-    /// (repeatable): shell.<key>=<value> or <page>.<key>=<value>. An
+    /// (repeatable): shell.KEY=VALUE or PAGE.KEY=VALUE. An
     /// unknown key or value lists the valid ones.
     #[arg(long = "opt", value_parser = options::parse_opt, value_name = "KEY=VALUE")]
     opt: Vec<options::OptSet>,
