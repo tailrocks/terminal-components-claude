@@ -83,9 +83,9 @@ The gated baseline lives in
 under `snapshots/holla/<sub_group>/`; run one scenario at a time with
 `cargo run --release --bin holla -- --scenario <name>` (the table in
 `src/bin/holla/README.md` says what each scenario shows and which keys to
-press); or regenerate the gated matrix with `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` and review it via `tuisnap
-report` / `tuisnap accept` after `ln -sfn target/tuisnap/actual snapshots.actual`
-(see `docs/baseline/tuisnap-coverage.md`).
+press); or regenerate the matrix with `VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`,
+review `target/tuiscotti/` and approve with the `accept_actuals` test
+(see [Visual review tooling](#visual-review-tooling)).
 `holla --help` prints the flags and scenarios.
 
 Every screen's first row is the application menu bar (`F10`, or click a
@@ -336,7 +336,7 @@ src/bin/showcase   pages/ (one per component + two composed screens), app.rs she
 src/bin/tablepro   db.rs (demo catalog + row generator), sql.rs (tokens, statements, safety tiers, runner, EXPLAIN),
                    model.rs (history, completion, switcher index), tabs.rs (table / query / history tabs),
                    workbench.rs, connections.rs, app.rs (modals, safety gate, chords), app_tests.rs
-tests/visual_baseline  the tuisnap snapshot-baseline suite (PTY captures of all four binaries)
+tests/visual_baseline  the tuiscotti snapshot-baseline suite (PTY captures of all four binaries)
 ```
 
 Widgets are plain state structs with `render(area, buf, ctx)` — which draws
@@ -371,26 +371,35 @@ not a claim that its remaining fixes have been implemented.
 
 ## Visual review tooling
 
-The visual baseline is the grouped tuisnap store at
-`snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`, gated cell-exact
-and pixel-exact. The runner is the Rust integration suite
-`tests/visual_baseline/` (tuisnap as a library): one `#[test] #[ignore]` per
-capture — ~792 grouped captures (786 prior + 6 LIVE-hole fills) — so default
-`cargo nextest run` compiles the suite but runs no PTYs
-(the matrix and its rationale live in
+The visual baseline is the grouped store at
+`snapshots/<app>/<sub_group>/<cols>x<rows>/<palette>.ansi`, driven by
+[tuiscotti](https://github.com/tailrocks/tuiscotti) (the only visual/PTY test
+tool; `Cargo.toml` pins an exact `main` revision). Each scenario commits one
+`.ansi` file: tuiscotti's normalized SGR dump plus a cursor trailer line, so
+every cell, colour, attribute, the grid size and the caret are gated. The
+committed set is the single constant `COMMITTED` in
+`tests/visual_baseline/support.rs`. The runner is the Rust integration suite
+`tests/visual_baseline/`: one `#[test] #[ignore]` per capture root, so
+default `cargo nextest run` compiles the suite but runs no captures (the
+matrix and its rationale live in
 [docs/baseline/tuisnap-coverage.md](docs/baseline/tuisnap-coverage.md)).
 
+The store is being re-approved on tuiscotti main group by group
+([docs/visual-testing/tuiscotti-migration.md](docs/visual-testing/tuiscotti-migration.md)):
+groups not yet re-approved run only with `VISUAL_FULL=1`.
+
 ```sh
-cargo nextest run                                              # unit/lib tests
-cargo nextest run --run-ignored only -E 'binary(visual_baseline)'  # regenerate the matrix
-cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
-ln -sfn target/tuisnap/actual snapshots.actual                # CLI actuals sibling
-tuisnap accept --grouped --store snapshots --all              # approve after review
-cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
+cargo nextest run                                                  # unit/lib tests + store_integrity
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'  # gate re-approved groups
+VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
+VISUAL_ACCEPT=showcase/pages cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'  # approve after review
 ```
 
-On a first run every capture lands as missing-approval (logged PENDING, not
-failed); review `target/tuisnap/report.html`, approve, then re-verify.
+Every check writes `target/tuiscotti/actual/<name>.ansi` and `.frame.json`.
+A mismatch also writes actual and expected PNG/HTML (the expected pair is
+rebuilt from the approved `.ansi`) and a diff PNG under `target/tuiscotti/`;
+review those, approve deliberately with `accept_actuals` (local only, never
+in CI), then re-verify.
 
 The showcase also carries a visual baseline (`tests/showcase_baseline.txt`):
 a digest of every page at 72×20, 80×24, 100×30, 120×40 and 160×50 in all
