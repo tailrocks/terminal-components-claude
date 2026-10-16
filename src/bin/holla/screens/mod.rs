@@ -112,7 +112,6 @@ pub enum Go {
     Restart(String),
     /// Close the active tab (asks when something runs).
     CloseTab,
-    Quit,
     /// Re-read the project configuration (an edit was simulated).
     Reload,
     /// Run an ad-hoc typed command as an activity (an OS opener, a reveal).

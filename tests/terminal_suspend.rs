@@ -459,8 +459,9 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         "frames were drawn after the first"
     );
 
-    // a normal quit from the resumed session: Esc at an empty root
-    pty.send(b"\x1b");
+    // a normal quit from the resumed session: Ctrl+Q on a clean shell
+    // (Esc never quits, keyboard audit #21)
+    pty.send(b"\x11");
     pty.wait_until("exit", |p| p.marker("@@EXIT=").is_some());
     assert_eq!(pty.marker("@@EXIT=").unwrap().trim(), "0", "clean exit");
     let start = Instant::now();

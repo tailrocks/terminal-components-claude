@@ -694,15 +694,15 @@ fn esc_ladder_and_quit_rules() {
     );
     assert!(!h.app.quit);
     h.key(KeyCode::Esc);
-    assert!(
-        h.app.quit,
-        "Esc at an empty root with nothing running quits"
-    );
+    assert!(!h.app.quit, "Esc never quits (keyboard audit #21)");
+    assert!(h.last_row().contains("Ctrl+Q quits"), "{}", h.last_row());
+    // a clean Ctrl+Q leaves without a question
+    h.ctrl(KeyCode::Char('q'));
+    assert!(h.app.quit, "a clean quit never nags");
     let mut a = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 100, 30);
     a.key(KeyCode::Esc);
     assert!(!a.app.quit);
-    assert!(a.text().contains("Quit holla❯?"), "{}", a.text());
-    a.key(KeyCode::Esc);
+    assert!(!a.text().contains("Quit holla❯?"), "{}", a.text());
     a.ctrl(KeyCode::Char('q'));
     assert!(a.text().contains("Stop and quit"));
     a.key(KeyCode::Right);
@@ -814,4 +814,36 @@ fn unavailable_alternatives_are_disabled_in_the_menu_not_failing_on_choice() {
         .find(|l| l.contains(label.as_str()))
         .unwrap_or_else(|| panic!("{label} listed\n{t}"));
     assert!(row.contains("Not in this preview"), "{row}");
+}
+
+/// Keyboard audit #3: the page gets the first chance at Ctrl+C, and the
+/// global quit always goes through the guard while activities run.
+#[test]
+fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
+    let mut h = H::new(Scenario::UpgradePlan, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('c'));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.tab_kind(), TabKind::Plan("upgrade".into()));
+    assert!(until(&mut h, 200, |h| h.app.world.plans[0].phase
+        == PlanPhase::Running));
+    assert!(
+        h.last_row().contains("Ctrl+C Cancel remaining"),
+        "{}",
+        h.last_row()
+    );
+    h.ctrl(KeyCode::Char('c'));
+    assert!(!h.app.quit, "Ctrl+C belongs to the plan first");
+    assert!(
+        h.text().contains("Cancel the remaining steps?"),
+        "{}",
+        h.text()
+    );
+    // with activities running, a global Ctrl+C asks instead of killing them
+    let mut a = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 100, 30);
+    assert!(a.app.world.live_activities() > 0);
+    a.ctrl(KeyCode::Char('c'));
+    assert!(!a.app.quit, "running work is never killed by one keystroke");
+    assert!(a.text().contains("Quit holla❯?"), "{}", a.text());
+    assert!(a.app.world.live_activities() > 0);
 }
