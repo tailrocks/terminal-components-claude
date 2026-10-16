@@ -1871,6 +1871,25 @@ pub struct Strings {
     /// The error under a typed acknowledgement when Enter is pressed and
     /// the text does not match the token. `Does not match`.
     pub ack_mismatch: &'static str,
+    /// The leave guard's unsaved-changes dialog title. `Unsaved changes`.
+    pub leave_unsaved_title: &'static str,
+    /// Its body; `{}` is what would be lost.
+    /// `Save before leaving? {} would be lost.`
+    pub leave_unsaved_body: &'static str,
+    /// What would be lost, uncounted. `Unsaved changes`.
+    pub leave_unsaved_some: &'static str,
+    /// What would be lost, one. `1 unsaved change`.
+    pub leave_unsaved_one: &'static str,
+    /// What would be lost, `{}` of them. `{} unsaved changes`.
+    pub leave_unsaved_many: &'static str,
+    /// The leave guard's running-work dialog title. `Still running`.
+    pub leave_running_title: &'static str,
+    /// Its body; `{}` names the work. `{} still running. Leaving stops it.`
+    pub leave_running_body: &'static str,
+    /// Its destructive action. `Stop and leave`.
+    pub leave_stop: &'static str,
+    /// Its cancel action. `Stay`.
+    pub leave_stay: &'static str,
     /// The last shown line of a cut preview; `{}` is the hidden count.
     /// `… {} more`.
     pub more_cut: &'static str,
@@ -1952,6 +1971,15 @@ impl Strings {
         type_to_confirm: "Type {} to confirm",
         type_to_confirm_hint: "\"{}\" to confirm",
         ack_mismatch: "Does not match",
+        leave_unsaved_title: "Unsaved changes",
+        leave_unsaved_body: "Save before leaving? {} would be lost.",
+        leave_unsaved_some: "Unsaved changes",
+        leave_unsaved_one: "1 unsaved change",
+        leave_unsaved_many: "{} unsaved changes",
+        leave_running_title: "Still running",
+        leave_running_body: "{} still running. Leaving stops it.",
+        leave_stop: "Stop and leave",
+        leave_stay: "Stay",
         more_cut: "… {} more",
         more_count: "{} more",
         required: "Required",
