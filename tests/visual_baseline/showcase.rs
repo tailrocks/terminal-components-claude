@@ -36,8 +36,13 @@ crate::baseline_case!(showcase_pages_taskrunner_default_120x40_truecolor => Case
 // Paused frame 1600 fast-forwards the 400-line log to its deterministic
 // 2000-line endpoint; `wait:739.63s` proves that endpoint on every axis.
 crate::baseline_case!(showcase_pages_scrolling_default_120x40_truecolor => Case::new("showcase/pages/scrolling/120x40/truecolor", SHOWCASE, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:739.63s"]));
-// `wait:7 of 7` is the step-rail end-state; 30s is tight under load.
-crate::baseline_case!(showcase_pages_terminal_default_120x40_truecolor => Case::new("showcase/pages/terminal/120x40/truecolor", SHOWCASE, &["--page", "terminal"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:7 of 7"]).timeout(60000));
+// `✓ 07 Ready` is the step-rail end-state at every width (the rail's
+// `7 of 7` counter compacts to `7/7` at 72 columns); 30s is tight under load.
+crate::baseline_case!(showcase_pages_terminal_default_120x40_truecolor => Case::new("showcase/pages/terminal/120x40/truecolor", SHOWCASE, &["--page", "terminal"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:✓ 07 Ready"]).timeout(60000));
+// Selectable table (pages/selectable.rs): members table in multi-selection
+// mode beside a member editor (stacked under the table below 120 columns,
+// so readiness waits on a table row). Default state: nothing selected.
+crate::baseline_case!(showcase_pages_selectable_default_120x40_truecolor => Case::new("showcase/pages/selectable/120x40/truecolor", SHOWCASE, &["--page", "selectable"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:Ari Moreno"]));
 
 // ------------------------------------------------------------------ flows --
 
@@ -60,6 +65,13 @@ crate::baseline_case!(showcase_flows_scrolling_scrolled_120x40_truecolor => Case
 crate::baseline_case!(showcase_flows_settings_toggled_120x40_truecolor => Case::new("showcase/flows/settings/toggled/120x40/truecolor", SHOWCASE, &["--page", "settings"], 120, 40, Color::Truecolor, BOOT).sends(&["tab", "space"]));
 crate::baseline_case!(showcase_flows_help_overlay_120x40_truecolor => Case::new("showcase/flows/help/overlay/120x40/truecolor", SHOWCASE, &["--page", "overview"], 120, 40, Color::Truecolor, BOOT).sends(&["?"]));
 crate::baseline_case!(showcase_flows_inspector_open_120x40_truecolor => Case::new("showcase/flows/inspector/open/120x40/truecolor", SHOWCASE, &["--page", "overview"], 120, 40, Color::Truecolor, BOOT).sends(&["i"]));
+
+// Selectable table journeys (keyboard only, so every size runs the same
+// steps): Tab focuses the table, the owner row is disabled, Space selects
+// Ari, Shift+Down extends over Cleo and Bo — two roles, so the editor bulk
+// edits with `— mixed —`; `d` on two selected rows asks `Delete 2 members?`.
+crate::baseline_case!(showcase_flows_selectable_bulk_mixed_120x40_truecolor => Case::new("showcase/flows/selectable/bulk_mixed/120x40/truecolor", SHOWCASE, &["--page", "selectable"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "shift-down", "wait:3 selected"]));
+crate::baseline_case!(showcase_flows_selectable_delete_confirm_120x40_truecolor => Case::new("showcase/flows/selectable/delete_confirm/120x40/truecolor", SHOWCASE, &["--page", "selectable"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]));
 
 // ------------------------------------------------------- new flows (§3.7) --
 
