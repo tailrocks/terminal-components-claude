@@ -43,7 +43,8 @@ was no horizontal bar anywhere, and no widget handled shift+wheel.
    viewport, grab). The horizontal axis is a second `ScrollState`; no new
    state type. Column widgets count columns, free text counts cells.
 2. **One bar widget.** `scrollbar::render_horizontal` mirrors
-   `render_vertical`: track `─`, thumb `━`, proportional thumb, same theme
+   `render_vertical`: track `┄` (`─` before the 2026-10-16 decision
+   below), thumb `━`, proportional thumb, same theme
    styles (`scrollbar_track`, `scrollbar_thumb(focused, hovered)`), so
    rest, hover and pressed stay as distinct as on the vertical bar. Its
    hit id is `scrollbar::h_id_for(container)`, separate from the vertical
@@ -205,3 +206,108 @@ Still open:
   (`scrollbar::is_bar_of`). This waits for the shared pointer router.
 - jackin capsule pane bars are routed by position (`hbar()`), because
   the pane draws a copy of the viewport inside an inert region.
+
+## Decision: the track is a dotted rail (2026-10-16)
+
+**Request (product owner).** The scrollbar track must not look like a
+panel border. The vertical track was `│` in `border_subtle`, the same
+glyph and ink as every panel border and divider; the horizontal track
+was `─`, a border's top edge. Option A was chosen: a faint dotted track,
+the same on both axes.
+
+**Standards.** A macOS scroller track never reads as a frame: it is a
+faint rail that only exists to carry the knob. WCAG 1.4.1 (use of
+colour): shape, not colour, has to tell a track from a border, because at
+16 colours both are `DarkGray` and under `NO_COLOR` there is no colour
+at all. A dotted rail does that at every level.
+
+**What changed.**
+
+| | Before | After |
+|---|---|---|
+| Vertical track, Unicode | `│` U+2502 | `┆` U+2506 light triple dash vertical |
+| Horizontal track, Unicode | `─` U+2500 | `┄` U+2504 light triple dash horizontal |
+| Thumbs, Unicode | `┃` / `━` | unchanged |
+| Vertical track, ASCII | `\|` | `:` |
+| Horizontal track, ASCII | `-` | `.` |
+| Thumbs, ASCII | `#` / `=` | `#` / `#` (one thumb glyph on both axes) |
+| Track ink | `border_subtle` | `Theme::scroll_track` (new token) |
+
+- `┆`/`┄` are a matched pair (same dash count, same weight) from the
+  box-drawing block, the same East Asian Width class (ambiguous) as the
+  `│`/`┃` they replace, so they are no new width risk; `unicode-width`
+  gives 1 and the harness renders them in one cell. `┊`/`┈` (quadruple
+  dash) were not used: they carry less ink per cell than the triple dash,
+  so in the already faint track ink they fade out on the card plane
+  first; the triple dash keeps a visible rail.
+- ASCII `:` and `.` are the dotted counterparts of the `|` and `-` that
+  ASCII borders and dividers use, so the ASCII track reads as a rail, not
+  a frame. `=` stays the progress fill (`bar_fill`); the thumb is `#` on
+  both axes.
+- Track ink, fainter than the thumb at rest at every level and apart
+  from both border inks where the level has the steps (contrast against
+  the canvas, WCAG relative luminance; the track is decoration, the
+  thumb carries position and state):
+
+| Level | Track | Thumb at rest | Border subtle / strong | Track : canvas | Thumb : canvas | Thumb : track |
+|---|---|---|---|---|---|---|
+| truecolor | `#474747` (`WHITE_28`) | `#808080` | `#3a3a3a` / `#4d4d4d` | 2.3:1 (1.9:1 on a card) | 5.3:1 | 2.4:1 |
+| 256 | 239 `#4e4e4e` | 245 `#8a8a8a` | 238 / 242 | 2.5:1 | 6.1:1 | 2.4:1 |
+| 16 | `DarkGray` | `Gray` | `DarkGray` / `Gray` | 2.8:1 (VGA palette) | 9.0:1 | 3.2:1 |
+| mono | glyph only (`┆` vs `┃`) | glyph only | glyph only | n/a | n/a | n/a |
+
+  At 16 colours the track shares `DarkGray` with `border_subtle` (there
+  is no grey between `DarkGray` and the thumb's `Gray`); the dotted glyph
+  carries the difference, as it does in mono.
+- Thumb rest / hover / pressed are unchanged (`Ladders::handle`, one
+  glyph, modifiers in mono).
+
+**Dividers get their own glyphs.** `Glyphs::scroll_track` /
+`scroll_h_track` used to double as the divider line. That is now
+`Glyphs::divider` (`│`, ASCII `|`) and `Glyphs::h_divider` (`─`, ASCII
+`-`), used by the splitter seam at rest, the column-resize seam, the
+side-by-side diff separator, the segmented option editor and the
+jackin Inspect stacked split (which drew a literal `─`). A divider stays
+solid; only a scrollbar is dotted.
+
+**Divider that is also a scrollbar** (`scrollbar::render_divider`, the
+`TreeView::divider` pane edge and the showcase Sidebars nav). While the
+content overflows it *is* a scrollbar: dotted track, thumb and click
+region, the same as every other vertical bar. While the content fits it
+is a plain divider: solid `│` in `border_subtle`, no click region.
+Rationale: the line is only an affordance when there is something to
+scroll (macOS shows no scroller then), and the shape should say which it
+is. The horizontal axis has no divider-scrollbar today; one would follow
+the same rule with `┄` / `─`.
+
+**Every drawing site.** All tracks go through `scrollbar::render_vertical`,
+`render_horizontal(_with)` or `render_divider`, which read
+`Theme::glyphs` and `Theme::scrollbar_track()`: `ListBox`, `TreeView`,
+`DataTable`, `DataGrid` (both axes), `ScrollPanel` (both axes),
+`CodeEditor` (both axes), `TextViewport`/`DiffView` (both axes),
+`TextArea`, `Dialog` body and code preview, `FormDialog`, `InfoDialog`,
+`Help`, `Picker`, `Completion`, `Select` popup, `StepRail`, `PropsList`,
+`ui::layout::Stack`, and the holla and jackin screens that call them. No
+widget, page or app draws its own track (searched for `scroll_track`,
+`scroll_h_track`, literal `│`/`─`/`┃`/`━` writes). The corner cell where
+both bars meet stays blank (`scrollbar::Bars`). Menus and the anchored
+select use `▴`/`▾` more-markers, not tracks.
+
+**Overrides.** The track glyphs are `Glyphs` fields, so an app picks:
+dotted (default), solid (`glyphs.scroll_track = glyphs.divider;
+glyphs.scroll_h_track = glyphs.h_divider`, option C), or hidden
+(`" "`, option B: the thumb alone, like macOS overlay scrollers). The
+ink is the `Theme::scroll_track` token (and `LevelOverrides` per level).
+No `ScrollTrack` enum was added: the glyph fields already are the
+override and an enum would be a second way to say the same thing.
+
+**Proof.** `scrollbar::tests::both_tracks_are_one_dotted_pair_in_the_track_ink_never_a_border`
+(every level, Unicode and ASCII, both axes, thumb at rest unchanged,
+track fainter than the thumb), `the_glyph_sets_pair_their_tracks_and_thumbs`,
+`a_divider_is_solid_while_it_fits_and_a_dotted_scrollbar_once_it_overflows`,
+and the showcase `the_data_grid_draws_both_tracks_dotted_in_one_frame`
+(both axes in one frame, every level, both glyph sets). Intended visual
+change: `tests/showcase_baseline.txt` regenerated; tuiscotti showcase
+captures re-approved in snapshot-only commits after a cell-by-cell
+attribution (every changed cell is a track cell: `│`→`┆`, `─`→`┄`, and
+at 256/truecolor the ink `238`→`239` / `#3a3a3a`→`#474747`).
