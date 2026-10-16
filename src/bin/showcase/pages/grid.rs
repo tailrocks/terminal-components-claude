@@ -386,7 +386,7 @@ impl Page for GridPage {
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.grid.is_editing() {
-            return vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")];
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
         }
         if focus.is_some_and(|f| self.grid.bar_ids().contains(&f)) {
             return vec![("Enter", "Activate"), ("Tab", "Next")];
