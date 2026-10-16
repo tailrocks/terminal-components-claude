@@ -8,8 +8,9 @@ use ratatui::layout::{Constraint, Rect};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
-use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{RadioGroup, Toggle};
@@ -315,6 +316,106 @@ impl Page for SettingsPage {
 }
 
 impl SettingsPage {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        let click = ev.is(Phase::Click);
+        if let Some(r) = self.tabs.route(ev) {
+            if click {
+                cx.focus.focus(self.tabs.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.name.route(ev) {
+            if click {
+                cx.focus.focus(self.name.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.description.route(ev) {
+            if click && ev.id == self.description.id {
+                cx.focus.focus(self.description.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.visibility.route(ev) {
+            let o = r.outcome();
+            if o != Outcome::Ignored {
+                cx.focus.focus(self.visibility.id);
+                self.dirty = true;
+            }
+            return o;
+        }
+        for t in [&mut self.auto_merge, &mut self.protect] {
+            if let Some(r) = t.route(ev) {
+                let o = r.outcome();
+                if o != Outcome::Ignored {
+                    self.dirty = true;
+                }
+                return o;
+            }
+        }
+        if let Some(act) = clicked(&mut self.save, ev) {
+            if act {
+                if self.dirty {
+                    cx.open(Dialog::confirm(
+                        SAVE_DLG,
+                        "Save settings?",
+                        "Changing visibility or branch protection applies to every open task.",
+                        "Save",
+                    ));
+                } else {
+                    cx.status("Nothing to save");
+                }
+            }
+            return Outcome::Changed;
+        }
+        if let Some(r) = self.members.route(ev) {
+            if click && !scrollbar::is_bar_of(ev.id, self.members.id) {
+                cx.focus.focus(self.members.id);
+            }
+            return r.outcome();
+        }
+        if let Some(act) = clicked(&mut self.remove, ev) {
+            if act {
+                self.open_remove(cx);
+            }
+            return Outcome::Changed;
+        }
+        if let Some(act) = clicked(&mut self.invite, ev) {
+            if act {
+                cx.status("Invitations are sent from the web console");
+            }
+            return Outcome::Changed;
+        }
+        if let Some(r) = self.env.route(ev) {
+            if click && ev.index_of(Part::ROW).is_some() {
+                cx.focus.focus(self.env.id);
+            }
+            return r.outcome();
+        }
+        if let Some(act) = clicked(&mut self.add_var, ev) {
+            if act {
+                self.open_add(cx);
+            }
+            return Outcome::Changed;
+        }
+        if let Some(act) = clicked(&mut self.remove_vars, ev) {
+            if act {
+                self.remove_selected_vars(cx);
+            }
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+}
+
+/// A button's share of a pointer event: `Some(activated)` when the event
+/// was its click, `None` when it was not the button's.
+fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
+    let r = b.route(ev)?;
+    (r.outcome() != Outcome::Ignored).then(|| r.into_action().is_some())
+}
+
+impl SettingsPage {
     /// The page's events; [`Page::handle`] syncs the tabs after them.
     fn handle_event(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
@@ -436,110 +537,7 @@ impl SettingsPage {
                 }
                 self.members.on_paste(text)
             }
-            PageEvent::Click { id, pos } => {
-                let id = *id;
-                if self.tabs.locate(id).is_some() {
-                    cx.focus.focus(self.tabs.id);
-                    return self.tabs.on_click(id).0;
-                }
-                if id == self.name.id {
-                    cx.focus.focus(id);
-                    return self.name.on_click(*pos);
-                }
-                if id == self.description.id {
-                    cx.focus.focus(id);
-                    return self.description.on_click(*pos);
-                }
-                for i in 0..self.visibility.options.len() {
-                    if self.visibility.option_id(i) == id {
-                        cx.focus.focus(self.visibility.id);
-                        self.dirty = true;
-                        return self.visibility.on_click(i);
-                    }
-                }
-                if id == self.auto_merge.id {
-                    self.dirty = true;
-                    return self.auto_merge.on_click();
-                }
-                if id == self.protect.id {
-                    self.dirty = true;
-                    return self.protect.on_click();
-                }
-                if id == self.save.id {
-                    if self.save.on_click() {
-                        if self.dirty {
-                            cx.open(Dialog::confirm(SAVE_DLG, "Save settings?", "Changing visibility or branch protection applies to every open task.", "Save"));
-                        } else {
-                            cx.status("Nothing to save");
-                        }
-                    }
-                    return Outcome::Changed;
-                }
-                if let Some(c) = self.members.locate_header(id) {
-                    cx.focus.focus(self.members.id);
-                    return self.members.on_click_header(c);
-                }
-                if let Some((row, col)) = self.members.locate(id) {
-                    cx.focus.focus(self.members.id);
-                    return self.members.on_click_cell(row, col.unwrap_or(0), *pos).0;
-                }
-                if scrollbar::is_bar_of(id, self.members.id) {
-                    return self.members.on_scrollbar(*pos);
-                }
-                if id == self.remove.id {
-                    if self.remove.on_click() {
-                        self.open_remove(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                if id == self.invite.id {
-                    if self.invite.on_click() {
-                        cx.status("Invitations are sent from the web console");
-                    }
-                    return Outcome::Changed;
-                }
-                if let Some(row) = self.env.locate(id) {
-                    cx.focus.focus(self.env.id);
-                    return self.env.on_click(row);
-                }
-                if id == scrollbar::id_for(self.env.id) {
-                    return self.env.on_scrollbar(*pos);
-                }
-                if id == self.add_var.id {
-                    if self.add_var.on_click() {
-                        self.open_add(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                if id == self.remove_vars.id {
-                    if self.remove_vars.on_click() {
-                        self.remove_selected_vars(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                if scrollbar::is_bar_of(*pressed, self.members.id) {
-                    return self.members.on_bar_drag(*pressed, *pos);
-                }
-                if *pressed == scrollbar::id_for(self.env.id) {
-                    return self.env.on_scrollbar_drag(*pos);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                if self.members.owns(*id) {
-                    return self.members.on_wheel(*delta);
-                }
-                if self.env.owns(*id) {
-                    return self.env.on_wheel(*delta);
-                }
-                if self.description.id == *id {
-                    return self.description.on_wheel(*delta);
-                }
-                Outcome::Ignored
-            }
+            PageEvent::Pointer(ev) => self.pointer(ev, cx),
             PageEvent::DialogClosed { id, result, value } => {
                 if *id == REMOVE_DLG {
                     if *result == DialogResult::Action(1) {
