@@ -12,6 +12,7 @@ use junie_tui::core::id::WidgetId;
 use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
+use crate::screens::Go;
 use crate::screens::accounts::{MENU as ACCOUNTS_MENU, Sel};
 use crate::screens::manager::{MENU, RowKey};
 use junie_tui::widgets::menu::ContextMenu;
@@ -320,4 +321,116 @@ fn accounts_right_click_outside_a_menu_reopens_on_the_new_row() {
     assert_eq!((area.x, area.y), (px, py + 1), "reopened at the new spot");
     assert!(row(&h, area.y + 1).contains("Personal"));
     assert_eq!(h.text().matches("Show usage").count(), 1, "one menu");
+}
+
+// ------------------------------------------------- config (editor, settings)
+
+fn editor_mounts() -> H {
+    let mut h = manager();
+    h.app.go(Go::Editor {
+        workspace: Some(1),
+        pending: None,
+    });
+    h.draw();
+    let (x, y) = h.find("Mounts").unwrap();
+    h.click(x, y);
+    assert!(h.text().contains("/workspace/libs"), "{}", h.text());
+    h
+}
+
+fn editor_menu(h: &H) -> &ContextMenu {
+    h.app
+        .screens
+        .editor
+        .as_ref()
+        .unwrap()
+        .cfg
+        .menu
+        .menu()
+        .expect("the mounts menu is open")
+}
+
+fn settings_menu(h: &H) -> Option<&ContextMenu> {
+    h.app.screens.settings.as_ref().unwrap().cfg.menu.menu()
+}
+
+#[test]
+fn editor_mount_menu_opens_at_the_pointer_and_toggles_read_only() {
+    let mut h = editor_mounts();
+    let (x, y) = h.find("/workspace/libs").unwrap();
+    h.mouse(MouseKind::Secondary, x + 4, y);
+    let m = editor_menu(&h);
+    assert_eq!((m.area.x, m.area.y), (x + 4, y + 1), "at the pointer");
+    assert!(row(&h, m.area.y + 1).contains("/workspace/libs"), "titled");
+    let labels: Vec<&str> = m.items.iter().map(|i| i.label.as_str()).collect();
+    assert_eq!(
+        labels,
+        [
+            "Edit…",
+            "Make read-write",
+            "Next isolation",
+            "Open source",
+            "Scope…",
+            "Revert changes",
+            "Add mount…",
+            "Remove"
+        ]
+    );
+    assert!(m.items[4].disabled, "a workspace mount has no scope");
+    assert!(m.items[5].disabled, "nothing to revert yet");
+    assert!(m.items[7].danger);
+    let id = m.id;
+    // Make read-write: the r key's path
+    choose(&mut h, id, 1);
+    let libs = row(&h, y);
+    assert!(libs.contains(" rw "), "{libs}");
+    h.mouse(MouseKind::Secondary, x + 4, y);
+    let m = editor_menu(&h);
+    assert_eq!(m.items[1].label, "Make read-only");
+    assert!(!m.items[5].disabled, "the change can be reverted");
+}
+
+#[test]
+fn editor_shift_f10_opens_under_the_cursor_row_and_removes() {
+    let mut h = editor_mounts();
+    // into the list: the cursor rests on the first mount
+    h.key(KeyCode::Enter);
+    let (_, y) = h.find("/workspace/payments-platform").unwrap();
+    shift_f10(&mut h);
+    assert_eq!(editor_menu(&h).area.y, y + 1, "under the cursor row");
+    // the menu owns the keyboard: ] does not switch tabs
+    h.key(KeyCode::Char(']'));
+    assert!(h.text().contains("Make read-only"), "{}", h.text());
+    h.key(KeyCode::End);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("Removed /workspace/payments-platform"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
+    let mut h = manager();
+    h.app.go(Go::Settings);
+    h.draw();
+    let (x, y) = h.find("Environments").unwrap();
+    h.click(x, y);
+    let (_, gy) = h.find("GH_TOKEN").unwrap();
+    h.mouse(MouseKind::Secondary, 90, gy);
+    let m = settings_menu(&h).expect("GH_TOKEN's menu");
+    assert!(m.items[1].disabled, "a 1Password reference cannot be shown");
+    // KUBECONFIG sits under the open menu's backdrop, left of the menu
+    let (kx, ky) = h.find("KUBECONFIG").unwrap();
+    h.mouse(MouseKind::Secondary, kx, ky);
+    let m = settings_menu(&h).expect("reopened");
+    assert_eq!((m.area.x, m.area.y), (kx, ky + 1), "at the new spot");
+    assert!(row(&h, ky + 2).contains("KUBECONFIG · role sre"), "titled");
+    assert_eq!(h.text().matches("1Password reference…").count(), 1);
+    let id = m.id;
+    choose(&mut h, id, 1);
+    assert!(settings_menu(&h).is_none());
+    h.mouse(MouseKind::Secondary, kx, ky);
+    assert_eq!(settings_menu(&h).unwrap().items[1].label, "Mask value");
 }
