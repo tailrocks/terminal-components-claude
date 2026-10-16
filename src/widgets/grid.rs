@@ -10,7 +10,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
@@ -363,6 +363,9 @@ pub struct DataGrid {
     /// How a cut cell reveals its full value on hover (see
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
+    /// The keys that duplicate the cursor row. Default Ctrl+D and Alt+D;
+    /// an app that gives Ctrl+D another meaning keeps only Alt+D.
+    pub duplicate_keys: Vec<Key>,
 }
 
 const HEADER_SORT_ASC: &str = " ▴";
@@ -409,11 +412,28 @@ impl DataGrid {
                 Button::primary(id.sub("save"), "Save"),
             ],
             reveal: None,
+            duplicate_keys: vec![
+                Key {
+                    code: KeyCode::Char('d'),
+                    mods: KeyModifiers::CONTROL,
+                },
+                Key {
+                    code: KeyCode::Char('d'),
+                    mods: KeyModifiers::ALT,
+                },
+            ],
         }
     }
 
     pub fn editable(mut self, on: bool) -> Self {
         self.editable = on;
+        self
+    }
+
+    /// The keys that duplicate the cursor row (default Ctrl+D and Alt+D).
+    /// An empty list turns the shortcut off; [`Self::duplicate_row`] stays.
+    pub fn duplicate_keys(mut self, keys: &[Key]) -> Self {
+        self.duplicate_keys = keys.to_vec();
         self
     }
 
@@ -729,7 +749,7 @@ impl DataGrid {
     }
 
     /// Duplicate the current row, resetting generated columns to defaults.
-    /// Navigation keys Alt+D and Ctrl+D invoke this; read-only grids refuse it.
+    /// [`Self::duplicate_keys`] invoke this; read-only grids refuse it.
     pub fn duplicate_row(&mut self) -> Option<GridEvent> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1124,7 +1144,7 @@ impl DataGrid {
                 (Outcome::Changed, self.toggle_delete(src))
             }
             KeyCode::Char('+') => (Outcome::Changed, self.insert_row()),
-            KeyCode::Char('d') if ctrl || key.alt() => (Outcome::Changed, self.duplicate_row()),
+            _ if self.duplicate_keys.contains(key) => (Outcome::Changed, self.duplicate_row()),
             KeyCode::Char('y') => (
                 Outcome::Changed,
                 Some(GridEvent::Copy(self.copy_text(false))),
@@ -2271,9 +2291,28 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_chords_share_defaults_undo_and_read_only_guards() {
-        use ratatui::crossterm::event::KeyModifiers;
+    fn duplicate_keys_are_configurable() {
+        let ctrl_d = Key {
+            code: KeyCode::Char('d'),
+            mods: KeyModifiers::CONTROL,
+        };
+        let alt_d = Key {
+            code: KeyCode::Char('d'),
+            mods: KeyModifiers::ALT,
+        };
+        // an app that gives Ctrl+D another meaning keeps only Alt+D
+        let mut g = grid().editable(true).duplicate_keys(&[alt_d]);
+        assert_eq!(g.on_key(&ctrl_d).1, None);
+        assert_eq!(g.rows().len(), 10);
+        assert_eq!(g.on_key(&alt_d).1, Some(GridEvent::RowInserted(10)));
+        // an empty list turns the shortcut off
+        let mut g = grid().editable(true).duplicate_keys(&[]);
+        assert_eq!(g.on_key(&alt_d).1, None);
+        assert_eq!(g.rows().len(), 10);
+    }
 
+    #[test]
+    fn duplicate_chords_share_defaults_undo_and_read_only_guards() {
         for mods in [KeyModifiers::ALT, KeyModifiers::CONTROL] {
             let mut g = grid().editable(true);
             let duplicate = Key {

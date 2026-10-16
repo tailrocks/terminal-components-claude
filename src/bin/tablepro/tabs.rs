@@ -36,6 +36,13 @@ use crate::db::{Catalog, ColType, Table, Value};
 use crate::model::{self, History, HistoryEntry, HistorySource};
 use crate::sql::{self, PlanNode, Statement};
 
+/// Ctrl+D switches Data / Structure in TablePro, so only Alt+D duplicates
+/// a grid row.
+const ALT_D: junie_tui::core::event::Key = junie_tui::core::event::Key {
+    code: KeyCode::Char('d'),
+    mods: ratatui::crossterm::event::KeyModifiers::ALT,
+};
+
 // ------------------------------------------------------------- filters
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -391,7 +398,8 @@ impl TableTab {
             .iter()
             .map(|c| (c.name.clone(), c.ty))
             .collect();
-        let mut grid = DataGrid::new(id.sub("grid"), column_specs(table, &columns));
+        let mut grid =
+            DataGrid::new(id.sub("grid"), column_specs(table, &columns)).duplicate_keys(&[ALT_D]);
         grid.editable =
             table.kind == crate::db::ObjectKind::Table && !table.primary_key().is_empty();
         if !grid.editable {
@@ -2074,7 +2082,8 @@ fn execute(
                             .map(|(n, ty)| ColumnSpec::new(n, cell_kind(*ty)))
                             .collect()
                     });
-                let mut grid = DataGrid::new(WidgetId::of("result").child(n), specs);
+                let mut grid =
+                    DataGrid::new(WidgetId::of("result").child(n), specs).duplicate_keys(&[ALT_D]);
                 grid.editable = rs.editable;
                 if !rs.editable {
                     grid.read_only_reason =
