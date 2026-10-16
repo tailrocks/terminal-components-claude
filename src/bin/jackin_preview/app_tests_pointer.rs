@@ -13,6 +13,7 @@ use crate::scenario::{Motion, Scenario};
 /// The area of the latest region of `owner`'s `part`.
 fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
     h.app
+        .shell
         .hits
         .regions()
         .iter()
@@ -121,6 +122,6 @@ fn the_host_menu_opens_on_the_press_and_a_click_away_closes_it() {
     );
     h.mouse(MouseKind::Up, x, y);
     assert!(h.app.host_menu.is_open(), "the click kept File open");
-    h.click(h.app.size.0 - 3, h.app.size.1 / 2);
+    h.click(h.app.shell.size.0 - 3, h.app.shell.size.1 / 2);
     assert!(!h.app.host_menu.is_open(), "a click away closed the menu");
 }

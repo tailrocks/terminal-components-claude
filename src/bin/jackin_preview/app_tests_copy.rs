@@ -11,7 +11,12 @@ use crate::screens::Go;
 use crate::sim::launch::LaunchPlan;
 
 fn status(h: &H) -> String {
-    h.app.status.text().map(str::to_owned).unwrap_or_default()
+    h.app
+        .shell
+        .status
+        .text()
+        .map(str::to_owned)
+        .unwrap_or_default()
 }
 
 /// Words that belong to the preview's implementation, not to the operator.
@@ -131,7 +136,7 @@ fn every_quit_confirmation_says_quit() {
     // the manager quits without a question when nothing would be lost
     let mut clean = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     clean.ctrl('q');
-    assert!(clean.app.quit);
+    assert!(clean.app.shell.quit);
     let cases = [
         H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40),
         H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40),

@@ -3,6 +3,7 @@
 //! under the cursor row, and a right-click outside an open menu closes it
 //! and reopens at the new spot.
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
@@ -44,7 +45,12 @@ fn find_left(h: &H, needle: &str, max_x: u16) -> Option<(u16, u16)> {
 
 /// Click item `i` of the open menu `id` where it is drawn.
 fn choose(h: &mut H, id: WidgetId, i: usize) {
-    let r = h.app.hits.area_of(id.child(i)).expect("the item is drawn");
+    let r = h
+        .app
+        .shell
+        .hits
+        .area_of(id.child(i))
+        .expect("the item is drawn");
     h.click(r.x + 2, r.y);
 }
 
@@ -227,9 +233,14 @@ fn manager_action_buttons_and_detail_open_the_selected_rows_menu() {
     let (_, row_y) = tree_row(&h, "release-automation");
     // Shift+F10 on a focused action button: the row's menu under it
     let prewarm = DETAIL.sub("prewarm");
-    h.app.focus.focus(prewarm);
+    h.app.shell.focus.focus(prewarm);
     h.draw();
-    let b = h.app.hits.area_of(prewarm).expect("the Prewarm button");
+    let b = h
+        .app
+        .shell
+        .hits
+        .area_of(prewarm)
+        .expect("the Prewarm button");
     shift_f10(&mut h);
     let area = manager_menu(&h);
     // below the button, or flipped above it near the bottom edge
@@ -240,7 +251,7 @@ fn manager_action_buttons_and_detail_open_the_selected_rows_menu() {
     );
     assert_ne!(area.y, row_y + 1, "not under the tree row");
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.focus.current(), Some(prewarm), "focus returns");
+    assert_eq!(h.app.shell.focus.current(), Some(prewarm), "focus returns");
     // a right-click on a button opens it at the pointer
     h.mouse(MouseKind::Secondary, b.x + 1, b.y);
     let area = manager_menu(&h);

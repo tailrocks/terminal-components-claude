@@ -25,7 +25,7 @@ fn editor() -> H {
 #[test]
 fn ctrl_q_reaches_past_an_editing_name_field() {
     let mut h = editor();
-    h.app.focus.focus(crate::screens::editor::NAME);
+    h.app.shell.focus.focus(crate::screens::editor::NAME);
     h.draw();
     h.key(KeyCode::End);
     h.type_str("-x");
@@ -35,7 +35,7 @@ fn ctrl_q_reaches_past_an_editing_name_field() {
         h.text()
     );
     h.ctrl('q');
-    assert!(!h.app.quit, "an edit is never dropped without asking");
+    assert!(!h.app.shell.quit, "an edit is never dropped without asking");
     assert!(h.text().contains("Discard"), "Ctrl+Q asks: {}", h.text());
 }
 
@@ -50,6 +50,7 @@ fn dragging_across_the_editor_name_selects_it() {
     // the value inside the name field as drawn
     let field = h
         .app
+        .shell
         .hits
         .area_of(crate::screens::editor::NAME)
         .expect("the name field");
@@ -140,7 +141,7 @@ fn a_press_on_the_dialog_body_ends_its_fields_edit() {
 #[test]
 fn the_name_field_edits_on_focus_and_one_tab_moves_on() {
     let mut h = editor();
-    h.app.focus.focus(crate::screens::editor::NAME);
+    h.app.shell.focus.focus(crate::screens::editor::NAME);
     h.draw();
     assert!(h.term.backend().cursor_visible(), "caret on arrival");
     assert!(
@@ -157,7 +158,7 @@ fn the_name_field_edits_on_focus_and_one_tab_moves_on() {
     assert_eq!(e.name.text(), "a]q[", "the letters edited the name");
     h.key(KeyCode::Tab);
     assert_ne!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(crate::screens::editor::NAME),
         "one Tab leaves the field"
     );
