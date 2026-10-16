@@ -4,7 +4,10 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
 
+use crate::core::id::WidgetId;
 use crate::theme::Theme;
+use crate::ui::ctx::RenderCtx;
+use crate::widgets::button::Button;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EmptyKind {
@@ -14,11 +17,41 @@ pub enum EmptyKind {
     Error,
 }
 
+/// A button under an empty state's text: the way out of the empty state
+/// by pointer (WAI-ARIA and HIG: an empty view offers the action that
+/// fills it, not only a shortcut to type).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EmptyAction {
+    pub id: WidgetId,
+    pub label: String,
+    /// Drawn as the primary button (one per state). Otherwise secondary.
+    pub primary: bool,
+}
+
+impl EmptyAction {
+    pub fn primary(id: WidgetId, label: &str) -> Self {
+        Self {
+            id,
+            label: label.to_owned(),
+            primary: true,
+        }
+    }
+    pub fn secondary(id: WidgetId, label: &str) -> Self {
+        Self {
+            id,
+            label: label.to_owned(),
+            primary: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct EmptyState {
     pub title: String,
     pub hint: Option<String>,
     pub kind: EmptyKind,
+    /// Buttons drawn under the text by [`render_ctx`]. Default none.
+    pub actions: Vec<EmptyAction>,
 }
 
 impl EmptyState {
@@ -27,6 +60,7 @@ impl EmptyState {
             title: title.to_owned(),
             hint: None,
             kind: EmptyKind::Empty,
+            actions: vec![],
         }
     }
     pub fn error(title: &str) -> Self {
@@ -34,11 +68,67 @@ impl EmptyState {
             title: title.to_owned(),
             hint: None,
             kind: EmptyKind::Error,
+            actions: vec![],
         }
+    }
+    /// See [`Self::actions`].
+    pub fn actions(mut self, actions: Vec<EmptyAction>) -> Self {
+        self.actions = actions;
+        self
+    }
+    /// The action a completed click on `id` chose.
+    pub fn on_click(&self, id: WidgetId) -> Option<&EmptyAction> {
+        self.actions.iter().find(|a| a.id == id)
     }
     pub fn hint(mut self, h: &str) -> Self {
         self.hint = Some(h.to_owned());
         self
+    }
+}
+
+/// Render centred in `area` with the [`EmptyState::actions`] as buttons
+/// below the text, registered for hover, press and click.
+pub fn render_ctx(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptyState, bg: Color) {
+    let area = area.intersection(*buf.area());
+    if e.actions.is_empty() || area.height < 4 {
+        render(area, buf, ctx.theme, e, bg);
+        return;
+    }
+    // the text above, one blank row, then the button row
+    let text = Rect::new(area.x, area.y, area.width, area.height.saturating_sub(2));
+    render(text, buf, ctx.theme, e, bg);
+    let hint_rows = e
+        .hint
+        .as_ref()
+        .map(|h| crate::ui::text::wrap(h, area.width.saturating_sub(4).max(8) as usize).len() + 1)
+        .unwrap_or(0) as u16;
+    let total = 1 + hint_rows;
+    let y = text.y + text.height.saturating_sub(total) / 2 + total + 1;
+    if y >= area.bottom() {
+        return;
+    }
+    let mut buttons: Vec<Button> = e
+        .actions
+        .iter()
+        .map(|a| {
+            if a.primary {
+                Button::primary(a.id, &a.label)
+            } else {
+                Button::secondary(a.id, &a.label)
+            }
+        })
+        .collect();
+    let gap = ctx.theme.spacing.button_gap;
+    let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
+    let total_w = widths.iter().sum::<u16>() + gap * widths.len().saturating_sub(1) as u16;
+    let x = area.x + area.width.saturating_sub(total_w) / 2;
+    let rects = crate::widgets::button::row_layout(
+        Rect::new(x, y, total_w.min(area.width), 1),
+        &widths,
+        gap,
+    );
+    for (b, r) in buttons.iter_mut().zip(rects) {
+        b.render(r, buf, ctx, bg);
     }
 }
 
@@ -97,12 +187,31 @@ mod tests {
     use super::*;
     use crate::core::focus::FocusRing;
     use crate::core::hit::HitRegistry;
-    use crate::core::id::WidgetId;
-    use crate::ui::ctx::{Interaction, RenderCtx};
+    use crate::ui::ctx::Interaction;
     use ratatui::layout::Constraint;
 
     fn text(buf: &Buffer) -> String {
         buf.content().iter().map(|c| c.symbol()).collect()
+    }
+
+    #[test]
+    fn actions_draw_as_buttons_below_the_text_and_take_clicks() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let id = WidgetId::of("new");
+        let e = EmptyState::new("No connections")
+            .hint("Ctrl+N creates one")
+            .actions(vec![EmptyAction::primary(id, "New connection")]);
+        let area = Rect::new(0, 0, 40, 10);
+        let mut buf = Buffer::empty(area);
+        render_ctx(area, &mut buf, &mut ctx, &e, t.canvas);
+        let s = text(&buf);
+        assert!(s.contains("No connections") && s.contains("New connection"), "{s}");
+        let r = hits.area_of(id).expect("the action is clickable");
+        assert!(r.y > 3, "the button sits below the text: {r:?}");
+        assert_eq!(e.on_click(id).map(|a| a.label.as_str()), Some("New connection"));
     }
 
     #[test]

@@ -25,6 +25,8 @@ use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
 use crate::db::{ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
 const ID: WidgetId = WidgetId::of("connections");
+/// The empty connection list's "New connection" button.
+pub const NEW_ID: WidgetId = WidgetId::of("connections").sub("new");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnState {
@@ -979,6 +981,11 @@ impl ConnectionsScreen {
         pos: Position,
         cx: &mut crate::app::Cx,
     ) -> (Outcome, Option<ConnEvent>) {
+        // the empty list's way in (mouse #6)
+        if id == NEW_ID {
+            self.open_new();
+            return (Outcome::Changed, None);
+        }
         if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, cx.clicks) {
             cx.focus.focus(id);
             return (o, None);
@@ -1248,12 +1255,16 @@ impl ConnectionsScreen {
             inner.height.saturating_sub(2),
         );
         if self.connections.is_empty() {
-            junie_tui::widgets::empty::render(
+            junie_tui::widgets::empty::render_ctx(
                 tree_area,
                 buf,
-                t,
+                ctx,
                 &junie_tui::widgets::empty::EmptyState::new("No connections")
-                    .hint("Ctrl+N creates one"),
+                    .hint("Ctrl+N creates one")
+                    .actions(vec![junie_tui::widgets::empty::EmptyAction::primary(
+                        NEW_ID,
+                        "New connection",
+                    )]),
                 bg,
             );
         } else {
