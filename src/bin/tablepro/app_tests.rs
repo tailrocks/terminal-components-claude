@@ -1551,3 +1551,38 @@ fn the_query_editor_selects_all_with_cmd_a() {
     h.type_str("SELECT 2");
     assert_eq!(h.wb_query().editor.text(), "SELECT 2");
 }
+
+/// AGENTS.md "Visual states": exactly one `▎` focus indicator, in the
+/// topmost layer. With the `+N` overflow menu open over the focused strip,
+/// the menu is the topmost layer: the strip under it shows no `▎`.
+#[test]
+fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
+    let mut h = H::connected(80, 24);
+    {
+        let wb = h.app.workbench.as_mut().unwrap();
+        for _ in 0..12 {
+            wb.new_query("");
+        }
+        wb.set_active(0);
+    }
+    h.draw();
+    let more = h.app.hits.area_of(h.wb().strip.more_id()).unwrap();
+    h.click(more.x + 1, more.y);
+    assert!(h.wb().strip.menu_open(), "{}", h.text());
+    let text = h.text();
+    let strip_line = text.lines().nth(more.y as usize).unwrap();
+    assert!(
+        !strip_line.contains('▎'),
+        "the strip under the open menu shows no focus\n{text}"
+    );
+    // the menu's keyboard belongs to the strip: it marks its cursor row
+    // with a fill, never a second bar, so no `▎` is left on screen
+    assert_eq!(text.matches('▎').count(), 0, "{text}");
+    h.key(KeyCode::Esc);
+    assert!(!h.wb().strip.menu_open());
+    assert_eq!(
+        h.text().matches('▎').count(),
+        1,
+        "focus is back on the strip"
+    );
+}
