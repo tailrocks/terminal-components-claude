@@ -78,3 +78,36 @@
 25. **Low** | tablepro app.rs:942-948 | tablepro / Save changes? facts | The row reads "Safe Mode    Safe Mode · deliberate confirmation required": the label repeats the value, and "deliberate" is jargon. | Value: `"{level} · type the table name to confirm"` / `"{level} · confirm before running"`. Separately, the "Cannot execute write queries…" status should end with `· Ctrl+L changes Safe Mode`.
 
 Scratch notes (hint inventory and per-screen footers) are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/hints.txt`, `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/footers.txt` and `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/status.txt`. No repo files were changed.
+
+## Status
+
+Each finding above, with the commit on `design/interaction-polish` that
+fixed it. Where a proposal was not taken in full, the reason is given.
+
+| # | Status | Commit(s) | Notes |
+|---|--------|-----------|-------|
+| 1 | Fixed | f37b1da76 | `Dialog::hints(focused)` builds the footer from the dialog. The four app copies now call it. |
+| 2 | Fixed | 8049ca930 | `Ctrl+B i` opens Container info. |
+| 3 | Fixed | 8049ca930 | Lowercase `e Edit…` / `d Delete…`. |
+| 4 | Fixed | 8049ca930 | The empty Usage screen names `r` and `m`. |
+| 5 | Copy fixed; risk open | 8049ca930 | The scrollback hint reads `Ctrl+\ Palette`. The functional risk is not fixed: a terminal using the legacy encoding reports Ctrl+\ as Ctrl+4. That is a key-decoding change, not copy, and it belongs in a shared key-normalisation fix. Today holla handles Ctrl+] as Ctrl+5 in app code. |
+| 6 | Fixed | 934985f8d | `Dialog::cancel_label`. The launch dialog reads `Keep launching   Cancel launch`. |
+| 7 | Fixed | f37b1da76 | Typed acknowledgements read `Type "<token>" to confirm · Enter Next`. |
+| 8 | Fixed | 88fd384a5 | `keyhint::EDIT_FIELD`: `Enter Apply · Esc Cancel · Tab Next field`. |
+| 9 | Fixed | e97f56b7a | Key-label constants, and `normalize_key` applied at render. |
+| 10 | Fixed; Enter label adapted | 133434765 | `Alt+Enter Alternatives…` in the finder and the Files pages. In Files Find mode, Enter reads `Enter Alternatives…` instead of the audit's `Enter Open`. Enter there opens the same menu as Alt+Enter, as the HP03 parity contract requires (I-F08), so the label follows the behaviour. |
+| 11 | Fixed | 133434765 | `Type Find`; `Delete Clear` removed. Esc shows Clear when there is a query and Back when there is none. |
+| 12 | Fixed | 9f2711d7a, c3515f652, 3d54fb7c6 | The key vocabulary table is in the `keyhint` module docs. jackin: d removes, x closes or stops, t toggles, c opens Accounts, v switches the view, ! opens a shell. The capsule's `Ctrl+B` chords keep tmux's letters as their own namespace. TablePro: Ctrl+D is Data / Structure and Alt+D duplicates, both for connections and for grid rows; `DataGrid::duplicate_keys` makes the grid's key configurable. holla review: `Ctrl+S Run task`. |
+| 13 | Fixed | 66e5268fc | `Button::hint()` returns `Enter <label>`. |
+| 14 | Fixed | 04647eb25 | `Cancel launch…` (now on x, see #12) and `Ctrl+C Abort now`. |
+| 15 | Fixed; one line adapted | 7d3bb70e0 | Uses the audit's replacements except for the capsule line, which reads `Ctrl+B {c} does nothing · Ctrl+B Space lists commands`. `Ctrl+B ?` is not bound to anything, while Space opens the command palette. The launch activity line "modeled state with no runtime producer" now reads "this stage cannot continue". |
+| 16 | Fixed | 04647eb25 | Plain-language capsule and activity hints. The help sheet was updated to match in c3515f652. |
+| 17 | Fixed | 9f2711d7a | `keyhint::toggle_hint`. |
+| 18 | Fixed | 9f2711d7a | holla plan copy. |
+| 19 | Fixed | 00643499a | `MenuItem::reason` disables the item and shows the reason dimmed. |
+| 20 | Fixed; Done kept | 9f2711d7a, f434e41a8 | Destination nouns became verbs: `Back to outline`, `Back to list`, `Back to results`, `Back to tree`, `Back to Here`. `tests/esc_vocabulary.rs` rejects any Esc label that does not start with a verb. Not taken: changing `Finish`/`Done` to `Close` in multiline editors. Esc there leaves the editor and keeps the text, so Cancel (which discards) and Close (which is for overlays) would both be wrong. They read `Done` / `Done editing`. |
+| 21 | Fixed | 66e5268fc | `Enter Edit fields`. |
+| 22 | Fixed | 04647eb25, d6797b63c | Hints match the menu (`x Close pane`, `& Close tab`, `Quit`). Every jackin quit confirmation is titled "Quit jackin❯?" and has a Quit button. |
+| 23 | Fixed; one hint dropped | 676936c8a | The audit's `Alt+D adds one by duplicating` was left out because an empty table has no row to duplicate. |
+| 24 | Fixed | 04647eb25 | `Enter Details`. |
+| 25 | Fixed | 676936c8a | Safe Mode facts, and the status shown when a write query is refused under Safe Mode. |
