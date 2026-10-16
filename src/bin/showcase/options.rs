@@ -212,9 +212,60 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Columns => COLUMNS,
         PageId::Tables => BASIC_TABLE,
         PageId::Overview => OVERVIEW,
+        PageId::Grid => DATA_GRID,
         _ => &[],
     }
 }
+
+/// Data grid (SC12): every `DataGrid` knob, each rebuilding the grid
+/// through its builder (`pages/grid.rs`, `build`).
+static DATA_GRID: &[Opt] = &[
+    Opt::new(
+        "datagrid.access",
+        "Access",
+        &["editable", "view", "no-key", "query"],
+    ),
+    Opt::new("datagrid.rows", "Rows", &["loaded", "empty", "error"]),
+    Opt::new(
+        "datagrid.total",
+        "Row total",
+        &["estimated", "exact", "unknown"],
+    ),
+    Opt::new("datagrid.row_numbers", "Row numbers", OFF_ON).default(1),
+    Opt::new("datagrid.overflow_badges", "Overflow badges", OFF_ON).default(1),
+    Opt::new(
+        "datagrid.labels",
+        "Bar and menu labels",
+        &["default", "custom"],
+    ),
+    Opt::new(
+        "datagrid.type_ahead",
+        "Type-ahead",
+        &["off", "any", "customer"],
+    ),
+    Opt::new(
+        "datagrid.affordance",
+        "▾ affordance",
+        &["focused", "always", "never"],
+    ),
+    Opt::new("datagrid.keymap", "Key map", &["default", "custom"]),
+    Opt::new(
+        "datagrid.duplicate_keys",
+        "Duplicate row keys",
+        &["ctrl-d", "shift-d"],
+    ),
+    Opt::new("datagrid.nav", "Vim keys", &["on", "off"]),
+    Opt::new("datagrid.width_sample_rows", "Width sample", &["200", "8"]),
+    Opt::new("datagrid.seams", "Column seams", &["on", "off", "wide"]),
+    Opt::new(
+        "datagrid.track_click",
+        "Track click",
+        &["shell", "page", "jump"],
+    ),
+    Opt::new("datagrid.horizontal", "Horizontal bar", &["auto", "never"]),
+    Opt::new("datagrid.validator", "Validator", &["default", "strict"]),
+    Opt::new("datagrid.blur_action", "On blur", &["commit", "cancel"]),
+];
 
 /// Columns (SC11): the width solver and `ColumnSizing` on a `DataTable`.
 static COLUMNS: &[Opt] = &[
