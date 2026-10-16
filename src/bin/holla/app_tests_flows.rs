@@ -773,3 +773,21 @@ fn an_open_menu_hides_the_page_focus_under_it() {
     assert_eq!(bars(&h), 0, "the menu owns the keyboard\n{}", h.text());
     assert_eq!(tinted(&h), 0, "no focused-row tint under the menu");
 }
+
+#[test]
+fn the_finder_cursor_row_is_a_fill_and_the_query_keeps_the_only_bar() {
+    let h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
+    let t = h.app.theme;
+    let buf = h.term.backend().buffer();
+    let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
+    assert_eq!(bars, 1, "{}", h.text());
+    assert!(
+        !buf.content().iter().any(|c| c.bg == t.accent_bg),
+        "the finder cursor row is not green: {}",
+        h.text()
+    );
+    assert!(
+        buf.content().iter().any(|c| c.bg == t.highlight),
+        "the cursor row is the highlight fill"
+    );
+}
