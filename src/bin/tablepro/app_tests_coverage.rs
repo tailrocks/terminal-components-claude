@@ -794,6 +794,27 @@ fn edited_form() -> H {
     h
 }
 
+/// Ctrl+Q quits through the shared quit keys (`QuitKeys`), as in every
+/// other app: at once when nothing is unsaved, through Save / Discard /
+/// Cancel over an edited connection form.
+#[test]
+fn ctrl_q_quits_through_the_leave_guard() {
+    let mut h = H::new(120, 40);
+    h.ctrl('q');
+    assert!(h.app.quit, "a clean Ctrl+Q quits at once");
+
+    let mut h = edited_form();
+    h.ctrl('q');
+    assert!(!h.app.quit, "Ctrl+Q never drops the edit");
+    assert!(h.text().contains("Unsaved changes"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(!h.app.quit, "Cancel stays");
+    assert!(h.text().contains("Local PostgreSQL v2"));
+    h.ctrl('q');
+    h.key(KeyCode::Char('d'));
+    assert!(h.app.quit, "Discard quits");
+}
+
 /// Keyboard audit #6: `e` and `q` never wipe or abandon an edited
 /// connection form; Esc and quitting ask Save / Discard / Cancel.
 #[test]
