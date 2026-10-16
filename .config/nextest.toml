@@ -7,7 +7,8 @@
 #   `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`
 #   (groups pending tuiscotti re-approval also need `VISUAL_FULL=1`)
 # Approve reviewed actuals (local only, refuses under CI):
-#   `cargo xtask visual accept '<filterset>'` (docs/visual-testing/README.md)
+#   `tuiscotti accept --store snapshots --actual target/tuiscotti/actual '<pattern>'`
+#   (docs/visual-testing/README.md)
 
 [test-groups]
 # Real TUI binaries in PTYs; cap concurrency so boot does not starve.

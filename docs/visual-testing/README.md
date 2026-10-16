@@ -75,13 +75,15 @@ runs every re-approved group of those apps (`--base <ref>` picks another
 base). Green: push. Red: the change moved an approved screen. Review
 `target/tuiscotti/{actual,expected,diff}`; re-approve only what the change
 intends, in a snapshot-only commit that names the change and its commit
-(`cargo xtask visual accept`), or fix the regression.
+(`tuiscotti accept`, below), or fix the regression.
 
 Never use `cargo test` (AGENTS.md).
 
 ## Read a failure
 
-Each failing scenario writes:
+The gate is tuiscotti's `GroupedStore` in `ArtifactSet::AnsiCursor` mode
+(`support::store`, `support::assert_gated`). The failure message lists the
+differing cells. Each failing scenario writes:
 
 | File | Meaning |
 |---|---|
@@ -90,28 +92,50 @@ Each failing scenario writes:
 | `target/tuiscotti/expected/<name>.{png,html}` | The approved screen, rendered from its `.ansi`. |
 | `target/tuiscotti/diff/<name>.png` | Changed cells in red. |
 | `target/tuiscotti/actual/<name>.frame.json` | The full frame (cells, styles, cursor). |
+| `target/tuiscotti/actual/<name>.{manifest,verdict}.json` | tuiscotti's seal of the candidate (digests, run id) and its verdict; `tuiscotti accept` requires both. |
 
-To view any approved scenario: `cargo xtask visual render <name>` writes
-`target/tuiscotti/render/<name>.{png,html}`.
+## tuiscotti CLI
+
+Approving and viewing use tuiscotti's own CLI, built from the same `rev`
+as the dev-dependency in `Cargo.toml`:
+
+```sh
+cargo install --locked --git https://github.com/tailrocks/tuiscotti \
+  --rev "$(sed -n 's/^tuiscotti = .*rev = "\([0-9a-f]*\)".*/\1/p' Cargo.toml)" tuiscotti-cli
+```
+
+Reinstall it after every pin bump. To view any approved scenario:
+
+```sh
+tuiscotti render --input snapshots/<name>.ansi --format png --format html \
+  --out target/tuiscotti/render/<name>
+```
 
 ## Approve an intended change
 
 Only on your machine, only after looking at the review files. CI never
-accepts: `accept`, `import`, `seal`, `ratchet` and `sync-oracle` refuse to
-run when `CI` is set.
+accepts: `tuiscotti accept` and `cargo xtask visual` `import`, `seal`,
+`ratchet` and `sync-oracle` refuse to run when `CI` is set.
 
 1. Run the affected scenarios (add `VISUAL_FULL=1` for scenarios not yet on
    tuiscotti) and look at `target/tuiscotti/{actual,expected,diff}`.
-2. `cargo xtask visual accept '<nextest filterset>'` copies the actual
-   `.ansi` of every matching scenario into `snapshots/` and drops tuisnap's
-   `.txt/.png/.html` for it. It copies only the current run: every
-   capture writes a `<name>.run` stamp (nextest run id and a hash of the
-   `.ansi`), and `accept` refuses, writing nothing, when a selected actual
-   is unstamped, changed since, or older than the newest run in the
-   selection (for example a pending row captured by an earlier
-   `VISUAL_FULL=1` run). Each scenario test also deletes its previous
-   actual before running, so a skip or an early failure leaves none.
-3. `cargo nextest run --all-targets` (`store_integrity` must stay green).
+2. `tuiscotti accept --store snapshots --actual target/tuiscotti/actual
+   '<pattern>'` copies the actual `.ansi` of every matching scenario that
+   did not match into `snapshots/` and drops tuisnap's `.txt/.png/.html`
+   for it. `<pattern>` is a store name
+   (`tablepro/connections/default/120x40/truecolor`), a segment-aware
+   prefix (`tablepro/connections`), or a glob (`*` within one segment,
+   `**` across segments; `'tablepro/**/72x20/nocolor'`). It takes only
+   actuals tuiscotti sealed (`<name>.manifest.json` and
+   `<name>.verdict.json` whose digests match the files), checks that each
+   one round-trips through `frame_from_ansi`, and refuses a selection
+   whose candidates come from different runs (the run id is
+   `NEXTEST_RUN_ID`). Each scenario test also deletes its previous actual
+   before running, so a skip or an early failure leaves none. Once the
+   oracle is active, pass `--store baselines/oracle` and re-seal it with
+   `cargo xtask visual seal`.
+3. `cargo nextest run --all-targets` (`store_integrity` and
+   `store_ansi_round_trips` must stay green).
 4. Commit the `snapshots/` change on its own, with a message that names the
    visual change, why, and the scenarios touched. AGENTS.md requires
    deliberate visual changes to be called out.
@@ -133,11 +157,12 @@ scenario into `baselines/oracle/` and seals the manifest.
 v0 it is a skeleton with `pending = true`: the gate keeps reading
 `snapshots/`, and `oracle_integrity` only checks that the manifest parses
 and the store holds nothing else. `cargo xtask visual import <capture>
---oracle` writes it and seals `pending = false`; from then on the gate,
-`accept` and `list` use the oracle, `accept` re-seals it, and
-`oracle_integrity` checks every file, the counts, the tuiscotti pin and
-the harness hash (`cargo xtask visual seal` after a reviewed harness
-change).
+--oracle` writes it and seals `pending = false`; from then on the gate and
+`list` use the oracle, approvals go to it (`tuiscotti accept --store
+baselines/oracle …`, then `cargo xtask visual seal`), and
+`oracle_integrity` checks every file (each `.ansi` must round-trip through
+tuiscotti), the counts, the tuiscotti pin and the harness hash (`cargo
+xtask visual seal` after a reviewed harness change).
 
 | Command | Use |
 |---|---|

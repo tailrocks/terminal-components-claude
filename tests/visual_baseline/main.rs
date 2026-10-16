@@ -2,10 +2,11 @@
 //! driven as real processes in PTYs through tuiscotti (`tuiscotti::tui`,
 //! pinned to tailrocks/tuiscotti `main` in `Cargo.toml`) and gated against
 //! the approved artifacts in `snapshots/`
-//! (`<app>/<sub_group>/<cols>x<rows>/<palette>.<ext>`). Which artifacts are
-//! committed and gated is the single constant [`support::COMMITTED`]
-//! (one `.ansi` with a cursor trailer); scratch (actuals, review PNG/HTML,
-//! diffs) lives under `target/tuiscotti/`.
+//! (`<app>/<sub_group>/<cols>x<rows>/<palette>.<ext>`) through tuiscotti's
+//! `GroupedStore` ([`support::store`]). Which artifacts are committed and
+//! gated is the single constant [`support::ARTIFACTS`]
+//! (`ArtifactSet::AnsiCursor`: one `.ansi` with a cursor trailer); scratch
+//! (actuals, seals, review PNG/HTML, diffs) lives under `target/tuiscotti/`.
 //!
 //! `harness = false` (libtest-mimic): scenarios come from the typed state
 //! tables in [`scenarios`] and each one is its own test, named
@@ -20,18 +21,17 @@
 //! ```
 //!
 //! Every capture test is ignored: the default `cargo nextest run` runs only
-//! the cheap checks (`store_integrity`, `scenario_tables`, the cursor-trailer
+//! the cheap checks (`store_integrity`, `scenario_tables`, the store `.ansi`
 //! round trip) and the four boot-mode tests.
 //!
 //! Migration status (`docs/visual-testing/tuiscotti-migration.md`): only
 //! scenarios already re-approved on tuiscotti ([`support::is_reapproved`])
 //! gate; every other capture is skipped unless `VISUAL_FULL=1`. Gate policy
 //! is fail-closed: only a full match passes, and approval is never implicit
-//! (`cargo xtask visual accept`, local only).
+//! (`tuiscotti accept`, local only).
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
-mod ansi_cursor;
 mod determinism;
 mod isolation;
 mod modes;
@@ -65,10 +65,7 @@ fn main() {
                 panic!("scenario tables are inconsistent:\n{e}");
             }
         }),
-        check(
-            "ansi_cursor::ansi_cursor_round_trips_cells_and_visible_cursor",
-            ansi_cursor::ansi_cursor_round_trips_cells_and_visible_cursor,
-        ),
+        check("store_ansi_round_trips", store_ansi_round_trips),
         check("oracle_integrity", oracle::integrity),
         check(
             "oracle::manifest_and_hash_are_stable",
@@ -85,8 +82,8 @@ fn main() {
         ),
         check("isolation::env_isolation", isolation::env_isolation),
         check(
-            "support::run_stamp_names_run_and_bytes",
-            support::run_stamp_names_run_and_bytes,
+            "support::clear_actual_leaves_nothing",
+            support::clear_actual_leaves_nothing,
         ),
         check(
             "determinism::sources_are_deterministic",
@@ -155,7 +152,43 @@ fn catch(body: impl FnOnce()) -> Result<(), Failed> {
 }
 
 fn known_ext(ext: &str) -> bool {
-    LEGACY_EXTS.contains(&ext) || COMMITTED.iter().any(|a| a.ext() == ext)
+    LEGACY_EXTS.contains(&ext) || COMMITTED.contains(&ext)
+}
+
+/// Cheap non-PTY gate: every re-approved `.ansi` in the store is canonical
+/// for tuiscotti's [`support::ARTIFACTS`] mode, so it decodes
+/// (`formats::ansi::frame_from_ansi`) and re-encodes byte-identical
+/// (`render::ansi_dump_with_cursor`), the guard `tuiscotti accept` applies
+/// to every candidate. Legacy tuisnap files (no cursor trailer) are pending
+/// re-approval and skipped.
+fn store_ansi_round_trips() {
+    let root = support::approved_root();
+    if !root.exists() {
+        return;
+    }
+    let provenance =
+        tuiscotti::render::frame_from_screen(&tuiscotti::Screen::blank(1, 1), "store").provenance;
+    let (by_name, _) = walk_store(&root);
+    let mut checked = 0usize;
+    let mut bad = Vec::new();
+    for name in by_name.keys().filter(|n| support::is_reapproved(n)) {
+        let path = root.join(format!("{name}.ansi"));
+        let text = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+        match tuiscotti::formats::ansi::frame_from_ansi(&text, provenance.clone()) {
+            Ok(frame) if tuiscotti::render::ansi_dump_with_cursor(&frame) == text => {}
+            Ok(_) => bad.push(format!("{name}: does not re-encode byte-identical")),
+            Err(e) => bad.push(format!("{name}: {e}")),
+        }
+        checked += 1;
+    }
+    assert!(
+        bad.is_empty(),
+        "approved .ansi files that do not round-trip ({}): {}",
+        bad.len(),
+        bad.join("; ")
+    );
+    eprintln!("{checked} re-approved .ansi file(s) round-trip");
 }
 
 /// Cheap non-PTY gate: the committed `snapshots/` names match the scenario
@@ -178,7 +211,7 @@ fn store_integrity() {
     );
     let store_names: BTreeSet<String> = by_name.keys().cloned().collect();
 
-    let committed: BTreeSet<String> = COMMITTED.iter().map(|a| a.ext().to_string()).collect();
+    let committed: BTreeSet<String> = COMMITTED.iter().map(|e| e.to_string()).collect();
     let legacy: BTreeSet<String> = LEGACY_EXTS.iter().map(|e| e.to_string()).collect();
     let mut incomplete = Vec::new();
     for (name, exts) in &by_name {

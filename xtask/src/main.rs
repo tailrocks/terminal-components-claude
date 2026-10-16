@@ -5,8 +5,6 @@
 //! | Command | What it does |
 //! |---|---|
 //! | `list [<filterset>]` | every scenario (TSV: name, test, table, tier, pending/stored, approval), optionally narrowed by a nextest filterset |
-//! | `accept <filterset>` | copy the reviewed actual `.ansi` of every matching scenario from `target/tuiscotti/actual/` into the store (drops tuisnap's `.txt/.png/.html`; re-seals an active oracle); refuses, writing nothing, unless every selected actual carries a valid run stamp (`<name>.run`) of the newest run in the selection |
-//! | `render <name>` | approved `.ansi` to `target/tuiscotti/render/<name>.{png,html}` for viewing |
 //! | `import <dir> [--dry-run] [--oracle [--source <c>]]` | copy a captured `actual/` tree (a CI `oracle-candidate`) into the store with a change list per app/group; `--oracle` writes `baselines/oracle/` and seals it (oracle v0, plan §E2) |
 //! | `seal [--source <c>]` | rewrite `ORACLE.toml` (counts, harness hash, tuiscotti pin, approver, date) |
 //! | `determinism <filterset>` | capture the selection twice (pending included, review rendering off) and fail on any byte difference (plan T6) |
@@ -14,13 +12,16 @@
 //! | `sync-oracle --from <c> …` | plan §E3: install `baselines/oracle/` and the harness from an approved commit, hash-checked |
 //! | `check-touched [--base <ref>] [--dry-run]` | pre-push guard: run the re-approved groups of every app the branch touched |
 //!
-//! Commands that write the store or the progress list (`accept`, `import`,
-//! `seal`, `ratchet`, `sync-oracle`) refuse to run when `CI` is set:
-//! approval is explicit and local only (AGENTS.md, plan §B5). There is no
-//! environment variable that blesses snapshots.
+//! Commands that write the store or the progress list (`import`, `seal`,
+//! `ratchet`, `sync-oracle`) refuse to run when `CI` is set: approval is
+//! explicit and local only (AGENTS.md, plan §B5). There is no environment
+//! variable that blesses snapshots. Approving reviewed actuals and viewing
+//! an approved screen are tuiscotti's own CLI (`tuiscotti accept`,
+//! `tuiscotti render`; docs/visual-testing/README.md), which refuses under
+//! `CI` and takes only sealed actuals of one run.
 //!
-//! The scenario inventory and the renderer come from the test binary itself
-//! (`VISUAL_TOOL=list|render`, `tests/visual_baseline/tool.rs`); filtersets
+//! The scenario inventory comes from the test binary itself
+//! (`VISUAL_TOOL=list`, `tests/visual_baseline/tool.rs`); filtersets
 //! are resolved by `cargo nextest list`, so they mean exactly what they mean
 //! to `cargo nextest run`.
 
@@ -32,8 +33,6 @@ const USAGE: &str = "\
 usage: cargo xtask visual <command>
 
   list [<filterset>]          list scenarios (TSV), optionally narrowed by a nextest filterset
-  accept <filterset>          approve reviewed actuals of the matching scenarios (local only)
-  render <name>               render an approved scenario to target/tuiscotti/render/
   import <dir> [--dry-run] [--oracle [--source <commit>]]
                               import a captured actual/ tree into the store; --oracle writes
                               baselines/oracle/ and seals ORACLE.toml (oracle v0; local only)
@@ -60,8 +59,10 @@ fn main() -> ExitCode {
     let result = match args.as_slice() {
         ["visual", "list"] => list(None),
         ["visual", "list", filter] => list(Some(filter)),
-        ["visual", "accept", filter] => accept(filter),
-        ["visual", "render", name] => render(name),
+        ["visual", cmd @ ("accept" | "render"), ..] => Err(format!(
+            "`cargo xtask visual {cmd}` is gone: use tuiscotti's CLI, \
+             `tuiscotti {cmd} …` (docs/visual-testing/README.md)"
+        )),
         ["visual", "determinism", filter] => determinism(filter),
         ["visual", "import", rest @ ..] => import_args(rest),
         ["visual", "seal"] => seal(None, None),
@@ -104,7 +105,7 @@ fn actual() -> PathBuf {
     root().join("target/tuiscotti/actual")
 }
 
-/// `accept` and `import` write the store: never in CI.
+/// `import`, `seal`, `ratchet` and `sync-oracle` write the store: never in CI.
 fn refuse_in_ci(what: &str) -> Result<(), String> {
     match std::env::var_os("CI") {
         Some(v) if !v.is_empty() => Err(format!(
@@ -288,162 +289,6 @@ fn approve(into: &Path, name: &str, ansi: &[u8]) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-/// The `<name>.run` stamp the harness writes next to every actual `.ansi`
-/// (`support::run_stamp`): which run captured it, and when.
-#[derive(Clone, Debug, PartialEq)]
-struct Stamp {
-    run: String,
-    written: std::time::SystemTime,
-}
-
-/// FNV-1a (64 bit), the hash the harness records for each actual `.ansi`.
-fn fnv1a64(bytes: &[u8]) -> u64 {
-    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
-        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
-    })
-}
-
-/// The run stamp of `name` under `dir`, if it exists and was written for
-/// exactly these `.ansi` bytes; `None` means the actual cannot be traced to
-/// a run (an older harness, or an `.ansi` rewritten since).
-fn read_stamp(dir: &Path, name: &str, ansi: &[u8]) -> Option<Stamp> {
-    let path = dir.join(format!("{name}.run"));
-    let text = std::fs::read_to_string(&path).ok()?;
-    let field = |key: &str| {
-        text.lines()
-            .find_map(|l| l.strip_prefix(key)?.strip_prefix('='))
-            .map(str::to_string)
-    };
-    let run = field("run").filter(|r| !r.is_empty())?;
-    let hash = field("fnv1a64")?;
-    if hash != format!("{:016x}", fnv1a64(ansi)) {
-        return None;
-    }
-    let written = std::fs::metadata(&path).ok()?.modified().ok()?;
-    Some(Stamp { run, written })
-}
-
-/// Why `accept` refused: some selected actuals are not from the current run.
-#[derive(Debug, PartialEq)]
-struct Refused {
-    current: Option<String>,
-    stale: Vec<String>,
-}
-
-impl Refused {
-    fn message(&self, filter: &str) -> String {
-        let mut msg = format!(
-            "refusing `accept` for `{filter}`: {} actual(s) under {} are not from the current run",
-            self.stale.len(),
-            actual().display()
-        );
-        match &self.current {
-            Some(run) => msg.push_str(&format!(" ({run}, the newest stamp in the selection)")),
-            None => msg.push_str(" (none carries a run stamp)"),
-        }
-        msg.push_str(
-            ";\nan earlier run, an older harness or a rewritten .ansi left them, so they may not \
-             show the code you reviewed. Nothing was written. Re-run them, narrow the filterset \
-             to what the last run captured, or delete them:",
-        );
-        for name in self.stale.iter().take(20) {
-            msg.push_str(&format!("\n  stale: {name}"));
-        }
-        if self.stale.len() > 20 {
-            msg.push_str(&format!("\n  … and {} more", self.stale.len() - 20));
-        }
-        msg
-    }
-}
-
-/// The run `accept` copies from: the run of the newest stamp among the
-/// selected actuals. Every selected actual must carry a valid stamp of that
-/// run; otherwise the whole accept is refused (all or nothing).
-fn current_run(actuals: &[(&str, Option<&Stamp>)]) -> Result<Option<String>, Refused> {
-    let current = actuals
-        .iter()
-        .filter_map(|(_, s)| *s)
-        .max_by_key(|s| s.written)
-        .map(|s| s.run.clone());
-    let stale: Vec<String> = actuals
-        .iter()
-        .filter(|(_, s)| s.is_none_or(|s| Some(&s.run) != current.as_ref()))
-        .map(|(name, _)| name.to_string())
-        .collect();
-    if stale.is_empty() {
-        Ok(current)
-    } else {
-        Err(Refused { current, stale })
-    }
-}
-
-fn accept(filter: &str) -> Result<(), String> {
-    refuse_in_ci("accept")?;
-    let rows = selected_rows(Some(filter))?;
-    if rows.is_empty() {
-        return Err(format!("the filterset `{filter}` selects no scenario"));
-    }
-    let mut no_actual = Vec::new();
-    let mut found = Vec::new();
-    for r in &rows {
-        let source = actual().join(format!("{}.ansi", r.name));
-        let Ok(ansi) = std::fs::read(&source) else {
-            no_actual.push(r.name.as_str());
-            continue;
-        };
-        let stamp = read_stamp(&actual(), &r.name, &ansi);
-        found.push((r, ansi, stamp));
-    }
-    let stamps: Vec<(&str, Option<&Stamp>)> = found
-        .iter()
-        .map(|(r, _, s)| (r.name.as_str(), s.as_ref()))
-        .collect();
-    current_run(&stamps).map_err(|refused| refused.message(filter))?;
-    let mut accepted = 0usize;
-    let mut unchanged = 0usize;
-    let into = store();
-    for (r, ansi, _) in &found {
-        let before = std::fs::read(into.join(format!("{}.ansi", r.name))).ok();
-        if before.as_deref() == Some(ansi.as_slice()) && r.approval == "reapproved" {
-            unchanged += 1;
-            continue;
-        }
-        approve(&into, &r.name, ansi)?;
-        println!("accepted {}", r.name);
-        accepted += 1;
-    }
-    eprintln!(
-        "{accepted} accepted, {unchanged} already approved, {} without an actual (not run, or skipped)",
-        no_actual.len()
-    );
-    if accepted == 0 && unchanged == 0 {
-        return Err(format!(
-            "no actuals under {} for `{filter}`; run the scenarios first",
-            actual().display()
-        ));
-    }
-    if accepted > 0 && oracle_active() {
-        // the oracle's manifest follows every approval (counts, harness)
-        seal(None, None)?;
-    }
-    Ok(())
-}
-
-fn render(name: &str) -> Result<(), String> {
-    let binary = test_binary()?;
-    let status = Command::new(&binary)
-        .current_dir(root())
-        .env("VISUAL_TOOL", "render")
-        .env("VISUAL_NAME", name)
-        .status()
-        .map_err(|e| format!("run {}: {e}", binary.display()))?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(format!("render `{name}` failed"))
-    }
 }
 
 fn walk_ansi(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), String> {
@@ -771,7 +616,7 @@ struct ManifestOut {
 fn render_manifest(m: &ManifestOut) -> String {
     let mut out = format!(
         "# Visual oracle manifest (docs/visual-testing/plan.md §B4, §E).\n\
-         # Written by `cargo xtask visual import --oracle | accept | seal`;\n\
+         # Written by `cargo xtask visual import --oracle | seal`;\n\
          # checked by the default-run test `oracle_integrity`.\n\
          version = {}\n\
          pending = {}\n\
@@ -1221,7 +1066,7 @@ fn check_touched(args: &[&str]) -> Result<(), String> {
     } else {
         Err(
             "re-approved captures changed: review target/tuiscotti/{actual,expected,diff} and \
-             re-approve the intended ones (`cargo xtask visual accept`, a snapshot-only commit \
+             re-approve the intended ones (`tuiscotti accept`, a snapshot-only commit \
              naming the change), or fix the regression"
                 .into(),
         )
@@ -1395,75 +1240,13 @@ mod tests {
         );
     }
 
-    fn stamp_at(run: &str, secs: u64) -> Stamp {
-        Stamp {
-            run: run.into(),
-            written: std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs),
-        }
-    }
-
     #[test]
-    fn accept_takes_only_the_newest_run() {
-        let (old, new) = (stamp_at("nextest-a", 10), stamp_at("nextest-b", 20));
-        let same = stamp_at("nextest-b", 15);
-        assert_eq!(
-            current_run(&[("x", Some(&new)), ("y", Some(&same))]),
-            Ok(Some("nextest-b".into()))
-        );
-        assert_eq!(current_run(&[]), Ok(None));
-        // an actual from an earlier run (a pending row run before) is refused
-        assert_eq!(
-            current_run(&[("x", Some(&new)), ("old", Some(&old))]),
-            Err(Refused {
-                current: Some("nextest-b".into()),
-                stale: vec!["old".into()]
-            })
-        );
-        // an unstamped actual (older harness, rewritten .ansi) is refused
-        let refused = current_run(&[("x", Some(&new)), ("bare", None)]).unwrap_err();
-        assert_eq!(refused.stale, ["bare"]);
-        let msg = refused.message("test(/x/)");
-        assert!(msg.contains("refusing `accept`") && msg.contains("stale: bare"));
-        assert!(msg.contains("Nothing was written"));
-        assert_eq!(
-            current_run(&[("bare", None)]),
-            Err(Refused {
-                current: None,
-                stale: vec!["bare".into()]
-            })
-        );
-    }
-
-    #[test]
-    fn stamps_bind_run_and_bytes() {
-        let dir = root().join(format!("target/xtask-test/stamp-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(dir.join("a/b")).unwrap();
-        let ansi = b"cells\x1b[?25l";
-        // the exact format support::run_stamp writes
-        let text = format!("run=nextest-1\nfnv1a64={:016x}\n", fnv1a64(ansi));
-        std::fs::write(dir.join("a/b.run"), &text).unwrap();
-        let stamp = read_stamp(&dir, "a/b", ansi).expect("valid stamp");
-        assert_eq!(stamp.run, "nextest-1");
-        // bytes changed since the stamp: not traceable to that run
-        assert_eq!(read_stamp(&dir, "a/b", b"other"), None);
-        // no stamp at all
-        assert_eq!(read_stamp(&dir, "a/b/c", ansi), None);
-        std::fs::write(dir.join("a/b.run"), "fnv1a64=0\n").unwrap();
-        assert_eq!(read_stamp(&dir, "a/b", ansi), None);
-        // reference values of FNV-1a 64
-        assert_eq!(fnv1a64(b""), 0xcbf2_9ce4_8422_2325);
-        assert_eq!(fnv1a64(b"a"), 0xaf63_dc4c_8601_ec8c);
-        std::fs::remove_dir_all(&dir).unwrap();
-    }
-
-    #[test]
-    fn accept_and_import_refuse_under_ci() {
+    fn store_writers_refuse_under_ci() {
         // The process environment is shared by the test thread only in this
         // binary's own process (nextest runs each test in its own process).
         // SAFETY: single-threaded test process under nextest.
         unsafe { std::env::set_var("CI", "true") };
-        assert!(refuse_in_ci("accept").is_err());
+        assert!(refuse_in_ci("import").is_err());
         // every store- or list-writing command stops before doing anything
         let ci = |r: Result<(), String>| r.is_err_and(|e| e.contains("CI is set"));
         assert!(ci(seal(None, None)));
@@ -1471,8 +1254,8 @@ mod tests {
         assert!(ci(sync_oracle(&["--from", "HEAD"])));
         assert!(ci(import_args(&["/nonexistent", "--oracle"])));
         unsafe { std::env::set_var("CI", "") };
-        assert!(refuse_in_ci("accept").is_ok());
+        assert!(refuse_in_ci("import").is_ok());
         unsafe { std::env::remove_var("CI") };
-        assert!(refuse_in_ci("accept").is_ok());
+        assert!(refuse_in_ci("import").is_ok());
     }
 }

@@ -25,17 +25,21 @@ The visual baseline suite (`tests/visual_baseline/`) runs on
   `ansi_dump` alone drops the caret. `.txt`, `.png` and `.html` are no
   longer committed. The set is the single constant `COMMITTED` in
   `tests/visual_baseline/support.rs`.
-- **Gate.** A local gate replaces `GroupedStore::check_with`, which cannot
-  gate a subset. Every check writes `target/tuiscotti/actual/<name>.ansi`
-  and `.frame.json`. A mismatch also writes actual PNG/HTML, expected
-  PNG/HTML rebuilt from the approved `.ansi`
-  (`target/tuiscotti/expected/`) and a diff PNG
+- **Gate.** tuiscotti's `GroupedStore::check_with` in
+  `ArtifactSet::AnsiCursor` mode (since tuiscotti PR 11; until then a
+  local gate and `.ansi` codec, `support::gate` and `ansi_cursor.rs`,
+  stood in for it). Every check writes `target/tuiscotti/actual/<name>.ansi`,
+  `.frame.json` and the sealed `.manifest.json` / `.verdict.json`. A
+  mismatch also writes actual PNG/HTML, expected PNG/HTML rebuilt from the
+  approved `.ansi` (`target/tuiscotti/expected/`) and a diff PNG
   (`target/tuiscotti/diff/`).
-- **Approval.** `cargo xtask visual accept '<nextest filterset>'` copies
-  the reviewed actual `.ansi` of every matching scenario into `snapshots/`
-  and removes that scenario's legacy files; it refuses to run when `CI` is
-  set. It replaced the `accept_actuals` ignored test and its
-  `VISUAL_ACCEPT` variable.
+- **Approval.** `tuiscotti accept --store snapshots --actual
+  target/tuiscotti/actual '<pattern>'` (README "Approve an intended
+  change") copies the reviewed actual `.ansi` of every matching scenario
+  into `snapshots/` and removes that scenario's legacy files; it refuses
+  to run when `CI` is set and takes only sealed actuals of one run. It
+  replaced `cargo xtask visual accept`, which had replaced the
+  `accept_actuals` ignored test and its `VISUAL_ACCEPT` variable.
 - **One test per scenario.** The suite is a `harness = false`
   (libtest-mimic) binary. Scenarios are typed table rows
   (`tests/visual_baseline/scenarios/`), expanded by `MATRIX` into one test
@@ -154,10 +158,22 @@ the rest is re-approved. Re-approve one group at a time:
 ```sh
 VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(/^<app>::<group>::/)'
 # review target/tuiscotti/{actual,expected,diff}
-cargo xtask visual accept 'test(/^<app>::<group>::/)'
+tuiscotti accept --store snapshots --actual target/tuiscotti/actual '<app>/<group>'
 ```
 
 Commit the `snapshots/` change on its own, apart from code.
+
+### Legacy four-file scenarios (separate step)
+
+On 2026-10-17, 5,975 scenarios still carry tuisnap's four files
+(`.ansi`, `.txt`, `.png`, `.html`; the `.ansi` has no cursor trailer and
+the `.html` embeds absolute tuisnap-era `argv[0]` paths), against 1,625
+single-`.ansi` scenarios. Every legacy `.ansi` decodes with
+`formats::ansi::frame_from_ansi` and re-encodes to the original plus
+`ESC[?25l`. Plan: migrate them group by group with the re-approval loop
+above (`VISUAL_FULL=1` run, review, `tuiscotti accept` of the group,
+which drops the `.txt/.png/.html`), never by rewriting files in bulk, so
+every migrated screen is captured by the current harness and reviewed.
 
 ## Harness measurements (one test per scenario)
 
