@@ -1715,7 +1715,7 @@ impl DataGrid {
         );
         if self.overflow_badges && self.hscroll.offset > 0 {
             let lbl = format!("‹{}", self.hscroll.offset);
-            let st = title_style(ctx, self.left_id(), bg);
+            let st = ctx.title_style(self.left_id(), bg);
             buf.set_string(grid_area.x + 1, header_y, &lbl, st);
             ctx.clickable(
                 self.left_id(),
@@ -1772,7 +1772,7 @@ impl DataGrid {
         if self.overflow_badges && hidden_right > 0 {
             let lbl = format!("{hidden_right}›");
             let x = cols_area.right() + 1;
-            let st = title_style(ctx, self.right_id(), bg);
+            let st = ctx.title_style(self.right_id(), bg);
             buf.set_string(x, header_y, &lbl, st);
             ctx.clickable(
                 self.right_id(),
@@ -2195,15 +2195,6 @@ impl Theme {
     }
 }
 
-/// A clickable header link (overflow badge `‹n`/`n›`): the title ladder.
-pub(crate) fn title_style(ctx: &RenderCtx, id: WidgetId, bg: Color) -> Style {
-    let t = ctx.theme;
-    let mut s = ctx.state(id);
-    s.focused = false;
-    t.interactive(crate::theme::Kind::Title, s, t.plane_of(bg))
-        .style
-}
-
 /// A column header: sortable headers walk the title ladder; the sorted,
 /// filtered or cursor column reads in primary ink, the rest muted.
 pub(crate) fn header_style(
@@ -2215,7 +2206,7 @@ pub(crate) fn header_style(
 ) -> Style {
     let t = ctx.theme;
     let base = if sortable {
-        title_style(ctx, id, bg)
+        ctx.title_style(id, bg)
     } else {
         Style::new().bg(bg)
     };

@@ -1308,6 +1308,23 @@ impl Theme {
         })
     }
 
+    /// A close glyph (`×`) inside a control styled `host`: at rest it takes
+    /// the host's plane, hovered or pressed it walks the close ladder of the
+    /// plane it sits on, so its hover never reads as the host's hover.
+    pub fn close_glyph(&self, s: VisualState, host: Style) -> Style {
+        let bg = host.bg.unwrap_or(self.canvas);
+        let s = VisualState {
+            focused: false,
+            ..s
+        };
+        if s.hovered || s.pressed {
+            self.interactive(Kind::Close, s, self.plane_of(bg)).style
+        } else {
+            host.fg(self.legible(self.text_secondary, bg))
+                .remove_modifier(Modifier::BOLD)
+        }
+    }
+
     /// The cursor cell of a table or data grid: the cursor fill on the cell
     /// only (never the white flood a pressed control once used), the
     /// destructive fill for a cell with an error.

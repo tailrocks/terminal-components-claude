@@ -14,6 +14,7 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -363,26 +364,16 @@ impl Tabs {
         if overflow {
             let more_left = self.first > 0;
             let st = if more_left {
-                t.secondary().bg(bg)
+                ctx.title_style(self.left_id(), bg)
             } else {
                 t.faint().bg(bg)
             };
-            let hovered = ctx.interaction.hovered(self.left_id());
             let text = if more_left {
                 format!("‹{:<3}", self.first.min(99))
             } else {
                 "    ".into()
             };
-            buf.set_string(
-                x,
-                y,
-                &text,
-                if hovered && more_left {
-                    st.bg(t.lift(bg))
-                } else {
-                    st
-                },
-            );
+            buf.set_string(x, y, &text, st);
             if more_left {
                 ctx.clickable(self.left_id(), Rect::new(x, y, 4, 1));
             }
@@ -399,29 +390,17 @@ impl Tabs {
             let r = Rect::new(x, y, w, 1);
             self.areas[i] = r;
             let tid = self.tab_id(i);
-            let mut s = ctx.state(tid);
+            // the × is its own control: hovering it does not hover the tab
+            let mut s = ctx.child_state(self.id, tid, i == self.cursor);
             s.focused = focused && i == self.cursor;
             let active = i == self.active;
-            // active: one plane up; cursor or hover on another tab: two planes
-            // up (bold marks the keyboard cursor); no gutter glyph ever
-            let plane = if active {
-                t.lift(bg)
-            } else if s.focused || s.hovered {
-                t.lift(t.lift(bg))
-            } else {
-                bg
-            };
-            let mut st =
-                ratatui::style::Style::new()
-                    .bg(plane)
-                    .fg(if active || s.focused || s.hovered {
-                        t.text_primary
-                    } else {
-                        t.text_secondary
-                    });
-            if active || s.focused {
-                st = st.add_modifier(Modifier::BOLD);
-            }
+            s.selected = active;
+            // the active tab sits one plane up; hover and press walk that
+            // plane's ladder (or the strip's for the other tabs); the
+            // keyboard cursor is weight on the strip's own plane, so it never
+            // reads as hover. A strip draws no `▎`: its focus is the accent
+            // rule (`TabRule`)
+            let st = t.interactive(Kind::Tab, s, t.plane_of(bg)).style;
             crate::ui::ctx::fill(buf, r, st);
             let mut cx = x + 1;
             if let Some(p) = &it.prefix {
@@ -466,12 +445,7 @@ impl Tabs {
             }
             if it.closable {
                 let cid = self.close_id(i);
-                let ch = ctx.interaction.hovered(cid);
-                let cs = if ch {
-                    st.fg(t.text_primary).bg(t.lift(st.bg.unwrap_or(bg)))
-                } else {
-                    st.fg(t.text_faint)
-                };
+                let cs = t.close_glyph(ctx.state(cid), st);
                 buf.set_string(cx + 1, y, "×", cs);
                 ctx.clickable(cid, Rect::new(cx + 1, y, 1, 1));
             }
@@ -499,26 +473,16 @@ impl Tabs {
             let more_right = hidden_right > 0;
             let rx = area.right().saturating_sub(right_w + new_w);
             let st = if more_right {
-                t.secondary().bg(bg)
+                ctx.title_style(self.right_id(), bg)
             } else {
                 t.faint().bg(bg)
             };
-            let hovered = ctx.interaction.hovered(self.right_id());
             let text = if more_right {
                 format!("{:>3}›", hidden_right.min(99))
             } else {
                 "    ".into()
             };
-            buf.set_string(
-                rx,
-                y,
-                &text,
-                if hovered && more_right {
-                    st.bg(t.lift(bg))
-                } else {
-                    st
-                },
-            );
+            buf.set_string(rx, y, &text, st);
             if more_right {
                 ctx.clickable(self.right_id(), Rect::new(rx, y, 4, 1));
             }
@@ -526,12 +490,7 @@ impl Tabs {
         if self.allow_new {
             let nx = area.right().saturating_sub(new_w);
             let nid = self.new_id();
-            let hovered = ctx.interaction.hovered(nid);
-            let st = if hovered {
-                t.primary().bg(t.lift(bg))
-            } else {
-                t.muted().bg(bg)
-            };
+            let st = ctx.title_style(nid, bg);
             buf.set_string(nx, y, " + ", st);
             ctx.clickable(nid, Rect::new(nx, y, 3, 1));
         }
@@ -594,7 +553,7 @@ mod tests {
         let b = tabs.areas[0];
         assert_eq!(
             buf[(a.x + 1, 0)].bg,
-            t.lift(t.canvas),
+            t.ladder(crate::theme::Plane::Raised).rest,
             "active tab sits one plane up"
         );
         assert_eq!(
@@ -649,7 +608,7 @@ mod tests {
         let t = Theme::junie();
         let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
         tabs.set_active(1);
-        // hover on an inactive tab: two planes up, not bold, no underline
+        // hover on an inactive tab: the strip's hover step, not bold, no underline
         let hover = Interaction {
             hover: Some(tabs.tab_id(0)),
             ..Default::default()
@@ -657,7 +616,7 @@ mod tests {
         let buf = render_with(&mut tabs, hover);
         let b = tabs.areas[0];
         let a = tabs.areas[1];
-        assert_eq!(buf[(b.x + 1, 0)].bg, t.lift(t.lift(t.canvas)));
+        assert_eq!(buf[(b.x + 1, 0)].bg, t.lift(t.canvas));
         assert_ne!(
             buf[(b.x + 1, 0)].bg,
             buf[(a.x + 1, 0)].bg,
@@ -665,7 +624,8 @@ mod tests {
         );
         assert!(!buf[(b.x + 1, 0)].modifier.contains(Modifier::BOLD));
         assert_eq!(buf[(b.x + 1, 1)].symbol(), "─");
-        // keyboard cursor on an inactive tab: two planes up and bold, still no underline
+        // keyboard cursor on an inactive tab: bold on the strip plane (never
+        // the hover plane), still no underline
         tabs.cursor = 2;
         let focus = Interaction {
             focus: Some(tabs.id),
@@ -673,7 +633,7 @@ mod tests {
         };
         let buf = render_with(&mut tabs, focus);
         let c = tabs.areas[2];
-        assert_eq!(buf[(c.x + 1, 0)].bg, t.lift(t.lift(t.canvas)));
+        assert_eq!(buf[(c.x + 1, 0)].bg, t.canvas);
         assert!(buf[(c.x + 1, 0)].modifier.contains(Modifier::BOLD));
         assert_eq!(buf[(c.x + 1, 1)].symbol(), "─");
         assert_ne!(
@@ -692,5 +652,120 @@ mod tests {
         tabs.set_active(0);
         let buf = render_with(&mut tabs, Interaction::default());
         assert!(row(&buf, 0).contains("Claude ▶"));
+    }
+
+    #[test]
+    fn every_tab_shows_rest_hover_and_press_and_the_close_glyph_its_own() {
+        use crate::theme::ColorLevel;
+        for level in ColorLevel::ALL {
+            let theme = Theme::for_level(level);
+            let draw = |tabs: &mut Tabs, inter: Interaction| {
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+                let mut buf = Buffer::empty(Rect::new(0, 0, 60, 2));
+                tabs.render(Rect::new(0, 0, 60, 2), &mut buf, &mut ctx, theme.canvas);
+                buf
+            };
+            let look = |b: &Buffer, x: u16| {
+                let c = &b[(x, 0)];
+                let bg = if level == ColorLevel::Mono {
+                    None
+                } else {
+                    Some(c.bg)
+                };
+                (bg, c.modifier)
+            };
+            let mut tabs = Tabs::with_items(
+                WidgetId::of("t"),
+                vec![
+                    TabItem::new("General").closable(),
+                    TabItem::new("Mounts").closable(),
+                ],
+            );
+            tabs.set_active(1);
+            draw(&mut tabs, Interaction::default());
+            for i in [0, 1] {
+                let id = tabs.tab_id(i);
+                let x = tabs.areas[i].x + 1;
+                let rest = look(&draw(&mut tabs, Interaction::default()), x);
+                let hover = look(
+                    &draw(
+                        &mut tabs,
+                        Interaction {
+                            hover: Some(id),
+                            ..Default::default()
+                        },
+                    ),
+                    x,
+                );
+                let pressed = look(
+                    &draw(
+                        &mut tabs,
+                        Interaction {
+                            hover: Some(id),
+                            pressed: Some(id),
+                            ..Default::default()
+                        },
+                    ),
+                    x,
+                );
+                let ctx = format!("{level:?} tab {i}");
+                assert_ne!(rest, hover, "{ctx}: rest = hover");
+                assert_ne!(hover, pressed, "{ctx}: hover = pressed");
+                assert_ne!(rest, pressed, "{ctx}: rest = pressed");
+            }
+            // the × of the active tab: its hover is not the tab's, and it presses
+            let cid = tabs.close_id(1);
+            let rest = draw(&mut tabs, Interaction::default());
+            let r = tabs.areas[1];
+            let cx = (r.x..r.right())
+                .find(|&x| rest[(x, 0)].symbol() == "×")
+                .unwrap();
+            let hover = draw(
+                &mut tabs,
+                Interaction {
+                    hover: Some(cid),
+                    ..Default::default()
+                },
+            );
+            assert_eq!(
+                look(&hover, r.x + 1),
+                look(&rest, r.x + 1),
+                "{level:?}: tab stays at rest"
+            );
+            assert_ne!(look(&hover, cx), look(&rest, cx), "{level:?}: × hovers");
+            let pressed = draw(
+                &mut tabs,
+                Interaction {
+                    hover: Some(cid),
+                    pressed: Some(cid),
+                    ..Default::default()
+                },
+            );
+            assert_ne!(look(&pressed, cx), look(&hover, cx), "{level:?}: × presses");
+        }
+    }
+
+    #[test]
+    fn enter_on_the_strip_flashes_the_cursor_tab() {
+        let t = Theme::junie();
+        let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts"]);
+        tabs.set_active(1);
+        tabs.cursor = 0;
+        let id = tabs.id;
+        let buf = render_with(
+            &mut tabs,
+            Interaction {
+                focus: Some(id),
+                flash: Some(id),
+                ..Default::default()
+            },
+        );
+        let b = tabs.areas[0];
+        assert_eq!(
+            buf[(b.x + 1, 0)].bg,
+            t.ladder(crate::theme::Plane::Canvas).pressed
+        );
     }
 }
