@@ -309,6 +309,20 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
     fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, W>) -> Outcome {
         InfoDialog::on_click(self, id, pos, cx.focus)
     }
+    /// A drag from a press on the detail's scrollbar keeps placing the
+    /// thumb under the pointer, as the press on the track does.
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if pressed != crate::widgets::scrollbar::id_for(self.id) {
+            return Outcome::Ignored;
+        }
+        // the scrollbar takes no focus
+        InfoDialog::on_click(
+            self,
+            pressed,
+            pos,
+            &mut crate::core::focus::Focus::default(),
+        )
+    }
     fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
         InfoDialog::on_wheel(self, delta)
     }
