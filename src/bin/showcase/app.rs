@@ -63,6 +63,7 @@ pub enum PageId {
     Settings,
     TaskRunner,
     Selectable,
+    CellEditors,
 }
 
 pub struct NavEntry {
@@ -146,6 +147,11 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         group: "Tables",
     },
     NavEntry {
+        id: PageId::CellEditors,
+        label: "Cell editors",
+        group: "Tables",
+    },
+    NavEntry {
         id: PageId::Lists,
         label: "Lists",
         group: "Navigation",
@@ -220,6 +226,10 @@ const PAGE_ALIASES: &[(&str, PageId)] = &[
     ("tables", PageId::Tables),
     ("editabletables", PageId::Editable),
     ("selectabletable", PageId::Selectable),
+    ("optioneditors", PageId::CellEditors),
+    ("options", PageId::CellEditors),
+    ("enums", PageId::CellEditors),
+    ("choices", PageId::CellEditors),
     ("selection", PageId::Selectable),
     ("bulkedit", PageId::Selectable),
     ("selectable", PageId::Selectable),
@@ -456,6 +466,7 @@ impl App {
                     PageId::Settings => Box::new(settings::SettingsPage::new()),
                     PageId::TaskRunner => Box::new(taskrunner::TaskRunnerPage::new()),
                     PageId::Selectable => Box::new(selectable::SelectablePage::new()),
+                    PageId::CellEditors => Box::new(celleditors::CellEditorsPage::new()),
                 }
             })
             .collect();

@@ -5,6 +5,7 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::widgets::option_editor::{ColumnEditor, Options};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
@@ -31,7 +32,13 @@ impl EditablePage {
         let columns = vec![
             Column::new("ID", Constraint::Length(5)),
             Column::new("Task", Constraint::Min(24)).editable(),
-            Column::new("Owner", Constraint::Length(8)).editable(),
+            // only known people: a dropdown (8 values, the option-count
+            // ladder) instead of free text
+            Column::new("Owner", Constraint::Length(8)).editor(ColumnEditor::for_options(
+                Options::values(&[
+                    "ana", "jonas", "kai", "lena", "mira", "omar", "priya", "sofia",
+                ]),
+            )),
             Column::new("Status", Constraint::Length(9)),
             Column::new("Branch", Constraint::Length(22)).editable(),
             Column::new("Changes", Constraint::Length(8))
@@ -103,6 +110,11 @@ impl Page for EditablePage {
             ),
             ("▁", "editing cursor + accent underline", t.primary()),
             ("!", "validation error", t.error_fg()),
+            (
+                "▾",
+                "Owner: pick from a list (Enter, Space, Alt+↓)",
+                t.secondary(),
+            ),
         ];
         for (i, (g, text, st)) in legend.iter().enumerate() {
             let yy = y + i as u16;
@@ -151,6 +163,18 @@ impl Page for EditablePage {
             }
             PageEvent::Paste(text) => self.table.on_paste(text),
             PageEvent::Click { id, pos } => {
+                if let Some((out, tev)) = self.table.on_click_editor(*id) {
+                    cx.focus.focus(self.table.id);
+                    match tev {
+                        Some(TableEvent::Committed { .. }) => {
+                            self.edits += 1;
+                            cx.status("Cell saved");
+                        }
+                        Some(TableEvent::Cancelled) => cx.status("Edit cancelled"),
+                        _ => {}
+                    }
+                    return out;
+                }
                 if let Some(c) = self.table.locate_header(*id) {
                     cx.focus.focus(self.table.id);
                     return self.table.on_click_header(c);
