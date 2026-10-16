@@ -18,6 +18,7 @@ pub mod form_dialog;
 pub mod grid;
 pub mod help;
 pub mod hintbar;
+pub mod icon_button;
 pub mod info_dialog;
 pub mod input;
 pub mod keyhint;
