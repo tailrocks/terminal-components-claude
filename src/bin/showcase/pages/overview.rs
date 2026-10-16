@@ -18,34 +18,53 @@ impl OverviewPage {
     }
 }
 
-fn swatches(t: &Theme) -> Vec<(&'static str, Color, &'static str)> {
+fn swatches(t: &Theme) -> Vec<(&'static str, Color)> {
     vec![
-        ("canvas", t.canvas, "#000000"),
-        ("surface", t.surface, "#111111"),
-        ("surface.elevated", t.surface_elevated, "#18181b"),
-        ("surface.overlay", t.surface_overlay, "#27272a"),
-        ("field", t.field, "#1e1e22"),
-        ("popover", t.popover, "#3f3f46"),
-        ("border.subtle", t.border_subtle, "white 15%"),
-        ("border.strong", t.border_strong, "white 30%"),
-        ("text.primary", t.text_primary, "#ffffff"),
-        ("text.secondary", t.text_secondary, "white 70%"),
-        ("text.muted", t.text_muted, "white 50%"),
-        ("text.faint", t.text_faint, "white 30%"),
-        ("accent", t.accent, "#48e054"),
-        ("accent.hover", t.accent_hover, "#3ab343"),
-        ("accent.pressed", t.accent_pressed, "#2b8632"),
-        ("accent.bg", t.accent_bg, "green 20%"),
-        ("error", t.error, "#e44545"),
-        ("warning", t.warning, "#f59e09"),
-        ("info", t.info, "#8787ff"),
+        ("canvas", t.canvas),
+        ("surface", t.surface),
+        ("surface.elevated", t.surface_elevated),
+        ("surface.overlay", t.surface_overlay),
+        ("field", t.field),
+        ("popover", t.popover),
+        ("border.subtle", t.border_subtle),
+        ("border.strong", t.border_strong),
+        ("text.primary", t.text_primary),
+        ("text.secondary", t.text_secondary),
+        ("text.muted", t.text_muted),
+        ("text.faint", t.text_faint),
+        ("accent", t.accent),
+        ("accent.hover", t.accent_hover),
+        ("accent.pressed", t.accent_pressed),
+        ("accent.bg", t.accent_bg),
+        ("highlight", t.highlight),
+        ("selection", t.selection_bg),
+        ("success", t.success),
+        ("info", t.info),
+        ("warning", t.warning),
+        ("error", t.error),
+        ("danger", t.danger_label),
     ]
+}
+
+/// The swatch's value as the terminal receives it: the hex at truecolor,
+/// the palette index at 256, the colour name at 16. Read from the theme,
+/// so the label never drifts from the token.
+fn swatch_note(c: Color) -> String {
+    match c {
+        Color::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
+        Color::Indexed(i) => format!("256: {i}"),
+        other => format!("{other:?}"),
+    }
 }
 
 const PRINCIPLES: &[(&str, &str)] = &[
     (
-        "One hue",
-        "Green means focus, primary action or selection. Everything else is achromatic.",
+        "Colour carries meaning",
+        "One accent hue for focus and primary action; status hues only where they carry meaning; syntax hues only in code.",
+    ),
+    (
+        "Never colour alone",
+        "Every status has its glyph: ✓ done, ✗ failed, ▲ attention, • pending, i info.",
     ),
     (
         "Alpha ladder",
@@ -100,7 +119,8 @@ impl Page for OverviewPage {
         } else {
             inner.width
         };
-        for (i, (name, color, note)) in all.iter().enumerate() {
+        for (i, (name, color)) in all.iter().enumerate() {
+            let note = swatch_note(*color);
             let col = (i / per_col) as u16;
             let y = inner.y + (i % per_col) as u16;
             if y >= inner.bottom() {
@@ -115,9 +135,9 @@ impl Page for OverviewPage {
             // a faint edge keeps surface-coloured swatches visible on the card
             buf.set_string(x + 4, y, "▏", t.faint().bg(bg));
             buf.set_string(x + 6, y, name, t.primary().bg(bg));
-            let nw = junie_tui::ui::text::width(note) as u16;
+            let nw = junie_tui::ui::text::width(&note) as u16;
             if col_w > 30 {
-                buf.set_string(x + col_w.saturating_sub(nw + 1), y, note, t.muted().bg(bg));
+                buf.set_string(x + col_w.saturating_sub(nw + 1), y, &note, t.muted().bg(bg));
             }
         }
 
