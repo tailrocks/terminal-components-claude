@@ -58,6 +58,21 @@ pub struct HitRegistry {
     barriers: Vec<usize>,
     /// Scrollbars registered this frame.
     bars: Vec<Bar>,
+    /// Regions a release may complete a click on although the press
+    /// started elsewhere ([`HitRegistry::accept_release`]).
+    releases: Vec<(WidgetId, ReleaseFrom)>,
+}
+
+/// Where a press that may complete on another region started
+/// ([`HitRegistry::accept_release`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReleaseFrom {
+    /// A primary press on this control (a menu-bar title: press, drag onto
+    /// a row, release chooses it).
+    Press(WidgetId),
+    /// A secondary press anywhere (the press that opened a context menu:
+    /// right-drag onto a row, release chooses it).
+    Secondary,
 }
 
 impl HitRegion {
@@ -137,6 +152,19 @@ impl HitRegistry {
         }
         self.register(bar.id, bar.track);
         self.bars.push(bar);
+    }
+
+    /// Let a release over `id` complete a click although the press started
+    /// `from` somewhere else: press-drag-release menus. Without it, a press
+    /// and a release on different controls cancel the click.
+    pub fn accept_release(&mut self, id: WidgetId, from: ReleaseFrom) {
+        self.releases.push((id, from));
+    }
+
+    /// Whether a release over `id` completes a press that started `from`
+    /// ([`Self::accept_release`]).
+    pub fn accepts_release(&self, id: WidgetId, from: ReleaseFrom) -> bool {
+        self.releases.contains(&(id, from))
     }
 
     /// The scrollbar registered under `id` this frame.
