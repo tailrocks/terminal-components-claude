@@ -426,13 +426,6 @@ widgets::chips::ChipBar::keymap | Chips & selects page options | SC10
 widgets::chips::ChipBar::overflow_marker | Chips & selects page options | SC10
 
 # widgets::choice
-widgets::choice::CheckHit | Checks & radios page | SC9
-widgets::choice::CheckHit::Label | Checks & radios page | SC9
-widgets::choice::CheckHit::Row | Checks & radios page | SC9
-widgets::choice::Checkbox::hit | Checks & radios page | SC9
-widgets::choice::Checkbox::mixed | Checks & radios page | SC9
-widgets::choice::RadioGroup::nav | Checks & radios page | SC9
-widgets::choice::Toggle::disabled | Checks & radios page | SC9
 
 # widgets::choice_dialog
 widgets::choice_dialog::ChoiceDialog | Dialog kinds page | SC18

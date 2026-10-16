@@ -455,6 +455,35 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::specimen::StateGrid::focus_mark",
         Option("buttons", "buttons.focus_mark"),
     ),
+    // SC9 Checks & radios
+    (
+        "widgets::choice::CheckHit",
+        Option("checksradios", "checksradios.hit"),
+    ),
+    (
+        "widgets::choice::CheckHit::Label",
+        Option("checksradios", "checksradios.hit=label"),
+    ),
+    (
+        "widgets::choice::CheckHit::Row",
+        Option("checksradios", "checksradios.hit=row"),
+    ),
+    (
+        "widgets::choice::Checkbox::hit",
+        Option("checksradios", "checksradios.hit"),
+    ),
+    (
+        "widgets::choice::Checkbox::mixed",
+        Option("checksradios", "checksradios.mixed"),
+    ),
+    (
+        "widgets::choice::RadioGroup::nav",
+        Option("checksradios", "checksradios.radio_nav"),
+    ),
+    (
+        "widgets::choice::Toggle::disabled",
+        Option("checksradios", "checksradios.disabled"),
+    ),
     // SC8 Inputs and Text areas
     (
         "core::edit::EditEntry",
