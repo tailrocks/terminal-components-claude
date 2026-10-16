@@ -6,7 +6,7 @@
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
-use junie_tui::theme::Tone;
+use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width};
@@ -42,6 +42,9 @@ pub struct SnapshotPage {
     meta: String,
     facts: Vec<Prop>,
     lines: Vec<(String, Tone)>,
+    /// Status glyphs drawn over a line: (line, cell column, status). The
+    /// line text leaves two blank cells at the column for the glyph.
+    marks: Vec<(usize, usize, StatusKind)>,
     /// (label, item id, args)
     follow_ups: Vec<FollowUp>,
     buttons: Vec<Button>,
@@ -74,6 +77,7 @@ impl SnapshotPage {
             meta: String::new(),
             facts: vec![],
             lines: vec![],
+            marks: vec![],
             follow_ups: vec![],
             buttons: vec![],
             scroll: ScrollState::default(),
@@ -112,6 +116,7 @@ impl SnapshotPage {
     fn rebuild(&mut self, w: &World) {
         self.facts.clear();
         self.lines.clear();
+        self.marks.clear();
         self.meters.clear();
         self.follow_ups.clear();
         self.build(w);
@@ -799,6 +804,11 @@ impl SnapshotPage {
                         crate::domain::cleanup::Outcome::WouldRemove => {
                             ("would be removed".to_owned(), Tone::Muted)
                         }
+                        // a trashed file is a done outcome: the status glyph
+                        // goes in the two cells before the word
+                        crate::domain::cleanup::Outcome::Trashed => {
+                            (format!("  {}", r.outcome.label()), Tone::Success)
+                        }
                         other => (other.label().to_owned(), Tone::Normal),
                     };
                     let freed = if matches!(
@@ -825,6 +835,10 @@ impl SnapshotPage {
                     "when", "target", "method", "freed", "outcome"
                 )));
                 for (when, target, method, freed, outcome, tone) in rows {
+                    if tone == Tone::Success {
+                        self.marks
+                            .push((self.lines.len(), 18 + 44 + 12 + 10 + 3, StatusKind::Ok));
+                    }
                     self.lines.push((
                         format!(
                             "{:<18}{:<44}{:<12}{:>10}   {}",
@@ -1137,12 +1151,19 @@ impl SnapshotPage {
                             let tone = match it.outcome {
                                 crate::domain::cleanup::Outcome::Failed => Tone::Error,
                                 crate::domain::cleanup::Outcome::Skipped => Tone::Warning,
+                                crate::domain::cleanup::Outcome::Trashed => Tone::Success,
                                 _ => Tone::Normal,
+                            };
+                            let label = if tone == Tone::Success {
+                                self.marks.push((self.lines.len(), 0, StatusKind::Ok));
+                                format!("  {}", it.outcome.label())
+                            } else {
+                                it.outcome.label().to_owned()
                             };
                             self.lines.push((
                                 format!(
                                     "{:<14}{:>10}   {}{}",
-                                    it.outcome.label(),
+                                    label,
                                     crate::sim::fs::human(it.bytes),
                                     w.location.short(&it.path),
                                     it.error
@@ -1462,12 +1483,19 @@ impl Screen for SnapshotPage {
         for (k, i) in self.scroll.visible_range().enumerate() {
             let (line, tone) = &self.lines[i];
             let st = ratatui::style::Style::new().fg(t.tone(*tone));
+            let room = inner.width.saturating_sub(u16::from(has_sb));
             buf.set_string(
                 inner.x,
                 inner.y + k as u16,
-                truncate(line, inner.width.saturating_sub(u16::from(has_sb)) as usize),
+                truncate(line, room as usize),
                 st,
             );
+            for &(_, col, kind) in self.marks.iter().filter(|m| m.0 == i) {
+                if (col as u16) + 2 < room {
+                    let (glyph, gs) = t.status(kind);
+                    buf.set_string(inner.x + col as u16, inner.y + k as u16, glyph, gs);
+                }
+            }
         }
         if has_sb {
             junie_tui::ui::fade::scroll_edges(
