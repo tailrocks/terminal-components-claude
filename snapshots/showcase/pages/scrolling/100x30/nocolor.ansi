@@ -2,30 +2,30 @@
                                                                                                     [0m
  [0m[1mComponents[0m      54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
                                                                                                     [0m
-    Overview           Wrapped … 1–21 of 141      Long list 1–21 of 120      Log    1981–2000/2000  [0m
-  ▸ App shell                                                                                       [0m
-  ▸ Inputs & forms     Junie works through ┃         Row 001          ┃      [0m[2m 732.60s  info   R… [0m┆  [0m
-  ▸ Tables             a task the way a    ┃         Row 002          ┃       732.97s  info   F… ┆  [0m
-  ▸ Navigation         careful engineer    ┃         Row 003          ┃       733.34s  info   C… ┆  [0m
-  ▸ Overlays           would: it reads the ┆         Row 004          ┆       733.71s  info   C… ┆  [0m
-  ▸ Feedback           relevant code,      ┆         Row 005          ┆       734.08s  warn   u… ┆  [0m
-  ▾ Layout             forms a plan, makes ┆         Row 006          ┆       734.45s  info   C… ┆  [0m
-      Panels           focused changes,    ┆         Row 007          ┆       734.82s  info   R… ┆  [0m
- [0m[1m▎  › Scrolling    [0m    runs the tests, and ┆         Row 008          ┆       735.19s  info   t… ┆  [0m
-      Splits & st…     reports back with a ┆         Row 009          ┆       735.56s  info   t… ┆  [0m
-      Master-deta…     summary you can     ┆         Row 010          ┆       735.93s  error  t… ┆  [0m
-      Pane tree        review before       ┆         Row 011          ┆       736.30s  info   t… ┆  [0m
-  ▸ Text & code        anything is merged. ┆         Row 012          ┆       736.67s  info   L… ┆  [0m
-  ▸ Screens                                ┆         Row 013          ┆       737.04s  info   R… ┆  [0m
-                       Each step is        ┆         Row 014          ┆       737.41s  info   F… ┆  [0m
-                       visible. You can    ┆         Row 015          ┆       737.78s  info   C… ┆  [0m
-                       pause, redirect, or ┆         Row 016          ┆       738.15s  info   C… ┆  [0m
-                       take over at any    ┆         Row 017          ┆       738.52s  warn   u… ┆  [0m
-                       point, and every    ┆         Row 018          ┆       738.89s  info   C… ┆  [0m
-                       change lands as an  ┆         Row 019          ┆       739.26s  info   R… ┆  [0m
-                       ordinary diff in    ┆         Row 020          ┆       739.63s  info   t… ┃  [0m
-                       [0m[2myour working tree.  [0m┆      [0m[2m   Row 021          [0m┆      ━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
-                                                                                                    [0m
+    Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                  [0m
+  ▸ Tables             Wrapped … 1–7 of 153      Long list 1–7 of 120      Log    1995–2000/2000   ┃[0m
+  ▸ Navigation                                                                                     ┃[0m
+  ▸ Overlays           Junie works        ┃         Row 001         ┃      [0m[2m 737.78s  info   C… [0m┆   ┃[0m
+  ▸ Feedback           through a task the ┆         Row 002         ┆       738.15s  info   C… ┆   ┃[0m
+  ▾ Layout             way a careful      ┆         Row 003         ┆       738.52s  warn   u… ┆   ┃[0m
+      Panels           engineer would: it ┆         Row 004         ┆       738.89s  info   C… ┆   ┃[0m
+ [0m[1m▎  › Scrolling    [0m    reads the relevant ┆         Row 005         ┆       739.26s  info   R… ┆   ┃[0m
+      Splits & st…     code, forms a      ┆         Row 006         ┆       739.63s  info   t… ┃   ┃[0m
+      Master-deta…     [0m[2mplan, makes        [0m┆      [0m[2m   Row 007         [0m┆      ━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┃[0m
+      Pane tree                                                                                    ┃[0m
+  ▸ Text & code                                                                                    ┃[0m
+  ▸ Screens            Hand-drawn                   Divider or bar      Cursor                     ┃[0m
+                                                                                                   ┃[0m
+                       Host          Region …       fits    over        row 1 · vertical           ┃[0m
+                       api-01        ap-sout…┃      ite… │  ite… ┃      wrap off · skip disable…   ┆[0m
+                       auth-01       ap-sout…┆      ite… │  ite… ┆      RowFn: 108 of 120 open     ┆[0m
+                       billing-01    ca-cent…┆      ite… │  ite… ┆      Last: no key yet           ┆[0m
+                       cache-01      eu-cent…┆      ite… │  ite… ┆      KeyStep: Nav · Type        ┆[0m
+                       [0m[2mdb-01         eu-nort…[0m┆      ite… │  ite… ┆      Moved: To · Stayed · Ig…   ┆[0m
+                       ━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄       ite… │  ite… ┆      Desktop · 1s · shortcut…   ┆[0m
+                                                                                                   ┆[0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l

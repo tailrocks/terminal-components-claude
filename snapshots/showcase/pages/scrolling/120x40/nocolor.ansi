@@ -2,39 +2,39 @@
                                                                                                                         [0m
  [0m[1mComponents[0m           54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are… [0m
                                                                                                                         [0m
-    Overview                Wrapped text   1–31 of 120      Long list      1–31 of 120      Log         1971–2000/2000  [0m
-  ▸ App shell                                                                                                           [0m
-  ▸ Inputs & forms          Junie works through a    ┃         Row 001               ┃      [0m[2m 728.90s  info   Compil… [0m┆  [0m
-  ▸ Tables                  task the way a careful   ┃         Row 002               ┃       729.27s  info   Compil… ┆  [0m
-  ▸ Navigation              engineer would: it reads ┃         Row 003               ┃       729.64s  warn   unused… ┆  [0m
-  ▸ Overlays                the relevant code, forms ┃         Row 004               ┃       730.01s  info   Compil… ┆  [0m
-  ▸ Feedback                a plan, makes focused    ┃         Row 005               ┃       730.38s  info   Runnin… ┆  [0m
-  ▾ Layout                  changes, runs the tests, ┃         Row 006               ┃       730.75s  info   test a… ┆  [0m
-      Panels                and reports back with a  ┃         Row 007       flagged ┃       731.12s  info   test d… ┆  [0m
- [0m[1m▎  › Scrolling         [0m    summary you can review   ┃         Row 008               ┃       731.49s  error  test c… ┆  [0m
-      Splits & stacks       before anything is       ┆         Row 009               ┆       731.86s  info   test w… ┆  [0m
-      Master-detail         merged.                  ┆         Row 010               ┆       732.23s  info   Linkin… ┆  [0m
-      Pane tree                                      ┆         Row 011               ┆       732.60s  info   Resolv… ┆  [0m
-  ▸ Text & code             Each step is visible.    ┆         Row 012               ┆       732.97s  info   Fetchi… ┆  [0m
-  ▸ Screens                 You can pause, redirect, ┆         Row 013               ┆       733.34s  info   Compil… ┆  [0m
-                            or take over at any      ┆         Row 014       flagged ┆       733.71s  info   Compil… ┆  [0m
-                            point, and every change  ┆         Row 015               ┆       734.08s  warn   unused… ┆  [0m
-                            lands as an ordinary     ┆         Row 016               ┆       734.45s  info   Compil… ┆  [0m
-                            diff in your working     ┆         Row 017               ┆       734.82s  info   Runnin… ┆  [0m
-                            tree.                    ┆         Row 018               ┆       735.19s  info   test a… ┆  [0m
-                                                     ┆         Row 019               ┆       735.56s  info   test d… ┆  [0m
-                            The design system in     ┆         Row 020               ┆       735.93s  error  test c… ┆  [0m
-                            this prototype exists so ┆         Row 021       flagged ┆       736.30s  info   test w… ┆  [0m
-                            that the terminal        ┆         Row 022               ┆       736.67s  info   Linkin… ┆  [0m
-                            version of that          ┆         Row 023               ┆       737.04s  info   Resolv… ┆  [0m
-                            experience feels as      ┆         Row 024               ┆       737.41s  info   Fetchi… ┆  [0m
-                            deliberate as the web    ┆         Row 025               ┆       737.78s  info   Compil… ┆  [0m
-                            version: quiet surfaces, ┆         Row 026               ┆       738.15s  info   Compil… ┆  [0m
-                            one accent, clear focus, ┆         Row 027               ┆       738.52s  warn   unused… ┆  [0m
-                            and no decoration that   ┆         Row 028       flagged ┆       738.89s  info   Compil… ┆  [0m
-                            does not carry           ┆         Row 029               ┆       739.26s  info   Runnin… ┆  [0m
-                            information.             ┆         Row 030               ┆       739.63s  info   test a… ┃  [0m
-                            [0m[2m                         [0m┆      [0m[2m   Row 031               [0m┆      ━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                  Wrapped text    1–7 of 120      Long list       1–7 of 120      Log         1995–2000/2000  [0m
+  ▸ Navigation                                                                                                          [0m
+  ▸ Overlays                Junie works through a    ┃         Row 001               ┃      [0m[2m 737.78s  info   Compil… [0m┆  [0m
+  ▸ Feedback                task the way a careful   ┆         Row 002               ┆       738.15s  info   Compil… ┆  [0m
+  ▾ Layout                  engineer would: it reads ┆         Row 003               ┆       738.52s  warn   unused… ┆  [0m
+      Panels                the relevant code, forms ┆         Row 004               ┆       738.89s  info   Compil… ┆  [0m
+ [0m[1m▎  › Scrolling         [0m    a plan, makes focused    ┆         Row 005               ┆       739.26s  info   Runnin… ┆  [0m
+      Splits & stacks       changes, runs the tests, ┆         Row 006               ┆       739.63s  info   test a… ┃  [0m
+      Master-detail         [0m[2mand reports back with a  [0m┆      [0m[2m   Row 007               [0m┆      ━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
+      Pane tree                                                                                                         [0m
+  ▸ Text & code                                                                                                         [0m
+  ▸ Screens                 Hand-drawn                          Divider or bar          Cursor                          [0m
+                                                                                                                        [0m
+                            Host          Region        …       fits      over          row 1 · vertical                [0m
+                            api-01        ap-south-1    …┃      item 1 │  item 1 ┃      wrap off · skip disabled on     [0m
+                            auth-01       ap-southeast-2…┆      item 2 │  item 2 ┆      RowFn: 108 of 120 open          [0m
+                            billing-01    ca-central-1  …┆      item 3 │  item 3 ┆      Last: no key yet                [0m
+                            cache-01      eu-central-1  …┆      item 4 │  item 4 ┆      KeyStep: Nav · Type             [0m
+                            [0m[2mdb-01         eu-north-1    …[0m┆      item 5 │  item 5 ┆      Moved: To · Stayed · Ignored    [0m
+                            ━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄       item 6 │  item 6 ┆      Desktop · 1s · shortcuts first  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                            Type to jump · select, tree, table, grid                                                    [0m
+                                                                                                                        [0m
+                              Region                 api             ┃     Region                   Service             [0m
+                              eu-west-1       ▾      auth            ┃     ap-south-1      ┃      1 api              ┃  [0m
+                                                     billing         ┆     ap-southeast-2  ┆      2 auth             ┆  [0m
+                                                     cache           ┆     ca-central-1    ┆      3 billing          ┆  [0m
+                                                  [0m[2m   db              [0m┆  [0m[2m   eu-central-1    [0m┆  [0m[2m    4 cache            [0m┆  [0m
+                                                                                                                        [0m
                                                                                                                         [0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
