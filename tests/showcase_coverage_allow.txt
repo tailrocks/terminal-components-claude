@@ -1309,6 +1309,7 @@ theme::Theme::with_strings | Inspector pane: app-wide option or State tab readou
 theme::Theme::with_edit_entry | Inspector pane: app-wide option or State tab readout | SC1
 theme::Theme::with_field_keys | Inspector pane: app-wide option or State tab readout | SC1
 theme::Theme::with_state_modifiers | Overview theme token tables | SC3
+theme::Theme::centred_hints | Status & hints page: centred footer preset (holla, jackin use it) | SC30
 theme::Tone | Overview theme token tables | SC3
 theme::Tone::Normal | Overview theme token tables | SC3
 theme::Tone::Secondary | Overview theme token tables | SC3
@@ -1376,3 +1377,9 @@ state::empty | States grid on every widget page | SC2
 state::loading | States grid on every widget page | SC2
 state::overflow | States grid on every widget page | SC2
 state::narrow | States grid on every widget page | SC2
+
+# widgets::too_small
+widgets::too_small::TooSmall | TooSmall demo on Status & hints | SC30
+widgets::too_small::TooSmall::brand_style | TooSmall demo on Status & hints | SC30
+widgets::too_small::TooSmall::min | TooSmall demo on Status & hints | SC30
+widgets::too_small::TooSmall::quit_hint | TooSmall demo on Status & hints | SC30
