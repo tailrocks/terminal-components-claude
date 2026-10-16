@@ -142,6 +142,7 @@ Ctrl+C.
 | Bug | Root cause | Fix | Status |
 |---|---|---|---|
 | tablepro ignored Ctrl+Q (even over an edited connection form; its menu advertised it) | the app matched Ctrl+C and `q` by hand instead of the shared `QuitKeys` | `App::quit_keys` (`QuitKeys::DEFAULT`) classifies every key: Ctrl+C / Ctrl+Q before routing (Ctrl+C still cancels a running query first), `q` after the page; help lists `q / Ctrl+Q` | fixed; `app_tests_coverage::ctrl_q_quits_through_the_leave_guard` |
+| holla's cleanup review (and the idle finder) redrew an unchanged frame every 200 ms under reduced motion | the simulated world advances every tick, and `CleanupPage::on_tick` / `FinderPage::on_tick` answered every new world tick with `Changed` (the finder's rebuild also restamps live data ages in milliseconds, though only their labels show) | `screens::rebuild_on_tick` rebuilds and reports `Changed` only when the screen's view (rows, candidates, checks, cursor; shown freshness labels) differs | fixed; `app_tests_coverage::an_idle_cleanup_review_requests_no_redraw` (0 of 50 ticks, was 50), `an_idle_finder_requests_redraws_only_when_a_label_moves` (at most 5 of 50, was 50). `holla/fade/cleanup_list_wheel` keeps `--motion paused --frame 40` |
 
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
 matrix and the OS that generates baselines (CI runs ubuntu-24.04) before

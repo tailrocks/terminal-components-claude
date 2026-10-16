@@ -884,3 +884,51 @@ fn a_middle_click_on_a_tab_closes_it() {
         h.text()
     );
 }
+
+/// An idle screen asks for no redraw: under reduced motion the cleanup
+/// review used to rebuild and report `Changed` on every world tick (every
+/// 200 ms) with nothing on it changing, so the runtime redrew an identical
+/// frame forever. Once the review settles, ticks are `Ignored` and the
+/// frame stays the same.
+#[test]
+fn an_idle_cleanup_review_requests_no_redraw() {
+    let mut h = H::new(Scenario::ParityInsights, Motion::Reduced, 0, 120, 40);
+    open(&mut h, "Review cleanup candidates");
+    // let discovery and the transient status settle
+    h.ticks(200);
+    let before = h.text();
+    assert!(before.contains("18 categories"), "{before}");
+    let mut changed = 0;
+    for _ in 0..50 {
+        if h.app.handle(junie_tui::core::event::Input::Tick) != Outcome::Ignored {
+            changed += 1;
+        }
+    }
+    h.draw();
+    assert_eq!(
+        changed, 0,
+        "an idle review requested {changed} redraws in 50 ticks"
+    );
+    assert_eq!(h.text(), before, "nothing on screen changed");
+}
+
+/// The idle finder (the home screen) under reduced motion used to report
+/// `Changed` on every tick: each rebuild restamps live data ages in
+/// milliseconds, though only their labels are shown. Now a tick redraws only
+/// when a shown label moves (a "N s ago" crossing a second), not 50 times
+/// in 50 ticks.
+#[test]
+fn an_idle_finder_requests_redraws_only_when_a_label_moves() {
+    let mut h = H::new(Scenario::ParityInsights, Motion::Reduced, 0, 120, 40);
+    h.ticks(200);
+    let mut changed = 0;
+    for _ in 0..50 {
+        if h.app.handle(junie_tui::core::event::Input::Tick) != Outcome::Ignored {
+            changed += 1;
+        }
+    }
+    assert!(
+        changed <= 5,
+        "an idle finder requested {changed} redraws in 50 ticks"
+    );
+}

@@ -20,7 +20,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use crate::domain::action::{Confirmation, Item, Kind, Launch, Risk};
+use crate::domain::action::{Confirmation, Freshness, Item, Kind, Launch, Risk};
 use crate::domain::context::Scope;
 use crate::domain::ranking::{Ranked, search};
 use crate::screens::{
@@ -1471,12 +1471,29 @@ impl Screen for FinderPage {
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
-        if w.tick != self.last_tick {
-            self.last_tick = w.tick;
-            self.dirty = true;
-            return Outcome::Changed;
+        if w.tick == self.last_tick {
+            return Outcome::Ignored;
         }
-        Outcome::Ignored
+        self.last_tick = w.tick;
+        // the world moves every tick, the finder only when its catalogue,
+        // rows (their "ran 2 min ago" reasons included) or cursor do: an
+        // idle finder asks for no redraw
+        super::rebuild_on_tick(
+            self,
+            |s| {
+                // a live age moves every tick; only its label is shown
+                let items: Vec<Item> = s
+                    .items
+                    .iter()
+                    .map(|i| Item {
+                        freshness: Freshness::Unavailable(i.freshness.label()),
+                        ..i.clone()
+                    })
+                    .collect();
+                (items, s.warnings.clone(), s.rows.clone(), s.cursor)
+            },
+            |s| s.rebuild(w),
+        )
     }
 
     fn enter(&mut self, w: &mut World, _cx: &mut Cx) {
