@@ -1536,6 +1536,88 @@ impl Navigable for MenuBar {
     }
 }
 
+/// The menu's pointer gestures: a completed click on a row chooses it, on
+/// a ▲/▼ marker pages, on the backdrop dismisses per its dismiss policy
+/// ([`ContextMenu::on_click`]); a press, a drag or a secondary click on it
+/// is consumed (the release chooses); a vertical wheel scrolls it.
+impl crate::core::pointer::MouseTarget for ContextMenu {
+    type Action = MenuAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<MenuAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if let Some((axis, delta)) = ev.wheel() {
+            // the wheel outside the menu (its backdrop) moves nothing
+            if ev.part().part == Part::BACKDROP {
+                return Response::ignored();
+            }
+            return match axis {
+                Axis::Vertical => self.on_wheel(delta).into(),
+                Axis::Horizontal => Response::consumed(),
+            };
+        }
+        match ev.phase() {
+            Some(Phase::Click) => match self.on_click(ev.id) {
+                Some(a) => Response::emit(a),
+                None => Response::changed(),
+            },
+            Some(Phase::Press | Phase::Drag | Phase::Secondary) => Response::consumed(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
+/// The bar's pointer gestures: a press on a title opens its menu under
+/// [`OpenOn::Press`] ([`MenuBar::on_press`]); a completed click on a
+/// title, the brand, a row of the open menu or the backdrop is
+/// [`MenuBar::on_click`]; a vertical wheel over the open menu scrolls it.
+/// The brand and the open menu are the bar's too ([`Self::route`]).
+impl crate::core::pointer::MouseTarget for MenuBar {
+    type Action = MenuBarAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<MenuBarAction>> {
+        let owner = ev.owner();
+        let mine = owner == self.id
+            || owner == self.brand_id()
+            || self.open.as_ref().is_some_and(|m| m.id == owner);
+        mine.then(|| self.pointer(ev))
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<MenuBarAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if let Some((axis, delta)) = ev.wheel() {
+            return match (self.open.as_mut(), axis) {
+                (Some(m), Axis::Vertical) => m.on_wheel(delta).into(),
+                (Some(_), Axis::Horizontal) => Response::consumed(),
+                (None, _) => Response::ignored(),
+            };
+        }
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press(ev.id).into(),
+            Some(Phase::Click) => self.on_click(ev.id).into(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
