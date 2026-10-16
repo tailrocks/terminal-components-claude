@@ -141,16 +141,16 @@ impl ChoiceDialog {
                 }
             }
         }
-        let step = match self.nav.action(key) {
-            Some(Nav::Left) => Some(true),
-            Some(Nav::Right) => Some(false),
-            _ => None,
-        };
-        if let Some(back) = step {
+        if let Some(nav @ (Nav::Left | Nav::Right)) = self.nav.action(key) {
+            // around the buttons, wrapping (every button is a stop)
             if let Some(i) = self.buttons.iter().position(|b| Some(b.id) == cur) {
-                let n = self.buttons.len();
-                let j = if back { (i + n - 1) % n } else { (i + 1) % n };
-                focus.focus(self.buttons[j].id);
+                let mut c = crate::core::list::Cursor::new(i)
+                    .axis(crate::core::hit::Axis::Horizontal)
+                    .wrap(true)
+                    .skip_disabled(false);
+                if let Some(j) = c.apply(nav, &self.buttons[..], 1).index() {
+                    focus.focus(self.buttons[j].id);
+                }
             }
             return Outcome::Changed;
         }

@@ -9,7 +9,9 @@ use crate::core::event::{ClientPlatform, Key, Outcome};
 use crate::core::focus::BlurAction;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
+use crate::core::keymap::unassigned_chord;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
+use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::selection::{RowSelection, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
@@ -671,15 +673,15 @@ impl DataTable {
                 ) =>
             {
                 let from = self.cursor_row;
-                let page = self.scroll.viewport_len.max(1);
-                let to = match self.nav.action(key) {
-                    Some(Nav::Up) => from.saturating_sub(1),
-                    Some(Nav::Down) => from + 1,
-                    Some(Nav::Home) => 0,
-                    Some(Nav::End) => usize::MAX,
-                    Some(Nav::PageUp) => from.saturating_sub(page),
-                    _ => from + page,
-                };
+                let to = self
+                    .nav
+                    .action(key)
+                    .and_then(|nav| {
+                        self.cursor()
+                            .apply(nav, self, self.scroll.viewport_len)
+                            .index()
+                    })
+                    .unwrap_or(from);
                 self.set_cursor(to, self.cursor_col);
                 let disabled = &self.disabled;
                 let c = self
@@ -1241,40 +1243,21 @@ impl DataTable {
         if self.rows.is_empty() {
             return (Outcome::Ignored, None);
         }
-        if let KeyCode::Char(c) = key.code
-            && self.type_ahead
-            && !c.is_whitespace()
-            && !key.chord()
-        {
-            let col = self.type_ahead_column.unwrap_or(self.cursor_col);
-            let prefix = self.typeahead.feed(c).to_owned();
-            let found = crate::core::typeahead::TypeAhead::find(
-                &prefix,
-                self.order.iter().map(|&src| {
-                    self.rows[src]
-                        .get(col)
-                        .map_or("", |cell| cell.text.as_str())
-                }),
-                self.cursor_row,
-                |d| !self.is_disabled(self.order[d]),
-            );
-            return match found {
-                Some(d) => {
-                    self.set_cursor(d, self.cursor_col);
-                    (Outcome::Changed, None)
-                }
-                None => (Outcome::Consumed, None),
-            };
+        if let Some(KeyStep::Type(c)) = KeyStep::of(key, &self.nav, self.type_ahead) {
+            let mut ta = std::mem::take(&mut self.typeahead);
+            let moved = self.cursor().type_ahead(c, &mut ta, self);
+            self.typeahead = ta;
+            if let Moved::To(d) = moved {
+                self.set_cursor(d, self.cursor_col);
+            }
+            return (moved.outcome(), None);
         }
         if self.multi()
             && let Some(r) = self.on_key_multi(key)
         {
             return r;
         }
-        if matches!(key.code, KeyCode::Char(_))
-            && key.chord()
-            && lookup(&self.keymap, key).is_none()
-        {
+        if unassigned_chord(key, &self.keymap) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
@@ -1335,12 +1318,13 @@ impl DataTable {
     fn on_nav(&mut self, nav: Nav) -> (Outcome, Option<TableAction>) {
         let (r, c) = (self.cursor_row, self.cursor_col);
         match nav {
-            Nav::Up => {
-                self.set_cursor(r.saturating_sub(1), c);
-                (Outcome::Changed, None)
-            }
-            Nav::Down => {
-                self.set_cursor(r + 1, c);
+            Nav::Up | Nav::Down | Nav::PageUp | Nav::PageDown | Nav::Home | Nav::End => {
+                let to = self
+                    .cursor()
+                    .apply(nav, self, self.scroll.viewport_len)
+                    .index()
+                    .unwrap_or(r);
+                self.set_cursor(to, c);
                 (Outcome::Changed, None)
             }
             Nav::Left if self.cell_nav => {
@@ -1357,22 +1341,6 @@ impl DataTable {
             }
             Nav::Right => {
                 self.hscroll.scroll_by(1);
-                (Outcome::Changed, None)
-            }
-            Nav::PageUp => {
-                self.set_cursor(r.saturating_sub(self.scroll.viewport_len.max(1)), c);
-                (Outcome::Changed, None)
-            }
-            Nav::PageDown => {
-                self.set_cursor(r + self.scroll.viewport_len.max(1), c);
-                (Outcome::Changed, None)
-            }
-            Nav::Home => {
-                self.set_cursor(0, c);
-                (Outcome::Changed, None)
-            }
-            Nav::End => {
-                self.set_cursor(usize::MAX, c);
                 (Outcome::Changed, None)
             }
         }
@@ -2151,6 +2119,30 @@ impl crate::core::focus::BlurTarget for DataTable {
         } else {
             Outcome::Ignored
         }
+    }
+}
+
+/// Display rows; type-ahead reads [`DataTable::type_ahead_column`] (or the
+/// cursor's column). Disabled rows stay reachable by the arrows (they can
+/// be inspected) but type-ahead never lands on one.
+impl RowSource for DataTable {
+    fn len(&self) -> usize {
+        self.order.len()
+    }
+    fn enabled(&self, d: usize) -> bool {
+        !self.is_disabled(self.order[d])
+    }
+    fn label(&self, d: usize) -> &str {
+        let col = self.type_ahead_column.unwrap_or(self.cursor_col);
+        self.rows[self.order[d]]
+            .get(col)
+            .map_or("", |cell| cell.text.as_str())
+    }
+}
+
+impl Navigable for DataTable {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor_row).skip_disabled(false)
     }
 }
 

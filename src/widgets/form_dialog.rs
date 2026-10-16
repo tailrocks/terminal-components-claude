@@ -464,20 +464,23 @@ impl FormDialog {
                 Outcome::Changed
             }
             _ if !editing && matches!(self.nav.action(key), Some(Nav::Left | Nav::Right)) => {
-                let ids: Vec<WidgetId> = self
+                let buttons: Vec<Button> = self
                     .actions
                     .iter()
-                    .map(|(_, b)| b.id)
-                    .chain([self.cancel.id, self.save.id])
+                    .map(|(_, b)| b.clone())
+                    .chain([self.cancel.clone(), self.save.clone()])
                     .collect();
-                if let Some(i) = ids.iter().position(|id| Some(*id) == cur) {
-                    let n = ids.len();
-                    let j = if self.nav.action(key) == Some(Nav::Left) {
-                        (i + n - 1) % n
-                    } else {
-                        (i + 1) % n
-                    };
-                    focus.focus(ids[j]);
+                if let Some(i) = buttons.iter().position(|b| Some(b.id) == cur)
+                    && let Some(nav) = self.nav.action(key)
+                {
+                    // around the buttons, wrapping (every button is a stop)
+                    let mut c = crate::core::list::Cursor::new(i)
+                        .axis(crate::core::hit::Axis::Horizontal)
+                        .wrap(true)
+                        .skip_disabled(false);
+                    if let Some(j) = c.apply(nav, &buttons[..], 1).index() {
+                        focus.focus(buttons[j].id);
+                    }
                 }
                 Outcome::Changed
             }

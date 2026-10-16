@@ -536,6 +536,20 @@ impl ButtonRow {
     }
 }
 
+/// A row of buttons, as a horizontal cursor sees it: a disabled button is
+/// not a stop.
+impl crate::core::list::RowSource for [Button] {
+    fn len(&self) -> usize {
+        <[Button]>::len(self)
+    }
+    fn enabled(&self, i: usize) -> bool {
+        !self[i].disabled
+    }
+    fn label(&self, i: usize) -> &str {
+        &self[i].label
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

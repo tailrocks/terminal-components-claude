@@ -1116,21 +1116,13 @@ impl Dialog {
             (Some(Nav::Right), _) if arrow && key.shift() && self.code_scroll.overflows() => {
                 self.scroll_code(1)
             }
-            (Some(Nav::Left), _) => {
-                // move between actions
+            (Some(nav @ (Nav::Left | Nav::Right)), _) => {
+                // move between the enabled actions, stopping at the ends
                 if let Some(i) = self.actions.iter().position(|b| Some(b.id) == cur) {
-                    let prev = self.actions[..i].iter().rev().find(|b| !b.disabled);
-                    if let Some(p) = prev {
-                        focus.focus(p.id);
-                    }
-                }
-                Outcome::Changed
-            }
-            (Some(Nav::Right), _) => {
-                if let Some(i) = self.actions.iter().position(|b| Some(b.id) == cur) {
-                    let next = self.actions[i + 1..].iter().find(|b| !b.disabled);
-                    if let Some(n) = next {
-                        focus.focus(n.id);
+                    let mut c =
+                        crate::core::list::Cursor::new(i).axis(crate::core::hit::Axis::Horizontal);
+                    if let crate::core::list::Moved::To(j) = c.apply(nav, &self.actions[..], 1) {
+                        focus.focus(self.actions[j].id);
                     }
                 }
                 Outcome::Changed

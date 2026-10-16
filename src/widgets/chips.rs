@@ -7,8 +7,11 @@ use ratatui::layout::Rect;
 use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
-use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
+use crate::core::keymap::unassigned_chord;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, lookup};
+use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::theme::{ButtonKind, Kind};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
@@ -261,7 +264,7 @@ impl ChipBar {
         }
         self.cursor = self.cursor.min(n - 1);
         let action = lookup(&self.keymap, key);
-        if matches!(key.code, KeyCode::Char(_)) && key.chord() && action.is_none() {
+        if unassigned_chord(key, &self.keymap) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
@@ -276,11 +279,8 @@ impl ChipBar {
             _ => {}
         }
         let to = match self.nav.action(key).filter(|_| key.plain()) {
-            Some(Nav::Left) => Some(self.cursor.saturating_sub(1)),
-            Some(Nav::Right) => Some((self.cursor + 1).min(n - 1)),
-            Some(Nav::Home) => Some(0),
-            Some(Nav::End) => Some(n - 1),
-            _ => None,
+            Some(nav) => self.cursor().apply(nav, self, 1).index(),
+            None => None,
         };
         if let Some(to) = to {
             self.cursor = to;
@@ -464,6 +464,22 @@ impl ChipBar {
         if let Some((menu, _)) = self.menu.as_mut() {
             menu.render(*buf.area(), buf, ctx);
         }
+    }
+}
+
+/// The chips, then the add button when there is one.
+impl RowSource for ChipBar {
+    fn len(&self) -> usize {
+        self.stops()
+    }
+    fn label(&self, i: usize) -> &str {
+        self.chips.get(i).map_or("", |c| c.label.as_str())
+    }
+}
+
+impl Navigable for ChipBar {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor).axis(Axis::Horizontal)
     }
 }
 
