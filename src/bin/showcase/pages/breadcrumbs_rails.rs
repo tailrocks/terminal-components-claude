@@ -19,7 +19,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::page_options;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -166,7 +166,7 @@ impl BreadcrumbsRailsPage {
     }
 
     /// The trail went back to `level` (0 is the outermost).
-    fn go_to_level(&mut self, level: usize, cx: &mut PageCtx) {
+    fn go_to_level(&mut self, level: usize, cx: &mut Cx) {
         let left = self.path.get(level + 1).cloned();
         self.path.truncate(level + 1);
         let cursor = left
@@ -177,7 +177,7 @@ impl BreadcrumbsRailsPage {
     }
 
     /// Open the chosen row: a folder descends, anything else reports.
-    fn open_row(&mut self, i: usize, cx: &mut PageCtx) {
+    fn open_row(&mut self, i: usize, cx: &mut Cx) {
         let Some((name, _, opens)) = entries(&self.path).get(i).copied() else {
             return;
         };
@@ -190,7 +190,7 @@ impl BreadcrumbsRailsPage {
     }
 
     /// Collapse or expand the sidebar (its rail, its button or Ctrl+B).
-    fn set_collapsed(&mut self, on: bool, cx: &mut PageCtx) {
+    fn set_collapsed(&mut self, on: bool, cx: &mut Cx) {
         self.collapsed = on;
         self.last_rail = if on { "Collapse" } else { "Expand" }.into();
         if on {
@@ -373,7 +373,7 @@ impl Page for BreadcrumbsRailsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         // Ctrl+B is the sidebar's shortcut wherever focus is on the page
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('b')

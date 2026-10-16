@@ -13,7 +13,7 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
@@ -474,7 +474,7 @@ impl GridPage {
     /// The grid's pointer events: cells, headers, seams (a drag resizes
     /// the column, a double press fits it), row numbers, its bars, its
     /// pending-bar buttons and an open editor's popup.
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let Some(r) = self.grid.route(ev) else {
             return Outcome::Ignored;
         };
@@ -601,7 +601,7 @@ impl GridPage {
             .collect();
     }
 
-    fn on_event(&mut self, ev: Option<GridAction>, cx: &mut PageCtx) {
+    fn on_event(&mut self, ev: Option<GridAction>, cx: &mut Cx) {
         match ev {
             Some(GridAction::CellChanged { .. }) => {
                 cx.status(format!("{} pending", self.grid.pending.total()))
@@ -621,14 +621,14 @@ impl GridPage {
                 if self.grid.pending.is_empty() {
                     cx.status("Nothing to save");
                 } else {
-                    cx.open(self.changes_dialog(true));
+                    cx.open_dialog(self.changes_dialog(true));
                 }
             }
             Some(GridAction::DiscardRequested) => {
                 self.grid.discard();
                 cx.status("Changes discarded");
             }
-            Some(GridAction::PreviewSql) => cx.open(self.changes_dialog(false)),
+            Some(GridAction::PreviewSql) => cx.open_dialog(self.changes_dialog(false)),
             Some(GridAction::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
             Some(GridAction::FollowReference { row, col }) => cx.status(format!(
                 "Follow {} = {} into {}",
@@ -665,7 +665,7 @@ impl GridPage {
         }
     }
 
-    fn finish_commit(&mut self, cx: &mut PageCtx) {
+    fn finish_commit(&mut self, cx: &mut Cx) {
         self.grid.set_loading(false);
         // the "server" rejects seat counts above the plan limit
         let bad = self
@@ -879,7 +879,7 @@ impl Page for GridPage {
         self.set_filters();
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

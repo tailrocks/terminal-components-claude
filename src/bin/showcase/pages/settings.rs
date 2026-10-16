@@ -5,7 +5,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::{Part, WidgetId};
@@ -276,7 +276,7 @@ impl Page for SettingsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         let out = self.handle_event(ev, cx);
         // the tab of the section with unsaved edits carries the dirty mark
         if let Some(general) = self.tabs.items.get_mut(0) {
@@ -316,7 +316,7 @@ impl Page for SettingsPage {
 }
 
 impl SettingsPage {
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         if let Some(r) = self.tabs.route(ev) {
             if click {
@@ -356,7 +356,7 @@ impl SettingsPage {
         if let Some(act) = clicked(&mut self.save, ev) {
             if act {
                 if self.dirty {
-                    cx.open(Dialog::confirm(
+                    cx.open_dialog(Dialog::confirm(
                         SAVE_DLG,
                         "Save settings?",
                         "Changing visibility or branch protection applies to every open task.",
@@ -417,7 +417,7 @@ fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
 
 impl SettingsPage {
     /// The page's events; [`Page::handle`] syncs the tabs after them.
-    fn handle_event(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle_event(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(
                 *ch,
@@ -478,7 +478,7 @@ impl SettingsPage {
                     let (o, act) = self.save.on_key(key);
                     if act {
                         if self.dirty {
-                            cx.open(Dialog::confirm(SAVE_DLG, "Save settings?", "Changing visibility or branch protection applies to every open task.", "Save"));
+                            cx.open_dialog(Dialog::confirm(SAVE_DLG, "Save settings?", "Changing visibility or branch protection applies to every open task.", "Save"));
                         } else {
                             cx.status("Nothing to save");
                         }
@@ -576,13 +576,13 @@ impl SettingsPage {
         }
     }
 
-    fn open_remove(&mut self, cx: &mut PageCtx) {
+    fn open_remove(&mut self, cx: &mut Cx) {
         let Some(i) = self.selected_member() else {
             return;
         };
         let name = self.members.rows[i][0].text.clone();
         let role = self.members.rows[i][2].text.clone();
-        cx.open(Dialog::destructive(
+        cx.open_dialog(Dialog::destructive(
             REMOVE_DLG,
             "Remove member?",
             &format!("{name} ({role}) will lose access to every task in this project immediately."),
@@ -590,15 +590,15 @@ impl SettingsPage {
         ));
     }
 
-    fn open_add(&mut self, cx: &mut PageCtx) {
+    fn open_add(&mut self, cx: &mut Cx) {
         let input = TextInput::new(ADD_DLG.sub("name"), "Variable name")
             .placeholder("API_BASE_URL")
             .required(true)
             .validator(var_validator);
-        cx.open(Dialog::prompt(ADD_DLG, "Add variable", input, "Add"));
+        cx.open_dialog(Dialog::prompt(ADD_DLG, "Add variable", input, "Add"));
     }
 
-    fn remove_selected_vars(&mut self, cx: &mut PageCtx) {
+    fn remove_selected_vars(&mut self, cx: &mut Cx) {
         let before = self.env.items.len();
         let keep: Vec<bool> = self.env.checked.iter().map(|c| !*c).collect();
         let mut items = Vec::new();

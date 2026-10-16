@@ -17,7 +17,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::page_options;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -398,11 +398,11 @@ impl Page for TextUtilitiesPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }
-        let act = |page: &mut Self, a: Option<PropsAction>, cx: &mut PageCtx| {
+        let act = |page: &mut Self, a: Option<PropsAction>, cx: &mut Cx| {
             let Some(a) = a else { return };
             let p = &page.list.props[match a {
                 PropsAction::Copy(i) | PropsAction::Activate(i) => i,

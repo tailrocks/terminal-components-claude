@@ -18,7 +18,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 
-use super::{PageCtx, PageEvent};
+use super::{Cx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
@@ -85,7 +85,7 @@ impl LayerHost {
     /// Route `ev` to the top layer. `None` when no layer is open (the page
     /// handles the event); otherwise the outcome and what the layers
     /// reported, in order.
-    pub fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Option<(Outcome, Vec<Report>)> {
+    pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Vec<Report>)> {
         if let PageEvent::Pointer(p) = ev {
             return self.pointer(p, cx);
         }
@@ -119,7 +119,7 @@ impl LayerHost {
     /// A pointer event for the top layer ([`ShellLayers::pointer`]): a
     /// click on its backdrop is an outside click under its policy, and a
     /// refused one flashes the frame.
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Option<(Outcome, Vec<Report>)> {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Option<(Outcome, Vec<Report>)> {
         let dismiss = self.layers.top()?.layer.spec().dismiss;
         let mut reports = Vec::new();
         let out = match self.layers.pointer(ev, cx.focus, cx.ring, &()) {

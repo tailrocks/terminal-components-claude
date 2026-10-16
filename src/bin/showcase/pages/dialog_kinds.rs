@@ -23,7 +23,7 @@ use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::layer_host::{LayerHost, Report};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
@@ -294,7 +294,7 @@ impl DialogKindsPage {
         self.host.open(Box::new(p), LayerTag::new("keys"), focus);
     }
 
-    fn on_report(&mut self, r: Report, cx: &mut PageCtx) {
+    fn on_report(&mut self, r: Report, cx: &mut Cx) {
         let kind = r.tag.kind;
         match r.result {
             LayerResult::Form(FormAction::Changed(field)) => {
@@ -605,7 +605,7 @@ impl Page for DialogKindsPage {
         self.host.render(buf, ctx);
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some((out, reports)) = self.host.handle(ev, cx) {
             for r in reports {
                 self.on_report(r, cx);

@@ -11,7 +11,7 @@ use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -246,7 +246,7 @@ impl EmptyErrorPage {
         self.actions.area
     }
 
-    fn on_grid(&mut self, ev: Option<GridAction>, cx: &mut PageCtx) {
+    fn on_grid(&mut self, ev: Option<GridAction>, cx: &mut Cx) {
         match ev {
             Some(GridAction::ReadOnly { reason }) => cx.status(reason),
             Some(GridAction::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
@@ -297,7 +297,7 @@ impl Page for EmptyErrorPage {
         self.menu.hides_page_focus()
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some((out, chosen)) = self.menu.handle(ev) {
             if let Some(((), i)) = chosen {
                 cx.status(match i {

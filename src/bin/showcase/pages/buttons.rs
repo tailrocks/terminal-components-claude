@@ -11,7 +11,7 @@ use ratatui::style::Style;
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -167,7 +167,7 @@ impl ButtonsPage {
         self.template.grid = states_grid(&self.opts);
     }
 
-    fn activated(&mut self, i: usize, cx: &mut PageCtx) {
+    fn activated(&mut self, i: usize, cx: &mut Cx) {
         self.clicks += 1;
         let b = &self.buttons[i];
         let msg = match b.on {
@@ -186,7 +186,7 @@ impl ButtonsPage {
     }
 
     /// A toolbar command, from its button or its shortcut.
-    fn tool(&mut self, i: usize, cx: &mut PageCtx) {
+    fn tool(&mut self, i: usize, cx: &mut Cx) {
         if !self.tools[i].can_activate() {
             return;
         }
@@ -437,7 +437,7 @@ impl ButtonsPage {
         }
     }
 
-    fn on_row_click(&mut self, id: WidgetId, cx: &mut PageCtx) -> Option<Outcome> {
+    fn on_row_click(&mut self, id: WidgetId, cx: &mut Cx) -> Option<Outcome> {
         if id == ButtonRow::more_id(ROW) {
             let names: Vec<&str> = self
                 .layout
@@ -512,7 +512,7 @@ impl Page for ButtonsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

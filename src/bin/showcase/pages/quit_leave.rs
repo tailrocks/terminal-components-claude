@@ -21,7 +21,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::page_options;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
@@ -145,7 +145,7 @@ impl QuitLeavePage {
     }
 
     /// Ask the guard to leave for `to`.
-    fn request(&mut self, to: Leave<&'static str>, cx: &mut PageCtx) {
+    fn request(&mut self, to: Leave<&'static str>, cx: &mut Cx) {
         let stakes = self.stakes();
         let strings = junie_tui::theme::Strings::DEFAULT;
         match self.guard.request(to, &stakes, &strings) {
@@ -155,13 +155,13 @@ impl QuitLeavePage {
             }
             Err(d) => {
                 self.last_request = format!("Err: {}", d.title);
-                cx.open(*d);
+                cx.open_dialog(*d);
             }
         }
     }
 
     /// The guard's dialog closed.
-    fn resolve(&mut self, r: Resolved<&'static str>, cx: &mut PageCtx) {
+    fn resolve(&mut self, r: Resolved<&'static str>, cx: &mut Cx) {
         self.last_resolved = match &r {
             Resolved::Stay => "Resolved::Stay".to_owned(),
             Resolved::Save(to) => format!("Resolved::Save({})", leave_label(to)),
@@ -408,7 +408,7 @@ impl Page for QuitLeavePage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(*ch, &mut [&mut self.title]);
         }
