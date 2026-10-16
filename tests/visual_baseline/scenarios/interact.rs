@@ -9,6 +9,7 @@
 
 use std::time::Duration;
 
+use super::{Dismiss, Pointer};
 use crate::support::{self, Case, MouseButton, Scroll, Session};
 
 /// First occurrence of `needle` as `(row, col)`, waiting until it appears.
@@ -27,6 +28,41 @@ pub fn mouse_move(s: &mut Session, col: u16, row: u16) {
 pub fn hover_over(s: &mut Session, needle: &str) {
     let (row, col) = find(s, needle);
     mouse_move(s, col + 2, row);
+}
+
+/// Apply a row's [`Pointer`] step, two cells into the target text.
+pub fn pointer(s: &mut Session, pointer: Pointer) {
+    let (needle, button) = match pointer {
+        Pointer::Hover(needle) => {
+            hover_over(s, needle);
+            return;
+        }
+        Pointer::Press(needle) => {
+            let (row, col) = find(s, needle);
+            // Held: no release follows, so the pressed state stays.
+            s.mouse_down(MouseButton::Left, col + 2, row)
+                .expect("mouse down report");
+            std::thread::sleep(Duration::from_millis(120));
+            return;
+        }
+        Pointer::Click(needle) => (needle, MouseButton::Left),
+        Pointer::RightClick(needle) => (needle, MouseButton::Right),
+    };
+    let (row, col) = find(s, needle);
+    s.click_with(button, col + 2, row).expect("click");
+    std::thread::sleep(Duration::from_millis(120));
+}
+
+/// Dismiss an open overlay: `Esc`, or a primary click on the bottom-right
+/// cell (outside any centred or anchored popup).
+pub fn dismiss(s: &mut Session, dismiss: Dismiss, cols: u16, rows: u16) {
+    match dismiss {
+        Dismiss::Esc => s.send_key("escape").expect("escape"),
+        Dismiss::Outside => s
+            .click_with(MouseButton::Left, cols - 1, rows - 1)
+            .expect("outside click"),
+    }
+    std::thread::sleep(Duration::from_millis(120));
 }
 
 /// `notches` wheel-down steps over `needle`'s cell, paced like a send step.

@@ -130,10 +130,6 @@ pub const SURFACES: &[Root] = &[
     // evidence is the third (superseded) instance row.
     Root::new("jackin/manager/tree_expanded", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "space"]),
     Root::new("jackin/manager/detail_drawer", Bin::Jackin, RETURNING, "jackin❯").sends(&["tab"]),
-    Root::new("jackin/manager/menu_open", Bin::Jackin, RETURNING, "jackin❯").sends(&["f10", "wait:New workspace…"]),
-    Root::new("jackin/manager/help_overlay", Bin::Jackin, RETURNING, "jackin❯").sends(&["?", "wait:Keyboard shortcuts"]),
-    Root::new("jackin/manager/quit_confirm", Bin::Jackin, RETURNING, "jackin❯").sends(&["ctrl-q", "wait:Quit jackin❯?"]),
-    Root::new("jackin/manager/launch_picker", Bin::Jackin, RETURNING, "jackin❯").sends(&["enter", "wait:Launch · choose Agent"]),
     Root::new("jackin/manager/new_workspace_prelude", Bin::Jackin, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]).variants(&[
         Variant::new(120, 40, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
         Variant::new(80, 24, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
@@ -146,17 +142,11 @@ pub const SURFACES: &[Root] = &[
     // preview (the terminal state reachable deterministically — see header).
     Root::new("jackin/editor/save_preview", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "down", "down", "down", "space", "ctrl-s", "wait:Save workspace"]),
     // ---------------------------------------------------------------- cockpit --
-    Root::new("jackin/cockpit/info", Bin::Jackin, LAUNCH, "jackin❯").sends(&["i", "wait:Debug info"]),
-    Root::new("jackin/cockpit/cancel_confirm", Bin::Jackin, LAUNCH, "jackin❯").sends(&["c", "wait:Cancel the launch?"]),
     Root::new("jackin/cockpit/debug", Bin::Jackin, LAUNCH, "jackin❯").sends(&["d", "wait:run-2026"]),
     // ---------------------------------------------------------------- capsule --
-    // tmux-style prefix: Ctrl+B arms it (frozen virtual clock never times it
-    // out), the next key is the command.
-    Root::new("jackin/capsule/menu", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "m", "wait:Change title…"]),
     Root::new("jackin/capsule/new_tab", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "c", "wait:New tab"]),
     Root::new("jackin/capsule/split_vertical", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "\"", "wait:Split ↓ Below"]),
     Root::new("jackin/capsule/zoom", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "z", "wait:Zoomed · z restores the layout"]),
-    Root::new("jackin/capsule/palette", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "space", "wait:Command palette"]),
     // --------------------------------------------------- accounts/usage/settings --
     // accounts-mixed boots directly into the Accounts route, so `a` / `/` act
     // immediately (no `c` prefix needed). The filter input starts non-editing:
@@ -230,10 +220,31 @@ pub const SURFACES: &[Root] = &[
 
 #[rustfmt::skip]
 pub const ELEMENTS: &[Root] = &[
+    // Pending coverage (plan §C2): hover and held press (paused fixtures).
+    Root::new("jackin/elements/menubar/file-hover", Bin::Jackin, RETURNING, "jackin❯").hover("File").pending(),
+    Root::new("jackin/elements/menubar/file-pressed", Bin::Jackin, RETURNING, "jackin❯").press("File").pending(),
+    Root::new("jackin/elements/manager/row-hover", Bin::Jackin, RETURNING, "jackin❯").hover("infra-control-plane").pending(),
+    Root::new("jackin/elements/manager/row-pressed", Bin::Jackin, RETURNING, "jackin❯").press("infra-control-plane").pending(),
+    Root::new("jackin/elements/manager/selected-hover", Bin::Jackin, RETURNING, "jackin❯").hover("Current directory").pending(),
+    Root::new("jackin/elements/manager/new-workspace-hover", Bin::Jackin, RETURNING, "jackin❯").hover("+ New workspace").pending(),
 ];
 
 #[rustfmt::skip]
 pub const OVERLAYS: &[Root] = &[
+    // Open overlays captured by existing journeys (names unchanged), with
+    // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
+    Root::new("jackin/manager/menu_open", Bin::Jackin, RETURNING, "jackin❯").sends(&["f10", "wait:New workspace…"]).dismiss_pending(),
+    Root::new("jackin/manager/help_overlay", Bin::Jackin, RETURNING, "jackin❯").sends(&["?", "wait:Keyboard shortcuts"]).dismiss_pending(),
+    Root::new("jackin/manager/quit_confirm", Bin::Jackin, RETURNING, "jackin❯").sends(&["ctrl-q", "wait:Quit jackin❯?"]).dismiss_pending(),
+    Root::new("jackin/manager/launch_picker", Bin::Jackin, RETURNING, "jackin❯").sends(&["enter", "wait:Launch · choose Agent"]).dismiss_pending(),
+    Root::new("jackin/cockpit/info", Bin::Jackin, LAUNCH, "jackin❯").sends(&["i", "wait:Debug info"]).dismiss_pending(),
+    Root::new("jackin/cockpit/cancel_confirm", Bin::Jackin, LAUNCH, "jackin❯").sends(&["c", "wait:Cancel the launch?"]).dismiss_pending(),
+    // tmux-style prefix: Ctrl+B arms it (frozen virtual clock never times it
+    // out), the next key is the command.
+    Root::new("jackin/capsule/menu", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "m", "wait:Change title…"]).dismiss_pending(),
+    Root::new("jackin/capsule/palette", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "space", "wait:Command palette"]).dismiss_pending(),
+    // Pending: the menu opened by pointer, with both dismissals.
+    Root::new("jackin/overlays/file_menu_click", Bin::Jackin, RETURNING, "jackin❯").click("File").pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
@@ -242,4 +253,9 @@ pub const JOURNEYS: &[Root] = &[
 
 #[rustfmt::skip]
 pub const RESIZES: &[Root] = &[
+    // Pending: jackin had no resize rows (plan §C2).
+    Root::new("jackin/resize/manager_from160x50", Bin::Jackin, RETURNING, "jackin❯").timeout(15_000).resize((160, 50), interact::resize_case).pending(),
+    Root::new("jackin/resize/manager_from72x20", Bin::Jackin, RETURNING, "jackin❯").timeout(15_000).resize((72, 20), interact::resize_case).pending(),
+    Root::new("jackin/resize/accounts_from160x50", Bin::Jackin, ACCOUNTS, "jackin❯").timeout(15_000).resize((160, 50), interact::resize_case).pending(),
+    Root::new("jackin/resize/accounts_from72x20", Bin::Jackin, ACCOUNTS, "jackin❯").timeout(15_000).resize((72, 20), interact::resize_case).pending(),
 ];

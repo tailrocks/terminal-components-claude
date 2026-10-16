@@ -40,3 +40,25 @@ threads-required = 2
 [profile.ci]
 fail-fast = false
 slow-timeout = { period = "60s", terminate-after = 10 }
+
+# Visual tiers (docs/visual-testing/plan.md §C1). Each scenario is one test
+# named `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`; a tier is a filter
+# on that suffix. Run with `--run-ignored only` (captures are ignored by
+# default) and shard with `--partition hash:<k>/<n>`:
+#   cargo nextest run --profile smoke  --run-ignored only [--partition hash:1/2]
+#   cargo nextest run --profile full   --run-ignored only [--partition hash:1/12]
+#   cargo nextest run --profile narrow --run-ignored only [--partition hash:1/2]
+# Pending scenarios (new coverage, the narrow tier) are listed but skip until
+# re-approved; VISUAL_FULL=1 runs them. `-E` narrows a tier further.
+
+[profile.smoke]
+# Every PR: 120x40/truecolor + 72x20/nocolor of every scenario.
+default-filter = 'binary(visual_baseline) & (test(/::120x40::truecolor$/) | test(/::72x20::nocolor$/))'
+
+[profile.full]
+# Nightly: the canonical 5 sizes x 5 colours of every scenario.
+default-filter = 'binary(visual_baseline) & test(/::(72x20|80x24|100x30|120x40|160x50)::(truecolor|256|16|none|nocolor)$/)'
+
+[profile.narrow]
+# Nightly: 40x12 and 60x18 (truecolor, nocolor) of surfaces and overlays.
+default-filter = 'binary(visual_baseline) & test(/::(40x12|60x18)::(truecolor|nocolor)$/)'
