@@ -144,3 +144,42 @@ Ctrl+C never bypasses an unsaved-changes guard or a page's own Ctrl+C handler.
 The walk transcripts were saved under `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/kb-audit/`: `kb_showcase.txt`, `kb_tablepro.txt`, `kb_tp2.txt`, `kb_holla.txt`, `kb_holla_menubar.txt`, `kb_jackin-preview.txt` and the `dump_*.txt` frame captures.
 
 The snapshot text captures are stale (dated 14 Sep, code 16 Oct), so their footers weren't used as evidence for hint mismatches.
+
+## Status (caret rules and edit entry)
+
+Section 1 "Caret rules", corrected by the standards review (keyboard focus
+selects a field's value; grid cells stay in navigation; multi-line Esc keeps
+the text; Ctrl+Tab is not advertised; readline keys stay the default).
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 1 | Fixed | d5ad6ffb6, 1da20cc01 | `EditEntry { Immediate, TypeToEdit, Explicit }` on `TextInput`, `TextArea`, `CodeEditor` and `Dialog::edit_entry`, app-wide `Theme::edit_entry` (default `Immediate`). Keyboard focus starts the edit at render with `FocusSelect::SelectAll` (single-line) or `CaretEnd` (TextArea); a click keeps the caret at the pointer; typing replaces the selection; the placeholder stays, with the caret on it, until the first character. Proof: Tab walks with a caret at every text stop in showcase Inputs, tablepro (connection form, query editor), holla arguments and jackin Name. |
+| 5 | Fixed | 1da20cc01 | The SQL editor edits on focus; typed `q`, `z`, `[`, `]` go into the SQL. Tab indents (`tab_leaves=false`), Esc is "Done", then Tab leaves; Ctrl+Tab / Ctrl+Shift+Tab leave where the terminal delivers them (never hinted). Footer: `Tab Indent · Esc Done`. |
+| 7 | Fixed | 1da20cc01 | `Dialog::prompt` and the typed acknowledgement open with the caret in the field; Esc in an immediate prompt cancels the dialog at once; a submit blocked by validation hands the caret back (`TextInput::resume`). |
+| 15 | Fixed | d5ad6ffb6 | `core::focus::request_focus_next`: Tab out of a text control asks the ring to move on; `Focus::settle` applies it after each input in all four apps; an owner that moves focus itself cancels it. jackin's Name field now leaves on one Tab. |
+| 16 | Fixed | d5ad6ffb6, 1da20cc01 | One rule: a single-line field's Esc reverts while dirty, otherwise it passes on (page Esc ladder); multi-line documents (TextArea, CodeEditor) end the edit keeping the text ("Done"), `esc_reverts` opts into reverting. Every revert is undoable. Hints use `EDIT_FIELD`, `EDIT_TEXT`, `EDIT_CODE`. |
+| 17 | Fixed | 1da20cc01 | See #5; `CodeEditor::hints` derives the hint from `tab_leaves`/`esc_reverts`. Leave = Esc then Tab; F6 pane cycling is not added here (no pane-cycle mechanism yet). |
+| 20 | Fixed | 1da20cc01 | `CodeEditor::wants_text_input` counts the find bar; tablepro `QueryTab::is_editing` uses it, so Find takes `z`, `[`, `]`. `TextInput`/`TextArea::wants_text_input` give apps the same question. |
+| 29 | Fixed | d5ad6ffb6 | `UndoStack` (typing folds by word): Ctrl+Z, Ctrl+Shift+Z. `FieldKeys::Emacs` (default; Cocoa/readline: Ctrl+A line start, Ctrl+L select all, Alt+W copy, Ctrl+W cut or word, Ctrl+Y yank, Ctrl+H delete left) and `FieldKeys::Desktop` (Ctrl+A select all, Ctrl+C/X/V, Ctrl+Y redo); `Theme::field_keys`. Copy/cut go to `core::edit::clipboard` with a `set_hook` for the system clipboard (OSC 52 or a platform crate). A multi-line paste into a single-line field flattens line breaks to spaces. Desktop's Ctrl+C reaches a field only where the app hands Ctrl+C to the page first. |
+| 36 | Deferred | — | holla's finder query keeps its own string. Its keys are pinned by parity spec HP02 (Ctrl+A select all, Ctrl+W belongs to the shell, its own undo), which differ from `FieldKeys::Emacs`, and `TextInput` draws a label and help row the finder's one-row query has no room for. Needs a one-row `TextInput` presentation and a finder key preset; the query already always shows its caret. |
+
+Also: app key routing gives a focused editable control printable keys
+before page and app letter shortcuts in all four apps (the immediate field
+is editing, so the existing `editing` gates hold; typed keys never reach
+`q`, `e`, `[`, `]`, `z`, `y`, `n`); keys a field has no use for (↑↓, PgUp,
+unbound chords) pass on from an immediate edit, so a list under a search
+field still moves. Grid and table cells are unchanged (Enter or F2 edits,
+APG grid). Dialog Enter in a form activates the default button (the typed
+confirm change, 3ec122eb2, owns that).
+
+Visual: carets and selected values now show on focused fields (intended).
+The in-repo showcase baseline was regenerated (Inputs, Forms, Text areas,
+Code editor). The approved tuiscotti smoke tier (120x40 truecolor and 72x20
+nocolor, 910 scenarios) still passes at 1da20cc01. Scenarios still pending
+re-approval (`VISUAL_FULL=1`) that stop on a text control will re-approve
+with the caret: holla `flows::args`, `flows::finder::query*`,
+`flows::query::*`, `flows::*::gate2_typed`, `flows::child::query`,
+`flows::remote::query`, `flows::task::input_*`; jackin
+`accounts::add_form*`, `accounts::filter`; showcase pages `inputs`, `forms`,
+`textareas`, `codeeditor`, `dialogs`; tablepro scenarios on the query
+editor, filter editor and connection form. They were not re-approved here.
