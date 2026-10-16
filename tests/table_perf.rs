@@ -272,6 +272,33 @@ fn measure_widgets() {
     }
     // cut cells holding long values (JSON documents, long text)
     for blob in [4_096, 65_536] {
+        // the pointer resting on a cut long value: its reveal wraps it
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 200, 55);
+        let mut g = grid_with(200, blob);
+        g.hscroll.offset = 6;
+        frame(&mut g, area, &theme);
+        let hovered = g.cell_id(3, 9);
+        let mut hover = Duration::ZERO;
+        for _ in 0..20 {
+            hover += time(|| {
+                let mut buf = Buffer::empty(area);
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let interaction = Interaction {
+                    hover: Some(hovered),
+                    ..Default::default()
+                };
+                let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+                g.render(area, &mut buf, &mut ctx, theme.surface);
+                ctx.flush_overlays(&mut buf);
+            });
+        }
+        println!(
+            "Grid {}K hover reveal 200x55: {:.1} µs per frame",
+            blob / 1024,
+            hover.as_secs_f64() * 1e6 / 20.0
+        );
         let mut g = None;
         let b = time(|| g = Some(grid_with(2_000, blob)));
         measure(

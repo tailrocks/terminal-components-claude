@@ -6,7 +6,7 @@
 //! event, and animation ticks on demand.
 //!
 //! Bursts of the same continuous input (wheel notches, pointer moves, a
-//! held navigation key) are coalesced: every event is handled, but the
+//! held navigation key, a window being resized) are coalesced: every event is handled, but the
 //! frame is drawn once for the burst instead of once per event (see
 //! [`Coalesce`]). Any other input still waits for the frame of the change
 //! before it, so an activation always sees the controls it activates.
@@ -80,6 +80,9 @@ pub struct Coalesce {
     /// PageUp/PageDown and Home/End, plain or with Shift/Ctrl. Default on.
     /// Other keys (Enter, Tab, characters) are never coalesced.
     pub key_repeat: bool,
+    /// Terminal resizes (a window being dragged): every size is handled,
+    /// the frame is drawn at the last one. Default on.
+    pub resize: bool,
     /// Most events folded into one frame; a longer burst draws an
     /// intermediate frame every this many events. Default 64.
     pub max_batch: usize,
@@ -94,6 +97,7 @@ impl Coalesce {
         wheel: false,
         pointer_moves: false,
         key_repeat: false,
+        resize: false,
         max_batch: 1,
         max_latency: Duration::ZERO,
     };
@@ -108,6 +112,7 @@ impl Coalesce {
                         && b.kind == MouseKind::Move)
             }
             (Input::Key(a), Input::Key(b)) => self.key_repeat && a == b && is_navigation(a),
+            (Input::Resize(..), Input::Resize(..)) => self.resize,
             _ => false,
         }
     }
@@ -119,6 +124,7 @@ impl Default for Coalesce {
             wheel: true,
             pointer_moves: true,
             key_repeat: true,
+            resize: true,
             max_batch: 64,
             max_latency: Duration::from_millis(16),
         }
@@ -860,6 +866,56 @@ mod tests {
         // the policy is the knob: off draws every change
         let mut app = Recorder::default();
         assert_eq!(frames(&mut app, Coalesce::OFF, vec![wheel_at(3); 60]), 60);
+    }
+
+    #[test]
+    fn a_window_drag_draws_once_at_the_last_size() {
+        #[derive(Default)]
+        struct Sized {
+            sizes: Vec<(u16, u16)>,
+        }
+        impl Application for Sized {
+            fn handle(&mut self, input: Input) -> Outcome {
+                match input {
+                    Input::Resize(w, h) => {
+                        self.sizes.push((w, h));
+                        Outcome::Changed
+                    }
+                    _ => Outcome::Ignored,
+                }
+            }
+            fn render(&mut self, _: &mut Frame) {}
+            fn should_quit(&self) -> bool {
+                false
+            }
+            fn tick_interval(&self) -> Duration {
+                Duration::from_secs(1)
+            }
+        }
+        let drag: Vec<Input> = (0..30).map(|i| Input::Resize(80 + i, 24)).collect();
+        for (policy, want) in [
+            (unbounded(), 1),
+            (
+                Coalesce {
+                    resize: false,
+                    ..unbounded()
+                },
+                30,
+            ),
+        ] {
+            let mut app = Sized::default();
+            let mut queue = std::collections::VecDeque::from(drag.clone());
+            let mut pump = InputPump::new(policy);
+            let mut frames = 0;
+            while pump.has_pending() || !queue.is_empty() {
+                if pump.drain(&mut app, || Ok(queue.pop_front())).unwrap() {
+                    frames += 1;
+                }
+            }
+            assert_eq!(frames, want);
+            assert_eq!(app.sizes.len(), 30, "every size is handled");
+            assert_eq!(app.sizes.last(), Some(&(109, 24)));
+        }
     }
 
     #[test]
