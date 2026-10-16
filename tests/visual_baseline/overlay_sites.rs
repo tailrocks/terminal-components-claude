@@ -16,9 +16,11 @@ use std::path::Path;
 use crate::determinism::{code_only, non_test};
 
 /// What opens or draws an overlay in the four apps.
-const OPENERS: [&str; 13] = [
+const OPENERS: [&str; 14] = [
     "req.menu(",
     "ModalTag::new(",
+    // a layer opened on `ShellLayers` is tagged (plan S5)
+    "LayerTag::new(",
     "Dialog::new(",
     "Dialog::confirm(",
     "Dialog::destructive(",
