@@ -33,6 +33,7 @@ use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::select::Select;
+use junie_tui::widgets::too_small::TooSmall;
 
 use crate::connections::{ConnEvent, ConnectionsScreen};
 use crate::context::{self, CtxMenu};
@@ -41,9 +42,6 @@ use crate::model::{History, SwitchTarget, SwitcherIndex};
 use crate::sql::{self, Decision};
 use crate::tabs::{Filter, FilterOp};
 use crate::workbench::{WorkTab, Workbench};
-
-pub const MIN_WIDTH: u16 = 72;
-pub const MIN_HEIGHT: u16 = 20;
 
 const STRIP_SAFE: WidgetId = WidgetId::of("strip.safe");
 const STRIP_SCOPE: WidgetId = WidgetId::of("strip.scope");
@@ -2731,29 +2729,10 @@ impl App {
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         fill(buf, area, t.base());
-        self.too_small = area.width < MIN_WIDTH || area.height < MIN_HEIGHT;
+        let too_small = TooSmall::new("TablePro");
+        self.too_small = too_small.applies(area);
         if self.too_small {
-            let lines = [
-                ("TablePro", t.title()),
-                ("Terminal too small", t.secondary()),
-                (
-                    &*format!(
-                        "Need {MIN_WIDTH}×{MIN_HEIGHT}, have {}×{}",
-                        area.width, area.height
-                    ),
-                    t.muted(),
-                ),
-                ("q Quit", t.faint()),
-            ];
-            let y0 = area.y + area.height.saturating_sub(5) / 2;
-            for (i, (text, style)) in lines.iter().enumerate() {
-                let w = junie_tui::ui::text::width(text) as u16;
-                let x = area.x + area.width.saturating_sub(w) / 2;
-                let y = y0 + i as u16 + if i == 3 { 1 } else { 0 };
-                if y < area.bottom() {
-                    buf.set_string(x, y, text, style.bg(t.canvas));
-                }
-            }
+            too_small.render(area, buf, &t);
             return;
         }
         let header = Rect::new(area.x, area.y, area.width, 1);
