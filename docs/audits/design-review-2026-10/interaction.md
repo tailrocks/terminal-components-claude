@@ -71,3 +71,36 @@ Follow-ups to the truncated-text reveal (`src/ui/reveal.rs`).
 - **Scrolling** of a reveal longer than its rows needs per-widget state:
   it works for `RevealState` owners (ListBox, PropsList). Pointer-only
   reveals (`ui::reveal::truncated`, queued cuts) end with `↓ N more`.
+
+## Status (interaction and API pass)
+
+Every finding above is either fixed (with its commit) or deferred with a
+reason. "Partial" means the shared mechanism landed and the rest is listed
+as deferred.
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 1 | Fixed | 4efbcf819, 57bd83dec | `core::pointer::PointerState` + `PointerConfig` (focus_on, double_click_ms/slop, wheel_lines, hover_refresh_after_scroll, flash_ms) drive all four apps. Scrollbars register as `hit::Bar` and the pointer grabs them (`PointerState::grabbed`, `scrollbar::apply`). Deferred: pages still pick the widget that owns a bar id by hand; moving that dispatch into the router needs a scroll-target trait on every page (35 files). |
+| 2 | Fixed | 3fb8335c7 | Landed before this pass (`Interaction::live_hover`). |
+| 3 | Fixed | 7c803a133 | Landed before this pass. |
+| 4 | Fixed | 7bcc23dd2 | Landed before this pass. |
+| 5 | Fixed | 7bf62651d, f5f60a12a, 224173846 | `ui::modal::{Modal, ModalStack, Dismissal}`; every app's outside-click table is gone and each modal declares its `Dismiss`. Forms (tablepro filter editor, jackin browser/choice/form) default to `Dismiss::ESCAPE`. |
+| 6 | Partial | cd4515ddc | `Mouse::mods`, `MouseKind::Middle` (middle click closes a tab: `Tabs::middle_click_closes`), `InputConfig::ctrl_click_secondary` (macOS default). Deferred: shift-click range and ⌘/Ctrl-click toggle in List/Grid, Alt-click `ChosenAlt` in Picker (widgets do not take mods yet). |
+| 7 | Fixed | cd4515ddc | `Mouse::wheel()` gives `(dx, dy)`; holla/jackin screens get `on_wheel_h`, modals ignore the sideways axis. Shift+wheel is one knob: `InputConfig::shift_wheel_horizontal`. |
+| 8 | Partial | d2d6896b9 | Dialog bodies take the wheel (layout pass). Deferred: routing modal wheel through `hits.hit_scroll` so only the scroll view under the pointer moves. |
+| 9 | Fixed | d2d6896b9, 0957f37f9 | Dialog bodies and code previews scroll (layout pass). |
+| 10 | Partial | 57bd83dec | Bars carry axis and track; DataGrid's thumb drags as a grab. Deferred: `on_scrollbar`/`on_scrollbar_drag` for Picker, Completion and Select. |
+| 11 | Fixed | 80be9c76f | `core::typeahead::TypeAhead`; `ListBox::type_ahead`, `Select::type_ahead` (off by default: letters keep vim/page bindings). Deferred: Tree, ContextMenu, non-searchable Picker, Table/Grid. |
+| 12 | Partial | cec8f1474, 40b1d089a | `ListBox::click(ClickAction::{Activate, Select})` with `on_click_count`; `TreeView::row_click_toggles`. Defaults keep today's activate-on-click (flows and tests rely on it). Deferred: Table `click_to_edit`, apps passing click counts to lists. |
+| 13 | Partial | cd4515ddc | Middle click only. Deferred: right-click on List/Tree/Table/Grid/Tabs (a `context_menu` provider hook), Secondary on a backdrop as outside click + re-dispatch, Shift+F10/Menu key (needs the widget's cursor-row rectangle to anchor the menu). |
+| 14 | Partial | 7bf62651d, f5f60a12a | `ModalStack` restores focus layer by layer (tablepro's single `saved_focus` is gone); `Focus::ensure_valid_with(ring, FocusFallback::{Nearest, First})`. Deferred: apps still call `ensure_valid` (First) after a frame. |
+| 15 | Deferred | | Blur commit from the router instead of render: needs a focus-change hook every app calls; input.rs/textarea.rs are also in the state-model pass. |
+| 16 | Deferred | | Type-to-edit and drag/multi-click selection in TextInput/TextArea: the click counts are available (`PointerState::count_click`), the field buffer work is not done. |
+| 17 | Partial | 326998660 | `Select::arrows(SelectArrows::{Step, Open})`, default Step (jackin keyboard flows rely on it). Deferred: wheel scrolls the viewport, hover moves the cursor. |
+| 18 | Fixed | cec8f1474 | `ListBox::skip_disabled` (default true). |
+| 19 | Fixed | bffb93bdc | Picker query caret (←/→, Ctrl+A/E, insert/backspace at caret); `Picker::delete_is_secondary` (default true). Not backed by `TextBuffer`: the query stays a public `String` owners rewrite. |
+| 20 | Partial | 71477f758 | `Dialog::accelerators(Option<(char, char)>)` (default `Some(('y','n'))`). Deferred: `return_activates: Focused|Default`. |
+| 21 | Fixed | 4efbcf819 | Clicks chain by control, cell (slop) and time; modal clicks no longer count. |
+| 22 | Fixed | 4efbcf819 | Press resets on every Down; hover refreshes after a scroll in all apps. |
+| 23 | Fixed | c4f8a7b5b | Tabs Home/End; `digit_jump`, `close_keys`, `new_key` knobs (defaults keep plain keys). |
+| 24 | Fixed | 63b9ac943 | `Interaction::pointer_focus`, `FocusVisible::{Always, KeyboardOnly}`, `Button::focus_visible` (default Always). Deferred: Tabs opting in. |
