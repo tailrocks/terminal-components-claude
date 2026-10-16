@@ -400,20 +400,29 @@ fn selected_on_row(h: &Harness, y: u16) -> String {
 }
 
 #[test]
-fn typing_into_a_type_to_edit_field_starts_editing_and_a_default_field_waits() {
+fn typing_into_a_type_to_edit_field_starts_editing_and_a_default_field_edits_on_focus() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
-    // "Search files" opts into type_to_edit
+    // "Search files" opts into EditEntry::TypeToEdit: focus alone shows no
+    // caret, the first letter starts the edit
     h.app.focus.focus(WidgetId::of("inputs").child(4));
     h.draw();
+    assert!(!h.app.pages[PageId::Inputs.index()].editing());
     h.type_str("src");
     assert!(h.app.pages[PageId::Inputs.index()].editing());
     assert!(h.text().contains("src"), "{}", h.text());
     h.key(KeyCode::Enter);
-    // "Branch" keeps today's default: letters do not start editing
+    // "Branch" keeps the library default, EditEntry::Immediate: focus
+    // starts the edit with the value selected and the caret shown, so a
+    // letter replaces the value instead of firing a page shortcut
     h.app.focus.focus(WidgetId::of("inputs").child(1));
     h.draw();
+    assert!(h.app.pages[PageId::Inputs.index()].editing());
+    assert!(
+        h.term.backend().cursor_visible(),
+        "the caret shows on focus"
+    );
     h.type_str("x");
-    assert!(!h.app.pages[PageId::Inputs.index()].editing());
+    assert!(h.app.pages[PageId::Inputs.index()].editing());
 }
 
 #[test]
@@ -504,11 +513,14 @@ fn textarea_scrolls_with_wheel_and_keys() {
     h.mouse(MouseKind::WheelDown, x, y + 2);
     assert!(!h.text().contains(" 1. Read"));
     assert!(h.text().contains(" 4. Run"));
+    // Tab lands in the area editing (EditEntry::Immediate), caret shown
     h.key(tab());
-    h.key(KeyCode::Enter);
+    assert!(h.term.backend().cursor_visible());
     for _ in 0..30 {
         h.key(KeyCode::Down);
     }
+    // the caret came in at the end of the long last line: Home shows its start
+    h.key(KeyCode::Home);
     assert!(h.text().contains("28. Run"));
     assert!(h.text().contains("ln 28/28"));
 }
@@ -595,13 +607,19 @@ fn prompt_dialog_validates_and_returns_value() {
     h.key(tab());
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Rename task"));
-    h.key(KeyCode::Enter); // start editing
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    // the prompt opens editing: caret shown, the value selected
+    assert!(
+        h.term.backend().cursor_visible(),
+        "the prompt shows its caret"
+    );
     h.key(KeyCode::Backspace);
     h.key(KeyCode::Enter); // submit empty → blocked
     assert!(h.app.dialog.is_some());
     assert!(h.text().contains("Name cannot be empty"));
-    h.key(KeyCode::Enter);
+    assert!(
+        h.term.backend().cursor_visible(),
+        "a blocked submit keeps the caret in the field"
+    );
     h.type_str("Ship it");
     h.key(KeyCode::Enter);
     assert!(h.app.dialog.is_none());
@@ -616,7 +634,8 @@ fn form_validation_blocks_submit_and_focuses_first_error() {
     let area = h.focus_area().unwrap();
     let (_, y) = h.find("Short imperative summary").unwrap();
     assert_eq!(area.y, y, "focus moved to the invalid field");
-    h.key(KeyCode::Enter);
+    // focus landing there starts the edit: typing goes straight in
+    assert!(h.term.backend().cursor_visible());
     h.type_str("Fix login bug");
     h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
@@ -1567,4 +1586,54 @@ fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
     h.mouse(MouseKind::Up, bar.x, bar.y);
     assert_eq!(thumb(&h), 0);
     assert!(h.row(y).contains("payments-platform"));
+}
+
+/// Keyboard audit #1 and #15: Tab across the Inputs page shows the caret at
+/// every immediate text stop the moment focus lands, typed letters edit the
+/// field instead of firing the shell's letter shortcuts (`q` quit, `]` next
+/// page, `i` inspector), Esc reverts the edit, and Tab leaves for the next
+/// stop through the ring.
+#[test]
+fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    let field = |i: usize| WidgetId::of("inputs").child(i);
+    // the enabled fields that follow the library default (Immediate)
+    let immediate = [field(0), field(1), field(2), field(5)];
+    let mut seen = Vec::new();
+    for _ in 0..40 {
+        h.key(tab());
+        let Some(f) = h.app.focus.current() else {
+            continue;
+        };
+        if immediate.contains(&f) {
+            assert!(
+                h.term.backend().cursor_visible(),
+                "no caret at {f:?}\n{}",
+                h.text()
+            );
+            if !seen.contains(&f) {
+                seen.push(f);
+            }
+        }
+    }
+    assert_eq!(seen.len(), immediate.len(), "every text stop was reached");
+
+    h.app.focus.focus(field(0));
+    h.draw();
+    assert!(h.term.backend().cursor_visible());
+    let page = h.app.page;
+    h.type_str("q]i");
+    assert!(!h.app.quit, "q was typed, not quit");
+    assert_eq!(h.app.page, page, "] was typed, not next page");
+    assert!(!h.app.inspector, "i was typed, not the inspector");
+    assert!(h.text().contains("q]i"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(h.text().contains("payments-gateway"), "Esc reverts");
+    h.key(tab());
+    assert_eq!(
+        h.app.focus.current(),
+        Some(field(1)),
+        "Tab lands on the next stop"
+    );
+    assert!(h.term.backend().cursor_visible());
 }

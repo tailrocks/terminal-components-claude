@@ -782,6 +782,8 @@ impl Dialog {
                 inp.commit();
             }
             if !inp.validate() {
+                // the field keeps the caret for the correction
+                inp.resume();
                 return Outcome::Changed;
             }
         }

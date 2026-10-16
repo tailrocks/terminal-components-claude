@@ -32,7 +32,7 @@ fn args() -> (H, u16, u16) {
         .id;
     h.app.go(Go::Push(Page::Args { item }));
     h.draw();
-    h.key(KeyCode::Enter);
+    // the first field is focused and editing (EditEntry::Immediate)
     for _ in 0..40 {
         h.key(KeyCode::Backspace);
     }
@@ -138,4 +138,37 @@ fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
     h.alt(KeyCode::Char('1'));
     assert_eq!(h.app.active, bg);
     assert!(h.text().contains("Background field saved"), "{}", h.text());
+}
+
+/// Keyboard audit #1 and #15: an argument field shows its caret the moment
+/// focus lands, typed letters edit it (never `q` quit), a dirty Esc
+/// reverts, Tab leaves, and coming back shows the caret again.
+#[test]
+fn argument_fields_edit_on_focus_and_tab_moves_on_with_the_caret() {
+    let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
+    let item = h
+        .app
+        .world
+        .items()
+        .into_iter()
+        .find(|item| !item.args.is_empty())
+        .expect("an argument-bearing fixture item")
+        .id;
+    h.app.go(Go::Push(Page::Args { item }));
+    h.draw();
+    assert!(h.term.backend().cursor_visible(), "caret on arrival");
+    let first = h.app.focus.current();
+    h.type_str("qq");
+    assert!(!h.app.quit && !h.app.quitting, "q was typed, not quit");
+    assert!(h.text().contains("qq"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(!h.text().contains("qq"), "a dirty Esc reverts");
+    h.key(KeyCode::Tab);
+    assert_ne!(h.app.focus.current(), first, "Tab moves on");
+    h.key(KeyCode::BackTab);
+    assert_eq!(h.app.focus.current(), first, "Shift+Tab comes back");
+    assert!(
+        h.term.backend().cursor_visible(),
+        "with the caret shown again"
+    );
 }

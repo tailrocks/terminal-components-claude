@@ -727,7 +727,6 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
     cleanup.key(KeyCode::Right);
     cleanup.key(KeyCode::Enter);
     assert!(cleanup.text().contains("gate 2 of 2"), "{}", cleanup.text());
-    cleanup.key(KeyCode::Enter);
     cleanup.type_str("TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
     cleanup.key(KeyCode::Enter);
     cleanup.key(KeyCode::Tab);

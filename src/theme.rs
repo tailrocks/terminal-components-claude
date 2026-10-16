@@ -499,7 +499,7 @@ impl Theme {
     /// The library's default [`Self::edit_entry`]: what every text control
     /// starts from before its first render reads the theme.
     pub const DEFAULT_EDIT_ENTRY: crate::core::edit::EditEntry =
-        crate::core::edit::EditEntry::Explicit;
+        crate::core::edit::EditEntry::Immediate;
 
     pub const fn junie() -> Self {
         use palette::*;

@@ -265,6 +265,29 @@ impl CodeEditor {
     pub fn entry(&self) -> EditEntry {
         self.edit_entry.unwrap_or(self.entry)
     }
+    /// The footer hints for the editor's own keys while it holds focus:
+    /// while editing, how to leave ([`crate::widgets::keyhint::EDIT_CODE`]
+    /// `Tab Indent · Esc Done` when Tab indents, `Tab Next field · Esc
+    /// Done` under [`Self::tab_leaves`]); after Esc, `Enter Edit · Tab
+    /// Next`. Ctrl+Tab is never advertised (most terminals send plain Tab).
+    pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
+        use crate::widgets::keyhint::{EDIT_CODE, hint};
+        let esc = if self.esc_reverts { "Cancel" } else { "Done" };
+        if self.find.as_ref().is_some_and(|f| f.editing) {
+            vec![hint("Enter", "Find"), hint("Esc", "Close")]
+        } else if self.editing && self.tab_leaves {
+            vec![hint("Tab", "Next field"), hint("Esc", esc)]
+        } else if self.editing && !self.esc_reverts {
+            EDIT_CODE.to_vec()
+        } else if self.editing {
+            vec![hint("Tab", "Indent"), hint("Esc", esc)]
+        } else if self.read_only {
+            vec![hint("Tab", "Next")]
+        } else {
+            vec![hint("Enter", "Edit"), hint("Tab", "Next")]
+        }
+    }
+
     /// The focused editor takes printable keys before page and app letter
     /// shortcuts: the document or its find bar is being edited.
     pub fn wants_text_input(&self) -> bool {
@@ -1166,7 +1189,9 @@ impl CodeEditor {
                 }
             }
         }
-        if self.buffer.is_empty() && !self.placeholder.is_empty() && !s.editing {
+        // the placeholder stays until the first character, with the caret on
+        // it while editing (macOS)
+        if self.buffer.is_empty() && !self.placeholder.is_empty() {
             put(
                 buf,
                 text_area.x,
@@ -1433,6 +1458,69 @@ mod tests {
             code,
             mods: KeyModifiers::NONE,
         }
+    }
+
+    /// Keyboard audit #5, #16 and #17: focus starts the edit (caret
+    /// shown), Tab indents while editing and the hint says so, Esc is
+    /// "Done" and keeps the text, then Tab leaves through the ring; with
+    /// `tab_leaves` Tab leaves at once; Ctrl+Tab always leaves; the find
+    /// bar counts as text input; `esc_reverts` restores the document.
+    #[test]
+    fn immediate_entry_tab_indents_esc_is_done_and_then_tab_leaves() {
+        let mut e = CodeEditor::new(WidgetId::of("c"), "");
+        assert!(render(&mut e, 40, 6).is_some(), "the caret shows on focus");
+        assert!(e.editing && e.wants_text_input());
+        e.on_key(&key(KeyCode::Char('q')));
+        assert_eq!(e.text(), "q", "letters edit at once");
+        let (_, ev) = e.on_key(&key(KeyCode::Tab));
+        assert_eq!(ev, Some(EditorEvent::Changed), "Tab indents");
+        assert_eq!(e.text(), "q  ");
+        let keys: Vec<&str> = e.hints().iter().map(|h| h.key).collect();
+        assert_eq!(keys, ["Tab", "Esc"], "Tab Indent · Esc Done");
+        assert_eq!(e.on_key(&key(KeyCode::Esc)).1, Some(EditorEvent::Committed));
+        assert!(!e.editing, "Esc is Done");
+        assert_eq!(e.text(), "q  ", "and keeps the text");
+        assert_eq!(
+            e.on_key(&key(KeyCode::Tab)).0,
+            Outcome::Ignored,
+            "Tab leaves"
+        );
+        assert!(!e.wants_text_input());
+        e.on_key(&key(KeyCode::Char('/')));
+        assert!(e.wants_text_input(), "the find bar takes typed keys");
+
+        let mut leaves = CodeEditor::new(WidgetId::of("l"), "x").tab_leaves(true);
+        render(&mut leaves, 40, 6);
+        assert_eq!(
+            leaves.on_key(&key(KeyCode::Tab)).1,
+            Some(EditorEvent::Leave { backward: false })
+        );
+        let mut ctrl = CodeEditor::new(WidgetId::of("t"), "x");
+        render(&mut ctrl, 40, 6);
+        let ctrl_tab = Key {
+            code: KeyCode::Tab,
+            mods: KeyModifiers::CONTROL,
+        };
+        assert_eq!(
+            ctrl.on_key(&ctrl_tab).1,
+            Some(EditorEvent::Leave { backward: false }),
+            "Ctrl+Tab leaves where the terminal delivers it"
+        );
+        let mut revert = CodeEditor::new(WidgetId::of("r"), "keep").esc_reverts(true);
+        render(&mut revert, 40, 6);
+        revert.on_key(&key(KeyCode::Char('x')));
+        revert.on_key(&key(KeyCode::Esc));
+        assert_eq!(revert.text(), "keep", "esc_reverts restores the document");
+        let undo = Key {
+            code: KeyCode::Char('z'),
+            mods: KeyModifiers::CONTROL,
+        };
+        revert.begin_edit();
+        revert.on_key(&undo);
+        assert_eq!(revert.text(), "xkeep", "and the revert is undoable");
+        let mut explicit = CodeEditor::new(WidgetId::of("x"), "a").edit_entry(EditEntry::Explicit);
+        render(&mut explicit, 40, 6);
+        assert!(!explicit.editing, "Explicit waits for Enter or i");
     }
 
     #[test]

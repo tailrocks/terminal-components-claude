@@ -1235,7 +1235,6 @@ pub(crate) fn gate2_items(h: &H) -> usize {
 /// Gate 2: type the exact phrase into the dialog and execute.
 pub(crate) fn gate2(h: &mut H, phrase: &str) {
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
-    h.key(KeyCode::Enter);
     h.type_str(phrase);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
@@ -2476,7 +2475,6 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
-    h.key(KeyCode::Enter);
     h.type_str("TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);

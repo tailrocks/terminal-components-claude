@@ -69,7 +69,6 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
             .contains("Type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm")
     );
     // a wrong phrase keeps Execute disabled
-    h.key(KeyCode::Enter);
     h.type_str("yes");
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
@@ -98,7 +97,6 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
     assert_eq!(h.app.world.plans[0].phase, PlanPhase::Review);
     // second pass executes
     h.key(KeyCode::Right);
-    h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
     h.type_str("I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox");
     h.key(KeyCode::Enter);
@@ -131,7 +129,6 @@ fn finished_runs_change_the_world_they_claimed_to() {
     h.key(KeyCode::Char('c'));
     h.key(KeyCode::Char('c'));
     h.key(KeyCode::Right);
-    h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
     h.type_str("REMOVE ALL BUILD ARTIFACTS UNDER /Users/alex/work");
     h.key(KeyCode::Enter);
@@ -549,7 +546,6 @@ fn alternatives_pin_alias_hide_and_why() {
     }
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Set an alias"), "{}", h.text());
-    h.key(KeyCode::Enter);
     h.type_str("tt");
     h.key(KeyCode::Enter);
     assert!(h.last_row().contains("Alias tt set"), "{}", h.last_row());

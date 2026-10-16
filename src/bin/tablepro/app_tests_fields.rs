@@ -79,8 +79,8 @@ fn a_double_click_in_the_filter_editor_value_selects_the_word() {
     h.ticks(3);
     h.key(KeyCode::Char('f'));
     let value = WidgetId::of("filter-editor").sub("value");
+    // Tab landing on the field starts its edit (EditEntry::Immediate)
     h.tab_to(value);
-    h.key(KeyCode::Enter);
     for _ in 0..64 {
         h.key(KeyCode::Backspace);
     }
@@ -107,8 +107,8 @@ fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
     h.ticks(3);
     h.key(KeyCode::Char('f'));
     let value = WidgetId::of("filter-editor").sub("value");
+    // Tab landing on the field starts its edit (EditEntry::Immediate)
     h.tab_to(value);
-    h.key(KeyCode::Enter);
     let editing = |h: &H| match h.app.modal() {
         Some(Modal::Filter(f)) => f.value.editing,
         _ => panic!("the filter editor is open"),
