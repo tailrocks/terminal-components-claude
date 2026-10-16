@@ -1618,3 +1618,39 @@ fn a_detail_card_that_holds_focus_shows_the_one_focus_bar() {
     assert_eq!(bars.len(), 1, "{}", h.text());
     assert!(bars[0].contains("▎Claude · Work"), "{}", h.text());
 }
+
+/// K8: when the focused control vanishes while the page stays, focus goes
+/// to its nearest neighbour, not back to the page's primary control. The
+/// Manager's Running roster exists only at 150 columns and wider: focus on
+/// it, narrow the terminal, and focus lands on the control before it.
+#[test]
+fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
+    use crate::screens::manager::{DETAIL, ROSTER, TREE};
+    use junie_tui::shell::App as _;
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 160, 50);
+    assert_eq!(h.app.route, Route::Manager);
+    assert!(h.text().contains("Running"), "{}", h.text());
+    h.tab_to(ROSTER);
+    let ring = h.app.shell.ring.reachable().to_vec();
+    let at = ring.iter().position(|&id| id == ROSTER).unwrap();
+    // the workspace card's Edit button sits just before the roster
+    let edit = DETAIL.sub("edit");
+    assert_eq!(ring[at - 1], edit, "{ring:?}");
+    let page = h.app.page_key();
+    h.resize(120, 40);
+    assert_eq!(h.app.page_key(), page, "the page stays");
+    assert!(
+        !h.app.shell.ring.contains(ROSTER),
+        "the roster is gone at 120 columns"
+    );
+    assert_eq!(h.app.shell.focus.current(), Some(edit));
+    assert_eq!(h.app.primary_focus(), Some(TREE));
+    assert_ne!(
+        h.app.shell.focus.current(),
+        h.app.primary_focus(),
+        "the old upkeep put focus back on the page's primary control"
+    );
+    let bars = focus_bars(&h);
+    assert_eq!(bars.len(), 1, "{}", h.text());
+    assert!(bars[0].contains("Edit"), "{}", h.text());
+}

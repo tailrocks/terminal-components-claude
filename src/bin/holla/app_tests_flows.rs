@@ -850,3 +850,65 @@ fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
     assert!(a.text().contains("Quit holla❯?"), "{}", a.text());
     assert!(a.app.world.live_activities() > 0);
 }
+
+/// K8: when the focused control vanishes while the page stays, focus goes
+/// to its nearest neighbour, not back to the page's primary control. A
+/// finished activity offers its follow-ups in one row; the ones that no
+/// longer fit drop out when the terminal narrows. Focus on the last one,
+/// narrow to the minimum, and focus lands on the follow-up before it.
+#[test]
+fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
+    use crate::screens::activity::VIEW;
+    use junie_tui::shell::App as _;
+    fn label(h: &H, id: junie_tui::core::id::WidgetId) -> String {
+        let r = h.app.shell.hits.area_of(id).expect("a drawn control");
+        let row = h.row(r.y);
+        row.chars()
+            .skip(r.x as usize)
+            .take(r.width as usize)
+            .collect::<String>()
+            .trim()
+            .to_owned()
+    }
+    let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
+    h.alt(KeyCode::Char('3'));
+    assert!(
+        h.text().contains("Next"),
+        "follow-ups offered: {}",
+        h.text()
+    );
+    let mut last = None;
+    for _ in 0..12 {
+        h.key(KeyCode::Tab);
+        let f = h.app.shell.focus.current().unwrap();
+        if label(&h, f).contains("Review 4 modified files") {
+            last = Some(f);
+            break;
+        }
+    }
+    let last = last.expect("Tab reaches the last follow-up");
+    let ring = h.app.shell.ring.reachable().to_vec();
+    let at = ring.iter().position(|&id| id == last).unwrap();
+    let neighbour = ring[at - 1];
+    assert!(
+        label(&h, neighbour).contains("Run tests again"),
+        "{}",
+        label(&h, neighbour)
+    );
+    let page = h.app.page_key();
+    h.resize(72, 20);
+    assert_eq!(h.app.page_key(), page, "the page stays");
+    assert!(
+        !h.app.shell.ring.contains(last),
+        "the last follow-up no longer fits: {}",
+        h.text()
+    );
+    assert_eq!(h.app.shell.focus.current(), Some(neighbour), "{}", h.text());
+    assert!(label(&h, neighbour).contains("Run tests again"));
+    assert_eq!(h.app.primary_focus(), Some(VIEW));
+    assert_ne!(
+        h.app.shell.focus.current(),
+        h.app.primary_focus(),
+        "the old upkeep put focus back on the page's primary control"
+    );
+}
