@@ -21,9 +21,11 @@ use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, hint_key};
-use junie_tui::core::scroll::{HScroll, Scrollable, ScrollbarVisibility, TrackClick};
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::core::scroll::{HScroll, ScrollbarVisibility, TrackClick};
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
@@ -348,55 +350,20 @@ impl Page for PanelsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Press { id, pos } => {
-                for p in self.panels() {
-                    if scrollbar::is_bar_of(*id, p.id) {
-                        return p.on_scrollbar(*pos);
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.nested.route(ev) {
+                    if ev.index_of(Part::ROW).is_some() && ev.is(Phase::Click) {
+                        cx.focus.focus(self.nested.id);
                     }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Click { id, .. } => {
-                if let Some(row) = self.nested.locate(*id) {
-                    cx.focus.focus(self.nested.id);
-                    return self.nested.on_click(row);
+                    return r.outcome();
                 }
                 for p in self.panels() {
-                    // the completed click after a press on a bar: the grab
-                    // ends
-                    if scrollbar::is_bar_of(*id, p.id) {
-                        p.pane().release();
-                        return Outcome::Consumed;
-                    }
-                    if p.id == *id {
-                        return Outcome::Changed;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                for p in self.panels() {
-                    if scrollbar::is_bar_of(*pressed, p.id) {
-                        return p.on_bar_drag(*pressed, *pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                if self.nested.owns(*id) {
-                    return self.nested.on_wheel(*delta);
-                }
-                for p in self.panels() {
-                    if p.owns(*id) {
-                        return p.on_wheel(*delta);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::WheelH { id, delta } => {
-                for p in self.panels() {
-                    if p.owns(*id) {
-                        return p.on_wheel_h(*delta);
+                    if let Some(r) = p.route(ev) {
+                        let o = r.outcome();
+                        if o == Outcome::Ignored && ev.is(Phase::Click) && ev.id == p.id {
+                            return Outcome::Changed;
+                        }
+                        return o;
                     }
                 }
                 Outcome::Ignored
