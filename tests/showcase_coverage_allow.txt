@@ -914,6 +914,7 @@ widgets::menu::ContextMenu::anchor | Menus page | SC16
 widgets::menu::ContextMenu::at | Menus page | SC16
 widgets::menu::ContextMenu::anchor_control | Menus page | SC16
 widgets::menu::ContextMenu::title | Menus page | SC16
+widgets::menu::ContextMenu::unknown_key | Menus page | SC16
 widgets::menu::MenuBarAction | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBarAction::Opened | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBarAction::Chosen | Chrome and Status & hints pages | SC4
@@ -935,6 +936,9 @@ widgets::menu::MenuBar::dismiss | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBar::wrap | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBar::hover_switch | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBar::brand | Chrome and Status & hints pages | SC4
+widgets::menu::UnknownKey | Menus page | SC16
+widgets::menu::UnknownKey::CloseAndPass | Menus page | SC16
+widgets::menu::UnknownKey::Swallow | Menus page | SC16
 
 # widgets::option_editor
 widgets::option_editor::OptionItem | Editable, Selection and Cell editors page options | SC13

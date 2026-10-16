@@ -257,6 +257,33 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     );
 }
 
+/// Keyboard audit #14: the shortcut letters menus show did nothing. A
+/// row's one-character shortcut chooses it; any other key the menu has no
+/// use for closes it and reaches the page (macOS).
+#[test]
+fn a_menu_rows_shortcut_chooses_it_and_other_keys_pass_through() {
+    let mut h = Harness::new(PageId::Lists);
+    assert!(h.text().contains("2 selected"));
+    let billing = h.at("src/api/billing.rs");
+    h.right_click((billing.0 + 2, billing.1));
+    let menu = h.menu(LISTS_MENU).expect("the row menu");
+    assert!(h.text_in(menu).contains("Select all"));
+    // `a` is the shortcut shown beside "Select all"
+    h.key(KeyCode::Char('a'));
+    assert!(h.menu(LISTS_MENU).is_none(), "choosing closes the menu");
+    assert!(h.text().contains("10 selected"), "{}", h.text());
+    // `?` is not the menu's: it closes and the page's help opens
+    h.right_click((billing.0 + 2, billing.1));
+    assert!(h.menu(LISTS_MENU).is_some());
+    h.key(KeyCode::Char('?'));
+    assert!(h.menu(LISTS_MENU).is_none(), "{}", h.text());
+    assert!(
+        h.text().contains("Keyboard & mouse"),
+        "help opened\n{}",
+        h.text()
+    );
+}
+
 #[test]
 fn lists_shift_f10_opens_under_the_cursor_row_and_chooses() {
     let mut h = Harness::new(PageId::Lists);

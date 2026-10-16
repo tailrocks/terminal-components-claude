@@ -1052,6 +1052,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::menu::ContextMenu::at"),
     Capability::builder("widgets::menu::ContextMenu::anchor_control"),
     Capability::builder("widgets::menu::ContextMenu::title"),
+    Capability::builder("widgets::menu::ContextMenu::unknown_key"),
     Capability::ty("widgets::menu::MenuBarAction"),
     Capability::variant("widgets::menu::MenuBarAction::Opened"),
     Capability::variant("widgets::menu::MenuBarAction::Chosen"),
@@ -1074,6 +1075,9 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::menu::MenuBar::wrap"),
     Capability::builder("widgets::menu::MenuBar::hover_switch"),
     Capability::builder("widgets::menu::MenuBar::brand"),
+    Capability::ty("widgets::menu::UnknownKey"),
+    Capability::variant("widgets::menu::UnknownKey::CloseAndPass"),
+    Capability::variant("widgets::menu::UnknownKey::Swallow"),
     // widgets::option_editor
     Capability::ty("widgets::option_editor::OptionItem"),
     Capability::builder("widgets::option_editor::OptionItem::label"),

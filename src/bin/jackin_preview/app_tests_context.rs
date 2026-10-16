@@ -462,8 +462,11 @@ fn editor_shift_f10_opens_under_the_cursor_row_and_removes() {
     let (_, y) = h.find("/workspace/payments-platform").unwrap();
     shift_f10(&mut h);
     assert_eq!(editor_menu(&h).area.y, y + 1, "under the cursor row");
-    // the menu owns the keyboard: ] does not switch tabs
+    // K14: a key the menu has no use for closes it without choosing
     h.key(KeyCode::Char(']'));
+    assert!(!h.text().contains("Make read-only"), "{}", h.text());
+    assert!(h.text().contains("/workspace/payments-platform"));
+    shift_f10(&mut h);
     assert!(h.text().contains("Make read-only"), "{}", h.text());
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
