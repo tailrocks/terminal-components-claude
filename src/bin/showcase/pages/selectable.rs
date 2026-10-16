@@ -29,13 +29,13 @@ use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::empty::{self, EmptyState};
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint;
 use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::select::Select;
-use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
+use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
 
 const ID: WidgetId = WidgetId::of("selectable");
 const DELETE: WidgetId = WidgetId::of("selectable.delete_dialog");
@@ -590,12 +590,12 @@ impl SelectablePage {
     fn table_input(
         &mut self,
         cx: &mut PageCtx,
-        f: impl FnOnce(&mut DataTable) -> (Outcome, Option<TableEvent>),
+        f: impl FnOnce(&mut DataTable) -> (Outcome, Option<TableAction>),
     ) -> Outcome {
         let guard = (self.leave_edits != LeaveEdits::Discard && self.dirty())
             .then(|| (self.table.selection.clone(), self.table.cursor_row));
         let (out, tev) = f(&mut self.table);
-        if let (Some((before, cursor)), Some(TableEvent::SelectionChanged)) = (guard, &tev) {
+        if let (Some((before, cursor)), Some(TableAction::SelectionChanged)) = (guard, &tev) {
             // commit: apply to the rows the editor holds, then load the
             // new selection (do_apply reloads from it)
             if self.leave_edits == LeaveEdits::Commit && self.edits_valid() {
@@ -628,10 +628,10 @@ impl SelectablePage {
         out
     }
 
-    fn on_table_event(&mut self, ev: Option<TableEvent>, cx: &mut PageCtx) {
+    fn on_table_event(&mut self, ev: Option<TableAction>, cx: &mut PageCtx) {
         match ev {
-            Some(TableEvent::SelectionChanged) => self.selection_changed(),
-            Some(TableEvent::Activated(src)) => self.edit_row(src, cx),
+            Some(TableAction::SelectionChanged) => self.selection_changed(),
+            Some(TableAction::Activated(src)) => self.edit_row(src, cx),
             _ => {}
         }
     }
@@ -684,7 +684,7 @@ impl SelectablePage {
                     let changed = t.selection.select_only(src, |r| !disabled.contains(&r));
                     (
                         Outcome::Changed,
-                        changed.then_some(TableEvent::SelectionChanged),
+                        changed.then_some(TableAction::SelectionChanged),
                     )
                 });
                 // the unsaved-changes question comes first when edits
@@ -818,8 +818,8 @@ impl SelectablePage {
     ) -> Outcome {
         let (out, ev) = input.on_key(key);
         match ev {
-            Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
-            Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
+            Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
+            Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
             _ => {}
         }
         out

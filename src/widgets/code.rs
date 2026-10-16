@@ -61,7 +61,7 @@ pub struct FindState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EditorEvent {
+pub enum EditorAction {
     Changed,
     CursorMoved,
     /// Esc or modified Enter from editing: back to navigation (document kept).
@@ -519,7 +519,7 @@ impl CodeEditor {
 
     // ---- keys -------------------------------------------------------
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<EditorEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<EditorAction>) {
         // find bar
         if let Some(f) = self.find.as_mut()
             && f.editing
@@ -539,7 +539,7 @@ impl CodeEditor {
                             f.editing = false;
                             self.goto_match(0);
                         }
-                        return (Outcome::Changed, Some(EditorEvent::CursorMoved));
+                        return (Outcome::Changed, Some(EditorAction::CursorMoved));
                     }
                     KeyCode::Backspace => {
                         if let Some((start, _)) = f.needle.grapheme_indices(true).next_back() {
@@ -552,7 +552,7 @@ impl CodeEditor {
                         f.needle.push(c);
                         self.refind();
                         self.goto_match(0);
-                        return (Outcome::Changed, Some(EditorEvent::CursorMoved));
+                        return (Outcome::Changed, Some(EditorAction::CursorMoved));
                     }
                     _ => return (Outcome::Consumed, None),
                 }
@@ -577,7 +577,7 @@ impl CodeEditor {
             let backward = key.code == KeyCode::BackTab || key.shift();
             self.commit();
             request_focus_next(backward);
-            return (Outcome::Changed, Some(EditorEvent::Leave { backward }));
+            return (Outcome::Changed, Some(EditorAction::Leave { backward }));
         }
         let action = self.edit_action(key);
         match action {
@@ -590,17 +590,17 @@ impl CodeEditor {
                     self.after_change();
                 }
                 self.commit();
-                (Outcome::Changed, Some(EditorEvent::Committed))
+                (Outcome::Changed, Some(EditorAction::Committed))
             }
             EditAction::Cancel | EditAction::Commit => {
                 self.commit();
-                (Outcome::Changed, Some(EditorEvent::Committed))
+                (Outcome::Changed, Some(EditorAction::Committed))
             }
             EditAction::Tab { backward } => {
                 if self.tab_leaves {
                     self.commit();
                     request_focus_next(backward);
-                    return (Outcome::Changed, Some(EditorEvent::Leave { backward }));
+                    return (Outcome::Changed, Some(EditorAction::Leave { backward }));
                 }
                 self.undo.record(&self.buffer, EditKind::Other);
                 if backward {
@@ -612,7 +612,7 @@ impl CodeEditor {
                     self.buffer.insert_str(&spaces);
                 }
                 self.after_change();
-                (Outcome::Changed, Some(EditorEvent::Changed))
+                (Outcome::Changed, Some(EditorAction::Changed))
             }
             EditAction::Apply(_) | EditAction::Insert(_) if self.read_only => {
                 (Outcome::Consumed, None)
@@ -623,14 +623,14 @@ impl CodeEditor {
                         self.buffer.move_up(false);
                     }
                     self.after_change();
-                    (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                    (Outcome::Changed, Some(EditorAction::CursorMoved))
                 }
                 KeyCode::PageDown if !key.chord() => {
                     for _ in 0..self.scroll.viewport_len.max(1) {
                         self.buffer.move_down(false);
                     }
                     self.after_change();
-                    (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                    (Outcome::Changed, Some(EditorAction::CursorMoved))
                 }
                 _ => (Outcome::Ignored, None),
             },
@@ -646,9 +646,9 @@ impl CodeEditor {
                 (
                     Outcome::Changed,
                     Some(if applied == Some(Applied::Edited) {
-                        EditorEvent::Changed
+                        EditorAction::Changed
                     } else {
-                        EditorEvent::CursorMoved
+                        EditorAction::CursorMoved
                     }),
                 )
             }
@@ -664,7 +664,7 @@ impl CodeEditor {
         }
     }
 
-    fn nav_key(&mut self, key: &Key) -> (Outcome, Option<EditorEvent>) {
+    fn nav_key(&mut self, key: &Key) -> (Outcome, Option<EditorAction>) {
         use crate::core::edit::TextCmd;
         // The text commands work outside an edit too: Select All, Copy and
         // the Cmd caret moves select and copy from a read-only document;
@@ -690,7 +690,7 @@ impl CodeEditor {
                         return (Outcome::Ignored, None);
                     }
                     self.after_change();
-                    return (Outcome::Changed, Some(EditorEvent::CursorMoved));
+                    return (Outcome::Changed, Some(EditorAction::CursorMoved));
                 }
             }
         }
@@ -702,12 +702,12 @@ impl CodeEditor {
             Some(Nav::Up) if plain => {
                 self.buffer.move_up(false);
                 self.after_change();
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             Some(Nav::Down) if plain => {
                 self.buffer.move_down(false);
                 self.after_change();
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             Some(Nav::Left) if plain => {
                 self.scroll_h(-8);
@@ -728,12 +728,12 @@ impl CodeEditor {
             Some(Nav::Home) if plain => {
                 self.buffer.move_doc_start(false);
                 self.after_change();
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             Some(Nav::End) => {
                 self.buffer.move_doc_end(false);
                 self.after_change();
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             _ if key.code == KeyCode::Esc => {
                 if self.find.is_some() {
@@ -747,7 +747,7 @@ impl CodeEditor {
         }
     }
 
-    fn on_action(&mut self, action: CodeCmd) -> (Outcome, Option<EditorEvent>) {
+    fn on_action(&mut self, action: CodeCmd) -> (Outcome, Option<EditorAction>) {
         match action {
             CodeCmd::Edit => {
                 self.begin_edit();
@@ -763,14 +763,14 @@ impl CodeEditor {
                 if let Some(b) = self.blocks().iter().rev().find(|b| b.start < cur) {
                     self.jump_to(b.start);
                 }
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             CodeCmd::NextBlock => {
                 let cur = self.buffer.cursor_offset();
                 if let Some(b) = self.blocks().iter().find(|b| b.start > cur) {
                     self.jump_to(b.start);
                 }
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             CodeCmd::Find => {
                 self.open_find();
@@ -778,11 +778,11 @@ impl CodeEditor {
             }
             CodeCmd::NextMatch => {
                 self.goto_match(1);
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             CodeCmd::PrevMatch => {
                 self.goto_match(-1);
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+                (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
         }
     }
@@ -1531,11 +1531,14 @@ mod tests {
         e.on_key(&key(KeyCode::Char('q')));
         assert_eq!(e.text(), "q", "letters edit at once");
         let (_, ev) = e.on_key(&key(KeyCode::Tab));
-        assert_eq!(ev, Some(EditorEvent::Changed), "Tab indents");
+        assert_eq!(ev, Some(EditorAction::Changed), "Tab indents");
         assert_eq!(e.text(), "q  ");
         let keys: Vec<&str> = e.hints().iter().map(|h| h.key).collect();
         assert_eq!(keys, ["Tab", "Esc"], "Tab Indent · Esc Done");
-        assert_eq!(e.on_key(&key(KeyCode::Esc)).1, Some(EditorEvent::Committed));
+        assert_eq!(
+            e.on_key(&key(KeyCode::Esc)).1,
+            Some(EditorAction::Committed)
+        );
         assert!(!e.editing, "Esc is Done");
         assert_eq!(e.text(), "q  ", "and keeps the text");
         assert_eq!(
@@ -1551,7 +1554,7 @@ mod tests {
         render(&mut leaves, 40, 6);
         assert_eq!(
             leaves.on_key(&key(KeyCode::Tab)).1,
-            Some(EditorEvent::Leave { backward: false })
+            Some(EditorAction::Leave { backward: false })
         );
         let mut ctrl = CodeEditor::new(WidgetId::of("t"), "x");
         render(&mut ctrl, 40, 6);
@@ -1561,7 +1564,7 @@ mod tests {
         };
         assert_eq!(
             ctrl.on_key(&ctrl_tab).1,
-            Some(EditorEvent::Leave { backward: false }),
+            Some(EditorAction::Leave { backward: false }),
             "Ctrl+Tab leaves where the terminal delivers it"
         );
         let mut revert = CodeEditor::new(WidgetId::of("r"), "keep").esc_reverts(true);
@@ -1615,7 +1618,7 @@ mod tests {
                 code: KeyCode::Enter,
                 mods: KeyModifiers::CONTROL
             }),
-            (Outcome::Changed, Some(EditorEvent::Committed))
+            (Outcome::Changed, Some(EditorAction::Committed))
         );
         assert!(!editor.editing);
         assert_eq!(editor.text(), "hello");

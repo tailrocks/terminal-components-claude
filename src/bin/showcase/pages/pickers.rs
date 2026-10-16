@@ -11,7 +11,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::fuzzy;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::picker::{Picker, PickerEvent, PickerItem};
+use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::tree::TreeNode;
 
@@ -238,20 +238,20 @@ impl PickersPage {
         }
     }
 
-    fn on_picker(&mut self, ev: Option<PickerEvent>, cx: &mut PageCtx) {
+    fn on_picker(&mut self, ev: Option<PickerAction>, cx: &mut PageCtx) {
         let Some((kind, _)) = self.picker.as_ref().map(|(k, _)| (*k, ())) else {
             return;
         };
         match ev {
-            Some(PickerEvent::QueryChanged) => {
+            Some(PickerAction::QueryChanged) => {
                 let Some((_, mut p)) = self.picker.take() else {
                     return;
                 };
                 self.fill(kind, &mut p);
                 self.picker = Some((kind, p));
             }
-            Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => {
-                let alt = matches!(ev, Some(PickerEvent::ChosenAlt(_)));
+            Some(PickerAction::Chosen(i)) | Some(PickerAction::ChosenAlt(i)) => {
+                let alt = matches!(ev, Some(PickerAction::ChosenAlt(_)));
                 let Some((_, p)) = self.picker.take() else {
                     return;
                 };
@@ -267,7 +267,7 @@ impl PickersPage {
                     ));
                 }
             }
-            Some(PickerEvent::Secondary(i)) => {
+            Some(PickerAction::Secondary(i)) => {
                 if kind == Kind::Tabs && i < self.tabs.len() && self.tabs.len() > 1 {
                     let name = self.tabs.remove(i);
                     cx.status(format!("Closed {name}"));
@@ -280,8 +280,8 @@ impl PickersPage {
             }
             // free text is not an item in any showcase picker: the query stays,
             // the picker stays open
-            Some(PickerEvent::Submit) => {}
-            Some(PickerEvent::NextScope) => {
+            Some(PickerAction::Submit) => {}
+            Some(PickerAction::NextScope) => {
                 if kind == Kind::Quick {
                     self.scope = match self.scope {
                         Scope::All => Scope::Files,
@@ -295,10 +295,10 @@ impl PickersPage {
                     self.picker = Some((kind, p));
                 }
             }
-            Some(PickerEvent::Cancelled) => {
+            Some(PickerAction::Cancelled) => {
                 self.picker = None;
             }
-            Some(PickerEvent::Back) | None => {}
+            Some(PickerAction::Back) | None => {}
         }
     }
 }

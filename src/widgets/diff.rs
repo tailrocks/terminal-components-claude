@@ -14,7 +14,7 @@ use crate::core::id::WidgetId;
 use crate::theme::{Glyphs, Strings, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{expand_tabs, fit, truncate, width};
-use crate::widgets::viewport::{Line, Span, TextViewport, ViewportEvent};
+use crate::widgets::viewport::{Line, Span, TextViewport, ViewportAction};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiffLineKind {
@@ -300,7 +300,7 @@ impl DiffView {
         self.term.owns(id)
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportAction>) {
         self.term.on_key(key)
     }
 

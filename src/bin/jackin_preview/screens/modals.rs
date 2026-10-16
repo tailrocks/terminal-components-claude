@@ -10,10 +10,10 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
-use junie_tui::widgets::picker::{Picker, PickerEvent, PickerItem, PickerStatus};
+use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem, PickerStatus};
 use junie_tui::widgets::progress::render_spinner;
 use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
@@ -230,7 +230,7 @@ impl FileBrowser {
             let editing = self.path.editing;
             let (o, ev) = self.path.on_key(key);
             match ev {
-                Some(InputEvent::Committed) => {
+                Some(InputAction::Committed) => {
                     if self.url_mode {
                         return self.choose(w);
                     }
@@ -245,7 +245,7 @@ impl FileBrowser {
                     }
                     return Outcome::Changed;
                 }
-                Some(InputEvent::CommittedTab { backward }) => {
+                Some(InputAction::CommittedTab { backward }) => {
                     if backward {
                         focus.prev(ring)
                     } else {
@@ -532,7 +532,7 @@ impl FileBrowser {
 // below keep this app's call sites unchanged.
 pub use junie_tui::widgets::choice_dialog::ChoiceDialog;
 pub use junie_tui::widgets::form_dialog::{
-    FieldValue, FormDialog, FormEvent, FormField, FormFieldKind as FieldKindW, FormValues,
+    FieldValue, FormAction, FormDialog, FormField, FormFieldKind as FieldKindW, FormValues,
 };
 pub use junie_tui::widgets::info_dialog::{InfoDialog, InfoResult};
 
@@ -889,7 +889,7 @@ impl OpFlow {
         }
         let (o, ev) = self.picker.on_key(key);
         match ev {
-            Some(PickerEvent::QueryChanged) => {
+            Some(PickerAction::QueryChanged) => {
                 if (self.picker.status == PickerStatus::Ready
                     || matches!(self.picker.status, PickerStatus::Error { .. }))
                     && self.last_error.is_none()
@@ -898,16 +898,16 @@ impl OpFlow {
                 }
                 Outcome::Changed
             }
-            Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => {
+            Some(PickerAction::Chosen(i)) | Some(PickerAction::ChosenAlt(i)) => {
                 self.choose(i, now_ms, op)
             }
-            Some(PickerEvent::Back) | Some(PickerEvent::Cancelled) => self.back(now_ms, op),
+            Some(PickerAction::Back) | Some(PickerAction::Cancelled) => self.back(now_ms, op),
             _ => o.or(Outcome::Consumed),
         }
     }
 
     pub fn on_click(&mut self, id: WidgetId, now_ms: i64, op: &SimOnePassword) -> Outcome {
-        if let Some(PickerEvent::Chosen(i)) = self.picker.on_click(id) {
+        if let Some(PickerAction::Chosen(i)) = self.picker.on_click(id) {
             return self.choose(i, now_ms, op);
         }
         Outcome::Consumed

@@ -18,7 +18,7 @@ use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{
-    ContextMenu, MenuBar, MenuBarEvent, MenuEvent, MenuItem, Placement,
+    ContextMenu, MenuAction, MenuBar, MenuBarAction, MenuItem, Placement,
 };
 use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
@@ -27,7 +27,7 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
-use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -1963,12 +1963,12 @@ impl Screen for CapsuleScreen {
         if let Some((tab, mut m)) = self.tab_menu.take() {
             let (o, ev) = m.on_key(key);
             match ev {
-                Some(MenuEvent::Chosen(i)) => {
+                Some(MenuAction::Chosen(i)) => {
                     let label = m.items[i].label.clone();
                     let t = if tab == usize::MAX { None } else { Some(tab) };
                     self.run_menu(&label, t, w, cx);
                 }
-                Some(MenuEvent::Dismissed) => {}
+                Some(MenuAction::Dismissed) => {}
                 None => self.tab_menu = Some((tab, m)),
             }
             return o.or(Outcome::Changed);
@@ -1976,11 +1976,11 @@ impl Screen for CapsuleScreen {
         if self.menubar.is_open() {
             let (o, ev) = self.menubar.on_key(key);
             match ev {
-                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                Some(MenuBarAction::Chosen(mi, ii)) => {
                     let label = self.menubar.menus[mi][ii].label.clone();
                     self.run_menu(&label, None, w, cx);
                 }
-                Some(MenuBarEvent::Brand) => self.open_brand_menu(),
+                Some(MenuBarAction::Brand) => self.open_brand_menu(),
                 _ => {}
             }
             return o.or(Outcome::Changed);
@@ -2073,23 +2073,23 @@ impl Screen for CapsuleScreen {
         // anchored menus take the click first
         if let Some((tab, mut m)) = self.tab_menu.take() {
             match m.on_click(id) {
-                Some(MenuEvent::Chosen(i)) => {
+                Some(MenuAction::Chosen(i)) => {
                     let label = m.items[i].label.clone();
                     let t = if tab == usize::MAX { None } else { Some(tab) };
                     self.run_menu(&label, t, w, cx);
                 }
-                Some(MenuEvent::Dismissed) | None => {}
+                Some(MenuAction::Dismissed) | None => {}
             }
             return Outcome::Changed;
         }
         if self.menubar.owns(id) {
             let (o, ev) = self.menubar.on_click(id);
             match ev {
-                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                Some(MenuBarAction::Chosen(mi, ii)) => {
                     let label = self.menubar.menus[mi][ii].label.clone();
                     self.run_menu(&label, None, w, cx);
                 }
-                Some(MenuBarEvent::Brand) => self.open_brand_menu(),
+                Some(MenuBarAction::Brand) => self.open_brand_menu(),
                 _ => {}
             }
             return o.or(Outcome::Changed);
@@ -2112,7 +2112,7 @@ impl Screen for CapsuleScreen {
         }
         if self.tabs.owns(id) {
             let (o, ev) = self.tabs.on_click(id);
-            if let Some(TabEvent::Activated(i)) = ev
+            if let Some(TabAction::Activated(i)) = ev
                 && let Some(d) = self.daemon_mut(w)
             {
                 d.active = i;

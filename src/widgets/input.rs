@@ -115,7 +115,7 @@ pub struct TextInput {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InputEvent {
+pub enum InputAction {
     Committed,
     Cancelled,
     /// Committed via Tab: caller should also move focus forward/backward.
@@ -305,7 +305,7 @@ impl TextInput {
     /// An edit in progress ends per [`Self::blur_action`] and reports the
     /// same event Enter or Esc would, so the owner's validation and save
     /// hooks run; a field that is not editing returns `None`.
-    pub fn on_blur(&mut self) -> Option<InputEvent> {
+    pub fn on_blur(&mut self) -> Option<InputAction> {
         if !self.editing {
             return None;
         }
@@ -319,11 +319,11 @@ impl TextInput {
         match self.blur_action {
             BlurAction::Commit => {
                 self.commit();
-                Some(InputEvent::Committed)
+                Some(InputAction::Committed)
             }
             BlurAction::Cancel => {
                 self.cancel();
-                Some(InputEvent::Cancelled)
+                Some(InputAction::Cancelled)
             }
             BlurAction::Keep => None,
         }
@@ -469,7 +469,7 @@ impl TextInput {
 
     /// Handle a key while focused. The caller decides what to do with the
     /// returned event (e.g. move focus on `CommittedTab`).
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputAction>) {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
@@ -502,7 +502,7 @@ impl TextInput {
                     // the edit up through the bracketed-paste path
                     if matches!(self.edit_action(key), EditAction::Paste) {
                         let o = paste_clipboard(|t| self.on_paste(t));
-                        return (o, (o == Outcome::Changed).then_some(InputEvent::Changed));
+                        return (o, (o == Outcome::Changed).then_some(InputAction::Changed));
                     }
                     if entry == EditEntry::TypeToEdit
                         && let KeyCode::Char(c) = key.code
@@ -513,7 +513,7 @@ impl TextInput {
                         self.undo.record(&self.buffer, EditKind::Typing);
                         self.buffer.insert_char(c);
                         self.live_validate();
-                        return (Outcome::Changed, Some(InputEvent::Changed));
+                        return (Outcome::Changed, Some(InputAction::Changed));
                     }
                     return (Outcome::Ignored, None);
                 }
@@ -524,7 +524,7 @@ impl TextInput {
             EditAction::Commit => {
                 self.commit();
                 self.resume();
-                (Outcome::Changed, Some(InputEvent::Committed))
+                (Outcome::Changed, Some(InputAction::Committed))
             }
             EditAction::Cancel => {
                 if entry == EditEntry::Immediate && !self.is_dirty() {
@@ -534,7 +534,7 @@ impl TextInput {
                 }
                 self.cancel();
                 self.resume();
-                (Outcome::Changed, Some(InputEvent::Cancelled))
+                (Outcome::Changed, Some(InputAction::Cancelled))
             }
             EditAction::Tab { backward } => {
                 self.commit();
@@ -542,7 +542,7 @@ impl TextInput {
                 request_focus_next(backward);
                 (
                     Outcome::Changed,
-                    Some(InputEvent::CommittedTab { backward }),
+                    Some(InputAction::CommittedTab { backward }),
                 )
             }
             // a key the field has no use for (↑↓, PgUp, an unbound chord)
@@ -554,7 +554,7 @@ impl TextInput {
             action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
                 Some(Applied::Edited) => {
                     self.live_validate();
-                    (Outcome::Changed, Some(InputEvent::Changed))
+                    (Outcome::Changed, Some(InputAction::Changed))
                 }
                 _ => (Outcome::Changed, None),
             },
@@ -1046,12 +1046,12 @@ mod tests {
             i
         };
         let mut commit = edited(BlurAction::default());
-        assert_eq!(commit.on_blur(), Some(InputEvent::Committed));
+        assert_eq!(commit.on_blur(), Some(InputAction::Committed));
         assert!(!commit.editing);
         assert_eq!(commit.text(), "");
         assert!(commit.error.is_some(), "the commit validates");
         let mut cancel = edited(BlurAction::Cancel);
-        assert_eq!(cancel.on_blur(), Some(InputEvent::Cancelled));
+        assert_eq!(cancel.on_blur(), Some(InputAction::Cancelled));
         assert!(!cancel.editing);
         assert_eq!(cancel.text(), "old");
         let mut keep = edited(BlurAction::Keep);
@@ -1129,12 +1129,15 @@ mod tests {
         assert_eq!(i.text(), "x");
         assert_eq!(
             i.on_key(&bare(KeyCode::Enter)),
-            (Outcome::Changed, Some(InputEvent::Committed))
+            (Outcome::Changed, Some(InputAction::Committed))
         );
         assert!(i.editing, "Enter applies; the field keeps the caret");
         // Esc reverts while dirty, then passes on
         i.on_key(&plain('y'));
-        assert_eq!(i.on_key(&bare(KeyCode::Esc)).1, Some(InputEvent::Cancelled));
+        assert_eq!(
+            i.on_key(&bare(KeyCode::Esc)).1,
+            Some(InputAction::Cancelled)
+        );
         assert_eq!(i.text(), "x", "reverted to the applied value");
         assert_eq!(
             i.on_key(&bare(KeyCode::Esc)),
@@ -1192,7 +1195,7 @@ mod tests {
         i.on_key(&plain('b'));
         let (o, ev) = i.on_key(&bare(KeyCode::Tab));
         assert_eq!(o, Outcome::Changed);
-        assert_eq!(ev, Some(InputEvent::CommittedTab { backward: false }));
+        assert_eq!(ev, Some(InputAction::CommittedTab { backward: false }));
         assert!(!i.editing);
         // the owner did nothing with the event: the ring still moves
         f.settle(&r);
@@ -1217,13 +1220,13 @@ mod tests {
         assert!(on.wants_text_input());
         assert_eq!(
             on.on_key(&plain('x')),
-            (Outcome::Changed, Some(InputEvent::Changed))
+            (Outcome::Changed, Some(InputAction::Changed))
         );
         assert!(on.editing);
         assert_eq!(on.text(), "abx", "typing lands at the end");
         assert_eq!(
             on.on_key(&bare(KeyCode::Esc)).1,
-            Some(InputEvent::Cancelled)
+            Some(InputAction::Cancelled)
         );
         assert_eq!(on.text(), "ab", "Esc reverts what typing started");
         let ctrl = key(
@@ -1485,7 +1488,7 @@ mod tests {
         i.render(area, &mut buf, &mut ctx, theme.canvas);
         assert!(i.editing, "render is not a blur: on_blur ends the edit");
         assert_eq!(ctx.cursor, None, "an unfocused edit shows no caret");
-        assert_eq!(i.on_blur(), Some(InputEvent::Committed));
+        assert_eq!(i.on_blur(), Some(InputAction::Committed));
     }
 
     #[test]

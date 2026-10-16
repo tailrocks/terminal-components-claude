@@ -16,7 +16,7 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::steps::{Step, StepRail, StepState};
-use junie_tui::widgets::viewport::{Span, TextViewport, ViewportEvent};
+use junie_tui::widgets::viewport::{Span, TextViewport, ViewportAction};
 
 const ID: WidgetId = WidgetId::of("terminal");
 const SEAM: WidgetId = WidgetId::of("terminal.seam");
@@ -275,13 +275,13 @@ impl Page for TerminalPage {
                 if cx.focus.is(self.term.id) {
                     let (o, ev) = self.term.on_key(key);
                     match ev {
-                        Some(ViewportEvent::Copy(text)) => {
+                        Some(ViewportAction::Copy(text)) => {
                             let n = text.lines().count();
                             self.copied = Some(text.lines().next().unwrap_or("").to_owned());
                             cx.status(format!("Copied {n} line{}", if n == 1 { "" } else { "s" }));
                             return Outcome::Changed;
                         }
-                        Some(ViewportEvent::FollowChanged(on)) => {
+                        Some(ViewportAction::FollowChanged(on)) => {
                             cx.status(if on {
                                 "Following the tail"
                             } else {

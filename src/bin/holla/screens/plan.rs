@@ -1323,7 +1323,7 @@ impl Screen for PlanTab {
                 _ => {}
             }
             let (o, ev) = self.view.on_key(key);
-            if let Some(junie_tui::widgets::viewport::ViewportEvent::Copy(text)) = ev {
+            if let Some(junie_tui::widgets::viewport::ViewportAction::Copy(text)) = ev {
                 cx.copy(text);
             }
             if o.consumed() {
