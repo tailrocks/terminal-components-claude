@@ -3,10 +3,12 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
@@ -976,19 +978,50 @@ impl ConnectionsScreen {
         v
     }
 
-    /// A press on hit `id` with the click count it starts: a field
-    /// remembers it for the drag (the second press of a double click
-    /// selects the word).
-    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-        route_press(&mut self.pointer_fields(), id, pos, count).unwrap_or(Outcome::Ignored)
-    }
-
-    pub fn on_click(
+    /// A pointer event the router resolved on the connection screen: the
+    /// form's column stacks (wheel and bar), the text fields (press, drag,
+    /// click), the tree, the form's tabs, selects and controls, and the
+    /// buttons.
+    pub fn pointer(
         &mut self,
-        id: WidgetId,
-        pos: Position,
+        ev: &PointerEvent,
         cx: &mut crate::app::Cx,
     ) -> (Outcome, Option<ConnEvent>) {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some(o) = self.form_stack_pointer(ev) {
+            return (o, None);
+        }
+        match ev.phase() {
+            Some(Phase::Click) => return self.click(ev, cx),
+            Some(Phase::Press) => {
+                if let Some(o) = route_press(&mut self.pointer_fields(), id, pos, ev.count()) {
+                    return (o, None);
+                }
+            }
+            Some(Phase::Drag) => {
+                if let Some(o) = route_drag(&mut self.pointer_fields(), id, pos) {
+                    return (o, None);
+                }
+            }
+            _ => {}
+        }
+        // the rest of a gesture (a bar press, a press-drag on a select, the
+        // wheel over the tree) goes to the widget that owns it
+        if let Some(r) = self.tree.route(ev) {
+            return (r.outcome(), None);
+        }
+        if let Some(form) = self.form.as_mut() {
+            for sel in [&mut form.engine, &mut form.group] {
+                if let Some(r) = sel.route(ev) {
+                    return (r.outcome(), None);
+                }
+            }
+        }
+        (Outcome::Ignored, None)
+    }
+
+    fn click(&mut self, ev: &PointerEvent, cx: &mut crate::app::Cx) -> (Outcome, Option<ConnEvent>) {
+        let (id, pos) = (ev.id, ev.pos());
         // the empty list's way in (mouse #6)
         if id == NEW_ID {
             self.open_new();
@@ -998,15 +1031,13 @@ impl ConnectionsScreen {
             cx.focus.focus(id);
             return (o, None);
         }
-        if let Some((row, toggle)) = self.tree.locate(id) {
-            cx.focus.focus(self.tree.id);
-            let (o, ev) = if toggle {
-                self.tree.on_click_toggle(row)
-            } else {
-                self.tree.on_click_row(row)
-            };
+        if ev.on(self.tree.id) {
+            if ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some() {
+                cx.focus.focus(self.tree.id);
+            }
+            let (o, act) = self.tree.pointer(ev).into_parts();
             self.sync_selected_from_cursor();
-            if let Some(TreeAction::Activate(path)) = ev {
+            if let Some(TreeAction::Activate(path)) = act {
                 // single click selects; Enter/second click connects
                 if let Some(i) = self.connection_at_path(&path)
                     && self.selected == Some(i)
@@ -1020,7 +1051,7 @@ impl ConnectionsScreen {
             return (o, None);
         }
         if self.form.is_some() {
-            return (self.on_form_click(id, pos, cx), None);
+            return (self.on_form_click(ev, cx), None);
         }
         let mut hit: Option<(bool, usize)> = None;
         for (b, action) in [
@@ -1042,79 +1073,38 @@ impl ConnectionsScreen {
         }
     }
 
-    /// The form column stack whose wheel region is `id`, or whose
-    /// scrollbar is `id` (`true`).
-    fn form_stack(&mut self, id: WidgetId) -> Option<(&mut StackScroll, bool)> {
+    /// The form's column stacks: a wheel scrolls one, a press or drag on
+    /// its bar moves it.
+    fn form_stack_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let form = self.form.as_mut()?;
         let tab = form.tabs.active.min(1);
         let f = ID.sub("form");
         [f.sub("left"), f.sub("right")]
             .into_iter()
             .zip(form.stacks[tab].iter_mut())
-            .find_map(|(sid, st)| {
-                if sid == id {
-                    Some((st, false))
-                } else if junie_tui::widgets::scrollbar::id_for(sid) == id {
-                    Some((st, true))
-                } else {
-                    None
-                }
-            })
+            .find_map(|(sid, st)| st.pointer(sid, ev))
     }
 
-    /// Wheel over a scroll region of the screen (the form's columns).
-    pub fn on_wheel(&mut self, id: WidgetId, delta: i32) -> Outcome {
-        match self.form_stack(id) {
-            Some((st, _)) => {
-                if st.on_wheel(delta) {
-                    Outcome::Changed
-                } else {
-                    Outcome::Consumed
-                }
-            }
-            None => Outcome::Ignored,
-        }
-    }
-
-    /// A drag after a press on `pressed` (a form column's scrollbar).
-    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if let Some(o) = route_drag(&mut self.pointer_fields(), pressed, pos) {
-            return o;
-        }
-        match self.form_stack(pressed) {
-            Some((st, true)) => {
-                st.on_scrollbar_drag(pos);
-                Outcome::Changed
-            }
-            _ => Outcome::Ignored,
-        }
-    }
-
-    fn on_form_click(&mut self, id: WidgetId, pos: Position, cx: &mut crate::app::Cx) -> Outcome {
-        if let Some((st, true)) = self.form_stack(id) {
-            st.on_scrollbar(pos);
-            return Outcome::Changed;
-        }
+    fn on_form_click(&mut self, ev: &PointerEvent, cx: &mut crate::app::Cx) -> Outcome {
+        let id = ev.id;
         let Some(form) = self.form.as_mut() else {
             return Outcome::Ignored;
         };
-        if form.tabs.locate(id).is_some() {
+        if let Some(r) = form.tabs.route(ev) {
             cx.focus.focus(form.tabs.id);
-            return form.tabs.on_click(id).0;
+            return r.outcome();
         }
         // the text fields take clicks through `pointer_fields` (on_click)
         for sel in [&mut form.engine, &mut form.group] {
-            if sel.owns(id) {
+            if let Some(r) = sel.route(ev) {
                 cx.focus.focus(sel.id);
-                return sel.on_click(id).0;
+                return r.outcome();
             }
         }
         for rg in [&mut form.env, &mut form.safe] {
-            for i in 0..rg.options.len() {
-                if rg.option_id(i) == id {
-                    cx.focus.focus(rg.id);
-                    return rg.on_click(i);
-                }
+            if let Some(r) = rg.route(ev) {
+                cx.focus.focus(rg.id);
+                return r.outcome();
             }
         }
         if form.prompt_pw.id == id {

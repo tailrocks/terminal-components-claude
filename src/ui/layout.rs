@@ -285,6 +285,35 @@ impl StackScroll {
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> bool {
         !self.track.is_empty() && crate::widgets::scrollbar::drag(self.track, pos, &mut self.scroll)
     }
+    /// A pointer event the router resolved to the stack drawn under `id`
+    /// ([`Stack::chrome`]): a vertical wheel scrolls a child per notch; a
+    /// press or a drag on its bar moves it, and the click that ends the
+    /// press is consumed. `None`: the event is not the stack's.
+    pub fn pointer(
+        &mut self,
+        id: crate::core::id::WidgetId,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::event::Outcome> {
+        use crate::core::event::Outcome;
+        use crate::core::intent::Phase;
+        if !ev.on(id) {
+            return None;
+        }
+        let moved = |b: bool| if b { Outcome::Changed } else { Outcome::Consumed };
+        if let Some((axis, delta)) = ev.wheel() {
+            return Some(match axis {
+                crate::core::hit::Axis::Vertical => moved(self.on_wheel(delta)),
+                crate::core::hit::Axis::Horizontal => Outcome::Ignored,
+            });
+        }
+        ev.bar?;
+        Some(match ev.phase() {
+            Some(Phase::Press) => moved(self.on_scrollbar(ev.pos())),
+            Some(Phase::Drag) => moved(self.on_scrollbar_drag(ev.pos())),
+            Some(Phase::Click | Phase::Release | Phase::DragEnd) => Outcome::Consumed,
+            _ => Outcome::Ignored,
+        })
+    }
     /// Show the start again (a form that reopens, a page change).
     pub fn reset(&mut self) {
         self.scroll.offset = 0;

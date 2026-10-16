@@ -9,11 +9,16 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
 use junie_tui::clock::{Clock, WallClock};
-use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
+use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::response::Response;
+use junie_tui::widgets::hintbar::HintKeys;
+use junie_tui::core::pointer::{
+    MouseTarget, PointerEvent, PointerHost, PointerParts, PointerRouter,
+};
 use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, StatusKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
@@ -148,7 +153,9 @@ pub struct App {
     pub ring: FocusRing,
     pub hits: HitRegistry,
     /// Hover, press, flash and click-count state.
-    pub pointer: PointerState,
+    pub pointer: PointerRouter,
+    /// The keys of the footer hints drawn last frame: a click replays one.
+    footer_keys: HintKeys,
     /// Context menus: which keys open one at the focused cursor, and
     /// whether a right-click moves the cursor onto its row. Default
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key).
@@ -192,7 +199,8 @@ impl App {
             focus,
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
-            pointer: PointerState::default(),
+            pointer: PointerRouter::default(),
+            footer_keys: HintKeys::default(),
             context: ContextConfig::DEFAULT,
             clock: WallClock::new(),
             layers: Layers::new(),
@@ -391,7 +399,7 @@ impl App {
                 // shortcuts first, then type-ahead (one rule, in the library)
                 junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
-            Input::Mouse(m) => self.on_mouse(m),
+            Input::Mouse(m) => PointerRouter::route(self, m),
         }
     }
 
@@ -509,14 +517,7 @@ impl App {
     /// it keeps paging toward the pointer
     /// ([`PointerState::track_repeat_due`](junie_tui::core::pointer::PointerState::track_repeat_due)).
     fn autoscroll(&mut self) -> Outcome {
-        let out = match self.pointer.autoscroll_due(self.now_ms()) {
-            Some((_, pos)) => self.on_mouse(Mouse::new(MouseKind::Drag, pos)),
-            None => Outcome::Ignored,
-        };
-        match self.pointer.track_repeat_due(self.now_ms()) {
-            Some(pos) => out.or(self.on_mouse(Mouse::new(MouseKind::Down, pos))),
-            None => out,
-        }
+        PointerRouter::tick(self)
     }
 
     fn on_tick(&mut self) -> Outcome {
@@ -538,7 +539,8 @@ impl App {
             }
             out = Outcome::Changed;
         }
-        if self.pointer.expire_flash(self.now_ms()) {
+        let now = self.now_ms();
+        if self.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
         if self.status.expire(self.clock.now()) {
@@ -2095,68 +2097,97 @@ impl App {
 
     // ---------------------------------------------------------------- mouse
 
-    /// A button release at `m.pos` over `hit`.
-    fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
-        // the top layer hears the button come up on what it pressed
-        if let (Some(top), Some(pressed)) = (self.layers.top_mut(), self.pointer.pressed) {
-            let _ = top.layer.on_release(pressed, m.pos);
-        }
-        let release = self.pointer.release(hit);
-        let Release::Click(id) = release else {
-            // a click outside the top layer: its own policy decides
-            if !self.layers.is_empty() && release == Release::Outside {
-                return self.dismiss_layer(DismissReason::OutsideClick);
-            }
-            return Outcome::Changed;
-        };
-        let now = self.now_ms();
-        self.pointer.flash(id, now);
-        // multi-clicks count on the page and in modals, by control, cell
-        // and time; fields select a word or a line with them
-        let clicks = self.pointer.count_click(id, m.pos, now);
+    /// One pointer event the router resolved: the top layer takes it
+    /// while one is open; otherwise the chrome (rail, toolbar, status
+    /// strip, footer hints) and then the screen.
+    fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if !self.layers.is_empty() {
-            // the frame's `×` means what Esc means, under the same policy
-            if id == junie_tui::ui::modal::CLOSE {
-                return self.dismiss_layer(DismissReason::CloseButton);
+            return self.layer_pointer(ev);
+        }
+        if ev.is(Phase::Secondary) {
+            return self.on_secondary(ev.pos(), ev.id);
+        }
+        if ev.is(Phase::Click) {
+            if let Some(o) = self.chrome_click(ev) {
+                return o;
             }
-            let Some(top) = self.layers.top_mut() else {
-                return Outcome::Changed;
-            };
-            let mut cx = LayerCx {
-                focus: &mut self.focus,
-                ring: &self.ring,
-                app: &(),
-            };
-            let out = top.layer.on_click_count(id, m.pos, clicks, &mut cx);
-            return self.take_layer().or(out).or(Outcome::Changed);
+        }
+        let clicks = ev.count();
+        let mut cx = Cx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: Vec::new(),
+            clicks,
+        };
+        let o = match self.screen {
+            Screen::Connections => self.connections.pointer(ev, &mut cx).0,
+            Screen::Workbench => match self.workbench.as_mut() {
+                Some(w) => w.pointer(ev, &mut cx, &mut self.history),
+                None => Outcome::Ignored,
+            },
+        };
+        let reqs = std::mem::take(&mut cx.requests);
+        let o2 = self.apply_requests(reqs);
+        o.or(o2)
+    }
+
+    /// An event while a layer is open: the frame's `×` means what Esc
+    /// means, under the layer's own policy; anything else (a popup's own
+    /// backdrop included) is the layer's.
+    fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
+        if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
+            return self.dismiss_layer(DismissReason::CloseButton);
+        }
+        let Some(top) = self.layers.top_mut() else {
+            return Outcome::Ignored;
+        };
+        let mut cx = LayerCx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            app: &(),
+        };
+        let out = top.layer.pointer(ev, &mut cx);
+        self.take_layer().or(out)
+    }
+
+    /// A click on the chrome around the screens; `None` when it is not
+    /// the chrome's.
+    fn chrome_click(&mut self, ev: &PointerEvent) -> Option<Outcome> {
+        let id = ev.id;
+        // a footer hint runs its key (mouse #1)
+        if let Some(key) = self.footer_keys.clicked(ev) {
+            return Some(self.on_key(key).or(Outcome::Changed));
         }
         // the explorer's rail and collapse button (mouse #8)
-        if let Some(ev) = self.workbench.as_ref().and_then(|w| w.rail.on_click(id)) {
-            return self.set_explorer(ev == junie_tui::widgets::rail::RailAction::Expand);
+        if let Some(r) = self.workbench.as_mut().and_then(|w| w.rail.route(ev)) {
+            return Some(match r.into_action() {
+                Some(a) => self.set_explorer(a == junie_tui::widgets::rail::RailAction::Expand),
+                None => Outcome::Consumed,
+            });
         }
         // the query toolbar (mouse #7)
         if let Some(action) = crate::tabs::toolbar_action(id) {
             use crate::tabs::ToolbarAction as A;
-            return match action {
+            return Some(match action {
                 A::Run => self.run_active(false, None),
                 A::RunAll => self.run_active(true, None),
                 A::Explain => self.run_active(false, Some(false)),
                 A::Cancel => self.cancel_running(),
-            };
+            });
         }
         if id == STRIP_HELP {
             self.open_help();
-            return Outcome::Changed;
+            return Some(Outcome::Changed);
         }
         if id == STRIP_SAFE {
             self.open_safe_mode_picker();
-            return Outcome::Changed;
+            return Some(Outcome::Changed);
         }
         if id == STRIP_SCOPE {
             self.open_switcher();
             self.scope = 2;
             self.refresh_switcher();
-            return Outcome::Changed;
+            return Some(Outcome::Changed);
         }
         // the app menu: quit, open tabs, disconnect (mouse #40)
         if id == STRIP_APP || id == STRIP_CONN {
@@ -2168,202 +2199,23 @@ impl App {
                 .hits
                 .area_of(id)
                 .map(|r| Position::new(r.x, r.y))
-                .unwrap_or(m.pos);
+                .unwrap_or(ev.pos());
             let menu = context::app_menu(name.as_deref(), at);
-            return self.open_context(menu);
+            return Some(self.open_context(menu));
         }
-        match self.screen {
-            Screen::Connections => {
-                let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
-                    requests: Vec::new(),
-                    clicks,
-                };
-                let (o, _) = self.connections.on_click(id, m.pos, &mut cx);
-                let reqs = std::mem::take(&mut cx.requests);
-                let o2 = self.apply_requests(reqs);
-                o.or(o2).or(Outcome::Changed)
-            }
-            Screen::Workbench => {
-                let Some(mut w) = self.workbench.take() else {
-                    return Outcome::Changed;
-                };
-                let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
-                    requests: Vec::new(),
-                    clicks,
-                };
-                let o = w.on_click(id, m.pos, &mut cx, &mut self.history);
-                let reqs = std::mem::take(&mut cx.requests);
-                self.workbench = Some(w);
-                let o2 = self.apply_requests(reqs);
-                o.or(o2).or(Outcome::Changed)
-            }
-        }
-    }
-
-    fn on_mouse(&mut self, m: Mouse) -> Outcome {
-        let before = self.focus.current();
-        let out = self.route_mouse(m);
-        // focus a click moved shows only on controls that want a ring
-        // after a click (FocusVisible)
-        let pressed = m.kind == MouseKind::Down && self.pointer.pressed.is_some();
-        if pressed || (m.kind == MouseKind::Up && self.focus.current() != before) {
-            self.pointer.focused_by_click();
-        }
-        out
-    }
-
-    fn route_mouse(&mut self, m: Mouse) -> Outcome {
-        self.pointer.pos = Some(m.pos);
-        match m.kind {
-            MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),
-            MouseKind::Drag => {
-                let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
-                    return Outcome::Ignored;
-                };
-                if let Some(top) = self.layers.top_mut() {
-                    return top.layer.on_drag(pressed, m.pos).or(Outcome::Consumed);
-                }
-                match self.screen {
-                    Screen::Workbench => self
-                        .workbench
-                        .as_mut()
-                        .map(|w| w.on_drag(pressed, m.pos))
-                        .unwrap_or(Outcome::Ignored),
-                    Screen::Connections => self.connections.on_drag(pressed, m.pos),
-                }
-            }
-            MouseKind::Down => {
-                let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
-                    return if !self.layers.is_empty() {
-                        Outcome::Consumed
-                    } else {
-                        self.pointer.dead_space(&mut self.focus);
-                        Outcome::Ignored
-                    };
-                };
-                // a press on a modal's own body is dead space inside it:
-                // it ends the focused field's edit in place
-                if !self.layers.is_empty() {
-                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
-                }
-                let count = self.pointer.press_count(id, m.pos, self.now_ms());
-                if let Some(top) = self.layers.top_mut() {
-                    let _ = top.layer.on_press(id, m.pos, count);
-                    return Outcome::Changed;
-                }
-                if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
-                    self.focus.focus(id);
-                }
-                // a field remembers the press for the drag; the second
-                // press of a double click selects the word
-                match self.screen {
-                    Screen::Connections => self.connections.on_press(id, m.pos, count),
-                    Screen::Workbench => self
-                        .workbench
-                        .as_mut()
-                        .map_or(Outcome::Ignored, |w| w.on_press(id, m.pos, count)),
-                }
-                .or(Outcome::Changed)
-            }
-            MouseKind::Up => {
-                // a pass-through backdrop: the click closes the popup and
-                // then lands on what is beneath it, as a click of its own
-                let (hit, beneath) = self.pointer.on_up(&self.hits, m.pos);
-                let out = self.on_release(m, hit);
-                match beneath {
-                    Some(below) => {
-                        self.pointer.press(below);
-                        out.or(self.on_release(m, Some(below)))
-                    }
-                    None => out,
-                }
-            }
-            MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
-                SecondaryRoute::Nothing => {
-                    if self.layers.is_empty() {
-                        Outcome::Ignored
-                    } else {
-                        Outcome::Consumed
-                    }
-                }
-                SecondaryRoute::Swallowed => Outcome::Consumed,
-                SecondaryRoute::Target(id) => self.on_secondary(m, id),
-                // a right-click outside an open popup: the click on its
-                // backdrop closes it (through its own Dismiss policy, as a
-                // primary click would), then the control beneath gets the
-                // secondary click at the same spot
-                SecondaryRoute::Outside { backdrop, reopen } => {
-                    self.pointer.press(backdrop);
-                    let out = self.on_release(m, Some(backdrop));
-                    match reopen {
-                        Some(id) => out.or(self.on_secondary(m, id)),
-                        None => out,
-                    }
-                }
-            },
-            MouseKind::SecondaryDrag => self.pointer.on_secondary_drag(&self.hits, m.pos),
-            // press, drag onto a context-menu row, release: the release
-            // chooses it, delivered as a click on the row
-            MouseKind::SecondaryUp => match self.pointer.on_secondary_up(&self.hits, m.pos) {
-                Some(id) => {
-                    self.pointer.press(id);
-                    self.on_release(m, Some(id))
-                }
-                None => Outcome::Ignored,
-            },
-            MouseKind::Middle => Outcome::Ignored,
-            MouseKind::WheelUp
-            | MouseKind::WheelDown
-            | MouseKind::WheelLeft
-            | MouseKind::WheelRight => {
-                let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
-                let delta = self.pointer.wheel_delta(m.kind);
-                // a sideways wheel reaches only horizontal scrolling
-                if let Some(top) = self.layers.top_mut() {
-                    return if horizontal {
-                        top.layer.on_wheel_h(delta, m.pos)
-                    } else {
-                        top.layer.on_wheel(delta, m.pos)
-                    };
-                }
-                // the notch goes to the innermost owner that takes it: a
-                // field (or its label) inside a scrolling form passes it on
-                let mut out = Outcome::Ignored;
-                for id in self.hits.scroll_stack(m.pos) {
-                    out = match self.screen {
-                        Screen::Workbench => self
-                            .workbench
-                            .as_mut()
-                            .map(|w| w.on_wheel(id, delta, horizontal))
-                            .unwrap_or(Outcome::Ignored),
-                        Screen::Connections if !horizontal => self.connections.on_wheel(id, delta),
-                        Screen::Connections => Outcome::Ignored,
-                    };
-                    if out != Outcome::Ignored {
-                        break;
-                    }
-                }
-                // rows move under a still pointer: re-resolve hover next frame
-                self.pointer.scrolled(m.pos, out);
-                out
-            }
-        }
+        None
     }
 
     /// A secondary click on `id`: the context menu of the row, cell or tab
     /// under it. Dialogs and the other overlays have none.
-    fn on_secondary(&mut self, m: Mouse, id: WidgetId) -> Outcome {
+    fn on_secondary(&mut self, pos: Position, id: WidgetId) -> Outcome {
         if !self.layers.is_empty() {
             return Outcome::Consumed;
         }
         let cfg = self.context;
         let menu = match (self.screen, self.workbench.as_mut()) {
             (Screen::Workbench, Some(w)) => {
-                let menu = context::on_secondary(w, &cfg, id, m.pos);
+                let menu = context::on_secondary(w, &cfg, id, pos);
                 // the detail pane follows the row the menu is about
                 if let Some(WorkTab::History(h)) = w.active_tab_mut() {
                     h.sync_detail_public(&self.history);
@@ -2371,7 +2223,7 @@ impl App {
                 menu
             }
             (Screen::Connections, _) => {
-                context::on_secondary_connections(&mut self.connections, &cfg, id, m.pos)
+                context::on_secondary_connections(&mut self.connections, &cfg, id, pos)
             }
             _ => None,
         };
@@ -2654,7 +2506,42 @@ impl App {
             None
         };
         let status = self.status.entry().map(|(text, _, kind)| (text, *kind));
-        keyhint::render_status(area, buf, &t, &hints, badge, status);
+        let (_, spots) = keyhint::render_status_at(area, buf, &t, &hints, badge, status);
+        self.footer_keys = HintKeys::register(ctx, buf, &hints, spots);
+    }
+}
+
+
+impl PointerHost for App {
+    fn pointer_parts(&mut self) -> PointerParts<'_> {
+        PointerParts {
+            router: &mut self.pointer,
+            hits: &self.hits,
+            focus: &mut self.focus,
+            ring: &self.ring,
+        }
+    }
+
+    fn layer_open(&self) -> bool {
+        !self.layers.is_empty()
+    }
+
+    fn now_ms(&self) -> u64 {
+        App::now_ms(self)
+    }
+
+    fn deliver(&mut self, ev: &PointerEvent) -> Response<()> {
+        self.deliver_pointer(ev).into()
+    }
+
+    /// A click outside the top layer: its own policy decides.
+    fn outside(&mut self, _pos: Position) -> Response<()> {
+        if self.layers.is_empty() {
+            return Response::changed();
+        }
+        self.dismiss_layer(DismissReason::OutsideClick)
+            .or(Outcome::Changed)
+            .into()
     }
 }
 
