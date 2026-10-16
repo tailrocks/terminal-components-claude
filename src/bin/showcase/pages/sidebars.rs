@@ -5,13 +5,15 @@ use ratatui::style::Color;
 
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use ratatui::layout::Position;
 
 const ID: WidgetId = WidgetId::of("sidebars");
 
@@ -56,10 +58,6 @@ impl NavList {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.id.item_of(id, Part::ROW, 0..self.items.len())
-    }
-
     pub fn width(&self) -> u16 {
         if self.collapsed { 6 } else { 24 }
     }
@@ -96,32 +94,42 @@ impl NavList {
         self.scroll.ensure_visible(row);
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
+    fn scrolled(moved: bool) -> Outcome {
+        if moved {
             Outcome::Changed
         } else {
             Outcome::Consumed
         }
     }
 
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track, pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
+    /// A pointer event on the list, its rows or its scrollbar; `None` when
+    /// the event is not the list's.
+    pub fn pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
+        let bar = scrollbar::id_for(self.id);
+        if !ev.on(self.id) && ev.id != bar {
+            return None;
         }
-    }
-
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track, pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
+        if let Some((axis, delta)) = ev.wheel() {
+            return Some(match axis {
+                Axis::Vertical => Self::scrolled(self.scroll.scroll_by(delta as isize)),
+                Axis::Horizontal => Outcome::Ignored,
+            });
         }
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+        if ev.id == bar {
+            return Some(match ev.phase() {
+                Some(Phase::Click) => {
+                    Self::scrolled(scrollbar::press(self.track, ev.pos(), &mut self.scroll))
+                }
+                Some(Phase::Drag) => {
+                    Self::scrolled(scrollbar::drag(self.track, ev.pos(), &mut self.scroll))
+                }
+                _ => Outcome::Ignored,
+            });
+        }
+        match ev.index_of(Part::ROW) {
+            Some(i) if ev.is(Phase::Click) && i < self.items.len() => Some(self.on_click(i)),
+            _ => Some(Outcome::Ignored),
+        }
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
@@ -482,20 +490,18 @@ impl Page for SidebarsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } if self.nav.owns(*id) => self.nav.on_wheel(*delta),
-            PageEvent::Drag { pressed, pos } if *pressed == scrollbar::id_for(self.nav.id) => {
-                self.nav.on_scrollbar_drag(*pos)
-            }
-            PageEvent::Click { id, pos } if *id == scrollbar::id_for(self.nav.id) => {
-                self.nav.on_scrollbar(*pos)
-            }
-            PageEvent::Click { id, .. } => {
-                if let Some(i) = self.nav.locate(*id) {
+            PageEvent::Pointer(ev) => {
+                if ev.on(self.nav.id) && ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                     cx.focus.focus(self.nav.id);
-                    return self.nav.on_click(i);
                 }
-                if *id == self.collapse.id {
-                    if self.collapse.on_click() {
+                if let Some(o) = self.nav.pointer(ev) {
+                    return o;
+                }
+                if let Some(r) = self.collapse.route(ev) {
+                    if !ev.is(Phase::Click) {
+                        return r.outcome();
+                    }
+                    if r.into_action().is_some() {
                         self.nav.collapsed = !self.nav.collapsed;
                     }
                     return Outcome::Changed;
