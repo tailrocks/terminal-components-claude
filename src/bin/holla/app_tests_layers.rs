@@ -37,10 +37,10 @@ fn outside(h: &H) -> Position {
         .top_as::<ContextMenu>()
         .map(|m| backdrop_id(m.id));
     let picker = h.app.modals.top_as::<Picker>().map(|p| backdrop_id(p.id));
-    for y in 0..h.app.size.1 {
-        for x in 0..h.app.size.0 {
+    for y in 0..h.app.shell.size.1 {
+        for x in 0..h.app.shell.size.0 {
             let p = Position::new(x, y);
-            let hit = h.app.hits.hit(p);
+            let hit = h.app.shell.hits.hit(p);
             if hit.is_none() || hit == menu || (picker.is_some() && hit == picker) {
                 return p;
             }
@@ -62,19 +62,19 @@ fn now(h: &H) -> u64 {
 /// and gate 2: each is the kind of layer named. Each returns the focus the
 /// layer opened over.
 fn open_text(h: &mut H) -> Option<WidgetId> {
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::F(1));
     assert!(h.app.modals.top_as::<TextModal>().is_some(), "{}", h.text());
     owner
 }
 fn open_picker(h: &mut H) -> Option<WidgetId> {
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.ctrl(KeyCode::Char('g'));
     assert!(h.app.modals.top_as::<Picker>().is_some(), "{}", h.text());
     owner
 }
 fn open_menu(h: &mut H) -> Option<WidgetId> {
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.alt(KeyCode::Enter);
     assert!(
         h.app.modals.top_as::<ContextMenu>().is_some(),
@@ -87,7 +87,7 @@ fn open_dialog(h: &mut H) -> Option<WidgetId> {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('c'));
     h.key(KeyCode::Right);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::Enter);
     assert!(h.app.modals.top_as::<Dialog>().is_some(), "{}", h.text());
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
@@ -144,7 +144,7 @@ fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
             let owner = open_it(&mut h);
             assert!(owner.is_some(), "{name}: a focused page control");
             assert_eq!(h.app.modals.len(), 1, "{name}");
-            assert_ne!(h.app.focus.current(), owner, "{name}: focus moved in");
+            assert_ne!(h.app.shell.focus.current(), owner, "{name}: focus moved in");
             match how {
                 "esc" => {
                     h.key(KeyCode::Esc);
@@ -154,7 +154,7 @@ fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
                     if !light {
                         assert_eq!(h.app.modals.len(), 1, "{name}: refused");
                         assert_eq!(
-                            h.app.pointer.flashing(now(&h)),
+                            h.app.shell.pointer.flashing(now(&h)),
                             Some(SURFACE),
                             "{name}: the refusal flashes the frame"
                         );
@@ -168,15 +168,15 @@ fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
                 h.text()
             );
             assert_eq!(
-                h.app.focus.current(),
+                h.app.shell.focus.current(),
                 owner,
                 "{name}/{how}: K9 focus back on the owner"
             );
             assert!(
-                h.app.ring.contains(owner.unwrap()),
+                h.app.shell.ring.contains(owner.unwrap()),
                 "{name}/{how}: the owner is reachable again"
             );
-            assert!(!h.app.quit, "{name}/{how}");
+            assert!(!h.app.shell.quit, "{name}/{how}");
         }
     }
 }
@@ -187,8 +187,13 @@ fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
 fn the_dialog_close_button_cancels_and_restores_focus() {
     let mut h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 120, 40);
     open_dialog(&mut h);
-    let x = h.app.hits.area_of(CLOSE).expect("the dialog shows its ×");
-    assert_eq!(h.app.hits.hit(x.as_position()), Some(CLOSE));
+    let x = h
+        .app
+        .shell
+        .hits
+        .area_of(CLOSE)
+        .expect("the dialog shows its ×");
+    assert_eq!(h.app.shell.hits.hit(x.as_position()), Some(CLOSE));
     // the page under the dialog had focus when gate 2 opened
     let owner = h.app.modals.top().map(|e| e.owner);
     assert_eq!(owner, Some(h.app.active));
@@ -199,8 +204,8 @@ fn the_dialog_close_button_cancels_and_restores_focus() {
         "× resolves to Cancel\n{}",
         h.text()
     );
-    let focus = h.app.focus.current().expect("focus restored");
-    assert!(h.app.ring.contains(focus), "focus is on the page");
+    let focus = h.app.shell.focus.current().expect("focus restored");
+    assert!(h.app.shell.ring.contains(focus), "focus is on the page");
 }
 
 /// A prompt with typed text refuses a backdrop click (nothing typed is
@@ -210,7 +215,7 @@ fn the_dialog_close_button_cancels_and_restores_focus() {
 #[test]
 fn a_refused_outside_click_on_a_dirty_prompt_flashes_the_frame() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     // the alternatives menu ends with Pin · Alias · Hide · Reset · Why
     h.alt(KeyCode::Enter);
     h.key(KeyCode::End);
@@ -228,11 +233,11 @@ fn a_refused_outside_click_on_a_dirty_prompt_flashes_the_frame() {
         .area;
     let corner = |h: &H| h.term.backend().buffer()[(area.x, area.y)].fg;
     let calm = corner(&h);
-    assert_eq!(h.app.pointer.flashing(now(&h)), None);
+    assert_eq!(h.app.shell.pointer.flashing(now(&h)), None);
     click_outside(&mut h);
     assert_eq!(h.app.modals.len(), 1, "typed text survives\n{}", h.text());
     assert_eq!(
-        h.app.pointer.flashing(now(&h)),
+        h.app.shell.pointer.flashing(now(&h)),
         Some(SURFACE),
         "the refusal flashes the frame"
     );
@@ -240,7 +245,7 @@ fn a_refused_outside_click_on_a_dirty_prompt_flashes_the_frame() {
     // Esc still cancels, and focus is back on the finder
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty(), "{}", h.text());
-    assert_eq!(h.app.focus.current(), owner);
+    assert_eq!(h.app.shell.focus.current(), owner);
 }
 
 /// The jump picker's query edits are events: the picker stays open and
@@ -251,7 +256,7 @@ fn picker_events_keep_the_jump_picker_open() {
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 40, 120, 40);
     open(&mut h, "Browse ~/work/site");
     h.ticks(8);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::Char('g'));
     assert!(h.app.modals.top_as::<Picker>().is_some(), "{}", h.text());
     let before = h.app.modals.top_as::<Picker>().unwrap().items.len();
@@ -275,7 +280,7 @@ fn picker_events_keep_the_jump_picker_open() {
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty(), "{}", h.text());
-    assert_eq!(h.app.focus.current(), owner, "K9");
+    assert_eq!(h.app.shell.focus.current(), owner, "K9");
 }
 
 // ------------------------------------------------------------ blur fan-out
@@ -333,15 +338,15 @@ fn every_open_layer_hears_focus_changes_not_only_dialogs() {
             Box::new(probe),
             LayerTag::new("probe"),
             app.active,
-            &mut app.focus,
+            &mut app.shell.focus,
         );
     }
     h.draw();
     lower.borrow_mut().clear();
     upper.borrow_mut().clear();
-    assert_eq!(h.app.focus.current(), Some(PROBE_B.child(0)));
+    assert_eq!(h.app.shell.focus.current(), Some(PROBE_B.child(0)));
     h.key(KeyCode::Tab);
-    assert_eq!(h.app.focus.current(), Some(PROBE_B.child(1)));
+    assert_eq!(h.app.shell.focus.current(), Some(PROBE_B.child(1)));
     let moved = FocusChange {
         from: PROBE_B.child(0),
         to: Some(PROBE_B.child(1)),

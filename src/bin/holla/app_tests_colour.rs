@@ -153,12 +153,12 @@ fn a_checked_cleanup_category_is_primary_until_its_list_has_focus() {
     h.app.go(Go::Push(Page::Cleanup { category: None }));
     h.draw();
     let list = crate::screens::cleanup::LIST;
-    assert_eq!(h.app.focus.current(), Some(list));
+    assert_eq!(h.app.shell.focus.current(), Some(list));
     // a category with every eligible item checked
     let (x, y) = h.find("[✓]").unwrap_or_else(|| panic!("{}", h.text()));
     assert_eq!(cell(&h, x + 1, y).fg, t.accent, "focused: {}", h.row(y));
     h.key(KeyCode::Tab);
-    assert_ne!(h.app.focus.current(), Some(list));
+    assert_ne!(h.app.shell.focus.current(), Some(list));
     assert_eq!(cell(&h, x + 1, y).fg, t.text_primary, "{}", h.row(y));
 }
 

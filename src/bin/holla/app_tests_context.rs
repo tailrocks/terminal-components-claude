@@ -3,6 +3,7 @@
 //! row, and a right click outside an open menu (or the menu bar) closes it
 //! and opens the new menu at the new spot.
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 
@@ -40,6 +41,7 @@ pub(crate) fn right_click(h: &mut H, x: u16, y: u16) {
 /// The open menu's rectangle (its hit area as drawn this frame).
 pub(crate) fn menu_area(h: &H, id: WidgetId) -> Rect {
     h.app
+        .shell
         .hits
         .area_of(id)
         .unwrap_or_else(|| panic!("menu {id:?} not drawn\n{}", h.text()))
@@ -79,12 +81,12 @@ fn a_right_click_on_a_finder_row_opens_its_alternatives_at_the_pointer() {
     let mut h = rust();
     let (x, y) = h.find("Run tests").unwrap();
     right_click(&mut h, x + 12, y);
-    assert_eq!(h.app.focus.current(), Some(ALTERNATIVES));
+    assert_eq!(h.app.shell.focus.current(), Some(ALTERNATIVES));
     assert_at_pointer(&h, ALTERNATIVES, x + 12, y);
     assert!(h.text().contains("Arguments…"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty());
-    assert_eq!(h.app.focus.current(), Some(finder::FINDER));
+    assert_eq!(h.app.shell.focus.current(), Some(finder::FINDER));
 }
 
 #[test]
@@ -93,13 +95,23 @@ fn shift_f10_and_the_menu_key_open_the_finder_alternatives_below_the_cursor_row(
     let (x, y) = h.find("Run tests").unwrap();
     h.click(x + 2, y);
     shift_f10(&mut h);
-    assert_eq!(h.app.focus.current(), Some(ALTERNATIVES), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(ALTERNATIVES),
+        "{}",
+        h.text()
+    );
     assert_below_row(&h, ALTERNATIVES, y);
     assert!(!h.app.menu_open(), "Shift+F10 never opens the menu bar");
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.focus.current(), Some(finder::FINDER));
+    assert_eq!(h.app.shell.focus.current(), Some(finder::FINDER));
     menu_key(&mut h);
-    assert_eq!(h.app.focus.current(), Some(ALTERNATIVES), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(ALTERNATIVES),
+        "{}",
+        h.text()
+    );
     assert_below_row(&h, ALTERNATIVES, y);
     h.key(KeyCode::Esc);
     // plain F10 still opens the menu bar
@@ -112,10 +124,11 @@ fn a_right_click_outside_an_open_menu_closes_it_and_opens_the_new_menu_there() {
     let mut h = rust();
     let (x, y) = h.find("Run tests").unwrap();
     // every finder row on screen, from the frame before the menu opens
-    let rows: Vec<u16> = (1..h.app.size.1 - 2)
+    let rows: Vec<u16> = (1..h.app.shell.size.1 - 2)
         .filter(|&yy| yy != y)
         .filter(|&yy| {
             h.app
+                .shell
                 .hits
                 .hit(Position::new(x + 12, yy))
                 .is_some_and(|hit| (0..200).any(|i| finder::FINDER.child(i) == hit))
@@ -133,7 +146,7 @@ fn a_right_click_outside_an_open_menu_closes_it_and_opens_the_new_menu_there() {
     // the open menu's own backdrop is what is under the pointer now
     right_click(&mut h, ox, oy);
     assert_eq!(h.app.modals.len(), 1, "one menu, not a stack");
-    assert_eq!(h.app.focus.current(), Some(ALTERNATIVES));
+    assert_eq!(h.app.shell.focus.current(), Some(ALTERNATIVES));
     assert_at_pointer(&h, ALTERNATIVES, ox, oy);
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty());
@@ -148,7 +161,12 @@ fn a_right_click_while_the_menu_bar_is_open_closes_it_and_opens_the_row_menu() {
     // to the right of the open File menu
     right_click(&mut h, x + 60, y);
     assert!(!h.app.menu_open(), "the menu bar closed\n{}", h.text());
-    assert_eq!(h.app.focus.current(), Some(ALTERNATIVES), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(ALTERNATIVES),
+        "{}",
+        h.text()
+    );
     assert_at_pointer(&h, ALTERNATIVES, x + 60, y);
 }
 
@@ -173,7 +191,7 @@ fn files_rows_open_their_actions_at_the_pointer_and_under_the_cursor() {
     let mut h = files_page();
     let (fx, fy) = h.find("big.log").expect("file row");
     right_click(&mut h, fx + 6, fy);
-    assert_eq!(h.app.focus.current(), Some(FILE_ACTIONS));
+    assert_eq!(h.app.shell.focus.current(), Some(FILE_ACTIONS));
     assert_at_pointer(&h, FILE_ACTIONS, fx + 6, fy);
     let copies = h.app.clipboard_gen;
     choose(&mut h, "Copy full path");
@@ -188,13 +206,18 @@ fn files_rows_open_their_actions_at_the_pointer_and_under_the_cursor() {
         "{:?}",
         h.app.world.clipboard
     );
-    assert_eq!(h.app.focus.current(), Some(files::LIST));
+    assert_eq!(h.app.shell.focus.current(), Some(files::LIST));
 
     shift_f10(&mut h);
-    assert_eq!(h.app.focus.current(), Some(FILE_ACTIONS), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(FILE_ACTIONS),
+        "{}",
+        h.text()
+    );
     assert_below_row(&h, FILE_ACTIONS, fy);
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.focus.current(), Some(files::LIST));
+    assert_eq!(h.app.shell.focus.current(), Some(files::LIST));
 }
 
 #[test]
@@ -204,7 +227,12 @@ fn a_right_press_dragged_onto_a_menu_row_chooses_it_on_release() {
     // a plain right-click: the release where it opened chooses nothing
     right_click(&mut h, x + 12, y);
     h.mouse(MouseKind::SecondaryUp, x + 12, y);
-    assert_eq!(h.app.focus.current(), Some(ALTERNATIVES), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(ALTERNATIVES),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Esc);
     // press, drag onto a row, release: the row is chosen
     right_click(&mut h, x + 12, y);
@@ -214,7 +242,7 @@ fn a_right_press_dragged_onto_a_menu_row_chooses_it_on_release() {
     h.mouse(MouseKind::SecondaryDrag, ax + 1, ay);
     h.mouse(MouseKind::SecondaryUp, ax + 1, ay);
     assert_ne!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(ALTERNATIVES),
         "the menu closed on the choice\n{}",
         h.text()
