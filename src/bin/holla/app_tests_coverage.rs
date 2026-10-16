@@ -452,6 +452,21 @@ fn outside(h: &H) -> Position {
     );
 }
 
+/// Row of the scrollbar thumb drawn in the 1-column `track`.
+pub(crate) fn thumb_row(h: &H, track: ratatui::layout::Rect) -> u16 {
+    let text = h.text();
+    let lines: Vec<&str> = text.lines().collect();
+    (track.y..track.bottom())
+        .find(|&y| {
+            lines.get(y as usize).is_some_and(|l| {
+                l.chars()
+                    .nth(track.x as usize)
+                    .is_some_and(|c| c.to_string() == scrollbar::THUMB)
+            })
+        })
+        .unwrap_or_else(|| panic!("no thumb in {track:?}\n{text}"))
+}
+
 fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
     let id = scrollbar::id_for(container);
     let track = h
@@ -460,8 +475,13 @@ fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
         .area_of(id)
         .unwrap_or_else(|| panic!("{name}: missing scrollbar hit\n{}", h.text()));
     let before = h.text();
-    let start = track.y + track.height.min(3).saturating_sub(1);
-    let bottom = track.bottom().saturating_sub(1);
+    // a press on the bare track pages (TrackClick::Page); the thumb drags
+    let start = thumb_row(h, track);
+    let bottom = if start < track.y + track.height / 2 {
+        track.bottom().saturating_sub(1)
+    } else {
+        track.y
+    };
     h.mouse(MouseKind::Down, track.x, start);
     assert_eq!(
         h.mouse(MouseKind::Drag, track.x, bottom),

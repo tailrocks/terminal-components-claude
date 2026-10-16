@@ -502,7 +502,7 @@ impl TextViewport {
             htrack: Rect::ZERO,
             h_held: false,
             track_click: None,
-            v_click: TrackClick::Jump,
+            v_click: TrackClick::Page,
             nav: NavKeys::DEFAULT,
             keymap: ViewportAction::default_keymap(),
         }
@@ -2705,7 +2705,8 @@ mod tests {
 
     #[test]
     fn the_horizontal_bar_clicks_and_drags() {
-        let mut v = wide();
+        // Jump: the thumb lands under the pointer and the drag carries it
+        let mut v = wide().horizontal(HScroll::default().track_click(TrackClick::Jump));
         render(&mut v, 30, 6);
         // the bar stops short of the vertical bar's corner, which stays blank
         assert_eq!(v.htrack, Rect::new(0, 5, 29, 1));
@@ -2718,8 +2719,8 @@ mod tests {
             Outcome::Changed
         );
         assert_eq!(v.hscroll.offset, 0);
-        // TrackClick::Page on the horizontal axis pages
-        let mut v = wide().horizontal(HScroll::default().track_click(TrackClick::Page));
+        // TrackClick::Page (the default) on the horizontal axis pages
+        let mut v = wide();
         render(&mut v, 30, 6);
         v.on_scrollbar(Position::new(28, 5));
         assert_eq!(v.hscroll.offset, v.hscroll.viewport_len);
@@ -2727,14 +2728,15 @@ mod tests {
 
     #[test]
     fn the_vertical_bar_can_page_on_a_track_click() {
-        let mut v =
-            TextViewport::with_lines(WidgetId::of("v"), lines(50)).track_click(TrackClick::Page);
+        // the default pages (macOS, Windows)
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(50));
         v.follow = false;
         render(&mut v, 30, 10);
         assert_eq!(v.on_scrollbar(Position::new(29, 9)), Outcome::Changed);
         assert_eq!(v.scroll.offset, 10, "one page down, not a jump to the end");
-        // the default jumps
-        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(50));
+        // Jump stays available
+        let mut v =
+            TextViewport::with_lines(WidgetId::of("v"), lines(50)).track_click(TrackClick::Jump);
         v.follow = false;
         render(&mut v, 30, 10);
         v.on_scrollbar(Position::new(29, 9));

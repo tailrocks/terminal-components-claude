@@ -96,6 +96,14 @@ pub struct PointerConfig {
     /// rows or columns as the pointer is past the edge, so the speed
     /// scales with the distance.
     pub autoscroll_ms: u64,
+    /// A press held on the bare track of a scrollbar keeps paging toward
+    /// the pointer (macOS, Windows): the app tick replays the press until
+    /// the thumb reaches the pointer or the button goes up.
+    pub track_repeat: bool,
+    /// How long a track press is held before it starts repeating.
+    pub track_repeat_delay_ms: u64,
+    /// How often a held track press repeats once it does.
+    pub track_repeat_ms: u64,
 }
 
 impl PointerConfig {
@@ -111,6 +119,9 @@ impl PointerConfig {
         end_edit_on_dead_space: true,
         autoscroll: true,
         autoscroll_ms: 50,
+        track_repeat: true,
+        track_repeat_delay_ms: 300,
+        track_repeat_ms: 50,
     };
 
     pub const fn focus_on(mut self, focus_on: FocusOn) -> Self {
@@ -151,6 +162,17 @@ impl PointerConfig {
     }
     pub const fn autoscroll_ms(mut self, ms: u64) -> Self {
         self.autoscroll_ms = ms;
+        self
+    }
+    /// See [`Self::track_repeat`].
+    pub const fn track_repeat(mut self, on: bool) -> Self {
+        self.track_repeat = on;
+        self
+    }
+    /// See [`Self::track_repeat_delay_ms`] and [`Self::track_repeat_ms`].
+    pub const fn track_repeat_ms(mut self, delay_ms: u64, every_ms: u64) -> Self {
+        self.track_repeat_delay_ms = delay_ms;
+        self.track_repeat_ms = every_ms;
         self
     }
 }
@@ -204,6 +226,8 @@ pub struct PointerState {
     edge: Option<ratatui::layout::Rect>,
     /// When the last autoscroll step ran.
     autoscroll_at: Option<u64>,
+    /// When the held track press repeats next ([`Self::track_repeat_due`]).
+    track_at: Option<u64>,
     /// Where the held secondary press started (until its release).
     secondary_at: Option<Position>,
     /// The release resolved by [`Self::on_up`] completes the held press on
@@ -265,9 +289,14 @@ impl PointerState {
     pub fn on_down(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
         let hit = hits.hit(pos);
+        let grab = hit.and_then(|id| hits.bar(id));
+        // a track-press replay ([`Self::track_repeat_due`]) keeps its clock
+        if grab.is_none() || grab != self.grab || hit != self.pressed {
+            self.track_at = None;
+        }
         self.pressed = hit;
         self.hover = hit;
-        self.grab = hit.and_then(|id| hits.bar(id));
+        self.grab = grab;
         self.edge = hit.and_then(|_| hits.autoscroll_at(pos));
         self.autoscroll_at = None;
         hit
@@ -299,6 +328,40 @@ impl PointerState {
         }
         self.autoscroll_at = Some(now_ms);
         Some((self.pressed?, self.pos?))
+    }
+
+    /// A press is held on a scrollbar with the pointer still over its
+    /// track, and [`PointerConfig::track_repeat`] is on: the app ticks at
+    /// [`PointerConfig::track_repeat_ms`] while this holds.
+    pub fn track_repeating(&self) -> bool {
+        self.config.track_repeat
+            && self.pressed.is_some()
+            && matches!((self.grab, self.pos), (Some(bar), Some(pos)) if bar.track.contains(pos))
+    }
+
+    /// On an app tick: the pointer position at which to replay the held
+    /// scrollbar press (a button down there) when a repeat is due: first
+    /// after [`PointerConfig::track_repeat_delay_ms`], then every
+    /// [`PointerConfig::track_repeat_ms`]. Replayed on the bare track the
+    /// press pages again toward the pointer; once the thumb is under the
+    /// pointer the replay grabs it and the paging stops, as on macOS.
+    /// The clock starts at the first tick after the press.
+    pub fn track_repeat_due(&mut self, now_ms: u64) -> Option<Position> {
+        if !self.track_repeating() {
+            self.track_at = None;
+            return None;
+        }
+        match self.track_at {
+            None => {
+                self.track_at = Some(now_ms + self.config.track_repeat_delay_ms);
+                None
+            }
+            Some(at) if now_ms >= at => {
+                self.track_at = Some(now_ms + self.config.track_repeat_ms);
+                self.pos
+            }
+            Some(_) => None,
+        }
     }
 
     /// A press on `id` while a modal is open: when `id` is the modal's own
@@ -444,6 +507,7 @@ impl PointerState {
         let accepted = self.accepted.take();
         self.grab = None;
         self.edge = None;
+        self.track_at = None;
         match hit {
             None if pressed.is_none() => Release::Outside,
             None => Release::Cancelled,
@@ -675,6 +739,48 @@ mod tests {
         assert_eq!(p.grabbed(), Some(bar));
         assert_eq!(p.release(Some(bar.id)), Release::Click(bar.id));
         assert_eq!(p.grabbed(), None);
+    }
+
+    #[test]
+    fn a_held_track_press_repeats_after_a_delay_while_over_the_track() {
+        use super::super::hit::{Axis, Bar};
+        let mut h = HitRegistry::default();
+        let owner = WidgetId::of("list");
+        let bar = Bar {
+            id: owner.sub("scrollbar"),
+            owner,
+            axis: Axis::Vertical,
+            track: Rect::new(9, 0, 1, 10),
+        };
+        h.register_bar(bar);
+        let mut p = PointerState::default();
+        let at = Position::new(9, 8);
+        p.on_down(&h, at);
+        assert!(p.track_repeating());
+        assert_eq!(p.track_repeat_due(1000), None, "the clock starts");
+        assert_eq!(p.track_repeat_due(1299), None, "not before the delay");
+        assert_eq!(p.track_repeat_due(1300), Some(at));
+        // the replayed press keeps the clock
+        p.on_down(&h, at);
+        assert_eq!(p.track_repeat_due(1340), None);
+        assert_eq!(p.track_repeat_due(1350), Some(at));
+        // off the track: no repeat
+        p.on_drag(&h, Position::new(3, 8));
+        assert!(!p.track_repeating());
+        assert_eq!(p.track_repeat_due(2000), None);
+        p.on_drag(&h, at);
+        assert_eq!(
+            p.track_repeat_due(2000),
+            None,
+            "back on it: the delay again"
+        );
+        // the release ends it
+        p.release(Some(bar.id));
+        assert!(!p.track_repeating());
+        // switched off
+        let mut off = PointerState::new(PointerConfig::DEFAULT.track_repeat(false));
+        off.on_down(&h, at);
+        assert!(!off.track_repeating());
     }
 
     #[test]

@@ -104,7 +104,7 @@ impl StepRail {
             track: Rect::ZERO,
             numbered: true,
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             nav: NavKeys::DEFAULT,
         }
     }

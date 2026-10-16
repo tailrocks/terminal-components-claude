@@ -268,6 +268,10 @@ impl App {
         if self.pointer.autoscrolling() {
             return Duration::from_millis(self.pointer.config.autoscroll_ms);
         }
+        // a press held on a scrollbar track pages on the tick
+        if self.pointer.track_repeating() {
+            return Duration::from_millis(self.pointer.config.track_repeat_ms);
+        }
         if self.animating() {
             Duration::from_millis(80)
         } else {
@@ -441,10 +445,17 @@ impl App {
 
     /// A due edge-autoscroll step replays the held drag at the pointer
     /// ([`PointerState::autoscroll_due`](junie_tui::core::pointer::PointerState::autoscroll_due)).
+    /// A due track repeat replays the press held on a scrollbar track, so
+    /// it keeps paging toward the pointer
+    /// ([`PointerState::track_repeat_due`](junie_tui::core::pointer::PointerState::track_repeat_due)).
     fn autoscroll(&mut self) -> Outcome {
-        match self.pointer.autoscroll_due(self.now_ms()) {
+        let out = match self.pointer.autoscroll_due(self.now_ms()) {
             Some((_, pos)) => self.on_mouse(Mouse::new(MouseKind::Drag, pos)),
             None => Outcome::Ignored,
+        };
+        match self.pointer.track_repeat_due(self.now_ms()) {
+            Some(pos) => out.or(self.on_mouse(Mouse::new(MouseKind::Down, pos))),
+            None => out,
         }
     }
 

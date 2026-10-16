@@ -197,7 +197,7 @@ impl CodeEditor {
         buffer.move_doc_start(false);
         Self {
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             id,
             buffer,
             editing: false,
