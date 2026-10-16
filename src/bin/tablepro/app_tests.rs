@@ -203,6 +203,38 @@ fn explorer_opens_table_and_grid_navigates() {
 }
 
 #[test]
+fn grid_footer_names_the_keys_its_keymap_binds() {
+    use junie_tui::core::keymap::KeyBinding;
+    use junie_tui::widgets::grid::GridAction;
+    let mut h = H::connected(120, 40);
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    let footer = |h: &H| h.text().lines().last().unwrap_or_default().to_owned();
+    assert!(footer(&h).contains("s Sort"), "{}", footer(&h));
+    match h.app.workbench.as_mut().unwrap().active_tab_mut() {
+        Some(WorkTab::Table(t)) => {
+            t.grid.keymap = vec![(KeyBinding::char('o'), GridAction::Sort)];
+        }
+        _ => unreachable!(),
+    }
+    h.draw();
+    let text = footer(&h);
+    assert!(
+        text.contains("o Sort"),
+        "the remapped key is advertised: {text}"
+    );
+    assert!(!text.contains("s Sort"), "{text}");
+    assert!(
+        !text.contains("Filter"),
+        "an unbound action has no hint: {text}"
+    );
+    h.key(KeyCode::Char('o'));
+    assert!(h.text().contains("sort "), "the remapped key sorts");
+}
+
+#[test]
 fn sort_and_filter_on_table_tab() {
     let mut h = H::connected(120, 40);
     for _ in 0..5 {
