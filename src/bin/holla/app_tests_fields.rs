@@ -2,6 +2,7 @@
 //! counts, press and drag reach the argument fields (interaction #16).
 
 use junie_tui::core::event::MouseKind;
+use junie_tui::runtime::Application;
 use junie_tui::theme::Theme;
 use ratatui::crossterm::event::KeyCode;
 
@@ -123,8 +124,9 @@ fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
     assert_ne!(h.app.active, bg);
     h.app.tabs[bg].stack.push(Box::new(BlurReporter));
     // the background field loses focus: its blur hook reports
-    h.app.focus.focus(REPORTED);
+    h.app.shell.focus.focus(REPORTED);
     h.app
+        .shell
         .focus
         .focus(junie_tui::core::id::WidgetId::of("test.elsewhere"));
     h.app.handle(junie_tui::core::event::Input::Tick);
@@ -157,16 +159,19 @@ fn argument_fields_edit_on_focus_and_tab_moves_on_with_the_caret() {
     h.app.go(Go::Push(Page::Args { item }));
     h.draw();
     assert!(h.term.backend().cursor_visible(), "caret on arrival");
-    let first = h.app.focus.current();
+    let first = h.app.shell.focus.current();
     h.type_str("qq");
-    assert!(!h.app.quit && !h.app.quitting, "q was typed, not quit");
+    assert!(
+        !h.app.shell.quit && !h.app.quitting,
+        "q was typed, not quit"
+    );
     assert!(h.text().contains("qq"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("qq"), "a dirty Esc reverts");
     h.key(KeyCode::Tab);
-    assert_ne!(h.app.focus.current(), first, "Tab moves on");
+    assert_ne!(h.app.shell.focus.current(), first, "Tab moves on");
     h.key(KeyCode::BackTab);
-    assert_eq!(h.app.focus.current(), first, "Shift+Tab comes back");
+    assert_eq!(h.app.shell.focus.current(), first, "Shift+Tab comes back");
     assert!(
         h.term.backend().cursor_visible(),
         "with the caret shown again"

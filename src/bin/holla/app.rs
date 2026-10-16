@@ -6,18 +6,17 @@
 
 use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
-use junie_tui::core::hit::HitRegistry;
+use junie_tui::core::focus::FocusChange;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{
     MouseTarget, PointerEvent, PointerHost, PointerParts, PointerRouter,
 };
 use junie_tui::core::response::Response;
-use junie_tui::shell::StatusLine;
+use junie_tui::shell::{self, PageKey, Shell};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
-use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, Layer, LayerCx, LayerPointer, LayerTag, Taken,
 };
@@ -27,7 +26,7 @@ use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
-use junie_tui::widgets::hintbar::{HintBar, HintKeys, HintLayer};
+use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarAction, MenuItem, Placement};
@@ -37,7 +36,6 @@ use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
 use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
 use junie_tui::widgets::too_small::TooSmall;
-use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -101,42 +99,25 @@ enum AltCmd {
     Why,
 }
 
-/// The hints a footer drew and the cell each landed on.
-type FooterDrawn = (Vec<Hint>, Vec<(usize, Rect)>);
-
 pub struct App {
     pub theme: Theme,
     pub scenario: Scenario,
-    pub motion: Motion,
     pub world: World,
     pub tabs: Vec<TabEntry>,
     pub active: usize,
     pub(crate) modals: Layers,
-    pub focus: Focus,
-    pub ring: FocusRing,
-    pub hits: HitRegistry,
-    /// The pointer router: hover, press, flash and click-count state.
-    pub pointer: PointerRouter,
+    /// Focus, ring, hit regions, pointer, the footer status (5 s on the
+    /// world clock; an error stays until the next action, with its toned
+    /// parts), size, motion and quit: the library shell's state.
+    pub shell: Shell<Vec<(String, Tone)>>,
     /// Context menus: the keys that open one at the focused cursor row
     /// and whether a secondary click moves the cursor. Default
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key; moves).
     pub context: ContextConfig,
-    /// The footer status ([`StatusLine`]: 5 s on the world clock; an
-    /// error stays until the next action), with its toned parts (a batch
-    /// summary; empty for a status in one tone).
-    pub status: StatusLine<Vec<(String, Tone)>>,
-    pub size: (u16, u16),
-    pub quit: bool,
-    too_small: bool,
     menu: MenuBar,
     strip: Tabs,
     /// The Here tab's page trail, drawn above a nested page (mouse #5).
     pub crumbs: Breadcrumb,
-    /// The footer's hints that name one key: a click runs it (mouse #1).
-    footer_keys: HintKeys,
-    /// The hints the footer drew this frame and where: their hits
-    /// register once the overlays are down, on the topmost layer.
-    footer_drawn: Option<FooterDrawn>,
     menu_item: Option<String>,
     menu_actions: Vec<AltCmd>,
     pending_gate: Option<GateTarget>,
@@ -175,10 +156,11 @@ impl App {
             // the opt-out: nothing is read, learned or written
             world.memory.usage = crate::domain::usage::UsageStore::disabled();
         }
+        let mut shell = Shell::new();
+        shell.motion = motion;
         let mut app = Self {
             theme: theme.centred_hints(),
             scenario,
-            motion,
             world,
             tabs: vec![TabEntry {
                 kind: TabKind::Here,
@@ -187,20 +169,11 @@ impl App {
             }],
             active: 0,
             modals: Layers::new(),
-            focus: Focus::default(),
-            ring: FocusRing::default(),
-            hits: HitRegistry::default(),
-            pointer: PointerRouter::default(),
+            shell,
             context: ContextConfig::DEFAULT,
-            status: StatusLine::new(),
-            size: (0, 0),
-            quit: false,
-            too_small: false,
             menu: Self::build_menu(),
             strip: Tabs::with_items(TABS, vec![]),
             crumbs: Breadcrumb::new(CRUMBS, vec![]),
-            footer_keys: HintKeys::default(),
-            footer_drawn: None,
             menu_item: None,
             menu_actions: vec![],
             pending_gate: None,
@@ -263,14 +236,15 @@ impl App {
     }
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
-        self.status.set_at(s, tone, self.world.clock.now());
+        self.shell.status.set_at(s, tone, self.world.clock.now());
     }
 
     /// A status made of parts in their own tones; `tone` is the message's
     /// severity (the hint bar's `!` mark).
     pub fn set_status_parts(&mut self, parts: Vec<(String, Tone)>, tone: Tone) {
         let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
-        self.status
+        self.shell
+            .status
             .set_with_at(text, tone, parts, self.world.clock.now());
     }
 
@@ -282,7 +256,7 @@ impl App {
     }
 
     fn animating(&self) -> bool {
-        self.pointer.has_flash()
+        self.shell.pointer.has_flash()
             || self.world.discovering()
             || self.world.live_activities() > 0
             || self
@@ -294,7 +268,7 @@ impl App {
     }
 
     pub fn tick_interval(&self) -> std::time::Duration {
-        if self.motion == Motion::Paused {
+        if self.shell.motion == Motion::Paused {
             return std::time::Duration::from_millis(500);
         }
         std::time::Duration::from_millis(if self.animating() { 80 } else { 200 })
@@ -317,23 +291,6 @@ impl App {
         self.world.now_ms().max(0) as u64
     }
 
-    fn interaction(&self) -> Interaction {
-        let flash = self.pointer.flashing(self.now_ms());
-        Interaction {
-            focus: self.focus.current(),
-            hover: self.pointer.hover,
-            pressed: self.pointer.pressed,
-            flash,
-            focus_hidden: false,
-            hover_suppressed: self.pointer.hover_suppressed,
-            pointer_focus: self.pointer.pointer_focus,
-            motion_unreported: !self.pointer.reports_motion(),
-            tick: (self.world.now_ms() / 80) as u64,
-            // a paused capture has no clock: hover content shows at once
-            hover_ms: (self.motion != Motion::Paused).then(|| self.pointer.hover_ms(self.now_ms())),
-        }
-    }
-
     /// Run a closure against the top screen with a context, then apply its
     /// requests.
     fn with_top<F: FnOnce(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome>(
@@ -351,8 +308,8 @@ impl App {
     ) -> Outcome {
         let active = self.active;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             context: self.context,
             requests: vec![],
             clicks,
@@ -371,18 +328,43 @@ impl App {
             Outcome::Changed
         });
         let pf = self.top().and_then(|s| s.primary_focus());
-        self.focus.set(pf);
+        self.shell.focus.set(pf);
     }
 
     // ------------------------------------------------------------- input
 
-    pub fn handle(&mut self, input: Input) -> Outcome {
-        // an error status has been seen once the user acts again
-        let seen = self.status.on_input(&input);
-        let out = self.handle_input(input);
-        let out = if seen { out.or(Outcome::Changed) } else { out };
-        let out = out.or(self.forward_blur());
-        // messages a background tab raised show once it is active
+    /// Hand a focus change to every open layer and to the top screen of
+    /// every tab, so fields end their edits on the event path.
+    fn blur_all(&mut self, ch: FocusChange) -> Outcome {
+        let mut out = self.modals.on_blur(ch);
+        for ti in 0..self.tabs.len() {
+            let mut cx = Cx {
+                focus: &mut self.shell.focus,
+                ring: &self.shell.ring,
+                context: self.context,
+                requests: vec![],
+                clicks: 1,
+            };
+            if let Some(s) = self.tabs[ti].stack.last_mut() {
+                out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
+            }
+            let reqs = std::mem::take(&mut cx.requests);
+            if ti == self.active {
+                out = out.or(self.apply_requests(reqs, ti));
+            } else {
+                // a background tab's messages wait for the tab; what
+                // would act on the screen (navigation, modals) does not
+                self.tabs[ti].pending.extend(
+                    reqs.into_iter()
+                        .filter(|r| matches!(r, Request::Status(_) | Request::Error(_))),
+                );
+            }
+        }
+        out
+    }
+
+    /// Messages a background tab raised show once it is active.
+    fn apply_pending(&mut self, out: Outcome) -> Outcome {
         let active = self.active;
         match self
             .tabs
@@ -394,52 +376,13 @@ impl App {
         }
     }
 
-    /// Hand every focus change the input caused to every open layer and
-    /// to the top screen of every tab, so fields end their edits on the
-    /// event path.
-    fn forward_blur(&mut self) -> Outcome {
-        let mut out = Outcome::Ignored;
-        for ch in self.focus.settle(&self.ring) {
-            for entry in self.modals.iter_mut() {
-                out = out.or(entry.layer.on_blur(ch));
-            }
-            for ti in 0..self.tabs.len() {
-                let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
-                    context: self.context,
-                    requests: vec![],
-                    clicks: 1,
-                };
-                if let Some(s) = self.tabs[ti].stack.last_mut() {
-                    out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
-                }
-                let reqs = std::mem::take(&mut cx.requests);
-                if ti == self.active {
-                    out = out.or(self.apply_requests(reqs, ti));
-                } else {
-                    // a background tab's messages wait for the tab; what
-                    // would act on the screen (navigation, modals) does not
-                    self.tabs[ti].pending.extend(
-                        reqs.into_iter()
-                            .filter(|r| matches!(r, Request::Status(_) | Request::Error(_))),
-                    );
-                }
-            }
-        }
-        out
-    }
-
     fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
-            Input::Resize(w, h) => {
-                self.size = (w, h);
-                Outcome::Changed
-            }
+            Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Paste(text) => self.on_paste(&text),
             Input::Key(key) => {
-                self.pointer.suppress_hover();
+                self.shell.pointer.suppress_hover();
                 // shortcuts first, then type-ahead (one rule, in the library)
                 junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
@@ -473,14 +416,14 @@ impl App {
             out = Outcome::Changed;
         }
         let now = self.now_ms();
-        if self.pointer.expire_flash(now) {
+        if self.shell.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
         // a held drag past a selecting body's edge autoscrolls, a press
         // held on a scrollbar track keeps paging (the simulated clock
         // keeps its own tick rate)
         out = out.or(PointerRouter::tick(self));
-        if self.status.expire(self.world.clock.now()) {
+        if self.shell.status.expire(self.world.clock.now()) {
             out = Outcome::Changed;
         }
         if self
@@ -506,7 +449,7 @@ impl App {
                 );
                 self.set_status(&text, Tone::Secondary);
             } else if live == 0 {
-                self.quit = true;
+                self.shell.quit = true;
             } else {
                 let text = format!(
                     "stopping {} · {} still cancelling · quitting when every process is gone",
@@ -521,8 +464,8 @@ impl App {
         let active = self.active;
         for ti in 0..self.tabs.len() {
             let mut cx = Cx {
-                focus: &mut self.focus,
-                ring: &self.ring,
+                focus: &mut self.shell.focus,
+                ring: &self.shell.ring,
                 context: self.context,
                 requests: vec![],
                 clicks: 1,
@@ -616,8 +559,8 @@ impl App {
         }
         for ti in 0..self.tabs.len() {
             let mut cx = Cx {
-                focus: &mut self.focus,
-                ring: &self.ring,
+                focus: &mut self.shell.focus,
+                ring: &self.shell.ring,
                 context: self.context,
                 requests: vec![],
                 clicks: 1,
@@ -653,7 +596,7 @@ impl App {
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
-        if self.too_small {
+        if self.shell.too_small {
             if key.is_char('q') || key.ctrl_char('c') {
                 self.request_quit();
             }
@@ -754,7 +697,7 @@ impl App {
             _ => {}
         }
         // the menu bar is a focus stop: ← → move the cursor, Enter opens
-        if self.focus.is(MENU) {
+        if self.shell.focus.is(MENU) {
             let (o, ev) = self.menu.on_key(&key);
             if let Some(MenuBarAction::Opened(_)) = ev {
                 return Outcome::Changed;
@@ -764,17 +707,17 @@ impl App {
             }
             if key.code == KeyCode::Esc {
                 let pf = self.top().and_then(|s| s.primary_focus());
-                self.focus.set(pf);
+                self.shell.focus.set(pf);
                 return Outcome::Changed;
             }
         }
         // the tab strip is a focus stop
-        if self.focus.is(TABS) {
+        if self.shell.focus.is(TABS) {
             let (o, ev) = self.strip.on_key(&key);
             match ev {
                 Some(TabAction::Activated(i)) => {
                     self.activate_tab(i);
-                    self.focus.focus(TABS);
+                    self.shell.focus.focus(TABS);
                     return Outcome::Changed;
                 }
                 Some(TabAction::Close(i)) => {
@@ -789,7 +732,7 @@ impl App {
             }
             if key.code == KeyCode::Esc || key.code == KeyCode::Enter {
                 let pf = self.top().and_then(|s| s.primary_focus());
-                self.focus.set(pf);
+                self.shell.focus.set(pf);
                 return Outcome::Changed;
             }
         }
@@ -798,20 +741,20 @@ impl App {
             if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
                 && key.plain()
                 && !typing
-                && let Some(f) = self.focus.current()
+                && let Some(f) = self.shell.focus.current()
             {
                 let now = self.now_ms();
-                self.pointer.flash(f, now);
+                self.shell.pointer.flash(f, now);
             }
             return out;
         }
         match key.code {
             KeyCode::Tab => {
-                self.focus.next(&self.ring);
+                self.shell.focus.next(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::BackTab => {
-                self.focus.prev(&self.ring);
+                self.shell.focus.prev(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::Esc => {
@@ -873,8 +816,10 @@ impl App {
     fn run_menu(&mut self, label: &str) -> Outcome {
         let key = |code: KeyCode, mods: KeyModifiers| Input::Key(Key { code, mods });
         match label {
-            "Run" => return self.handle(key(KeyCode::Enter, KeyModifiers::NONE)),
-            "Alternatives…" => return self.handle(key(KeyCode::Enter, KeyModifiers::ALT)),
+            "Run" => return shell::handle(self, key(KeyCode::Enter, KeyModifiers::NONE)),
+            "Alternatives…" => {
+                return shell::handle(self, key(KeyCode::Enter, KeyModifiers::ALT));
+            }
             "Copy command" => {
                 let cmd = self
                     .current_item()
@@ -1103,7 +1048,7 @@ impl App {
                 Tone::Secondary,
             );
         } else if self.quit_stakes().is_clean() {
-            self.quit = true;
+            self.shell.quit = true;
         } else {
             self.open_quit_confirm();
         }
@@ -1235,14 +1180,15 @@ impl App {
     /// Open `layer` over the active tab, which owns it: focus moves into
     /// it, and comes back to the tab when it closes (K9).
     fn open_layer(&mut self, layer: Box<dyn Layer<ModalResult>>, tag: LayerTag) {
-        self.modals.open(layer, tag, self.active, &mut self.focus);
+        self.modals
+            .open(layer, tag, self.active, &mut self.shell.focus);
         // holla's dialogs sit in the body, clear of the menu bar above and
         // the status and footer rows below
         if let Some(d) = self.modals.top_as_mut::<Dialog>() {
             d.chrome = (1, 2);
         }
-        self.pointer.hover = None;
-        self.pointer.pressed = None;
+        self.shell.pointer.hover = None;
+        self.shell.pointer.pressed = None;
     }
 
     /// The context a layer's input handlers get.
@@ -1250,8 +1196,8 @@ impl App {
         (
             self.modals.top_mut(),
             LayerCx {
-                focus: &mut self.focus,
-                ring: &self.ring,
+                focus: &mut self.shell.focus,
+                ring: &self.shell.ring,
                 app: &(),
             },
         )
@@ -1260,7 +1206,7 @@ impl App {
     /// After input reached the top layer: an event goes to its owner and
     /// the layer stays open; a result closes it and goes to its owner.
     fn settle_layer(&mut self, out: Outcome) -> Outcome {
-        match self.modals.take(&mut self.focus) {
+        match self.modals.take(&mut self.shell.focus) {
             None => out,
             Some(Taken::Event(r)) => self.on_layer_event(r).or(out),
             Some(Taken::Closed(entry, r)) => self.on_layer_result(entry, r),
@@ -1271,7 +1217,7 @@ impl App {
     /// refused outside click flashes the layer's frame.
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
         let dismiss = self.top_dismiss();
-        let d = self.modals.dismiss(reason, &mut self.focus);
+        let d = self.modals.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, dismiss, d)
     }
 
@@ -1296,7 +1242,11 @@ impl App {
             Dismissed::Refused => {
                 let now = self.now_ms();
                 if reason == DismissReason::OutsideClick
-                    && junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now)
+                    && junie_tui::ui::modal::refuse_outside_click(
+                        &mut self.shell.pointer,
+                        dismiss,
+                        now,
+                    )
                 {
                     return Outcome::Changed;
                 }
@@ -1334,7 +1284,7 @@ impl App {
                 {
                     let n = self.world.stop_all();
                     if n == 0 && self.world.cleanup_job.is_none() {
-                        self.quit = true;
+                        self.shell.quit = true;
                     } else if n == 0 {
                         self.quitting = true;
                         self.set_status(
@@ -1452,8 +1402,8 @@ impl App {
     /// Hand a layer's report to the top screen of the tab that opened it.
     fn report_to_owner(&mut self, owner: usize, tag: &LayerTag, result: ModalResult) -> Outcome {
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             context: self.context,
             requests: vec![],
             clicks: 1,
@@ -1524,8 +1474,8 @@ impl App {
                     _ => picker.and_then(|p| p.current_key()).map(str::to_owned),
                 };
                 let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
+                    focus: &mut self.shell.focus,
+                    ring: &self.shell.ring,
                     context: self.context,
                     requests: vec![],
                     clicks: 1,
@@ -1549,7 +1499,7 @@ impl App {
                         if chosen.is_none() {
                             let _ = self
                                 .modals
-                                .dismiss(DismissReason::Programmatic, &mut self.focus);
+                                .dismiss(DismissReason::Programmatic, &mut self.shell.focus);
                         }
                         let short = self.world.location.short(&target);
                         self.set_status(&format!("Jumped to {short}"), Tone::Secondary);
@@ -1558,8 +1508,12 @@ impl App {
                     Some(Err(e)) => {
                         // the choice closed the picker: it stays open
                         if let Some(entry) = chosen {
-                            self.modals
-                                .open(entry.layer, entry.tag, entry.owner, &mut self.focus);
+                            self.modals.open(
+                                entry.layer,
+                                entry.tag,
+                                entry.owner,
+                                &mut self.shell.focus,
+                            );
                         }
                         self.files_jump_rows(Some(e));
                     }
@@ -1567,7 +1521,7 @@ impl App {
                         if chosen.is_none() {
                             let _ = self
                                 .modals
-                                .dismiss(DismissReason::Programmatic, &mut self.focus);
+                                .dismiss(DismissReason::Programmatic, &mut self.shell.focus);
                         }
                     }
                 }
@@ -1586,7 +1540,7 @@ impl App {
     fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         // a footer hint naming one key runs it (mouse #1)
         if ev.on(HintBar::ID) {
-            return match self.footer_keys.clicked(ev) {
+            return match self.shell.footer_keys.clicked(ev) {
                 Some(key) => self.on_key(key).or(Outcome::Changed),
                 None => Outcome::Consumed,
             };
@@ -1610,7 +1564,10 @@ impl App {
             return self.dismiss_layer(DismissReason::CloseButton);
         }
         let dismiss = self.top_dismiss();
-        match self.modals.pointer(ev, &mut self.focus, &self.ring, &()) {
+        match self
+            .modals
+            .pointer(ev, &mut self.shell.focus, &self.shell.ring, &())
+        {
             LayerPointer::Handled(out) => self.settle_layer(out),
             LayerPointer::Dismissed(d) => self.dismissed(DismissReason::OutsideClick, dismiss, d),
         }
@@ -3027,56 +2984,7 @@ impl App {
 
     // ------------------------------------------------------------ render
 
-    pub fn render(&mut self, frame: &mut Frame) {
-        let area = frame.area();
-        self.size = (area.width, area.height);
-        let theme = self.theme;
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let interaction = self.interaction();
-        let cursor;
-        {
-            let buf = frame.buffer_mut();
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            let layer = self.menu.hides_page_focus() || self.modals.hides_page_focus();
-            ctx.page_under_layer(layer);
-            self.draw(area, buf, &mut ctx);
-            ctx.flush_overlays(buf);
-            // the footer belongs to the topmost layer (it names that
-            // layer's keys): its hints register above every popup
-            self.footer_keys = match self.footer_drawn.take() {
-                Some((hints, spots)) => HintKeys::register(&mut ctx, buf, &hints, spots),
-                None => HintKeys::default(),
-            };
-            cursor = ctx.cursor;
-        }
-        self.hits = hits;
-        self.pointer.refresh_hover(&self.hits);
-        self.ring = ring;
-        if self.modals.is_empty() {
-            if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
-                let pf = self.top().and_then(|s| s.primary_focus());
-                self.focus
-                    .set(pf.filter(|p| self.ring.contains(*p)).or(self.ring.first()));
-            }
-        } else {
-            self.focus.ensure_valid(&self.ring);
-        }
-        if let Some(pos) = cursor {
-            frame.set_cursor_position(pos);
-        }
-    }
-
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = self.theme;
-        fill(buf, area, t.base());
-        let brand = format!(" {BRAND_MARK} ");
-        let too_small = TooSmall::new(&brand).brand_style(Lockup::style(&t));
-        self.too_small = too_small.applies(area);
-        if self.too_small {
-            too_small.render(area, buf, &t);
-            return;
-        }
         self.draw_frame(area, buf, ctx);
         // every layer, bottom to top: each one above the page (and the
         // layers under it) is a modal layer that holds the focus it opened
@@ -3337,8 +3245,8 @@ impl App {
                 format!(
                     "{} · {}×{}",
                     self.theme.level.label(),
-                    self.size.0,
-                    self.size.1
+                    self.shell.size.0,
+                    self.shell.size.1
                 ),
                 Tone::Faint,
             )
@@ -3370,11 +3278,11 @@ impl App {
                     hint("Enter", "Choose"),
                     hint("Esc", "Close"),
                 ],
-                Some(top) => top.layer.hints(self.focus.current()),
+                Some(top) => top.layer.hints(self.shell.focus.current()),
                 None => vec![],
             }
         } else {
-            let focus = self.focus.current();
+            let focus = self.shell.focus.current();
             if focus == Some(TABS) {
                 vec![
                     hint("←→", "Switch tab"),
@@ -3404,10 +3312,11 @@ impl App {
         };
         // an error status carries a `! ` prefix: leave room for it
         let status = self
+            .shell
             .status
             .get()
             .map(|(s, tone)| (truncate(s, area.width.saturating_sub(8) as usize), tone));
-        let status_parts = self.status.payload().cloned().unwrap_or_default();
+        let status_parts = self.shell.status.payload().cloned().unwrap_or_default();
         let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
         let menu_layer = (!modal && self.menu.is_open()).then(|| {
             HintLayer::new(vec![
@@ -3424,18 +3333,66 @@ impl App {
         layer.status = status;
         layer.status_parts = status_parts;
         let spots = HintBar::render_at(area, buf, &t, &layer);
-        self.footer_drawn = Some((layer.hints, spots));
+        self.shell.footer_drawn(layer.hints, spots);
+    }
+}
+
+/// The brand on the too-small screen.
+const BRAND_PADDED: &str = " holla❯ ";
+
+impl shell::App for App {
+    type Status = Vec<(String, Tone)>;
+    fn shell(&self) -> &Shell<Vec<(String, Tone)>> {
+        &self.shell
+    }
+    fn shell_mut(&mut self) -> &mut Shell<Vec<(String, Tone)>> {
+        &mut self.shell
+    }
+    fn theme(&self) -> Theme {
+        self.theme
+    }
+    fn too_small(&self) -> TooSmall<'_> {
+        TooSmall::new(BRAND_PADDED).brand_style(Lockup::style(&self.theme))
+    }
+    fn now_ms(&self) -> u64 {
+        App::now_ms(self)
+    }
+    fn tick(&self) -> u64 {
+        (self.world.now_ms() / 80) as u64
+    }
+    fn tick_interval(&self) -> std::time::Duration {
+        App::tick_interval(self)
+    }
+    fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        App::draw(self, area, buf, ctx)
+    }
+    fn on_input(&mut self, input: Input) -> Outcome {
+        self.handle_input(input)
+    }
+    fn on_blur(&mut self, ch: FocusChange) -> Outcome {
+        self.blur_all(ch)
+    }
+    fn after_input(&mut self, _input: &Input, out: Outcome) -> Outcome {
+        self.apply_pending(out)
+    }
+    fn layer_open(&self) -> bool {
+        !self.modals.is_empty()
+    }
+    fn page_under_layer(&self) -> bool {
+        self.menu.hides_page_focus() || self.modals.hides_page_focus()
+    }
+    fn page_key(&self) -> PageKey {
+        let depth = self.tabs.get(self.active).map_or(0, |t| t.stack.len());
+        PageKey::of((self.active, depth))
+    }
+    fn primary_focus(&self) -> Option<WidgetId> {
+        self.top().and_then(|s| s.primary_focus())
     }
 }
 
 impl PointerHost for App {
     fn pointer_parts(&mut self) -> PointerParts<'_> {
-        PointerParts {
-            router: &mut self.pointer,
-            hits: &self.hits,
-            focus: &mut self.focus,
-            ring: &self.ring,
-        }
+        self.shell.pointer_parts()
     }
 
     fn layer_open(&self) -> bool {

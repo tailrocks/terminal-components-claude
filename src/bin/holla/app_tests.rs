@@ -1,5 +1,6 @@
 //! End-to-end interaction tests through the real App on a TestBackend.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -321,22 +322,29 @@ fn an_error_status_waits_for_the_next_action_and_information_expires() {
     let mut h = H::new(Scenario::FirstUse, Motion::Full, 0, 100, 30);
     h.app.set_status("Saved", Tone::Secondary);
     h.ticks(five_s - 1);
-    assert_eq!(h.app.status.text(), Some("Saved"), "information stays 5 s");
+    assert_eq!(
+        h.app.shell.status.text(),
+        Some("Saved"),
+        "information stays 5 s"
+    );
     assert!(h.text().contains("Saved"));
     h.ticks(1);
-    assert!(h.app.status.is_none(), "information goes after 5 s");
+    assert!(h.app.shell.status.is_none(), "information goes after 5 s");
 
     h.app.set_status("Disk full", Tone::Error);
     h.ticks(4 * five_s);
     assert_eq!(
-        h.app.status.text(),
+        h.app.shell.status.text(),
         Some("Disk full"),
         "an error never times out"
     );
     assert!(h.text().contains("Disk full"));
     // the next action: a key with no binding
     h.key(KeyCode::F(24));
-    assert!(h.app.status.is_none(), "the error goes on the next action");
+    assert!(
+        h.app.shell.status.is_none(),
+        "the error goes on the next action"
+    );
     assert!(!h.text().contains("Disk full"));
 }
 
@@ -350,15 +358,15 @@ fn page_letters_win_over_the_focused_disk_tree() {
     let mut h = H::new(Scenario::DiskCleanup, Motion::Paused, 0, 120, 40);
     let tree = crate::screens::disk::TREE;
     for _ in 0..8 {
-        if h.app.focus.current() == Some(tree) {
+        if h.app.shell.focus.current() == Some(tree) {
             break;
         }
         h.key(KeyCode::Tab);
     }
-    assert_eq!(h.app.focus.current(), Some(tree), "{}", h.text());
+    assert_eq!(h.app.shell.focus.current(), Some(tree), "{}", h.text());
     h.key(KeyCode::Char('s'));
     assert!(h.text().contains("Sorted by apparent size"), "{}", h.text());
     h.key(KeyCode::Char('f'));
     assert!(h.text().contains("Noise folders"), "{}", h.text());
-    assert_eq!(h.app.focus.current(), Some(tree));
+    assert_eq!(h.app.shell.focus.current(), Some(tree));
 }

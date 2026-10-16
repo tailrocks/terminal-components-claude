@@ -4,6 +4,7 @@
 //! model state, focus and hit registration; PTY snapshots and live spinner
 //! phases belong to the visual-baseline suite and are not part of this file.
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -36,12 +37,12 @@ fn assert_surface(h: &H, name: &str, marker: &str, focus: WidgetId) {
         "{name}: missing marker {marker:?}\n{text}"
     );
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(focus),
         "{name}: focus owner\n{text}"
     );
     assert!(
-        h.app.hits.area_of(focus).is_some(),
+        h.app.shell.hits.area_of(focus).is_some(),
         "{name}: focus owner has no hit area\n{text}"
     );
 }
@@ -328,7 +329,7 @@ fn page_inventory_has_marker_focus_hit_and_escape_contract() {
         }
         assert!(h.app.modals.is_empty(), "{}: Esc left a modal", case.name);
         assert!(
-            h.app.focus.current().is_some(),
+            h.app.shell.focus.current().is_some(),
             "{}: Esc lost focus",
             case.name
         );
@@ -344,18 +345,18 @@ fn assert_modal(h: &H, name: &str, marker: &str, expected_focus: Option<WidgetId
     );
     if let Some(expected) = expected_focus {
         assert!(
-            h.app.ring.contains(expected),
+            h.app.shell.ring.contains(expected),
             "{name}: modal owner is absent from focus ring\n{text}"
         );
     }
-    if let Some(focus) = h.app.focus.current() {
+    if let Some(focus) = h.app.shell.focus.current() {
         assert!(
-            h.app.hits.area_of(focus).is_some() || h.app.ring.contains(focus),
+            h.app.shell.hits.area_of(focus).is_some() || h.app.shell.ring.contains(focus),
             "{name}: current modal focus is not registered\n{text}"
         );
     }
     assert!(
-        !h.app.hits.is_empty(),
+        !h.app.shell.hits.is_empty(),
         "{name}: modal rendered no hits\n{text}"
     );
 }
@@ -363,13 +364,17 @@ fn assert_modal(h: &H, name: &str, marker: &str, expected_focus: Option<WidgetId
 fn dismiss_modal(h: &mut H, name: &str, owner: Option<WidgetId>) {
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty(), "{name}: Esc did not dismiss");
-    assert_eq!(h.app.focus.current(), owner, "{name}: focus not restored");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        owner,
+        "{name}: focus not restored"
+    );
 }
 
 #[test]
 fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     let mut help = build_first();
-    let help_owner = help.app.focus.current();
+    let help_owner = help.app.shell.focus.current();
     help.key(KeyCode::F(1));
     assert_modal(
         &help,
@@ -380,7 +385,7 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     dismiss_modal(&mut help, "Text/help", help_owner);
 
     let mut about = build_rust();
-    let about_owner = about.app.focus.current();
+    let about_owner = about.app.shell.focus.current();
     about.key(KeyCode::F(10));
     about.key(KeyCode::Right);
     about.key(KeyCode::Right);
@@ -395,7 +400,7 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     dismiss_modal(&mut about, "Text/about", about_owner);
 
     let mut why = build_rust();
-    let why_owner = why.app.focus.current();
+    let why_owner = why.app.shell.focus.current();
     why.alt(KeyCode::Enter);
     why.key(KeyCode::End);
     why.key(KeyCode::Enter);
@@ -403,7 +408,7 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     dismiss_modal(&mut why, "Text/why", why_owner);
 
     let mut activities = H::new(Scenario::ActivitiesMulti, Motion::Paused, 40, 120, 40);
-    let activities_owner = activities.app.focus.current();
+    let activities_owner = activities.app.shell.focus.current();
     activities.ctrl(KeyCode::Char('g'));
     assert_modal(&activities, "Picker/activities", "Activities", None);
     dismiss_modal(&mut activities, "Picker/activities", activities_owner);
@@ -411,13 +416,13 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     let mut jump = build_browser();
     open(&mut jump, "Browse ~/work/site");
     jump.ticks(8);
-    let jump_owner = jump.app.focus.current();
+    let jump_owner = jump.app.shell.focus.current();
     jump.key(KeyCode::Char('g'));
     assert_modal(&jump, "Picker/files-jump", "Go to path", None);
     dismiss_modal(&mut jump, "Picker/files-jump", jump_owner);
 
     let mut alternatives = build_rust();
-    let alternatives_owner = alternatives.app.focus.current();
+    let alternatives_owner = alternatives.app.shell.focus.current();
     alternatives.alt(KeyCode::Enter);
     assert_modal(
         &alternatives,
@@ -431,24 +436,24 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     dialog.key(KeyCode::Enter);
     dialog.key(KeyCode::Char('c'));
     dialog.key(KeyCode::Right);
-    let dialog_owner = dialog.app.focus.current();
+    let dialog_owner = dialog.app.shell.focus.current();
     dialog.key(KeyCode::Enter);
     assert_modal(&dialog, "Dialog/gate2", "gate 2 of 2", None);
     dismiss_modal(&mut dialog, "Dialog/gate2", dialog_owner);
 }
 
 fn outside(h: &H) -> Position {
-    for y in 0..h.app.size.1 {
-        for x in 0..h.app.size.0 {
+    for y in 0..h.app.shell.size.1 {
+        for x in 0..h.app.shell.size.0 {
             let p = Position::new(x, y);
-            if h.app.hits.hit(p).is_none() {
+            if h.app.shell.hits.hit(p).is_none() {
                 return p;
             }
         }
     }
     panic!(
         "no outside hit position in {}x{}",
-        h.app.size.0, h.app.size.1
+        h.app.shell.size.0, h.app.shell.size.1
     );
 }
 
@@ -471,6 +476,7 @@ fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
     let id = scrollbar::id_for(container);
     let track = h
         .app
+        .shell
         .hits
         .area_of(id)
         .unwrap_or_else(|| panic!("{name}: missing scrollbar hit\n{}", h.text()));
@@ -491,7 +497,7 @@ fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
     h.mouse(MouseKind::Up, track.x, bottom);
     assert_ne!(h.text(), before, "{name}: scrollbar drag did not redraw");
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(container),
         "{name}: scrollbar did not restore container focus"
     );
@@ -522,22 +528,23 @@ fn finder_file_and_modal_mouse_contracts() {
     let mut finder = build_rust();
     let (x, y) = finder.find("Run tests").expect("finder row");
     let pos = Position::new(x + 2, y);
-    let row = finder.app.hits.hit(pos).expect("finder row hit");
+    let row = finder.app.shell.hits.hit(pos).expect("finder row hit");
     finder.mouse(MouseKind::Move, pos.x, pos.y);
-    assert_eq!(finder.app.pointer.hover, Some(row));
+    assert_eq!(finder.app.shell.pointer.hover, Some(row));
     finder.click(pos.x, pos.y);
-    assert_eq!(finder.app.focus.current(), Some(finder::FINDER));
+    assert_eq!(finder.app.shell.focus.current(), Some(finder::FINDER));
     assert!(finder.row(y).contains("›"), "{}", finder.row(y));
 
     finder.mouse(MouseKind::Secondary, pos.x, pos.y);
     assert!(!finder.app.modals.is_empty());
     assert_eq!(
-        finder.app.focus.current(),
+        finder.app.shell.focus.current(),
         Some(WidgetId::of("alternatives"))
     );
     assert!(
         finder
             .app
+            .shell
             .hits
             .area_of(WidgetId::of("alternatives"))
             .is_some()
@@ -565,15 +572,20 @@ fn finder_file_and_modal_mouse_contracts() {
     files_page.ticks(8);
     let (fx, fy) = files_page.find("big.log").expect("browser file row");
     let file_pos = Position::new(fx + 2, fy);
-    let file_hit = files_page.app.hits.hit(file_pos).expect("file row hit");
+    let file_hit = files_page
+        .app
+        .shell
+        .hits
+        .hit(file_pos)
+        .expect("file row hit");
     files_page.mouse(MouseKind::Move, file_pos.x, file_pos.y);
-    assert_eq!(files_page.app.pointer.hover, Some(file_hit));
+    assert_eq!(files_page.app.shell.pointer.hover, Some(file_hit));
     files_page.click(file_pos.x, file_pos.y);
-    assert_eq!(files_page.app.focus.current(), Some(files::LIST));
+    assert_eq!(files_page.app.shell.focus.current(), Some(files::LIST));
     files_page.mouse(MouseKind::Secondary, file_pos.x, file_pos.y);
     assert!(files_page.text().contains("Open in the OS"));
     assert_eq!(
-        files_page.app.focus.current(),
+        files_page.app.shell.focus.current(),
         Some(WidgetId::of("files.actions"))
     );
     files_page.key(KeyCode::Esc);
@@ -586,6 +598,7 @@ fn finder_file_and_modal_mouse_contracts() {
     preview.key(KeyCode::Right);
     let area = preview
         .app
+        .shell
         .hits
         .area_of(files::PREVIEW)
         .expect("file preview hit");
@@ -609,7 +622,7 @@ fn finder_file_and_modal_mouse_contracts() {
         area.x + 2,
         area.y + area.height.saturating_sub(2),
     );
-    assert_eq!(preview.app.focus.current(), Some(files::PREVIEW));
+    assert_eq!(preview.app.shell.focus.current(), Some(files::PREVIEW));
 
     let mut modal = build_rust();
     modal.key(KeyCode::F(1));
@@ -629,7 +642,7 @@ fn finder_file_and_modal_mouse_contracts() {
     quit.mouse(MouseKind::Down, p.x, p.y);
     quit.mouse(MouseKind::Up, p.x, p.y);
     assert!(quit.app.modals.is_empty(), "outside click left quit dialog");
-    assert!(!quit.app.quit, "outside click confirmed quit");
+    assert!(!quit.app.shell.quit, "outside click confirmed quit");
 }
 
 #[test]
@@ -657,13 +670,13 @@ fn resize_ladder_preserves_inventory_focus_and_hits() {
                 continue;
             }
             assert_eq!(
-                h.app.focus.current(),
+                h.app.shell.focus.current(),
                 Some(case.focus),
                 "{}: focus after {width}x{height}\n{text}",
                 case.name
             );
             assert!(
-                h.app.hits.area_of(case.focus).is_some(),
+                h.app.shell.hits.area_of(case.focus).is_some(),
                 "{}: hit after {width}x{height}\n{text}",
                 case.name
             );
@@ -754,6 +767,7 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
     let (_, row) = cleanup.find("big").expect("cleanup candidate");
     let tree = cleanup
         .app
+        .shell
         .hits
         .area_of(disk::TREE)
         .expect("cleanup tree hit");
@@ -783,8 +797,8 @@ fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
     // by control alone (a wide row is one control)
     let mut h = build_rust();
     let (dx, dy) = h.find("Run tests").expect("finder row");
-    let row = h.app.hits.hit(Position::new(dx + 2, dy));
-    assert_eq!(row, h.app.hits.hit(Position::new(dx + 30, dy)));
+    let row = h.app.shell.hits.hit(Position::new(dx + 2, dy));
+    assert_eq!(row, h.app.shell.hits.hit(Position::new(dx + 30, dy)));
     let tabs = h.app.tabs.len();
     let stack = h.app.tabs[0].stack.len();
     h.click(dx + 2, dy);
@@ -807,6 +821,7 @@ fn a_horizontal_swipe_never_scrolls_a_vertical_view() {
     h.key(KeyCode::Right);
     let area = h
         .app
+        .shell
         .hits
         .area_of(files::PREVIEW)
         .expect("file preview hit");
@@ -842,11 +857,13 @@ fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
     h.ticks(2);
     let area = h
         .app
+        .shell
         .hits
         .area_of(files::PREVIEW)
         .expect("file preview hit");
     let bar = h
         .app
+        .shell
         .hits
         .area_of(scrollbar::h_id_for(files::PREVIEW))
         .unwrap_or_else(|| panic!("the preview has a horizontal bar\n{}", h.text()));
@@ -896,7 +913,7 @@ fn a_middle_click_on_a_tab_closes_it() {
     let tabs = h.app.tabs.len();
     assert!(tabs >= 2, "{}", h.text());
     let id = h.app.strip_tab_id(1);
-    let area = h.app.hits.area_of(id).expect("tab hit");
+    let area = h.app.shell.hits.area_of(id).expect("tab hit");
     h.mouse(MouseKind::Middle, area.x + 1, area.y);
     assert!(
         h.app.tabs.len() == tabs - 1 || h.text().contains("Stop "),
