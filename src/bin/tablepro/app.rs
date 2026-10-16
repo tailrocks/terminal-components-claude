@@ -2373,18 +2373,23 @@ impl App {
                 if !self.modals.is_empty() {
                     return Outcome::Consumed;
                 }
-                let Some(id) = self.hits.hit_scroll(m.pos) else {
-                    return Outcome::Ignored;
-                };
-                let out = match self.screen {
-                    Screen::Workbench => self
-                        .workbench
-                        .as_mut()
-                        .map(|w| w.on_wheel(id, delta, horizontal))
-                        .unwrap_or(Outcome::Ignored),
-                    Screen::Connections if !horizontal => self.connections.on_wheel(id, delta),
-                    Screen::Connections => Outcome::Ignored,
-                };
+                // the notch goes to the innermost owner that takes it: a
+                // field (or its label) inside a scrolling form passes it on
+                let mut out = Outcome::Ignored;
+                for id in self.hits.scroll_stack(m.pos) {
+                    out = match self.screen {
+                        Screen::Workbench => self
+                            .workbench
+                            .as_mut()
+                            .map(|w| w.on_wheel(id, delta, horizontal))
+                            .unwrap_or(Outcome::Ignored),
+                        Screen::Connections if !horizontal => self.connections.on_wheel(id, delta),
+                        Screen::Connections => Outcome::Ignored,
+                    };
+                    if out != Outcome::Ignored {
+                        break;
+                    }
+                }
                 // rows move under a still pointer: re-resolve hover next frame
                 self.pointer.scrolled(m.pos, out);
                 out

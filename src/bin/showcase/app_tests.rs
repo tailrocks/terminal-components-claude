@@ -1630,3 +1630,18 @@ fn a_grid_range_drag_held_below_the_grid_autoscrolls_on_the_tick() {
     h.draw();
     assert_eq!(shown(&h), stopped);
 }
+
+#[test]
+fn the_horizontal_wheel_scrolls_a_text_area_sideways() {
+    let mut h = Harness::new(120, 40, PageId::TextAreas);
+    let (x, y) = h.find("Run the integration").expect("a long line");
+    assert!(h.row(y).contains(" 4. Run"), "{}", h.row(y));
+    h.mouse(MouseKind::WheelRight, x + 4, y);
+    assert!(
+        !h.row(y).contains(" 4. Run"),
+        "the line moved sideways:\n{}",
+        h.text()
+    );
+    h.mouse(MouseKind::WheelLeft, x + 4, y);
+    assert!(h.row(y).contains(" 4. Run"), "{}", h.row(y));
+}
