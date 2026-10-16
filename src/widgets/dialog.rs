@@ -1116,22 +1116,10 @@ impl Dialog {
             (Some(Nav::Right), _) if arrow && key.shift() && self.code_scroll.overflows() => {
                 self.scroll_code(1)
             }
-            (Some(Nav::Left), _) => {
-                // move between actions
-                if let Some(i) = self.actions.iter().position(|b| Some(b.id) == cur) {
-                    let prev = self.actions[..i].iter().rev().find(|b| !b.disabled);
-                    if let Some(p) = prev {
-                        focus.focus(p.id);
-                    }
-                }
-                Outcome::Changed
-            }
-            (Some(Nav::Right), _) => {
-                if let Some(i) = self.actions.iter().position(|b| Some(b.id) == cur) {
-                    let next = self.actions[i + 1..].iter().find(|b| !b.disabled);
-                    if let Some(n) = next {
-                        focus.focus(n.id);
-                    }
+            (Some(nav @ (Nav::Left | Nav::Right)), _) => {
+                // move between actions (one button-row rule, K32)
+                if let Some(id) = self.button_row.step(&self.actions, cur, nav == Nav::Right) {
+                    focus.focus(id);
                 }
                 Outcome::Changed
             }

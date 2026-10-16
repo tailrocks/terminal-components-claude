@@ -53,9 +53,19 @@ pub struct ChoiceDialog {
     /// Which keys move between the buttons (←/→, and `h`/`l` with vim on).
     /// Default [`NavKeys::DEFAULT`].
     pub nav: NavKeys,
+    /// How ←/→ move between the buttons ([`ButtonRow::step`](crate::widgets::button::ButtonRow::step)).
+    /// Default [`crate::widgets::button::ButtonRow::new`]: disabled
+    /// buttons are skipped, no wrap.
+    pub button_row: crate::widgets::button::ButtonRow,
 }
 
 impl ChoiceDialog {
+    /// See [`Self::button_row`].
+    pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
+        self.button_row = row;
+        self
+    }
+
     /// See [`Self::close_button`].
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
@@ -82,6 +92,7 @@ impl ChoiceDialog {
             option_tones: vec![],
             strings: Strings::DEFAULT,
             nav: NavKeys::DEFAULT,
+            button_row: crate::widgets::button::ButtonRow::new(),
         }
     }
 
@@ -164,10 +175,9 @@ impl ChoiceDialog {
             _ => None,
         };
         if let Some(back) = step {
-            if let Some(i) = self.buttons.iter().position(|b| Some(b.id) == cur) {
-                let n = self.buttons.len();
-                let j = if back { (i + n - 1) % n } else { (i + 1) % n };
-                focus.focus(self.buttons[j].id);
+            // one button-row rule (K32)
+            if let Some(id) = self.button_row.step(&self.buttons, cur, !back) {
+                focus.focus(id);
             }
             return Outcome::Changed;
         }
