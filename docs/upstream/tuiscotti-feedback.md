@@ -237,3 +237,97 @@ Reply with:
 
 Do not open issues or PRs against our repository. We will bump the pin
 ourselves.
+
+## 6. Review of tuiscotti PR #11
+
+Review:
+<https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040>
+at PR head `907aa04`. Verdict: **request changes**. It was posted as a
+`COMMENT` review because the PR author and the reviewer are the same
+GitHub account, which cannot request changes on its own PR.
+
+### Blockers
+
+1. **`tuiscotti accept` does not refuse under `CI=1`.** Run with `CI=1` it
+   overwrote an approved file. Approval must stay explicit and local only;
+   our `cargo xtask visual accept` refuses whenever `CI` is set.
+2. **Pattern accept is too loose.**
+   - A plain filter is a string prefix: `showcase/pages/tab` also matched
+     `showcase/pages/tables`. It must match whole path segments.
+   - `*` crosses `/`. It must stop at a segment boundary (keep `**` for
+     "any depth" if wanted).
+   - Orphan actuals, with no manifest entry or verdict, are approved. Only
+     scenarios the last run judged may be accepted.
+   - There is no stale-actual check: an actual left over from an older run
+     is approved alongside the newest. Our accept refuses unless every
+     selected actual carries a run stamp of the newest run in the
+     selection.
+3. **`compare_png` now scores the downsampled image.** The same one-cell
+   change at 80x24 scored 0.999853 before and 0.996582 after, so any
+   threshold between the two flips its verdict. Score at full resolution,
+   or document the change and its effect on thresholds as breaking.
+
+### Non-blocking
+
+- Mismatch reports carry a phantom cursor entry at (0,0).
+- Review images from an earlier mismatch survive a later pass and go stale.
+- `.ansi` decode silently alters adjacent cells that join into one
+  grapheme: flags, lone combining marks, ZWJ emoji and Hangul jamo. It
+  should round-trip them or fail loudly.
+- The CLI guesses the store mode from the first actual it finds and falls
+  back to `target/tuiscotti/actual`. It should be told, or fail.
+- `docs/MIGRATION.md` misses the behaviour changes above and the ratatui
+  0.30 requirement; the PR description claims `>=0.29`.
+- DECISIONS.md lacks the alternatives we asked to see compared (§4 step 2).
+- The CLI flag is `--out`, not `--output` as documented.
+- `count_at_least(n).click()` still requires a unique match.
+- P7 nits: `/` becomes `root` and `/api/v1` becomes `v1`; both lose
+  information.
+
+### Verified OK
+
+- **P1:** a lone `f` is accepted as a key.
+- **P2:** one ratatui (0.30.2) and one crossterm (0.29.0) in our lockfile;
+  unicode-width is single (0.2.2) after `cargo update -p unicode-width`.
+- **P3:** the library matches our gate. 525 single-`.ansi` scenarios
+  round-trip byte-identical; 7,075 legacy files decode and re-encode to the
+  original plus `\x1b[?25l`; the old renderer's PNG and HTML are identical
+  for 400 frames.
+- **P5** and **P8.**
+
+### Performance (mismatch path)
+
+| Size | Old (ms) | New (ms) | New, their profile overrides (ms) | `"*"` opt-level 3 (ms) |
+|---|---|---|---|---|
+| 80x24 | 2391 | 1528 | 78 | 35 |
+| 120x40 | 5658 | 3168 | 165 | 60 |
+| 160x50 | 9222 | 3714 | 257 | 70 |
+
+### What we can delete once it merges with the fixes
+
+- `gate()` and `write_expected_evidence` in
+  `tests/visual_baseline/support.rs`.
+- `encode`/`decode` in `tests/visual_baseline/ansi_cursor.rs`.
+- The lone-`f` workaround in `Session::send_key`.
+- `cargo xtask visual render`.
+- `cargo xtask visual accept`, but only after blockers 1 and 2 are fixed.
+
+### The 20 settings failures were store drift, not tuiscotti
+
+The review saw 20 visual failures on `showcase::pages::settings` at
+`8c03f15`, in both our gate and the new store. They are the 5 sizes x 4
+colour levels (truecolor, 256, 16, none; nocolor unchanged) whose required
+`*` moved from the accent to muted in `a942f1081` (`TextInput`), re-approved
+by `023018f91`. Checked on `design/interaction-polish` at `5fea4ac9b`:
+
+- `8c03f15` alone (its code and its store) passes all 29 settings tests.
+- Current code with the settings store as of `a942f1081` fails exactly
+  the 20 scenarios `023018f91` re-approved, and no others: the review mixed
+  code with the colour roles and a store from before their re-approval.
+- At `5fea4ac9b` all 29 settings tests pass, also with
+  `JUNIE_TUI_CLIENT_PLATFORM=linux` and a far-off `TZ`;
+  `cargo xtask visual determinism` on the group reports 29 identical,
+  0 differ.
+
+No nondeterminism, HOME/config leakage or clock dependence; nothing to fix
+in the harness.
