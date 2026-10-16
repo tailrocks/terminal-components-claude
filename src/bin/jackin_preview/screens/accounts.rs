@@ -1836,9 +1836,8 @@ impl AccountsScreen {
                     let mx = body.x + label_w;
                     let mw = meter_w.min(body.width.saturating_sub(label_w + 8));
                     let pct_text = format!("{pct:>3}%");
-                    Meter::new(Some(*pct))
+                    tone.on(Meter::new(Some(*pct)))
                         .value(pct_text.clone())
-                        .tone(*tone)
                         .visual(MeterVisual::Block)
                         .render(Rect::new(mx, y, mw + 6, 1), buf, ctx, bg);
                     let vx = mx + mw + 8;
@@ -1907,9 +1906,8 @@ impl AccountsScreen {
                 }
                 Line::Meter(label, pct, value, tone) => {
                     buf.set_string(inner.x, y, truncate(label, 12), t.primary().bg(bg));
-                    Meter::new(Some(*pct))
+                    tone.on(Meter::new(Some(*pct)))
                         .value(format!("{pct:>3}%"))
-                        .tone(*tone)
                         .visual(MeterVisual::Block)
                         .render(Rect::new(inner.x + 13, y, 22, 1), buf, ctx, bg);
                     buf.set_string(
@@ -1973,7 +1971,7 @@ enum Line {
     /// glyph, then its parts (a warning: account, phrase, reset time).
     Status(StatusKind, Vec<Span>),
     Heading(String, String),
-    Meter(String, u8, String, MeterTone),
+    Meter(String, u8, String, QuotaTone),
     Blank,
 }
 
@@ -2024,16 +2022,41 @@ pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
     parts.join(" · ")
 }
 
-pub(super) fn meter_tone(win: &QuotaWindow, a: &Account) -> MeterTone {
-    match a.usage.freshness.phase {
-        Freshness::Refreshing => MeterTone::Refreshing,
-        Freshness::Stale | Freshness::Failed => MeterTone::Stale,
-        Freshness::Current => match win.status {
-            QuotaStatus::Exhausted => MeterTone::Exhausted,
-            QuotaStatus::Warning => MeterTone::Warning,
-            _ => MeterTone::Normal,
-        },
+/// How a quota meter draws: the level the domain gives the window, and
+/// whether the value is last-good data. A stale or failed refresh keeps the
+/// window's level (a quota warning stays a warning) and draws it stale
+/// (`Meter::stale`), rather than a fixed `MeterTone::Stale` that would
+/// re-derive the level from the shared thresholds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct QuotaTone {
+    pub tone: MeterTone,
+    pub stale: bool,
+}
+
+impl QuotaTone {
+    /// Apply the tone and the stale flag to a meter.
+    pub fn on(self, m: Meter) -> Meter {
+        m.tone(self.tone).stale(self.stale)
     }
+}
+
+/// The one quota-meter tone for every jackin screen (accounts, usage, the
+/// capsule usage dialog and status bar).
+pub fn quota_tone(win: &QuotaWindow, phase: Freshness) -> QuotaTone {
+    let tone = match (phase, win.status) {
+        (Freshness::Refreshing, _) => MeterTone::Refreshing,
+        (_, QuotaStatus::Exhausted) => MeterTone::Exhausted,
+        (_, QuotaStatus::Warning) => MeterTone::Warning,
+        _ => MeterTone::Normal,
+    };
+    QuotaTone {
+        tone,
+        stale: matches!(phase, Freshness::Stale | Freshness::Failed),
+    }
+}
+
+pub(super) fn meter_tone(win: &QuotaWindow, a: &Account) -> QuotaTone {
+    quota_tone(win, a.usage.freshness.phase)
 }
 
 fn validation_marks(a: &Account) -> (&'static str, &'static str, &'static str) {
