@@ -1,0 +1,122 @@
+//! [`DataTable`] as a [`Specimen`]: a States grid draws a short copy of a
+//! table (its header and first rows) in a forced state.
+//!
+//! The sample keeps the table's own columns, cells and settings and sets
+//! only what the state is about: the hovered or pressed row (row 2), the
+//! chosen rows, a disabled row, an open cell edit, a cell error, no rows,
+//! or a cell too long for its column.
+
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::Color;
+
+use crate::core::id::WidgetId;
+use crate::core::selection::SelectionMode;
+use crate::ui::ctx::RenderCtx;
+use crate::ui::specimen::{Specimen, SpecimenState};
+use crate::widgets::table::DataTable;
+
+/// Rows a sample keeps.
+const SAMPLE_ROWS: usize = 3;
+
+impl DataTable {
+    /// The first editable column, for the editing and error samples.
+    fn sample_edit_col(&self) -> Option<usize> {
+        self.columns.iter().position(|c| c.editable)
+    }
+
+    /// The first column that holds text (not a numeric column), for the
+    /// overflow sample.
+    fn sample_text_col(&self) -> usize {
+        (0..self.columns.len())
+            .find(|&c| !self.numeric.get(c).copied().unwrap_or(false))
+            .unwrap_or(0)
+    }
+}
+
+impl Specimen for DataTable {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        match state {
+            Rest | Hover | Pressed | Focused | FocusedHover | Disabled | Error | Empty
+            | Overflow | Narrow => true,
+            Selected => self.selection_mode != SelectionMode::None,
+            Editing => self.cell_nav && self.sample_edit_col().is_some(),
+            Busy | Loading => false,
+        }
+    }
+
+    /// The header and the sample rows (the empty text in one).
+    fn specimen_height(&self, state: SpecimenState) -> u16 {
+        if state == SpecimenState::Empty {
+            2
+        } else {
+            1 + SAMPLE_ROWS.min(self.rows.len().max(1)) as u16
+        }
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut t = self.clone();
+        let rows: Vec<_> = t.rows.iter().take(SAMPLE_ROWS).cloned().collect();
+        t.set_rows(rows);
+        t.edit = None;
+        t.choice = None;
+        t.selected = None;
+        t.sort = None;
+        t.selection.clear();
+        t.disabled.clear();
+        t.cursor_row = 0;
+        // the pointer rests on the second row
+        let row = 1.min(t.rows.len().saturating_sub(1));
+        let v = state.visual();
+        if v.hovered {
+            ctx.interaction.hover = Some(t.cell_id(row, t.cursor_col));
+        }
+        if v.pressed {
+            ctx.interaction.pressed = Some(t.cell_id(row, t.cursor_col));
+        }
+        match state {
+            SpecimenState::Selected => match t.selection_mode {
+                SelectionMode::Multi => {
+                    t.select_all();
+                }
+                _ => t.selected = Some(row),
+            },
+            SpecimenState::Disabled => t.set_row_disabled(row, true),
+            SpecimenState::Editing => {
+                if let Some(c) = t.sample_edit_col() {
+                    t.cursor_col = c;
+                    t.begin_edit();
+                }
+            }
+            SpecimenState::Error => {
+                let c = t.sample_edit_col().unwrap_or_else(|| t.sample_text_col());
+                if let Some(cell) = t.rows.get_mut(0).and_then(|r| r.get_mut(c)) {
+                    cell.error = Some("Enter a valid value".into());
+                }
+            }
+            SpecimenState::Empty => t.set_rows(Vec::new()),
+            SpecimenState::Overflow => {
+                let c = t.sample_text_col();
+                if let Some(cell) = t.rows.get_mut(0).and_then(|r| r.get_mut(c)) {
+                    cell.text = format!("{} and a value longer than its column", cell.text);
+                }
+            }
+            _ => {}
+        }
+        t.render(area, buf, ctx, bg);
+        // samples never move the terminal cursor
+        ctx.cursor = None;
+    }
+}

@@ -253,6 +253,110 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::table::DataTable::validator",
         Demo("editable", "fix/checkout flake !"),
     ),
+    // Columns and Basic table (SC11)
+    (
+        "core::selection::SelectionMode",
+        Option("basictable", "basictable.selection"),
+    ),
+    (
+        "core::selection::SelectionMode::None",
+        Option("basictable", "basictable.selection=none"),
+    ),
+    (
+        "core::selection::SelectionMode::Single",
+        Option("basictable", "basictable.selection=single"),
+    ),
+    (
+        "core::selection::SelectionMode::Multi",
+        Option("basictable", "basictable.selection=multi"),
+    ),
+    (
+        "widgets::table::DataTable::selection_mode",
+        Option("basictable", "basictable.selection"),
+    ),
+    (
+        "widgets::table::DataTable::selection_column",
+        Option("basictable", "basictable.selection=multi"),
+    ),
+    (
+        "core::selection::RowSelection",
+        Demo("basictable", "2 selected · header mixed"),
+    ),
+    (
+        "core::selection::TriState",
+        Demo("basictable", "2 selected · header mixed"),
+    ),
+    (
+        "core::selection::TriState::Mixed",
+        Demo("basictable", "[–] Reviewer"),
+    ),
+    (
+        "core::selection::TriState::None",
+        Demo("basictable", "[ ] ID Task Status"),
+    ),
+    (
+        "core::selection::TriState::All",
+        Demo("basictable", "[✓] ID Task Status"),
+    ),
+    (
+        "ui::columns::Col",
+        Demo("columns", "Column Rule min ideal max flex drop"),
+    ),
+    (
+        "ui::columns::Col::flex",
+        Demo("columns", "content 8–18 · flex 1, max 30"),
+    ),
+    (
+        "ui::columns::Col::max",
+        Demo("columns", "content 6–24 · max 40 · drop 0"),
+    ),
+    (
+        "ui::columns::Col::droppable",
+        Demo("columns", "content 6–10 · droppable 2"),
+    ),
+    (
+        "ui::columns::ColumnSizing",
+        Option("columns", "columns.min_width"),
+    ),
+    (
+        "widgets::table::DataTable::resizable_columns",
+        Option("columns", "columns.resizable"),
+    ),
+    (
+        "widgets::table::DataTable::seam_hit_w",
+        Option("columns", "columns.seam_w"),
+    ),
+    (
+        "ui::columns::HeaderLabels",
+        Option("columns", "columns.header_labels"),
+    ),
+    (
+        "ui::columns::HeaderAction",
+        Demo("columns", "Header menu · ID"),
+    ),
+    (
+        "ui::columns::HeaderAction::SortAsc",
+        Demo("columns", "Sort Ascending available"),
+    ),
+    (
+        "ui::columns::HeaderAction::SortDesc",
+        Demo("columns", "Sort Descending available"),
+    ),
+    (
+        "ui::columns::HeaderAction::ClearSort",
+        Demo("columns", "Clear Sort Not sorted"),
+    ),
+    (
+        "ui::columns::HeaderAction::Autofit",
+        Demo("columns", "Size Column to Fit available"),
+    ),
+    (
+        "ui::columns::HeaderAction::ResetWidths",
+        Demo(
+            "columns",
+            "Reset Column Widths Columns have their default widths",
+        ),
+    ),
     (
         "widgets::grid::DataGrid",
         Demo("datagrid", "rows 1–26 of 40 loaded"),

@@ -70,6 +70,9 @@ pub const SURFACES: &[Root] = &[
     // Cell editors (pages/celleditors.rs, docs/showcase/tables.md): a table
     // of constrained columns; pending first approval.
     Root::new("showcase/pages/celleditors", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["wait:checkout-api"]).pending(),
+    // Columns (pages/columns.rs, SC11): the width solver, resizable columns
+    // and the header menu; pending first approval.
+    Root::new("showcase/pages/columns", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["wait:Width solver"]).pending(),
     // ------------------------------------------------ planned pages (SC2) --
     // Every page of plan §7.2 is registered up front with its `--page` slug
     // and shows an EmptyState naming the step that fills it. Each step
@@ -81,7 +84,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
     Root::new("showcase/planned/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:arrives with SC9"]).pending(),
     Root::new("showcase/planned/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
-    Root::new("showcase/planned/columns", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["wait:arrives with SC11"]).pending(),
     Root::new("showcase/planned/tabs", Bin::Showcase, &["--page", "tabs"], BOOT).sends(&["wait:arrives with SC14"]).pending(),
     Root::new("showcase/planned/menus", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["wait:arrives with SC16"]).pending(),
     Root::new("showcase/planned/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:arrives with SC18"]).pending(),
@@ -113,6 +115,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/buttons-states", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
     Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
     Root::new("showcase/sections/inputs-states", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    // SC11: Columns and Basic table options (their option tables) and States.
+    Root::new("showcase/sections/columns-options", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["tab", "2", "wait:Header menu labels"]).pending(),
+    Root::new("showcase/sections/columns-states", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/columns-narrow-row", Bin::Showcase, &["--page", "columns", "--opt", "columns.width=28"], BOOT).sends(&["wait:dropped"]).pending(),
+    Root::new("showcase/sections/basictable-options", Bin::Showcase, &["--page", "basictable"], BOOT).sends(&["tab", "2", "wait:Selection"]).pending(),
+    Root::new("showcase/sections/basictable-states", Bin::Showcase, &["--page", "basictable"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/basictable-multi", Bin::Showcase, &["--page", "basictable", "--opt", "basictable.selection=multi"], BOOT).sends(&["wait:[ ] #1040"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),
@@ -213,7 +222,8 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/buttons/focus", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab"]),
     Root::new("showcase/flows/lists/moved", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "down", "down"]),
     Root::new("showcase/flows/trees/expanded", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "right"]),
-    Root::new("showcase/flows/tables/selected", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "down", "down"]),
+    // the first Tab stop is the page's section strip (SC2 template)
+    Root::new("showcase/flows/tables/selected", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "tab", "down", "down"]),
     Root::new("showcase/flows/editable/editing", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "enter"]),
     Root::new("showcase/flows/datagrid/selected", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "down", "right"]),
     Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "space"]),
