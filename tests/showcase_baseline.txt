@@ -375,7 +375,7 @@
 160x50 TrueColor Trees bbb6fd8afed5c97c
 160x50 TrueColor Tables 260ef7757a5ee0a4
 160x50 TrueColor Editable tables cdd57e1c2dd66639
-160x50 TrueColor Panels 5b11782599dbba1b
+160x50 TrueColor Panels 0b3852a1c84fd7eb
 160x50 TrueColor Sidebars 3a5f8882cecb7bf8
 160x50 TrueColor Dialogs afa0e1d6d38762d1
 160x50 TrueColor Progress 8b5625dcaa20419a
@@ -398,7 +398,7 @@
 160x50 Ansi256 Trees 8b5383e8cbd74bdd
 160x50 Ansi256 Tables 4937908bf2e03c73
 160x50 Ansi256 Editable tables 8bf3271cfe488e47
-160x50 Ansi256 Panels 4d6f650e702e19ea
+160x50 Ansi256 Panels 7aa6d29307acacce
 160x50 Ansi256 Sidebars e7fb7d0060cd745a
 160x50 Ansi256 Dialogs c021172e4d98f106
 160x50 Ansi256 Progress 6b7ae57ac81ea47c
@@ -444,7 +444,7 @@
 160x50 Mono Trees 488c38767eeb475d
 160x50 Mono Tables 51cd9ff6e33c775c
 160x50 Mono Editable tables cbcf04c148313f50
-160x50 Mono Panels 7557616b2e07d3bd
+160x50 Mono Panels a2e8c9fde30353df
 160x50 Mono Sidebars 8a0c789d1f742158
 160x50 Mono Dialogs 0ea8980fdee4516c
 160x50 Mono Progress ea99460539eca974

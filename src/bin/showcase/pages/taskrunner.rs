@@ -261,7 +261,7 @@ impl Page for TaskRunnerPage {
                     buf.set_string(
                         inner.x + 2,
                         y,
-                        &label[..label.len().min(10)],
+                        &junie_tui::ui::text::truncate(&label, 10),
                         t.primary().bg(bg),
                     );
                     render_bar(
@@ -279,7 +279,7 @@ impl Page for TaskRunnerPage {
                     buf.set_string(
                         inner.x + 2,
                         y,
-                        &label[..label.len().min(10)],
+                        &junie_tui::ui::text::truncate(&label, 10),
                         t.secondary().bg(bg),
                     );
                     render_bar(
@@ -297,7 +297,7 @@ impl Page for TaskRunnerPage {
                     buf.set_string(
                         inner.x + 2,
                         y,
-                        &label[..label.len().min(10)],
+                        &junie_tui::ui::text::truncate(&label, 10),
                         t.primary().bg(bg),
                     );
                     render_bar(
