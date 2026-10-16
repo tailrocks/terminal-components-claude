@@ -302,7 +302,7 @@ impl Workbench {
     }
 
     /// Resolve an explorer path to (schema, object) when it points at an object.
-    fn object_at(&self, path: &[usize]) -> Option<(String, String)> {
+    pub(crate) fn object_at(&self, path: &[usize]) -> Option<(String, String)> {
         if path.len() < 4 || path[0] != 0 {
             return None;
         }
@@ -321,7 +321,7 @@ impl Workbench {
         Some((schema, obj.name.clone()))
     }
 
-    fn schema_at(&self, path: &[usize]) -> Option<String> {
+    pub(crate) fn schema_at(&self, path: &[usize]) -> Option<String> {
         if path.len() == 2 && path[0] == 0 {
             self.catalog.schemas.get(path[1]).cloned()
         } else {

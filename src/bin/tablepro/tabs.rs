@@ -1006,7 +1006,7 @@ impl QueryTab {
         self.running.is_some()
     }
 
-    fn active_grid_mut(&mut self) -> Option<&mut DataGrid> {
+    pub(crate) fn active_grid_mut(&mut self) -> Option<&mut DataGrid> {
         match self
             .results
             .get_mut(self.active_result)
