@@ -49,6 +49,9 @@ pub struct InfoDialog {
     pub nav: NavKeys,
     /// The dialog's action keys (default [`InfoAction::default_keymap`]).
     pub keymap: KeyMap<InfoAction>,
+    /// The theme's strings as of the last render; a Close label still
+    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+    strings: crate::theme::Strings,
 }
 
 /// An [`InfoDialog`] action a key can be bound to. Esc and Enter always
@@ -86,7 +89,8 @@ impl InfoDialog {
             detail: vec![],
             detail_scroll: ScrollState::default(),
             actions: vec![],
-            close: Button::secondary(id.sub("close"), "Close"),
+            close: Button::secondary(id.sub("close"), crate::theme::Strings::DEFAULT.close),
+            strings: crate::theme::Strings::DEFAULT,
             width: 66,
             result: None,
             area: Rect::ZERO,
@@ -305,6 +309,9 @@ impl InfoDialog {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let s = ctx.theme.strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        crate::theme::Strings::follow(&mut self.close.label, old.close, s.close);
         let intro_h = self.intro.len() as u16 + u16::from(!self.intro.is_empty());
         let props_h = self.props.props.len() as u16;
         let detail_h = if self.detail.is_empty() {
