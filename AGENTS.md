@@ -98,8 +98,15 @@ components work; they are not where behaviour lives.
 - A list whose focus belongs to an owner (a popup list under a search
   field, an editor or a select field) marks its cursor row with a fill
   (`Theme::cursor_row`, `CursorStyle::Fill`), never a second focus bar.
-- Active-but-unfocused items (the active tab, the current page, a chosen
-  value) use a neutral treatment, never the focus accent.
+- The selected item of a tab strip or segmented control shows the
+  phosphor accent while its page is the active layer (as macOS selection
+  does in the active window), and goes neutral under a modal or popup.
+  Keyboard focus is still only the single `▎` indicator, never the
+  selection colour. Other chosen values (the current page in a list, a
+  chosen option) follow `Theme::chosen`.
+- A scrollbar thumb keeps one glyph in every state: rest is a neutral
+  grey, hover a lighter grey, pressed (held or dragged) the accent. Where
+  colour cannot carry state (`NO_COLOR`), a modifier does.
 - Rest, hover and pressed are visibly different from each other, and from
   focused, selected and disabled, for every interactive element and at
   every colour level (truecolor, 256, 16, mono). Disabled controls do not
