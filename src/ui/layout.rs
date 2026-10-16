@@ -236,7 +236,7 @@ pub struct Stack {
     /// scrolls. Default 1.
     pub scrollbar_gap: u16,
     /// What a press on the bare scrollbar track does. Default
-    /// [`TrackClick::Jump`](crate::core::scroll::TrackClick::Jump), like the other vertical bars;
+    /// [`TrackClick::Page`](crate::core::scroll::TrackClick::Page), like the other bars;
     /// the stack lays out without a [`RenderCtx`](crate::ui::ctx::RenderCtx),
     /// so an owner that follows the app-wide policy passes
     /// `ctx.track_click` here.
@@ -250,7 +250,7 @@ impl Default for Stack {
             overflow: Overflow::Scroll,
             min_child_rows: 1,
             scrollbar_gap: 1,
-            track_click: crate::core::scroll::TrackClick::Jump,
+            track_click: crate::core::scroll::TrackClick::Page,
         }
     }
 }

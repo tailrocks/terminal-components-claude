@@ -295,7 +295,7 @@ impl DataTable {
         let numeric = vec![false; columns.len()];
         Self {
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             id,
             columns,
             rows,

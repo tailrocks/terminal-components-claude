@@ -260,7 +260,7 @@ impl TreeView {
     pub fn new(id: WidgetId, nodes: Vec<TreeNode>) -> Self {
         let mut tv = Self {
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             id,
             nodes,
             expanded: Default::default(),
