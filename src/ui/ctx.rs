@@ -470,6 +470,26 @@ impl<'a> RenderCtx<'a> {
         self.interaction.focus_hidden = false;
     }
 
+    /// Draw a container whose controls Tab visits in visual order, top to
+    /// bottom then left to right, whatever order `draw` registers them in
+    /// (keyboard audit K30, `order: Visual`): a card that draws its action
+    /// row before its header still focuses the header first. A control
+    /// with no hit region this frame (a [`Self::focus_stop`]) keeps its
+    /// place after the drawn ones.
+    pub fn visual_order<T>(&mut self, draw: impl FnOnce(&mut Self) -> T) -> T {
+        let start = self.ring.len();
+        let out = draw(self);
+        let hits = &self.hits;
+        self.ring.sort_from(start, |id| {
+            hits.regions()
+                .iter()
+                .rev()
+                .find(|r| r.id == *id)
+                .map_or((u16::MAX, u16::MAX), |r| (r.area.y, r.area.x))
+        });
+        out
+    }
+
     /// A panel about to draw over everything drawn so far (a form that
     /// takes the whole page on a narrow terminal): pending page overlays
     /// land first, then everything registered so far is inert, out of the
