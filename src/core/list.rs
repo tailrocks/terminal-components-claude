@@ -361,12 +361,146 @@ impl KeyStep {
     /// Classify `key`: with type-ahead on, a printable character types
     /// (vim letters included, so `j` finds "Jobs"); otherwise `nav`
     /// decides. `None` when the key is neither.
+    ///
+    /// This is the rule for the topmost layer (an open menu, an open select
+    /// popup, a cell popup): it types before anything beneath it sees the
+    /// key. A collection embedded in a page uses [`Self::ordered`].
     pub fn of(key: &Key, nav: &NavKeys, type_ahead: bool) -> Option<Self> {
+        Self::ordered(key, nav, type_ahead, TypeAheadPrecedence::TypeAhead)
+    }
+
+    /// [`Self::of`] for a collection embedded in a page (a list, a tree, a
+    /// closed select, a table): under [`TypeAheadPrecedence::Shortcuts`],
+    /// while [`route_key`] offers the key to shortcuts first, a type-ahead
+    /// character is not typed. The collection lets it pass (unless it binds
+    /// the key itself) and [`route_key`] hands it back for type-ahead only
+    /// when no shortcut took it.
+    pub fn ordered(
+        key: &Key,
+        nav: &NavKeys,
+        type_ahead: bool,
+        precedence: TypeAheadPrecedence,
+    ) -> Option<Self> {
         if type_ahead && let Some(c) = TypeAhead::char_of(key) {
-            return Some(KeyStep::Type(c));
+            if precedence == TypeAheadPrecedence::Shortcuts && ROUTE.with(Cell::get) == Pass::Shortcuts
+            {
+                YIELDED.with(|y| y.set(true));
+            } else {
+                return Some(KeyStep::Type(c));
+            }
         }
         nav.action(key).map(KeyStep::Nav)
     }
+}
+
+/// Who gets a printable key first when a focused list, tree, closed select
+/// or table type-selects and the page or the app also binds that key as a
+/// single-character shortcut (`d` delete, `e` edit, `q` quit, `0`
+/// explorer).
+///
+/// The rule lives in one place: [`route_key`] offers a type-ahead
+/// character to the shortcuts first and to type-ahead second, and
+/// [`KeyStep::ordered`] is where every embedded collection asks. Layers of
+/// the override stack: the app-wide default ([`Self::install`]), then a
+/// widget's `type_ahead_precedence(..)` builder, then the app's key map
+/// (a shortcut the app unbinds no longer competes). Open menus and popups
+/// are the topmost layer and always type first ([`KeyStep::of`]).
+///
+/// Standards: APG recommends type-ahead in listboxes and trees and warns
+/// that it must not collide with the application's own keys; WCAG 2.1.4
+/// asks that single-character shortcuts be remappable or turned off,
+/// which the key maps and [`Self::TypeAhead`] provide; a terminal app's
+/// commands are single letters because ⌘ is not delivered, so a hinted
+/// letter must keep working while a list has focus (hints never advertise
+/// a key that does not work). See docs/audits/design-review-2026-10/
+/// keyboard.md, "Type-ahead and single-letter shortcuts".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+pub enum TypeAheadPrecedence {
+    /// Keymap first (the default): a key a shortcut in the current context
+    /// takes runs that shortcut; type-ahead gets every other letter and
+    /// digit.
+    #[default]
+    Shortcuts,
+    /// Type-ahead first (macOS Finder lists, where commands carry ⌘): a
+    /// focused collection types every letter and digit, and a page's
+    /// letter shortcuts need the focus elsewhere.
+    TypeAhead,
+}
+
+thread_local! {
+    static PRECEDENCE: Cell<TypeAheadPrecedence> =
+        const { Cell::new(TypeAheadPrecedence::Shortcuts) };
+    static ROUTE: Cell<Pass> = const { Cell::new(Pass::Direct) };
+    static YIELDED: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Which pass of [`route_key`] is running.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Pass {
+    /// Not inside [`route_key`] (a widget driven on its own): type-ahead
+    /// types at once.
+    Direct,
+    /// The first pass: shortcuts get the key; collections yield it.
+    Shortcuts,
+    /// The second pass: no shortcut took it, so it types.
+    TypeAhead,
+}
+
+impl TypeAheadPrecedence {
+    /// Make this the app-wide default (on this thread). Read at each key,
+    /// so it can be installed at any time.
+    pub fn install(self) {
+        PRECEDENCE.with(|p| p.set(self));
+    }
+
+    /// The installed default ([`Self::Shortcuts`] unless an app installed
+    /// another).
+    pub fn current() -> Self {
+        PRECEDENCE.with(Cell::get)
+    }
+}
+
+/// Restores the routing pass when a pass ends (also on unwind).
+struct PassGuard(Pass);
+
+impl PassGuard {
+    fn enter(pass: Pass) -> Self {
+        Self(ROUTE.with(|r| r.replace(pass)))
+    }
+}
+
+impl Drop for PassGuard {
+    fn drop(&mut self) {
+        ROUTE.with(|r| r.set(self.0));
+    }
+}
+
+/// Deliver `key` through `handle` (an app's whole key path: modals, shell,
+/// page, focused widget) so that a single-character shortcut wins over
+/// type-ahead ([`TypeAheadPrecedence::Shortcuts`]).
+///
+/// A key that is not a type-ahead character ([`TypeAhead::char_of`]: not a
+/// letter or digit, or a chord) is delivered once. A letter or digit is
+/// delivered first with type-ahead held back: every handler, shortcut or
+/// widget key map sees it as if no collection typed. When a collection
+/// held it back and nothing visible happened (no shortcut ran: the result
+/// is not [`Outcome::Changed`]), it is delivered again and types. Hints
+/// stay truthful: a key a hint advertises is a key some handler takes, and
+/// that handler runs before type-ahead.
+pub fn route_key(key: &Key, mut handle: impl FnMut() -> Outcome) -> Outcome {
+    if ROUTE.with(Cell::get) != Pass::Direct || TypeAhead::char_of(key).is_none() {
+        return handle();
+    }
+    let first = {
+        let _pass = PassGuard::enter(Pass::Shortcuts);
+        YIELDED.with(|y| y.set(false));
+        handle()
+    };
+    if !YIELDED.with(|y| y.replace(false)) || first == Outcome::Changed {
+        return first;
+    }
+    let _pass = PassGuard::enter(Pass::TypeAhead);
+    handle().or(first)
 }
 
 /// The app-wide navigation profile: the first layer of the override stack
@@ -601,5 +735,105 @@ mod tests {
         assert!(!NavProfile::current().type_ahead());
         NavProfile::Desktop.install();
         assert_eq!(TypeAhead::default().timeout, Duration::from_millis(1000));
+    }
+
+    /// A page that binds `q` (and swallows everything else, as a modal
+    /// does when `swallow` is set) around a focused list that type-selects.
+    struct Page {
+        cursor: Cursor,
+        ta: TypeAhead,
+        shortcut_runs: usize,
+        swallow: bool,
+        precedence: TypeAheadPrecedence,
+    }
+
+    impl Page {
+        const ROWS: &[&str] = &["Alpha", "Delta", "Quit log"];
+
+        fn new() -> Self {
+            Self {
+                cursor: Cursor::new(0),
+                ta: TypeAhead::with_timeout(Duration::ZERO),
+                shortcut_runs: 0,
+                swallow: false,
+                precedence: TypeAheadPrecedence::current(),
+            }
+        }
+
+        /// The whole key path: the focused list first, then the page.
+        fn on_key(&mut self, k: &Key) -> Outcome {
+            if let Some(KeyStep::Type(c)) =
+                KeyStep::ordered(k, &NavKeys::DESKTOP, true, self.precedence)
+            {
+                return self.cursor.type_ahead(c, &mut self.ta, Self::ROWS).outcome();
+            }
+            if k.code == KeyCode::Char('q') {
+                self.shortcut_runs += 1;
+                return Outcome::Changed;
+            }
+            if self.swallow {
+                Outcome::Consumed
+            } else {
+                Outcome::Ignored
+            }
+        }
+
+        fn press(&mut self, c: char) -> Outcome {
+            let k = key(KeyCode::Char(c), KeyModifiers::NONE);
+            route_key(&k, || self.on_key(&k))
+        }
+    }
+
+    #[test]
+    fn a_bound_letter_wins_over_type_ahead_and_the_rest_type() {
+        let mut p = Page::new();
+        assert_eq!(p.press('q'), Outcome::Changed);
+        assert_eq!(p.shortcut_runs, 1, "the shortcut ran");
+        assert_eq!(p.cursor.index, 0, "and the list did not type it");
+        assert_eq!(p.press('d'), Outcome::Changed);
+        assert_eq!(p.cursor.index, 1, "an unbound letter types");
+        assert_eq!(p.press('z'), Outcome::Consumed, "a miss is consumed");
+        assert_eq!(p.press('?'), Outcome::Ignored, "punctuation is never typed");
+        // a modal that swallows unbound keys still lets its list type
+        let mut m = Page::new();
+        m.swallow = true;
+        assert_eq!(m.press('d'), Outcome::Changed);
+        assert_eq!(m.cursor.index, 1);
+        assert_eq!(m.shortcut_runs, 0);
+    }
+
+    #[test]
+    fn type_ahead_first_is_an_app_wide_and_a_per_widget_choice() {
+        // per widget
+        let mut p = Page::new();
+        p.precedence = TypeAheadPrecedence::TypeAhead;
+        p.press('q');
+        assert_eq!((p.shortcut_runs, p.cursor.index), (0, 2), "the list typed q");
+        // app-wide, read at each key
+        TypeAheadPrecedence::TypeAhead.install();
+        let mut a = Page::new();
+        a.press('q');
+        assert_eq!((a.shortcut_runs, a.cursor.index), (0, 2));
+        TypeAheadPrecedence::Shortcuts.install();
+        assert_eq!(TypeAheadPrecedence::current(), TypeAheadPrecedence::Shortcuts);
+    }
+
+    #[test]
+    fn outside_route_key_and_in_popups_a_letter_types_at_once() {
+        let q = key(KeyCode::Char('q'), KeyModifiers::NONE);
+        // a widget driven on its own (no router): S4's behaviour
+        let mut p = Page::new();
+        p.on_key(&q);
+        assert_eq!((p.shortcut_runs, p.cursor.index), (0, 2));
+        // an open popup is the topmost layer: `KeyStep::of` types even
+        // while shortcuts are offered the key
+        let step = route_key(&q, || {
+            assert_eq!(
+                KeyStep::of(&q, &NavKeys::DESKTOP, true),
+                Some(KeyStep::Type('q'))
+            );
+            Outcome::Changed
+        });
+        assert_eq!(step, Outcome::Changed);
     }
 }

@@ -123,6 +123,10 @@ pub struct Select {
     /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
     /// `Vim`.
     pub type_ahead: bool,
+    /// Whether the page's and the app's single-character shortcuts win over
+    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
+    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+    pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     /// Stepping past either end (open list ↑/↓, closed field arrows)
     /// lands on the other end. Default off: it stops at the end.
     pub wrap: bool,
@@ -206,6 +210,7 @@ impl Select {
             tab_in_open: TabInOpen::Choose,
             mixed: None,
             type_ahead: crate::core::list::NavProfile::current().type_ahead(),
+            type_ahead_precedence: None,
             wrap: false,
             typeahead: Default::default(),
             close_on_blur: true,
@@ -363,7 +368,14 @@ impl Select {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
-        let step = KeyStep::of(key, &self.nav, self.type_ahead);
+        // closed, the select sits in a page: shortcuts first; open, its
+        // popup is the topmost layer and types first
+        let precedence = if self.open {
+            crate::core::list::TypeAheadPrecedence::TypeAhead
+        } else {
+            self.type_ahead_precedence.unwrap_or_else(crate::core::list::TypeAheadPrecedence::current)
+        };
+        let step = KeyStep::ordered(key, &self.nav, self.type_ahead, precedence);
         if let Some(KeyStep::Type(c)) = step {
             // open: the popup's cursor; closed: the value itself
             let moved = self
@@ -473,6 +485,15 @@ impl Select {
 
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::type_ahead_precedence`].
+    pub fn type_ahead_precedence(
+        mut self,
+        precedence: crate::core::list::TypeAheadPrecedence,
+    ) -> Self {
+        self.type_ahead_precedence = Some(precedence);
         self
     }
 

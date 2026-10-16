@@ -200,6 +200,10 @@ pub struct TreeView {
     /// `Vim`. Mapped actions (`*`, `-`) keep priority.
     pub type_ahead: bool,
     typeahead: crate::core::typeahead::TypeAhead,
+    /// Whether the page's and the app's single-character shortcuts win over
+    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
+    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+    pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     /// Keep the last column as a divider at every size: a track when the
     /// rows fit, the scrollbar when they overflow (a sidebar edge). Off by
     /// default: the column is taken only while the tree scrolls.
@@ -305,6 +309,7 @@ impl TreeView {
             nav: NavKeys::default(),
             keymap: TreeCmd::default_keymap(),
             type_ahead: crate::core::list::NavProfile::current().type_ahead(),
+            type_ahead_precedence: None,
             typeahead: Default::default(),
             divider: false,
             selected_marker: None,
@@ -362,6 +367,15 @@ impl TreeView {
     /// See [`Self::type_ahead`].
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::type_ahead_precedence`].
+    pub fn type_ahead_precedence(
+        mut self,
+        precedence: crate::core::list::TypeAheadPrecedence,
+    ) -> Self {
+        self.type_ahead_precedence = Some(precedence);
         self
     }
 
@@ -680,7 +694,7 @@ impl TreeView {
             }
             return (Outcome::Changed, None);
         }
-        let nav = match KeyStep::of(key, &self.nav, self.type_ahead) {
+        let nav = match KeyStep::ordered(key, &self.nav, self.type_ahead, self.type_ahead_precedence.unwrap_or_else(crate::core::list::TypeAheadPrecedence::current)) {
             Some(KeyStep::Type(c)) => {
                 let moved = self
                     .nav_cursor()
