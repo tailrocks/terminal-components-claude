@@ -886,27 +886,72 @@ fn short_pages_scroll_by_section_and_never_draw_past_their_area() {
     );
 }
 
-/// Layout audit #19: the navigation's divider was really its scrollbar, so
-/// it vanished whenever the list fitted (100x30) and the look flipped at
-/// each breakpoint. The divider column is now drawn at every size and the
-/// thumb is laid over it only when the list overflows; rows never run
-/// under it.
+/// The navigation tree sits in a "Components" card at every size, from
+/// the minimum to the widest: the card's surface fills the whole sidebar
+/// (its edge is the constant divider of layout audit #19, so the look
+/// never flips at a breakpoint), the title row names it with the page
+/// count, the rows sit inside the padding, and the scrollbar of an
+/// overflowing tree keeps a blank column between itself and the card's
+/// edge. Focus-within shows on the title, never as a second `▎`.
 #[test]
-fn the_navigation_divider_is_drawn_at_every_size() {
+fn the_navigation_tree_sits_in_a_titled_card_at_every_size() {
     use junie_tui::widgets::scrollbar::{THUMB, TRACK};
+    let theme = Theme::junie();
+    let count = crate::app::NAV_ENTRIES.len().to_string();
     for (w, hh) in [(72u16, 20u16), (80, 24), (100, 30), (120, 40), (160, 50)] {
-        let h = Harness::new(w, hh, PageId::Lists);
+        let mut h = Harness::new(w, hh, PageId::TaskRunner);
+        // every group open: the tree overflows at the small sizes
+        h.app.set_nav_expand(crate::app::NavExpand::All);
+        h.draw();
         let nav = h.app.sidebar_area();
-        let x = nav.right() - 1;
+        let text = h.text();
         let buf = h.term.backend().buffer();
+        let rows = h.app.nav.area;
+        // the card's surface frames the rows: its title and bottom rows
+        // and its side padding (the rows carry their own fills)
         for y in nav.top()..nav.bottom() {
-            let sym = buf[(x, y)].symbol();
+            for x in nav.left()..nav.right() {
+                if rows.contains(Position::new(x, y)) {
+                    continue;
+                }
+                assert_eq!(
+                    buf[(x, y)].bg,
+                    theme.surface,
+                    "{w}x{hh}: ({x},{y}) is off the card\n{text}"
+                );
+            }
+        }
+        let title = h.row(nav.y);
+        let title = &title[..title
+            .char_indices()
+            .nth(nav.right() as usize)
+            .map_or(title.len(), |(i, _)| i)];
+        assert!(
+            title.starts_with(" Components") && title.trim_end().ends_with(&count),
+            "{w}x{hh}: the title row is {title:?}\n{text}"
+        );
+        // the rows start below the title and end above the card's bottom
+        // padding; the first and last columns are padding
+        assert_eq!(rows.y, nav.y + 2, "{w}x{hh}");
+        assert_eq!(rows.bottom(), nav.bottom() - 1, "{w}x{hh}");
+        assert_eq!((rows.x, rows.right()), (nav.x + 1, nav.right() - 1));
+        let edge = nav.right() - 1;
+        for y in nav.top()..nav.bottom() {
+            assert_eq!(buf[(edge, y)].symbol(), " ", "{w}x{hh}: edge row {y}");
+        }
+        if h.app.nav.scroll.overflows() {
+            let bar = (rows.top()..rows.bottom())
+                .map(|y| buf[(rows.right() - 1, y)].symbol())
+                .collect::<Vec<_>>();
             assert!(
-                sym == TRACK || sym == THUMB,
-                "{w}x{hh}: row {y} of the divider is {sym:?}\n{}",
-                h.text()
+                bar.iter().all(|s| *s == TRACK || *s == THUMB),
+                "{w}x{hh}: the bar sits in the last content column {bar:?}\n{text}"
             );
         }
+        // one focus indicator: the cursor row's `▎`, none on the title
+        let bars = text.matches('▎').count();
+        assert!(bars <= 1, "{w}x{hh}: {bars} focus bars\n{text}");
+        assert!(!title.contains('▎'), "{w}x{hh}");
     }
 }
 

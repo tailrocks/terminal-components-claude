@@ -233,7 +233,9 @@ remainder recorded here with its reason. Commits are on
   `Sections`; the rest keep fixed `rows()` and convert one by one.
 - **#19, breakpoints.** The sidebar's switch between section headers and the
   compact list at 120 columns is intended responsive behaviour and stays.
-  The divider no longer changes.
+  The divider no longer changes. Since the sidebar moved into a
+  "Components" card, the card's edge is that constant divider and the tree
+  draws no divider column (`TreeView::divider` stays for other owners).
 - **#22, Holla Explore row.** Wired to the shared "+N" helper, but the row
   never overflows at any supported size (72 columns minimum), so there is
   no app-level test; `chips::overflow_run` and `ChipBar` have unit tests.
