@@ -1518,7 +1518,7 @@ impl QueryTab {
     pub fn click(&mut self, ev: &PointerEvent, cx: &mut Cx, cat: &Catalog) -> Outcome {
         let id = ev.id;
         if id == self.seam.id {
-            return self.seam.on_click(&mut self.split, cx.clicks);
+            return self.seam.on_click(&mut self.split, ev.count());
         }
         if self.completion.is_open() {
             match self.completion.route(ev).map(|r| r.into_parts()) {

@@ -5,7 +5,7 @@
 use std::any::Any;
 
 use crate::core::focus::{Focus, FocusRing};
-use crate::theme::Tone;
+use crate::theme::{StatusKind, Tone};
 use crate::ui::context::ContextConfig;
 use crate::ui::layer::{Layer, LayerTag};
 use crate::ui::popup::Dismiss;
@@ -19,6 +19,9 @@ pub enum Request<R, W: ?Sized = (), G = ()> {
     /// A footer status in `Tone` (information expires; an error stays
     /// until the next action, [`super::StatusLine`]).
     Status(String, Tone),
+    /// A footer status of a [`StatusKind`]: drawn with its glyph and tone
+    /// ([`crate::theme::Theme::status`]); a failure stays like an error.
+    StatusAs(String, StatusKind),
     /// Open a layer on top, owned by the page that asked
     /// ([`crate::ui::layer::ShellLayers::open`]).
     Open(Box<dyn Layer<R, W>>, LayerTag),
@@ -49,7 +52,7 @@ impl<R, W: ?Sized, G> Request<R, W, G> {
     /// navigation, the clipboard) is dropped, so the page in front never
     /// changes under the user because of a page behind it.
     pub fn allowed_in_background(&self) -> bool {
-        matches!(self, Self::Status(..))
+        matches!(self, Self::Status(..) | Self::StatusAs(..))
     }
 }
 
@@ -109,6 +112,11 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
     /// A footer status in `tone`.
     pub fn status_in(&mut self, s: impl Into<String>, tone: Tone) {
         self.requests.push(Request::Status(s.into(), tone));
+    }
+
+    /// A footer status of `kind` ("✓ Connection saved").
+    pub fn status_as(&mut self, kind: StatusKind, s: impl Into<String>) {
+        self.requests.push(Request::StatusAs(s.into(), kind));
     }
 
     /// An error status: it stays until the next action.

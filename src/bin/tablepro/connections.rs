@@ -24,6 +24,7 @@ use junie_tui::widgets::select::Select;
 use junie_tui::widgets::tabs::Tabs;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
+use crate::app::OpenDialog as _;
 use crate::db::{ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
 const ID: WidgetId = WidgetId::of("connections");
@@ -441,7 +442,7 @@ impl ConnectionsScreen {
             .request(Leave::To(to), &stakes, &junie_tui::theme::Strings::DEFAULT)
         {
             Ok(_) => self.go_to(to, cx),
-            Err(d) => cx.open(*d),
+            Err(d) => cx.open_dialog(*d),
         }
         Outcome::Changed
     }
@@ -741,7 +742,7 @@ impl ConnectionsScreen {
                         ),
                         "Delete",
                     );
-                    cx.open(d);
+                    cx.open_dialog(d);
                 }
             }
             _ => {}
@@ -1031,7 +1032,7 @@ impl ConnectionsScreen {
             self.open_new();
             return (Outcome::Changed, None);
         }
-        if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, cx.clicks) {
+        if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, ev.count()) {
             cx.focus.focus(id);
             return (o, None);
         }
