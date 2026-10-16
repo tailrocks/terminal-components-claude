@@ -423,7 +423,7 @@ impl TextArea {
                         }
                         if start < self.hscroll {
                             if inner.width > 0 {
-                                buf.set_string(inner.x, y, "…", fs.fg(t.text_muted));
+                                buf.set_string(inner.x, y, t.glyphs.ellipsis, fs.fg(t.text_muted));
                             }
                             continue;
                         }
@@ -440,7 +440,8 @@ impl TextArea {
                         buf.set_string(inner.x + visible_col as u16, y, g, st);
                     }
                     if clipped_right && inner.width > 0 {
-                        buf.set_string(inner.right() - 1, y, "…", fs.fg(t.text_muted));
+                        let st = fs.fg(t.text_muted);
+                        buf.set_string(inner.right() - 1, y, t.glyphs.ellipsis, st);
                     }
                     if s.editing && li == cur.line {
                         // accent underline on the cursor line marks where input goes

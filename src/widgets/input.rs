@@ -205,9 +205,10 @@ impl TextInput {
         self.error = None;
     }
 
-    /// Graphemes as they will be drawn: raw, or `•` per grapheme when masked
-    /// (the tail stays in clear while not editing).
-    fn display_graphemes(&self, editing: bool) -> Vec<(usize, String, usize)> {
+    /// Graphemes as they will be drawn: raw, or `mask` (one cell, `•` by
+    /// default) per grapheme when masked (the tail stays in clear while not
+    /// editing).
+    fn display_graphemes(&self, editing: bool, mask: &str) -> Vec<(usize, String, usize)> {
         let text = self.buffer.text();
         let gs: Vec<(usize, &str)> =
             unicode_segmentation::UnicodeSegmentation::grapheme_indices(text, true).collect();
@@ -220,7 +221,7 @@ impl TextInput {
                     && self.reveal_tail > 0
                     && i + (self.reveal_tail as usize) >= n;
                 if self.masked && !reveal {
-                    (bi, "•".to_owned(), 1)
+                    (bi, mask.to_owned(), 1)
                 } else {
                     (bi, g.to_owned(), width(g))
                 }
@@ -386,7 +387,7 @@ impl TextInput {
         let col =
             (self.scroll as isize + (pos.x as isize - self.text_area.x as isize)).max(0) as usize;
         let mut width = 0;
-        for (bi, _, gw) in self.display_graphemes(true) {
+        for (bi, _, gw) in self.display_graphemes(true, crate::theme::Glyphs::UNICODE.mask) {
             if width + gw > col {
                 return bi;
             }
@@ -578,7 +579,7 @@ impl TextInput {
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
         } else {
             // horizontal scroll so the cursor stays visible
-            let glyphs = self.display_graphemes(s.editing);
+            let glyphs = self.display_graphemes(s.editing, t.glyphs.mask);
             let cursor_off = self.buffer.cursor_offset();
             let cursor_col: usize = glyphs
                 .iter()
@@ -634,7 +635,7 @@ impl TextInput {
                         .underline_color(t.accent);
                 }
                 if displayed_col == 0 && self.scroll > 0 && gw > 0 {
-                    buf.set_string(x, inner.y, "…", fs.fg(t.text_muted));
+                    buf.set_string(x, inner.y, t.glyphs.ellipsis, fs.fg(t.text_muted));
                     col += gw;
                     continue;
                 }
@@ -642,7 +643,12 @@ impl TextInput {
                 col += gw;
             }
             if clipped_right && inner.width > 0 {
-                buf.set_string(inner.right() - 1, inner.y, "…", fs.fg(t.text_muted));
+                buf.set_string(
+                    inner.right() - 1,
+                    inner.y,
+                    t.glyphs.ellipsis,
+                    fs.fg(t.text_muted),
+                );
             }
             if s.editing && inner.width > 0 {
                 let cx = inner.x + (cursor_col - self.scroll) as u16;

@@ -499,9 +499,6 @@ impl Actions for GridAction {
 /// [`DataGrid::width_sample_rows`]).
 pub const DEFAULT_WIDTH_SAMPLE_ROWS: usize = 200;
 
-const HEADER_SORT_ASC: &str = " ▴";
-const HEADER_SORT_DESC: &str = " ▾";
-
 impl DataGrid {
     pub fn new(id: WidgetId, columns: Vec<ColumnSpec>) -> Self {
         let widths = columns.iter().map(|c| c.min_width).collect();
@@ -1889,7 +1886,7 @@ impl DataGrid {
             Style::new().bg(bg),
         );
         if self.overflow_badges && self.hscroll.offset > 0 {
-            let lbl = format!("‹{}", self.hscroll.offset);
+            let lbl = format!("{}{}", t.glyphs.overflow_left, self.hscroll.offset);
             let st = ctx.title_style(self.left_id(), bg);
             buf.set_string(grid_area.x + 1, header_y, &lbl, st);
             ctx.clickable(
@@ -1913,14 +1910,22 @@ impl DataGrid {
             let st = header_style(ctx, hid, bg, col.sortable, active);
             let mut suffix = String::new();
             if filtered {
-                suffix.push_str(" ∇");
+                suffix.push(' ');
+                suffix.push_str(t.glyphs.filter);
             }
             match self.sort {
-                Some((c, SortDir::Asc)) if c == ci => suffix.push_str(HEADER_SORT_ASC),
-                Some((c, SortDir::Desc)) if c == ci => suffix.push_str(HEADER_SORT_DESC),
+                Some((c, SortDir::Asc)) if c == ci => {
+                    suffix.push(' ');
+                    suffix.push_str(t.glyphs.sort_asc);
+                }
+                Some((c, SortDir::Desc)) if c == ci => {
+                    suffix.push(' ');
+                    suffix.push_str(t.glyphs.sort_desc);
+                }
                 _ => {}
             }
-            let prefix = if col.primary { "▪ " } else { "" };
+            // the key glyph is drawn over the prefix's first cell, faint
+            let prefix = if col.primary { "  " } else { "" };
             let avail = (rect.width as usize).saturating_sub(width(&suffix) + width(prefix));
             let title = format!("{prefix}{}{suffix}", truncate(&col.name, avail.max(1)));
             let text = if col.kind.right_aligned() {
@@ -1935,7 +1940,7 @@ impl DataGrid {
                 } else {
                     rect.x
                 };
-                buf.set_string(px, header_y, "⚷", st.fg(t.text_faint));
+                buf.set_string(px, header_y, t.glyphs.key, st.fg(t.text_faint));
             }
             if col.sortable {
                 ctx.clickable(hid, Rect::new(rect.x, header_y, rect.width, 1));
@@ -1946,7 +1951,7 @@ impl DataGrid {
             .len()
             .saturating_sub(self.hscroll.offset + self.hscroll.viewport_len);
         if self.overflow_badges && hidden_right > 0 {
-            let lbl = format!("{hidden_right}›");
+            let lbl = format!("{hidden_right}{}", t.glyphs.overflow_right);
             let x = cols_area.right() + 1;
             let st = ctx.title_style(self.right_id(), bg);
             buf.set_string(x, header_y, &lbl, st);
@@ -2001,10 +2006,7 @@ impl DataGrid {
                     t.gutter(s, st.bg.unwrap_or(bg), false),
                 );
                 let text = if self.loading {
-                    format!(
-                        "{} fetching…",
-                        crate::widgets::progress::spinner_frame(ctx.interaction.tick)
-                    )
+                    format!("{} fetching…", t.glyphs.spinner_frame(ctx.interaction.tick))
                 } else {
                     format!(
                         "↓ {} loaded · Enter fetches more",
@@ -2047,7 +2049,7 @@ impl DataGrid {
                 buf.set_string(
                     row_rect.x + 1,
                     y,
-                    "✓",
+                    t.glyphs.tick,
                     row_style
                         .fg(if s.focused {
                             t.accent
@@ -2059,9 +2061,9 @@ impl DataGrid {
             }
             let (glyph, gs) = match state {
                 RowState::Clean => (" ", row_style),
-                RowState::Modified => ("•", row_style.fg(t.warning)),
+                RowState::Modified => (t.glyphs.dirty, row_style.fg(t.warning)),
                 RowState::Inserted => ("+", row_style.fg(t.text_secondary)),
-                RowState::Deleted => ("−", row_style.fg(t.text_muted)),
+                RowState::Deleted => (t.glyphs.removed, row_style.fg(t.text_muted)),
                 RowState::Error => ("!", row_style.fg(t.error).add_modifier(Modifier::BOLD)),
             };
             buf.set_string(
@@ -2123,7 +2125,7 @@ impl DataGrid {
                     let dirty = self.pending.is_dirty(src, ci) && state != RowState::Inserted;
                     let err = self.cell_errors.get(&(src, ci));
                     let mut st = row_style;
-                    let text = cell_text(v, col.kind, rect.width as usize);
+                    let text = cell_text_with(v, col.kind, rect.width as usize, &t.glyphs);
                     // tone
                     match v {
                         CellValue::Null | CellValue::Default => {
@@ -2184,7 +2186,7 @@ impl DataGrid {
                         buf.set_string(
                             rect.right().saturating_sub(1),
                             y,
-                            "→",
+                            t.glyphs.arrow,
                             st.fg(if is_cursor { t.canvas } else { t.text_muted }),
                         );
                     }
@@ -2252,15 +2254,16 @@ impl DataGrid {
             fill(buf, bar_area, Style::new().bg(bg));
             let (u, i, d) = self.pending.counts();
             let count = u + i + d;
-            let text = format!("• {count} pending");
+            let text = format!("{} {count} pending", t.glyphs.dirty);
             buf.set_string(area.x + 1, by, &text, t.primary().fg(t.warning).bg(bg));
             // the row under the cursor explains its own rejection; otherwise the breakdown
             let cursor_src = self.order.get(self.cursor.0).copied();
+            let dot = t.glyphs.separator.trim_start();
             let (detail, ds) = match cursor_src.and_then(|r| self.row_errors.get(&r)) {
-                Some(msg) => (format!("· {msg}"), t.error_fg().bg(bg)),
+                Some(msg) => (format!("{dot}{msg}"), t.error_fg().bg(bg)),
                 None => (
                     self.pending_label()
-                        .map(|d| format!("· {d}"))
+                        .map(|d| format!("{dot}{d}"))
                         .unwrap_or_default(),
                     t.muted().bg(bg),
                 ),
@@ -2327,8 +2330,14 @@ fn cmp_cells(a: &CellValue, b: &CellValue) -> std::cmp::Ordering {
     }
 }
 
-/// Display text for a cell within `w` cells.
+/// Display text for a cell within `w` cells, with the default glyphs.
 pub fn cell_text(v: &CellValue, kind: CellKind, w: usize) -> String {
+    cell_text_with(v, kind, w, &crate::theme::Glyphs::UNICODE)
+}
+
+/// [`cell_text`] drawing its marks (cut JSON, line breaks, tabs, control
+/// characters) with `g`.
+pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme::Glyphs) -> String {
     match v {
         CellValue::Null => "NULL".into(),
         CellValue::Default => "DEFAULT".into(),
@@ -2337,9 +2346,9 @@ pub fn cell_text(v: &CellValue, kind: CellKind, w: usize) -> String {
             if w < 8 {
                 // the first non-blank character of the one-line form
                 if j.trim_start().starts_with('[') {
-                    "[…]".into()
+                    format!("[{}]", g.ellipsis)
                 } else {
-                    "{…}".into()
+                    format!("{{{}}}", g.ellipsis)
                 }
             } else {
                 truncate(&shown_prefix(w, |limit| one_line_json(j, limit)), w)
@@ -2348,9 +2357,9 @@ pub fn cell_text(v: &CellValue, kind: CellKind, w: usize) -> String {
         CellValue::Text(s) => {
             if kind == CellKind::Id {
                 // the middle cut keeps the end too: sanitise all of it
-                truncate_middle(&sanitized(s, usize::MAX).0, w)
+                truncate_middle(&sanitized(s, usize::MAX, g).0, w)
             } else {
-                truncate(&shown_prefix(w, |limit| sanitized(s, limit)), w)
+                truncate(&shown_prefix(w, |limit| sanitized(s, limit, g)), w)
             }
         }
         other => truncate(&other.text_ref(), w),
@@ -2364,7 +2373,7 @@ const TEXT_CELL_CHARS: usize = 10_000;
 /// The cell form of `s` (`↵`, `⇥`, `·` for line breaks, tabs and other
 /// control characters; at most [`TEXT_CELL_CHARS`] characters), built
 /// until it holds `limit` bytes. Returns it and whether it is complete.
-fn sanitized(s: &str, limit: usize) -> (String, bool) {
+fn sanitized(s: &str, limit: usize, g: &crate::theme::Glyphs) -> (String, bool) {
     let mut out = String::new();
     let mut chars = s.chars();
     for _ in 0..TEXT_CELL_CHARS {
@@ -2374,12 +2383,12 @@ fn sanitized(s: &str, limit: usize) -> (String, bool) {
         let Some(c) = chars.next() else {
             return (out, true);
         };
-        out.push(match c {
-            '\n' => '↵',
-            '\t' => '⇥',
-            c if c.is_control() => '·',
-            c => c,
-        });
+        match c {
+            '\n' => out.push_str(g.newline),
+            '\t' => out.push_str(g.tab),
+            c if c.is_control() => out.push_str(g.control),
+            c => out.push(c),
+        }
     }
     (out, true)
 }
@@ -2422,9 +2431,9 @@ impl Theme {
     pub fn change_glyph(&self, state: RowState) -> (&'static str, Color) {
         match state {
             RowState::Clean => (" ", self.text_faint),
-            RowState::Modified => ("•", self.warning),
+            RowState::Modified => (self.glyphs.dirty, self.warning),
             RowState::Inserted => ("+", self.text_secondary),
-            RowState::Deleted => ("−", self.text_muted),
+            RowState::Deleted => (self.glyphs.removed, self.text_muted),
             RowState::Error => ("!", self.error),
         }
     }
@@ -3069,7 +3078,7 @@ mod tests {
         let asked = std::cell::Cell::new(0);
         let shown = shown_prefix(40, |limit| {
             asked.set(asked.get().max(limit));
-            sanitized(&long, limit)
+            sanitized(&long, limit, &crate::theme::Glyphs::UNICODE)
         });
         assert!(asked.get() <= 4 * 40 + 64, "read {} bytes", asked.get());
         assert_eq!(truncate(&shown, 40), truncate(&long, 40));

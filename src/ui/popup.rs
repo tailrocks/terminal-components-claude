@@ -378,7 +378,7 @@ pub fn surface_for(
     fill(buf, area, Style::new().bg(t.surface_elevated));
     let block = ratatui::widgets::Block::new()
         .borders(ratatui::widgets::Borders::ALL)
-        .border_type(ratatui::widgets::BorderType::Rounded)
+        .border_set(t.glyphs.border)
         .border_style(t.border(true).bg(t.surface_elevated));
     ratatui::widgets::Widget::render(block, area, buf);
     // everything registered before the popup is unreachable by the mouse;

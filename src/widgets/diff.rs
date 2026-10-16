@@ -11,7 +11,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::theme::Tone;
+use crate::theme::{Glyphs, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{expand_tabs, fit, truncate, width};
 use crate::widgets::viewport::{Line, Span, TextViewport, ViewportEvent};
@@ -145,20 +145,30 @@ impl DiffFile {
     }
     /// `+12 −4 · 3 hunks`
     pub fn summary(&self) -> String {
+        self.summary_with(&Glyphs::UNICODE)
+    }
+    /// [`Self::summary`] with the glyphs `g` (`removed`, `separator`).
+    pub fn summary_with(&self, g: &Glyphs) -> String {
         let n = self.hunks.len();
         format!(
-            "+{} −{} · {} hunk{}",
+            "+{} {}{}{}{} hunk{}",
             self.additions(),
+            g.removed,
             self.deletions(),
+            g.separator,
             n,
             if n == 1 { "" } else { "s" }
         )
     }
     /// The header line of the diff: `M path  +12 −4 · 3 hunks`.
     pub fn header(&self) -> String {
+        self.header_with(&Glyphs::UNICODE)
+    }
+    /// [`Self::header`] with the glyphs `g` (`arrow` for a rename).
+    pub fn header_with(&self, g: &Glyphs) -> String {
         match &self.status {
             DiffStatus::Renamed { from } => {
-                format!("{} {from} → {}", self.status.marker(), self.path)
+                format!("{} {from} {} {}", self.status.marker(), g.arrow, self.path)
             }
             _ => format!("{} {}", self.status.marker(), self.path),
         }
@@ -198,6 +208,9 @@ pub struct DiffView {
     laid_mode: DiffMode,
     dirty: bool,
     rendered_size: Option<(u16, u16, DiffMode, bool)>,
+    /// The theme's glyphs as of the last render; lines are rebuilt when
+    /// they change.
+    glyphs: Glyphs,
 }
 
 impl DiffView {
@@ -210,6 +223,7 @@ impl DiffView {
             laid_mode: DiffMode::Unified,
             dirty: true,
             rendered_size: None,
+            glyphs: Glyphs::UNICODE,
         }
     }
 
@@ -266,8 +280,8 @@ impl DiffView {
         self.rendered_size = None;
         let lines = match &self.file {
             Some(f) => match mode {
-                DiffMode::Unified => unified_lines(f),
-                DiffMode::Review => review_lines(f, width),
+                DiffMode::Unified => unified_lines_with(f, &self.glyphs),
+                DiffMode::Review => review_lines_with(f, width, &self.glyphs),
             },
             None => vec![vec![Span::muted("No file selected")]],
         };
@@ -324,6 +338,10 @@ impl DiffView {
         if area.is_empty() {
             return;
         }
+        if self.glyphs != ctx.theme.glyphs {
+            self.glyphs = ctx.theme.glyphs;
+            self.dirty = true;
+        }
         let size = (area.width, area.height, self.mode, self.term.wrap);
         if self.dirty || self.rendered_size != Some(size) {
             self.layout(area.width);
@@ -365,13 +383,18 @@ fn num_width(f: &DiffFile) -> usize {
 /// Unified listing: header, then per hunk a muted `@@` line and one row per
 /// diff line with old/new numbers in the gutter.
 pub fn unified_lines(f: &DiffFile) -> Vec<Line> {
+    unified_lines_with(f, &Glyphs::UNICODE)
+}
+
+/// [`unified_lines`] drawn with the glyphs `g`.
+pub fn unified_lines_with(f: &DiffFile, g: &Glyphs) -> Vec<Line> {
     let nw = num_width(f);
     let mut out: Vec<Line> = vec![];
     out.push(vec![
         Span::new(f.status.marker(), f.status.tone()).bold(),
         Span::plain(" "),
-        Span::plain(f.header()[2..].to_owned()).bold(),
-        Span::muted(format!("  {}", f.summary())),
+        Span::plain(f.header_with(g)[2..].to_owned()).bold(),
+        Span::muted(format!("  {}", f.summary_with(g))),
     ]);
     for h in &f.hunks {
         out.push(vec![Span::muted(h.header())]);
@@ -461,8 +484,13 @@ fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<S
 /// Tabs expand to the viewport's four spaces before measuring, emphasizing,
 /// and clipping, so columns and copied displayed text use identical geometry.
 pub fn review_lines(f: &DiffFile, width: u16) -> Vec<Line> {
+    review_lines_with(f, width, &Glyphs::UNICODE)
+}
+
+/// [`review_lines`] drawn with the glyphs `g`.
+pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs) -> Vec<Line> {
     if !review_fits(f, width) {
-        return unified_lines(f);
+        return unified_lines_with(f, g);
     }
     let nw = num_width(f);
     let total = width as usize;
@@ -473,10 +501,10 @@ pub fn review_lines(f: &DiffFile, width: u16) -> Vec<Line> {
     out.push(vec![
         Span::new(f.status.marker(), f.status.tone()).bold(),
         Span::plain(" "),
-        Span::plain(f.header()[2..].to_owned()).bold(),
-        Span::muted(format!("  {} · review", f.summary())),
+        Span::plain(f.header_with(g)[2..].to_owned()).bold(),
+        Span::muted(format!("  {}{}review", f.summary_with(g), g.separator)),
     ]);
-    let sep = || Span::new(" │ ", Tone::Faint);
+    let sep = || Span::new(format!(" {} ", g.scroll_track), Tone::Faint);
     out.push(vec![
         Span::muted(fit("Old", col)),
         sep(),
@@ -494,7 +522,10 @@ pub fn review_lines(f: &DiffFile, width: u16) -> Vec<Line> {
     };
     for (hi, h) in f.hunks.iter().enumerate() {
         if hi > 0 {
-            out.push(vec![Span::new("─".repeat(total.min(200)), Tone::Faint)]);
+            out.push(vec![Span::new(
+                g.bar_empty.repeat(total.min(200)),
+                Tone::Faint,
+            )]);
         }
         out.push(vec![Span::muted(h.header())]);
         let mut old = h.old_start;

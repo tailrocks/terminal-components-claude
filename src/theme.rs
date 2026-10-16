@@ -262,6 +262,15 @@ pub struct LevelOverrides {
 }
 
 impl LevelOverrides {
+    /// Mono draws with [`Glyphs::ASCII`]; every other level keeps its
+    /// defaults. For a terminal that has no colour and no Unicode either.
+    pub const ASCII_MONO: Self = Self {
+        truecolor: None,
+        ansi256: None,
+        ansi16: None,
+        mono: Some(ascii_glyphs),
+    };
+
     fn get(&self, level: ColorLevel) -> Option<fn(&mut Theme)> {
         match level {
             ColorLevel::TrueColor => self.truecolor,
@@ -270,6 +279,11 @@ impl LevelOverrides {
             ColorLevel::Mono => self.mono,
         }
     }
+}
+
+/// A [`LevelOverrides`] hook that switches the theme to [`Glyphs::ASCII`].
+pub fn ascii_glyphs(t: &mut Theme) {
+    t.glyphs = Glyphs::ASCII;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -457,6 +471,9 @@ pub struct Theme {
     pub hintbar: HintBarStyle,
     /// Gaps and container insets shared by every component.
     pub spacing: Spacing,
+    /// Every glyph a widget draws: focus bar, markers, chevrons, checks,
+    /// scrollbars, spinner and borders. Default [`Glyphs::UNICODE`].
+    pub glyphs: Glyphs,
 }
 
 impl Theme {
@@ -515,6 +532,7 @@ impl Theme {
             tint_selection: true,
             hintbar: HintBarStyle::DEFAULT,
             spacing: Spacing::DEFAULT,
+            glyphs: Glyphs::UNICODE,
         }
     }
 
@@ -779,6 +797,13 @@ impl Theme {
     }
 
     /// Replace the state modifiers.
+    /// The same theme drawing with `glyphs` (for example [`Glyphs::ASCII`]
+    /// on a terminal without Unicode).
+    pub const fn with_glyphs(mut self, glyphs: Glyphs) -> Self {
+        self.glyphs = glyphs;
+        self
+    }
+
     pub fn with_state_modifiers(mut self, mods: StateModifiers) -> Self {
         self.mods = mods;
         self
@@ -1193,7 +1218,7 @@ impl Theme {
         };
         Interactive {
             style,
-            gutter: if bar { "▎" } else { " " },
+            gutter: if bar { self.glyphs.focus_bar } else { " " },
             gutter_style: Style::new().fg(gutter_fg).bg(bg),
             on_fill: fill,
         }
@@ -1267,7 +1292,11 @@ impl Theme {
     /// hide it when a backend suppresses colours (for example with `NO_COLOR`).
     /// Pair this with [`Self::gutter`] for its style.
     pub fn gutter_symbol(&self, s: VisualState) -> &'static str {
-        if s.focused && !s.disabled { "▎" } else { " " }
+        if s.focused && !s.disabled {
+            self.glyphs.focus_bar
+        } else {
+            " "
+        }
     }
 
     /// Style for [`Self::gutter_symbol`]. `on_accent` is used when the control
@@ -1479,6 +1508,278 @@ pub enum HintAlign {
     Start,
     /// Centre the hints that fit in the row.
     Center,
+}
+
+/// Every glyph the widgets draw, so a terminal without Unicode (or an app
+/// with its own taste) can swap them in one place. Set on
+/// [`Theme::glyphs`]; [`Glyphs::UNICODE`] is the default look and
+/// [`Glyphs::ASCII`] draws with 7-bit characters only.
+///
+/// Each glyph keeps the cell width of its [`Glyphs::UNICODE`] counterpart
+/// (one cell unless noted), because widgets lay out around it. A
+/// replacement set must do the same.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Glyphs {
+    /// Keyboard-focus gutter ([`Theme::gutter_symbol`]). `▎`.
+    pub focus_bar: &'static str,
+    /// The current or chosen row of a list, menu or select. `›`.
+    pub current: &'static str,
+    /// A select field whose list is open. `▴`.
+    pub chevron_open: &'static str,
+    /// A select field whose list is closed. `▾`.
+    pub chevron_closed: &'static str,
+    /// An expanded tree branch. `▾`.
+    pub disclosure_open: &'static str,
+    /// A collapsed tree branch. `▸`.
+    pub disclosure_closed: &'static str,
+    /// More rows above a scrolled list or menu. `▴`.
+    pub more_above: &'static str,
+    /// More rows below a scrolled list or menu. `▾`.
+    pub more_below: &'static str,
+    /// Ascending sort on a column header. `▴`.
+    pub sort_asc: &'static str,
+    /// Descending sort on a column header. `▾`.
+    pub sort_desc: &'static str,
+    /// Cut text and the overflow button. `…`.
+    pub ellipsis: &'static str,
+    /// Between parts of a status or summary (three cells). ` · `.
+    pub separator: &'static str,
+    /// Checked checkbox (three cells). `[✓]`.
+    pub check_on: &'static str,
+    /// Unchecked checkbox (three cells). `[ ]`.
+    pub check_off: &'static str,
+    /// Partly checked checkbox (three cells). `[–]`.
+    pub check_mixed: &'static str,
+    /// A check mark: a checked narrow checkbox, a chosen row of a
+    /// multi-select list. `✓`.
+    pub tick: &'static str,
+    /// An unchecked narrow checkbox. `□`.
+    pub check_off_narrow: &'static str,
+    /// A partly checked narrow checkbox; also a range dash. `–`.
+    pub dash: &'static str,
+    /// Chosen radio button (three cells). `(●)`.
+    pub radio_on: &'static str,
+    /// Radio button (three cells). `( )`.
+    pub radio_off: &'static str,
+    /// An "on" dot: narrow radio and toggle, toggle buttons. `●`.
+    pub dot_on: &'static str,
+    /// An "off" dot. `○`.
+    pub dot_off: &'static str,
+    /// Switch turned on (three cells). `──●`.
+    pub toggle_on: &'static str,
+    /// Switch turned off (three cells). `○──`.
+    pub toggle_off: &'static str,
+    /// Close a tab or remove a chip. `×`.
+    pub close: &'static str,
+    /// Items hidden to the left of a strip. `‹`.
+    pub overflow_left: &'static str,
+    /// Items hidden to the right of a strip. `›`.
+    pub overflow_right: &'static str,
+    /// Vertical scrollbar track; also a vertical divider. `│`.
+    pub scroll_track: &'static str,
+    /// Vertical scrollbar thumb; also a held divider. `┃`.
+    pub scroll_thumb: &'static str,
+    /// Horizontal scrollbar track; also a horizontal divider. `─`.
+    pub scroll_h_track: &'static str,
+    /// Horizontal scrollbar thumb; also a held divider. `━`.
+    pub scroll_h_thumb: &'static str,
+    /// A scrollbar thumb being dragged, both axes. `█`.
+    pub scroll_held: &'static str,
+    /// Spinner animation frames, one cell each. Braille dots.
+    pub spinner: &'static [&'static str],
+    /// A finished task or step. `✓`.
+    pub done: &'static str,
+    /// A cut or renamed value continues: `old → new`. `→`.
+    pub arrow: &'static str,
+    /// Filled part of a horizontal bar (progress, meter, active tab). `━`.
+    pub bar_fill: &'static str,
+    /// Empty part of a horizontal bar; also a separator rule. `─`.
+    pub bar_empty: &'static str,
+    /// Unsaved changes. `•`.
+    pub dirty: &'static str,
+    /// A removed row or count. `−`.
+    pub removed: &'static str,
+    /// A warning marker. `▲`.
+    pub warning: &'static str,
+    /// A paused task. `‖`.
+    pub paused: &'static str,
+    /// No value. `—`.
+    pub none: &'static str,
+    /// A masked character in a secret field. `•`.
+    pub mask: &'static str,
+    /// The default bullet of a picker item. `·`.
+    pub bullet: &'static str,
+    /// A filtered column header. `∇`.
+    pub filter: &'static str,
+    /// A primary-key column header. `⚷`.
+    pub key: &'static str,
+    /// A newline shown inside a one-line cell. `↵`.
+    pub newline: &'static str,
+    /// A tab shown inside a one-line cell. `⇥`.
+    pub tab: &'static str,
+    /// Any other control character shown inside a cell. `·`.
+    pub control: &'static str,
+    /// Arrow-key names in hints: up, down, left, right. `↑ ↓ ← →`.
+    pub arrows: [&'static str; 4],
+    /// Popup, dialog, menu and panel borders. Rounded box drawing.
+    pub border: ratatui::symbols::border::Set<'static>,
+}
+
+impl Glyphs {
+    /// Today's look: box drawing, geometric shapes and Braille.
+    pub const UNICODE: Self = Self {
+        focus_bar: "▎",
+        current: "›",
+        chevron_open: "▴",
+        chevron_closed: "▾",
+        disclosure_open: "▾",
+        disclosure_closed: "▸",
+        more_above: "▴",
+        more_below: "▾",
+        sort_asc: "▴",
+        sort_desc: "▾",
+        ellipsis: "…",
+        separator: " · ",
+        check_on: "[✓]",
+        check_off: "[ ]",
+        check_mixed: "[–]",
+        tick: "✓",
+        check_off_narrow: "□",
+        dash: "–",
+        radio_on: "(●)",
+        radio_off: "( )",
+        dot_on: "●",
+        dot_off: "○",
+        toggle_on: "──●",
+        toggle_off: "○──",
+        close: "×",
+        overflow_left: "‹",
+        overflow_right: "›",
+        scroll_track: "│",
+        scroll_thumb: "┃",
+        scroll_h_track: "─",
+        scroll_h_thumb: "━",
+        scroll_held: "█",
+        spinner: &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
+        done: "✓",
+        arrow: "→",
+        bar_fill: "━",
+        bar_empty: "─",
+        dirty: "•",
+        removed: "−",
+        warning: "▲",
+        paused: "‖",
+        none: "—",
+        mask: "•",
+        bullet: "·",
+        filter: "∇",
+        key: "⚷",
+        newline: "↵",
+        tab: "⇥",
+        control: "·",
+        arrows: ["↑", "↓", "←", "→"],
+        border: ratatui::symbols::border::ROUNDED,
+    };
+
+    /// 7-bit ASCII only, for terminals and fonts without Unicode. Widths
+    /// match [`Self::UNICODE`], so layouts do not move.
+    pub const ASCII: Self = Self {
+        focus_bar: "|",
+        current: ">",
+        chevron_open: "^",
+        chevron_closed: "v",
+        disclosure_open: "v",
+        disclosure_closed: ">",
+        more_above: "^",
+        more_below: "v",
+        sort_asc: "^",
+        sort_desc: "v",
+        ellipsis: "~",
+        separator: " | ",
+        check_on: "[x]",
+        check_off: "[ ]",
+        check_mixed: "[-]",
+        tick: "x",
+        check_off_narrow: ".",
+        dash: "-",
+        radio_on: "(*)",
+        radio_off: "( )",
+        dot_on: "*",
+        dot_off: "o",
+        toggle_on: "--*",
+        toggle_off: "o--",
+        close: "x",
+        overflow_left: "<",
+        overflow_right: ">",
+        scroll_track: "|",
+        scroll_thumb: "#",
+        scroll_h_track: "-",
+        scroll_h_thumb: "=",
+        scroll_held: "@",
+        spinner: &["|", "/", "-", "\\"],
+        done: "+",
+        arrow: ">",
+        bar_fill: "=",
+        bar_empty: "-",
+        dirty: "*",
+        removed: "-",
+        warning: "!",
+        paused: "=",
+        none: "-",
+        mask: "*",
+        bullet: ".",
+        filter: "f",
+        key: "k",
+        newline: "~",
+        tab: ">",
+        control: ".",
+        arrows: ["^", "v", "<", ">"],
+        border: ratatui::symbols::border::Set {
+            top_left: "+",
+            top_right: "+",
+            bottom_left: "+",
+            bottom_right: "+",
+            vertical_left: "|",
+            vertical_right: "|",
+            horizontal_top: "-",
+            horizontal_bottom: "-",
+        },
+    };
+
+    /// The spinner frame for animation tick `tick`.
+    pub fn spinner_frame(&self, tick: u64) -> &'static str {
+        match self.spinner.len() {
+            0 => " ",
+            n => self.spinner[(tick % n as u64) as usize],
+        }
+    }
+
+    /// `s` with every arrow-key character (`↑ ↓ ← →`) replaced by
+    /// [`Self::arrows`] and the range dash `–` by [`Self::dash`], for key
+    /// labels built from the Unicode names.
+    pub fn key_label<'a>(&self, s: &'a str) -> std::borrow::Cow<'a, str> {
+        if self.arrows == Self::UNICODE.arrows && self.dash == Self::UNICODE.dash {
+            return std::borrow::Cow::Borrowed(s);
+        }
+        let mut out = String::with_capacity(s.len());
+        for c in s.chars() {
+            match c {
+                '↑' => out.push_str(self.arrows[0]),
+                '↓' => out.push_str(self.arrows[1]),
+                '←' => out.push_str(self.arrows[2]),
+                '→' => out.push_str(self.arrows[3]),
+                '–' => out.push_str(self.dash),
+                c => out.push(c),
+            }
+        }
+        std::borrow::Cow::Owned(out)
+    }
+}
+
+impl Default for Glyphs {
+    fn default() -> Self {
+        Self::UNICODE
+    }
 }
 
 /// Padding inside a container, in cells: `x` on the left and on the right,

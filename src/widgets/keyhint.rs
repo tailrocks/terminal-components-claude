@@ -329,7 +329,7 @@ pub fn render_styled(
         // the glyph carries the meaning in monochrome, the tone in colour
         let mark = match tone {
             Tone::Error => "!",
-            Tone::Warning => "▲",
+            Tone::Warning => t.glyphs.warning,
             _ => "",
         };
         let text = if mark.is_empty() {
@@ -386,6 +386,7 @@ pub fn render_styled(
     for &i in &keep {
         let h = &hints[i];
         let key = normalize_key(h.key);
+        let key = t.glyphs.key_label(&key);
         let kw = crate::ui::text::width(&key) as u16;
         buf.set_string(x, area.y, &key, t.key_hint_key());
         if !compact[i] {
@@ -394,7 +395,7 @@ pub fn render_styled(
         x += hint_width(h, compact[i]) + GAP;
     }
     if cut && x < limit {
-        buf.set_string(x, area.y, "…", t.faint());
+        buf.set_string(x, area.y, t.glyphs.ellipsis, t.faint());
     }
     keep.len()
 }

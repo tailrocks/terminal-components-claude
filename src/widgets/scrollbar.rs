@@ -4,16 +4,19 @@ use ratatui::style::Style;
 
 use crate::core::id::WidgetId;
 use crate::core::scroll::{ScrollState, TrackClick};
-use crate::theme::{Kind, Plane};
+use crate::theme::{Glyphs, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, VisualState};
 
-pub const TRACK: &str = "│";
-pub const THUMB: &str = "┃";
+// The default glyphs. Scrollbars draw `Theme::glyphs`
+// (`scroll_track`, `scroll_thumb`, `scroll_h_track`, `scroll_h_thumb`,
+// `scroll_held`); these constants name the `Glyphs::UNICODE` set.
+pub const TRACK: &str = Glyphs::UNICODE.scroll_track;
+pub const THUMB: &str = Glyphs::UNICODE.scroll_thumb;
 /// Horizontal track and thumb: the vertical glyphs turned on their side.
-pub const H_TRACK: &str = "─";
-pub const H_THUMB: &str = "━";
+pub const H_TRACK: &str = Glyphs::UNICODE.scroll_h_track;
+pub const H_THUMB: &str = Glyphs::UNICODE.scroll_h_thumb;
 /// The thumb while dragged: a full block, so the grab reads without colour.
-pub const THUMB_HELD: &str = "█";
+pub const THUMB_HELD: &str = Glyphs::UNICODE.scroll_held;
 
 /// Id used for a container's scrollbar hit region.
 pub fn id_for(container: WidgetId) -> WidgetId {
@@ -65,8 +68,9 @@ pub fn render_divider(
         return;
     }
     let track = ctx.theme.scrollbar_track();
+    let g = ctx.theme.glyphs;
     for y in area.top()..area.bottom() {
-        buf.set_string(area.x, y, TRACK, track);
+        buf.set_string(area.x, y, g.scroll_track, track);
     }
 }
 
@@ -88,14 +92,16 @@ pub fn render_vertical(
     let thumb = thumb_style(ctx, sb_id, focused);
     let held = ctx.interaction.pressed == Some(sb_id);
     let track = ctx.theme.scrollbar_track();
+    let g = ctx.theme.glyphs;
     let track_len = area.height as usize;
     let (start, len) = scroll.thumb(track_len);
     for i in 0..track_len {
         let y = area.y + i as u16;
         if i >= start && i < start + len {
-            buf.set_string(area.x, y, if held { THUMB_HELD } else { THUMB }, thumb);
+            let sym = if held { g.scroll_held } else { g.scroll_thumb };
+            buf.set_string(area.x, y, sym, thumb);
         } else {
-            buf.set_string(area.x, y, TRACK, track);
+            buf.set_string(area.x, y, g.scroll_track, track);
         }
     }
     ctx.scrollbar(sb_id, area, container, crate::core::hit::Axis::Vertical);
@@ -135,14 +141,20 @@ pub fn render_horizontal_with(
     let thumb = thumb_style(ctx, sb_id, focused);
     let held = ctx.interaction.pressed == Some(sb_id);
     let track = ctx.theme.scrollbar_track();
+    let g = ctx.theme.glyphs;
     let track_len = area.width as usize;
     let (start, len) = scroll.thumb(track_len);
     for i in 0..track_len {
         let x = area.x + i as u16;
         if i >= start && i < start + len {
-            buf.set_string(x, area.y, if held { THUMB_HELD } else { H_THUMB }, thumb);
+            let sym = if held {
+                g.scroll_held
+            } else {
+                g.scroll_h_thumb
+            };
+            buf.set_string(x, area.y, sym, thumb);
         } else {
-            buf.set_string(x, area.y, H_TRACK, track);
+            buf.set_string(x, area.y, g.scroll_h_track, track);
         }
     }
     if scroll.overflows() {
