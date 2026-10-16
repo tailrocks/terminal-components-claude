@@ -5,6 +5,8 @@ mod app;
 #[cfg(test)]
 mod app_tests;
 #[cfg(test)]
+mod app_tests_context;
+#[cfg(test)]
 mod app_tests_copy;
 #[cfg(test)]
 mod app_tests_coverage;
