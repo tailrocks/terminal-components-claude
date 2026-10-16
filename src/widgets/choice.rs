@@ -208,12 +208,9 @@ impl RadioGroup {
             let y = area.y + 1 + i as u16;
             let row = Rect::new(area.x, y, area.width, 1);
             self.areas.push(row);
-            let mut s = ctx.state(self.option_id(i));
+            let mut s = ctx.child_state(self.id, self.option_id(i), i == self.cursor);
             s.focused = focused && i == self.cursor;
             s.disabled = self.disabled;
-            if self.disabled {
-                s.hovered = false;
-            }
             let st = t.row(s, bg);
             crate::ui::ctx::fill(buf, row, st);
             buf.set_string(

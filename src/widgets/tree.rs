@@ -557,11 +557,11 @@ impl TreeView {
             let row = &self.rows[ri];
             let rect = Rect::new(area.x, y, row_w, 1);
             let rid = self.row_id(ri);
-            let mut s = ctx.state(rid);
+            let mut s = ctx.child_state(self.id, rid, ri == self.cursor);
             let tid = self.toggle_id(ri);
-            if ctx.interaction.hovered(tid) {
-                s.hovered = true;
-            }
+            // the expander is part of the row: its hover and press are the row's
+            s.hovered |= ctx.interaction.hovered(tid);
+            s.pressed |= ctx.interaction.pressed(tid);
             s.focused = focused && ri == self.cursor;
             s.selected = self.selected.as_ref() == Some(&row.path);
             let st = t.row(s, bg);

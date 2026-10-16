@@ -64,6 +64,22 @@ impl Interaction {
     pub fn pressed(&self, id: WidgetId) -> bool {
         (self.pressed == Some(id) && self.hover == Some(id)) || self.flash == Some(id)
     }
+    /// Any of `ids` is pressed: a row counts a press on its cells, its
+    /// toggle or its × as its own, just as it counts their hover.
+    pub fn pressed_any(&self, ids: impl IntoIterator<Item = WidgetId>) -> bool {
+        ids.into_iter().any(|id| self.pressed(id))
+    }
+    /// Any of `ids` is hovered.
+    pub fn hovered_any(&self, ids: impl IntoIterator<Item = WidgetId>) -> bool {
+        ids.into_iter().any(|id| self.hovered(id))
+    }
+    /// The keyboard activation flash landed on `container`. Applications
+    /// flash the focused id, which for a list, tree, table, grid, radio
+    /// group, chip set, tab strip or menu is the container: the container
+    /// applies it to its cursor child.
+    pub fn flash_within(&self, container: WidgetId) -> bool {
+        self.flash == Some(container)
+    }
 }
 
 /// Visual state of a single control, resolved from interaction + own flags.
@@ -155,6 +171,15 @@ impl<'a> RenderCtx<'a> {
             pressed: self.interaction.pressed(id),
             ..Default::default()
         }
+    }
+
+    /// State of `child` inside `container`: pressed when the pointer holds
+    /// it, or when the container's keyboard activation flash lands while
+    /// `child` carries the cursor.
+    pub fn child_state(&self, container: WidgetId, child: WidgetId, cursor: bool) -> VisualState {
+        let mut s = self.state(child);
+        s.pressed |= cursor && self.interaction.flash_within(container);
+        s
     }
 
     pub fn set_cursor(&mut self, pos: Position) {
