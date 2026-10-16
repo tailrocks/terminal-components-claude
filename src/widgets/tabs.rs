@@ -1,8 +1,10 @@
 //! Horizontal tab strip. One focus stop; ← → move the cursor and switch.
-//! Active tab: one plane up with an underline (accent while the strip has
-//! focus, neutral otherwise: see [`TabRule`]). Keyboard cursor on
-//! another tab: two planes up and bold. Hover: two planes up. Tabs never
-//! carry the `▎` gutter — that glyph belongs to rows and fields.
+//! Active tab: one plane up with an underline (the accent while its page
+//! is the active layer, neutral under a modal or popup: see [`TabRule`]).
+//! Keyboard focus on the strip: the cursor tab is bold and carries the
+//! one `▎` focus indicator in its leading cell (the same gutter rows and
+//! fields draw), so focus stays visible when the cursor is on the active
+//! tab. Hover: two planes up.
 //! Tabs carry state glyphs (dirty, busy, error, a trailing state suffix) and
 //! a close affordance; the strip scrolls with `‹ ›` indicators instead of
 //! shrinking labels.
@@ -65,7 +67,7 @@ pub struct Tabs {
     /// Show a trailing `+` that emits `TabEvent::New`.
     pub allow_new: bool,
     /// How the active tab's underline is coloured. Default
-    /// [`TabRule::Auto`]: accent only while the strip has keyboard focus.
+    /// [`TabRule::Auto`]: the accent unless a layer covers the strip.
     pub rule: TabRule,
     /// A middle click on a closable tab closes it (browsers, editors).
     /// Default `true`.
@@ -102,17 +104,28 @@ pub struct Tabs {
 }
 
 /// Colour of the active tab's underline.
+///
+/// The selected tab of a strip (like a macOS tab view or segmented
+/// control, whose selection takes the accent while its window is active)
+/// shows the accent while its page is the active layer. Keyboard focus is
+/// a separate cue: the cursor tab is bold with the single `▎` gutter; the
+/// rule is never a second focus indicator.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabRule {
-    /// Accent while the strip holds keyboard focus, neutral
-    /// (`border_strong`) otherwise: an active-but-unfocused tab is a fact,
-    /// not a "you are here" cue, so it never competes with the focus bar.
+    /// The accent, neutral (`border_strong`) only while a modal or a
+    /// keyboard-owned popup covers the strip
+    /// ([`RenderCtx::page_under_layer`](crate::ui::ctx::RenderCtx::page_under_layer)): the layer below shows no
+    /// "active" colour, like an inactive macOS window.
     #[default]
     Auto,
-    /// Always the accent.
+    /// Always the accent, even under a layer.
     Accent,
-    /// Always neutral (a secondary strip under a document strip).
+    /// Always neutral: an app's opt-out.
     Neutral,
+    /// The accent only while the strip itself holds keyboard focus,
+    /// neutral otherwise (the behaviour before [`Self::Auto`] followed the
+    /// layer).
+    FocusOnly,
 }
 
 /// The keys that close the cursor tab by default.
@@ -707,10 +720,15 @@ impl Tabs {
             // the active tab sits one plane up; hover and press walk that
             // plane's ladder (or the strip's for the other tabs); the
             // keyboard cursor is weight on the strip's own plane, so it never
-            // reads as hover. A strip draws no `▎`: its focus is the accent
-            // rule (`TabRule`)
-            let st = t.interactive(Kind::Tab, s, t.plane_of(bg)).style;
+            // reads as hover. The focused cursor tab draws the `▎` gutter
+            // in its leading cell; the active rule (`TabRule`) marks the
+            // selection, not focus
+            let look = t.interactive(Kind::Tab, s, t.plane_of(bg));
+            let st = look.style;
             crate::ui::ctx::fill(buf, r, st);
+            if s.focused {
+                buf.set_string(x, y, look.gutter, look.gutter_style);
+            }
             let mut cx = x + 1;
             if let Some(p) = &it.prefix {
                 buf.set_string(
@@ -767,9 +785,10 @@ impl Tabs {
             }
             if active && area.height >= 2 {
                 let accent = match self.rule {
-                    TabRule::Auto => focused,
+                    TabRule::Auto => !ctx.interaction.focus_hidden,
                     TabRule::Accent => true,
                     TabRule::Neutral => false,
+                    TabRule::FocusOnly => focused,
                 };
                 let rule = if accent { t.accent } else { t.border_strong };
                 // the rule spans exactly the tab's plane, edge to edge
@@ -908,7 +927,7 @@ mod tests {
     }
 
     #[test]
-    fn active_tab_has_a_plane_and_the_only_accent_underline_and_no_gutter() {
+    fn active_tab_has_a_plane_and_the_only_accent_underline() {
         let t = Theme::junie();
         let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
         tabs.set_active(1);
@@ -917,9 +936,10 @@ mod tests {
             ..Default::default()
         };
         let buf = render_with(&mut tabs, focused);
-        assert!(
-            !row(&buf, 0).contains('▎'),
-            "no gutter glyph in a tab strip"
+        assert_eq!(
+            row(&buf, 0).matches('▎').count(),
+            1,
+            "the focused strip's only gutter is on the cursor tab"
         );
         let a = tabs.areas[1];
         let b = tabs.areas[0];
@@ -945,34 +965,90 @@ mod tests {
     }
 
     #[test]
-    fn an_unfocused_strip_draws_the_active_rule_neutral() {
+    fn the_active_rule_is_the_accent_unless_a_layer_covers_the_strip() {
         let t = Theme::junie();
         let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
         tabs.set_active(1);
-        let buf = render_with(&mut tabs, Interaction::default());
+        render_with(&mut tabs, Interaction::default());
         let a = tabs.areas[1];
-        let rule = &buf[(a.x + 1, 1)];
-        assert_eq!(rule.symbol(), "━", "the active tab keeps its rule");
-        assert_eq!(rule.fg, t.border_strong, "but not the focus colour");
-        // a hidden focus (a layer above the page) is unfocused too
+        let unfocused = Interaction::default();
+        let focused = Interaction {
+            focus: Some(tabs.id),
+            ..Default::default()
+        };
+        // a layer above the page (a modal, an open menu) hides its focus
+        let hidden = Interaction {
+            focus: Some(tabs.id),
+            focus_hidden: true,
+            ..Default::default()
+        };
+        let under = Interaction {
+            focus_hidden: true,
+            ..Default::default()
+        };
+        let rule = |rule: TabRule, i: Interaction| {
+            let mut s = tabs.clone().rule(rule);
+            let buf = render_with(&mut s, i);
+            let c = &buf[(a.x + 1, 1)];
+            assert_eq!(c.symbol(), "━", "the active tab keeps its rule");
+            c.fg
+        };
+        // Auto (default): the selection shows the accent on the active
+        // layer, focused or not, and goes neutral under a layer
+        assert_eq!(tabs.rule, TabRule::Auto);
+        assert_eq!(rule(TabRule::Auto, unfocused), t.accent);
+        assert_eq!(rule(TabRule::Auto, focused), t.accent);
+        assert_eq!(rule(TabRule::Auto, hidden), t.border_strong);
+        assert_eq!(rule(TabRule::Auto, under), t.border_strong);
+        // FocusOnly: the accent only while the strip shows focus
+        assert_eq!(rule(TabRule::FocusOnly, unfocused), t.border_strong);
+        assert_eq!(rule(TabRule::FocusOnly, focused), t.accent);
+        assert_eq!(rule(TabRule::FocusOnly, hidden), t.border_strong);
+        // explicit policies ignore focus and layers
+        for i in [unfocused, focused, hidden] {
+            assert_eq!(rule(TabRule::Accent, i), t.accent);
+            assert_eq!(rule(TabRule::Neutral, i), t.border_strong);
+        }
+    }
+
+    #[test]
+    fn strip_focus_is_the_one_gutter_on_the_cursor_tab_apart_from_the_rule() {
+        let t = Theme::junie();
+        let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
+        tabs.set_active(1);
+        let focused = Interaction {
+            focus: Some(tabs.id),
+            ..Default::default()
+        };
+        // the cursor on the active tab: focus still reads apart from the
+        // (always accent) selection rule
+        let buf = render_with(&mut tabs, focused);
+        let a = tabs.areas[1];
+        assert_eq!(row(&buf, 0).matches('▎').count(), 1, "one focus indicator");
+        assert_eq!(buf[(a.x, 0)].symbol(), "▎");
+        assert_eq!(buf[(a.x, 0)].fg, t.focus);
+        assert_eq!(
+            buf[(a.x + 1, 0)].symbol(),
+            "M",
+            "the gutter sits in the padding"
+        );
+        assert_eq!(buf[(a.x + 1, 1)].fg, t.accent);
+        // unfocused, or under a layer: no gutter, the rule unchanged
+        let buf = render_with(&mut tabs, Interaction::default());
+        assert!(!row(&buf, 0).contains('▎'));
+        assert_eq!(buf[(a.x + 1, 1)].fg, t.accent);
         let hidden = Interaction {
             focus: Some(tabs.id),
             focus_hidden: true,
             ..Default::default()
         };
         let buf = render_with(&mut tabs, hidden);
-        assert_eq!(buf[(a.x + 1, 1)].fg, t.border_strong);
-        // explicit policies
-        let mut accent = tabs.clone().rule(TabRule::Accent);
-        let buf = render_with(&mut accent, Interaction::default());
-        assert_eq!(buf[(a.x + 1, 1)].fg, t.accent);
-        let mut neutral = tabs.clone().rule(TabRule::Neutral);
-        let focused = Interaction {
-            focus: Some(tabs.id),
-            ..Default::default()
-        };
-        let buf = render_with(&mut neutral, focused);
-        assert_eq!(buf[(a.x + 1, 1)].fg, t.border_strong);
+        assert!(!row(&buf, 0).contains('▎'));
+        // the cursor moved off the active tab: the gutter follows it
+        tabs.cursor = 2;
+        let buf = render_with(&mut tabs, focused);
+        assert_eq!(buf[(tabs.areas[2].x, 0)].symbol(), "▎");
+        assert_eq!(row(&buf, 0).matches('▎').count(), 1);
     }
 
     #[test]

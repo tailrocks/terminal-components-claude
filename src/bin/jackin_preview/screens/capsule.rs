@@ -27,7 +27,7 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
-use junie_tui::widgets::tabs::{TabEvent, TabItem, TabRule, Tabs};
+use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -2868,20 +2868,22 @@ impl CustomModal for UsageDialog {
             }
         }
         let y = inner.y;
-        // the shared tab strip: it never draws a `▎`; the dialog's own
-        // tab-bar focus shows as the accent rule (one focus cue)
+        // the shared tab strip with its default rule: the active tab shows
+        // the accent (the dialog is the top layer). It never draws a `▎`;
+        // the dialog's tab-bar focus is the strip's own focus weight
         let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
-        let mut strip =
-            Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs).rule(if self.tabbar_focus {
-                TabRule::Accent
-            } else {
-                TabRule::Neutral
-            });
+        let mut strip = Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs);
         strip.set_active(self.tab);
         // keys stay with the dialog: the strip is not a ring stop, only its
-        // tabs are click targets
+        // tabs are click targets; it draws as focused while the dialog's
+        // keys drive it
         let inert = std::mem::replace(&mut ctx.inert, true);
+        let focus = std::mem::replace(
+            &mut ctx.interaction.focus,
+            self.tabbar_focus.then_some(strip.id),
+        );
         strip.render(Rect::new(inner.x, y, inner.width, 2), buf, ctx, bg);
+        ctx.interaction.focus = focus;
         ctx.inert = inert;
         self.tab_areas.clear();
         for (i, r) in strip.areas.iter().enumerate() {
