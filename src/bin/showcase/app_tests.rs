@@ -293,11 +293,12 @@ fn table_sorts_both_directions_and_clears() {
     // the cursor stayed on its row (now last), so the view scrolled with it
     // (the horizontal bar of the wide table takes the body's last row)
     assert!(h.text().contains("5–24 of 24"), "{}", h.text());
-    h.key(KeyCode::Char('g'));
+    // Home: the first row (desktop keys; `g` only under the Vim profile)
+    h.key(KeyCode::Home);
     assert!(h.row(h.find_row("#10").unwrap()).contains("#1063"));
     h.key(KeyCode::Char('s'));
     assert!(!h.text().contains("ID ▾") && !h.text().contains("ID ▴"));
-    h.key(KeyCode::Char('g'));
+    h.key(KeyCode::Home);
     assert_eq!(first_before, h.row(h.find_row("#10").unwrap()));
     // numeric sort on Changes via header click: ascending puts "—" (0) first
     let (x, y) = h.find("Changes").unwrap();

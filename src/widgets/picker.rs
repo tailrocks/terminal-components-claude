@@ -153,7 +153,7 @@ pub struct Picker {
     /// forward. Default `true` (today's binding); off, Delete deletes the
     /// character after the caret like a search field.
     pub delete_is_secondary: bool,
-    /// Which keys move the list cursor (default [`NavKeys::DEFAULT`]). A
+    /// Which keys move the list cursor (default [`NavKeys::default`]). A
     /// searchable picker types its letters and edits the query with
     /// ←/→ and Home/End, so there only ↑/↓ and paging move; a plain list
     /// takes the whole table.
@@ -212,7 +212,7 @@ impl Picker {
             dismiss: crate::ui::popup::Dismiss::LIGHT,
             caret: None,
             delete_is_secondary: true,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
         }
     }
 

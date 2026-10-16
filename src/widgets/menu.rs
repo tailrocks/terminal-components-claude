@@ -148,12 +148,13 @@ pub struct ContextMenu {
     /// The cursor moved since the last render: the next render scrolls it
     /// into view. The wheel leaves it alone.
     cursor_dirty: bool,
-    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
+    /// Which keys move the cursor (default [`NavKeys::default`]).
     /// PageUp/PageDown move by the rows shown.
     pub nav: NavKeys,
     /// Typing a prefix jumps to the first enabled row whose label starts
-    /// with it (macOS menus and lists). Off by default: plain letters keep
-    /// their vim and action bindings.
+    /// with it (macOS menus and lists). Default from the
+    /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
+    /// `Vim`.
     pub type_ahead: bool,
     typeahead: crate::core::typeahead::TypeAhead,
     /// Press, drag, release: a secondary release over an enabled row
@@ -274,8 +275,8 @@ impl ContextMenu {
             max_rows: u16::MAX,
             offset: 0,
             cursor_dirty: true,
-            nav: NavKeys::DEFAULT,
-            type_ahead: false,
+            nav: NavKeys::default(),
+            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
             typeahead: Default::default(),
             release_selects: true,
             release_from: Vec::new(),
@@ -771,12 +772,12 @@ pub struct MenuBar {
     /// shows no focus (see [`MenuBar::hides_page_focus`]). Default on.
     pub hide_owner_focus: bool,
     /// Which keys move between titles and through an open menu (default
-    /// [`NavKeys::DEFAULT`]; the open menu inherits it).
+    /// [`NavKeys::default`]; the open menu inherits it).
     pub nav: NavKeys,
     /// Titles that do not fit. Default [`Overflow::Hide`].
     pub overflow: Overflow,
     /// The open menu takes type-ahead ([`ContextMenu::type_ahead`]).
-    /// Default off.
+    /// Default from the [`crate::core::list::NavProfile`].
     pub type_ahead: bool,
     /// The chevron title as last drawn ([`Overflow::Chevron`] with hidden
     /// titles), else `Rect::ZERO`.
@@ -815,10 +816,10 @@ impl MenuBar {
             hover_switch: true,
             wrap: true,
             hide_owner_focus: true,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             overflow: Overflow::Hide,
             more_area: Rect::ZERO,
-            type_ahead: false,
+            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
             open_on: OpenOn::Press,
             press_drag: true,
             press_handled: None,
