@@ -41,8 +41,8 @@ const FORBIDDEN: [&str; 13] = [
 const INSTANT_ALLOWED: [(&str, usize, &str); 3] = [
     (
         "src/runtime.rs",
-        4,
-        "tick timer, input-burst coalescing and the redraw when delayed hover content is due: when a frame is drawn, not what it shows",
+        5,
+        "tick timer, input-burst coalescing, the redraw when delayed hover content is due, and the window-activating click guard (a real terminal's focus report; captures send none): when a frame is drawn or which real input arrives, not what a frame shows",
     ),
     (
         "src/core/typeahead.rs",
