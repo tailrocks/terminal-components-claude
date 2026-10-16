@@ -25,6 +25,10 @@ pub struct HitRegion {
     /// A light-dismiss backdrop ([`HitRegistry::register_backdrop`]): a
     /// click on it means "outside the popup that owns it".
     pub backdrop: bool,
+    /// A modal's own body ([`HitRegistry::register_surface`]): it catches
+    /// presses so nothing falls through, but it is no control, so a press
+    /// on it is dead space inside the modal.
+    pub surface: bool,
 }
 
 /// Which way a scrollbar moves its content.
@@ -74,7 +78,33 @@ impl HitRegistry {
             pass_through: false,
             hover_only: false,
             backdrop: false,
+            surface: false,
         });
+    }
+
+    /// Register a modal's body (a dialog's or a modal frame's surface): it
+    /// blocks presses from falling through like [`Self::register`], and
+    /// [`Self::is_surface`] tells the pointer layer a press on it is dead
+    /// space inside the modal
+    /// ([`crate::core::pointer::PointerState::surface_press`]).
+    pub fn register_surface(&mut self, id: WidgetId, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        self.regions.push(HitRegion {
+            id,
+            area,
+            scroll_only: false,
+            pass_through: false,
+            hover_only: false,
+            backdrop: false,
+            surface: true,
+        });
+    }
+
+    /// Whether `id` was registered this frame as a modal's surface.
+    pub fn is_surface(&self, id: WidgetId) -> bool {
+        self.regions.iter().rev().any(|r| r.id == id && r.surface)
     }
 
     /// Register a scrollbar: a clickable region that the pointer layer
@@ -105,6 +135,7 @@ impl HitRegistry {
             pass_through,
             hover_only: false,
             backdrop: true,
+            surface: false,
         });
     }
 
@@ -119,6 +150,7 @@ impl HitRegistry {
             pass_through: false,
             hover_only: false,
             backdrop: false,
+            surface: false,
         });
     }
 
@@ -135,6 +167,7 @@ impl HitRegistry {
             pass_through: false,
             hover_only: true,
             backdrop: false,
+            surface: false,
         });
     }
 

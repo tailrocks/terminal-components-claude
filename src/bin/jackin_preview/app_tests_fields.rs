@@ -88,3 +88,29 @@ fn a_double_click_in_a_prompt_selects_the_word_and_a_drag_extends_by_words() {
     h.mouse(MouseKind::Up, x + 4, y);
     assert_eq!(rename_input(&h).as_deref(), Some("ab cd"));
 }
+
+#[test]
+fn a_press_on_the_dialog_body_ends_its_fields_edit() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    h.ctrl('b');
+    h.key(KeyCode::Char(','));
+    h.key(KeyCode::Enter);
+    h.type_str("xy");
+    let editing = |h: &H| match h.app.top_modal() {
+        Some(Modal::Dialog(d)) => match &d.body {
+            DialogBody::Input(i) => (i.editing, i.text().to_owned()),
+            _ => panic!("a prompt"),
+        },
+        _ => panic!("the rename prompt is open"),
+    };
+    assert_eq!(editing(&h), (true, "xy".to_owned()));
+    // dead space inside the dialog: its title row
+    let (x, y) = h.find("Change tab title").expect("the dialog title");
+    h.click(x + 20, y);
+    assert_eq!(
+        editing(&h),
+        (false, "xy".to_owned()),
+        "the edit ended in place and kept the value\n{}",
+        h.text()
+    );
+}

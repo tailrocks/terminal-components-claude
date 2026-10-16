@@ -96,3 +96,32 @@ fn a_double_click_in_the_filter_editor_value_selects_the_word() {
     };
     assert_eq!(sel.as_deref(), Some("def"));
 }
+
+#[test]
+fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
+    let mut h = H::connected(120, 40);
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    h.ticks(3);
+    h.key(KeyCode::Char('f'));
+    let value = WidgetId::of("filter-editor").sub("value");
+    h.tab_to(value);
+    h.key(KeyCode::Enter);
+    let editing = |h: &H| match h.app.modal() {
+        Some(Modal::Filter(f)) => f.value.editing,
+        _ => panic!("the filter editor is open"),
+    };
+    assert!(editing(&h));
+    let (x, y) = h
+        .find("Add filter")
+        .or_else(|| h.find("Edit filter"))
+        .expect("the editor title");
+    h.click(x + 30, y);
+    assert!(!editing(&h), "dead space ends the edit\n{}", h.text());
+    assert!(
+        matches!(h.app.modal(), Some(Modal::Filter(_))),
+        "the editor stays open"
+    );
+}

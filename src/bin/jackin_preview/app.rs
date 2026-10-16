@@ -1772,6 +1772,11 @@ impl App {
                         Outcome::Consumed
                     };
                 };
+                // a press on a modal's own body is dead space inside it:
+                // it ends the focused field's edit in place
+                if !self.modals.is_empty() {
+                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
+                }
                 if self.modals.is_empty()
                     && self.pointer.config.focus_on == FocusOn::Press
                     && self.ring.contains(id)
