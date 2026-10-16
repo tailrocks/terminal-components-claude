@@ -10,7 +10,7 @@ use ratatui::style::Modifier;
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::modal::Frame;
 use crate::ui::popup::Placement;
@@ -51,7 +51,8 @@ pub struct HelpOverlay {
     pub id: WidgetId,
     pub scope: String,
     pub sections: Vec<(String, Vec<(String, String)>)>,
-    pub scroll: ScrollState,
+    /// The rows and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub area: Rect,
     pub closed: bool,
     /// Frame title. Default "Keyboard shortcuts".
@@ -110,7 +111,7 @@ impl HelpOverlay {
                     )
                 })
                 .collect(),
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             area: Rect::ZERO,
             closed: false,
             title: crate::theme::Strings::DEFAULT.help_title.into(),
@@ -178,16 +179,12 @@ impl HelpOverlay {
         }
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
-    }
-
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.title, old.help_title, s.help_title);
         crate::theme::Strings::follow(&mut self.hint, old.help_footer, s.help_footer);
+        self.scroll.begin(ctx.track_click);
         crate::theme::Strings::follow(&mut self.done.label, old.done, s.done);
         let pct = |n: u16| (u32::from(n) * u32::from(self.max_percent) / 100) as u16;
         let w = screen.width.saturating_sub(4).min(pct(screen.width));
@@ -252,25 +249,15 @@ impl HelpOverlay {
             }
         }
         if self.scroll.overflows() {
-            crate::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    inner.y,
-                    (area.right() - 2).saturating_sub(area.x),
-                    body_h,
-                ),
-                &self.scroll,
+            // the bar sits in the padding just inside the frame
+            let body = Rect::new(
+                area.x,
+                inner.y,
+                (area.right() - 1).saturating_sub(area.x),
+                body_h,
             );
-            scrollbar::render_vertical(
-                Rect::new(area.right() - 2, inner.y, 1, body_h),
-                buf,
-                ctx,
-                self.id,
-                &self.scroll,
-                true,
-            );
+            self.scroll
+                .draw_with_fade(body, buf, ctx, self.id, true, &[]);
             let pos = scrollbar::position_label(&self.scroll);
             let pw = width(&pos) as u16;
             // left of the close button when the frame draws one
@@ -301,6 +288,12 @@ impl HelpOverlay {
             ctx,
             bg,
         );
+    }
+}
+
+impl Scrollable for HelpOverlay {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
     }
 }
 
