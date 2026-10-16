@@ -1217,6 +1217,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::ty("widgets::statusbar::StatusItem"),
     Capability::builder("widgets::statusbar::StatusItem::busy"),
     Capability::builder("widgets::statusbar::StatusItem::meter"),
+    Capability::builder("widgets::statusbar::StatusItem::meter_stale"),
     Capability::builder("widgets::statusbar::StatusItem::priority"),
     Capability::builder("widgets::statusbar::StatusItem::clickable"),
     Capability::builder("widgets::statusbar::StatusItem::tooltip"),

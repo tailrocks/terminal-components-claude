@@ -36,6 +36,9 @@ pub struct StatusItem {
     pub emphasis: Emphasis,
     /// A compact line meter after the text: `(used %, tone)`.
     pub meter: Option<(Option<u8>, MeterTone)>,
+    /// Draw the meter as last-good data, keeping its tone's level
+    /// ([`Meter::stale`]).
+    pub meter_stale: bool,
     /// A live spinner before the text, always in the primary tone (the one
     /// live-activity use of the accent); the text keeps its own tone.
     pub busy: bool,
@@ -56,6 +59,7 @@ impl StatusItem {
             id: None,
             emphasis: Emphasis::Plain,
             meter: None,
+            meter_stale: false,
             busy: false,
             tip: None,
         }
@@ -68,6 +72,12 @@ impl StatusItem {
     /// Append a compact line meter (label, then `━━━━──── 76%`).
     pub fn meter(mut self, used_pct: Option<u8>, tone: MeterTone) -> Self {
         self.meter = Some((used_pct, tone));
+        self
+    }
+    /// Mark the meter's value as last-good data: a quota at warning that
+    /// could not be refreshed stays a warning, drawn stale ([`Meter::stale`]).
+    pub fn meter_stale(mut self, on: bool) -> Self {
+        self.meter_stale = on;
         self
     }
     pub fn priority(mut self, p: u8) -> Self {
@@ -355,6 +365,7 @@ impl StatusBar {
                 Meter::new(pct)
                     .value(value)
                     .tone(tone)
+                    .stale(it.meter_stale)
                     .visual(MeterVisual::Line)
                     .render(Rect::new(mx, area.y, mw, 1), buf, ctx, st.bg.unwrap_or(bg));
             }

@@ -12,7 +12,9 @@ use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
+use junie_tui::widgets::progress::{Meter, MeterVisual, spinner_frame};
+
+use super::accounts::QuotaTone;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::viewport::{Span, render_spans};
 use ratatui::buffer::Buffer;
@@ -35,7 +37,7 @@ enum OvLine {
     Provider {
         name: String,
         accounts: usize,
-        window: Option<(String, u8, MeterTone)>,
+        window: Option<(String, u8, QuotaTone)>,
         status: (Option<StatusKind>, String),
     },
 }
@@ -52,7 +54,7 @@ fn draw_provider_row(
     y: u16,
     name: &str,
     accounts: usize,
-    window: &Option<(String, u8, MeterTone)>,
+    window: &Option<(String, u8, QuotaTone)>,
     status: &(Option<StatusKind>, String),
     bg: ratatui::style::Color,
 ) {
@@ -76,9 +78,8 @@ fn draw_provider_row(
         Some((label, pct, tone)) => {
             put(buf, wx, 10, label, t.secondary());
             if wx + 11 + 15 <= right {
-                Meter::new(Some(*pct))
+                tone.on(Meter::new(Some(*pct)))
                     .value(format!("{pct:>3}%"))
-                    .tone(*tone)
                     .visual(MeterVisual::Block)
                     .render(Rect::new(wx + 11, y, 15, 1), buf, ctx, bg);
             }
@@ -117,7 +118,7 @@ enum Row {
 }
 
 /// One detail row: text, tone and an optional meter (used %, tone).
-type DetailLine = (String, Tone, Option<(u8, MeterTone)>);
+type DetailLine = (String, Tone, Option<(u8, QuotaTone)>);
 
 #[derive(Default)]
 pub struct UsageScreen {
@@ -760,9 +761,8 @@ impl UsageScreen {
                                 t.primary().bg(bg),
                             );
                             let mx = body.x + label_w + 2;
-                            Meter::new(Some(*pct))
+                            mt.on(Meter::new(Some(*pct)))
                                 .value(format!("{pct:>3}%"))
-                                .tone(*mt)
                                 .visual(MeterVisual::Block)
                                 .render(Rect::new(mx, y, meter_w + 6, 1), buf, ctx, bg);
                             let vx = mx + meter_w + 8;
