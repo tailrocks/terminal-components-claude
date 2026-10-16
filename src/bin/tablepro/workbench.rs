@@ -404,10 +404,9 @@ impl Workbench {
             })
             .collect();
         let active = self.active.min(items.len().saturating_sub(1));
-        let first = self.strip.first;
-        self.strip = Tabs::with_items(TABSTRIP, items);
+        // keeps the window the user scrolled the strip to
+        self.strip.set_items(items);
         self.strip.allow_new = true;
-        self.strip.first = first;
         self.strip.set_active(active);
         self.current_object = match self.tabs.get(self.active) {
             Some(WorkTab::Table(t)) => Some((t.schema.clone(), t.name.clone())),
@@ -1197,6 +1196,15 @@ impl Workbench {
     }
 
     pub fn on_wheel(&mut self, id: WidgetId, delta: i32, horizontal: bool) -> Outcome {
+        // the tab strip scrolls one tab per notch, on either axis
+        if self.strip.owns(id) {
+            let step = delta.signum();
+            return if horizontal {
+                self.strip.on_wheel(step, 0)
+            } else {
+                self.strip.on_wheel(0, step)
+            };
+        }
         // a sideways wheel reaches only horizontal scrolling: a vertical
         // list never turns it into an up/down scroll
         if self.explorer.owns(id) {

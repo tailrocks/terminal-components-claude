@@ -1321,3 +1321,35 @@ fn a_click_marks_focus_as_pointer_focus_until_the_next_key() {
     h.key(KeyCode::Down);
     assert!(!h.app.pointer.pointer_focus, "a key shows focus again");
 }
+
+/// Mouse audit #11: the wheel over an overflowing tab strip scrolls it (it
+/// did nothing), the active tab stays put, and a later sync keeps the
+/// scrolled window.
+#[test]
+fn the_wheel_over_the_tab_strip_scrolls_it() {
+    let mut h = H::connected(80, 24);
+    {
+        let wb = h.app.workbench.as_mut().unwrap();
+        for _ in 0..12 {
+            wb.new_query("");
+        }
+        wb.set_active(0);
+    }
+    h.draw();
+    let strip = h
+        .app
+        .hits
+        .area_of(crate::workbench::TABSTRIP)
+        .unwrap_or_else(|| panic!("{}", h.text()));
+    assert!(
+        h.wb().strip.hidden().1 > 0,
+        "the strip overflows\n{}",
+        h.text()
+    );
+    assert_eq!(h.wb().strip.first, 0);
+    h.mouse(MouseKind::WheelDown, strip.x + 6, strip.y);
+    assert_eq!(h.wb().strip.first, 1, "a vertical notch scrolls one tab");
+    h.mouse(MouseKind::WheelRight, strip.x + 6, strip.y);
+    assert_eq!(h.wb().strip.first, 2, "a horizontal notch too");
+    assert_eq!(h.wb().active, 0, "the wheel does not switch tabs");
+}
