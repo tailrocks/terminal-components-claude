@@ -338,6 +338,28 @@ impl ConnectionsScreen {
         }
     }
 
+    /// The connections list (its rows carry the context menu).
+    pub fn tree(&self) -> &TreeView {
+        &self.tree
+    }
+
+    pub fn tree_mut(&mut self) -> &mut TreeView {
+        &mut self.tree
+    }
+
+    /// The connection a list row stands for (`None` for a group row).
+    pub fn connection_at_row(&self, row: usize) -> Option<usize> {
+        let path = self.tree.rows().get(row)?.path.clone();
+        self.connection_at_path(&path)
+    }
+
+    /// Put the list cursor on `row` and select its connection.
+    pub fn select_row(&mut self, row: usize) {
+        use junie_tui::ui::context::ContextSource;
+        self.tree.context_select(row);
+        self.sync_selected_from_cursor();
+    }
+
     pub fn selected_connection(&self) -> Option<&Connection> {
         self.selected.and_then(|i| self.connections.get(i))
     }
@@ -1017,6 +1039,7 @@ impl ConnectionsScreen {
             hint("Alt+D", "Duplicate"),
             hint("/", "Filter"),
             hint("Ctrl+N", "New"),
+            junie_tui::widgets::keyhint::CONTEXT_MENU,
         ]
     }
 

@@ -573,6 +573,7 @@ impl Workbench {
                 hint("→", "Expand"),
                 hint("/", "Filter"),
                 hint("Ctrl+O", "Quick open"),
+                junie_tui::widgets::keyhint::CONTEXT_MENU,
             ];
         }
         if focus == Some(self.explorer_filter.id) {
@@ -589,6 +590,7 @@ impl Workbench {
                 hint("x", "Close"),
                 hint("Ctrl+G", "Tab list"),
                 hint("z", "Zoom"),
+                junie_tui::widgets::keyhint::CONTEXT_MENU,
             ];
         }
         match self.active_tab() {
