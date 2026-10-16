@@ -172,7 +172,7 @@ only widget with a toggle modifier: ListBox multi mode toggles on a plain
 click (`ClickAction::Activate`) and DataGrid takes no click modifiers, so
 neither changes.
 
-## SC10 finding: a select's outside-click policy and its blur overlap (recorded, 2026-10-16)
+## SC10 finding: a select's outside-click policy and its blur overlap (fixed in S5, 2026-10-16)
 
 Found while showing `Select::dismiss` on Chips & selects. Under
 `Dismiss::ESCAPE` a select registers no backdrop, so an outside click
@@ -187,3 +187,13 @@ belongs there (one knob, `focus_out`, and a refused outside click that is
 consumed rather than passed to dead space). The showcase demonstrates the
 two policies with `close_on_blur` off, where they differ as documented
 (`app_tests_inputs_forms::chips_select_dismiss_and_mixed_follow_the_options`).
+
+**Status: fixed (S5).** One knob: `Select::on_blur` closes the list only
+when `Dismiss::focus_out` allows it; `Select::close_on_blur(on)` is now a
+builder that sets `focus_out` (the separate field is gone). And a refused
+outside click is consumed: `popup::backdrop` registers the owner's
+backdrop under every policy (pass-through only when the click is
+allowed), so the owner refuses it instead of the click landing on dead
+space and ending the edit. Regression test:
+`app_tests_inputs_forms::an_escape_only_select_stays_open_on_a_click_outside`
+(escape-only with the default blur option; fails before).
