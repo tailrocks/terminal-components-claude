@@ -342,6 +342,20 @@ impl Picker {
         self
     }
 
+    /// The frame's height in rows before it is fitted to a screen: the
+    /// title, the search field (when searchable), the rows up to
+    /// [`Self::max_rows`] (two for a loading or failed status) and the
+    /// hint row.
+    pub fn height(&self) -> u16 {
+        let rows = if self.status == PickerStatus::Ready {
+            (self.items.len() as u16).clamp(1, self.max_rows)
+        } else {
+            (self.items.len() as u16).clamp(2, self.max_rows)
+        };
+        let query_rows = if self.searchable { 2 } else { 0 };
+        2 + 1 + query_rows + rows + 2
+    }
+
     /// Replace the rows for a new query: the cursor deliberately returns to
     /// the first eligible row.
     pub fn set_items(&mut self, items: Vec<PickerItem>) {
@@ -671,13 +685,7 @@ impl Picker {
             ..self.dismiss
         };
         crate::ui::popup::backdrop(ctx, self.id, modal, screen);
-        let rows = if self.status == PickerStatus::Ready {
-            (self.items.len() as u16).clamp(1, self.max_rows)
-        } else {
-            (self.items.len() as u16).clamp(2, self.max_rows)
-        };
-        let query_rows = if self.searchable { 2 } else { 0 };
-        let h = (2 + 1 + query_rows + rows + 2).min(screen.height.saturating_sub(2));
+        let h = self.height().min(screen.height.saturating_sub(2));
         let w = self.width.min(screen.width.saturating_sub(4));
         let area = place_with(screen, self.anchor, w, h, self.placement, self.fit);
         let _ = Constraint::Length(0);

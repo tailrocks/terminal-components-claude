@@ -248,6 +248,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Dialogs => DIALOGS,
         PageId::DialogKinds => DIALOG_KINDS,
         PageId::PopupsTooltips => POPUPS_TOOLTIPS,
+        PageId::Pickers => PICKERS,
         PageId::Buttons => BUTTONS,
         PageId::Inputs => INPUTS,
         PageId::TextAreas => TEXTAREAS,
@@ -1229,6 +1230,24 @@ pub static POPUPS_TOOLTIPS: &[Opt] = &[
         OFF_ON,
     )
     .default(1),
+];
+
+/// The Pickers page (SC20): the `Picker` builders, applied to every picker
+/// the page opens and read back in its "Applied" card.
+pub static PICKERS: &[Opt] = &[
+    Opt::new("pickers.width", "Width", &["auto", "48", "96"]),
+    Opt::new("pickers.max_rows", "Max rows", &["12", "6"]),
+    Opt::new("pickers.placement", "Placement", &["center", "below"]),
+    Opt::new("pickers.fit", "Fit", &["default", "third", "flush"]),
+    Opt::new("pickers.backdrop", "Backdrop", &["default", "full"]),
+    Opt::new("pickers.cursor_style", "Cursor row", &["fill", "bar"]),
+    Opt::new("pickers.delete_is_secondary", "Delete closes a tab", OFF_ON).default(1),
+    Opt::new("pickers.nav", "Nav keys", &["desktop", "vim"]),
+    Opt::new("pickers.dismiss", "Dismiss", &["light", "escape"]),
+    Opt::new("pickers.empty", "No matches", &["text", "state"]),
+    Opt::new("pickers.placeholder", "Placeholder", &["default", "custom"]),
+    Opt::new("pickers.hints", "Hint row", &["page", "short"]),
+    Opt::new("pickers.remote", "Remote fetch", &["works", "fails"]),
 ];
 
 /// The Tabs page (SC14): the editor strip's builders.

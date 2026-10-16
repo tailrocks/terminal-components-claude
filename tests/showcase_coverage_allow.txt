@@ -191,7 +191,6 @@ ui::modal::Frame::overlay | layer API (plan S5): ShellLayers, LayerSpec and focu
 ui::reveal::RevealLine | a reveal's row model (a line or a ↑/↓ N more marker), built and drawn by the library's reveal; shown through the popupstooltips Reveal list | permanent
 
 # ui::text
-ui::specimen::SpecimenState::Loading | no SC2 specimen loads; the Pickers States grid | SC20
 
 # ui::tooltip
 ui::layer::LayerKind | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
@@ -311,40 +310,6 @@ widgets::input::ValidateOn::EveryCommit | Inputs page options: which ended edits
 # widgets::panel
 
 # widgets::picker
-widgets::picker::PickerItem | Pickers page options | SC20
-widgets::picker::PickerItem::detail | Pickers page options | SC20
-widgets::picker::PickerItem::glyph | Pickers page options | SC20
-widgets::picker::PickerItem::group | Pickers page options | SC20
-widgets::picker::PickerItem::key | Pickers page options | SC20
-widgets::picker::PickerItem::disabled | Pickers page options | SC20
-widgets::picker::PickerStatus | Pickers page options | SC20
-widgets::picker::PickerStatus::Ready | Pickers page options | SC20
-widgets::picker::PickerStatus::Loading | Pickers page options | SC20
-widgets::picker::PickerStatus::Error | Pickers page options | SC20
-widgets::picker::PickerAction | Pickers page options | SC20
-widgets::picker::PickerAction::QueryChanged | Pickers page options | SC20
-widgets::picker::PickerAction::Chosen | Pickers page options | SC20
-widgets::picker::PickerAction::ChosenAlt | Pickers page options | SC20
-widgets::picker::PickerAction::Submit | Pickers page options | SC20
-widgets::picker::PickerAction::Secondary | Pickers page options | SC20
-widgets::picker::PickerAction::NextScope | Pickers page options | SC20
-widgets::picker::PickerAction::Cancelled | Pickers page options | SC20
-widgets::picker::PickerAction::Back | Pickers page options | SC20
-widgets::picker::PickerAction::PrevScope | Pickers page options | SC20
-widgets::picker::Picker::nav | Pickers page options | SC20
-widgets::picker::Picker::delete_is_secondary | Pickers page options | SC20
-widgets::picker::Picker::width | Pickers page options | SC20
-widgets::picker::Picker::placement | Pickers page options | SC20
-widgets::picker::Picker::anchor | Pickers page options | SC20
-widgets::picker::Picker::fit | Pickers page options | SC20
-widgets::picker::Picker::backdrop | Pickers page options | SC20
-widgets::picker::Picker::hints | Pickers page options | SC20
-widgets::picker::Picker::max_rows | Pickers page options | SC20
-widgets::picker::Picker::placeholder | Pickers page options | SC20
-widgets::picker::Picker::empty | Pickers page options | SC20
-widgets::picker::Picker::empty_text | Pickers page options | SC20
-widgets::picker::Picker::dismiss | Pickers page options | SC20
-widgets::picker::Picker::cursor_style | Pickers page options | SC20
 
 # widgets::progress
 
@@ -384,7 +349,6 @@ runtime::InputPump | runtime plumbing exercised by every run; no visible surface
 runtime::FocusClickGuard | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # state
-state::loading | no SC2 specimen loads (Button, TextInput); Pickers PickerStatus::Loading | SC20
 
 # widgets::too_small
 widgets::too_small::TooSmall | TooSmall demo on Status & hints | SC30
