@@ -215,11 +215,8 @@ impl Page for TreesPage {
             PageEvent::Click { id, pos } => {
                 if let Some((row, toggle)) = self.tree.locate(*id) {
                     cx.focus.focus(self.tree.id);
-                    return if toggle {
-                        self.tree.on_click_toggle(row).0
-                    } else {
-                        self.tree.on_click_row(row).0
-                    };
+                    // Alt-click opens or closes the whole subtree
+                    return self.tree.on_click_with(row, toggle, cx.mods).0;
                 }
                 if *id == scrollbar::id_for(self.tree.id) {
                     return self.tree.on_scrollbar(*pos);

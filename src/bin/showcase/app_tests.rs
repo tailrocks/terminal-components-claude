@@ -563,6 +563,28 @@ fn tree_expand_collapse_and_focus_bar_column_is_stable() {
 }
 
 #[test]
+fn alt_click_on_a_tree_disclosure_opens_the_whole_subtree() {
+    let mut h = Harness::new(120, 40, PageId::Trees);
+    let (x, y) = h.find("api").unwrap();
+    assert!(!h.text().contains("dispatch.rs"));
+    // the disclosure sits two cells left of the label
+    let alt = |h: &mut Harness, kind| {
+        h.app.handle(Input::Mouse(
+            Mouse::new(kind, Position::new(x - 2, y)).with_mods(KeyModifiers::ALT),
+        ));
+        h.draw();
+    };
+    alt(&mut h, MouseKind::Down);
+    alt(&mut h, MouseKind::Up);
+    let t = h.text();
+    assert!(t.contains("auth.rs"), "{t}");
+    assert!(
+        t.contains("dispatch.rs"),
+        "Alt-click opened nested folders too\n{t}"
+    );
+}
+
+#[test]
 fn modal_traps_focus_and_restores_it() {
     let mut h = Harness::new(120, 40, PageId::Dialogs);
     h.key(tab());
