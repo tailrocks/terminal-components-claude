@@ -30,13 +30,14 @@ use ratatui::style::{Modifier, Style};
 
 use super::modals::{InfoDialog, InfoResult};
 use super::rowmenu::RowMenu;
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
+use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
 use crate::domain::agent::Agent;
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::domain::workspace::WorkspaceId;
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{DaemonHealth, Msg, World};
 use junie_tui::ui::context::ContextAnchor;
+use junie_tui::ui::text::plural;
 use junie_tui::widgets::menu::MenuItem;
 
 pub const TREE: WidgetId = WidgetId::of("manager.tree");

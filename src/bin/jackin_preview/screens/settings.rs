@@ -23,10 +23,11 @@ use ratatui::style::Modifier;
 
 use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab, mode_label};
 use super::modals::InfoDialog;
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
+use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
 use crate::domain::agent::{Agent, AuthMode};
 use crate::domain::workspace::RoleName;
 use crate::sim::world::{GlobalConfig, Msg, World};
+use junie_tui::ui::text::plural;
 
 pub const TABS: WidgetId = WidgetId::of("settings.tabs");
 pub const COAUTHOR: WidgetId = WidgetId::of("settings.coauthor");

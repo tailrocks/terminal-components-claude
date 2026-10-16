@@ -34,7 +34,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::Style;
 
 use super::modals::{ChoiceDialog, InfoDialog, InfoResult, modal_frame};
-use super::{CustomModal, Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
+use super::{CustomModal, Cx, Go, Modal, ModalResult, ModalTag, Screen};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
 use crate::domain::instance::AgentState;
@@ -43,6 +43,7 @@ use crate::sim::pty::{
     Daemon, Direction, MAX_LABEL, MIN_PANE_COLS, MIN_PANE_ROWS, PaneId, PaneNode, Seam, nearest,
 };
 use crate::sim::world::{Msg, World};
+use junie_tui::ui::text::plural;
 
 pub const STRIP: WidgetId = WidgetId::of("capsule.strip");
 pub const MENUBAR: WidgetId = WidgetId::of("capsule.menubar");

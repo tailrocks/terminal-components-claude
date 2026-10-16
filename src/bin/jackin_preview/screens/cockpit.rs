@@ -171,7 +171,7 @@ impl CockpitScreen {
             (
                 format!(
                     "{} · {primary} · {}",
-                    crate::screens::plural(self.accounts.len().max(1), "account", "accounts"),
+                    junie_tui::ui::text::plural(self.accounts.len().max(1), "account", "accounts"),
                     others.join(" · ")
                 ),
                 val,

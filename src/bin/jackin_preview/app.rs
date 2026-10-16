@@ -2448,7 +2448,7 @@ impl App {
                 self.set_status(
                     &format!(
                         "Detached · {name} keeps running · {} in the Construct",
-                        crate::screens::plural(n, "instance", "instances")
+                        junie_tui::ui::text::plural(n, "instance", "instances")
                     ),
                     Tone::Secondary,
                 );
@@ -2483,7 +2483,7 @@ impl App {
                     self.set_status(
                         &format!(
                             "Launch failed · {} still running in the Construct",
-                            crate::screens::plural(
+                            junie_tui::ui::text::plural(
                                 self.world.running_count(),
                                 "instance",
                                 "instances"
@@ -2537,7 +2537,7 @@ impl App {
                     .collect();
                 let text = format!(
                     "Still inside the Construct · {}",
-                    crate::screens::plural(remaining, "instance remains", "instances remain")
+                    junie_tui::ui::text::plural(remaining, "instance remains", "instances remain")
                 );
                 self.screens.manager.still_inside =
                     Some((text.clone(), rows, self.world.now_ms() + 6_000));

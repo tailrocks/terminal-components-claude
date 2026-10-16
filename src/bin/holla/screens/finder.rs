@@ -24,10 +24,10 @@ use crate::domain::action::{Confirmation, Freshness, Item, Kind, Launch, Risk};
 use crate::domain::context::Scope;
 use crate::domain::ranking::{Ranked, search};
 use crate::screens::{
-    Cx, Go, Page, Screen, StatusBits, heading, plural, risk_tone, scroll_drag, scroll_press,
-    truncate_sep,
+    Cx, Go, Page, Screen, StatusBits, heading, risk_tone, scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
+use junie_tui::ui::text::{plural, truncate_sep};
 
 pub const FINDER: WidgetId = WidgetId::of("here.finder");
 pub const PREVIEW: WidgetId = WidgetId::of("here.preview");

@@ -3,6 +3,8 @@
 
 use std::collections::BTreeMap;
 
+use junie_tui::ui::text::plural;
+
 use super::account::{Account, AccountId, Lifecycle};
 use super::agent::{Provider, UsageSurface};
 
@@ -512,12 +514,12 @@ impl OverallSummary {
     /// `12 accounts · 11 enabled · 1 disabled · 8 providers`.
     pub fn counts_line(&self) -> String {
         let c = &self.counts;
-        let mut parts = vec![format!("{} account{}", c.accounts, plural(c.accounts))];
+        let mut parts = vec![plural(c.accounts, "account", "accounts")];
         parts.push(format!("{} enabled", c.enabled));
         if c.disabled > 0 {
             parts.push(format!("{} disabled", c.disabled));
         }
-        parts.push(format!("{} provider{}", c.providers, plural(c.providers)));
+        parts.push(plural(c.providers, "provider", "providers"));
         parts.join(" · ")
     }
 
@@ -537,10 +539,7 @@ impl OverallSummary {
         let c = &self.counts;
         let mut parts = vec![];
         if c.warnings > 0 {
-            parts.push((
-                format!("{} warning{}", c.warnings, plural(c.warnings)),
-                Tone::Warning,
-            ));
+            parts.push((plural(c.warnings, "warning", "warnings"), Tone::Warning));
         }
         if c.exhausted > 0 {
             parts.push((format!("{} exhausted", c.exhausted), Tone::Error));
@@ -576,10 +575,6 @@ impl OverallSummary {
         }
         parts
     }
-}
-
-pub fn plural(n: usize) -> &'static str {
-    if n == 1 { "" } else { "s" }
 }
 
 #[cfg(test)]

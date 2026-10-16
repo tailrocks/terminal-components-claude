@@ -345,7 +345,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 3. "Priority error > hint > info" is not a rule inside `StatusLine`: standards-visual item 11 says an error stays "until dismissed or replaced", so a newer message replaces an error (a background refresh error must not hide the result of the user's next action). Error over hints is footer composition, left to S8b's `Footer`.
 4. `--no-motion` is not a flag: the plan's `#[arg(env)]` needs clap's `env` feature (a `Cargo.toml` change). `CommonArgs::motion(env_var)` reads the variable instead.
 5. `ui::text` has two duration formats: `duration_ms` (tablepro's query timer: `1.25 s`, `2m 3s`) and `duration_secs` (holla and jackin: `2 min 3 s`). Unifying them changes tablepro captures; left for the screen steps.
-6. Kept as thin aliases so screen code did not churn: holla `sim::fs::human` (= `ui::text::bytes`), holla/jackin `screens::{plural, truncate_sep}` re-exports, tablepro `tabs::duration_label` (a `u32` adapter over `duration_ms`). jackin `domain::usage::plural(n) -> &str` (a suffix helper) is a different function and stays.
+6. ~~Kept as thin aliases~~ Resolved in the S2 follow-up: holla `sim::fs::human`, holla/jackin `screens::{plural, truncate_sep}` and tablepro `tabs::duration_label` are gone; every call site uses `ui::text::*` directly. jackin `domain::usage::plural(n) -> &str` was only ever used as `format!("{n} noun{}", plural(n))`, which is `ui::text::plural(n, noun, nouns)`, so it is gone too.
 7. `ui::text::center_x` is used by `TooSmall`; its other adopters (jackin capsule, cockpit, prelude and rain, which centre by `chars().count()`) move with their screens in S17/S22.
 
 **Notes for later steps:**

@@ -597,7 +597,7 @@ impl ConfigTabs {
                     .replace("global", "Global"),
                 Some(r) => format!("Role: {r}"),
             };
-            let mut meta = super::plural(vars.len(), "var", "vars");
+            let mut meta = junie_tui::ui::text::plural(vars.len(), "var", "vars");
             if !in_registry {
                 meta = format!("not in registry · {meta}");
             }
@@ -1891,7 +1891,7 @@ impl ConfigTabs {
                 detail: if n > 0 {
                     format!(
                         "{} · Enter adds another",
-                        super::plural(n, "override", "overrides")
+                        junie_tui::ui::text::plural(n, "override", "overrides")
                     )
                 } else {
                     "no overrides yet".into()
