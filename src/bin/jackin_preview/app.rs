@@ -457,6 +457,11 @@ impl App {
         if self.pointer.expire_flash(self.now_ms()) {
             out = Outcome::Changed;
         }
+        // a held drag past a selecting body's edge autoscrolls one step a
+        // tick (the simulated clock keeps its own tick rate)
+        if let Some((_, pos)) = self.pointer.autoscroll_due(self.now_ms()) {
+            out = out.or(self.on_mouse(Mouse::new(MouseKind::Drag, pos)));
+        }
         if let Some((_, _, until)) = &self.status
             && self.world.now_ms() >= *until
         {

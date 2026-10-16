@@ -1353,12 +1353,15 @@ impl TextViewport {
             return Outcome::Ignored;
         };
         let text = self.text_rect();
+        // one row or column per cell the pointer is past the edge, so a
+        // held drag (replayed by the edge autoscroll tick) speeds up with
+        // the distance
         if pos.y < text.y {
-            self.scroll.scroll_by(-1);
+            self.scroll.scroll_by(-((text.y - pos.y) as isize));
             self.follow = false;
             self.remember_reading();
         } else if pos.y >= text.bottom() {
-            self.scroll.scroll_by(1);
+            self.scroll.scroll_by((pos.y + 1 - text.bottom()) as isize);
             self.remember_reading();
         }
         // the text columns end before the vertical bar's gap
@@ -1726,6 +1729,7 @@ impl TextViewport {
         let right = area.x + text_w;
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
+        ctx.autoscroll(text);
         let sel = self.selection();
         fill(buf, area, Style::new().bg(bg));
         for (k, vi) in self.scroll.visible_range().enumerate() {
@@ -1984,6 +1988,33 @@ mod tests {
         assert!(matches!(ev, Some(ViewportEvent::Copy(t)) if t.starts_with("line 1")));
         v.select_word_at(Position::new(8, 0));
         assert_eq!(v.selected_text().as_deref(), Some("alpha"));
+    }
+
+    #[test]
+    fn a_drag_held_below_the_text_scrolls_faster_the_farther_it_is() {
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(100));
+        v.follow = false;
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 10));
+        v.render(Rect::new(0, 0, 40, 10), &mut buf, &mut ctx, t.canvas);
+        assert_eq!(
+            hits.autoscroll_at(Position::new(3, 3)),
+            Some(v.text_rect()),
+            "the text is the autoscroll body"
+        );
+        v.on_click(Position::new(0, 1));
+        // one row past the bottom: a row a step
+        v.on_drag(Position::new(4, 10));
+        assert_eq!(v.scroll.offset, 1);
+        // three rows past it: three rows a step (each autoscroll tick
+        // replays the drag at the resting pointer)
+        v.on_drag(Position::new(4, 12));
+        v.on_drag(Position::new(4, 12));
+        assert_eq!(v.scroll.offset, 7);
+        assert!(v.selected_text().is_some_and(|t| t.starts_with("line 1")));
     }
 
     #[test]
