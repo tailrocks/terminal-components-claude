@@ -8,6 +8,7 @@ use ratatui::style::{Color, Modifier};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::selection::{RowSelection, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
@@ -197,6 +198,23 @@ pub struct DataTable {
     pub toggle_mods: KeyModifiers,
     /// Source rows that can be read but never selected or activated.
     pub disabled: BTreeSet<usize>,
+    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
+    pub nav: NavKeys,
+    /// The table's own action keys (default [`TableAction::default_keymap`]).
+    pub keymap: KeyMap<TableAction>,
+}
+
+/// A [`DataTable`] action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TableAction {
+    /// Sort by the cursor column (again: reverse). Default `s`.
+    SortByColumn,
+}
+
+impl Actions for TableAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![(KeyBinding::char('s'), TableAction::SortByColumn)]
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -254,7 +272,21 @@ impl DataTable {
             esc_clears: true,
             toggle_mods: KeyModifiers::CONTROL | KeyModifiers::SUPER,
             disabled: BTreeSet::new(),
+            nav: NavKeys::DEFAULT,
+            keymap: TableAction::default_keymap(),
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<TableAction>) -> Self {
+        self.keymap = keymap;
+        self
     }
 
     /// How many rows can be selected (default [`SelectionMode::Single`]).
@@ -481,22 +513,22 @@ impl DataTable {
                 self.selection.clear();
                 Some((Outcome::Changed, Some(TableEvent::SelectionChanged)))
             }
-            KeyCode::Up
-            | KeyCode::Down
-            | KeyCode::Home
-            | KeyCode::End
-            | KeyCode::PageUp
-            | KeyCode::PageDown
-                if key.shift() && !command && !key.alt() =>
+            _ if key.shift()
+                && !command
+                && !key.alt()
+                && matches!(
+                    self.nav.action(key),
+                    Some(Nav::Up | Nav::Down | Nav::Home | Nav::End | Nav::PageUp | Nav::PageDown)
+                ) =>
             {
                 let from = self.cursor_row;
                 let page = self.scroll.viewport_len.max(1);
-                let to = match key.code {
-                    KeyCode::Up => from.saturating_sub(1),
-                    KeyCode::Down => from + 1,
-                    KeyCode::Home => 0,
-                    KeyCode::End => usize::MAX,
-                    KeyCode::PageUp => from.saturating_sub(page),
+                let to = match self.nav.action(key) {
+                    Some(Nav::Up) => from.saturating_sub(1),
+                    Some(Nav::Down) => from + 1,
+                    Some(Nav::Home) => 0,
+                    Some(Nav::End) => usize::MAX,
+                    Some(Nav::PageUp) => from.saturating_sub(page),
                     _ => from + page,
                 };
                 self.set_cursor(to, self.cursor_col);
@@ -795,53 +827,23 @@ impl DataTable {
         {
             return r;
         }
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_))
+            && (key.ctrl() || key.alt())
+            && lookup(&self.keymap, key).is_none()
+        {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
         let (r, c) = (self.cursor_row, self.cursor_col);
+        if let Some(action) = lookup(&self.keymap, key) {
+            return match action {
+                TableAction::SortByColumn => (self.sort_by(c), None),
+            };
+        }
+        if let Some(nav) = self.nav.action(key) {
+            return self.on_nav(nav);
+        }
         match key.code {
-            KeyCode::Up | KeyCode::Char('k') => {
-                self.set_cursor(r.saturating_sub(1), c);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                self.set_cursor(r + 1, c);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Left | KeyCode::Char('h') if self.cell_nav => {
-                self.set_cursor(r, c.saturating_sub(1));
-                (Outcome::Changed, None)
-            }
-            KeyCode::Right | KeyCode::Char('l') if self.cell_nav => {
-                self.set_cursor(r, c + 1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Left | KeyCode::Char('h') => {
-                self.hscroll.scroll_by(-1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Right | KeyCode::Char('l') => {
-                self.hscroll.scroll_by(1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageUp => {
-                self.set_cursor(r.saturating_sub(self.scroll.viewport_len.max(1)), c);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageDown => {
-                self.set_cursor(r + self.scroll.viewport_len.max(1), c);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Home | KeyCode::Char('g') => {
-                self.set_cursor(0, c);
-                (Outcome::Changed, None)
-            }
-            KeyCode::End | KeyCode::Char('G') => {
-                self.set_cursor(usize::MAX, c);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('s') => (self.sort_by(c), None),
             KeyCode::Enter | KeyCode::F(2) if self.cell_nav && self.columns[c].editable => {
                 (self.begin_edit(), None)
             }
@@ -856,6 +858,52 @@ impl DataTable {
                 (Outcome::Changed, Some(TableEvent::Activated(src)))
             }
             _ => (Outcome::Ignored, None),
+        }
+    }
+
+    fn on_nav(&mut self, nav: Nav) -> (Outcome, Option<TableEvent>) {
+        let (r, c) = (self.cursor_row, self.cursor_col);
+        match nav {
+            Nav::Up => {
+                self.set_cursor(r.saturating_sub(1), c);
+                (Outcome::Changed, None)
+            }
+            Nav::Down => {
+                self.set_cursor(r + 1, c);
+                (Outcome::Changed, None)
+            }
+            Nav::Left if self.cell_nav => {
+                self.set_cursor(r, c.saturating_sub(1));
+                (Outcome::Changed, None)
+            }
+            Nav::Right if self.cell_nav => {
+                self.set_cursor(r, c + 1);
+                (Outcome::Changed, None)
+            }
+            Nav::Left => {
+                self.hscroll.scroll_by(-1);
+                (Outcome::Changed, None)
+            }
+            Nav::Right => {
+                self.hscroll.scroll_by(1);
+                (Outcome::Changed, None)
+            }
+            Nav::PageUp => {
+                self.set_cursor(r.saturating_sub(self.scroll.viewport_len.max(1)), c);
+                (Outcome::Changed, None)
+            }
+            Nav::PageDown => {
+                self.set_cursor(r + self.scroll.viewport_len.max(1), c);
+                (Outcome::Changed, None)
+            }
+            Nav::Home => {
+                self.set_cursor(0, c);
+                (Outcome::Changed, None)
+            }
+            Nav::End => {
+                self.set_cursor(usize::MAX, c);
+                (Outcome::Changed, None)
+            }
         }
     }
 
