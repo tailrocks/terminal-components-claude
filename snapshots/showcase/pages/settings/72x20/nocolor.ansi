@@ -14,7 +14,8 @@
    Data grid      ┃      Handles checkout…                              [0m
    Chips & selec… ┃                              ○── Auto-merge appro…  [0m
    Pickers        ┃                              ──● Protect main bra…  [0m
-   Chrome         ┃     [0m[1mSave changes [0m  No changes                       [0m
+   Chrome         ┃     [0m[1;7mSave changes [0m  No changes                       [0m
 [0m[1;2m▎› Settings       [0m│                                                     [0m
                                                                         [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                             [0m
+[?25l

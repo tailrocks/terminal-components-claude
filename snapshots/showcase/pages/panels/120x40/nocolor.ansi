@@ -20,7 +20,7 @@
    Terminal                 Nested                                        │  [0m[2mthat experience feels as deliberate as  [0m│ │[0m
    Code editor                                                            ╰────────────────────────────────────────────╯[0m
    Diff                     Target                                                                                      [0m
-   Data grid                   Local                                        Card · scrollable               1–13 of 60  [0m
+   Data grid                   Local                                        Card · scrollable               1–12 of 60  [0m
    Chips & selects             CLI                                                                                      [0m
    Pickers                  [0m[2m   Cloud                      [0m                     0.00s  info   Resolving workspace me… ┃  [0m
    Chrome                                                                      0.37s  info   Fetching crates.io ind… ┃  [0m
@@ -33,8 +33,9 @@
                                                                                2.96s  info   test db::pool::tests::… │  [0m
                                                                                3.33s  error  test checkout::places_… │  [0m
                                                                                3.70s  info   test workers::schedule… │  [0m
-                                                                               4.07s  info   Linking target/debug/d… │  [0m
-                                                                            [0m[2m   4.44s  info   Resolving workspace me… [0m│  [0m
+                                                                            [0m[2m   4.07s  info   Linking target/debug/d… [0m│  [0m
+                                                                            ━━━━━━━━━━━━━━━━━━━━━━───────────────────   [0m
                                                                                                                         [0m
                                                                                                                         [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                             [0m
+[?25l

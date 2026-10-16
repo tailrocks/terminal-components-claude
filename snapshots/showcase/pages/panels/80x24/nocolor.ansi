@@ -12,13 +12,14 @@
 [0m[1m▎› Panels         [0m┃                                │  [0m[2mruns the tests, and    [0m│ │[0m
    Sidebars       ┃                                ╰───────────────────────────╯[0m
    Dialogs        ┃    Untitled card. Same                                      [0m
-   Progress       ┃    surface, content starts       Card · scrolla… 1–5 of 60  [0m
+   Progress       ┃    surface, content starts       Card · scrolla… 1–4 of 60  [0m
    Scrolling      ┃    at the padding edge.                                     [0m
    Terminal       ┃                                     0.00s  info   Resol… ┃  [0m
    Code editor    ┃                                     0.37s  info   Fetch… │  [0m
    Diff           ┃                                     0.74s  info   Compi… │  [0m
-   Data grid      │    Nested                           1.11s  info   Compi… │  [0m
-   Chips & selec… │                                  [0m[2m   1.48s  warn   unuse… [0m│  [0m
+   Data grid      │    Nested                        [0m[2m   1.11s  info   Compi… [0m│  [0m
+   Chips & selec… │                                  ━━━━━━━─────────────────   [0m
 [0m[2m   Pickers        [0m│    Target                                                   [0m
                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
+[?25l

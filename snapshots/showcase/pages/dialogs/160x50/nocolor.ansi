@@ -4,7 +4,7 @@
    Overview                                                                                                                                                     [0m
                             Open a dialog                                                                                                                       [0m
    Components                                                                                                                                                   [0m
-   Buttons                   [0m[1mConfirm run [0m   Rename task…    Three choices…    Delete branch…                                                                    [0m
+   Buttons                   [0m[1;7mConfirm run [0m   Rename task…    Three choices…    Delete branch…                                                                    [0m
    Inputs                                                                                                                                                       [0m
    Text areas               Confirm: primary action focused first · y / n answer directly                                                                       [0m
    Forms                    Prompt: editing inside a modal, Enter submits, validation blocks                                                                    [0m
@@ -47,4 +47,5 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                     [0m
+[?25l
