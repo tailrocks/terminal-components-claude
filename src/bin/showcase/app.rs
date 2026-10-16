@@ -862,6 +862,9 @@ impl App {
         {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            ctx.page_under_layer(
+                self.dialog.is_some() || self.pages[self.page.index()].layer_open(),
+            );
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
             cursor = cursor.or(ctx.cursor);

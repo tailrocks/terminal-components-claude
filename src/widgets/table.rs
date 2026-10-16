@@ -607,7 +607,7 @@ impl DataTable {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
         let editing = self.edit.is_some() && focused;
-        if !focused && self.edit.is_some() {
+        if !ctx.interaction.has_focus(self.id) && self.edit.is_some() {
             self.commit_edit();
         }
 
