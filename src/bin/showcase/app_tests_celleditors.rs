@@ -224,10 +224,10 @@ fn imported_values_outside_the_set_are_flagged_until_fixed() {
 
 #[test]
 fn the_priority_radio_skips_its_disabled_option_and_tab_moves_on() {
-    // wide enough for Priority to scroll fully into view: at 140 columns
-    // the cell cursor lands on a column the table leaves cut (recorded
-    // for S3 in the plan's SC13 notes)
-    let mut h = Harness::new(160, 40);
+    // at 140 columns moving right lands on wider columns than the ones
+    // it left: Priority still scrolls whole into view and its editor
+    // anchors to it (finding T3)
+    let mut h = Harness::new(140, 40);
     for _ in ENV..PRIORITY {
         h.key(KeyCode::Right);
     }

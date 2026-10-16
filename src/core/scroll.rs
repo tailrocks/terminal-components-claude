@@ -451,6 +451,15 @@ pub struct ScrollPane {
     owner: Option<WidgetId>,
     /// The axis of the bar the held press started on.
     held: Option<Axis>,
+    /// Column panes: each column's width as last laid out, the gap between
+    /// columns and the cells they shared (see [`Self::layout_columns`]).
+    col_widths: Vec<u16>,
+    col_gap: u16,
+    col_avail: u16,
+    /// The column [`Self::reveal_column`] keeps whole in view at every
+    /// layout (the widths or the view may change), and the offset it
+    /// left. Any other horizontal scroll ends it.
+    col_reveal: Option<(usize, usize)>,
 }
 
 impl std::ops::Deref for ScrollPane {
@@ -587,6 +596,86 @@ impl ScrollPane {
         }
     }
 
+    /// Lay the columns out from the horizontal offset: `widths` are the
+    /// columns' widths, `gap` the cells between two columns and `avail`
+    /// the cells they share. A column asked for by
+    /// [`Self::reveal_column`] is first brought whole into view against
+    /// these widths. Returns how many columns from the offset fit whole
+    /// (0 when not even the first does); the widget sets
+    /// [`Self::h`]'s viewport from it.
+    pub fn layout_columns(&mut self, widths: Vec<u16>, gap: u16, avail: u16) -> usize {
+        self.col_widths = widths;
+        self.col_gap = gap;
+        self.col_avail = avail;
+        if let Some((index, left)) = self.col_reveal {
+            if self.h.offset == left {
+                self.place_column(index);
+                self.col_reveal = Some((index, self.h.offset));
+            } else {
+                self.col_reveal = None;
+            }
+        }
+        self.columns_fit(self.h.offset)
+    }
+
+    /// Bring column `index` whole into view (WCAG 2.4.11, focus not
+    /// obscured): the least horizontal scroll that shows all of it, or its
+    /// start when it is wider than the view. It is measured against the
+    /// last layout now and again at the next
+    /// [`Self::layout_columns`] until something else scrolls sideways, so
+    /// a move onto wider columns (or a narrower view) never leaves the
+    /// column cut off or out of view. Returns whether the offset moved
+    /// now.
+    pub fn reveal_column(&mut self, index: usize) -> bool {
+        let moved = self.place_column(index);
+        self.col_reveal = Some((index, self.h.offset));
+        moved
+    }
+
+    /// How many columns from `from` fit whole in the last layout's width.
+    fn columns_fit(&self, from: usize) -> usize {
+        let mut used = 0u16;
+        let mut fit = 0;
+        for &w in self.col_widths.iter().skip(from) {
+            let need = if fit == 0 {
+                w
+            } else {
+                w.saturating_add(self.col_gap)
+            };
+            if used.saturating_add(need) > self.col_avail {
+                break;
+            }
+            used += need;
+            fit += 1;
+        }
+        fit
+    }
+
+    /// The offset move behind [`Self::reveal_column`].
+    fn place_column(&mut self, index: usize) -> bool {
+        let n = self.col_widths.len();
+        if n == 0 || self.col_avail == 0 {
+            return false;
+        }
+        let index = index.min(n - 1);
+        let before = self.h.offset;
+        let mut offset = before.min(n - 1);
+        if index < offset {
+            offset = index;
+        }
+        // scroll right until the column ends inside the view; a column
+        // wider than the view stops at its own start
+        while offset < index && offset + self.columns_fit(offset) <= index {
+            offset += 1;
+        }
+        // no empty space after the last column while an earlier one fits
+        while offset > 0 && offset - 1 + self.columns_fit(offset - 1) >= n {
+            offset -= 1;
+        }
+        self.h.offset = offset;
+        offset != before
+    }
+
     /// Cells (or columns) one horizontal wheel notch or arrow press moves.
     pub fn h_step(&self) -> usize {
         if self.columns {
@@ -614,6 +703,7 @@ impl ScrollPane {
                 if !self.h_scrolls() {
                     return Response::ignored();
                 }
+                self.col_reveal = None;
                 let step = self.h_step() as isize;
                 self.h.scroll_by(delta.signum() as isize * step)
             }
@@ -648,6 +738,9 @@ impl ScrollPane {
             return Response::ignored();
         }
         self.held = Some(axis);
+        if axis == Axis::Horizontal {
+            self.col_reveal = None;
+        }
         let (cell, len) = track_cell(track, axis, pos);
         changed(self.axis(axis).press_track_with(cell, len, click))
     }
@@ -670,6 +763,9 @@ impl ScrollPane {
             return Response::consumed();
         }
         self.held = Some(axis);
+        if axis == Axis::Horizontal {
+            self.col_reveal = None;
+        }
         let (cell, len) = track_cell(track, axis, pos);
         changed(self.axis(axis).drag_track(cell, len))
     }

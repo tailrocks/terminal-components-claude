@@ -189,3 +189,42 @@ fn an_out_of_set_value_is_flagged_and_the_validator_still_decides() {
     assert_eq!(g.on_blur(), (Outcome::Changed, None));
     assert!(!g.is_editing());
 }
+
+/// A constrained editor opened on a column the view was scrolled away
+/// from brings the column back first, so its popup anchors to a cell on
+/// screen (finding T3: with no cell drawn the popup did not appear).
+#[test]
+fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {
+    use crate::core::scroll::Scrollable;
+    let theme = Theme::junie();
+    let mut g = grid();
+    let narrow = |g: &mut DataGrid| {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let inter = Interaction {
+            focus: Some(g.id),
+            ..Default::default()
+        };
+        let mut buf = Buffer::empty(Rect::new(0, 0, 24, 16));
+        {
+            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+            g.render(Rect::new(0, 0, 24, 8), &mut buf, &mut ctx, theme.canvas);
+            ctx.flush_overlays(&mut buf);
+        }
+        buf
+    };
+    narrow(&mut g);
+    while g.scroll.h.offset < 2 {
+        assert_eq!(g.on_wheel_h(1), Outcome::Changed);
+        narrow(&mut g);
+    }
+    g.on_key(&key(KeyCode::Enter));
+    assert!(g.choice.is_some());
+    let buf = narrow(&mut g);
+    assert!(g.scroll.h.offset <= 1, "the edited column is back in view");
+    assert!(
+        text(&buf).contains("enterprise"),
+        "the popup draws at its cell:\n{}",
+        text(&buf)
+    );
+}
