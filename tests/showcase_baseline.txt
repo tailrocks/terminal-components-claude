@@ -21,7 +21,7 @@
 120x40 TrueColor Chrome eecc2f2f546fe671
 120x40 TrueColor Settings e8761de856f32d20
 120x40 TrueColor Task runner e54bfaad23d51cba
-120x40 TrueColor Selectable table a112035668c1246c
+120x40 TrueColor Selectable table 76c56af5ade707ba
 120x40 Ansi256 Overview 8762ca769e24bf46
 120x40 Ansi256 Buttons 752265d517af2699
 120x40 Ansi256 Inputs d08dd68f4ac78755
@@ -45,7 +45,7 @@
 120x40 Ansi256 Chrome 3bfc644f42533fe2
 120x40 Ansi256 Settings 30c31765a0cfea22
 120x40 Ansi256 Task runner 4cd830522b9d839e
-120x40 Ansi256 Selectable table 531216e85d7fc6a3
+120x40 Ansi256 Selectable table 6b397e2c47079b3f
 120x40 Ansi16 Overview b6bc22118a35da8c
 120x40 Ansi16 Buttons e3253cb86ce2a341
 120x40 Ansi16 Inputs 752b32eff3632ed0
@@ -69,7 +69,7 @@
 120x40 Ansi16 Chrome 9f462be5e12d90ce
 120x40 Ansi16 Settings fb89b4851b4fe3c5
 120x40 Ansi16 Task runner 63d3d698527c5ce8
-120x40 Ansi16 Selectable table a506d07d2d2ff618
+120x40 Ansi16 Selectable table f9090f237b9bfa5e
 120x40 Mono Overview 79beec419b568f4b
 120x40 Mono Buttons a9dc52a4a9f06220
 120x40 Mono Inputs 58ebbe32a3d3848b
@@ -93,7 +93,7 @@
 120x40 Mono Chrome f53279059944c597
 120x40 Mono Settings 8344caf5f21dbc72
 120x40 Mono Task runner 9f4f7527c08c087d
-120x40 Mono Selectable table 43fe69fb369c5b24
+120x40 Mono Selectable table 35eebb1312cb023a
 80x24 TrueColor Overview 053c5c88d59588c9
 80x24 TrueColor Buttons 149762f336169aa3
 80x24 TrueColor Inputs 3de0d5073c9235a8
@@ -309,7 +309,7 @@
 100x30 TrueColor Chrome db54908deaea5882
 100x30 TrueColor Settings 514443afcab34d78
 100x30 TrueColor Task runner 444d6cefed12f00b
-100x30 TrueColor Selectable table 14607514fc28923e
+100x30 TrueColor Selectable table 4d7d1dd783bc651e
 100x30 Ansi256 Overview a8ccc43586849392
 100x30 Ansi256 Buttons 8d971c8f5556ffff
 100x30 Ansi256 Inputs a2a6129790bd49b0
@@ -333,7 +333,7 @@
 100x30 Ansi256 Chrome 4011367aa816f451
 100x30 Ansi256 Settings 15bf0fae58ebdc2e
 100x30 Ansi256 Task runner a72668e5221c174f
-100x30 Ansi256 Selectable table 3663917aa1417ced
+100x30 Ansi256 Selectable table c56faa4db700d3e8
 100x30 Ansi16 Overview 1525468eb47d8afe
 100x30 Ansi16 Buttons ce92ded81c979d38
 100x30 Ansi16 Inputs 3162ee53d727f238
@@ -357,7 +357,7 @@
 100x30 Ansi16 Chrome 40951857d86a9b8d
 100x30 Ansi16 Settings 5e7e0fea81d2f97a
 100x30 Ansi16 Task runner ddacf660e997c99f
-100x30 Ansi16 Selectable table dc99ae7ede1039bc
+100x30 Ansi16 Selectable table 95734f73f47e5eab
 100x30 Mono Overview 173bc6b54e4036df
 100x30 Mono Buttons 9b5710b485e02683
 100x30 Mono Inputs def3960872f2b091
@@ -381,7 +381,7 @@
 100x30 Mono Chrome fde4a34216ebb3b0
 100x30 Mono Settings 17ce6a98900f9f7f
 100x30 Mono Task runner 413aecde98a2ce30
-100x30 Mono Selectable table c6b572a95cfd4ea5
+100x30 Mono Selectable table 7161f61de5d5539c
 160x50 TrueColor Overview c00e629dc4a172c2
 160x50 TrueColor Buttons 9e0fbe5d07b3ccd5
 160x50 TrueColor Inputs cdc0a078010d9df2
@@ -405,7 +405,7 @@
 160x50 TrueColor Chrome 17faecb19f8ff9e4
 160x50 TrueColor Settings 8ef2dfa0a432285b
 160x50 TrueColor Task runner c5253eae9ccc7841
-160x50 TrueColor Selectable table 9bb1eb365890498d
+160x50 TrueColor Selectable table 4cbba02997173a5f
 160x50 Ansi256 Overview 44f370f6c2f158c8
 160x50 Ansi256 Buttons e891e690ee151e62
 160x50 Ansi256 Inputs fc27eb183820dd1f
@@ -429,7 +429,7 @@
 160x50 Ansi256 Chrome e339e70751333fff
 160x50 Ansi256 Settings f53fec05a2c593b3
 160x50 Ansi256 Task runner 983be8865f151191
-160x50 Ansi256 Selectable table cdaaa0c374c07d3e
+160x50 Ansi256 Selectable table e3d65bb275c36806
 160x50 Ansi16 Overview 8de4f065ec1b9a08
 160x50 Ansi16 Buttons 1f1d7f2406baf982
 160x50 Ansi16 Inputs ddfa21164e732d12
@@ -453,7 +453,7 @@
 160x50 Ansi16 Chrome fcb392c8eced60c5
 160x50 Ansi16 Settings a35da8e7404039bb
 160x50 Ansi16 Task runner 016a70ecad995539
-160x50 Ansi16 Selectable table ab148fbe6c77de86
+160x50 Ansi16 Selectable table 33daa4b0c9530284
 160x50 Mono Overview b32758a69fccbfd1
 160x50 Mono Buttons 7a6ee0a9dbdb9605
 160x50 Mono Inputs f1d338ca598203a3
@@ -477,4 +477,4 @@
 160x50 Mono Chrome 0cb9b98550d01c6c
 160x50 Mono Settings 251af0fa18af44d4
 160x50 Mono Task runner 1f44c2fef5241b5a
-160x50 Mono Selectable table ff916f605d2d4fd8
+160x50 Mono Selectable table 1a8d8ef93d1d039e
