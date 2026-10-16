@@ -2869,8 +2869,9 @@ impl CustomModal for UsageDialog {
         }
         let y = inner.y;
         // the shared tab strip with its default rule: the active tab shows
-        // the accent (the dialog is the top layer). It never draws a `▎`;
-        // the dialog's tab-bar focus is the strip's own focus weight
+        // the accent (the dialog is the top layer). While the dialog's tab
+        // bar holds the keys the strip draws as focused: the one `▎` on the
+        // cursor tab
         let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
         let mut strip = Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs);
         strip.set_active(self.tab);

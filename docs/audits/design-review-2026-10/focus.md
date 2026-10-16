@@ -58,6 +58,7 @@
 
 11. **MED** | `src/bin/jackin_preview/screens/capsule.rs:2742-2748`: the usage tab strip is hand-rolled and draws a `▎` on a tab. This violates the rule at `tabs.rs:4`.
     - Fix: use the `Tabs` widget (#4 handles focus).
+    - Done: the usage strip is the shared `Tabs` widget. The "never a `▎` on a tab" rule this finding cited is reversed (decision log, 2026-10-16): the shared strip draws the one `▎` on its cursor tab while it holds focus.
 
 12. **LOW-MED** | `src/theme.rs:297-320` (`backdrop`): accent and focus map to `text_muted` (#808080; 16-colour index 7, silver). The `▎`/`━` glyphs survive, and `modal_backdrop` (`src/ui/ctx.rs:184-200`) strips modifiers but not glyphs.
     - Screens: `jackin/capsule/new_tab` (truecolor: the tab `━` is still a bold grey bar; `16.ansi` row 4 uses `38;5;7`), `tablepro/overlays/picker_open` (grey `▎` on `public`)
@@ -84,3 +85,15 @@
 **Shared fix order:** #2 and #12 (layer focus hiding plus backdrop) first, then #1, #6, #7 and #8 (one `Theme::cursor_row` for all popup lists), then #4 (`TabRule::Auto`), then #5 (Panel without a bar).
 
 No repo edits. The scan script and its output are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/audit-focus/` (`scan.py`, `all.txt`).
+
+## Decision log
+
+### 2026-10-16: a focused tab strip keeps the `▎` gutter (product owner)
+
+- **Decision:** a tab strip that holds keyboard focus (`Tabs`, and by the same rule `ChipBar` and any segmented control on the strip focus path) draws the `▎` gutter in its cursor tab's leading cell, like any focusable element. This reverses the older rule that tab strips never draw `▎` ("the bar belongs to rows and fields"; finding #11 cited it).
+- **Unchanged:** the selected tab still shows the accent rule while its page is the active layer (`TabRule::Auto`, finding #4's superseded note). The accent is selection; keyboard focus is shown only by the single `▎`.
+- **Why:** WCAG 2.2 SC 2.4.7 (Focus Visible) and SC 2.4.11 (Focus Not Obscured): a strip that takes focus must show it, including when the cursor is on the active tab, where weight alone does not separate focused from unfocused. The single-indicator rule still holds, because only the focused element draws `▎`: an unfocused strip shows none, and a strip under a modal or popup shows none (`focus_hidden`, the gutter lives in the topmost layer).
+- **Behaviour:** already shipped in `src/widgets/tabs.rs` (gutter drawn when `s.focused`) and `src/widgets/chips.rs` (`Theme::interactive` gutter per chip). No visual change.
+- **Proof:** `src/bin/showcase/app_tests_coverage.rs: the_tab_strip_shows_the_gutter_only_while_it_holds_focus` (real showcase app, rendered cells: focused strip has the one `▎` on the cursor tab and it follows the cursor; focus elsewhere and a modal over the focused strip leave the strip none); `src/bin/jackin_preview/app_tests_chrome.rs` usage dialog test (strip `▎` while its tab bar holds the keys, none after Tab); `src/widgets/tabs.rs: strip_focus_is_the_one_gutter_on_the_cursor_tab_apart_from_the_rule` (widget level, incl. `focus_hidden`).
+- **Docs updated:** `AGENTS.md` Visual states, `docs/design/DESIGN.md` Tabs anatomy, `docs/audits/design-review-2026-10/keyboard.md` Tabs row, `docs/improvements/f14-explicit-tab-control-geometry-and-copy-policy.md` test reference, the `capsule.rs` usage-strip comment. Historical oracle records under `refactoring-tasks/` and `docs/refactoring-plan/` (which describe the pre-decision source as "no gutter") are frozen evidence and stay as written.
+- **Follow-up (not done):** a per-widget override to suppress the strip gutter (`Tabs`/`ChipBar`) for apps that draw focus differently. Not small: turning the gutter off removes the strip's only focus indicator, so the override needs a replacement cue to stay within SC 2.4.7, and it belongs with the app-wide focus-visibility policy proposed in `interaction.md` #24 (`FocusRing::{Always, KeyboardOnly}`) rather than as a one-off bool on two widgets. Default stays: show.
