@@ -264,6 +264,10 @@ impl App {
     }
 
     pub fn tick_interval(&self) -> Duration {
+        // a held drag past a selecting body's edge autoscrolls on the tick
+        if self.pointer.autoscrolling() {
+            return Duration::from_millis(self.pointer.config.autoscroll_ms);
+        }
         if self.animating() {
             Duration::from_millis(80)
         } else {
@@ -424,11 +428,22 @@ impl App {
         Outcome::Consumed
     }
 
-    fn on_tick(&mut self) -> Outcome {
-        if self.motion == Motion::Paused {
-            return Outcome::Ignored;
+    /// A due edge-autoscroll step replays the held drag at the pointer
+    /// ([`PointerState::autoscroll_due`](junie_tui::core::pointer::PointerState::autoscroll_due)).
+    fn autoscroll(&mut self) -> Outcome {
+        match self.pointer.autoscroll_due(self.now_ms()) {
+            Some((_, pos)) => self.on_mouse(Mouse::new(MouseKind::Drag, pos)),
+            None => Outcome::Ignored,
         }
-        self.advance()
+    }
+
+    fn on_tick(&mut self) -> Outcome {
+        // edge autoscroll is the user's drag, not motion: it runs paused too
+        let auto = self.autoscroll();
+        if self.motion == Motion::Paused {
+            return auto;
+        }
+        self.advance().or(auto)
     }
 
     /// One tick of the world. The decorative phase advances only under
