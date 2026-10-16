@@ -317,17 +317,21 @@ impl Template {
                 }
                 None
             }
-            PageEvent::Click { id, .. } if self.tabs.owns(*id) => {
-                cx.focus.focus(self.tabs.id);
-                Some(self.tabs.on_click(*id).0)
-            }
-            PageEvent::Wheel { id, delta } if *id == self.tabs.id => {
-                Some(self.tabs.on_wheel(0, *delta))
-            }
-            PageEvent::Click { id, .. } if states && *id == self.compare.id => {
-                self.compare.on_click();
-                self.states.state.reset();
-                Some(Outcome::Changed)
+            PageEvent::Pointer(p) => {
+                use junie_tui::core::intent::Phase;
+                use junie_tui::core::pointer::MouseTarget;
+                if let Some(r) = self.tabs.route(p) {
+                    if p.is(Phase::Click) {
+                        cx.focus.focus(self.tabs.id);
+                    }
+                    return Some(r.outcome());
+                }
+                if states && p.on(self.compare.id) && p.is(Phase::Click) {
+                    self.compare.on_click();
+                    self.states.state.reset();
+                    return Some(Outcome::Changed);
+                }
+                None
             }
             _ => None,
         }

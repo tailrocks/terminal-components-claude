@@ -23,6 +23,7 @@ use crate::options::{Group, OptSet, OptionsView, SHELL, page_options};
 use crate::pages::{Hint, PageCtx, PageEvent};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::tabs::Tabs;
@@ -132,11 +133,6 @@ impl Inspector {
         self.log.truncate(LOG_LEN);
     }
 
-    /// Whether `id` is one of the pane's targets.
-    pub fn owns(&self, id: WidgetId) -> bool {
-        self.tabs.owns(id) || (self.tab() == Tab::Options && self.options.owns(id))
-    }
-
     /// Whether focus is on one of the pane's controls.
     pub fn has_focus(&self, focus: Option<WidgetId>) -> bool {
         focus.is_some_and(|f| f == self.tabs.id || self.options.has_control(f))
@@ -204,9 +200,13 @@ impl Inspector {
             PageEvent::Key(key) if cx.focus.current() == Some(self.tabs.id) => {
                 return Some((self.tabs.on_key(key).0, None));
             }
-            PageEvent::Click { id, .. } if self.tabs.owns(*id) => {
-                cx.focus.focus(self.tabs.id);
-                return Some((self.tabs.on_click(*id).0, None));
+            PageEvent::Pointer(p) => {
+                if let Some(r) = self.tabs.route(p) {
+                    if p.is(junie_tui::core::intent::Phase::Click) {
+                        cx.focus.focus(self.tabs.id);
+                    }
+                    return Some((r.outcome(), None));
+                }
             }
             _ => {}
         }
