@@ -49,7 +49,7 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
     assert!(h.text().contains("Sequence · 8 commands"));
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(crate::screens::review::GATE_CANCEL),
         "cancel is the default"
     );
@@ -324,7 +324,7 @@ fn nested_child_trusts_then_runs_in_the_child_directory() {
     );
     assert!(h.text().contains("[tasks.test]"));
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(crate::screens::review::TRUST_CANCEL)
     );
     h.key(KeyCode::Right);
@@ -461,7 +461,7 @@ fn quitting_a_remote_host_with_work_running_names_the_box() {
     );
     assert!(h.text().contains("◆ prod-eu-1 · production · over SSH"));
     h.key(KeyCode::Esc);
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
 }
 
 #[test]
@@ -576,6 +576,7 @@ fn launch_failure_keeps_output_and_offers_follow_ups() {
     h.key(KeyCode::Tab);
     assert!(
         h.app
+            .shell
             .focus
             .current()
             .is_some_and(|f| f != crate::screens::activity::VIEW)
@@ -688,22 +689,25 @@ fn esc_ladder_and_quit_rules() {
         h.text().contains("scope ‹ here ›"),
         "second Esc returns to here"
     );
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     h.key(KeyCode::Esc);
-    assert!(!h.app.quit, "Esc never quits (keyboard audit #21)");
+    assert!(!h.app.shell.quit, "Esc never quits (keyboard audit #21)");
     assert!(h.last_row().contains("Ctrl+Q quits"), "{}", h.last_row());
     // a clean Ctrl+Q leaves without a question
     h.ctrl(KeyCode::Char('q'));
-    assert!(h.app.quit, "a clean quit never nags");
+    assert!(h.app.shell.quit, "a clean quit never nags");
     let mut a = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 100, 30);
     a.key(KeyCode::Esc);
-    assert!(!a.app.quit);
+    assert!(!a.app.shell.quit);
     assert!(!a.text().contains("Quit holla❯?"), "{}", a.text());
     a.ctrl(KeyCode::Char('q'));
     assert!(a.text().contains("Stop and quit"));
     a.key(KeyCode::Right);
     a.key(KeyCode::Enter);
-    assert!(!a.app.quit, "quitting waits until every process is gone");
+    assert!(
+        !a.app.shell.quit,
+        "quitting waits until every process is gone"
+    );
     assert!(a.app.world.cancelling() > 0);
     assert!(
         a.text().contains("quitting when every process is gone"),
@@ -712,7 +716,7 @@ fn esc_ladder_and_quit_rules() {
     );
     a.ticks(20);
     assert!(a.app.world.live_activities() == 0);
-    assert!(a.app.quit);
+    assert!(a.app.shell.quit);
 }
 
 #[test]
@@ -829,7 +833,7 @@ fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
         h.last_row()
     );
     h.ctrl(KeyCode::Char('c'));
-    assert!(!h.app.quit, "Ctrl+C belongs to the plan first");
+    assert!(!h.app.shell.quit, "Ctrl+C belongs to the plan first");
     assert!(
         h.text().contains("Cancel the remaining steps?"),
         "{}",
@@ -839,7 +843,10 @@ fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
     let mut a = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 100, 30);
     assert!(a.app.world.live_activities() > 0);
     a.ctrl(KeyCode::Char('c'));
-    assert!(!a.app.quit, "running work is never killed by one keystroke");
+    assert!(
+        !a.app.shell.quit,
+        "running work is never killed by one keystroke"
+    );
     assert!(a.text().contains("Quit holla❯?"), "{}", a.text());
     assert!(a.app.world.live_activities() > 0);
 }

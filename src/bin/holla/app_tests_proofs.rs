@@ -5,6 +5,7 @@
 //! (F23h). Palette matrices in a fresh process live in `tests/holla_color.rs`;
 //! the owned-PTY flood is `tests/input_flood.rs`.
 
+use junie_tui::runtime::Application;
 use std::collections::VecDeque;
 use std::time::Instant;
 
@@ -315,14 +316,14 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                 );
                 if !state.modal {
                     assert_eq!(
-                        h.app.focus.current(),
+                        h.app.shell.focus.current(),
                         Some(state.focus),
                         "{} at {w}x{hgt} {level:?}: focus owner\n{text}",
                         state.name
                     );
                     // the owner is a registered hit target with an area
                     assert!(
-                        h.app.hits.area_of(state.focus).is_some(),
+                        h.app.shell.hits.area_of(state.focus).is_some(),
                         "{} at {w}x{hgt}: focus owner has no visible target",
                         state.name
                     );
@@ -330,7 +331,7 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                     for _ in 0..3 {
                         h.key(KeyCode::Tab);
                         assert!(
-                            h.app.focus.current().is_some(),
+                            h.app.shell.focus.current().is_some(),
                             "{}: Tab lost focus",
                             state.name
                         );
@@ -338,7 +339,7 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                     for _ in 0..3 {
                         h.key(KeyCode::BackTab);
                         assert!(
-                            h.app.focus.current().is_some(),
+                            h.app.shell.focus.current().is_some(),
                             "{}: Shift+Tab lost focus",
                             state.name
                         );
@@ -347,7 +348,7 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                     let mut back = false;
                     for _ in 0..16 {
                         h.key(KeyCode::Tab);
-                        if h.app.focus.current() == Some(state.focus) {
+                        if h.app.shell.focus.current() == Some(state.focus) {
                             back = true;
                             break;
                         }
@@ -358,27 +359,27 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                         state.name
                     );
                     // mouse: clicking the owner's area keeps or gives it focus
-                    if let Some(area) = h.app.hits.area_of(state.focus) {
+                    if let Some(area) = h.app.shell.hits.area_of(state.focus) {
                         h.click(area.x, area.y);
                         assert!(
-                            h.app.focus.current().is_some(),
+                            h.app.shell.focus.current().is_some(),
                             "{}: click lost focus",
                             state.name
                         );
                     }
                 }
                 // a disabled control is never a traversal stop: every stop is hittable
-                let start = h.app.focus.current();
+                let start = h.app.shell.focus.current();
                 let mut seen = vec![];
                 for _ in 0..12 {
                     h.key(KeyCode::Tab);
-                    if let Some(f) = h.app.focus.current() {
+                    if let Some(f) = h.app.shell.focus.current() {
                         if seen.contains(&f) {
                             break;
                         }
                         seen.push(f);
                         assert!(
-                            h.app.hits.area_of(f).is_some() || !h.app.modals.is_empty(),
+                            h.app.shell.hits.area_of(f).is_some() || !h.app.modals.is_empty(),
                             "{} at {w}x{hgt}: traversal stop {f:?} is not visible",
                             state.name
                         );
@@ -421,7 +422,12 @@ fn pump(h: &mut H, inputs: Vec<Input>) {
 fn snapshot_state(h: &mut H) -> (String, Option<WidgetId>, usize, Option<Position>) {
     h.draw();
     let cursor = h.term.get_cursor_position().ok();
-    (h.text(), h.app.focus.current(), h.app.hits.len(), cursor)
+    (
+        h.text(),
+        h.app.shell.focus.current(),
+        h.app.shell.hits.len(),
+        cursor,
+    )
 }
 
 #[test]
@@ -485,7 +491,7 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
             h.key(KeyCode::Enter);
             h.key(KeyCode::Enter);
         }
-        let before = h.app.focus.current();
+        let before = h.app.shell.focus.current();
         for (w, hgt) in [
             (40u16, 10u16),
             (100, 30),
@@ -500,11 +506,11 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
                 text.contains("holla❯") || w < 60,
                 "{scenario:?} {w}x{hgt}: header\n{text}"
             );
-            let focus = h.app.focus.current();
+            let focus = h.app.shell.focus.current();
             assert!(focus.is_some(), "{scenario:?} {w}x{hgt}: focus lost");
             if let Some(f) = focus {
                 assert!(
-                    h.app.hits.area_of(f).is_some() || w < 60,
+                    h.app.shell.hits.area_of(f).is_some() || w < 60,
                     "{scenario:?} {w}x{hgt}: focused {f:?} has no visible area"
                 );
             }
@@ -513,9 +519,10 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
             h.key(KeyCode::Down);
             h.key(KeyCode::Up);
             // a text field's caret sits inside the field it belongs to
-            if let Some(f) = h.app.focus.current()
+            if let Some(f) = h.app.shell.focus.current()
                 && f == files::QUERY
-                && let (Some(area), Ok(c)) = (h.app.hits.area_of(f), h.term.get_cursor_position())
+                && let (Some(area), Ok(c)) =
+                    (h.app.shell.hits.area_of(f), h.term.get_cursor_position())
             {
                 assert!(
                     c.y >= area.y && c.y < area.bottom(),
@@ -524,7 +531,7 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
             }
         }
         assert_eq!(
-            h.app.focus.current(),
+            h.app.shell.focus.current(),
             before,
             "{scenario:?}: the owner survived the resize ladder"
         );
@@ -571,7 +578,7 @@ fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
     // Esc never quits (keyboard audit #21); Ctrl+Q on a clean shell does
     q.push_back(key_mods(KeyCode::Char('q'), KeyModifiers::CONTROL));
     let mut passes = 0;
-    while !h.app.quit {
+    while !h.app.shell.quit {
         drain_ready_inputs(&mut h.app, || Ok(q.pop_front())).unwrap();
         passes += 1;
         assert!(passes <= 4, "quit waited {passes} passes");
@@ -794,6 +801,7 @@ fn output_scrollbar_press_and_drag_redraw_and_find_index_resets_on_a_new_query()
     let sb = junie_tui::widgets::scrollbar::id_for(activity::VIEW);
     let area = h
         .app
+        .shell
         .hits
         .area_of(sb)
         .expect("the output scrollbar is a hit target");
