@@ -5,6 +5,7 @@ use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
@@ -96,7 +97,26 @@ pub struct ListBox {
     /// ↑ on the first row lands on the last and ↓ on the last on the
     /// first. Default off: it stops at the end.
     pub wrap: bool,
+    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]: arrows,
+    /// vim letters, paging, Home/End).
+    pub nav: NavKeys,
+    /// The list's own action keys (default [`ListAction::default_keymap`]).
+    pub keymap: KeyMap<ListAction>,
     typeahead: crate::core::typeahead::TypeAhead,
+}
+
+/// A [`ListBox`] action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ListAction {
+    /// Multi mode: check every enabled row, or uncheck all when all are
+    /// checked. Default `a`.
+    ToggleAll,
+}
+
+impl Actions for ListAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![(KeyBinding::char('a'), ListAction::ToggleAll)]
+    }
 }
 
 impl ListBox {
@@ -123,8 +143,22 @@ impl ListBox {
             click: ClickAction::Activate,
             type_ahead: false,
             wrap: false,
+            nav: NavKeys::DEFAULT,
+            keymap: ListAction::default_keymap(),
             typeahead: Default::default(),
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<ListAction>) -> Self {
+        self.keymap = keymap;
+        self
     }
 
     /// See [`Self::wrap`].
@@ -285,7 +319,10 @@ impl ListBox {
             return o;
         }
         let shift = key.shift();
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_))
+            && (key.ctrl() || key.alt())
+            && lookup(&self.keymap, key).is_none()
+        {
             // an unassigned modified chord never performs a plain action
             return Outcome::Ignored;
         }
@@ -306,51 +343,45 @@ impl ListBox {
             }
             return Outcome::Ignored;
         }
-        match key.code {
-            KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => {
-                let to = crate::core::nav::step_index(self.cursor, self.items.len(), -1, self.wrap);
-                self.move_cursor(to, shift);
-                Outcome::Changed
-            }
-            KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') => {
-                let to = crate::core::nav::step_index(self.cursor, self.items.len(), 1, self.wrap);
-                self.move_cursor(to, shift);
-                Outcome::Changed
-            }
-            KeyCode::PageUp => {
-                self.move_cursor(
-                    self.cursor.saturating_sub(self.scroll.viewport_len.max(1)),
-                    shift,
-                );
-                Outcome::Changed
-            }
-            KeyCode::PageDown => {
-                self.move_cursor(self.cursor + self.scroll.viewport_len.max(1), shift);
-                Outcome::Changed
-            }
-            KeyCode::Home | KeyCode::Char('g') => {
-                self.move_cursor(0, shift);
-                Outcome::Changed
-            }
-            KeyCode::End | KeyCode::Char('G') => {
-                self.move_cursor(usize::MAX, shift);
-                Outcome::Changed
-            }
-            KeyCode::Enter | KeyCode::Char(' ') => self.activate(self.cursor),
-            KeyCode::Char('a') if self.mode == SelectMode::Multi => {
-                let all = self
-                    .items
-                    .iter()
-                    .zip(&self.checked)
-                    .filter(|(it, _)| !it.disabled)
-                    .all(|(_, c)| *c);
-                for (it, c) in self.items.iter().zip(self.checked.iter_mut()) {
-                    if !it.disabled {
-                        *c = !all;
+        if let Some(action) = lookup(&self.keymap, key)
+            && self.mode == SelectMode::Multi
+        {
+            return match action {
+                ListAction::ToggleAll => {
+                    let all = self
+                        .items
+                        .iter()
+                        .zip(&self.checked)
+                        .filter(|(it, _)| !it.disabled)
+                        .all(|(_, c)| *c);
+                    for (it, c) in self.items.iter().zip(self.checked.iter_mut()) {
+                        if !it.disabled {
+                            *c = !all;
+                        }
                     }
+                    Outcome::Changed
                 }
-                Outcome::Changed
-            }
+            };
+        }
+        if let Some(nav) = self.nav.action(key) {
+            let to = match nav {
+                Nav::Up => {
+                    crate::core::nav::step_index(self.cursor, self.items.len(), -1, self.wrap)
+                }
+                Nav::Down => {
+                    crate::core::nav::step_index(self.cursor, self.items.len(), 1, self.wrap)
+                }
+                Nav::PageUp => self.cursor.saturating_sub(self.scroll.viewport_len.max(1)),
+                Nav::PageDown => self.cursor + self.scroll.viewport_len.max(1),
+                Nav::Home => 0,
+                Nav::End => usize::MAX,
+                Nav::Left | Nav::Right => return Outcome::Ignored,
+            };
+            self.move_cursor(to, shift);
+            return Outcome::Changed;
+        }
+        match key.code {
+            KeyCode::Enter | KeyCode::Char(' ') => self.activate(self.cursor),
             _ => Outcome::Ignored,
         }
     }

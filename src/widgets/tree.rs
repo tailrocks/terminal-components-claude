@@ -5,6 +5,7 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
@@ -165,6 +166,29 @@ pub struct TreeView {
     /// Flat rows built so far (a complexity guard: an expand or collapse
     /// builds only the rows it reveals, never the whole tree).
     rows_built: usize,
+    /// Which keys move the cursor and open/close branches (default
+    /// [`NavKeys::DEFAULT`]).
+    pub nav: NavKeys,
+    /// The tree's own action keys (default [`TreeAction::default_keymap`]).
+    pub keymap: KeyMap<TreeAction>,
+}
+
+/// A [`TreeView`] action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TreeAction {
+    /// Open every branch. Default `*`.
+    ExpandAll,
+    /// Close every branch. Default `-`.
+    CollapseAll,
+}
+
+impl Actions for TreeAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::char('*'), TreeAction::ExpandAll),
+            (KeyBinding::char('-'), TreeAction::CollapseAll),
+        ]
+    }
 }
 
 fn matches(n: &TreeNode, q: &str) -> bool {
@@ -236,6 +260,8 @@ impl TreeView {
             indent: 2,
             wrap: false,
             rows_built: 0,
+            nav: NavKeys::DEFAULT,
+            keymap: TreeAction::default_keymap(),
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -258,6 +284,18 @@ impl TreeView {
     /// See [`Self::wrap`].
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
+        self
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<TreeAction>) -> Self {
+        self.keymap = keymap;
         self
     }
 
@@ -547,12 +585,25 @@ impl TreeView {
         if self.rows.is_empty() {
             return (Outcome::Ignored, None);
         }
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_))
+            && (key.ctrl() || key.alt())
+            && lookup(&self.keymap, key).is_none()
+        {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
-        let out = match key.code {
-            KeyCode::Up | KeyCode::Char('k') => {
+        if let Some(action) = lookup(&self.keymap, key) {
+            match action {
+                TreeAction::ExpandAll => self.expand_all(),
+                TreeAction::CollapseAll => self.collapse_all(),
+            }
+            return (Outcome::Changed, None);
+        }
+        let Some(nav) = self.nav.action(key) else {
+            return self.on_plain_key(key);
+        };
+        let out = match nav {
+            Nav::Up => {
                 self.set_cursor(crate::core::nav::step_index(
                     self.cursor,
                     self.rows.len(),
@@ -561,7 +612,7 @@ impl TreeView {
                 ));
                 Outcome::Changed
             }
-            KeyCode::Down | KeyCode::Char('j') => {
+            Nav::Down => {
                 self.set_cursor(crate::core::nav::step_index(
                     self.cursor,
                     self.rows.len(),
@@ -570,23 +621,23 @@ impl TreeView {
                 ));
                 Outcome::Changed
             }
-            KeyCode::PageUp => {
+            Nav::PageUp => {
                 self.set_cursor(self.cursor.saturating_sub(self.scroll.viewport_len.max(1)));
                 Outcome::Changed
             }
-            KeyCode::PageDown => {
+            Nav::PageDown => {
                 self.set_cursor(self.cursor + self.scroll.viewport_len.max(1));
                 Outcome::Changed
             }
-            KeyCode::Home | KeyCode::Char('g') => {
+            Nav::Home => {
                 self.set_cursor(0);
                 Outcome::Changed
             }
-            KeyCode::End | KeyCode::Char('G') => {
+            Nav::End => {
                 self.set_cursor(usize::MAX);
                 Outcome::Changed
             }
-            KeyCode::Right | KeyCode::Char('l') => {
+            Nav::Right => {
                 let row = &self.rows[self.cursor];
                 if row.has_children && !row.expanded {
                     return self.toggle(self.cursor);
@@ -597,7 +648,7 @@ impl TreeView {
                     Outcome::Consumed
                 }
             }
-            KeyCode::Left | KeyCode::Char('h') => {
+            Nav::Left => {
                 let row = &self.rows[self.cursor];
                 if row.has_children && row.expanded {
                     return self.toggle(self.cursor);
@@ -615,6 +666,13 @@ impl TreeView {
                     Outcome::Consumed
                 }
             }
+        };
+        (out, None)
+    }
+
+    /// Activation keys (not navigation, not a mapped action).
+    fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeEvent>) {
+        let out = match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
                 let row = &self.rows[self.cursor];
                 if row.note {
@@ -628,14 +686,6 @@ impl TreeView {
                         Some(TreeEvent::Activate(row.path.clone())),
                     );
                 }
-            }
-            KeyCode::Char('*') => {
-                self.expand_all();
-                Outcome::Changed
-            }
-            KeyCode::Char('-') => {
-                self.collapse_all();
-                Outcome::Changed
             }
             _ => Outcome::Ignored,
         };
