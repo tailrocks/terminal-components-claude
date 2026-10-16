@@ -1,0 +1,166 @@
+# Colour as meaning: resolved tokens and follow-ups
+
+This file records what the library shipped from
+[`colour-showcase-tablepro.md`](colour-showcase-tablepro.md) and
+[`colour-holla-jackin.md`](colour-holla-jackin.md), where the two reviews
+disagreed and what was decided, and the per-app wiring that is left to
+the app follow-ups.
+
+Doctrine (also on the showcase Overview page): one accent hue for focus
+and primary action; status hues only where they carry meaning; syntax
+hues only in code. Every status keeps a glyph, so colour is never the
+only cue.
+
+## Resolved tokens
+
+Contrast is WCAG 2.2 against canvas `#000` / surface `#111` / card
+`#18181b` / field `#1e1e22` / raised `#27272a` / popover `#3f3f46`.
+Indexed and named colours are measured with the xterm defaults (the same
+`contrast_ratio` the theme uses). Every value is a `Theme` field, and
+each level can be pinned through `LevelOverrides`.
+
+| Token | Truecolor | 256 | 16 | Mono cue | Contrast (truecolor) |
+|---|---|---|---|---|---|
+| `info` | `#79b8ff` | 111 | LightBlue | `i` glyph (`Theme::status`) | 10.1 / 9.1 / 8.5 / 8.0 / 7.2 / 5.0 |
+| `link` | `info`, underlined on hover or focus | 111 | LightBlue | underline (always in mono) | as `info` |
+| `error` (text) | `#f05d5d` | 203 | LightRed | `✗` bold, `!` | 6.4 / 5.8 / 5.4 / 5.1 / 4.6 / 3.2 |
+| `error_strong` (popover) | `#ff8a8a` | 210 | LightRed | as `error` | 4.6 on popover (256: 4.9) |
+| `success` | `#3fb950` | 71 | Green | `✓` | 8.3 / 7.4 / 7.0 / 6.5 / 5.9 / 4.1 |
+| `success_strong` (popover) | `#56d364` | 77 | Green | `✓` | 5.4 on popover (256: 6.2) |
+| `warning` | `#f59e09` | 214 (pinned) | Yellow | `▲`, `•` | 9.8 / 8.8 / 8.3 / 7.7 / 6.9 / 4.9 |
+| `text_muted` | `#8a8a8a` | 245 | Gray | none | 6.1 / 5.5 / 5.1 / 4.8 / 4.3 / 3.0 |
+| `syntax_keyword` | `#79b8ff` bold | 111 | LightBlue | bold | as `info` |
+| `syntax_string` | `#8bd5ca` | 116 | Cyan | none | 12.5 / 11.2 / 10.5 / 9.9 / 8.8 / 6.2 |
+| `syntax_literal` | `#c6a0f6` italic | 183 | LightMagenta | italic | 9.8 / 8.8 / 8.2 / 7.7 / 6.9 / 4.9 |
+| `danger_label` (`Tone::Danger`, production) | `#ff6b6b` bold | 203 | LightRed | `◆` + bold | 7.6 / 6.8 / 6.4 / 6.0 / 5.4 / 3.8 |
+
+Where a token is under 4.5:1 (raised and popover for muted, popover for
+error, success and danger), `Theme::tone_on` and `Theme::legible` pick
+the readable step: the strong error or success step, or one step up the
+text ladder (muted to secondary). The tests
+`semantic_hues_read_on_every_plane_they_can_land_on`,
+`semantic_hues_read_at_256_colours`,
+`semantic_hues_stay_apart_at_reduced_levels`,
+`statuses_carry_a_glyph_at_every_level_and_glyph_set` and
+`syntax_classes_differ_without_colour` in `src/theme.rs` hold these.
+
+### Library API
+
+- `Tone::Info`, `Tone::Active` (the accent as a foreground for live or
+  running state, never "done"), `Tone::Danger`.
+- `Theme::status(StatusKind) -> (glyph, Style)`, `Theme::status_at` (the
+  running spinner frame), `Theme::status_label`. Ok `✓` success, Fail `✗`
+  error bold, Warn `▲` warning, Pending `•` warning, Running spinner in
+  the accent with the label in info, Queued `○` muted, Info `i` info,
+  Skipped `–` faint. Glyphs come from `Theme::glyphs` (`Glyphs::ASCII`:
+  `+ X ! * | o i -`).
+- `Theme::env(EnvKind) -> (glyph, Style)`: production `◆` danger label
+  bold, staging `◇` warning, development `·` info, local muted without a
+  glyph (ASCII `# ~ .`).
+- `Theme::link_style(hovered_or_focused)`.
+- `SyntaxTone::Literal` for booleans and NULL; numbers share its style.
+- `legible()` steps up the text ladder (faint, muted, secondary) and
+  never jumps to primary unless no step reads (a coloured fill).
+- 16 colours: `selection_bg` is no longer the highlight's Blue; text
+  selection is reversed video. Ink on a highlight fill stays primary
+  (`Theme::row_ink`).
+- Meters: the healthy run is `info`, medium `warning` with `▲`, high
+  `error` with `!` (never green for a quota). `MeterTone::Level { warn,
+  crit }` takes owner thresholds; the old explicit level is
+  `MeterTone::Fixed(MeterLevel)`.
+- Tabs: `TabItem::done` draws `✓` in success after busy, error and dirty.
+- Data grid: NULL and booleans in the literal hue (NULL stays italic),
+  JSON values in the string hue.
+- Text input: the required `*` is muted, and takes the error tone only
+  once the field is invalid.
+- Help overlay: keys primary bold, descriptions secondary.
+- Picker group labels: muted, stepped up through `legible` on the
+  popover (faint was 2.2:1 there).
+
+### Decisions where the reviews differed
+
+- `info`: `#79b8ff` / 111 (showcase review) over `#6cb6ff` / 75
+  (holla review). 111 is the closer 256 match and the same hue serves
+  keywords, so code and information read as one family.
+- `error`: `#f05d5d` (holla review) over `#f05454`; both clear 4.5:1 on
+  card and field; `#f05d5d` also clears raised (4.56). 256 is 203
+  everywhere instead of 167 plus 203 on raised planes: 203 reads on
+  every plane but the popover, which takes `error_strong` (210).
+- `text_muted`: `#8a8a8a`, matching its 256 pin (245).
+- `active`: a `Tone` (accent as foreground), not a new colour token.
+
+### Deferred (library)
+
+- Stale meters keep the faint run, so a stale 76% hides its level
+  (holla-jackin finding "Session meter at 76%"). Keeping the level hue
+  while stale needs a second cue for staleness (italic value or a
+  `stale` chip); left for the meter follow-up, since the capsule status
+  bar already shows a `stale` chip beside it
+  (`src/bin/jackin_preview/screens/capsule.rs:1843-1845`).
+- `ProgressStatus::Active` bars keep the secondary run: a completion bar
+  is not a quota, and the reviews did not ask for a change.
+
+## Colour follow-ups per app
+
+Line numbers are for the code at the time of the library change. Each
+item uses the library API above; none needs a new token.
+
+### tablepro
+
+| Element | Where | Change |
+|---|---|---|
+| `◆ production` header badge (staging, development, local segments next to it) | `src/bin/tablepro/app.rs:2799-2803` | `Theme::env(EnvKind::…)` glyph and style instead of Normal / Secondary / Muted / Faint |
+| `env_tone` | `src/bin/tablepro/connections.rs:306` | map to `Tone::Danger` / `Warning` / `Info` / `Muted` (or use `Theme::env`) |
+| Tree environment glyphs `◆ ◇ ·` | `src/bin/tablepro/connections.rs:352-357` | glyphs from `Theme::glyphs.env_*`, ink from `Theme::env` |
+| Detail "Environment" value | `src/bin/tablepro/connections.rs:1329` | follows `env_tone` |
+| Write gate title "Execute write query?" | `src/bin/tablepro/app.rs:1164-1170` | `▲` warning glyph before the title on production |
+| Write gate "Target" line | `src/bin/tablepro/app.rs:1178-1189` | `env_production` tone when the target is production |
+| Write gate Execute button | `src/bin/tablepro/app.rs:1240-1244` | `Button::danger` whenever the env is production (not only for destructive statements) |
+| `set_status` takes no tone | `src/bin/tablepro/app.rs:290` | take a `StatusKind`: Ok for "Connected to" (`app.rs:244-245`), "Saved" (`app.rs:1425-1426`, `1970`, `connections.rs:944`); Fail for failures; Info or Warn for cancelled (`app.rs:396, 848, 1086, 2164`) and the Safe Mode block (`app.rs:1155`) |
+| Statement results "ok" / "failed" | `src/bin/tablepro/tabs.rs:1170-1189` | `Theme::status` Ok / Fail |
+| Toolbar Run | `src/bin/tablepro/tabs.rs:1613` | Run as the primary action (accent ink or `▶` accent glyph); Run all and Explain stay subtle (`1617`, `1621`) |
+| Test connection result | `src/bin/tablepro/connections.rs:1642-1646` | `Theme::status(Ok/Fail)` (today `✓` in secondary) |
+| SSL on/off | `src/bin/tablepro/connections.rs:1301, 1340` | "on" in success with `✓` |
+| Explain hot node name | `src/bin/tablepro/tabs.rs:1942-1970` | node name in `warning` when it is the hot node (the `▲` share is already right) |
+| History slow durations | `src/bin/tablepro/tabs.rs:2495`, detail `2672` | `warning` above a threshold |
+| Safe badge | `src/bin/tablepro/app.rs:2823-2828` | `safe` in success with a glyph; Silent on production stays warning |
+| Brand `▪` | `src/bin/tablepro/app.rs:2780` | `Tone::Active` (the accent, as in showcase), not `Tone::Success` |
+| SQL `TRUE`/`FALSE`/`NULL` | `src/bin/tablepro/sql.rs:35, 100-101, 193-196`; mapping `src/bin/tablepro/tabs.rs:338-344` | a `TokKind::Literal` mapped to `SyntaxTone::Literal` (numbers already take the literal hue) |
+
+### showcase
+
+| Element | Where | Change |
+|---|---|---|
+| Task runner states | `src/bin/showcase/pages/taskrunner.rs:464, 468, 474, 494` | `Theme::status`: `✓` success, queued muted, running label info, cancelled Skipped |
+| Progress page meters and failed bar | `src/bin/showcase/pages/progress.rs:52, 108-109, 142-151` | red fill only on the failed bar; meters take the library levels |
+| Editor sample `true` / `false` | `src/bin/showcase/pages/editor.rs:57, 119, 130-131` | classify as `SyntaxTone::Literal`, not keywords |
+
+### holla
+
+| Element | Where | Change |
+|---|---|---|
+| Batch toast "N ok · N failed · N cancelled" | `src/bin/holla/app.rs:548, 553` | per-segment tones: ok success, failed error, cancelled muted; an all-ok batch in success |
+| Output line tones, failure output | `src/bin/holla/screens/activity.rs:90-98` (errors from `src/bin/holla/domain/activity.rs:173, 433`) | `LineTone::Success` to `Tone::Success`; stderr body primary with a red `!` gutter, red only on the status chip |
+| "succeeded" meta | `src/bin/holla/screens/plan.rs:196` | success |
+| Required vs optional step checkboxes | `src/bin/holla/screens/plan.rs:303-309` | required: faint with a lock cue; toggleable: `t.chosen(focused)` |
+| Cleanup history outcome "trashed" | `src/bin/holla/screens/snapshot.rs:784, 1137-1145` (label `src/bin/holla/domain/cleanup.rs:849`) | `Theme::status(Ok)` for trashed |
+| Checked boxes always accent | `src/bin/holla/screens/cleanup.rs:646, 718` | `t.chosen(focused)` |
+| Status bar `↓ ↑ •` counts | `src/bin/holla/app.rs:3519-3524` (text `src/bin/holla/domain/stack.rs:178-184`) | `↓↑` info, dirty `•` warning, conflicts error |
+| Finder section headings | `src/bin/holla/screens/mod.rs:489` (`fn heading`, 474) | `t.muted()` (faint is 4.4:1 on canvas) |
+| Disk filesystem meter | `src/bin/holla/screens/disk.rs:1670` | `MeterTone::Level { warn: 80, crit: 95 }` |
+| Activity tabs | `src/bin/holla/app.rs:3389-3401` | `Succeeded` sets `TabItem::done` instead of the `✓` suffix |
+
+### jackin
+
+| Element | Where | Change |
+|---|---|---|
+| Usage provider rows (whole row in one tone) | `src/bin/jackin_preview/screens/usage.rs:395-419` | a table with per-cell tone: name primary, window as a `Meter`, only the status cell in error / warning with its glyph, "current" `Theme::status(Ok)` |
+| Usage Health line | `src/bin/jackin_preview/screens/usage.rs:314-319` | per-segment tones: degraded error bold, warnings and stale warning, refreshing info, counts primary |
+| Accounts Health line | `src/bin/jackin_preview/screens/accounts.rs:1457-1459` | as the usage Health line |
+| Accounts warnings rows | `src/bin/jackin_preview/screens/accounts.rs:1520-1531` | glyph and status phrase coloured; account primary, reset time muted |
+| Provider group labels | `src/bin/jackin_preview/screens/accounts.rs:1386-1387, 1409-1410` (and the usage tree) | `text_muted` instead of `text_faint` |
+| Running instance `◉` and "running" | `src/bin/jackin_preview/screens/manager.rs:220` (also `1349, 1636, 2839`), meta `1177, 1194` | `Tone::Active` on the glyph and the word |
+| "N running" counts | `src/bin/jackin_preview/app.rs:1046, 2788` | count secondary with an `Active` dot |
+| Run-id chip in warning | `src/bin/jackin_preview/screens/cockpit.rs:971-976` | `Theme::link_style` / info |
+| Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | see Deferred (library) |
+| Capsule tab suffixes | `src/bin/jackin_preview/screens/capsule.rs:1512-1528` | finished agents use `TabItem::done` (today `○` for Done) |
