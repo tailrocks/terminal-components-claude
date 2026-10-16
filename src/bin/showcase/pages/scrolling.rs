@@ -71,9 +71,12 @@ impl Page for ScrollingPage {
         ];
         // titles first, content second, the position last: a label read
         // after the content laid itself out is exact on the first frame,
-        // after a resize and after every tick
-        let panel =
-            Panel::card(Some("Wrapped text")).focused(ctx.interaction.focused(self.prose.id));
+        // after a resize and after every tick. This page is about the
+        // position labels, so they keep priority over the titles (a title
+        // keeps 4 cells here, not the default `TITLE_MIN`)
+        let panel = Panel::card(Some("Wrapped text"))
+            .focused(ctx.interaction.focused(self.prose.id))
+            .title_min(4);
         let bg = panel.bg(t);
         let inner = panel.render(cols[0], buf, t);
         self.prose.render(inner, buf, ctx, bg, prose_style);
@@ -84,7 +87,9 @@ impl Page for ScrollingPage {
             &scrollbar::position_label(&self.prose.scroll),
         );
 
-        let panel = Panel::card(Some("Long list")).focused(ctx.interaction.focused(self.list.id));
+        let panel = Panel::card(Some("Long list"))
+            .focused(ctx.interaction.focused(self.list.id))
+            .title_min(4);
         let bg = panel.bg(t);
         let inner = panel.render(cols[1], buf, t);
         self.list.render(inner, buf, ctx, bg);
@@ -96,7 +101,7 @@ impl Page for ScrollingPage {
         );
 
         let lf = ctx.interaction.focused(self.log.id);
-        let panel = Panel::card(Some("Log")).focused(lf);
+        let panel = Panel::card(Some("Log")).focused(lf).title_min(4);
         let bg = panel.bg(t);
         let inner = panel.render(cols[2], buf, t);
         self.log
