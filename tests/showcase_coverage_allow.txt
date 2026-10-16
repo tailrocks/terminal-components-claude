@@ -75,19 +75,12 @@ core::event::MouseKind::WheelLeft | State tab readout of the library dispatcher:
 core::event::MouseKind::WheelRight | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::event::Mouse | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::event::Mouse::with_mods | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
-core::event::InputConfig | Focus & navigation and Toolbars pages | SC28
 
 # core::focus
-core::focus::FocusRing | Focus & navigation and Toolbars pages | SC28
-core::focus::FocusFallback | Focus & navigation and Toolbars pages | SC28
-core::focus::FocusFallback::Nearest | Focus & navigation and Toolbars pages | SC28
-core::focus::FocusFallback::First | Focus & navigation and Toolbars pages | SC28
 core::focus::BlurAction | Inputs and Text areas page options | SC8
 core::focus::BlurAction::Commit | Inputs and Text areas page options | SC8
 core::focus::BlurAction::Cancel | Inputs and Text areas page options | SC8
 core::focus::BlurAction::Keep | Inputs and Text areas page options | SC8
-core::focus::FocusChange | Focus & navigation and Toolbars pages | SC28
-core::focus::Focus | Focus & navigation and Toolbars pages | SC28
 
 # core::hit
 core::hit::HitRegion | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -155,29 +148,8 @@ core::intent::LayerEvent::Dismissed | State tab readout of the library dispatche
 core::intent::LayerEvent::Closed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::keyboard
-core::keyboard::KeyboardProtocol | Focus & navigation and Toolbars pages | SC28
-core::keyboard::KeyboardProtocol::Auto | Focus & navigation and Toolbars pages | SC28
-core::keyboard::KeyboardProtocol::On | Focus & navigation and Toolbars pages | SC28
-core::keyboard::KeyboardProtocol::Off | Focus & navigation and Toolbars pages | SC28
-core::keyboard::ProtocolState | Focus & navigation and Toolbars pages | SC28
 
 # core::keymap
-core::keymap::Nav | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::Up | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::Down | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::Left | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::Right | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::PageUp | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::PageDown | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::Home | Focus & navigation and Toolbars pages | SC28
-core::keymap::Nav::End | Focus & navigation and Toolbars pages | SC28
-core::keymap::NavKeys | Focus & navigation and Toolbars pages | SC28
-core::keymap::NavKeys::vim | Focus & navigation and Toolbars pages | SC28
-core::keymap::NavKeys::page | Focus & navigation and Toolbars pages | SC28
-core::keymap::NavKeys::home_end | Focus & navigation and Toolbars pages | SC28
-core::keymap::NavKeys::arrows | Focus & navigation and Toolbars pages | SC28
-core::keymap::KeyBinding | Focus & navigation and Toolbars pages | SC28
-core::keymap::KeyBinding::shift | Focus & navigation and Toolbars pages | SC28
 
 # core::pointer
 core::pointer::SecondaryRoute | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34

@@ -6,7 +6,9 @@
 120x40 TrueColor Breadcrumbs & rails c05169cc082206ac
 120x40 TrueColor Help & keys 5f66d51990ed255b
 120x40 TrueColor Quit & leave cdb0d80de4ed849a
-120x40 TrueColor Focus & navigation 30039dc0cdcc1573
+120x40 TrueColor Focus & navigation b7545caa44965667
+120x40 TrueColor Focus & navigation · Options 88b135617e203346
+120x40 TrueColor Focus & navigation · States c9dcbafc823653ea
 120x40 TrueColor Buttons 755ba6d721b1a442
 120x40 TrueColor Buttons · Options 8f9fd2c28eb64b91
 120x40 TrueColor Buttons · States a5fd843fbda6c2c9
@@ -67,7 +69,7 @@
 120x40 TrueColor Launch cockpit dcdfa0733a455856
 120x40 TrueColor Read-only report 1efad7a369a9fe09
 120x40 TrueColor Inspector · State 3460d08fbda40d8f
-120x40 TrueColor Inspector · Options 54611945719e04c3
+120x40 TrueColor Inspector · Options 39dbb57f57fe6c01
 120x40 Ansi256 Overview 2e8c1a6c2f0eac69
 120x40 Ansi256 Overview · Options e9fc365a51801320
 120x40 Ansi256 Overview · States 494f77b7b9cf1651
@@ -76,7 +78,9 @@
 120x40 Ansi256 Breadcrumbs & rails a245f8ae113504b1
 120x40 Ansi256 Help & keys 2b3fb6b3c4ce9038
 120x40 Ansi256 Quit & leave 3218ac5ecf893608
-120x40 Ansi256 Focus & navigation 009e87d3bea4e072
+120x40 Ansi256 Focus & navigation 1f6808a6301e00fa
+120x40 Ansi256 Focus & navigation · Options a19d14abc5f47568
+120x40 Ansi256 Focus & navigation · States c9a3661cf1bffe96
 120x40 Ansi256 Buttons 49c635b98bb3fa6e
 120x40 Ansi256 Buttons · Options 8dd4da9a33bf53b7
 120x40 Ansi256 Buttons · States 55a8b7547007f85d
@@ -137,7 +141,7 @@
 120x40 Ansi256 Launch cockpit 3d38efd84b52219d
 120x40 Ansi256 Read-only report 3ec5036de0092113
 120x40 Ansi256 Inspector · State 338bdd81ea00c892
-120x40 Ansi256 Inspector · Options 507cdf9128cc5edc
+120x40 Ansi256 Inspector · Options ede8e2250978439c
 120x40 Ansi16 Overview 11c6179d9b2c00b5
 120x40 Ansi16 Overview · Options 4951eb11e3701991
 120x40 Ansi16 Overview · States b6380cf3a33b1c9b
@@ -146,7 +150,9 @@
 120x40 Ansi16 Breadcrumbs & rails 4b227e565d3291ce
 120x40 Ansi16 Help & keys ab866259bf7e5e47
 120x40 Ansi16 Quit & leave 9324d61b35eb35fa
-120x40 Ansi16 Focus & navigation 479f085628fd89fb
+120x40 Ansi16 Focus & navigation 4cf4f2c1a42f4b40
+120x40 Ansi16 Focus & navigation · Options be323c274b70fb91
+120x40 Ansi16 Focus & navigation · States a7854c0848434af3
 120x40 Ansi16 Buttons 6646394d18d5fa50
 120x40 Ansi16 Buttons · Options 85aaea22e2a4e78b
 120x40 Ansi16 Buttons · States d4cb59dcc31ce6fa
@@ -207,7 +213,7 @@
 120x40 Ansi16 Launch cockpit 0ed922c6c840c324
 120x40 Ansi16 Read-only report 523f0bc45affef3b
 120x40 Ansi16 Inspector · State ef5dfa431c09ea94
-120x40 Ansi16 Inspector · Options 3d38146b167a0f18
+120x40 Ansi16 Inspector · Options 4fdd3909e147f84e
 120x40 Mono Overview 227e016c2e6977a1
 120x40 Mono Overview · Options 6ca95102e65366ca
 120x40 Mono Overview · States 7b8676967f582156
@@ -216,7 +222,9 @@
 120x40 Mono Breadcrumbs & rails 8a7cf0232d671447
 120x40 Mono Help & keys d9e1aabb2f5720de
 120x40 Mono Quit & leave 9fa9b6400acfc421
-120x40 Mono Focus & navigation da862f56cd981bf2
+120x40 Mono Focus & navigation 4b46e729fb8e5e13
+120x40 Mono Focus & navigation · Options 4f787169e331889c
+120x40 Mono Focus & navigation · States 4081ab062d657fda
 120x40 Mono Buttons 945f345bbf2b9025
 120x40 Mono Buttons · Options 9812327de0de0850
 120x40 Mono Buttons · States 4aef2ffa0497a3db
@@ -277,7 +285,7 @@
 120x40 Mono Launch cockpit 930d5296e74decc5
 120x40 Mono Read-only report 3c43407d11cf606a
 120x40 Mono Inspector · State 9018f4e15eccac89
-120x40 Mono Inspector · Options 2a91daced94bca04
+120x40 Mono Inspector · Options 38f834c42d84390a
 80x24 TrueColor Overview 49887ec7b74897c6
 80x24 TrueColor Overview · Options 72f2e3bce7759123
 80x24 TrueColor Overview · States 96e32128a1e5b5ac
@@ -286,7 +294,9 @@
 80x24 TrueColor Breadcrumbs & rails 9960c3d8b39967af
 80x24 TrueColor Help & keys a0a64f1fe147cdb3
 80x24 TrueColor Quit & leave 77d63ebc91700b78
-80x24 TrueColor Focus & navigation 54ca788456160fde
+80x24 TrueColor Focus & navigation 11468ac7a8071901
+80x24 TrueColor Focus & navigation · Options f3088d76e80e2764
+80x24 TrueColor Focus & navigation · States 062ec08a502551c4
 80x24 TrueColor Buttons dea7c21f2a6786be
 80x24 TrueColor Buttons · Options 87163e6e2f33c0c5
 80x24 TrueColor Buttons · States 2196d472ae10a214
@@ -356,7 +366,9 @@
 80x24 Ansi256 Breadcrumbs & rails 3e616d8a2a323e6f
 80x24 Ansi256 Help & keys d526813a2878869b
 80x24 Ansi256 Quit & leave 47009cfa7d0ddf19
-80x24 Ansi256 Focus & navigation aba9a6cf1a0b5210
+80x24 Ansi256 Focus & navigation ed717cdd913cde30
+80x24 Ansi256 Focus & navigation · Options 45ba25e101479a0f
+80x24 Ansi256 Focus & navigation · States 7c561b8d08d9bdfa
 80x24 Ansi256 Buttons 132547067366dba4
 80x24 Ansi256 Buttons · Options 060eabd65cf90caf
 80x24 Ansi256 Buttons · States 245eb3ad09d16788
@@ -426,7 +438,9 @@
 80x24 Ansi16 Breadcrumbs & rails 33745575289acd31
 80x24 Ansi16 Help & keys 986ea1e88d04aec5
 80x24 Ansi16 Quit & leave 811510730d15a24e
-80x24 Ansi16 Focus & navigation 5cd403473cb71394
+80x24 Ansi16 Focus & navigation 5eeff2f0b0fb49ef
+80x24 Ansi16 Focus & navigation · Options c60cbc985ed97f7c
+80x24 Ansi16 Focus & navigation · States ab5eb7076d93b827
 80x24 Ansi16 Buttons 3fc10e05a024d8a2
 80x24 Ansi16 Buttons · Options 46406be0290d9c01
 80x24 Ansi16 Buttons · States 10d952fbcae4b88d
@@ -496,7 +510,9 @@
 80x24 Mono Breadcrumbs & rails 3eae7f5798f8b6c3
 80x24 Mono Help & keys 905e321bdc1bff77
 80x24 Mono Quit & leave 2c621903dce96b94
-80x24 Mono Focus & navigation 4b6609008fbeb156
+80x24 Mono Focus & navigation cf9e01f053361101
+80x24 Mono Focus & navigation · Options 8c3226063b8f08e0
+80x24 Mono Focus & navigation · States 5f3ddcbb65702c1d
 80x24 Mono Buttons 3ccf72f3a742dfa2
 80x24 Mono Buttons · Options 7451813846c1e0a9
 80x24 Mono Buttons · States 733d745028d5e681
@@ -566,7 +582,9 @@
 72x20 TrueColor Breadcrumbs & rails 717aec284533b129
 72x20 TrueColor Help & keys 0f1a0f4111115d45
 72x20 TrueColor Quit & leave 72788b9f8743df37
-72x20 TrueColor Focus & navigation 3e483f3e4896051d
+72x20 TrueColor Focus & navigation 5927da1b5cc74369
+72x20 TrueColor Focus & navigation · Options d798ce942be2bf25
+72x20 TrueColor Focus & navigation · States 71076de6baf3ad4f
 72x20 TrueColor Buttons 9bbdead081b7d4cf
 72x20 TrueColor Buttons · Options 65b40a140396ddd5
 72x20 TrueColor Buttons · States efddfc2796b47ab2
@@ -627,7 +645,7 @@
 72x20 TrueColor Launch cockpit ec89c1eb79741253
 72x20 TrueColor Read-only report 20c959eec71bb953
 72x20 TrueColor Inspector · State 3a9461b07c2595b3
-72x20 TrueColor Inspector · Options fc54d4aefce70190
+72x20 TrueColor Inspector · Options a1d1f28d49f2ef60
 72x20 Ansi256 Overview 9770b8f18aefbd8e
 72x20 Ansi256 Overview · Options d983a581f8221fcd
 72x20 Ansi256 Overview · States 32ad1d2bfa466f89
@@ -636,7 +654,9 @@
 72x20 Ansi256 Breadcrumbs & rails a7444266307862cc
 72x20 Ansi256 Help & keys f89dbc9c21b20a93
 72x20 Ansi256 Quit & leave 7b008fc984b93d12
-72x20 Ansi256 Focus & navigation ee4af502d77dc437
+72x20 Ansi256 Focus & navigation 91caa7fb01157375
+72x20 Ansi256 Focus & navigation · Options ba8a3524e6b48f00
+72x20 Ansi256 Focus & navigation · States 02d4866bdcd6c7fd
 72x20 Ansi256 Buttons 57da43fa7fe2055f
 72x20 Ansi256 Buttons · Options 778a57c605676639
 72x20 Ansi256 Buttons · States cbc708e6a15674eb
@@ -697,7 +717,7 @@
 72x20 Ansi256 Launch cockpit c81fd986cba251c3
 72x20 Ansi256 Read-only report 773abe574f489221
 72x20 Ansi256 Inspector · State fdf67b11b1f53b84
-72x20 Ansi256 Inspector · Options bed3333267231a38
+72x20 Ansi256 Inspector · Options 572d21e146d3e97c
 72x20 Ansi16 Overview 9d1bc774564e0be4
 72x20 Ansi16 Overview · Options 7c63718eeb166e93
 72x20 Ansi16 Overview · States cf17b16e680669c7
@@ -706,7 +726,9 @@
 72x20 Ansi16 Breadcrumbs & rails 460d8ac46fff49db
 72x20 Ansi16 Help & keys 3de0b0977a1bfb89
 72x20 Ansi16 Quit & leave 669e142aab4c93b5
-72x20 Ansi16 Focus & navigation d041aea0433dde9f
+72x20 Ansi16 Focus & navigation c9b33a6345b76c63
+72x20 Ansi16 Focus & navigation · Options 8f3f56d33b57b3a9
+72x20 Ansi16 Focus & navigation · States 0444ead366222770
 72x20 Ansi16 Buttons 452f7ad324c9cfe5
 72x20 Ansi16 Buttons · Options 37a890ef5b30d537
 72x20 Ansi16 Buttons · States addb247f327e9226
@@ -767,7 +789,7 @@
 72x20 Ansi16 Launch cockpit 270d9a6d80b2ad85
 72x20 Ansi16 Read-only report e906a4c4feb5d2a9
 72x20 Ansi16 Inspector · State 769fe79560f6297e
-72x20 Ansi16 Inspector · Options 99d1393ab4db754d
+72x20 Ansi16 Inspector · Options e7938f2b71a178da
 72x20 Mono Overview ffaa501f315a6fb1
 72x20 Mono Overview · Options 1608561f089c18ed
 72x20 Mono Overview · States a7bd5497cbcf66eb
@@ -776,7 +798,9 @@
 72x20 Mono Breadcrumbs & rails 20df48ec70bac8c5
 72x20 Mono Help & keys 1556fe24fb245873
 72x20 Mono Quit & leave f4e7a231ca158ba3
-72x20 Mono Focus & navigation 123dcc597e05e4d1
+72x20 Mono Focus & navigation 202bdd8958459e15
+72x20 Mono Focus & navigation · Options 1a00cbe78f970343
+72x20 Mono Focus & navigation · States 79fef840f451a8d2
 72x20 Mono Buttons be64a95a5d519e13
 72x20 Mono Buttons · Options 15ca0f482abf07db
 72x20 Mono Buttons · States 144e585fbf802a46
@@ -837,7 +861,7 @@
 72x20 Mono Launch cockpit 530d138af0f54ed7
 72x20 Mono Read-only report b7a277991a4fac2f
 72x20 Mono Inspector · State 09f4e908fd27a109
-72x20 Mono Inspector · Options 0375f7c364a81f33
+72x20 Mono Inspector · Options 00343ef2b0233fe8
 100x30 TrueColor Overview 8c0abf6533b15c6d
 100x30 TrueColor Overview · Options b9158a0372a026f5
 100x30 TrueColor Overview · States b9a5e114b4b599b3
@@ -846,7 +870,9 @@
 100x30 TrueColor Breadcrumbs & rails cae88d8d2cbbe625
 100x30 TrueColor Help & keys 69290a7a95b06d64
 100x30 TrueColor Quit & leave feed5ee4e22aba95
-100x30 TrueColor Focus & navigation cb2534b60922a9b6
+100x30 TrueColor Focus & navigation fdd0881a7bcfc5e4
+100x30 TrueColor Focus & navigation · Options 9f388aa0aad2fd3e
+100x30 TrueColor Focus & navigation · States 080da64b90df0588
 100x30 TrueColor Buttons f5d547d3966d1322
 100x30 TrueColor Buttons · Options 0040144caadb2f69
 100x30 TrueColor Buttons · States 3f688c15615591e2
@@ -907,7 +933,7 @@
 100x30 TrueColor Launch cockpit 71dd2cfc7ed9d4cf
 100x30 TrueColor Read-only report 0f87c2be4d57e360
 100x30 TrueColor Inspector · State 33ca5512393221d5
-100x30 TrueColor Inspector · Options 82628deee1dc7356
+100x30 TrueColor Inspector · Options 6f7a8f0eb1368dd8
 100x30 Ansi256 Overview 9e8a071912c52d2b
 100x30 Ansi256 Overview · Options 0b0edd1847f67254
 100x30 Ansi256 Overview · States 94b762769df6dc2d
@@ -916,7 +942,9 @@
 100x30 Ansi256 Breadcrumbs & rails 23c7d7b84354f053
 100x30 Ansi256 Help & keys 0992d2e22ae34368
 100x30 Ansi256 Quit & leave 84603a4a1125e44e
-100x30 Ansi256 Focus & navigation 22a3f89e0b7cf864
+100x30 Ansi256 Focus & navigation 139c37a8578f44d5
+100x30 Ansi256 Focus & navigation · Options 2d15d52d0e4a66f3
+100x30 Ansi256 Focus & navigation · States 38324e416daea0db
 100x30 Ansi256 Buttons 23e54bc1f371b306
 100x30 Ansi256 Buttons · Options 4605924cd3f0b5c7
 100x30 Ansi256 Buttons · States 1624270e0de9ea75
@@ -977,7 +1005,7 @@
 100x30 Ansi256 Launch cockpit ca50c9eed0360b16
 100x30 Ansi256 Read-only report 9a753b32951bdbf0
 100x30 Ansi256 Inspector · State 5603dc4ce372ec3d
-100x30 Ansi256 Inspector · Options 9d6e424b520894a3
+100x30 Ansi256 Inspector · Options 53fdcf3acccfd697
 100x30 Ansi16 Overview af079c094eb3fedb
 100x30 Ansi16 Overview · Options 4b5e259e05e22776
 100x30 Ansi16 Overview · States 38240dcd8efb6afd
@@ -986,7 +1014,9 @@
 100x30 Ansi16 Breadcrumbs & rails 5ad8c3d31e8d2e71
 100x30 Ansi16 Help & keys 0acbc556b2a05fa4
 100x30 Ansi16 Quit & leave 69a90b8dda41d491
-100x30 Ansi16 Focus & navigation 270e2a96cd8632e0
+100x30 Ansi16 Focus & navigation 3637a0b2f51fa537
+100x30 Ansi16 Focus & navigation · Options aaf5020f8b9dce4e
+100x30 Ansi16 Focus & navigation · States d0edc5e6ff7b73a6
 100x30 Ansi16 Buttons dfc6d7ab34ae25bd
 100x30 Ansi16 Buttons · Options 5a2d53b1464a480c
 100x30 Ansi16 Buttons · States 05b73b9351663006
@@ -1047,7 +1077,7 @@
 100x30 Ansi16 Launch cockpit af725446c01416b9
 100x30 Ansi16 Read-only report a09563e9de03efa8
 100x30 Ansi16 Inspector · State 660eb0c54ee99d7d
-100x30 Ansi16 Inspector · Options 51a49cfd6179c0ec
+100x30 Ansi16 Inspector · Options 7d2f1891ed4a6ba9
 100x30 Mono Overview 36e22e0117e21873
 100x30 Mono Overview · Options f90b94d69de90ab9
 100x30 Mono Overview · States a000e400686b281e
@@ -1056,7 +1086,9 @@
 100x30 Mono Breadcrumbs & rails bb725535998a73d2
 100x30 Mono Help & keys 004be08d645a712f
 100x30 Mono Quit & leave 53165bfbbeff3218
-100x30 Mono Focus & navigation f8872c35f33ad85b
+100x30 Mono Focus & navigation ce3fbbb11f25d47e
+100x30 Mono Focus & navigation · Options bb453b6ae0c32a15
+100x30 Mono Focus & navigation · States cf82990b7ade9e1b
 100x30 Mono Buttons 5a22445a1b56b008
 100x30 Mono Buttons · Options b32bea802b88928f
 100x30 Mono Buttons · States 7ef8b87dc111b273
@@ -1117,7 +1149,7 @@
 100x30 Mono Launch cockpit 1a8fb9553a9fb4a0
 100x30 Mono Read-only report 6085a137f4b86af9
 100x30 Mono Inspector · State 7aaff8e21e581dce
-100x30 Mono Inspector · Options b24a2a396546f034
+100x30 Mono Inspector · Options 7c6099eead37a0e9
 160x50 TrueColor Overview 681ed5bc4a19ab0a
 160x50 TrueColor Overview · Options ff31e9b893a470c8
 160x50 TrueColor Overview · States 74689572a27740eb
@@ -1126,7 +1158,9 @@
 160x50 TrueColor Breadcrumbs & rails ee9302d4bc2369b0
 160x50 TrueColor Help & keys e4c8923010817924
 160x50 TrueColor Quit & leave 60968fa53395767e
-160x50 TrueColor Focus & navigation 471b91f5d4bcbbbf
+160x50 TrueColor Focus & navigation 29dbff0f8db5d42e
+160x50 TrueColor Focus & navigation · Options c4d87993fb4e1cc2
+160x50 TrueColor Focus & navigation · States 9e7a0a75d0a731ae
 160x50 TrueColor Buttons 27fb6e2bb74e6ae3
 160x50 TrueColor Buttons · Options c752553a358c38b0
 160x50 TrueColor Buttons · States fc07bafdfcde53ec
@@ -1187,7 +1221,7 @@
 160x50 TrueColor Launch cockpit 1594bc4f8b74320b
 160x50 TrueColor Read-only report 6c4cd1f8b7bd51cc
 160x50 TrueColor Inspector · State 29e007f6ab2ffd4d
-160x50 TrueColor Inspector · Options 222bbc91dc391d6d
+160x50 TrueColor Inspector · Options 7defd151d1c90ffb
 160x50 Ansi256 Overview a2b0d82a580aa072
 160x50 Ansi256 Overview · Options f2b5960a7f7984bb
 160x50 Ansi256 Overview · States 58cfe37ffce33e2e
@@ -1196,7 +1230,9 @@
 160x50 Ansi256 Breadcrumbs & rails ca58279222058bac
 160x50 Ansi256 Help & keys b3cd3d60908e33a3
 160x50 Ansi256 Quit & leave 8bb9d52291088b72
-160x50 Ansi256 Focus & navigation ad8a144758a56883
+160x50 Ansi256 Focus & navigation e0b36e244300f83b
+160x50 Ansi256 Focus & navigation · Options f67dbf7b75e7d5e6
+160x50 Ansi256 Focus & navigation · States c958cf0296ea3948
 160x50 Ansi256 Buttons df8aeebcc124fec3
 160x50 Ansi256 Buttons · Options e8456391b0b7cd2a
 160x50 Ansi256 Buttons · States 0135b1aea3388dec
@@ -1257,7 +1293,7 @@
 160x50 Ansi256 Launch cockpit 9f9c0ef9421d1a3e
 160x50 Ansi256 Read-only report 87abd7c08d1b2aec
 160x50 Ansi256 Inspector · State 96051a73af8b653c
-160x50 Ansi256 Inspector · Options a47f86f58f9f42a5
+160x50 Ansi256 Inspector · Options a940f4141c2a1f21
 160x50 Ansi16 Overview 7499a0420e8f448f
 160x50 Ansi16 Overview · Options 1d3e117df35943d6
 160x50 Ansi16 Overview · States dbab02595408640a
@@ -1266,7 +1302,9 @@
 160x50 Ansi16 Breadcrumbs & rails 07cf5e3665059dec
 160x50 Ansi16 Help & keys 80251c46b1a93ce6
 160x50 Ansi16 Quit & leave ccb78c266067a92a
-160x50 Ansi16 Focus & navigation a71cedd441bec77f
+160x50 Ansi16 Focus & navigation 6a2da353341603db
+160x50 Ansi16 Focus & navigation · Options 981120c49e7503f7
+160x50 Ansi16 Focus & navigation · States 6032b5790b3536e1
 160x50 Ansi16 Buttons ec0fcd4b0484d325
 160x50 Ansi16 Buttons · Options f453751ce2d2e3c8
 160x50 Ansi16 Buttons · States df9d14ac1341eb1f
@@ -1327,7 +1365,7 @@
 160x50 Ansi16 Launch cockpit 9c5ff5fa3378b561
 160x50 Ansi16 Read-only report 35b8f3aed90d2374
 160x50 Ansi16 Inspector · State 472c5443e245e704
-160x50 Ansi16 Inspector · Options ddf0914e0364c31d
+160x50 Ansi16 Inspector · Options 17567c48dc5a917c
 160x50 Mono Overview 8c4f2db76aab6833
 160x50 Mono Overview · Options ed5e6036ea5d563b
 160x50 Mono Overview · States 280c13de1438fd41
@@ -1336,7 +1374,9 @@
 160x50 Mono Breadcrumbs & rails ba3d1f7daf3fd427
 160x50 Mono Help & keys 7cc85c82febd3227
 160x50 Mono Quit & leave 20d43735e09b6b49
-160x50 Mono Focus & navigation 4081eed5e00d5b4c
+160x50 Mono Focus & navigation f11ce97ecc616894
+160x50 Mono Focus & navigation · Options fdd66e6e7c5ac726
+160x50 Mono Focus & navigation · States e297aba31d3353a4
 160x50 Mono Buttons 247cdd1cbdc576e6
 160x50 Mono Buttons · Options ecb91ad3d0660b45
 160x50 Mono Buttons · States 3e1b1dc18955411c
@@ -1397,4 +1437,4 @@
 160x50 Mono Launch cockpit e883c113792ccbb8
 160x50 Mono Read-only report 044492c016a3cb9d
 160x50 Mono Inspector · State 150870f1e5f3eb59
-160x50 Mono Inspector · Options bc3e38d3e3ffbf55
+160x50 Mono Inspector · Options 88159a6c2381ff74

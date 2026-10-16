@@ -202,6 +202,35 @@ pub static SHELL: &[Opt] = &[
         &["immediate", "type-to-edit", "explicit"],
     )
     .behaviour(),
+    // focus and input (SC28)
+    Opt::new(
+        "shell.focus_fallback",
+        "Focus fallback",
+        &["first", "nearest"],
+    )
+    .behaviour(),
+    Opt::new(
+        "shell.shift_wheel_horizontal",
+        "Shift+wheel sideways",
+        OFF_ON,
+    )
+    .default(1)
+    .behaviour(),
+    Opt::new(
+        "shell.legacy_ctrl_punctuation",
+        "Legacy Ctrl punctuation",
+        OFF_ON,
+    )
+    .default(1)
+    .behaviour(),
+    // read once, when the terminal session starts; auto honours
+    // JUNIE_TUI_KEYBOARD_PROTOCOL
+    Opt::new(
+        "shell.keyboard_protocol",
+        "Keyboard protocol",
+        &["auto", "on", "off"],
+    )
+    .behaviour(),
 ];
 
 /// A page's own option table. Each page step (SC3 onward) adds its page's
@@ -214,6 +243,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Overview => OVERVIEW,
         PageId::Tabs => TABS,
         PageId::Menus => MENUS,
+        PageId::FocusNavigation => FOCUS_NAV,
         _ => &[],
     }
 }
@@ -291,6 +321,21 @@ static OVERVIEW: &[Opt] = &[
         "overview.mods",
         "State modifiers",
         &["level", "color", "16", "mono"],
+    ),
+];
+
+/// Focus & navigation (SC28): one list's navigation keys and what Tab
+/// does in a field. The app-wide focus and input options are shell ones.
+pub static FOCUS_NAV: &[Opt] = &[
+    Opt::new(
+        "focusnavigation.nav",
+        "List nav keys",
+        &["desktop", "vim", "no-page", "no-home-end", "vim-no-arrows"],
+    ),
+    Opt::new(
+        "focusnavigation.tab_in_field",
+        "Tab in a field",
+        &["moves", "stays"],
     ),
 ];
 
