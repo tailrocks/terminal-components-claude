@@ -464,6 +464,26 @@ fn pickers_cancel_scope_and_secondary_action() {
     h.assert_status_prefix("Closed ");
 }
 
+/// Keyboard audit #13: Tab in an open select chose nothing and was
+/// swallowed. It now chooses the highlighted option, closes the list and
+/// moves focus on, as a macOS popup button does.
+#[test]
+fn tab_in_an_open_select_chooses_and_moves_focus_on() {
+    let mut h = Harness::new(100, 40, PageId::Chips);
+    let sort = WidgetId::of("chips").sub("sort");
+    h.focus(sort);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    assert_ne!(h.app.focus.current(), Some(sort), "focus moved on");
+    let text = h.text();
+    assert!(
+        text.contains("total"),
+        "the highlighted option was chosen\n{text}"
+    );
+    assert!(!text.contains("created_at"), "and the list closed\n{text}");
+}
+
 /// Keyboard audit #31: Tab cycles the picker's scope forward and Shift+Tab
 /// goes back (it did nothing).
 #[test]
