@@ -98,6 +98,42 @@ pub enum Status {
     Pending,
 }
 
+/// A pointer step after boot, steps and any live interaction. The target is
+/// the first on-screen occurrence of the text, resolved at capture time;
+/// the pointer lands two cells into it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Pointer {
+    /// Button-less motion: the hover state.
+    Hover(&'static str),
+    /// Primary button down with no release: the pressed state, held. Rows
+    /// use it with `--motion paused` so no tick can clear it.
+    Press(&'static str),
+    /// Primary click (down + up), e.g. to open a menu.
+    Click(&'static str),
+    /// Secondary click: context menus.
+    RightClick(&'static str),
+}
+
+/// How an overlay is dismissed for its `-dismissed-*` scenarios.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Dismiss {
+    /// `Esc`.
+    Esc,
+    /// A primary click outside the overlay, on the bottom-right cell.
+    Outside,
+}
+
+impl Dismiss {
+    pub const ALL: [Dismiss; 2] = [Dismiss::Esc, Dismiss::Outside];
+
+    pub const fn suffix(self) -> &'static str {
+        match self {
+            Dismiss::Esc => "-dismissed-esc",
+            Dismiss::Outside => "-dismissed-outside",
+        }
+    }
+}
+
 /// Exact legacy declaration for one combo; it wins over the row's own
 /// settings at that combo (old `baseline_case_with_variants!`).
 #[derive(Clone, Copy)]
@@ -162,6 +198,11 @@ pub struct Root {
     /// Resize rows: the PTY geometry before the resize.
     pub from: Option<(u16, u16)>,
     pub status: Status,
+    /// Pointer step after the steps and any live interaction.
+    pub pointer: Option<Pointer>,
+    /// Overlay rows: also capture `-dismissed-esc` and `-dismissed-outside`
+    /// (both start from this row's open state), with this status.
+    pub dismiss: Option<Status>,
 }
 
 impl Root {
@@ -183,6 +224,8 @@ impl Root {
             drive: Drive::Steps,
             from: None,
             status: Status::Stored,
+            pointer: None,
+            dismiss: None,
         }
     }
 
@@ -214,6 +257,38 @@ impl Root {
     pub const fn resize(mut self, from: (u16, u16), capture: fn(&Case, u16, u16)) -> Self {
         self.from = Some(from);
         self.drive = Drive::Resize(capture);
+        self
+    }
+
+    /// New coverage without an approval: listed and runnable, not gating.
+    pub const fn pending(mut self) -> Self {
+        self.status = Status::Pending;
+        self
+    }
+
+    pub const fn hover(mut self, at: &'static str) -> Self {
+        self.pointer = Some(Pointer::Hover(at));
+        self
+    }
+
+    pub const fn press(mut self, at: &'static str) -> Self {
+        self.pointer = Some(Pointer::Press(at));
+        self
+    }
+
+    pub const fn click(mut self, at: &'static str) -> Self {
+        self.pointer = Some(Pointer::Click(at));
+        self
+    }
+
+    pub const fn right_click(mut self, at: &'static str) -> Self {
+        self.pointer = Some(Pointer::RightClick(at));
+        self
+    }
+
+    /// Also capture both dismissals of this overlay, pending approval.
+    pub const fn dismiss_pending(mut self) -> Self {
+        self.dismiss = Some(Status::Pending);
         self
     }
 
@@ -325,6 +400,12 @@ pub const MATRIX: &[Tier] = &[
     },
 ];
 
+/// The smoke tier (every PR): two combos of the full tier, selected by the
+/// nextest `smoke` profile. Kept here so `scenario_tables` can check that
+/// every smoke combo exists in [`MATRIX`].
+pub const SMOKE: &[((u16, u16), Color)] =
+    &[((120, 40), Color::Truecolor), ((72, 20), Color::NoColorEnv)];
+
 /// One generated scenario: a root at one size and colour.
 #[derive(Clone)]
 pub struct Scenario {
@@ -338,6 +419,8 @@ pub struct Scenario {
     pub color: Color,
     /// No approval is expected in the store (pending row or pending tier).
     pub pending: bool,
+    /// Overlay dismissal captured after the open state, if any.
+    pub dismiss: Option<Dismiss>,
 }
 
 impl Scenario {
@@ -352,16 +435,23 @@ impl Scenario {
         if !support::capture_enabled(&self.name) {
             return;
         }
-        let case = self.root.case(self.cols, self.rows, self.color);
-        match self.root.drive {
-            Drive::Steps => support::run_and_assert(&case),
-            Drive::Live(interact) => {
-                let mut session = support::spawn_boot(&case);
-                interact(&mut session, &case);
-                support::settle_and_gate(&mut session, &case.name);
-            }
-            Drive::Resize(capture) => capture(&case, self.cols, self.rows),
+        let mut case = self.root.case(self.cols, self.rows, self.color);
+        case.name = self.name.clone().into();
+        if let Drive::Resize(capture) = self.root.drive {
+            capture(&case, self.cols, self.rows);
+            return;
         }
+        let mut session = support::spawn_boot(&case);
+        if let Drive::Live(interact) = self.root.drive {
+            interact(&mut session, &case);
+        }
+        if let Some(pointer) = self.root.pointer {
+            interact::pointer(&mut session, pointer);
+        }
+        if let Some(dismiss) = self.dismiss {
+            interact::dismiss(&mut session, dismiss, self.cols, self.rows);
+        }
+        support::settle_and_gate(&mut session, &case.name);
     }
 }
 
@@ -420,18 +510,30 @@ pub fn all() -> Vec<Scenario> {
                 if !tier.kinds.contains(&kind) {
                     continue;
                 }
-                for &(cols, rows) in tier.sizes {
-                    for &color in tier.colors {
-                        out.push(Scenario {
-                            name: format!("{}/{cols}x{rows}/{}", root.root, color.suffix()),
-                            kind,
-                            tier: tier.name,
-                            root,
-                            cols,
-                            rows,
-                            color,
-                            pending: tier.pending || root.status == Status::Pending,
-                        });
+                let mut phases = vec![(None, root.status)];
+                if let Some(status) = root.dismiss {
+                    phases.extend(Dismiss::ALL.map(|d| (Some(d), status)));
+                }
+                for &(dismiss, status) in &phases {
+                    let suffix = dismiss.map_or("", Dismiss::suffix);
+                    for &(cols, rows) in tier.sizes {
+                        for &color in tier.colors {
+                            out.push(Scenario {
+                                name: format!(
+                                    "{}{suffix}/{cols}x{rows}/{}",
+                                    root.root,
+                                    color.suffix()
+                                ),
+                                kind,
+                                tier: tier.name,
+                                root,
+                                cols,
+                                rows,
+                                color,
+                                pending: tier.pending || status == Status::Pending,
+                                dismiss,
+                            });
+                        }
                     }
                 }
             }
@@ -455,6 +557,23 @@ pub fn check_tables() -> Result<(), String> {
                 problems.push(format!(
                     "{app}::{} row `{}` must be `{app}/<group>/<leaf>…`",
                     kind.table(),
+                    row.root
+                ));
+            }
+            if row.dismiss.is_some() && kind != Kind::Overlay {
+                problems.push(format!("`{}`: only OVERLAYS rows are dismissed", row.root));
+            }
+            if kind == Kind::Resize && row.pointer.is_some() {
+                problems.push(format!(
+                    "`{}`: resize rows drive their own capture",
+                    row.root
+                ));
+            }
+            if let Some(Pointer::Press(_)) = row.pointer
+                && !row.args.windows(2).any(|w| w == ["--motion", "paused"])
+            {
+                problems.push(format!(
+                    "`{}`: a held press needs `--motion paused` so no tick clears it",
                     row.root
                 ));
             }
@@ -482,6 +601,19 @@ pub fn check_tables() -> Result<(), String> {
                     ));
                 }
             }
+        }
+    }
+    for &(size, color) in SMOKE {
+        if !MATRIX
+            .iter()
+            .any(|t| !t.pending && t.sizes.contains(&size) && t.colors.contains(&color))
+        {
+            problems.push(format!(
+                "smoke combo {}x{}/{} is not in a gating tier",
+                size.0,
+                size.1,
+                color.suffix()
+            ));
         }
     }
     for tier in MATRIX {

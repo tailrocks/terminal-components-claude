@@ -22,7 +22,6 @@ pub const SURFACES: &[Root] = &[
     // Boot focus is the tree (app.rs:147); ring order is render order:
     // filter → tree → Connect → Edit → Duplicate → Delete (connections.rs:940-1114).
     Root::new("tablepro/connections/filter", Bin::Tablepro, &[], "Production").sends(&["/", "type:stag"]),
-    Root::new("tablepro/connections/delete_dialog", Bin::Tablepro, &[], "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "d", "wait:Delete connection?"]),
     Root::new("tablepro/connections/duplicated", Bin::Tablepro, &[], "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "ctrl-d", "wait:(Copy)"]),
     // ctrl-n lands on the Name input; one BackTab wraps to the form tabs
     // (ring: … → tabs → name → …), Right switches Basic → Advanced.
@@ -52,19 +51,14 @@ pub const SURFACES: &[Root] = &[
     // t_dirty: 2 pending cell edits, committed (not in-edit, not Save dialog).
     Root::new("tablepro/table/dirty", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "enter", "ctrl-l", "type:paid", "enter", "down", "enter", "ctrl-l", "type:shipped", "enter", "wait:2 pending"]),
     Root::new("tablepro/table/row_duplicated", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "alt-d"]),
-    Root::new("tablepro/table/filter_editor", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "ctrl-f", "wait:Add filter"]),
     // End jumps the cell cursor to the last column; hscroll follows it
     // (grid.rs:1033 + 847-858) → the ‹N tail window of the 14-column grid.
     Root::new("tablepro/table/scrolled_right", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "end", "wait:updated_at"]),
     // ------------------------------------------------------------------ query --
-    Root::new("tablepro/query/completion", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:SELECT * FROM ord", "wait:order_items"]),
     Root::new("tablepro/query/results", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:SELECT * FROM ord", "enter", "type: WHERE st", "tab", "type: = 'pending' ORDER BY created_at DESC LIMIT 25", "escape", "ctrl-r", "wait:25 rows", "wait:Ctrl+X Explain"]).timeout(15_000),
     Root::new("tablepro/query/error", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:SELECT * FROM missing_table", "escape", "ctrl-r", "sleep:800"]),
     Root::new("tablepro/query/explain", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:SELECT * FROM orders", "escape", "ctrl-x", "sleep:500"]),
     Root::new("tablepro/query/new_tab", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-t", "wait:Query 2"]),
-    // Dirty the fresh tab so ctrl-w asks (app.rs:625-637): `i` edits, `x` is too
-    // short to auto-open completion (model.rs:791-799), escape leaves edit mode.
-    Root::new("tablepro/query/close_confirm", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-t", "i", "type:x", "escape", "ctrl-w", "wait:Close tab with unsaved work?"]),
     Root::new("tablepro/query/explain_analyze", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:SELECT * FROM orders", "escape", "alt-x", "wait:EXPLAIN ANALYZE"]).timeout(15_000),
     // Column-level completion (Member clause, model.rs:589): the dot keystroke
     // must be the last edit with the cursor right after "o." (a cursor walk
@@ -75,38 +69,57 @@ pub const SURFACES: &[Root] = &[
     // --------------------------------------------------------------- workbench --
     Root::new("tablepro/workbench/explorer_hidden", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-b"]),
     Root::new("tablepro/workbench/maximized", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["z"]),
-    // Cell edit → pending → ctrl-s opens the commit review (app.rs:987): status of
-    // row 1, select-all + valid enum value, commit, then Save. Production runs
-    // Safe Mode, so the dialog carries the typed-token acknowledgement.
-    Root::new("tablepro/workbench/commit_dialog", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "enter", "ctrl-l", "type:paid", "enter", "ctrl-s", "wait:Save changes?"]),
-    // request_quit only dialogs with unsaved work (app.rs:274-315) — dirty the
-    // query first, then q.
-    Root::new("tablepro/workbench/quit_confirm", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:x", "escape", "q", "wait:Quit TablePro?"]),
     // ------------------------------------------------------------------ audit --
     Root::new("tablepro/audit/production", Bin::Tablepro, &["--connect", "Production"], "Query 1"),
 ];
 
 #[rustfmt::skip]
 pub const ELEMENTS: &[Root] = &[
+    // Pending coverage (plan §C2): hover, held press (paused), selected+hover.
+    Root::new("tablepro/elements/connections/connect-hover", Bin::Tablepro, &[], "Production").hover("Connect    Edit").pending(),
+    Root::new("tablepro/elements/connections/connect-pressed", Bin::Tablepro, &["--motion", "paused"], "Production").press("Connect    Edit").pending(),
+    Root::new("tablepro/elements/connections/row-hover", Bin::Tablepro, &[], "Production").hover("Staging").pending(),
+    Root::new("tablepro/elements/connections/selected-hover", Bin::Tablepro, &[], "Production").sends(&["down"]).hover("Local PostgreSQL").pending(),
+    Root::new("tablepro/elements/workbench/tab-hover", Bin::Tablepro, &["--connect", "Production"], "Query 1").hover("Query 1").pending(),
+    Root::new("tablepro/elements/workbench/tab-pressed", Bin::Tablepro, &["--connect", "Production", "--motion", "paused", "--frame", "40"], "Query 1").press("Query 1").pending(),
+    Root::new("tablepro/elements/table/selected-hover", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders"]).hover("9157cff3").pending(),
 ];
 
 #[rustfmt::skip]
 pub const OVERLAYS: &[Root] = &[
     // ---------------------------------------------------------------- overlays --
     Root::new("tablepro/overlays/history_tab", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-y", "wait:History"]),
-    Root::new("tablepro/overlays/picker_open", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-o", "wait:Open Quickly"]),
-    Root::new("tablepro/overlays/tablist_open", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-g"]),
-    Root::new("tablepro/overlays/safemode_picker", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-l", "wait:Safe Mode"]),
-    Root::new("tablepro/overlays/help_overlay", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["?", "wait:Keyboard"]),
+    Root::new("tablepro/overlays/picker_open", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-o", "wait:Open Quickly"]).dismiss_pending(),
+    Root::new("tablepro/overlays/tablist_open", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-g"]).dismiss_pending(),
+    Root::new("tablepro/overlays/safemode_picker", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-l", "wait:Safe Mode"]).dismiss_pending(),
+    Root::new("tablepro/overlays/help_overlay", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["?", "wait:Keyboard"]).dismiss_pending(),
     // Three tabs: `0` refocuses the explorer (app.rs:572-579) so a second table
     // can be opened; the overlay marks the active table tab.
-    Root::new("tablepro/overlays/tablist_tables", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "0", "down", "enter", "wait:public › order_items", "ctrl-g", "wait:public.order_items"]),
+    Root::new("tablepro/overlays/tablist_tables", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "0", "down", "enter", "wait:public › order_items", "ctrl-g", "wait:public.order_items"]).dismiss_pending(),
+    // Open overlays captured by existing journeys (names unchanged), with
+    // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
+    Root::new("tablepro/connections/delete_dialog", Bin::Tablepro, &[], "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "d", "wait:Delete connection?"]).dismiss_pending(),
+    Root::new("tablepro/table/filter_editor", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "ctrl-f", "wait:Add filter"]).dismiss_pending(),
+    Root::new("tablepro/query/completion", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:SELECT * FROM ord", "wait:order_items"]).dismiss_pending(),
+    // Dirty the fresh tab so ctrl-w asks (app.rs:625-637): `i` edits, `x` is too
+    // short to auto-open completion (model.rs:791-799), escape leaves edit mode.
+    Root::new("tablepro/query/close_confirm", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-t", "i", "type:x", "escape", "ctrl-w", "wait:Close tab with unsaved work?"]).dismiss_pending(),
+    Root::new("tablepro/ack/gate", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm"]).dismiss_pending(),
+    // Cell edit → pending → ctrl-s opens the commit review (app.rs:987): status of
+    // row 1, select-all + valid enum value, commit, then Save. Production runs
+    // Safe Mode, so the dialog carries the typed-token acknowledgement.
+    Root::new("tablepro/workbench/commit_dialog", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "enter", "ctrl-l", "type:paid", "enter", "ctrl-s", "wait:Save changes?"]).dismiss_pending(),
+    // request_quit only dialogs with unsaved work (app.rs:274-315) — dirty the
+    // query first, then q.
+    Root::new("tablepro/workbench/quit_confirm", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:x", "escape", "q", "wait:Quit TablePro?"]).dismiss_pending(),
+    // Pending: context menus (Shift+F10) with both dismissals.
+    Root::new("tablepro/overlays/explorer_context", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["wait:S audit", "shift-f10"]).pending().dismiss_pending(),
+    Root::new("tablepro/overlays/connections_context", Bin::Tablepro, &[], "Production").sends(&["down", "shift-f10"]).pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
 pub const JOURNEYS: &[Root] = &[
     // -------------------------------------------------------------------- ack --
-    Root::new("tablepro/ack/gate", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm"]),
     Root::new("tablepro/ack/armed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "enter", "type:orders", "enter", "right", "wait:Execute"]),
     Root::new("tablepro/ack/executed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "enter", "type:orders", "enter", "right", "enter", "wait:rows affected"]),
     // DELETE without WHERE is dangerous (sql.rs:799-802): the gate carries the
@@ -122,4 +135,7 @@ pub const RESIZES: &[Root] = &[
     // `wait:S audit` pins the asynchronous schema load before the resize.
     Root::new("tablepro/resize/workbench_shrunk", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["wait:S audit"]).timeout(15_000).resize((120, 40), interact::tablepro_workbench_shrunk),
     Root::new("tablepro/resize/workbench_grown", Bin::Tablepro, &["--connect", "Production"], "Query 1").timeout(15_000).resize((80, 24), interact::tablepro_workbench_grown),
+    // Pending: the connections screen across the breakpoints.
+    Root::new("tablepro/resize/connections_from160x50", Bin::Tablepro, &[], "Production").timeout(15_000).resize((160, 50), interact::resize_case).pending(),
+    Root::new("tablepro/resize/connections_from72x20", Bin::Tablepro, &[], "Production").timeout(15_000).resize((72, 20), interact::resize_case).pending(),
 ];

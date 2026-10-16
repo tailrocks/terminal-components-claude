@@ -4,8 +4,8 @@
 //! explicit environment → boot needle (content-gated `Locator` wait) or a
 //! non-blank + quiet wait when a case has none → send steps (120 ms pacing)
 //! → `wait_stable_quiet(SETTLE)` → `render::frame_from_screen` → gate.
-//! [`run_and_assert`] runs one scenario; [`spawn_boot`]/[`drive`] hand the
-//! live [`Session`] to `scenarios::interact` for pointer and resize steps.
+//! [`spawn_boot`]/[`drive`] hand the live [`Session`] to `scenarios::interact`
+//! for pointer, dismissal and resize steps; [`settle_and_gate`] captures.
 //!
 //! Store layout is unchanged:
 //! `snapshots/<app>/<sub_group>/<cols>x<rows>/<palette>.<ext>`. Which
@@ -557,6 +557,17 @@ impl Session {
         self.inner.click(button, col, row, MouseMods::NONE)
     }
 
+    /// Button down with no release: the pressed state stays visible for as
+    /// long as the button is held.
+    pub fn mouse_down(
+        &mut self,
+        button: MouseButton,
+        col: u16,
+        row: u16,
+    ) -> Result<(), tuiscotti::TuiError> {
+        self.inner.mouse_down(button, col, row, MouseMods::NONE)
+    }
+
     /// Primary-button drag: press at the start, one held-motion report per
     /// cell crossed (as a terminal sends), release at the end.
     pub fn drag(&mut self, c0: u16, r0: u16, c1: u16, r1: u16) -> Result<(), tuiscotti::TuiError> {
@@ -631,12 +642,6 @@ pub fn capture_enabled(name: &str) -> bool {
     }
     eprintln!("baseline skipped   {name} (pending tuiscotti re-approval; VISUAL_FULL=1 runs it)");
     false
-}
-
-/// A ported-matrix capture: boot, sends, settle, gate.
-pub fn run_and_assert(case: &Case) {
-    let mut session = spawn_boot(case);
-    settle_and_gate(&mut session, &case.name);
 }
 
 /// Central live-session setup: boot needle first, then all case sends,
