@@ -111,6 +111,10 @@ pub struct PointerConfig {
     /// The text caret's shape (DECSCUSR, where supported). Default
     /// [`super::shape::CaretShape::Bar`], the macOS caret.
     pub caret_shape: super::shape::CaretShape,
+    /// A click anywhere on a skippable animation (an intro, an outro, a
+    /// splash) skips it, as Enter or Esc does, so the pointer is never
+    /// left waiting on a screen it cannot act on. Default on.
+    pub click_skips_animation: bool,
 }
 
 impl PointerConfig {
@@ -131,6 +135,7 @@ impl PointerConfig {
         track_repeat_ms: 50,
         pointer_shapes: true,
         caret_shape: super::shape::CaretShape::Bar,
+        click_skips_animation: true,
     };
 
     pub const fn focus_on(mut self, focus_on: FocusOn) -> Self {
@@ -173,6 +178,10 @@ impl PointerConfig {
 
     pub const fn end_edit_on_dead_space(mut self, on: bool) -> Self {
         self.end_edit_on_dead_space = on;
+        self
+    }
+    pub const fn click_skips_animation(mut self, on: bool) -> Self {
+        self.click_skips_animation = on;
         self
     }
     pub const fn autoscroll(mut self, on: bool) -> Self {

@@ -1802,6 +1802,16 @@ impl App {
     fn route_mouse(&mut self, m: Mouse) -> Outcome {
         self.pointer.pos = Some(m.pos);
         if matches!(self.route, Route::Intro | Route::Outro | Route::Handoff) {
+            // a completed click skips the animation as Enter does
+            if matches!(self.route, Route::Intro | Route::Outro)
+                && m.kind == MouseKind::Up
+                && self.pointer.config.click_skips_animation
+            {
+                return self.on_key(Key {
+                    code: KeyCode::Enter,
+                    mods: ratatui::crossterm::event::KeyModifiers::NONE,
+                });
+            }
             return Outcome::Ignored;
         }
         match m.kind {

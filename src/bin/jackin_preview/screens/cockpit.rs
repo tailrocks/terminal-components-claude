@@ -20,7 +20,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use super::modals::{InfoDialog, InfoResult, modal_frame};
+use super::modals::{InfoDialog, InfoResult};
 use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
@@ -36,6 +36,8 @@ pub const LOG: WidgetId = WidgetId::of("cockpit.log");
 pub const CHIP_CONTAINER: WidgetId = WidgetId::of("cockpit.chip.container");
 pub const CHIP_ACTIVITY: WidgetId = WidgetId::of("cockpit.chip.activity");
 pub const CHIP_RUN: WidgetId = WidgetId::of("cockpit.chip.run");
+/// The "Cancel launch…" button under a running launch (mouse #6).
+pub const CANCEL_BTN: WidgetId = WidgetId::of("cockpit.cancel_btn");
 
 pub struct CockpitScreen {
     pub run: LaunchRun,
@@ -450,6 +452,23 @@ impl CockpitScreen {
         });
     }
 
+    /// Ask before cancelling a running launch (`x`, or the Cancel launch…
+    /// button).
+    fn ask_cancel(&mut self, cx: &mut Cx) -> Outcome {
+        if self.run.is_terminal() {
+            return Outcome::Consumed;
+        }
+        let d = Dialog::destructive(
+            WidgetId::of("cockpit.cancel"),
+            "Cancel the launch?",
+            "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
+            "Cancel launch",
+        )
+        .cancel_label("Keep launching");
+        cx.open(Modal::Dialog(d), ModalTag::new("cancel"));
+        Outcome::Changed
+    }
+
     fn draw_log(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let active = !self.run.is_terminal()
             && self
@@ -469,7 +488,13 @@ impl CockpitScreen {
         };
         let w = screen.width.saturating_sub(6).min(110);
         let h = screen.height.saturating_sub(4);
-        let (_, inner) = modal_frame(screen, buf, ctx, w, h, title, Some(&meta), true);
+        // a light-dismiss frame: its close button closes the log by mouse
+        let (_, inner) = junie_tui::ui::modal::Frame::new(w, h)
+            .title(title)
+            .meta(Some(&meta))
+            .placement(junie_tui::ui::popup::Placement::Center)
+            .dismiss(junie_tui::ui::popup::Dismiss::LIGHT)
+            .render(screen, buf, ctx);
         let t = ctx.theme;
         let bg = t.surface_elevated;
         let body = Rect::new(
@@ -621,20 +646,7 @@ impl Screen for CockpitScreen {
                 self.open_info(w, cx);
                 Outcome::Changed
             }
-            KeyCode::Char('x') if key.plain() => {
-                if self.run.is_terminal() {
-                    return Outcome::Consumed;
-                }
-                let d = Dialog::destructive(
-                    WidgetId::of("cockpit.cancel"),
-                    "Cancel the launch?",
-                    "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
-                    "Cancel launch",
-                )
-                .cancel_label("Keep launching");
-                cx.open(Modal::Dialog(d), ModalTag::new("cancel"));
-                Outcome::Changed
-            }
+            KeyCode::Char('x') if key.plain() => self.ask_cancel(cx),
             KeyCode::Char('t') if key.plain() => {
                 self.debug = !self.debug;
                 Outcome::Changed
@@ -652,6 +664,15 @@ impl Screen for CockpitScreen {
     }
 
     fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        // the build log's close button, and the launch's cancel button
+        if self.log_open && id == junie_tui::ui::modal::CLOSE {
+            self.log_open = false;
+            cx.focus.focus(RAIL);
+            return Outcome::Changed;
+        }
+        if id == CANCEL_BTN {
+            return self.ask_cancel(cx);
+        }
         if id == CHIP_ACTIVITY && !self.log.is_empty() {
             self.log_open = true;
             cx.focus.focus(LOG);
@@ -964,6 +985,15 @@ impl Screen for CockpitScreen {
                 let st = ctx.title_style(CHIP_CONTAINER, t.canvas);
                 buf.set_string(rx, ay, &chip, st);
                 ctx.clickable(CHIP_CONTAINER, Rect::new(rx, ay, cw, 1));
+            }
+        }
+        // the launch's way out by pointer, on the row under the chips
+        if !self.run.is_terminal() {
+            let mut b = Button::secondary(CANCEL_BTN, "Cancel launch…");
+            let bw = b.width();
+            let bx = area.right().saturating_sub(bw + 1);
+            if bx > area.x + 24 {
+                b.render(Rect::new(bx, ay + 1, bw, 1), buf, ctx, t.canvas);
             }
         }
         wrapped_arrow(buf, area, t);
