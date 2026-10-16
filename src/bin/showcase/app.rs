@@ -897,6 +897,7 @@ impl App {
 
     /// A button release at `m.pos` over `hit`.
     fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
+        let pressed = self.pointer.pressed;
         let id = match self.pointer.release(hit) {
             Release::Click(id) => id,
             Release::Outside => {
@@ -908,7 +909,18 @@ impl App {
                 }
                 return Outcome::Changed;
             }
-            Release::Cancelled => return Outcome::Changed,
+            Release::Cancelled => {
+                // the press-drag of a select ends on an option
+                return match pressed {
+                    Some(pressed) if self.dialog.is_none() => self
+                        .dispatch(PageEvent::Release {
+                            pressed,
+                            pos: m.pos,
+                        })
+                        .or(Outcome::Changed),
+                    _ => Outcome::Changed,
+                };
+            }
         };
         if let Some(d) = self.dialog.as_mut() {
             let out = d.on_click(id, m.pos, &mut self.focus);
