@@ -2046,7 +2046,7 @@ mod tests {
         (0..buf.area.width)
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect::<String>()
-            .trim_end_matches([' ', '│', '┃'])
+            .trim_end_matches([' ', '┆', '┃'])
             .to_owned()
     }
 

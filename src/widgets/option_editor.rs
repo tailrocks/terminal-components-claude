@@ -892,7 +892,12 @@ impl ChoiceEditor {
                 }
                 x += sw;
                 if i + 1 < me.options.len() && x < inner.right() {
-                    buf.set_string(x, inner.y, "│", Style::new().fg(t.border_strong).bg(bg));
+                    buf.set_string(
+                        x,
+                        inner.y,
+                        t.glyphs.divider,
+                        Style::new().fg(t.border_strong).bg(bg),
+                    );
                     x += sep;
                 }
             }
