@@ -372,7 +372,17 @@ pub fn render_status(
         }
         None => Right::toned(t, text, Tone::Secondary),
     });
-    render_right(area, buf, t, hints, badge, right, &[], &t.hintbar)
+    render_right(
+        area,
+        buf,
+        t,
+        hints,
+        badge,
+        right,
+        &[],
+        &t.hintbar,
+        &mut Vec::new(),
+    )
 }
 
 /// The status at the right edge: a message, and the glyph that leads it
@@ -414,7 +424,17 @@ pub fn render_styled(
     style: &HintBarStyle,
 ) -> usize {
     let right = right.map(|(r, tone)| Right::toned(t, r, tone));
-    render_right(area, buf, t, hints, badge, right, &[], style)
+    render_right(
+        area,
+        buf,
+        t,
+        hints,
+        badge,
+        right,
+        &[],
+        style,
+        &mut Vec::new(),
+    )
 }
 
 /// [`render_styled`] with a status made of toned parts (a batch summary
@@ -434,7 +454,108 @@ pub fn render_parts(
     style: &HintBarStyle,
 ) -> usize {
     let right = right.map(|(r, tone)| Right::toned(t, r, tone));
-    render_right(area, buf, t, hints, badge, right, parts, style)
+    render_right(
+        area,
+        buf,
+        t,
+        hints,
+        badge,
+        right,
+        parts,
+        style,
+        &mut Vec::new(),
+    )
+}
+
+/// [`render_parts`] that also reports where each drawn hint landed: the
+/// index into `hints` and its cells (key and action), for a footer whose
+/// hints are click targets ([`crate::widgets::hintbar::HintBar::render_ctx`]).
+#[allow(clippy::too_many_arguments)]
+pub fn render_parts_at(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Tone)>,
+    parts: &[(String, Tone)],
+    style: &HintBarStyle,
+) -> (usize, Vec<(usize, Rect)>) {
+    let right = right.map(|(r, tone)| Right::toned(t, r, tone));
+    let mut spots = Vec::new();
+    let n = render_right(area, buf, t, hints, badge, right, parts, style, &mut spots);
+    (n, spots)
+}
+
+/// The key a hint's label names, when it names exactly one: `Esc`,
+/// `Enter`, `Tab`, `Shift+Tab`, `Space`, `Delete`, `Backspace`, `Home`,
+/// `End`, `PgUp`, `PgDn`, one arrow, `F1`–`F12`, one character, each with
+/// optional `Ctrl+`, `Alt+` or `Shift+` prefixes. Labels that name several
+/// keys (`↑↓`, `1–6`, `Tab/Shift+Tab`) or a sequence (`Ctrl+B c`) name
+/// none: such a hint is not a click target.
+pub fn key_of(label: &str) -> Option<crate::core::event::Key> {
+    use ratatui::crossterm::event::KeyCode;
+    let label = normalize_key(label);
+    let mut rest: &str = &label;
+    let mut mods = KeyModifiers::NONE;
+    loop {
+        let (m, tail) = if let Some(t) = rest.strip_prefix("Ctrl+") {
+            (KeyModifiers::CONTROL, t)
+        } else if let Some(t) = rest.strip_prefix("Alt+") {
+            (KeyModifiers::ALT, t)
+        } else if let Some(t) = rest.strip_prefix("Shift+") {
+            (KeyModifiers::SHIFT, t)
+        } else {
+            break;
+        };
+        if tail.is_empty() {
+            break;
+        }
+        mods |= m;
+        rest = tail;
+    }
+    let code = match rest {
+        "Esc" => KeyCode::Esc,
+        "Enter" | "↵" | "Return" => KeyCode::Enter,
+        "Tab" if mods == KeyModifiers::SHIFT => {
+            mods = KeyModifiers::NONE;
+            KeyCode::BackTab
+        }
+        "Tab" => KeyCode::Tab,
+        "Space" => KeyCode::Char(' '),
+        "Delete" => KeyCode::Delete,
+        "Backspace" => KeyCode::Backspace,
+        "Home" => KeyCode::Home,
+        "End" => KeyCode::End,
+        "PgUp" | "PageUp" => KeyCode::PageUp,
+        "PgDn" | "PageDown" => KeyCode::PageDown,
+        "↑" => KeyCode::Up,
+        "↓" => KeyCode::Down,
+        "←" => KeyCode::Left,
+        "→" => KeyCode::Right,
+        _ => {
+            if let Some(n) = rest.strip_prefix('F').and_then(|n| n.parse::<u8>().ok())
+                && (1..=12).contains(&n)
+            {
+                KeyCode::F(n)
+            } else {
+                let mut chars = rest.chars();
+                let c = chars.next()?;
+                if chars.next().is_some() || c.is_whitespace() {
+                    return None;
+                }
+                if mods.contains(KeyModifiers::CONTROL) {
+                    KeyCode::Char(c.to_ascii_lowercase())
+                } else {
+                    if c.is_ascii_uppercase() {
+                        mods |= KeyModifiers::SHIFT;
+                    }
+                    KeyCode::Char(c)
+                }
+            }
+        }
+    };
+    Some(crate::core::event::Key { code, mods })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -447,6 +568,7 @@ fn render_right(
     right: Option<Right<'_>>,
     parts: &[(String, Tone)],
     style: &HintBarStyle,
+    spots: &mut Vec<(usize, Rect)>,
 ) -> usize {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
@@ -542,6 +664,8 @@ fn render_right(
         if !compact[i] {
             buf.set_string(x + kw + 1, area.y, &h.action, t.key_hint_action());
         }
+        let w = hint_width(h, compact[i]).min(area.right().saturating_sub(x));
+        spots.push((i, Rect::new(x, area.y, w, 1)));
         x += hint_width(h, compact[i]) + GAP;
     }
     if cut && x < limit {
@@ -553,6 +677,27 @@ fn render_right(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_hint_label_names_one_key_or_none() {
+        use crate::core::event::Key;
+        use ratatui::crossterm::event::KeyCode;
+        let k = |code, mods| Some(Key { code, mods });
+        assert_eq!(key_of("Esc"), k(KeyCode::Esc, KeyModifiers::NONE));
+        assert_eq!(
+            key_of("Ctrl+S"),
+            k(KeyCode::Char('s'), KeyModifiers::CONTROL)
+        );
+        assert_eq!(key_of("Shift+Tab"), k(KeyCode::BackTab, KeyModifiers::NONE));
+        assert_eq!(key_of("F1"), k(KeyCode::F(1), KeyModifiers::NONE));
+        assert_eq!(key_of("?"), k(KeyCode::Char('?'), KeyModifiers::NONE));
+        assert_eq!(key_of("G"), k(KeyCode::Char('G'), KeyModifiers::SHIFT));
+        assert_eq!(key_of("Alt+↓"), k(KeyCode::Down, KeyModifiers::ALT));
+        assert_eq!(key_of("Del"), k(KeyCode::Delete, KeyModifiers::NONE));
+        for many in ["↑↓", "1–6", "Ctrl+B c", "Tab/Shift+Tab", "", "F13"] {
+            assert_eq!(key_of(many), None, "{many}");
+        }
+    }
 
     #[test]
     fn modifier_click_names_the_platform_modifier() {
