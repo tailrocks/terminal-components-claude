@@ -82,7 +82,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:arrives with SC9"]).pending(),
     Root::new("showcase/planned/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
     Root::new("showcase/planned/columns", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["wait:arrives with SC11"]).pending(),
-    Root::new("showcase/planned/tabs", Bin::Showcase, &["--page", "tabs"], BOOT).sends(&["wait:arrives with SC14"]).pending(),
     Root::new("showcase/planned/menus", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["wait:arrives with SC16"]).pending(),
     Root::new("showcase/planned/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:arrives with SC18"]).pending(),
     Root::new("showcase/planned/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:arrives with SC19"]).pending(),
@@ -113,6 +112,11 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/buttons-states", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
     Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
     Root::new("showcase/sections/inputs-states", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    // SC14 Tabs: the editor strip (icons, flags, ×, +, overflow), its
+    // option table and its States grid. Pending first approval.
+    Root::new("showcase/pages/tabs", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["wait:Editor strip"]).pending(),
+    Root::new("showcase/sections/tabs-options", Bin::Showcase, &["--page", "tabs"], BOOT).sends(&["tab", "2", "wait:Active rule"]).pending(),
+    Root::new("showcase/sections/tabs-states", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),
@@ -162,6 +166,12 @@ pub const ELEMENTS: &[Root] = &[
     // truecolor, 256, 16 and no colour) and the toggle hovered.
     Root::new("showcase/elements/states/compare-levels", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "tab", "enter", "wait:256 colors"]).pending(),
     Root::new("showcase/elements/states/compare-hover", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).hover("Compare levels").pending(),
+    // SC14 Tabs: a hovered tab, the focused strip (the one ▎ on the cursor
+    // tab), the neutral rule and × shown on hover only.
+    Root::new("showcase/elements/tabs/tab-hover", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).hover("orders.sql").pending(),
+    Root::new("showcase/elements/tabs/strip-focused", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["tab", "tab", "right"]).pending(),
+    Root::new("showcase/elements/tabs/rule-neutral", Bin::Showcase, &["--page", "tabs", "--motion", "paused", "--opt", "tabs.rule=neutral"], BOOT).pending(),
+    Root::new("showcase/elements/tabs/close-on-hover", Bin::Showcase, &["--page", "tabs", "--motion", "paused", "--opt", "tabs.close_reveal=hover"], BOOT).pending(),
     Root::new("showcase/elements/lists/row-pressed", Bin::Showcase, &["--page", "lists", "--motion", "paused"], BOOT).press("Python").pending(),
 ];
 
@@ -196,6 +206,10 @@ pub const OVERLAYS: &[Root] = &[
     // Pending: overlays reached by pointer, with both dismissals.
     Root::new("showcase/overlays/chrome_context_row", Bin::Showcase, &["--page", "chrome"], BOOT).right_click("Codex (Primary)").pending().dismiss_pending(),
     Root::new("showcase/overlays/lists_context", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "shift-f10"]).pending().dismiss_pending(),
+    // SC14 Tabs: the +N menu of hidden tabs, and closing the dirty tab
+    // (x on orders.sql) asks Cancel / Discard / Save first.
+    Root::new("showcase/overlays/tabs_overflow_menu", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).click("+").pending().dismiss_pending(),
+    Root::new("showcase/overlays/tabs_close_dirty", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["tab", "tab", "right", "x", "wait:Discard"]).pending().dismiss_pending(),
     // mouse #40: the brand asks before quitting.
     Root::new("showcase/overlays/quit_confirm", Bin::Showcase, &["--page", "overview"], BOOT).click("Junie").pending().dismiss_pending(),
     // Unsaved Settings edits: `q` asks Cancel / Discard first (7b54eb459).

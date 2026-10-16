@@ -891,4 +891,115 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::shape::CaretShape::Terminal",
         Option("overview", "shell.caret_shape=terminal"),
     ),
+    // Tabs (SC14)
+    ("widgets::tabs::TabItem", Demo("tabs", "◆ Overview")),
+    (
+        "widgets::tabs::TabItem::closable",
+        Demo("tabs", "Import ⠋ ×"),
+    ),
+    (
+        "widgets::tabs::TabItem::prefix",
+        Demo("tabs", "▷ orders.sql"),
+    ),
+    (
+        "widgets::tabs::TabItem::suffix",
+        Demo("tabs", "▦ users ● ×"),
+    ),
+    ("widgets::tabs::TabItem::done", Demo("tabs", "Export ✓ ×")),
+    (
+        "widgets::tabs::TabItem::dirty",
+        Demo("tabs", "orders.sql • ×"),
+    ),
+    ("widgets::tabs::TabItem::busy", Demo("tabs", "Import ⠋")),
+    ("widgets::tabs::TabItem::error", Demo("tabs", "Migrate ! ×")),
+    (
+        "widgets::tabs::CloseReveal",
+        Option("tabs", "tabs.close_reveal"),
+    ),
+    (
+        "widgets::tabs::CloseReveal::Always",
+        Option("tabs", "tabs.close_reveal=always"),
+    ),
+    (
+        "widgets::tabs::CloseReveal::Hover",
+        Option("tabs", "tabs.close_reveal=hover"),
+    ),
+    ("widgets::tabs::TabRule", Option("tabs", "tabs.rule")),
+    (
+        "widgets::tabs::TabRule::Auto",
+        Option("tabs", "tabs.rule=auto"),
+    ),
+    (
+        "widgets::tabs::TabRule::Accent",
+        Option("tabs", "tabs.rule=accent"),
+    ),
+    (
+        "widgets::tabs::TabRule::Neutral",
+        Option("tabs", "tabs.rule=neutral"),
+    ),
+    (
+        "widgets::tabs::TabRule::FocusOnly",
+        Option("tabs", "tabs.rule=focus-only"),
+    ),
+    ("widgets::tabs::TabCmd", Option("tabs", "tabs.keymap")),
+    ("widgets::tabs::TabCmd::Close", Demo("tabs", "x close")),
+    ("widgets::tabs::TabCmd::New", Demo("tabs", "n new tab")),
+    ("widgets::tabs::TabCmd::Jump", Demo("tabs", "1–9 jump")),
+    (
+        "widgets::tabs::TabAction",
+        Demo("tabs", "TabAction::Activated · Close · New"),
+    ),
+    (
+        "widgets::tabs::TabAction::Activated",
+        Demo("tabs", "TabAction::Activated"),
+    ),
+    (
+        "widgets::tabs::TabAction::Close",
+        Demo("tabs", "Activated · Close"),
+    ),
+    ("widgets::tabs::TabAction::New", Demo("tabs", "Close · New")),
+    ("widgets::tabs::Tabs::rule", Option("tabs", "tabs.rule")),
+    ("widgets::tabs::Tabs::wrap", Option("tabs", "tabs.wrap")),
+    ("widgets::tabs::Tabs::nav", Option("tabs", "tabs.nav")),
+    ("widgets::tabs::Tabs::keymap", Option("tabs", "tabs.keymap")),
+    (
+        "widgets::tabs::Tabs::digit_jump",
+        Option("tabs", "tabs.digit_jump"),
+    ),
+    (
+        "widgets::tabs::Tabs::close_keys",
+        Option("tabs", "tabs.close_keys"),
+    ),
+    (
+        "widgets::tabs::Tabs::new_key",
+        Option("tabs", "tabs.new_key"),
+    ),
+    (
+        "widgets::tabs::Tabs::allow_new",
+        Option("tabs", "tabs.allow_new"),
+    ),
+    (
+        "widgets::tabs::Tabs::overflow_menu",
+        Option("tabs", "tabs.overflow_menu"),
+    ),
+    (
+        "widgets::tabs::Tabs::more_button",
+        Option("tabs", "tabs.more_button"),
+    ),
+    (
+        "widgets::tabs::Tabs::close_target_w",
+        Option("tabs", "tabs.close_w"),
+    ),
+    (
+        "widgets::tabs::Tabs::close_button",
+        Option("tabs", "tabs.close_button"),
+    ),
+    (
+        "widgets::tabs::Tabs::close_reveal",
+        Option("tabs", "tabs.close_reveal"),
+    ),
+    (
+        "widgets::tabs::Tabs::middle_click_closes",
+        Option("tabs", "tabs.middle_click"),
+    ),
 ];

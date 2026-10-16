@@ -1033,6 +1033,7 @@ impl App {
             match r {
                 Request::OpenDialog(d) => self.open_dialog(*d),
                 Request::Status(s) => self.set_status(s),
+                Request::SetOption(set) => self.apply_opt(set),
             }
         }
         out
@@ -1709,7 +1710,18 @@ impl App {
                 }
                 None => Outcome::Ignored,
             },
-            MouseKind::Middle => Outcome::Ignored,
+            // a middle click goes to the page under the pointer (a tab
+            // strip closes the tab under it); a modal or the overlay
+            // Inspector swallows it
+            MouseKind::Middle => {
+                if self.dialog.is_some() || self.inspector_overlay() {
+                    return Outcome::Consumed;
+                }
+                match self.hits.hit(m.pos) {
+                    Some(id) => self.dispatch(PageEvent::Middle { id }),
+                    None => Outcome::Ignored,
+                }
+            }
             MouseKind::Secondary => {
                 let route = self.pointer.route_secondary(&self.hits, m.pos);
                 // a dialog registers no light-dismiss backdrop: a secondary
@@ -2103,6 +2115,16 @@ impl App {
     fn draw_main(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let i = self.page.index();
+        // the page's Options section shows the app's values of its options
+        let values: Vec<usize> = crate::options::page_options(self.page)
+            .iter()
+            .map(|o| self.option_value(o))
+            .collect();
+        if !values.is_empty()
+            && let Some(tpl) = self.pages[i].template_mut()
+        {
+            tpl.sync_options(values);
+        }
         let page = self.pages[i].as_mut();
         // page title row
         buf.set_string(area.x, area.y, page.title(), t.title());

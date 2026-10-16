@@ -383,5 +383,13 @@ fn every_page_opens_by_its_slug() {
             assert_eq!(h.focus_bars(), 1, "{}", e.label);
         }
     }
-    assert_eq!(stubs, 29, "the planned pages of plan §7.2");
+    // the planned pages of plan §7.2 not filled yet: the page files that
+    // still build a stub (each page step replaces its own)
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bin/showcase/pages");
+    let planned = std::fs::read_dir(dir)
+        .unwrap()
+        .filter_map(|e| std::fs::read_to_string(e.unwrap().path()).ok())
+        .filter(|src| src.contains("Box::new(StubPage::new("))
+        .count();
+    assert_eq!(stubs, planned, "the planned pages of plan §7.2");
 }

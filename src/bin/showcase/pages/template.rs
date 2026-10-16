@@ -17,7 +17,9 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use super::{Hint, PageCtx, PageEvent};
+use super::{Hint, PageCtx, PageEvent, Request};
+use crate::app::PageId;
+use crate::options::{Group, Opt, OptionsView, page_options};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::ColorLevel;
@@ -80,6 +82,12 @@ pub struct Template {
     states: super::layout::Sections,
     /// Rows the States grid drew whole in the last frame.
     shown: Vec<SpecimenState>,
+    /// The page's option table (`crate::options::page_options`) and its
+    /// controls, for a page that has options ([`Self::with_options`]).
+    opts: &'static [Opt],
+    options: Option<OptionsView>,
+    /// The option values the owner last synced, in [`Self::opts`] order.
+    values: Vec<usize>,
 }
 
 impl Template {
@@ -96,7 +104,44 @@ impl Template {
                 s
             },
             shown: Vec::new(),
+            opts: &[],
+            options: None,
+            values: Vec::new(),
         }
+    }
+
+    /// Give the Options section the controls of `page`'s option table
+    /// (`crate::options::page_options`): the same declarations the
+    /// Inspector's Options tab and `--opt` read. A changed control goes
+    /// through [`Request::SetOption`] to the app's one option path.
+    pub fn with_options(mut self, page: PageId) -> Self {
+        let opts = page_options(page);
+        if !opts.is_empty() {
+            let heading: &'static str = crate::app::NAV_ENTRIES[page.index()].label;
+            self.opts = opts;
+            self.values = opts.iter().map(|o| o.default).collect();
+            self.options = Some(OptionsView::new(
+                self.tabs.id.sub("options"),
+                &[Group {
+                    heading,
+                    opts,
+                    empty: "",
+                }],
+            ));
+        }
+        self
+    }
+
+    /// Load the current option values (in the page table's order) before
+    /// a frame: the owner of the values is the app (`App::option_value`).
+    pub fn sync_options(&mut self, values: Vec<usize>) {
+        self.values = values;
+    }
+
+    /// Whether an option's select has its list open (a layer over the
+    /// page).
+    pub fn popup_open(&self) -> bool {
+        self.section() == Section::Options && self.options.as_ref().is_some_and(|v| v.popup_open())
     }
 
     pub fn section(&self) -> Section {
@@ -135,11 +180,22 @@ impl Template {
         Rect::new(area.x, top, area.width, area.bottom() - top)
     }
 
-    /// The Options body of a page with no option table yet: its page step
-    /// adds the table (and draws an `OptionsView` here); the shell-wide
-    /// options are in the Inspector meanwhile.
+    /// The Options body: the controls of the page's option table
+    /// ([`Self::with_options`]), or, for a page with no table yet, a note
+    /// pointing at the shell-wide options in the Inspector.
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
+        if let Some(view) = self.options.as_mut() {
+            let (opts, values) = (self.opts, &self.values);
+            view.sync(|o| {
+                opts.iter()
+                    .position(|p| p.key == o.key)
+                    .and_then(|i| values.get(i).copied())
+                    .unwrap_or(o.default)
+            });
+            view.render(area, buf, ctx, t.canvas);
+            return;
+        }
         let e = EmptyState::new("No page options yet")
             .hint("Shell-wide options: i, then Options · or --opt shell.<key>=<value>");
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
@@ -232,6 +288,21 @@ impl Template {
         if states && let Some(o) = self.states.handle(ev) {
             return Some(o);
         }
+        let in_options = self.section() == Section::Options;
+        if let Some(view) = self.options.as_mut() {
+            if let PageEvent::Blur(ch) = ev
+                && view.owns(ch.from)
+            {
+                return Some(view.on_blur(Some(ch.from)));
+            }
+            if in_options && let Some((out, set)) = view.handle(ev, cx) {
+                if let Some(set) = set {
+                    cx.requests.push(Request::SetOption(set));
+                    return Some(Outcome::Changed);
+                }
+                return Some(out);
+            }
+        }
         match ev {
             PageEvent::Key(key) => {
                 let f = cx.focus.current()?;
@@ -269,6 +340,9 @@ impl Template {
         if f == self.tabs.id {
             return Some(vec![("←→", "Section"), ("1–3", "Jump")]);
         }
-        (f == self.compare.id).then(|| vec![("Enter / Space", "Compare levels")])
+        if f == self.compare.id {
+            return Some(vec![("Enter / Space", "Compare levels")]);
+        }
+        self.options.as_ref().and_then(|v| v.hints(Some(f)))
     }
 }

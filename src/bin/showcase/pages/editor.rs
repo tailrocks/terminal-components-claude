@@ -548,6 +548,7 @@ impl Page for EditorPage {
             }
             PageEvent::DialogClosed { .. }
             | PageEvent::Secondary { .. }
+            | PageEvent::Middle { .. }
             | PageEvent::WheelH { .. }
             | PageEvent::Press { .. }
             | PageEvent::Release { .. }
