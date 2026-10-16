@@ -16,7 +16,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::theme::ButtonKind;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::widgets::button::{Button, ButtonRow, RowAlign, RowOverflow};
 use crate::widgets::input::{InputEvent, TextInput};
@@ -90,6 +90,10 @@ pub struct Dialog {
     /// The rectangle an anchored [`Self::placement`] opens next to.
     /// Default `Rect::ZERO`.
     pub anchor: Rect,
+    /// Which screen rows the dimmed backdrop leaves live. Default
+    /// [`Backdrop::DEFAULT`]: the footer row, whose hints belong to the
+    /// dialog.
+    pub backdrop: Backdrop,
     /// How the actions are laid out. Default: packed right, the theme's
     /// button gap, and a row that wraps onto a second line rather than cut
     /// or hide an action ([`RowOverflow::Wrap`]).
@@ -159,6 +163,7 @@ impl Dialog {
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
             anchor: Rect::ZERO,
+            backdrop: Backdrop::DEFAULT,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -195,6 +200,7 @@ impl Dialog {
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
             anchor: Rect::ZERO,
+            backdrop: Backdrop::DEFAULT,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -231,6 +237,7 @@ impl Dialog {
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
             anchor: Rect::ZERO,
+            backdrop: Backdrop::DEFAULT,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -286,6 +293,7 @@ impl Dialog {
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
             anchor: Rect::ZERO,
+            backdrop: Backdrop::DEFAULT,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -605,6 +613,12 @@ impl Dialog {
         self
     }
 
+    /// See [`Self::backdrop`].
+    pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
+        self.backdrop = backdrop;
+        self
+    }
+
     /// See [`Self::placement`].
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
@@ -866,7 +880,7 @@ impl Dialog {
         // at least one column of padding: the scrollbar lives there
         self.pad = crate::theme::Insets::new(t.spacing.dialog.x.max(1), t.spacing.dialog.y);
         // dim backdrop; the footer row stays live because its hints belong to the dialog
-        ctx.modal_backdrop(buf, screen);
+        ctx.modal_backdrop_with(buf, screen, self.backdrop);
         let bounds = bounds.intersection(screen);
         let bounds = if bounds.is_empty() { screen } else { bounds };
         let m = self.outer_margin;

@@ -13,7 +13,7 @@ use ratatui::style::Style;
 
 use crate::core::focus::{Focus, FocusFallback, FocusRing};
 use crate::core::id::WidgetId;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::ui::text::{truncate, width};
 
@@ -212,6 +212,9 @@ pub struct Frame<'a> {
     /// Dim the page and start the modal layer (off for a frame drawn on an
     /// already-dimmed layer).
     pub backdrop: bool,
+    /// Which screen rows the backdrop leaves live. Default
+    /// [`Backdrop::DEFAULT`] (the footer row).
+    pub dim: Backdrop,
 }
 
 impl<'a> Frame<'a> {
@@ -230,6 +233,7 @@ impl<'a> Frame<'a> {
             top: 1,
             bottom: 1,
             backdrop: true,
+            dim: Backdrop::DEFAULT,
         }
     }
     pub fn title(mut self, title: &'a str) -> Self {
@@ -275,6 +279,11 @@ impl<'a> Frame<'a> {
         self.backdrop = on;
         self
     }
+    /// See [`Self::dim`].
+    pub fn dim(mut self, dim: Backdrop) -> Self {
+        self.dim = dim;
+        self
+    }
 
     /// The frame's outer rectangle on `screen`.
     pub fn area(&self, screen: Rect) -> Rect {
@@ -297,7 +306,7 @@ impl<'a> Frame<'a> {
     pub fn render(&self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) -> (Rect, Rect) {
         let t = ctx.theme;
         if self.backdrop {
-            ctx.modal_backdrop(buf, screen);
+            ctx.modal_backdrop_with(buf, screen, self.dim);
         }
         let area = self.area(screen);
         let bg = t.surface_elevated;
