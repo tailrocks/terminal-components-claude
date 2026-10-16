@@ -95,6 +95,98 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
+    // SC26: Text utilities
+    (
+        "core::text::TextBuffer",
+        Demo(
+            "textutilities",
+            "TextBuffer · the model under every text control",
+        ),
+    ),
+    (
+        "core::text::CursorPos",
+        Demo("textutilities", "CursorPos { line: 1, col: 10 }"),
+    ),
+    (
+        "ui::text::WrapOpts",
+        Option("textutilities", "textutilities.wrap"),
+    ),
+    (
+        "ui::text::DurationStyle",
+        Option("textutilities", "textutilities.duration"),
+    ),
+    (
+        "ui::text::DurationStyle::Compact",
+        Option("textutilities", "textutilities.duration=compact"),
+    ),
+    (
+        "ui::text::DurationStyle::Spoken",
+        Option("textutilities", "textutilities.duration=spoken"),
+    ),
+    (
+        "widgets::props::Prop::copyable",
+        StateRow("textutilities", "focused"),
+    ),
+    (
+        "widgets::props::Prop::tone",
+        Demo("textutilities", "Health healthy"),
+    ),
+    (
+        "widgets::props::Prop::wrap",
+        Demo("textutilities", "Prop::wrap a value marked wrap"),
+    ),
+    (
+        "widgets::props::Sheet",
+        Option("textutilities", "textutilities.sheet"),
+    ),
+    (
+        "widgets::props::PropsAction",
+        Demo("textutilities", "last PropsAction: —"),
+    ),
+    (
+        "widgets::props::PropsAction::Copy",
+        Demo("textutilities", "Copy(row) on the copy key"),
+    ),
+    (
+        "widgets::props::PropsAction::Activate",
+        Demo("textutilities", "(Activate(row) on Enter"),
+    ),
+    (
+        "widgets::props::PropsList",
+        Demo("textutilities", "PropsList · nav default"),
+    ),
+    (
+        "widgets::props::PropsCmd",
+        Option("textutilities", "textutilities.copy_key"),
+    ),
+    (
+        "widgets::props::PropsCmd::Copy",
+        Option("textutilities", "textutilities.copy_key"),
+    ),
+    (
+        "widgets::props::PropsList::keymap",
+        Option("textutilities", "textutilities.copy_key"),
+    ),
+    (
+        "widgets::props::PropsList::nav",
+        Option("textutilities", "textutilities.nav"),
+    ),
+    (
+        "widgets::props::PropsList::track_click",
+        Option("textutilities", "textutilities.track_click"),
+    ),
+    (
+        "widgets::props::PropsList::scrollbar_gap",
+        Option("textutilities", "textutilities.scrollbar_gap"),
+    ),
+    (
+        "widgets::props::PropsList::sheet",
+        Option("textutilities", "textutilities.sheet"),
+    ),
+    (
+        "widgets::props::PropsList::reveal",
+        Option("textutilities", "textutilities.reveal"),
+    ),
     // SC4: Chrome, Status & hints
     (
         "widgets::hintbar::HintLayer",
