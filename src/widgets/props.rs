@@ -263,6 +263,11 @@ pub struct PropsList {
     /// the cap are cut with `…` (rows never stack in a list). Default
     /// [`Sheet::default`].
     pub sheet: Sheet,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`].
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 impl PropsList {
@@ -278,7 +283,16 @@ impl PropsList {
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
             sheet: Sheet::default(),
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
         }
+    }
+
+    /// Override the app-wide vertical track-click policy
+    /// (`TrackClick::Page` pages toward the pointer).
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
     }
 
     /// Blank columns between the values and the scrollbar.
@@ -384,9 +398,10 @@ impl PropsList {
     }
 
     /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
+    /// press on the thumb grabs it, a press on the track follows
+    /// [`Self::track_click`].
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
             Outcome::Changed
         } else {
             Outcome::Consumed
@@ -449,6 +464,7 @@ impl PropsList {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -843,5 +859,47 @@ mod static_reveal_tests {
         assert_eq!(hits.hover_at(Position::new(8, 0)), None, "Trash fits");
         let (text, _) = frame(Some(id));
         assert!(text.contains(PATH), "{text}");
+    }
+}
+
+#[cfg(test)]
+mod track_click_tests {
+    use super::*;
+    use crate::core::scroll::TrackClick;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::ui::ctx::Interaction;
+
+    fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
+        let props = (0..50).map(|i| Prop::new("Key", format!("v{i}"))).collect();
+        let mut l = PropsList::new(WidgetId::of("p"), props);
+        l.track_click = click;
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 20, 10);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        ctx.track_click = app;
+        l.render(area, &mut buf, &mut ctx, theme.surface);
+        assert_eq!(l.on_scrollbar(Position::new(19, 9)), Outcome::Changed);
+        l.scroll.offset
+    }
+
+    /// The vertical bar follows the track-click policy (it always jumped).
+    #[test]
+    fn a_props_track_click_can_page() {
+        assert_eq!(
+            pressed_at_the_bottom(Some(TrackClick::Page), TrackClick::Jump),
+            10
+        );
+        assert_eq!(
+            pressed_at_the_bottom(None, TrackClick::Page),
+            10,
+            "app-wide"
+        );
+        assert!(
+            pressed_at_the_bottom(None, TrackClick::Jump) > 10,
+            "default jumps"
+        );
     }
 }
