@@ -26,11 +26,10 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::activity::{
     ActivityKind, ActivityState, InputError, KILL_AFTER_TICKS, LineTone, RETAIN_LINES, key_bytes,
 };
-use crate::screens::{
-    Cx, Go, ModalResult, ModalTag, Screen, StatusBits, open_context, ticks_label,
-};
+use crate::screens::{Cx, Go, ModalResult, Screen, StatusBits, open_context, ticks_label};
 use crate::sim::world::World;
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::layer::LayerTag;
 
 pub const VIEW: WidgetId = WidgetId::of("activity.view");
 pub const CHIPS: WidgetId = WidgetId::of("activity.chips");
@@ -388,7 +387,7 @@ impl ActivityTab {
             anchor,
             a.name.clone(),
             items,
-            ModalTag::new("activity-output").key(keys),
+            LayerTag::new("activity-output").key(keys),
         )
     }
 
@@ -409,7 +408,7 @@ impl ActivityTab {
             anchor,
             chip.label.clone(),
             items,
-            ModalTag::new("activity-chip").key(chip.label.clone()),
+            LayerTag::new("activity-chip").key(chip.label.clone()),
         )
     }
 }
@@ -732,7 +731,7 @@ impl Screen for ActivityTab {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
