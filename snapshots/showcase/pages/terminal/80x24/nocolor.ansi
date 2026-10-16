@@ -1,25 +1,25 @@
  ▪ [0m[1mJunie[0m Design system / Text & code / Terminal           i Inspector   ? Help  [0m
                                                                                 [0m
-   Overview       │  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · … [0m
- ▸ App shell      │                                                             [0m
- ▸ Inputs & forms │  ╭─ Viewp… ─ 37 lines · following ─╮ │  Step rail   7 of 7  [0m
- ▸ Tables         │  │  [0m[2m  #10 COPY rust-toolchain.to [0m│ │ │                      [0m
- ▸ Navigation     │  │    #11 RUN cargo fetch --lock │ │ │   ✓ 01 Resolve wo…   [0m
- ▸ Overlays       │  │    #12 RUN cargo build --rele │ │ │   ✓ 02 Pull base …   [0m
- ▸ Feedback       │  │    #13 RUN apt-get install -y │ │ │   ✓ 03 Build cont…   [0m
- ▸ Layout         │  │    #14 COPY rust-toolchain.to │ │ │     04 Mount sour…   [0m
- ▾ Text & code    │  │  ✓ Build container            │ │ │   ✓ 05 Resolve cr…   [0m
-     Code editor  │  │  [0m[1m▶ Resolve credentials[0m        │ │ │   ✓ 06 Start agent   [0m
-     Diff         │  │    1Password  Engineering › A │ │ │   ✓ 07 Ready         [0m
-[0m[1m▎  › Terminal     [0m│  │  ✓ Resolve credentials        │ │ │                      [0m
- ▸ Screens        │  │  [0m[1m▶ Start agent[0m                ┃ │ │                      [0m
-                  │  │    claude --resume  pid 4188  ┃ │ │                      [0m
-                  │  │  ✓ Start agent                ┃ │ │                      [0m
-                  │  │  [0m[1m▶ Ready[0m                      ┃ │ │                      [0m
-                  │  │  ✓ Ready                      ┃ │ │                      [0m
-                  │  │  [0m[1mpayments-platform ❯ [0m         ┃ │ │                      [0m
-                  │  │  ━━━━━━━━━━━━━────────────────  │ │   [0m[1;7mRun [0m   Run with…   [0m
-                  │  ╰─────────────────────────────────╯ │                      [0m
+ [0m[1mComponents[0m      25  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · … [0m
+                                                                                [0m
+    Overview         ╭─ Viewp… ─ 37 lines · following ─╮ │  Step rail   7 of 7  [0m
+  ▸ App shell        │  [0m[2m  #10 COPY rust-toolchain.to [0m│ │ │                      [0m
+  ▸ Inputs & forms   │    #11 RUN cargo fetch --lock │ │ │   ✓ 01 Resolve wo…   [0m
+  ▸ Tables           │    #12 RUN cargo build --rele │ │ │   ✓ 02 Pull base …   [0m
+  ▸ Navigation       │    #13 RUN apt-get install -y │ │ │   ✓ 03 Build cont…   [0m
+  ▸ Overlays         │    #14 COPY rust-toolchain.to │ │ │     04 Mount sour…   [0m
+  ▸ Feedback         │  ✓ Build container            │ │ │   ✓ 05 Resolve cr…   [0m
+  ▸ Layout           │  [0m[1m▶ Resolve credentials[0m        │ │ │   ✓ 06 Start agent   [0m
+  ▾ Text & code      │    1Password  Engineering › A │ │ │   ✓ 07 Ready         [0m
+      Code editor    │  ✓ Resolve credentials        │ │ │                      [0m
+      Diff           │  [0m[1m▶ Start agent[0m                ┃ │ │                      [0m
+ [0m[1m▎  › Terminal     [0m  │    claude --resume  pid 4188  ┃ │ │                      [0m
+  ▸ Screens          │  ✓ Start agent                ┃ │ │                      [0m
+                     │  [0m[1m▶ Ready[0m                      ┃ │ │                      [0m
+                     │  ✓ Ready                      ┃ │ │                      [0m
+                     │  [0m[1mpayments-platform ❯ [0m         ┃ │ │                      [0m
+                     │  ━━━━━━━━━━━━━────────────────  │ │   [0m[1;7mRun [0m   Run with…   [0m
+                     ╰─────────────────────────────────╯ │                      [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l

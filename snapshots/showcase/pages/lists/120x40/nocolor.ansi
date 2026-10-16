@@ -1,41 +1,41 @@
  ▪ [0m[1mJunie[0m Design system / Navigation / Lists                                   no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
-   Overview            │  [0m[1mLists[0m  Single and multiple selection, disabled items, scrolling, empty state                  [0m
- ▸ App shell           │                                                                                                [0m
- ▸ Inputs & forms      │    Language        1–13 of 20      Files to inclu… 2 selected      Search results              [0m
- ▸ Tables              │                                                                                                [0m
- ▾ Navigation          │    Chosen: Rust                    Space toggle · a all · Sh…                                  [0m
-[0m[1m▎  › Lists             [0m│                                                                                                [0m
-     Trees             │     › Rust                  ┃       ✓ src/api/auth… modified                                   [0m
-     Sidebars          │       TypeScript            ┃       ✓ src/api/bill… modified                                   [0m
- ▸ Overlays            │       Python                ┃      [0m[2m   src/db/sche… generated [0m                                  [0m
- ▸ Feedback            │       Kotlin                ┃         tests/checkout.rs  new                                   [0m
- ▸ Layout              │       Go                    ┃      [0m[2m   Cargo.lock      locked [0m                                  [0m
- ▸ Text & code         │       Java                  ┃         docs/webhook… modified         No results for “retry”    [0m
- ▸ Screens             │       Swift                 ┃         src/workers/… modified                                   [0m
-                       │       C#                    ┃         src/config.rs modified                                   [0m
-                       │       Ruby                  │         README.md     modified                                   [0m
-                       │       Scala                 │         src/main.rs   modified                                   [0m
-                       │       Elixir                │         tests/auth_flow.rs new                                   [0m
-                       │       Haskell               │         src/db/pool.… modified                                   [0m
-                       │    [0m[2m   Zig                   [0m│                                                                  [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
-                       │                                                                                                [0m
+ [0m[1mComponents[0m           25  [0m[1mLists[0m  Single and multiple selection, disabled items, scrolling, empty state                  [0m
+                                                                                                                        [0m
+    Overview                Language        1–13 of 20      Files to inclu… 2 selected      Search results              [0m
+  ▸ App shell                                                                                                           [0m
+  ▸ Inputs & forms          Chosen: Rust                    Space toggle · a all · Sh…                                  [0m
+  ▸ Tables                                                                                                              [0m
+  ▾ Navigation               › Rust                  ┃       ✓ src/api/auth… modified                                   [0m
+ [0m[1m▎  › Lists             [0m       TypeScript            ┃       ✓ src/api/bill… modified                                   [0m
+      Trees                    Python                ┃      [0m[2m   src/db/sche… generated [0m                                  [0m
+      Sidebars                 Kotlin                ┃         tests/checkout.rs  new                                   [0m
+  ▸ Overlays                   Go                    ┃      [0m[2m   Cargo.lock      locked [0m                                  [0m
+  ▸ Feedback                   Java                  ┃         docs/webhook… modified         No results for “retry”    [0m
+  ▸ Layout                     Swift                 ┃         src/workers/… modified                                   [0m
+  ▸ Text & code                C#                    ┃         src/config.rs modified                                   [0m
+  ▸ Screens                    Ruby                  │         README.md     modified                                   [0m
+                               Scala                 │         src/main.rs   modified                                   [0m
+                               Elixir                │         tests/auth_flow.rs new                                   [0m
+                               Haskell               │         src/db/pool.… modified                                   [0m
+                            [0m[2m   Zig                   [0m│                                                                  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
 [?25l

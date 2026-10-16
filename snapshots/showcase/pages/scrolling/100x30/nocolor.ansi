@@ -1,31 +1,31 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Scrolling               no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
-   Overview       │  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
- ▸ App shell      │                                                                                 [0m
- ▸ Inputs & forms │    Wrapped … 1–21 of 141      Long list 1–21 of 120      Log    1981–2000/2000  [0m
- ▸ Tables         │                                                                                 [0m
- ▸ Navigation     │    Junie works through ┃         Row 001          ┃      [0m[2m 732.60s  info   R… [0m│  [0m
- ▸ Overlays       │    a task the way a    ┃         Row 002          ┃       732.97s  info   F… │  [0m
- ▸ Feedback       │    careful engineer    ┃         Row 003          ┃       733.34s  info   C… │  [0m
- ▾ Layout         │    would: it reads the │         Row 004          │       733.71s  info   C… │  [0m
-     Panels       │    relevant code,      │         Row 005          │       734.08s  warn   u… │  [0m
-[0m[1m▎  › Scrolling    [0m│    forms a plan, makes │         Row 006          │       734.45s  info   C… │  [0m
- ▸ Text & code    │    focused changes,    │         Row 007          │       734.82s  info   R… │  [0m
- ▸ Screens        │    runs the tests, and │         Row 008          │       735.19s  info   t… │  [0m
-                  │    reports back with a │         Row 009          │       735.56s  info   t… │  [0m
-                  │    summary you can     │         Row 010          │       735.93s  error  t… │  [0m
-                  │    review before       │         Row 011          │       736.30s  info   t… │  [0m
-                  │    anything is merged. │         Row 012          │       736.67s  info   L… │  [0m
-                  │                        │         Row 013          │       737.04s  info   R… │  [0m
-                  │    Each step is        │         Row 014          │       737.41s  info   F… │  [0m
-                  │    visible. You can    │         Row 015          │       737.78s  info   C… │  [0m
-                  │    pause, redirect, or │         Row 016          │       738.15s  info   C… │  [0m
-                  │    take over at any    │         Row 017          │       738.52s  warn   u… │  [0m
-                  │    point, and every    │         Row 018          │       738.89s  info   C… │  [0m
-                  │    change lands as an  │         Row 019          │       739.26s  info   R… │  [0m
-                  │    ordinary diff in    │         Row 020          │       739.63s  info   t… ┃  [0m
-                  │    [0m[2myour working tree.  [0m│      [0m[2m   Row 021          [0m│      ━━━━━───────────────   [0m
-                  │                                                                                 [0m
+ [0m[1mComponents[0m      25  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
+                                                                                                    [0m
+    Overview           Wrapped … 1–21 of 141      Long list 1–21 of 120      Log    1981–2000/2000  [0m
+  ▸ App shell                                                                                       [0m
+  ▸ Inputs & forms     Junie works through ┃         Row 001          ┃      [0m[2m 732.60s  info   R… [0m│  [0m
+  ▸ Tables             a task the way a    ┃         Row 002          ┃       732.97s  info   F… │  [0m
+  ▸ Navigation         careful engineer    ┃         Row 003          ┃       733.34s  info   C… │  [0m
+  ▸ Overlays           would: it reads the │         Row 004          │       733.71s  info   C… │  [0m
+  ▸ Feedback           relevant code,      │         Row 005          │       734.08s  warn   u… │  [0m
+  ▾ Layout             forms a plan, makes │         Row 006          │       734.45s  info   C… │  [0m
+      Panels           focused changes,    │         Row 007          │       734.82s  info   R… │  [0m
+ [0m[1m▎  › Scrolling    [0m    runs the tests, and │         Row 008          │       735.19s  info   t… │  [0m
+  ▸ Text & code        reports back with a │         Row 009          │       735.56s  info   t… │  [0m
+  ▸ Screens            summary you can     │         Row 010          │       735.93s  error  t… │  [0m
+                       review before       │         Row 011          │       736.30s  info   t… │  [0m
+                       anything is merged. │         Row 012          │       736.67s  info   L… │  [0m
+                                           │         Row 013          │       737.04s  info   R… │  [0m
+                       Each step is        │         Row 014          │       737.41s  info   F… │  [0m
+                       visible. You can    │         Row 015          │       737.78s  info   C… │  [0m
+                       pause, redirect, or │         Row 016          │       738.15s  info   C… │  [0m
+                       take over at any    │         Row 017          │       738.52s  warn   u… │  [0m
+                       point, and every    │         Row 018          │       738.89s  info   C… │  [0m
+                       change lands as an  │         Row 019          │       739.26s  info   R… │  [0m
+                       ordinary diff in    │         Row 020          │       739.63s  info   t… ┃  [0m
+                       [0m[2myour working tree.  [0m│      [0m[2m   Row 021          [0m│      ━━━━━───────────────   [0m
+                                                                                                    [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l

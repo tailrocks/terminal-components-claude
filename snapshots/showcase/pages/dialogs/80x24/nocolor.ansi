@@ -1,25 +1,25 @@
  ▪ [0m[1mJunie[0m Design system / Overlays / Dialogs               i Inspector   ? Help  [0m
                                                                                 [0m
-   Overview       │  [0m[1mDialogs[0m  Focus is trapped, the page dims, Esc always canc… [0m
- ▸ App shell      │                                                             [0m
- ▸ Inputs & forms │    Open a dialog                                            [0m
- ▸ Tables         │                                                             [0m
- ▸ Navigation     │     [0m[1;7mConfirm run [0m   Rename task…    Three choices…    Del…   [0m
- ▾ Overlays       │                                                             [0m
-[0m[1m▎  › Dialogs      [0m│    Confirm: primary action focused first · y / n answer d…  [0m
-     Pickers      │    Prompt: editing inside a modal, Enter submits, validat…  [0m
- ▸ Feedback       │    Destructive: Cancel focused first, action in danger st…  [0m
- ▸ Layout         │    Task: Migrate sessions table                             [0m
- ▸ Text & code    │                                                             [0m
- ▸ Screens        │                                                             [0m
-                  │    Results                                                  [0m
-                  │                                                             [0m
-                  │    Nothing yet                                              [0m
-                  │                                                             [0m
-                  │                                                             [0m
-                  │                                                             [0m
-                  │                                                             [0m
-                  │                                                             [0m
+ [0m[1mComponents[0m      25  [0m[1mDialogs[0m  Focus is trapped, the page dims, Esc always canc… [0m
+                                                                                [0m
+    Overview           Open a dialog                                            [0m
+  ▸ App shell                                                                   [0m
+  ▸ Inputs & forms      [0m[1;7mConfirm run [0m   Rename task…    Three choices…    Del…   [0m
+  ▸ Tables                                                                      [0m
+  ▸ Navigation         Confirm: primary action focused first · y / n answer d…  [0m
+  ▾ Overlays           Prompt: editing inside a modal, Enter submits, validat…  [0m
+ [0m[1m▎  › Dialogs      [0m    Destructive: Cancel focused first, action in danger st…  [0m
+      Pickers          Task: Migrate sessions table                             [0m
+  ▸ Feedback                                                                    [0m
+  ▸ Layout                                                                      [0m
+  ▸ Text & code        Results                                                  [0m
+  ▸ Screens                                                                     [0m
+                       Nothing yet                                              [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l

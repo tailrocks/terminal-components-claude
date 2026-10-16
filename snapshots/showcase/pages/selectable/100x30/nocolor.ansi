@@ -1,31 +1,31 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Selection               no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
-   Overview       │  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confi… [0m
- ▸ App shell      │                                                                                 [0m
- ▸ Inputs & forms │    Members                                                         1–3 of 12   ┃[0m
- ▾ Tables         │                                                                                ┃[0m
-     Basic table  │       [ ] Name                         Role    Status     Region  On call …    ┃[0m
-     Editable     │       [0m[2m[ ][0m Dana Whitfield               Owner   Active     EU      Yes      ┃   ┃[0m
-     Data grid    │       [ ] Ari Moreno                   Admin   Active     US      Yes      │   ┃[0m
-[0m[1m▎  › Selection    [0m│       [ ] Cleo Barnes                  Editor  Active     EU      —        │   ┃[0m
-     Cell editors │           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────    ┃[0m
- ▸ Navigation     │                                                                                ┃[0m
- ▸ Overlays       │                                                                                ┃[0m
- ▸ Feedback       │                                                                                ┃[0m
- ▸ Layout         │                                                                                ┃[0m
- ▸ Text & code    │                                                                                ┃[0m
- ▸ Screens        │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
-                  │                                                                                │[0m
+ [0m[1mComponents[0m      25  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confi… [0m
+                                                                                                    [0m
+    Overview           Members                                                         1–3 of 12   ┃[0m
+  ▸ App shell                                                                                      ┃[0m
+  ▸ Inputs & forms        [ ] Name                         Role    Status     Region  On call …    ┃[0m
+  ▾ Tables                [0m[2m[ ][0m Dana Whitfield               Owner   Active     EU      Yes      ┃   ┃[0m
+      Basic table         [ ] Ari Moreno                   Admin   Active     US      Yes      │   ┃[0m
+      Editable            [ ] Cleo Barnes                  Editor  Active     EU      —        │   ┃[0m
+      Data grid               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────    ┃[0m
+ [0m[1m▎  › Selection    [0m                                                                                ┃[0m
+      Cell editors                                                                                 ┃[0m
+  ▸ Navigation                                                                                     ┃[0m
+  ▸ Overlays                                                                                       ┃[0m
+  ▸ Feedback                                                                                       ┃[0m
+  ▸ Layout                                                                                         │[0m
+  ▸ Text & code                                                                                    │[0m
+  ▸ Screens                                                                                        │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
+                                                                                                   │[0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l

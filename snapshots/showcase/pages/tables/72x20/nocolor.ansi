@@ -1,21 +1,21 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Basic table     i Inspector   ? Help  [0m
                                                                         [0m
-   Overview       │  [0m[1mTables[0m  Sort by header, hover rows, select with E… [0m
- ▸ App shell      │                                                     [0m
- ▸ Inputs & forms │    Tasks                    unsorted · 1–4 of 24   ┃[0m
- ▾ Tables         │                                                    ┃[0m
-[0m[1m▎  › Basic table  [0m│       ID     Task                             …    ┃[0m
-     Editable     │       #1040  Add rate limiting to auth endpo…  ┃   ┃[0m
-     Data grid    │       #1041  Migrate sessions table to UUID …  │   ┃[0m
-     Selection    │       #1042  Fix flaky checkout integration …  │   ┃[0m
-     Cell editors │    [0m[2m   #1043  Write release notes for 3.2       [0m│   ┃[0m
- ▸ Navigation     │       ━━━━━━━━━━━──────────────────────────────    │[0m
- ▸ Overlays       │                                                    │[0m
- ▸ Feedback       │                                                    │[0m
- ▸ Layout         │                                                    │[0m
- ▸ Text & code    │                                                    │[0m
- ▸ Screens        │                                                    │[0m
-                  │                                                    │[0m
+ [0m[1mComponents[0m      25  [0m[1mTables[0m  Sort by header, hover rows, select with E… [0m
+                                                                        [0m
+    Overview      ┃    Tasks                    unsorted · 1–4 of 24   ┃[0m
+  ▸ App shell     ┃                                                    ┃[0m
+  ▸ Inputs & for… ┃       ID     Task                             …    ┃[0m
+  ▾ Tables        ┃       #1040  Add rate limiting to auth endpo…  ┃   ┃[0m
+ [0m[1m▎  › Basic table [0m┃       #1041  Migrate sessions table to UUID …  │   ┃[0m
+      Editable    ┃       #1042  Fix flaky checkout integration …  │   ┃[0m
+      Data grid   ┃    [0m[2m   #1043  Write release notes for 3.2       [0m│   ┃[0m
+      Selection   ┃       ━━━━━━━━━━━──────────────────────────────    │[0m
+      Cell edito… ┃                                                    │[0m
+  ▸ Navigation    ┃                                                    │[0m
+  ▸ Overlays      ┃                                                    │[0m
+  ▸ Feedback      │                                                    │[0m
+ [0m[2m ▸ Layout        [0m│                                                    │[0m
+                                                                       │[0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l

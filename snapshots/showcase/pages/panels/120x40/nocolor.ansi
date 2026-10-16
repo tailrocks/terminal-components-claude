@@ -1,41 +1,41 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Panels                                      no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
-   Overview            │  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice             [0m
- ▸ App shell           │                                                                                                [0m
- ▸ Inputs & forms      │    Titled card                        surface    ╭─ Framed · split pane           1–15 of 24 ─╮[0m
- ▸ Tables              │                                                  │  Junie works through a task the way a    ┃ │[0m
- ▸ Navigation          │    A card is a filled surface. Its title sits    │  careful engineer would: it reads the    ┃ │[0m
- ▸ Overlays            │    in the top-left and metadata on the right.    │  relevant code, forms a plan, makes      ┃ │[0m
- ▸ Feedback            │    It never has a border.                        │  focused changes, runs the tests, and    ┃ │[0m
- ▾ Layout              │                                                  │  reports back with a summary you can     ┃ │[0m
-[0m[1m▎  › Panels            [0m│                                                  │  review before anything is merged.       ┃ │[0m
-     Scrolling         │                                                  │                                          ┃ │[0m
- ▸ Text & code         │                                                  │  Each step is visible. You can pause,    ┃ │[0m
- ▸ Screens             │    Untitled card. Same surface, content          │  redirect, or take over at any point,    ┃ │[0m
-                       │    starts at the padding edge.                   │  and every change lands as an ordinary   │ │[0m
-                       │                                                  │  diff in your working tree.              │ │[0m
-                       │                                                  │                                          │ │[0m
-                       │                                                  │  The design system in this prototype     │ │[0m
-                       │                                                  │  exists so that the terminal version of  │ │[0m
-                       │    Nested                                        │  [0m[2mthat experience feels as deliberate as  [0m│ │[0m
-                       │                                                  ╰────────────────────────────────────────────╯[0m
-                       │    Target                                                                                      [0m
-                       │       Local                                        Card · scrollable               1–12 of 60  [0m
-                       │       CLI                                                                                      [0m
-                       │    [0m[2m   Cloud                      [0m                     0.00s  info   Resolving workspace me… ┃  [0m
-                       │                                                       0.37s  info   Fetching crates.io ind… ┃  [0m
-                       │                                                       0.74s  info   Compiling proc-macro2 … │  [0m
-                       │                                                       1.11s  info   Compiling serde v1.0.2… │  [0m
-                       │                                                       1.48s  warn   unused import: `std::f… │  [0m
-                       │                                                       1.85s  info   Compiling tokio v1.40.0 │  [0m
-                       │                                                       2.22s  info   Running unittests src/… │  [0m
-                       │                                                       2.59s  info   test api::auth::tests:… │  [0m
-                       │                                                       2.96s  info   test db::pool::tests::… │  [0m
-                       │                                                       3.33s  error  test checkout::places_… │  [0m
-                       │                                                       3.70s  info   test workers::schedule… │  [0m
-                       │                                                    [0m[2m   4.07s  info   Linking target/debug/d… [0m│  [0m
-                       │                                                    ━━━━━━━━━━━━━━━━━━━━━━───────────────────   [0m
-                       │                                                                                                [0m
+ [0m[1mComponents[0m           25  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice             [0m
+                                                                                                                        [0m
+    Overview                Titled card                        surface    ╭─ Framed · split pane           1–15 of 24 ─╮[0m
+  ▸ App shell                                                             │  Junie works through a task the way a    ┃ │[0m
+  ▸ Inputs & forms          A card is a filled surface. Its title sits    │  careful engineer would: it reads the    ┃ │[0m
+  ▸ Tables                  in the top-left and metadata on the right.    │  relevant code, forms a plan, makes      ┃ │[0m
+  ▸ Navigation              It never has a border.                        │  focused changes, runs the tests, and    ┃ │[0m
+  ▸ Overlays                                                              │  reports back with a summary you can     ┃ │[0m
+  ▸ Feedback                                                              │  review before anything is merged.       ┃ │[0m
+  ▾ Layout                                                                │                                          ┃ │[0m
+ [0m[1m▎  › Panels            [0m                                                  │  Each step is visible. You can pause,    ┃ │[0m
+      Scrolling             Untitled card. Same surface, content          │  redirect, or take over at any point,    ┃ │[0m
+  ▸ Text & code             starts at the padding edge.                   │  and every change lands as an ordinary   │ │[0m
+  ▸ Screens                                                               │  diff in your working tree.              │ │[0m
+                                                                          │                                          │ │[0m
+                                                                          │  The design system in this prototype     │ │[0m
+                                                                          │  exists so that the terminal version of  │ │[0m
+                            Nested                                        │  [0m[2mthat experience feels as deliberate as  [0m│ │[0m
+                                                                          ╰────────────────────────────────────────────╯[0m
+                            Target                                                                                      [0m
+                               Local                                        Card · scrollable               1–12 of 60  [0m
+                               CLI                                                                                      [0m
+                            [0m[2m   Cloud                      [0m                     0.00s  info   Resolving workspace me… ┃  [0m
+                                                                               0.37s  info   Fetching crates.io ind… ┃  [0m
+                                                                               0.74s  info   Compiling proc-macro2 … │  [0m
+                                                                               1.11s  info   Compiling serde v1.0.2… │  [0m
+                                                                               1.48s  warn   unused import: `std::f… │  [0m
+                                                                               1.85s  info   Compiling tokio v1.40.0 │  [0m
+                                                                               2.22s  info   Running unittests src/… │  [0m
+                                                                               2.59s  info   test api::auth::tests:… │  [0m
+                                                                               2.96s  info   test db::pool::tests::… │  [0m
+                                                                               3.33s  error  test checkout::places_… │  [0m
+                                                                               3.70s  info   test workers::schedule… │  [0m
+                                                                            [0m[2m   4.07s  info   Linking target/debug/d… [0m│  [0m
+                                                                            ━━━━━━━━━━━━━━━━━━━━━━───────────────────   [0m
+                                                                                                                        [0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
 [?25l

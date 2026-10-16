@@ -1,25 +1,25 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Scrolling               i Inspector   ? Help  [0m
                                                                                 [0m
-   Overview       │  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused c… [0m
- ▸ App shell      │                                                             [0m
- ▸ Inputs & forms │    Wrap… 1–15/231      Long… 1–15/120      Log              [0m
- ▸ Tables         │                                                             [0m
- ▸ Navigation     │    Junie works  ┃         Row 001   ┃      [0m[2m 734.82s  in… [0m│  [0m
- ▸ Overlays       │    through a    │         Row 002   │       735.19s  in… │  [0m
- ▸ Feedback       │    task the way │         Row 003   │       735.56s  in… │  [0m
- ▾ Layout         │    a careful    │         Row 004   │       735.93s  er… │  [0m
-     Panels       │    engineer     │         Row 005   │       736.30s  in… │  [0m
-[0m[1m▎  › Scrolling    [0m│    would: it    │         Row 006   │       736.67s  in… │  [0m
- ▸ Text & code    │    reads the    │         Row 007   │       737.04s  in… │  [0m
- ▸ Screens        │    relevant     │         Row 008   │       737.41s  in… │  [0m
-                  │    code, forms  │         Row 009   │       737.78s  in… │  [0m
-                  │    a plan,      │         Row 010   │       738.15s  in… │  [0m
-                  │    makes        │         Row 011   │       738.52s  wa… │  [0m
-                  │    focused      │         Row 012   │       738.89s  in… │  [0m
-                  │    changes,     │         Row 013   │       739.26s  in… │  [0m
-                  │    runs the     │         Row 014   │       739.63s  in… ┃  [0m
-                  │    [0m[2mtests, and   [0m│      [0m[2m   Row 015   [0m│      ━━────────────   [0m
-                  │                                                             [0m
+ [0m[1mComponents[0m      25  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused c… [0m
+                                                                                [0m
+    Overview           Wrap… 1–15/231      Long… 1–15/120      Log              [0m
+  ▸ App shell                                                                   [0m
+  ▸ Inputs & forms     Junie works  ┃         Row 001   ┃      [0m[2m 734.82s  in… [0m│  [0m
+  ▸ Tables             through a    │         Row 002   │       735.19s  in… │  [0m
+  ▸ Navigation         task the way │         Row 003   │       735.56s  in… │  [0m
+  ▸ Overlays           a careful    │         Row 004   │       735.93s  er… │  [0m
+  ▸ Feedback           engineer     │         Row 005   │       736.30s  in… │  [0m
+  ▾ Layout             would: it    │         Row 006   │       736.67s  in… │  [0m
+      Panels           reads the    │         Row 007   │       737.04s  in… │  [0m
+ [0m[1m▎  › Scrolling    [0m    relevant     │         Row 008   │       737.41s  in… │  [0m
+  ▸ Text & code        code, forms  │         Row 009   │       737.78s  in… │  [0m
+  ▸ Screens            a plan,      │         Row 010   │       738.15s  in… │  [0m
+                       makes        │         Row 011   │       738.52s  wa… │  [0m
+                       focused      │         Row 012   │       738.89s  in… │  [0m
+                       changes,     │         Row 013   │       739.26s  in… │  [0m
+                       runs the     │         Row 014   │       739.63s  in… ┃  [0m
+                       [0m[2mtests, and   [0m│      [0m[2m   Row 015   [0m│      ━━────────────   [0m
+                                                                                [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l

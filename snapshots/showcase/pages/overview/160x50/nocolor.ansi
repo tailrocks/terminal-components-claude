@@ -1,51 +1,51 @@
  ▪ [0m[1mJunie[0m Design system / Overview                                                                                     no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
-[0m[1m▎› Overview            [0m│  [0m[1mOverview[0m  Tokens and principles behind every component                                                                                [0m
- ▸ App shell           │                                                                                                                                        [0m
- ▸ Inputs & forms      │    Tokens                                          Principles                                                                          [0m
- ▸ Tables              │                                                                                                                                        [0m
- ▸ Navigation          │        ▏ canvas                      #000000       [0m[1mOne hue[0m                                                                             [0m
- ▸ Overlays            │        ▏ surface                     #111111       Green means focus, primary action or selection. Everything else is achromatic.      [0m
- ▸ Feedback            │        ▏ surface.elevated            #18181b                                                                                           [0m
- ▸ Layout              │        ▏ surface.overlay             #27272a       [0m[1mAlpha ladder[0m                                                                        [0m
- ▸ Text & code         │        ▏ field                       #1e1e22       Text and borders step down in white opacity, never in arbitrary grays.              [0m
- ▸ Screens             │        ▏ popover                     #3f3f46                                                                                           [0m
-                       │        ▏ border.subtle             white 15%       [0m[1mState is geometry[0m                                                                   [0m
-                       │        ▏ border.strong             white 30%       Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows   [0m
-                       │        ▏ text.primary                #ffffff       the cursor.                                                                         [0m
-                       │        ▏ text.secondary            white 70%                                                                                           [0m
-                       │        ▏ text.muted                white 50%       [0m[1mThree planes[0m                                                                        [0m
-                       │        ▏ text.faint                white 30%       Canvas, surface, elevated. Depth comes from lightness, not borders.                 [0m
-                       │        ▏ accent                      #48e054                                                                                           [0m
-                       │        ▏ accent.hover                #3ab343       [0m[1mQuiet chrome[0m                                                                        [0m
-                       │        ▏ accent.pressed              #2b8632       Bold is reserved for the focused control. No box around a thing unless the box      [0m
-                       │        ▏ accent.bg                 green 20%       carries meaning.                                                                    [0m
-                       │        ▏ error                       #e44545                                                                                           [0m
-                       │        ▏ warning                     #f59e09                                                                                           [0m
-                       │        ▏ info                        #8787ff       State language                                                                      [0m
-                       │                                                                                                                                        [0m
-                       │                                                    ▎  focus                                                                            [0m
-                       │                                                    ░  hover lifts the surface                                                          [0m
-                       │                                                    ›  current / chosen                                                                 [0m
-                       │                                                    ✓  checked                                                                          [0m
-                       │                                                    !  error                                                                            [0m
-                       │                                                    ▁  editing: cursor + underline                                                      [0m
-                       │                                                    ○  disabled: faint, no hover                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
+ [0m[1mComponents[0m           25  [0m[1mOverview[0m  Tokens and principles behind every component                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m▎› Overview            [0m    Tokens                                          Principles                                                                          [0m
+  ▸ App shell                                                                                                                                                   [0m
+  ▸ Inputs & forms              ▏ canvas                      #000000       [0m[1mOne hue[0m                                                                             [0m
+  ▸ Tables                      ▏ surface                     #111111       Green means focus, primary action or selection. Everything else is achromatic.      [0m
+  ▸ Navigation                  ▏ surface.elevated            #18181b                                                                                           [0m
+  ▸ Overlays                    ▏ surface.overlay             #27272a       [0m[1mAlpha ladder[0m                                                                        [0m
+  ▸ Feedback                    ▏ field                       #1e1e22       Text and borders step down in white opacity, never in arbitrary grays.              [0m
+  ▸ Layout                      ▏ popover                     #3f3f46                                                                                           [0m
+  ▸ Text & code                 ▏ border.subtle             white 15%       [0m[1mState is geometry[0m                                                                   [0m
+  ▸ Screens                     ▏ border.strong             white 30%       Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows   [0m
+                                ▏ text.primary                #ffffff       the cursor.                                                                         [0m
+                                ▏ text.secondary            white 70%                                                                                           [0m
+                                ▏ text.muted                white 50%       [0m[1mThree planes[0m                                                                        [0m
+                                ▏ text.faint                white 30%       Canvas, surface, elevated. Depth comes from lightness, not borders.                 [0m
+                                ▏ accent                      #48e054                                                                                           [0m
+                                ▏ accent.hover                #3ab343       [0m[1mQuiet chrome[0m                                                                        [0m
+                                ▏ accent.pressed              #2b8632       Bold is reserved for the focused control. No box around a thing unless the box      [0m
+                                ▏ accent.bg                 green 20%       carries meaning.                                                                    [0m
+                                ▏ error                       #e44545                                                                                           [0m
+                                ▏ warning                     #f59e09                                                                                           [0m
+                                ▏ info                        #8787ff       State language                                                                      [0m
+                                                                                                                                                                [0m
+                                                                            ▎  focus                                                                            [0m
+                                                                            ░  hover lifts the surface                                                          [0m
+                                                                            ›  current / chosen                                                                 [0m
+                                                                            ✓  checked                                                                          [0m
+                                                                            !  error                                                                            [0m
+                                                                            ▁  editing: cursor + underline                                                      [0m
+                                                                            ○  disabled: faint, no hover                                                        [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
                                                                                                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
 [?25l
