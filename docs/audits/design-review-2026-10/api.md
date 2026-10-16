@@ -66,3 +66,40 @@ Audit of commit `b9ff31567`. That commit landed while I was auditing, so some ap
 | 30 | P2 | menu.rs:22, completion.rs:22, tree.rs:19 | MenuItem, CompletionItem, TreeNode | `shortcut` and `glyph` are `&'static str`, so they cannot be built at runtime. Builder naming is also inconsistent: `Dialog::with_actions`; `MenuItem::danger()`/`separator()` take no argument while `disabled(bool)` does; `empty_text: String` (List, Table, Picker) vs `empty: EmptyState` (Grid). Tabs, TreeView and ListBox have no struct-level builders at all (only pub fields: `allow_new`, `quiet`, `mode`). | Use `Cow<'static, str>`. Rename to `Dialog::actions(vec, cancel)`, keeping `with_actions` as deprecated. Add `danger(bool)`, `separator(bool)`, `empty(EmptyState)` everywhere, `Tabs::allow_new(bool)`/`quiet(bool)` and `ListBox::mode(SelectMode)`. |
 
 Suggested order: Group A (#1 to #3) first, then #9, then the `NavKeys` (#14), `Glyphs` (#25/#26) and `Strings` (#27/#28) theme types, which close about half of the remaining findings at once.
+## Status (interaction and API pass)
+
+Each finding is fixed (with its commit) or deferred with a reason.
+"Partial" means part of the proposed API landed and the rest is deferred.
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 1 | Partial | 7bf62651d, f5f60a12a, 224173846 | `ui::modal::{Modal, ModalStack}`: push/pop with focus restore, `outside_click()`/`escape()` from the top modal's policy; all three multi-modal apps use it. Deferred: `route_key/click/paste/render` on the stack (the apps' modals take app-specific contexts: World, Cx, requests). |
+| 2 | Fixed | 7bcc23dd2, 7c803a133, 7bf62651d | ContextMenu and Completion landed earlier; `Picker::dismiss` here. |
+| 3 | Partial | 7bf62651d, 224173846 | `ui::modal::Frame` (backdrop, body clamp, placement, title/meta, margin); jackin's `modal_frame` is now a call to it. Deferred: Dialog, Picker and holla's text viewer still draw their own frame (moving them changes the visual baseline). |
+| 4 | Fixed | 4efbcf819 | `core::pointer::PointerState`. |
+| 5 | Partial | 755237d5d | `widgets::help::HelpOverlay`. Deferred: ChoiceDialog, FormDialog, InfoDialog and tablepro's FilterEditor depend on app domain types (World, FsEntry, OpReference, ColType). |
+| 6 | Deferred | | One `popup::Placement` for menus: the menu flip logic and the layout pass's `popup::Place` margins are being reworked by the layout agent. |
+| 7 | Deferred | | Same reason as #6. |
+| 8 | Deferred | | `modal_backdrop_with`: no consumer needs another footer height yet. |
+| 9 | Fixed | 5bfea9062 | Landed before this pass. |
+| 10 | Deferred | | `Select::close_on_blur` with a focus-layer hook: same hook as interaction #15. |
+| 11 | Deferred | | MenuBar hover from the pointer layer: `live_hover` already makes it keyboard-safe; moving the call out of render is open. |
+| 12 | Fixed | 7c803a133, 7bcc23dd2 | Landed before this pass. |
+| 13 | Deferred | | `Picker::hints` as state: changes every caller's render call. |
+| 14 | Deferred | | `NavKeys` on every navigable widget: 13 widgets; the per-widget knobs (`type_ahead`, `skip_disabled`, `digit_jump`) cover the conflicts found so far. |
+| 15 | Fixed | 71477f758 | `Dialog::accelerators`. |
+| 16 | Fixed | c4f8a7b5b | `Tabs::{digit_jump, close_keys, new_key, allow_new}`. |
+| 17 | Deferred | | Generic `KeyMap<A>` per widget (Grid's ~15 letters first). |
+| 18 | Fixed | 326998660 | `Select::arrows(SelectArrows)`, default Step. |
+| 19 | Deferred | | `wrap` on list-like widgets. |
+| 20 | Fixed | 40b1d089a | `TreeView::branch_activate(BranchAction)`. |
+| 21 | Fixed | 40b1d089a | `TreeView::indent`. |
+| 22 | Partial | 71477f758 | `ContextMenu::min_width`. Deferred: `MenuBar::overflow`, `ContextMenu::max_rows` (needs menu scrolling). |
+| 23 | Fixed | 71477f758, d2d6896b9 | `Dialog::width`; code previews scroll (layout pass) instead of a row cap. |
+| 24 | Fixed | 71477f758 | `Picker::{width, max_rows}`, `Completion::{max_rows, popup_width}`. |
+| 25 | Deferred | | `theme::Glyphs` touches every widget's drawing and the visual baseline; the state-model pass owns theme.rs now. |
+| 26 | Deferred | | Same as #25. |
+| 27 | Partial | 934985f8d | `Dialog::cancel_label` landed earlier. Deferred: `theme::Strings`. |
+| 28 | Partial | 71477f758 | `Picker::{placeholder, empty_text}` builders. Deferred: `theme::Strings`, `DataGrid::bar_labels`, `TextInput::required_message`. |
+| 29 | Partial | 71477f758 | TextInput validators are closures (`TextValidator`). Deferred: DataTable and DataGrid validators. |
+| 30 | Partial | cec8f1474, c4f8a7b5b | `ListBox::mode`, `Tabs::allow_new`. Deferred: `Cow` labels, `Dialog::actions` rename, `danger(bool)`/`separator(bool)`, `empty(EmptyState)`. |
