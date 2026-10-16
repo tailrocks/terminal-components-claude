@@ -177,6 +177,9 @@ pub struct Focus {
     left: Vec<WidgetId>,
     /// The current control was asked to end its edit in place.
     end_edit: Option<WidgetId>,
+    /// Counts every explicit focus request, including one for the control
+    /// that already has focus ([`Self::moves`]).
+    moves: u64,
 }
 
 impl Focus {
@@ -204,9 +207,20 @@ impl Focus {
         self.move_to(ring.prev(self.current));
     }
 
+    /// How many explicit focus requests ([`Self::set`], [`Self::focus`],
+    /// [`Self::next`], [`Self::prev`]) were made so far, counting one that
+    /// names the control already focused. A caller that compares this
+    /// before and after a handler can tell "the handler chose focus" from
+    /// "the handler left focus alone", which comparing [`Self::current`]
+    /// cannot when the handler re-focused the focused control.
+    pub fn moves(&self) -> u64 {
+        self.moves
+    }
+
     /// Every focus move goes through here so the control that lost focus
     /// is remembered for [`Self::take_changes`].
     fn move_to(&mut self, id: Option<WidgetId>) {
+        self.moves = self.moves.wrapping_add(1);
         if self.current != id {
             // an explicit move answers any pending request
             cancel_focus_request();
