@@ -947,7 +947,7 @@ impl Screen for UsageScreen {
         }
         vec![
             hint("↑↓", "Move"),
-            hint("Enter", "Detail"),
+            hint("Enter", "Details"),
             hint("r", "Refresh"),
             hint("m", "Manage in Accounts"),
             hint("Esc", "Close"),

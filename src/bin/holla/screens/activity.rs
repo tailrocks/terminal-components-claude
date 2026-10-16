@@ -235,7 +235,7 @@ impl ActivityTab {
                     cx.status("Sent ^C · stopping · SIGKILL follows if it lingers");
                     self.input = false;
                 } else if bytes == [0x04] {
-                    cx.status("Sent EOF");
+                    cx.status("Sent end of input");
                 }
                 Outcome::Changed
             }
@@ -454,7 +454,7 @@ impl Screen for ActivityTab {
                 } else if accepts_input {
                     self.input = true;
                     self.view.set_follow(true);
-                    cx.status("Typing goes to the program · Enter sends a line · Ctrl+D EOF · Ctrl+C stops · Esc returns");
+                    cx.status("Typing goes to the program");
                 } else {
                     cx.status(match state {
                         ActivityState::Queued => "Queued · it has no stdin until it starts",
@@ -835,9 +835,9 @@ impl Screen for ActivityTab {
             return vec![
                 hint("Type", "To stdin"),
                 hint("Enter", "Send line"),
-                hint("Ctrl+D", "EOF"),
+                hint("Ctrl+D", "End input"),
                 hint("Ctrl+C", "Stop"),
-                hint("Esc", "Keyboard back"),
+                hint("Esc", "Release keyboard"),
             ];
         }
         if self.find_query.is_some() {
