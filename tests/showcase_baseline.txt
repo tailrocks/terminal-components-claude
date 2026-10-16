@@ -196,7 +196,7 @@
 72x20 TrueColor Dialogs ec43bb40206c4c32
 72x20 TrueColor Progress e3ee992c75b7db2a
 72x20 TrueColor Scrolling 0e383aa834ebcd5b
-72x20 TrueColor Terminal 5265af53410f2167
+72x20 TrueColor Terminal a0d48123a91d7cd2
 72x20 TrueColor Code editor b2a49ecd7d9c3c1e
 72x20 TrueColor Diff 52b6941102f90fbd
 72x20 TrueColor Data grid b4bd05a425572eaa
@@ -219,7 +219,7 @@
 72x20 Ansi256 Dialogs a9ddc3d0ee7fdc7e
 72x20 Ansi256 Progress e6f4f47df17aa694
 72x20 Ansi256 Scrolling 7527739c1388f1ba
-72x20 Ansi256 Terminal ff9288e61908508d
+72x20 Ansi256 Terminal 679c7ee1c0ba3d40
 72x20 Ansi256 Code editor e3eb7cc69dad14bc
 72x20 Ansi256 Diff 96adfbb6fec5c021
 72x20 Ansi256 Data grid 3fe5379826a59fc8
@@ -242,7 +242,7 @@
 72x20 Ansi16 Dialogs 457bacde1072ac37
 72x20 Ansi16 Progress 4a6fc460f1d99ae8
 72x20 Ansi16 Scrolling 2f6e77cb8f13f96a
-72x20 Ansi16 Terminal 183c2a272f1a4510
+72x20 Ansi16 Terminal 4edd9e859b36d43a
 72x20 Ansi16 Code editor 3711ee1338be7bc2
 72x20 Ansi16 Diff c286184feed88897
 72x20 Ansi16 Data grid f82a94174f3bbb3d
@@ -265,7 +265,7 @@
 72x20 Mono Dialogs a866a7351269fab9
 72x20 Mono Progress d89708324d857210
 72x20 Mono Scrolling c2c41f49839b84e8
-72x20 Mono Terminal e23f62c3b8e72022
+72x20 Mono Terminal f854693356c0ef44
 72x20 Mono Code editor a9ebd92a2331f57a
 72x20 Mono Diff d0425af78e51a562
 72x20 Mono Data grid bf91d03c63864204
