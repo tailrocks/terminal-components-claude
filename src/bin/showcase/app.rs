@@ -8,6 +8,8 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
+use crate::inspector::{self, Inspector};
+use crate::options::{OptSet, ShellOptions};
 use crate::pages::{Page, PageCtx, PageEvent, Request};
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
@@ -35,6 +37,26 @@ const HELP_DIALOG: WidgetId = WidgetId::of("app.help");
 pub const HEADER_BRAND: WidgetId = WidgetId::of("app.header.brand");
 /// The quit confirmation the brand opens.
 pub const QUIT_DIALOG: WidgetId = WidgetId::of("app.quit");
+
+/// From this width the Inspector docks beside the page; below it, it
+/// opens as an overlay.
+pub const INSPECTOR_DOCK_MIN: u16 = 100;
+/// Width of the docked Inspector.
+const INSPECTOR_W: u16 = 30;
+/// Width of the Inspector overlay (its frame and padding included).
+const INSPECTOR_OVERLAY_W: u16 = 34;
+
+/// `shell.color`'s values, in order.
+const LEVELS: [junie_tui::theme::ColorLevel; 4] = [
+    junie_tui::theme::ColorLevel::TrueColor,
+    junie_tui::theme::ColorLevel::Ansi256,
+    junie_tui::theme::ColorLevel::Ansi16,
+    junie_tui::theme::ColorLevel::Mono,
+];
+
+fn level_index(level: junie_tui::theme::ColorLevel) -> usize {
+    LEVELS.iter().position(|l| *l == level).unwrap_or(0)
+}
 
 /// Tick delivery (`--motion`): the library's [`Motion`].
 pub use junie_tui::motion::Motion;
@@ -583,6 +605,18 @@ pub struct App {
     pub(crate) clock: WallClock,
     pub dialog: Option<Dialog>,
     pub inspector: bool,
+    /// The Inspector's State | Options pane (`i`).
+    pub insp: Inspector,
+    /// The shell-wide live options (the Inspector's Options tab, `--opt`).
+    pub options: ShellOptions,
+    /// App-wide scrollbar track press (`shell.track_click`).
+    pub track_click: junie_tui::core::scroll::TrackClick,
+    /// App-wide tooltip policy (`shell.tooltips`).
+    pub tooltips: junie_tui::ui::tooltip::Tooltips,
+    /// App-wide truncated-text reveal (`shell.reveal`).
+    pub reveal: junie_tui::ui::reveal::Reveal,
+    /// Focus to restore when the Inspector overlay closes.
+    inspector_focus: Option<WidgetId>,
     pub size: (u16, u16),
     pub tick: u64,
     pub last_key: Option<String>,
@@ -700,6 +734,16 @@ impl App {
             .collect();
         let mut focus = Focus::default();
         focus.focus(NAV);
+        let mut options = ShellOptions::default();
+        options.set("shell.color", level_index(theme.level));
+        options.set(
+            "shell.motion",
+            match motion {
+                Motion::Full => 0,
+                Motion::Reduced => 1,
+                Motion::Paused => 2,
+            },
+        );
         let mut app = Self {
             theme,
             pages,
@@ -714,6 +758,12 @@ impl App {
             clock: WallClock::new(),
             dialog: None,
             inspector: false,
+            insp: Inspector::new(PageId::Overview),
+            options,
+            track_click: junie_tui::core::scroll::TrackClick::Page,
+            tooltips: junie_tui::ui::tooltip::Tooltips::default(),
+            reveal: junie_tui::ui::reveal::Reveal::default(),
+            inspector_focus: None,
             size: (0, 0),
             tick: frame,
             last_key: None,
@@ -870,9 +920,17 @@ impl App {
     pub fn handle(&mut self, input: Input) -> Outcome {
         // an error status has been seen once the user acts again
         let seen = self.status.on_input(&input);
+        let logged = input.clone();
         let out = self.handle_input(input);
         let out = if seen { out.or(Outcome::Changed) } else { out };
-        out.or(self.forward_blur())
+        let out = out.or(self.forward_blur());
+        self.insp.record(&logged, out);
+        // the State tab shows the log as it grows
+        if self.inspector && !matches!(logged, Input::Tick) {
+            out.or(Outcome::Changed)
+        } else {
+            out
+        }
     }
 
     /// Hand every focus change the input caused to the dialog and the
@@ -883,6 +941,7 @@ impl App {
             if let Some(d) = self.dialog.as_mut() {
                 out = out.or(d.on_blur(ch));
             }
+            out = out.or(self.insp.on_blur(Some(ch.from)));
             for i in 0..self.pages.len() {
                 out = out.or(self.dispatch_to(i, PageEvent::Blur(ch)));
             }
@@ -1060,6 +1119,9 @@ impl App {
             }
             return out.or(Outcome::Consumed);
         }
+        if let Some(out) = self.inspector_key(&key) {
+            return out;
+        }
         // the sidebar tree owns its navigation keys while focused; a typed
         // letter is type-ahead only when neither the page's shortcuts nor
         // the shell's own letters claim it (below)
@@ -1148,7 +1210,7 @@ impl App {
                 Outcome::Changed
             }
             KeyCode::Char('i') if key.plain() => {
-                self.inspector = !self.inspector;
+                self.toggle_inspector();
                 Outcome::Changed
             }
             // tree order: NAV_ENTRIES lists the pages group by group
@@ -1178,6 +1240,223 @@ impl App {
             }
             _ => Outcome::Ignored,
         }
+    }
+
+    // -------------------------------------------------------------- inspector
+
+    /// Whether the Inspector is open as an overlay (below
+    /// [`INSPECTOR_DOCK_MIN`] columns) rather than docked beside the page.
+    pub fn inspector_overlay(&self) -> bool {
+        self.inspector && self.size.0 < INSPECTOR_DOCK_MIN
+    }
+
+    /// `i` and the header link: open or close the Inspector. The overlay
+    /// takes focus and gives it back when it closes.
+    pub fn toggle_inspector(&mut self) {
+        if self.inspector {
+            self.close_inspector();
+        } else {
+            self.inspector = true;
+            self.insp.for_page(self.page);
+            if self.inspector_overlay() {
+                self.inspector_focus = self.focus.current();
+                self.focus.set(Some(self.insp.tabs.id));
+            }
+        }
+    }
+
+    fn close_inspector(&mut self) {
+        let overlay = self.inspector_overlay();
+        self.inspector = false;
+        let focus = self.inspector_focus.take();
+        if overlay || self.insp.has_focus(self.focus.current()) {
+            self.focus.set(focus.or(Some(NAV)));
+        }
+    }
+
+    /// A key for the Inspector: its focused control first; over the page,
+    /// the overlay is modal (Tab cycles inside it, Esc and `i` close it).
+    /// `None` passes the key on.
+    fn inspector_key(&mut self, key: &Key) -> Option<Outcome> {
+        if !self.inspector {
+            return None;
+        }
+        if self.insp.has_focus(self.focus.current())
+            && let Some(out) = self.dispatch_inspector(PageEvent::Key(*key))
+            && out.consumed()
+        {
+            return Some(out);
+        }
+        if !self.inspector_overlay() {
+            return None;
+        }
+        Some(match key.code {
+            KeyCode::Esc => {
+                self.close_inspector();
+                Outcome::Changed
+            }
+            KeyCode::Char('i') if key.plain() => {
+                self.close_inspector();
+                Outcome::Changed
+            }
+            KeyCode::Tab => {
+                self.focus.next(&self.ring);
+                Outcome::Changed
+            }
+            KeyCode::BackTab => {
+                self.focus.prev(&self.ring);
+                Outcome::Changed
+            }
+            _ => Outcome::Consumed,
+        })
+    }
+
+    /// Deliver `ev` to the Inspector; an option it changed is applied.
+    /// `None` when the Inspector does not own the event.
+    fn dispatch_inspector(&mut self, ev: PageEvent) -> Option<Outcome> {
+        let mut cx = PageCtx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: Vec::new(),
+            mods: self.pointer_mods,
+            clicks: self.pointer_clicks,
+        };
+        let (out, set) = self.insp.handle(&ev, &mut cx)?;
+        if let Some(set) = set {
+            self.apply_opt(set);
+            return Some(Outcome::Changed);
+        }
+        Some(out)
+    }
+
+    /// Set an option: one path for the Inspector's controls and `--opt`.
+    /// A shell option rebuilds the configuration through the library's
+    /// builders; a page option goes to its page.
+    pub fn apply_opt(&mut self, set: OptSet) {
+        match crate::options::page_of(set.key) {
+            None => {
+                self.options.set(set.key, set.value);
+                self.apply_shell();
+            }
+            Some(page) => self.pages[page.index()].set_option(set.key, set.value),
+        }
+    }
+
+    /// The current value index of `opt`.
+    pub fn option_value(&self, opt: &crate::options::Opt) -> usize {
+        match crate::options::page_of(opt.key) {
+            None => self.options.get(opt.key),
+            Some(page) => self.pages[page.index()]
+                .option_value(opt.key)
+                .unwrap_or(opt.default),
+        }
+    }
+
+    /// Rebuild the theme, pointer, motion and render-context settings from
+    /// [`Self::options`], through the builders an application calls.
+    fn apply_shell(&mut self) {
+        use junie_tui::core::edit::{EditEntry, FieldKeys};
+        use junie_tui::core::event::ClientPlatform;
+        use junie_tui::core::pointer::SecondaryOutside;
+        use junie_tui::core::scroll::TrackClick;
+        use junie_tui::core::shape::CaretShape;
+        use junie_tui::theme::{Glyphs, LevelOverrides, Strings};
+        use junie_tui::ui::reveal::Reveal;
+        use junie_tui::ui::tooltip::Tooltips;
+        let o = &self.options;
+        let overrides = if o.get("shell.overrides") == 1 {
+            LevelOverrides::ASCII_MONO
+        } else {
+            LevelOverrides::default()
+        };
+        let mut theme = Theme::for_level_with(LEVELS[o.get("shell.color")], &overrides);
+        if o.get("shell.glyphs") == 1 {
+            theme = theme.with_glyphs(Glyphs::ASCII);
+        }
+        if o.get("shell.strings") == 1 {
+            theme = theme.with_strings(Strings::ASCII);
+        }
+        theme = theme.with_edit_entry(
+            [
+                EditEntry::Immediate,
+                EditEntry::TypeToEdit,
+                EditEntry::Explicit,
+            ][o.get("shell.edit_entry")],
+        );
+        let platform = [
+            None,
+            Some(ClientPlatform::MacOs),
+            Some(ClientPlatform::Other),
+        ][o.get("shell.platform")];
+        let keys = match o.get("shell.field_keys") {
+            1 => Some(FieldKeys::Emacs),
+            2 => Some(FieldKeys::Desktop),
+            _ => platform.map(FieldKeys::for_platform),
+        };
+        if let Some(keys) = keys {
+            theme = theme.with_field_keys(keys);
+        }
+        self.theme = theme;
+        let num = |key: &str| o.value(key).parse::<u64>().unwrap_or(0);
+        let (delay, every) = [(150, 25), (300, 50), (500, 100)][o.get("shell.track_repeat_ms")];
+        self.pointer.config = PointerConfig::DEFAULT
+            .focus_on([FocusOn::Press, FocusOn::Release][o.get("shell.focus_on")])
+            .double_click_ms(num("shell.double_click_ms"))
+            .double_click_slop(num("shell.double_click_slop") as u16)
+            .wheel_lines(num("shell.wheel_lines") as i32)
+            .hover_refresh_after_scroll(o.on("shell.hover_refresh_after_scroll"))
+            .flash_ms(num("shell.flash_ms"))
+            .secondary_outside(
+                [
+                    SecondaryOutside::Reopen,
+                    SecondaryOutside::Close,
+                    SecondaryOutside::Ignore,
+                ][o.get("shell.secondary_outside")],
+            )
+            .end_edit_on_dead_space(o.on("shell.end_edit_on_dead_space"))
+            .autoscroll(o.on("shell.autoscroll"))
+            .autoscroll_ms(num("shell.autoscroll_ms"))
+            .track_repeat(o.on("shell.track_repeat"))
+            .track_repeat_ms(delay, every)
+            .pointer_shapes(o.on("shell.pointer_shapes"))
+            .caret_shape(
+                [
+                    CaretShape::Bar,
+                    CaretShape::Block,
+                    CaretShape::Underline,
+                    CaretShape::Terminal,
+                ][o.get("shell.caret_shape")],
+            )
+            .click_skips_animation(o.on("shell.click_skips_animation"));
+        self.motion = [Motion::Full, Motion::Reduced, Motion::Paused][o.get("shell.motion")];
+        self.track_click = [TrackClick::Page, TrackClick::Jump][o.get("shell.track_click")];
+        self.tooltips = if o.on("shell.tooltips") {
+            Tooltips::default()
+        } else {
+            Tooltips::OFF
+        };
+        self.reveal = if o.on("shell.reveal") {
+            Reveal::default()
+        } else {
+            Reveal::OFF
+        };
+    }
+
+    /// The live configuration the behaviour options drive, for tests and
+    /// the coverage gate: setting a behaviour option must change it.
+    #[allow(dead_code)]
+    pub fn live_config(&self) -> String {
+        format!(
+            "{:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
+            self.pointer.config,
+            self.theme.edit_entry,
+            self.theme.field_keys,
+            self.theme.strings,
+            self.motion,
+            self.track_click,
+            self.tooltips,
+            self.reveal
+        )
     }
 
     /// The pointer's way to quit: the brand opens a confirmation.
@@ -1233,6 +1512,13 @@ impl App {
             Release::Cancelled => {
                 // the press-drag of a select ends on an option
                 return match pressed {
+                    Some(pressed) if self.dialog.is_none() && self.insp.owns(pressed) => self
+                        .dispatch_inspector(PageEvent::Release {
+                            pressed,
+                            pos: m.pos,
+                        })
+                        .unwrap_or(Outcome::Ignored)
+                        .or(Outcome::Changed),
                     Some(pressed) if self.dialog.is_none() => self
                         .dispatch(PageEvent::Release {
                             pressed,
@@ -1263,8 +1549,23 @@ impl App {
             return Outcome::Consumed;
         }
         if id == HEADER_INSPECT {
-            self.inspector = !self.inspector;
+            self.toggle_inspector();
             return Outcome::Changed;
+        }
+        if self.inspector {
+            // the overlay's light dismiss and close button
+            if id == junie_tui::ui::popup::backdrop_id(inspector::ID)
+                || id == junie_tui::ui::modal::CLOSE
+            {
+                self.close_inspector();
+                return Outcome::Changed;
+            }
+            if self.insp.owns(id) {
+                return self
+                    .dispatch_inspector(PageEvent::Click { id, pos: m.pos })
+                    .unwrap_or(Outcome::Consumed)
+                    .or(Outcome::Changed);
+            }
         }
         if let Some((i, toggle)) = self.nav.locate(id) {
             self.focus.focus(NAV);
@@ -1325,6 +1626,13 @@ impl App {
                     if pressed == scrollbar::id_for(NAV) {
                         return self.nav.on_scrollbar_drag(m.pos);
                     }
+                    if self.inspector && self.insp.owns(pressed) {
+                        let ev = PageEvent::Drag {
+                            pressed,
+                            pos: m.pos,
+                        };
+                        return self.dispatch_inspector(ev).unwrap_or(Outcome::Ignored);
+                    }
                     return self.dispatch(PageEvent::Drag {
                         pressed,
                         pos: m.pos,
@@ -1358,6 +1666,18 @@ impl App {
                 }
                 if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
                     self.focus.focus(id);
+                }
+                if self.inspector && self.insp.owns(id) {
+                    let ev = PageEvent::Press { id, pos: m.pos };
+                    return self
+                        .dispatch_inspector(ev)
+                        .unwrap_or(Outcome::Ignored)
+                        .or(Outcome::Changed);
+                }
+                if self.inspector_overlay() {
+                    // the overlay's own body: dead space inside it
+                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
+                    return Outcome::Changed;
                 }
                 // the click count this press starts: the second press of a
                 // double click selects a word in a field
@@ -1446,6 +1766,9 @@ impl App {
                 for id in self.hits.scroll_stack(m.pos) {
                     out = if self.nav.owns(id) {
                         self.nav.on_wheel(delta)
+                    } else if self.inspector && self.insp.owns(id) {
+                        self.dispatch_inspector(PageEvent::Wheel { id, delta })
+                            .unwrap_or(Outcome::Ignored)
                     } else {
                         self.dispatch(PageEvent::Wheel { id, delta })
                     };
@@ -1562,8 +1885,14 @@ impl App {
         {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            // the app-wide defaults the shell options set
+            ctx.track_click = self.track_click;
+            ctx.tooltips = self.tooltips;
+            ctx.reveal = self.reveal;
             ctx.page_under_layer(
-                self.dialog.is_some() || self.pages[self.page.index()].layer_open(),
+                self.dialog.is_some()
+                    || self.inspector_overlay()
+                    || self.pages[self.page.index()].layer_open(),
             );
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
@@ -1604,8 +1933,8 @@ impl App {
         );
         let wide = area.width >= 110;
         let sidebar_w = if wide { 24 } else { 19 };
-        let inspector_w = if self.inspector && area.width >= 100 {
-            30
+        let inspector_w = if self.inspector && area.width >= INSPECTOR_DOCK_MIN {
+            INSPECTOR_W
         } else {
             0
         };
@@ -1649,6 +1978,9 @@ impl App {
             self.draw_inspector(layout.inspector, buf, ctx);
         }
         self.draw_footer(layout.footer, buf, ctx);
+        if self.inspector_overlay() {
+            self.draw_inspector_overlay(area, buf, ctx);
+        }
         if let Some(d) = self.dialog.as_mut() {
             d.render_in(
                 area,
@@ -1788,11 +2120,10 @@ impl App {
         page.render(body, buf, ctx);
     }
 
-    fn draw_inspector(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = self.theme;
-        let panel = junie_tui::widgets::panel::Panel::card(Some("State"));
-        let inner = panel.render(area, buf, &t);
-        let bg = t.surface;
+    /// The State tab's diagnostics, from the last frame's hit regions and
+    /// focus ring.
+    fn state_props(&self) -> Vec<junie_tui::widgets::props::Prop> {
+        use junie_tui::widgets::props::Prop;
         let page = &self.pages[self.page.index()];
         let mode = if self.dialog.is_some() {
             "MODAL"
@@ -1807,10 +2138,10 @@ impl App {
         };
         let focus_area = self.focus.current().and_then(|f| self.hits.area_of(f));
         let hover_area = self.pointer.hover.and_then(|h| self.hits.area_of(h));
-        let rows: Vec<(&str, String)> = vec![
-            ("mode", mode.to_owned()),
-            ("focus", fmt_rect(focus_area)),
-            (
+        vec![
+            Prop::new("mode", mode),
+            Prop::new("focus", fmt_rect(focus_area)),
+            Prop::new(
                 "hover",
                 if self.pointer.hover_suppressed {
                     "suppressed".into()
@@ -1818,41 +2149,86 @@ impl App {
                     fmt_rect(hover_area)
                 },
             ),
-            (
+            Prop::new(
                 "pressed",
                 fmt_rect(self.pointer.pressed.and_then(|p| self.hits.area_of(p))),
             ),
-            (
+            Prop::new(
                 "mouse",
                 self.pointer
                     .pos
                     .map(|p| format!("{}·{}", p.x, p.y))
                     .unwrap_or("—".into()),
             ),
-            ("last key", self.last_key.clone().unwrap_or("—".into())),
-            (
+            Prop::new("last key", self.last_key.clone().unwrap_or("—".into())),
+            Prop::new(
                 "focus ring",
                 format!("{} stops", self.ring.reachable().len()),
             ),
-            ("hit regions", format!("{}", self.hits_len())),
-            ("tick", format!("{}", self.tick)),
-            ("colors", t.level.label().to_owned()),
-        ];
-        for (i, (k, v)) in rows.iter().enumerate() {
-            let y = inner.y + i as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            buf.set_string(inner.x, y, format!("{k:<11}"), t.muted().bg(bg));
-            let vs = t.primary().bg(bg);
-            buf.set_string(
-                inner.x + 12,
-                y,
-                junie_tui::ui::text::truncate(v, inner.width.saturating_sub(12) as usize),
-                vs,
-            );
-        }
-        let _ = ctx;
+            Prop::new("hit regions", format!("{}", self.hits_len())),
+            Prop::new("tick", format!("{}", self.tick)),
+            Prop::new("colors", self.theme.level.label()),
+            Prop::new("size", format!("{}×{}", self.size.0, self.size.1)),
+            Prop::new(
+                "inputs",
+                format!("{} · {} ticks", self.insp.inputs, self.insp.ticks),
+            ),
+        ]
+    }
+
+    /// Load the Options tab's values and draw the pane into `inner`.
+    fn render_inspector(
+        &mut self,
+        inner: Rect,
+        bg: ratatui::style::Color,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+    ) {
+        // a colour level set by `--color` or a test shows as the option
+        self.options
+            .set("shell.color", level_index(self.theme.level));
+        self.insp.for_page(self.page);
+        let values: Vec<(&str, usize)> = crate::options::all()
+            .map(|o| (o.key, self.option_value(o)))
+            .collect();
+        self.insp.options.sync(|o| {
+            values
+                .iter()
+                .find(|(k, _)| *k == o.key)
+                .map_or(o.default, |(_, v)| *v)
+        });
+        let state = self.state_props();
+        self.insp.render(inner, buf, ctx, bg, &state);
+    }
+
+    /// The docked Inspector, beside the page.
+    fn draw_inspector(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = self.theme;
+        let within = self.insp.has_focus(self.focus.current());
+        let panel = junie_tui::widgets::panel::Panel::card(Some("Inspector")).focused(within);
+        let bg = panel.bg(&t);
+        let inner = panel.render(area, buf, &t);
+        self.render_inspector(inner, bg, buf, ctx);
+    }
+
+    /// The Inspector below [`INSPECTOR_DOCK_MIN`] columns: a frame on the
+    /// right over the dimmed page, closed by Esc, `i`, its close button or
+    /// a click outside it.
+    fn draw_inspector_overlay(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        use junie_tui::ui::popup::{self, Dismiss, Placement};
+        let body_h = area.height.saturating_sub(2);
+        let w = INSPECTOR_OVERLAY_W.min(area.width);
+        // docked to the right edge: it opens leftward from the last column
+        let anchor = Rect::new(area.right().saturating_sub(1), area.y + 1, 1, 1);
+        let frame = junie_tui::ui::modal::Frame::new(w, body_h)
+            .title("Inspector")
+            .dismiss(Dismiss::LIGHT)
+            .anchor(anchor, Placement::Left)
+            .margin(ratatui::layout::Margin::new(2, 1));
+        let (_, inner) = frame.render(area, buf, ctx);
+        popup::backdrop(ctx, inspector::ID, Dismiss::LIGHT, area);
+        let bg = self.theme.surface_elevated;
+        self.render_inspector(inner, bg, buf, ctx);
     }
 
     fn hits_len(&self) -> usize {
@@ -1864,8 +2240,23 @@ impl App {
         let page = &self.pages[self.page.index()];
         let mut hints: Vec<(&'static str, &'static str)> = Vec::new();
         let mut dialog_hints = None;
+        let inspector_hints = self
+            .inspector
+            .then(|| self.insp.hints(self.focus.current()))
+            .flatten();
         if let Some(d) = self.dialog.as_ref() {
             dialog_hints = Some(d.hints(self.focus.current()));
+        } else if let Some(own) = inspector_hints {
+            let popup = self.insp.options.popup_open();
+            hints.extend(own);
+            if !popup {
+                hints.push(("Tab", "Next"));
+                if self.inspector_overlay() {
+                    hints.push(("Esc", "Close"));
+                } else {
+                    hints.push(("i", "Close"));
+                }
+            }
         } else if self.focus.is(NAV) {
             if self.nav_filter.is_some() {
                 hints.push(("type", "Filter"));
@@ -1910,7 +2301,22 @@ impl App {
     }
 }
 
-fn describe_key(k: &Key) -> String {
+/// The modifiers of a pointer event, as a `Ctrl+`-style prefix.
+pub(crate) fn describe_mods(mods: KeyModifiers) -> String {
+    let mut s = String::new();
+    for (m, name) in [
+        (KeyModifiers::CONTROL, "Ctrl+"),
+        (KeyModifiers::ALT, "Alt+"),
+        (KeyModifiers::SHIFT, "Shift+"),
+    ] {
+        if mods.contains(m) {
+            s.push_str(name);
+        }
+    }
+    s
+}
+
+pub(crate) fn describe_key(k: &Key) -> String {
     let mut s = String::new();
     if k.ctrl() {
         s.push_str("Ctrl+");

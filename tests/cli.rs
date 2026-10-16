@@ -96,6 +96,44 @@ fn an_unknown_option_or_value_exits_non_zero() {
     }
 }
 
+/// The showcase's `--opt KEY=VALUE` (plan §7, SC1): listed in the help;
+/// a bad key, value or shape exits non-zero before the terminal is touched
+/// and names what would be valid.
+#[test]
+fn showcase_opt_is_validated_and_explains() {
+    let bin = env!("CARGO_BIN_EXE_showcase");
+    let help = text(&run(bin, &["--help"]).stdout);
+    assert!(help.contains("--opt <KEY=VALUE>"), "{help}");
+    let cases: [(&[&str], &[&str]); 4] = [
+        (
+            &["--opt", "shell.bogus=1"],
+            &[
+                "unknown option \"shell.bogus\"",
+                "valid keys: shell.color, shell.overrides, shell.glyphs",
+            ],
+        ),
+        (
+            &["--opt", "shell.color=purple"],
+            &["invalid value \"purple\" for shell.color; valid values: truecolor, 256, 16, mono"],
+        ),
+        (&["--opt", "shell.color"], &["expected KEY=VALUE"]),
+        // repeatable: the second, bad one still fails
+        (
+            &["--opt", "shell.glyphs=ascii", "--opt", "shell.motion=fast"],
+            &["valid values: full, reduced, paused"],
+        ),
+    ];
+    for (args, needles) in cases {
+        let out = run(bin, args);
+        assert!(!out.status.success(), "{args:?} exits non-zero");
+        assert!(out.stdout.is_empty(), "{args:?} draws nothing");
+        let stderr = text(&out.stderr);
+        for needle in needles {
+            assert!(stderr.contains(needle), "{args:?}: {needle:?}\n{stderr}");
+        }
+    }
+}
+
 #[test]
 fn app_specific_values_are_validated() {
     let cases: [(&str, &[&str], &str); 4] = [

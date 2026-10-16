@@ -1027,6 +1027,33 @@ fn the_navigation_tree_sits_in_a_titled_card_at_every_size() {
 /// terminals, in every supported palette, with focus on the first control.
 /// Regenerate only after reviewing rendered output with
 /// `UPDATE_BASELINE=1 cargo test baseline`.
+/// FNV-1a of every cell of `h`'s frame (symbol, colours, modifiers)
+/// except the navigation sidebar, which grows whenever a page is added.
+fn frame_digest(h: &Harness) -> u64 {
+    let sidebar = h.app.sidebar_area();
+    let buf = h.term.backend().buffer();
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for (i, cell) in buf.content.iter().enumerate() {
+        let x = (i % buf.area.width as usize) as u16;
+        let y = (i / buf.area.width as usize) as u16;
+        if sidebar.contains(Position::new(x, y)) {
+            continue;
+        }
+        let s = format!(
+            "{}|{:?}|{:?}|{:?};",
+            cell.symbol(),
+            cell.fg,
+            cell.bg,
+            cell.modifier
+        );
+        for b in s.bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x0100_0000_01b3);
+        }
+    }
+    hash
+}
+
 #[test]
 fn showcase_visual_baseline() {
     use std::fmt::Write as _;
@@ -1065,33 +1092,24 @@ fn showcase_visual_baseline() {
             }
             h.draw();
             h.key(tab());
-            // the navigation sidebar grows whenever a page is added, so the
-            // digest covers everything except it
-            let sidebar = h.app.sidebar_area();
-            let buf = h.term.backend().buffer();
-            let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-            for (i, cell) in buf.content.iter().enumerate() {
-                let x = (i % buf.area.width as usize) as u16;
-                let y = (i / buf.area.width as usize) as u16;
-                if sidebar.contains(Position::new(x, y)) {
-                    continue;
-                }
-                let s = format!(
-                    "{}|{:?}|{:?}|{:?};",
-                    cell.symbol(),
-                    cell.fg,
-                    cell.bg,
-                    cell.modifier
-                );
-                for b in s.bytes() {
-                    hash ^= b as u64;
-                    hash = hash.wrapping_mul(0x0100_0000_01b3);
-                }
-            }
+            let hash = frame_digest(&h);
             let label = match section {
                 Some(s) => format!("{} · {}", entry.label, s.label()),
                 None => entry.label.to_owned(),
             };
+            writeln!(out, "{}x{} {:?} {label} {hash:016x}", w, hgt, level).unwrap();
+        }
+        // the Inspector open (SC1): docked from 100 columns, an overlay
+        // below, on each of its tabs
+        for tab in crate::inspector::Tab::ALL {
+            let mut h = Harness::new(w, hgt, PageId::Overview);
+            h.app.theme = Theme::for_level(level);
+            h.draw();
+            h.app.toggle_inspector();
+            h.app.insp.set_tab(tab);
+            h.draw();
+            let hash = frame_digest(&h);
+            let label = format!("Inspector · {}", tab.label());
             writeln!(out, "{}x{} {:?} {label} {hash:016x}", w, hgt, level).unwrap();
         }
     }
