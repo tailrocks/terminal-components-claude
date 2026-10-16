@@ -4,7 +4,8 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -62,6 +63,8 @@ pub enum SelectMode {
 pub struct ListBox {
     /// The scrollbar track as last drawn: presses and drags map through it.
     track: Rect,
+    /// The rows registered in the last render, by id.
+    parts: PartMap,
     pub id: WidgetId,
     pub items: Vec<ListItem>,
     pub cursor: usize,
@@ -144,6 +147,7 @@ impl ListBox {
             scroll: ScrollState::new(n),
             area: Rect::ZERO,
             track: Rect::ZERO,
+            parts: PartMap::default(),
             empty_text: crate::theme::Strings::DEFAULT.empty_list.to_owned(),
             strings: crate::theme::Strings::DEFAULT,
             empty: None,
@@ -287,7 +291,11 @@ impl ListBox {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::row_part(i))
+    }
+
+    fn row_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     pub fn checked_count(&self) -> usize {
@@ -449,14 +457,14 @@ impl ListBox {
         }
     }
 
-    /// Which visible row a widget id refers to.
+    /// Which drawn row a widget id refers to.
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.scroll.visible_range().find(|&i| self.row_id(i) == id)
+        self.parts.index(id, Part::ROW)
     }
 
     /// True if `id` is the list or any of its parts.
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
     fn track(&self) -> Rect {
@@ -499,6 +507,7 @@ impl ListBox {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.parts.clear();
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.empty_text, old.empty_list, s.empty_list);
@@ -630,7 +639,7 @@ impl ListBox {
                 };
                 buf.set_string(mx, y, m, ms);
             }
-            ctx.clickable(rid, row);
+            ctx.part(&mut self.parts, self.id, Self::row_part(li), row);
             y += h;
         }
         // the scroll region also sits above the rows: a wheel burst handled

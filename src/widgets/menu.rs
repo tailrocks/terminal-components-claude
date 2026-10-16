@@ -9,8 +9,9 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
+
 use crate::core::hit::ReleaseFrom;
-use crate::core::id::WidgetId;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::theme::{CursorStyle, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, fill};
@@ -181,13 +182,13 @@ impl ContextMenu {
     /// The ▲ marker above a scrolled menu: hovering it scrolls up one row
     /// per tick, a click pages up.
     pub fn more_above_id(&self) -> WidgetId {
-        self.id.sub("more-above")
+        self.id.part(PartRef::OVERFLOW_BEFORE)
     }
 
     /// The ▼ marker below a menu with more rows: hovering it scrolls down
     /// one row per tick, a click pages down.
     pub fn more_below_id(&self) -> WidgetId {
-        self.id.sub("more-below")
+        self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
     /// The row highlighted as the cursor, if any: none after the pointer
@@ -353,11 +354,15 @@ impl ContextMenu {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::row_part(i))
+    }
+
+    fn row_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        (0..self.items.len()).find(|i| self.row_id(*i) == id)
+        self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
@@ -624,7 +629,7 @@ impl ContextMenu {
                 t.glyphs.more_above,
                 marker(ctx, id),
             );
-            ctx.clickable(id, marker_row(area.y));
+            ctx.register_part(self.id, PartRef::OVERFLOW_BEFORE, marker_row(area.y));
         }
         let cursor = self.highlighted();
         // an open menu is always the active control: its cursor row carries
@@ -640,7 +645,7 @@ impl ContextMenu {
                     t.glyphs.more_below,
                     marker(ctx, id),
                 );
-                ctx.clickable(id, marker_row(yb));
+                ctx.register_part(self.id, PartRef::OVERFLOW_AFTER, marker_row(yb));
                 break;
             }
             if line < first {
@@ -704,7 +709,7 @@ impl ContextMenu {
                     buf.set_string(row.right().saturating_sub(sw + 1), y, sc, scs);
                 }
             }
-            ctx.clickable(rid, row);
+            ctx.register_part(self.id, Self::row_part(i), row);
             if !item.disabled {
                 // press-drag-release: a release here may complete a press
                 // that started elsewhere
@@ -901,7 +906,7 @@ impl MenuBar {
 
     /// The chevron title's id ([`Overflow::Chevron`]).
     pub fn more_id(&self) -> WidgetId {
-        self.id.sub("more")
+        self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
     /// The chevron is on screen: [`Overflow::Chevron`] hid some title.
@@ -949,7 +954,7 @@ impl MenuBar {
         if self.chevron() && id == self.more_id() {
             return Some(self.labels.len());
         }
-        (0..self.labels.len()).find(|i| self.label_id(*i) == id)
+        self.id.item_of(id, Part::TAB, 0..self.labels.len())
     }
 
     /// The open menu belongs to the chevron: its own list, or a hidden
@@ -995,7 +1000,11 @@ impl MenuBar {
     }
 
     pub fn label_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::title_part(i))
+    }
+
+    fn title_part(i: usize) -> PartRef {
+        PartRef::item(Part::TAB, ItemKey::index(i))
     }
 
     pub fn brand_id(&self) -> WidgetId {
@@ -1019,7 +1028,10 @@ impl MenuBar {
             || id == self.brand_id()
             || (self.chevron() && id == self.more_id())
             || (self.open.is_some() && id == backdrop_id(self.id))
-            || (0..self.labels.len()).any(|i| self.label_id(i) == id)
+            || self
+                .id
+                .item_of(id, Part::TAB, 0..self.labels.len())
+                .is_some()
             || self.open.as_ref().is_some_and(|m| m.owns(id))
     }
 
@@ -1250,6 +1262,7 @@ impl MenuBar {
             self.on_hover(ctx.interaction.live_hover());
         }
         let t = ctx.theme;
+
         fill(buf, area, Style::new().bg(bg));
         ctx.control(self.id, area, false);
         let focused = ctx.interaction.focused(self.id);
@@ -1313,7 +1326,7 @@ impl MenuBar {
             buf.set_string(x, area.y, &text, it.style);
             let r = Rect::new(x, area.y, w, 1);
             self.areas.push(r);
-            ctx.clickable(lid, r);
+            ctx.register_part(self.id, Self::title_part(i), r);
             x += w + 1;
         }
         self.more_area = Rect::ZERO;
@@ -1335,7 +1348,7 @@ impl MenuBar {
             }
             buf.set_string(x, area.y, &more_text, it.style);
             self.more_area = Rect::new(x, area.y, more_w, 1);
-            ctx.clickable(mid, self.more_area);
+            ctx.register_part(self.id, PartRef::of(Part::OVERFLOW), self.more_area);
         }
         let Some(m) = self.open.as_mut() else {
             return;
@@ -1355,10 +1368,10 @@ impl MenuBar {
         m.release_from = if self.press_drag {
             let mut from: Vec<WidgetId> = (0..self.labels.len())
                 .filter(|&i| self.areas.get(i).is_some_and(|r| !r.is_empty()))
-                .map(|i| self.id.child(i))
+                .map(|i| self.id.part(Self::title_part(i)))
                 .collect();
             if !self.more_area.is_empty() {
-                from.push(self.id.sub("more"));
+                from.push(self.id.part(PartRef::of(Part::OVERFLOW)));
             }
             from
         } else {
@@ -1370,20 +1383,24 @@ impl MenuBar {
         // the titles (and the brand) stay reachable above the backdrop: a
         // click or a hover on one of them is a menu-bar gesture, not an
         // outside click
-        let mut titles: Vec<(WidgetId, Rect)> = (0..self.labels.len())
-            .map(|i| (self.label_id(i), self.areas[i]))
+        let mut titles: Vec<(PartRef, Rect)> = (0..self.labels.len())
+            .map(|i| (Self::title_part(i), self.areas[i]))
             .collect();
         if !self.more_area.is_empty() {
-            titles.push((self.more_id(), self.more_area));
+            titles.push((PartRef::of(Part::OVERFLOW), self.more_area));
         }
-        if self.brand.is_some() {
-            titles.push((self.brand_id(), self.brand_area));
-        }
+        let brand = self
+            .brand
+            .is_some()
+            .then(|| (self.brand_id(), self.brand_area));
         ctx.overlay(move |buf, ctx| {
             ctx.hits.push_barrier();
             crate::ui::popup::backdrop(ctx, id, dismiss, *buf.area());
-            for (tid, r) in titles {
-                ctx.clickable(tid, r);
+            for (part, r) in titles {
+                ctx.register_part(id, part, r);
+            }
+            if let Some((bid, r)) = brand {
+                ctx.clickable(bid, r);
             }
             menu.paint(buf, ctx);
         });
