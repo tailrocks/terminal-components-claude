@@ -61,6 +61,9 @@ pub struct Dialog {
     pub initial_focus: WidgetId,
     /// How the dialog closes without an action (Esc, backdrop click).
     pub dismiss: Dismiss,
+    /// The action a typed acknowledgement arms: disabled, and refused even
+    /// if triggered, until the token matches. `None`: nothing is gated.
+    pub confirm_index: Option<usize>,
 }
 
 impl Dialog {
@@ -79,6 +82,7 @@ impl Dialog {
             result: None,
             initial_focus: ok_id,
             dismiss: Dismiss::LIGHT,
+            confirm_index: None,
         }
     }
 
@@ -97,6 +101,7 @@ impl Dialog {
             result: None,
             initial_focus: cancel_id,
             dismiss: Dismiss::LIGHT,
+            confirm_index: None,
         }
     }
 
@@ -115,6 +120,7 @@ impl Dialog {
             result: None,
             initial_focus: input_id,
             dismiss: Dismiss::LIGHT,
+            confirm_index: None,
         }
     }
 
@@ -149,6 +155,7 @@ impl Dialog {
             } else {
                 Dismiss::LIGHT
             },
+            confirm_index: token.map(|_| 1),
         }
     }
 
@@ -228,7 +235,20 @@ impl Dialog {
         2 + 1 + 1 + 1 + body_h + 1 + 1 + 1
     }
 
+    pub fn confirm_index(mut self, index: Option<usize>) -> Self {
+        self.confirm_index = index;
+        self
+    }
+
     fn finish(&mut self, r: DialogResult) -> Outcome {
+        // the gated action is checked here, not only drawn disabled: a key
+        // or click between an edit and the next frame cannot slip through
+        if let DialogResult::Action(i) = r
+            && Some(i) == self.confirm_index
+            && !self.armed()
+        {
+            return Outcome::Consumed;
+        }
         if let DialogResult::Action(i) = r
             && let DialogBody::Input(inp) = &mut self.body
             && Some(i) != self.cancel_index
@@ -488,8 +508,8 @@ impl Dialog {
         // the confirming action stays disabled until the acknowledgement matches
         if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
             let armed = a.input.text().trim() == a.token;
-            if let Some(last) = self.actions.last_mut() {
-                last.disabled = !armed;
+            if let Some(b) = self.confirm_index.and_then(|i| self.actions.get_mut(i)) {
+                b.disabled = !armed;
             }
         }
         // actions, right aligned
@@ -622,6 +642,21 @@ mod tests {
         locked.on_key(&esc, &mut focus, &ring);
         locked.on_click_outside();
         assert_eq!(locked.result, None);
+    }
+
+    #[test]
+    fn the_gated_action_is_refused_until_the_token_matches_even_before_a_redraw() {
+        let mut d = gate(78);
+        assert_eq!(d.confirm_index, Some(1));
+        // never rendered, so the button was never drawn disabled
+        assert_eq!(d.finish(DialogResult::Action(1)), Outcome::Consumed);
+        assert_eq!(d.result, None);
+        if let DialogBody::Facts { ack: Some(a), .. } = &mut d.body {
+            let token = a.token.clone();
+            a.input = a.input.clone().value(&token);
+        }
+        d.finish(DialogResult::Action(1));
+        assert_eq!(d.result, Some(DialogResult::Action(1)));
     }
 
     #[test]
