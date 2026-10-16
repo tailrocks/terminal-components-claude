@@ -422,6 +422,26 @@ fn history_picker_and_filter_routes() {
 }
 
 #[test]
+fn a_click_on_dead_space_ends_a_form_field_edit_in_place() {
+    let mut h = H::new(120, 40);
+    h.ctrl('n');
+    let (x, y) = h.find("Password").expect("password field label");
+    h.click(x + 1, y + 1);
+    h.type_str("pw");
+    assert!(h.app.connections.is_editing());
+    let focused = h.focus();
+    let dead = (2..40)
+        .flat_map(|y| (0..120).map(move |x| ratatui::layout::Position::new(x, y)))
+        .find(|p| h.app.hits.hit(*p).is_none())
+        .expect("some cell holds no control");
+    h.click(dead.x, dead.y);
+    assert!(!h.app.connections.is_editing(), "the edit ended");
+    assert_eq!(h.focus(), focused, "focus stays on the field");
+    // the value was committed, not reverted
+    assert!(h.text().contains("••"));
+}
+
+#[test]
 fn connection_password_is_masked_in_rendered_form() {
     let mut h = H::new(120, 40);
     h.ctrl('n');
