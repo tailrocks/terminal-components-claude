@@ -751,6 +751,84 @@ def transition_record(
     return records
 
 
+def append_evidence_record(
+    records_value: Any,
+    work_id: str,
+    claim_token: str,
+    evidence: str,
+    expected_revision: int,
+) -> dict[str, Any]:
+    records = copy.deepcopy(validate_records(records_value))
+    _ensure_revision(records, expected_revision)
+    _text(claim_token, "claim token")
+    _text(evidence, "evidence")
+    task = next((item for item in records["tasks"] if item["work_id"] == work_id), None)
+    require(task is not None, "unknown work ID {}".format(work_id))
+    require(task["state"] in ACTIVE_STATES,
+            "evidence can only be appended to an active claim")
+    require(_task_token(task) == claim_token,
+            "claim token does not match the current task claim")
+    highest = highest_open_priority(records)
+    require(highest is not None and task["priority"] == highest,
+            "cannot append evidence for lower priority {} while {} remains open".format(
+                task["priority"], highest or "no priority"
+            ))
+    require(evidence not in task["evidence"], "evidence entry already exists")
+    task["evidence"].append(evidence)
+    records["queue_revision"] += 1
+    validate_records(records)
+    return records
+
+
+def reviewer_handoff_record(
+    records_value: Any,
+    work_id: str,
+    claim_token: str,
+    expected_reviewer: str,
+    new_reviewer: str,
+    evidence: str,
+    expected_revision: int,
+) -> dict[str, Any]:
+    records = copy.deepcopy(validate_records(records_value))
+    _ensure_revision(records, expected_revision)
+    _text(claim_token, "claim token")
+    _text(expected_reviewer, "expected reviewer")
+    _text(new_reviewer, "new reviewer")
+    require(not any(character.isspace() or character == "\x00" for character in new_reviewer),
+            "new reviewer must be a single-line identity")
+    _text(evidence, "reviewer handoff evidence")
+    task = next((item for item in records["tasks"] if item["work_id"] == work_id), None)
+    require(task is not None, "unknown work ID {}".format(work_id))
+    require(task["state"] in {"claimed", "in_progress", "blocked"},
+            "reviewer handoff requires a claimed, in-progress, or blocked task")
+    require(_task_token(task) == claim_token,
+            "claim token does not match the current task claim")
+    require(task["reviewer"] == expected_reviewer,
+            "assigned reviewer does not match expected reviewer")
+    require(new_reviewer != expected_reviewer,
+            "new reviewer must differ from assigned reviewer")
+    require(new_reviewer != task["owner"],
+            "new reviewer must differ from current owner")
+    require(task.get("review_subject_sha256") is None
+            and task.get("review_record") is None
+            and task.get("review_record_sha256") is None,
+            "reviewer handoff cannot change an active review subject")
+    prior_reason = "; " + evidence
+    require(evidence not in task["evidence"] and not any(
+        item.startswith("reviewer handoff at queue revision ") and item.endswith(prior_reason)
+        for item in task["evidence"]
+    ), "reviewer handoff evidence entry already exists")
+
+    next_revision = records["queue_revision"] + 1
+    task["reviewer"] = new_reviewer
+    audit_entry = "reviewer handoff at queue revision {}: {} -> {}; {}".format(
+        next_revision, expected_reviewer, new_reviewer, evidence
+    )
+    return append_evidence_record(
+        records, work_id, claim_token, audit_entry, expected_revision
+    )
+
+
 def bind_review_subject_record(
     records_value: Any,
     work_id: str,
@@ -2845,6 +2923,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="trusted caller's SHA-256 of the exact external review file bytes",
     )
 
+    append_evidence = subparsers.add_parser(
+        "append-evidence", help="append claim evidence through revision compare-and-swap"
+    )
+    append_evidence.add_argument("work_id")
+    append_evidence.add_argument("--expected-revision", required=True, type=int)
+    append_evidence.add_argument("--claim-token", required=True)
+    append_evidence.add_argument("--evidence", required=True)
+
+    reviewer_handoff = subparsers.add_parser(
+        "reviewer-handoff", help="change only an active claim's assigned reviewer through revision CAS"
+    )
+    reviewer_handoff.add_argument("work_id")
+    reviewer_handoff.add_argument("--expected-revision", required=True, type=int)
+    reviewer_handoff.add_argument("--claim-token", required=True)
+    reviewer_handoff.add_argument("--expected-reviewer", required=True)
+    reviewer_handoff.add_argument("--new-reviewer", required=True)
+    reviewer_handoff.add_argument("--evidence", required=True)
+
     bind_subject = subparsers.add_parser(
         "bind-review-subject", help="bind the current review scope through revision compare-and-swap"
     )
@@ -2991,6 +3087,33 @@ def run(args: Sequence[str] | None = None) -> int:
                 repo_root=root, subject_reader=lambda: _git_subject(root),
             )
             print("updated {} at queue revision {}".format(options.work_id, changed["queue_revision"]))
+        elif options.command == "append-evidence":
+            changed = _mutate(
+                options.expected_revision,
+                lambda current, _branch, _head: append_evidence_record(
+                    current, options.work_id, options.claim_token,
+                    options.evidence, options.expected_revision,
+                ),
+                tasks_path=tasks_path, queue_path=queue_path,
+                repo_root=root, subject_reader=lambda: _git_subject(root),
+            )
+            print("appended evidence for {} at queue revision {}".format(
+                options.work_id, changed["queue_revision"]
+            ))
+        elif options.command == "reviewer-handoff":
+            changed = _mutate(
+                options.expected_revision,
+                lambda current, _branch, _head: reviewer_handoff_record(
+                    current, options.work_id, options.claim_token,
+                    options.expected_reviewer, options.new_reviewer, options.evidence,
+                    options.expected_revision,
+                ),
+                tasks_path=tasks_path, queue_path=queue_path,
+                repo_root=root, subject_reader=lambda: _git_subject(root),
+            )
+            print("updated reviewer for {} at queue revision {}".format(
+                options.work_id, changed["queue_revision"]
+            ))
         elif options.command == "bind-review-subject":
             def update_review_subject(current: Mapping[str, Any], _branch: str, _head: str) -> dict[str, Any]:
                 task = next((item for item in current["tasks"] if item["work_id"] == options.work_id), None)
