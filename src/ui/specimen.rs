@@ -1067,6 +1067,58 @@ impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
     }
 }
 
+/// A modal frame drawn in the sample's cell as its screen: the cell is
+/// dimmed per [`Frame::dim`](crate::ui::modal::Frame::dim) (its kept rows
+/// stay live), the frame sits clear of its chrome rows with the outer
+/// margin, and an anchored placement opens next to a marked anchor in the
+/// cell's top-left corner. Hover and press land on its close button (`×`),
+/// which shows while its [`Dismiss`](crate::ui::popup::Dismiss) lets Esc
+/// close it.
+impl Specimen for crate::ui::modal::Frame<'static> {
+    fn specimen_id(&self) -> WidgetId {
+        crate::ui::modal::CLOSE
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        let close = self.dismiss.is_some_and(|d| d.shows_close());
+        match state {
+            Rest => true,
+            Hover | Pressed => close,
+            _ => false,
+        }
+    }
+
+    /// The frame, the outer margin around it, the chrome rows and the
+    /// anchor row with a row of room beside it.
+    fn specimen_height(&self, _state: SpecimenState) -> u16 {
+        let m = crate::widgets::dialog::OUTER_MARGIN;
+        self.height.max(self.min_height) + 2 * m.vertical + self.top + self.bottom + 2
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut f = self.clone();
+        if f.placement != crate::ui::popup::Placement::Center {
+            let anchor = Rect::new(area.x + 4, area.y + f.top + 1, 8, 1).intersection(area);
+            f.anchor = anchor;
+            let t = ctx.theme;
+            buf.set_string(anchor.x, anchor.y, "▣ anchor", t.secondary().bg(bg));
+        }
+        let v = state.visual();
+        ctx.interaction.focus = None;
+        ctx.interaction.hover = v.hovered.then_some(crate::ui::modal::CLOSE);
+        ctx.interaction.pressed = v.pressed.then_some(crate::ui::modal::CLOSE);
+        f.render(area, buf, ctx);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

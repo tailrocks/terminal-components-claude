@@ -4448,4 +4448,247 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::info_dialog::InfoDialog::close_button",
         Option("dialogkinds", "dialogkinds.close_button"),
     ),
+    // SC19: Popups & tooltips
+    (
+        "ui::ctx::Backdrop",
+        Option("popupstooltips", "popupstooltips.frame_dim"),
+    ),
+    (
+        "ui::ctx::Backdrop::keep_bottom",
+        Option("popupstooltips", "popupstooltips.frame_dim=keep-bottom"),
+    ),
+    (
+        "ui::ctx::Backdrop::keep_top",
+        Option("popupstooltips", "popupstooltips.frame_dim=keep-top"),
+    ),
+    ("ui::modal::Frame", StateRow("popupstooltips", "rest")),
+    (
+        "ui::modal::Frame::close_button",
+        Option("popupstooltips", "popupstooltips.frame_close_button"),
+    ),
+    (
+        "ui::modal::Frame::dismiss",
+        Option("popupstooltips", "popupstooltips.frame_dismiss"),
+    ),
+    (
+        "ui::modal::Frame::title",
+        StateRow("popupstooltips", "rest"),
+    ),
+    ("ui::modal::Frame::meta", StateRow("popupstooltips", "rest")),
+    (
+        "ui::modal::Frame::placement",
+        Option("popupstooltips", "popupstooltips.frame_placement=center"),
+    ),
+    (
+        "ui::modal::Frame::anchor",
+        Option("popupstooltips", "popupstooltips.frame_placement=below"),
+    ),
+    (
+        "ui::modal::Frame::fit",
+        Option("popupstooltips", "popupstooltips.frame_fit"),
+    ),
+    (
+        "ui::modal::Frame::margin",
+        Option("popupstooltips", "popupstooltips.frame_margin"),
+    ),
+    (
+        "ui::modal::Frame::min_size",
+        Option("popupstooltips", "popupstooltips.frame_min"),
+    ),
+    (
+        "ui::modal::Frame::chrome",
+        Option("popupstooltips", "popupstooltips.frame_chrome"),
+    ),
+    (
+        "ui::modal::Frame::backdrop",
+        Option("popupstooltips", "popupstooltips.frame_backdrop"),
+    ),
+    (
+        "ui::modal::Frame::dim",
+        Option("popupstooltips", "popupstooltips.frame_dim"),
+    ),
+    (
+        "ui::popup::Dismiss",
+        Option("popupstooltips", "popupstooltips.escape"),
+    ),
+    (
+        "ui::popup::RefuseFeedback",
+        Option("popupstooltips", "popupstooltips.refuse_feedback"),
+    ),
+    (
+        "ui::popup::RefuseFeedback::Flash",
+        Option("popupstooltips", "popupstooltips.refuse_feedback=flash"),
+    ),
+    (
+        "ui::popup::RefuseFeedback::None",
+        Option("popupstooltips", "popupstooltips.refuse_feedback=none"),
+    ),
+    (
+        "ui::popup::Dismiss::pass_through",
+        Option("popupstooltips", "popupstooltips.pass_through"),
+    ),
+    (
+        "ui::popup::Dismiss::close_button",
+        Option("popupstooltips", "popupstooltips.frame_close"),
+    ),
+    (
+        "ui::popup::Dismiss::refuse_feedback",
+        Option("popupstooltips", "popupstooltips.refuse_feedback"),
+    ),
+    (
+        "ui::popup::Dismiss::focus_out",
+        Option("popupstooltips", "popupstooltips.focus_out"),
+    ),
+    (
+        "ui::popup::Placement",
+        Option("popupstooltips", "popupstooltips.placement"),
+    ),
+    (
+        "ui::popup::Placement::Below",
+        Option("popupstooltips", "popupstooltips.placement=below"),
+    ),
+    (
+        "ui::popup::Placement::Above",
+        Option("popupstooltips", "popupstooltips.placement=above"),
+    ),
+    (
+        "ui::popup::Placement::Right",
+        Option("popupstooltips", "popupstooltips.placement=right"),
+    ),
+    (
+        "ui::popup::Placement::Left",
+        Option("popupstooltips", "popupstooltips.placement=left"),
+    ),
+    (
+        "ui::popup::Placement::Center",
+        Option("popupstooltips", "popupstooltips.placement=center"),
+    ),
+    (
+        "ui::popup::Overflow",
+        Option("popupstooltips", "popupstooltips.overflow"),
+    ),
+    (
+        "ui::popup::Overflow::Shrink",
+        Option("popupstooltips", "popupstooltips.overflow=shrink"),
+    ),
+    (
+        "ui::popup::Overflow::Slide",
+        Option("popupstooltips", "popupstooltips.overflow=slide"),
+    ),
+    (
+        "ui::popup::VAlign",
+        Option("popupstooltips", "popupstooltips.v_align"),
+    ),
+    (
+        "ui::popup::VAlign::Center",
+        Option("popupstooltips", "popupstooltips.v_align=center"),
+    ),
+    (
+        "ui::popup::VAlign::Third",
+        Option("popupstooltips", "popupstooltips.v_align=third"),
+    ),
+    (
+        "ui::popup::Place",
+        Option("popupstooltips", "popupstooltips.margin"),
+    ),
+    (
+        "ui::popup::Place::vertical_margin",
+        Option("popupstooltips", "popupstooltips.vertical_margin"),
+    ),
+    (
+        "ui::popup::Place::overflow",
+        Option("popupstooltips", "popupstooltips.overflow"),
+    ),
+    (
+        "ui::popup::Place::margin",
+        Option("popupstooltips", "popupstooltips.margin"),
+    ),
+    (
+        "ui::popup::Place::v_align",
+        Option("popupstooltips", "popupstooltips.v_align"),
+    ),
+    (
+        "ui::popup::Place::text_inset",
+        Option("popupstooltips", "popupstooltips.text_inset"),
+    ),
+    (
+        "ui::reveal::RevealMode",
+        Option("popupstooltips", "popupstooltips.reveal_mode"),
+    ),
+    (
+        "ui::reveal::RevealMode::Tooltip",
+        Option("popupstooltips", "popupstooltips.reveal_mode=tooltip"),
+    ),
+    (
+        "ui::reveal::RevealMode::InlineWrap",
+        Option("popupstooltips", "popupstooltips.reveal_mode=inline"),
+    ),
+    (
+        "ui::reveal::Reveal",
+        Option("popupstooltips", "popupstooltips.reveal_hover"),
+    ),
+    (
+        "ui::reveal::Reveal::hover",
+        Option("popupstooltips", "popupstooltips.reveal_hover"),
+    ),
+    (
+        "ui::reveal::Reveal::keyboard",
+        Option("popupstooltips", "popupstooltips.reveal_key"),
+    ),
+    (
+        "ui::reveal::Reveal::mode",
+        Option("popupstooltips", "popupstooltips.reveal_mode"),
+    ),
+    (
+        "ui::reveal::Reveal::max_rows",
+        Option("popupstooltips", "popupstooltips.reveal_rows"),
+    ),
+    (
+        "ui::reveal::Reveal::scroll",
+        Option("popupstooltips", "popupstooltips.reveal_scroll"),
+    ),
+    (
+        "ui::reveal::Reveal::wheel_lines",
+        Option("popupstooltips", "popupstooltips.reveal_wheel"),
+    ),
+    (
+        "ui::reveal::Reveal::delay_ms",
+        Option("popupstooltips", "popupstooltips.reveal_delay"),
+    ),
+    (
+        "ui::reveal::Reveal::wheel_passes_at_ends",
+        Option("popupstooltips", "popupstooltips.reveal_passes"),
+    ),
+    (
+        "ui::reveal::RevealState",
+        Demo("popupstooltips", "RevealState per-widget policy set"),
+    ),
+    (
+        "ui::tooltip::Tooltips",
+        Option("popupstooltips", "popupstooltips.tooltips"),
+    ),
+    (
+        "ui::tooltip::Tooltips::enabled",
+        Option("popupstooltips", "popupstooltips.tooltips"),
+    ),
+    (
+        "ui::tooltip::Tooltips::delay_ms",
+        Option("popupstooltips", "popupstooltips.tip_delay"),
+    ),
+    (
+        "ui::tooltip::Tooltips::max_width",
+        Option("popupstooltips", "popupstooltips.tip_width"),
+    ),
+    (
+        "ui::tooltip::Tip",
+        Demo("popupstooltips", "Save the draft to this device ⌘S"),
+    ),
+    (
+        "ui::tooltip::Tip::shortcut",
+        Demo("popupstooltips", "Open an empty query tab ⌘T"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::tooltip",
+        Demo("popupstooltips", "Region of the connection ⌘R"),
+    ),
 ];
