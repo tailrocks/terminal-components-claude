@@ -497,6 +497,51 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
     );
 }
 
+/// Layout audit #1: at 72x20 the editor's General tab stacked its fields
+/// with `y += h`, so "On dirty exit" sat on the row of Cancel and Save.
+/// The fields are now a scrolling stack: none reaches the action row, and
+/// Tab brings each one into view.
+#[test]
+fn a_short_editor_general_tab_scrolls_instead_of_reaching_the_actions() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 72, 20);
+    h.key(KeyCode::Char('e'));
+    assert_eq!(h.app.route, Route::Editor);
+    let save_y = h
+        .text()
+        .lines()
+        .position(|l| l.contains("Save") && l.contains("Cancel"))
+        .expect("the action row") as u16;
+    let mut seen = std::collections::HashSet::new();
+    for _ in 0..16 {
+        let text = h.text();
+        let row = text.lines().nth(save_y as usize).unwrap();
+        assert!(
+            !row.contains("dirty"),
+            "a field on the action row: {row}\n{text}"
+        );
+        let Some(f) = h.app.focus.current() else {
+            break;
+        };
+        if !seen.insert(f) {
+            break;
+        }
+        if let Some(a) = h.app.hits.area_of(f)
+            && a.y != save_y
+            && a.y > 3
+        {
+            assert!(
+                a.bottom() <= save_y,
+                "{f:?} at {a:?} reaches the actions\n{text}"
+            );
+        }
+        h.key(KeyCode::Tab);
+    }
+    assert!(
+        seen.contains(&crate::screens::editor::NAME),
+        "Tab reaches the fields"
+    );
+}
+
 #[test]
 fn editor_edits_count_once_preview_then_saves_and_returns() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
