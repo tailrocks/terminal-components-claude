@@ -2,16 +2,16 @@
 [0m[2m                                                                                [0m
 [0m[2m Components      54  Selectable table  Select rows, edit one or many together,… [0m
 [0m[2m                                                                                [0m
-[0m[2m [0m [0m[2m  Overview           Members                        2 selected · 1–3 of 12   ┃[0m
-[0m[2m [0m [0m[2m▸ App shell                                                                  ┃[0m
-[0m[2m [0m [0m[2m▸ Inputs & forms        [–] Name              Role    Status     Region …    ┃[0m
-[0m[2m [0m [0m[2m▾ Tables   ╭─────────[0m─[0m[2m────────────────────────────────────── × ─╮EU      ┃   ┃[0m
-[0m[2m [0m [0m[2m    Basic t│         [0m [0m[2m                                          │US      ┆   ┃[0m
-[0m[2m [0m [0m[2m    Editabl│  [0m[1;2mDelete [0m[1m2[0m[1;2m members?[0m[2m                                 │EU      ┆   ┃[0m
-[0m[2m [0m [0m[2m    Data gr│                                                    │┄┄┄┄┄┄┄┄    ┃[0m
-[0m[2m [0m [0m[2m  › Selecti│  They lose access to the workspace right away.     │            ┃[0m
-[0m[2m [0m [0m[2m    Cell ed│  This can't be undone.                             │            ┃[0m
-[0m[2m [0m [0m[2m    Columns│                                                    │            ┆[0m
+[0m[2m [0m [0m[2m  Overview          Playground    Options    States                           [0m
+[0m[2m [0m [0m[2m▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+[0m[2m [0m [0m[2m▸ Inputs & forms                                                              [0m
+[0m[2m [0m [0m[2m▾ Tables   ╭──────────────────────────────────────────────── × ─╮1–3 of 12   ┃[0m
+[0m[2m [0m [0m[2m    Basic t│                                                    │            ┃[0m
+[0m[2m [0m [0m[2m    Editabl│  [0m[1;2mDelete 2 members?[0m[2m                                 │Region …    ┃[0m
+[0m[2m [0m [0m[2m    Data gr│         [0m [0m[2m                                          │EU      ┃   ┃[0m
+[0m[2m [0m [0m[2m  › Selecti│  They lo[0ms[0m[2me access to the workspace right away.     │US      ┆   ┃[0m
+[0m[2m [0m [0m[2m    Cell ed│  This ca[0mn[0m[2m't be undone.                             │EU      ┆   ┃[0m
+[0m[2m [0m [0m[2m    Columns│                                                    │┄┄┄┄┄┄┄┄    ┃[0m
 [0m[2m [0m [0m[2m▸ Navigatio│                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │            ┆[0m
 [0m[2m [0m [0m[2m▸ Overlays │                                                    │            ┆[0m
 [0m[2m [0m [0m[2m▸ Feedback ╰────────────────────────────────────────────────────╯            ┆[0m
