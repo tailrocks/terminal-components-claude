@@ -88,6 +88,46 @@ impl HintBar {
     }
 }
 
+/// A hint layer drawn in a forced state for a States grid
+/// ([`crate::ui::specimen`]): the bar at rest, with its status cut
+/// (overflow), with an error status, with the EDIT badge (editing) and in
+/// the grid's narrow slot, where hints drop by priority.
+impl crate::ui::specimen::Specimen for HintLayer {
+    fn specimen_id(&self) -> crate::core::id::WidgetId {
+        crate::core::id::WidgetId::of("hintbar.specimen")
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Overflow | Error | Editing | Narrow)
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut crate::ui::ctx::RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut layer = self.clone();
+        match state {
+            Overflow => {
+                layer.status = Some((
+                    "Saved 3 rows to payments.settlements · 2 warnings".into(),
+                    Tone::Secondary,
+                ));
+            }
+            Error => layer.status = Some(("Connection lost".into(), Tone::Error)),
+            Editing => layer.badge = Some(("EDIT", BadgeKind::Edit)),
+            _ => {}
+        }
+        crate::ui::ctx::fill(buf, area, ratatui::style::Style::new().bg(bg));
+        HintBar::render(area, buf, ctx.theme, &layer);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

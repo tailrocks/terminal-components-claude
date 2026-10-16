@@ -45,7 +45,7 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/datagrid", Bin::Showcase, &["--page", "datagrid"], BOOT),
     Root::new("showcase/pages/chips", Bin::Showcase, &["--page", "chipsselects"], BOOT),
     Root::new("showcase/pages/pickers", Bin::Showcase, &["--page", "pickers"], BOOT),
-    Root::new("showcase/pages/chrome", Bin::Showcase, &["--page", "chrome"], BOOT),
+    Root::new("showcase/pages/chrome", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT),
     Root::new("showcase/pages/settings", Bin::Showcase, &["--page", "settings"], BOOT),
     Root::new("showcase/pages/taskrunner", Bin::Showcase, &["--page", "taskrunner"], BOOT),
     // Paused frame 1600 fast-forwards the 400-line log to its deterministic
@@ -77,7 +77,7 @@ pub const SURFACES: &[Root] = &[
     // Every page of plan §7.2 is registered up front with its `--page` slug
     // and shows an EmptyState naming the step that fills it. Each step
     // re-captures its page; pending first approval.
-    Root::new("showcase/planned/statushints", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["wait:arrives with SC4"]).pending(),
+    Root::new("showcase/pages/statushints", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["wait:HintBar::resolve"]).pending(),
     Root::new("showcase/planned/breadcrumbsrails", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["wait:arrives with SC5"]).pending(),
     Root::new("showcase/planned/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     Root::new("showcase/planned/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
@@ -122,6 +122,16 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/basictable-options", Bin::Showcase, &["--page", "basictable"], BOOT).sends(&["tab", "2", "wait:Selection"]).pending(),
     Root::new("showcase/sections/basictable-states", Bin::Showcase, &["--page", "basictable"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     Root::new("showcase/sections/basictable-multi", Bin::Showcase, &["--page", "basictable", "--opt", "basictable.selection=multi"], BOOT).sends(&["wait:[ ] #1040"]).pending(),
+    // Chrome and Status & hints (SC4): the menu bar's options, segments and
+    // status items in their states, the hint bar's layers and priorities.
+    Root::new("showcase/sections/chrome-options", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "2", "wait:Press-drag-release"]).pending(),
+    Root::new("showcase/sections/chrome-states", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Clickable segment"]).pending(),
+    Root::new("showcase/sections/chrome-narrow-chevron", Bin::Showcase, &["--page", "chrome", "--opt", "chrome.bar=narrow", "--opt", "chrome.overflow=chevron", "--motion", "paused"], BOOT).sends(&["wait:overflow Chevron"]).pending(),
+    Root::new("showcase/sections/chrome-env-menu", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).click("production").pending().dismiss_pending(),
+    Root::new("showcase/sections/chrome-status-tooltip", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).hover("PR #482").pending(),
+    Root::new("showcase/sections/statushints-options", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "2", "wait:F5 priority"]).pending(),
+    Root::new("showcase/sections/statushints-states", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "3", "wait:Pinned F5"]).pending(),
+    Root::new("showcase/sections/statushints-modal-narrow", Bin::Showcase, &["--page", "statushints", "--opt", "statushints.layer=modal", "--opt", "statushints.width=narrow"], BOOT).sends(&["wait:Enter Delete"]).pending(),
     // Overview (SC3): the theme explorer's options and every Kind on a plane.
     Root::new("showcase/sections/overview-options", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "2", "wait:State modifiers"]).pending(),
     Root::new("showcase/sections/overview-states", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "3", "wait:Cursor fill"]).pending(),
@@ -196,7 +206,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/dialogs/destructive", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["d", "wait:Delete branch?"]).dismiss_pending(),
     Root::new("showcase/flows/pickers/open", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "enter"]).dismiss_pending(),
     // S8: the menu bar is the page's first stop; Enter opens the File menu.
-    Root::new("showcase/flows/chrome/menu", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "enter", "wait:New tab"]).dismiss_pending(),
+    Root::new("showcase/flows/chrome/menu", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "tab", "enter", "wait:New tab"]).dismiss_pending(),
     // S9: right click on a session row opens its context menu.
     Root::new("showcase/flows/chrome/context", Bin::Showcase, &["--page", "chrome"], BOOT).live(interact::chrome_context).dismiss_pending(),
     // S7: two typed characters open the completion popup (focus starts the
@@ -282,11 +292,12 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/chips/select_open", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:customer"]),
     // settings_members: tabs bar → Members, then into the table, cursor row 2.
     Root::new("showcase/flows/settings/members", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "tab", "down", "wait:cursor: Jonas Weber"]),
-    // chrome_menu_view: File menu open, `right` switches to the View menu.
-    Root::new("showcase/flows/chrome/menu_view", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "enter", "right", "wait:Zoom pane"]),
+    // chrome_menu_view: File menu open, `right` twice switches to the View
+    // menu (past Edit). The first Tab focuses the section strip.
+    Root::new("showcase/flows/chrome/menu_view", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "tab", "enter", "right", "right", "wait:Zoom pane"]),
     // chrome_focus: the menu bar focused with no menu open (the bar's hints
     // are the proof — `←→ Menu` only renders in this state).
-    Root::new("showcase/flows/chrome/focus", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "wait:←→ Menu"]),
+    Root::new("showcase/flows/chrome/focus", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "tab", "wait:←→ Menu"]),
     // build = 80 × 0.006 = 48 %, spinner pinned at frame 80.
     Root::new("showcase/flows/progress/mid", Bin::Showcase, &["--page", "progress", "--motion", "paused", "--frame", "80"], BOOT),
     // 200 × 0.006 ≥ 1.0: the bar is Done (100% ✓). The transient "Build

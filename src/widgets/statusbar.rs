@@ -396,6 +396,40 @@ impl StatusBar {
     }
 }
 
+/// A status item drawn alone on the status plane, in a forced state, for
+/// a States grid ([`crate::ui::specimen`]): a clickable item hovers and
+/// presses, a busy one spins, a long one is cut in the narrow slot.
+impl crate::ui::specimen::Specimen for StatusItem {
+    fn specimen_id(&self) -> WidgetId {
+        self.id.unwrap_or(WidgetId::of("statusbar.specimen"))
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        match state {
+            Rest | Busy | Narrow => true,
+            Hover | Pressed => self.id.is_some(),
+            _ => false,
+        }
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        _bg: ratatui::style::Color,
+    ) {
+        let mut item = self.clone();
+        item.tip = None;
+        item.busy |= state == crate::ui::specimen::SpecimenState::Busy;
+        let mut bar = StatusBar::new();
+        bar.left.push(item);
+        bar.render(area, buf, ctx);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

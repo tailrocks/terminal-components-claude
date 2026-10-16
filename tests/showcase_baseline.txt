@@ -1,8 +1,12 @@
 120x40 TrueColor Overview 58b4ba7c4734c558
 120x40 TrueColor Overview · Options 84dbeadb68004c85
 120x40 TrueColor Overview · States 3863aad0ab7d161c
-120x40 TrueColor Chrome 6ec32743d403bf70
-120x40 TrueColor Status & hints 670c278b20fe52c4
+120x40 TrueColor Chrome 73a25979ac317c39
+120x40 TrueColor Chrome · Options 5e1013da9d9bcaa0
+120x40 TrueColor Chrome · States f545934eb3d0ca28
+120x40 TrueColor Status & hints 30a42740994d1cc0
+120x40 TrueColor Status & hints · Options c77cd94b0db41209
+120x40 TrueColor Status & hints · States aa13ad6b8cd4d42e
 120x40 TrueColor Breadcrumbs & rails c05169cc082206ac
 120x40 TrueColor Help & keys 5f66d51990ed255b
 120x40 TrueColor Quit & leave cdb0d80de4ed849a
@@ -67,8 +71,12 @@
 120x40 Ansi256 Overview 2e8c1a6c2f0eac69
 120x40 Ansi256 Overview · Options e9fc365a51801320
 120x40 Ansi256 Overview · States 494f77b7b9cf1651
-120x40 Ansi256 Chrome bcdacb979ffefca5
-120x40 Ansi256 Status & hints b100022a773eb950
+120x40 Ansi256 Chrome 79da518e20850008
+120x40 Ansi256 Chrome · Options 1b749bd82b47c0dd
+120x40 Ansi256 Chrome · States e11b10b1ea25698c
+120x40 Ansi256 Status & hints 717af1d0cdbda298
+120x40 Ansi256 Status & hints · Options a6ef7e8610b44115
+120x40 Ansi256 Status & hints · States 94d067ee71bc01f0
 120x40 Ansi256 Breadcrumbs & rails a245f8ae113504b1
 120x40 Ansi256 Help & keys 2b3fb6b3c4ce9038
 120x40 Ansi256 Quit & leave 3218ac5ecf893608
@@ -133,8 +141,12 @@
 120x40 Ansi16 Overview 11c6179d9b2c00b5
 120x40 Ansi16 Overview · Options 4951eb11e3701991
 120x40 Ansi16 Overview · States b6380cf3a33b1c9b
-120x40 Ansi16 Chrome 4882e801ebd3d5e2
-120x40 Ansi16 Status & hints e7816ce9fd2f5a6a
+120x40 Ansi16 Chrome a90041c94d1c090d
+120x40 Ansi16 Chrome · Options f812b56f3aa4daa0
+120x40 Ansi16 Chrome · States 4ac4e58ed395c761
+120x40 Ansi16 Status & hints 2ee8b63ab08b804e
+120x40 Ansi16 Status & hints · Options c983af74b1e2aee3
+120x40 Ansi16 Status & hints · States 1f168a48d45df41e
 120x40 Ansi16 Breadcrumbs & rails 4b227e565d3291ce
 120x40 Ansi16 Help & keys ab866259bf7e5e47
 120x40 Ansi16 Quit & leave 9324d61b35eb35fa
@@ -199,8 +211,12 @@
 120x40 Mono Overview 227e016c2e6977a1
 120x40 Mono Overview · Options 6ca95102e65366ca
 120x40 Mono Overview · States 7b8676967f582156
-120x40 Mono Chrome 47e0017b568770c1
-120x40 Mono Status & hints e7c6dfb4f92ab471
+120x40 Mono Chrome 5d7a9a606b641e6a
+120x40 Mono Chrome · Options 32aae48dc03cc41f
+120x40 Mono Chrome · States 65633ad3c9f43bb0
+120x40 Mono Status & hints fb532e55ac22aab5
+120x40 Mono Status & hints · Options 0ee3421fea61dc9c
+120x40 Mono Status & hints · States c59fa73f12f063b5
 120x40 Mono Breadcrumbs & rails 8a7cf0232d671447
 120x40 Mono Help & keys d9e1aabb2f5720de
 120x40 Mono Quit & leave 9fa9b6400acfc421
@@ -265,8 +281,12 @@
 80x24 TrueColor Overview 49887ec7b74897c6
 80x24 TrueColor Overview · Options 72f2e3bce7759123
 80x24 TrueColor Overview · States 96e32128a1e5b5ac
-80x24 TrueColor Chrome ddae3ca9df733eda
-80x24 TrueColor Status & hints 2a713eb6ec2852fd
+80x24 TrueColor Chrome 4d26d0aeb2a844c5
+80x24 TrueColor Chrome · Options d9b2df8f358b8212
+80x24 TrueColor Chrome · States dc6252f39f7aa892
+80x24 TrueColor Status & hints de38cd24f505754c
+80x24 TrueColor Status & hints · Options cf8d9e472f643749
+80x24 TrueColor Status & hints · States e2581f0754a0b413
 80x24 TrueColor Breadcrumbs & rails 9960c3d8b39967af
 80x24 TrueColor Help & keys a0a64f1fe147cdb3
 80x24 TrueColor Quit & leave 77d63ebc91700b78
@@ -331,8 +351,12 @@
 80x24 Ansi256 Overview 20e7e185c88cc002
 80x24 Ansi256 Overview · Options b1f51d028f291db3
 80x24 Ansi256 Overview · States d86166108b860bc7
-80x24 Ansi256 Chrome a5dd2c2190d5142f
-80x24 Ansi256 Status & hints 8fb2e8b7554db06e
+80x24 Ansi256 Chrome 6514bab740ab0da3
+80x24 Ansi256 Chrome · Options 0f23c14e013d6c76
+80x24 Ansi256 Chrome · States 965a560802f1ae25
+80x24 Ansi256 Status & hints 060d71dbad22c0a1
+80x24 Ansi256 Status & hints · Options 81493a06a9f2c8ba
+80x24 Ansi256 Status & hints · States fd2faf5377f7af17
 80x24 Ansi256 Breadcrumbs & rails 3e616d8a2a323e6f
 80x24 Ansi256 Help & keys d526813a2878869b
 80x24 Ansi256 Quit & leave 47009cfa7d0ddf19
@@ -397,8 +421,12 @@
 80x24 Ansi16 Overview e60adb310c3abde5
 80x24 Ansi16 Overview · Options cafe64de33ea7f79
 80x24 Ansi16 Overview · States 35b5c42574ce26f1
-80x24 Ansi16 Chrome 7bf7e777c5d693d0
-80x24 Ansi16 Status & hints 2f611fe99e05ad9d
+80x24 Ansi16 Chrome 31471f6e5bb70b2c
+80x24 Ansi16 Chrome · Options 084bd81fa17f108f
+80x24 Ansi16 Chrome · States 4229842a00725f77
+80x24 Ansi16 Status & hints 166dc64ecfd76274
+80x24 Ansi16 Status & hints · Options 12d48ca000220fa9
+80x24 Ansi16 Status & hints · States b5bfed8ba045b53b
 80x24 Ansi16 Breadcrumbs & rails 33745575289acd31
 80x24 Ansi16 Help & keys 986ea1e88d04aec5
 80x24 Ansi16 Quit & leave 811510730d15a24e
@@ -463,8 +491,12 @@
 80x24 Mono Overview 88e27245868503c1
 80x24 Mono Overview · Options d23e029ca13c4768
 80x24 Mono Overview · States 9d8388852eb1b202
-80x24 Mono Chrome ef9227f3a125d01c
-80x24 Mono Status & hints 510e9f01136dba93
+80x24 Mono Chrome a1c015fcdcb36788
+80x24 Mono Chrome · Options 3f5a51fd52b0f437
+80x24 Mono Chrome · States d55ae7b3766f7131
+80x24 Mono Status & hints e2437eda9cd9bf94
+80x24 Mono Status & hints · Options 174a773dea136189
+80x24 Mono Status & hints · States 35953e45c16af737
 80x24 Mono Breadcrumbs & rails 3eae7f5798f8b6c3
 80x24 Mono Help & keys 905e321bdc1bff77
 80x24 Mono Quit & leave 2c621903dce96b94
@@ -529,8 +561,12 @@
 72x20 TrueColor Overview 119761c74936b8d6
 72x20 TrueColor Overview · Options 51ff5f170afb94ac
 72x20 TrueColor Overview · States a54e7cc6cfe50431
-72x20 TrueColor Chrome 255dde2bcc6cf8d7
-72x20 TrueColor Status & hints fd9aa5128ae8fd6b
+72x20 TrueColor Chrome b474c3fc6e308417
+72x20 TrueColor Chrome · Options 51417055953ba84b
+72x20 TrueColor Chrome · States 06d95fdc0a551dad
+72x20 TrueColor Status & hints 92b7c04feda3f6c7
+72x20 TrueColor Status & hints · Options dbde5c0084e8bcb1
+72x20 TrueColor Status & hints · States e19f34b35ab14343
 72x20 TrueColor Breadcrumbs & rails 717aec284533b129
 72x20 TrueColor Help & keys 0f1a0f4111115d45
 72x20 TrueColor Quit & leave 72788b9f8743df37
@@ -595,8 +631,12 @@
 72x20 Ansi256 Overview 9770b8f18aefbd8e
 72x20 Ansi256 Overview · Options d983a581f8221fcd
 72x20 Ansi256 Overview · States 32ad1d2bfa466f89
-72x20 Ansi256 Chrome ecfb5b0e028df0ae
-72x20 Ansi256 Status & hints 2ea7d438e802f54e
+72x20 Ansi256 Chrome 6a7958ecb1516dcf
+72x20 Ansi256 Chrome · Options 942a234ee22a9c2b
+72x20 Ansi256 Chrome · States fea21e26aee7708e
+72x20 Ansi256 Status & hints b7da751b1b35cb02
+72x20 Ansi256 Status & hints · Options 15138b6a964fe117
+72x20 Ansi256 Status & hints · States e752c06995bd7cf8
 72x20 Ansi256 Breadcrumbs & rails a7444266307862cc
 72x20 Ansi256 Help & keys f89dbc9c21b20a93
 72x20 Ansi256 Quit & leave 7b008fc984b93d12
@@ -661,8 +701,12 @@
 72x20 Ansi16 Overview 9d1bc774564e0be4
 72x20 Ansi16 Overview · Options 7c63718eeb166e93
 72x20 Ansi16 Overview · States cf17b16e680669c7
-72x20 Ansi16 Chrome 257d7c795baa16c9
-72x20 Ansi16 Status & hints 85df1e04d9e239ed
+72x20 Ansi16 Chrome 32968c0d701f8139
+72x20 Ansi16 Chrome · Options 806d673d14c3b41e
+72x20 Ansi16 Chrome · States a317184d0685ef52
+72x20 Ansi16 Status & hints c73f0a8070c72268
+72x20 Ansi16 Status & hints · Options 7478d3c55e22a496
+72x20 Ansi16 Status & hints · States acb293365a6f96bd
 72x20 Ansi16 Breadcrumbs & rails 460d8ac46fff49db
 72x20 Ansi16 Help & keys 3de0b0977a1bfb89
 72x20 Ansi16 Quit & leave 669e142aab4c93b5
@@ -727,8 +771,12 @@
 72x20 Mono Overview ffaa501f315a6fb1
 72x20 Mono Overview · Options 1608561f089c18ed
 72x20 Mono Overview · States a7bd5497cbcf66eb
-72x20 Mono Chrome 28a3803ff814ac23
-72x20 Mono Status & hints 706e644d94dc9c23
+72x20 Mono Chrome 6ef456981f797e69
+72x20 Mono Chrome · Options 96e1dd29b42246c4
+72x20 Mono Chrome · States e176e0c22d5813c0
+72x20 Mono Status & hints 6c790983b3a7b9a4
+72x20 Mono Status & hints · Options a887fda448497f44
+72x20 Mono Status & hints · States 5343f7137807e57f
 72x20 Mono Breadcrumbs & rails 20df48ec70bac8c5
 72x20 Mono Help & keys 1556fe24fb245873
 72x20 Mono Quit & leave f4e7a231ca158ba3
@@ -793,8 +841,12 @@
 100x30 TrueColor Overview 8c0abf6533b15c6d
 100x30 TrueColor Overview · Options b9158a0372a026f5
 100x30 TrueColor Overview · States b9a5e114b4b599b3
-100x30 TrueColor Chrome b90bbbff74c85a8a
-100x30 TrueColor Status & hints 5ce202c1979c4f7f
+100x30 TrueColor Chrome 2df1a787d0d3e830
+100x30 TrueColor Chrome · Options a971e26ff9d1f645
+100x30 TrueColor Chrome · States bf209ebf459bf216
+100x30 TrueColor Status & hints 37de235460825efa
+100x30 TrueColor Status & hints · Options c5c2ad6bbdee653b
+100x30 TrueColor Status & hints · States 84442ae5075761d6
 100x30 TrueColor Breadcrumbs & rails cae88d8d2cbbe625
 100x30 TrueColor Help & keys 69290a7a95b06d64
 100x30 TrueColor Quit & leave feed5ee4e22aba95
@@ -859,8 +911,12 @@
 100x30 Ansi256 Overview 9e8a071912c52d2b
 100x30 Ansi256 Overview · Options 0b0edd1847f67254
 100x30 Ansi256 Overview · States 94b762769df6dc2d
-100x30 Ansi256 Chrome 3e5dd81f4c97145a
-100x30 Ansi256 Status & hints 41b916cc819a5558
+100x30 Ansi256 Chrome b10da91c3763276c
+100x30 Ansi256 Chrome · Options e1524c83e8718275
+100x30 Ansi256 Chrome · States 1fc8396888e280b8
+100x30 Ansi256 Status & hints 5485100356b79e28
+100x30 Ansi256 Status & hints · Options 89274d704209474f
+100x30 Ansi256 Status & hints · States 0dd483a78a91ec67
 100x30 Ansi256 Breadcrumbs & rails 23c7d7b84354f053
 100x30 Ansi256 Help & keys 0992d2e22ae34368
 100x30 Ansi256 Quit & leave 84603a4a1125e44e
@@ -925,8 +981,12 @@
 100x30 Ansi16 Overview af079c094eb3fedb
 100x30 Ansi16 Overview · Options 4b5e259e05e22776
 100x30 Ansi16 Overview · States 38240dcd8efb6afd
-100x30 Ansi16 Chrome 0d15f5fadf534222
-100x30 Ansi16 Status & hints ea09207c2338ffd7
+100x30 Ansi16 Chrome cfab9fd8e9166772
+100x30 Ansi16 Chrome · Options 15b8d88822b60358
+100x30 Ansi16 Chrome · States ca13b151250f43b1
+100x30 Ansi16 Status & hints 7939607d5bd2633f
+100x30 Ansi16 Status & hints · Options 7c1b5b444f1a1dc0
+100x30 Ansi16 Status & hints · States 49874b03e0c4bb0d
 100x30 Ansi16 Breadcrumbs & rails 5ad8c3d31e8d2e71
 100x30 Ansi16 Help & keys 0acbc556b2a05fa4
 100x30 Ansi16 Quit & leave 69a90b8dda41d491
@@ -991,8 +1051,12 @@
 100x30 Mono Overview 36e22e0117e21873
 100x30 Mono Overview · Options f90b94d69de90ab9
 100x30 Mono Overview · States a000e400686b281e
-100x30 Mono Chrome 98aecbd9ed4fc027
-100x30 Mono Status & hints 584ee803fe50d0a2
+100x30 Mono Chrome ca88ddd3f27e9927
+100x30 Mono Chrome · Options f8fcf3dadee5aa05
+100x30 Mono Chrome · States ef0cd8012ccacb08
+100x30 Mono Status & hints 318e11b0eb2584bc
+100x30 Mono Status & hints · Options 5852e2f2bff849d7
+100x30 Mono Status & hints · States cfcec3f68240de98
 100x30 Mono Breadcrumbs & rails bb725535998a73d2
 100x30 Mono Help & keys 004be08d645a712f
 100x30 Mono Quit & leave 53165bfbbeff3218
@@ -1057,8 +1121,12 @@
 160x50 TrueColor Overview 681ed5bc4a19ab0a
 160x50 TrueColor Overview · Options ff31e9b893a470c8
 160x50 TrueColor Overview · States 74689572a27740eb
-160x50 TrueColor Chrome fa456d026d4be7d5
-160x50 TrueColor Status & hints 19391b3c180713be
+160x50 TrueColor Chrome 39c69bb692602647
+160x50 TrueColor Chrome · Options c330b40f823612c7
+160x50 TrueColor Chrome · States 1d2e2fdb7749a404
+160x50 TrueColor Status & hints 64bc72f27df1a93c
+160x50 TrueColor Status & hints · Options dbabc6dea9cf9d14
+160x50 TrueColor Status & hints · States 5e0123ad4add6793
 160x50 TrueColor Breadcrumbs & rails ee9302d4bc2369b0
 160x50 TrueColor Help & keys e4c8923010817924
 160x50 TrueColor Quit & leave 60968fa53395767e
@@ -1123,8 +1191,12 @@
 160x50 Ansi256 Overview a2b0d82a580aa072
 160x50 Ansi256 Overview · Options f2b5960a7f7984bb
 160x50 Ansi256 Overview · States 58cfe37ffce33e2e
-160x50 Ansi256 Chrome 057f2aa8295453d4
-160x50 Ansi256 Status & hints 8ae9ddc11d0d76c6
+160x50 Ansi256 Chrome 4e00c187ca9b0bf3
+160x50 Ansi256 Chrome · Options 0237350c216c8078
+160x50 Ansi256 Chrome · States 56de947c9d6fd006
+160x50 Ansi256 Status & hints 1838504526f10f8a
+160x50 Ansi256 Status & hints · Options 14ba1f8b57121264
+160x50 Ansi256 Status & hints · States 8620decc27ccf716
 160x50 Ansi256 Breadcrumbs & rails ca58279222058bac
 160x50 Ansi256 Help & keys b3cd3d60908e33a3
 160x50 Ansi256 Quit & leave 8bb9d52291088b72
@@ -1189,8 +1261,12 @@
 160x50 Ansi16 Overview 7499a0420e8f448f
 160x50 Ansi16 Overview · Options 1d3e117df35943d6
 160x50 Ansi16 Overview · States dbab02595408640a
-160x50 Ansi16 Chrome efc425914ec10453
-160x50 Ansi16 Status & hints a9808305bd7b3fde
+160x50 Ansi16 Chrome b8a80a981b15fad3
+160x50 Ansi16 Chrome · Options 1565702804c41e43
+160x50 Ansi16 Chrome · States 002ab9973b0cbba3
+160x50 Ansi16 Status & hints 09db942a22707704
+160x50 Ansi16 Status & hints · Options 56c98a553a0739ac
+160x50 Ansi16 Status & hints · States 4cdb762e4c06692b
 160x50 Ansi16 Breadcrumbs & rails 07cf5e3665059dec
 160x50 Ansi16 Help & keys 80251c46b1a93ce6
 160x50 Ansi16 Quit & leave ccb78c266067a92a
@@ -1255,8 +1331,12 @@
 160x50 Mono Overview 8c4f2db76aab6833
 160x50 Mono Overview · Options ed5e6036ea5d563b
 160x50 Mono Overview · States 280c13de1438fd41
-160x50 Mono Chrome 3fe535b92feda3b0
-160x50 Mono Status & hints 4d2de569de0defcd
+160x50 Mono Chrome f633e9808a3a0320
+160x50 Mono Chrome · Options ef0f640b2b505580
+160x50 Mono Chrome · States 8f37a95a73914504
+160x50 Mono Status & hints 13929c5ec75b0bc7
+160x50 Mono Status & hints · Options cb33713dab020e41
+160x50 Mono Status & hints · States 5ea9b579d13a642c
 160x50 Mono Breadcrumbs & rails ba3d1f7daf3fd427
 160x50 Mono Help & keys 7cc85c82febd3227
 160x50 Mono Quit & leave 20d43735e09b6b49
