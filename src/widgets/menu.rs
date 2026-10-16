@@ -10,6 +10,7 @@ use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::theme::{CursorStyle, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, backdrop_id};
 use crate::ui::text::{truncate, width};
@@ -313,6 +314,7 @@ impl ContextMenu {
         // the popover plane: the strongest neutral, so a menu reads as a
         // floating command list over the page
         let bg = t.popover;
+        let plane = Plane::Popover;
         fill(buf, area, Style::new().bg(bg));
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
@@ -345,47 +347,21 @@ impl ContextMenu {
                 break;
             }
             let rid = self.row_id(i);
-            let mut s = ctx.state(rid);
-            s.selected = i == self.cursor;
+            let mut s = ctx.child_state(self.id, rid, i == self.cursor);
             s.focused = i == self.cursor;
             s.disabled = item.disabled;
-            if item.disabled {
-                s.hovered = false;
-            }
+            s.error = item.danger;
             let row = Rect::new(inner.x, y, inner.width, 1);
-            // one highlight only: the cursor row is a solid blue fill with
-            // bold white text (a menu row is a command, not a focus stop, so
-            // it draws no `▎` bar and never the accent); hover lifts the plane
-            // a destructive row is soft rose at rest and takes a deep red
-            // fill under the cursor: the tone of the plane, not the alarm red
-            let st = if item.disabled {
-                t.disabled_style().bg(bg)
-            } else if s.selected {
-                Style::new()
-                    .fg(t.text_primary)
-                    .bg(if item.danger {
-                        t.highlight_danger
-                    } else {
-                        t.highlight
-                    })
-                    .add_modifier(Modifier::BOLD)
-            } else if s.hovered {
-                Style::new()
-                    .fg(if item.danger {
-                        t.error_soft
-                    } else {
-                        t.text_primary
-                    })
-                    .bg(t.lift(bg))
-            } else {
-                Style::new()
-                    .fg(if item.danger {
-                        t.error_soft
-                    } else {
-                        t.text_primary
-                    })
-                    .bg(bg)
-            };
+            // one highlight only: the cursor row is the highlight fill (a
+            // menu row is a command, not a focus stop, so it draws no `▎`
+            // bar and never the accent); hover and press walk the plane's
+            // ladder. A destructive row is soft rose at rest and takes the
+            // deep red cursor fill: the tone of the plane, not the alarm red
+            let it = t.interactive(Kind::CursorRow(CursorStyle::Fill), s, plane);
+            let mut st = it.style;
+            if item.danger && !it.on_fill && !item.disabled {
+                st = st.fg(t.legible(t.error_soft, st.bg.unwrap_or(bg)));
+            }
             fill(buf, row, st);
             let label_w = inner.width.saturating_sub(3) as usize;
             buf.set_string(row.x + 2, y, truncate(&item.label, label_w), st);
@@ -401,10 +377,13 @@ impl ContextMenu {
             if let Some(sc) = item.shortcut {
                 let sw = width(sc) as u16;
                 if sw + width(&item.label) as u16 + 5 <= inner.width {
+                    // a shortcut reads on the cursor fill and at rest alike
                     let scs = if item.disabled {
                         st
                     } else {
-                        st.fg(t.text_muted).remove_modifier(Modifier::BOLD)
+                        let ink = t.row_ink(&it, t.text_secondary);
+                        st.fg(t.legible(ink, st.bg.unwrap_or(bg)))
+                            .remove_modifier(Modifier::BOLD)
                     };
                     buf.set_string(row.right().saturating_sub(sw + 1), y, sc, scs);
                 }
@@ -413,7 +392,7 @@ impl ContextMenu {
             y += 1;
             if item.separator_after && y < inner.bottom() {
                 for x in inner.x + 1..inner.right().saturating_sub(1) {
-                    buf.set_string(x, y, "─", Style::new().fg(t.border_subtle).bg(bg));
+                    buf.set_string(x, y, "─", Style::new().fg(t.rule_on(bg)).bg(bg));
                 }
                 y += 1;
             }
@@ -670,6 +649,7 @@ impl MenuBar {
         fill(buf, area, Style::new().bg(bg));
         ctx.control(self.id, area, false);
         let focused = ctx.interaction.focused(self.id);
+        let plane = t.plane_of(bg);
         let mut x = area.x + 1;
         if let Some(b) = &self.brand {
             let w = b.render_clickable(x, area.y, buf, ctx, self.brand_id());
@@ -686,34 +666,23 @@ impl MenuBar {
                 self.areas.push(Rect::ZERO);
                 continue;
             }
-            let hovered = ctx.interaction.hovered(lid);
             let is_open = open == Some(i);
-            let is_cursor = focused && self.cursor == i && open.is_none();
-            let mut st = Style::new().fg(t.text_secondary).bg(bg);
-            if is_open {
-                // the open label shares the popover plane so label and
-                // dropdown read as one shape
-                st = st
-                    .fg(t.text_primary)
-                    .bg(t.popover)
-                    .add_modifier(Modifier::BOLD);
-            } else if hovered {
-                st = st.fg(t.text_primary).bg(t.lift(bg));
-            }
-            if is_cursor {
-                st = st.fg(t.text_primary).add_modifier(Modifier::BOLD);
-                let fs = crate::ui::ctx::VisualState {
-                    focused: true,
-                    ..Default::default()
-                };
+            let mut s = ctx.state(lid);
+            s.focused = focused && self.cursor == i && open.is_none();
+            s.selected = is_open;
+            // the open title sits on the popover plane so label and dropdown
+            // read as one shape; hover and press walk that plane's ladder
+            let on = if is_open { Plane::Popover } else { plane };
+            let it = t.interactive(Kind::Title, s, on);
+            if s.focused {
                 buf.set_string(
                     x.saturating_sub(1),
                     area.y,
-                    t.gutter_symbol(fs),
-                    t.gutter(fs, bg, false),
+                    it.gutter,
+                    it.gutter_style.bg(bg),
                 );
             }
-            buf.set_string(x, area.y, &text, st);
+            buf.set_string(x, area.y, &text, it.style);
             let r = Rect::new(x, area.y, w, 1);
             self.areas.push(r);
             ctx.clickable(lid, r);
@@ -964,5 +933,83 @@ mod tests {
             .find(|&(x, y)| buf[(x, y)].symbol() == "O")
             .unwrap();
         assert_ne!(buf[(x, y)].bg, t.popover);
+    }
+
+    fn paint_menu(m: &mut ContextMenu, t: &Theme, interaction: Interaction) -> Buffer {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(t, interaction, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
+        m.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
+        buf
+    }
+
+    fn row_y(buf: &Buffer, text: &str) -> (u16, u16) {
+        for y in 0..buf.area.height {
+            let line: String = (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect();
+            if let Some(i) = line.find(text) {
+                return (line[..i].chars().count() as u16, y);
+            }
+        }
+        panic!("{text} not drawn")
+    }
+
+    #[test]
+    fn a_menu_row_shows_rest_cursor_hover_and_press_apart_at_every_level() {
+        use crate::theme::ColorLevel;
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let mut m = ContextMenu::new(WidgetId::of("m"), items()).at(Position::new(1, 1));
+            let rid = m.row_id(0);
+            let look = |b: &Buffer, x: u16, y: u16| {
+                let c = &b[(x, y)];
+                if level == ColorLevel::Mono {
+                    (None, c.modifier)
+                } else {
+                    (Some(c.bg), c.modifier)
+                }
+            };
+            // the cursor sits on row 0; another row is at rest
+            let b = paint_menu(&mut m, &t, Interaction::default());
+            let (x, y) = row_y(&b, "Change");
+            let (mx, my) = row_y(&b, "Move left");
+            let cursor = look(&b, x, y);
+            let rest = look(&b, mx, my);
+            let b = paint_menu(
+                &mut m,
+                &t,
+                Interaction {
+                    hover: Some(rid),
+                    ..Default::default()
+                },
+            );
+            let hover = look(&b, x, y);
+            let b = paint_menu(
+                &mut m,
+                &t,
+                Interaction {
+                    hover: Some(rid),
+                    pressed: Some(rid),
+                    ..Default::default()
+                },
+            );
+            let pressed = look(&b, x, y);
+            assert_ne!(rest, cursor, "{level:?}: rest = cursor");
+            assert_ne!(cursor, hover, "{level:?}: cursor = hover");
+            assert_ne!(hover, pressed, "{level:?}: hover = pressed");
+            assert_ne!(cursor, pressed, "{level:?}: cursor = pressed");
+        }
+    }
+
+    #[test]
+    fn a_destructive_cursor_row_is_not_grey_on_grey_at_256() {
+        let t = Theme::for_level(crate::theme::ColorLevel::Ansi256);
+        let mut m = ContextMenu::new(WidgetId::of("m"), items()).at(Position::new(1, 1));
+        m.cursor = 3;
+        let b = paint_menu(&mut m, &t, Interaction::default());
+        let (x, y) = row_y(&b, "Close");
+        assert_eq!(b[(x, y)].bg, t.highlight_danger);
+        assert!(matches!(b[(x, y)].bg, Color::Indexed(i) if i < 232));
     }
 }
