@@ -5,7 +5,10 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::hit::Axis;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::widgets::empty::EmptyState;
@@ -13,7 +16,6 @@ use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, ro
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::table::SortDir;
 use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
@@ -23,7 +25,6 @@ use crate::app::Cx;
 use crate::db::{Catalog, Connection, ObjectKind};
 use crate::model::History;
 use crate::tabs::{HistoryTab, QueryTab, TableTab};
-use junie_tui::core::scroll::Scrollable;
 
 const ID: WidgetId = WidgetId::of("workbench");
 pub const EXPLORER: WidgetId = ID.sub("explorer");
@@ -1004,8 +1005,24 @@ impl Workbench {
         v
     }
 
-    /// A press on hit `id` with the click count it starts.
-    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+    /// A pointer event the router resolved on the workbench: the seams,
+    /// the text fields, the explorer, the tab strip and the active tab.
+    pub fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx, history: &mut History) -> Outcome {
+        if ev.wheel().is_some() {
+            return self.wheel(ev);
+        }
+        match ev.phase() {
+            Some(Phase::Press) => self.press(ev),
+            Some(Phase::Click) => self.click(ev, cx, history),
+            Some(Phase::Drag) => self.drag(ev),
+            Some(Phase::Middle) => self.middle(ev, cx),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    /// A press with the click count it starts.
+    fn press(&mut self, ev: &PointerEvent) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
         if id == self.explorer_seam.id {
             let area = self.explorer_split_area;
             self.explorer_seam
@@ -1023,16 +1040,45 @@ impl Workbench {
             }
             _ => {}
         }
-        if let Some(o) = route_press(&mut self.pointer_fields(), id, pos, count) {
+        if let Some(o) = route_press(&mut self.pointer_fields(), id, pos, ev.count()) {
             return o;
         }
-        // a header seam: resize (double press: fit) the column
-        match self.active_grid_any_mut() {
-            Some(g) if g.owns(id) => g.on_press(id, pos, count),
-            _ => Outcome::Ignored,
+        if let Some(r) = self.explorer.route(ev) {
+            return r.outcome();
+        }
+        match self.tabs.get_mut(self.active) {
+            Some(WorkTab::Table(t)) => t
+                .grid
+                .route(ev)
+                .map(|r| r.outcome())
+                .or_else(|| t.structure.route(ev).map(|r| r.outcome()))
+                .or_else(|| t.ddl.route(ev).map(|r| r.outcome()))
+                .unwrap_or(Outcome::Ignored),
+            Some(WorkTab::Query(q)) => q.press(ev),
+            Some(WorkTab::History(h)) => h
+                .list
+                .route(ev)
+                .map(|r| r.outcome())
+                .or_else(|| h.detail.route(ev).map(|r| r.outcome()))
+                .unwrap_or(Outcome::Ignored),
+            None => Outcome::Ignored,
         }
     }
 
+    /// A middle click: a closable tab under it closes (browsers, editors).
+    fn middle(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
+        if let Some(r) = self.strip.route(ev) {
+            let (o, act) = r.into_parts();
+            return match act {
+                Some(TabAction::Close(i)) => self.request_close(i, cx),
+                _ => o,
+            };
+        }
+        match self.tabs.get_mut(self.active) {
+            Some(WorkTab::Query(q)) => q.middle(ev),
+            _ => Outcome::Ignored,
+        }
+    }
     /// The grid of the active tab: the table's rows or the query's
     /// current result.
     pub fn active_grid_any_mut(&mut self) -> Option<&mut junie_tui::widgets::grid::DataGrid> {
@@ -1069,21 +1115,19 @@ impl Workbench {
         }
     }
 
-    pub fn on_click(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        cx: &mut Cx,
-        history: &mut History,
-    ) -> Outcome {
+    fn click(&mut self, ev: &PointerEvent, cx: &mut Cx, history: &mut History) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
         if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, cx.clicks) {
             cx.focus.focus(id);
             return o;
         }
-        if let Some((row, toggle)) = self.explorer.locate(id) {
-            cx.focus.focus(self.explorer.id);
-            let path = self.explorer.rows().get(row).map(|r| r.path.clone());
-            if !toggle
+        if ev.on(self.explorer.id) {
+            let row = ev.index_of(Part::ROW);
+            if row.is_some() || ev.index_of(Part::ICON).is_some() {
+                cx.focus.focus(self.explorer.id);
+            }
+            let path = row.and_then(|r| self.explorer.rows().get(r).map(|r| r.path.clone()));
+            if let Some(row) = row
                 && let Some(path) = &path
                 && let Some((schema, name)) = self.object_at(path)
             {
@@ -1098,18 +1142,11 @@ impl Workbench {
                     return Outcome::Changed;
                 }
             }
-            let (o, ev) = if toggle {
-                self.explorer.on_click_toggle(row)
-            } else {
-                self.explorer.on_click_row(row)
-            };
-            if let Some(TreeAction::Expand(path)) = ev {
+            let (o, act) = self.explorer.pointer(ev).into_parts();
+            if let Some(TreeAction::Expand(path)) = act {
                 self.pending_loads.push((path, 3));
             }
             return o;
-        }
-        if id == scrollbar::id_for(self.explorer.id) {
-            return self.explorer.on_scrollbar(pos);
         }
         if id == self.explorer_seam.id {
             if cx.clicks == 2 {
@@ -1118,10 +1155,10 @@ impl Workbench {
             }
             return Outcome::Consumed;
         }
-        if self.strip.owns(id) {
+        if let Some(r) = self.strip.route(ev) {
             cx.focus.focus(self.strip.id);
-            let (o, ev) = self.strip.on_click(id);
-            match ev {
+            let (o, act) = r.into_parts();
+            match act {
                 Some(TabAction::Activated(i)) => {
                     self.set_active(i);
                     if let Some(pf) = self.primary_focus() {
@@ -1144,38 +1181,29 @@ impl Workbench {
         let db = self.catalog.database.clone();
         match self.tabs.get_mut(self.active) {
             Some(WorkTab::Table(t)) => {
-                if t.mode_tabs.locate(id).is_some() {
+                if let Some(r) = t.mode_tabs.route(ev) {
                     cx.focus.focus(t.mode_tabs.id);
-                    return t.mode_tabs.on_click(id).0;
+                    return r.outcome();
                 }
-                if t.structure_tabs.locate(id).is_some() {
+                if let Some(r) = t.structure_tabs.route(ev) {
                     cx.focus.focus(t.structure_tabs.id);
-                    let (o, ev) = t.structure_tabs.on_click(id);
-                    if ev.is_some() {
+                    let (o, act) = r.into_parts();
+                    if act.is_some() {
                         t.structure_refresh(cat);
                     }
                     return o;
                 }
-                if t.structure.owns(id) {
+                if let Some(r) = t.structure.route(ev) {
                     cx.focus.focus(t.structure.id);
-                    if scrollbar::is_bar_of(id, t.structure.id) {
-                        return t.structure.on_scrollbar(pos);
-                    }
-                    if let Some(c) = t.structure.locate_header(id) {
-                        return t.structure.on_click_header(c);
-                    }
-                    if let Some((r, c)) = t.structure.locate(id) {
-                        return t.structure.on_click_cell(r, c.unwrap_or(0), pos).0;
-                    }
-                    return Outcome::Changed;
+                    return r.outcome().or(Outcome::Changed);
                 }
-                if scrollbar::is_bar_of(id, t.ddl.id) {
-                    return t.ddl.on_scrollbar(pos);
+                if let Some(r) = t.ddl.route(ev) {
+                    return r.outcome();
                 }
-                if t.chips.owns(id) {
+                if let Some(r) = t.chips.route(ev) {
                     cx.focus.focus(t.chips.id);
-                    let (o, ev) = t.chips.on_click(id);
-                    match ev {
+                    let (o, act) = r.into_parts();
+                    match act {
                         Some(junie_tui::widgets::chips::ChipAction::Remove(i)) => {
                             t.filters.remove(i);
                             t.load(cat);
@@ -1194,38 +1222,36 @@ impl Workbench {
                     }
                     return o;
                 }
-                if t.grid.owns(id) {
-                    if !t.grid.bar_ids().contains(&id) {
-                        cx.focus.focus(t.grid.id);
-                    }
-                    let (o, ev) = t.grid.on_click(id, pos);
-                    if let Some(ev) = ev {
-                        return Self::grid_event(t, ev, cx, cat, &conn, &db, history).or(o);
+                if !t.grid.bar_ids().contains(&id) && ev.on(t.grid.id) {
+                    cx.focus.focus(t.grid.id);
+                }
+                if let Some(r) = t.grid.route(ev) {
+                    let (o, act) = r.into_parts();
+                    if let Some(act) = act {
+                        return Self::grid_event(t, act, cx, cat, &conn, &db, history).or(o);
                     }
                     return o;
                 }
                 Outcome::Ignored
             }
-            Some(WorkTab::Query(q)) => q.on_click(id, pos, cx, cat),
+            Some(WorkTab::Query(q)) => q.click(ev, cx, cat),
             Some(WorkTab::History(h)) => {
                 if id == h.seam.id {
                     return h.seam.on_click(&mut h.split, cx.clicks);
                 }
-                if let Some(row) = h.list.locate(id) {
-                    cx.focus.focus(h.list.id);
-                    let o = h.list.on_click(row);
+                if ev.on(h.list.id) {
+                    if ev.index_of(Part::ROW).is_some() {
+                        cx.focus.focus(h.list.id);
+                    }
+                    let o = h.list.pointer(ev).outcome();
                     h.sync_detail_public(history);
                     return o;
                 }
-                if id == scrollbar::id_for(h.list.id) {
-                    return h.list.on_scrollbar(pos);
-                }
-                if scrollbar::is_bar_of(id, h.detail.id) {
-                    return h.detail.on_scrollbar(pos);
-                }
-                if id == h.detail.id {
-                    cx.focus.focus(h.detail.id);
-                    return h.detail.on_click(pos);
+                if ev.on(h.detail.id) {
+                    if id == h.detail.id {
+                        cx.focus.focus(h.detail.id);
+                    }
+                    return h.detail.pointer(ev).outcome();
                 }
                 let mut hit: Option<bool> = None;
                 for (b, run) in [(&mut h.open_btn, false), (&mut h.rerun_btn, true)] {
@@ -1251,12 +1277,13 @@ impl Workbench {
         }
     }
 
-    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+    fn drag(&mut self, ev: &PointerEvent) -> Outcome {
+        let (pressed, pos) = (ev.id, ev.pos());
         if let Some(o) = route_drag(&mut self.pointer_fields(), pressed, pos) {
             return o;
         }
-        if pressed == scrollbar::id_for(self.explorer.id) {
-            return self.explorer.on_scrollbar_drag(pos);
+        if let Some(r) = self.explorer.route(ev) {
+            return r.outcome();
         }
         if pressed == self.explorer_seam.id {
             self.explorer_sized = true;
@@ -1266,97 +1293,65 @@ impl Workbench {
                 .on_drag(&mut self.explorer_split, area, 1, pos);
         }
         match self.tabs.get_mut(self.active) {
-            Some(WorkTab::Table(t)) => {
-                if t.grid.owns(pressed) {
-                    return t.grid.on_drag(pressed, pos);
-                }
-                if scrollbar::is_bar_of(pressed, t.structure.id) {
-                    return t.structure.on_bar_drag(pressed, pos);
-                }
-                if scrollbar::is_bar_of(pressed, t.ddl.id) {
-                    return t.ddl.on_bar_drag(pressed, pos);
-                }
-                Outcome::Ignored
-            }
-            Some(WorkTab::Query(q)) => q.on_drag(pressed, pos),
+            Some(WorkTab::Table(t)) => t
+                .grid
+                .route(ev)
+                .map(|r| r.outcome())
+                .or_else(|| t.structure.route(ev).map(|r| r.outcome()))
+                .or_else(|| t.ddl.route(ev).map(|r| r.outcome()))
+                .unwrap_or(Outcome::Ignored),
+            Some(WorkTab::Query(q)) => q.drag(ev),
             Some(WorkTab::History(h)) => {
                 if pressed == h.seam.id {
                     let area = h.split_area;
                     return h.seam.on_drag(&mut h.split, area, 2, pos);
                 }
-                if pressed == scrollbar::id_for(h.list.id) {
-                    return h.list.on_scrollbar_drag(pos);
-                }
-                if scrollbar::is_bar_of(pressed, h.detail.id) {
-                    return h.detail.on_bar_drag(pressed, pos);
-                }
-                Outcome::Ignored
+                h.list
+                    .route(ev)
+                    .map(|r| r.outcome())
+                    .or_else(|| h.detail.route(ev).map(|r| r.outcome()))
+                    .unwrap_or(Outcome::Ignored)
             }
             None => Outcome::Ignored,
         }
     }
 
-    pub fn on_wheel(&mut self, id: WidgetId, delta: i32, horizontal: bool) -> Outcome {
+    fn wheel(&mut self, ev: &PointerEvent) -> Outcome {
+        let horizontal = matches!(ev.wheel(), Some((Axis::Horizontal, _)));
         // the tab strip scrolls one tab per notch, on either axis
-        if self.strip.owns(id) {
-            let step = delta.signum();
-            return if horizontal {
-                self.strip.on_wheel(step, 0)
-            } else {
-                self.strip.on_wheel(0, step)
-            };
+        if let Some(r) = self.strip.route(ev) {
+            return r.outcome();
         }
         // a sideways wheel reaches only horizontal scrolling: a vertical
         // list never turns it into an up/down scroll
-        if self.explorer.owns(id) {
+        if ev.on(self.explorer.id) {
             return if horizontal {
                 Outcome::Consumed
             } else {
-                self.explorer.on_wheel(delta)
+                self.explorer.pointer(ev).outcome()
             };
         }
         match self.tabs.get_mut(self.active) {
-            Some(WorkTab::Table(t)) => {
-                if t.grid.owns(id) {
-                    return if horizontal {
-                        t.grid.on_wheel_h(delta)
-                    } else {
-                        t.grid.on_wheel(delta)
-                    };
-                }
-                if t.structure.owns(id) {
-                    return if horizontal {
-                        t.structure.on_wheel_h(delta)
-                    } else {
-                        t.structure.on_wheel(delta)
-                    };
-                }
-                if t.ddl.owns(id) {
-                    return if horizontal {
-                        t.ddl.on_wheel_h(delta)
-                    } else {
-                        t.ddl.on_wheel(delta)
-                    };
-                }
-                Outcome::Ignored
-            }
-            Some(WorkTab::Query(q)) => q.on_wheel(id, delta, horizontal),
+            Some(WorkTab::Table(t)) => t
+                .grid
+                .route(ev)
+                .map(|r| r.outcome())
+                .or_else(|| t.structure.route(ev).map(|r| r.outcome()))
+                .or_else(|| t.ddl.route(ev).map(|r| r.outcome()))
+                .unwrap_or(Outcome::Ignored),
+            Some(WorkTab::Query(q)) => q.wheel(ev),
             Some(WorkTab::History(h)) => {
-                if h.list.owns(id) {
+                if ev.on(h.list.id) {
                     return if horizontal {
                         Outcome::Consumed
                     } else {
-                        h.list.on_wheel(delta)
+                        h.list.pointer(ev).outcome()
                     };
                 }
-                if h.detail.owns(id) {
-                    return if horizontal {
-                        h.detail.on_wheel_h(delta)
-                    } else {
-                        h.detail.on_wheel(delta)
-                    };
-                }
-                Outcome::Ignored
+                h.detail
+                    .route(ev)
+                    .map(|r| r.outcome())
+                    .unwrap_or(Outcome::Ignored)
             }
             None => Outcome::Ignored,
         }
