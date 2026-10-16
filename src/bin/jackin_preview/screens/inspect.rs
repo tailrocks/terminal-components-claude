@@ -10,7 +10,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width};
 #[cfg(test)]
@@ -474,6 +474,8 @@ impl InspectChanges {
                     st.fg(t.warning),
                 );
             }
+            // the cursor row is a fill: its details step up to stay readable
+            legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
         if has_sb {
