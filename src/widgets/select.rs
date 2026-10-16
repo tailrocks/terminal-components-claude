@@ -14,6 +14,7 @@ use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for};
@@ -83,6 +84,10 @@ pub struct Select {
     /// An open list closes (without changing the value) when the field
     /// loses focus ([`Self::on_blur`]). Default `true`.
     pub close_on_blur: bool,
+    /// Which keys move the open list's cursor (default
+    /// [`NavKeys::DEFAULT`]). The closed field steps its value with the
+    /// arrows only, so letters stay with the page's own shortcuts.
+    pub nav: NavKeys,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -123,7 +128,14 @@ impl Select {
             wrap: false,
             typeahead: Default::default(),
             close_on_blur: true,
+            nav: NavKeys::DEFAULT,
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
     }
     pub fn dismiss(mut self, d: Dismiss) -> Self {
         self.dismiss = d;
@@ -219,7 +231,7 @@ impl Select {
             && self.type_ahead
             && key.plain()
             && !c.is_whitespace()
-            && !(self.open && matches!(c, 'j' | 'k'))
+            && !(self.open && self.nav.action(key).is_some())
         {
             let prefix = self.typeahead.feed(c).to_owned();
             let from = if self.open {
@@ -243,33 +255,46 @@ impl Select {
             return (Outcome::Changed, self.choose(i));
         }
         if self.open {
+            if let Some(nav) = self.nav.action(key) {
+                return match nav {
+                    Nav::Up => {
+                        self.cursor = crate::core::nav::step_index(
+                            self.cursor,
+                            self.last() + 1,
+                            -1,
+                            self.wrap,
+                        );
+                        (Outcome::Changed, None)
+                    }
+                    Nav::Down => {
+                        self.cursor = crate::core::nav::step_index(
+                            self.cursor,
+                            self.last() + 1,
+                            1,
+                            self.wrap,
+                        );
+                        (Outcome::Changed, None)
+                    }
+                    Nav::PageUp => {
+                        self.cursor = self.cursor.saturating_sub(self.visible_rows.max(1));
+                        (Outcome::Changed, None)
+                    }
+                    Nav::PageDown => {
+                        self.cursor = (self.cursor + self.visible_rows.max(1)).min(self.last());
+                        (Outcome::Changed, None)
+                    }
+                    Nav::Home => {
+                        self.cursor = 0;
+                        (Outcome::Changed, None)
+                    }
+                    Nav::End => {
+                        self.cursor = self.last();
+                        (Outcome::Changed, None)
+                    }
+                    Nav::Left | Nav::Right => (Outcome::Consumed, None),
+                };
+            }
             return match key.code {
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.cursor =
-                        crate::core::nav::step_index(self.cursor, self.last() + 1, -1, self.wrap);
-                    (Outcome::Changed, None)
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.cursor =
-                        crate::core::nav::step_index(self.cursor, self.last() + 1, 1, self.wrap);
-                    (Outcome::Changed, None)
-                }
-                KeyCode::PageUp => {
-                    self.cursor = self.cursor.saturating_sub(self.visible_rows.max(1));
-                    (Outcome::Changed, None)
-                }
-                KeyCode::PageDown => {
-                    self.cursor = (self.cursor + self.visible_rows.max(1)).min(self.last());
-                    (Outcome::Changed, None)
-                }
-                KeyCode::Home => {
-                    self.cursor = 0;
-                    (Outcome::Changed, None)
-                }
-                KeyCode::End => {
-                    self.cursor = self.last();
-                    (Outcome::Changed, None)
-                }
                 KeyCode::Enter | KeyCode::Char(' ') => {
                     self.open = false;
                     (Outcome::Changed, self.choose(self.cursor))
@@ -282,24 +307,29 @@ impl Select {
                 _ => (Outcome::Consumed, None),
             };
         }
-        match key.code {
-            KeyCode::Enter | KeyCode::Char(' ') => {
+        if matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) {
+            self.open_list();
+            return (Outcome::Changed, None);
+        }
+        // the closed field: arrows only (letters belong to the page)
+        let nav = self
+            .nav
+            .action(key)
+            .filter(|_| !matches!(key.code, KeyCode::Char(_)));
+        match nav {
+            Some(Nav::Up | Nav::Down) if key.plain() && self.arrows == SelectArrows::Open => {
                 self.open_list();
                 (Outcome::Changed, None)
             }
-            KeyCode::Up | KeyCode::Down if key.plain() && self.arrows == SelectArrows::Open => {
-                self.open_list();
-                (Outcome::Changed, None)
-            }
-            KeyCode::Left | KeyCode::Right if self.arrows == SelectArrows::Open => {
+            Some(Nav::Left | Nav::Right) if self.arrows == SelectArrows::Open => {
                 (Outcome::Ignored, None)
             }
-            KeyCode::Up | KeyCode::Left if key.plain() => {
+            Some(Nav::Up | Nav::Left) if key.plain() => {
                 let n =
                     crate::core::nav::step_index(self.selected, self.options.len(), -1, self.wrap);
                 (Outcome::Changed, self.choose(n))
             }
-            KeyCode::Down | KeyCode::Right if key.plain() => {
+            Some(Nav::Down | Nav::Right) if key.plain() => {
                 let n =
                     crate::core::nav::step_index(self.selected, self.options.len(), 1, self.wrap);
                 (Outcome::Changed, self.choose(n))
