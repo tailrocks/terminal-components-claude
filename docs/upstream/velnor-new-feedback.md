@@ -1,8 +1,9 @@
-# Feedback for velnor-new: visual-test CI jobs and `.github/CLAUDE.md` as a symlink
+# Feedback for velnor-new: visual-test CI jobs, `.github/CLAUDE.md` as a symlink, and the Rust toolchain
 
 You are working on **velnor-new** (<https://github.com/tailrocks/velnor-new>),
-the generator behind `velnor-actions`. A consumer repository needs two
-changes that velnor-actions 0.1.8 cannot express today. This prompt
+the generator behind `velnor-actions`. A consumer repository needs three
+changes that velnor-actions 0.1.8 cannot express today (Problem C, §8,
+was added after the first two). This prompt
 contains everything you need. You have no access to the conversation that
 produced it.
 
@@ -271,3 +272,64 @@ Reply with:
 
 Do not open issues or PRs against our repository. We will apply the
 upgrade ourselves.
+
+## 8. Problem C: CI ignores the repository's Rust toolchain
+
+This is the smallest of the three changes and the most urgent: our
+dependency policy keeps the Rust toolchain on the latest stable, and CI is
+the one place we cannot follow it. Re-verify every citation at tag `v0.1.8`
+and on `main`.
+
+- **The toolchain is hardcoded.** `crates/velnor-actions-mise/src/catalog.rs:50`
+  sets `RUST_VERSION = "1.98.1"`, and every generated job exports
+  `RUSTUP_TOOLCHAIN: 1.98.1`. That variable overrides `rust-toolchain.toml`,
+  so the file is ignored.
+- **Repository pins are ignored.** Our `rust-toolchain.toml` now pins
+  `1.99.1` (the latest stable). Adding a repository `mise.toml` with a
+  newer `rust` does not change the output either. We confirmed both with
+  `velnor-actions generate --output-dir` into a scratch directory and
+  compared the rendered jobs.
+- **Tool versions are fixed too.** The Rust stack pins
+  `cargo-nextest@0.9.148`, and the lint jobs pin `actionlint 1.7.12`,
+  `shellcheck 0.11.0`, `zizmor 1.30.1` and `gh 2.102.0`. A consumer cannot
+  raise any of them between velnor releases.
+
+Consequences for us today (recorded in our `docs/dependencies.md`, "Rust in
+CI"):
+
+- `rust-version` in `Cargo.toml` stays at `1.98`, one release behind
+  stable, so CI can build and Cargo's MSRV-aware resolver keeps the
+  lockfile buildable on 1.98.
+- Before every push we run clippy a second time under CI's toolchain
+  (`RUSTUP_TOOLCHAIN=1.98.1 cargo clippy --workspace --all-targets -- -D warnings`),
+  because lints differ between 1.98 and 1.99.
+- CI lags stable by however long a velnor release takes, and every
+  consumer moves in lockstep with velnor rather than with Rust.
+
+### Acceptance criteria
+
+- [ ] When the repository has a `rust-toolchain.toml` (or
+      `rust-toolchain`), CI uses the channel it pins. velnor does **not**
+      export `RUSTUP_TOOLCHAIN` in that case, so rustup resolves the file
+      as it does locally.
+- [ ] Alternatively or additionally, a `[rust] toolchain = "<channel>"` key
+      (or `[stacks.rust] toolchain`) in `.velnor/config.toml` sets it
+      explicitly. If both are present and disagree, `generate` fails
+      closed with a `ContractError` naming both values.
+- [ ] With neither present, the default is the latest stable known at
+      velnor's release, and a velnor release bumps it promptly.
+- [ ] Components the jobs need (`clippy`, `rustfmt`) are installed for
+      whichever toolchain is selected.
+- [ ] The tool versions above (cargo-nextest, actionlint, shellcheck,
+      zizmor, gh) can be overridden per repository with exact `x.y.z`
+      pins validated against the catalog, and velnor's defaults track the
+      latest releases.
+- [ ] A config without a toolchain file or the new keys generates
+      byte-identical output to 0.1.8 (same marker version aside).
+
+### Report back for Problem C
+
+- which source of truth wins (`rust-toolchain.toml`, the config key, or
+  both with a conflict error), and the exact key names and defaults;
+- how tool-version overrides are spelled and validated;
+- the Rust and tool versions the new release defaults to.
