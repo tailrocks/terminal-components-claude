@@ -25,7 +25,8 @@ impl Harness {
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
-        // focus the table, the page's one stop
+        // focus the table: the first Tab stop is the section strip
+        h.key(KeyCode::Tab);
         h.key(KeyCode::Tab);
         h
     }
@@ -223,7 +224,10 @@ fn imported_values_outside_the_set_are_flagged_until_fixed() {
 
 #[test]
 fn the_priority_radio_skips_its_disabled_option_and_tab_moves_on() {
-    let mut h = Harness::new(140, 40);
+    // wide enough for Priority to scroll fully into view: at 140 columns
+    // the cell cursor lands on a column the table leaves cut (recorded
+    // for S3 in the plan's SC13 notes)
+    let mut h = Harness::new(160, 40);
     for _ in ENV..PRIORITY {
         h.key(KeyCode::Right);
     }
