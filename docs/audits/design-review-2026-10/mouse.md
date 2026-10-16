@@ -225,3 +225,16 @@ Left for later, with reasons:
 
 - A page-hosted `InfoDialog` or `HelpOverlay` (both `Dismiss::LIGHT`) does not close on a click outside it: the showcase Dialog kinds page opens them on its layer host, which gives every click to the top layer, but neither modal frame registers a light-dismiss backdrop (only `Picker` does since S6's `79b40b343`), so the click lands on nothing under the modal barrier. `FormDialog` and `ChoiceDialog` default to `Dismiss::ESCAPE`, so they rightly stay. Fix in S6: `modal::Frame` registers `popup::backdrop(owner)` when its overlay's policy allows an outside click, and the frame's owner resolves it as `on_click_outside`, as `Picker` does. Demonstrated, not fixed here (S6 owns pointer routing). **Fixed in S6** ("fix(layer): a light-dismiss frame closes on a click outside it"): `modal::Frame` registers `modal::BACKDROP` under every modal frame with a dismissal policy, and `ShellLayers::pointer` turns a click on it (or on any backdrop the top layer leaves alone, the Picker's) into `dismiss(OutsideClick)`; all four apps and the showcase layer host route layer events through it. Test: `app_tests_dialog_kinds::a_click_outside_a_light_info_or_help_closes_it_and_a_form_stays`.
 - The showcase Dialogs page's dialog is the shell's own (`App::dialog`): its outside click already dismisses through the shell (`modal_traps_focus_and_restores_it`), so the page needs nothing.
+
+## Status (pointer router, plan S6)
+
+All four apps run on `core::pointer::PointerRouter` and reach widgets through `MouseTarget` (plan S6 outcome).
+
+| # | Status | Notes |
+|---|---|---|
+| 1 | Fixed | `HintBar::render_ctx` / `HintKeys`: every footer hint that names one key is a click target that runs it, in all four apps (`a_click_on_a_footer_hint_runs_its_key` in each). Hints naming several keys (`↑↓`) stay text. The showcase draws its footer before a dialog's barrier, so a dialog's own hints are not clickable there yet. |
+| 14 | Fixed | One router: Middle reaches the control (tablepro query tabs close, `a_middle_click_on_a_query_tab_closes_it`; jackin has no closable strip), the wheel reaches jackin's tab strips, the horizontal wheel carries `wheel_lines` everywhere, and a right-click inside a showcase dialog reaches it. |
+| 17 | Fixed (routing) | Bar presses and drags reach Picker, Completion, TextArea and HelpOverlay through `scroll_input`; tests in tablepro, holla, jackin and the showcase. |
+| 18 | Fixed | The wheel goes to the owner under the pointer (`hit_scroll` stack), inside modals too: an open select in a form or the tablepro filter editor scrolls its list; a wheel over a modal's backdrop does nothing. |
+| 12 | Fixed (routing) | `SecondaryUp` on an accepting row is a click through the router in every app; holla's and jackin's menu bars open on the press. |
+| 37, 38 | Unchanged | Already fixed by the widget pass; S6 keeps them. |
