@@ -384,6 +384,7 @@ impl FilesPage {
         self.preview.set_lines(vp);
         self.preview.set_follow(false);
         self.preview.scroll.jump_start();
+        self.preview.hscroll.jump_start();
     }
 
     fn run_find(&mut self) {
@@ -1455,7 +1456,7 @@ impl Screen for FilesPage {
             cx.focus.focus(LIST);
             return scroll_press(self.list_area, pos, &mut self.scroll);
         }
-        if id == PREVIEW || id == scrollbar::id_for(PREVIEW) {
+        if id == PREVIEW || scrollbar::is_bar_of(id, PREVIEW) {
             cx.focus.focus(PREVIEW);
             if id == PREVIEW {
                 return self.preview.on_click(pos).or(Outcome::Changed);
@@ -1510,7 +1511,7 @@ impl Screen for FilesPage {
         if id == PREVIEW {
             return self.preview.on_click(pos);
         }
-        if id == scrollbar::id_for(PREVIEW) {
+        if scrollbar::is_bar_of(id, PREVIEW) {
             return self.preview.on_scrollbar(pos);
         }
         if id == scrollbar::id_for(LIST) {
@@ -1523,8 +1524,8 @@ impl Screen for FilesPage {
         if pressed == PREVIEW {
             return self.preview.on_drag(pos);
         }
-        if pressed == scrollbar::id_for(PREVIEW) {
-            return self.preview.on_scrollbar_drag(pos);
+        if scrollbar::is_bar_of(pressed, PREVIEW) {
+            return self.preview.on_bar_drag(pressed, pos);
         }
         if pressed == scrollbar::id_for(LIST) {
             return scroll_drag(self.list_area, pos, &mut self.scroll);
@@ -1539,6 +1540,13 @@ impl Screen for FilesPage {
         }
         if self.preview.owns(id) {
             return self.preview.on_wheel(delta);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_wheel_h(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
+        if self.preview.owns(id) {
+            return self.preview.on_wheel_h(delta);
         }
         Outcome::Ignored
     }

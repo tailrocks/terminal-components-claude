@@ -78,6 +78,11 @@ pub trait CustomModal {
     fn on_wheel(&mut self, _delta: i32, _pos: Position) -> Outcome {
         Outcome::Consumed
     }
+    /// Horizontal wheel (or Shift+wheel) over the modal: only content with
+    /// a horizontal axis reacts.
+    fn on_wheel_h(&mut self, _delta: i32, _pos: Position) -> Outcome {
+        Outcome::Consumed
+    }
     /// Pointer drag that started on `pressed` inside the modal.
     fn on_drag(&mut self, _pressed: WidgetId, _pos: Position) -> Outcome {
         Outcome::Consumed
