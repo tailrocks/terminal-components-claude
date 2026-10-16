@@ -17,6 +17,71 @@ use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::ui::text::{truncate, width};
 
+/// The close button (`×`) a modal frame draws in its top border when its
+/// [`Dismiss`] policy lets Esc close it ([`Dismiss::shows_close`]). Only
+/// the topmost modal is clickable, so one id serves every modal: a click
+/// on it means exactly what Esc on the top modal means.
+pub const CLOSE: WidgetId = WidgetId::of("modal.close");
+
+/// The surface a modal frame registers (dead space inside the frame). A
+/// refused outside click flashes it ([`refuse_outside_click`]).
+pub const SURFACE: WidgetId = WidgetId::of("modal.surface");
+
+/// Cells the close button takes on the top border: ` × `.
+pub const CLOSE_WIDTH: u16 = 3;
+
+/// Feedback for a click outside a modal whose policy refused to close it:
+/// under [`RefuseFeedback::Flash`](crate::ui::popup::RefuseFeedback) the
+/// frame flashes for the pointer's flash time. Returns whether it flashed.
+pub fn refuse_outside_click(
+    pointer: &mut crate::core::pointer::PointerState,
+    dismiss: Dismiss,
+    now_ms: u64,
+) -> bool {
+    if dismiss.outside_click || dismiss.refuse_feedback != crate::ui::popup::RefuseFeedback::Flash {
+        return false;
+    }
+    pointer.flash(SURFACE, now_ms);
+    true
+}
+
+/// The frame's border style: strong, or the warning tone while a refused
+/// outside click flashes it.
+pub fn border_style(ctx: &RenderCtx, bg: ratatui::style::Color) -> Style {
+    let t = ctx.theme;
+    if ctx.interaction.flash == Some(SURFACE) {
+        Style::new()
+            .fg(t.warning)
+            .bg(bg)
+            .add_modifier(ratatui::style::Modifier::BOLD)
+    } else {
+        t.border(true).bg(bg)
+    }
+}
+
+/// Draw the close button into the top border of `area` (a framed modal on
+/// `bg`) and register it as [`CLOSE`]. Returns the button's rectangle, or
+/// `Rect::ZERO` when the frame is too narrow to hold it beside a title.
+pub fn close_button(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    bg: ratatui::style::Color,
+) -> Rect {
+    if area.width < 16 || area.height < 3 {
+        return Rect::ZERO;
+    }
+    let t = ctx.theme;
+    let r = Rect::new(area.right() - 2 - CLOSE_WIDTH, area.y, CLOSE_WIDTH, 1);
+    let host = t.border(true).bg(bg);
+    let st = t.close_glyph(ctx.state(CLOSE), host);
+    buf.set_string(r.x, r.y, " ", host);
+    buf.set_string(r.x + 1, r.y, t.glyphs.close, st);
+    buf.set_string(r.x + 2, r.y, " ", host);
+    ctx.clickable(CLOSE, r);
+    r
+}
+
 /// A layer that sits above the page and decides how it may be dismissed.
 pub trait Modal {
     /// Which dismissals (Esc, a click outside) close it without choosing.
@@ -215,6 +280,10 @@ pub struct Frame<'a> {
     /// Which screen rows the backdrop leaves live. Default
     /// [`Backdrop::DEFAULT`] (the footer row).
     pub dim: Backdrop,
+    /// The owner's dismissal policy: a close button (`×`, [`CLOSE`]) shows
+    /// in the top border when [`Dismiss::shows_close`]. `None` (a frame
+    /// that does not say how it closes) draws none.
+    pub dismiss: Option<Dismiss>,
 }
 
 impl<'a> Frame<'a> {
@@ -234,7 +303,14 @@ impl<'a> Frame<'a> {
             bottom: 1,
             backdrop: true,
             dim: Backdrop::DEFAULT,
+            dismiss: None,
         }
+    }
+
+    /// See [`Self::dismiss`].
+    pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
+        self.dismiss = Some(dismiss);
+        self
     }
     pub fn title(mut self, title: &'a str) -> Self {
         self.title = Some(title);
@@ -314,8 +390,18 @@ impl<'a> Frame<'a> {
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
             .border_set(t.glyphs.border)
-            .border_style(t.border(true).bg(bg));
+            .border_style(border_style(ctx, bg));
         ratatui::widgets::Widget::render(block, area, buf);
+        // the surface first: the close button and the content sit above it
+        if !ctx.inert {
+            ctx.hits.register_surface(SURFACE, area);
+        }
+        let close = match self.dismiss {
+            Some(d) if d.shows_close() => close_button(area, buf, ctx, bg),
+            _ => Rect::ZERO,
+        };
+        // the meta sits left of the close button
+        let reserve = if close.is_empty() { 0 } else { CLOSE_WIDTH + 1 };
         if let Some(title) = self.title
             && area.width > 6
         {
@@ -327,14 +413,15 @@ impl<'a> Frame<'a> {
             if let Some(m) = self.meta {
                 let mt = format!(" {m} ");
                 let mw = width(&mt) as u16;
-                if area.width > width(&tt) as u16 + mw + 4 {
-                    buf.set_string(area.right() - 2 - mw, area.y, &mt, t.faint().bg(bg));
+                if area.width > width(&tt) as u16 + mw + 4 + reserve {
+                    buf.set_string(
+                        area.right() - 2 - reserve - mw,
+                        area.y,
+                        &mt,
+                        t.faint().bg(bg),
+                    );
                 }
             }
-        }
-        if !ctx.inert {
-            ctx.hits
-                .register_surface(WidgetId::of("modal.surface"), area);
         }
         (area, area.inner(self.margin))
     }
