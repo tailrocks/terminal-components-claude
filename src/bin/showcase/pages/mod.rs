@@ -6,6 +6,7 @@ use ratatui::layout::{Position, Rect};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 
@@ -74,6 +75,11 @@ pub enum PageEvent {
     Key(Key),
     /// Text pasted while a control is editing.
     Paste(String),
+    /// A pointer event the shell's router resolved to its owner
+    /// ([`junie_tui::core::pointer::PointerRouter`]): a press, click,
+    /// drag, release, middle or secondary click, or a wheel notch on
+    /// either axis. Pages hand it to their widgets (`widget.route(ev)`).
+    Pointer(PointerEvent),
     /// Pointer down at its original position, before any drag motion.
     Press {
         id: WidgetId,
@@ -129,6 +135,29 @@ pub enum PageEvent {
         /// Text entered in a prompt dialog, if any.
         value: Option<String>,
     },
+}
+
+/// The per-gesture event a page not yet on [`PageEvent::Pointer`]
+/// handles (S6 transition; removed once every page routes by owner).
+pub fn legacy_event(ev: &PointerEvent) -> Option<PageEvent> {
+    use junie_tui::core::hit::Axis;
+    use junie_tui::core::intent::Phase;
+    let (id, pos) = (ev.id, ev.pos());
+    if let Some((axis, delta)) = ev.wheel() {
+        return Some(match axis {
+            Axis::Vertical => PageEvent::Wheel { id, delta },
+            Axis::Horizontal => PageEvent::WheelH { id, delta },
+        });
+    }
+    Some(match ev.phase()? {
+        Phase::Press => PageEvent::Press { id, pos },
+        Phase::Click => PageEvent::Click { id, pos },
+        Phase::Drag => PageEvent::Drag { pressed: id, pos },
+        Phase::Release => PageEvent::Release { pressed: id, pos },
+        Phase::Middle => PageEvent::Middle { id },
+        Phase::Secondary => PageEvent::Secondary { id, pos },
+        _ => return None,
+    })
 }
 
 /// Things a page may ask the app to do.
@@ -304,27 +333,8 @@ pub mod layout {
         /// The page scroll's own events: the wheel over the page and the
         /// scrollbar. `None` for anything else.
         pub fn handle(&mut self, ev: &super::PageEvent) -> Option<junie_tui::core::event::Outcome> {
-            use junie_tui::core::event::Outcome;
-            use junie_tui::widgets::scrollbar::id_for;
-            let changed = |moved: bool| {
-                if moved {
-                    Outcome::Changed
-                } else {
-                    Outcome::Consumed
-                }
-            };
             match ev {
-                super::PageEvent::Wheel { id, delta } if *id == self.id => {
-                    Some(changed(self.state.on_wheel(*delta)))
-                }
-                super::PageEvent::Press { id, pos } | super::PageEvent::Click { id, pos }
-                    if *id == id_for(self.id) =>
-                {
-                    Some(changed(self.state.on_scrollbar(*pos)))
-                }
-                super::PageEvent::Drag { pressed, pos } if *pressed == id_for(self.id) => {
-                    Some(changed(self.state.on_scrollbar_drag(*pos)))
-                }
+                super::PageEvent::Pointer(p) => self.state.pointer(self.id, p),
                 _ => None,
             }
         }

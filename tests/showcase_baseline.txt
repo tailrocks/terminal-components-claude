@@ -69,9 +69,7 @@
 120x40 TrueColor Menus 4ef5cfd8de53a97c
 120x40 TrueColor Menus · Options 48722a775811ad85
 120x40 TrueColor Menus · States 49ba2f468749ca9e
-120x40 TrueColor Dialogs 0d9720eb2d375ea7
-120x40 TrueColor Dialogs · Options f8d7bda428a9cb9e
-120x40 TrueColor Dialogs · States 08761b8a93a622ac
+120x40 TrueColor Dialogs 238e7afc14720f9d
 120x40 TrueColor Pickers 8ded9e1ba86ce4cf
 120x40 TrueColor Dialog kinds 5e98470f698a2fa1
 120x40 TrueColor Popups & tooltips 257969595cbf76ad
@@ -118,8 +116,8 @@
 120x40 TrueColor Accounts & usage 33a49843b6841cb1
 120x40 TrueColor Launch cockpit 61f8248b3953124e
 120x40 TrueColor Read-only report 312dd82168cf62ad
-120x40 TrueColor Inspector · State 988034cca3624f80
-120x40 TrueColor Inspector · Options b9f9fa6690501068
+120x40 TrueColor Inspector · State 0d08c809afce7b54
+120x40 TrueColor Inspector · Options 3291988defa8a432
 120x40 Ansi256 Overview 00aa24131c5663e2
 120x40 Ansi256 Overview · Options 73246a9a22b46881
 120x40 Ansi256 Overview · States 6186dd55ca5c5bb4
@@ -191,9 +189,7 @@
 120x40 Ansi256 Menus 22020d2d88913bdc
 120x40 Ansi256 Menus · Options f54f314418269edd
 120x40 Ansi256 Menus · States 6ff305a2119f6243
-120x40 Ansi256 Dialogs fbab7745875fbf3a
-120x40 Ansi256 Dialogs · Options 0d952f184afbc564
-120x40 Ansi256 Dialogs · States f8502390430d6020
+120x40 Ansi256 Dialogs e62a124f77e7d209
 120x40 Ansi256 Pickers a0b8f01407bfddc9
 120x40 Ansi256 Dialog kinds 9f91a257518a7eff
 120x40 Ansi256 Popups & tooltips bf90f88bd0140225
@@ -240,8 +236,8 @@
 120x40 Ansi256 Accounts & usage c3c7f2f7300fcf43
 120x40 Ansi256 Launch cockpit cb4bc87c86b30ff0
 120x40 Ansi256 Read-only report 88957e3e23ef30fa
-120x40 Ansi256 Inspector · State f4c8337bd048d469
-120x40 Ansi256 Inspector · Options 1f22fd360d10a0df
+120x40 Ansi256 Inspector · State 78d6ed1f659e840d
+120x40 Ansi256 Inspector · Options a4c7d1f133c238d9
 120x40 Ansi16 Overview 8db80abe6c7a7014
 120x40 Ansi16 Overview · Options 635e242ee35d1dce
 120x40 Ansi16 Overview · States 5a9ac2029efdf506
@@ -313,9 +309,7 @@
 120x40 Ansi16 Menus 5291f8f282d8a2ec
 120x40 Ansi16 Menus · Options ce26ba0ee98fcc9e
 120x40 Ansi16 Menus · States 2ee6359207b48912
-120x40 Ansi16 Dialogs 935b0c23f3644d4e
-120x40 Ansi16 Dialogs · Options 3f5c1471e2460512
-120x40 Ansi16 Dialogs · States b308f25ab0aab6a5
+120x40 Ansi16 Dialogs 799ec1038bb478ce
 120x40 Ansi16 Pickers 48e72e975ab736ae
 120x40 Ansi16 Dialog kinds d43f74ab42e35e62
 120x40 Ansi16 Popups & tooltips 4e9522e58d683be4
@@ -362,8 +356,8 @@
 120x40 Ansi16 Accounts & usage 41d8caa67ddc436f
 120x40 Ansi16 Launch cockpit 1a61f707c2ba421a
 120x40 Ansi16 Read-only report e9d64df4caface31
-120x40 Ansi16 Inspector · State 1feff5c2e5a67199
-120x40 Ansi16 Inspector · Options d86cedd3ad6e8ea1
+120x40 Ansi16 Inspector · State 476e695e030c0a25
+120x40 Ansi16 Inspector · Options eddd2abdc4571a2f
 120x40 Mono Overview f4741d0261c990f8
 120x40 Mono Overview · Options 7d3225c21c417475
 120x40 Mono Overview · States abd8df6cb5a0cc25
@@ -435,9 +429,7 @@
 120x40 Mono Menus d5b1887ccbec0193
 120x40 Mono Menus · Options 1ccb1083c7a475a7
 120x40 Mono Menus · States dd20254f5153b16f
-120x40 Mono Dialogs 9eceffef9a430283
-120x40 Mono Dialogs · Options 39b3469c1bb73a99
-120x40 Mono Dialogs · States ae60c981dfdd1c9e
+120x40 Mono Dialogs e9481615b55a5a97
 120x40 Mono Pickers aa859f2c426e3abd
 120x40 Mono Dialog kinds 11c9a18b506afc0d
 120x40 Mono Popups & tooltips 80e7a1c052872219
@@ -484,8 +476,8 @@
 120x40 Mono Accounts & usage dc56f89e62cbaf68
 120x40 Mono Launch cockpit 3c3026771207e7c3
 120x40 Mono Read-only report 3deb1fe05859e9a0
-120x40 Mono Inspector · State eaf8e6017346ceda
-120x40 Mono Inspector · Options 22a8cfd823db5baf
+120x40 Mono Inspector · State bb2fe96536a42b16
+120x40 Mono Inspector · Options e15e9b31229c2641
 80x24 TrueColor Overview 0b03a75094f2f14b
 80x24 TrueColor Overview · Options 809faa3865fdce52
 80x24 TrueColor Overview · States cd07163f46163a3b
@@ -557,9 +549,7 @@
 80x24 TrueColor Menus 2462e2bb16763d15
 80x24 TrueColor Menus · Options ef18c16005ac0356
 80x24 TrueColor Menus · States dac86b7ffa4f1d10
-80x24 TrueColor Dialogs bc8ec716cf8ae3b8
-80x24 TrueColor Dialogs · Options 3312d1b1a7725335
-80x24 TrueColor Dialogs · States 75dd4e0e621dd1b7
+80x24 TrueColor Dialogs b752abe4fca8b43b
 80x24 TrueColor Pickers 061d64738506ee9b
 80x24 TrueColor Dialog kinds f9522f62cbcaf3bb
 80x24 TrueColor Popups & tooltips e186d348be16d8c0
@@ -606,8 +596,8 @@
 80x24 TrueColor Accounts & usage 578f5efe48df0180
 80x24 TrueColor Launch cockpit 9a17f91cd619c732
 80x24 TrueColor Read-only report e776d3e4998bb9df
-80x24 TrueColor Inspector · State 5af0daa405fca61c
-80x24 TrueColor Inspector · Options f25d46b4b88ebcc5
+80x24 TrueColor Inspector · State 9682ec50b6ca65f0
+80x24 TrueColor Inspector · Options 367c8ffbfc88a9e3
 80x24 Ansi256 Overview c6f46efe10f90017
 80x24 Ansi256 Overview · Options fb8f98b1586b7eca
 80x24 Ansi256 Overview · States f0c9b0b1eb6f3ff2
@@ -679,9 +669,7 @@
 80x24 Ansi256 Menus 088806dd5a9e0efc
 80x24 Ansi256 Menus · Options 2f99a053fceee77f
 80x24 Ansi256 Menus · States bb011d83af3531f0
-80x24 Ansi256 Dialogs 3d62d4d590047d39
-80x24 Ansi256 Dialogs · Options f1aaf11cbe508edb
-80x24 Ansi256 Dialogs · States 4bcef7ebc4cb8366
+80x24 Ansi256 Dialogs 30e23d3f24dbeea0
 80x24 Ansi256 Pickers 9a16c50abe5d93ae
 80x24 Ansi256 Dialog kinds b7761b33a69ca9ca
 80x24 Ansi256 Popups & tooltips d8a2dbd00a3c978f
@@ -728,8 +716,8 @@
 80x24 Ansi256 Accounts & usage 8bfca4874e6ea653
 80x24 Ansi256 Launch cockpit a9fc11bde8e51955
 80x24 Ansi256 Read-only report 540c4f33b997f9f2
-80x24 Ansi256 Inspector · State 04bb852656a72036
-80x24 Ansi256 Inspector · Options 873bc13c16f2d56e
+80x24 Ansi256 Inspector · State a7b35479121c39c8
+80x24 Ansi256 Inspector · Options d4034aad9aed396a
 80x24 Ansi16 Overview d0125ae250045042
 80x24 Ansi16 Overview · Options 52c5ccc927d4c9a2
 80x24 Ansi16 Overview · States e9e67b3ed0d03ff8
@@ -801,9 +789,7 @@
 80x24 Ansi16 Menus 146ef4af8a53bf0b
 80x24 Ansi16 Menus · Options 7a8bd156f8c2815c
 80x24 Ansi16 Menus · States bae1fc191779d371
-80x24 Ansi16 Dialogs 56c8a98b65d0aa08
-80x24 Ansi16 Dialogs · Options f68348f55200a572
-80x24 Ansi16 Dialogs · States bb1cb8ea400c2070
+80x24 Ansi16 Dialogs 6af73e16765be87c
 80x24 Ansi16 Pickers 7cd91f6af6be2894
 80x24 Ansi16 Dialog kinds ac4a00258938c788
 80x24 Ansi16 Popups & tooltips c49de95287bc9de7
@@ -850,8 +836,8 @@
 80x24 Ansi16 Accounts & usage 7059ba80131fc1b4
 80x24 Ansi16 Launch cockpit ef282bdd19611286
 80x24 Ansi16 Read-only report c0d0e116a1aa6033
-80x24 Ansi16 Inspector · State cfc305f70f5a1162
-80x24 Ansi16 Inspector · Options c4aeaa925d3dd3d8
+80x24 Ansi16 Inspector · State b74867390029f1f6
+80x24 Ansi16 Inspector · Options d14116bf2108ff70
 80x24 Mono Overview 088f20752048d366
 80x24 Mono Overview · Options f95644bd142b63f7
 80x24 Mono Overview · States 843cc884b078f571
@@ -923,9 +909,7 @@
 80x24 Mono Menus 1006a9a74c501433
 80x24 Mono Menus · Options c85b46be51ba3b34
 80x24 Mono Menus · States 121a87fcbbf65b23
-80x24 Mono Dialogs 0ef32654a834c59e
-80x24 Mono Dialogs · Options 5da452641fa9ffc4
-80x24 Mono Dialogs · States 604f266a0f1c4946
+80x24 Mono Dialogs 43106ea16dacd6d0
 80x24 Mono Pickers a9da92f94c143222
 80x24 Mono Dialog kinds 8e607c2b3a9ec17a
 80x24 Mono Popups & tooltips fec1c6eebb40f1e5
@@ -972,7 +956,7 @@
 80x24 Mono Accounts & usage adf3fcc8fb6b7cf2
 80x24 Mono Launch cockpit af96e40a5b0b9068
 80x24 Mono Read-only report 9391b594073e422d
-80x24 Mono Inspector · State 4781532fac66ba3a
+80x24 Mono Inspector · State 8c8917ebf1fee2ce
 80x24 Mono Inspector · Options 29490f68df2bb39d
 72x20 TrueColor Overview b4b38166234091b7
 72x20 TrueColor Overview · Options 2d1dbc25b3713b15
@@ -1045,9 +1029,7 @@
 72x20 TrueColor Menus f664288d9cfc3bf6
 72x20 TrueColor Menus · Options c8d066cd022d77ed
 72x20 TrueColor Menus · States 81c1b8a81b4dc4cd
-72x20 TrueColor Dialogs 37134bdcee7d1aff
-72x20 TrueColor Dialogs · Options 7ed8c0c527949bea
-72x20 TrueColor Dialogs · States 65f3d9a534b305cb
+72x20 TrueColor Dialogs db180a4fe712e90c
 72x20 TrueColor Pickers ee7ad7253239f34b
 72x20 TrueColor Dialog kinds 75fda4e855a9b00b
 72x20 TrueColor Popups & tooltips 13c2ed53ee92c456
@@ -1094,8 +1076,8 @@
 72x20 TrueColor Accounts & usage 84ade69307c1fa2c
 72x20 TrueColor Launch cockpit 0816ac4f627d1932
 72x20 TrueColor Read-only report 45b3b7886e25c3f4
-72x20 TrueColor Inspector · State 698ba4a624f85d4a
-72x20 TrueColor Inspector · Options 49d71fb25718f277
+72x20 TrueColor Inspector · State 46ac4b801ae48468
+72x20 TrueColor Inspector · Options 9f335e059756ea6d
 72x20 Ansi256 Overview 258f562425d51d13
 72x20 Ansi256 Overview · Options 334177ae9009eb10
 72x20 Ansi256 Overview · States 318f890930e3a440
@@ -1167,9 +1149,7 @@
 72x20 Ansi256 Menus e373d17457e92c43
 72x20 Ansi256 Menus · Options fb9516d325e19a73
 72x20 Ansi256 Menus · States 66b10799541e410d
-72x20 Ansi256 Dialogs 09f4abaf2a42365e
-72x20 Ansi256 Dialogs · Options 1e67f0fbda3e7c06
-72x20 Ansi256 Dialogs · States 5542db03917ac312
+72x20 Ansi256 Dialogs d93415430d2fa3b2
 72x20 Ansi256 Pickers 1afd13e26ba5a73f
 72x20 Ansi256 Dialog kinds 53b028222d37e322
 72x20 Ansi256 Popups & tooltips 4c6f204575262fd8
@@ -1216,8 +1196,8 @@
 72x20 Ansi256 Accounts & usage aae14e064f68a35a
 72x20 Ansi256 Launch cockpit 80ac39ea8d275866
 72x20 Ansi256 Read-only report 0e7b9415413daa42
-72x20 Ansi256 Inspector · State 292fca030d948c91
-72x20 Ansi256 Inspector · Options 4d7bf76ad71d9bf8
+72x20 Ansi256 Inspector · State 23752c26f654e44b
+72x20 Ansi256 Inspector · Options af45f215ae896209
 72x20 Ansi16 Overview bd00c3f4056f255d
 72x20 Ansi16 Overview · Options df8efdb59abce302
 72x20 Ansi16 Overview · States 5e688253baa983d8
@@ -1289,9 +1269,7 @@
 72x20 Ansi16 Menus 76b0c4833719d5c2
 72x20 Ansi16 Menus · Options cfbc8bd19a90d5ba
 72x20 Ansi16 Menus · States 9bf91e8dabfe1a67
-72x20 Ansi16 Dialogs 3dc30457985dc071
-72x20 Ansi16 Dialogs · Options 8b01db89a0b471dd
-72x20 Ansi16 Dialogs · States d08402bebf277387
+72x20 Ansi16 Dialogs 9c54ed91692b37f5
 72x20 Ansi16 Pickers 13e6845d56f6ceca
 72x20 Ansi16 Dialog kinds bfa5d55a870b23c0
 72x20 Ansi16 Popups & tooltips c0f6aa04faeb262e
@@ -1338,8 +1316,8 @@
 72x20 Ansi16 Accounts & usage 242c9bb73187f9fe
 72x20 Ansi16 Launch cockpit befa4adf0d32478a
 72x20 Ansi16 Read-only report 4bfefc1f49435096
-72x20 Ansi16 Inspector · State 11ef62d46f812a2d
-72x20 Ansi16 Inspector · Options 66b1871afb3e21bb
+72x20 Ansi16 Inspector · State 25db2a72a1e3e9e9
+72x20 Ansi16 Inspector · Options f9ea453bd1771f63
 72x20 Mono Overview e0878c6c4c8014ce
 72x20 Mono Overview · Options d051a629c00d5c36
 72x20 Mono Overview · States 39e3cce8e2b3d86c
@@ -1411,9 +1389,7 @@
 72x20 Mono Menus a7f965a05f04aec6
 72x20 Mono Menus · Options f9c2e492bcdff924
 72x20 Mono Menus · States e189c443285acb8d
-72x20 Mono Dialogs e3f99457636c12d3
-72x20 Mono Dialogs · Options 8aa11263665f9a63
-72x20 Mono Dialogs · States 5e98a97adc4bd8fd
+72x20 Mono Dialogs 1e0834147230c3d9
 72x20 Mono Pickers 992d6f778e52366e
 72x20 Mono Dialog kinds 3f585d7a2a0e2072
 72x20 Mono Popups & tooltips 3c06fc23dcc087d8
@@ -1460,7 +1436,7 @@
 72x20 Mono Accounts & usage cfcc221edb91778c
 72x20 Mono Launch cockpit 638398971d715fb8
 72x20 Mono Read-only report df0875ad36babc84
-72x20 Mono Inspector · State f160f4170f709678
+72x20 Mono Inspector · State defed3dc3e514dfc
 72x20 Mono Inspector · Options d582a65fed7ca2c9
 100x30 TrueColor Overview 908901690bf9053c
 100x30 TrueColor Overview · Options ce6e780efe43095c
@@ -1533,9 +1509,7 @@
 100x30 TrueColor Menus f13407e6e2626a57
 100x30 TrueColor Menus · Options 8a96c1eca061be5e
 100x30 TrueColor Menus · States 4682397ace0e4708
-100x30 TrueColor Dialogs d8cea65843d6ee22
-100x30 TrueColor Dialogs · Options 30dbb8da989325ed
-100x30 TrueColor Dialogs · States 2ecaec0506223265
+100x30 TrueColor Dialogs 0a9e8baa21e8c992
 100x30 TrueColor Pickers ac6e2c1e07434542
 100x30 TrueColor Dialog kinds 360c5289fddf9894
 100x30 TrueColor Popups & tooltips 37d60ec84cc95c03
@@ -1582,7 +1556,7 @@
 100x30 TrueColor Accounts & usage 520ff75a4adf9d26
 100x30 TrueColor Launch cockpit aeeca08656b94e47
 100x30 TrueColor Read-only report df23980e0ed1e3ec
-100x30 TrueColor Inspector · State 1604faa476391af6
+100x30 TrueColor Inspector · State 6684818510411612
 100x30 TrueColor Inspector · Options 538cf3350d0495b1
 100x30 Ansi256 Overview 7b511bd69ef9117e
 100x30 Ansi256 Overview · Options b3e6271ba0de08ed
@@ -1655,9 +1629,7 @@
 100x30 Ansi256 Menus 5d1a4f3e1903e08a
 100x30 Ansi256 Menus · Options d400ec094bc81ab3
 100x30 Ansi256 Menus · States d949fafdeeb9f379
-100x30 Ansi256 Dialogs ff3ae1a557276bda
-100x30 Ansi256 Dialogs · Options fa9e4f7906fe399e
-100x30 Ansi256 Dialogs · States a6dec54c0af7590b
+100x30 Ansi256 Dialogs a588efe2731b23b2
 100x30 Ansi256 Pickers 2939dde3a09dfa8d
 100x30 Ansi256 Dialog kinds 9334714995af812c
 100x30 Ansi256 Popups & tooltips dd6726af0698c4ac
@@ -1704,7 +1676,7 @@
 100x30 Ansi256 Accounts & usage df705d2fee012c60
 100x30 Ansi256 Launch cockpit 7cb27c8d028a7b8b
 100x30 Ansi256 Read-only report 47250697a54ade01
-100x30 Ansi256 Inspector · State 22d32894fa4c3690
+100x30 Ansi256 Inspector · State bbdc350ca0e6b6f4
 100x30 Ansi256 Inspector · Options a8090e6119012dce
 100x30 Ansi16 Overview 7550da693b067e8e
 100x30 Ansi16 Overview · Options e17db9c9b1ed739f
@@ -1777,9 +1749,7 @@
 100x30 Ansi16 Menus 469edcff7db7834c
 100x30 Ansi16 Menus · Options 28f268bef32ad70a
 100x30 Ansi16 Menus · States 978297c0850de9e3
-100x30 Ansi16 Dialogs 0e01cfc948ef6b9b
-100x30 Ansi16 Dialogs · Options 63670f46b7d4fcad
-100x30 Ansi16 Dialogs · States 3409a78b0de3ab46
+100x30 Ansi16 Dialogs 05022b16bc63debb
 100x30 Ansi16 Pickers 4b75e4df709ffe31
 100x30 Ansi16 Dialog kinds 9f6a6c4229039b47
 100x30 Ansi16 Popups & tooltips 0845b082e9912454
@@ -1826,7 +1796,7 @@
 100x30 Ansi16 Accounts & usage 1b2fa20658fbdca8
 100x30 Ansi16 Launch cockpit b1a308d19d6bfbbf
 100x30 Ansi16 Read-only report b2865198831eec7e
-100x30 Ansi16 Inspector · State 7618dee7555c6cf8
+100x30 Ansi16 Inspector · State 459aca5150fd592c
 100x30 Ansi16 Inspector · Options 4af8744a3510361e
 100x30 Mono Overview a6754ef25f350e32
 100x30 Mono Overview · Options a16ac3e0a98ddccc
@@ -1899,9 +1869,7 @@
 100x30 Mono Menus af6d336053c2f429
 100x30 Mono Menus · Options 73d68844c60e855b
 100x30 Mono Menus · States 5cbe2392425384de
-100x30 Mono Dialogs 3730149a6f015880
-100x30 Mono Dialogs · Options 210bf3355b53b7ac
-100x30 Mono Dialogs · States 645c4cd0a1e07ad1
+100x30 Mono Dialogs 012d92d73a5129a8
 100x30 Mono Pickers 1ec9fcab0b695de6
 100x30 Mono Dialog kinds db4a1de516fd0a04
 100x30 Mono Popups & tooltips 865bfbab7446481f
@@ -1948,7 +1916,7 @@
 100x30 Mono Accounts & usage ce1eb8fba0a5c39b
 100x30 Mono Launch cockpit 14a96195f48778e6
 100x30 Mono Read-only report bc435abc43648527
-100x30 Mono Inspector · State f7e42bee4915ae49
+100x30 Mono Inspector · State a5e3021aab89253d
 100x30 Mono Inspector · Options ef6bee76c75cb480
 160x50 TrueColor Overview 5d22826d73f6c3c9
 160x50 TrueColor Overview · Options a055878c271822bf
@@ -2021,9 +1989,7 @@
 160x50 TrueColor Menus c05c813d0009f524
 160x50 TrueColor Menus · Options 56fab8ce00297591
 160x50 TrueColor Menus · States 1a71d098440dd0fe
-160x50 TrueColor Dialogs 71a7b620e876ea7c
-160x50 TrueColor Dialogs · Options b9922f3d7c445bdf
-160x50 TrueColor Dialogs · States 0d5ac21a3dc97a8f
+160x50 TrueColor Dialogs a253a2e819f23c40
 160x50 TrueColor Pickers e247ad9442171c41
 160x50 TrueColor Dialog kinds 8fa6602e40f0cdb8
 160x50 TrueColor Popups & tooltips 42ee8ee453bcd5e3
@@ -2070,8 +2036,8 @@
 160x50 TrueColor Accounts & usage 0491fe31f8be79ba
 160x50 TrueColor Launch cockpit d19c60c06e712763
 160x50 TrueColor Read-only report 3770c07c1c060ca8
-160x50 TrueColor Inspector · State 514bdef93211a0f4
-160x50 TrueColor Inspector · Options 66c3b5a5f24c08a0
+160x50 TrueColor Inspector · State a2508642af1a2288
+160x50 TrueColor Inspector · Options 5b02fc9629ca8f82
 160x50 Ansi256 Overview 3c74369458ac7bed
 160x50 Ansi256 Overview · Options cfcba3a9e30d6e1e
 160x50 Ansi256 Overview · States cf001ecd60059243
@@ -2143,9 +2109,7 @@
 160x50 Ansi256 Menus 0b8ccd3771094db5
 160x50 Ansi256 Menus · Options 638837f3ca2e7ef4
 160x50 Ansi256 Menus · States 53bafd39e037f88b
-160x50 Ansi256 Dialogs 0f83885bc81b29af
-160x50 Ansi256 Dialogs · Options 314a95549036f66f
-160x50 Ansi256 Dialogs · States 65167ef1b8254394
+160x50 Ansi256 Dialogs 2c166299dea902d4
 160x50 Ansi256 Pickers cb85fa480c575a2d
 160x50 Ansi256 Dialog kinds 930c6cb6e77463e8
 160x50 Ansi256 Popups & tooltips 2bb47718f4100de2
@@ -2192,8 +2156,8 @@
 160x50 Ansi256 Accounts & usage 0532c36cbb541e18
 160x50 Ansi256 Launch cockpit b28fb99840ae269b
 160x50 Ansi256 Read-only report da0a208cb89acdad
-160x50 Ansi256 Inspector · State e05675f9dccf7a77
-160x50 Ansi256 Inspector · Options 886c1e9f15196b22
+160x50 Ansi256 Inspector · State b7ec9e2063fae463
+160x50 Ansi256 Inspector · Options 250cf376002e1c5c
 160x50 Ansi16 Overview 52da56d4820ada88
 160x50 Ansi16 Overview · Options 4289c07ece21efb9
 160x50 Ansi16 Overview · States ef46aafba46181e3
@@ -2265,9 +2229,7 @@
 160x50 Ansi16 Menus 6e1e570fbeb27af8
 160x50 Ansi16 Menus · Options 7c24de0ec472051a
 160x50 Ansi16 Menus · States ac6025465847712e
-160x50 Ansi16 Dialogs 44f5a69aad32aec5
-160x50 Ansi16 Dialogs · Options 0a5b3779b1624a8a
-160x50 Ansi16 Dialogs · States c328f78d544f1ed1
+160x50 Ansi16 Dialogs 0faf348548b0283f
 160x50 Ansi16 Pickers 5624fe8aa2b75ab2
 160x50 Ansi16 Dialog kinds 957df59c4a2b26af
 160x50 Ansi16 Popups & tooltips 083e19bff1c612f4
@@ -2314,8 +2276,8 @@
 160x50 Ansi16 Accounts & usage 6d958c363a589690
 160x50 Ansi16 Launch cockpit 0e583c8eee2c7f8f
 160x50 Ansi16 Read-only report 1fdbe1ff44f6d99a
-160x50 Ansi16 Inspector · State dbb612444a400a6f
-160x50 Ansi16 Inspector · Options 3d2e2534a21a946b
+160x50 Ansi16 Inspector · State 993049c7c564a2b3
+160x50 Ansi16 Inspector · Options 329f002d2c72d539
 160x50 Mono Overview 4b676bb2937d0f2e
 160x50 Mono Overview · Options 9ebc98a5b2a8e134
 160x50 Mono Overview · States a39c1064c0f5e46a
@@ -2387,9 +2349,7 @@
 160x50 Mono Menus 59e9558682022de9
 160x50 Mono Menus · Options 0482c560d274ec75
 160x50 Mono Menus · States a4d75065b8616f51
-160x50 Mono Dialogs c4568b3a5d470fb0
-160x50 Mono Dialogs · Options b83c283ac6238b95
-160x50 Mono Dialogs · States 9717c250d7afc32e
+160x50 Mono Dialogs fc6cb235aef01dcc
 160x50 Mono Pickers 159bbb3a6e9737e3
 160x50 Mono Dialog kinds f31bfeef34767d34
 160x50 Mono Popups & tooltips 539f9a9a527a6cb3
@@ -2436,5 +2396,5 @@
 160x50 Mono Accounts & usage 15a0c9a62667f3d3
 160x50 Mono Launch cockpit 813b1250e80beed6
 160x50 Mono Read-only report 2b8f638f1f6b713b
-160x50 Mono Inspector · State 1834bb5e5f91ceca
-160x50 Mono Inspector · Options d5c60660caad0f83
+160x50 Mono Inspector · State 3daa95fbdc63dc16
+160x50 Mono Inspector · Options 4217e13d85238d51
