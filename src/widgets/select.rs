@@ -486,7 +486,11 @@ impl Select {
         buf.set_string(
             field.right().saturating_sub(2),
             field.y,
-            if self.open { "▴" } else { "▾" },
+            if self.open {
+                t.glyphs.chevron_open
+            } else {
+                t.glyphs.chevron_closed
+            },
             fs.fg(if self.disabled {
                 t.disabled
             } else {
@@ -570,7 +574,8 @@ impl Select {
                 buf.set_string(row.x, y, cr.gutter, cr.gutter_style);
                 if rs.selected {
                     // the chosen value is a fact, not a position: neutral
-                    buf.set_string(row.x + 1, y, "›", st.fg(t.row_ink(&cr, t.text_secondary)));
+                    let ink = st.fg(t.row_ink(&cr, t.text_secondary));
+                    buf.set_string(row.x + 1, y, t.glyphs.current, ink);
                 }
                 buf.set_string(
                     row.x + 3,
@@ -589,7 +594,7 @@ impl Select {
                 buf.set_string(
                     x,
                     pa.y,
-                    "▴",
+                    t.glyphs.more_above,
                     ratatui::style::Style::new().fg(edge).bg(t.surface_elevated),
                 );
             }
@@ -597,7 +602,7 @@ impl Select {
                 buf.set_string(
                     x,
                     pa.bottom().saturating_sub(1),
-                    "▾",
+                    t.glyphs.more_below,
                     ratatui::style::Style::new().fg(edge).bg(t.surface_elevated),
                 );
             }

@@ -288,7 +288,7 @@ impl ChipBar {
             if chip.removable {
                 let xid = self.close_id(i);
                 let xs = t.close_glyph(ctx.state(xid), st);
-                buf.set_string(x + 2 + label_w, y, "×", xs);
+                buf.set_string(x + 2 + label_w, y, t.glyphs.close, xs);
                 ctx.clickable(cid, r);
                 ctx.clickable(xid, Rect::new(x + 2 + label_w, y, 1, 1));
             } else {

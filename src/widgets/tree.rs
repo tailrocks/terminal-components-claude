@@ -853,9 +853,13 @@ impl TreeView {
                 continue;
             }
             let glyph = if row.busy {
-                crate::widgets::progress::spinner_frame(ctx.interaction.tick)
+                t.glyphs.spinner_frame(ctx.interaction.tick)
             } else if row.has_children {
-                if row.expanded { "▾" } else { "▸" }
+                if row.expanded {
+                    t.glyphs.disclosure_open
+                } else {
+                    t.glyphs.disclosure_closed
+                }
             } else {
                 " "
             };

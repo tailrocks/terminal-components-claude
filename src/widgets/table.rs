@@ -1204,10 +1204,11 @@ impl DataTable {
             let sorted = self.sort.map(|(c, _)| c == ci).unwrap_or(false);
             let st = crate::widgets::grid::header_style(ctx, hid, header_bg, col.sortable, sorted);
             let ind = match self.sort {
-                Some((c, SortDir::Asc)) if c == ci => " ▴",
-                Some((c, SortDir::Desc)) if c == ci => " ▾",
-                _ => "",
+                Some((c, SortDir::Asc)) if c == ci => format!(" {}", t.glyphs.sort_asc),
+                Some((c, SortDir::Desc)) if c == ci => format!(" {}", t.glyphs.sort_desc),
+                _ => String::new(),
             };
+            let ind = ind.as_str();
             let ind_w = crate::ui::text::width(ind);
             let title = format!(
                 "{}{}",
@@ -1236,7 +1237,7 @@ impl DataTable {
                 _ => st.fg(t.legible(t.chosen(focused), st.bg.unwrap_or(header_bg))),
             };
             let r = Rect::new(area.x + 3, header_y, 3, 1);
-            buf.set_string(r.x, r.y, state.glyph(), st);
+            buf.set_string(r.x, r.y, state.glyph_in(&t.glyphs), st);
             if !self.rows.is_empty() {
                 ctx.clickable(cid, r);
             }
@@ -1246,13 +1247,14 @@ impl DataTable {
             let more_right = self.hscroll.offset + self.hscroll.viewport_len < self.columns.len();
             let more_left = self.hscroll.offset > 0;
             if more_left {
-                buf.set_string(area.x + 1, header_y, "…", t.faint().bg(header_bg));
+                let st = t.faint().bg(header_bg);
+                buf.set_string(area.x + 1, header_y, t.glyphs.ellipsis, st);
             }
             if more_right {
                 buf.set_string(
                     cols_area.right() + 1,
                     header_y,
-                    "…",
+                    t.glyphs.ellipsis,
                     t.faint().bg(header_bg),
                 );
             }
@@ -1318,8 +1320,8 @@ impl DataTable {
                 row_style = row_style.fg(t.legible(t.text_muted, row_style.bg.unwrap_or(bg)));
             }
             let marker = match (self.selection_mode, s.selected) {
-                (SelectionMode::Single, true) => "›",
-                (SelectionMode::Multi, true) if check_w == 0 => "✓",
+                (SelectionMode::Single, true) => t.glyphs.current,
+                (SelectionMode::Multi, true) if check_w == 0 => t.glyphs.tick,
                 _ => " ",
             };
             let ms = if s.selected {
@@ -1331,11 +1333,14 @@ impl DataTable {
             if check_w > 0 && area.width > 3 + check_w {
                 let r = Rect::new(area.x + 3, y, 3, 1);
                 let (glyph, gs) = if row_disabled {
-                    ("[ ]", row_style.fg(t.disabled).add_modifier(Modifier::DIM))
+                    (
+                        t.glyphs.check_off,
+                        row_style.fg(t.disabled).add_modifier(Modifier::DIM),
+                    )
                 } else if s.selected {
-                    ("[✓]", row_style.fg(t.chosen(focused)))
+                    (t.glyphs.check_on, row_style.fg(t.chosen(focused)))
                 } else {
-                    ("[ ]", row_style.fg(t.text_muted))
+                    (t.glyphs.check_off, row_style.fg(t.text_muted))
                 };
                 // its hit region goes on top of the row's, below
                 buf.set_string(r.x, r.y, glyph, gs);

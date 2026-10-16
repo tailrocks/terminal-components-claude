@@ -9,7 +9,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
-use ratatui::widgets::{Block, BorderType, Borders, Widget};
+use ratatui::widgets::{Block, Borders, Widget};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
@@ -47,8 +47,8 @@ const META_MIN: u16 = 4;
 /// `meta` cut to `room` cells with an ellipsis, never in the middle of a
 /// number or a range (`"1–1…"` would misstate the position): the cut backs
 /// up to the last space before it. `None` when what is left is shorter
-/// than [`META_MIN`].
-fn cut_meta(meta: &str, room: u16) -> Option<String> {
+/// than [`META_MIN`]. `ellipsis` is the one-cell mark it ends with.
+fn cut_meta(meta: &str, room: u16, ellipsis: &str) -> Option<String> {
     if room < META_MIN {
         return None;
     }
@@ -63,7 +63,7 @@ fn cut_meta(meta: &str, room: u16) -> Option<String> {
         body
     }
     .trim_end_matches([' ', '·']);
-    (crate::ui::text::width(body) as u16 + 1 >= META_MIN).then(|| format!("{body}…"))
+    (crate::ui::text::width(body) as u16 + 1 >= META_MIN).then(|| format!("{body}{ellipsis}"))
 }
 
 pub struct Panel<'a> {
@@ -183,7 +183,8 @@ impl<'a> Panel<'a> {
             return;
         }
         let bg = self.bg(t);
-        buf.set_string(inner.right() - 1, inner.bottom() - 1, "…", t.faint().bg(bg));
+        let (x, y) = (inner.right() - 1, inner.bottom() - 1);
+        buf.set_string(x, y, t.glyphs.ellipsis, t.faint().bg(bg));
     }
 
     /// Draw the panel chrome and return the content area, or `None` when
@@ -237,7 +238,7 @@ impl<'a> Panel<'a> {
                 fill(buf, area, Style::new().bg(bg));
                 let block = Block::new()
                     .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
+                    .border_set(t.glyphs.border)
                     .border_style(t.border(self.focused).bg(bg));
                 block.render(area, buf);
                 if area.width > 4 {
@@ -269,6 +270,7 @@ impl<'a> Panel<'a> {
             .title
             .map(|t| (crate::ui::text::width(t) as u16).min(self.title_min))
             .unwrap_or(0);
+        let ell = t.glyphs.ellipsis;
         let meta = self.meta.filter(|m| !m.is_empty()).and_then(|m| {
             let room = w.saturating_sub(pad + if title_min > 0 { title_min + 1 } else { 0 });
             let fits = |m: &str| crate::ui::text::width(m) as u16 <= room;
@@ -287,7 +289,7 @@ impl<'a> Panel<'a> {
             } else if fits(&head) && !head.is_empty() {
                 Some(head)
             } else {
-                cut_meta(&short, room)
+                cut_meta(&short, room, ell)
             }
         });
         let meta_w = meta
@@ -890,9 +892,9 @@ mod scroll_panel_tests {
         );
         assert!(r.contains("rows 1–10/40 loaded"), "{r}");
         assert!(!r.contains("~4"), "{r}");
-        assert_eq!(cut_meta("1–13/24", 4), None, "never \"1–1…\"");
+        assert_eq!(cut_meta("1–13/24", 4, "…"), None, "never \"1–1…\"");
         assert_eq!(
-            cut_meta("rows 1–10/40 · ~4,812", 16).as_deref(),
+            cut_meta("rows 1–10/40 · ~4,812", 16, "…").as_deref(),
             Some("rows 1–10/40…")
         );
         // a long title is cut to title_min, not to 4 cells

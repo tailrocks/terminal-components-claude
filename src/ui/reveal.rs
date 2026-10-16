@@ -362,7 +362,7 @@ impl RevealState {
         } else {
             0
         };
-        let (shown, extent) = window(&lines, rows, scroll as usize);
+        let (shown, extent) = window(&lines, rows, scroll as usize, ctx.theme);
         self.extent.set(extent);
         self.scroll = self.scroll.min(extent.max);
         Some(shown)
@@ -438,13 +438,25 @@ fn cap(room: u16, max_rows: u16) -> u16 {
 
 /// The `rows` of `lines` shown at `scroll`, with markers for what is
 /// scrolled out above and below, and how far it scrolls.
-fn window(lines: &[String], rows: usize, scroll: usize) -> (Vec<RevealLine>, Extent) {
+fn window(
+    lines: &[String],
+    rows: usize,
+    scroll: usize,
+    t: &crate::theme::Theme,
+) -> (Vec<RevealLine>, Extent) {
     let line = |s: &String| RevealLine {
         text: s.clone(),
         more: false,
     };
     let more = |n: usize, up: bool| RevealLine {
-        text: format!("{} {n} more", if up { "↑" } else { "↓" }),
+        text: format!(
+            "{} {n} more",
+            if up {
+                t.glyphs.arrows[0]
+            } else {
+                t.glyphs.arrows[1]
+            }
+        ),
         more: true,
     };
     let n = lines.len();
@@ -796,11 +808,12 @@ fn layout(
     id: WidgetId,
     text: &str,
     feed: &Feed,
+    t: &crate::theme::Theme,
 ) -> (Rect, Vec<RevealLine>) {
     let room = screen.width.saturating_sub(2).max(1) as usize;
     let lines = wrapped(id, text, room);
     let rows = cap(screen.height, feed.max_rows) as usize;
-    let (shown, extent) = window(&lines, rows, feed.scroll as usize);
+    let (shown, extent) = window(&lines, rows, feed.scroll as usize, t);
     if let Some(e) = &feed.extent {
         e.set(extent);
     }
@@ -822,7 +835,7 @@ fn layout(
 fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     let screen = *buf.area();
     let t = ctx.theme;
-    let (area, lines) = layout(screen, tip.anchor, tip.id, &tip.text, &tip.feed);
+    let (area, lines) = layout(screen, tip.anchor, tip.id, &tip.text, &tip.feed, t);
     let area = area.intersection(screen);
     if area.is_empty() {
         return;
@@ -1051,6 +1064,7 @@ mod tests {
             WidgetId::of("t"),
             long.trim(),
             &Feed::default(),
+            &Theme::junie(),
         );
         assert!(rect.right() <= 40 && rect.bottom() <= 10);
     }
@@ -1166,14 +1180,14 @@ mod tests {
     fn the_window_marks_hidden_lines_above_and_below() {
         let lines: Vec<String> = (0..10).map(|i| format!("l{i}")).collect();
         let text = |v: Vec<RevealLine>| v.into_iter().map(|l| l.text).collect::<Vec<_>>();
-        let (top, e) = window(&lines, 4, 0);
+        let (top, e) = window(&lines, 4, 0, &Theme::junie());
         assert_eq!(text(top), ["l0", "l1", "l2", "↓ 7 more"]);
         assert_eq!(e.max, 7);
-        let (mid, _) = window(&lines, 4, 3);
+        let (mid, _) = window(&lines, 4, 3, &Theme::junie());
         assert_eq!(text(mid), ["↑ 3 more", "l3", "l4", "↓ 5 more"]);
-        let (end, _) = window(&lines, 4, 99);
+        let (end, _) = window(&lines, 4, 99, &Theme::junie());
         assert_eq!(text(end), ["↑ 7 more", "l7", "l8", "l9"]);
-        let (fits, e) = window(&lines[..3], 4, 2);
+        let (fits, e) = window(&lines[..3], 4, 2, &Theme::junie());
         assert_eq!(text(fits), ["l0", "l1", "l2"]);
         assert_eq!(e.max, 0);
     }

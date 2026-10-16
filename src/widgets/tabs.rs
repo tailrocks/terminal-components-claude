@@ -440,7 +440,7 @@ impl Tabs {
                 buf.set_string(
                     xx,
                     y + 1,
-                    "─",
+                    t.glyphs.bar_empty,
                     ratatui::style::Style::new().fg(t.border_subtle).bg(bg),
                 );
             }
@@ -490,7 +490,7 @@ impl Tabs {
                 t.faint().bg(bg)
             };
             let text = if more_left {
-                format!("‹{:<3}", self.first.min(99))
+                format!("{}{:<3}", t.glyphs.overflow_left, self.first.min(99))
             } else {
                 "    ".into()
             };
@@ -553,7 +553,7 @@ impl Tabs {
                 buf.set_string(
                     cx + 1,
                     y,
-                    crate::widgets::progress::spinner_frame(ctx.interaction.tick),
+                    t.glyphs.spinner_frame(ctx.interaction.tick),
                     st.fg(t.accent),
                 );
                 cx += 2;
@@ -561,13 +561,13 @@ impl Tabs {
                 buf.set_string(cx + 1, y, "!", st.fg(t.error));
                 cx += 2;
             } else if it.dirty {
-                buf.set_string(cx + 1, y, "•", st.fg(t.warning));
+                buf.set_string(cx + 1, y, t.glyphs.dirty, st.fg(t.warning));
                 cx += 2;
             }
             if it.closable {
                 let cid = self.close_id(i);
                 let cs = t.close_glyph(ctx.state(cid), st);
-                buf.set_string(cx + 1, y, "×", cs);
+                buf.set_string(cx + 1, y, t.glyphs.close, cs);
                 ctx.clickable(cid, Rect::new(cx + 1, y, 1, 1));
             }
             if active && area.height >= 2 {
@@ -579,7 +579,12 @@ impl Tabs {
                 let rule = if accent { t.accent } else { t.border_strong };
                 // the rule spans exactly the tab's plane, edge to edge
                 for xx in x..x + w {
-                    buf.set_string(xx, y + 1, "━", ratatui::style::Style::new().fg(rule).bg(bg));
+                    buf.set_string(
+                        xx,
+                        y + 1,
+                        t.glyphs.bar_fill,
+                        ratatui::style::Style::new().fg(rule).bg(bg),
+                    );
                 }
             }
             ctx.clickable(tid, r);
@@ -599,7 +604,7 @@ impl Tabs {
                 t.faint().bg(bg)
             };
             let text = if more_right {
-                format!("{:>3}›", hidden_right.min(99))
+                format!("{:>3}{}", hidden_right.min(99), t.glyphs.overflow_right)
             } else {
                 "    ".into()
             };

@@ -279,10 +279,10 @@ impl StepRail {
             let (glyph, gstyle) = match step.state {
                 StepState::Queued | StepState::Skipped | StepState::Blocked => (" ", st),
                 StepState::Running => (
-                    crate::widgets::progress::spinner_frame(ctx.interaction.tick),
+                    t.glyphs.spinner_frame(ctx.interaction.tick),
                     st.fg(t.accent),
                 ),
-                StepState::Done => ("✓", st.fg(t.success)),
+                StepState::Done => (t.glyphs.done, st.fg(t.success)),
                 StepState::Failed => ("!", st.fg(t.error).add_modifier(Modifier::BOLD)),
             };
             buf.set_string(row.x + 1, y, glyph, gstyle);

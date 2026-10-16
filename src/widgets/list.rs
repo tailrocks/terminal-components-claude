@@ -550,8 +550,8 @@ impl ListBox {
                 );
             }
             let marker = match (self.mode, s.selected) {
-                (SelectMode::Single, true) => "›",
-                (SelectMode::Multi, true) => "✓",
+                (SelectMode::Single, true) => t.glyphs.current,
+                (SelectMode::Multi, true) => t.glyphs.tick,
                 _ => " ",
             };
             let ms = if s.selected && !item.disabled {
