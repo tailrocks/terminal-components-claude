@@ -124,8 +124,8 @@ impl TextUtilitiesPage {
         };
         let mut list = PropsList::new(LIST, list_props())
             .nav(match self.opt("textutilities.nav") {
-                "no-vim" => NavKeys::NO_VIM,
-                _ => NavKeys::DEFAULT,
+                "vim" => NavKeys::VIM,
+                _ => NavKeys::default(),
             })
             .track_click(match self.opt("textutilities.track_click") {
                 "jump" => TrackClick::Jump,
@@ -153,8 +153,8 @@ impl TextUtilitiesPage {
         };
         format!(
             "PropsList · nav {} · copy {key} · track_click {:?} · scrollbar_gap {} · label share {}% · reveal {reveal}",
-            if l.nav == NavKeys::NO_VIM {
-                "no-vim"
+            if l.nav == NavKeys::VIM {
+                "vim"
             } else {
                 "default"
             },
