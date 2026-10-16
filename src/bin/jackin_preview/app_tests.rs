@@ -1544,7 +1544,7 @@ fn saving_a_new_account_without_a_name_marks_the_field_and_stays() {
     assert!(!text.contains("Display name is required"), "{text}");
     assert!(text.contains("New account"), "the form stays open: {text}");
     let name = crate::screens::accounts::FORM.sub("name");
-    assert_eq!(h.app.focus.current(), Some(name), "{text}");
+    assert_eq!(h.app.shell.focus.current(), Some(name), "{text}");
 }
 
 #[test]
@@ -1558,7 +1558,7 @@ fn tab_reaches_the_fields_below_a_short_add_account_form() {
     let mut seen = false;
     for _ in 0..4 {
         h.key(KeyCode::Tab);
-        if h.app.focus.current() == Some(source) {
+        if h.app.shell.focus.current() == Some(source) {
             seen = true;
             break;
         }
