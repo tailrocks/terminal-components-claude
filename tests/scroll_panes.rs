@@ -394,3 +394,71 @@ fn a_boundary_notch_in_a_modal_body_is_consumed_without_a_repaint() {
     assert_eq!(w.on_wheel(-1), Outcome::Consumed, "FormDialog at the top");
     assert_eq!(w.on_wheel(1), Outcome::Changed);
 }
+
+/// The last row a pane shows, after drawing.
+fn last_visible(w: &mut dyn Scrollable) -> usize {
+    let v = state(w, Axis::Vertical);
+    assert!(v.overflows());
+    v.offset + v.viewport_len - 1
+}
+
+/// A click on the last visible row puts the cursor there and leaves the
+/// view alone: the default row of context (`ScrollState::context`, SVg9)
+/// is for keyboard moves. Pointer moves reveal exactly
+/// (`ScrollState::pointer_move`), so the content never shifts under the
+/// pointer between the two clicks of a double click.
+#[test]
+fn a_click_on_the_last_visible_row_never_scrolls_it_away() {
+    let bg = Theme::junie().surface;
+
+    let items = labels(50).iter().map(|l| ListItem::new(l)).collect();
+    let mut w = ListBox::new(WidgetId::of("list"), items, SelectMode::Single);
+    frame(|a, b, c| w.render(a, b, c, bg));
+    let row = last_visible(&mut w);
+    w.on_click(row);
+    assert_eq!((w.cursor, w.scroll.offset), (row, 0), "ListBox");
+
+    let nodes = labels(50).iter().map(|l| TreeNode::leaf(l)).collect();
+    let mut w = TreeView::new(WidgetId::of("tree"), nodes);
+    frame(|a, b, c| w.render(a, b, c, bg));
+    let row = last_visible(&mut w);
+    w.on_click_row(row);
+    assert_eq!((w.cursor, w.scroll.offset), (row, 0), "TreeView");
+
+    let props = labels(50)
+        .iter()
+        .map(|l| Prop::new("Key", l.clone()))
+        .collect();
+    let mut w = PropsList::new(WidgetId::of("props"), props);
+    frame(|a, b, c| w.render(a, b, c, bg));
+    let row = last_visible(&mut w);
+    w.on_click(row);
+    assert_eq!((w.cursor, w.scroll.offset), (row, 0), "PropsList");
+
+    let steps = labels(50).iter().map(|l| Step::new(l)).collect();
+    let mut w = StepRail::new(WidgetId::of("steps"), steps).selectable(true);
+    frame(|a, b, c| w.render(a, b, c, bg));
+    let row = last_visible(&mut w);
+    w.on_click(row);
+    assert_eq!((w.cursor, w.scroll.offset), (row, 0), "StepRail");
+
+    let mut t = wide_table();
+    frame(|a, b, c| t.render(a, b, c, bg));
+    let row = last_visible(&mut t);
+    t.on_click_cell(row, 0, Position::new(0, 0));
+    assert_eq!((t.cursor_row, t.scroll.offset), (row, 0), "DataTable");
+
+    let mut g = wide_grid();
+    frame(|a, b, c| g.render(a, b, c, bg));
+    let row = last_visible(&mut g);
+    let id = g.cell_id(row, 0);
+    g.on_click(id, Position::new(0, 0));
+    assert_eq!((g.cursor.0, g.scroll.offset), (row, 0), "DataGrid");
+    // a keyboard move to the next row keeps one row of context below it
+    g.on_key(&junie_tui::core::event::Key {
+        code: ratatui::crossterm::event::KeyCode::Down,
+        mods: ratatui::crossterm::event::KeyModifiers::NONE,
+    });
+    let v = g.scroll.v;
+    assert_eq!(v.offset + v.viewport_len - 1, row + 2, "DataGrid keyboard");
+}

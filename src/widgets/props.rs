@@ -405,6 +405,7 @@ impl PropsList {
         if row >= self.props.len() {
             return (Outcome::Consumed, None);
         }
+        self.scroll.pointer_move();
         self.set_cursor(row);
         (Outcome::Changed, Some(PropsAction::Activate(row)))
     }

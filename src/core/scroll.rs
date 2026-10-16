@@ -32,10 +32,15 @@ pub struct ScrollState {
     pub(crate) followed: Option<(usize, usize)>,
     /// Rows kept visible beyond a row brought into view
     /// ([`Self::ensure_visible`]), so the focused row need not sit on the
-    /// edge of a view that hides more (standards-visual SVg9). Default 0:
-    /// the row itself is always brought fully into view (WCAG 2.4.11);
-    /// views of no more than twice the context keep none.
+    /// edge of a view that hides more (standards-visual SVg9). Default 1:
+    /// the row itself is always brought fully into view (WCAG 2.4.11), and
+    /// one row beyond it shows there is more, as macOS lists do. 0 keeps
+    /// the row on the edge; views of no more than twice the context keep
+    /// none.
     pub context: usize,
+    /// The next [`Self::ensure_visible`] brings its row in without
+    /// [`context`](Self::context): see [`Self::pointer_move`].
+    pub(crate) exact: bool,
 }
 
 impl Default for ScrollState {
@@ -54,7 +59,8 @@ impl ScrollState {
             paging: false,
             follow_cursor: FollowCursor::OnMove,
             followed: None,
-            context: 0,
+            context: 1,
+            exact: false,
         }
     }
 
@@ -131,14 +137,29 @@ impl ScrollState {
         self.scroll_to(self.max_offset())
     }
 
-    /// Move the viewport the minimum amount so `index` is visible.
+    /// The next [`Self::ensure_visible`] (or [`Self::follow`]) comes from
+    /// the pointer: it brings its row in exactly, without
+    /// [`context`](Self::context). The pointer is already on that row, so
+    /// context would move the content under it: a click on the last
+    /// visible row would scroll it away from a second click, and a held
+    /// drag past the edge would step two rows a tick. Call it right before
+    /// a pointer path moves the cursor; the next reveal clears it.
+    pub fn pointer_move(&mut self) {
+        self.exact = true;
+    }
+
+    /// Move the viewport the minimum amount so `index` is visible, with
+    /// [`context`](Self::context) rows beyond it where the view can spare
+    /// them.
     pub fn ensure_visible(&mut self, index: usize) -> bool {
+        let exact = std::mem::take(&mut self.exact);
         if self.viewport_len == 0 {
             return false;
         }
         let before = self.offset;
-        // context rows only where the view can spare them
-        let ctx = if self.viewport_len > 2 * self.context {
+        // context rows only where the view can spare them, and never for a
+        // row the pointer placed
+        let ctx = if !exact && self.viewport_len > 2 * self.context {
             self.context
         } else {
             0
@@ -1036,7 +1057,10 @@ mod tests {
         assert!(!s.page_down(), "already at the end");
         assert!(s.at_end());
         assert!(s.page_up());
-        assert!(!s.ensure_visible(s.offset), "visible rows need no scroll");
+        assert!(
+            !s.ensure_visible(s.offset + 2),
+            "visible rows clear of the context need no scroll"
+        );
         assert!(s.ensure_visible(19));
         let mut fits = ScrollState::new(3);
         fits.set_viewport(5);
@@ -1118,8 +1142,36 @@ mod tests {
     }
 
     #[test]
-    fn ensure_visible_moves_minimally() {
+    fn the_default_keeps_one_row_of_context_around_a_row_brought_into_view() {
+        // SVg9: a keyboard move to the edge of the view shows the next row
+        // too, so the focused row never sits where more hides beyond it.
         let mut s = ScrollState::new(50);
+        assert_eq!(s.context, 1);
+        s.set_viewport(10);
+        assert!(s.ensure_visible(9), "the last visible row scrolls one on");
+        assert_eq!(s.offset, 1);
+        assert_eq!(ScrollState::default().context, 1);
+    }
+
+    #[test]
+    fn a_pointer_move_reveals_its_row_without_context_once() {
+        let mut s = ScrollState::new(50);
+        s.set_viewport(10);
+        s.pointer_move();
+        assert!(!s.ensure_visible(9), "a clicked edge row stays put");
+        assert_eq!(s.offset, 0);
+        s.pointer_move();
+        assert!(s.ensure_visible(10), "a row past the edge comes in exactly");
+        assert_eq!(s.offset, 1);
+        // the next keyboard move keeps its context again
+        assert!(s.ensure_visible(10));
+        assert_eq!(s.offset, 2);
+    }
+
+    #[test]
+    fn ensure_visible_moves_minimally() {
+        // context 0: the row may sit on the edge of the view
+        let mut s = ScrollState::new(50).with_context(0);
         s.set_viewport(10);
         s.ensure_visible(25);
         assert_eq!(s.offset, 16);
@@ -1139,14 +1191,15 @@ mod tests {
         s.scroll_by(20);
         s.follow(3);
         assert_eq!(s.offset, 20, "a repaint must not snap back");
-        // a cursor move brings it back into view
+        // a cursor move brings it back into view, with the default row of
+        // context above it (SVg9)
         s.follow(4);
-        assert_eq!(s.offset, 4);
+        assert_eq!(s.offset, 3);
         // so does a viewport resize
         s.scroll_by(20);
         s.set_viewport(8);
         s.follow(4);
-        assert_eq!(s.offset, 4);
+        assert_eq!(s.offset, 3);
     }
 
     #[test]
@@ -1156,7 +1209,7 @@ mod tests {
         s.follow(3);
         s.scroll_by(20);
         s.follow(3);
-        assert_eq!(s.offset, 3);
+        assert_eq!(s.offset, 2, "pinned with the default row of context");
     }
 
     #[test]
