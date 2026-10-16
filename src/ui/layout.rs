@@ -19,12 +19,23 @@ pub enum Maximized {
 
 /// A two-pane split with a ratio (in percent of the first pane) and a
 /// maximize state. Direction is chosen by the caller.
+///
+/// A pointer drag ([`Split::drag_to`]) places the seam on the exact cell
+/// under the pointer: the ratio it stores is finer than `percent` (basis
+/// points), so a drag never snaps to whole-percent steps. Writing
+/// `percent` directly (a keyboard resize) drops that refinement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Split {
     pub percent: u16,
     pub min_first: u16,
     pub min_second: u16,
     pub maximized: Maximized,
+    /// The ratio [`Split::new`] started with, restored by [`Split::reset`]
+    /// (double-click on the seam).
+    pub default_percent: u16,
+    /// `(percent, basis points)`: the cell-precise ratio a drag set, valid
+    /// while `percent` still equals the value it refines.
+    precise: Option<(u16, u16)>,
 }
 
 impl Split {
@@ -34,6 +45,23 @@ impl Split {
             min_first,
             min_second,
             maximized: Maximized::None,
+            default_percent: percent,
+            precise: None,
+        }
+    }
+
+    /// Back to the starting ratio, nothing maximised.
+    pub fn reset(&mut self) {
+        self.percent = self.default_percent;
+        self.precise = None;
+        self.maximized = Maximized::None;
+    }
+
+    /// The first pane's share of `usable` cells.
+    fn first_of(&self, usable: u16) -> u16 {
+        match self.precise {
+            Some((p, bps)) if p == self.percent => (usable as u32 * bps as u32 / 10_000) as u16,
+            _ => (usable as u32 * self.percent as u32 / 100) as u16,
         }
     }
 
@@ -84,11 +112,15 @@ impl Split {
             return false;
         }
         let first = offset.clamp(self.min_first, usable - self.min_second);
-        let percent = ((first as u32 * 100 + usable as u32 / 2) / usable as u32) as u16;
-        let percent = percent.clamp(5, 95);
-        let changed = percent != self.percent;
+        // the smallest ratio whose floor lands exactly on `first`
+        let bps = (first as u32 * 10_000)
+            .div_ceil(usable as u32)
+            .clamp(500, 9_500) as u16;
+        let percent = ((bps as u32 + 50) / 100) as u16;
+        let before = self.first_of(usable);
         self.percent = percent;
-        changed
+        self.precise = Some((percent, bps));
+        self.first_of(usable) != before
     }
 
     /// Resize by whole cells in the given direction.
@@ -117,7 +149,7 @@ impl Split {
                     // not enough room for both: give everything to the first
                     return (area, Rect::ZERO);
                 }
-                let mut first = (usable as u32 * self.percent as u32 / 100) as u16;
+                let mut first = self.first_of(usable);
                 first = first.clamp(self.min_first, usable - self.min_second);
                 (
                     Rect::new(area.x, area.y, area.width, first),
@@ -137,7 +169,7 @@ impl Split {
                 if usable < self.min_first + self.min_second {
                     return (Rect::ZERO, area);
                 }
-                let mut first = (usable as u32 * self.percent as u32 / 100) as u16;
+                let mut first = self.first_of(usable);
                 first = first.clamp(self.min_first, usable - self.min_second);
                 (
                     Rect::new(area.x, area.y, first, area.height),
@@ -574,6 +606,31 @@ mod tests {
         s.nudge(SplitDir::Horizontal, area, 1, 5);
         let (a, _) = s.horizontal(area, 1);
         assert_eq!(a.width, 15);
+    }
+
+    /// Every cell is reachable by a drag, whatever the width (whole
+    /// percents skipped cells: 61 usable cells have only 61 ratios but
+    /// percent rounding landed some drags a cell off).
+    #[test]
+    fn drag_places_the_seam_on_the_exact_cell() {
+        for width in [37u16, 62, 133, 241] {
+            let area = Rect::new(0, 0, width, 4);
+            let mut s = Split::new(50, 2, 2);
+            let usable = width - 1;
+            for x in (usable / 20).max(2)..usable * 19 / 20 {
+                s.drag_to(SplitDir::Horizontal, area, 1, Position::new(x, 0));
+                let (a, _) = s.horizontal(area, 1);
+                assert_eq!(a.width, x, "width {width} x {x}");
+            }
+        }
+        // a keyboard resize (writing `percent`) drops the refinement
+        let area = Rect::new(0, 0, 62, 4);
+        let mut s = Split::new(50, 2, 2);
+        s.drag_to(SplitDir::Horizontal, area, 1, Position::new(33, 0));
+        s.grow(1);
+        assert_eq!(s.horizontal(area, 1).0.width, 61 * s.percent / 100);
+        s.reset();
+        assert_eq!(s, Split::new(50, 2, 2));
     }
 }
 

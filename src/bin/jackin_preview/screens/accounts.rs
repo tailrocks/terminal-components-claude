@@ -2370,6 +2370,9 @@ impl Screen for AccountsScreen {
     }
 
     fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if id == SEAM {
+            return self.seam.on_click(&mut self.split, cx.clicks);
+        }
         self.build_rows(w);
         if self.menu.is_open() {
             let (o, chosen) = self.menu.on_click(id);

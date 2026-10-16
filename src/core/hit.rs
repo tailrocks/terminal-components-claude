@@ -82,6 +82,28 @@ impl HitRegistry {
         });
     }
 
+    /// [`Self::register`] at the bottom of the current layer (just above
+    /// the top barrier): the region only takes cells that no other region
+    /// of the layer covers, whenever those register.
+    pub fn register_under(&mut self, id: WidgetId, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        let at = self.barriers.last().copied().unwrap_or(0);
+        self.regions.insert(
+            at,
+            HitRegion {
+                id,
+                area,
+                scroll_only: false,
+                pass_through: false,
+                hover_only: false,
+                backdrop: false,
+                surface: false,
+            },
+        );
+    }
+
     /// Register a modal's body (a dialog's or a modal frame's surface): it
     /// blocks presses from falling through like [`Self::register`], and
     /// [`Self::is_surface`] tells the pointer layer a press on it is dead

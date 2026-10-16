@@ -205,6 +205,14 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// [`Self::clickable`] beneath every region of the current layer: it
+    /// only takes cells no other control claims (a splitter's padding).
+    pub fn clickable_under(&mut self, id: WidgetId, area: Rect) {
+        if !self.inert {
+            self.hits.register_under(id, area);
+        }
+    }
+
     /// Register `owner`'s scrollbar on `axis`, drawn in `track`.
     pub fn scrollbar(
         &mut self,
