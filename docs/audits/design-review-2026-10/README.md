@@ -26,9 +26,13 @@ layer (see `AGENTS.md`), with a regression test, in its own commit.
 | `colour-showcase-tablepro.md` | Colour as meaning in showcase and tablepro: semantic roles, syntax and environment hues |
 | `colour-holla-jackin.md` | Colour as meaning in holla and jackin: live, done, health and quota states |
 | `colour-follow-ups.md` | The resolved colour tokens the library shipped, decisions between the two colour reviews, and the colour follow-ups per app |
+| `showcase-coverage-library.md` | Showcase coverage of every library widget, variant, state and option (244-row matrix) |
+| `showcase-coverage-apps.md` | Showcase coverage of the UI patterns the apps use (92 patterns), and which are still app-local |
 
 The three duplication reviews are consolidated into one plan:
 [`docs/architecture/shared-components-plan.md`](../../architecture/shared-components-plan.md).
+The two showcase coverage inventories feed its showcase coverage track
+(SC, §7 of the same plan).
 
 Line numbers refer to the code at the time of each audit and drift as
 fixes land.
