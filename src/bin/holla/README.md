@@ -101,7 +101,7 @@ cargo test --test holla_pty          # fresh-process palette / NO_COLOR matrix a
 | `remote-host` | `◆ prod-eu-1 · production` identity; `on prod-eu-1` scope words; restart phrase bound to the host |
 | `launch-failure` | failed activity tab with honest output and `Next` follow-ups |
 | `hard-cases` | detached and rebase states, unreadable children (partial), docker and github unavailable |
-| `parity-*` | one scenario per capability slice; `src/bin/holla/app_tests_parity.rs` names the decisive rows and the tuisnap baseline captures every parity scenario at four sizes plus mono |
+| `parity-*` | one scenario per capability slice; `src/bin/holla/app_tests_parity.rs` names the decisive rows and the tuiscotti baseline captures every parity scenario at four sizes plus mono |
 
 Cross-cutting, in any scenario: `F1` is the full key reference; `Alt+Enter`
 on a row lists the alternatives (pin, alias, hide, why is this here?);
@@ -132,11 +132,9 @@ fresh-process test in `tests/holla_pty.rs`, not a capture.
 **3. Baseline matrix — the full visual pass:**
 
 ```sh
-cargo nextest run --run-ignored only -E 'binary(visual_baseline)'   # captures the matrix; actuals in target/tuisnap/
-ln -sfn target/tuisnap/actual snapshots.actual                 # CLI actuals sibling of --store snapshots
-open target/tuisnap/report.html                                # review every actual
-tuisnap accept --grouped --store snapshots --all               # approve after review
-cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
+VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'  # actuals in target/tuiscotti/
+open target/tuiscotti/expected target/tuiscotti/actual target/tuiscotti/diff                   # review mismatches
+VISUAL_ACCEPT=holla cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'            # approve after review
 ```
 
 The holla slice is 194 captures: all 34 scenarios at four sizes plus mono,
@@ -149,7 +147,7 @@ the executable source of truth.
 After changing one surface, rerun only what moved and look at the report:
 
 ```sh
-cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_hard_cases)'
+VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_hard_cases)'
 ```
 
 **Simulation guarantee (adversarial):** walk every plan and gate while
