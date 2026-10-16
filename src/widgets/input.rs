@@ -103,6 +103,9 @@ pub struct TextInput {
     /// Default [`PointerSelect::DEFAULT`].
     pub pointer_select: PointerSelect,
     press: PressState,
+    /// A click on the label focuses the field and starts its edit (the
+    /// HTML `<label>` convention, macOS form labels). Default `true`.
+    pub label_hit: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -149,6 +152,7 @@ impl TextInput {
             focus_seen: false,
             pointer_select: PointerSelect::DEFAULT,
             press: PressState::default(),
+            label_hit: true,
         }
     }
 
@@ -544,6 +548,17 @@ impl TextInput {
         self.buffer.text().len()
     }
 
+    /// See [`Self::label_hit`].
+    pub fn label_hit(mut self, on: bool) -> Self {
+        self.label_hit = on;
+        self
+    }
+
+    /// `pos` is on the label above the field row ([`Self::label_hit`]).
+    fn on_label(&self, pos: Position) -> bool {
+        self.label_hit && pos.y < self.area.y
+    }
+
     /// Mouse click on the field. Focus is handled by the app; the click
     /// enters editing (one click, never two) and places the cursor at the
     /// pointer. Same as [`Self::on_click_count`] with a count of 1.
@@ -559,6 +574,13 @@ impl TextInput {
     pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
+        }
+        if self.on_label(pos) {
+            // a label click edits as focus would, without placing a caret
+            if !self.editing {
+                self.begin_focus_edit();
+            }
+            return Outcome::Changed;
         }
         self.begin_edit();
         let offset = self.offset_at(pos);
@@ -585,7 +607,7 @@ impl TextInput {
     /// press of a double click selects the word, and a drag from it
     /// extends by words ([`PointerSelect::drag_by_word`]).
     pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
-        if self.disabled {
+        if self.disabled || self.on_label(pos) {
             return Outcome::Consumed;
         }
         let offset = self.offset_at(pos);
@@ -729,6 +751,18 @@ impl TextInput {
         }
         let field = Rect::new(area.x, area.y + label_rows, area.width, 1);
         self.area = field;
+        if self.label_hit && !self.label.is_empty() {
+            // the label is the field's own target: clicking it focuses and
+            // edits the field
+            let lw = if label_rows > 1 {
+                wrapped.iter().map(|l| width(l)).max().unwrap_or(0)
+            } else {
+                width(&label)
+            }
+            .min(area.width.saturating_sub(Self::GUTTER) as usize) as u16;
+            let rect = Rect::new(area.x, area.y, Self::GUTTER + lw, label_rows);
+            ctx.clickable(self.id, rect.intersection(area));
+        }
         let fs = t.field_style(s);
         crate::ui::ctx::fill(buf, field, fs);
         let gutter = t.gutter(s, fs.bg.unwrap_or(bg), false);
@@ -1450,5 +1484,38 @@ mod tests {
             let found = hits.autoscroll_at(Position::new(ta.x, ta.y));
             assert_eq!(found, (!disabled).then_some(ta), "disabled {disabled}");
         }
+    }
+
+    #[test]
+    fn clicking_the_label_focuses_and_edits_the_field() {
+        let theme = Theme::junie();
+        let draw = |input: &mut TextInput| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 3));
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            input.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, theme.surface);
+            drop(ctx);
+            (hits, ring)
+        };
+        let mut input = TextInput::new(WidgetId::of("name"), "Name").value("Ada");
+        let (hits, ring) = draw(&mut input);
+        assert_eq!(
+            hits.hit(Position::new(3, 0)),
+            Some(input.id),
+            "the label is a target"
+        );
+        assert_eq!(
+            hits.hit(Position::new(28, 0)),
+            None,
+            "blank space after it is not"
+        );
+        assert!(ring.contains(input.id));
+        input.on_press_count(Position::new(3, 0), 1);
+        assert_eq!(input.on_click(Position::new(3, 0)), Outcome::Changed);
+        assert!(input.editing, "a label click starts the edit");
+        let mut off = TextInput::new(WidgetId::of("off"), "Name").label_hit(false);
+        let (hits, _) = draw(&mut off);
+        assert_eq!(hits.hit(Position::new(3, 0)), None);
     }
 }

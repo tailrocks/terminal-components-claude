@@ -159,6 +159,10 @@ impl Page for TextAreasPage {
                 Some(i) => self.areas[i].on_wheel(*delta),
                 None => Outcome::Ignored,
             },
+            PageEvent::WheelH { id, delta } => match self.index_of(*id) {
+                Some(i) => self.areas[i].on_wheel_h(*delta),
+                None => Outcome::Ignored,
+            },
             _ => Outcome::Ignored,
         }
     }
