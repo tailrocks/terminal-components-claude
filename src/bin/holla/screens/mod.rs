@@ -203,6 +203,10 @@ pub struct Cx<'a> {
     /// Context-menu keys and cursor policy ([`crate::app::App::context`]).
     pub context: ContextConfig,
     pub requests: Vec<Request>,
+    /// Multi-click count of the click being delivered
+    /// ([`junie_tui::core::pointer::PointerState::count_click`]); 1 for
+    /// every other event.
+    pub clicks: u8,
 }
 
 impl Cx<'_> {
@@ -263,6 +267,19 @@ pub trait Screen {
     }
     fn on_press(&mut self, _id: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
         Outcome::Ignored
+    }
+    /// A press with the click count it starts
+    /// ([`junie_tui::core::pointer::PointerState::press_count`]): a text
+    /// field selects the word on the second press of a double click.
+    /// Defaults to [`Self::on_press`].
+    fn on_press_count(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        _count: u8,
+        w: &mut World,
+    ) -> Outcome {
+        self.on_press(id, pos, w)
     }
     fn on_drag(&mut self, _pressed: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
         Outcome::Ignored
