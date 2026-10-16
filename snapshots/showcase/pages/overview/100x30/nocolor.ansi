@@ -4,27 +4,27 @@
                                                                                                     [0m
  [0m[1m▎› Overview       [0m    Tokens                                          Principles                   [0m
   ▸ App shell                                                                                       [0m
-  ▸ Inputs & forms         ▏ canvas                      #000000       [0m[1mOne hue[0m                      [0m
-  ▸ Tables                 ▏ surface                     #111111       Green means focus, primary   [0m
-  ▸ Navigation             ▏ surface.elevated            #18181b       action or selection.         [0m
-  ▸ Overlays               ▏ surface.overlay             #27272a       Everything else is           [0m
-  ▸ Feedback               ▏ field                       #1e1e22       achromatic.                  [0m
-  ▸ Layout                 ▏ popover                     #3f3f46                                    [0m
-  ▸ Text & code            ▏ border.subtle             white 15%       [0m[1mAlpha ladder[0m                 [0m
-  ▸ Screens                ▏ border.strong             white 30%       Text and borders step down   [0m
-                           ▏ text.primary                #ffffff       in white opacity, never in   [0m
-                           ▏ text.secondary            white 70%       arbitrary grays.             [0m
-                           ▏ text.muted                white 50%                                    [0m
-                           ▏ text.faint                white 30%                                    [0m
-                           ▏ accent                      #48e054                                    [0m
-                           ▏ accent.hover                #3ab343       State language               [0m
-                           ▏ accent.pressed              #2b8632                                    [0m
-                           ▏ accent.bg                 green 20%       ▎  focus                     [0m
-                           ▏ error                       #e44545       ░  hover lifts the surface   [0m
-                           ▏ warning                     #f59e09       ›  current / chosen          [0m
-                           ▏ info                        #8787ff       ✓  checked                   [0m
-                                                                       !  error                     [0m
-                                                                       ▁  editing: cursor + underlin[0m
+  ▸ Inputs & forms         ▏ canvas                        Black       [0m[1mColour carries meaning[0m       [0m
+  ▸ Tables                 ▏ surface                       Black       One accent hue for focus     [0m
+  ▸ Navigation             ▏ surface.elevated              Black       and primary action; status   [0m
+  ▸ Overlays               ▏ surface.overlay            DarkGray       hues only where they carry   [0m
+  ▸ Feedback               ▏ field                         Black       meaning; syntax hues only    [0m
+  ▸ Layout                 ▏ popover                    DarkGray       in code.                     [0m
+  ▸ Text & code            ▏ border.subtle              DarkGray                                    [0m
+  ▸ Screens                ▏ border.strong                  Gray       [0m[1mNever colour alone[0m           [0m
+                           ▏ text.primary                  White       Every status has its glyph:  [0m
+                           ▏ text.secondary                 Gray       ✓ done, ✗ failed, ▲          [0m
+                           ▏ text.muted                     Gray       attention, • pending, i      [0m
+                           ▏ text.faint                     Gray                                    [0m
+                           ▏ accent                        White                                    [0m
+                           ▏ accent.hover                  White       State language               [0m
+                           ▏ accent.pressed                White                                    [0m
+                           ▏ accent.bg                     Black       ▎  focus                     [0m
+                           ▏ highlight                  DarkGray       ░  hover lifts the surface   [0m
+                           ▏ selection                  DarkGray       ›  current / chosen          [0m
+                           ▏ success                       White       ✓  checked                   [0m
+                           ▏ info                           Gray       !  error                     [0m
+                           ▏ warning                        Gray       ▁  editing: cursor + underlin[0m
                                                                                                     [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
