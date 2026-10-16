@@ -94,11 +94,14 @@ fn cli_after_help() -> String {
 fn main() -> std::io::Result<()> {
     let cli: Cli = junie_tui::cli::parse(cli_after_help());
     let motion = cli.common.motion(NO_MOTION_ENV);
-    let mut app = App::for_scenario(cli.scenario, motion, cli.common.frame, cli.common.theme());
-    if std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|v| v == "1") {
-        // the opt-out: nothing is read, learned or written
-        app.world.memory.usage = crate::domain::usage::UsageStore::disabled();
-    }
+    let history = !std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|v| v == "1");
+    let mut app = App::launch(
+        cli.scenario,
+        motion,
+        cli.common.frame,
+        cli.common.theme(),
+        history,
+    );
     junie_tui::shell::run(&mut app)
 }
 
