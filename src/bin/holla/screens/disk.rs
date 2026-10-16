@@ -32,12 +32,13 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
 use crate::domain::stack::Spotlight;
 use crate::screens::{
-    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, row_anchor,
-    scroll_drag, scroll_press,
+    Cx, Go, ModalResult, Page, Screen, StatusBits, heading, open_context, row_anchor, scroll_drag,
+    scroll_press,
 };
 use crate::sim::fs::ScanNode;
 use crate::sim::world::World;
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
 pub const TREE: WidgetId = WidgetId::of("disk.tree");
@@ -1079,7 +1080,7 @@ impl DiskPage {
             anchor,
             title,
             items,
-            ModalTag::new("disk-row").key(format!("{row}:{keys}")),
+            LayerTag::new("disk-row").key(format!("{row}:{keys}")),
         )
     }
 }
@@ -1432,7 +1433,7 @@ impl Screen for DiskPage {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
