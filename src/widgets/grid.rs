@@ -360,6 +360,9 @@ pub struct DataGrid {
     col_rects: Vec<Rect>,
     show_bar: bool,
     bar: [Button; 3],
+    /// How a cut cell reveals its full value on hover (see
+    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+    pub reveal: Option<crate::ui::reveal::Reveal>,
 }
 
 const HEADER_SORT_ASC: &str = " ▴";
@@ -405,6 +408,7 @@ impl DataGrid {
                 Button::subtle(id.sub("discard"), "Discard"),
                 Button::primary(id.sub("save"), "Save"),
             ],
+            reveal: None,
         }
     }
 
@@ -1908,6 +1912,17 @@ impl DataGrid {
                         fit(&text, rect.width as usize)
                     };
                     buf.set_string(rect.x, y, &shown, st);
+                    // a cut value (long text, JSON) shows in full on hover,
+                    // with its real line breaks
+                    if text != v.text() {
+                        crate::ui::reveal::truncated(
+                            ctx,
+                            self.reveal,
+                            self.cell_id(d, ci),
+                            Rect::new(rect.x, y, rect.width, 1),
+                            &v.text(),
+                        );
+                    }
                     if col.references.is_some()
                         && !matches!(v, CellValue::Null | CellValue::Default)
                         && rect.width > 6
@@ -2367,5 +2382,48 @@ mod tests {
         g.record_cell(0, 1, CellValue::Text("bad".into()));
         g.apply_commit_result(Err((0, "boom".into())));
         assert_eq!(g.row_state(0), RowState::Error);
+    }
+
+    #[test]
+    fn hovering_a_cut_cell_reveals_the_whole_value() {
+        let long = "a note far longer than any text column is wide by default";
+        let mut g = grid();
+        let mut rows: Vec<Vec<CellValue>> = (0..3)
+            .map(|i| {
+                vec![
+                    CellValue::Text(format!("id-{i}")),
+                    CellValue::Text(format!("row {i}")),
+                    CellValue::Int(i),
+                    CellValue::Bool(true),
+                ]
+            })
+            .collect();
+        rows[0][1] = CellValue::Text(long.into());
+        g.set_rows(GridRows {
+            rows,
+            total: RowTotal::Exact(3),
+            more: false,
+        });
+        let theme = Theme::junie();
+        let mut draw = |hover| {
+            let mut buf = Buffer::empty(Rect::new(0, 0, 100, 8));
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover,
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            g.render(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx, theme.surface);
+            ctx.flush_overlays(&mut buf);
+            (0..8)
+                .map(|y| (0..100).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        assert!(!draw(None).contains(long));
+        let shown = draw(Some(grid().cell_id(0, 1)));
+        assert!(shown.contains(long), "{shown}");
+        assert!(!draw(Some(grid().cell_id(1, 1))).contains(long));
     }
 }
