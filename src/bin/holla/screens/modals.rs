@@ -1,17 +1,21 @@
 //! Small shell modals: a scrollable text modal used for the key reference,
-//! About, and "Why is this here?".
+//! About, and "Why is this here?". It is a [`Layer`] on the shell's stack.
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
 use junie_tui::ui::text::{truncate, width, wrap};
+use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use ratatui::style::Style;
+
+use super::ModalResult;
 
 /// One line of a text modal: an optional bold key column and a value.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -287,6 +291,46 @@ impl TextModal {
                 true,
             );
         }
+    }
+}
+
+impl Layer<ModalResult> for TextModal {
+    fn spec(&self) -> LayerSpec {
+        LayerSpec::modal(self.dismiss).initial_focus(self.id)
+    }
+    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &()) {
+        TextModal::render(self, screen, buf, ctx);
+    }
+    fn on_key(&mut self, key: &Key, _: &mut LayerCx<'_>) -> Outcome {
+        TextModal::on_key(self, key)
+    }
+    fn on_click(&mut self, id: WidgetId, pos: Position, _: &mut LayerCx<'_>) -> Outcome {
+        if id == scrollbar::id_for(self.id) {
+            return self.on_scrollbar(pos);
+        }
+        Outcome::Changed
+    }
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if pressed == scrollbar::id_for(self.id) {
+            return self.on_scrollbar_drag(pos);
+        }
+        Outcome::Ignored
+    }
+    fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
+        TextModal::on_wheel(self, delta)
+    }
+    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
+        vec![hint("↑↓", "Scroll"), hint("Esc", "Close")]
+    }
+    fn on_dismiss(&mut self, _: DismissReason) {
+        self.closed = true;
+    }
+    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
+        if !self.closed {
+            return None;
+        }
+        self.closed = false;
+        Some(LayerOut::Close(ModalResult::Closed))
     }
 }
 

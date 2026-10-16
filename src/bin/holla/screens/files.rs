@@ -24,12 +24,11 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::exec::Command;
-use crate::screens::{
-    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, scroll_drag, scroll_press,
-};
+use crate::screens::{Cx, Go, ModalResult, Screen, StatusBits, heading, scroll_drag, scroll_press};
 use crate::sim::fs::{FindHit, Fs, NodeKind, Preview};
 use crate::sim::world::{SourceState, World};
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
 pub const LIST: WidgetId = WidgetId::of("files.list");
@@ -491,7 +490,7 @@ impl FilesPage {
         let m = ContextMenu::new(WidgetId::of("files.actions"), items)
             .anchor(anchor, Placement::Below)
             .title(truncate_middle(path.as_str(), 40));
-        cx.open(Modal::Menu(m), ModalTag::new("file-actions").key(path));
+        cx.open(m, LayerTag::new("file-actions").key(path));
         Outcome::Changed
     }
 
@@ -622,7 +621,7 @@ impl FilesPage {
         p.empty_text = "type a path or a name".into();
         p.set_items(vec![]);
         self.jump_error = None;
-        cx.open(Modal::Picker(p), ModalTag::new("files-jump"));
+        cx.open(p, LayerTag::new("files-jump"));
     }
 
     fn jump_to(&mut self, target: &str, w: &World, cx: &mut Cx) -> Result<(), String> {
@@ -1404,7 +1403,7 @@ impl Screen for FilesPage {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,

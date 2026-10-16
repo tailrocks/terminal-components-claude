@@ -23,11 +23,12 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::action::{ArgSpec, Item, Risk};
 use crate::screens::finder::item_facts;
 use crate::screens::{
-    Cx, GateTarget, Go, ModalResult, ModalTag, Screen, StatusBits, heading, open_context,
-    risk_tone, row_choice, scroll_drag, scroll_press,
+    Cx, GateTarget, Go, ModalResult, Screen, StatusBits, heading, open_context, risk_tone,
+    row_choice, scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
 use junie_tui::ui::context::ContextAnchor;
+use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 use junie_tui::widgets::menu::MenuItem;
 
@@ -348,7 +349,7 @@ impl GatePage {
             anchor,
             self.title.clone(),
             items,
-            ModalTag::new("gate-sequence").key("0:y\u{1b}"),
+            LayerTag::new("gate-sequence").key("0:y\u{1b}"),
         )
     }
 }
@@ -452,7 +453,7 @@ impl Screen for GatePage {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
