@@ -110,7 +110,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/checksradios-options", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "2", "wait:Checkbox click target"]).pending(),
     Root::new("showcase/sections/checksradios-states", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     Root::new("showcase/elements/checks/row-hover", Bin::Showcase, &["--page", "checksradios", "--opt", "checksradios.hit=row"], BOOT).hover("Include archived projects").pending(),
-    Root::new("showcase/planned/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:arrives with SC19"]).pending(),
     Root::new("showcase/planned/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:arrives with SC41"]).pending(),
     // SC21 filled Empty & error: the page, its sections and an error state
     Root::new("showcase/pages/emptyerror", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["wait:No connections yet"]).pending(),
@@ -237,6 +236,14 @@ pub const SURFACES: &[Root] = &[
     // SC17: the Dialogs page's Options and States sections.
     Root::new("showcase/sections/dialogs-options", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "2", "wait:Placement"]).pending(),
     Root::new("showcase/sections/dialogs-states", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "3", "wait:Run task now?"]).pending(),
+    // SC19: the Popups & tooltips page, its sections, the tooltips under a
+    // resting pointer, and the Data grid header's column-type tooltip.
+    Root::new("showcase/pages/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:Open popover"]).pending(),
+    Root::new("showcase/sections/popupstooltips-options", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["tab", "2", "wait:Popover placement"]).pending(),
+    Root::new("showcase/sections/popupstooltips-states", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["tab", "3", "wait:Frame"]).pending(),
+    Root::new("showcase/sections/popupstooltips-tooltip", Bin::Showcase, &["--page", "popupstooltips"], BOOT).hover("Save draft").pending(),
+    Root::new("showcase/sections/popupstooltips-status-tooltip", Bin::Showcase, &["--page", "popupstooltips"], BOOT).hover("eu-west-1").pending(),
+    Root::new("showcase/sections/datagrid-header-tooltip", Bin::Showcase, &["--page", "datagrid"], BOOT).hover("plan").pending(),
     // SC18: the Dialog kinds page and its Options and States sections.
     Root::new("showcase/pages/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:Keyboard help"]).pending(),
     Root::new("showcase/sections/dialogkinds-options", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["tab", "2", "wait:Width"]).pending(),
@@ -386,6 +393,8 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/dialogkinds_info", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Server info").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogkinds_choice", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Release channel…").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogkinds_help", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Keyboard help").pending().dismiss_pending(),
+    // SC19: the popover under its button.
+    Root::new("showcase/overlays/popupstooltips_popover", Bin::Showcase, &["--page", "popupstooltips"], BOOT).click("Open popover").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogs_anchored", Bin::Showcase, &["--page", "dialogs", "--opt", "dialogs.placement=below"], BOOT).click("Confirm run").pending().dismiss_pending(),
     Root::new("showcase/overlays/emptyerror_row_actions", Bin::Showcase, &["--page", "emptyerror"], BOOT).click("Row actions ▾").pending().dismiss_pending(),
     // mouse #40: the brand asks before quitting.

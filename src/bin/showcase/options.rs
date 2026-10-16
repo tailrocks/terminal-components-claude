@@ -247,6 +247,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Menus => MENUS,
         PageId::Dialogs => DIALOGS,
         PageId::DialogKinds => DIALOG_KINDS,
+        PageId::PopupsTooltips => POPUPS_TOOLTIPS,
         PageId::Buttons => BUTTONS,
         PageId::Inputs => INPUTS,
         PageId::TextAreas => TEXTAREAS,
@@ -1120,6 +1121,114 @@ pub static DIALOG_KINDS: &[Opt] = &[
         "Choice buttons",
         &["two", "three"],
     ),
+];
+
+/// The Popups & tooltips page (SC19): the popover's placement, fit and
+/// dismissal, the modal frame of its States grid, the tooltip policy and
+/// the reveal policy.
+pub static POPUPS_TOOLTIPS: &[Opt] = &[
+    Opt::new(
+        "popupstooltips.placement",
+        "Popover placement",
+        &["below", "above", "right", "left", "center"],
+    ),
+    Opt::new("popupstooltips.margin", "Edge margin", &["1", "0", "2"]),
+    Opt::new(
+        "popupstooltips.vertical_margin",
+        "Vertical margin",
+        &["as-margin", "0", "2"],
+    ),
+    Opt::new("popupstooltips.v_align", "Centred at", &["center", "third"]),
+    Opt::new("popupstooltips.overflow", "No room", &["shrink", "slide"]),
+    Opt::new("popupstooltips.text_inset", "Text inset", &["0", "2"]),
+    Opt::new("popupstooltips.escape", "Esc closes", OFF_ON).default(1),
+    Opt::new(
+        "popupstooltips.outside_click",
+        "Outside click closes",
+        OFF_ON,
+    )
+    .default(1),
+    Opt::new(
+        "popupstooltips.pass_through",
+        "Click passes through",
+        OFF_ON,
+    ),
+    Opt::new(
+        "popupstooltips.refuse_feedback",
+        "Refused click",
+        &["flash", "none"],
+    ),
+    Opt::new("popupstooltips.focus_out", "Focus out closes", OFF_ON).default(1),
+    Opt::new(
+        "popupstooltips.frame_placement",
+        "Frame placement",
+        &["center", "below", "right"],
+    ),
+    Opt::new(
+        "popupstooltips.frame_fit",
+        "Frame fit",
+        &["default", "flush", "menu"],
+    ),
+    Opt::new(
+        "popupstooltips.frame_margin",
+        "Frame padding",
+        &["3x1", "1x0"],
+    ),
+    Opt::new(
+        "popupstooltips.frame_min",
+        "Frame min size",
+        &["20x5", "40x8"],
+    ),
+    Opt::new(
+        "popupstooltips.frame_chrome",
+        "Frame chrome rows",
+        &["1", "0", "3"],
+    ),
+    Opt::new("popupstooltips.frame_backdrop", "Frame dims", OFF_ON).default(1),
+    Opt::new(
+        "popupstooltips.frame_dim",
+        "Rows kept live",
+        &["default", "full", "keep-top", "keep-bottom"],
+    ),
+    Opt::new(
+        "popupstooltips.frame_dismiss",
+        "Frame dismiss",
+        &["escape", "never"],
+    ),
+    Opt::new("popupstooltips.frame_close", "Frame × button", OFF_ON).default(1),
+    Opt::new(
+        "popupstooltips.frame_close_button",
+        "× look",
+        &["default", "danger"],
+    ),
+    Opt::new("popupstooltips.tooltips", "Tooltips", OFF_ON).default(1),
+    Opt::new(
+        "popupstooltips.tip_delay",
+        "Tooltip delay",
+        &["600", "0", "1500"],
+    ),
+    Opt::new("popupstooltips.tip_width", "Tooltip width", &["48", "24"]),
+    Opt::new("popupstooltips.reveal_hover", "Reveal on hover", OFF_ON).default(1),
+    Opt::new(
+        "popupstooltips.reveal_key",
+        "Reveal key",
+        &["right", "r", "none"],
+    ),
+    Opt::new(
+        "popupstooltips.reveal_mode",
+        "Reveal as",
+        &["tooltip", "inline"],
+    ),
+    Opt::new("popupstooltips.reveal_rows", "Reveal rows", &["0", "3"]),
+    Opt::new("popupstooltips.reveal_scroll", "Reveal scrolls", OFF_ON).default(1),
+    Opt::new("popupstooltips.reveal_wheel", "Wheel lines", &["3", "1"]),
+    Opt::new("popupstooltips.reveal_delay", "Reveal delay", &["300", "0"]),
+    Opt::new(
+        "popupstooltips.reveal_passes",
+        "Wheel passes at ends",
+        OFF_ON,
+    )
+    .default(1),
 ];
 
 /// The Tabs page (SC14): the editor strip's builders.
