@@ -663,8 +663,13 @@ pub fn scenario_home(name: &str) -> PathBuf {
 /// `HOME` (per scenario) and `NO_COLOR` (only the `nocolor` level).
 /// `SHELL` is pinned because the PTY layer otherwise fills it in from the
 /// user's account even after `env_clear` (found by `env_isolation`).
-pub const PINNED_ENV: [(&str, &str); 8] = [
+/// `JUNIE_TUI_CLIENT_PLATFORM` pins `core::event::ClientPlatform`: with no
+/// terminal variables it falls back to the build target, so the
+/// Option+click / Ctrl+click hints would differ between macOS and the
+/// ubuntu CI runner. macOS is the interaction reference (AGENTS.md).
+pub const PINNED_ENV: [(&str, &str); 9] = [
     ("SHELL", "/bin/sh"),
+    ("JUNIE_TUI_CLIENT_PLATFORM", "macos"),
     ("TERM", "xterm-256color"),
     ("COLORTERM", "truecolor"),
     ("LANG", "C.UTF-8"),

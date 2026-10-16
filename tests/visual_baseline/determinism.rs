@@ -8,7 +8,9 @@
 //!   under `src/` ([`FORBIDDEN`]).
 //! - `Instant::now` is allowed only where it times *when* something
 //!   happens, never *what* is drawn, and only as often as listed in
-//!   [`INSTANT_ALLOWED`]; a new use fails until it is reviewed and listed.
+//!   [`INSTANT_ALLOWED`]; `target_os` (output that follows the build OS)
+//!   only as listed in [`TARGET_OS_ALLOWED`]. A new use fails until it is
+//!   reviewed and listed.
 //!
 //! String literals and comments are ignored (a fixture may show code that
 //! calls `rand::`), as are test modules (`#[cfg(test)] mod …`) and files
@@ -56,6 +58,24 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 4] = [
         "src/bin/tablepro/app.rs",
         2,
         "press-flash and status-message expiry; the flash clock is frozen under --motion paused",
+    ),
+];
+
+/// Patterns counted per file and compared with the reviewed lists.
+const REVIEWED_PATTERNS: [&str; 2] = ["Instant::now", "target_os"];
+
+/// Reviewed `target_os` uses: output that follows the build OS would make
+/// a macOS capture differ from the ubuntu CI runner's.
+const TARGET_OS_ALLOWED: [(&str, usize, &str); 2] = [
+    (
+        "src/runtime.rs",
+        8,
+        "job-control suspend (SIGTSTP) support per OS; never drawn",
+    ),
+    (
+        "src/core/event.rs",
+        1,
+        "ClientPlatform::build_target fallback; captures pin JUNIE_TUI_CLIENT_PLATFORM (support::PINNED_ENV)",
     ),
 ];
 
@@ -188,8 +208,8 @@ fn sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-/// `(forbidden hits, Instant::now count per file)` over `src/`.
-fn scan(root: &Path) -> (Vec<String>, BTreeMap<String, usize>) {
+/// `(forbidden hits, count per (reviewed pattern, file))` over `src/`.
+fn scan(root: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>) {
     let mut files = Vec::new();
     sources(&root.join("src"), &mut files);
     files.sort();
@@ -210,9 +230,11 @@ fn scan(root: &Path) -> (Vec<String>, BTreeMap<String, usize>) {
                 }
             }
         }
-        let count = code.matches("Instant::now").count();
-        if count > 0 {
-            instants.insert(rel, count);
+        for pat in REVIEWED_PATTERNS {
+            let count = code.matches(pat).count();
+            if count > 0 {
+                instants.insert((pat.to_string(), rel.clone()), count);
+            }
         }
     }
     (hits, instants)
@@ -226,13 +248,18 @@ pub fn sources_are_deterministic() {
         "wall-clock or random sources in rendering code (derive from ticks, --frame or a fixture clock instead):\n  {}",
         hits.join("\n  ")
     );
-    let allowed: BTreeMap<String, usize> = INSTANT_ALLOWED
+    let allowed: BTreeMap<(String, String), usize> = INSTANT_ALLOWED
         .iter()
-        .map(|(f, n, _)| (f.to_string(), *n))
+        .map(|(f, n, _)| (("Instant::now".to_string(), f.to_string()), *n))
+        .chain(
+            TARGET_OS_ALLOWED
+                .iter()
+                .map(|(f, n, _)| (("target_os".to_string(), f.to_string()), *n)),
+        )
         .collect();
     assert_eq!(
         instants, allowed,
-        "Instant::now uses changed: review that the new use cannot change a frame's content, then update determinism::INSTANT_ALLOWED"
+        "Instant::now / target_os uses changed: review that the new use cannot change a frame's content (or differ between macOS and the ubuntu CI runner), then update determinism::INSTANT_ALLOWED / TARGET_OS_ALLOWED"
     );
 }
 
