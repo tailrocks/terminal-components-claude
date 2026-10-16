@@ -1,6 +1,6 @@
   ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe      no color · 100×30  ? help  [0m
                                                                                                     [0m
- [0m[1m [0m≡[0m[1m Query 1 [0m×[0m[1m  [0m                                                                                 +   [0m
+ [0m[1m▎[0m≡[0m[1m Query 1 [0m×[0m[1m  [0m                                                                                 +   [0m
  ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
  ╭─ Query 1 ──────────────────────────────────────────────────────────────────────────────────────╮ [0m
  │                                                                                                │ [0m
@@ -27,5 +27,5 @@
  │                                                                                                │ [0m
  ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                                     [0m
- [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m→[0m Expand  [0m[1m/[0m Filter  [0m[1mCtrl+O[0m Quick open  …            ✓ Connected to Production [0m
+ [0m[1m←→[0m Switch  [0m[1mCtrl+T[0m New query  [0m[1mx[0m Close  [0m[1mCtrl+G[0m Tab list  [0m[1mz[0m Zoom  …         ✓ Connected to Production [0m
 [?25l
