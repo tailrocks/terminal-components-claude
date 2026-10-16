@@ -1181,7 +1181,8 @@ impl Screen for PlanTab {
                         "Cancel the remaining steps?",
                         "Running steps finish; ready and waiting steps are cancelled. Completed work stays.",
                         "Cancel remaining",
-                    );
+                    )
+                    .cancel_label("Keep running");
                     cx.open(Modal::Dialog(d), ModalTag::new("cancel-plan"));
                 } else {
                     cx.status("The plan is not running");
