@@ -1084,6 +1084,15 @@ narrow layout is never a focus trap.
   `Enter`/`Space` selects a row or, in cell mode, `Enter`/`F2` edits; `Tab`
   commits and hops to the next editable cell.
 - **Mouse**: header click sorts, second click on the current cell edits.
+  In multi-selection a click selects one row, Shift+click extends, and
+  Space or a click on the row's checkbox toggles it on every platform.
+  The modified toggle click is a shortcut beside them: Option+click (or
+  Cmd+click) when the client terminal is on macOS, where Ctrl+click is the
+  secondary click; Ctrl+click (or Cmd+click) elsewhere
+  (`DataTable::toggle_mods`, configurable; `ClientPlatform` detects the
+  user's terminal, not the build target). Option+click is a fallback:
+  iTerm2 and Terminal.app may keep it. Hints name it with
+  `keyhint::modifier_click`.
 - **Rule**: sorting permutes a source order so selection and edits survive it.
 
 #### Data grid

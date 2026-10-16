@@ -153,6 +153,7 @@ changes status.
 | Text fields | 8c9a6c523, 0a3fbc311 | `PointerSelect::drag_by_word: bool` (default `true`) with `drag`/`word`/`line`/`drag_by_word` builders; `TextInput::on_press_count`, `TextArea::on_press_count`; `field_common::{PointerField, route_press, route_drag, route_click}`; `TextBuffer::selected_text` is public. |
 | Dialogs | 76ee283ba | `Dialog::{on_press, on_click_count}` (and `on_drag` reaches the input); `FormDialog::{on_press, on_drag, on_click_count}`. |
 | Tables | 84cb0f669 | `DataTable::TOGGLE_CTRL_CMD` (the default `toggle_mods`) and `DataTable::TOGGLE_WITH_ALT`. |
+| Platform defaults | (this change) | `core::event::ClientPlatform { MacOs, Other }`: `ClientPlatform::from_env(get)` (override `JUNIE_TUI_CLIENT_PLATFORM`, then `LC_TERMINAL=iTerm2`, then a macOS-only `TERM_PROGRAM`, else `ClientPlatform::build_target()`) and `ClientPlatform::current()` (that on the process environment, read once); `InputConfig::for_platform(ClientPlatform) -> InputConfig` (`Default` is `for_platform(ClientPlatform::current())`); `DataTable::TOGGLE_OPTION_CMD` and `DataTable::toggle_mods_for(ClientPlatform) -> KeyModifiers`, now the default `toggle_mods` (Option or Cmd on macOS, Ctrl or Cmd elsewhere); `keyhint::modifier_click(KeyModifiers, ClientPlatform) -> Option<&'static str>` (`Option+click` / `Ctrl+click`). |
 
 ## Status update (glyphs, strings and keymap leftovers)
 

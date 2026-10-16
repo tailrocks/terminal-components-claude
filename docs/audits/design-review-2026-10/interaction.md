@@ -145,3 +145,29 @@ modifier stays `DataTable::TOGGLE_CTRL_CMD` (Ctrl or Cmd) by default;
 Ctrl+click is a secondary click (`InputConfig::ctrl_click_secondary`)
 and many terminals do not report Cmd. Which one ships as the default
 is the product owner's decision; it is not decided yet.
+
+**Decided (product owner):** on macOS the toggle click is Option+click.
+`DataTable::toggle_mods` now defaults to `DataTable::toggle_mods_for(
+ClientPlatform::current())`: `DataTable::TOGGLE_OPTION_CMD` (Option or Cmd)
+when the client terminal is on macOS, `DataTable::TOGGLE_CTRL_CMD` (Ctrl or
+Cmd) elsewhere. `ClientPlatform` (`core::event`) is the one shared detector
+and it reads the user's terminal, not the build target (an app on Linux
+used over SSH from a Mac follows macOS): `JUNIE_TUI_CLIENT_PLATFORM`
+(`macos` / `other`) overrides, then `LC_TERMINAL=iTerm2` (forwarded over
+SSH), then a macOS-only `TERM_PROGRAM` (`Apple_Terminal`, `iTerm.app`);
+cross-platform terminals (WezTerm, Ghostty, kitty) say nothing about the
+OS, so only then does it fall back to `target_os`. `InputConfig::default`
+derives `ctrl_click_secondary` from the same detector, so on macOS
+Ctrl+click stays the secondary click and opens the row menu. iTerm2 and
+Terminal.app can keep Option+click for themselves (cursor moves, block
+selection), so Option+click is documented as a fallback: Space and a
+click on the row's checkbox always toggle with no modifier, on every
+platform (tested). Apps keep the knob (`DataTable::toggle_mods(...)`, any modifier set, or
+`toggle_mods_for(ClientPlatform::Other)` to keep Ctrl+click on a Mac). The
+showcase Selectable table names the platform's click in its footer once
+rows are selected (`keyhint::modifier_click`: `Option+click Toggle row` on
+macOS, `Ctrl+click Toggle row` elsewhere), and gains a row menu (right
+click, Ctrl+click on macOS, `Shift+F10`: Edit, Delete…). DataTable is the
+only widget with a toggle modifier: ListBox multi mode toggles on a plain
+click (`ClickAction::Activate`) and DataGrid takes no click modifiers, so
+neither changes.
