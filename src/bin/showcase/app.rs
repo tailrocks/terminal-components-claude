@@ -694,8 +694,8 @@ impl App {
             MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),
             MouseKind::Drag => {
                 if let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) {
-                    if self.dialog.is_some() {
-                        return Outcome::Consumed;
+                    if let Some(d) = self.dialog.as_mut() {
+                        return d.on_drag(pressed, m.pos);
                     }
                     if pressed == scrollbar::id_for(NAV) {
                         return self.scroll_nav_to(m.pos);
@@ -753,16 +753,16 @@ impl App {
                 self.dispatch(PageEvent::Secondary { id, pos: m.pos })
             }
             MouseKind::WheelLeft | MouseKind::WheelRight => {
-                if self.dialog.is_some() {
-                    return Outcome::Consumed;
-                }
-                let Some(id) = self.hits.hit_scroll(m.pos) else {
-                    return Outcome::Ignored;
-                };
                 let delta = if m.kind == MouseKind::WheelLeft {
                     -1
                 } else {
                     1
+                };
+                if let Some(d) = self.dialog.as_mut() {
+                    return d.on_wheel_h(delta);
+                }
+                let Some(id) = self.hits.hit_scroll(m.pos) else {
+                    return Outcome::Ignored;
                 };
                 let out = self.dispatch(PageEvent::WheelH { id, delta });
                 self.pointer.scrolled(m.pos, out);
