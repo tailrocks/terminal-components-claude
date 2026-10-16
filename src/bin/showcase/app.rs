@@ -68,13 +68,15 @@ pub enum PageId {
 pub struct NavEntry {
     pub id: PageId,
     pub label: &'static str,
-    /// The sidebar group the page sits under ([`NAV_GROUPS`]).
+    /// The sidebar group the page sits under ([`NAV_GROUPS`]); empty for a
+    /// top-level page.
     pub group: &'static str,
 }
 
-/// Sidebar groups in tree order: every page sits under exactly one.
+/// Sidebar groups in tree order. A group never holds a page with its own
+/// name, and the tree is at most two levels deep.
 pub const NAV_GROUPS: &[&str] = &[
-    "Foundations",
+    "App shell",
     "Inputs & forms",
     "Tables",
     "Navigation",
@@ -91,12 +93,12 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Overview,
         label: "Overview",
-        group: "Foundations",
+        group: "",
     },
     NavEntry {
         id: PageId::Chrome,
         label: "Chrome",
-        group: "Foundations",
+        group: "App shell",
     },
     NavEntry {
         id: PageId::Buttons,
@@ -125,12 +127,12 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     },
     NavEntry {
         id: PageId::Tables,
-        label: "Tables",
+        label: "Basic table",
         group: "Tables",
     },
     NavEntry {
         id: PageId::Editable,
-        label: "Editable tables",
+        label: "Editable",
         group: "Tables",
     },
     NavEntry {
@@ -140,7 +142,7 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     },
     NavEntry {
         id: PageId::Selectable,
-        label: "Selectable table",
+        label: "Selection",
         group: "Tables",
     },
     NavEntry {
@@ -213,6 +215,11 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
 /// Extra `--page` names for pages whose label is long or reads several
 /// ways (compared like labels: letters and digits only).
 const PAGE_ALIASES: &[(&str, PageId)] = &[
+    // labels before the sidebar became a tree (a group never repeats a
+    // page's name): their `--page` names keep working
+    ("tables", PageId::Tables),
+    ("editabletables", PageId::Editable),
+    ("selectabletable", PageId::Selectable),
     ("selection", PageId::Selectable),
     ("bulkedit", PageId::Selectable),
     ("selectable", PageId::Selectable),
@@ -238,10 +245,23 @@ impl PageId {
         NAV_ENTRIES.iter().position(|e| e.id == self).unwrap_or(0)
     }
 
-    /// The page's path in the sidebar tree: `[group, position in group]`.
+    /// The page's path in the sidebar tree: `[root]` for a top-level page,
+    /// `[group, position in group]` otherwise.
     pub fn nav_path(self) -> Vec<usize> {
         let e = &NAV_ENTRIES[self.index()];
-        let g = NAV_GROUPS.iter().position(|g| *g == e.group).unwrap_or(0);
+        let roots = nav_roots();
+        if e.group.is_empty() {
+            return vec![
+                roots
+                    .iter()
+                    .position(|r| *r == NavRoot::Page(self))
+                    .unwrap_or(0),
+            ];
+        }
+        let g = roots
+            .iter()
+            .position(|r| *r == NavRoot::Group(e.group))
+            .unwrap_or(0);
         let k = NAV_ENTRIES
             .iter()
             .filter(|x| x.group == e.group)
@@ -252,14 +272,18 @@ impl PageId {
 
     /// The page at a sidebar tree path; `None` for a group row.
     pub fn from_nav_path(path: &[usize]) -> Option<Self> {
-        let [g, k] = path else { return None };
-        let group = NAV_GROUPS.get(*g)?;
-        NAV_ENTRIES
-            .iter()
-            .filter(|e| e.group == *group)
-            .nth(*k)
-            .map(|e| e.id)
+        let roots = nav_roots();
+        match (path, path.first().and_then(|&r| roots.get(r))) {
+            ([_], Some(NavRoot::Page(id))) => Some(*id),
+            ([_, k], Some(NavRoot::Group(g))) => NAV_ENTRIES
+                .iter()
+                .filter(|e| e.group == *g)
+                .nth(*k)
+                .map(|e| e.id),
+            _ => None,
+        }
     }
+
     pub fn from_name(name: &str) -> Option<Self> {
         // compare on letters and digits only, so "chips & selects",
         // "chips-selects" and "chipsselects" all resolve
@@ -283,20 +307,54 @@ impl PageId {
     }
 }
 
-/// The sidebar tree: [`NAV_GROUPS`] as branches, the pages as leaves.
-/// Type-ahead on, a divider edge, `›` on the current page.
+/// A root row of the sidebar tree.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NavRoot {
+    /// A top-level page (Overview).
+    Page(PageId),
+    /// A group of pages.
+    Group(&'static str),
+}
+
+/// The sidebar's root rows in order: top-level pages and groups as they
+/// first appear in [`NAV_ENTRIES`].
+pub fn nav_roots() -> Vec<NavRoot> {
+    let mut out = Vec::new();
+    for e in NAV_ENTRIES {
+        let root = if e.group.is_empty() {
+            NavRoot::Page(e.id)
+        } else {
+            NavRoot::Group(e.group)
+        };
+        if !out.contains(&root) {
+            out.push(root);
+        }
+    }
+    out
+}
+
+/// The sidebar tree: top-level pages, then [`NAV_GROUPS`] as branches with
+/// their pages as leaves. Type-ahead on, a divider edge, `›` on the
+/// current page.
 fn nav_tree() -> TreeView {
-    let nodes = NAV_GROUPS
-        .iter()
-        .map(|g| {
-            let pages = NAV_ENTRIES
-                .iter()
-                .filter(|e| e.group == *g)
-                .map(|e| TreeNode::leaf(e.label))
-                .collect();
-            TreeNode::dir(g, pages)
+    let nodes = nav_roots()
+        .into_iter()
+        .map(|root| match root {
+            NavRoot::Page(id) => TreeNode::leaf(NAV_ENTRIES[id.index()].label),
+            NavRoot::Group(g) => TreeNode::dir(
+                g,
+                NAV_ENTRIES
+                    .iter()
+                    .filter(|e| e.group == g)
+                    .map(|e| TreeNode::leaf(e.label))
+                    .collect(),
+            ),
         })
-        .collect();
+        .collect::<Vec<_>>();
+    debug_assert_eq!(
+        nodes.iter().filter(|n| !n.children.is_empty()).count(),
+        NAV_GROUPS.len()
+    );
     TreeView::new(NAV, nodes)
         .type_ahead(true)
         .divider(true)
@@ -331,6 +389,8 @@ pub struct App {
     pub quit: bool,
     pub motion: Motion,
     nav_reveal: bool,
+    /// Type-to-filter in the sidebar (`/`): the query while filtering.
+    pub nav_filter: Option<String>,
     layout: ShellLayout,
     /// Focus to restore when the help dialog closes.
     saved_focus: Option<WidgetId>,
@@ -422,6 +482,7 @@ impl App {
             quit: false,
             motion,
             nav_reveal: true,
+            nav_filter: None,
             layout: ShellLayout::default(),
             saved_focus: None,
             pointer_mods: KeyModifiers::NONE,
@@ -459,7 +520,8 @@ impl App {
     /// marker on it.
     fn sync_nav(&mut self, from: Option<PageId>) {
         let path = self.page.nav_path();
-        let group = path[0];
+        // a top-level page has no group to open
+        let group = (path.len() > 1).then_some(path[0]);
         let prev_auto = self.nav_auto.take();
         match (self.nav_expand, from) {
             (NavExpand::All, None) => self.nav.expand_all(),
@@ -469,7 +531,7 @@ impl App {
             }
             (NavExpand::CurrentGroup, Some(_)) => {
                 if let Some(g) = prev_auto
-                    && g != group
+                    && Some(g) != group
                 {
                     self.nav.expanded.remove(&vec![g]);
                 }
@@ -477,11 +539,17 @@ impl App {
         }
         // the group is navigation's own when navigation opened it now, or
         // it already was and navigation stays inside it
-        let opened_now = !self.nav.expanded.contains(&vec![group]);
-        if self.nav_expand == NavExpand::CurrentGroup && (opened_now || prev_auto == Some(group)) {
-            self.nav_auto = Some(group);
+        if let Some(group) = group {
+            let opened_now = !self.nav.expanded.contains(&vec![group]);
+            if self.nav_expand == NavExpand::CurrentGroup
+                && (opened_now || prev_auto == Some(group))
+            {
+                self.nav_auto = Some(group);
+            }
+            self.nav.expanded.insert(vec![group]);
         }
-        self.nav.expanded.insert(vec![group]);
+        // the tree is rebuilt from the expansion set
+        self.nav.flatten();
         self.nav.selected = Some(path.clone());
         self.nav.reveal(&path);
         self.nav_reveal = true;
@@ -687,6 +755,13 @@ impl App {
         // letter is type-ahead only when neither the page's shortcuts nor
         // the shell's own letters claim it (below)
         let mut type_ahead = false;
+        if self.focus.is(NAV) && self.nav_filter.is_some() {
+            return self.on_filter_key(&key);
+        }
+        if self.focus.is(NAV) && key.is_char('/') {
+            self.nav_filter = Some(String::new());
+            return Outcome::Changed;
+        }
         if self.focus.is(NAV) {
             self.nav_reveal = true;
             type_ahead = matches!(key.code, KeyCode::Char(c) if !c.is_whitespace())
@@ -795,6 +870,7 @@ impl App {
                     [ ]               previous / next page\n\
                     ← →               close / open a sidebar group\n\
                     a–z               jump to a sidebar row by name\n\
+                    /                 filter the sidebar (Esc clears)\n\
                     0                 jump to navigation\n\
                     i                 toggle state inspector\n\
                     q                 quit\n\n\
@@ -1022,6 +1098,59 @@ impl App {
         }
     }
 
+    /// A key while the sidebar filters (`/`): letters narrow the tree to
+    /// matching pages (their groups stay as context), ↑↓ move, Enter opens
+    /// the page under the cursor (or the first match), Esc ends the filter.
+    fn on_filter_key(&mut self, key: &Key) -> Outcome {
+        let query = self.nav_filter.get_or_insert_with(String::new);
+        match key.code {
+            KeyCode::Esc => {
+                self.end_filter();
+                return Outcome::Changed;
+            }
+            KeyCode::Backspace => {
+                query.pop();
+            }
+            KeyCode::Char(c) if !key.ctrl() && !key.alt() => query.push(c),
+            KeyCode::Enter => {
+                let rows = self.nav.rows();
+                let leaf = |i: usize| rows.get(i).and_then(|r| PageId::from_nav_path(&r.path));
+                let target = leaf(self.nav.cursor).or_else(|| (0..rows.len()).find_map(leaf));
+                if let Some(page) = target {
+                    self.end_filter();
+                    self.goto(page);
+                }
+                return Outcome::Changed;
+            }
+            KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
+                return self.nav_event(|nav| nav.on_key(key));
+            }
+            KeyCode::Tab | KeyCode::BackTab => {
+                self.end_filter();
+                return Outcome::Ignored;
+            }
+            _ => return Outcome::Consumed,
+        }
+        let q = query.clone();
+        self.nav.set_filter(Some(&q));
+        // the cursor lands on the first matching page, not its group
+        if let Some(i) = (0..self.nav.rows().len())
+            .find(|&i| PageId::from_nav_path(&self.nav.rows()[i].path).is_some())
+        {
+            self.nav.cursor = i;
+        }
+        Outcome::Changed
+    }
+
+    /// Leave type-to-filter: the full tree with the current page in view.
+    fn end_filter(&mut self) {
+        self.nav_filter = None;
+        self.nav.set_filter(None);
+        let path = self.page.nav_path();
+        self.nav.reveal(&path);
+        self.nav_reveal = true;
+    }
+
     /// Run a sidebar tree operation: a page it activates becomes the
     /// current page, and once the user opens or closes the group navigation
     /// opened, it is theirs (it no longer closes on its own,
@@ -1199,7 +1328,11 @@ impl App {
         buf.set_string(x, area.y, "Design system", t.secondary());
         x += 14;
         let entry = &NAV_ENTRIES[self.page.index()];
-        let crumb = format!("/ {} / {}", entry.group, entry.label);
+        let crumb = if entry.group.is_empty() {
+            format!("/ {}", entry.label)
+        } else {
+            format!("/ {} / {}", entry.group, entry.label)
+        };
         buf.set_string(x, area.y, &crumb, t.muted());
         let crumb_w = junie_tui::ui::text::width(&crumb) as u16;
         // right side: capability + actions
@@ -1236,6 +1369,28 @@ impl App {
             self.nav.scroll.ensure_visible(self.nav.cursor);
             self.nav_reveal = false;
         }
+        // type-to-filter: the query takes the first row
+        let area = match &self.nav_filter {
+            Some(q) if area.height > 2 => {
+                let row = Rect::new(area.x, area.y, area.width.saturating_sub(1), 1);
+                let fs = t.field_style(junie_tui::ui::ctx::VisualState {
+                    editing: true,
+                    ..Default::default()
+                });
+                fill(buf, row, fs);
+                buf.set_string(row.x + 1, row.y, "/", fs.fg(t.text_muted));
+                let shown = junie_tui::ui::text::truncate(q, row.width.saturating_sub(4) as usize);
+                buf.set_string(row.x + 3, row.y, &shown, fs);
+                if ctx.interaction.focused(NAV) {
+                    ctx.set_cursor(ratatui::layout::Position::new(
+                        row.x + 3 + junie_tui::ui::text::width(&shown) as u16,
+                        row.y,
+                    ));
+                }
+                Rect::new(area.x, area.y + 1, area.width, area.height - 1)
+            }
+            _ => area,
+        };
         // one focus stop; the divider column carries the scrollbar thumb
         // when the tree overflows (layout audit #19)
         self.nav.render(area, buf, ctx, t.canvas);
@@ -1340,6 +1495,11 @@ impl App {
         if let Some(d) = self.dialog.as_ref() {
             dialog_hints = Some(d.hints(self.focus.current()));
         } else if self.focus.is(NAV) {
+            if self.nav_filter.is_some() {
+                hints.push(("type", "Filter"));
+                hints.push(("Enter", "Open"));
+                hints.push(("Esc", "Clear"));
+            }
             hints.push(("↑↓", "Move"));
             let on_group = self
                 .nav
@@ -1348,8 +1508,11 @@ impl App {
             if on_group {
                 hints.push(("←→", "Fold"));
                 hints.push(("Enter", "Toggle"));
-            } else {
+            } else if self.nav_filter.is_none() {
                 hints.push(("Enter", "Open"));
+            }
+            if self.nav_filter.is_none() {
+                hints.push(("/", "Filter"));
             }
             hints.push(("Tab", "Into page"));
             hints.push(("q", "Quit"));

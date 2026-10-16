@@ -89,17 +89,19 @@ pub const ELEMENTS: &[Root] = &[
     Root::new("showcase/elements/buttons/disabled-pressed", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).press("Disabled primary").pending(),
     Root::new("showcase/elements/toggles/verbose-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Verbose").pending(),
     // The sidebar is a tree (docs/showcase/tables.md): only the current
-    // page's group is open, so the hovered and pressed page is "Chrome",
-    // the open Foundations group's second page.
-    Root::new("showcase/elements/nav/item-hover", Bin::Showcase, &["--page", "overview"], BOOT).hover("Chrome").pending(),
-    Root::new("showcase/elements/nav/item-pressed", Bin::Showcase, &["--page", "overview", "--motion", "paused"], BOOT).press("Chrome").pending(),
-    // Pending: sidebar tree states. A closed group row hovered, a group
-    // closed with ← ←, every group open (`--nav all`), type-ahead on `t`.
+    // page's group is open, so the hovered and pressed page is "Text
+    // areas" with Buttons (same group) current.
+    Root::new("showcase/elements/nav/item-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Text areas").pending(),
+    Root::new("showcase/elements/nav/item-pressed", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).press("Text areas").pending(),
+    // Pending: sidebar tree states. A closed group row hovered, the
+    // current group closed with ← ←, every group open (`--nav all`),
+    // type-ahead on `t`, the current page inside its group, `/` filter.
     Root::new("showcase/elements/nav/group-hover", Bin::Showcase, &["--page", "overview"], BOOT).hover("Tables").pending(),
-    Root::new("showcase/elements/nav/group-collapsed", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["left", "left"]).pending(),
+    Root::new("showcase/elements/nav/group-collapsed", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["left", "left"]).pending(),
     Root::new("showcase/elements/nav/all-groups", Bin::Showcase, &["--page", "overview", "--nav", "all"], BOOT).pending(),
     Root::new("showcase/elements/nav/type-ahead", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["t"]).pending(),
     Root::new("showcase/elements/nav/current-in-group", Bin::Showcase, &["--page", "datagrid"], BOOT).pending(),
+    Root::new("showcase/elements/nav/filter", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["/", "type:grid"]).pending(),
     Root::new("showcase/elements/selectable/selected-hover", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected"]).hover("Ari Moreno").pending(),
     Root::new("showcase/elements/lists/selected-hover", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "space"]).hover("Python").pending(),
     Root::new("showcase/elements/lists/row-pressed", Bin::Showcase, &["--page", "lists", "--motion", "paused"], BOOT).press("Python").pending(),
@@ -161,8 +163,9 @@ pub const JOURNEYS: &[Root] = &[
     // Busy window — the Done message is the stable end state (the bash
     // `sleep:1200` predates the 1800 ms busy constant; `wait:` is exact).
     Root::new("showcase/flows/forms/valid", Bin::Showcase, &["--page", "forms"], BOOT).sends(&["tab", "enter", "type:Fix the login redirect loop", "enter", "ctrl-s", "wait:Task created ✓"]),
-    // S4: `]` cycles to the next page; the header crumb is the unique proof.
-    Root::new("showcase/flows/nav/cycled", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["]", "wait:/ Components / Buttons"]),
+    // S4: `]` cycles to the next page in sidebar tree order; the header
+    // crumb (group / page) is the unique proof.
+    Root::new("showcase/flows/nav/cycled", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["]", "wait:/ App shell / Chrome"]),
     // S5: nav owns the keyboard; `G` lands the cursor on the last page (the
     // state proof is the focused gutter row in the frame — no text changes).
     Root::new("showcase/flows/nav/end", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["0", "G"]),
