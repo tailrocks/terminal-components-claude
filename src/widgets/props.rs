@@ -273,7 +273,7 @@ pub struct PropsList {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
-    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
+    /// Which keys move the cursor (default [`NavKeys::default`]).
     pub nav: NavKeys,
     /// The list's action keys (default [`PropsCmd::default_keymap`]).
     pub keymap: KeyMap<PropsCmd>,
@@ -320,7 +320,7 @@ impl PropsList {
             sheet: Sheet::default(),
             track_click: None,
             v_click: crate::core::scroll::TrackClick::Page,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: PropsCmd::default_keymap(),
         }
     }

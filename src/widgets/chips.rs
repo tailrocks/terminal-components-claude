@@ -76,7 +76,7 @@ pub struct ChipBar {
     /// Chips that do not fit are counted in a muted `+N` marker after the
     /// last one shown. Default true; off, the run just ends.
     pub overflow_marker: bool,
-    /// Which keys move between chips (default [`NavKeys::DEFAULT`]: ←/→,
+    /// Which keys move between chips (default [`NavKeys::default`]: ←/→,
     /// `h`/`l`, Home/End, `g`/`G`).
     pub nav: NavKeys,
     /// The bar's action keys (default [`ChipCmd::default_keymap`]).
@@ -143,7 +143,7 @@ impl ChipBar {
             lead: None,
             area: Rect::ZERO,
             overflow_marker: true,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: ChipCmd::default_keymap(),
             close_button: IconButton::close(WidgetId::of("chips.remove")),
             overflow_menu: true,

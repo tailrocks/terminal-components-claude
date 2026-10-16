@@ -247,7 +247,7 @@ pub struct DataTable {
     pub toggle_mods: KeyModifiers,
     /// Source rows that can be read but never selected or activated.
     pub disabled: BTreeSet<usize>,
-    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
+    /// Which keys move the cursor (default [`NavKeys::default`]).
     pub nav: NavKeys,
     /// The table's own action keys (default [`TableCmd::default_keymap`]).
     pub keymap: KeyMap<TableCmd>,
@@ -344,7 +344,7 @@ impl DataTable {
             esc_clears: true,
             toggle_mods: Self::toggle_mods_for(ClientPlatform::current()),
             disabled: BTreeSet::new(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: TableCmd::default_keymap(),
             type_ahead: false,
             type_ahead_column: None,

@@ -69,7 +69,7 @@ pub struct Dialog {
     /// letter keys, see [`Self::mnemonics`]).
     pub keymap: KeyMap<DialogCmd>,
     /// Which keys scroll a tall body (↑/↓, paging, Home/End) and move
-    /// between the actions (←/→). Default [`NavKeys::DEFAULT`].
+    /// between the actions (←/→). Default [`NavKeys::default`].
     pub nav: NavKeys,
     pub area: Rect,
     pub result: Option<DialogResult>,
@@ -321,7 +321,7 @@ impl Dialog {
             cancel_index: Some(0),
             width: 54,
             keymap: DialogCmd::default_keymap(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             area: Rect::ZERO,
             result: None,
             initial_focus: ok_id,
@@ -368,7 +368,7 @@ impl Dialog {
             cancel_index: Some(0),
             width: 54,
             keymap: DialogCmd::default_keymap(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             area: Rect::ZERO,
             result: None,
             initial_focus: cancel_id,
@@ -416,7 +416,7 @@ impl Dialog {
             cancel_index: Some(0),
             width: 54,
             keymap: DialogCmd::default_keymap(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             area: Rect::ZERO,
             result: None,
             initial_focus: input_id,
@@ -501,7 +501,7 @@ impl Dialog {
             cancel_index: Some(0),
             width: 66,
             keymap: DialogCmd::default_keymap(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             area: Rect::ZERO,
             result: None,
             initial_focus: initial,

@@ -469,7 +469,7 @@ pub struct DataGrid {
     h_cfg: HScroll,
     /// The horizontal scrollbar track as last drawn.
     htrack: Rect,
-    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]). `g`/`G`
+    /// Which keys move the cursor (default [`NavKeys::default`]). `g`/`G`
     /// go to the first/last row, Home/End to the row's first/last cell,
     /// Ctrl+Home/End to the first/last row; Ctrl+←/→ page sideways.
     pub nav: NavKeys,
@@ -647,7 +647,7 @@ impl DataGrid {
             h_cfg: HScroll::default(),
             htrack: Rect::ZERO,
             width_sample_rows: DEFAULT_WIDTH_SAMPLE_ROWS,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: GridCmd::default_keymap(),
             type_ahead: false,
             type_ahead_column: None,
@@ -3952,7 +3952,11 @@ mod tests {
         let mut g = grid();
         g.more = true;
         g.scroll.set_content(g.content_rows());
-        g.on_key(&key(KeyCode::Char('G')));
+        // Ctrl+End: the last row (`G` only under the Vim keys)
+        g.on_key(&Key {
+            code: KeyCode::End,
+            mods: ratatui::crossterm::event::KeyModifiers::CONTROL,
+        });
         assert!(g.on_more_row());
         let (_, ev) = g.on_key(&key(KeyCode::Enter));
         assert_eq!(ev, Some(GridAction::FetchMore));

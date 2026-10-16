@@ -409,7 +409,7 @@ pub struct ScrollPanel {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
-    /// Which keys scroll (default [`NavKeys::DEFAULT`]; ←/→ scroll
+    /// Which keys scroll (default [`NavKeys::default`]; ←/→ scroll
     /// sideways, since the panel has no caret).
     pub nav: NavKeys,
     /// The panel's own action keys (default [`PanelCmd::default_keymap`]).
@@ -461,7 +461,7 @@ impl ScrollPanel {
             h_cfg: HScroll::default(),
             htrack: Rect::ZERO,
             h_held: false,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: PanelCmd::default_keymap(),
         }
     }

@@ -45,7 +45,7 @@ pub struct InfoDialog {
     /// Copies of copyable values by row index.
     pub copy_values: Vec<Option<String>>,
     pub error_title: bool,
-    /// Which keys scroll the detail text (default [`NavKeys::DEFAULT`]).
+    /// Which keys scroll the detail text (default [`NavKeys::default`]).
     pub nav: NavKeys,
     /// The dialog's action keys (default [`InfoCmd::default_keymap`]).
     pub keymap: KeyMap<InfoCmd>,
@@ -96,7 +96,7 @@ impl InfoDialog {
             area: Rect::ZERO,
             copy_values,
             error_title: false,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: InfoCmd::default_keymap(),
         }
     }

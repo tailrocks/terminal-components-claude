@@ -57,7 +57,7 @@ pub struct TextArea {
     pub pointer_select: PointerSelect,
     press: PressState,
     /// Which keys scroll the area while it is not being edited (default
-    /// [`NavKeys::DEFAULT`]). Editing keys are the text buffer's own.
+    /// [`NavKeys::default`]). Editing keys are the text buffer's own.
     pub nav: NavKeys,
     /// How focus starts an edit. `None` (default) follows the theme's
     /// [`crate::theme::Theme::edit_entry`] ([`EditEntry::Immediate`]).
@@ -119,7 +119,7 @@ impl TextArea {
             snapshot: String::new(),
             pointer_select: PointerSelect::DEFAULT,
             press: PressState::default(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             edit_entry: None,
             entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,
             focus_select: FocusSelect::CaretEnd,

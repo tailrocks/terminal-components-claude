@@ -122,7 +122,7 @@ pub struct CodeEditor {
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
     /// Which keys move the cursor while reading (default
-    /// [`NavKeys::DEFAULT`]; ←/→ scroll sideways). Editing keys are the
+    /// [`NavKeys::default`]; ←/→ scroll sideways). Editing keys are the
     /// text buffer's own.
     pub nav: NavKeys,
     /// The reading-mode action keys (default
@@ -229,7 +229,7 @@ impl CodeEditor {
             hbar: ScrollState::default(),
             htrack: Rect::ZERO,
             h_held: false,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: CodeCmd::default_keymap(),
             edit_entry: None,
             entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,

@@ -85,7 +85,7 @@ pub struct StepRail {
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
     /// Which keys move the cursor of a selectable rail (default
-    /// [`NavKeys::DEFAULT`]).
+    /// [`NavKeys::default`]).
     pub nav: NavKeys,
 }
 
@@ -110,7 +110,7 @@ impl StepRail {
             numbered: true,
             track_click: None,
             v_click: crate::core::scroll::TrackClick::Page,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
         }
     }
 

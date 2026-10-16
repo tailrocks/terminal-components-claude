@@ -48,7 +48,7 @@ pub struct HelpOverlay {
     pub title: String,
     /// The closing hint row. Default "↑↓ Scroll · Esc Close".
     pub hint: String,
-    /// Which keys scroll (default [`NavKeys::DEFAULT`]).
+    /// Which keys scroll (default [`NavKeys::default`]).
     pub nav: NavKeys,
     /// The overlay's action keys (default [`HelpCmd::default_keymap`]).
     pub keymap: KeyMap<HelpCmd>,
@@ -98,7 +98,7 @@ impl HelpOverlay {
             closed: false,
             title: crate::theme::Strings::DEFAULT.help_title.into(),
             hint: crate::theme::Strings::DEFAULT.help_footer.into(),
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: HelpCmd::default_keymap(),
             max_percent: 80,
             done: Button::secondary(id.sub("done"), crate::theme::Strings::DEFAULT.done),

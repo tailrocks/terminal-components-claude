@@ -480,7 +480,7 @@ pub struct TextViewport {
     pub track_click: Option<TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: TrackClick,
-    /// Which keys scroll (default [`NavKeys::DEFAULT`]). Shift+arrows
+    /// Which keys scroll (default [`NavKeys::default`]). Shift+arrows
     /// always extend a keyboard selection.
     pub nav: NavKeys,
     /// The viewport's own action keys (default
@@ -565,7 +565,7 @@ impl TextViewport {
             h_held: false,
             track_click: None,
             v_click: TrackClick::Page,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: ViewportCmd::default_keymap(),
         }
     }
