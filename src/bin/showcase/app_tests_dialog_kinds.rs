@@ -158,6 +158,27 @@ fn the_info_dialog_copies_a_row_and_stays_open() {
     assert!(last(&h).contains("Copy"), "{}", last(&h));
 }
 
+/// A light-dismiss info dialog and help overlay close on a click outside
+/// them: their frame registers its backdrop and the layer stack turns the
+/// click into an outside-click dismissal (mouse.md, SC18 finding); a form
+/// whose policy refuses it stays.
+#[test]
+fn a_click_outside_a_light_info_or_help_closes_it_and_a_form_stays() {
+    let mut h = harness();
+    for (label, closed) in [
+        ("Server info", "Info · Closed"),
+        ("Keyboard help", "Help · closed"),
+    ] {
+        open(&mut h, label);
+        h.click(1, 2);
+        assert!(!page(&h).host.is_open(), "{label}\n{}", h.text());
+        assert!(last(&h).contains(closed), "{label}: {}", last(&h));
+    }
+    open(&mut h, "Add connection…");
+    h.click(1, 2);
+    assert!(page(&h).host.is_open(), "the form refuses an outside click");
+}
+
 #[test]
 fn the_choice_returns_the_option_and_the_help_closes() {
     let mut h = harness();
