@@ -5,9 +5,9 @@
     Overview           Project                               1–4 of 16  [0m
   ▸ App shell                                                           [0m
   ▸ Inputs & forms      ▾ src                                        ┃  [0m
-  ▸ Tables                ▸ api                                      │  [0m
-  ▾ Navigation            ▸ db                                       │  [0m
-      Lists            [0m[2m   ▸ workers                                  [0m│  [0m
+  ▸ Tables                ▸ api                                      ┆  [0m
+  ▾ Navigation            ▸ db                                       ┆  [0m
+      Lists            [0m[2m   ▸ workers                                  [0m┆  [0m
  [0m[1m▎  › Trees        [0m                                                     [0m
       Sidebars         Selection                                        [0m
   ▸ Overlays                                                            [0m
