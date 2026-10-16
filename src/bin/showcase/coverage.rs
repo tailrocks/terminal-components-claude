@@ -351,7 +351,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::progress::MeterLevel",
-        Demo("progress", "low ≤ 59 % white"),
+        Demo("progress", "low ≤ 59 % blue"),
     ),
     (
         "widgets::progress::MeterLevel::Low",
@@ -367,15 +367,15 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::progress::MeterVisual",
-        Demo("progress", "Line and block visuals"),
+        Demo("progress", "38% used · block"),
     ),
     (
         "widgets::progress::MeterVisual::Line",
-        Demo("progress", "38% used 38% used"),
+        Demo("progress", "Low ━"),
     ),
     (
         "widgets::progress::MeterVisual::Block",
-        Demo("progress", "38% used 38% used"),
+        Demo("progress", "38% used · block"),
     ),
     (
         "widgets::progress::MeterTone",
@@ -403,7 +403,59 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::progress::MeterTone::Unknown",
-        Demo("progress", "Unknown — —"),
+        Demo("progress", "Unknown —"),
+    ),
+    (
+        "widgets::progress::ProgressStatus::Active",
+        Demo("progress", "Halfway ━"),
+    ),
+    (
+        "widgets::progress::MeterTone::Normal",
+        Demo("progress", "Low ━"),
+    ),
+    (
+        "widgets::progress::MeterTone::Level",
+        Demo("progress", "72% disk, warns at 80"),
+    ),
+    (
+        "widgets::progress::MeterTone::Fixed",
+        Demo("progress", "30% · fixed high !"),
+    ),
+    (
+        "widgets::progress::Meter::value",
+        Demo("progress", "38% used"),
+    ),
+    (
+        "widgets::progress::Meter::tone",
+        Demo("progress", "88% disk, critical at 95 ▲"),
+    ),
+    (
+        "widgets::progress::Meter::visual",
+        Demo("progress", "38% used · block"),
+    ),
+    (
+        "widgets::progress::Meter::stale",
+        Demo("progress", "82% · stale warning ▲"),
+    ),
+    (
+        "widgets::progress::Meter::stale_style",
+        Demo("progress", "76% · faint stale style"),
+    ),
+    (
+        "widgets::progress::StaleStyle",
+        Demo("progress", "Stale keeps its level, dashed"),
+    ),
+    (
+        "widgets::progress::StaleStyle::Dashed",
+        Demo("progress", "Stale ╍"),
+    ),
+    (
+        "widgets::progress::StaleStyle::Faint",
+        Demo("progress", "76% · faint stale style"),
+    ),
+    (
+        "theme::SyntaxTone::Literal",
+        Demo("codeeditor", "gzip(true)"),
     ),
     ("widgets::panel::Panel", Demo("panels", "Titled card")),
     (
