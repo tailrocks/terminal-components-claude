@@ -15,6 +15,7 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::scroll::HScroll;
+use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::input::InputAction;
