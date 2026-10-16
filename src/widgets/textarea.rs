@@ -6,9 +6,10 @@ use ratatui::style::{Color, Modifier};
 use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect, UndoStack};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{BlurAction, request_focus_next};
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::scroll::{HScroll, ScrollState};
+use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::text::{CursorPos, TextBuffer};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
@@ -39,7 +40,9 @@ pub struct TextArea {
     pub error: Option<String>,
     pub help: String,
     pub editing: bool,
-    pub scroll: ScrollState,
+    /// The rows and the bar; `scroll.h` mirrors the sideways position
+    /// ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub area: Rect,
     text_area: Rect,
     hscroll: usize,
@@ -83,7 +86,6 @@ pub struct TextArea {
     /// [`RenderCtx::hscroll`]; the wheel moves [`HScroll::step`] cells
     /// per notch ([`Self::on_wheel_h`]).
     pub horizontal: Option<HScroll>,
-    h_cfg: HScroll,
     /// Widest line in the last frame, in cells.
     content_cols: usize,
     /// The area was editing in the last frame: an edit that ends returns
@@ -108,7 +110,7 @@ impl TextArea {
             error: None,
             help: String::new(),
             editing: false,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             area: Rect::ZERO,
             text_area: Rect::ZERO,
             hscroll: 0,
@@ -130,7 +132,6 @@ impl TextArea {
             undo: UndoStack::new(),
             focus_seen: false,
             horizontal: None,
-            h_cfg: HScroll::default(),
             content_cols: 0,
             was_editing: false,
             label_hit: true,
@@ -515,38 +516,6 @@ impl TextArea {
         Outcome::Changed
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// Horizontal wheel (or Shift+wheel): long lines scroll sideways by
-    /// [`HScroll::step`] cells per notch, under the [`Self::horizontal`]
-    /// policy (default [`RenderCtx::hscroll`]). Nothing wider than the
-    /// area, or horizontal scrolling off: ignored, so the notch can go to
-    /// the container.
-    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
-        let width = self.text_area.width as usize;
-        if !self.h_cfg.enabled || delta == 0 || self.content_cols <= width {
-            return Outcome::Ignored;
-        }
-        let max = self.content_cols - width;
-        let step = self.h_cfg.step.max(1) * delta.unsigned_abs() as usize;
-        let to = if delta < 0 {
-            self.hscroll.saturating_sub(step)
-        } else {
-            (self.hscroll + step).min(max)
-        };
-        if to == self.hscroll {
-            return Outcome::Consumed;
-        }
-        self.hscroll = to;
-        Outcome::Changed
-    }
-
     /// See [`Self::horizontal`].
     pub fn horizontal(mut self, h: HScroll) -> Self {
         self.horizontal = Some(h);
@@ -562,7 +531,8 @@ impl TextArea {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
         self.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
-        self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.scroll.begin(ctx.track_click);
         // focus newly gained starts an immediate edit: the caret shows the
         // moment Tab lands here
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
@@ -752,19 +722,9 @@ impl TextArea {
             }
         }
         // scrollbar in the last column of the body
-        crate::ui::fade::scroll_edges(
-            buf,
-            ctx,
-            Rect::new(
-                body.x,
-                body.y,
-                (body.right() - 1).saturating_sub(body.x),
-                rows,
-            ),
-            &self.scroll,
-        );
-        let sb = Rect::new(body.right() - 1, body.y, 1, rows);
-        scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, s.focused);
+        let rows_area = Rect::new(body.x, body.y, body.width, rows);
+        self.scroll
+            .draw_with_fade(rows_area, buf, ctx, self.id, s.focused, &[]);
         if self.error.is_some() && body.width >= 2 {
             buf.set_string(
                 body.right() - 2,
@@ -905,6 +865,26 @@ impl crate::ui::specimen::Specimen for TextArea {
                 c.bg = ctx.theme.text_primary;
             }
         }
+    }
+}
+
+impl Scrollable for TextArea {
+    /// The pane, its sideways state brought in step with the caret-driven
+    /// [`TextArea::hscroll`] over the widest line and the text width.
+    fn pane(&mut self) -> &mut ScrollPane {
+        let width = self.text_area.width as usize;
+        self.scroll.h.content_len = self.content_cols;
+        self.scroll.h.viewport_len = width;
+        self.scroll.h.offset = self.hscroll;
+        self.scroll.h.clamp();
+        &mut self.scroll
+    }
+
+    fn after_scroll(&mut self, axis: Axis, _moved: bool) -> bool {
+        if axis == Axis::Horizontal {
+            self.hscroll = self.scroll.h.offset;
+        }
+        false
     }
 }
 
