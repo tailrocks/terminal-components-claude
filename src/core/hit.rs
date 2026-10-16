@@ -19,6 +19,9 @@ pub struct HitRegion {
     /// A light-dismiss backdrop whose click also reaches the region
     /// beneath it (see [`HitRegistry::pass_through_target`]).
     pub pass_through: bool,
+    /// A region that only takes hover (a cut title revealing its full
+    /// text): presses, clicks and the wheel go to what is beneath it.
+    pub hover_only: bool,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -28,6 +31,12 @@ pub struct HitRegistry {
     /// Only the top layer is reachable; the one below it is what a
     /// pass-through backdrop lets a click fall into.
     barriers: Vec<usize>,
+}
+
+impl HitRegion {
+    fn clickable(&self) -> bool {
+        !self.scroll_only && !self.hover_only
+    }
 }
 
 impl HitRegistry {
@@ -40,6 +49,7 @@ impl HitRegistry {
             area,
             scroll_only: false,
             pass_through: false,
+            hover_only: false,
         });
     }
 
@@ -54,6 +64,7 @@ impl HitRegistry {
             area,
             scroll_only: false,
             pass_through,
+            hover_only: false,
         });
     }
 
@@ -66,6 +77,22 @@ impl HitRegistry {
             area,
             scroll_only: true,
             pass_through: false,
+            hover_only: false,
+        });
+    }
+
+    /// Register a hover-only region: [`HitRegistry::hover_at`] finds it,
+    /// while presses, clicks and the wheel reach whatever is beneath it.
+    pub fn register_hover(&mut self, id: WidgetId, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        self.regions.push(HitRegion {
+            id,
+            area,
+            scroll_only: false,
+            pass_through: false,
+            hover_only: true,
         });
     }
 
@@ -97,19 +124,29 @@ impl HitRegistry {
             .reachable()
             .iter()
             .rev()
-            .find(|r| !r.scroll_only && r.area.contains(pos))?;
+            .find(|r| r.clickable() && r.area.contains(pos))?;
         if top.id != id || !top.pass_through {
             return None;
         }
         self.beneath()
             .iter()
             .rev()
-            .find(|r| !r.scroll_only && r.area.contains(pos))
+            .find(|r| r.clickable() && r.area.contains(pos))
             .map(|r| r.id)
     }
 
-    /// Topmost hoverable/clickable widget under the position.
+    /// Topmost clickable widget under the position.
     pub fn hit(&self, pos: Position) -> Option<WidgetId> {
+        self.reachable()
+            .iter()
+            .rev()
+            .find(|r| r.clickable() && r.area.contains(pos))
+            .map(|r| r.id)
+    }
+
+    /// Topmost hoverable widget under the position: the clickable ones and
+    /// hover-only regions ([`HitRegistry::register_hover`]).
+    pub fn hover_at(&self, pos: Position) -> Option<WidgetId> {
         self.reachable()
             .iter()
             .rev()
@@ -123,7 +160,7 @@ impl HitRegistry {
         self.reachable()
             .iter()
             .rev()
-            .find(|r| r.area.contains(pos))
+            .find(|r| !r.hover_only && r.area.contains(pos))
             .map(|r| r.id)
     }
 
@@ -163,6 +200,21 @@ impl HitRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hover_only_regions_take_hover_and_let_clicks_and_the_wheel_through() {
+        let mut h = HitRegistry::default();
+        let card = WidgetId::of("card");
+        let title = WidgetId::of("title");
+        h.register(card, Rect::new(0, 0, 20, 5));
+        h.register_scroll(card, Rect::new(0, 0, 20, 5));
+        h.register_hover(title, Rect::new(2, 0, 8, 1));
+        let on_title = Position::new(3, 0);
+        assert_eq!(h.hover_at(on_title), Some(title));
+        assert_eq!(h.hit(on_title), Some(card), "the click is the card's");
+        assert_eq!(h.hit_scroll(on_title), Some(card));
+        assert_eq!(h.hover_at(Position::new(3, 2)), Some(card));
+    }
 
     #[test]
     fn topmost_wins() {
