@@ -206,6 +206,8 @@ pub struct Root {
     /// `(cols, rows)`: the smallest terminal the row's target exists in;
     /// smaller combos are not generated (the app hides the element there).
     pub min_size: (u16, u16),
+    /// Variables over the pinned capture environment ([`Root::env`]).
+    pub env: &'static [(&'static str, &'static str)],
 }
 
 impl Root {
@@ -230,6 +232,7 @@ impl Root {
             pointer: None,
             dismiss: None,
             min_size: (0, 0),
+            env: &[],
         }
     }
 
@@ -297,6 +300,14 @@ impl Root {
         self
     }
 
+    /// Set `env` over the pinned capture environment for every combo of
+    /// this row, e.g. `HOLLA_NO_HISTORY=0` for a capture that shows the
+    /// usage history the suite otherwise turns off.
+    pub const fn env(mut self, env: &'static [(&'static str, &'static str)]) -> Self {
+        self.env = env;
+        self
+    }
+
     /// Also capture both dismissals of this overlay, pending approval.
     pub const fn dismiss_pending(mut self) -> Self {
         self.dismiss = Some(Status::Pending);
@@ -323,6 +334,7 @@ impl Root {
                 needle: v.ready,
                 sends: v.steps,
                 timeout_ms: v.timeout_ms,
+                env: self.env,
             },
             None => Case {
                 name: name.into(),
@@ -337,6 +349,7 @@ impl Root {
                     _ => self.steps,
                 },
                 timeout_ms: self.timeout_ms,
+                env: self.env,
             },
         };
         if let Some((from_cols, from_rows)) = self.from {
