@@ -2715,7 +2715,16 @@ impl DataGrid {
                             Affordance::Always => true,
                             Affordance::Focused => is_cursor || hovered_cell == Some(ci),
                         };
-                    let text_w = if affordance {
+                    // a followable reference ends in `→` on the cell's last
+                    // column: a value that would reach it gives way, as a
+                    // right-aligned number always would
+                    let ref_mark = col.references.is_some()
+                        && !matches!(v, CellValue::Null | CellValue::Default)
+                        && rect.width > 6;
+                    let reaches_mark = ref_mark
+                        && (col.kind.right_aligned()
+                            || width(&v.text_ref()) + 1 >= rect.width as usize);
+                    let text_w = if affordance || reaches_mark {
                         rect.width - 2
                     } else {
                         rect.width
@@ -2779,7 +2788,7 @@ impl DataGrid {
                     } else {
                         fit(&text, text_w)
                     };
-                    if affordance {
+                    if affordance || reaches_mark {
                         fill(buf, cell_rect, st);
                     }
                     buf.set_string(rect.x, y, &shown, st);
@@ -2805,10 +2814,7 @@ impl DataGrid {
                             &full,
                         );
                     }
-                    if col.references.is_some()
-                        && !matches!(v, CellValue::Null | CellValue::Default)
-                        && rect.width > 6
-                    {
+                    if ref_mark {
                         buf.set_string(
                             rect.right().saturating_sub(1),
                             y,
@@ -3448,6 +3454,31 @@ mod tests {
         assert_eq!(buf[(x, y)].fg, t.syntax_literal);
         let (x, y) = find("{\"a\"");
         assert_eq!(buf[(x, y)].fg, t.syntax_string);
+    }
+
+    #[test]
+    fn a_reference_arrow_never_covers_the_value() {
+        // a right-aligned number ends at the cell's edge, where the
+        // reference arrow goes; a long text reaches it too
+        let cols = vec![
+            ColumnSpec::new("account_id", CellKind::Number).references("accounts"),
+            ColumnSpec::new("owner", CellKind::Text).references("users"),
+        ];
+        let mut g = DataGrid::new(WidgetId::of("g"), cols);
+        g.set_rows(GridRows {
+            rows: vec![vec![
+                CellValue::Int(201),
+                CellValue::Text("a-long-owner-handle-that-fills-the-cell".into()),
+            ]],
+            total: RowTotal::Exact(1),
+            more: false,
+        });
+        let area = Rect::new(0, 0, 60, 6);
+        let (buf, _) = render_at(&mut g, area, Interaction::default());
+        let row: String = (0..area.width).map(|x| buf[(x, 1)].symbol()).collect();
+        let arrow = Theme::junie().glyphs.arrow;
+        assert!(row.contains(&format!("201 {arrow}")), "{row}");
+        assert!(row.contains(&format!("… {arrow}")), "{row}");
     }
 
     #[test]
