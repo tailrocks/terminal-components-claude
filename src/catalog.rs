@@ -1255,6 +1255,11 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::select::Select::type_ahead"),
     Capability::builder("widgets::select::Select::arrows"),
     Capability::builder("widgets::select::Select::close_on_blur"),
+    Capability::builder("widgets::select::Select::tab_in_open"),
+    Capability::ty("widgets::select::TabInOpen"),
+    Capability::variant("widgets::select::TabInOpen::Choose"),
+    Capability::variant("widgets::select::TabInOpen::Close"),
+    Capability::variant("widgets::select::TabInOpen::Swallow"),
     // widgets::splitter
     Capability::ty("widgets::splitter::SeamDoubleClick"),
     Capability::variant("widgets::splitter::SeamDoubleClick::Reset"),
