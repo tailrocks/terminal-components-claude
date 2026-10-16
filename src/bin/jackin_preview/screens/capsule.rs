@@ -1517,9 +1517,14 @@ impl CapsuleScreen {
                         (i + 1).to_string()
                     });
                 }
+                // a finished agent is done (`✓` in success), not a quiet
+                // `○`; the other states keep their glyphs
                 let g = match d.tab_state(tab) {
                     AgentState::Blocked => "●",
-                    AgentState::Done => "○",
+                    AgentState::Done => {
+                        it = it.done(true);
+                        ""
+                    }
                     AgentState::Working => "▶",
                     AgentState::Idle => "◆",
                     AgentState::Unknown => "",
