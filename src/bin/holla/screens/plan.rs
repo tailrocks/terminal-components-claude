@@ -27,11 +27,12 @@ use ratatui::style::{Modifier, Style};
 
 use crate::domain::plan::{Plan, PlanPhase, StepState};
 use crate::screens::{
-    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, open_context, row_anchor,
-    scroll_drag, scroll_press, ticks_label,
+    Cx, Go, ModalResult, Screen, StatusBits, heading, open_context, row_anchor, scroll_drag,
+    scroll_press, ticks_label,
 };
 use crate::sim::world::World;
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::{plural, truncate_sep};
 
 pub const OUTLINE: WidgetId = WidgetId::of("plan.outline");
@@ -623,7 +624,7 @@ impl PlanReviewPage {
             anchor,
             title,
             items,
-            ModalTag::new("plan-step").key(i.to_string()),
+            LayerTag::new("plan-step").key(i.to_string()),
         )
     }
 }
@@ -849,7 +850,7 @@ impl Screen for PlanReviewPage {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
@@ -1304,7 +1305,7 @@ impl PlanTab {
             anchor,
             title,
             items,
-            ModalTag::new("plan-step").key(i.to_string()),
+            LayerTag::new("plan-step").key(i.to_string()),
         )
     }
 }
@@ -1380,7 +1381,7 @@ impl Screen for PlanTab {
                         "Cancel remaining",
                     )
                     .cancel_label("Keep running");
-                    cx.open(Modal::Dialog(d), ModalTag::new("cancel-plan"));
+                    cx.open(d, LayerTag::new("cancel-plan"));
                     Outcome::Changed
                 } else {
                     // nothing to cancel: the shell's quit guard takes it
@@ -1397,7 +1398,7 @@ impl Screen for PlanTab {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
