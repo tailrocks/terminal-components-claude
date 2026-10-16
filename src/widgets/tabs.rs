@@ -29,6 +29,9 @@ pub struct TabItem {
     pub dirty: bool,
     pub busy: bool,
     pub error: bool,
+    /// The tab's work finished: a `✓` in the success hue. Busy, error and
+    /// dirty take precedence.
+    pub done: bool,
     pub closable: bool,
     /// Muted prefix such as a type glyph or a schema.
     pub prefix: Option<String>,
@@ -53,6 +56,11 @@ impl TabItem {
     }
     pub fn suffix(mut self, s: &str) -> Self {
         self.suffix = Some(s.to_owned());
+        self
+    }
+    /// Mark the tab finished (the `done` field).
+    pub fn done(mut self, done: bool) -> Self {
+        self.done = done;
         self
     }
 }
@@ -622,7 +630,7 @@ impl Tabs {
         if let Some(x) = &it.suffix {
             w += crate::ui::text::width(x) as u16 + 1;
         }
-        if it.dirty || it.busy || it.error {
+        if it.dirty || it.busy || it.error || it.done {
             w += 2;
         }
         if it.closable {
@@ -798,10 +806,20 @@ impl Tabs {
                 );
                 cx += 2;
             } else if it.error {
-                buf.set_string(cx + 1, y, "!", st.fg(t.error));
+                let ink = t.tone_on(crate::theme::Tone::Error, st.bg.unwrap_or(bg));
+                buf.set_string(cx + 1, y, "!", st.fg(ink));
                 cx += 2;
             } else if it.dirty {
                 buf.set_string(cx + 1, y, t.glyphs.dirty, st.fg(t.warning));
+                cx += 2;
+            } else if it.done {
+                let ink = t.tone_on(crate::theme::Tone::Success, st.bg.unwrap_or(bg));
+                buf.set_string(
+                    cx + 1,
+                    y,
+                    t.glyphs.done,
+                    st.fg(ink).remove_modifier(Modifier::BOLD),
+                );
                 cx += 2;
             }
             // the × plate: centred on the glyph, kept inside the tab; drawn
@@ -1165,6 +1183,30 @@ mod tests {
         tabs.set_active(0);
         let buf = render_with(&mut tabs, Interaction::default());
         assert!(row(&buf, 0).contains("Claude ▶"));
+    }
+
+    #[test]
+    fn a_finished_tab_shows_a_success_check_after_busy_error_and_dirty() {
+        let mut tabs = Tabs::with_items(
+            WidgetId::of("t"),
+            vec![
+                TabItem::new("Build").done(true),
+                TabItem::new("Lint").done(true),
+                TabItem::new("Docs"),
+            ],
+        );
+        tabs.items[1].dirty = true;
+        tabs.set_active(2);
+        let buf = render_with(&mut tabs, Interaction::default());
+        let t = Theme::junie();
+        let a = tabs.areas[0];
+        let x = a.x + 1 + 5 + 1;
+        assert_eq!(buf[(x, 0)].symbol(), "✓");
+        assert_eq!(buf[(x, 0)].fg, t.success);
+        // dirty wins over done: unsaved work is the state that matters
+        let b = tabs.areas[1];
+        assert_eq!(buf[(b.x + 1 + 4 + 1, 0)].symbol(), t.glyphs.dirty);
+        assert!(!row(&buf, 0).contains("Docs ✓"));
     }
 
     #[test]

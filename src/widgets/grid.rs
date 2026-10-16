@@ -20,7 +20,7 @@ use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
-use crate::theme::Theme;
+use crate::theme::{SyntaxTone, Theme};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::text::{fit, fit_right, truncate, truncate_middle, wider_than, width, width_capped};
@@ -2807,11 +2807,24 @@ impl DataGrid {
                         }
                         _ => cell_text_with(v, col.kind, text_w, &t.glyphs),
                     };
-                    // tone
+                    // tone: typed literals take the syntax hues (NULL and
+                    // booleans the literal, JSON the string); italic keeps
+                    // NULL apart from text without colour
+                    let on = st.bg.unwrap_or(bg);
+                    let literal = |st: Style, tone: SyntaxTone| {
+                        let syn = t.syntax(tone);
+                        st.fg(t.legible(syn.fg.unwrap_or(t.text_primary), on))
+                            .add_modifier(syn.add_modifier)
+                    };
                     match v {
-                        CellValue::Null | CellValue::Default => {
+                        CellValue::Null => {
+                            st = literal(st, SyntaxTone::Literal).add_modifier(Modifier::ITALIC)
+                        }
+                        CellValue::Default => {
                             st = st.fg(t.text_muted).add_modifier(Modifier::ITALIC)
                         }
+                        CellValue::Bool(_) => st = literal(st, SyntaxTone::Literal),
+                        CellValue::Json(_) => st = literal(st, SyntaxTone::Str),
                         CellValue::Text(s) if s.is_empty() => st = st.fg(t.text_faint),
                         _ => {}
                     }
@@ -3425,6 +3438,46 @@ mod tests {
     /// The first cell on header row `y` whose hit is `id`.
     fn hit_x(hits: &HitRegistry, y: u16, w: u16, id: WidgetId) -> Option<u16> {
         (0..w).find(|&x| hits.hit(Position::new(x, y)) == Some(id))
+    }
+
+    #[test]
+    fn typed_literals_take_the_syntax_hues_and_null_stays_italic() {
+        let cols = vec![
+            ColumnSpec::new("name", CellKind::Text),
+            ColumnSpec::new("active", CellKind::Bool),
+            ColumnSpec::new("meta", CellKind::Json),
+        ];
+        let mut g = DataGrid::new(WidgetId::of("g"), cols);
+        g.set_rows(GridRows {
+            rows: vec![vec![
+                CellValue::Null,
+                CellValue::Bool(true),
+                CellValue::Json("{\"a\":1}".into()),
+            ]],
+            total: RowTotal::Exact(1),
+            more: false,
+        });
+        let area = Rect::new(0, 0, 60, 6);
+        let (buf, _) = render_at(&mut g, area, Interaction::default());
+        let t = Theme::junie();
+        let find = |needle: &str| {
+            let n: Vec<String> = needle.chars().map(String::from).collect();
+            (0..area.height)
+                .flat_map(|y| (0..area.width).map(move |x| (x, y)))
+                .find(|&(x, y)| {
+                    n.iter().enumerate().all(|(i, c)| {
+                        x + (i as u16) < area.width && buf[(x + i as u16, y)].symbol() == c
+                    })
+                })
+                .unwrap_or_else(|| panic!("{needle} not drawn"))
+        };
+        let (x, y) = find("NULL");
+        assert_eq!(buf[(x, y)].fg, t.syntax_literal);
+        assert!(buf[(x, y)].modifier.contains(Modifier::ITALIC));
+        let (x, y) = find("true");
+        assert_eq!(buf[(x, y)].fg, t.syntax_literal);
+        let (x, y) = find("{\"a\"");
+        assert_eq!(buf[(x, y)].fg, t.syntax_string);
     }
 
     #[test]
