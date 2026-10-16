@@ -1665,15 +1665,8 @@ impl CapsuleScreen {
             let _ = saved_focus;
             // scrollbar while scrolled back
             if !pane.term.follow {
-                let sb = Rect::new(inner.right().saturating_sub(1), inner.y, 1, inner.height);
-                junie_tui::ui::fade::scroll_edges(
-                    buf,
-                    ctx,
-                    Rect::new(inner.x, inner.y, sb.x.saturating_sub(inner.x), inner.height),
-                    &pane.term.scroll,
-                );
-                scrollbar::render_vertical(
-                    sb,
+                scrollbar::render_with_fade(
+                    inner,
                     buf,
                     ctx,
                     PANES.child(*pid as usize),
@@ -3054,19 +3047,13 @@ impl Layer<ModalResult, World> for UsageDialog {
             }
         }
         if self.scroll.overflows() {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
+            scrollbar::render_with_fade(
                 Rect::new(
                     area.x,
                     body.y,
-                    (area.right() - 2).saturating_sub(area.x),
+                    (area.right() - 1).saturating_sub(area.x),
                     body.height,
                 ),
-                &self.scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(area.right() - 2, body.y, 1, body.height),
                 buf,
                 ctx,
                 WidgetId::of("capsule.usage"),
