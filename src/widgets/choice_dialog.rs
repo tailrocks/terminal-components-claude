@@ -7,6 +7,7 @@
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::theme::{ButtonKind, Strings, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
@@ -39,6 +40,9 @@ pub struct ChoiceDialog {
     /// The theme's strings as of the last render; a cancel label still
     /// reading them follows a change ([`Strings::follow`]).
     strings: Strings,
+    /// Which keys move between the buttons (←/→, and `h`/`l` with vim on).
+    /// Default [`NavKeys::DEFAULT`].
+    pub nav: NavKeys,
 }
 
 impl ChoiceDialog {
@@ -60,7 +64,14 @@ impl ChoiceDialog {
             area: Rect::ZERO,
             option_tones: vec![],
             strings: Strings::DEFAULT,
+            nav: NavKeys::DEFAULT,
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
     }
 
     pub fn buttons(mut self, buttons: Vec<Button>, cancel_index: usize) -> Self {
@@ -130,6 +141,19 @@ impl ChoiceDialog {
                 }
             }
         }
+        let step = match self.nav.action(key) {
+            Some(Nav::Left) => Some(true),
+            Some(Nav::Right) => Some(false),
+            _ => None,
+        };
+        if let Some(back) = step {
+            if let Some(i) = self.buttons.iter().position(|b| Some(b.id) == cur) {
+                let n = self.buttons.len();
+                let j = if back { (i + n - 1) % n } else { (i + 1) % n };
+                focus.focus(self.buttons[j].id);
+            }
+            return Outcome::Changed;
+        }
         match key.code {
             KeyCode::Esc => self.fire(self.cancel_index),
             KeyCode::Tab => {
@@ -138,18 +162,6 @@ impl ChoiceDialog {
             }
             KeyCode::BackTab => {
                 focus.prev(ring);
-                Outcome::Changed
-            }
-            KeyCode::Left | KeyCode::Right | KeyCode::Char('h') | KeyCode::Char('l') => {
-                if let Some(i) = self.buttons.iter().position(|b| Some(b.id) == cur) {
-                    let n = self.buttons.len();
-                    let j = if matches!(key.code, KeyCode::Left | KeyCode::Char('h')) {
-                        (i + n - 1) % n
-                    } else {
-                        (i + 1) % n
-                    };
-                    focus.focus(self.buttons[j].id);
-                }
                 Outcome::Changed
             }
             _ => Outcome::Consumed,
