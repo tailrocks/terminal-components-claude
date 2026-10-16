@@ -7,11 +7,13 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
+use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{ProgressStatus, render_bar, spinner_frame};
 use junie_tui::widgets::props::{self, Prop};
@@ -19,14 +21,14 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::viewport::{Span, TextViewport};
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::plan::{Plan, PlanPhase, StepState};
 use crate::screens::{
-    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, scroll_drag,
-    scroll_press, ticks_label, truncate_sep,
+    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, open_context, plural,
+    row_anchor, scroll_drag, scroll_press, ticks_label, truncate_sep,
 };
 use crate::sim::world::World;
 
@@ -36,6 +38,24 @@ pub const CANCEL: WidgetId = WidgetId::of("plan.cancel");
 pub const CONFIRM: WidgetId = WidgetId::of("plan.confirm");
 pub const OUTPUT: WidgetId = WidgetId::of("plan.output");
 const FOLLOW_UP: WidgetId = WidgetId::of("plan.follow");
+/// A step's context menu.
+pub const STEP_MENU: WidgetId = WidgetId::of("plan.step.menu");
+
+/// The key each review step-menu row stands for, in menu order.
+const REVIEW_STEP_KEYS: [char; 5] = [' ', 'u', 'p', 'c', 'x'];
+
+fn plain_key(c: char) -> Key {
+    Key {
+        code: KeyCode::Char(c),
+        mods: KeyModifiers::NONE,
+    }
+}
+
+/// The step a secondary click on `id` names, if it is an outline row.
+fn step_at(id: WidgetId, w: &World, plan: &str) -> Option<usize> {
+    let n = w.plan(plan).map(|p| p.steps.len()).unwrap_or(0);
+    (0..n).find(|&i| OUTLINE.child(i) == id)
+}
 
 /// Lane label for a step: `·` for roots, a letter per parallel branch,
 /// `join` where branches converge.
@@ -546,6 +566,50 @@ impl PlanReviewPage {
     }
 }
 
+impl PlanReviewPage {
+    /// The context menu of step `i`: the outline's own keys.
+    fn step_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
+        let Some(s) = w.plan(&self.plan).and_then(|p| p.steps.get(i)) else {
+            return Outcome::Ignored;
+        };
+        let mut toggle = MenuItem::new(if s.included {
+            "Exclude step"
+        } else {
+            "Include step"
+        })
+        .shortcut("Space");
+        if !s.optional {
+            toggle = toggle.reason("Required by the plan");
+        }
+        let mut undo = MenuItem::new("Undo last change").shortcut("u");
+        if self.undo.is_empty() {
+            undo = undo.reason("Nothing to undo");
+        }
+        let items = vec![
+            toggle,
+            undo,
+            MenuItem::new(if self.drawer {
+                "Hide details"
+            } else {
+                "Show details"
+            })
+            .shortcut("p")
+            .separator(),
+            MenuItem::new("Review & run…").shortcut("c"),
+            MenuItem::new("Discard plan").shortcut("x").danger(),
+        ];
+        let title = format!("{:02} {}", i + 1, s.label);
+        open_context(
+            cx,
+            STEP_MENU,
+            anchor,
+            title,
+            items,
+            ModalTag::new("plan-step").key(i.to_string()),
+        )
+    }
+}
+
 impl Screen for PlanReviewPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let Some(p) = w.plan_mut(&self.plan) else {
@@ -744,6 +808,44 @@ impl Screen for PlanReviewPage {
             return Outcome::Changed;
         }
         Outcome::Ignored
+    }
+
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        let Some(i) = step_at(id, w, &self.plan) else {
+            return Outcome::Ignored;
+        };
+        if cx.context.moves_cursor {
+            self.cursor = i;
+        }
+        cx.focus.focus(OUTLINE);
+        self.step_menu(i, ContextAnchor::Pointer(pos), w, cx)
+    }
+
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(OUTLINE) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(OUTLINE, self.cursor, self.outline_area, self.scroll.offset);
+        self.step_menu(self.cursor, anchor, w, cx)
+    }
+
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        if tag.kind == "plan-step"
+            && let ModalResult::MenuChosen(k) = result
+            && let Ok(i) = tag.key.parse::<usize>()
+            && let Some(&c) = REVIEW_STEP_KEYS.get(k)
+        {
+            // the chosen row runs its key on the step it was opened for
+            self.cursor = i;
+            return self.on_key(&plain_key(c), w, cx).or(Outcome::Changed);
+        }
+        Outcome::Changed
     }
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
@@ -1090,6 +1192,104 @@ impl PlanTab {
     }
 }
 
+/// What a run step-menu row does, in menu order.
+#[derive(Debug, Clone, Copy)]
+enum RunStep {
+    Expand,
+    Retry,
+    Skip,
+    Cancel,
+    Close,
+}
+
+const RUN_STEP_ACTIONS: [RunStep; 5] = [
+    RunStep::Expand,
+    RunStep::Retry,
+    RunStep::Skip,
+    RunStep::Cancel,
+    RunStep::Close,
+];
+
+impl PlanTab {
+    fn retry_step(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        let i = self.cursor;
+        let Some(p) = w.plan_mut(&self.plan) else {
+            return Outcome::Ignored;
+        };
+        if p.retry(i) {
+            cx.status(format!(
+                "{:02} retrying · succeeded work is not repeated",
+                i + 1
+            ));
+        } else {
+            cx.status("Only a failed step can be retried");
+        }
+        Outcome::Changed
+    }
+
+    fn skip_step(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        let i = self.cursor;
+        let Some(p) = w.plan_mut(&self.plan) else {
+            return Outcome::Ignored;
+        };
+        if p.skip(i) {
+            cx.status(format!(
+                "{:02} skipped · its dependents stay blocked",
+                i + 1
+            ));
+        } else {
+            cx.status("Only an optional failed step can be skipped");
+        }
+        Outcome::Changed
+    }
+
+    /// The context menu of step `i` in the running plan.
+    fn step_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
+        let Some(p) = w.plan(&self.plan) else {
+            return Outcome::Ignored;
+        };
+        let Some(s) = p.steps.get(i) else {
+            return Outcome::Ignored;
+        };
+        let failed = s.state == StepState::Failed;
+        let mut retry = MenuItem::new("Retry step").shortcut("r");
+        if !failed {
+            retry = retry.reason("Only a failed step can be retried");
+        }
+        let mut skip = MenuItem::new("Skip step").shortcut("k").separator();
+        if !(failed && s.optional) {
+            skip = skip.reason("Only an optional failed step can be skipped");
+        }
+        let mut cancel = MenuItem::new("Cancel remaining…")
+            .shortcut("Ctrl+C")
+            .danger();
+        if p.phase != PlanPhase::Running {
+            cancel = cancel.reason("The plan is not running");
+        }
+        let items = vec![
+            MenuItem::new(if self.maximized {
+                "Restore layout"
+            } else {
+                "Expand output"
+            })
+            .shortcut("Enter"),
+            retry,
+            skip,
+            cancel,
+            MenuItem::new("Close tab").shortcut("x"),
+        ];
+        let title = format!("{:02} {}", i + 1, s.label);
+        open_context(
+            cx,
+            STEP_MENU,
+            anchor,
+            title,
+            items,
+            ModalTag::new("plan-step").key(i.to_string()),
+        )
+    }
+}
+
 impl Screen for PlanTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         // follow-up buttons after the run
@@ -1146,30 +1346,8 @@ impl Screen for PlanTab {
                     .focus(if self.maximized { OUTPUT } else { OUTLINE });
                 Outcome::Changed
             }
-            KeyCode::Char('r') => {
-                let i = self.cursor;
-                if p.retry(i) {
-                    cx.status(format!(
-                        "{:02} retrying · succeeded work is not repeated",
-                        i + 1
-                    ));
-                } else {
-                    cx.status("Only a failed step can be retried");
-                }
-                Outcome::Changed
-            }
-            KeyCode::Char('k') => {
-                let i = self.cursor;
-                if p.skip(i) {
-                    cx.status(format!(
-                        "{:02} skipped · its dependents stay blocked",
-                        i + 1
-                    ));
-                } else {
-                    cx.status("Only an optional failed step can be skipped");
-                }
-                Outcome::Changed
-            }
+            KeyCode::Char('r') => self.retry_step(w, cx),
+            KeyCode::Char('k') => self.skip_step(w, cx),
             KeyCode::Char('f') => {
                 self.view.set_follow(!self.view.follow);
                 Outcome::Changed
@@ -1204,6 +1382,28 @@ impl Screen for PlanTab {
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
+        if tag.kind == "plan-step" {
+            if let ModalResult::MenuChosen(k) = result
+                && let Ok(i) = tag.key.parse::<usize>()
+                && let Some(&action) = RUN_STEP_ACTIONS.get(k)
+            {
+                self.cursor = i;
+                let key = |code, mods| Key { code, mods };
+                return match action {
+                    RunStep::Expand => {
+                        self.on_key(&key(KeyCode::Char('z'), KeyModifiers::NONE), w, cx)
+                    }
+                    RunStep::Retry => self.retry_step(w, cx),
+                    RunStep::Skip => self.skip_step(w, cx),
+                    RunStep::Cancel => {
+                        self.on_key(&key(KeyCode::Char('c'), KeyModifiers::CONTROL), w, cx)
+                    }
+                    RunStep::Close => self.on_key(&plain_key('x'), w, cx),
+                }
+                .or(Outcome::Changed);
+            }
+            return Outcome::Changed;
+        }
         if tag.kind == "cancel-plan"
             && let ModalResult::Dialog {
                 action: Some(1), ..
@@ -1275,6 +1475,25 @@ impl Screen for PlanTab {
             return scroll_drag(self.outline_area, pos, &mut self.scroll);
         }
         Outcome::Ignored
+    }
+
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        let Some(i) = step_at(id, w, &self.plan) else {
+            return Outcome::Ignored;
+        };
+        if cx.context.moves_cursor {
+            self.cursor = i;
+        }
+        cx.focus.focus(OUTLINE);
+        self.step_menu(i, ContextAnchor::Pointer(pos), w, cx)
+    }
+
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(OUTLINE) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(OUTLINE, self.cursor, self.outline_area, self.scroll.offset);
+        self.step_menu(self.cursor, anchor, w, cx)
     }
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {

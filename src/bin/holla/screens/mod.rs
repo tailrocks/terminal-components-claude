@@ -18,11 +18,11 @@ use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
-use junie_tui::ui::context::ContextConfig;
+use junie_tui::ui::context::{ContextAnchor, ContextConfig};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::Hint;
-use junie_tui::widgets::menu::ContextMenu;
+use junie_tui::widgets::menu::{ContextMenu, MenuItem};
 use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
@@ -340,6 +340,35 @@ pub trait Screen {
     fn as_disk(&mut self) -> Option<&mut disk::DiskPage> {
         None
     }
+}
+
+/// Where the context menu of hand-drawn list row `i` opens for the
+/// keyboard: below the row as drawn this frame (`list.child(i)`), else
+/// below its slot in `area` scrolled by `offset`.
+pub fn row_anchor(list: WidgetId, i: usize, area: Rect, offset: usize) -> ContextAnchor {
+    let dy = i
+        .saturating_sub(offset)
+        .min(area.height.saturating_sub(1) as usize) as u16;
+    ContextAnchor::Control {
+        id: list.child(i),
+        fallback: Rect::new(area.x, area.y + dy, area.width.max(1), 1),
+    }
+}
+
+/// Open a row's context menu through the shell's modal stack: `items`
+/// titled `title` at `anchor`, answered to the owner as
+/// [`ModalResult::MenuChosen`] under `tag`.
+pub fn open_context(
+    cx: &mut Cx,
+    id: WidgetId,
+    anchor: ContextAnchor,
+    title: impl Into<String>,
+    items: Vec<MenuItem>,
+    tag: ModalTag,
+) -> Outcome {
+    let menu = anchor.apply(ContextMenu::new(id, items)).title(title);
+    cx.open(Modal::Menu(menu), tag);
+    Outcome::Changed
 }
 
 pub fn plural(n: usize, one: &str, many: &str) -> String {
