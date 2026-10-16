@@ -10,7 +10,7 @@ use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{
     Actions, KeyBinding, KeyMap, NavKeys, lookup, select_all_bindings, unassigned_chord,
 };
-use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
+use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource, TypeAheadPrecedence};
 use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::Tone;
@@ -110,6 +110,10 @@ pub struct ListBox {
     /// listbox). Default from the [`crate::core::list::NavProfile`]: on
     /// under `Desktop`, off under `Vim`. A bound key (Multi `a`) wins.
     pub type_ahead: bool,
+    /// Whether the page's and the app's single-character shortcuts win over
+    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
+    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+    pub type_ahead_precedence: Option<TypeAheadPrecedence>,
     /// ↑ on the first row lands on the last and ↓ on the last on the
     /// first. Default off: it stops at the end.
     pub wrap: bool,
@@ -164,6 +168,7 @@ impl ListBox {
             skip_disabled: true,
             click: ClickAction::Activate,
             type_ahead: crate::core::list::NavProfile::current().type_ahead(),
+            type_ahead_precedence: None,
             wrap: false,
             nav: NavKeys::default(),
             keymap: ListCmd::default_keymap(),
@@ -199,6 +204,12 @@ impl ListBox {
 
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::type_ahead_precedence`].
+    pub fn type_ahead_precedence(mut self, precedence: TypeAheadPrecedence) -> Self {
+        self.type_ahead_precedence = Some(precedence);
         self
     }
 
@@ -380,7 +391,10 @@ impl ListBox {
                 }
             };
         }
-        match KeyStep::of(key, &self.nav, self.type_ahead) {
+        let precedence = self
+            .type_ahead_precedence
+            .unwrap_or_else(TypeAheadPrecedence::current);
+        match KeyStep::ordered(key, &self.nav, self.type_ahead, precedence) {
             Some(KeyStep::Type(c)) => {
                 let moved = self
                     .nav_cursor()
