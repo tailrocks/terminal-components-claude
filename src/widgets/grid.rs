@@ -1556,7 +1556,7 @@ impl DataGrid {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        if !focused && self.edit.is_some() {
+        if !ctx.interaction.has_focus(self.id) && self.edit.is_some() {
             self.commit_edit();
         }
         ctx.control(self.id, area, false);

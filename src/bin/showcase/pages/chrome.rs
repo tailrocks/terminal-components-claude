@@ -181,6 +181,9 @@ impl ChromePage {
 }
 
 impl Page for ChromePage {
+    fn layer_open(&self) -> bool {
+        self.bar.hides_page_focus() || self.context.as_ref().is_some_and(|m| m.hides_page_focus())
+    }
     fn title(&self) -> &'static str {
         "Chrome"
     }

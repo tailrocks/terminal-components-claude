@@ -2123,6 +2123,7 @@ impl App {
         {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            ctx.page_under_layer(self.modal.is_some());
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
             cursor = ctx.cursor;

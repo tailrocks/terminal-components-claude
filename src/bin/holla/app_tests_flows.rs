@@ -754,3 +754,22 @@ fn every_scenario_is_deterministic_at_a_frame() {
         assert_eq!(a.text(), b.text(), "{s:?}");
     }
 }
+
+#[test]
+fn an_open_menu_hides_the_page_focus_under_it() {
+    let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
+    let bars = |h: &H| {
+        let buf = h.term.backend().buffer();
+        buf.content().iter().filter(|c| c.symbol() == "▎").count()
+    };
+    let tinted = |h: &H| {
+        let t = h.app.theme;
+        let buf = h.term.backend().buffer();
+        buf.content().iter().filter(|c| c.bg == t.accent_bg).count()
+    };
+    assert!(bars(&h) >= 1, "the page shows its focus at rest");
+    h.key(KeyCode::F(10));
+    assert!(h.text().contains("Alternatives…"), "{}", h.text());
+    assert_eq!(bars(&h), 0, "the menu owns the keyboard\n{}", h.text());
+    assert_eq!(tinted(&h), 0, "no focused-row tint under the menu");
+}
