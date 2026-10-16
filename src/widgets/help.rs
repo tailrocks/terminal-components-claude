@@ -9,6 +9,7 @@ use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::modal::Frame;
@@ -29,9 +30,17 @@ pub struct HelpOverlay {
     pub title: String,
     /// The closing hint row. Default "↑↓ Scroll · Esc Close".
     pub hint: String,
+    /// Which keys scroll (default [`NavKeys::DEFAULT`]).
+    pub nav: NavKeys,
 }
 
 impl HelpOverlay {
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
     pub fn new(id: WidgetId, scope: &str, sections: Vec<(&str, Vec<(&str, &str)>)>) -> Self {
         Self {
             dismiss: crate::ui::popup::Dismiss::LIGHT,
@@ -53,6 +62,7 @@ impl HelpOverlay {
             closed: false,
             title: "Keyboard shortcuts".into(),
             hint: "↑↓ Scroll · Esc Close".into(),
+            nav: NavKeys::DEFAULT,
         }
     }
 
@@ -67,26 +77,22 @@ impl HelpOverlay {
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
+        if let Some(nav) = self.nav.action(key) {
+            match nav {
+                Nav::Down => self.scroll.scroll_by(1),
+                Nav::Up => self.scroll.scroll_by(-1),
+                Nav::PageDown => self.scroll.page_down(),
+                Nav::PageUp => self.scroll.page_up(),
+                Nav::Home => self.scroll.jump_start(),
+                Nav::End => self.scroll.jump_end(),
+                Nav::Left | Nav::Right => return Outcome::Consumed,
+            };
+            return Outcome::Changed;
+        }
         match key.code {
             KeyCode::Esc if !self.dismiss.escape => Outcome::Consumed,
             KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Enter => {
                 self.closed = true;
-                Outcome::Changed
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                self.scroll.scroll_by(1);
-                Outcome::Changed
-            }
-            KeyCode::Up | KeyCode::Char('k') => {
-                self.scroll.scroll_by(-1);
-                Outcome::Changed
-            }
-            KeyCode::PageDown => {
-                self.scroll.page_down();
-                Outcome::Changed
-            }
-            KeyCode::PageUp => {
-                self.scroll.page_up();
                 Outcome::Changed
             }
             _ => Outcome::Consumed,
