@@ -2332,6 +2332,7 @@ impl Screen for ManagerScreen {
             };
         }
         match ev.phase() {
+            Some(Phase::Click) if id == SEAM => self.seam.on_click(&mut self.split, ev.count()),
             Some(Phase::Click) => {
                 if ev.count() >= 2 {
                     let d = self.double_click(id, w, cx);
@@ -2770,9 +2771,6 @@ impl ManagerScreen {
 /// their derived ids until S16 moves them onto widgets).
 impl ManagerScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == SEAM {
-            return self.seam.on_click(&mut self.split, cx.clicks);
-        }
         self.build_rows(w);
         if self.menu.is_open() {
             let (o, chosen) = self.menu.on_click(id);
