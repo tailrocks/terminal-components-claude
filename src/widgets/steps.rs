@@ -10,7 +10,8 @@ use ratatui::style::{Color, Modifier, Style};
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
-use crate::core::keymap::{Nav, NavKeys};
+use crate::core::keymap::NavKeys;
+use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::widgets::scrollbar;
@@ -175,17 +176,20 @@ impl StepRail {
         if !key.plain() {
             return Outcome::Ignored;
         }
-        let page = self.scroll.viewport_len.max(1);
-        match self.nav.action(key) {
-            Some(Nav::Up) => self.set_cursor(self.cursor.saturating_sub(1)),
-            Some(Nav::Down) => self.set_cursor(self.cursor + 1),
-            Some(Nav::PageUp) => self.set_cursor(self.cursor.saturating_sub(page)),
-            Some(Nav::PageDown) => self.set_cursor(self.cursor + page),
-            Some(Nav::Home) => self.set_cursor(0),
-            Some(Nav::End) => self.set_cursor(usize::MAX),
-            _ => return Outcome::Ignored,
+        let Some(nav) = self.nav.action(key) else {
+            return Outcome::Ignored;
+        };
+        match self
+            .cursor()
+            .apply(nav, self, self.scroll.viewport_len)
+            .index()
+        {
+            Some(i) => {
+                self.set_cursor(i);
+                Outcome::Changed
+            }
+            None => Outcome::Ignored,
         }
-        Outcome::Changed
     }
 
     pub fn on_click(&mut self, row: usize) -> Outcome {
@@ -338,6 +342,21 @@ impl StepRail {
 impl Scrollable for StepRail {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.scroll
+    }
+}
+
+impl RowSource for StepRail {
+    fn len(&self) -> usize {
+        self.steps.len()
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.steps[i].label
+    }
+}
+
+impl Navigable for StepRail {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor)
     }
 }
 
