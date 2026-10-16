@@ -184,9 +184,6 @@ core::shape::ShapeSync | State tab readout of the library dispatcher: shown once
 
 # core::text
 
-# core::typeahead
-core::typeahead::TypeAhead | Lists and Trees page options | SC15
-
 # ui::ctx
 ui::ctx::Interaction | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 ui::ctx::RenderCtx | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -484,27 +481,6 @@ widgets::input::TextInput::type_to_edit | deprecated alias of TextInput::edit_en
 
 # widgets::keyhint
 
-# widgets::list
-widgets::list::ListItem | Lists and Trees page options | SC15
-widgets::list::ListItem::meta | Lists and Trees page options | SC15
-widgets::list::ListItem::disabled | Lists and Trees page options | SC15
-widgets::list::ClickAction | Lists and Trees page options | SC15
-widgets::list::ClickAction::Activate | Lists and Trees page options | SC15
-widgets::list::ClickAction::Select | Lists and Trees page options | SC15
-widgets::list::ListCmd | Lists and Trees page options | SC15
-widgets::list::ListCmd::ToggleAll | Lists and Trees page options | SC15
-widgets::list::ListCmd::SelectAll | Lists and Trees page options | SC15
-widgets::list::ListBox::nav | Lists and Trees page options | SC15
-widgets::list::ListBox::keymap | Lists and Trees page options | SC15
-widgets::list::ListBox::wrap | Lists and Trees page options | SC15
-widgets::list::ListBox::type_ahead | Lists and Trees page options | SC15
-widgets::list::ListBox::skip_disabled | Lists and Trees page options | SC15
-widgets::list::ListBox::click | Lists and Trees page options | SC15
-widgets::list::ListBox::scrollbar_gap | Lists and Trees page options | SC15
-widgets::list::ListBox::reveal | Lists and Trees page options | SC15
-widgets::list::ListBox::empty | Lists and Trees page options | SC15
-widgets::list::ListBox::track_click | Lists and Trees page options | SC15
-
 # widgets::menu
 
 # widgets::panel
@@ -592,34 +568,6 @@ widgets::steps::StepRail::selectable | Diff and Terminal page options | SC25
 
 
 # widgets::textarea
-
-# widgets::tree
-widgets::tree::TreeNode::glyph | Lists and Trees page options | SC15
-widgets::tree::TreeNode::meta | Lists and Trees page options | SC15
-widgets::tree::FlatRow | Lists and Trees page options | SC15
-widgets::tree::TreeAction | Lists and Trees page options | SC15
-widgets::tree::TreeAction::Expand | Lists and Trees page options | SC15
-widgets::tree::TreeAction::Activate | Lists and Trees page options | SC15
-widgets::tree::BranchAction | Lists and Trees page options | SC15
-widgets::tree::BranchAction::Toggle | Lists and Trees page options | SC15
-widgets::tree::BranchAction::Activate | Lists and Trees page options | SC15
-widgets::tree::BranchAction::Both | Lists and Trees page options | SC15
-widgets::tree::TreeCmd | Lists and Trees page options | SC15
-widgets::tree::TreeCmd::ExpandAll | Lists and Trees page options | SC15
-widgets::tree::TreeCmd::CollapseAll | Lists and Trees page options | SC15
-widgets::tree::TreeView::branch_activate | Lists and Trees page options | SC15
-widgets::tree::TreeView::row_click_toggles | Lists and Trees page options | SC15
-widgets::tree::TreeView::wrap | Lists and Trees page options | SC15
-widgets::tree::TreeView::nav | Lists and Trees page options | SC15
-widgets::tree::TreeView::keymap | Lists and Trees page options | SC15
-widgets::tree::TreeView::indent | Lists and Trees page options | SC15
-widgets::tree::TreeView::type_ahead | Lists and Trees page options | SC15
-widgets::tree::TreeView::divider | Lists and Trees page options | SC15
-widgets::tree::TreeView::selected_marker | Lists and Trees page options | SC15
-widgets::tree::TreeView::alt_click_recursive | Lists and Trees page options | SC15
-widgets::tree::TreeView::reserve_right | Lists and Trees page options | SC15
-widgets::tree::TreeView::show_meta | Lists and Trees page options | SC15
-widgets::tree::TreeView::track_click | Lists and Trees page options | SC15
 
 # widgets::viewport
 widgets::viewport::Span | Diff and Terminal page options | SC25

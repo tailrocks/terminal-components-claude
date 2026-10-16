@@ -887,6 +887,8 @@ fn lists_and_trees_accept_mouse_selection() {
     assert!(lists.text().contains("Chosen: TypeScript"));
 
     let mut trees = Harness::new(120, 40, PageId::Trees);
+    // the section strip, then the tree
+    trees.key(KeyCode::Tab);
     trees.key(KeyCode::Tab);
     trees.key(KeyCode::Left);
     trees.key(KeyCode::Right);

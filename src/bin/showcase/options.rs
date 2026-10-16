@@ -264,6 +264,8 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Editor => CODE_EDITOR,
         PageId::HelpKeys => HELP_KEYS,
         PageId::QuitLeave => QUIT_LEAVE,
+        PageId::Lists => LISTS,
+        PageId::Trees => TREES,
         _ => &[],
     }
 }
@@ -824,6 +826,43 @@ static QUIT_LEAVE: &[Opt] = &[
     Opt::new("quitleave.esc_quits", "Esc quits", OFF_ON),
     Opt::new("quitleave.ctrl_c", "Ctrl+C quits", OFF_ON).default(1),
     Opt::new("quitleave.ctrl_q", "Ctrl+Q quits", OFF_ON).default(1),
+];
+
+/// Lists (SC15): every `ListBox` builder (the readout reads the built
+/// lists back).
+static LISTS: &[Opt] = &[
+    Opt::new("lists.nav", "Nav keys", &["default", "vim"]),
+    Opt::new("lists.type_ahead", "Type-ahead", OFF_ON).default(1),
+    Opt::new("lists.click", "Click", &["activate", "select"]),
+    Opt::new("lists.wrap", "Arrows wrap", OFF_ON),
+    Opt::new("lists.skip_disabled", "Skip disabled", OFF_ON).default(1),
+    Opt::new("lists.scrollbar_gap", "Scrollbar gap", &["0", "1", "2"]).default(1),
+    Opt::new("lists.reveal", "Reveal", &["tooltip", "inline", "off"]),
+    Opt::new("lists.track_click", "Track click", &["page", "jump"]),
+    Opt::new("lists.keymap", "Key map", &["default", "custom"]),
+    Opt::new("lists.empty", "Empty", &["text", "state"]),
+];
+
+/// Trees (SC15): every `TreeView` builder (the readout reads the built
+/// tree back).
+static TREES: &[Opt] = &[
+    Opt::new(
+        "trees.branch",
+        "Enter on a branch",
+        &["toggle", "activate", "both"],
+    ),
+    Opt::new("trees.row_click", "Row click toggles", OFF_ON).default(1),
+    Opt::new("trees.indent", "Indent", &["2", "1", "4"]),
+    Opt::new("trees.divider", "Divider", OFF_ON),
+    Opt::new("trees.alt_click", "Alt-click recursive", OFF_ON).default(1),
+    Opt::new("trees.reserve_right", "Reserve right", &["0", "10"]),
+    Opt::new("trees.show_meta", "Show meta", OFF_ON).default(1),
+    Opt::new("trees.track_click", "Track click", &["page", "jump"]),
+    Opt::new("trees.nav", "Nav keys", &["default", "vim"]),
+    Opt::new("trees.wrap", "Arrows wrap", OFF_ON),
+    Opt::new("trees.type_ahead", "Type-ahead", OFF_ON).default(1),
+    Opt::new("trees.keymap", "Key map", &["default", "custom"]),
+    Opt::new("trees.marker", "Selected marker", &["none", "chevron"]),
 ];
 
 /// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through

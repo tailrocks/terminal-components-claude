@@ -354,7 +354,7 @@ fn trees_right_click_folds_a_folder_and_shift_f10_opens_a_file() {
     let billing = h.at("billing.rs");
     assert_eq!(h.shift_f10(), Outcome::Changed);
     let menu = h.menu(TREES_MENU).expect("Shift+F10");
-    assert_eq!(menu.y, billing.1 + 1);
+    assert_eq!(menu.y, billing.1 + 1, "{}", h.text());
     h.key(KeyCode::Enter);
     assert!(h.text().contains("src/api/billing.rs"), "{}", h.text());
 }

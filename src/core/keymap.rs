@@ -132,6 +132,40 @@ impl NavKeys {
         Some(nav)
     }
 
+    /// The hint key for moving up and down under these keys: `↑↓` with
+    /// the arrows, `j k` when only the vim letters move, `None` when
+    /// nothing does. `type_ahead`: the widget type-selects, so a letter
+    /// types instead of moving ([`crate::core::list::KeyStep::of`]). Hints
+    /// never advertise a key that does not work.
+    pub const fn move_hint(&self, type_ahead: bool) -> Option<&'static str> {
+        if self.arrows {
+            Some("↑↓")
+        } else if self.vim && !type_ahead {
+            Some("j k")
+        } else {
+            None
+        }
+    }
+
+    /// The hint key for paging, `None` when paging is off.
+    pub const fn page_hint(&self) -> Option<&'static str> {
+        if self.page { Some("PgUp PgDn") } else { None }
+    }
+
+    /// The hint key for jumping to the first and last row: `g G` under
+    /// vim keys (when no type-ahead takes the letters), else `Home End`
+    /// when they are on, `None` when nothing jumps. `type_ahead` as for
+    /// [`Self::move_hint`].
+    pub const fn ends_hint(&self, type_ahead: bool) -> Option<&'static str> {
+        if self.vim && !type_ahead {
+            Some("g G")
+        } else if self.home_end {
+            Some("Home End")
+        } else {
+            None
+        }
+    }
+
     /// True when `key` is one of the vim letters this table maps (whatever
     /// `vim` is set to). Widgets with type-ahead use it to tell a letter
     /// that would navigate from one that only types.
@@ -391,6 +425,47 @@ mod tests {
 
     fn with(code: KeyCode, mods: KeyModifiers) -> Key {
         Key { code, mods }
+    }
+
+    /// Each hint names keys its table really maps, and never a letter
+    /// that type-ahead takes.
+    #[test]
+    fn nav_hints_name_only_keys_that_navigate() {
+        use crate::core::list::KeyStep;
+        // the key a hint names navigates through `KeyStep`, as widgets read it
+        let navigates = |n: &NavKeys, ta: bool, code: KeyCode| {
+            matches!(
+                KeyStep::of(&key(code), n, ta),
+                Some(KeyStep::Nav(Nav::Home))
+            )
+        };
+        let only_vim = NavKeys::VIM.home_end(false).arrows(false).page(false);
+        for n in [
+            NavKeys::DESKTOP,
+            NavKeys::VIM,
+            NavKeys::VIM.home_end(false),
+            only_vim,
+        ] {
+            for ta in [false, true] {
+                let ok = match n.ends_hint(ta) {
+                    Some("Home End") => navigates(&n, ta, KeyCode::Home),
+                    Some("g G") => navigates(&n, ta, KeyCode::Char('g')),
+                    Some(other) => panic!("{other}"),
+                    None => {
+                        !navigates(&n, ta, KeyCode::Home) && !navigates(&n, ta, KeyCode::Char('g'))
+                    }
+                };
+                assert!(ok, "{n:?} type-ahead {ta}");
+            }
+        }
+        assert_eq!(NavKeys::DESKTOP.ends_hint(true), Some("Home End"));
+        assert_eq!(NavKeys::VIM.ends_hint(false), Some("g G"));
+        assert_eq!(NavKeys::VIM.ends_hint(true), Some("Home End"));
+        assert_eq!(only_vim.ends_hint(true), None);
+        assert_eq!(only_vim.move_hint(false), Some("j k"));
+        assert_eq!(only_vim.move_hint(true), None);
+        assert_eq!(only_vim.page_hint(), None);
+        assert_eq!(NavKeys::DESKTOP.move_hint(true), Some("↑↓"));
     }
 
     #[test]

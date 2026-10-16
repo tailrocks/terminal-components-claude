@@ -253,7 +253,9 @@ fn hover_and_focus_render_differently() {
     let cell = h.term.backend().buffer()[(x, y)].clone();
     assert_eq!(cell.bg, t.lift(t.surface));
     assert!(!cell.modifier.contains(ratatui::style::Modifier::BOLD));
-    // focus via keyboard: bar + bold, hover suppressed
+    // focus via keyboard (past the section strip): bar + bold, hover
+    // suppressed
+    h.key(tab());
     h.key(tab());
     h.key(KeyCode::Down);
     let cell = h.term.backend().buffer()[(x, y)].clone();
@@ -541,6 +543,8 @@ fn textarea_scrolls_with_wheel_and_keys() {
 #[test]
 fn list_scrolling_and_selection() {
     let mut h = Harness::new(120, 40, PageId::Lists);
+    // past the section strip
+    h.key(tab());
     h.key(tab());
     for _ in 0..19 {
         h.key(KeyCode::Down);
@@ -568,6 +572,8 @@ fn list_scrolling_and_selection() {
 #[test]
 fn tree_expand_collapse_and_focus_bar_column_is_stable() {
     let mut h = Harness::new(120, 40, PageId::Trees);
+    // past the section strip
+    h.key(tab());
     h.key(tab());
     let y0 = h.find_row("src").unwrap();
     let bx = h.focus_bar_x(y0).unwrap();
