@@ -73,7 +73,14 @@ impl Harness {
         let side = self.app.sidebar_area();
         self.sidebar()
             .iter()
-            .position(|r| r.trim_start_matches(['▎', ' ', '›', '▸', '▾']).trim() == label)
+            .position(|r| {
+                // a label longer than the sidebar is cut with `…`
+                let shown = r.trim_start_matches(['▎', ' ', '›', '▸', '▾']).trim();
+                shown == label
+                    || shown
+                        .strip_suffix('…')
+                        .is_some_and(|head| !head.is_empty() && label.starts_with(head))
+            })
             .map(|i| (side.x + 6, side.y + i as u16))
     }
 

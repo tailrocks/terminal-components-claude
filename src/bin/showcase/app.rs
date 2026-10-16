@@ -64,6 +64,36 @@ pub enum PageId {
     TaskRunner,
     Selectable,
     CellEditors,
+    // planned pages (plan §7.2), stubs until their SC step
+    StatusHints,
+    BreadcrumbsRails,
+    HelpKeys,
+    QuitLeave,
+    FocusNavigation,
+    ChecksRadios,
+    Toolbars,
+    Columns,
+    Tabs,
+    Menus,
+    DialogKinds,
+    PopupsTooltips,
+    FileBrowser,
+    EmptyError,
+    Meters,
+    Notices,
+    SplitsStacks,
+    MasterDetail,
+    PaneTree,
+    TextUtilities,
+    QueryWorkbench,
+    Connections,
+    Finder,
+    DiskCleanup,
+    Activity,
+    Workspaces,
+    AccountsUsage,
+    LaunchCockpit,
+    ReadOnlyReport,
 }
 
 pub struct NavEntry {
@@ -102,6 +132,31 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         group: "App shell",
     },
     NavEntry {
+        id: PageId::StatusHints,
+        label: "Status & hints",
+        group: "App shell",
+    },
+    NavEntry {
+        id: PageId::BreadcrumbsRails,
+        label: "Breadcrumbs & rails",
+        group: "App shell",
+    },
+    NavEntry {
+        id: PageId::HelpKeys,
+        label: "Help & keys",
+        group: "App shell",
+    },
+    NavEntry {
+        id: PageId::QuitLeave,
+        label: "Quit & leave",
+        group: "App shell",
+    },
+    NavEntry {
+        id: PageId::FocusNavigation,
+        label: "Focus & navigation",
+        group: "App shell",
+    },
+    NavEntry {
         id: PageId::Buttons,
         label: "Buttons",
         group: "Inputs & forms",
@@ -124,6 +179,16 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Forms,
         label: "Forms",
+        group: "Inputs & forms",
+    },
+    NavEntry {
+        id: PageId::ChecksRadios,
+        label: "Checks & radios",
+        group: "Inputs & forms",
+    },
+    NavEntry {
+        id: PageId::Toolbars,
+        label: "Toolbars",
         group: "Inputs & forms",
     },
     NavEntry {
@@ -152,6 +217,11 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         group: "Tables",
     },
     NavEntry {
+        id: PageId::Columns,
+        label: "Columns",
+        group: "Tables",
+    },
+    NavEntry {
         id: PageId::Lists,
         label: "Lists",
         group: "Navigation",
@@ -167,6 +237,16 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         group: "Navigation",
     },
     NavEntry {
+        id: PageId::Tabs,
+        label: "Tabs",
+        group: "Navigation",
+    },
+    NavEntry {
+        id: PageId::Menus,
+        label: "Menus",
+        group: "Navigation",
+    },
+    NavEntry {
         id: PageId::Dialogs,
         label: "Dialogs",
         group: "Overlays",
@@ -177,8 +257,38 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         group: "Overlays",
     },
     NavEntry {
+        id: PageId::DialogKinds,
+        label: "Dialog kinds",
+        group: "Overlays",
+    },
+    NavEntry {
+        id: PageId::PopupsTooltips,
+        label: "Popups & tooltips",
+        group: "Overlays",
+    },
+    NavEntry {
+        id: PageId::FileBrowser,
+        label: "File browser",
+        group: "Overlays",
+    },
+    NavEntry {
         id: PageId::Progress,
         label: "Progress",
+        group: "Feedback",
+    },
+    NavEntry {
+        id: PageId::EmptyError,
+        label: "Empty & error",
+        group: "Feedback",
+    },
+    NavEntry {
+        id: PageId::Meters,
+        label: "Meters",
+        group: "Feedback",
+    },
+    NavEntry {
+        id: PageId::Notices,
+        label: "Notices",
         group: "Feedback",
     },
     NavEntry {
@@ -189,6 +299,21 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Scrolling,
         label: "Scrolling",
+        group: "Layout",
+    },
+    NavEntry {
+        id: PageId::SplitsStacks,
+        label: "Splits & stacks",
+        group: "Layout",
+    },
+    NavEntry {
+        id: PageId::MasterDetail,
+        label: "Master-detail",
+        group: "Layout",
+    },
+    NavEntry {
+        id: PageId::PaneTree,
+        label: "Pane tree",
         group: "Layout",
     },
     NavEntry {
@@ -207,6 +332,11 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         group: "Text & code",
     },
     NavEntry {
+        id: PageId::TextUtilities,
+        label: "Text utilities",
+        group: "Text & code",
+    },
+    NavEntry {
         id: PageId::Settings,
         label: "Settings",
         group: "Screens",
@@ -216,11 +346,56 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         label: "Task runner",
         group: "Screens",
     },
+    NavEntry {
+        id: PageId::QueryWorkbench,
+        label: "Query workbench",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::Connections,
+        label: "Connections",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::Finder,
+        label: "Finder",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::DiskCleanup,
+        label: "Disk cleanup",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::Activity,
+        label: "Activity",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::Workspaces,
+        label: "Workspaces",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::AccountsUsage,
+        label: "Accounts & usage",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::LaunchCockpit,
+        label: "Launch cockpit",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::ReadOnlyReport,
+        label: "Read-only report",
+        group: "Screens",
+    },
 ];
 
 /// Extra `--page` names for pages whose label is long or reads several
 /// ways (compared like labels: letters and digits only).
-const PAGE_ALIASES: &[(&str, PageId)] = &[
+pub const PAGE_ALIASES: &[(&str, PageId)] = &[
     // labels before the sidebar became a tree (a group never repeats a
     // page's name): their `--page` names keep working
     ("tables", PageId::Tables),
@@ -233,6 +408,21 @@ const PAGE_ALIASES: &[(&str, PageId)] = &[
     ("selection", PageId::Selectable),
     ("bulkedit", PageId::Selectable),
     ("selectable", PageId::Selectable),
+    // short names of the planned pages (plan §7.2)
+    ("hints", PageId::StatusHints),
+    ("breadcrumbs", PageId::BreadcrumbsRails),
+    ("rails", PageId::BreadcrumbsRails),
+    ("help", PageId::HelpKeys),
+    ("quit", PageId::QuitLeave),
+    ("leave", PageId::QuitLeave),
+    ("focus", PageId::FocusNavigation),
+    ("checks", PageId::ChecksRadios),
+    ("radios", PageId::ChecksRadios),
+    ("popups", PageId::PopupsTooltips),
+    ("tooltips", PageId::PopupsTooltips),
+    ("empty", PageId::EmptyError),
+    ("splits", PageId::SplitsStacks),
+    ("text", PageId::TextUtilities),
 ];
 
 /// Which sidebar groups are open: the navigation tree's expansion policy.
@@ -473,6 +663,35 @@ impl App {
                     PageId::TaskRunner => Box::new(taskrunner::TaskRunnerPage::new()),
                     PageId::Selectable => Box::new(selectable::SelectablePage::new()),
                     PageId::CellEditors => Box::new(celleditors::CellEditorsPage::new()),
+                    PageId::StatusHints => status_hints::page(),
+                    PageId::BreadcrumbsRails => breadcrumbs_rails::page(),
+                    PageId::HelpKeys => help_keys::page(),
+                    PageId::QuitLeave => quit_leave::page(),
+                    PageId::FocusNavigation => focus_navigation::page(),
+                    PageId::ChecksRadios => checks_radios::page(),
+                    PageId::Toolbars => toolbars::page(),
+                    PageId::Columns => columns::page(),
+                    PageId::Tabs => tabs::page(),
+                    PageId::Menus => menus::page(),
+                    PageId::DialogKinds => dialog_kinds::page(),
+                    PageId::PopupsTooltips => popups_tooltips::page(),
+                    PageId::FileBrowser => file_browser::page(),
+                    PageId::EmptyError => empty_error::page(),
+                    PageId::Meters => meters::page(),
+                    PageId::Notices => notices::page(),
+                    PageId::SplitsStacks => splits_stacks::page(),
+                    PageId::MasterDetail => master_detail::page(),
+                    PageId::PaneTree => pane_tree::page(),
+                    PageId::TextUtilities => text_utilities::page(),
+                    PageId::QueryWorkbench => query_workbench::page(),
+                    PageId::Connections => connections::page(),
+                    PageId::Finder => finder::page(),
+                    PageId::DiskCleanup => disk_cleanup::page(),
+                    PageId::Activity => activity::page(),
+                    PageId::Workspaces => workspaces::page(),
+                    PageId::AccountsUsage => accounts_usage::page(),
+                    PageId::LaunchCockpit => launch_cockpit::page(),
+                    PageId::ReadOnlyReport => readonly_report::page(),
                 }
             })
             .collect();
@@ -1752,7 +1971,7 @@ mod click_regressions {
         let mut app = App::new(Theme::junie());
         // every group open: the tree overflows the minimum sidebar
         app.set_nav_expand(NavExpand::All);
-        app.goto(PageId::TaskRunner);
+        app.goto(NAV_ENTRIES.last().unwrap().id);
         let mut term = Terminal::new(TestBackend::new(72, 20)).unwrap();
         term.draw(|frame| app.render(frame)).unwrap();
         let last = app.nav.rows().len() - 1;
