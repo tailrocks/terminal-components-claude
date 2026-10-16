@@ -155,12 +155,12 @@ impl Page for TablesPage {
                     }
                     return out;
                 }
-                if *id == scrollbar::id_for(self.table.id) {
+                if scrollbar::is_bar_of(*id, self.table.id) {
                     return self.table.on_scrollbar(*pos);
                 }
                 Outcome::Ignored
             }
-            PageEvent::Drag { pressed, pos } if *pressed == scrollbar::id_for(self.table.id) => {
+            PageEvent::Drag { pressed, pos } if scrollbar::is_bar_of(*pressed, self.table.id) => {
                 self.table.on_scrollbar_drag(*pos)
             }
             PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),

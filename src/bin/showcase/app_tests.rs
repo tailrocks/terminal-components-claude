@@ -292,7 +292,8 @@ fn table_sorts_both_directions_and_clears() {
     h.key(KeyCode::Char('s'));
     assert!(h.text().contains("ID ▾"));
     // the cursor stayed on its row (now last), so the view scrolled with it
-    assert!(h.text().contains("4–24 of 24"), "{}", h.text());
+    // (the horizontal bar of the wide table takes the body's last row)
+    assert!(h.text().contains("5–24 of 24"), "{}", h.text());
     h.key(KeyCode::Char('g'));
     assert!(h.row(h.find_row("#10").unwrap()).contains("#1063"));
     h.key(KeyCode::Char('s'));
