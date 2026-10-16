@@ -1911,8 +1911,10 @@ fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
         h.row(y)
     );
     assert!(thumb(&h) > 0, "the thumb moved right");
-    // the bar drags back to the start
-    h.mouse(MouseKind::Down, bar.right() - 1, bar.y);
+    // the thumb drags back to the start (a press on the bare track pages
+    // instead, and a drag after a page does not grab)
+    let grip = bar.x + thumb(&h) as u16;
+    h.mouse(MouseKind::Down, grip, bar.y);
     h.mouse(MouseKind::Drag, bar.x, bar.y);
     h.mouse(MouseKind::Up, bar.x, bar.y);
     assert_eq!(thumb(&h), 0);
