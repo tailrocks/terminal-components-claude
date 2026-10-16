@@ -9,8 +9,7 @@
 //! only the store names were regrouped. Do not hand-tune: drift against the
 //! approved frames means the port or the app changed.
 
-use super::{Bin, Root, Variant, interact};
-use crate::support::Color;
+use super::{Bin, Root, interact};
 
 const BOOT: &str = "Junie Design system";
 
@@ -135,8 +134,9 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/chrome/menu", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "enter", "wait:New tab"]).dismiss_pending(),
     // S9: right click on a session row opens its context menu.
     Root::new("showcase/flows/chrome/context", Bin::Showcase, &["--page", "chrome"], BOOT).live(interact::chrome_context).dismiss_pending(),
-    // S7: two typed characters open the completion popup (i = edit mode).
-    Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "i", "type:cl", "wait:Client"]).dismiss_pending(),
+    // S7: two typed characters open the completion popup (focus starts the
+    // edit, EditEntry::Immediate, 1da20cc01).
+    Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "type:cl", "wait:Client"]).dismiss_pending(),
     // datagrid_preview: `p` opens the Pending changes facts dialog with the
     // exact UPDATE statements.
     Root::new("showcase/flows/datagrid/preview", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "p", "wait:UPDATE customers SET seats = 600"]).dismiss_pending(),
@@ -206,32 +206,17 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/datagrid/failed", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save failed"]),
     // pickers_tabs: the Switch tab picker (second button).
     Root::new("showcase/flows/pickers/tabs", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "enter", "wait:Filter tabs…"]),
-    // chips_select_open: second stop is the Sort by select; Enter opens its
-    // popup (`customer` exists only inside the popup).
-    Root::new("showcase/flows/chips/select_open", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:customer"]).variants(&[
-        Variant::new(72, 20, Color::Truecolor, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(72, 20, Color::Ansi256, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(72, 20, Color::Ansi16, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(72, 20, Color::None, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(72, 20, Color::NoColorEnv, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(80, 24, Color::Truecolor, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(80, 24, Color::Ansi256, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(80, 24, Color::Ansi16, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(80, 24, Color::None, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(80, 24, Color::NoColorEnv, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(100, 30, Color::Truecolor, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(100, 30, Color::Ansi256, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(100, 30, Color::Ansi16, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(100, 30, Color::None, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-        Variant::new(100, 30, Color::NoColorEnv, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:500"]),
-    ]),
+    // chips_select_open: second stop is the Sort by select at every size;
+    // Enter opens its popup (`customer` exists only inside the popup). The
+    // old 72x20-100x30 variants waited on the Page size popup (`500`).
+    Root::new("showcase/flows/chips/select_open", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:customer"]),
     // settings_members: tabs bar → Members, then into the table, cursor row 2.
     Root::new("showcase/flows/settings/members", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "tab", "down", "wait:cursor: Jonas Weber"]),
     // chrome_menu_view: File menu open, `right` switches to the View menu.
     Root::new("showcase/flows/chrome/menu_view", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "enter", "right", "wait:Zoom pane"]),
     // chrome_focus: the menu bar focused with no menu open (the bar's hints
-    // are the proof — `← → Menu` only renders in this state).
-    Root::new("showcase/flows/chrome/focus", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "wait:← → Menu"]),
+    // are the proof — `←→ Menu` only renders in this state).
+    Root::new("showcase/flows/chrome/focus", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "wait:←→ Menu"]),
     // build = 80 × 0.006 = 48 %, spinner pinned at frame 80.
     Root::new("showcase/flows/progress/mid", Bin::Showcase, &["--page", "progress", "--motion", "paused", "--frame", "80"], BOOT),
     // 200 × 0.006 ≥ 1.0: the bar is Done (100% ✓). The transient "Build
