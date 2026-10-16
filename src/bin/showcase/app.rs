@@ -1034,6 +1034,7 @@ impl App {
             match r {
                 Request::OpenDialog(d) => self.open_dialog(*d),
                 Request::Status(s) => self.set_status(s),
+                Request::SetOption(set) => self.apply_opt(set),
             }
         }
         out
@@ -2105,6 +2106,22 @@ impl App {
         let t = self.theme;
         let i = self.page.index();
         let page = self.pages[i].as_mut();
+        // the page's Options section shows its option table at the values
+        // the page holds (set there, through the Inspector or `--opt`)
+        let opts = crate::options::page_options(self.page);
+        if !opts.is_empty() {
+            let values: Vec<usize> = opts
+                .iter()
+                .map(|o| page.option_value(o.key).unwrap_or(o.default))
+                .collect();
+            if let Some(tpl) = page.template_mut() {
+                tpl.sync_options(opts, |o| {
+                    opts.iter()
+                        .position(|p| p.key == o.key)
+                        .map_or(o.default, |i| values[i])
+                });
+            }
+        }
         // page title row
         buf.set_string(area.x, area.y, page.title(), t.title());
         let tw = junie_tui::ui::text::width(page.title()) as u16;
