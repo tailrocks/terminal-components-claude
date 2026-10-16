@@ -195,6 +195,16 @@ All done; the regression tests are in `src/bin/holla/app_tests_colour.rs`.
 | Disk filesystem meter | `src/bin/holla/screens/disk.rs:1670` | `MeterTone::Level { warn: 80, crit: 95 }` | Done: `disk::FS_METER`, also on the status-bar root filesystem meter (`a_filesystem_meter_warns_at_its_own_thresholds`) |
 | Activity tabs | `src/bin/holla/app.rs:3389-3401` | `Succeeded` sets `TabItem::done` instead of the `✓` suffix | Done: also finished plan tabs (`a_succeeded_activity_tab_is_done`) |
 
+Visual (holla and jackin): every holla and jackin capture is still a
+legacy tuisnap approval pending tuiscotti re-approval (`cargo xtask visual
+list`: 3,125 holla and 1,200 jackin `stored legacy`, none
+`reapproved`), skipped unless `VISUAL_FULL=1`. Those approvals predate
+much other product work, so re-approving a group now would fold drift
+that is not this change into the approval; no holla or jackin capture
+was re-approved, and none gates these rows. The showcase captures that
+the library additions could reach stayed green under `cargo xtask visual
+check-touched`.
+
 ### jackin
 
 All done; the regression tests are in `src/bin/jackin_preview/app_tests_colour.rs`.
