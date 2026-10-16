@@ -2175,9 +2175,12 @@ impl App {
             self.draw_inspector_overlay(area, buf, ctx);
         }
         if let Some(d) = self.dialog.as_mut() {
+            // clear of the header and footer rows at least; a dialog that
+            // asks for more chrome (`Dialog::chrome`) gets it
+            let (top, bottom) = d.chrome;
             d.render_in(
                 area,
-                junie_tui::widgets::dialog::body_bounds(area, 1, 1),
+                junie_tui::widgets::dialog::body_bounds(area, top.max(1), bottom.max(1)),
                 buf,
                 ctx,
             );

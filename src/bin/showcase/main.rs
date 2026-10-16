@@ -18,6 +18,8 @@ mod app_tests_context;
 #[cfg(test)]
 mod app_tests_coverage;
 #[cfg(test)]
+mod app_tests_dialogs;
+#[cfg(test)]
 mod app_tests_feedback;
 #[cfg(test)]
 mod app_tests_focusnav;
