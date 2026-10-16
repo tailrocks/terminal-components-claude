@@ -1754,7 +1754,8 @@ impl App {
                         Modal::Info(i) => i.on_wheel(delta),
                         Modal::Help(h) => h.on_wheel(delta),
                         Modal::Custom(c) => c.on_wheel(delta, m.pos),
-                        Modal::Dialog(_) | Modal::Choice(_) => Outcome::Consumed,
+                        Modal::Dialog(d) => d.on_wheel(delta),
+                        Modal::Choice(_) => Outcome::Consumed,
                     };
                 }
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
@@ -2369,7 +2370,12 @@ impl App {
                 if let Some(mut entry) = self.modals.pop() {
                     let hints = self.modal_hints(&entry.modal);
                     match &mut entry.modal {
-                        Modal::Dialog(d) => d.render(area, buf, ctx),
+                        Modal::Dialog(d) => d.render_in(
+                            area,
+                            junie_tui::widgets::dialog::body_bounds(area, 1, 1),
+                            buf,
+                            ctx,
+                        ),
                         Modal::Picker(p) => p.render(area, buf, ctx, &hints),
                         Modal::Browser(b) => {
                             let stepper = self.screens.prelude.as_ref().map(|p| p.stepper_line());

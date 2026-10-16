@@ -797,8 +797,8 @@ impl App {
             }
             MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = if m.kind == MouseKind::WheelUp { -3 } else { 3 };
-                if self.dialog.is_some() {
-                    return Outcome::Consumed;
+                if let Some(d) = self.dialog.as_mut() {
+                    return d.on_wheel(delta);
                 }
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
@@ -951,7 +951,12 @@ impl App {
         }
         self.draw_footer(layout.footer, buf, ctx);
         if let Some(d) = self.dialog.as_mut() {
-            d.render(area, buf, ctx);
+            d.render_in(
+                area,
+                junie_tui::widgets::dialog::body_bounds(area, 1, 1),
+                buf,
+                ctx,
+            );
         }
     }
 

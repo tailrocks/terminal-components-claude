@@ -1600,6 +1600,7 @@ impl App {
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),
                         Modal::Text(t) => t.on_wheel(delta),
+                        Modal::Dialog(d) => d.on_wheel(delta),
                         _ => Outcome::Consumed,
                     };
                 }
@@ -3012,7 +3013,12 @@ impl App {
         self.draw_frame(area, buf, ctx);
         if let Some(mut entry) = self.modals.pop() {
             match &mut entry.modal {
-                Modal::Dialog(d) => d.render(area, buf, ctx),
+                Modal::Dialog(d) => d.render_in(
+                    area,
+                    junie_tui::widgets::dialog::body_bounds(area, 1, 2),
+                    buf,
+                    ctx,
+                ),
                 Modal::Picker(p) => p.render(area, buf, ctx, ""),
                 Modal::Menu(m) => {
                     ctx.begin_modal(buf);

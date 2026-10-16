@@ -2056,6 +2056,9 @@ impl App {
                 if let Some(Modal::Picker(_, p, _)) = self.modal.as_mut() {
                     return p.on_wheel(delta);
                 }
+                if let Some(Modal::Dialog(d)) = self.modal.as_mut() {
+                    return d.on_wheel(delta);
+                }
                 if self.modal.is_some() {
                     return Outcome::Consumed;
                 }
@@ -2192,7 +2195,12 @@ impl App {
         let modal = self.modal.take();
         if let Some(mut modal) = modal {
             match &mut modal {
-                Modal::Dialog(d) => d.render(area, buf, ctx),
+                Modal::Dialog(d) => d.render_in(
+                    area,
+                    junie_tui::widgets::dialog::body_bounds(area, 1, 1),
+                    buf,
+                    ctx,
+                ),
                 Modal::Picker(kind, p, _) => {
                     let hints = match kind {
                         PickerKind::Switcher => {
