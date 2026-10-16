@@ -14,7 +14,9 @@ use crate::core::selection::{RowSelection, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::field_common::{EditAction, edit_key};
-use crate::widgets::option_editor::{ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig};
+use crate::widgets::option_editor::{
+    Affordance, ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig,
+};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -831,7 +833,7 @@ impl DataTable {
     }
 
     /// Start editing the cursor cell: a text editor, a constrained
-    /// editor's popup, or (Toggle) the flipped value committed at once.
+    /// editor's popup, or (Checkbox) the flipped value committed at once.
     pub fn start_edit(&mut self) -> (Outcome, Option<TableEvent>) {
         if self.rows.is_empty() {
             return (Outcome::Consumed, None);
@@ -1112,6 +1114,16 @@ impl DataTable {
                 TableAction::SortByColumn => (self.sort_by(c), None),
             };
         }
+        // Alt+↓ opens a constrained cell's popup; plain ↓ stays row
+        // navigation (APG grid)
+        if key.code == KeyCode::Down
+            && key.alt()
+            && self.cell_nav
+            && self.columns[c].editable
+            && self.columns[c].editor.has_popup()
+        {
+            return self.start_edit();
+        }
         if let Some(nav) = self.nav.action(key) {
             return self.on_nav(nav);
         }
@@ -1119,7 +1131,7 @@ impl DataTable {
             KeyCode::Enter | KeyCode::F(2) if self.cell_nav && self.columns[c].editable => {
                 self.start_edit()
             }
-            // Space opens a constrained cell (and flips a toggle)
+            // Space opens a constrained cell (and flips a checkbox)
             KeyCode::Char(' ')
                 if self.cell_nav
                     && self.columns[c].editable
@@ -1649,7 +1661,16 @@ impl DataTable {
                 let constrained = col.editor.is_constrained();
                 // a constrained cell shows its option's label and tone; a
                 // value outside the options is flagged like an error
-                let shown: std::borrow::Cow<str> = if constrained {
+                let shown: std::borrow::Cow<str> = if let Some(on) = col.editor.checked(&cell.text)
+                {
+                    // a two-value cell is a checkbox
+                    if on {
+                        t.glyphs.check_on
+                    } else {
+                        t.glyphs.check_off
+                    }
+                    .into()
+                } else if constrained {
                     col.editor.display(&cell.text, cfg).into()
                 } else {
                     cell.text.as_str().into()
@@ -1719,13 +1740,18 @@ impl DataTable {
                     }
                     // editable popup cells advertise their `▾` on hover and
                     // on the cursor cell; read-only cells never do
-                    let affordance = cfg.affordance
-                        && col.editable
+                    let affordance = col.editable
                         && col.editor.has_popup()
                         && r.width > 3
-                        && (is_cursor_cell
-                            || is_choice_cell
-                            || (s.hovered && hovered_cell == Some(ci)));
+                        && match cfg.affordance {
+                            Affordance::Never => false,
+                            Affordance::Always => true,
+                            Affordance::Focused => {
+                                is_cursor_cell
+                                    || is_choice_cell
+                                    || (s.hovered && hovered_cell == Some(ci))
+                            }
+                        };
                     let text_w = if affordance { r.width - 2 } else { r.width } as usize;
                     let text = match col.align {
                         Align::Left => crate::ui::text::fit(&shown, text_w),

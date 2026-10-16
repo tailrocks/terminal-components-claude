@@ -28,13 +28,13 @@ fn envs() -> Options {
     ])
 }
 
-/// Name · Env (Select) · Notify (Toggle) · Labels (Tags) · Tier (Segmented)
+/// Name · Env (Select) · Notify (Checkbox) · Labels (Tags) · Tier (Segmented)
 fn table() -> DataTable {
     let columns = vec![
         Column::new("Name", Constraint::Length(8)).editable(),
         Column::new("Env", Constraint::Length(14)).editor(ColumnEditor::Select(envs())),
         Column::new("Notify", Constraint::Length(7))
-            .editor(ColumnEditor::Toggle(Options::values(&["off", "on"]))),
+            .editor(ColumnEditor::Checkbox(Options::values(&["off", "on"]))),
         Column::new("Labels", Constraint::Length(12))
             .editor(ColumnEditor::Tags(Options::values(&["api", "web", "db"]))),
         Column::new("Tier", Constraint::Length(6))
@@ -272,6 +272,42 @@ fn the_validator_still_decides_and_blur_follows_the_config() {
     t.on_key(&key(KeyCode::Down));
     assert_eq!(t.on_blur(), Some(TableEvent::Committed { row: 0, col: 1 }));
     assert_eq!(t.rows[0][1].text, "prod");
+}
+
+#[test]
+fn alt_down_opens_and_a_checkbox_cell_shows_a_box() {
+    let mut t = table();
+    let down = |mods| Key {
+        code: KeyCode::Down,
+        mods,
+    };
+    t.on_key(&down(KeyModifiers::ALT));
+    assert!(t.choice.is_some(), "Alt+↓ opens");
+    t.on_key(&key(KeyCode::Esc));
+    t.on_key(&down(KeyModifiers::NONE));
+    assert!(t.choice.is_none() && t.cursor_row == 1, "plain ↓ moves");
+    let (buf, _) = draw(&mut t, None);
+    let theme = Theme::junie();
+    let rows = text(&buf);
+    assert!(rows.contains(theme.glyphs.check_on), "{rows}");
+    assert!(rows.contains(theme.glyphs.check_off), "{rows}");
+}
+
+#[test]
+fn the_affordance_follows_its_policy() {
+    use crate::widgets::option_editor::Affordance;
+    let marks = |t: &mut DataTable| {
+        let (_, hits) = draw(t, None);
+        (0..2)
+            .filter(|&r| hits.area_of(t.open_id(r, 1)).is_some())
+            .count()
+    };
+    let mut t = table();
+    assert_eq!(marks(&mut t), 1, "focused: the cursor cell only");
+    t.editor_config.affordance = Affordance::Always;
+    assert_eq!(marks(&mut t), 2, "always: every editable option cell");
+    t.editor_config.affordance = Affordance::Never;
+    assert_eq!(marks(&mut t), 0);
 }
 
 #[test]
