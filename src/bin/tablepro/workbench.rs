@@ -768,10 +768,10 @@ impl Workbench {
                     t.load(cat);
                 }
                 Some(junie_tui::widgets::chips::ChipAction::Activate(i)) => {
-                    cx.requests.push(crate::app::Request::EditFilter(Some(i)));
+                    cx.go(crate::app::Act::EditFilter(Some(i)));
                 }
                 Some(junie_tui::widgets::chips::ChipAction::Add) => {
-                    cx.requests.push(crate::app::Request::EditFilter(None))
+                    cx.go(crate::app::Act::EditFilter(None))
                 }
                 Some(junie_tui::widgets::chips::ChipAction::ClearAll) => {
                     t.filters.clear();
@@ -837,21 +837,20 @@ impl Workbench {
             }
             GridAction::Refresh => {
                 if t.dirty_count() > 0 {
-                    cx.requests.push(crate::app::Request::ConfirmDiscard);
+                    cx.go(crate::app::Act::ConfirmDiscard);
                 } else {
                     t.load(cat);
                     cx.status("Refreshed");
                 }
             }
-            GridAction::CommitRequested => cx.requests.push(crate::app::Request::CommitPending),
-            GridAction::DiscardRequested => cx.requests.push(crate::app::Request::ConfirmDiscard),
-            GridAction::PreviewSql => cx.requests.push(crate::app::Request::PreviewSql),
+            GridAction::CommitRequested => cx.go(crate::app::Act::CommitPending),
+            GridAction::DiscardRequested => cx.go(crate::app::Act::ConfirmDiscard),
+            GridAction::PreviewSql => cx.go(crate::app::Act::PreviewSql),
             GridAction::Copy(s) => cx.status(format!("Copied {} chars", s.len())),
             GridAction::FilterOnCell { col, value } => {
-                cx.requests
-                    .push(crate::app::Request::FilterOnCell(col, value));
+                cx.go(crate::app::Act::FilterOnCell(col, value));
             }
-            GridAction::OpenFilters => cx.requests.push(crate::app::Request::EditFilter(None)),
+            GridAction::OpenFilters => cx.go(crate::app::Act::EditFilter(None)),
             GridAction::ClearFilters => {
                 t.filters.clear();
                 t.load(cat);
@@ -865,17 +864,12 @@ impl Workbench {
                     .and(None::<String>)
                     .or_else(|| t.grid.columns[col].references.clone())
                 {
-                    cx.requests.push(crate::app::Request::OpenTableFiltered(
-                        target,
-                        "id".into(),
-                        v,
-                    ));
+                    cx.go(crate::app::Act::OpenTableFiltered(target, "id".into(), v));
                 }
             }
             GridAction::OpenViewer { row, col } => {
                 let v = t.grid.value(row, col).clone();
-                cx.requests
-                    .push(crate::app::Request::OpenViewer(t.columns[col].0.clone(), v));
+                cx.go(crate::app::Act::OpenViewer(t.columns[col].0.clone(), v));
             }
             GridAction::LeaveForward => cx.focus_next(),
             GridAction::LeaveBackward => cx.focus_prev(),
@@ -936,15 +930,13 @@ impl Workbench {
                 }
                 KeyCode::Enter => {
                     if let Some(e) = h.current_entry(history) {
-                        cx.requests
-                            .push(crate::app::Request::OpenQuery(e.sql.clone(), false));
+                        cx.go(crate::app::Act::OpenQuery(e.sql.clone(), false));
                     }
                     return Outcome::Changed;
                 }
                 KeyCode::Char('r') => {
                     if let Some(e) = h.current_entry(history) {
-                        cx.requests
-                            .push(crate::app::Request::OpenQuery(e.sql.clone(), true));
+                        cx.go(crate::app::Act::OpenQuery(e.sql.clone(), true));
                     }
                     return Outcome::Changed;
                 }
@@ -971,8 +963,7 @@ impl Workbench {
         }
         if let Some((o, act, run)) = hit {
             if act && let Some(e) = h.current_entry(history) {
-                cx.requests
-                    .push(crate::app::Request::OpenQuery(e.sql.clone(), run));
+                cx.go(crate::app::Act::OpenQuery(e.sql.clone(), run));
             }
             return o;
         }
@@ -988,7 +979,7 @@ impl Workbench {
 
     fn request_close(&mut self, i: usize, cx: &mut Cx) -> Outcome {
         if self.tabs.get(i).is_some_and(|t| t.dirty()) {
-            cx.requests.push(crate::app::Request::ConfirmCloseTab(i));
+            cx.go(crate::app::Act::ConfirmCloseTab(i));
         } else {
             self.close_tab(i);
         }
@@ -1117,7 +1108,7 @@ impl Workbench {
 
     fn click(&mut self, ev: &PointerEvent, cx: &mut Cx, history: &mut History) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
-        if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, cx.clicks) {
+        if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, ev.count()) {
             cx.focus.focus(id);
             return o;
         }
@@ -1149,7 +1140,7 @@ impl Workbench {
             return o;
         }
         if id == self.explorer_seam.id {
-            if cx.clicks == 2 {
+            if ev.count() == 2 {
                 self.explorer_sized = false;
                 return Outcome::Changed;
             }
@@ -1209,10 +1200,10 @@ impl Workbench {
                             t.load(cat);
                         }
                         Some(junie_tui::widgets::chips::ChipAction::Activate(i)) => {
-                            cx.requests.push(crate::app::Request::EditFilter(Some(i)))
+                            cx.go(crate::app::Act::EditFilter(Some(i)))
                         }
                         Some(junie_tui::widgets::chips::ChipAction::Add) => {
-                            cx.requests.push(crate::app::Request::EditFilter(None))
+                            cx.go(crate::app::Act::EditFilter(None))
                         }
                         Some(junie_tui::widgets::chips::ChipAction::Lead) => {
                             t.match_all = !t.match_all;
@@ -1237,7 +1228,7 @@ impl Workbench {
             Some(WorkTab::Query(q)) => q.click(ev, cx, cat),
             Some(WorkTab::History(h)) => {
                 if id == h.seam.id {
-                    return h.seam.on_click(&mut h.split, cx.clicks);
+                    return h.seam.on_click(&mut h.split, ev.count());
                 }
                 if ev.on(h.list.id) {
                     if ev.index_of(Part::ROW).is_some() {
@@ -1262,8 +1253,7 @@ impl Workbench {
                 }
                 if let Some(run) = hit {
                     if let Some(e) = h.current_entry(history) {
-                        cx.requests
-                            .push(crate::app::Request::OpenQuery(e.sql.clone(), run));
+                        cx.go(crate::app::Act::OpenQuery(e.sql.clone(), run));
                     }
                     return Outcome::Changed;
                 }
