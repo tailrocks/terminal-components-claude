@@ -3,7 +3,7 @@
 
 use junie_tui::core::selection::SelectionMode;
 use junie_tui::core::{focus::FocusRing, hit::HitRegistry, id::WidgetId};
-use junie_tui::theme::{ColorLevel, Glyphs, LevelOverrides, Theme};
+use junie_tui::theme::{ColorLevel, Glyphs, LevelOverrides, Strings, Theme};
 use junie_tui::ui::ctx::{Interaction, RenderCtx};
 use junie_tui::widgets::button::{Button, ButtonRow, RowOverflow};
 use junie_tui::widgets::chips::{Chip, ChipBar};
@@ -25,7 +25,9 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Position, Rect};
 
 fn ascii() -> Theme {
-    Theme::junie().with_glyphs(Glyphs::ASCII)
+    Theme::junie()
+        .with_glyphs(Glyphs::ASCII)
+        .with_strings(Strings::ASCII)
 }
 
 /// Render with `theme`, focus on `focus`, then flush overlays.
@@ -328,7 +330,7 @@ fn tables_and_grids_draw_ascii() {
                 })
                 .collect(),
             total: RowTotal::Exact(400),
-            more: false,
+            more: true,
         });
         g.sort = Some((0, SortDir::Desc));
         g.filtered_cols.insert(1);
@@ -403,10 +405,9 @@ fn panels_dialogs_and_diffs_draw_ascii() {
 #[test]
 fn ascii_mono_override_switches_only_mono() {
     let o = LevelOverrides::ASCII_MONO;
-    assert_eq!(
-        Theme::for_level_with(ColorLevel::Mono, &o).glyphs,
-        Glyphs::ASCII
-    );
+    let mono = Theme::for_level_with(ColorLevel::Mono, &o);
+    assert_eq!(mono.glyphs, Glyphs::ASCII);
+    assert_eq!(mono.strings, Strings::ASCII);
     for level in [
         ColorLevel::TrueColor,
         ColorLevel::Ansi256,

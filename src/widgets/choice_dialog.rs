@@ -7,7 +7,7 @@
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::id::WidgetId;
-use crate::theme::{ButtonKind, Tone};
+use crate::theme::{ButtonKind, Strings, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
 use crate::widgets::button::{Button, row_layout_right};
@@ -36,6 +36,9 @@ pub struct ChoiceDialog {
     pub stepper: Option<String>,
     pub area: Rect,
     pub option_tones: Vec<Tone>,
+    /// The theme's strings as of the last render; a cancel label still
+    /// reading them follows a change ([`Strings::follow`]).
+    strings: Strings,
 }
 
 impl ChoiceDialog {
@@ -46,8 +49,8 @@ impl ChoiceDialog {
             lines: vec![],
             radio: RadioGroup::new(id.sub("radio"), label, options, selected),
             buttons: vec![
-                Button::subtle(id.sub("cancel"), "Cancel"),
-                Button::primary(id.sub("ok"), "Next"),
+                Button::subtle(id.sub("cancel"), Strings::DEFAULT.cancel),
+                Button::primary(id.sub("ok"), Strings::DEFAULT.next),
             ],
             cancel_index: 0,
             result: None,
@@ -56,6 +59,7 @@ impl ChoiceDialog {
             stepper: None,
             area: Rect::ZERO,
             option_tones: vec![],
+            strings: Strings::DEFAULT,
         }
     }
 
@@ -172,6 +176,15 @@ impl ChoiceDialog {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let s = ctx.theme.strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        for (i, b) in self.buttons.iter_mut().enumerate() {
+            if i == self.cancel_index {
+                Strings::follow(&mut b.label, old.cancel, s.cancel);
+            } else {
+                Strings::follow(&mut b.label, old.next, s.next);
+            }
+        }
         let body = self.lines.len() as u16 + if self.lines.is_empty() { 0 } else { 1 };
         let stepper = if self.stepper.is_some() { 2 } else { 0 };
         let h = 2 + 2 + stepper + body + self.radio.height() + 2 + 1;

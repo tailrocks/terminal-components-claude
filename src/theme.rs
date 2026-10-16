@@ -262,13 +262,14 @@ pub struct LevelOverrides {
 }
 
 impl LevelOverrides {
-    /// Mono draws with [`Glyphs::ASCII`]; every other level keeps its
-    /// defaults. For a terminal that has no colour and no Unicode either.
+    /// Mono draws with [`Glyphs::ASCII`] and [`Strings::ASCII`]; every
+    /// other level keeps its defaults. For a terminal that has no colour
+    /// and no Unicode either.
     pub const ASCII_MONO: Self = Self {
         truecolor: None,
         ansi256: None,
         ansi16: None,
-        mono: Some(ascii_glyphs),
+        mono: Some(ascii),
     };
 
     fn get(&self, level: ColorLevel) -> Option<fn(&mut Theme)> {
@@ -284,6 +285,13 @@ impl LevelOverrides {
 /// A [`LevelOverrides`] hook that switches the theme to [`Glyphs::ASCII`].
 pub fn ascii_glyphs(t: &mut Theme) {
     t.glyphs = Glyphs::ASCII;
+}
+
+/// A [`LevelOverrides`] hook that switches the theme to 7-bit output:
+/// [`Glyphs::ASCII`] and [`Strings::ASCII`].
+pub fn ascii(t: &mut Theme) {
+    t.glyphs = Glyphs::ASCII;
+    t.strings = Strings::ASCII;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -474,6 +482,9 @@ pub struct Theme {
     /// Every glyph a widget draws: focus bar, markers, chevrons, checks,
     /// scrollbars, spinner and borders. Default [`Glyphs::UNICODE`].
     pub glyphs: Glyphs,
+    /// The library's own copy (button labels, empty and loading states,
+    /// validation messages, widget hints). Default [`Strings::DEFAULT`].
+    pub strings: Strings,
 }
 
 impl Theme {
@@ -533,6 +544,7 @@ impl Theme {
             hintbar: HintBarStyle::DEFAULT,
             spacing: Spacing::DEFAULT,
             glyphs: Glyphs::UNICODE,
+            strings: Strings::DEFAULT,
         }
     }
 
@@ -801,6 +813,13 @@ impl Theme {
     /// on a terminal without Unicode).
     pub const fn with_glyphs(mut self, glyphs: Glyphs) -> Self {
         self.glyphs = glyphs;
+        self
+    }
+
+    /// The same theme with the library copy `strings` (a translation, or
+    /// [`Strings::ASCII`]).
+    pub const fn with_strings(mut self, strings: Strings) -> Self {
+        self.strings = strings;
         self
     }
 
@@ -1784,6 +1803,189 @@ impl Glyphs {
 impl Default for Glyphs {
     fn default() -> Self {
         Self::UNICODE
+    }
+}
+
+/// The English copy the library itself draws: button labels, empty and
+/// loading states, validation messages and the hints widgets add to a
+/// footer. Set on [`Theme::strings`] to translate or reword it in one
+/// place; [`Strings::DEFAULT`] is today's copy and [`Strings::ASCII`] the
+/// same words with 7-bit punctuation.
+///
+/// A widget label still holding the text it was built with follows the
+/// theme's strings when drawn ([`Strings::follow`]); a per-widget builder (`Dialog::cancel_label`,
+/// `Picker::placeholder`, `TextInput::required_message`,
+/// `DataGrid::bar_labels`, ...) sets text that the theme no longer
+/// changes. Templates fill each `{}` in order (see [`Strings::fill`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Strings {
+    /// The cancel button of dialogs. `Cancel`.
+    pub cancel: &'static str,
+    /// The save button of form dialogs. `Save`.
+    pub save: &'static str,
+    /// The typed acknowledgement of a dangerous dialog; `{}` is the token.
+    /// `Type {} to confirm`.
+    pub type_to_confirm: &'static str,
+    /// The hint while the acknowledgement is unmet; `{}` is the token.
+    /// `"{}" to confirm` (after the key `Type`).
+    pub type_to_confirm_hint: &'static str,
+    /// The last shown line of a cut preview; `{}` is the hidden count.
+    /// `… {} more`.
+    pub more_cut: &'static str,
+    /// A count of hidden lines after an arrow glyph. `{} more`.
+    pub more_count: &'static str,
+    /// A required field left empty. `Required`.
+    pub required: &'static str,
+    /// The suffix on a field label that is not required. `optional`.
+    pub optional: &'static str,
+    /// The primary button of a step in a choice dialog. `Next`.
+    pub next: &'static str,
+    /// A search with no result. `No matches`.
+    pub no_matches: &'static str,
+    /// The query field of a searchable picker. `Type to search…`.
+    pub search_placeholder: &'static str,
+    /// An empty list. `Nothing here yet`.
+    pub empty_list: &'static str,
+    /// An empty table or grid. `No rows`.
+    pub no_rows: &'static str,
+    /// A grid waiting for its first rows. `Loading rows…`.
+    pub loading_rows: &'static str,
+    /// The grid's last row while more rows load (after a spinner).
+    /// `fetching…`.
+    pub fetching: &'static str,
+    /// The grid's last row when more rows can be fetched (after an arrow);
+    /// `{}` is the loaded count. `{} loaded · Enter fetches more`.
+    pub fetch_more: &'static str,
+    /// The grid's pending-changes bar buttons. `Preview SQL`.
+    pub preview_sql: &'static str,
+    /// `Discard`.
+    pub discard: &'static str,
+    /// `Save` (the grid's bar).
+    pub save_changes: &'static str,
+    /// Diff review columns. `Old`.
+    pub diff_old: &'static str,
+    /// `New`.
+    pub diff_new: &'static str,
+    /// A diff view with no file. `No file selected`.
+    pub diff_no_file: &'static str,
+    /// A file whose diff has no text. `(no textual changes)`.
+    pub diff_no_changes: &'static str,
+    /// The review layout's title suffix. `review`.
+    pub diff_review: &'static str,
+    /// Reveal hint while the text is cut. `Full text`.
+    pub reveal_open: &'static str,
+    /// Reveal hint while the full text shows. `Collapse`.
+    pub reveal_close: &'static str,
+    /// Dialog hint: arrows move between actions. `Choose`.
+    pub hint_choose: &'static str,
+    /// Dialog hint: arrows scroll the body. `Scroll`.
+    pub hint_scroll: &'static str,
+    /// Dialog hint: Shift+arrows scroll the code preview. `Scroll code`.
+    pub hint_scroll_code: &'static str,
+    /// Hint: Esc cancels. `Cancel`.
+    pub hint_cancel: &'static str,
+    /// Hint: Esc closes a dialog without a cancel action. `Close`.
+    pub hint_close: &'static str,
+    /// Hint: Enter or Tab moves on. `Next`.
+    pub hint_next: &'static str,
+    /// Hint: Enter applies a field edit with no primary action. `Apply`.
+    pub hint_apply: &'static str,
+    /// Hint: Enter starts editing a field. `Edit`.
+    pub hint_edit: &'static str,
+    /// The help overlay's title. `Keyboard shortcuts`.
+    pub help_title: &'static str,
+    /// The help overlay's footer. `↑↓ Scroll · Esc Close`.
+    pub help_footer: &'static str,
+    /// The reason on a menu item a preview or demo does not implement.
+    /// `Not in this preview`.
+    pub not_in_preview: &'static str,
+}
+
+impl Strings {
+    /// Today's copy.
+    pub const DEFAULT: Self = Self {
+        cancel: "Cancel",
+        save: "Save",
+        type_to_confirm: "Type {} to confirm",
+        type_to_confirm_hint: "\"{}\" to confirm",
+        more_cut: "… {} more",
+        more_count: "{} more",
+        required: "Required",
+        optional: "optional",
+        next: "Next",
+        no_matches: "No matches",
+        search_placeholder: "Type to search…",
+        empty_list: "Nothing here yet",
+        no_rows: "No rows",
+        loading_rows: "Loading rows…",
+        fetching: "fetching…",
+        fetch_more: "{} loaded · Enter fetches more",
+        preview_sql: "Preview SQL",
+        discard: "Discard",
+        save_changes: "Save",
+        diff_old: "Old",
+        diff_new: "New",
+        diff_no_file: "No file selected",
+        diff_no_changes: "(no textual changes)",
+        diff_review: "review",
+        reveal_open: "Full text",
+        reveal_close: "Collapse",
+        hint_choose: "Choose",
+        hint_scroll: "Scroll",
+        hint_scroll_code: "Scroll code",
+        hint_cancel: "Cancel",
+        hint_close: "Close",
+        hint_next: "Next",
+        hint_apply: "Apply",
+        hint_edit: "Edit",
+        help_title: "Keyboard shortcuts",
+        help_footer: "↑↓ Scroll · Esc Close",
+        not_in_preview: "Not in this preview",
+    };
+
+    /// [`Self::DEFAULT`] with 7-bit punctuation (`...`, `|`, `^v`), to pair
+    /// with [`Glyphs::ASCII`].
+    pub const ASCII: Self = Self {
+        more_cut: "... {} more",
+        search_placeholder: "Type to search...",
+        loading_rows: "Loading rows...",
+        fetching: "fetching...",
+        fetch_more: "{} loaded | Enter fetches more",
+        help_footer: "^v Scroll | Esc Close",
+        ..Self::DEFAULT
+    };
+
+    /// `template` with each `{}` replaced by the next of `args`; extra
+    /// placeholders stay as written.
+    pub fn fill(template: &str, args: &[&dyn std::fmt::Display]) -> String {
+        let mut out = String::with_capacity(template.len() + 8);
+        let mut rest = template;
+        let mut args = args.iter();
+        while let Some(i) = rest.find("{}") {
+            out.push_str(&rest[..i]);
+            match args.next() {
+                Some(a) => out.push_str(&a.to_string()),
+                None => out.push_str("{}"),
+            }
+            rest = &rest[i + 2..];
+        }
+        out.push_str(rest);
+        out
+    }
+
+    /// Move `text` from `old` to `new` when it still reads `old`: how a
+    /// widget's default label follows a change of [`Theme::strings`] while
+    /// a label the caller set stays.
+    pub fn follow(text: &mut String, old: &str, new: &str) {
+        if old != new && text == old {
+            new.clone_into(text);
+        }
+    }
+}
+
+impl Default for Strings {
+    fn default() -> Self {
+        Self::DEFAULT
     }
 }
 

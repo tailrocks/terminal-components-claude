@@ -394,6 +394,10 @@ pub struct DataGrid {
     col_rects: Vec<Rect>,
     show_bar: bool,
     bar: [Button; 3],
+    /// The theme's strings as of the last render: the empty state and bar
+    /// labels still reading them follow a change
+    /// ([`crate::theme::Strings::follow`]).
+    strings: crate::theme::Strings,
     /// How a cut cell reveals its full value on hover (see
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
@@ -528,7 +532,7 @@ impl DataGrid {
             loading: false,
             cell_errors: HashMap::new(),
             row_errors: HashMap::new(),
-            empty: crate::widgets::empty::EmptyState::new("No rows"),
+            empty: crate::widgets::empty::EmptyState::new(crate::theme::Strings::DEFAULT.no_rows),
             validator: Validator::default(),
             row_numbers: true,
             area: Rect::ZERO,
@@ -538,10 +542,14 @@ impl DataGrid {
             col_rects: vec![],
             show_bar: true,
             bar: [
-                Button::subtle(id.sub("preview"), "Preview SQL"),
-                Button::subtle(id.sub("discard"), "Discard"),
-                Button::primary(id.sub("save"), "Save"),
+                Button::subtle(
+                    id.sub("preview"),
+                    crate::theme::Strings::DEFAULT.preview_sql,
+                ),
+                Button::subtle(id.sub("discard"), crate::theme::Strings::DEFAULT.discard),
+                Button::primary(id.sub("save"), crate::theme::Strings::DEFAULT.save_changes),
             ],
+            strings: crate::theme::Strings::DEFAULT,
             reveal: None,
             horizontal: None,
             overflow_badges: true,
@@ -559,9 +567,37 @@ impl DataGrid {
         self
     }
 
+    /// Move the default text still reading the last strings to `s`.
+    fn follow_strings(&mut self, s: crate::theme::Strings) {
+        use crate::theme::Strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        if old == s {
+            return;
+        }
+        Strings::follow(&mut self.empty.title, old.no_rows, s.no_rows);
+        let pairs = [
+            (old.preview_sql, s.preview_sql),
+            (old.discard, s.discard),
+            (old.save_changes, s.save_changes),
+        ];
+        for (b, (from, to)) in self.bar.iter_mut().zip(pairs) {
+            Strings::follow(&mut b.label, from, to);
+        }
+    }
+
     /// Show or hide the `‹n` / `n›` hidden-column badges.
     pub fn overflow_badges(mut self, on: bool) -> Self {
         self.overflow_badges = on;
+        self
+    }
+
+    /// The pending-changes bar's labels: preview, discard, save. Default
+    /// the theme's `Preview SQL`, `Discard`, `Save`
+    /// ([`crate::theme::Strings`]); labels set here no longer follow it.
+    pub fn bar_labels(mut self, labels: [&str; 3]) -> Self {
+        for (b, l) in self.bar.iter_mut().zip(labels) {
+            b.label = l.to_owned();
+        }
         self
     }
 
@@ -1806,6 +1842,7 @@ impl DataGrid {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.follow_strings(ctx.theme.strings);
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         self.fit_header_marks();
         let area = area.intersection(*buf.area());
@@ -1967,7 +2004,7 @@ impl DataGrid {
                     Rect::new(body.x + 3, body.y + body.height / 2, body.width, 1),
                     buf,
                     ctx,
-                    "Loading rows…",
+                    t.strings.loading_rows,
                     bg,
                 );
             } else {
@@ -2006,11 +2043,19 @@ impl DataGrid {
                     t.gutter(s, st.bg.unwrap_or(bg), false),
                 );
                 let text = if self.loading {
-                    format!("{} fetching…", t.glyphs.spinner_frame(ctx.interaction.tick))
+                    format!(
+                        "{} {}",
+                        t.glyphs.spinner_frame(ctx.interaction.tick),
+                        t.strings.fetching
+                    )
                 } else {
                     format!(
-                        "↓ {} loaded · Enter fetches more",
-                        crate::ui::text::thousands(self.rows.len())
+                        "{} {}",
+                        t.glyphs.arrows[1],
+                        crate::theme::Strings::fill(
+                            t.strings.fetch_more,
+                            &[&crate::ui::text::thousands(self.rows.len())]
+                        )
                     )
                 };
                 buf.set_string(row_rect.x + gutter_w, y, &text, st.fg(t.text_muted));
@@ -2532,6 +2577,23 @@ mod tests {
         });
         g.scroll.set_viewport(5);
         g
+    }
+
+    #[test]
+    fn bar_labels_override_the_theme_and_default_labels_follow_it() {
+        let de = crate::theme::Strings {
+            preview_sql: "Vorschau",
+            ..crate::theme::Strings::DEFAULT
+        };
+        let labels = |g: &DataGrid| g.bar.iter().map(|b| b.label.clone()).collect::<Vec<_>>();
+        let mut g = grid().bar_labels(["SQL", "Undo all", "Write"]);
+        g.follow_strings(de);
+        assert_eq!(labels(&g), ["SQL", "Undo all", "Write"]);
+        let mut g = grid();
+        g.follow_strings(de);
+        assert_eq!(labels(&g), ["Vorschau", "Discard", "Save"]);
+        g.follow_strings(crate::theme::Strings::DEFAULT);
+        assert_eq!(labels(&g), ["Preview SQL", "Discard", "Save"]);
     }
 
     #[test]

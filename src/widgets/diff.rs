@@ -11,7 +11,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::theme::{Glyphs, Tone};
+use crate::theme::{Glyphs, Strings, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{expand_tabs, fit, truncate, width};
 use crate::widgets::viewport::{Line, Span, TextViewport, ViewportEvent};
@@ -208,9 +208,10 @@ pub struct DiffView {
     laid_mode: DiffMode,
     dirty: bool,
     rendered_size: Option<(u16, u16, DiffMode, bool)>,
-    /// The theme's glyphs as of the last render; lines are rebuilt when
-    /// they change.
+    /// The theme's glyphs and strings as of the last render; lines are
+    /// rebuilt when they change.
     glyphs: Glyphs,
+    strings: Strings,
 }
 
 impl DiffView {
@@ -224,6 +225,7 @@ impl DiffView {
             dirty: true,
             rendered_size: None,
             glyphs: Glyphs::UNICODE,
+            strings: Strings::DEFAULT,
         }
     }
 
@@ -280,10 +282,10 @@ impl DiffView {
         self.rendered_size = None;
         let lines = match &self.file {
             Some(f) => match mode {
-                DiffMode::Unified => unified_lines_with(f, &self.glyphs),
-                DiffMode::Review => review_lines_with(f, width, &self.glyphs),
+                DiffMode::Unified => unified_lines_with(f, &self.glyphs, &self.strings),
+                DiffMode::Review => review_lines_with(f, width, &self.glyphs, &self.strings),
             },
-            None => vec![vec![Span::muted("No file selected")]],
+            None => vec![vec![Span::muted(self.strings.diff_no_file)]],
         };
         let offset = self.term.scroll.offset;
         self.term.set_lines(lines);
@@ -338,8 +340,9 @@ impl DiffView {
         if area.is_empty() {
             return;
         }
-        if self.glyphs != ctx.theme.glyphs {
+        if self.glyphs != ctx.theme.glyphs || self.strings != ctx.theme.strings {
             self.glyphs = ctx.theme.glyphs;
+            self.strings = ctx.theme.strings;
             self.dirty = true;
         }
         let size = (area.width, area.height, self.mode, self.term.wrap);
@@ -383,11 +386,11 @@ fn num_width(f: &DiffFile) -> usize {
 /// Unified listing: header, then per hunk a muted `@@` line and one row per
 /// diff line with old/new numbers in the gutter.
 pub fn unified_lines(f: &DiffFile) -> Vec<Line> {
-    unified_lines_with(f, &Glyphs::UNICODE)
+    unified_lines_with(f, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
 
-/// [`unified_lines`] drawn with the glyphs `g`.
-pub fn unified_lines_with(f: &DiffFile, g: &Glyphs) -> Vec<Line> {
+/// [`unified_lines`] drawn with the glyphs `g` and the copy `s`.
+pub fn unified_lines_with(f: &DiffFile, g: &Glyphs, s: &Strings) -> Vec<Line> {
     let nw = num_width(f);
     let mut out: Vec<Line> = vec![];
     out.push(vec![
@@ -430,7 +433,7 @@ pub fn unified_lines_with(f: &DiffFile, g: &Glyphs) -> Vec<Line> {
         }
     }
     if f.hunks.is_empty() {
-        out.push(vec![Span::muted("(no textual changes)")]);
+        out.push(vec![Span::muted(s.diff_no_changes)]);
     }
     out
 }
@@ -484,13 +487,13 @@ fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<S
 /// Tabs expand to the viewport's four spaces before measuring, emphasizing,
 /// and clipping, so columns and copied displayed text use identical geometry.
 pub fn review_lines(f: &DiffFile, width: u16) -> Vec<Line> {
-    review_lines_with(f, width, &Glyphs::UNICODE)
+    review_lines_with(f, width, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
 
-/// [`review_lines`] drawn with the glyphs `g`.
-pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs) -> Vec<Line> {
+/// [`review_lines`] drawn with the glyphs `g` and the copy `s`.
+pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> Vec<Line> {
     if !review_fits(f, width) {
-        return unified_lines_with(f, g);
+        return unified_lines_with(f, g, s);
     }
     let nw = num_width(f);
     let total = width as usize;
@@ -502,13 +505,18 @@ pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs) -> Vec<Line> {
         Span::new(f.status.marker(), f.status.tone()).bold(),
         Span::plain(" "),
         Span::plain(f.header_with(g)[2..].to_owned()).bold(),
-        Span::muted(format!("  {}{}review", f.summary_with(g), g.separator)),
+        Span::muted(format!(
+            "  {}{}{}",
+            f.summary_with(g),
+            g.separator,
+            s.diff_review
+        )),
     ]);
     let sep = || Span::new(format!(" {} ", g.scroll_track), Tone::Faint);
     out.push(vec![
-        Span::muted(fit("Old", col)),
+        Span::muted(fit(s.diff_old, col)),
         sep(),
-        Span::muted(fit("New", col)),
+        Span::muted(fit(s.diff_new, col)),
     ]);
     let blank_col =
         |nw: usize, text_w: usize| -> Vec<Span> { vec![Span::plain(" ".repeat(nw + 1 + text_w))] };
@@ -588,7 +596,7 @@ pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs) -> Vec<Line> {
         }
     }
     if f.hunks.is_empty() {
-        out.push(vec![Span::muted("(no textual changes)")]);
+        out.push(vec![Span::muted(s.diff_no_changes)]);
     }
     out
 }

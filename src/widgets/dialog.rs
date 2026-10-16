@@ -16,7 +16,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
-use crate::theme::ButtonKind;
+use crate::theme::{ButtonKind, Strings};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::widgets::button::{Button, ButtonRow, RowAlign, RowOverflow};
@@ -129,6 +129,9 @@ pub struct Dialog {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+    /// The theme's strings as of the last render: labels built from them
+    /// follow a change ([`Strings::follow`]), and hints read them.
+    strings: Strings,
 }
 
 /// A [`Dialog`] action a key can be bound to (text dialogs only).
@@ -188,7 +191,7 @@ impl Dialog {
     }
 
     pub fn confirm(id: WidgetId, title: &str, text: &str, confirm: &str) -> Self {
-        let cancel = Button::subtle(id.sub("cancel"), "Cancel");
+        let cancel = Button::subtle(id.sub("cancel"), Strings::DEFAULT.cancel);
         let ok = Button::primary(id.sub("ok"), confirm);
         let ok_id = ok.id;
         Self {
@@ -224,11 +227,12 @@ impl Dialog {
             v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
+            strings: Strings::DEFAULT,
         }
     }
 
     pub fn destructive(id: WidgetId, title: &str, text: &str, confirm: &str) -> Self {
-        let cancel = Button::secondary(id.sub("cancel"), "Cancel");
+        let cancel = Button::secondary(id.sub("cancel"), Strings::DEFAULT.cancel);
         let cancel_id = cancel.id;
         let del = Button::danger(id.sub("ok"), confirm);
         Self {
@@ -264,11 +268,12 @@ impl Dialog {
             v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
+            strings: Strings::DEFAULT,
         }
     }
 
     pub fn prompt(id: WidgetId, title: &str, input: TextInput, confirm: &str) -> Self {
-        let cancel = Button::subtle(id.sub("cancel"), "Cancel");
+        let cancel = Button::subtle(id.sub("cancel"), Strings::DEFAULT.cancel);
         let ok = Button::primary(id.sub("ok"), confirm);
         let input_id = input.id;
         Self {
@@ -304,6 +309,27 @@ impl Dialog {
             v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
+            strings: Strings::DEFAULT,
+        }
+    }
+
+    /// Move the labels still reading the last strings (the cancel button,
+    /// the acknowledgement's instruction) to `s`.
+    fn follow_strings(&mut self, s: Strings) {
+        let old = std::mem::replace(&mut self.strings, s);
+        if old == s {
+            return;
+        }
+        if let Some(b) = self.cancel_index.and_then(|i| self.actions.get_mut(i)) {
+            Strings::follow(&mut b.label, old.cancel, s.cancel);
+        }
+        if let DialogBody::Facts { ack: Some(a), .. } = &mut self.body {
+            let tok: &dyn std::fmt::Display = &a.token;
+            Strings::follow(
+                &mut a.input.label,
+                &Strings::fill(old.type_to_confirm, &[tok]),
+                &Strings::fill(s.type_to_confirm, &[tok]),
+            );
         }
     }
 
@@ -316,13 +342,16 @@ impl Dialog {
         token: Option<&str>,
         confirm: Button,
     ) -> Self {
-        let cancel = Button::secondary(id.sub("cancel"), "Cancel");
+        let cancel = Button::secondary(id.sub("cancel"), Strings::DEFAULT.cancel);
         let cancel_id = cancel.id;
         let ack = token.map(|tok| AckInput {
             // the label is the instruction: it wraps, it is never cut
-            input: TextInput::new(id.sub("ack"), &format!("Type {tok} to confirm"))
-                .plain_label()
-                .wrap_label(true),
+            input: TextInput::new(
+                id.sub("ack"),
+                &Strings::fill(Strings::DEFAULT.type_to_confirm, &[&tok]),
+            )
+            .plain_label()
+            .wrap_label(true),
             token: tok.to_owned(),
         });
         let initial = ack.as_ref().map(|a| a.input.id).unwrap_or(cancel_id);
@@ -363,6 +392,7 @@ impl Dialog {
             v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
+            strings: Strings::DEFAULT,
         }
     }
 
@@ -380,6 +410,7 @@ impl Dialog {
     /// what a dismissal resolves to, and a typed acknowledgement says what
     /// to type. `focused` is the widget that has keyboard focus.
     pub fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        let s = &self.strings;
         let cancel_label = self
             .cancel_index
             .and_then(|i| self.actions.get(i))
@@ -388,7 +419,7 @@ impl Dialog {
             self.dismiss.escape.then(|| {
                 Hint::new(
                     "Esc",
-                    cancel_label.clone().unwrap_or_else(|| "Close".into()),
+                    cancel_label.clone().unwrap_or_else(|| s.hint_close.into()),
                 )
             })
         };
@@ -404,8 +435,11 @@ impl Dialog {
             if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
                 // Enter only moves on to the buttons; the gated one stays
                 // disabled until the token is typed
-                v.push(Hint::new("Type", format!("\"{}\" to confirm", a.token)));
-                v.push(hint("Enter", "Next"));
+                v.push(Hint::new(
+                    "Type",
+                    Strings::fill(s.type_to_confirm_hint, &[&a.token]),
+                ));
+                v.push(hint("Enter", s.hint_next));
             } else if inp.editing {
                 let primary = self
                     .actions
@@ -414,15 +448,15 @@ impl Dialog {
                     .map(|b| b.label.clone());
                 v.push(Hint::new(
                     "Enter",
-                    primary.unwrap_or_else(|| "Apply".into()),
+                    primary.unwrap_or_else(|| s.hint_apply.into()),
                 ));
             } else {
-                v.push(hint("Enter", "Edit"));
-                v.push(hint("Tab", "Next"));
+                v.push(hint("Enter", s.hint_edit));
+                v.push(hint("Tab", s.hint_next));
             }
             if inp.editing {
                 // Esc reverts the field first; the dialog stays open
-                v.push(hint("Esc", "Cancel"));
+                v.push(hint("Esc", s.hint_cancel));
             } else {
                 v.extend(dismiss_hint());
             }
@@ -438,7 +472,7 @@ impl Dialog {
             .filter(|(i, b)| usable(*i, b))
             .count();
         if enabled > 1 {
-            v.push(hint("←→", "Choose"));
+            v.push(hint("←→", s.hint_choose));
         }
         if let Some((_, b)) = self
             .actions
@@ -449,10 +483,10 @@ impl Dialog {
             v.push(Hint::new("Enter", b.label.clone()));
         }
         if self.scroll.overflows() {
-            v.push(hint("↑↓", "Scroll"));
+            v.push(hint("↑↓", s.hint_scroll));
         }
         if self.h_cfg.enabled && self.code_scroll.overflows() {
-            v.push(hint("⇧←→", "Scroll code"));
+            v.push(hint("⇧←→", s.hint_scroll_code));
         }
         v.extend(dismiss_hint());
         // the quick answers exist for plain text dialogs only (see on_key)
@@ -991,6 +1025,7 @@ impl Dialog {
     /// [`Self::outer_margin`] away from the edges of `bounds`. A body taller
     /// than the room scrolls ([`Self::body_scroll`]).
     pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        self.follow_strings(ctx.theme.strings);
         let t = ctx.theme;
         self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
@@ -1127,9 +1162,9 @@ impl Dialog {
                     for (i, line) in code.iter().take(max).enumerate() {
                         let shown = if i == max - 1 && code.len() > max {
                             format!(
-                                "{} … {} more",
+                                "{} {}",
                                 cut(line, inner.width.saturating_sub(12)),
-                                code.len() - max
+                                Strings::fill(t.strings.more_cut, &[&(code.len() - max)])
                             )
                         } else {
                             cut(line, inner.width)
@@ -1170,7 +1205,14 @@ impl Dialog {
                 buf.set_string(
                     inner.x,
                     scroll_bottom,
-                    crate::ui::text::truncate(&format!("↓ {below} more"), inner.width as usize),
+                    crate::ui::text::truncate(
+                        &format!(
+                            "{} {}",
+                            t.glyphs.arrows[1],
+                            Strings::fill(t.strings.more_count, &[&below])
+                        ),
+                        inner.width as usize,
+                    ),
                     t.muted().bg(bg),
                 );
             }

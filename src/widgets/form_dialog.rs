@@ -11,7 +11,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
-use crate::theme::Tone;
+use crate::theme::{Strings, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
 use crate::widgets::button::{Button, row_layout_right};
@@ -173,6 +173,9 @@ pub struct FormDialog {
     /// When false, Save emits `Action("save")` and the owner closes the form
     /// once validation passes.
     pub pop_on_save: bool,
+    /// The theme's strings as of the last render; Cancel and Save labels
+    /// still reading them follow a change ([`Strings::follow`]).
+    strings: Strings,
 }
 
 impl FormDialog {
@@ -184,8 +187,8 @@ impl FormDialog {
             meta: None,
             fields,
             actions: vec![],
-            cancel: Button::subtle(id.sub("cancel"), "Cancel"),
-            save: Button::primary(id.sub("save"), "Save"),
+            cancel: Button::subtle(id.sub("cancel"), Strings::DEFAULT.cancel),
+            save: Button::primary(id.sub("save"), Strings::DEFAULT.save),
             width: 66,
             error: None,
             scroll: ScrollState::default(),
@@ -193,6 +196,7 @@ impl FormDialog {
             events: vec![],
             dirty: false,
             pop_on_save: true,
+            strings: Strings::DEFAULT,
         }
     }
 
@@ -637,6 +641,10 @@ impl FormDialog {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let s = ctx.theme.strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        Strings::follow(&mut self.cancel.label, old.cancel, s.cancel);
+        Strings::follow(&mut self.save.label, old.save, s.save);
         let content = self.content_height();
         let err = u16::from(self.error.is_some());
         let h = 2 + 2 + content + err + 2;
