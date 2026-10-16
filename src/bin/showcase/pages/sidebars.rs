@@ -223,7 +223,7 @@ impl NavList {
                         t.gutter(s, st.bg.unwrap_or(bg), false),
                     );
                     if current {
-                        buf.set_string(row.x + 1, y, "›", st.fg(t.accent));
+                        buf.set_string(row.x + 1, y, "›", st.fg(t.chosen(focused)));
                     }
                     let label_style = if it.disabled {
                         st

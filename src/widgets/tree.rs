@@ -609,7 +609,13 @@ impl TreeView {
                 meta_w
             };
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 1 });
-            let mut label_style = if s.selected { st.fg(t.accent) } else { st };
+            // the selected node is accent only while the tree has focus;
+            // otherwise it is a fact, not a position: primary and bold
+            let mut label_style = match (s.selected, focused) {
+                (true, true) => st.fg(t.chosen(true)),
+                (true, false) => st.fg(t.chosen(false)).add_modifier(Modifier::BOLD),
+                _ => st,
+            };
             if row.note {
                 label_style = st.fg(t.text_muted).remove_modifier(Modifier::BOLD);
             }
@@ -819,6 +825,34 @@ mod scroll_tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    #[test]
+    fn the_selected_node_is_accent_only_while_the_tree_has_focus() {
+        let theme = Theme::junie();
+        let nodes = (0..3)
+            .map(|i| TreeNode::leaf(&format!("Node {i:02}")))
+            .collect();
+        let mut tv = TreeView::new(WidgetId::of("t"), nodes);
+        tv.selected = tv.rows.get(1).map(|r| r.path.clone());
+        assert!(tv.selected.is_some());
+        let label_fg = |tv: &mut TreeView, focus: Option<WidgetId>| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let inter = Interaction {
+                focus,
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
+            tv.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
+            let x = (0..40)
+                .find(|&x| buf[(x, 1)].symbol() == "N")
+                .expect("label");
+            buf[(x, 1)].fg
+        };
+        assert_eq!(label_fg(&mut tv, None), theme.text_primary);
+        assert_eq!(label_fg(&mut tv, Some(WidgetId::of("t"))), theme.accent);
     }
 
     #[test]

@@ -710,7 +710,7 @@ impl CleanupPage {
                     let (mark, ms) = if ineligible {
                         ("[ ]", plain.fg(quiet))
                     } else if checked {
-                        ("[✓]", plain.fg(t.accent))
+                        ("[✓]", plain.fg(t.chosen(focused)))
                     } else {
                         ("[ ]", plain.fg(t.text_muted))
                     };
