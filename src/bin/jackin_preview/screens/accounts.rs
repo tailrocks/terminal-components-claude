@@ -30,6 +30,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use super::modals::{BrowserResult, FileBrowser, FormDialog, FormField, FormValues, OpFlow};
+use super::rowmenu::RowMenu;
 use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
 use crate::domain::account::{
     Account, AccountId, AccountOrigin, CredentialSource, DetectedKind, DuplicateProbe, IssueCode,
@@ -40,12 +41,15 @@ use crate::domain::onepassword::OpReference;
 use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus, QuotaWindow, WindowUnit};
 use crate::sim::provider::{self, CheckRow, ValidationOutcome};
 use crate::sim::world::{Msg, World};
+use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::text::thousands;
+use junie_tui::widgets::menu::MenuItem;
 
 pub const TREE: WidgetId = WidgetId::of("accounts.tree");
 pub const INSPECTOR: WidgetId = WidgetId::of("accounts.inspector");
 pub const SEAM: WidgetId = WidgetId::of("accounts.seam");
 pub const FORM: WidgetId = WidgetId::of("accounts.form");
+pub const MENU: WidgetId = WidgetId::of("accounts.menu");
 
 const REGISTERABLE: [Provider; 4] = [
     Provider::Anthropic,
@@ -101,6 +105,9 @@ pub struct AccountsScreen {
     narrow: bool,
     pub drawer_open: bool,
     pending_remove: Option<AccountId>,
+    /// The tree rows' context menu (right-click, Shift+F10, Menu key);
+    /// its `config` is the knob.
+    pub menu: RowMenu<Sel, &'static str>,
 }
 
 impl Default for AccountsScreen {
@@ -138,6 +145,7 @@ impl AccountsScreen {
             narrow: false,
             drawer_open: false,
             pending_remove: None,
+            menu: RowMenu::new(MENU),
         }
     }
 
@@ -1166,6 +1174,128 @@ impl AccountsScreen {
         Outcome::Changed
     }
 
+    // ------------------------------------------------------- context menu
+
+    /// The commands a tree row offers: the inspector's buttons and the
+    /// row's keys; unavailable ones carry the reason.
+    fn menu_items(&self, sel: &Sel, w: &World) -> (String, Vec<(MenuItem, &'static str)>) {
+        let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
+        match sel {
+            Sel::Account(id) => {
+                let Some(a) = w.accounts.get(id) else {
+                    return (String::new(), vec![]);
+                };
+                let read_only = "discovered accounts are read-only";
+                let gate = |m: MenuItem| {
+                    if a.mutations_allowed() {
+                        m
+                    } else {
+                        m.reason(read_only)
+                    }
+                };
+                let default = if !a.mutations_allowed() {
+                    item("Set default", "Space").reason(read_only)
+                } else if a.default_for_provider {
+                    item("Set default", "Space").reason("already the provider default")
+                } else if !a.enabled {
+                    item("Set default", "Space").reason("the account is disabled")
+                } else {
+                    item("Set default", "Space")
+                };
+                (
+                    a.display_name.clone(),
+                    vec![
+                        (item("Refresh", "r"), "refresh"),
+                        (item("Validate", "v"), "validate"),
+                        (item("Show usage", "m").separator(), "usage"),
+                        (gate(item("Edit…", "e")), "edit"),
+                        (default, "default"),
+                        (
+                            gate(item(if a.enabled { "Disable" } else { "Enable" }, "t"))
+                                .separator(),
+                            "toggle",
+                        ),
+                        (gate(item("Remove…", "d")).danger(), "remove"),
+                    ],
+                )
+            }
+            Sel::Provider(s) => {
+                let expandable = self.rows.iter().any(|r| r.sel == *sel && r.expandable);
+                let fold = item(
+                    if self.folded.contains(s) {
+                        "Expand"
+                    } else {
+                        "Collapse"
+                    },
+                    "Space",
+                );
+                (
+                    s.surface_name().into(),
+                    vec![
+                        (item("Refresh provider", "r"), "refresh"),
+                        (item("Add account…", "a"), "add"),
+                        (
+                            if expandable {
+                                fold
+                            } else {
+                                fold.reason("no accounts")
+                            },
+                            "fold",
+                        ),
+                    ],
+                )
+            }
+            Sel::Overview => (
+                "Overview".into(),
+                vec![
+                    (item("Refresh all", "r"), "refresh"),
+                    (item("Add account…", "a"), "add"),
+                ],
+            ),
+            Sel::Add => (
+                "New account".into(),
+                vec![(item("Add account…", "Enter"), "add")],
+            ),
+        }
+    }
+
+    fn open_menu(&mut self, i: usize, anchor: ContextAnchor, w: &World) {
+        let Some(sel) = self.rows.get(i).map(|r| r.sel.clone()) else {
+            return;
+        };
+        let (title, items) = self.menu_items(&sel, w);
+        if !items.is_empty() {
+            self.menu.open(sel, anchor, title, items);
+        }
+    }
+
+    /// Run a chosen menu command on `target` through the path its button or
+    /// key takes.
+    fn run_menu(&mut self, target: Sel, cmd: &'static str, w: &mut World, cx: &mut Cx) -> Outcome {
+        let prev = std::mem::replace(&mut self.selected, target.clone());
+        let out = match (cmd, &target) {
+            ("usage", Sel::Account(id)) => {
+                cx.go(Go::Usage {
+                    select: Some(id.clone()),
+                });
+                Outcome::Changed
+            }
+            ("fold", Sel::Provider(s)) => {
+                if !self.folded.remove(s) {
+                    self.folded.insert(*s);
+                }
+                self.build_rows(w);
+                Outcome::Changed
+            }
+            _ => self.fire(cmd, w, cx),
+        };
+        // a menu that leaves the cursor in place runs on its row only
+        if !self.menu.config.moves_cursor && self.selected == target {
+            self.selected = prev;
+        }
+        out.or(Outcome::Changed)
+    }
+
     // ------------------------------------------------------------- render
 
     fn draw_tree(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
@@ -1956,8 +2086,33 @@ impl Screen for AccountsScreen {
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
+        if self.menu.is_open() {
+            let (o, chosen) = self.menu.on_key(key);
+            return match chosen {
+                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
+                None => o,
+            };
+        }
         let focus = cx.focus.current();
         let in_tree = focus == Some(TREE);
+        if in_tree
+            && self.menu.is_context_key(key)
+            && let Some(i) = self.cursor()
+        {
+            let dy = i.saturating_sub(self.scroll.offset) as u16;
+            let fallback = Rect::new(
+                self.tree_area.x,
+                self.tree_area.y + dy.min(self.tree_area.height.saturating_sub(1)),
+                self.tree_area.width.max(1),
+                1,
+            );
+            let anchor = ContextAnchor::Control {
+                id: TREE.child(i),
+                fallback,
+            };
+            self.open_menu(i, anchor, w);
+            return Outcome::Changed;
+        }
         let in_insp = focus == Some(INSPECTOR);
         let action_focus = self.actions.iter().position(|b| Some(b.id) == focus);
         if action_focus.is_none() {
@@ -2216,6 +2371,13 @@ impl Screen for AccountsScreen {
 
     fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
+        if self.menu.is_open() {
+            let (o, chosen) = self.menu.on_click(id);
+            return match chosen {
+                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
+                None => o,
+            };
+        }
         for i in self.scroll.visible_range() {
             if TREE.child(i).sub("toggle") == id {
                 if let Sel::Provider(s) = self.rows[i].sel {
@@ -2286,6 +2448,29 @@ impl Screen for AccountsScreen {
             }
         }
         Outcome::Ignored
+    }
+
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        self.build_rows(w);
+        let Some(i) = self
+            .scroll
+            .visible_range()
+            .find(|&i| TREE.child(i) == id || TREE.child(i).sub("toggle") == id)
+        else {
+            return Outcome::Ignored;
+        };
+        if self.menu.config.moves_cursor && self.selected != self.rows[i].sel {
+            self.selected = self.rows[i].sel.clone();
+            self.inspector_scroll.jump_start();
+        }
+        cx.focus.focus(TREE);
+        self.drawer_open = false;
+        self.open_menu(i, ContextAnchor::Pointer(pos), w);
+        Outcome::Changed
+    }
+
+    fn layer_open(&self) -> bool {
+        self.menu.hides_page_focus()
     }
 
     fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
@@ -2530,6 +2715,7 @@ impl Screen for AccountsScreen {
                 self.draw_summary(summary, buf, ctx, w);
                 ctx.control(INSPECTOR, Rect::ZERO, false);
             }
+            self.menu.render(area, buf, ctx);
             return;
         }
         self.seam_container = area;
@@ -2554,9 +2740,14 @@ impl Screen for AccountsScreen {
             fill(buf, inner, Style::new().bg(t.surface));
             empty::render(inner, buf, t, &e, t.surface);
         }
+        // after the rows: a keyboard-opened menu anchors to the cursor row
+        self.menu.render(area, buf, ctx);
     }
 
     fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint> {
+        if self.menu.is_open() {
+            return RowMenu::<Sel, &str>::hints();
+        }
         if focus == Some(INSPECTOR) {
             return vec![
                 hint("↑↓", "Scroll"),
