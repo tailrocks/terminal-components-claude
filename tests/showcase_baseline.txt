@@ -103,7 +103,7 @@
 80x24 TrueColor Buttons 5884b205c9f97093
 80x24 TrueColor Inputs 6d32185bff25b7c1
 80x24 TrueColor Text areas 95dfadc0fb2943ac
-80x24 TrueColor Chips & selects 31eeeb08885df2fd
+80x24 TrueColor Chips & selects d010feded04c3bb5
 80x24 TrueColor Forms 8a7c7a659d6bf320
 80x24 TrueColor Basic table 5899412486f3c6e3
 80x24 TrueColor Editable 3f90db771d56497e
@@ -128,7 +128,7 @@
 80x24 Ansi256 Buttons 3b555645c0a88cf3
 80x24 Ansi256 Inputs 1ce876577f5d0b48
 80x24 Ansi256 Text areas aa34e106eba126fe
-80x24 Ansi256 Chips & selects eb9801f7fe3dfd35
+80x24 Ansi256 Chips & selects d670c1f964ed2e05
 80x24 Ansi256 Forms 1d576d97a01f61a5
 80x24 Ansi256 Basic table 0beab8032d585dbb
 80x24 Ansi256 Editable dbecaed3a85adee0
@@ -203,7 +203,7 @@
 72x20 TrueColor Buttons 7696077baf0f52a0
 72x20 TrueColor Inputs 4ccc330f163eb969
 72x20 TrueColor Text areas bb302a9ab6eec06b
-72x20 TrueColor Chips & selects f1da8216751d3b3c
+72x20 TrueColor Chips & selects 18208f8a7617167c
 72x20 TrueColor Forms afb9df37cdd9bd52
 72x20 TrueColor Basic table fb13468337509773
 72x20 TrueColor Editable fd943b4d9e804368
@@ -228,7 +228,7 @@
 72x20 Ansi256 Buttons af9a060294a9e087
 72x20 Ansi256 Inputs 9b491a42161dd12c
 72x20 Ansi256 Text areas 0069fab680480bb1
-72x20 Ansi256 Chips & selects ac8ba5d805b6fd90
+72x20 Ansi256 Chips & selects 004bb929e0a6f338
 72x20 Ansi256 Forms 8ea2b5925fb522e5
 72x20 Ansi256 Basic table 06a596a47b0c1f26
 72x20 Ansi256 Editable cd51636e421d6290
@@ -303,7 +303,7 @@
 100x30 TrueColor Buttons d86abbc34b6b38f7
 100x30 TrueColor Inputs 4a36c9ca39de0e3c
 100x30 TrueColor Text areas aecea1e2de805fea
-100x30 TrueColor Chips & selects 33dc936f3155563e
+100x30 TrueColor Chips & selects e34a17dc70ac384e
 100x30 TrueColor Forms 0627fc80c273d2a9
 100x30 TrueColor Basic table 71a21c7f43831427
 100x30 TrueColor Editable b67c03de9e3a2832
@@ -328,7 +328,7 @@
 100x30 Ansi256 Buttons 6968cea9f9e9d291
 100x30 Ansi256 Inputs eacbf3d625abb4a2
 100x30 Ansi256 Text areas 690d878853620b12
-100x30 Ansi256 Chips & selects 4c376b38201c6355
+100x30 Ansi256 Chips & selects d8fde1b2445d50e5
 100x30 Ansi256 Forms a7355b74b5b81c9e
 100x30 Ansi256 Basic table ce1ba8cd2dfff2ce
 100x30 Ansi256 Editable 88fb619425c5d566
