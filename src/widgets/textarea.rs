@@ -870,7 +870,7 @@ impl crate::ui::specimen::Specimen for TextArea {
 
 impl Scrollable for TextArea {
     /// The pane, its sideways state brought in step with the caret-driven
-    /// [`TextArea::hscroll`] over the widest line and the text width.
+    /// sideways scroll (`TextArea::hscroll`) over the widest line and the text width.
     fn pane(&mut self) -> &mut ScrollPane {
         let width = self.text_area.width as usize;
         self.scroll.h.content_len = self.content_cols;

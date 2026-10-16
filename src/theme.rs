@@ -542,7 +542,7 @@ pub struct Theme {
     pub strings: Strings,
     /// How a focused text control starts editing, for every control that
     /// does not set its own (`TextInput`, `TextArea`, `CodeEditor`,
-    /// `Dialog::prompt`). Default [`EditEntry::Immediate`] (macOS).
+    /// `Dialog::prompt`). Default [`EditEntry::Immediate`](crate::core::edit::EditEntry::Immediate) (macOS).
     pub edit_entry: crate::core::edit::EditEntry,
     /// The control-key preset of text fields that do not set their own.
     /// Default `None`: the client platform's preset

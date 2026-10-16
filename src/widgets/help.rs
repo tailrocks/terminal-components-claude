@@ -1,6 +1,6 @@
 //! A keyboard-shortcut reference overlay: titled sections of key/action
 //! rows laid out in as many columns as fit, scrollable, in the shared
-//! modal [`Frame`](crate::ui::modal::Frame).
+//! modal [`Frame`].
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;

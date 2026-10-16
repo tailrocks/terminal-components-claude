@@ -20,7 +20,7 @@ pub struct Button {
     pub on: Option<bool>,
     pub busy: bool,
     pub area: Rect,
-    /// When the focus ring shows. Default [`FocusVisible::Always`];
+    /// When the focus ring shows. Default [`FocusVisible::Always`](crate::ui::ctx::FocusVisible::Always);
     /// `KeyboardOnly` hides it after a click, as macOS buttons do.
     pub focus_visible: crate::ui::ctx::FocusVisible,
     /// The label character (index in chars) drawn underlined as the
