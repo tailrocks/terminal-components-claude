@@ -1829,9 +1829,14 @@ impl App {
                         }
                         Outcome::Changed
                     }
-                    Some(PickerAction::NextScope) => {
+                    Some(PickerAction::NextScope) | Some(PickerAction::PrevScope) => {
                         if kind == PickerKind::Switcher {
-                            self.scope = (self.scope + 1) % 4;
+                            let step = if ev == Some(PickerAction::PrevScope) {
+                                3
+                            } else {
+                                1
+                            };
+                            self.scope = (self.scope + step) % 4;
                             self.refresh_switcher();
                         }
                         Outcome::Changed

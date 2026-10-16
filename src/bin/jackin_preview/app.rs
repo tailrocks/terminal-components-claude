@@ -1544,7 +1544,7 @@ impl App {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::PickedAlt(i))
                     }
-                    Some(PickerAction::NextScope) => {
+                    Some(PickerAction::NextScope) | Some(PickerAction::PrevScope) => {
                         let tag = top.tag.clone();
                         let owner = top.owner;
                         let mut cx = Cx {

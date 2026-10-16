@@ -281,12 +281,13 @@ impl PickersPage {
             // free text is not an item in any showcase picker: the query stays,
             // the picker stays open
             Some(PickerAction::Submit) => {}
-            Some(PickerAction::NextScope) => {
+            Some(PickerAction::NextScope) | Some(PickerAction::PrevScope) => {
                 if kind == Kind::Quick {
-                    self.scope = match self.scope {
-                        Scope::All => Scope::Files,
-                        Scope::Files => Scope::Tasks,
-                        Scope::Tasks => Scope::All,
+                    let back = ev == Some(PickerAction::PrevScope);
+                    self.scope = match (self.scope, back) {
+                        (Scope::All, false) | (Scope::Tasks, true) => Scope::Files,
+                        (Scope::Files, false) | (Scope::All, true) => Scope::Tasks,
+                        (Scope::Tasks, false) | (Scope::Files, true) => Scope::All,
                     };
                     let Some((_, mut p)) = self.picker.take() else {
                         return;
