@@ -553,14 +553,17 @@ impl<'a> RenderCtx<'a> {
 /// whose background differs from the `plane` it sits on (a selected or
 /// hovered row) takes [`Theme::legible`] of its ink, the step up the text
 /// ladder that reads at 4.5:1. Cells on the plane itself are left alone,
-/// so the row's rest look keeps its hierarchy. Apps that draw list rows
-/// by hand call it after the row, the way the library lists resolve
-/// their own inks.
+/// so the row's rest look keeps its hierarchy. The focus gutter
+/// ([`Theme::gutter_symbol`] in [`Theme::focus`]) is a graphic, not text:
+/// it keeps the focus ink, so the one focus indicator never changes
+/// colour on a fill. Apps that draw list rows by hand call it after the
+/// row, the way the library lists resolve their own inks.
 pub fn legible_on_fill(buf: &mut Buffer, area: Rect, t: &Theme, plane: ratatui::style::Color) {
     for pos in area.positions() {
         if let Some(c) = buf.cell_mut(pos)
             && c.bg != plane
             && !c.symbol().trim().is_empty()
+            && !(c.symbol() == t.glyphs.focus_bar && c.fg == t.focus)
         {
             c.fg = t.legible(c.fg, c.bg);
         }
@@ -622,6 +625,36 @@ impl Default for Backdrop {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_row_fill_steps_its_text_up_and_keeps_the_focus_gutter() {
+        // 256 colours: the cursor row fill is 22; the focus ink (78) reads
+        // on it at 4.4:1 (a graphic needs 3:1), muted text (245) at 2.3:1
+        let t = Theme::for_level(crate::theme::ColorLevel::Ansi256);
+        let s = VisualState {
+            focused: true,
+            selected: true,
+            ..VisualState::default()
+        };
+        let fill_bg = t.row(s, t.canvas).bg.expect("a cursor row fill");
+        let mut buf = Buffer::empty(Rect::new(0, 0, 12, 1));
+        let row = Rect::new(0, 0, 12, 1);
+        fill(&mut buf, row, ratatui::style::Style::new().bg(fill_bg));
+        buf.set_string(0, 0, t.gutter_symbol(s), t.gutter(s, fill_bg, false));
+        buf.set_string(
+            2,
+            0,
+            "meta",
+            ratatui::style::Style::new().fg(t.text_muted).bg(fill_bg),
+        );
+        legible_on_fill(&mut buf, row, &t, t.canvas);
+        assert_eq!(buf[(0, 0)].fg, t.focus, "the focus gutter keeps its ink");
+        let fg = buf[(2, 0)].fg;
+        assert!(
+            crate::theme::contrast_ratio(fg, fill_bg).is_some_and(|r| r >= 4.5),
+            "{fg:?} on {fill_bg:?}"
+        );
+    }
 
     #[test]
     fn a_clip_keeps_cells_hits_and_cursor_inside_its_rect() {

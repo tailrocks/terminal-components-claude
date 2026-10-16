@@ -10,7 +10,7 @@ use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::columns::{self, Col};
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -632,6 +632,8 @@ impl UsageScreen {
                         }
                         _ => {}
                     }
+                    // the cursor row is a fill: its details step up to stay readable
+                    legible_on_fill(buf, r, t, bg);
                     ctx.clickable(rid, r);
                 }
             }
