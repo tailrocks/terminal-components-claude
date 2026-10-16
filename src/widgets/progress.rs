@@ -131,9 +131,12 @@ pub fn render_bar_with(
         return;
     }
     let filled = ((track_w as f64) * ratio).round() as u16;
-    // green is reserved for completion; a running bar is white 70 %
+    // a running bar is live state (`Tone::Active`, the accent), the same
+    // hue as the indeterminate sweep and the spinner, so a task keeps its
+    // colour when its progress becomes known; completion is the success
+    // hue with `✓`, so done never reads as running without colour either
     let fill_color = match status {
-        ProgressStatus::Active => t.text_secondary,
+        ProgressStatus::Active => t.tone(crate::theme::Tone::Active),
         ProgressStatus::Done => t.success,
         ProgressStatus::Error => t.error,
         ProgressStatus::Paused => t.text_muted,
@@ -220,7 +223,9 @@ pub enum MeterTone {
     Warning,
     /// The domain says exhausted: error run, bold `!`.
     Exhausted,
-    /// Last-good data: faint run, muted text.
+    /// Last-good data by the shared thresholds: shorthand for
+    /// [`MeterTone::Normal`] with [`Meter::stale`]. The level stays
+    /// readable; [`StaleStyle`] picks the stale cue.
     Stale,
     /// A refresh is in flight: muted run, spinner in place of the value.
     Refreshing,
@@ -234,7 +239,7 @@ impl MeterTone {
     /// The level a tone renders with, given the value.
     pub fn level(self, used_pct: Option<u8>) -> Option<MeterLevel> {
         match self {
-            MeterTone::Normal => used_pct.map(MeterLevel::of),
+            MeterTone::Normal | MeterTone::Stale => used_pct.map(MeterLevel::of),
             MeterTone::Level { warn, crit } => {
                 used_pct.map(|p| MeterLevel::with_thresholds(p, warn, crit))
             }
@@ -244,6 +249,20 @@ impl MeterTone {
             _ => None,
         }
     }
+}
+
+/// How a meter shows that its data is last-good ([`Meter::stale`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum StaleStyle {
+    /// The run keeps its level hue (a stale 76 % still reads as attention)
+    /// and is drawn dashed ([`crate::theme::Glyphs::bar_stale`]); the value
+    /// is muted and italic and the level glyph stays. The dashes are the
+    /// cue without colour, so staleness and level both survive `NO_COLOR`.
+    #[default]
+    Dashed,
+    /// The run goes faint and the value muted, hiding the level: for
+    /// owners that would rather not show a level they cannot vouch for.
+    Faint,
 }
 
 /// A capacity meter: value, semantic tone and visual mode. A healthy run is
@@ -261,6 +280,25 @@ pub struct Meter {
     pub value: String,
     pub tone: MeterTone,
     pub visual: MeterVisual,
+    /// The value is last-good data ([`Meter::stale`]).
+    pub stale: bool,
+    /// How staleness shows ([`Meter::stale_style`]).
+    pub stale_style: StaleStyle,
+}
+
+/// What a meter draws with, resolved from its tone and staleness.
+struct MeterPaint {
+    run: Color,
+    text: ratatui::style::Style,
+    suffix: String,
+    has_run: bool,
+    /// The run glyph: [`crate::theme::Glyphs::bar_fill`], or the dashed
+    /// stale run.
+    fill: &'static str,
+    /// Stale with [`StaleStyle::Faint`].
+    faint: bool,
+    /// Stale with [`StaleStyle::Dashed`].
+    dashed: bool,
 }
 
 impl Meter {
@@ -270,6 +308,8 @@ impl Meter {
             value: used_pct.map(|p| format!("{p}%")).unwrap_or_default(),
             tone: MeterTone::Normal,
             visual: MeterVisual::Line,
+            stale: false,
+            stale_style: StaleStyle::Dashed,
         }
     }
     pub fn value(mut self, v: impl Into<String>) -> Self {
@@ -284,16 +324,41 @@ impl Meter {
         self.visual = visual;
         self
     }
+    /// Mark the value as last-good data while keeping its tone: a quota at
+    /// warning that could not be refreshed stays a warning, drawn stale.
+    /// Ignored by the tones without a level (refreshing, error, unknown).
+    pub fn stale(mut self, on: bool) -> Self {
+        self.stale = on;
+        self
+    }
+    /// How staleness shows. Default [`StaleStyle::Dashed`].
+    pub fn stale_style(mut self, style: StaleStyle) -> Self {
+        self.stale_style = style;
+        self
+    }
 
-    /// (run colour, text colour, two-cell suffix, whether a run is drawn)
-    fn palette(&self, t: &crate::theme::Theme) -> (Color, Color, String, bool) {
+    /// Whether the meter draws as stale: the flag or [`MeterTone::Stale`],
+    /// on a tone that has a level to keep.
+    pub fn is_stale(&self) -> bool {
+        (self.stale || self.tone == MeterTone::Stale)
+            && !matches!(
+                self.tone,
+                MeterTone::Refreshing | MeterTone::Error | MeterTone::Unknown
+            )
+    }
+
+    fn paint(&self, t: &crate::theme::Theme, bg: Color) -> MeterPaint {
+        use ratatui::style::{Modifier, Style};
         let level_color = |l: MeterLevel| match l {
             MeterLevel::Low => t.info,
             MeterLevel::Medium => t.warning,
             MeterLevel::High => t.error,
         };
-        match self.tone {
-            MeterTone::Normal | MeterTone::Level { .. } | MeterTone::Fixed(_) => {
+        let (run, text, suffix, has_run) = match self.tone {
+            MeterTone::Normal
+            | MeterTone::Stale
+            | MeterTone::Level { .. }
+            | MeterTone::Fixed(_) => {
                 let l = self.tone.level(self.used_pct).unwrap_or(MeterLevel::Low);
                 let c = level_color(l);
                 let (text, suffix) = match l {
@@ -310,12 +375,6 @@ impl Meter {
                 self.used_pct.is_some(),
             ),
             MeterTone::Exhausted => (t.error, t.error, " !".into(), true),
-            MeterTone::Stale => (
-                t.text_faint,
-                t.text_muted,
-                "  ".into(),
-                self.used_pct.is_some(),
-            ),
             MeterTone::Refreshing => (
                 t.text_muted,
                 t.text_muted,
@@ -324,7 +383,37 @@ impl Meter {
             ),
             MeterTone::Error => (t.error, t.error, " !".into(), false),
             MeterTone::Unknown => (t.text_faint, t.text_faint, "  ".into(), false),
+        };
+        let mut paint = MeterPaint {
+            run,
+            text: Style::new().fg(text).bg(bg),
+            suffix,
+            has_run,
+            fill: t.glyphs.bar_fill,
+            faint: false,
+            dashed: false,
+        };
+        if self.is_stale() {
+            match self.stale_style {
+                StaleStyle::Dashed => {
+                    // level hue and glyph stay; dashes and a muted italic
+                    // value say "last-good"
+                    paint.fill = t.glyphs.bar_stale;
+                    paint.text = Style::new()
+                        .fg(t.legible(t.text_muted, bg))
+                        .bg(bg)
+                        .add_modifier(Modifier::ITALIC);
+                    paint.dashed = true;
+                }
+                StaleStyle::Faint => {
+                    paint.run = t.text_faint;
+                    paint.text = Style::new().fg(t.text_muted).bg(bg);
+                    paint.suffix = "  ".into();
+                    paint.faint = true;
+                }
+            }
         }
+        paint
     }
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -333,7 +422,8 @@ impl Meter {
             return;
         }
         let t = ctx.theme;
-        let (fill_color, text_color, suffix, has_run) = self.palette(t);
+        let paint = self.paint(t, bg);
+        let (fill_color, suffix, has_run) = (paint.run, &paint.suffix, paint.has_run);
         let value = match self.tone {
             MeterTone::Refreshing => {
                 format!(
@@ -346,7 +436,7 @@ impl Meter {
         };
         let ratio = (self.used_pct.unwrap_or(0).min(100) as f64) / 100.0;
         let vw = width(&value) as u16;
-        let text_style = ratatui::style::Style::new().fg(text_color).bg(bg);
+        let text_style = paint.text;
         let mut suffix_style = ratatui::style::Style::new().fg(fill_color).bg(bg);
         if self.tone == MeterTone::Exhausted {
             suffix_style = suffix_style.add_modifier(ratatui::style::Modifier::BOLD);
@@ -357,7 +447,7 @@ impl Meter {
             buf.set_string(area.x, area.y, &text, text_style);
             let sx = area.x + width(&text) as u16;
             if sx + 2 <= area.right() {
-                buf.set_string(sx, area.y, &suffix, suffix_style);
+                buf.set_string(sx, area.y, suffix, suffix_style);
             }
             return;
         }
@@ -378,7 +468,7 @@ impl Meter {
                 for i in 0..track_w {
                     let (sym, st) = if i < filled {
                         (
-                            t.glyphs.bar_fill,
+                            paint.fill,
                             ratatui::style::Style::new().fg(fill_color).bg(bg),
                         )
                     } else {
@@ -391,7 +481,7 @@ impl Meter {
                 }
                 let x = area.x + track_w + 1;
                 buf.set_string(x, area.y, &value, text_style);
-                buf.set_string(x + vw, area.y, &suffix, suffix_style);
+                buf.set_string(x + vw, area.y, suffix, suffix_style);
             }
             MeterVisual::Block => {
                 // the whole width minus the marker is the bar; the value sits
@@ -408,13 +498,14 @@ impl Meter {
                 }
                 let filled = ((bar_w as f64) * ratio).round() as u16;
                 let rest_bg = t.lift(bg);
-                let on_fill = if self.tone == MeterTone::Stale {
+                let on_fill = if paint.faint {
                     t.text_secondary
                 } else {
                     t.canvas
                 };
-                let on_rest = if matches!(self.tone, MeterTone::Stale | MeterTone::Refreshing) {
-                    t.text_muted
+                let on_rest = if paint.faint || paint.dashed || self.tone == MeterTone::Refreshing {
+                    // muted is 4.4:1 on a lifted card; step up when needed
+                    t.legible(t.text_muted, rest_bg)
                 } else {
                     t.text_primary
                 };
@@ -428,6 +519,10 @@ impl Meter {
                     if in_fill {
                         st = st.add_modifier(ratatui::style::Modifier::BOLD);
                     }
+                    if paint.dashed {
+                        // a block cannot be dashed: italic is the stale cue
+                        st = st.add_modifier(ratatui::style::Modifier::ITALIC);
+                    }
                     // text starts one cell in
                     let sym = if i >= 1 && (i as usize - 1) < chars.len() {
                         chars[i as usize - 1].as_str()
@@ -436,7 +531,7 @@ impl Meter {
                     };
                     buf.set_string(area.x + i, area.y, sym, st);
                 }
-                buf.set_string(area.x + bar_w, area.y, &suffix, suffix_style);
+                buf.set_string(area.x + bar_w, area.y, suffix, suffix_style);
             }
         }
     }
@@ -544,6 +639,37 @@ mod tests {
         (buf, theme)
     }
 
+    fn render_at(m: &Meter, w: u16, theme: &Theme, bg: Color) -> Buffer {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, 1));
+        m.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, bg);
+        buf
+    }
+
+    fn bar_at(status: ProgressStatus, theme: &Theme) -> Buffer {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
+        let ratio = if status == ProgressStatus::Done {
+            1.0
+        } else {
+            0.5
+        };
+        render_bar(
+            Rect::new(0, 0, 30, 1),
+            &mut buf,
+            &mut ctx,
+            "",
+            ratio,
+            status,
+            theme.canvas,
+        );
+        buf
+    }
+
     fn text(buf: &Buffer) -> String {
         (0..buf.area.width)
             .map(|x| buf[(x, 0)].symbol().to_owned())
@@ -610,7 +736,10 @@ mod tests {
         assert_eq!(MeterLevel::of(85), MeterLevel::High);
         assert_eq!(MeterLevel::of(100), MeterLevel::High);
         assert_eq!(MeterTone::Normal.level(Some(70)), Some(MeterLevel::Medium));
-        assert_eq!(MeterTone::Stale.level(Some(70)), None);
+        // stale keeps the level of its value (holla-jackin "Session meter
+        // at 76%")
+        assert_eq!(MeterTone::Stale.level(Some(70)), Some(MeterLevel::Medium));
+        assert_eq!(MeterTone::Refreshing.level(Some(70)), None);
         // owner thresholds: a disk warns at 80 and is critical at 95
         let disk = MeterTone::Level { warn: 80, crit: 95 };
         assert_eq!(disk.level(Some(66)), Some(MeterLevel::Low));
@@ -697,7 +826,8 @@ mod tests {
             &Meter::new(Some(54)).value("54%").tone(MeterTone::Stale),
             30,
         );
-        assert_eq!(buf[(0, 0)].fg, t.text_faint);
+        assert_eq!(buf[(0, 0)].fg, t.info, "a stale low meter keeps its hue");
+        assert_eq!(buf[(0, 0)].symbol(), t.glyphs.bar_stale);
         let (buf, t) = render(
             &Meter::new(None).value("read failed").tone(MeterTone::Error),
             30,
@@ -709,5 +839,135 @@ mod tests {
         assert!(text(&buf).starts_with("—"));
         let (buf, _) = render(&Meter::new(Some(54)).tone(MeterTone::Refreshing), 30);
         assert!(text(&buf).contains("refreshing"));
+    }
+
+    /// A stale 76 % meter still reads as attention: the warning hue and
+    /// `▲` stay, the run is dashed and the value muted italic, so level
+    /// and staleness both read at every colour level and without colour
+    /// (holla-jackin "Session meter at 76%"; colour follow-ups, Deferred).
+    #[test]
+    fn stale_meter_keeps_its_level_with_a_cue_that_survives_mono() {
+        use crate::theme::{ColorLevel, contrast_ratio};
+        use ratatui::style::Modifier;
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            for bg in [t.canvas, t.surface, t.surface_elevated, t.field] {
+                let m = Meter::new(Some(76)).value("76%").tone(MeterTone::Stale);
+                let buf = render_at(&m, 30, &t, bg);
+                let s = text(&buf);
+                assert_eq!(buf[(0, 0)].fg, t.warning, "{level:?}: level hue kept");
+                assert_eq!(buf[(0, 0)].symbol(), t.glyphs.bar_stale, "{level:?}");
+                assert!(
+                    s.ends_with(&format!("76% {}", t.glyphs.warning)),
+                    "{level:?}: level glyph kept: {s:?}"
+                );
+                let v = &buf[(25, 0)];
+                assert_eq!(v.symbol(), "7");
+                assert!(v.modifier.contains(Modifier::ITALIC), "{level:?}");
+                if level != ColorLevel::Mono {
+                    let c = contrast_ratio(v.fg, bg).unwrap();
+                    assert!(c >= 4.5, "{level:?}: stale value {c:.2}:1");
+                }
+                // the fresh meter differs from the stale one in shape, not
+                // only in colour
+                let fresh = render_at(&Meter::new(Some(76)).value("76%"), 30, &t, bg);
+                assert_ne!(fresh[(0, 0)].symbol(), buf[(0, 0)].symbol());
+                assert!(!fresh[(25, 0)].modifier.contains(Modifier::ITALIC));
+            }
+        }
+        // ASCII glyphs keep the dashed cue
+        let mut t = Theme::for_level(ColorLevel::Mono);
+        t.glyphs = crate::theme::Glyphs::ASCII;
+        let buf = render_at(
+            &Meter::new(Some(76)).tone(MeterTone::Stale),
+            30,
+            &t,
+            t.canvas,
+        );
+        assert_eq!(buf[(0, 0)].symbol(), "~");
+        assert_ne!(t.glyphs.bar_stale, t.glyphs.bar_fill);
+    }
+
+    /// `stale` composes with the owner's tone: a stale disk meter keeps its
+    /// own thresholds, a stale quota warning stays a warning. The faint
+    /// style keeps the old look for owners that want it.
+    #[test]
+    fn stale_composes_with_tones_and_the_faint_style_is_an_override() {
+        let disk = Meter::new(Some(90))
+            .value("90%")
+            .tone(MeterTone::Level { warn: 80, crit: 95 })
+            .stale(true);
+        let (buf, t) = render(&disk, 30);
+        assert_eq!(buf[(0, 0)].fg, t.warning);
+        assert_eq!(buf[(0, 0)].symbol(), t.glyphs.bar_stale);
+        let warn = Meter::new(Some(40))
+            .value("40%")
+            .tone(MeterTone::Warning)
+            .stale(true);
+        let (buf, t) = render(&warn, 30);
+        assert_eq!(buf[(0, 0)].fg, t.warning);
+        assert!(text(&buf).ends_with(&format!("40% {}", t.glyphs.warning)));
+        // tones without a level ignore the flag
+        let err = Meter::new(None)
+            .value("read failed")
+            .tone(MeterTone::Error)
+            .stale(true);
+        assert!(!err.is_stale());
+        let faint = Meter::new(Some(76))
+            .value("76%")
+            .tone(MeterTone::Stale)
+            .stale_style(StaleStyle::Faint);
+        let (buf, t) = render(&faint, 30);
+        assert_eq!(buf[(0, 0)].fg, t.text_faint);
+        assert_eq!(buf[(0, 0)].symbol(), t.glyphs.bar_fill);
+        assert!(text(&buf).ends_with("76%  "));
+        // block visual: level fill, italic value
+        let block = Meter::new(Some(76))
+            .value("76% used")
+            .tone(MeterTone::Stale)
+            .visual(MeterVisual::Block);
+        let (buf, t) = render(&block, 22);
+        assert_eq!(buf[(1, 0)].bg, t.warning);
+        // the value's tail on the lifted rest of a card's bar stays readable
+        let low = Meter::new(Some(30))
+            .value("30% used")
+            .tone(MeterTone::Stale)
+            .visual(MeterVisual::Block);
+        let buf_card = render_at(&low, 22, &t, t.surface);
+        assert_eq!(buf_card[(7, 0)].bg, t.lift(t.surface));
+        let tail = &buf_card[(7, 0)];
+        assert_eq!(tail.symbol(), "e");
+        let c = crate::theme::contrast_ratio(tail.fg, tail.bg).unwrap();
+        assert!(c >= 4.5, "stale value on the rest block {c:.2}:1");
+        assert!(
+            buf[(1, 0)]
+                .modifier
+                .contains(ratatui::style::Modifier::ITALIC)
+        );
+    }
+
+    /// A running bar is live state: the accent (`Tone::Active`), as the
+    /// indeterminate sweep and the spinner, not the secondary grey; done
+    /// is a different hue at every colour level and a different glyph in
+    /// all of them.
+    #[test]
+    fn active_bar_runs_in_the_active_tone_apart_from_done() {
+        use crate::theme::{ColorLevel, Tone, contrast_ratio};
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let active = bar_at(ProgressStatus::Active, &t);
+            let done = bar_at(ProgressStatus::Done, &t);
+            assert_eq!(active[(0, 0)].fg, t.tone(Tone::Active), "{level:?}");
+            assert_eq!(active[(0, 0)].symbol(), t.glyphs.bar_fill);
+            let suffix = |b: &Buffer| b[(29, 0)].symbol().to_owned();
+            assert_ne!(suffix(&active), suffix(&done), "{level:?}: glyph cue");
+            if level != ColorLevel::Mono {
+                assert_ne!(active[(0, 0)].fg, done[(0, 0)].fg, "{level:?}");
+                assert_ne!(active[(0, 0)].fg, t.text_secondary, "{level:?}");
+                // a graphic object: at least 3:1 (WCAG 1.4.11)
+                let c = contrast_ratio(active[(0, 0)].fg, t.canvas).unwrap();
+                assert!(c >= 3.0, "{level:?}: run {c:.2}:1");
+            }
+        }
     }
 }

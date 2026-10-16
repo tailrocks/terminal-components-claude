@@ -996,6 +996,11 @@ widgets::progress::MeterTone::Fixed | Progress and Empty & error pages | SC21
 widgets::progress::Meter::value | Progress and Empty & error pages | SC21
 widgets::progress::Meter::tone | Progress and Empty & error pages | SC21
 widgets::progress::Meter::visual | Progress and Empty & error pages | SC21
+widgets::progress::Meter::stale | Progress and Empty & error pages | SC21
+widgets::progress::Meter::stale_style | Progress and Empty & error pages | SC21
+widgets::progress::StaleStyle | Progress and Empty & error pages | SC21
+widgets::progress::StaleStyle::Dashed | Progress and Empty & error pages | SC21
+widgets::progress::StaleStyle::Faint | Progress and Empty & error pages | SC21
 
 # widgets::props
 widgets::props::Prop::copyable | Text utilities page | SC26
