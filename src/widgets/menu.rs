@@ -20,7 +20,8 @@ use ratatui::crossterm::event::KeyCode;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItem {
     pub label: String,
-    pub shortcut: Option<&'static str>,
+    /// Built at runtime when needed (a user-rebound key), hence `Cow`.
+    pub shortcut: Option<std::borrow::Cow<'static, str>>,
     pub disabled: bool,
     pub danger: bool,
     pub separator_after: bool,
@@ -40,8 +41,8 @@ impl MenuItem {
             reason: None,
         }
     }
-    pub fn shortcut(mut self, s: &'static str) -> Self {
-        self.shortcut = Some(s);
+    pub fn shortcut(mut self, s: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        self.shortcut = Some(s.into());
         self
     }
     pub fn disabled(mut self, d: bool) -> Self {
@@ -60,15 +61,25 @@ impl MenuItem {
     fn trailing(&self) -> Option<&str> {
         match &self.reason {
             Some(r) if self.disabled => Some(r.as_str()),
-            _ => self.shortcut,
+            _ => self.shortcut.as_deref(),
         }
     }
     pub fn danger(mut self) -> Self {
         self.danger = true;
         self
     }
+    /// [`Self::danger`] decided at runtime.
+    pub fn danger_if(mut self, on: bool) -> Self {
+        self.danger = on;
+        self
+    }
     pub fn separator(mut self) -> Self {
         self.separator_after = true;
+        self
+    }
+    /// [`Self::separator`] decided at runtime.
+    pub fn separator_if(mut self, on: bool) -> Self {
+        self.separator_after = on;
         self
     }
 }
@@ -797,6 +808,20 @@ mod tests {
             .edge_margin(0)
             .anchor(Rect::new(0, 2, 1, 1), Placement::Below);
         assert_eq!(flush.placed(screen).x, 0);
+    }
+
+    #[test]
+    fn shortcuts_and_glyphs_can_be_built_at_runtime() {
+        let modifier = String::from("Ctrl");
+        let item = MenuItem::new("Save").shortcut(format!("{modifier}+S"));
+        assert_eq!(item.trailing(), Some("Ctrl+S"));
+        let risky = true;
+        let item = MenuItem::new("Delete")
+            .danger_if(risky)
+            .separator_if(!risky);
+        assert!(item.danger && !item.separator_after);
+        let node = crate::widgets::tree::TreeNode::leaf("t").glyph(String::from("T"));
+        assert_eq!(node.glyph.as_deref(), Some("T"));
     }
 
     #[test]

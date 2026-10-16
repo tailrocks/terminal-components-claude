@@ -503,6 +503,12 @@ impl DataGrid {
         self
     }
 
+    /// What an empty grid shows.
+    pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
+        self.empty = state;
+        self
+    }
+
     /// Replace the cell validator (default [`default_validator`]).
     pub fn validator(
         mut self,
