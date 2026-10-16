@@ -47,12 +47,6 @@ pub struct PointerConfig {
     pub hover_refresh_after_scroll: bool,
     /// How long the pressed flash shows after an activation.
     pub flash_ms: u64,
-    /// Shift + vertical wheel scrolls horizontally (desktop convention for
-    /// mice without a horizontal wheel).
-    pub shift_wheel_horizontal: bool,
-    /// Ctrl + primary click acts as a secondary (context) click, as on
-    /// macOS. Defaults to on for macOS builds only.
-    pub ctrl_click_secondary: bool,
 }
 
 impl PointerConfig {
@@ -64,8 +58,6 @@ impl PointerConfig {
         wheel_lines: 3,
         hover_refresh_after_scroll: true,
         flash_ms: 140,
-        shift_wheel_horizontal: true,
-        ctrl_click_secondary: cfg!(target_os = "macos"),
     };
 
     pub const fn focus_on(mut self, focus_on: FocusOn) -> Self {
@@ -90,14 +82,6 @@ impl PointerConfig {
     }
     pub const fn flash_ms(mut self, ms: u64) -> Self {
         self.flash_ms = ms;
-        self
-    }
-    pub const fn shift_wheel_horizontal(mut self, on: bool) -> Self {
-        self.shift_wheel_horizontal = on;
-        self
-    }
-    pub const fn ctrl_click_secondary(mut self, on: bool) -> Self {
-        self.ctrl_click_secondary = on;
         self
     }
 }
