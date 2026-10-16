@@ -270,3 +270,181 @@ fn tables_states_grids_draw_every_row() {
         assert_eq!(shown, rows, "{page:?}");
     }
 }
+
+fn grid_page(h: &Harness) -> &crate::pages::grid::GridPage {
+    h.app.pages[PageId::Grid.index()]
+        .as_any()
+        .and_then(|a| a.downcast_ref())
+        .expect("the Data grid page")
+}
+
+/// Focus the grid and put its cursor on column `col` of the first row.
+fn grid_cell(h: &mut Harness, col: usize) {
+    let id = grid_page(h).grid.id;
+    h.app.focus.focus(id);
+    h.draw();
+    h.key(KeyCode::Home);
+    for _ in 0..col {
+        h.key(KeyCode::Right);
+    }
+}
+
+fn status(h: &Harness) -> String {
+    format!("{:?}", h.app.status)
+}
+
+#[test]
+fn grid_access_option_makes_the_grid_read_only_and_says_why() {
+    let mut h = Harness::new(160, 50, PageId::Grid);
+    assert!(grid_page(&h).grid.editable);
+    h.opt("datagrid.access=view");
+    assert!(!grid_page(&h).grid.editable);
+    assert!(h.text().contains("read-only · rows"), "{}", h.text());
+    grid_cell(&mut h, 1);
+    h.key(KeyCode::Enter);
+    assert!(
+        status(&h).contains("customer_summary is a view"),
+        "{}",
+        status(&h)
+    );
+    assert!(!grid_page(&h).grid.is_editing());
+    h.opt("datagrid.access=no-key");
+    grid_cell(&mut h, 1);
+    h.key(KeyCode::Enter);
+    assert!(status(&h).contains("no primary key"), "{}", status(&h));
+}
+
+#[test]
+fn grid_row_total_option_reaches_the_position_label() {
+    let mut h = Harness::new(160, 50, PageId::Grid);
+    assert!(h.text().contains("~4,812 total"), "estimated by default");
+    h.opt("datagrid.total=exact");
+    let text = h.text();
+    assert!(
+        text.contains("4,812 total") && !text.contains("~4,812"),
+        "{text}"
+    );
+    h.opt("datagrid.total=unknown");
+    assert!(!h.text().contains("4,812"), "{}", h.text());
+}
+
+#[test]
+fn grid_filter_on_cell_adds_a_chip_and_clear_filters_removes_it() {
+    let mut h = Harness::new(160, 50, PageId::Grid);
+    grid_cell(&mut h, 2);
+    h.key(KeyCode::Char('f'));
+    assert!(h.text().contains("plan = enterprise"), "{}", h.text());
+    assert!(grid_page(&h).grid.filtered_cols.contains(&2));
+    h.key(KeyCode::Char('F'));
+    assert!(!h.text().contains("plan = enterprise"));
+    assert!(grid_page(&h).grid.filtered_cols.is_empty());
+}
+
+#[test]
+fn grid_save_review_asks_for_the_table_name_before_it_saves() {
+    let mut h = Harness::new(160, 50, PageId::Grid);
+    // renewed_at is nullable: Delete sets it to NULL, a pending change
+    grid_cell(&mut h, 6);
+    h.key(KeyCode::Delete);
+    assert_eq!(grid_page(&h).grid.pending.total(), 1);
+    h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    assert!(h.app.dialog.is_some(), "Ctrl+S opens the save review");
+    assert!(h.text().contains("Save changes"), "{}", h.text());
+    // Enter before the token is typed does not save
+    h.key(KeyCode::Enter);
+    assert_eq!(grid_page(&h).grid.pending.total(), 1);
+    for c in "customers".chars() {
+        h.key(KeyCode::Char(c));
+    }
+    h.key(KeyCode::Enter);
+    assert!(h.app.dialog.is_none(), "{}", h.text());
+    for _ in 0..6 {
+        h.app.handle(Input::Tick);
+    }
+    assert!(grid_page(&h).grid.pending.is_empty());
+    assert!(status(&h).contains("Saved 1 changes"), "{}", status(&h));
+}
+
+#[test]
+fn grid_keymap_option_rebinds_commands_and_the_reference_follows() {
+    let mut h = Harness::new(160, 50, PageId::Grid);
+    grid_cell(&mut h, 6);
+    h.key(KeyCode::Char('x'));
+    assert!(
+        grid_page(&h).grid.pending.is_empty(),
+        "x is not bound by default"
+    );
+    h.opt("datagrid.keymap=custom");
+    grid_cell(&mut h, 6);
+    h.key(KeyCode::Char('x'));
+    assert_eq!(grid_page(&h).grid.pending.total(), 1, "x clears the cell");
+    // the Commands card reads the grid's key map
+    let mut h = Harness::new(220, 80, PageId::Grid);
+    h.opt("datagrid.keymap=custom");
+    let text = h.text();
+    assert!(
+        text.lines()
+            .any(|l| l.contains(" x ") && l.contains("Set NULL · CellChanged")),
+        "{text}"
+    );
+}
+
+#[test]
+fn grid_follows_a_reference_and_draws_literals_in_their_hues() {
+    let mut h = Harness::new(160, 50, PageId::Grid);
+    grid_cell(&mut h, 7);
+    h.key_mod(KeyCode::Char(']'), KeyModifiers::CONTROL);
+    assert!(
+        status(&h).contains("Follow account_id = 201 into accounts"),
+        "{}",
+        status(&h)
+    );
+    // NULL, booleans and JSON take the syntax hues
+    let t = Theme::junie();
+    let buf = h.term.backend().buffer().clone();
+    let cell = |needle: &str| {
+        let (x, y) = h.find(needle).unwrap_or_else(|| panic!("{needle}"));
+        buf[(x, y)].clone()
+    };
+    assert_eq!(cell("NULL").fg, t.syntax_literal);
+    assert_eq!(cell("false").fg, t.syntax_literal);
+    assert_eq!(cell("{\"owner\"").fg, t.syntax_string);
+}
+
+#[test]
+fn grid_states_draw_every_row() {
+    use junie_tui::ui::specimen::SpecimenState::*;
+    let mut h = Harness::new(220, 80, PageId::Grid);
+    h.section(Section::States);
+    // the section scrolls row by row: walk it down
+    let mut seen = Vec::new();
+    for _ in 0..12 {
+        for s in h.app.pages[PageId::Grid.index()]
+            .template()
+            .unwrap()
+            .state_rows()
+        {
+            if !seen.contains(s) {
+                seen.push(*s);
+            }
+        }
+        // over the States body, right of the sidebar
+        h.mouse(MouseKind::WheelDown, 120, 40);
+    }
+    for s in [
+        Rest,
+        Hover,
+        Pressed,
+        Focused,
+        FocusedHover,
+        Selected,
+        Editing,
+        Error,
+        Empty,
+        Loading,
+        Overflow,
+        Narrow,
+    ] {
+        assert!(seen.contains(&s), "{s:?} in {seen:?}");
+    }
+}
