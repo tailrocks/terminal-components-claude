@@ -14,18 +14,28 @@ use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 
-/// A screen cell no control claims (the dimmed page around a modal).
+/// Whether `hit` is a layer's light-dismiss backdrop (an open picker's
+/// covers the page around it).
+fn backdrop(h: &H, hit: WidgetId) -> bool {
+    use junie_tui::core::id::Part;
+    h.app
+        .hits
+        .part_of(hit)
+        .is_some_and(|x| x.part.part == Part::BACKDROP)
+}
+
+/// A screen cell no control claims (the dimmed page around a modal), else
+/// one on a light-dismiss backdrop (an open picker's covers the page).
 fn outside(h: &H) -> Position {
     let area = h.term.backend().buffer().area;
-    for y in 1..area.height.saturating_sub(1) {
-        for x in 0..area.width {
-            let p = Position::new(x, y);
-            if h.app.hits.hit(p).is_none() {
-                return p;
-            }
-        }
-    }
-    panic!("no free cell outside the layer:\n{}", h.text());
+    let cells = || {
+        (1..area.height.saturating_sub(1))
+            .flat_map(move |y| (0..area.width).map(move |x| Position::new(x, y)))
+    };
+    cells()
+        .find(|p| h.app.hits.hit(*p).is_none())
+        .or_else(|| cells().find(|p| h.app.hits.hit(*p).is_some_and(|id| backdrop(h, id))))
+        .unwrap_or_else(|| panic!("no free cell outside the layer:\n{}", h.text()))
 }
 
 /// One kind of layer: how to open it from a fresh app, and the focus its
