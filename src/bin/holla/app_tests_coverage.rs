@@ -751,3 +751,43 @@ fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
         h.text()
     );
 }
+
+#[test]
+fn a_horizontal_swipe_never_scrolls_a_vertical_view() {
+    // interaction #7: WheelLeft/Right are their own axis, not vertical
+    let mut h = build_browser();
+    open(&mut h, "Browse ~/work/site");
+    h.ticks(8);
+    let (px, py) = h.find("big.log").expect("preview file row");
+    h.click(px + 2, py);
+    h.key(KeyCode::Right);
+    let area = h
+        .app
+        .hits
+        .area_of(files::PREVIEW)
+        .expect("file preview hit");
+    let (x, y) = (area.x + 2, area.y + 2);
+    h.mouse(MouseKind::Move, x, y);
+    let before = h.text();
+    h.mouse(MouseKind::WheelRight, x, y);
+    h.mouse(MouseKind::WheelRight, x, y);
+    assert_eq!(h.text(), before, "a sideways swipe scrolled vertically");
+    h.mouse(MouseKind::WheelDown, x, y);
+    assert_ne!(h.text(), before, "the preview does scroll vertically");
+}
+
+#[test]
+fn a_middle_click_on_a_tab_closes_it() {
+    // interaction #6: middle click closes a tab, as in browsers and editors
+    let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
+    let tabs = h.app.tabs.len();
+    assert!(tabs >= 2, "{}", h.text());
+    let id = h.app.strip_tab_id(1);
+    let area = h.app.hits.area_of(id).expect("tab hit");
+    h.mouse(MouseKind::Middle, area.x + 1, area.y);
+    assert!(
+        h.app.tabs.len() == tabs - 1 || h.text().contains("Stop "),
+        "a middle click did not close the tab\n{}",
+        h.text()
+    );
+}

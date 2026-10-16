@@ -319,7 +319,7 @@ mod tests {
                 (MouseKind::Drag, end),
                 (MouseKind::Up, end),
             ] {
-                app.handle(Input::Mouse(Mouse { kind, pos }));
+                app.handle(Input::Mouse(Mouse::new(kind, pos)));
                 term.draw(|frame| app.render(frame)).unwrap();
             }
             assert_eq!(app.focus.current(), Some(id));

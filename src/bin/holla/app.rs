@@ -240,6 +240,12 @@ impl App {
         std::time::Duration::from_millis(if self.animating() { 80 } else { 200 })
     }
 
+    /// The tab strip's id for tab `i` (tests aim the pointer with it).
+    #[cfg(test)]
+    pub fn strip_tab_id(&self, i: usize) -> WidgetId {
+        self.strip.tab_id(i)
+    }
+
     /// Milliseconds on the pointer clock (the simulated world clock).
     fn now_ms(&self) -> u64 {
         self.world.now_ms().max(0) as u64
@@ -1554,6 +1560,21 @@ impl App {
                     None => out,
                 }
             }
+            MouseKind::Middle => {
+                // a middle click on a tab closes it (browsers, editors)
+                let hit = self.pointer.on_secondary(&self.hits, m.pos);
+                if !self.modals.is_empty() {
+                    return Outcome::Consumed;
+                }
+                match hit.and_then(|id| self.strip.on_middle_click(id)) {
+                    Some(TabEvent::Close(i)) => {
+                        self.active = i;
+                        self.go(Go::CloseTab);
+                        Outcome::Changed
+                    }
+                    _ => Outcome::Ignored,
+                }
+            }
             MouseKind::Secondary => {
                 let hit = self.pointer.on_secondary(&self.hits, m.pos);
                 if !self.modals.is_empty() {
@@ -1569,7 +1590,13 @@ impl App {
             | MouseKind::WheelLeft
             | MouseKind::WheelRight => {
                 let delta = self.pointer.wheel_delta(m.kind);
+                // a horizontal swipe is its own axis: it never scrolls a
+                // vertical list
+                let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 if let Some(top) = self.modals.last_mut() {
+                    if horizontal {
+                        return Outcome::Consumed;
+                    }
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),
                         Modal::Text(t) => t.on_wheel(delta),
@@ -1580,7 +1607,11 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
-                let out = self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w));
+                let out = if horizontal {
+                    self.with_top(|s, w, _| s.on_wheel_h(id, delta, m.pos, w))
+                } else {
+                    self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w))
+                };
                 // rows move under a still pointer: re-resolve hover next frame
                 self.pointer.scrolled(m.pos, out);
                 out

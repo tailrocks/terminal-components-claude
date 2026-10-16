@@ -66,10 +66,7 @@ impl Harness {
     }
 
     fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Outcome {
-        self.send(Input::Mouse(Mouse {
-            kind,
-            pos: Position::new(x, y),
-        }))
+        self.send(Input::Mouse(Mouse::new(kind, Position::new(x, y))))
     }
 
     fn click(&mut self, x: u16, y: u16) {
