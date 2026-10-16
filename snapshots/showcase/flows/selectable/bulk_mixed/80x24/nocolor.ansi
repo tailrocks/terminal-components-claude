@@ -1,0 +1,25 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Selectable table       i Inspector   ? Help  [0m
+                                                                                [0m
+[0m[2m   Forms          [0m│  [0m[1mSelectable table[0m  Select rows, edit one or many together,… [0m
+   Lists          │                                                             [0m
+   Trees          │    [0m[1mMembers[0m                        3 selected · 2–4 of 12   ┃[0m
+   Tables         │                                                            ┃[0m
+   Editable tabl… ┃       [–] Name              Role    Status     Region …    ┃[0m
+   Panels         ┃       [✓] Ari Moreno        Admin   Active     US      ┃   ┃[0m
+   Sidebars       ┃       [✓] Cleo Barnes       Editor  Active     EU      │   ┃[0m
+   Dialogs        ┃    [0m[1m▎  [✓] Bo Lindqvist      Editor  Invited    EU      [0m│   ┃[0m
+   Progress       ┃           ━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────    ┃[0m
+   Scrolling      ┃                                                            ┃[0m
+   Terminal       ┃                                                            ┃[0m
+   Code editor    ┃                                                            │[0m
+   Diff           ┃                                                            │[0m
+   Data grid      ┃                                                            │[0m
+   Chips & selec… ┃                                                            │[0m
+   Pickers        ┃                                                            │[0m
+   Chrome         ┃                                                            │[0m
+   Settings       ┃                                                            │[0m
+   Task runner    ┃                                                            │[0m
+ › Selectable ta… ┃                                                            │[0m
+                                                                                [0m
+ [0m[1mSpace[0m Select  [0m[1mShift+↑↓[0m Extend  [0m[1mCtrl+A[0m Select all  [0m[1mEsc[0m Clear selection  …       [0m
+[?25l
