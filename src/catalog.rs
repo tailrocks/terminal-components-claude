@@ -536,6 +536,8 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("ui::specimen::StateGrid::column_width"),
     Capability::builder("ui::specimen::StateGrid::narrow_width"),
     Capability::builder("ui::specimen::StateGrid::focus_mark"),
+    Capability::ty("ui::specimen::KindSample"),
+    Capability::builder("ui::specimen::KindSample::plane"),
     // ui::text
     Capability::ty("ui::text::WrapOpts"),
     // ui::tooltip

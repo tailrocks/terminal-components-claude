@@ -18,6 +18,8 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use super::{Hint, PageCtx, PageEvent};
+use crate::app::PageId;
+use crate::options::{Group, Opt, OptSet, OptionsView, page_options};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::ColorLevel;
@@ -80,6 +82,11 @@ pub struct Template {
     states: super::layout::Sections,
     /// Rows the States grid drew whole in the last frame.
     shown: Vec<SpecimenState>,
+    /// The page's option table as controls ([`Self::with_options`]).
+    options: Option<OptionsView>,
+    /// An option the Options section changed, for the page to apply
+    /// ([`Self::take_option`]).
+    changed: Option<OptSet>,
 }
 
 impl Template {
@@ -96,7 +103,40 @@ impl Template {
                 s
             },
             shown: Vec::new(),
+            options: None,
+            changed: None,
         }
+    }
+
+    /// Show `page`'s option table (`crate::options::page_options`) in the
+    /// Options section: the same declarations the Inspector's Options tab
+    /// and `--opt` read, drawn as an `OptionsView`.
+    pub fn with_options(mut self, page: PageId) -> Self {
+        let opts = page_options(page);
+        if !opts.is_empty() {
+            let heading = crate::app::NAV_ENTRIES[page.index()].label;
+            self.options = Some(OptionsView::new(
+                self.tabs.id.sub("options"),
+                &[Group {
+                    heading,
+                    opts,
+                    empty: "",
+                }],
+            ));
+        }
+        self
+    }
+
+    /// The option the last event changed, if any: the page applies it
+    /// through `Page::set_option`, the one path `--opt` and the Inspector
+    /// take too.
+    pub fn take_option(&mut self) -> Option<OptSet> {
+        self.changed.take()
+    }
+
+    /// Whether an option's select has its list open over the page.
+    pub fn options_popup_open(&self) -> bool {
+        self.options.as_ref().is_some_and(OptionsView::popup_open)
     }
 
     pub fn section(&self) -> Section {
@@ -139,7 +179,24 @@ impl Template {
     /// adds the table (and draws an `OptionsView` here); the shell-wide
     /// options are in the Inspector meanwhile.
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        self.render_options_with(area, buf, ctx, |o| o.default);
+    }
+
+    /// The Options body of a page with an option table
+    /// ([`Self::with_options`]): its controls, each showing `value(opt)`.
+    pub fn render_options_with(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        value: impl Fn(&Opt) -> usize,
+    ) {
         let t = ctx.theme;
+        if let Some(view) = &mut self.options {
+            view.sync(value);
+            view.render(area, buf, ctx, t.canvas);
+            return;
+        }
         let e = EmptyState::new("No page options yet")
             .hint("Shell-wide options: i, then Options · or --opt shell.<key>=<value>");
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
@@ -229,6 +286,17 @@ impl Template {
 
     fn handle_inner(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Option<Outcome> {
         let states = self.section() == Section::States;
+        let options = self.section() == Section::Options;
+        if let Some(view) = &mut self.options {
+            if let PageEvent::Blur(change) = ev {
+                // a list closes when its select loses focus; the blur
+                // still reaches the page
+                view.on_blur(Some(change.from));
+            } else if options && let Some((o, set)) = view.handle(ev, cx) {
+                self.changed = set;
+                return Some(o);
+            }
+        }
         if states && let Some(o) = self.states.handle(ev) {
             return Some(o);
         }
@@ -268,6 +336,9 @@ impl Template {
         let f = focus?;
         if f == self.tabs.id {
             return Some(vec![("←→", "Section"), ("1–3", "Jump")]);
+        }
+        if let Some(h) = self.options.as_ref().and_then(|v| v.hints(Some(f))) {
+            return Some(h);
         }
         (f == self.compare.id).then(|| vec![("Enter / Space", "Compare levels")])
     }
