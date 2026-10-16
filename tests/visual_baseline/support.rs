@@ -15,12 +15,14 @@
 //! path, e.g. `holla/parity/discovery/120x40/truecolor`.
 //!
 //! Environment per capture (never inherited, `env_clear(true)`): `TERM`,
-//! `COLORTERM=truecolor`, `LANG=C.UTF-8`, `TZ=UTC`, a fixed `HOME` under
-//! `target/tuiscotti/home`, a minimal `PATH`, `HOLLA_NO_HISTORY=1`, and the
-//! crate root as cwd. `nocolor` captures add `NO_COLOR=1` instead of a
-//! `--color` flag (backend rule, not app rule). Clearing the environment
-//! also keeps ambient `NO_COLOR`, `*_NO_MOTION`, `CLICOLOR_FORCE` and
-//! `FORCE_COLOR` out, which used to need explicit stripping.
+//! `COLORTERM=truecolor`, `LANG=C.UTF-8`, `TZ=UTC`, a minimal `PATH`,
+//! `HOLLA_NO_HISTORY=1`, and a per-scenario `HOME` that is also the cwd
+//! ([`scenario_home`]: `target/tuiscotti/home/<name>`, emptied before each
+//! spawn). `nocolor` captures add `NO_COLOR=1` instead of a `--color` flag
+//! (backend rule, not app rule). Clearing the environment also keeps
+//! ambient `NO_COLOR`, `*_NO_MOTION`, `CLICOLOR_FORCE` and `FORCE_COLOR`
+//! out, which used to need explicit stripping; the `env_isolation` check
+//! proves it.
 //!
 //! Re-approval status: the committed store was produced by the retired
 //! tuisnap engine. Only scenarios already re-approved ([`is_reapproved`]) gate on the
@@ -608,22 +610,47 @@ impl Session {
     }
 }
 
-/// Spawn a case's session with the explicit capture environment.
+/// The isolated `HOME` and cwd of one capture:
+/// `target/tuiscotti/home/<name>` (plan §B3). Names are unique per
+/// scenario, so concurrent captures never share a directory.
+pub fn scenario_home(name: &str) -> PathBuf {
+    manifest_path("target/tuiscotti/home").join(name)
+}
+
+/// The variables every spawn sets after `env_clear(true)`, except
+/// `HOME` (per scenario) and `NO_COLOR` (only the `nocolor` level).
+/// `SHELL` is pinned because the PTY layer otherwise fills it in from the
+/// user's account even after `env_clear` (found by `env_isolation`).
+pub const PINNED_ENV: [(&str, &str); 8] = [
+    ("SHELL", "/bin/sh"),
+    ("TERM", "xterm-256color"),
+    ("COLORTERM", "truecolor"),
+    ("LANG", "C.UTF-8"),
+    ("LC_ALL", "C.UTF-8"),
+    ("TZ", "UTC"),
+    ("PATH", "/usr/bin:/bin:/usr/sbin:/sbin"),
+    ("HOLLA_NO_HISTORY", "1"),
+];
+
+/// Spawn a case's session with the explicit capture environment: nothing
+/// is inherited, `HOME` and the cwd are [`scenario_home`], emptied first so
+/// nothing an earlier run left there can reach the app.
 pub fn spawn(case: &Case) -> Session {
-    let home = manifest_path("target/tuiscotti/home");
+    let home = scenario_home(&case.name);
+    match std::fs::remove_dir_all(&home) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => panic!("empty {}: {e}", home.display()),
+    }
     std::fs::create_dir_all(&home).unwrap_or_else(|e| panic!("mkdir {}: {e}", home.display()));
     let mut tui = Tui::new(argv_for(case))
         .size(case.cols, case.rows)
         .env_clear(true)
-        .env("TERM", "xterm-256color")
-        .env("COLORTERM", "truecolor")
-        .env("LANG", "C.UTF-8")
-        .env("LC_ALL", "C.UTF-8")
-        .env("TZ", "UTC")
         .env("HOME", &home)
-        .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")
-        .env("HOLLA_NO_HISTORY", "1")
-        .cwd(PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+        .cwd(home.clone());
+    for (key, value) in PINNED_ENV {
+        tui = tui.env(key, value);
+    }
     if matches!(case.color, Color::NoColorEnv) {
         tui = tui.env("NO_COLOR", "1");
     }

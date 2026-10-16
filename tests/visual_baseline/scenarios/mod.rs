@@ -435,12 +435,21 @@ impl Scenario {
         if !support::capture_enabled(&self.name) {
             return;
         }
-        let mut case = self.root.case(self.cols, self.rows, self.color);
-        case.name = self.name.clone().into();
         if let Drive::Resize(capture) = self.root.drive {
+            let mut case = self.root.case(self.cols, self.rows, self.color);
+            case.name = self.name.clone().into();
             capture(&case, self.cols, self.rows);
             return;
         }
+        let mut session = self.drive_session(&self.name);
+        support::settle_and_gate(&mut session, &self.name);
+    }
+
+    /// Boot, steps, live interaction, pointer and dismissal on a session
+    /// spawned as `as_name` (which picks its isolated `HOME`).
+    fn drive_session(&self, as_name: &str) -> Session {
+        let mut case = self.root.case(self.cols, self.rows, self.color);
+        case.name = as_name.to_string().into();
         let mut session = support::spawn_boot(&case);
         if let Drive::Live(interact) = self.root.drive {
             interact(&mut session, &case);
@@ -451,7 +460,16 @@ impl Scenario {
         if let Some(dismiss) = self.dismiss {
             interact::dismiss(&mut session, dismiss, self.cols, self.rows);
         }
-        support::settle_and_gate(&mut session, &case.name);
+        session
+    }
+
+    /// One settled capture without a gate, spawned as `as_name`. Resize rows
+    /// drive their own capture and are not supported.
+    pub fn capture(&self, as_name: &str) -> Result<tuiscotti::Frame, String> {
+        if let Drive::Resize(_) = self.root.drive {
+            return Err(format!("`{}` is a resize row", self.name));
+        }
+        self.drive_session(as_name).wait_stable(support::SETTLE)
     }
 }
 
