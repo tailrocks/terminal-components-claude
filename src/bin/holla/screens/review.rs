@@ -1198,13 +1198,39 @@ impl Screen for ArgsPage {
         }
     }
 
+    fn on_press_count(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        count: u8,
+        _w: &mut World,
+    ) -> Outcome {
+        match (0..self.fields.len()).find(|&i| ARG.child(i) == id) {
+            Some(i) => match &mut self.fields[i] {
+                Field::Text(t) => t.on_press_count(pos, count),
+                Field::Choice(_) => Outcome::Ignored,
+            },
+            None => Outcome::Ignored,
+        }
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        match (0..self.fields.len()).find(|&i| ARG.child(i) == pressed) {
+            Some(i) => match &mut self.fields[i] {
+                Field::Text(t) => t.on_drag(pos),
+                Field::Choice(_) => Outcome::Ignored,
+            },
+            None => Outcome::Ignored,
+        }
+    }
+
     fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
         for i in 0..self.fields.len() {
             let fid = ARG.child(i);
             match &mut self.fields[i] {
                 Field::Text(t) if fid == id => {
                     cx.focus.focus(fid);
-                    return t.on_click(pos);
+                    return t.on_click_count(pos, cx.clicks.max(1));
                 }
                 Field::Choice(c) if c.owns(id) => {
                     cx.focus.focus(fid);

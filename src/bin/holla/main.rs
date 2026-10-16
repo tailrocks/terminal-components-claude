@@ -16,6 +16,8 @@ mod app_tests_copy;
 #[cfg(test)]
 mod app_tests_coverage;
 #[cfg(test)]
+mod app_tests_fields;
+#[cfg(test)]
 mod app_tests_flows;
 #[cfg(test)]
 mod app_tests_parity;
