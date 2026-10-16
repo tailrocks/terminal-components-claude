@@ -803,7 +803,7 @@ impl Workbench {
                 }
             }
             GridEvent::FetchMore => {
-                cx.status("Fetch more: the demo engine caps results at 500 rows");
+                cx.status("Showing the first 500 rows · add a LIMIT or filter to narrow");
                 t.grid.set_loading(false);
             }
             GridEvent::Refresh => {

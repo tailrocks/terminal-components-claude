@@ -164,6 +164,12 @@ fn structure_sections_and_workbench_grid_routes() {
     h.key(KeyCode::Char('G'));
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Fetch more"), "{}", h.text());
+    // the status speaks about the result, not the preview's engine
+    assert!(
+        h.text().contains("Showing the first 500 rows") && !h.text().contains("demo engine"),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Char('r'));
     assert!(h.text().contains("Refreshed"));
     h.key(KeyCode::Char('y'));
