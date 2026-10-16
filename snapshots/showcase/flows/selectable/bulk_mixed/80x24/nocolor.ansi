@@ -6,20 +6,20 @@
   ▸ App shell                                                                  ┃[0m
   ▸ Inputs & forms        [–] Name              Role    Status     Region …    ┃[0m
   ▾ Tables                [✓] Ari Moreno        Admin   Active     US      ┃   ┃[0m
-      Basic table         [✓] Cleo Barnes       Editor  Active     EU      │   ┃[0m
-      Editable         [0m[1m▎  [✓] Bo Lindqvist      Editor  Invited    EU      [0m│   ┃[0m
-      Data grid               ━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────    ┃[0m
+      Basic table         [✓] Cleo Barnes       Editor  Active     EU      ┆   ┃[0m
+      Editable         [0m[1m▎  [✓] Bo Lindqvist      Editor  Invited    EU      [0m┆   ┃[0m
+      Data grid               ━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┃[0m
     › [0m[1mSelection   [0m                                                             ┃[0m
       Cell editors                                                             ┃[0m
-  ▸ Navigation                                                                 │[0m
-  ▸ Overlays                                                                   │[0m
-  ▸ Feedback                                                                   │[0m
-  ▸ Layout                                                                     │[0m
-  ▸ Text & code                                                                │[0m
-  ▸ Screens                                                                    │[0m
-                                                                               │[0m
-                                                                               │[0m
-                                                                               │[0m
+  ▸ Navigation                                                                 ┆[0m
+  ▸ Overlays                                                                   ┆[0m
+  ▸ Feedback                                                                   ┆[0m
+  ▸ Layout                                                                     ┆[0m
+  ▸ Text & code                                                                ┆[0m
+  ▸ Screens                                                                    ┆[0m
+                                                                               ┆[0m
+                                                                               ┆[0m
+                                                                               ┆[0m
                                                                                 [0m
  [0m[1mSpace[0m Select  [0m[1mShift+↑↓[0m Extend  [0m[1mOption+click[0m Toggle row  [0m[1mEsc[0m Clear selection  … [0m
 [?25l
