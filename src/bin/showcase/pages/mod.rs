@@ -4,7 +4,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
+use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
@@ -73,6 +73,11 @@ pub enum PageEvent {
         delta: i32,
     },
     Tick,
+    /// A control lost focus (or a click on dead space ended its edit):
+    /// the page that owns `from` ends the edit through the control's
+    /// `on_blur`. Delivered to every page, so a page left while one of its
+    /// fields was editing still commits it.
+    Blur(FocusChange),
     DialogClosed {
         id: WidgetId,
         result: DialogResult,

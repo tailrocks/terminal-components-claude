@@ -398,6 +398,26 @@ impl App {
     // ------------------------------------------------------------------ input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        let out = self.handle_input(input);
+        out.or(self.forward_blur())
+    }
+
+    /// Hand every focus change the input caused to the dialog and the
+    /// pages, so fields end their edits on the event path.
+    fn forward_blur(&mut self) -> Outcome {
+        let mut out = Outcome::Ignored;
+        for ch in self.focus.take_changes() {
+            if let Some(d) = self.dialog.as_mut() {
+                out = out.or(d.on_blur(ch));
+            }
+            for i in 0..self.pages.len() {
+                out = out.or(self.dispatch_to(i, PageEvent::Blur(ch)));
+            }
+        }
+        out
+    }
+
+    fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
             Input::Resize(w, h) => {
                 self.size = (w, h);
@@ -449,12 +469,15 @@ impl App {
     }
 
     fn dispatch(&mut self, ev: PageEvent) -> Outcome {
+        self.dispatch_to(self.page.index(), ev)
+    }
+
+    fn dispatch_to(&mut self, i: usize, ev: PageEvent) -> Outcome {
         let mut cx = PageCtx {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: Vec::new(),
         };
-        let i = self.page.index();
         let out = self.pages[i].handle(&ev, &mut cx);
         let requests = std::mem::take(&mut cx.requests);
         for r in requests {
@@ -725,6 +748,7 @@ impl App {
                     if self.dialog.is_some() {
                         return Outcome::Consumed;
                     }
+                    self.pointer.dead_space(&mut self.focus);
                     return Outcome::Ignored;
                 };
                 if self.dialog.is_some() {
