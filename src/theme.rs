@@ -448,6 +448,9 @@ pub struct Theme {
     /// Footer hint bar layout: alignment, the status's share of the row,
     /// compact mode and which keys are never dropped.
     pub hintbar: HintBarStyle,
+    /// Cells between the screen edge and the text of a chrome row (menu
+    /// bar, identity strip, segment bars), the same on both sides. Default 2.
+    pub chrome_edge: u16,
 }
 
 impl Theme {
@@ -505,6 +508,7 @@ impl Theme {
             mods: StateModifiers::COLOR,
             tint_selection: true,
             hintbar: HintBarStyle::DEFAULT,
+            chrome_edge: 2,
         }
     }
 
