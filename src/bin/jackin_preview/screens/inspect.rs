@@ -757,7 +757,8 @@ impl CustomModal for InspectChanges {
             InspectMode::Compact => "m advanced view".to_owned(),
             InspectMode::Advanced => "Tab tree / diff".to_owned(),
         };
-        let (area, inner) = modal_frame(screen, buf, ctx, w, h, &self.title, Some(&meta), false);
+        let dismiss = super::CustomModal::dismiss(self);
+        let (area, inner) = modal_frame(screen, buf, ctx, w, h, &self.title, Some(&meta), dismiss);
         self.area = area;
         let bg = ctx.theme.surface_elevated;
         match self.mode {

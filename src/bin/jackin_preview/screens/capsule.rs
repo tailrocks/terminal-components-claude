@@ -1867,8 +1867,10 @@ impl CapsuleScreen {
                     .priority(5),
             ),
         }
-        bar.render(area, buf, ctx);
+        // the row first, its clickable items above it: registered after
+        // the bar, the row covered the usage, container and context chips
         ctx.clickable(STATUS, area);
+        bar.render(area, buf, ctx);
     }
 }
 
@@ -2849,7 +2851,7 @@ impl CustomModal for UsageDialog {
             h,
             "Usage",
             Some("read-only projection"),
-            false,
+            super::CustomModal::dismiss(self),
         );
         self.area = area;
         let t: &Theme = ctx.theme;
