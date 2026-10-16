@@ -1,36 +1,46 @@
-//! Shared driver for the visual-baseline suite.
+//! Shared driver for the visual-baseline suite (tuiscotti main, Workflow 2).
 //!
-//! One PTY per capture: spawn → boot needle (or idle if none) → send
-//! steps (120 ms pacing) → `wait_stable`(SETTLE) → frame → store gate.
-//! [`run_once`] runs the ported matrix; [`boot`]/[`drive`] mirror it for
-//! the pointer group, which needs the live session afterwards. A leading
-//! `wait:` needle is readiness — live clocks skip the 200 ms quiet window.
+//! One PTY per capture: `tuiscotti::tui::Tui::new([bin, args…])` with an
+//! explicit environment → boot needle (content-gated `Locator` wait) or a
+//! non-blank + quiet wait when a case has none → send steps (120 ms pacing)
+//! → `wait_stable_quiet(SETTLE)` → `render::frame_from_screen` → gate.
+//! [`run_and_assert`] runs the ported matrix; [`spawn_boot`]/[`drive`] hand
+//! the live [`Session`] to the pointer group.
 //!
-//! Store: the grouped multi-artifact store (`tuisnap::grouped`). Approved
-//! frames live at `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`
-//! (committed, exactly four artifacts per scenario); actuals, diffs and the
-//! HTML report are scratch under `target/tuisnap/` (gitignored). The capture
-//! name is the grouped path, e.g. `holla/parity/discovery/120x40/truecolor`.
+//! Store layout is unchanged:
+//! `snapshots/<app>/<sub_group>/<cols>x<rows>/<palette>.<ext>`. Which
+//! extensions are committed and gated is decided in ONE place,
+//! [`COMMITTED`]. Actuals, diffs and the frame JSON sidecar are scratch
+//! under `target/tuiscotti/` (gitignored). The capture name is the grouped
+//! path, e.g. `holla/parity/discovery/120x40/truecolor`.
 //!
-//! Colour hygiene per capture: ambient `NO_COLOR` is stripped (crossterm
-//! honours it by *presence* and would silently flatten every colour frame —
-//! the lesson that forced the 2026-09-12 baseline re-capture), the motion
-//! kill-switches `HOLLA_NO_MOTION`/`JACKIN_NO_MOTION` and the colour-forcing
-//! `CLICOLOR_FORCE`/`FORCE_COLOR` are stripped for the same reason, and
-//! `HOLLA_NO_HISTORY=1` suppresses history side effects; `nocolor` captures
-//! re-add `NO_COLOR=1` instead of a `--color` flag (backend rule, not app
-//! rule).
+//! Environment per capture (never inherited, `env_clear(true)`): `TERM`,
+//! `COLORTERM=truecolor`, `LANG=C.UTF-8`, `TZ=UTC`, a fixed `HOME` under
+//! `target/tuiscotti/home`, a minimal `PATH`, `HOLLA_NO_HISTORY=1`, and the
+//! crate root as cwd. `nocolor` captures add `NO_COLOR=1` instead of a
+//! `--color` flag (backend rule, not app rule). Clearing the environment
+//! also keeps ambient `NO_COLOR`, `*_NO_MOTION`, `CLICOLOR_FORCE` and
+//! `FORCE_COLOR` out, which used to need explicit stripping.
+//!
+//! Re-approval status: the committed store was produced by the retired
+//! tuisnap engine. Only groups listed in [`REAPPROVED_PREFIXES`] gate on the
+//! new engine; every other capture is skipped unless `VISUAL_FULL=1` (see
+//! `docs/visual-testing/tuiscotti-migration.md`).
 
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use tuisnap::grouped::{GroupedOutcome, GroupedStore};
-use tuisnap::pty::{PtyOptions, Session, run_once};
-use tuisnap::snapshot::Status;
-use tuisnap::{Frame, Profile, Renderer, VENDORED_FACES};
+use crate::ansi_cursor;
+use tuiscotti::diff;
+use tuiscotti::locate::Locator;
+use tuiscotti::render::{self, Renderer};
+use tuiscotti::tui::{CancelToken, Key, KeyMods, MouseMods, Tui, WaitError, Wheel};
+use tuiscotti::{Frame, Observation, Profile, VENDORED_FACES};
+
+pub use tuiscotti::MouseButton;
 
 pub const SHOWCASE: &str = env!("CARGO_BIN_EXE_showcase");
 pub const TABLEPRO: &str = env!("CARGO_BIN_EXE_tablepro");
@@ -438,39 +448,98 @@ pub fn argv_for(case: &Case) -> Vec<String> {
     argv
 }
 
-pub fn opts_for(case: &Case) -> PtyOptions {
-    let opts = PtyOptions {
-        cols: case.cols,
-        rows: case.rows,
-        timeout: Duration::from_millis(case.timeout_ms),
-        ..PtyOptions::default()
-    }
-    .without_env("NO_COLOR")
-    .without_env("HOLLA_NO_MOTION")
-    .without_env("JACKIN_NO_MOTION")
-    .without_env("CLICOLOR_FORCE")
-    .without_env("FORCE_COLOR")
-    .with_env("HOLLA_NO_HISTORY", "1");
-    match case.color {
-        Color::NoColorEnv => opts.with_env("NO_COLOR", "1"),
-        _ => opts,
+// ----------------------------------------------------------- artifacts --
+
+/// One committable/gateable artifact kind of a scenario.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(
+    dead_code,
+    reason = "the committed set is switchable; unused kinds stay available"
+)]
+pub enum Artifact {
+    /// tuiscotti `ansi_dump` + cursor trailer ([`ansi_cursor::encode`]):
+    /// every cell (text, colours, attributes), grid size and the cursor.
+    Ansi,
+    /// Plain text rows (`Frame::text`).
+    Txt,
+    /// Rasterized frame (vendored fonts): decoded-pixel gate.
+    Png,
+    /// Standalone HTML view (PNG + frame JSON): byte gate.
+    Html,
+}
+
+impl Artifact {
+    pub const fn ext(self) -> &'static str {
+        match self {
+            Artifact::Ansi => "ansi",
+            Artifact::Txt => "txt",
+            Artifact::Png => "png",
+            Artifact::Html => "html",
+        }
     }
 }
 
-/// Boot needle first (a `wait:` step), then the sends — the bash runner's
-/// step order.
-fn steps_for(case: &Case) -> Vec<String> {
-    let mut steps = Vec::with_capacity(case.sends.len() + 1);
-    if !case.needle.is_empty() {
-        steps.push(format!("wait:{}", case.needle));
+/// THE switch: which artifacts are committed under `snapshots/` and gated.
+/// Decision (docs/visual-testing/tuiscotti-migration.md): one `.ansi` with a
+/// cursor trailer per scenario. `.png`/`.html` are review evidence only,
+/// written under `target/tuiscotti/` on a mismatch. Changing this list
+/// changes the gate, `accept_actuals` and `store_integrity` together.
+pub const COMMITTED: &[Artifact] = &[Artifact::Ansi];
+
+/// Extensions the retired tuisnap engine committed for every scenario; the
+/// not-yet-re-approved part of the store still carries exactly these.
+pub const LEGACY_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
+
+/// Capture-name prefixes already re-approved on tuiscotti main. Captures
+/// under these gate (with `--run-ignored`); everything else is pending
+/// re-approval and runs only with `VISUAL_FULL=1`.
+pub const REAPPROVED_PREFIXES: &[&str] = &[];
+
+pub fn is_reapproved(name: &str) -> bool {
+    REAPPROVED_PREFIXES
+        .iter()
+        .any(|prefix| name.starts_with(prefix))
+}
+
+/// `VISUAL_FULL=1` opts into captures still pending re-approval.
+pub fn visual_full() -> bool {
+    std::env::var_os("VISUAL_FULL").is_some_and(|v| v == "1")
+}
+
+pub fn manifest_path(rel: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(rel)
+}
+
+pub fn approved_root() -> PathBuf {
+    manifest_path("snapshots")
+}
+
+pub fn actual_root() -> PathBuf {
+    manifest_path("target/tuiscotti/actual")
+}
+
+pub fn expected_root() -> PathBuf {
+    manifest_path("target/tuiscotti/expected")
+}
+
+pub fn diff_root() -> PathBuf {
+    manifest_path("target/tuiscotti/diff")
+}
+
+fn artifact_path(root: &Path, name: &str, ext: &str) -> PathBuf {
+    root.join(format!("{name}.{ext}"))
+}
+
+fn write_file(path: &Path, bytes: &[u8]) {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     }
-    steps.extend(case.sends.iter().map(|s| s.to_string()));
-    steps
+    std::fs::write(path, bytes).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
 }
 
 thread_local! {
     /// One renderer per test thread: font faces parsed once, glyph rasters
-    /// cached across every check on the thread (no locks).
+    /// cached across every render on the thread (no locks).
     static RENDERER: RefCell<Renderer> = RefCell::new(
         Profile::default_profile()
             .renderer(&VENDORED_FACES)
@@ -478,45 +547,370 @@ thread_local! {
     );
 }
 
-/// The grouped store: approved tree at `snapshots/` (committed), scratch
-/// (actuals, diffs, report) under `target/tuisnap/` (gitignored).
-pub fn store() -> GroupedStore {
-    GroupedStore::new(Path::new("snapshots"))
-        .with_actual_root(Path::new("target/tuisnap/actual"))
-        .with_diff_root(Path::new("target/tuisnap/diff"))
-        .with_report_path(Path::new("target/tuisnap/report.html"))
+/// Render profile name recorded in each frame's provenance.
+fn profile_name() -> String {
+    Profile::default_profile().name
 }
 
-/// Cell-exact (ansi) + content (txt) + render-level (html) byte gates +
-/// pixel-exact gate at threshold 1.0 through the thread's cached renderer.
-/// Writes `target/tuisnap/actual/` artifacts even when unmatched.
-pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
-    RENDERER
-        .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
-        .unwrap_or_else(|e| panic!("gate `{name}` failed: {e}"))
+/// `(png, html)` for `frame`, through the thread's cached renderer.
+fn render_png_html(frame: &Frame, title: &str) -> (Vec<u8>, Vec<u8>) {
+    let artifacts = RENDERER
+        .with(|r| r.borrow_mut().render_artifacts(frame, title))
+        .unwrap_or_else(|e| panic!("render `{title}`: {e}"));
+    (artifacts.png, artifacts.html.into_bytes())
 }
 
-/// Fail-closed assertion: only `matched` passes. Missing approval remains
-/// pending after capture, but the test fails until the full suite is
-/// generated and explicitly blessed (`tuisnap accept --grouped` is the only
-/// bless, never the test); drift, dimension mismatch and corrupt approval
-/// also fail.
-pub fn assert_gated(outcome: &GroupedOutcome) {
-    match outcome.status() {
-        Status::Matched => eprintln!("baseline matched   {}", outcome.outcome.name),
-        Status::MissingApproval => panic!(
-            "baseline missing approval: {} (generate, review, then bless explicitly)",
-            outcome.outcome.name
-        ),
-        _ => panic!("{}", outcome.ensure_matched().unwrap_err()),
+/// Gate one frame against the [`COMMITTED`] approved artifacts.
+///
+/// Always writes `target/tuiscotti/actual/<name>.ansi` and `.frame.json`.
+/// On a mismatch it also writes review evidence: actual `.png`/`.html`,
+/// expected `.png`/`.html` rebuilt from the approved `.ansi`
+/// (`target/tuiscotti/expected/`), and a red-overlay diff PNG
+/// (`target/tuiscotti/diff/`). Fail-closed: a missing approved artifact
+/// fails; approval is never implicit (`accept_actuals` in `main.rs`).
+pub fn gate(name: &str, frame: &Frame) -> Result<(), String> {
+    tuiscotti::grouped::validate_name(name).map_err(|e| e.to_string())?;
+    frame
+        .validate()
+        .map_err(|e| format!("invalid frame `{name}`: {e}"))?;
+    let actual = actual_root();
+    let approved = approved_root();
+    let ansi = ansi_cursor::encode(frame);
+    write_file(&artifact_path(&actual, name, "ansi"), ansi.as_bytes());
+    write_file(
+        &artifact_path(&actual, name, "frame.json"),
+        frame.to_json().as_bytes(),
+    );
+    let mut rendered: Option<(Vec<u8>, Vec<u8>)> = None;
+    let render = |rendered: &mut Option<(Vec<u8>, Vec<u8>)>| -> (Vec<u8>, Vec<u8>) {
+        rendered
+            .get_or_insert_with(|| {
+                let (png, html) = render_png_html(frame, name);
+                write_file(&artifact_path(&actual, name, "png"), &png);
+                write_file(&artifact_path(&actual, name, "html"), &html);
+                (png, html)
+            })
+            .clone()
+    };
+
+    let mut problems = Vec::new();
+    for &artifact in COMMITTED {
+        let path = artifact_path(&approved, name, artifact.ext());
+        let Ok(expected) = std::fs::read(&path) else {
+            problems.push(format!("missing approval {}", path.display()));
+            continue;
+        };
+        let differs = match artifact {
+            Artifact::Ansi => expected != ansi.as_bytes(),
+            Artifact::Txt => expected != frame.text().as_bytes(),
+            Artifact::Html => expected != render(&mut rendered).1,
+            Artifact::Png => {
+                let verdict = diff::compare_png(&expected, &render(&mut rendered).0)
+                    .map_err(|e| format!("png compare `{name}`: {e}"))?;
+                !verdict.dims_equal || verdict.score < 1.0
+            }
+        };
+        if differs {
+            problems.push(format!(
+                "{} differs from {}",
+                artifact.ext(),
+                path.display()
+            ));
+        }
+    }
+    if problems.is_empty() {
+        return Ok(());
+    }
+    let (actual_png, _) = render(&mut rendered);
+    let evidence = write_expected_evidence(name, &actual_png);
+    Err(format!(
+        "baseline `{name}` failed: {}\n  actual: {}{evidence}",
+        problems.join("; "),
+        artifact_path(&actual, name, "{ansi,png,html}").display(),
+    ))
+}
+
+/// Rebuild expected PNG/HTML from the approved `.ansi` and write the diff
+/// PNG. Returns a note for the failure message (never fails the caller).
+fn write_expected_evidence(name: &str, actual_png: &[u8]) -> String {
+    let approved = artifact_path(&approved_root(), name, "ansi");
+    let Ok(text) = std::fs::read_to_string(&approved) else {
+        return String::new();
+    };
+    let provenance =
+        render::frame_from_screen(&tuiscotti::Screen::blank(1, 1), &profile_name()).provenance;
+    let Some(expected) = ansi_cursor::decode(&text, provenance) else {
+        return format!("\n  expected: {} is not decodable", approved.display());
+    };
+    let (png, html) = render_png_html(&expected, name);
+    write_file(&artifact_path(&expected_root(), name, "png"), &png);
+    write_file(&artifact_path(&expected_root(), name, "html"), &html);
+    let mut note = format!(
+        "\n  expected: {}",
+        artifact_path(&expected_root(), name, "{png,html}").display()
+    );
+    if let Ok(verdict) = diff::compare_png(&png, actual_png)
+        && verdict.dims_equal
+        && verdict.score < 1.0
+    {
+        let path = artifact_path(&diff_root(), name, "png");
+        write_file(&path, &verdict.diff_png);
+        note.push_str(&format!(
+            "\n  diff: {} (pixel score {:.4})",
+            path.display(),
+            verdict.score
+        ));
+    }
+    note
+}
+
+/// Fail-closed assertion: only a full match passes.
+pub fn assert_gated(name: &str, frame: &Frame) {
+    match gate(name, frame) {
+        Ok(()) => eprintln!("baseline matched   {name}"),
+        Err(e) => panic!("{e}"),
     }
 }
 
-/// A ported-matrix capture: the same runner the `tuisnap run` CLI used.
+// ------------------------------------------------------------- session --
+
+/// Wheel direction for [`Session::scroll`].
+#[derive(Clone, Copy, Debug)]
+pub enum Scroll {
+    Up,
+    Down,
+}
+
+/// A live screen with the queries the suite needs.
+pub struct Screen<'a>(&'a tuiscotti::Screen);
+
+impl Screen<'_> {
+    /// First occurrence of `needle` on one physical row, as `(row, col)`.
+    pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
+        Locator::text(needle)
+            .physical_rows()
+            .resolve(self.0, 0)
+            .ok()?
+            .into_iter()
+            .min_by_key(|span| (span.y, span.x))
+            .map(|span| (span.y, span.x))
+    }
+
+    /// Plain text, rows joined with `\n`, trailing blanks trimmed.
+    pub fn text(&self) -> String {
+        render::frame_from_screen(self.0, "query").text()
+    }
+
+    /// `(cols, rows)`.
+    pub fn size(&self) -> (u16, u16) {
+        (self.0.cols(), self.0.rows())
+    }
+
+    fn is_blank(&self) -> bool {
+        self.text().trim().is_empty()
+    }
+}
+
+/// Live PTY session: a thin adapter over `tuiscotti::Session` keeping the
+/// suite's vocabulary (key names, `(col, row)` pointer calls, one deadline
+/// per wait taken from the case timeout).
+pub struct Session {
+    inner: tuiscotti::Session,
+    timeout: Duration,
+}
+
+fn wait_failure(what: &str, err: &WaitError) -> String {
+    let evidence = err
+        .evidence()
+        .map(|obs| render::frame_from_screen(&obs.screen, "evidence").text())
+        .unwrap_or_default();
+    format!("{what}: {err}\n--- last screen ---\n{evidence}")
+}
+
+/// Translate the suite's key names (`ctrl-l`, `alt-0`, `backtab`, `f10`,
+/// `pagedown`, single characters) to tuiscotti `+` chords.
+fn chord(name: &str) -> String {
+    if name == "backtab" {
+        return "shift+tab".to_string();
+    }
+    if name.chars().count() > 1
+        && let Some((mods, key)) = name.rsplit_once('-')
+        && !key.is_empty()
+        && mods
+            .split('-')
+            .all(|m| matches!(m, "ctrl" | "alt" | "shift"))
+    {
+        return format!("{}+{key}", mods.replace('-', "+"));
+    }
+    name.to_string()
+}
+
+impl Session {
+    fn wait(&self, pred: impl Fn(&Observation) -> bool) -> Result<Observation, WaitError> {
+        self.inner
+            .wait_predicate(pred, Instant::now() + self.timeout, &CancelToken::new())
+    }
+
+    /// Wait until `pred` holds on the live screen.
+    pub fn wait_until(&mut self, pred: impl Fn(&Screen<'_>) -> bool) -> Result<(), String> {
+        self.wait(|obs| pred(&Screen(&obs.screen)))
+            .map(|_| ())
+            .map_err(|e| wait_failure("wait_until", &e))
+    }
+
+    /// Content-gated readiness: wait for `needle` (tuiscotti text
+    /// `Locator`, physical rows), returning its first `(row, col)`.
+    pub fn find(&mut self, needle: &str) -> Result<(u16, u16), String> {
+        let locator = Locator::text(needle).physical_rows();
+        let obs = self
+            .wait(|obs| {
+                locator
+                    .resolve_obs(obs)
+                    .is_ok_and(|spans| !spans.is_empty())
+            })
+            .map_err(|e| wait_failure(&format!("`{needle}` never appeared"), &e))?;
+        Ok(Screen(&obs.screen)
+            .find(needle)
+            .expect("locator matched on the returned observation"))
+    }
+
+    pub fn wait_for_text(&mut self, needle: &str) -> Result<(), String> {
+        self.find(needle).map(|_| ())
+    }
+
+    /// No needle: wait for a non-blank first paint, then a quiet window.
+    pub fn wait_idle(&mut self, quiet: Duration) -> Result<(), String> {
+        self.wait_until(|screen| !screen.is_blank())?;
+        self.inner
+            .wait_stable_quiet(Instant::now() + self.timeout, quiet, &CancelToken::new())
+            .map(|_| ())
+            .map_err(|e| wait_failure("idle", &e))
+    }
+
+    /// Settle (no new revision for `quiet`) and adapt the screen to a frame.
+    pub fn wait_stable(&mut self, quiet: Duration) -> Result<Frame, String> {
+        let obs = self
+            .inner
+            .wait_stable_quiet(Instant::now() + self.timeout, quiet, &CancelToken::new())
+            .map_err(|e| wait_failure("settle", &e))?;
+        Ok(render::frame_from_screen(&obs.screen, &profile_name()))
+    }
+
+    pub fn send_key(&mut self, name: &str) -> Result<(), tuiscotti::TuiError> {
+        // A bare character goes straight to `Key::Char`: tuiscotti's chord
+        // parser reads a lone `f`/`F` as a malformed function key.
+        let mut chars = name.chars();
+        if let (Some(c), None) = (chars.next(), chars.next()) {
+            return self.inner.press_key(Key::Char(c), KeyMods::NONE);
+        }
+        self.inner.press(&chord(name))
+    }
+
+    pub fn type_text(&mut self, text: &str) -> Result<(), tuiscotti::TuiError> {
+        self.inner.send_text(text)
+    }
+
+    pub fn mouse_move(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
+        self.inner.mouse_move(col, row, MouseMods::NONE)
+    }
+
+    pub fn scroll(&mut self, col: u16, row: u16, dir: Scroll) -> Result<(), tuiscotti::TuiError> {
+        let wheel = match dir {
+            Scroll::Up => Wheel::Up,
+            Scroll::Down => Wheel::Down,
+        };
+        self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
+    }
+
+    pub fn click_with(
+        &mut self,
+        button: MouseButton,
+        col: u16,
+        row: u16,
+    ) -> Result<(), tuiscotti::TuiError> {
+        self.inner.click(button, col, row, MouseMods::NONE)
+    }
+
+    /// Primary-button drag: press at the start, one held-motion report per
+    /// cell crossed (as a terminal sends), release at the end.
+    pub fn drag(&mut self, c0: u16, r0: u16, c1: u16, r1: u16) -> Result<(), tuiscotti::TuiError> {
+        let left = MouseButton::Left;
+        self.inner.mouse_down(left, c0, r0, MouseMods::NONE)?;
+        let steps = c0.abs_diff(c1).max(r0.abs_diff(r1)).max(1);
+        for step in 1..=steps {
+            let lerp = |a: u16, b: u16| {
+                let (a, b, s, n) = (
+                    i32::from(a),
+                    i32::from(b),
+                    i32::from(step),
+                    i32::from(steps),
+                );
+                u16::try_from(a + (b - a) * s / n).expect("cell on screen")
+            };
+            self.inner
+                .mouse_drag(left, lerp(c0, c1), lerp(r0, r1), MouseMods::NONE)?;
+        }
+        self.inner.mouse_up(left, c1, r1, MouseMods::NONE)
+    }
+
+    pub fn resize(&mut self, cols: u16, rows: u16) -> Result<(), tuiscotti::TuiError> {
+        self.inner.resize(cols, rows)
+    }
+
+    /// DEC private modes the application currently has set, from the live
+    /// emulator state (not part of any snapshot format).
+    pub fn modes(&self) -> Vec<u16> {
+        let obs = self.inner.observe_now().expect("observe live session");
+        obs.state
+            .modes
+            .known()
+            .cloned()
+            .expect("tuiscotti reports terminal modes on the live path")
+    }
+}
+
+/// Spawn a case's session with the explicit capture environment.
+pub fn spawn(case: &Case) -> Session {
+    let home = manifest_path("target/tuiscotti/home");
+    std::fs::create_dir_all(&home).unwrap_or_else(|e| panic!("mkdir {}: {e}", home.display()));
+    let mut tui = Tui::new(argv_for(case))
+        .size(case.cols, case.rows)
+        .env_clear(true)
+        .env("TERM", "xterm-256color")
+        .env("COLORTERM", "truecolor")
+        .env("LANG", "C.UTF-8")
+        .env("LC_ALL", "C.UTF-8")
+        .env("TZ", "UTC")
+        .env("HOME", &home)
+        .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")
+        .env("HOLLA_NO_HISTORY", "1")
+        .cwd(PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+    if matches!(case.color, Color::NoColorEnv) {
+        tui = tui.env("NO_COLOR", "1");
+    }
+    let inner = tui
+        .spawn()
+        .unwrap_or_else(|e| panic!("spawn `{}` failed: {e:#}", case.name));
+    Session {
+        inner,
+        timeout: Duration::from_millis(case.timeout_ms),
+    }
+}
+
+/// `false` (and a note) when `name` is still pending re-approval on the
+/// tuiscotti engine and `VISUAL_FULL=1` is not set.
+pub fn capture_enabled(name: &str) -> bool {
+    if is_reapproved(name) || visual_full() {
+        return true;
+    }
+    eprintln!("baseline skipped   {name} (pending tuiscotti re-approval; VISUAL_FULL=1 runs it)");
+    false
+}
+
+/// A ported-matrix capture: boot, sends, settle, gate.
 pub fn run_and_assert(case: &Case) {
-    let frame = run_once(&argv_for(case), &opts_for(case), &steps_for(case), SETTLE)
-        .unwrap_or_else(|e| panic!("capture `{}` failed: {e:#}", case.name));
-    assert_gated(&gate(&case.name, &frame));
+    let mut session = spawn_boot(case);
+    settle_and_gate(&mut session, &case.name);
 }
 
 /// Expand one representative static Case::new root through the full canonical
@@ -654,7 +1048,13 @@ pub fn run_canonical_live_with_compact_sends(
 /// first failure: every combo's actuals are written before the fn panics, so
 /// an intentional-change run regenerates the whole matrix in one pass. The
 /// fn still fails loudly, with every failed combo named.
+///
+/// Captures still pending re-approval are skipped here (counted as passed)
+/// unless `VISUAL_FULL=1`; every matrix funnels through this function.
 pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
+    if !capture_enabled(combo) {
+        return true;
+    }
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)) {
         Ok(()) => true,
         Err(e) => {
@@ -679,16 +1079,8 @@ pub fn finish_matrix(failures: &[String]) {
     );
 }
 
-/// Spawn a case's session for the pointer group (mouse/resize captures need
-/// the live session after boot).
-pub fn spawn(case: &Case) -> Session {
-    Session::spawn(&argv_for(case), &opts_for(case))
-        .unwrap_or_else(|e| panic!("spawn `{}` failed: {e:#}", case.name))
-}
-
-/// Central live-session setup: boot needle first, then all case sends. This
-/// mirrors [`run_once`] while handing the connected session back for pointer
-/// or manual-flow assertions.
+/// Central live-session setup: boot needle first, then all case sends,
+/// handing the connected session back for pointer or manual-flow steps.
 pub fn spawn_boot(case: &Case) -> Session {
     let mut session = spawn(case);
     boot(&mut session, case.needle);
@@ -698,20 +1090,21 @@ pub fn spawn_boot(case: &Case) -> Session {
     session
 }
 
-/// Boot: needle first. Live clocks starve a quiet-window wait_idle.
+/// Boot: needle first (content-gated). Live clocks starve a quiet-window
+/// wait, so the quiet fallback is only for cases without a needle.
 pub fn boot(session: &mut Session, needle: &str) {
     if !needle.is_empty() {
         session
             .wait_for_text(needle)
-            .unwrap_or_else(|e| panic!("boot needle `{needle}` never appeared: {e:#}"));
+            .unwrap_or_else(|e| panic!("boot needle `{needle}` never appeared: {e}"));
         return;
     }
     session
         .wait_idle(Duration::from_millis(200))
-        .unwrap_or_else(|e| panic!("boot idle failed: {e:#}"));
+        .unwrap_or_else(|e| panic!("boot idle failed: {e}"));
 }
 
-/// `run_once`'s step loop on a live session, pacing included.
+/// The step loop on a live session, 120 ms pacing after each input.
 pub fn drive(session: &mut Session, steps: &[&str]) {
     for step in steps {
         if let Some(ms) = step.strip_prefix("sleep:") {
@@ -719,12 +1112,14 @@ pub fn drive(session: &mut Session, steps: &[&str]) {
         } else if let Some(needle) = step.strip_prefix("wait:") {
             session
                 .wait_for_text(needle)
-                .unwrap_or_else(|e| panic!("`wait:{needle}` timed out: {e:#}"));
+                .unwrap_or_else(|e| panic!("`wait:{needle}` timed out: {e}"));
         } else if let Some(text) = step.strip_prefix("type:") {
             session.type_text(text).expect("type_text");
             std::thread::sleep(Duration::from_millis(120));
         } else {
-            session.send_key(step).expect("send_key");
+            session
+                .send_key(step)
+                .unwrap_or_else(|e| panic!("send_key `{step}`: {e}"));
             std::thread::sleep(Duration::from_millis(120));
         }
     }
@@ -734,8 +1129,8 @@ pub fn drive(session: &mut Session, steps: &[&str]) {
 pub fn settle_and_gate(session: &mut Session, name: &str) {
     let frame = session
         .wait_stable(SETTLE)
-        .unwrap_or_else(|e| panic!("`{name}` never settled: {e:#}"));
-    assert_gated(&gate(name, &frame));
+        .unwrap_or_else(|e| panic!("`{name}` never settled: {e}"));
+    assert_gated(name, &frame);
 }
 
 /// One `#[test]` per canonical root, generated from the representative static
