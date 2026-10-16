@@ -206,6 +206,9 @@ pub struct RevealState {
     target: Option<WidgetId>,
     /// Shared with the queued tooltip, which lays itself out at frame end.
     extent: SharedExtent,
+    /// The theme's hint labels (`reveal_open`, `reveal_close`) as of the
+    /// last frame; `None` before the first is the default copy.
+    labels: Option<(&'static str, &'static str)>,
 }
 
 impl RevealState {
@@ -238,7 +241,9 @@ impl RevealState {
         } else {
             self.effective.key_label()?
         };
-        Some((key, if self.open { "Collapse" } else { "Full text" }))
+        let d = crate::theme::Strings::DEFAULT;
+        let (open, close) = self.labels.unwrap_or((d.reveal_open, d.reveal_close));
+        Some((key, if self.open { close } else { open }))
     }
 
     /// The reveal drawn last is longer than its rows and scrolls.
@@ -249,6 +254,8 @@ impl RevealState {
     /// Start a frame: resolve the policy against the global default.
     pub fn begin(&mut self, ctx: &RenderCtx) {
         self.effective = self.config.unwrap_or(ctx.reveal);
+        let s = &ctx.theme.strings;
+        self.labels = Some((s.reveal_open, s.reveal_close));
         self.available = false;
         self.inlined = false;
         self.extent.set(Extent::default());
@@ -450,12 +457,13 @@ fn window(
     };
     let more = |n: usize, up: bool| RevealLine {
         text: format!(
-            "{} {n} more",
+            "{} {}",
             if up {
                 t.glyphs.arrows[0]
             } else {
                 t.glyphs.arrows[1]
-            }
+            },
+            crate::theme::Strings::fill(t.strings.more_count, &[&n])
         ),
         more: true,
     };
@@ -1264,6 +1272,32 @@ mod tests {
         assert_eq!(state.on_key(&key(KeyCode::Left)), Some(Outcome::Changed));
         let buf = render(&mut state);
         assert!(!row_text(&buf, 2).contains("redesign preview"));
+    }
+
+    #[test]
+    fn the_reveal_hint_and_more_lines_take_the_theme_strings() {
+        let theme = Theme::junie().with_strings(crate::theme::Strings {
+            reveal_open: "Ganzer Text",
+            reveal_close: "Zuklappen",
+            more_count: "{} weitere",
+            ..crate::theme::Strings::DEFAULT
+        });
+        let id = WidgetId::of("row");
+        let area = Rect::new(4, 2, 20, 1);
+        let mut state = RevealState::default();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 6));
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        state.begin(&ctx);
+        cut_cell(&mut buf, area);
+        state.cell(&mut ctx, id, area, FULL, true);
+        assert_eq!(state.hint(), Some(("→", "Ganzer Text")));
+        state.on_key(&key(KeyCode::Right));
+        assert_eq!(state.hint(), Some(("←", "Zuklappen")));
+        let lines: Vec<String> = (0..10).map(|i| format!("l{i}")).collect();
+        let (top, _) = window(&lines, 4, 0, &theme);
+        assert_eq!(top[3].text, "↓ 7 weitere");
     }
 
     #[test]

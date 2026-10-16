@@ -41,6 +41,11 @@ pub struct TextInput {
     pub buffer: TextBuffer,
     pub disabled: bool,
     pub required: bool,
+    /// The error a required field left empty shows. `None` (default)
+    /// follows the theme's [`crate::theme::Strings::required`].
+    pub required_message: Option<String>,
+    /// The theme's `required` text as of the last render.
+    required_text: &'static str,
     pub help: String,
     pub error: Option<String>,
     pub editing: bool,
@@ -101,6 +106,8 @@ impl TextInput {
             buffer: TextBuffer::single(""),
             disabled: false,
             required: false,
+            required_message: None,
+            required_text: crate::theme::Strings::DEFAULT.required,
             help: String::new(),
             error: None,
             editing: false,
@@ -122,6 +129,12 @@ impl TextInput {
 
     pub fn placeholder(mut self, p: &str) -> Self {
         self.placeholder = p.to_owned();
+        self
+    }
+
+    /// See [`Self::required_message`].
+    pub fn required_message(mut self, message: &str) -> Self {
+        self.required_message = Some(message.to_owned());
         self
     }
     pub fn value(mut self, v: &str) -> Self {
@@ -261,7 +274,11 @@ impl TextInput {
         self.error = if let Some(v) = &self.validator {
             (v.0)(self.buffer.text())
         } else if self.required && self.buffer.is_empty() {
-            Some("Required".to_owned())
+            Some(
+                self.required_message
+                    .clone()
+                    .unwrap_or_else(|| self.required_text.to_owned()),
+            )
         } else {
             None
         };
@@ -476,6 +493,15 @@ impl TextInput {
         ctx: &mut RenderCtx,
         bg: ratatui::style::Color,
     ) {
+        let required = ctx.theme.strings.required;
+        if self.required_text != required {
+            let old = std::mem::replace(&mut self.required_text, required);
+            if self.required_message.is_none()
+                && let Some(e) = self.error.as_mut()
+            {
+                crate::theme::Strings::follow(e, old, required);
+            }
+        }
         let area = area.intersection(*buf.area());
         self.area = Rect::ZERO;
         self.text_area = Rect::ZERO;
@@ -522,11 +548,12 @@ impl TextInput {
         let show_optional = !self.required
             && !self.label.is_empty()
             && !self.plain_label
-            && name_w + 12 <= area.width as usize;
+            && name_w + 4 + width(t.strings.optional) <= area.width as usize;
         if self.required {
             label.push_str(" *");
         } else if show_optional {
-            label.push_str("  optional");
+            label.push_str("  ");
+            label.push_str(t.strings.optional);
         }
         let label_style = label_style_for(t);
         if label_rows == 1 {
@@ -550,7 +577,7 @@ impl TextInput {
             buf.set_string(
                 area.x + 2 + name_w as u16 + 2,
                 area.y,
-                "optional",
+                t.strings.optional,
                 t.faint().bg(bg),
             );
         }

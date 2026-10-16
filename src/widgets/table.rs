@@ -153,6 +153,9 @@ pub struct DataTable {
     /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
     pub blur_action: BlurAction,
     pub empty_text: String,
+    /// The theme's strings as of the last render: default text still
+    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+    strings: crate::theme::Strings,
     /// A full empty state (title, hint, error tone) shown instead of
     /// [`Self::empty_text`] when set. Default `None`.
     pub empty: Option<crate::widgets::empty::EmptyState>,
@@ -257,7 +260,8 @@ impl DataTable {
             edit: None,
             validator: None,
             blur_action: BlurAction::Commit,
-            empty_text: "No rows".to_owned(),
+            empty_text: crate::theme::Strings::DEFAULT.no_rows.to_owned(),
+            strings: crate::theme::Strings::DEFAULT,
             empty: None,
             area: Rect::ZERO,
             track: Rect::ZERO,
@@ -1135,6 +1139,9 @@ impl DataTable {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        let s = ctx.theme.strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        crate::theme::Strings::follow(&mut self.empty_text, old.no_rows, s.no_rows);
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() || area.height < 2 {
