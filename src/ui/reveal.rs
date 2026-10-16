@@ -21,7 +21,8 @@
 //! - **In place.** With [`RevealMode::InlineWrap`] the keyboard reveal
 //!   wraps the cursor row in place instead, accordion style: the row grows
 //!   to every line of its text and the rows below move down. Owners that
-//!   can re-flow their rows ([`ListBox`](crate::widgets::list::ListBox))
+//!   can re-flow their rows ([`ListBox`](crate::widgets::list::ListBox),
+//!   [`PropsList`](crate::widgets::props::PropsList))
 //!   draw it through [`RevealState::inline`]; the others keep the tooltip.
 //! - **Long text.** A reveal longer than its rows (the screen, or
 //!   [`Reveal::max_rows`]) shows `↑ N more` / `↓ N more` markers and
