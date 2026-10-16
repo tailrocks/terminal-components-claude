@@ -204,6 +204,18 @@ impl<A> Response<A> {
     }
 }
 
+impl Response<()> {
+    /// The same flow and invalidation, typed for an owner whose action is
+    /// `B` (a scroll or a bar press inside a widget that emits actions).
+    pub fn lift<B>(self) -> Response<B> {
+        Response {
+            flow: self.flow,
+            invalidate: self.invalidate,
+            action: None,
+        }
+    }
+}
+
 /// Adapter from the legacy [`Outcome`]: `Changed` repaints, `Consumed`
 /// does not, `Ignored` keeps propagating. No action.
 impl<A> From<Outcome> for Response<A> {

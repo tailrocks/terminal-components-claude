@@ -14,9 +14,15 @@
 
 use ratatui::layout::Position;
 
-use super::event::{MouseKind, Outcome};
-use super::hit::{HitRegistry, ReleaseFrom};
-use super::id::WidgetId;
+use ratatui::crossterm::event::KeyModifiers;
+
+use super::event::{Mouse, MouseKind, Outcome};
+use super::focus::{Focus, FocusRing};
+use super::hit::{Axis, Bar, Hit, HitRegistry, ReleaseFrom};
+use super::id::{ItemKey, Part, PartRef, WidgetId};
+use super::intent::{Intent, Phase};
+use super::response::Response;
+use super::scroll::Scrollable;
 
 /// When a pointer press moves keyboard focus to the control under it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -666,6 +672,527 @@ impl PointerState {
     }
 }
 
+// ------------------------------------------------------------------ router
+
+/// One pointer event resolved to its target: the region under the pointer
+/// (the held one for a drag or a release), its owner widget and part
+/// ([`HitRegistry::resolve`]), and the [`Intent`] the widget acts on.
+/// [`PointerRouter`] builds it; an app hands it to the owner through
+/// [`MouseTarget`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PointerEvent {
+    /// The hit region's id: a row, a tab, a scrollbar, a backdrop.
+    pub id: WidgetId,
+    /// The widget that owns the region and the part of it the pointer is
+    /// on.
+    pub hit: Hit,
+    /// [`Intent::Pointer`] (press, click, drag, ...) or [`Intent::Wheel`].
+    pub intent: Intent<'static>,
+    /// The scrollbar under a press, click or release, or the one a drag
+    /// holds ([`PointerState::grabbed`]). A [`Scrollable`] owner takes it
+    /// through [`scroll_input`].
+    pub bar: Option<Bar>,
+}
+
+impl PointerEvent {
+    /// A pointer event of `phase` on the region `id` (resolved through
+    /// `hits`, so a part keeps its owner).
+    pub fn new(
+        hits: &HitRegistry,
+        phase: Phase,
+        id: WidgetId,
+        pos: Position,
+        count: u8,
+        mods: KeyModifiers,
+    ) -> Self {
+        let hit = hit_of(hits, id);
+        Self {
+            id,
+            hit,
+            intent: Intent::Pointer {
+                phase,
+                part: hit.part,
+                pos,
+                count,
+                mods,
+            },
+            bar: hits.bar(id),
+        }
+    }
+
+    /// A wheel event of `delta` lines on `axis` over the region `id`.
+    pub fn wheel_on(
+        hits: &HitRegistry,
+        id: WidgetId,
+        axis: Axis,
+        delta: i32,
+        pos: Position,
+        mods: KeyModifiers,
+    ) -> Self {
+        let hit = hit_of(hits, id);
+        Self {
+            id,
+            hit,
+            intent: Intent::Wheel {
+                axis,
+                delta: delta.clamp(i16::MIN as i32, i16::MAX as i32) as i16,
+                part: hit.part,
+                pos,
+                mods,
+            },
+            bar: None,
+        }
+    }
+
+    /// The widget the event belongs to.
+    pub fn owner(&self) -> WidgetId {
+        self.hit.owner
+    }
+
+    /// Whether the event belongs to `owner`.
+    pub fn on(&self, owner: WidgetId) -> bool {
+        self.hit.owner == owner
+    }
+
+    /// The part of the owner the pointer is on.
+    pub fn part(&self) -> PartRef {
+        self.hit.part
+    }
+
+    /// The positional item of the part (a row, a tab, an option) when the
+    /// part is `part`.
+    pub fn index_of(&self, part: Part) -> Option<usize> {
+        if self.hit.part.part != part {
+            return None;
+        }
+        self.hit.part.item.and_then(ItemKey::as_index)
+    }
+
+    /// The pointer phase; `None` for a wheel event.
+    pub fn phase(&self) -> Option<Phase> {
+        match self.intent {
+            Intent::Pointer { phase, .. } => Some(phase),
+            _ => None,
+        }
+    }
+
+    /// Whether this is a pointer event of `phase`.
+    pub fn is(&self, phase: Phase) -> bool {
+        self.phase() == Some(phase)
+    }
+
+    /// The pointer position.
+    pub fn pos(&self) -> Position {
+        self.intent.pos().unwrap_or_default()
+    }
+
+    /// The multi-click count (1, 2, 3; 0 for a wheel).
+    pub fn count(&self) -> u8 {
+        match self.intent {
+            Intent::Pointer { count, .. } => count,
+            _ => 0,
+        }
+    }
+
+    /// The modifiers held with the event.
+    pub fn mods(&self) -> KeyModifiers {
+        match self.intent {
+            Intent::Pointer { mods, .. } | Intent::Wheel { mods, .. } => mods,
+            _ => KeyModifiers::NONE,
+        }
+    }
+
+    /// The axis and the signed lines of a wheel event.
+    pub fn wheel(&self) -> Option<(Axis, i32)> {
+        match self.intent {
+            Intent::Wheel { axis, delta, .. } => Some((axis, delta as i32)),
+            _ => None,
+        }
+    }
+}
+
+fn hit_of(hits: &HitRegistry, id: WidgetId) -> Hit {
+    hits.part_of(id).unwrap_or(Hit {
+        owner: id,
+        part: PartRef::of(Part::CONTAINER),
+    })
+}
+
+/// The scrolling half of every [`Scrollable`] target's pointer handling,
+/// shared so no widget routes its own bars or wheel: a wheel notch scrolls
+/// the pane ([`Scrollable::wheel`]); a press or a drag on one of its bars
+/// moves it ([`Scrollable::bar_input`]); the click or release that ends a
+/// bar press is consumed (the press already moved the view). `None`: the
+/// event is not a scrolling one.
+pub fn scroll_input<S: Scrollable + ?Sized>(w: &mut S, ev: &PointerEvent) -> Option<Response<()>> {
+    if let Some((axis, delta)) = ev.wheel() {
+        return Some(w.wheel(axis, delta));
+    }
+    let bar = ev.bar.filter(|b| b.owner == ev.owner())?;
+    match ev.phase()? {
+        Phase::Press => Some(w.bar_input(&bar, ev.pos(), true)),
+        Phase::Drag | Phase::DragStart => Some(w.bar_input(&bar, ev.pos(), false)),
+        Phase::Click | Phase::Release | Phase::DragEnd => {
+            w.pane().release();
+            Some(Response::consumed())
+        }
+        _ => None,
+    }
+}
+
+/// A widget the pointer router delivers events to. The router resolves
+/// every event to its owner ([`PointerEvent::hit`]); the app hands it to
+/// the widget whose [`Self::mouse_id`] it names, and the widget acts on
+/// the part (a row, a tab, its bar) without scanning ids.
+///
+/// The library widgets implement it as adapters over their per-gesture
+/// methods; S15's `Component` replaces them with one blanket impl.
+pub trait MouseTarget {
+    /// What a gesture may produce (a chosen row, an activated tab).
+    type Action;
+
+    /// The widget's id: events whose [`PointerEvent::owner`] is this id
+    /// are this widget's.
+    fn mouse_id(&self) -> WidgetId;
+
+    /// Handle one of this widget's events.
+    fn pointer(&mut self, ev: &PointerEvent) -> Response<Self::Action>;
+
+    /// [`Self::pointer`] when the event is this widget's; `None` otherwise,
+    /// so a container offers an event to each child in turn.
+    fn route(&mut self, ev: &PointerEvent) -> Option<Response<Self::Action>> {
+        ev.on(self.mouse_id()).then(|| self.pointer(ev))
+    }
+}
+
+/// What the router borrows from its host at once: its own state, the
+/// frame's hit regions, the focus and its ring.
+pub struct PointerParts<'a> {
+    pub router: &'a mut PointerRouter,
+    pub hits: &'a HitRegistry,
+    pub focus: &'a mut Focus,
+    pub ring: &'a FocusRing,
+}
+
+/// The app side of the pointer router: where resolved events go. The
+/// host routes each [`PointerEvent`] by its owner: the top layer first,
+/// then the chrome (menu bar, tabs, footer), then the page.
+pub trait PointerHost {
+    /// The router's state, the hit regions, the focus and its ring.
+    fn pointer_parts(&mut self) -> PointerParts<'_>;
+
+    /// A modal or popover layer is open: the router does not move focus
+    /// on a press (the layer owns its focus), a press on its body ends an
+    /// edit ([`PointerState::surface_press`]), and events the layer
+    /// ignores are consumed, never reaching the page behind.
+    fn layer_open(&self) -> bool;
+
+    /// The host's clock, in milliseconds (multi-clicks, the flash, the
+    /// autoscroll and track-repeat ticks).
+    fn now_ms(&self) -> u64;
+
+    /// Deliver one event to its owner.
+    fn deliver(&mut self, ev: &PointerEvent) -> Response<()>;
+
+    /// A click that landed on nothing reachable: a modal's inert backdrop
+    /// or dead space. The host dismisses its top layer with
+    /// [`crate::core::intent::DismissReason::OutsideClick`] (a refused
+    /// dismissal flashes) or closes an open menu. Default: a repaint.
+    fn outside(&mut self, _pos: Position) -> Response<()> {
+        Response::changed()
+    }
+}
+
+/// The one pointer state machine every app runs through its
+/// [`PointerHost`]: hover, press, release, click count, drag (with a
+/// drag-end phase), wheel on both axes ([`PointerConfig::wheel_lines`],
+/// offered to each owner under the pointer until one takes it),
+/// secondary press, drag and release, middle click, pass-through
+/// backdrops, dead space, presses on a modal's body, the activation flash
+/// and [`PointerConfig::focus_on`]. It owns the [`PointerState`] and
+/// dereferences to it.
+#[derive(Debug, Clone, Default)]
+pub struct PointerRouter {
+    pub state: PointerState,
+    /// The held press moved (a drag): its release is preceded by
+    /// [`Phase::DragEnd`].
+    dragged: bool,
+}
+
+impl std::ops::Deref for PointerRouter {
+    type Target = PointerState;
+    fn deref(&self) -> &PointerState {
+        &self.state
+    }
+}
+
+impl std::ops::DerefMut for PointerRouter {
+    fn deref_mut(&mut self) -> &mut PointerState {
+        &mut self.state
+    }
+}
+
+impl PointerRouter {
+    pub fn new(config: PointerConfig) -> Self {
+        Self {
+            state: PointerState::new(config),
+            dragged: false,
+        }
+    }
+
+    /// Route one mouse event through `host`.
+    pub fn route<H: PointerHost + ?Sized>(host: &mut H, m: Mouse) -> Outcome {
+        let before = host.pointer_parts().focus.current();
+        let out = Self::dispatch(host, m);
+        // focus a click moved shows only on controls that want a ring
+        // after a click (FocusVisible)
+        let p = host.pointer_parts();
+        let pressed = m.kind == MouseKind::Down && p.router.state.pressed.is_some();
+        if pressed || (m.kind == MouseKind::Up && p.focus.current() != before) {
+            p.router.state.focused_by_click();
+        }
+        out
+    }
+
+    /// On the host's tick: a due edge-autoscroll step replays the held
+    /// drag at the pointer ([`PointerState::autoscroll_due`]); a due track
+    /// repeat replays the press held on a scrollbar track, so it keeps
+    /// paging toward the pointer ([`PointerState::track_repeat_due`]).
+    pub fn tick<H: PointerHost + ?Sized>(host: &mut H) -> Outcome {
+        let now = host.now_ms();
+        let due = host.pointer_parts().router.state.autoscroll_due(now);
+        let out = match due {
+            Some((_, pos)) => Self::route(host, Mouse::new(MouseKind::Drag, pos)),
+            None => Outcome::Ignored,
+        };
+        let due = host.pointer_parts().router.state.track_repeat_due(now);
+        match due {
+            Some(pos) => out.or(Self::route(host, Mouse::new(MouseKind::Down, pos))),
+            None => out,
+        }
+    }
+
+    fn dispatch<H: PointerHost + ?Sized>(host: &mut H, m: Mouse) -> Outcome {
+        let layer = host.layer_open();
+        // under a layer nothing an owner ignores reaches the page behind
+        let swallow = |out: Outcome| {
+            if layer && out == Outcome::Ignored {
+                Outcome::Consumed
+            } else {
+                out
+            }
+        };
+        host.pointer_parts().router.state.pos = Some(m.pos);
+        match m.kind {
+            MouseKind::Move => {
+                let p = host.pointer_parts();
+                p.router.state.on_move(p.hits, m.pos)
+            }
+            MouseKind::Down => Self::down(host, m, layer),
+            MouseKind::Drag => {
+                let p = host.pointer_parts();
+                let Some(pressed) = p.router.state.on_drag(p.hits, m.pos) else {
+                    return Outcome::Ignored;
+                };
+                p.router.dragged = true;
+                let bar = p.router.state.grabbed();
+                let mut ev = PointerEvent::new(p.hits, Phase::Drag, pressed, m.pos, 1, m.mods);
+                ev.bar = bar;
+                swallow(host.deliver(&ev).outcome())
+            }
+            MouseKind::Up => {
+                let now = host.now_ms();
+                let p = host.pointer_parts();
+                let pressed = p.router.state.pressed;
+                let dragged = std::mem::take(&mut p.router.dragged);
+                let (hit, beneath) = p.router.state.on_up(p.hits, m.pos);
+                let mut out = Outcome::Ignored;
+                if let Some(pressed) = pressed.filter(|_| dragged) {
+                    let ev = PointerEvent::new(p.hits, Phase::DragEnd, pressed, m.pos, 1, m.mods);
+                    out = host.deliver(&ev).outcome();
+                }
+                out = out.or(Self::release(host, m, hit, layer, now));
+                // a pass-through backdrop: the click closes the popup and
+                // then lands on what is beneath it, as a click of its own
+                if let Some(below) = beneath {
+                    host.pointer_parts().router.state.press(below);
+                    out = out.or(Self::release(host, m, Some(below), layer, now));
+                }
+                out
+            }
+            MouseKind::Secondary => Self::secondary(host, m, layer),
+            MouseKind::SecondaryDrag => {
+                let p = host.pointer_parts();
+                p.router.state.on_secondary_drag(p.hits, m.pos)
+            }
+            // press, drag onto a context-menu row, release: the release
+            // chooses it, delivered as a click on the row
+            MouseKind::SecondaryUp => {
+                let now = host.now_ms();
+                let p = host.pointer_parts();
+                match p.router.state.on_secondary_up(p.hits, m.pos) {
+                    Some(id) => {
+                        p.router.state.press(id);
+                        Self::release(host, m, Some(id), layer, now)
+                    }
+                    None => Outcome::Ignored,
+                }
+            }
+            // a middle click goes to the control under the pointer (a tab
+            // strip closes the tab under it)
+            MouseKind::Middle => {
+                let p = host.pointer_parts();
+                let Some(id) = p.hits.hit(m.pos) else {
+                    return swallow(Outcome::Ignored);
+                };
+                let ev = PointerEvent::new(p.hits, Phase::Middle, id, m.pos, 1, m.mods);
+                swallow(host.deliver(&ev).outcome())
+            }
+            MouseKind::WheelUp
+            | MouseKind::WheelDown
+            | MouseKind::WheelLeft
+            | MouseKind::WheelRight => swallow(Self::wheel(host, m)),
+        }
+    }
+
+    fn down<H: PointerHost + ?Sized>(host: &mut H, m: Mouse, layer: bool) -> Outcome {
+        let now = host.now_ms();
+        let p = host.pointer_parts();
+        p.router.dragged = false;
+        let Some(id) = p.router.state.on_down(p.hits, m.pos) else {
+            if layer {
+                return Outcome::Consumed;
+            }
+            p.router.state.dead_space(p.focus);
+            return Outcome::Ignored;
+        };
+        if layer {
+            // a press on a modal's own body is dead space inside it: it
+            // ends the focused field's edit in place
+            p.router.state.surface_press(p.hits, id, p.focus);
+        } else if p.router.state.config.focus_on == FocusOn::Press && p.ring.contains(id) {
+            p.focus.focus(id);
+        }
+        // the click count this press starts: the second press of a double
+        // click selects a word in a field
+        let count = p.router.state.press_count(id, m.pos, now);
+        let ev = PointerEvent::new(p.hits, Phase::Press, id, m.pos, count, m.mods);
+        host.deliver(&ev).outcome().or(Outcome::Changed)
+    }
+
+    fn secondary<H: PointerHost + ?Sized>(host: &mut H, m: Mouse, layer: bool) -> Outcome {
+        let now = host.now_ms();
+        let p = host.pointer_parts();
+        let route = p.router.state.route_secondary(p.hits, m.pos);
+        let at = |host: &mut H, id: WidgetId| {
+            let p = host.pointer_parts();
+            let ev = PointerEvent::new(p.hits, Phase::Secondary, id, m.pos, 1, m.mods);
+            host.deliver(&ev).outcome()
+        };
+        let out = match route {
+            SecondaryRoute::Nothing => Outcome::Ignored,
+            SecondaryRoute::Swallowed => Outcome::Consumed,
+            SecondaryRoute::Target(id) => at(host, id),
+            SecondaryRoute::Outside { backdrop, reopen } => {
+                // the open popup closes exactly as a primary click on its
+                // backdrop closes it ...
+                host.pointer_parts().router.state.press(backdrop);
+                let out = Self::release(host, m, Some(backdrop), layer, now).or(Outcome::Changed);
+                // ... then the control beneath gets the secondary click,
+                // so its menu opens at the new spot
+                match reopen {
+                    Some(id) => out.or(at(host, id)),
+                    None => out,
+                }
+            }
+        };
+        if layer && out == Outcome::Ignored {
+            Outcome::Consumed
+        } else {
+            out
+        }
+    }
+
+    fn wheel<H: PointerHost + ?Sized>(host: &mut H, m: Mouse) -> Outcome {
+        let axis = if matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight) {
+            Axis::Horizontal
+        } else {
+            Axis::Vertical
+        };
+        let p = host.pointer_parts();
+        let delta = p.router.state.wheel_delta(m.kind);
+        // the notch goes to the innermost owner that takes it: a field (or
+        // its label) inside a scrolling stack passes it on
+        let events: Vec<PointerEvent> = p
+            .hits
+            .scroll_stack(m.pos)
+            .into_iter()
+            .map(|id| PointerEvent::wheel_on(p.hits, id, axis, delta, m.pos, m.mods))
+            .collect();
+        let mut out = Outcome::Ignored;
+        let mut tried: Vec<WidgetId> = Vec::new();
+        for ev in events {
+            // one offer per owner: its rows and its body are one scroller
+            if tried.contains(&ev.owner()) {
+                continue;
+            }
+            tried.push(ev.owner());
+            out = host.deliver(&ev).outcome();
+            if out != Outcome::Ignored {
+                break;
+            }
+        }
+        // the rows under the pointer change with the scroll: hover is
+        // re-resolved once the new frame has registered its hits
+        host.pointer_parts().router.state.scrolled(m.pos, out);
+        out
+    }
+
+    /// A button release over `hit`: the release of the held press, or a
+    /// click replayed on a backdrop or a menu row.
+    fn release<H: PointerHost + ?Sized>(
+        host: &mut H,
+        m: Mouse,
+        hit: Option<WidgetId>,
+        layer: bool,
+        now: u64,
+    ) -> Outcome {
+        let p = host.pointer_parts();
+        let pressed = p.router.state.pressed;
+        let id = match p.router.state.release(hit) {
+            Release::Click(id) => id,
+            Release::Outside => return host.outside(m.pos).outcome().or(Outcome::Changed),
+            Release::Cancelled => {
+                // the press and the release landed on different targets:
+                // the pressed owner gets the release (a select's press-drag
+                // ends on an option)
+                let Some(pressed) = pressed else {
+                    return Outcome::Changed;
+                };
+                let ev = PointerEvent::new(p.hits, Phase::Release, pressed, m.pos, 1, m.mods);
+                return host.deliver(&ev).outcome().or(Outcome::Changed);
+            }
+        };
+        // every activated target flashes, modals included
+        p.router.state.flash(id, now);
+        let count = p.router.state.count_click(id, m.pos, now);
+        let ev = PointerEvent::new(p.hits, Phase::Click, id, m.pos, count, m.mods);
+        let before = p.focus.current();
+        let out = host.deliver(&ev).outcome();
+        // a control the click did not focus is focused here under
+        // [`FocusOn::Release`], so keyboard and pointer agree
+        let p = host.pointer_parts();
+        if !layer
+            && p.router.state.config.focus_on == FocusOn::Release
+            && p.focus.current() == before
+            && p.ring.contains(id)
+        {
+            p.focus.focus(id);
+        }
+        out.or(Outcome::Changed)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -918,5 +1445,257 @@ mod tests {
         assert!(h.autoscroll_at(Position::new(1, 1)).is_some());
         h.push_barrier();
         assert_eq!(h.autoscroll_at(Position::new(1, 1)), None);
+    }
+}
+
+/// The router against a recording host: every resolved event, in order.
+#[cfg(test)]
+mod router_tests {
+    use super::*;
+    use ratatui::layout::Rect;
+
+    struct Host {
+        router: PointerRouter,
+        hits: HitRegistry,
+        focus: Focus,
+        ring: FocusRing,
+        layer: bool,
+        now: u64,
+        log: Vec<PointerEvent>,
+        /// Owners that ignore everything (a wheel passes them on).
+        deaf: Vec<WidgetId>,
+        outside: usize,
+    }
+
+    impl Host {
+        fn new(hits: HitRegistry) -> Self {
+            Self {
+                router: PointerRouter::default(),
+                hits,
+                focus: Focus::default(),
+                ring: FocusRing::default(),
+                layer: false,
+                now: 1_000,
+                log: Vec::new(),
+                deaf: Vec::new(),
+                outside: 0,
+            }
+        }
+
+        fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Outcome {
+            PointerRouter::route(self, Mouse::new(kind, Position::new(x, y)))
+        }
+
+        fn click(&mut self, x: u16, y: u16) {
+            self.mouse(MouseKind::Down, x, y);
+            self.mouse(MouseKind::Up, x, y);
+        }
+
+        fn phases(&self) -> Vec<(Phase, WidgetId)> {
+            self.log
+                .iter()
+                .filter_map(|e| e.phase().map(|p| (p, e.owner())))
+                .collect()
+        }
+    }
+
+    impl PointerHost for Host {
+        fn pointer_parts(&mut self) -> PointerParts<'_> {
+            PointerParts {
+                router: &mut self.router,
+                hits: &self.hits,
+                focus: &mut self.focus,
+                ring: &self.ring,
+            }
+        }
+        fn layer_open(&self) -> bool {
+            self.layer
+        }
+        fn now_ms(&self) -> u64 {
+            self.now
+        }
+        fn deliver(&mut self, ev: &PointerEvent) -> Response<()> {
+            self.log.push(*ev);
+            if self.deaf.contains(&ev.owner()) {
+                Response::ignored()
+            } else {
+                Response::changed()
+            }
+        }
+        fn outside(&mut self, _pos: Position) -> Response<()> {
+            self.outside += 1;
+            Response::changed()
+        }
+    }
+
+    /// A list `list` with rows 0..3 on y 0..3, a body `body` around it.
+    fn layout() -> (HitRegistry, WidgetId, WidgetId) {
+        let mut h = HitRegistry::default();
+        let body = WidgetId::of("body");
+        let list = WidgetId::of("list");
+        h.register(body, Rect::new(0, 0, 20, 10));
+        h.register(list, Rect::new(0, 0, 10, 3));
+        for i in 0..3 {
+            h.register_part(
+                list,
+                PartRef::item(Part::ROW, ItemKey::index(i)),
+                Rect::new(0, i as u16, 10, 1),
+            );
+        }
+        (h, list, body)
+    }
+
+    #[test]
+    fn a_click_resolves_to_the_owner_and_its_part() {
+        let (h, list, _) = layout();
+        let mut host = Host::new(h);
+        host.click(2, 1);
+        assert_eq!(
+            host.phases(),
+            vec![(Phase::Press, list), (Phase::Click, list)]
+        );
+        let click = host.log[1];
+        assert_eq!(click.index_of(Part::ROW), Some(1));
+        assert_eq!(click.count(), 1);
+        assert_eq!(host.router.flashing(host.now), Some(click.id));
+        host.now += 100;
+        host.click(2, 1);
+        assert_eq!(host.log[3].count(), 2, "a double click counts");
+    }
+
+    #[test]
+    fn a_drag_ends_with_drag_end_and_a_release_away_from_the_press() {
+        let (h, list, body) = layout();
+        let mut host = Host::new(h);
+        host.mouse(MouseKind::Down, 2, 0);
+        host.mouse(MouseKind::Drag, 2, 2);
+        host.mouse(MouseKind::Up, 15, 8);
+        assert_eq!(
+            host.phases(),
+            vec![
+                (Phase::Press, list),
+                (Phase::Drag, list),
+                (Phase::DragEnd, list),
+                (Phase::Release, list),
+            ]
+        );
+        assert_eq!(host.log[1].index_of(Part::ROW), Some(0), "the held row");
+        let _ = body;
+    }
+
+    #[test]
+    fn the_wheel_moves_wheel_lines_on_both_axes_and_passes_to_the_next_owner() {
+        let (h, list, body) = layout();
+        let mut host = Host::new(h);
+        host.mouse(MouseKind::WheelRight, 2, 1);
+        assert_eq!(host.log.len(), 1, "the list took it");
+        assert_eq!(host.log[0].wheel(), Some((Axis::Horizontal, 3)));
+        assert_eq!(host.log[0].owner(), list);
+        host.log.clear();
+        host.deaf.push(list);
+        host.mouse(MouseKind::WheelUp, 2, 1);
+        let owners: Vec<WidgetId> = host.log.iter().map(PointerEvent::owner).collect();
+        assert_eq!(owners, vec![list, body], "one offer per owner");
+        assert_eq!(host.log[1].wheel(), Some((Axis::Vertical, -3)));
+    }
+
+    #[test]
+    fn a_middle_click_reaches_the_control_and_a_layer_swallows_the_rest() {
+        let (h, list, body) = layout();
+        let mut host = Host::new(h);
+        host.mouse(MouseKind::Middle, 2, 2);
+        assert_eq!(host.phases(), vec![(Phase::Middle, list)]);
+        host.layer = true;
+        host.deaf.extend([list, body]);
+        assert_eq!(host.mouse(MouseKind::Middle, 2, 2), Outcome::Consumed);
+        assert_eq!(host.mouse(MouseKind::WheelDown, 2, 2), Outcome::Consumed);
+        assert_eq!(host.mouse(MouseKind::Middle, 40, 40), Outcome::Consumed);
+    }
+
+    #[test]
+    fn a_click_on_nothing_is_an_outside_click() {
+        let (h, _, _) = layout();
+        let mut host = Host::new(h);
+        host.click(40, 40);
+        assert_eq!(host.outside, 1);
+        assert!(host.log.is_empty());
+    }
+
+    #[test]
+    fn a_press_focuses_a_ring_member_unless_a_layer_is_open() {
+        let (h, list, _) = layout();
+        let mut host = Host::new(h);
+        host.ring.register(list);
+        host.layer = true;
+        host.mouse(MouseKind::Down, 2, 15);
+        host.mouse(MouseKind::Down, 1, 4);
+        assert_eq!(host.focus.current(), None);
+        host.layer = false;
+        host.hits
+            .register(WidgetId::of("x"), Rect::new(30, 0, 1, 1));
+        let mut h2 = HitRegistry::default();
+        h2.register(list, Rect::new(0, 0, 10, 3));
+        host.hits = h2;
+        host.mouse(MouseKind::Down, 2, 1);
+        assert_eq!(host.focus.current(), Some(list));
+        assert!(host.router.pointer_focus, "focused by a click");
+    }
+
+    #[test]
+    fn a_secondary_release_on_an_accepting_row_is_a_click() {
+        let (mut h, list, _) = layout();
+        let row = list.part(PartRef::item(Part::ROW, ItemKey::index(2)));
+        h.accept_release(row, ReleaseFrom::Secondary);
+        let mut host = Host::new(h);
+        host.mouse(MouseKind::Secondary, 2, 0);
+        host.mouse(MouseKind::SecondaryDrag, 2, 2);
+        host.mouse(MouseKind::SecondaryUp, 2, 2);
+        assert_eq!(
+            host.phases(),
+            vec![(Phase::Secondary, list), (Phase::Click, list)]
+        );
+        assert_eq!(host.log[1].index_of(Part::ROW), Some(2));
+    }
+
+    #[test]
+    fn a_press_on_a_bar_carries_it_and_a_held_track_repeats_on_the_tick() {
+        let mut h = HitRegistry::default();
+        let owner = WidgetId::of("pane");
+        let bar = Bar {
+            id: owner.sub("scrollbar"),
+            owner,
+            axis: Axis::Vertical,
+            track: Rect::new(9, 0, 1, 10),
+        };
+        h.register(owner, Rect::new(0, 0, 9, 10));
+        h.register_bar(bar);
+        let mut host = Host::new(h);
+        host.mouse(MouseKind::Down, 9, 8);
+        assert_eq!(host.log[0].bar, Some(bar));
+        assert_eq!(host.log[0].owner(), owner);
+        assert_eq!(host.log[0].part(), PartRef::of(Part::TRACK));
+        PointerRouter::tick(&mut host);
+        host.now += 400;
+        PointerRouter::tick(&mut host);
+        assert_eq!(host.log.len(), 2, "the held press replays");
+        assert!(host.log[1].is(Phase::Press));
+    }
+
+    #[test]
+    fn a_backdrop_resolves_to_its_popup() {
+        let mut h = HitRegistry::default();
+        let owner = WidgetId::of("select");
+        h.register(WidgetId::of("page"), Rect::new(0, 0, 20, 10));
+        h.push_barrier();
+        h.register_backdrop_of(
+            owner.sub("popup.backdrop"),
+            owner,
+            Rect::new(0, 0, 20, 10),
+            false,
+        );
+        let mut host = Host::new(h);
+        host.click(5, 5);
+        assert_eq!(host.log[1].owner(), owner);
+        assert_eq!(host.log[1].part(), PartRef::of(Part::BACKDROP));
     }
 }
