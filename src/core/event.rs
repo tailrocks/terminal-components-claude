@@ -81,8 +81,11 @@ pub enum MouseKind {
     Down,
     Up,
     Drag,
-    /// Secondary (right) button pressed: a context action.
+    /// Secondary (right) button pressed: a context action. With
+    /// [`InputConfig::ctrl_click_secondary`], Ctrl + primary click too.
     Secondary,
+    /// Middle button pressed (closes a tab, as in browsers and editors).
+    Middle,
     WheelUp,
     WheelDown,
     WheelLeft,
@@ -93,6 +96,50 @@ pub enum MouseKind {
 pub struct Mouse {
     pub kind: MouseKind,
     pub pos: Position,
+    /// Modifier keys held with the event (Shift-click extends, Ctrl/⌘-click
+    /// toggles, Alt-click picks the alternative).
+    pub mods: KeyModifiers,
+}
+
+impl Mouse {
+    /// An event with no modifier held.
+    pub const fn new(kind: MouseKind, pos: Position) -> Self {
+        Self {
+            kind,
+            pos,
+            mods: KeyModifiers::NONE,
+        }
+    }
+
+    /// This event with `mods` held.
+    pub const fn with_mods(mut self, mods: KeyModifiers) -> Self {
+        self.mods = mods;
+        self
+    }
+
+    pub fn shift(&self) -> bool {
+        self.mods.contains(KeyModifiers::SHIFT)
+    }
+    pub fn ctrl(&self) -> bool {
+        self.mods.contains(KeyModifiers::CONTROL)
+    }
+    pub fn alt(&self) -> bool {
+        self.mods.contains(KeyModifiers::ALT)
+    }
+
+    /// The wheel step on each axis, in notches: `(dx, dy)` with negative
+    /// meaning left / up. `None` for anything but a wheel event. Widgets
+    /// without a horizontal axis ignore `dx` instead of folding it into
+    /// vertical scrolling.
+    pub fn wheel(&self) -> Option<(i32, i32)> {
+        match self.kind {
+            MouseKind::WheelUp => Some((0, -1)),
+            MouseKind::WheelDown => Some((0, 1)),
+            MouseKind::WheelLeft => Some((-1, 0)),
+            MouseKind::WheelRight => Some((1, 0)),
+            _ => None,
+        }
+    }
 }
 
 /// How raw terminal events are normalised into [`Input`].
@@ -101,12 +148,18 @@ pub struct InputConfig {
     /// Shift+wheel scrolls sideways (most terminals report it as a
     /// vertical wheel with Shift held), as on macOS and every desktop.
     pub shift_wheel_horizontal: bool,
+    /// Ctrl + primary click is a secondary (context) click, as on macOS.
+    /// On by default on macOS builds only, where Ctrl-click is the
+    /// one-button context click; elsewhere Ctrl-click stays a primary
+    /// click with Ctrl held (toggle selection).
+    pub ctrl_click_secondary: bool,
 }
 
 impl Default for InputConfig {
     fn default() -> Self {
         Self {
             shift_wheel_horizontal: true,
+            ctrl_click_secondary: cfg!(target_os = "macos"),
         }
     }
 }
@@ -142,24 +195,33 @@ impl Input {
                 mods: modifiers,
             })),
             Event::Mouse(MouseEvent {
-                kind, column, row, ..
+                kind,
+                column,
+                row,
+                modifiers,
             }) => {
                 let kind = match kind {
+                    MouseEventKind::Down(MouseButton::Left)
+                        if config.ctrl_click_secondary
+                            && modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        MouseKind::Secondary
+                    }
                     MouseEventKind::Moved => MouseKind::Move,
                     MouseEventKind::Down(MouseButton::Left) => MouseKind::Down,
                     MouseEventKind::Up(MouseButton::Left) => MouseKind::Up,
                     MouseEventKind::Drag(MouseButton::Left) => MouseKind::Drag,
                     MouseEventKind::Down(MouseButton::Right) => MouseKind::Secondary,
+                    MouseEventKind::Down(MouseButton::Middle) => MouseKind::Middle,
                     MouseEventKind::ScrollUp => MouseKind::WheelUp,
                     MouseEventKind::ScrollDown => MouseKind::WheelDown,
                     MouseEventKind::ScrollLeft => MouseKind::WheelLeft,
                     MouseEventKind::ScrollRight => MouseKind::WheelRight,
                     _ => return None,
                 };
-                Some(Input::Mouse(Mouse {
-                    kind,
-                    pos: Position::new(column, row),
-                }))
+                Some(Input::Mouse(
+                    Mouse::new(kind, Position::new(column, row)).with_mods(modifiers),
+                ))
             }
             Event::Resize(w, h) => Some(Input::Resize(w, h)),
             Event::Paste(s) => Some(Input::Paste(s)),
@@ -171,6 +233,65 @@ impl Input {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn raw(kind: MouseEventKind, modifiers: KeyModifiers) -> Event {
+        Event::Mouse(MouseEvent {
+            kind,
+            column: 1,
+            row: 2,
+            modifiers,
+        })
+    }
+
+    fn mouse(i: Option<Input>) -> Mouse {
+        match i {
+            Some(Input::Mouse(m)) => m,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn mouse_events_carry_modifiers_middle_button_and_wheel_axes() {
+        let m = mouse(Input::from_crossterm(raw(
+            MouseEventKind::Down(MouseButton::Left),
+            KeyModifiers::SHIFT,
+        )));
+        assert_eq!(m.kind, MouseKind::Down);
+        assert!(m.shift());
+        let m = mouse(Input::from_crossterm(raw(
+            MouseEventKind::Down(MouseButton::Middle),
+            KeyModifiers::NONE,
+        )));
+        assert_eq!(m.kind, MouseKind::Middle);
+        let m = mouse(Input::from_crossterm(raw(
+            MouseEventKind::ScrollRight,
+            KeyModifiers::NONE,
+        )));
+        assert_eq!(m.wheel(), Some((1, 0)));
+    }
+
+    #[test]
+    fn ctrl_click_is_secondary_only_when_configured() {
+        let ctrl_click = raw(
+            MouseEventKind::Down(MouseButton::Left),
+            KeyModifiers::CONTROL,
+        );
+        let on = InputConfig {
+            ctrl_click_secondary: true,
+            ..InputConfig::default()
+        };
+        let off = InputConfig {
+            ctrl_click_secondary: false,
+            ..InputConfig::default()
+        };
+        assert_eq!(
+            mouse(Input::from_crossterm_with(ctrl_click.clone(), on)).kind,
+            MouseKind::Secondary
+        );
+        let m = mouse(Input::from_crossterm_with(ctrl_click, off));
+        assert_eq!(m.kind, MouseKind::Down);
+        assert!(m.ctrl());
+    }
 
     #[test]
     fn shift_wheel_scrolls_sideways_unless_configured_off() {
@@ -210,6 +331,7 @@ mod tests {
         );
         let off = InputConfig {
             shift_wheel_horizontal: false,
+            ..InputConfig::default()
         };
         assert_eq!(
             kind(Input::from_crossterm_with(

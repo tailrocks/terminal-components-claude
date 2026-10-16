@@ -262,6 +262,17 @@ pub trait Screen {
     fn on_wheel(&mut self, _id: WidgetId, _delta: i32, _pos: Position, _w: &mut World) -> Outcome {
         Outcome::Ignored
     }
+    /// Horizontal wheel (or Shift+wheel) over `id`: only content with a
+    /// horizontal axis reacts.
+    fn on_wheel_h(
+        &mut self,
+        _id: WidgetId,
+        _delta: i32,
+        _pos: Position,
+        _w: &mut World,
+    ) -> Outcome {
+        Outcome::Ignored
+    }
     fn on_paste(&mut self, _text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
