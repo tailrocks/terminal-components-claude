@@ -1554,4 +1554,58 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::keymap::KeyBinding::shift",
         Demo("focusnavigation", "back Shift+Tab"),
     ),
+    // Toolbars (SC28)
+    (
+        "widgets::toolbar::Toolbar",
+        Demo("toolbars", "Query toolbar"),
+    ),
+    ("widgets::toolbar::ToolItem", Demo("toolbars", "Explain")),
+    (
+        "widgets::toolbar::ToolItem::shortcut",
+        Demo("toolbars", "Run F5"),
+    ),
+    (
+        "widgets::toolbar::ToolItem::disabled",
+        Demo("toolbars", "Stop is disabled until a run starts"),
+    ),
+    (
+        "widgets::toolbar::ToolItem::toggle",
+        Demo("toolbars", "Line numbers"),
+    ),
+    (
+        "widgets::toolbar::ToolItem::separator",
+        Demo("toolbars", "Formatting toolbar"),
+    ),
+    (
+        "widgets::toolbar::ToolItem::tip",
+        Demo("toolbars", "Run all Shift+F5"),
+    ),
+    (
+        "widgets::toolbar::ToolbarAction",
+        Demo("toolbars", "Activated(i) or Toggled(i, on)"),
+    ),
+    (
+        "widgets::toolbar::ToolbarAction::Activated",
+        Demo("toolbars", "Activated(i)"),
+    ),
+    (
+        "widgets::toolbar::ToolbarAction::Toggled",
+        Demo("toolbars", "Toggled(i, on)"),
+    ),
+    (
+        "widgets::toolbar::Toolbar::nav",
+        Option("toolbars", "toolbars.nav"),
+    ),
+    (
+        "widgets::toolbar::Toolbar::wrap",
+        Option("toolbars", "toolbars.wrap"),
+    ),
+    (
+        "widgets::toolbar::Toolbar::skip_disabled",
+        Option("toolbars", "toolbars.skip_disabled"),
+    ),
+    (
+        "widgets::toolbar::Toolbar::gap",
+        Option("toolbars", "toolbars.gap"),
+    ),
 ];

@@ -82,7 +82,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     Root::new("showcase/planned/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     Root::new("showcase/planned/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:arrives with SC9"]).pending(),
-    Root::new("showcase/planned/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
     Root::new("showcase/planned/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:arrives with SC18"]).pending(),
     Root::new("showcase/planned/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:arrives with SC19"]).pending(),
     Root::new("showcase/planned/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:arrives with SC41"]).pending(),
@@ -139,6 +138,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/focusnavigation-options", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "2", "wait:List nav keys"]).pending(),
     Root::new("showcase/sections/focusnavigation-states", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "3", "wait:Tab strip"]).pending(),
     Root::new("showcase/elements/focusnavigation/vim-map", Bin::Showcase, &["--page", "focusnavigation", "--opt", "focusnavigation.nav=vim"], BOOT).sends(&["wait:Nav map"]).pending(),
+    // SC28 Toolbars: the query and formatting toolbars, the option table
+    // and the toolbars' States grid; the focused toolbar's cursor item.
+    Root::new("showcase/pages/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:Query toolbar"]).pending(),
+    Root::new("showcase/sections/toolbars-options", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["tab", "2", "wait:Skip disabled"]).pending(),
+    Root::new("showcase/sections/toolbars-states", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["tab", "3", "wait:Toggles"]).pending(),
+    Root::new("showcase/elements/toolbars/focused", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["tab", "tab", "right", "right"]).pending(),
+    Root::new("showcase/elements/toolbars/item-hover", Bin::Showcase, &["--page", "toolbars"], BOOT).hover("Format").pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),
