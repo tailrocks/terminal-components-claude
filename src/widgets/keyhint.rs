@@ -16,10 +16,23 @@
 //! Field edits use [`EDIT_FIELD`]: `Enter Apply · Esc Cancel · Tab Next
 //! field`.
 //!
-//! Within one app a letter keeps one meaning across screens: `d` deletes or
-//! removes, `x` closes, `c` opens Accounts (jackin), `Ctrl+S` saves or
-//! submits what the screen is about, `Ctrl+D` switches Data / Structure
-//! (TablePro).
+//! Within one app a letter keeps one meaning across screens:
+//!
+//! | Key      | Meaning                                         | Apps          |
+//! |----------|-------------------------------------------------|---------------|
+//! | `d`      | delete or remove (`…` when it asks first)       | all           |
+//! | `x`      | close or stop what is in front (pane, launch)   | jackin        |
+//! | `t`      | turn a thing on or off (account, debug, stop)   | jackin        |
+//! | `c`      | open Accounts                                   | jackin        |
+//! | `v`      | switch the view (unified / side by side)        | jackin        |
+//! | `!`      | open a shell                                    | jackin        |
+//! | `Ctrl+S` | save or submit what the screen is about         | all           |
+//! | `Ctrl+D` | switch Data / Structure                         | TablePro      |
+//! | `Alt+D`  | duplicate (a row, a connection)                 | TablePro      |
+//!
+//! Pane commands behind a prefix (`Ctrl+B c`, `Ctrl+B d`, `Ctrl+B x`) follow
+//! tmux, the convention their users already know, and are a separate
+//! layer: the prefix names the namespace.
 
 use std::borrow::Cow;
 

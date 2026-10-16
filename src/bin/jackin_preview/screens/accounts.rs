@@ -1982,13 +1982,13 @@ impl Screen for AccountsScreen {
                         return Outcome::Changed;
                     }
                 }
-                KeyCode::Char('d') if key.plain() => {
+                KeyCode::Char('t') if key.plain() => {
                     if let Sel::Account(id) = self.selected.clone() {
                         self.toggle_enabled(&id, w, cx);
                         return Outcome::Changed;
                     }
                 }
-                KeyCode::Char('x') | KeyCode::Delete if key.plain() => {
+                KeyCode::Char('d') | KeyCode::Delete if key.plain() => {
                     if let Sel::Account(id) = self.selected.clone() {
                         self.remove(&id, w, cx);
                         return Outcome::Changed;
@@ -2551,15 +2551,19 @@ impl Screen for AccountsScreen {
         let mut v = vec![];
         match &self.selected {
             Sel::Account(id) => {
-                let reg = w.accounts.get(id).is_some_and(|a| a.mutations_allowed());
+                let account = w.accounts.get(id);
+                let reg = account.is_some_and(|a| a.mutations_allowed());
+                let enabled = account.is_some_and(|a| a.enabled);
                 v.push(hint("Enter", "Details"));
                 v.push(hint("r", "Refresh"));
                 if reg {
                     v.push(hint("e", "Edit…"));
                     v.push(hint("Space", "Default"));
-                    v.push(hint("d", "Disable"));
+                    v.push(junie_tui::widgets::keyhint::toggle_hint(
+                        "t", enabled, "Disable", "Enable",
+                    ));
                     v.push(hint("v", "Validate"));
-                    v.push(hint("x", "Remove…"));
+                    v.push(hint("d", "Remove…"));
                 }
             }
             Sel::Provider(_) => {
