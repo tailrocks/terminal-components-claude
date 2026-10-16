@@ -217,11 +217,9 @@ fn navigation_edges_and_page_entry_are_deterministic() {
     h.key(KeyCode::Char('j'));
     assert_eq!(h.app.nav.cursor, last);
     h.key(KeyCode::Home);
-    assert_eq!(h.app.nav.cursor, 0, "the first group");
+    assert_eq!(h.app.nav.cursor, 0, "Overview, the top-level page");
 
-    // → steps from the open group onto its first page, then opens it
-    h.key(KeyCode::Right);
-    assert_eq!(h.app.nav.cursor_path(), Some(&[0, 0][..]));
+    // → on a page opens it
     h.key(KeyCode::Right);
     assert_eq!(h.app.page, PageId::Overview);
     assert_eq!(h.app.page, PageId::Overview);
