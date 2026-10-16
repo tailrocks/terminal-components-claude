@@ -5,6 +5,7 @@ use std::ops::Range;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
+use crate::core::edit::{EditKind, FieldKeys, UndoStack, clipboard};
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::text::TextBuffer;
@@ -211,20 +212,70 @@ pub fn route_click(
         .map(|f| f.on_click_count(pos, count.max(1)))
 }
 
+#[derive(Clone, Copy)]
 pub enum EditAction {
     Commit,
     Cancel,
-    Tab { backward: bool },
+    Tab {
+        backward: bool,
+    },
     Apply(fn(&mut TextBuffer)),
     Insert(char),
+    /// Step back one edit (Ctrl+Z).
+    Undo,
+    /// Re-apply an undone edit (Ctrl+Shift+Z; Ctrl+Y under
+    /// [`FieldKeys::Desktop`]).
+    Redo,
+    /// Copy the selection to the field clipboard.
+    Copy,
+    /// Copy the selection, then delete it.
+    Cut,
+    /// Insert the field clipboard's text.
+    Paste,
     None,
 }
 
-/// Translate a key into an edit action. `multiline` changes Enter to insert a
-/// newline and makes Esc commit instead of cancel (a text area is a document,
-/// not a value).
+/// Translate a key into an edit action under the default
+/// [`FieldKeys::Emacs`] preset. `multiline` changes Enter to insert a
+/// newline.
 pub fn edit_key(key: &Key, multiline: bool) -> EditAction {
+    edit_key_with(key, multiline, FieldKeys::Emacs)
+}
+
+/// Translate a key into an edit action under the `keys` preset.
+/// `multiline` changes Enter to insert a newline.
+pub fn edit_key_with(key: &Key, multiline: bool, keys: FieldKeys) -> EditAction {
     let shift = key.shift();
+    // the shared keys of both presets
+    match key.code {
+        KeyCode::Char('z') | KeyCode::Char('Z') if key.ctrl() => {
+            return if shift || key.code == KeyCode::Char('Z') {
+                EditAction::Redo
+            } else {
+                EditAction::Undo
+            };
+        }
+        // Ctrl+Backspace often arrives as Ctrl+H (readline: delete left)
+        KeyCode::Char('h') if key.ctrl() => return EditAction::Apply(|b| b.backspace()),
+        _ => {}
+    }
+    if keys == FieldKeys::Desktop && key.ctrl() && !key.alt() {
+        match key.code {
+            KeyCode::Char('a') => return EditAction::Apply(|b| b.select_all()),
+            KeyCode::Char('c') => return EditAction::Copy,
+            KeyCode::Char('x') => return EditAction::Cut,
+            KeyCode::Char('v') => return EditAction::Paste,
+            KeyCode::Char('y') => return EditAction::Redo,
+            _ => {}
+        }
+    }
+    if keys == FieldKeys::Emacs {
+        match key.code {
+            KeyCode::Char('y') if key.ctrl() => return EditAction::Paste,
+            KeyCode::Char('w') if key.alt() => return EditAction::Copy,
+            _ => {}
+        }
+    }
     match key.code {
         KeyCode::Esc => EditAction::Cancel,
         KeyCode::Enter if multiline && key.plain() => EditAction::Apply(|b| b.insert_char('\n')),
@@ -306,12 +357,106 @@ pub fn edit_key(key: &Key, multiline: bool) -> EditAction {
         KeyCode::Char('e') if key.ctrl() => EditAction::Apply(|b| b.move_end(false)),
         KeyCode::Char('u') if key.ctrl() => EditAction::Apply(|b| b.delete_to_line_start()),
         KeyCode::Char('k') if key.ctrl() => EditAction::Apply(|b| b.delete_to_line_end()),
-        KeyCode::Char('w') if key.ctrl() => EditAction::Apply(|b| b.delete_word_left()),
+        // Ctrl+W cuts a selection (Emacs kill-region), else the word left
+        KeyCode::Char('w') if key.ctrl() => EditAction::Cut,
         KeyCode::Char('l') if key.ctrl() => EditAction::Apply(|b| b.select_all()),
         KeyCode::Char('b') if key.alt() => EditAction::Apply(|b| b.move_word_left(false)),
         KeyCode::Char('f') if key.alt() => EditAction::Apply(|b| b.move_word_right(false)),
         KeyCode::Char(_) if key.ctrl() || key.alt() => EditAction::None,
         KeyCode::Char(c) => EditAction::Insert(c),
         _ => EditAction::None,
+    }
+}
+
+/// What [`apply_edit`] did to the buffer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Applied {
+    /// The text changed (and the change is on the undo history).
+    Edited,
+    /// Only the caret or the selection moved (or the selection was
+    /// copied).
+    Moved,
+}
+
+/// Apply the buffer-level actions (typing, edits, undo, redo, copy, cut,
+/// paste) to `buf`, recording every text change on `undo`. Returns `None`
+/// for the actions the control decides itself (Commit, Cancel, Tab and
+/// None). A `read_only` buffer only moves, selects and copies.
+pub fn apply_edit(
+    buf: &mut TextBuffer,
+    undo: &mut UndoStack,
+    action: EditAction,
+    key_code: KeyCode,
+    read_only: bool,
+) -> Option<Applied> {
+    let before = buf.clone();
+    let kind = match (action, key_code) {
+        (EditAction::Insert(c), _) if c.is_whitespace() => EditKind::Other,
+        (EditAction::Insert(_), _) => EditKind::Typing,
+        (EditAction::Apply(_), KeyCode::Backspace | KeyCode::Delete) => EditKind::Deleting,
+        _ => EditKind::Other,
+    };
+    match action {
+        EditAction::Commit | EditAction::Cancel | EditAction::Tab { .. } | EditAction::None => {
+            return None;
+        }
+        EditAction::Undo if !read_only => {
+            return Some(if undo.undo(buf) {
+                Applied::Edited
+            } else {
+                Applied::Moved
+            });
+        }
+        EditAction::Redo if !read_only => {
+            return Some(if undo.redo(buf) {
+                Applied::Edited
+            } else {
+                Applied::Moved
+            });
+        }
+        EditAction::Undo | EditAction::Redo => return Some(Applied::Moved),
+        EditAction::Copy => {
+            if let Some(t) = buf.selected_text() {
+                clipboard::copy(t);
+            }
+            return Some(Applied::Moved);
+        }
+        EditAction::Cut => match buf.selected_text().map(str::to_owned) {
+            Some(t) => {
+                clipboard::copy(&t);
+                if !read_only {
+                    buf.backspace();
+                }
+            }
+            // Ctrl+W without a selection deletes the word left
+            None if key_code == KeyCode::Char('w') && !read_only => buf.delete_word_left(),
+            None => {}
+        },
+        EditAction::Paste => {
+            if let Some(t) = clipboard::text()
+                && !read_only
+            {
+                buf.insert_str(&t);
+            }
+        }
+        EditAction::Insert(c) => {
+            if !read_only {
+                buf.insert_char(c);
+            }
+        }
+        EditAction::Apply(f) => {
+            let mut probe = buf.clone();
+            f(&mut probe);
+            if !read_only || probe.text() == buf.text() {
+                *buf = probe;
+            }
+        }
+    }
+    if buf.text() != before.text() {
+        undo.record(&before, kind);
+        Some(Applied::Edited)
+    } else {
+        undo.seal();
+        Some(Applied::Moved)
     }
 }

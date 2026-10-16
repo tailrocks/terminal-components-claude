@@ -3,15 +3,16 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Modifier;
 
+use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect, UndoStack};
 use crate::core::event::{Key, Outcome};
-use crate::core::focus::BlurAction;
+use crate::core::focus::{BlurAction, request_focus_next};
 use crate::core::id::WidgetId;
 use crate::core::text::TextBuffer;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use crate::widgets::field_common::{
-    EditAction, PointerField, PointerSelect, PressState, click_select, drag_select, edit_key,
-    press_select,
+    Applied, EditAction, PointerField, PointerSelect, PressState, apply_edit, click_select,
+    drag_select, edit_key_with, press_select,
 };
 
 /// A text validator: `Some(message)` rejects the value.
@@ -27,12 +28,17 @@ impl std::fmt::Debug for TextValidator {
     }
 }
 
-/// Single-line text input with two modes:
-/// - **navigation** (focused, not editing): the gutter bar shows focus, keys
-///   like Tab move on, Enter or typing starts editing; a mouse click starts
-///   editing at the pointer in one go.
-/// - **editing**: the hardware cursor is placed in the field, the field bg
-///   drops to canvas, Enter commits, Esc reverts.
+/// Single-line text input.
+///
+/// How focus becomes an edit is the field's [`EditEntry`] (default: the
+/// theme's, [`EditEntry::Immediate`]): focus starts the edit with the
+/// caret shown at once ([`Self::focus_select`] selects the value, so
+/// typing replaces it; a click puts the caret at the pointer), typing
+/// edits, Enter applies, Tab applies and moves focus on through the ring
+/// ([`request_focus_next`]), Esc reverts while the value is dirty and
+/// otherwise passes on. Under [`EditEntry::Explicit`] the field has a
+/// navigation mode (the gutter bar shows focus, Enter or F2 starts
+/// editing) and an editing mode (caret shown, Enter commits, Esc reverts).
 #[derive(Debug, Clone)]
 pub struct TextInput {
     pub id: WidgetId,
@@ -75,11 +81,24 @@ pub struct TextInput {
     /// What an edit in progress does when the field loses focus
     /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
     pub blur_action: BlurAction,
-    /// A focused field that is not editing starts editing on the first
-    /// typed character, which lands at the end of the value (macOS fields
-    /// take typing at once). Off by default: Enter, F2 or a click start
-    /// editing, and plain letters stay with the page's shortcuts.
-    pub type_to_edit: bool,
+    /// How focus starts an edit. `None` (default) follows the theme's
+    /// [`crate::theme::Theme::edit_entry`] ([`EditEntry::Immediate`]).
+    pub edit_entry: Option<EditEntry>,
+    /// The entry policy resolved at the last render (events use it).
+    entry: EditEntry,
+    /// Where the caret lands when the keyboard starts an immediate edit.
+    /// Default [`FocusSelect::SelectAll`].
+    pub focus_select: FocusSelect,
+    /// The control-key preset. `None` (default) follows the theme's
+    /// [`crate::theme::Theme::field_keys`] ([`FieldKeys::Emacs`]).
+    pub field_keys: Option<FieldKeys>,
+    /// The key preset resolved at the last render.
+    keys: FieldKeys,
+    /// Undo history of the value (Ctrl+Z, Ctrl+Shift+Z).
+    undo: UndoStack,
+    /// The field held focus at its last render, so a newly gained focus
+    /// starts an immediate edit exactly once.
+    focus_seen: bool,
     /// What a drag, double click and triple click select.
     /// Default [`PointerSelect::DEFAULT`].
     pub pointer_select: PointerSelect,
@@ -121,7 +140,13 @@ impl TextInput {
             reveal_tail: 0,
             wrap_label: false,
             blur_action: BlurAction::Commit,
-            type_to_edit: false,
+            edit_entry: None,
+            entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,
+            focus_select: FocusSelect::default(),
+            field_keys: None,
+            keys: FieldKeys::default(),
+            undo: UndoStack::new(),
+            focus_seen: false,
             pointer_select: PointerSelect::DEFAULT,
             press: PressState::default(),
         }
@@ -179,10 +204,56 @@ impl TextInput {
         self.blur_action = action;
         self
     }
-    /// See [`Self::type_to_edit`].
-    pub fn type_to_edit(mut self, on: bool) -> Self {
-        self.type_to_edit = on;
+    /// See [`Self::edit_entry`].
+    pub fn edit_entry(mut self, entry: EditEntry) -> Self {
+        self.set_edit_entry(entry);
         self
+    }
+    /// [`Self::edit_entry`] on a field already built.
+    pub fn set_edit_entry(&mut self, entry: EditEntry) {
+        self.edit_entry = Some(entry);
+        self.entry = entry;
+    }
+    /// The former type-to-edit switch: `true` is
+    /// [`EditEntry::TypeToEdit`], `false` [`EditEntry::Explicit`].
+    #[deprecated(note = "use `edit_entry(EditEntry::TypeToEdit)` or `EditEntry::Explicit`")]
+    pub fn type_to_edit(self, on: bool) -> Self {
+        self.edit_entry(if on {
+            EditEntry::TypeToEdit
+        } else {
+            EditEntry::Explicit
+        })
+    }
+    /// See [`Self::focus_select`].
+    pub fn focus_select(mut self, select: FocusSelect) -> Self {
+        self.focus_select = select;
+        self
+    }
+    /// See [`Self::field_keys`].
+    pub fn field_keys(mut self, keys: FieldKeys) -> Self {
+        self.field_keys = Some(keys);
+        self.keys = keys;
+        self
+    }
+    /// The entry policy in effect (the field's own, or the theme's as of
+    /// the last render).
+    pub fn entry(&self) -> EditEntry {
+        self.edit_entry.unwrap_or(self.entry)
+    }
+    /// The focused field takes printable keys before page and app letter
+    /// shortcuts: it is editing, or focus alone makes it edit (or typing
+    /// starts the edit). Applications ask the focused control this before
+    /// running a plain-letter shortcut.
+    pub fn wants_text_input(&self) -> bool {
+        !self.disabled && (self.editing || self.entry() != EditEntry::Explicit)
+    }
+    /// The value differs from the one the edit began with.
+    pub fn is_dirty(&self) -> bool {
+        self.editing && self.buffer.text() != self.snapshot
+    }
+    /// Something to undo in this field.
+    pub fn can_undo(&self) -> bool {
+        self.undo.can_undo()
     }
     /// See [`Self::pointer_select`].
     pub fn pointer_select(mut self, sel: PointerSelect) -> Self {
@@ -195,7 +266,15 @@ impl TextInput {
     /// same event Enter or Esc would, so the owner's validation and save
     /// hooks run; a field that is not editing returns `None`.
     pub fn on_blur(&mut self) -> Option<InputEvent> {
+        self.focus_seen = false;
         if !self.editing {
+            return None;
+        }
+        // an edit focus started and nothing changed ends quietly: tabbing
+        // through a form is not a round of commits
+        if self.entry() == EditEntry::Immediate && !self.is_dirty() {
+            self.editing = false;
+            self.buffer.clear_selection();
             return None;
         }
         match self.blur_action {
@@ -216,6 +295,7 @@ impl TextInput {
         self.buffer.set_text("");
         self.snapshot.clear();
         self.error = None;
+        self.undo.clear();
     }
 
     /// Graphemes as they will be drawn: raw, or `mask` (one cell, `•` by
@@ -263,9 +343,31 @@ impl TextInput {
 
     pub fn cancel(&mut self) {
         self.editing = false;
+        if self.buffer.text() != self.snapshot {
+            // the revert is one more step back: Ctrl+Z brings the text back
+            self.undo.record(&self.buffer, EditKind::Other);
+        }
         let snap = self.snapshot.clone();
         self.buffer.set_text(snap);
         self.validate();
+    }
+
+    /// Start the edit focus gained ([`EditEntry::Immediate`]): the value
+    /// is selected or the caret placed per [`Self::focus_select`].
+    fn begin_focus_edit(&mut self) {
+        if self.disabled || self.editing {
+            return;
+        }
+        self.begin_edit();
+        self.focus_select.apply(&mut self.buffer);
+    }
+
+    /// After Enter applied (or Esc reverted) an immediate edit, the field
+    /// keeps the caret: a new edit starts from the applied value.
+    fn resume(&mut self) {
+        if self.entry() == EditEntry::Immediate {
+            self.begin_edit();
+        }
     }
 
     /// Recompute validation from the current value. A custom validator owns
@@ -328,63 +430,92 @@ impl TextInput {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
+        let entry = self.entry();
         if !self.editing {
-            if key.is(KeyCode::Enter) || key.is(KeyCode::F(2)) {
-                self.begin_edit();
-                return (Outcome::Changed, None);
+            match entry {
+                // focus already started the edit (a key before the first
+                // render after the focus move starts it here)
+                EditEntry::Immediate => self.begin_focus_edit(),
+                EditEntry::TypeToEdit | EditEntry::Explicit => {
+                    if key.is(KeyCode::Enter) || key.is(KeyCode::F(2)) {
+                        self.begin_edit();
+                        return (Outcome::Changed, None);
+                    }
+                    if entry == EditEntry::TypeToEdit
+                        && let KeyCode::Char(c) = key.code
+                        && !key.ctrl()
+                        && !key.alt()
+                    {
+                        self.begin_edit();
+                        self.buffer.move_doc_end(false);
+                        self.undo.record(&self.buffer, EditKind::Typing);
+                        self.buffer.insert_char(c);
+                        self.live_validate();
+                        return (Outcome::Changed, Some(InputEvent::Changed));
+                    }
+                    return (Outcome::Ignored, None);
+                }
             }
-            if self.type_to_edit
-                && let KeyCode::Char(c) = key.code
-                && !key.ctrl()
-                && !key.alt()
-            {
-                self.begin_edit();
-                self.buffer.move_doc_end(false);
-                self.buffer.insert_char(c);
-                self.live_validate();
-                return (Outcome::Changed, Some(InputEvent::Changed));
-            }
-            return (Outcome::Ignored, None);
         }
-        match edit_key(key, false) {
+        let action = edit_key_with(key, false, self.keys);
+        match action {
             EditAction::Commit => {
                 self.commit();
+                self.resume();
                 (Outcome::Changed, Some(InputEvent::Committed))
             }
             EditAction::Cancel => {
+                if entry == EditEntry::Immediate && !self.is_dirty() {
+                    // nothing to revert: Esc belongs to the page (close,
+                    // back, clear)
+                    return (Outcome::Ignored, None);
+                }
                 self.cancel();
+                self.resume();
                 (Outcome::Changed, Some(InputEvent::Cancelled))
             }
             EditAction::Tab { backward } => {
                 self.commit();
+                // the ring moves on whether or not the owner does
+                request_focus_next(backward);
                 (
                     Outcome::Changed,
                     Some(InputEvent::CommittedTab { backward }),
                 )
             }
-            EditAction::Apply(f) => {
-                f(&mut self.buffer);
-                self.live_validate();
-                (Outcome::Changed, Some(InputEvent::Changed))
-            }
-            EditAction::Insert(c) => {
-                self.buffer.insert_char(c);
-                self.live_validate();
-                (Outcome::Changed, Some(InputEvent::Changed))
-            }
             EditAction::None => (Outcome::Consumed, None),
+            action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
+                Some(Applied::Edited) => {
+                    self.live_validate();
+                    (Outcome::Changed, Some(InputEvent::Changed))
+                }
+                _ => (Outcome::Changed, None),
+            },
         }
     }
 
     /// Insert pasted text (only while editing).
     /// A paste is typing: a focused field that is not editing yet starts
     /// editing, exactly as the first typed character would.
+    /// A multi-line paste flattens: its line breaks become spaces (a
+    /// trailing break is dropped), so words never run together.
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.disabled {
             return Outcome::Ignored;
         }
-        self.begin_edit();
-        self.buffer.insert_str(text);
+        if !self.editing {
+            if self.entry() == EditEntry::Immediate {
+                self.begin_focus_edit();
+            } else {
+                self.begin_edit();
+            }
+        }
+        let flat = text
+            .trim_end_matches(['\r', '\n'])
+            .replace("\r\n", " ")
+            .replace(['\r', '\n'], " ");
+        self.undo.record(&self.buffer, EditKind::Other);
+        self.buffer.insert_str(&flat);
         self.live_validate();
         Outcome::Changed
     }
@@ -502,6 +633,15 @@ impl TextInput {
                 crate::theme::Strings::follow(e, old, required);
             }
         }
+        self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
+        self.keys = self.field_keys.unwrap_or(ctx.theme.field_keys);
+        // focus newly gained starts an immediate edit, so the caret shows
+        // the moment Tab lands here
+        let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
+        if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate {
+            self.begin_focus_edit();
+        }
+        self.focus_seen = has_focus;
         let area = area.intersection(*buf.area());
         self.area = Rect::ZERO;
         self.text_area = Rect::ZERO;
@@ -517,7 +657,8 @@ impl TextInput {
             s.hovered = false;
         }
         // An edit that lost focus is ended by `on_blur` on the event path,
-        // never here: render only draws (`s.editing` needs focus).
+        // never here (`s.editing` needs focus); render only starts the
+        // edit a newly gained focus asks for (above).
 
         // a wrapped label takes as many rows as it needs, every one whole
         let wrapped = self.label_lines(area.width);
@@ -804,35 +945,211 @@ mod tests {
         }
     }
 
+    fn key(code: KeyCode, mods: ratatui::crossterm::event::KeyModifiers) -> Key {
+        Key { code, mods }
+    }
+
+    fn bare(code: KeyCode) -> Key {
+        key(code, ratatui::crossterm::event::KeyModifiers::NONE)
+    }
+
+    /// Render with focus somewhere else, so the next render with focus is
+    /// a focus gain.
+    fn render_unfocused(input: &mut TextInput, area: Rect, buf: &mut Buffer) {
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        input.render(area, buf, &mut ctx, theme.surface);
+    }
+
     #[test]
-    fn type_to_edit_starts_editing_on_the_first_character_only_when_on() {
-        let mut off = TextInput::new(WidgetId::of("off"), "Name").value("ab");
+    fn immediate_focus_shows_the_caret_and_selects_the_value() {
+        let area = Rect::new(0, 0, 30, 3);
+        let mut buf = Buffer::empty(area);
+        let mut i = TextInput::new(WidgetId::of("i"), "Name")
+            .value("ab")
+            .edit_entry(EditEntry::Immediate);
+        render_unfocused(&mut i, area, &mut buf);
+        assert!(!i.editing, "no focus, no edit");
+        let caret = render(&mut i, area, &mut buf);
+        assert!(i.editing, "focus alone starts the edit");
+        assert!(caret.is_some(), "the caret shows the moment focus lands");
+        assert_eq!(i.buffer.selected_text(), Some("ab"), "Tab selects all");
+        // typing replaces the selection, Enter applies and keeps the caret
+        i.on_key(&plain('x'));
+        assert_eq!(i.text(), "x");
+        assert_eq!(
+            i.on_key(&bare(KeyCode::Enter)),
+            (Outcome::Changed, Some(InputEvent::Committed))
+        );
+        assert!(i.editing, "Enter applies; the field keeps the caret");
+        // Esc reverts while dirty, then passes on
+        i.on_key(&plain('y'));
+        assert_eq!(i.on_key(&bare(KeyCode::Esc)).1, Some(InputEvent::Cancelled));
+        assert_eq!(i.text(), "x", "reverted to the applied value");
+        assert_eq!(
+            i.on_key(&bare(KeyCode::Esc)),
+            (Outcome::Ignored, None),
+            "a clean Esc belongs to the page"
+        );
+        // a clean blur is quiet
+        assert_eq!(i.on_blur(), None);
+        assert!(!i.editing);
+    }
+
+    #[test]
+    fn focus_select_places_the_caret_per_policy_and_a_click_wins() {
+        let area = Rect::new(0, 0, 30, 3);
+        let mut buf = Buffer::empty(area);
+        let mut end = TextInput::new(WidgetId::of("e"), "Name")
+            .value("abc")
+            .edit_entry(EditEntry::Immediate)
+            .focus_select(FocusSelect::CaretEnd);
+        render(&mut end, area, &mut buf);
+        assert_eq!(end.buffer.selection(), None);
+        assert_eq!(end.buffer.cursor_offset(), 3);
+        let mut start = TextInput::new(WidgetId::of("s"), "Name")
+            .value("abc")
+            .edit_entry(EditEntry::Immediate)
+            .focus_select(FocusSelect::CaretStart);
+        render(&mut start, area, &mut buf);
+        assert_eq!(start.buffer.cursor_offset(), 0);
+        // pointer focus: the click lands first, the render keeps its caret
+        let mut click = TextInput::new(WidgetId::of("c"), "Name")
+            .value("abc")
+            .edit_entry(EditEntry::Immediate);
+        render_unfocused(&mut click, area, &mut buf);
+        let ta = click.text_area;
+        click.on_click(Position::new(ta.x + 1, ta.y));
+        render(&mut click, area, &mut buf);
+        assert_eq!(click.buffer.selection(), None, "a click never selects all");
+        assert_eq!(click.buffer.cursor_offset(), 1, "caret at the click point");
+    }
+
+    #[test]
+    fn tab_applies_and_asks_the_ring_to_move_on() {
+        let r = {
+            let mut r = FocusRing::default();
+            r.register(WidgetId::of("t"));
+            r.register(WidgetId::of("next"));
+            r
+        };
+        let mut f = crate::core::focus::Focus::default();
+        f.focus(WidgetId::of("t"));
+        f.take_changes();
+        let mut i = TextInput::new(WidgetId::of("t"), "Name")
+            .value("a")
+            .edit_entry(EditEntry::Immediate);
+        i.on_key(&plain('b'));
+        let (o, ev) = i.on_key(&bare(KeyCode::Tab));
+        assert_eq!(o, Outcome::Changed);
+        assert_eq!(ev, Some(InputEvent::CommittedTab { backward: false }));
+        assert!(!i.editing);
+        // the owner did nothing with the event: the ring still moves
+        f.settle(&r);
+        assert!(f.is(WidgetId::of("next")), "Tab lands on the next stop");
+    }
+
+    #[test]
+    fn each_entry_mode_starts_the_edit_its_own_way() {
+        // Explicit: today's navigation mode
+        let mut off = TextInput::new(WidgetId::of("off"), "Name")
+            .value("ab")
+            .edit_entry(EditEntry::Explicit);
+        assert!(!off.wants_text_input());
         assert_eq!(off.on_key(&plain('x')), (Outcome::Ignored, None));
-        assert!(!off.editing, "default: letters stay with the page");
+        assert!(!off.editing, "letters stay with the page");
+        assert_eq!(off.on_key(&bare(KeyCode::Enter)).0, Outcome::Changed);
+        assert!(off.editing, "Enter starts the edit");
+        // TypeToEdit: the first character starts it, at the end
         let mut on = TextInput::new(WidgetId::of("on"), "Name")
             .value("ab")
-            .type_to_edit(true);
+            .edit_entry(EditEntry::TypeToEdit);
+        assert!(on.wants_text_input());
         assert_eq!(
             on.on_key(&plain('x')),
             (Outcome::Changed, Some(InputEvent::Changed))
         );
         assert!(on.editing);
         assert_eq!(on.text(), "abx", "typing lands at the end");
-        let esc = Key {
-            code: KeyCode::Esc,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        assert_eq!(on.on_key(&esc).1, Some(InputEvent::Cancelled));
+        assert_eq!(
+            on.on_key(&bare(KeyCode::Esc)).1,
+            Some(InputEvent::Cancelled)
+        );
         assert_eq!(on.text(), "ab", "Esc reverts what typing started");
-        let ctrl = Key {
-            code: KeyCode::Char('s'),
-            mods: ratatui::crossterm::event::KeyModifiers::CONTROL,
-        };
+        let ctrl = key(
+            KeyCode::Char('s'),
+            ratatui::crossterm::event::KeyModifiers::CONTROL,
+        );
         assert_eq!(on.on_key(&ctrl).0, Outcome::Ignored, "shortcuts pass");
+        // the deprecated switch maps onto the policy
+        #[allow(deprecated)]
+        let legacy = TextInput::new(WidgetId::of("l"), "Name").type_to_edit(true);
+        assert_eq!(legacy.entry(), EditEntry::TypeToEdit);
+        // Immediate: any key reaching an unrendered focused field edits
+        let mut now = TextInput::new(WidgetId::of("n"), "Name")
+            .value("ab")
+            .edit_entry(EditEntry::Immediate);
+        assert!(now.wants_text_input());
+        now.on_key(&plain('q'));
+        assert_eq!(now.text(), "q", "the selection is replaced, not a shortcut");
         let mut locked = TextInput::new(WidgetId::of("d"), "Name")
-            .type_to_edit(true)
+            .edit_entry(EditEntry::TypeToEdit)
             .disabled(true);
+        assert!(!locked.wants_text_input());
         assert_eq!(locked.on_key(&plain('x')).0, Outcome::Ignored);
+    }
+
+    #[test]
+    fn undo_redo_and_the_field_clipboard() {
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let mut i = TextInput::new(WidgetId::of("u"), "Name")
+            .edit_entry(EditEntry::Immediate)
+            .focus_select(FocusSelect::CaretEnd);
+        for c in "ab cd".chars() {
+            i.on_key(&plain(c));
+        }
+        assert_eq!(i.text(), "ab cd");
+        i.on_key(&key(KeyCode::Char('z'), M::CONTROL));
+        assert_eq!(i.text(), "ab ", "one undo takes back the last word");
+        i.on_key(&key(KeyCode::Char('z'), M::CONTROL | M::SHIFT));
+        assert_eq!(i.text(), "ab cd", "Ctrl+Shift+Z redoes it");
+        // Emacs (default): Ctrl+A is line start, Ctrl+L selects all,
+        // Alt+W copies, Ctrl+W cuts, Ctrl+Y yanks
+        i.on_key(&key(KeyCode::Char('a'), M::CONTROL));
+        assert_eq!(i.buffer.cursor_offset(), 0);
+        i.on_key(&key(KeyCode::Char('l'), M::CONTROL));
+        i.on_key(&key(KeyCode::Char('w'), M::ALT));
+        assert_eq!(
+            crate::core::edit::clipboard::text().as_deref(),
+            Some("ab cd")
+        );
+        i.on_key(&key(KeyCode::Char('w'), M::CONTROL));
+        assert_eq!(i.text(), "", "Ctrl+W cuts the selection");
+        i.on_key(&key(KeyCode::Char('y'), M::CONTROL));
+        assert_eq!(i.text(), "ab cd", "Ctrl+Y yanks it back");
+        // Desktop: Ctrl+A selects all, Ctrl+X cuts, Ctrl+V pastes
+        let mut d = TextInput::new(WidgetId::of("d"), "Name")
+            .value("xyz")
+            .field_keys(FieldKeys::Desktop);
+        d.begin_edit();
+        d.on_key(&key(KeyCode::Char('a'), M::CONTROL));
+        assert_eq!(d.buffer.selected_text(), Some("xyz"));
+        d.on_key(&key(KeyCode::Char('x'), M::CONTROL));
+        assert_eq!(d.text(), "");
+        d.on_key(&key(KeyCode::Char('v'), M::CONTROL));
+        d.on_key(&key(KeyCode::Char('v'), M::CONTROL));
+        assert_eq!(d.text(), "xyzxyz");
+        d.on_key(&key(KeyCode::Char('z'), M::CONTROL));
+        assert_eq!(d.text(), "xyz");
+    }
+
+    #[test]
+    fn a_multi_line_paste_flattens_into_one_line() {
+        let mut i = TextInput::new(WidgetId::of("p"), "Name").focus_select(FocusSelect::CaretEnd);
+        i.on_paste("one\ntwo\r\nthree\n");
+        assert_eq!(i.text(), "one two three");
     }
 
     #[test]
