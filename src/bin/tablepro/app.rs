@@ -90,6 +90,24 @@ impl Cx<'_> {
     }
 }
 
+/// Tick delivery (`--motion`), the same vocabulary as the other binaries.
+///
+/// - `Full`: live ticks advance the world (connect, schema load, query run,
+///   commit) and the decorative phase (activity spinners).
+/// - `Reduced`: the world still advances, the decorative phase stays at its
+///   start, so spinners do not animate.
+/// - `Paused`: the world is fast-forwarded `--frame N` ticks at startup and
+///   never ticks again; the decorative phase is pinned at `N`, the status
+///   line never ages out, and a press flash stays visible. Captures pin
+///   every tick-derived and wall-clock-derived state this way.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Motion {
+    #[default]
+    Full,
+    Reduced,
+    Paused,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
     Connections,
@@ -159,6 +177,8 @@ pub struct App {
     pub modals: ModalStack<Modal>,
     pub size: (u16, u16),
     pub tick: u64,
+    /// Tick delivery; see [`Motion`].
+    pub motion: Motion,
     pub status: Option<(String, Instant)>,
     pub quit: bool,
     too_small: bool,
@@ -188,6 +208,7 @@ impl App {
             modals: ModalStack::new(),
             size: (0, 0),
             tick: 0,
+            motion: Motion::Full,
             status: None,
             quit: false,
             too_small: false,
@@ -214,7 +235,24 @@ impl App {
         ));
     }
 
+    /// Apply `--motion` / `--frame`. `Paused` fast-forwards `frame` ticks
+    /// synchronously (each one exactly what a live tick does), then pins the
+    /// decorative phase at `frame`; no tick is delivered afterwards.
+    pub fn set_motion(&mut self, motion: Motion, frame: u64) {
+        self.motion = Motion::Full;
+        if motion == Motion::Paused {
+            for _ in 0..frame {
+                self.advance();
+            }
+            self.tick = frame;
+        }
+        self.motion = motion;
+    }
+
     pub fn animating(&self) -> bool {
+        if self.motion == Motion::Paused {
+            return false;
+        }
         self.connections.animating()
             || self.workbench.as_ref().is_some_and(|w| w.animating())
             || self.pointer.has_flash()
@@ -238,8 +276,18 @@ impl App {
         self.epoch.elapsed().as_millis() as u64
     }
 
-    fn interaction(&self) -> Interaction {
-        let flash = self.pointer.flashing(self.now_ms());
+    /// The clock a press flash is read against: frozen at the epoch under
+    /// paused motion, so a flash stays visible for the capture.
+    fn flash_clock(&self) -> u64 {
+        if self.motion == Motion::Paused {
+            0
+        } else {
+            self.now_ms()
+        }
+    }
+
+    pub(crate) fn interaction(&self) -> Interaction {
+        let flash = self.pointer.flashing(self.flash_clock());
         Interaction {
             focus: self.focus.current(),
             hover: self.pointer.hover,
@@ -373,9 +421,20 @@ impl App {
     }
 
     fn on_tick(&mut self) -> Outcome {
+        if self.motion == Motion::Paused {
+            return Outcome::Ignored;
+        }
+        self.advance()
+    }
+
+    /// One tick of the world. The decorative phase advances only under
+    /// full motion.
+    fn advance(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
         if self.animating() {
-            self.tick = self.tick.wrapping_add(1);
+            if self.motion == Motion::Full {
+                self.tick = self.tick.wrapping_add(1);
+            }
             out = Outcome::Changed;
         }
         if self.pointer.expire_flash(self.now_ms()) {

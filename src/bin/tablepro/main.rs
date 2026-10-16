@@ -15,6 +15,8 @@ mod context;
 mod db;
 mod model;
 #[cfg(test)]
+mod motion_tests;
+#[cfg(test)]
 mod perf_tests;
 mod sql;
 mod tabs;
@@ -24,12 +26,14 @@ use clap::{CommandFactory, FromArgMatches, Parser, ValueEnum, error::ErrorKind};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
-use crate::app::App;
+use crate::app::{App, Motion};
 use crate::db::Connection;
 
 struct Options {
     level: ColorLevel,
     connect: Option<String>,
+    motion: Motion,
+    frame: u64,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -55,6 +59,23 @@ impl From<ColorArg> for ColorLevel {
     }
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum MotionArg {
+    Full,
+    Reduced,
+    Paused,
+}
+
+impl From<MotionArg> for Motion {
+    fn from(value: MotionArg) -> Self {
+        match value {
+            MotionArg::Full => Self::Full,
+            MotionArg::Reduced => Self::Reduced,
+            MotionArg::Paused => Self::Paused,
+        }
+    }
+}
+
 #[derive(Debug, Parser)]
 #[command(
     name = "tablepro",
@@ -66,22 +87,33 @@ struct Cli {
     color: Option<ColorArg>,
     #[arg(long, value_name = "NAME")]
     connect: Option<String>,
+    #[arg(short = 'm', long, value_enum)]
+    motion: Option<MotionArg>,
+    #[arg(short = 'f', long, default_value_t = 0)]
+    frame: u64,
 }
 
 fn cli_after_help() -> String {
-    "Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit"
+    "Motion:    --motion paused pins tick-derived surfaces at --frame N for capture\n\n\
+     Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit"
         .to_string()
 }
 
 fn parse_args() -> Options {
     let cli = Cli::command().after_help(cli_after_help()).get_matches();
     let cli = Cli::from_arg_matches(&cli).unwrap_or_else(|error| error.exit());
+    options(cli)
+}
+
+fn options(cli: Cli) -> Options {
     Options {
         level: cli
             .color
             .map(ColorLevel::from)
             .unwrap_or_else(ColorLevel::detect),
         connect: cli.connect,
+        motion: cli.motion.map(Motion::from).unwrap_or_default(),
+        frame: cli.frame,
     }
 }
 
@@ -106,6 +138,7 @@ fn main() -> std::io::Result<()> {
             .unwrap_or_else(|error| error.exit());
         app.connect(i);
     }
+    app.set_motion(opts.motion, opts.frame);
     junie_tui::runtime::run(&mut app)
 }
 
