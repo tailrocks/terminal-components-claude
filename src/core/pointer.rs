@@ -125,6 +125,9 @@ pub struct PointerState {
     pub hover_suppressed: bool,
     /// Last known pointer position.
     pub pos: Option<Position>,
+    /// Focus was last moved by a click (see
+    /// [`crate::ui::ctx::FocusVisible`]); cleared by any key.
+    pub pointer_focus: bool,
     flash: Option<(WidgetId, u64)>,
     /// The scrollbar the held press started on.
     grab: Option<super::hit::Bar>,
@@ -143,6 +146,12 @@ impl PointerState {
     /// Keyboard input: the keyboard wins until the pointer moves again.
     pub fn suppress_hover(&mut self) {
         self.hover_suppressed = true;
+        self.pointer_focus = false;
+    }
+
+    /// The app moved focus because of a click.
+    pub fn focused_by_click(&mut self) {
+        self.pointer_focus = true;
     }
 
     /// Pointer moved: hover follows it and suppression ends.

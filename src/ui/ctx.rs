@@ -37,7 +37,23 @@ pub struct Interaction {
     /// Hover feedback is suppressed until the pointer moves again after a
     /// keyboard-driven change.
     pub hover_suppressed: bool,
+    /// Focus last moved by the pointer (a click), not the keyboard.
+    /// Controls under [`FocusVisible::KeyboardOnly`] hide their focus ring
+    /// then, as macOS does for buttons clicked with the mouse.
+    pub pointer_focus: bool,
     pub tick: u64,
+}
+
+/// When a control shows its focus indicator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FocusVisible {
+    /// Whenever it holds focus.
+    #[default]
+    Always,
+    /// Only when the keyboard put focus there: a control focused by a
+    /// click shows no ring until the next key (macOS without Full Keyboard
+    /// Access).
+    KeyboardOnly,
 }
 
 impl Interaction {
@@ -57,6 +73,10 @@ impl Interaction {
     /// should read, so the keyboard wins until the pointer moves again.
     pub fn live_hover(&self) -> Option<WidgetId> {
         self.hover.filter(|_| !self.hover_suppressed)
+    }
+    /// [`Self::focused`] under a [`FocusVisible`] policy.
+    pub fn focus_visible(&self, id: WidgetId, mode: FocusVisible) -> bool {
+        self.focused(id) && (mode == FocusVisible::Always || !self.pointer_focus)
     }
     pub fn hovered(&self, id: WidgetId) -> bool {
         !self.hover_suppressed && self.hover == Some(id)
