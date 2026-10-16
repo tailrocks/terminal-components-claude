@@ -1,5 +1,6 @@
 //! Horizontal tab strip. One focus stop; ← → move the cursor and switch.
-//! Active tab: one plane up with the accent underline. Keyboard cursor on
+//! Active tab: one plane up with an underline (accent while the strip has
+//! focus, neutral otherwise: see [`TabRule`]). Keyboard cursor on
 //! another tab: two planes up and bold. Hover: two planes up. Tabs never
 //! carry the `▎` gutter — that glyph belongs to rows and fields.
 //! Tabs carry state glyphs (dirty, busy, error, a trailing state suffix) and
@@ -60,11 +61,25 @@ pub struct Tabs {
     pub areas: Vec<Rect>,
     /// Show a trailing `+` that emits `TabEvent::New`.
     pub allow_new: bool,
-    /// Secondary level: the active rule is white, so one screen keeps one
-    /// accent underline (the document tabs).
-    pub quiet: bool,
+    /// How the active tab's underline is coloured. Default
+    /// [`TabRule::Auto`]: accent only while the strip has keyboard focus.
+    pub rule: TabRule,
     /// Number of tabs that fit in the last render.
     fit: usize,
+}
+
+/// Colour of the active tab's underline.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TabRule {
+    /// Accent while the strip holds keyboard focus, neutral
+    /// (`border_strong`) otherwise: an active-but-unfocused tab is a fact,
+    /// not a "you are here" cue, so it never competes with the focus bar.
+    #[default]
+    Auto,
+    /// Always the accent.
+    Accent,
+    /// Always neutral (a secondary strip under a document strip).
+    Neutral,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -84,7 +99,7 @@ impl Tabs {
             first: 0,
             areas: vec![],
             allow_new: false,
-            quiet: false,
+            rule: TabRule::Auto,
             fit: 0,
         }
     }
@@ -98,9 +113,14 @@ impl Tabs {
             first: 0,
             areas: vec![],
             allow_new: false,
-            quiet: false,
+            rule: TabRule::Auto,
             fit: 0,
         }
+    }
+
+    pub fn rule(mut self, rule: TabRule) -> Self {
+        self.rule = rule;
+        self
     }
 
     pub fn tab_id(&self, i: usize) -> WidgetId {
@@ -434,11 +454,12 @@ impl Tabs {
                 ctx.clickable(cid, Rect::new(cx + 1, y, 1, 1));
             }
             if active && area.height >= 2 {
-                let rule = if self.quiet {
-                    t.border_strong
-                } else {
-                    t.accent
+                let accent = match self.rule {
+                    TabRule::Auto => focused,
+                    TabRule::Accent => true,
+                    TabRule::Neutral => false,
                 };
+                let rule = if accent { t.accent } else { t.border_strong };
                 // the rule spans exactly the tab's plane, edge to edge
                 for xx in x..x + w {
                     buf.set_string(xx, y + 1, "━", ratatui::style::Style::new().fg(rule).bg(bg));
@@ -524,7 +545,11 @@ mod tests {
         let t = Theme::junie();
         let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
         tabs.set_active(1);
-        let buf = render_with(&mut tabs, Interaction::default());
+        let focused = Interaction {
+            focus: Some(tabs.id),
+            ..Default::default()
+        };
+        let buf = render_with(&mut tabs, focused);
         assert!(
             !row(&buf, 0).contains('▎'),
             "no gutter glyph in a tab strip"
@@ -550,6 +575,37 @@ mod tests {
             "─",
             "only the active tab carries the rule"
         );
+    }
+
+    #[test]
+    fn an_unfocused_strip_draws_the_active_rule_neutral() {
+        let t = Theme::junie();
+        let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
+        tabs.set_active(1);
+        let buf = render_with(&mut tabs, Interaction::default());
+        let a = tabs.areas[1];
+        let rule = &buf[(a.x + 1, 1)];
+        assert_eq!(rule.symbol(), "━", "the active tab keeps its rule");
+        assert_eq!(rule.fg, t.border_strong, "but not the focus colour");
+        // a hidden focus (a layer above the page) is unfocused too
+        let hidden = Interaction {
+            focus: Some(tabs.id),
+            focus_hidden: true,
+            ..Default::default()
+        };
+        let buf = render_with(&mut tabs, hidden);
+        assert_eq!(buf[(a.x + 1, 1)].fg, t.border_strong);
+        // explicit policies
+        let mut accent = tabs.clone().rule(TabRule::Accent);
+        let buf = render_with(&mut accent, Interaction::default());
+        assert_eq!(buf[(a.x + 1, 1)].fg, t.accent);
+        let mut neutral = tabs.clone().rule(TabRule::Neutral);
+        let focused = Interaction {
+            focus: Some(tabs.id),
+            ..Default::default()
+        };
+        let buf = render_with(&mut neutral, focused);
+        assert_eq!(buf[(a.x + 1, 1)].fg, t.border_strong);
     }
 
     #[test]
