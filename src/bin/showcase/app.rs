@@ -1052,6 +1052,10 @@ impl App {
                 Request::Status(s) => self.set_status(s),
                 Request::SetOption(set) => self.apply_opt(set),
                 Request::OpenHelp(h) => self.show_help(*h),
+                Request::RefusedOutsideClick(dismiss) => {
+                    let now = self.clock.now_ms();
+                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+                }
             }
         }
         out
