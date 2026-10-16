@@ -425,20 +425,20 @@ mod tests {
 
     #[test]
     fn hints_name_cmd_only_once_the_terminal_delivers_it() {
-        let map: KeyMap<Act> = select_all_bindings(Act::Add).collect();
-        assert_eq!(label_for(&map, Act::Add).as_deref(), Some("Ctrl+A"));
-        assert_eq!(hint_key(&map, Act::Add), Some("Ctrl+A"));
+        let map: KeyMap<TestCmd> = select_all_bindings(TestCmd::Add).collect();
+        assert_eq!(label_for(&map, TestCmd::Add).as_deref(), Some("Ctrl+A"));
+        assert_eq!(hint_key(&map, TestCmd::Add), Some("Ctrl+A"));
         crate::core::keyboard::set_super_delivered(true);
         let cmd = KeyBinding::cmd('a').label();
-        assert_eq!(label_for(&map, Act::Add), Some(cmd.clone()));
-        assert_eq!(hint_key(&map, Act::Add), Some(cmd.as_str()));
+        assert_eq!(label_for(&map, TestCmd::Add), Some(cmd.clone()));
+        assert_eq!(hint_key(&map, TestCmd::Add), Some(cmd.as_str()));
         assert_eq!(
             lookup(&map, &with(KeyCode::Char('a'), KeyModifiers::SUPER)),
-            Some(Act::Add)
+            Some(TestCmd::Add)
         );
         assert_eq!(
             lookup(&map, &with(KeyCode::Char('a'), KeyModifiers::CONTROL)),
-            Some(Act::Add)
+            Some(TestCmd::Add)
         );
     }
 
@@ -470,29 +470,32 @@ mod tests {
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
-    enum Act {
+    enum TestCmd {
         Remove,
         Add,
     }
 
-    impl Actions for Act {
+    impl Actions for TestCmd {
         fn default_keymap() -> KeyMap<Self> {
             vec![
-                (KeyBinding::char('x'), Act::Remove),
-                (KeyBinding::key(KeyCode::Delete), Act::Remove),
-                (KeyBinding::char('+'), Act::Add),
+                (KeyBinding::char('x'), TestCmd::Remove),
+                (KeyBinding::key(KeyCode::Delete), TestCmd::Remove),
+                (KeyBinding::char('+'), TestCmd::Add),
             ]
         }
     }
 
     #[test]
     fn bindings_match_lookup_and_label() {
-        let map = Act::default_keymap();
-        assert_eq!(lookup(&map, &key(KeyCode::Char('x'))), Some(Act::Remove));
-        assert_eq!(lookup(&map, &key(KeyCode::Delete)), Some(Act::Remove));
+        let map = TestCmd::default_keymap();
+        assert_eq!(
+            lookup(&map, &key(KeyCode::Char('x'))),
+            Some(TestCmd::Remove)
+        );
+        assert_eq!(lookup(&map, &key(KeyCode::Delete)), Some(TestCmd::Remove));
         assert_eq!(
             lookup(&map, &with(KeyCode::Char('+'), KeyModifiers::SHIFT)),
-            Some(Act::Add),
+            Some(TestCmd::Add),
             "Shift is part of the character"
         );
         assert_eq!(
@@ -503,13 +506,13 @@ mod tests {
             lookup(&map, &with(KeyCode::Delete, KeyModifiers::SHIFT)),
             None
         );
-        assert_eq!(label_for(&map, Act::Remove).as_deref(), Some("x"));
+        assert_eq!(label_for(&map, TestCmd::Remove).as_deref(), Some("x"));
         assert_eq!(KeyBinding::ctrl('s').label(), "Ctrl+S");
         assert_eq!(KeyBinding::key(KeyCode::Delete).label(), "Delete");
-        assert_eq!(hint_key(&map, Act::Add), Some("+"));
+        assert_eq!(hint_key(&map, TestCmd::Add), Some("+"));
         assert_eq!(
-            hint_key(&map, Act::Add).map(str::as_ptr),
-            hint_key(&map, Act::Add).map(str::as_ptr),
+            hint_key(&map, TestCmd::Add).map(str::as_ptr),
+            hint_key(&map, TestCmd::Add).map(str::as_ptr),
             "labels are interned once"
         );
         assert_eq!(KeyBinding::char(' ').label(), "Space");
@@ -518,9 +521,9 @@ mod tests {
         assert_eq!(cmd_a.label_on(ClientPlatform::Other), "Super+A");
         assert!(cmd_a.matches(&with(KeyCode::Char('a'), KeyModifiers::SUPER)));
         assert!(!cmd_a.matches(&with(KeyCode::Char('a'), KeyModifiers::CONTROL)));
-        let remapped: KeyMap<Act> = vec![(KeyBinding::char('d'), Act::Remove)];
+        let remapped: KeyMap<TestCmd> = vec![(KeyBinding::char('d'), TestCmd::Remove)];
         assert_eq!(lookup(&remapped, &key(KeyCode::Char('x'))), None);
-        assert_eq!(binding_for(&remapped, Act::Add), None);
+        assert_eq!(binding_for(&remapped, TestCmd::Add), None);
     }
 }
 
@@ -546,7 +549,7 @@ mod widget_tests {
 
     #[test]
     fn list_nav_and_keymap() {
-        use crate::widgets::list::{ListAction, ListBox, ListItem, SelectMode};
+        use crate::widgets::list::{ListBox, ListCmd, ListItem, SelectMode};
         let items = || vec![ListItem::new("a"), ListItem::new("b"), ListItem::new("c")];
         let mut l = ListBox::new(WidgetId::of("l"), items(), SelectMode::Single);
         l.on_key(&c('j'));
@@ -562,7 +565,7 @@ mod widget_tests {
         l.on_key(&c('a'));
         assert!(l.checked.iter().all(|c| *c), "`a` checks all by default");
         let mut l = ListBox::new(WidgetId::of("l"), items(), SelectMode::Multi)
-            .keymap(vec![(KeyBinding::ctrl('a'), ListAction::ToggleAll)]);
+            .keymap(vec![(KeyBinding::ctrl('a'), ListCmd::ToggleAll)]);
         assert_eq!(
             l.on_key(&c('a')),
             Outcome::Ignored,
@@ -577,7 +580,7 @@ mod widget_tests {
 
     #[test]
     fn tree_nav_and_keymap() {
-        use crate::widgets::tree::{TreeAction, TreeNode, TreeView};
+        use crate::widgets::tree::{TreeCmd, TreeNode, TreeView};
         let nodes = || {
             vec![
                 TreeNode::dir("a", vec![TreeNode::dir("a1", vec![TreeNode::leaf("x")])]),
@@ -598,7 +601,7 @@ mod widget_tests {
         t.on_key(&c('*'));
         assert!(t.rows().len() > rows, "`*` expands all by default");
         let mut t = TreeView::new(WidgetId::of("t"), nodes())
-            .keymap(vec![(KeyBinding::char('e'), TreeAction::ExpandAll)]);
+            .keymap(vec![(KeyBinding::char('e'), TreeCmd::ExpandAll)]);
         let rows = t.rows().len();
         assert_eq!(
             t.on_key(&c('*')).0,
@@ -618,7 +621,7 @@ mod widget_tests {
 
     #[test]
     fn table_nav_and_keymap() {
-        use crate::widgets::table::{Cell, Column, DataTable, TableAction};
+        use crate::widgets::table::{Cell, Column, DataTable, TableCmd};
         use ratatui::layout::Constraint;
         let table = || {
             DataTable::new(
@@ -637,7 +640,7 @@ mod widget_tests {
         let mut t = table();
         t.on_key(&c('s'));
         assert!(t.sort.is_some(), "`s` sorts by default");
-        let mut t = table().keymap(vec![(KeyBinding::char('o'), TableAction::SortByColumn)]);
+        let mut t = table().keymap(vec![(KeyBinding::char('o'), TableCmd::SortByColumn)]);
         assert_eq!(
             t.on_key(&c('s')).0,
             Outcome::Ignored,
@@ -732,7 +735,7 @@ mod widget_tests {
 
     #[test]
     fn textarea_and_panel_nav_and_keymap() {
-        use crate::widgets::panel::{PanelAction, ScrollPanel};
+        use crate::widgets::panel::{PanelCmd, ScrollPanel};
         use crate::widgets::textarea::TextArea;
         let mut t = TextArea::new(WidgetId::of("t"), "T", 3)
             .edit_entry(crate::core::edit::EditEntry::Explicit);
@@ -754,7 +757,7 @@ mod widget_tests {
         assert!(!p.follow, "`f` pauses following by default");
         let mut p = ScrollPanel::new(WidgetId::of("p"), lines())
             .tail(true)
-            .keymap(vec![(KeyBinding::char('t'), PanelAction::Follow)]);
+            .keymap(vec![(KeyBinding::char('t'), PanelCmd::Follow)]);
         assert_eq!(
             p.on_key(&c('f')),
             Outcome::Ignored,
@@ -767,7 +770,7 @@ mod widget_tests {
 
     #[test]
     fn viewport_nav_and_keymap() {
-        use crate::widgets::viewport::{TextViewport, ViewportAction};
+        use crate::widgets::viewport::{TextViewport, ViewportCmd};
         let mut v = TextViewport::new(WidgetId::of("v"));
         assert_ne!(v.on_key(&c('k')).0, Outcome::Ignored);
         let mut v = TextViewport::new(WidgetId::of("v")).nav(NavKeys::NO_VIM);
@@ -778,7 +781,7 @@ mod widget_tests {
         v.on_key(&c('f'));
         assert!(!v.follow, "`f` toggles following by default");
         let mut v = TextViewport::new(WidgetId::of("v"))
-            .keymap(vec![(KeyBinding::char('p'), ViewportAction::ToggleFollow)]);
+            .keymap(vec![(KeyBinding::char('p'), ViewportCmd::ToggleFollow)]);
         assert_eq!(
             v.on_key(&c('f')).0,
             Outcome::Ignored,
@@ -792,7 +795,7 @@ mod widget_tests {
 
     #[test]
     fn code_editor_nav_and_keymap() {
-        use crate::widgets::code::{CodeAction, CodeEditor};
+        use crate::widgets::code::{CodeCmd, CodeEditor};
         let text = "a\nb\nc\n";
         let mut e = CodeEditor::new(WidgetId::of("e"), text)
             .edit_entry(crate::core::edit::EditEntry::Explicit);
@@ -810,7 +813,7 @@ mod widget_tests {
         assert!(e.find.is_some(), "`/` opens find by default");
         let mut e = CodeEditor::new(WidgetId::of("e"), text)
             .edit_entry(crate::core::edit::EditEntry::Explicit)
-            .keymap(vec![(KeyBinding::ctrl('f'), CodeAction::Find)]);
+            .keymap(vec![(KeyBinding::ctrl('f'), CodeCmd::Find)]);
         assert_eq!(
             e.on_key(&c('/')).0,
             Outcome::Ignored,
@@ -851,7 +854,7 @@ mod widget_tests {
 
     #[test]
     fn grid_nav_and_keymap() {
-        use crate::widgets::grid::{GridAction, GridEvent};
+        use crate::widgets::grid::{GridCmd, GridEvent};
         let mut g = grid();
         g.on_key(&c('j'));
         g.on_key(&c('l'));
@@ -868,7 +871,7 @@ mod widget_tests {
 
         let mut g = grid();
         assert!(matches!(g.on_key(&c('y')).1, Some(GridEvent::Copy(_))));
-        let mut g = grid().keymap(vec![(KeyBinding::ctrl('c'), GridAction::Copy)]);
+        let mut g = grid().keymap(vec![(KeyBinding::ctrl('c'), GridCmd::Copy)]);
         assert_eq!(
             g.on_key(&c('y')).0,
             Outcome::Ignored,
@@ -889,13 +892,13 @@ mod widget_tests {
         ));
         // duplicate_keys rewrites only the DuplicateRow bindings
         let g = grid().duplicate_keys(&[]);
-        assert_eq!(binding_for(&g.keymap, GridAction::DuplicateRow), None);
+        assert_eq!(binding_for(&g.keymap, GridCmd::DuplicateRow), None);
         assert_eq!(
-            binding_for(&g.keymap, GridAction::Copy),
+            binding_for(&g.keymap, GridCmd::Copy),
             Some(KeyBinding::cmd('c'))
         );
         assert_eq!(
-            label_for(&g.keymap, GridAction::Copy).as_deref(),
+            label_for(&g.keymap, GridCmd::Copy).as_deref(),
             Some("y"),
             "Cmd+C is not named until the terminal delivers Cmd"
         );
@@ -903,7 +906,7 @@ mod widget_tests {
 
     #[test]
     fn tabs_nav_and_keymap() {
-        use crate::widgets::tabs::{TabAction, TabEvent, TabItem, Tabs};
+        use crate::widgets::tabs::{TabCmd, TabEvent, TabItem, Tabs};
         let items = || {
             (0..3)
                 .map(|i| TabItem::new(&format!("t{i}")).closable())
@@ -923,7 +926,7 @@ mod widget_tests {
         assert_eq!(t.on_key(&c('x')).1, Some(TabEvent::Close(0)));
         assert_eq!(t.on_key(&c('3')).1, Some(TabEvent::Activated(2)));
         let mut t = Tabs::with_items(WidgetId::of("t"), items())
-            .keymap(vec![(KeyBinding::ctrl('w'), TabAction::Close)]);
+            .keymap(vec![(KeyBinding::ctrl('w'), TabCmd::Close)]);
         assert_eq!(
             t.on_key(&c('x')).0,
             Outcome::Ignored,
@@ -939,7 +942,7 @@ mod widget_tests {
 
     #[test]
     fn chips_nav_and_keymap() {
-        use crate::widgets::chips::{Chip, ChipAction, ChipBar, ChipEvent};
+        use crate::widgets::chips::{Chip, ChipBar, ChipCmd, ChipEvent};
         let bar = || {
             let mut b = ChipBar::new(WidgetId::of("c"));
             b.chips = vec![Chip::new("a"), Chip::new("b")];
@@ -955,7 +958,7 @@ mod widget_tests {
 
         let mut b = bar();
         assert_eq!(b.on_key(&c('x')).1, Some(ChipEvent::Remove(0)));
-        let mut b = bar().keymap(vec![(KeyBinding::char('d'), ChipAction::Remove)]);
+        let mut b = bar().keymap(vec![(KeyBinding::char('d'), ChipCmd::Remove)]);
         assert_eq!(
             b.on_key(&c('x')).0,
             Outcome::Ignored,
@@ -968,7 +971,7 @@ mod widget_tests {
     #[test]
     fn dialog_nav_and_keymap() {
         use crate::core::focus::{Focus, FocusRing};
-        use crate::widgets::dialog::{Dialog, DialogAction, DialogResult};
+        use crate::widgets::dialog::{Dialog, DialogCmd, DialogResult};
         let ring = FocusRing::default();
         let dialog = || Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit");
         let mut focus = Focus::default();
@@ -987,7 +990,7 @@ mod widget_tests {
         d.on_key(&k(KeyCode::Right), &mut focus, &ring);
         assert_eq!(focus.current(), Some(d.actions[1].id));
 
-        let mut d = dialog().keymap(vec![(KeyBinding::char('q'), DialogAction::Confirm)]);
+        let mut d = dialog().keymap(vec![(KeyBinding::char('q'), DialogCmd::Confirm)]);
         let mut focus = Focus::default();
         d.on_key(&c('y'), &mut focus, &ring);
         assert_eq!(d.result, None, "the default is unbound");
