@@ -2018,7 +2018,7 @@ mod tests {
         render(&mut v, 40, 10);
         assert!(v.is_at_tail());
         assert_eq!(v.scroll.offset, 40);
-        v.on_wheel(-3);
+        v.wheel(Axis::Vertical, -3).outcome();
         assert!(!v.follow);
         assert_eq!(v.scrollback_depth(), 3);
         v.on_key(&key(KeyCode::End, KeyModifiers::NONE));
@@ -2602,7 +2602,7 @@ mod tests {
         assert!(bar0.starts_with(scrollbar::H_THUMB), "{bar0}");
         assert!(bar0.contains(scrollbar::H_TRACK), "{bar0}");
         assert!(row(&buf, 2).starts_with("0123456789"));
-        assert_eq!(v.on_wheel_h(1), Outcome::Changed);
+        assert_eq!(v.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         assert_eq!(v.scroll.h.offset, 4, "one notch is HScroll::step cells");
         let buf = render(&mut v, 30, 6);
         assert!(row(&buf, 2).starts_with("456789"), "{}", row(&buf, 2));
@@ -2618,7 +2618,7 @@ mod tests {
         assert_eq!(v.scroll.h.offset, 0);
         // the end stops at the widest line
         for _ in 0..40 {
-            v.on_wheel_h(1);
+            v.wheel(Axis::Horizontal, 1).outcome();
         }
         assert_eq!(v.scroll.h.offset, v.scroll.h.max_offset());
         assert_eq!(v.scroll.h.offset, 80 - v.scroll.h.viewport_len);
@@ -2632,7 +2632,11 @@ mod tests {
         let (o, _) = v.on_key(&key(KeyCode::Right, KeyModifiers::NONE));
         assert_eq!(o, Outcome::Ignored);
         assert_eq!(v.scroll.h.offset, 0);
-        assert_eq!(v.on_wheel_h(1), Outcome::Changed, "the wheel still scrolls");
+        assert_eq!(
+            v.wheel(Axis::Horizontal, 1).outcome(),
+            Outcome::Changed,
+            "the wheel still scrolls"
+        );
     }
 
     #[test]
@@ -2707,8 +2711,8 @@ mod tests {
         v.set_follow(true);
         render(&mut v, 30, 6);
         assert!(v.is_at_tail());
-        v.on_wheel_h(1);
-        v.on_wheel_h(1);
+        v.wheel(Axis::Horizontal, 1).outcome();
+        v.wheel(Axis::Horizontal, 1).outcome();
         assert!(v.follow, "sideways scrolling does not pause follow");
         for i in 0..5 {
             v.push(vec![Span::plain(format!("new {i}"))]);
@@ -2745,12 +2749,12 @@ mod tests {
         let mut v = wide().wrap(true);
         let buf = render(&mut v, 30, 6);
         assert!(!v.scroll.h.overflows());
-        assert_eq!(v.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(v.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
         assert!(!bar_row(&buf, 5).contains(scrollbar::H_TRACK));
         // and the policy can switch it off without wrapping
         let mut v = wide().horizontal(HScroll::off());
         let buf = render(&mut v, 30, 6);
-        assert_eq!(v.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(v.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
         assert!(!bar_row(&buf, 5).contains(scrollbar::H_TRACK));
         assert_eq!(v.scroll.viewport_len, 6, "no row is reserved");
     }
@@ -2763,18 +2767,28 @@ mod tests {
         // the bar stops short of the vertical bar's corner, which stays blank
         assert_eq!(v.scroll.h_track(), Rect::new(0, 5, 29, 1));
         assert!(v.owns(scrollbar::h_id_for(v.id)));
-        assert_eq!(v.on_scrollbar(Position::new(28, 5)), Outcome::Changed);
+        assert_eq!(
+            v.bar_press(Position::new(28, 5))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Changed
+        );
         assert_eq!(v.scroll.h.offset, v.scroll.h.max_offset());
         assert_eq!(v.scroll.offset, 0, "the vertical axis did not move");
         assert_eq!(
-            v.on_bar_drag(scrollbar::h_id_for(v.id), Position::new(0, 5)),
+            match v.scroll.bar_of(scrollbar::h_id_for(v.id)) {
+                Some(bar) => v.bar_input(&bar, Position::new(0, 5), false).outcome(),
+                None => Outcome::Consumed,
+            },
             Outcome::Changed
         );
         assert_eq!(v.scroll.h.offset, 0);
         // TrackClick::Page (the default) on the horizontal axis pages
         let mut v = wide();
         render(&mut v, 30, 6);
-        v.on_scrollbar(Position::new(28, 5));
+        v.bar_press(Position::new(28, 5))
+            .outcome()
+            .or(Outcome::Consumed);
         assert_eq!(v.scroll.h.offset, v.scroll.h.viewport_len);
     }
 
@@ -2784,14 +2798,21 @@ mod tests {
         let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(50));
         v.follow = false;
         render(&mut v, 30, 10);
-        assert_eq!(v.on_scrollbar(Position::new(29, 9)), Outcome::Changed);
+        assert_eq!(
+            v.bar_press(Position::new(29, 9))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Changed
+        );
         assert_eq!(v.scroll.offset, 10, "one page down, not a jump to the end");
         // Jump stays available
         let mut v =
             TextViewport::with_lines(WidgetId::of("v"), lines(50)).track_click(TrackClick::Jump);
         v.follow = false;
         render(&mut v, 30, 10);
-        v.on_scrollbar(Position::new(29, 9));
+        v.bar_press(Position::new(29, 9))
+            .outcome()
+            .or(Outcome::Consumed);
         assert_eq!(v.scroll.offset, 40);
     }
 }

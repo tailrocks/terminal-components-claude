@@ -1477,6 +1477,7 @@ mod identity_tests {
 mod scroll_tests {
     use super::*;
     use crate::core::focus::FocusRing;
+    use crate::core::hit::Axis;
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
@@ -1673,7 +1674,7 @@ mod scroll_tests {
         let mut t = TreeView::new(WidgetId::of("t"), nodes);
         let a = render(&mut t);
         assert!(a.contains("Node 00"));
-        t.on_wheel(5);
+        t.wheel(Axis::Vertical, 5).outcome();
         let b = render(&mut t);
         assert!(!b.contains("Node 00"));
         assert!(b.contains("Node 05"));

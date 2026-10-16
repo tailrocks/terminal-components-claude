@@ -770,7 +770,10 @@ impl DataTable {
             };
         }
         if scrollbar::is_bar_of(pressed, self.id) {
-            return self.on_bar_drag(pressed, pos);
+            return match self.pane().bar_of(pressed) {
+                Some(bar) => self.bar_input(&bar, pos, false).outcome(),
+                None => Outcome::Consumed,
+            };
         }
         Outcome::Ignored
     }
@@ -2279,16 +2282,21 @@ mod tests {
         );
         assert!(t.owns(scrollbar::h_id_for(t.id)));
 
-        assert_eq!(t.on_wheel_h(3), Outcome::Changed);
+        assert_eq!(t.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
         assert_eq!(t.scroll.h.offset, 1, "one column per notch");
         let (buf, _) = draw(&mut t, area);
         let grab = thumb_x(&buf, y).unwrap();
         assert!(grab > t.scroll.h_track().x);
 
         // the shared scrollbar entry point tells the bars apart by position
-        assert_eq!(t.on_scrollbar(Position::new(grab, y)), Outcome::Consumed);
         assert_eq!(
-            t.on_scrollbar_drag(Position::new(area.right(), y)),
+            t.bar_press(Position::new(grab, y))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Consumed
+        );
+        assert_eq!(
+            t.bar_drag(Position::new(area.right(), y)).outcome(),
             Outcome::Changed
         );
         assert_eq!(t.scroll.h.offset, t.scroll.h.max_offset());
@@ -2297,7 +2305,7 @@ mod tests {
         let mut off = wide_table().horizontal(HScroll::off());
         let (buf, _) = draw(&mut off, area);
         assert_eq!(thumb_x(&buf, y), None);
-        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
     }
 
     #[test]
@@ -2768,7 +2776,7 @@ mod tests {
         assert!(t.selection.contains(t.source_row(1)));
         let (buf, _) = draw(&mut t, Rect::new(0, 0, 30, 3));
         assert_eq!(buf[(1, 1)].symbol(), "✓");
-        t.on_wheel(3);
+        t.wheel(Axis::Vertical, 3).outcome();
         assert_eq!(t.selected_rows(), vec![1, 3]);
         // a shift range follows the display order
         t.clear_selection();

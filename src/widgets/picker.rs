@@ -1049,6 +1049,7 @@ impl crate::core::pointer::MouseTarget for Picker {
 mod tests {
     use super::*;
     use crate::core::focus::FocusRing;
+    use crate::core::hit::Axis;
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
@@ -1368,7 +1369,7 @@ mod tests {
         let before = render(&mut p);
         assert!(before.contains("Item 00"));
         assert!(!before.contains("Item 10"));
-        p.on_wheel(3);
+        p.wheel(Axis::Vertical, 3).outcome();
         let after = render(&mut p);
         assert!(!after.contains("Item 00"), "wheel moved the viewport");
         assert!(after.contains("Item 03"));
@@ -1378,7 +1379,7 @@ mod tests {
         assert_eq!(again, after);
         assert_eq!(p.scroll.offset, 3);
         assert_eq!(p.cursor, 0, "selection is preserved while wheel scrolling");
-        p.on_wheel(-3);
+        p.wheel(Axis::Vertical, -3).outcome();
         let back = render(&mut p);
         assert_eq!(back, before);
     }
@@ -1387,7 +1388,7 @@ mod tests {
     fn keyboard_navigation_pulls_the_cursor_back_into_view() {
         let mut p = picker(30);
         render(&mut p);
-        p.on_wheel(10);
+        p.wheel(Axis::Vertical, 10).outcome();
         render(&mut p);
         assert_eq!(p.scroll.offset, 10);
         let key = Key {
@@ -1405,10 +1406,10 @@ mod tests {
     fn wheel_at_the_boundary_is_consumed_not_changed() {
         let mut p = picker(3);
         render(&mut p);
-        assert_eq!(p.on_wheel(1), Outcome::Consumed);
+        assert_eq!(p.wheel(Axis::Vertical, 1).outcome(), Outcome::Consumed);
         let mut p = picker(30);
         render(&mut p);
-        assert_eq!(p.on_wheel(1), Outcome::Changed);
+        assert_eq!(p.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
     }
 
     #[test]
