@@ -65,6 +65,10 @@ impl FocusRing {
 pub enum FocusFallback {
     /// The control just before where the lost one sat in the ring (or the
     /// first, when it was first): focus stays in the same neighbourhood.
+    /// When focus was moved onto a control that cannot take it (a click
+    /// on a disabled field) and the control that last held it is still
+    /// there, focus stays on that control, as a click on a disabled macOS
+    /// control leaves focus where it was.
     #[default]
     Nearest,
     /// The first control of the ring.
@@ -152,6 +156,8 @@ pub struct Focus {
     current: Option<WidgetId>,
     /// Ring position of `current` the last time it was validated.
     last_index: Option<usize>,
+    /// The control `current` was the last time it was validated.
+    last_valid: Option<WidgetId>,
     /// Controls that lost focus since the last [`Self::take_changes`].
     left: Vec<WidgetId>,
     /// The current control was asked to end its edit in place.
@@ -268,9 +274,12 @@ impl Focus {
             .and_then(|c| reach.iter().position(|&id| id == c))
         {
             self.last_index = Some(i);
+            self.last_valid = self.current;
             return;
         }
+        let stayed = self.last_valid.filter(|id| reach.contains(id));
         let next = match (fallback, self.last_index) {
+            (FocusFallback::Nearest, _) if stayed.is_some() => stayed,
             (FocusFallback::Nearest, Some(i)) if !reach.is_empty() => {
                 Some(reach[i.saturating_sub(1).min(reach.len() - 1)])
             }
@@ -280,6 +289,7 @@ impl Focus {
         self.last_index = self
             .current
             .and_then(|c| reach.iter().position(|&id| id == c));
+        self.last_valid = self.last_index.and(self.current);
     }
 }
 
@@ -338,6 +348,26 @@ mod tests {
         first.focus(WidgetId::of("c"));
         first.ensure_valid_with(&ring(&["a", "b", "c"]), FocusFallback::First);
         first.ensure_valid_with(&ring(&["a", "b"]), FocusFallback::First);
+        assert_eq!(first.current(), Some(WidgetId::of("a")));
+    }
+
+    #[test]
+    fn focus_moved_onto_an_unfocusable_control_stays_where_it_was() {
+        // a click focused a disabled field (registered, not reachable):
+        // Nearest keeps focus on the control that still holds its place
+        let r = ring(&["a", "b", "c", "d"]);
+        let mut f = Focus::default();
+        f.focus(WidgetId::of("c"));
+        f.ensure_valid_with(&r, FocusFallback::Nearest);
+        f.focus(WidgetId::of("disabled"));
+        f.ensure_valid_with(&r, FocusFallback::Nearest);
+        assert_eq!(f.current(), Some(WidgetId::of("c")));
+        // First keeps its rule: the ring's first stop
+        let mut first = Focus::default();
+        first.focus(WidgetId::of("c"));
+        first.ensure_valid_with(&r, FocusFallback::First);
+        first.focus(WidgetId::of("disabled"));
+        first.ensure_valid_with(&r, FocusFallback::First);
         assert_eq!(first.current(), Some(WidgetId::of("a")));
     }
 

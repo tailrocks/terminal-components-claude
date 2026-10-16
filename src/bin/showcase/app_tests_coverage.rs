@@ -431,8 +431,11 @@ fn inputs_paste_validation_and_disabled_field() {
     h.key(KeyCode::Enter);
     h.assert_status("Branch to check out once the task is done saved");
 
+    // a click on the disabled field neither focuses nor edits it: focus
+    // stays on Branch (the library's `FocusFallback::Nearest`, the
+    // showcase default; `First` used to send it to the sidebar)
     h.click_id(api_token);
-    assert!(!h.app.pages[PageId::Inputs.index()].editing());
+    assert_eq!(h.app.focus.current(), Some(branch));
 }
 
 #[test]
