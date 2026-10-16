@@ -102,6 +102,25 @@ impl LayerHost {
                 }
             }
             PageEvent::Paste(text) => top.layer.on_paste(text),
+            // a click on a backdrop the layer leaves alone is an outside
+            // click: a dismissal under its policy (a refused one flashes
+            // the frame)
+            PageEvent::Pointer(p) => {
+                let dismiss = top.layer.spec().dismiss;
+                let out = top.layer.pointer(p, &mut lcx);
+                if out == Outcome::Ignored
+                    && p.is(junie_tui::core::intent::Phase::Click)
+                    && p.part().part == junie_tui::core::id::Part::BACKDROP
+                {
+                    let out = self.dismiss(DismissReason::OutsideClick, cx.focus, &mut reports);
+                    if out == Outcome::Consumed {
+                        cx.refuse_outside_click(dismiss);
+                    }
+                    out
+                } else {
+                    out
+                }
+            }
             PageEvent::Press { id, pos } => top.layer.on_press(*id, *pos, cx.clicks),
             PageEvent::Click { id, pos } => {
                 top.layer
