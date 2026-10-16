@@ -74,7 +74,9 @@ fn the_explorer_collapses_and_comes_back_by_mouse() {
     let collapse = h
         .app
         .hits
-        .area_of(EXPLORER_RAIL.sub("collapse"))
+        .area_of(EXPLORER_RAIL.part(junie_tui::core::id::PartRef::of(
+            junie_tui::core::id::Part::ICON,
+        )))
         .expect("the explorer has a collapse button");
     h.click(collapse.x + 1, collapse.y);
     assert!(!h.wb().explorer_visible, "{}", h.text());

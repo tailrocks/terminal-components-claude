@@ -14,7 +14,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 
-use crate::core::id::WidgetId;
+use crate::core::id::{PartRef, WidgetId};
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::width;
@@ -50,6 +50,9 @@ pub struct IconButton {
     /// The tooltip. `None`: the owner's default (`Close · Esc` on a modal
     /// frame, `Close tab · x` on a tab, ...); an empty [`Tip`] shows none.
     pub tip: Option<Tip>,
+    /// The widget and part this button is (a tab's or a chip's ×): it
+    /// then registers as that part of the owner ([`Self::part_of`]).
+    pub part: Option<(WidgetId, PartRef)>,
 }
 
 impl IconButton {
@@ -65,6 +68,7 @@ impl IconButton {
             pad: Self::DEFAULT_PAD,
             danger_hover: false,
             tip: None,
+            part: None,
         }
     }
 
@@ -79,7 +83,21 @@ impl IconButton {
 
     /// The same button under another id (a template applied per tab).
     pub fn with_id(&self, id: WidgetId) -> Self {
-        Self { id, ..self.clone() }
+        Self {
+            id,
+            part: None,
+            ..self.clone()
+        }
+    }
+
+    /// The same button as `part` of `owner` (a template applied per tab):
+    /// its id is [`WidgetId::part`] and its hit resolves to the owner.
+    pub fn part_of(&self, owner: WidgetId, part: PartRef) -> Self {
+        Self {
+            id: owner.part(part),
+            part: Some((owner, part)),
+            ..self.clone()
+        }
     }
 
     /// See [`Self::pad`].
@@ -176,7 +194,12 @@ impl IconButton {
             }
         }
         buf.set_string(glyph_x, plate.y, self.glyph(ctx.theme), st);
-        ctx.clickable(self.id, plate);
+        match self.part {
+            Some((owner, part)) => {
+                ctx.register_part(owner, part, plate);
+            }
+            None => ctx.clickable(self.id, plate),
+        }
         if let Some(tip) = self.tip.clone().or(default_tip) {
             crate::ui::tooltip::show(ctx, self.id, plate, &tip, None);
         }

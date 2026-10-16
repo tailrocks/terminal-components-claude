@@ -10,7 +10,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::ui::ctx::RenderCtx;
 
@@ -234,7 +234,12 @@ impl RadioGroup {
 
     /// Ids of the individual options, for hit testing.
     pub fn option_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::option_part(i))
+    }
+
+    /// Option `i` as a part of the group.
+    pub fn option_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -300,7 +305,7 @@ impl RadioGroup {
                 &crate::ui::text::truncate(opt, row.width.saturating_sub(5) as usize),
                 st,
             );
-            ctx.clickable(self.option_id(i), row);
+            ctx.register_part(self.id, Self::option_part(i), row);
         }
         // the group is a single focus stop; option rows are click targets
         if !ctx.inert && !self.disabled && !self.areas.is_empty() {

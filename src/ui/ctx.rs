@@ -222,6 +222,70 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// Register `part` of `owner` as a clickable region
+    /// ([`HitRegistry::register_part`]) and record it in the widget's
+    /// `parts` map; returns the part's id ([`WidgetId::part`]). The map is
+    /// filled even when the frame is inert, so the widget still knows its
+    /// own ids under a modal.
+    pub fn part(
+        &mut self,
+        parts: &mut crate::core::hit::PartMap,
+        owner: WidgetId,
+        part: crate::core::id::PartRef,
+        area: Rect,
+    ) -> WidgetId {
+        let id = owner.part(part);
+        self.part_as(parts, id, owner, part, area);
+        id
+    }
+
+    /// Register `part` of `owner` without a map: for a popup painted from
+    /// an overlay closure, which records its map when it is laid out.
+    pub fn register_part(
+        &mut self,
+        owner: WidgetId,
+        part: crate::core::id::PartRef,
+        area: Rect,
+    ) -> WidgetId {
+        let id = owner.part(part);
+        if !self.inert {
+            self.hits.register_part_as(id, owner, part, area);
+        }
+        id
+    }
+
+    /// [`Self::part`] under an id finer than the part (one id per grid
+    /// cell, a sub-control inside a row).
+    pub fn part_as(
+        &mut self,
+        parts: &mut crate::core::hit::PartMap,
+        id: WidgetId,
+        owner: WidgetId,
+        part: crate::core::id::PartRef,
+        area: Rect,
+    ) {
+        parts.record(id, part);
+        if !self.inert {
+            self.hits.register_part_as(id, owner, part, area);
+        }
+    }
+
+    /// [`Self::part_as`] for a 2-D part: `part` keyed by its row, at
+    /// column `col` ([`crate::core::hit::PartMap::record_cell`]).
+    pub fn part_cell(
+        &mut self,
+        parts: &mut crate::core::hit::PartMap,
+        id: WidgetId,
+        owner: WidgetId,
+        (part, col): (crate::core::id::PartRef, usize),
+        area: Rect,
+    ) {
+        parts.record_cell(id, part, col);
+        if !self.inert {
+            self.hits.register_part_as(id, owner, part, area);
+        }
+    }
+
     /// The pointer shape over `id` ([`crate::core::shape`]).
     pub fn pointer_shape(&mut self, id: WidgetId, shape: crate::core::shape::PointerShape) {
         if !self.inert {
