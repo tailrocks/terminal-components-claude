@@ -946,7 +946,7 @@ impl Screen for PlanReviewPage {
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if focus == Some(DETAIL) {
-            return vec![hint("↑↓", "Scroll"), hint("Esc", "Outline")];
+            return vec![hint("↑↓", "Scroll"), hint("Esc", "Back to outline")];
         }
         if let Some(b) = [&self.cancel, &self.confirm]
             .into_iter()
@@ -1554,7 +1554,7 @@ impl Screen for PlanTab {
             v.push(if self.maximized {
                 hint("Esc", "Restore layout")
             } else {
-                hint("Esc", "Steps")
+                hint("Esc", "Back to steps")
             });
             return v;
         }
