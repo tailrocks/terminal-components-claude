@@ -125,11 +125,11 @@ fn menu_bar_options_rebuild_the_bar_through_its_builders() {
     assert!(text.contains("open_on Press"), "{text}");
     assert!(text.contains("brand lockup"));
     h.opt("chrome.hover_switch=off");
-    h.opt("chrome.nav=no-vim");
+    h.opt("chrome.nav=vim");
     h.opt("chrome.dismiss=escape");
     let text = h.text();
     assert!(text.contains("hover_switch off"), "{text}");
-    assert!(text.contains("nav no-vim"));
+    assert!(text.contains("nav vim"));
     assert!(text.contains("dismiss escape"));
     h.opt("chrome.brand=none");
     assert!(!h.text().contains("app❯"));

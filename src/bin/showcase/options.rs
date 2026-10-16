@@ -528,7 +528,7 @@ static CHROME: &[Opt] = &[
     Opt::new("chrome.hide_owner_focus", "Hide page focus", OFF_ON).default(1),
     Opt::new("chrome.wrap", "Wrap ←/→", OFF_ON).default(1),
     Opt::new("chrome.type_ahead", "Type-ahead", OFF_ON),
-    Opt::new("chrome.nav", "Nav keys", &["default", "no-vim"]),
+    Opt::new("chrome.nav", "Nav keys", &["default", "vim"]),
     Opt::new("chrome.dismiss", "Dismiss", &["light", "escape"]),
     Opt::new("chrome.brand", "Brand", &["lockup", "compact", "none"]),
 ];
@@ -585,7 +585,7 @@ static TEXT_UTILITIES: &[Opt] = &[
         &["spoken", "compact"],
     ),
     Opt::new("textutilities.case", "Match case", OFF_ON),
-    Opt::new("textutilities.nav", "List nav keys", &["default", "no-vim"]),
+    Opt::new("textutilities.nav", "List nav keys", &["default", "vim"]),
     Opt::new("textutilities.copy_key", "Copy key", &["y", "c"]),
     Opt::new(
         "textutilities.track_click",
