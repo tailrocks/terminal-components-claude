@@ -668,6 +668,91 @@ impl Navigable for ListBox {
     }
 }
 
+/// A list drawn alone, in a forced state, for a States grid
+/// ([`crate::ui::specimen`]): its first three rows with the cursor on the
+/// second. Hover and press land on the cursor row (where the pointer
+/// would be), selected chooses (or checks) it, disabled disables it under
+/// the pointer (no reaction), empty clears the rows, overflow lengthens its
+/// label past the row.
+impl crate::ui::specimen::Specimen for ListBox {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(
+            state,
+            Rest | Hover
+                | Pressed
+                | Focused
+                | FocusedHover
+                | Selected
+                | Disabled
+                | Empty
+                | Overflow
+                | Narrow
+        )
+    }
+
+    fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
+        if state == crate::ui::specimen::SpecimenState::Empty {
+            1
+        } else {
+            self.items.len().clamp(1, 3) as u16
+        }
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut l = self.clone();
+        l.items.truncate(3);
+        l.checked = vec![false; l.items.len()];
+        l.chosen = None;
+        l.cursor = 1.min(l.items.len().saturating_sub(1));
+        l.scroll = ScrollPane::new(l.items.len());
+        let c = l.cursor;
+        match state {
+            Selected => match l.mode {
+                SelectMode::Single => l.chosen = Some(c),
+                SelectMode::Multi => l.checked[c] = true,
+            },
+            Disabled => {
+                if let Some(it) = l.items.get_mut(c) {
+                    it.disabled = true;
+                }
+            }
+            Empty => {
+                l.items.clear();
+                l.checked.clear();
+            }
+            Overflow => {
+                if let Some(it) = l.items.get_mut(c) {
+                    it.label = format!("{} and a label far longer than its row", it.label);
+                }
+            }
+            _ => {}
+        }
+        // the pointer rests on the cursor row, not on the list
+        let v = state.visual();
+        if (v.hovered || state == Disabled) && !l.items.is_empty() {
+            ctx.interaction.hover = Some(l.row_id(c));
+            if v.pressed {
+                ctx.interaction.pressed = Some(l.row_id(c));
+            }
+        }
+        fill(buf, area, ratatui::style::Style::new().bg(bg));
+        l.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod reveal_tests {
     use super::*;

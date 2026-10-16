@@ -1,15 +1,34 @@
+//! Lists (plan §7, SC15): the `ListBox` in single and multiple selection,
+//! with disabled rows, scrolling, a row menu and an empty state.
+//!
+//! Playground: a language list (single), a file list (multi, toned
+//! metadata, disabled rows) and an empty search, with the built lists read
+//! back. Options: every `ListBox` builder (`nav`, `type_ahead`, `click`,
+//! `wrap`, `skip_disabled`, `scrollbar_gap`, `reveal`, `track_click`,
+//! `keymap`, `empty`). States: a single and a multi list in every state
+//! they have. Hints name only keys the lists' `NavKeys` deliver.
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::page_options;
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::keymap::{KeyBinding, NavKeys, label_for};
+use junie_tui::core::scroll::{Scrollable, TrackClick};
+use junie_tui::core::typeahead::TypeAhead;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
+use junie_tui::ui::reveal::{Reveal, RevealMode};
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
+use junie_tui::widgets::empty::EmptyState;
+use junie_tui::widgets::list::{ClickAction, ListBox, ListCmd, ListItem, SelectMode};
 use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
@@ -17,60 +36,151 @@ use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("lists");
 const MENU: WidgetId = WidgetId::of("lists.menu");
+/// The three lists.
+pub const SINGLE: WidgetId = ID.sub("single");
+pub const MULTI: WidgetId = ID.sub("multi");
+pub const EMPTY: WidgetId = ID.sub("empty");
+
+/// The changed files (demo data): name, change kind, disabled.
+const FILES: [(&str, &str, bool); 12] = [
+    ("src/api/auth.rs", "modified", false),
+    ("src/api/billing.rs", "modified", false),
+    ("src/db/schema.rs", "generated", true),
+    ("tests/checkout.rs", "new", false),
+    ("Cargo.lock", "locked", true),
+    ("docs/webhooks.md", "modified", false),
+    ("src/workers/mailer.rs", "modified", false),
+    ("src/config.rs", "modified", false),
+    ("README.md", "modified", false),
+    ("src/main.rs", "modified", false),
+    ("tests/auth_flow.rs", "new", false),
+    ("src/db/pool.rs", "modified", false),
+];
+
+fn languages() -> Vec<ListItem> {
+    crate::data::languages()
+        .iter()
+        .map(|l| ListItem::new(l))
+        .collect()
+}
+
+fn files() -> Vec<ListItem> {
+    FILES
+        .iter()
+        .map(|(n, m, d)| {
+            // the change kind in its tone; generated and locked stay muted
+            let tone = match *m {
+                "new" => Tone::Success,
+                "modified" => Tone::Warning,
+                _ => Tone::Muted,
+            };
+            ListItem::new(n).meta(m).meta_tone(tone).disabled(*d)
+        })
+        .collect()
+}
 
 pub struct ListsPage {
+    template: Template,
     single: ListBox,
     multi: ListBox,
     empty: ListBox,
     /// The row menu: which list (by id) and which row it is about.
     menu: RowMenu<(WidgetId, usize)>,
+    /// Value indices of the page options, in `page_options` order.
+    opts: Vec<usize>,
 }
 
 impl ListsPage {
     pub fn new() -> Self {
-        let langs: Vec<ListItem> = crate::data::languages()
-            .iter()
-            .map(|l| ListItem::new(l))
-            .collect();
-        let mut single = ListBox::new(ID.sub("single"), langs, SelectMode::Single);
-        single.chosen = Some(0);
-        let files = [
-            ("src/api/auth.rs", "modified", false),
-            ("src/api/billing.rs", "modified", false),
-            ("src/db/schema.rs", "generated", true),
-            ("tests/checkout.rs", "new", false),
-            ("Cargo.lock", "locked", true),
-            ("docs/webhooks.md", "modified", false),
-            ("src/workers/mailer.rs", "modified", false),
-            ("src/config.rs", "modified", false),
-            ("README.md", "modified", false),
-            ("src/main.rs", "modified", false),
-            ("tests/auth_flow.rs", "new", false),
-            ("src/db/pool.rs", "modified", false),
-        ];
-        let items = files
-            .iter()
-            .map(|(n, m, d)| {
-                // the change kind in its tone; generated and locked stay muted
-                let tone = match *m {
-                    "new" => Tone::Success,
-                    "modified" => Tone::Warning,
-                    _ => Tone::Muted,
-                };
-                ListItem::new(n).meta(m).meta_tone(tone).disabled(*d)
-            })
-            .collect();
-        let mut multi = ListBox::new(ID.sub("multi"), items, SelectMode::Multi);
-        multi.checked[0] = true;
-        multi.checked[1] = true;
-        let empty = ListBox::new(ID.sub("empty"), vec![], SelectMode::Single)
-            .empty_text("No results for “retry”");
-        Self {
-            single,
-            multi,
-            empty,
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            single: ListBox::new(SINGLE, languages(), SelectMode::Single),
+            multi: ListBox::new(MULTI, files(), SelectMode::Multi),
+            empty: ListBox::new(EMPTY, vec![], SelectMode::Single),
             menu: RowMenu::default(),
+            opts: page_options(PageId::Lists)
+                .iter()
+                .map(|o| o.default)
+                .collect(),
+        };
+        page.single.chosen = Some(0);
+        page.multi.checked[0] = true;
+        page.multi.checked[1] = true;
+        page.rebuild();
+        page
+    }
+
+    /// The language list (tests read it back).
+    #[allow(dead_code)]
+    pub fn single(&self) -> &ListBox {
+        &self.single
+    }
+
+    /// The value of option `key` as the table spells it.
+    fn opt(&self, key: &str) -> &'static str {
+        let table = page_options(PageId::Lists);
+        let i = table
+            .iter()
+            .position(|o| o.key == key)
+            .unwrap_or_else(|| panic!("no option {key}"));
+        table[i].values[self.opts[i]]
+    }
+
+    /// `l` with the options applied through its builders.
+    fn build(&self, l: ListBox) -> ListBox {
+        let mut l = l
+            .nav(match self.opt("lists.nav") {
+                "vim" => NavKeys::VIM,
+                _ => NavKeys::default(),
+            })
+            .type_ahead(self.opt("lists.type_ahead") == "on")
+            .click(match self.opt("lists.click") {
+                "select" => ClickAction::Select,
+                _ => ClickAction::Activate,
+            })
+            .wrap(self.opt("lists.wrap") == "on")
+            .skip_disabled(self.opt("lists.skip_disabled") == "on")
+            .scrollbar_gap(self.opt("lists.scrollbar_gap").parse().unwrap_or(1))
+            .reveal(match self.opt("lists.reveal") {
+                "inline" => Reveal::default().mode(RevealMode::InlineWrap),
+                "off" => Reveal::default().hover(false).keyboard(None),
+                _ => Reveal::default(),
+            })
+            .track_click(match self.opt("lists.track_click") {
+                "jump" => TrackClick::Jump,
+                _ => TrackClick::Page,
+            });
+        if self.opt("lists.keymap") == "custom" {
+            l = l.keymap(vec![
+                (KeyBinding::char('t'), ListCmd::ToggleAll),
+                (KeyBinding::ctrl('a'), ListCmd::SelectAll),
+            ]);
         }
+        l
+    }
+
+    /// Rebuild the three lists through their builders, keeping what the
+    /// user chose.
+    fn rebuild(&mut self) {
+        let keep = |old: &ListBox, mut new: ListBox| {
+            new.cursor = old.cursor;
+            new.chosen = old.chosen;
+            new.checked = old.checked.clone();
+            new
+        };
+        let single = self.build(ListBox::new(SINGLE, languages(), SelectMode::Single));
+        self.single = keep(&self.single, single);
+        let multi = self.build(ListBox::new(MULTI, files(), SelectMode::Multi));
+        self.multi = keep(&self.multi, multi);
+        let empty = self.build(ListBox::new(EMPTY, vec![], SelectMode::Single));
+        self.empty = if self.opt("lists.empty") == "state" {
+            empty.empty(
+                EmptyState::new("No results for “retry”")
+                    .hint("Try a shorter word, or search every branch"),
+            )
+        } else {
+            empty.empty_text("No results for “retry”")
+        };
     }
 
     fn lists(&mut self) -> [&mut ListBox; 3] {
@@ -79,6 +189,35 @@ impl ListsPage {
 
     fn list_mut(&mut self, id: WidgetId) -> Option<&mut ListBox> {
         self.lists().into_iter().find(|l| l.id == id)
+    }
+
+    /// The lists as built, read back.
+    fn readout(&self) -> Vec<String> {
+        let l = &self.multi;
+        let nav = if l.nav == NavKeys::VIM {
+            "vim"
+        } else {
+            "default"
+        };
+        let key = |c| label_for(&l.keymap, c).unwrap_or_else(|| "none".into());
+        vec![
+            format!(
+                "nav {nav} · type-ahead {} (TypeAhead, {} ms pause) · click {:?} · wrap {} · skip_disabled {}",
+                if l.type_ahead { "on" } else { "off" },
+                TypeAhead::DEFAULT_TIMEOUT.as_millis(),
+                l.click,
+                l.wrap,
+                l.skip_disabled,
+            ),
+            format!(
+                "scrollbar_gap {} · track_click {:?} · reveal {} · {} ListCmd::ToggleAll · {} ListCmd::SelectAll",
+                l.scrollbar_gap,
+                l.scroll.track_click.unwrap_or_default(),
+                self.opt("lists.reveal"),
+                key(ListCmd::ToggleAll),
+                key(ListCmd::SelectAll),
+            ),
+        ]
     }
 
     /// What a row of `l` offers: only what its keys already do.
@@ -109,9 +248,14 @@ impl ListsPage {
                     .zip(&l.checked)
                     .filter(|(it, _)| !it.disabled)
                     .all(|(_, c)| *c);
+                let key = junie_tui::core::keymap::hint_key(&l.keymap, ListCmd::ToggleAll);
+                let all = MenuItem::new(if all { "Select none" } else { "Select all" });
                 vec![
                     toggle.separator(),
-                    MenuItem::new(if all { "Select none" } else { "Select all" }).shortcut("a"),
+                    match key {
+                        Some(k) => all.shortcut(k),
+                        None => all,
+                    },
                 ]
             }
         }
@@ -137,35 +281,30 @@ impl ListsPage {
         l.cursor = row;
         match i {
             0 => l.activate(row),
-            _ => l.on_key(&plain(KeyCode::Char('a'))),
+            _ => {
+                let key =
+                    junie_tui::core::keymap::deliverable_binding_for(&l.keymap, ListCmd::ToggleAll)
+                        .map_or(plain(KeyCode::Char('a')), |b| junie_tui::core::event::Key {
+                            code: b.code,
+                            mods: b.mods,
+                        });
+                l.on_key(&key)
+            }
         }
     }
-}
 
-impl Page for ListsPage {
-    fn title(&self) -> &'static str {
-        "Lists"
-    }
-    fn blurb(&self) -> &'static str {
-        "Single and multiple selection, disabled items, scrolling, empty state"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let third = area.width / 3;
+        let h = area.height.min(18);
         let cols = [
-            Rect::new(area.x, area.y, third.saturating_sub(1), area.height.min(18)),
-            Rect::new(
-                area.x + third + 1,
-                area.y,
-                third.saturating_sub(1),
-                area.height.min(18),
-            ),
+            Rect::new(area.x, area.y, third.saturating_sub(1), h),
+            Rect::new(area.x + third + 1, area.y, third.saturating_sub(1), h),
             Rect::new(
                 area.x + 2 * third + 2,
                 area.y,
                 area.width.saturating_sub(2 * third + 2),
-                area.height.min(18),
+                h,
             ),
         ];
         let chosen = self
@@ -206,11 +345,13 @@ impl Page for ListsPage {
             .focused(ctx.interaction.focused(self.multi.id));
         let bg = panel.bg(t);
         let inner = panel.render(cols[1], buf, t);
+        let all = junie_tui::core::keymap::hint_key(&self.multi.keymap, ListCmd::ToggleAll)
+            .unwrap_or("—");
         buf.set_string(
             inner.x,
             inner.y,
-            junie_tui::ui::text::truncate(
-                "Space toggle · a all · Shift+↓ range",
+            text::truncate(
+                &format!("Space toggle · {all} all · Shift+↓ range"),
                 inner.width as usize,
             ),
             t.muted().bg(bg),
@@ -231,11 +372,69 @@ impl Page for ListsPage {
         let bg = panel.bg(t);
         let inner = panel.render(cols[2], buf, t);
         self.empty.render(inner, buf, ctx, bg);
+
+        // the built lists, read back
+        let mut y = area.y + h + 1;
+        for line in self.readout() {
+            for l in text::wrap(&line, area.width as usize) {
+                if y >= area.bottom() {
+                    break;
+                }
+                buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
+                y += 1;
+            }
+        }
         self.menu.render(area, buf, ctx);
+    }
+}
+
+/// The States grid: a single and a multi list, drawn by themselves.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let mut single = ListBox::new(id.child(0), languages(), SelectMode::Single);
+    single.items.truncate(3);
+    single.checked.truncate(3);
+    let mut multi = ListBox::new(id.child(1), files(), SelectMode::Multi);
+    multi.items.truncate(3);
+    multi.checked.truncate(3);
+    StateGrid::new(id)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Selected,
+            Disabled,
+            Empty,
+            Overflow,
+            Narrow,
+        ])
+        .column_width(30)
+        .column("Single", single)
+        .column("Multi", multi)
+}
+
+impl Page for ListsPage {
+    fn title(&self) -> &'static str {
+        "Lists"
+    }
+    fn blurb(&self) -> &'static str {
+        "Single and multiple selection, disabled items, scrolling, empty state"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
     }
 
     fn layer_open(&self) -> bool {
-        self.menu.hides_page_focus()
+        self.menu.hides_page_focus() || self.template.popup_open()
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
@@ -244,6 +443,9 @@ impl Page for ListsPage {
                 Some((target, i)) => self.choose(target, i).or(out),
                 None => out,
             };
+        }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
         }
         match ev {
             PageEvent::Key(key) => {
@@ -274,10 +476,11 @@ impl Page for ListsPage {
                 Outcome::Changed
             }
             PageEvent::Click { id, pos } => {
+                let clicks = cx.clicks;
                 for l in self.lists() {
                     if let Some(row) = l.locate(*id) {
                         cx.focus.focus(l.id);
-                        return l.on_click(row);
+                        return l.on_click_count(row, clicks.max(1));
                     }
                     if scrollbar::id_for(l.id) == *id {
                         return l.on_scrollbar(*pos);
@@ -307,22 +510,61 @@ impl Page for ListsPage {
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.menu.is_open() {
-            MENU_HINTS.to_vec()
-        } else if focus == Some(self.multi.id) {
-            vec![
-                ("↑↓", "Move"),
-                ("Space", "Toggle"),
-                ("a", "All / none"),
-                ("Shift+↓", "Range"),
-                OPEN_HINT,
-            ]
-        } else {
-            vec![
-                ("↑↓", "Move"),
-                ("Enter", "Choose"),
-                ("g G", "Ends"),
-                OPEN_HINT,
-            ]
+            return MENU_HINTS.to_vec();
         }
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        // only keys the focused list's NavKeys deliver
+        let l = if focus == Some(self.multi.id) {
+            &self.multi
+        } else {
+            &self.single
+        };
+        let mut hints = Vec::new();
+        if let Some(k) = l.nav.move_hint(l.type_ahead) {
+            hints.push((k, "Move"));
+        }
+        if focus == Some(self.multi.id) {
+            hints.push(("Space", "Toggle"));
+            if let Some(k) = junie_tui::core::keymap::hint_key(&l.keymap, ListCmd::ToggleAll) {
+                hints.push((k, "All / none"));
+            }
+            hints.push(("Shift+↓", "Range"));
+        } else {
+            hints.push(("Enter", "Choose"));
+            if let Some(k) = l.nav.ends_hint(l.type_ahead) {
+                hints.push((k, "Ends"));
+            }
+        }
+        hints.push(OPEN_HINT);
+        hints
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        let i = page_options(PageId::Lists)
+            .iter()
+            .position(|o| o.key == key)?;
+        Some(self.opts[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let table = page_options(PageId::Lists);
+        if let Some(i) = table.iter().position(|o| o.key == key) {
+            self.opts[i] = value.min(table[i].values.len() - 1);
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }

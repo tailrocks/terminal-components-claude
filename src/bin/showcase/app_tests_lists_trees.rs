@@ -1,0 +1,167 @@
+//! Lists & trees (plan §7, SC15), driven through the real app: options
+//! rebuild the widgets through their builders, hints name only keys that
+//! work, lazy nodes load, and the States rows draw.
+
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+
+use crate::app::PageId;
+use crate::app_tests_shell_pages::Harness;
+use crate::pages::lists::{ListsPage, MULTI, SINGLE};
+use crate::pages::template::Section;
+use crate::pages::trees::{CONNECTIONS, TreesPage};
+use junie_tui::core::event::Input;
+use junie_tui::ui::specimen::SpecimenState;
+
+fn lists(h: &Harness) -> &ListsPage {
+    h.app.pages[PageId::Lists.index()]
+        .as_any()
+        .and_then(|p| p.downcast_ref::<ListsPage>())
+        .expect("lists page")
+}
+
+fn hint_keys(h: &Harness) -> String {
+    h.app.pages[h.app.page.index()]
+        .hints(h.app.focus.current())
+        .iter()
+        .map(|(k, _)| *k)
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
+
+fn single_cursor(h: &Harness) -> usize {
+    lists(h).single().cursor
+}
+
+/// The hinted "Ends" keys really jump, under the desktop keys and under
+/// vim keys (coordinator finding: `g G` was hinted where it did nothing).
+#[test]
+fn list_hints_name_ends_keys_that_work_under_both_profiles() {
+    let mut h = Harness::new(120, 40, PageId::Lists);
+    h.app.focus.focus(SINGLE);
+    h.draw();
+    let keys = hint_keys(&h);
+    assert!(keys.contains("Home End"), "{keys}");
+    assert!(!keys.contains("g G"), "{keys}");
+    h.key(KeyCode::End);
+    assert!(single_cursor(&h) > 10, "End jumps to the last row");
+    h.key(KeyCode::Home);
+    assert_eq!(single_cursor(&h), 0, "Home jumps to the first row");
+    // vim keys without type-ahead: g and G jump, and the hint says so
+    h.opt("lists.nav=vim");
+    h.opt("lists.type_ahead=off");
+    h.app.focus.focus(SINGLE);
+    h.draw();
+    let keys = hint_keys(&h);
+    assert!(keys.contains("g G"), "{keys}");
+    h.key_mods(KeyCode::Char('G'), KeyModifiers::SHIFT);
+    assert!(single_cursor(&h) > 10, "G jumps to the last row");
+    h.key(KeyCode::Char('g'));
+    assert_eq!(single_cursor(&h), 0, "g jumps to the first row");
+    // vim keys with type-ahead: letters type, so the hint is Home End
+    h.opt("lists.type_ahead=on");
+    let keys = hint_keys(&h);
+    assert!(keys.contains("Home End") && !keys.contains("g G"), "{keys}");
+}
+
+#[test]
+fn list_options_rebuild_the_lists_through_their_builders() {
+    let mut h = Harness::new(160, 50, PageId::Lists);
+    assert!(h.text().contains("click Activate"));
+    h.opt("lists.click=select");
+    assert!(h.text().contains("click Select"));
+    // a single click only moves the cursor now
+    let (x, y) = h.find("Python").unwrap();
+    h.click(x, y);
+    assert!(
+        h.text().contains("Chosen: Rust"),
+        "a click no longer chooses"
+    );
+    // a custom key map: t toggles every file
+    h.opt("lists.keymap=custom");
+    assert!(h.text().contains("t ListCmd::ToggleAll"));
+    h.app.focus.focus(MULTI);
+    h.key(KeyCode::Char('t'));
+    assert!(h.text().contains("10 selected"), "{}", h.text());
+    // the empty list: text, or a full empty state with a hint
+    assert!(!h.text().contains("Try a shorter word"));
+    h.opt("lists.empty=state");
+    assert!(h.text().contains("Try a shorter word"));
+}
+
+#[test]
+fn list_states_rows_are_drawn() {
+    let mut h = Harness::new(160, 60, PageId::Lists);
+    h.section(Section::States);
+    let rows = h.states();
+    for s in [
+        SpecimenState::Rest,
+        SpecimenState::Hover,
+        SpecimenState::Selected,
+        SpecimenState::Disabled,
+        SpecimenState::Empty,
+    ] {
+        assert!(rows.contains(&s), "{s:?} in {rows:?}");
+    }
+    assert!(h.live_bars() <= 1, "samples depict focus");
+}
+
+fn trees(h: &Harness) -> &TreesPage {
+    h.app.pages[PageId::Trees.index()]
+        .as_any()
+        .and_then(|p| p.downcast_ref::<TreesPage>())
+        .expect("trees page")
+}
+
+/// A lazy node reports `TreeAction::Expand`, shows busy, and gets its
+/// children from the page a few ticks later.
+#[test]
+fn a_lazy_node_loads_its_children() {
+    let mut h = Harness::new(160, 50, PageId::Trees);
+    let (x, y) = h.find("orders-db").unwrap();
+    h.click(x, y);
+    assert!(h.app.focus.is(CONNECTIONS));
+    assert!(h.text().contains("Expand(orders-db)"), "{}", h.text());
+    assert!(h.text().contains("loading…"));
+    for _ in 0..6 {
+        h.app.handle(Input::Tick);
+    }
+    h.draw();
+    assert!(h.text().contains("customers"), "{}", h.text());
+    assert!(!h.text().contains("loading…"));
+    assert!(trees(&h).conns().node(&[0, 0]).is_some_and(|n| !n.lazy));
+}
+
+#[test]
+fn tree_options_rebuild_the_trees_through_their_builders() {
+    let mut h = Harness::new(160, 50, PageId::Trees);
+    h.opt("trees.branch=activate");
+    assert!(h.text().contains("branch_activate Activate"));
+    h.opt("trees.keymap=custom");
+    assert!(h.text().contains("e TreeCmd::ExpandAll"));
+    h.app.focus.focus(crate::pages::trees::PROJECT);
+    h.draw();
+    let keys = hint_keys(&h);
+    assert!(keys.contains('e') && !keys.contains('*'), "{keys}");
+    h.opt("trees.indent=4");
+    assert!(h.text().contains("indent 4"));
+    h.opt("trees.nav=vim");
+    h.opt("trees.type_ahead=off");
+    let keys = hint_keys(&h);
+    assert!(keys.contains("g G"), "{keys}");
+}
+
+#[test]
+fn tree_states_rows_are_drawn() {
+    let mut h = Harness::new(160, 60, PageId::Trees);
+    h.section(Section::States);
+    let rows = h.states();
+    for s in [
+        SpecimenState::Rest,
+        SpecimenState::Hover,
+        SpecimenState::Selected,
+        SpecimenState::Busy,
+        SpecimenState::Overflow,
+    ] {
+        assert!(rows.contains(&s), "{s:?} in {rows:?}");
+    }
+}
