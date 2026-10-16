@@ -3,7 +3,10 @@
 //! definition, and structured arguments.
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
@@ -407,39 +410,49 @@ impl Screen for GatePage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == GATE_CANCEL {
-            cx.go(Go::Pop);
-            cx.status("Cancelled · nothing was executed");
-            return Outcome::Changed;
-        }
-        if id == GATE_CONTINUE {
-            cx.go(Go::Gate1Accepted(self.target.clone()));
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(SEQUENCE) {
-            cx.focus.focus(SEQUENCE);
-            return scroll_press(self.sequence_area, pos, &mut self.scroll);
-        }
-        if id == SEQUENCE {
-            cx.focus.focus(SEQUENCE);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        _w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if id != SEQUENCE {
+    fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls the vertical sequence
+            if id == SEQUENCE && axis == Axis::Vertical {
+                self.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
             return Outcome::Ignored;
         }
-        cx.focus.focus(SEQUENCE);
-        self.sequence_menu(ContextAnchor::Pointer(pos), cx)
+        match ev.phase() {
+            Some(Phase::Press) if id == scrollbar::id_for(SEQUENCE) => {
+                scroll_press(self.sequence_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Drag) if id == scrollbar::id_for(SEQUENCE) => {
+                scroll_drag(self.sequence_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Click) => {
+                if id == GATE_CANCEL {
+                    cx.go(Go::Pop);
+                    cx.status("Cancelled · nothing was executed");
+                    return Outcome::Changed;
+                }
+                if id == GATE_CONTINUE {
+                    cx.go(Go::Gate1Accepted(self.target.clone()));
+                    return Outcome::Changed;
+                }
+                if id == scrollbar::id_for(SEQUENCE) {
+                    cx.focus.focus(SEQUENCE);
+                    return scroll_press(self.sequence_area, pos, &mut self.scroll);
+                }
+                if id == SEQUENCE {
+                    cx.focus.focus(SEQUENCE);
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Secondary) if id == SEQUENCE => {
+                cx.focus.focus(SEQUENCE);
+                self.sequence_menu(ContextAnchor::Pointer(pos), cx)
+            }
+            _ => Outcome::Ignored,
+        }
     }
 
     fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
@@ -462,28 +475,6 @@ impl Screen for GatePage {
             return self.on_key(&key, w, cx).or(Outcome::Changed);
         }
         Outcome::Changed
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == scrollbar::id_for(SEQUENCE) {
-            return scroll_press(self.sequence_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == scrollbar::id_for(SEQUENCE) {
-            return scroll_drag(self.sequence_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == SEQUENCE {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
@@ -841,49 +832,47 @@ impl Screen for TrustPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == TRUST_CANCEL {
-            cx.go(Go::Pop);
-            return Outcome::Changed;
+    fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls the vertical body
+            if id == TRUST_BODY && axis == Axis::Vertical {
+                self.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
+            return Outcome::Ignored;
         }
-        if id == TRUST_OK {
-            cx.go(Go::Trusted {
-                config: self.config.clone(),
-                then: self.then.clone(),
-            });
-            return Outcome::Changed;
+        match ev.phase() {
+            Some(Phase::Press) if id == scrollbar::id_for(TRUST_BODY) => {
+                scroll_press(self.body_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Drag) if id == scrollbar::id_for(TRUST_BODY) => {
+                scroll_drag(self.body_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Click) => {
+                if id == TRUST_CANCEL {
+                    cx.go(Go::Pop);
+                    return Outcome::Changed;
+                }
+                if id == TRUST_OK {
+                    cx.go(Go::Trusted {
+                        config: self.config.clone(),
+                        then: self.then.clone(),
+                    });
+                    return Outcome::Changed;
+                }
+                if id == scrollbar::id_for(TRUST_BODY) {
+                    cx.focus.focus(TRUST_BODY);
+                    return scroll_press(self.body_area, pos, &mut self.scroll);
+                }
+                if id == TRUST_BODY {
+                    cx.focus.focus(TRUST_BODY);
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            _ => Outcome::Ignored,
         }
-        if id == scrollbar::id_for(TRUST_BODY) {
-            cx.focus.focus(TRUST_BODY);
-            return scroll_press(self.body_area, pos, &mut self.scroll);
-        }
-        if id == TRUST_BODY {
-            cx.focus.focus(TRUST_BODY);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == scrollbar::id_for(TRUST_BODY) {
-            return scroll_press(self.body_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == scrollbar::id_for(TRUST_BODY) {
-            return scroll_drag(self.body_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == TRUST_BODY {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn enter(&mut self, _w: &mut World, cx: &mut Cx) {
@@ -1178,53 +1167,30 @@ impl Screen for ArgsPage {
         }
     }
 
-    fn on_press_count(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        count: u8,
-        _w: &mut World,
-    ) -> Outcome {
-        match (0..self.fields.len()).find(|&i| ARG.child(i) == id) {
-            Some(i) => match &mut self.fields[i] {
-                Field::Text(t) => t.on_press_count(pos, count),
-                Field::Choice(_) => Outcome::Ignored,
-            },
-            None => Outcome::Ignored,
-        }
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        match (0..self.fields.len()).find(|&i| ARG.child(i) == pressed) {
-            Some(i) => match &mut self.fields[i] {
-                Field::Text(t) => t.on_drag(pos),
-                Field::Choice(_) => Outcome::Ignored,
-            },
-            None => Outcome::Ignored,
-        }
-    }
-
-    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
+        // a field takes its own events: a text field selects on press and
+        // drag, a choice opens on press (press-drag-release chooses)
         for i in 0..self.fields.len() {
             let fid = ARG.child(i);
-            match &mut self.fields[i] {
-                Field::Text(t) if fid == id => {
+            let out = match &mut self.fields[i] {
+                Field::Text(t) => t.route(ev).map(|r| r.outcome()),
+                Field::Choice(c) => c.route(ev).map(|r| r.outcome()),
+            };
+            if let Some(out) = out {
+                if ev.is(Phase::Click) {
                     cx.focus.focus(fid);
-                    return t.on_click_count(pos, cx.clicks.max(1));
                 }
-                Field::Choice(c) if c.owns(id) => {
-                    cx.focus.focus(fid);
-                    let (o, _) = c.on_click(id);
-                    return o;
-                }
-                _ => {}
+                return out;
             }
         }
-        if id == ARGS_CANCEL {
+        if !ev.is(Phase::Click) {
+            return Outcome::Ignored;
+        }
+        if ev.id == ARGS_CANCEL {
             cx.go(Go::Pop);
             return Outcome::Changed;
         }
-        if id == ARGS_RUN {
+        if ev.id == ARGS_RUN {
             return self.submit(cx);
         }
         Outcome::Ignored
