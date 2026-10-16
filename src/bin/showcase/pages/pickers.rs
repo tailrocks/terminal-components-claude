@@ -6,8 +6,11 @@ use ratatui::layout::Rect;
 
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
+use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layer::{DismissReason, Dismissed, LayerCx, LayerTag, ShellLayers, Taken};
+use junie_tui::ui::layers::LayerResult;
 use junie_tui::ui::text::fuzzy;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::panel::Panel;
@@ -22,6 +25,10 @@ enum Kind {
     Quick,
     Tabs,
     Level,
+}
+
+impl Kind {
+    const ALL: [Kind; 3] = [Kind::Quick, Kind::Tabs, Kind::Level];
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,7 +67,10 @@ fn flatten(nodes: &[TreeNode], path: &str, out: &mut Vec<Entry>) {
 
 pub struct PickersPage {
     buttons: Vec<Button>,
-    picker: Option<(Kind, Picker)>,
+    /// The open picker on the library's layer stack, which gives the
+    /// button that opened it its focus back when it closes (K9). Its
+    /// kind is the tag's `n`.
+    layers: ShellLayers<LayerResult>,
     scope: Scope,
     entries: Vec<Entry>,
     tabs: Vec<String>,
@@ -87,7 +97,7 @@ impl PickersPage {
                 Button::secondary(ID.sub("tabs"), "Switch tab"),
                 Button::secondary(ID.sub("level"), "Choose a level"),
             ],
-            picker: None,
+            layers: ShellLayers::new(),
             scope: Scope::All,
             entries,
             tabs: vec![
@@ -102,7 +112,24 @@ impl PickersPage {
         }
     }
 
-    fn open(&mut self, kind: Kind) {
+    fn kind(&self) -> Option<Kind> {
+        self.layers.top().map(|e| Kind::ALL[e.tag.n])
+    }
+
+    fn picker_mut(&mut self) -> Option<&mut Picker> {
+        self.layers.top_as_mut::<Picker>()
+    }
+
+    /// Refill the open picker's rows (a query, scope or row change).
+    fn refill(&mut self, kind: Kind) {
+        let mut layers = std::mem::take(&mut self.layers);
+        if let Some(p) = layers.top_as_mut::<Picker>() {
+            self.fill(kind, p);
+        }
+        self.layers = layers;
+    }
+
+    fn open(&mut self, kind: Kind, focus: &mut Focus) {
         let mut p = match kind {
             Kind::Quick => {
                 let mut p = Picker::new(ID.sub("picker.quick"), "Open quickly");
@@ -123,10 +150,11 @@ impl PickersPage {
                 p
             }
         };
-        self.picker = None;
         self.opened += 1;
         self.fill(kind, &mut p);
-        self.picker = Some((kind, p));
+        let n = Kind::ALL.iter().position(|k| *k == kind).unwrap_or(0);
+        self.layers
+            .open(Box::new(p), LayerTag::new("picker").n(n), (), focus);
     }
 
     fn fill(&self, kind: Kind, p: &mut Picker) {
@@ -238,24 +266,19 @@ impl PickersPage {
         }
     }
 
-    fn on_picker(&mut self, ev: Option<PickerAction>, cx: &mut PageCtx) {
-        let Some((kind, _)) = self.picker.as_ref().map(|(k, _)| (*k, ())) else {
-            return;
+    /// Handle what the open picker reported: an event keeps it open, a
+    /// result closed it (and the stack gave focus back, K9).
+    fn on_taken(&mut self, kind: Kind, taken: Taken<LayerResult>, cx: &mut PageCtx) {
+        let (ev, picker) = match taken {
+            Taken::Event(LayerResult::Picker(ev)) => (ev, None),
+            Taken::Closed(entry, LayerResult::Picker(ev)) => (ev, entry.get::<Picker>().cloned()),
+            _ => return,
         };
         match ev {
-            Some(PickerAction::QueryChanged) => {
-                let Some((_, mut p)) = self.picker.take() else {
-                    return;
-                };
-                self.fill(kind, &mut p);
-                self.picker = Some((kind, p));
-            }
-            Some(PickerAction::Chosen(i)) | Some(PickerAction::ChosenAlt(i)) => {
-                let alt = matches!(ev, Some(PickerAction::ChosenAlt(_)));
-                let Some((_, p)) = self.picker.take() else {
-                    return;
-                };
-                if let Some(it) = p.items.get(i) {
+            PickerAction::QueryChanged => self.refill(kind),
+            PickerAction::Chosen(i) | PickerAction::ChosenAlt(i) => {
+                let alt = matches!(ev, PickerAction::ChosenAlt(_));
+                if let Some(it) = picker.as_ref().and_then(|p| p.items.get(i)) {
                     if kind == Kind::Level {
                         self.level = i;
                     }
@@ -267,46 +290,45 @@ impl PickersPage {
                     ));
                 }
             }
-            Some(PickerAction::Secondary(i)) => {
+            PickerAction::Secondary(i) => {
                 if kind == Kind::Tabs && i < self.tabs.len() && self.tabs.len() > 1 {
                     let name = self.tabs.remove(i);
                     cx.status(format!("Closed {name}"));
-                    let Some((_, mut p)) = self.picker.take() else {
-                        return;
-                    };
-                    self.fill(kind, &mut p);
-                    self.picker = Some((kind, p));
+                    self.refill(kind);
                 }
             }
             // free text is not an item in any showcase picker: the query stays,
             // the picker stays open
-            Some(PickerAction::Submit) => {}
-            Some(PickerAction::NextScope) | Some(PickerAction::PrevScope) => {
+            PickerAction::Submit => {}
+            PickerAction::NextScope | PickerAction::PrevScope => {
                 if kind == Kind::Quick {
-                    let back = ev == Some(PickerAction::PrevScope);
+                    let back = ev == PickerAction::PrevScope;
                     self.scope = match (self.scope, back) {
                         (Scope::All, false) | (Scope::Tasks, true) => Scope::Files,
                         (Scope::Files, false) | (Scope::All, true) => Scope::Tasks,
                         (Scope::Tasks, false) | (Scope::Files, true) => Scope::All,
                     };
-                    let Some((_, mut p)) = self.picker.take() else {
-                        return;
-                    };
-                    self.fill(kind, &mut p);
-                    self.picker = Some((kind, p));
+                    self.refill(kind);
                 }
             }
-            Some(PickerAction::Cancelled) => {
-                self.picker = None;
-            }
-            Some(PickerAction::Back) | None => {}
+            PickerAction::Cancelled | PickerAction::Back => {}
+        }
+    }
+
+    /// Take everything the open picker reported.
+    fn drain(&mut self, cx: &mut PageCtx) {
+        while let Some(kind) = self.kind() {
+            let Some(taken) = self.layers.take(cx.focus) else {
+                break;
+            };
+            self.on_taken(kind, taken, cx);
         }
     }
 }
 
 impl Page for PickersPage {
     fn layer_open(&self) -> bool {
-        self.picker.is_some()
+        !self.layers.is_empty()
     }
     fn title(&self) -> &'static str {
         "Pickers"
@@ -368,7 +390,9 @@ impl Page for PickersPage {
         ];
         props::render(inner, buf, t, &props, bg);
 
-        if let Some((kind, p)) = self.picker.as_mut() {
+        if let Some(kind) = self.kind()
+            && let Some(p) = self.picker_mut()
+        {
             ctx.begin_modal(buf);
             let hints = match kind {
                 Kind::Quick => {
@@ -384,35 +408,31 @@ impl Page for PickersPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
-        if self.picker.is_some() {
-            return match ev {
-                PageEvent::Key(key) => {
-                    let (o, pev) = self.picker.as_mut().map(|(_, p)| p.on_key(key)).unwrap();
-                    self.on_picker(pev, cx);
-                    o.or(Outcome::Changed)
-                }
-                PageEvent::Click { id, .. } => {
-                    let (owns, pev) = {
-                        let (_, p) = self.picker.as_mut().unwrap();
-                        (p.owns(*id), p.on_click(*id))
-                    };
-                    if !owns {
-                        self.picker = None;
-                        return Outcome::Changed;
-                    }
-                    self.on_picker(pev, cx);
-                    Outcome::Changed
-                }
-                PageEvent::Wheel { id, delta } => {
-                    let (_, p) = self.picker.as_mut().unwrap();
-                    if p.owns(*id) {
-                        p.on_wheel(*delta)
-                    } else {
-                        Outcome::Ignored
-                    }
-                }
-                _ => Outcome::Ignored,
+        if let Some(top) = self.layers.top_mut() {
+            let mut lcx = LayerCx {
+                focus: cx.focus,
+                ring: cx.ring,
+                app: &(),
             };
+            let out = match ev {
+                PageEvent::Key(key) => top.layer.on_key(key, &mut lcx).or(Outcome::Changed),
+                // a click outside the picker is a dismissal under its policy
+                PageEvent::Click { id, pos } if top.layer.owns(*id) => {
+                    top.layer.on_click(*id, *pos, &mut lcx)
+                }
+                PageEvent::Click { .. } => {
+                    return match self.layers.dismiss(DismissReason::OutsideClick, cx.focus) {
+                        Dismissed::Refused => Outcome::Consumed,
+                        _ => Outcome::Changed,
+                    };
+                }
+                PageEvent::Wheel { id, delta } if top.layer.owns(*id) => top
+                    .layer
+                    .on_wheel(*delta, ratatui::layout::Position::default()),
+                _ => return Outcome::Ignored,
+            };
+            self.drain(cx);
+            return out;
         }
         match ev {
             PageEvent::Key(key) => {
@@ -424,7 +444,7 @@ impl Page for PickersPage {
                 };
                 let (o, act) = self.buttons[i].on_key(key);
                 if act {
-                    self.open([Kind::Quick, Kind::Tabs, Kind::Level][i]);
+                    self.open(Kind::ALL[i], cx.focus);
                 }
                 o
             }
@@ -433,7 +453,7 @@ impl Page for PickersPage {
                     return Outcome::Ignored;
                 };
                 if self.buttons[i].on_click() {
-                    self.open([Kind::Quick, Kind::Tabs, Kind::Level][i]);
+                    self.open(Kind::ALL[i], cx.focus);
                 }
                 Outcome::Changed
             }
@@ -442,7 +462,7 @@ impl Page for PickersPage {
     }
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
-        if self.picker.is_some() {
+        if !self.layers.is_empty() {
             vec![("Esc", "Close")]
         } else {
             vec![("Enter", "Open"), ("Tab", "Next")]
