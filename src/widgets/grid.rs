@@ -16,7 +16,8 @@ use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::BlurAction;
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
@@ -403,6 +404,8 @@ enum GridDrag {
 pub struct DataGrid {
     /// The scrollbar track as last drawn: presses and drags map through it.
     track: Rect,
+    /// The cells, row numbers and `▾`s registered in the last render.
+    parts: PartMap,
     pub id: WidgetId,
     pub columns: Vec<ColumnSpec>,
     rows: Vec<Vec<CellValue>>,
@@ -620,6 +623,7 @@ impl DataGrid {
             row_numbers: true,
             area: Rect::ZERO,
             track: Rect::ZERO,
+            parts: PartMap::default(),
             body: Rect::ZERO,
             drag: None,
             widths,
@@ -665,18 +669,11 @@ impl DataGrid {
 
     /// The `▾` of a constrained cell (on the cursor cell and on hover).
     pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
-        self.cell_id(display, col).sub("open")
+        self.cell_id(display, col).part(PartRef::of(Part::ACTIONS))
     }
 
     fn locate_open(&self, id: WidgetId) -> Option<(usize, usize)> {
-        for d in self.scroll.visible_range() {
-            for c in 0..self.columns.len() {
-                if self.open_id(d, c) == id {
-                    return Some((d, c));
-                }
-            }
-        }
-        None
+        self.parts.cell(id, Part::ACTIONS)
     }
 
     /// The cell at (source row, column) holds text outside its column's
@@ -1879,17 +1876,24 @@ impl DataGrid {
     // ---- ids / hit-testing -----------------------------------------
 
     pub fn header_id(&self, c: usize) -> WidgetId {
-        self.id.sub("header").child(c)
+        self.id.part(PartRef::item(Part::HEADER, ItemKey::index(c)))
     }
+    /// One id per cell, under its row's; the part is the row's
+    /// `Part::CELL` (the column comes from the position on `main`).
     pub fn cell_id(&self, display: usize, c: usize) -> WidgetId {
-        self.id.child(display).child(c)
+        self.id
+            .part(PartRef::item(Part::ROW, ItemKey::index(display)))
+            .child(c)
+    }
+    fn cell_part(display: usize) -> PartRef {
+        PartRef::item(Part::CELL, ItemKey::index(display))
     }
     /// The resize seam after column `c` in the header.
     pub fn seam_id(&self, c: usize) -> WidgetId {
-        self.id.sub("seam").child(c)
+        self.id.part(crate::ui::columns::seam_part(c))
     }
     pub fn locate_seam(&self, id: WidgetId) -> Option<usize> {
-        (0..self.columns.len()).find(|&c| self.seam_id(c) == id)
+        self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
     /// The column whose header menu a secondary click on `id` opens (its
     /// header or its seam).
@@ -1897,16 +1901,20 @@ impl DataGrid {
         self.locate_header(id).or_else(|| self.locate_seam(id))
     }
     pub fn rownum_id(&self, display: usize) -> WidgetId {
-        self.id.sub("rownum").child(display)
+        self.id.part(Self::rownum_part(display))
     }
+    fn rownum_part(display: usize) -> PartRef {
+        PartRef::item(Part::ROW_NUMBER, ItemKey::index(display))
+    }
+    /// The fetch-more row: `Part::ROW` without an item, as on `main`.
     pub fn more_id(&self) -> WidgetId {
-        self.id.sub("more")
+        self.id.part(PartRef::of(Part::ROW))
     }
     pub fn left_id(&self) -> WidgetId {
-        self.id.sub("hl")
+        self.id.part(PartRef::OVERFLOW_BEFORE)
     }
     pub fn right_id(&self) -> WidgetId {
-        self.id.sub("hr")
+        self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
@@ -1926,24 +1934,13 @@ impl DataGrid {
     }
 
     pub fn locate(&self, id: WidgetId) -> Option<(usize, usize)> {
-        for d in self.scroll.visible_range() {
-            for c in self.hscroll.offset
-                ..(self.hscroll.offset + self.hscroll.viewport_len).min(self.columns.len())
-            {
-                if self.cell_id(d, c) == id {
-                    return Some((d, c));
-                }
-            }
-        }
-        None
+        self.parts.cell(id, Part::CELL)
     }
     pub fn locate_header(&self, id: WidgetId) -> Option<usize> {
-        (0..self.columns.len()).find(|&c| self.header_id(c) == id)
+        self.id.item_of(id, Part::HEADER, 0..self.columns.len())
     }
     pub fn locate_rownum(&self, id: WidgetId) -> Option<usize> {
-        self.scroll
-            .visible_range()
-            .find(|&d| self.rownum_id(d) == id)
+        self.parts.index(id, Part::ROW_NUMBER)
     }
 
     /// Button down on `id` with the click count it starts: a press on a
@@ -2419,6 +2416,7 @@ impl DataGrid {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.parts.clear();
         // a drag ends with its press
         if let Some(GridDrag::Cells(id) | GridDrag::Rows { id, .. }) = self.drag
             && ctx.interaction.pressed != Some(id)
@@ -2512,8 +2510,9 @@ impl DataGrid {
             let lbl = format!("{}{}", t.glyphs.overflow_left, self.hscroll.offset);
             let st = ctx.title_style(self.left_id(), bg);
             buf.set_string(grid_area.x + 1, header_y, &lbl, st);
-            ctx.clickable(
-                self.left_id(),
+            ctx.register_part(
+                self.id,
+                PartRef::OVERFLOW_BEFORE,
                 Rect::new(
                     grid_area.x + 1,
                     header_y,
@@ -2569,7 +2568,11 @@ impl DataGrid {
             }
             let head = Rect::new(rect.x, header_y, rect.width, 1);
             if col.sortable {
-                ctx.clickable(hid, head);
+                ctx.register_part(
+                    self.id,
+                    PartRef::item(Part::HEADER, ItemKey::index(ci)),
+                    head,
+                );
             } else if cut && !ctx.inert {
                 // a cut title reveals on hover even when it does not sort
                 ctx.hits.register_hover(hid, head);
@@ -2578,10 +2581,17 @@ impl DataGrid {
                 crate::ui::reveal::truncated(ctx, self.reveal, hid, head, &col.name);
             }
             if self.sizing.resizable {
-                let sid = self.seam_id(ci);
                 let hit = self.sizing.seam_rect(rect.right(), header_y, 2, grid_area);
                 let held = self.sizing.dragging() == Some(ci);
-                crate::ui::columns::render_seam(buf, ctx, sid, hit, rect.right(), bg, held);
+                crate::ui::columns::render_seam(
+                    buf,
+                    ctx,
+                    (self.id, ci),
+                    hit,
+                    rect.right(),
+                    bg,
+                    held,
+                );
             }
         }
         let hidden_right = self
@@ -2593,8 +2603,9 @@ impl DataGrid {
             let x = cols_area.right() + 1;
             let st = ctx.title_style(self.right_id(), bg);
             buf.set_string(x, header_y, &lbl, st);
-            ctx.clickable(
-                self.right_id(),
+            ctx.register_part(
+                self.id,
+                PartRef::OVERFLOW_AFTER,
                 Rect::new(x, header_y, crate::ui::text::width(&lbl) as u16, 1),
             );
         }
@@ -2624,7 +2635,7 @@ impl DataGrid {
             .map(|e| (e.row, e.col));
         let choice_here = self.choice.as_ref().map(|c| (c.row, c.col));
         let mut choice_anchor: Option<Rect> = None;
-        let mut open_marks: Vec<(WidgetId, Rect)> = Vec::new();
+        let mut open_marks: Vec<(usize, usize, Rect)> = Vec::new();
         // stands in for a cell error on a value outside its options
         let flagged_msg = String::new();
         for (i, d) in self.scroll.visible_range().enumerate() {
@@ -2665,7 +2676,7 @@ impl DataGrid {
                     )
                 };
                 buf.set_string(row_rect.x + gutter_w, y, &text, st.fg(t.text_muted));
-                ctx.clickable(mid, row_rect);
+                ctx.part(&mut self.parts, self.id, PartRef::of(Part::ROW), row_rect);
                 continue;
             }
             let src = self.order[d];
@@ -2733,7 +2744,8 @@ impl DataGrid {
                     })
                     .remove_modifier(Modifier::BOLD | Modifier::CROSSED_OUT);
                 buf.set_string(row_rect.x + 3, y, &n, ns);
-                ctx.clickable(rid, Rect::new(row_rect.x, y, gutter_w, 1));
+                let rect = Rect::new(row_rect.x, y, gutter_w, 1);
+                ctx.part(&mut self.parts, self.id, Self::rownum_part(d), rect);
             }
             for k in 0..self.col_rects.len() {
                 let rect = &self.col_rects[k];
@@ -2859,7 +2871,7 @@ impl DataGrid {
                             st.fg(t.text_secondary)
                         };
                         buf.set_string(mark.x, y, t.glyphs.disclosure_open, ms);
-                        open_marks.push((self.open_id(d, ci), mark));
+                        open_marks.push((d, ci, mark));
                     }
                     // a cut value (long text, JSON) shows in full on hover,
                     // with its real line breaks
@@ -2893,12 +2905,16 @@ impl DataGrid {
                         );
                     }
                 }
-                ctx.clickable(self.cell_id(d, ci), cell_rect);
+                let cid = self.cell_id(d, ci);
+                let cell = (Self::cell_part(d), ci);
+                ctx.part_cell(&mut self.parts, cid, self.id, cell, cell_rect);
             }
         }
         // a cell's `▾` sits above the cell: a click on it opens the editor
-        for (id, rect) in open_marks {
-            ctx.clickable(id, rect);
+        for (d, ci, rect) in open_marks {
+            let oid = self.open_id(d, ci);
+            let open = (PartRef::item(Part::ACTIONS, ItemKey::index(d)), ci);
+            ctx.part_cell(&mut self.parts, oid, self.id, open, rect);
         }
         if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
             c.editor.render(anchor, buf, ctx, &self.editor_config);
@@ -3304,12 +3320,41 @@ mod tests {
     }
 
     #[test]
+    fn cells_row_numbers_and_headers_resolve_to_the_grid() {
+        use crate::core::hit::Hit;
+        use crate::core::id::{ItemKey, Part, PartRef};
+        let mut g = grid();
+        g.row_numbers = true;
+        let (_, hits) = render_at(&mut g, Rect::new(0, 0, 80, 10), Interaction::default());
+        let cell = hits.area_of(g.cell_id(1, 2)).expect("cell (1, 2) is drawn");
+        assert_eq!(
+            hits.resolve(Position::new(cell.x, cell.y)),
+            Some(Hit {
+                owner: g.id,
+                part: PartRef::item(Part::CELL, ItemKey::index(1))
+            })
+        );
+        assert_eq!(g.locate(g.cell_id(1, 2)), Some((1, 2)));
+        let num = hits.area_of(g.rownum_id(1)).expect("row numbers are drawn");
+        assert_eq!(
+            hits.resolve(Position::new(num.x, num.y)).map(|h| h.part),
+            Some(PartRef::item(Part::ROW_NUMBER, ItemKey::index(1)))
+        );
+        assert_eq!(g.locate_rownum(g.rownum_id(1)), Some(1));
+        for r in hits.regions().iter().filter(|r| !r.scroll_only) {
+            assert_eq!(r.owner, g.id, "{r:?} belongs to the grid");
+        }
+    }
+
+    #[test]
     fn clicking_another_cell_keeps_invalid_editor_and_cursor() {
         let mut g = grid();
         g.hscroll.set_viewport(g.columns.len());
         g.set_cursor(0, 2, false);
         g.begin_edit();
         g.edit.as_mut().unwrap().buffer.set_text("not a number");
+        // a click names a cell the grid drew
+        render_at(&mut g, Rect::new(0, 0, 80, 10), Interaction::default());
         g.on_click(g.cell_id(1, 2), Position::ORIGIN);
         assert_eq!(g.cursor, (0, 2));
         assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "not a number");

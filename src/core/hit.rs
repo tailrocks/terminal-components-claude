@@ -4,14 +4,25 @@
 //! is rebuilt every frame, so hit regions always match what is on screen.
 //! Later registrations win, which makes overlays (dialogs) naturally shadow
 //! the content below them.
+//!
+//! Every region also records the widget that owns it and which [`PartRef`]
+//! of that widget it is ([`HitRegistry::register_part`]), so a position
+//! resolves to a typed [`Hit`] instead of a derived id each widget has to
+//! invert by hand.
 
 use ratatui::layout::{Position, Rect};
 
-use super::id::WidgetId;
+use super::id::{ItemKey, Part, PartRef, WidgetId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HitRegion {
     pub id: WidgetId,
+    /// The widget the region belongs to: the id itself for a widget's own
+    /// surface, the widget for one of its parts.
+    pub owner: WidgetId,
+    /// Which part of `owner` the region is (`Part::CONTAINER` for a
+    /// widget's own surface).
+    pub part: PartRef,
     pub area: Rect,
     /// A region that only serves as a scroll container: wheel events are
     /// routed to it, but it is not hoverable/clickable on its own.
@@ -80,7 +91,39 @@ pub enum ReleaseFrom {
     Secondary,
 }
 
+/// A resolved pointer position: the widget that owns the region under it
+/// and which part of that widget it is. Same shape as `main`'s `Hit`
+/// (termrock-runtime `hit.rs`), without the layer and kind it adds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Hit {
+    pub owner: WidgetId,
+    pub part: PartRef,
+}
+
 impl HitRegion {
+    /// A clickable region that is its own owner's surface.
+    fn plain(id: WidgetId, area: Rect) -> Self {
+        Self {
+            id,
+            owner: id,
+            part: PartRef::of(Part::CONTAINER),
+            area,
+            scroll_only: false,
+            pass_through: false,
+            hover_only: false,
+            backdrop: false,
+            surface: false,
+        }
+    }
+
+    /// The typed hit this region resolves to.
+    pub fn hit(&self) -> Hit {
+        Hit {
+            owner: self.owner,
+            part: self.part,
+        }
+    }
+
     fn clickable(&self) -> bool {
         !self.scroll_only && !self.hover_only
     }
@@ -91,15 +134,64 @@ impl HitRegistry {
         if area.is_empty() {
             return;
         }
+        self.regions.push(HitRegion::plain(id, area));
+    }
+
+    /// Register `part` of `owner` as a clickable region and return its id
+    /// ([`WidgetId::part`]). [`Self::resolve`] then reports the owner and
+    /// the part for any position inside `area`.
+    pub fn register_part(&mut self, owner: WidgetId, part: PartRef, area: Rect) -> WidgetId {
+        let id = owner.part(part);
+        self.register_part_as(id, owner, part, area);
+        id
+    }
+
+    /// [`Self::register_part`] under an id finer than the part: a grid's
+    /// cells are one `Part::CELL` per row (the column comes from the
+    /// position, as on `main`) but each cell keeps its own id for hover.
+    pub fn register_part_as(&mut self, id: WidgetId, owner: WidgetId, part: PartRef, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
         self.regions.push(HitRegion {
-            id,
-            area,
-            scroll_only: false,
-            pass_through: false,
-            hover_only: false,
-            backdrop: false,
-            surface: false,
+            owner,
+            part,
+            ..HitRegion::plain(id, area)
         });
+    }
+
+    /// The owner and part of the topmost clickable region under `pos`: the
+    /// typed form of [`Self::hit`].
+    pub fn resolve(&self, pos: Position) -> Option<Hit> {
+        self.reachable()
+            .iter()
+            .rev()
+            .find(|r| r.clickable() && r.area.contains(pos))
+            .map(HitRegion::hit)
+    }
+
+    /// The owner and part of the region registered under `id` this frame
+    /// (the latest registration wins, as for [`Self::area_of`]).
+    pub fn part_of(&self, id: WidgetId) -> Option<Hit> {
+        self.regions
+            .iter()
+            .rev()
+            .find(|r| r.id == id)
+            .map(HitRegion::hit)
+    }
+
+    /// Register the latest region under `id` again, owner and part
+    /// included, so it lands on top of what was registered since (a
+    /// dialog lifting its open select's options above its own surface).
+    pub fn raise(&mut self, id: WidgetId) {
+        if let Some(r) = self.regions.iter().rev().find(|r| r.id == id).copied() {
+            self.regions.push(r);
+        }
+    }
+
+    /// Every region registered this frame, in registration order.
+    pub fn regions(&self) -> &[HitRegion] {
+        &self.regions
     }
 
     /// [`Self::register`] at the bottom of the current layer (just above
@@ -110,18 +202,7 @@ impl HitRegistry {
             return;
         }
         let at = self.barriers.last().copied().unwrap_or(0);
-        self.regions.insert(
-            at,
-            HitRegion {
-                id,
-                area,
-                scroll_only: false,
-                pass_through: false,
-                hover_only: false,
-                backdrop: false,
-                surface: false,
-            },
-        );
+        self.regions.insert(at, HitRegion::plain(id, area));
     }
 
     /// Register a modal's body (a dialog's or a modal frame's surface): it
@@ -134,13 +215,8 @@ impl HitRegistry {
             return;
         }
         self.regions.push(HitRegion {
-            id,
-            area,
-            scroll_only: false,
-            pass_through: false,
-            hover_only: false,
-            backdrop: false,
             surface: true,
+            ..HitRegion::plain(id, area)
         });
     }
 
@@ -168,7 +244,7 @@ impl HitRegistry {
         if bar.track.is_empty() {
             return;
         }
-        self.register(bar.id, bar.track);
+        self.register_part_as(bar.id, bar.owner, PartRef::of(Part::TRACK), bar.track);
         self.bars.push(bar);
     }
 
@@ -197,13 +273,10 @@ impl HitRegistry {
             return;
         }
         self.regions.push(HitRegion {
-            id,
-            area,
-            scroll_only: false,
             pass_through,
-            hover_only: false,
+            part: PartRef::of(Part::BACKDROP),
             backdrop: true,
-            surface: false,
+            ..HitRegion::plain(id, area)
         });
     }
 
@@ -212,13 +285,8 @@ impl HitRegistry {
             return;
         }
         self.regions.push(HitRegion {
-            id,
-            area,
             scroll_only: true,
-            pass_through: false,
-            hover_only: false,
-            backdrop: false,
-            surface: false,
+            ..HitRegion::plain(id, area)
         });
     }
 
@@ -229,13 +297,8 @@ impl HitRegistry {
             return;
         }
         self.regions.push(HitRegion {
-            id,
-            area,
-            scroll_only: false,
-            pass_through: false,
             hover_only: true,
-            backdrop: false,
-            surface: false,
+            ..HitRegion::plain(id, area)
         });
     }
 
@@ -413,9 +476,172 @@ impl HitRegistry {
     }
 }
 
+/// One part a widget registered in its last render
+/// ([`PartMap::record`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PartEntry {
+    pub id: WidgetId,
+    pub part: PartRef,
+    /// The column of a 2-D part (a grid cell): `main` takes it from the
+    /// pointer position; until pointer intents carry the part (S6) the
+    /// id-based adapters read it here.
+    pub col: Option<usize>,
+}
+
+/// The parts one widget registered in its last render, keyed by region
+/// id. A widget keeps one and fills it through
+/// [`RenderCtx::part`](crate::ui::ctx::RenderCtx::part), so its id-based
+/// adapters (`owns`, `locate`, until the pointer router hands widgets a
+/// [`PartRef`]) look an id up instead of re-deriving and comparing every
+/// candidate id by hand.
+///
+/// The map is rebuilt on every render whether or not the frame is inert,
+/// so a widget drawn under a modal still knows its own ids.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct PartMap {
+    entries: Vec<PartEntry>,
+}
+
+impl PartMap {
+    /// Forget the last render's parts; call at the start of a render.
+    pub fn clear(&mut self) {
+        self.entries.clear();
+    }
+
+    /// Record that `id` is `part` (of the widget keeping the map).
+    pub fn record(&mut self, id: WidgetId, part: PartRef) {
+        self.entries.push(PartEntry {
+            id,
+            part,
+            col: None,
+        });
+    }
+
+    /// Record a 2-D part: `part` (keyed by its row) at column `col`.
+    pub fn record_cell(&mut self, id: WidgetId, part: PartRef, col: usize) {
+        self.entries.push(PartEntry {
+            id,
+            part,
+            col: Some(col),
+        });
+    }
+
+    /// The entry recorded under `id`.
+    pub fn entry(&self, id: WidgetId) -> Option<&PartEntry> {
+        self.entries.iter().rev().find(|e| e.id == id)
+    }
+
+    /// The part recorded under `id`.
+    pub fn get(&self, id: WidgetId) -> Option<PartRef> {
+        self.entry(id).map(|e| e.part)
+    }
+
+    /// Whether `id` is one of the recorded parts.
+    pub fn contains(&self, id: WidgetId) -> bool {
+        self.entry(id).is_some()
+    }
+
+    /// The positional item of `id` when it is a `part` part
+    /// ([`ItemKey::Index`]).
+    pub fn index(&self, id: WidgetId, part: Part) -> Option<usize> {
+        self.entry(id)
+            .filter(|e| e.part.part == part)
+            .and_then(|e| e.part.item)
+            .and_then(ItemKey::as_index)
+    }
+
+    /// The `(row, column)` of `id` when it is a 2-D `part` part.
+    pub fn cell(&self, id: WidgetId, part: Part) -> Option<(usize, usize)> {
+        let e = self.entry(id).filter(|e| e.part.part == part)?;
+        Some((e.part.item?.as_index()?, e.col?))
+    }
+
+    /// The item key of `id` when it is a `part` part.
+    pub fn key(&self, id: WidgetId, part: Part) -> Option<ItemKey> {
+        self.entry(id)
+            .filter(|e| e.part.part == part)
+            .and_then(|e| e.part.item)
+    }
+
+    /// Whether `id` is the part-without-item `part`.
+    pub fn is(&self, id: WidgetId, part: Part) -> bool {
+        self.entry(id).is_some_and(|e| e.part == PartRef::of(part))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parts_resolve_to_their_owner_and_part() {
+        let mut h = HitRegistry::default();
+        let list = WidgetId::of("list");
+        h.register(list, Rect::new(0, 0, 20, 5));
+        let row = PartRef::item(Part::ROW, ItemKey::index(2));
+        let id = h.register_part(list, row, Rect::new(0, 2, 20, 1));
+        assert_eq!(id, list.part(row));
+        let on_row = Hit {
+            owner: list,
+            part: row,
+        };
+        assert_eq!(h.resolve(Position::new(3, 2)), Some(on_row));
+        assert_eq!(h.part_of(id), Some(on_row));
+        assert_eq!(
+            h.resolve(Position::new(3, 0)),
+            Some(Hit {
+                owner: list,
+                part: PartRef::of(Part::CONTAINER)
+            }),
+            "a widget's own region is its container"
+        );
+        h.register_bar(Bar {
+            id: WidgetId::of("list.bar"),
+            owner: list,
+            axis: Axis::Vertical,
+            track: Rect::new(19, 0, 1, 5),
+        });
+        assert_eq!(
+            h.resolve(Position::new(19, 2)),
+            Some(Hit {
+                owner: list,
+                part: PartRef::of(Part::TRACK)
+            }),
+            "a scrollbar resolves to its owner's track"
+        );
+        assert_eq!(h.resolve(Position::new(30, 2)), None);
+    }
+
+    #[test]
+    fn a_resolved_part_respects_barriers() {
+        let mut h = HitRegistry::default();
+        let list = WidgetId::of("list");
+        h.register_part(
+            list,
+            PartRef::item(Part::ROW, ItemKey::index(0)),
+            Rect::new(0, 0, 9, 1),
+        );
+        h.push_barrier();
+        assert_eq!(h.resolve(Position::new(1, 0)), None);
+    }
+
+    #[test]
+    fn a_part_map_answers_by_id() {
+        let w = WidgetId::of("w");
+        let mut m = PartMap::default();
+        let row = PartRef::item(Part::ROW, ItemKey::index(4));
+        m.record(w.part(row), row);
+        let cell = PartRef::item(Part::CELL, ItemKey::index(4));
+        m.record_cell(w.child(4).child(2), cell, 2);
+        m.record(w.part(PartRef::of(Part::NEW)), PartRef::of(Part::NEW));
+        assert_eq!(m.index(w.child(4), Part::ROW), Some(4));
+        assert_eq!(m.index(w.child(4), Part::TAB), None);
+        assert_eq!(m.cell(w.child(4).child(2), Part::CELL), Some((4, 2)));
+        assert!(m.is(w.part(PartRef::of(Part::NEW)), Part::NEW));
+        assert!(!m.contains(w));
+        m.clear();
+        assert!(!m.contains(w.child(4)));
+    }
 
     #[test]
     fn scroll_stack_lists_the_row_then_its_list_once_each() {
