@@ -1438,6 +1438,32 @@ impl Theme {
         }
     }
 
+    /// The plate of a close button inside a control styled `host`
+    /// ([`crate::widgets::icon_button::IconButton`]): every cell of the
+    /// plate takes [`Self::close_glyph`], so hover and press paint the whole
+    /// target, not the glyph alone; with `danger` see [`Self::danger_plate`].
+    pub fn close_plate(&self, s: VisualState, host: Style, danger: bool) -> Style {
+        self.danger_plate(s, self.close_glyph(s, host), danger)
+    }
+
+    /// A button plate's resolved `style` with the danger tint when
+    /// `danger`: hover takes the danger ink, press the danger fill (the
+    /// Windows window-close idiom). Rest and disabled stay as they are.
+    pub fn danger_plate(&self, s: VisualState, style: Style, danger: bool) -> Style {
+        if !danger || s.disabled {
+            return style;
+        }
+        if s.pressed {
+            let bg = self.ladders.danger.pressed;
+            style.bg(bg).fg(self.legible(self.text_primary, bg))
+        } else if s.hovered {
+            let bg = style.bg.unwrap_or(self.canvas);
+            style.fg(self.legible(self.danger_label, bg))
+        } else {
+            style
+        }
+    }
+
     /// The cursor cell of a table or data grid: the cursor fill on the cell
     /// only (never the white flood a pressed control once used), the
     /// destructive fill for a cell with an error.
@@ -2008,6 +2034,14 @@ pub struct Strings {
     /// The button that closes a reference overlay with nothing to decide
     /// (the help overlay). `Done`.
     pub done: &'static str,
+    /// Tooltip of a modal frame's close button (after it, `Esc`). `Close`.
+    pub tip_close: &'static str,
+    /// Tooltip of a tab's close button. `Close tab`.
+    pub tip_close_tab: &'static str,
+    /// Tooltip of a chip's remove button. `Remove`.
+    pub tip_remove: &'static str,
+    /// Tooltip of a tab strip's `+`. `New tab`.
+    pub tip_new_tab: &'static str,
 }
 
 impl Strings {
@@ -2065,6 +2099,10 @@ impl Strings {
         help_footer: "↑↓ Scroll · Esc Close",
         not_in_preview: "Not in this preview",
         done: "Done",
+        tip_close: "Close",
+        tip_close_tab: "Close tab",
+        tip_remove: "Remove",
+        tip_new_tab: "New tab",
     };
 
     /// [`Self::DEFAULT`] with 7-bit punctuation (`...`, `|`, `^v`), to pair
