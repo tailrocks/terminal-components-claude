@@ -1,21 +1,21 @@
- ▪ [0m[1mJunie[0m Design system / Components / Lists       i Inspector   ? Help  [0m
+ ▪ [0m[1mJunie[0m Design system / Navigation / Lists       i Inspector   ? Help  [0m
                                                                         [0m
-   Overview       ┃  [0m[1mLists[0m  Single and multiple selection, disabled it… [0m
-   Buttons        ┃                                                     [0m
-   Inputs         ┃    Language          Files to in…      Search res…  [0m
-   Text areas     ┃                                                     [0m
-   Forms          ┃    Chosen: Rust      Space toggl…                   [0m
-[0m[1m▎› Lists          [0m┃                                                     [0m
-   Trees          ┃     › Rust    ┃       ✓ src/ap… ┃                   [0m
-   Tables         ┃       TypeSc… ┃       ✓ src/ap… ┃                   [0m
-   Editable tabl… ┃       Python  ┃      [0m[2m   src/db… [0m┃                   [0m
-   Panels         ┃       Kotlin  ┃         tests/… ┃      No results…  [0m
-   Sidebars       │       Go      │      [0m[2m   Cargo.… [0m┃                   [0m
-   Dialogs        │       Java    │         docs/w… ┃                   [0m
-   Progress       │       Swift   │         src/wo… │                   [0m
-   Scrolling      │       C#      │         src/co… │                   [0m
-   Terminal       │    [0m[2m   Ruby    [0m│      [0m[2m   README… [0m│                   [0m
-[0m[2m   Code editor    [0m│                                                     [0m
+   Overview       │  [0m[1mLists[0m  Single and multiple selection, disabled it… [0m
+ ▸ App shell      │                                                     [0m
+ ▸ Inputs & forms │    Language          Files to in…      Search res…  [0m
+ ▸ Tables         │                                                     [0m
+ ▾ Navigation     │    Chosen: Rust      Space toggl…                   [0m
+[0m[1m▎  › Lists        [0m│                                                     [0m
+     Trees        │     › Rust    ┃       ✓ src/ap… ┃                   [0m
+     Sidebars     │       TypeSc… ┃       ✓ src/ap… ┃                   [0m
+ ▸ Overlays       │       Python  ┃      [0m[2m   src/db… [0m┃                   [0m
+ ▸ Feedback       │       Kotlin  ┃         tests/… ┃      No results…  [0m
+ ▸ Layout         │       Go      │      [0m[2m   Cargo.… [0m┃                   [0m
+ ▸ Text & code    │       Java    │         docs/w… ┃                   [0m
+ ▸ Screens        │       Swift   │         src/wo… │                   [0m
+                  │       C#      │         src/co… │                   [0m
+                  │    [0m[2m   Ruby    [0m│      [0m[2m   README… [0m│                   [0m
+                  │                                                     [0m
                                                                         [0m
- [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                             [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l
