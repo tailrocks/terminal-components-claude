@@ -1265,3 +1265,24 @@ fn the_current_page_marker_is_neutral_while_focus_is_on_the_page() {
     assert_ne!(h.app.focus.current(), Some(nav));
     assert_eq!(marker(&h), t.text_primary, "a fact, not a focus cue");
 }
+
+#[test]
+fn zz_dump_pages() {
+    let Some(spec) = std::env::var_os("DUMP") else {
+        return;
+    };
+    let spec = spec.into_string().unwrap();
+    for part in spec.split(',') {
+        let mut it = part.split(':');
+        let name = it.next().unwrap();
+        let w: u16 = it.next().unwrap().parse().unwrap();
+        let hh: u16 = it.next().unwrap().parse().unwrap();
+        let entry = crate::app::NAV_ENTRIES
+            .iter()
+            .find(|e| e.label == name)
+            .unwrap();
+        let mut h = Harness::new(w, hh, entry.id);
+        h.key(tab());
+        println!("==== {name} {w}x{hh}\n{}", h.text());
+    }
+}
