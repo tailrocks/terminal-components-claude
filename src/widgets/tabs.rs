@@ -77,8 +77,19 @@ pub struct Tabs {
     /// The strip's action keys (default [`TabAction::default_keymap`]:
     /// `x`/Delete close, `n` new, digits 1-9 jump).
     pub keymap: KeyMap<TabAction>,
+    /// Hit width of a tab's `×` in cells, centred on the glyph and kept
+    /// inside the tab (a one-cell target is too small to hit reliably).
+    /// Default 3.
+    pub close_target_w: u16,
     /// Number of tabs that fit in the last render.
     fit: usize,
+    /// Largest useful [`Self::first`] in the last render: the window that
+    /// shows the last tab.
+    max_first: usize,
+    /// The active tab the window last scrolled into view. The window is
+    /// independent of the active tab: `‹`/`›` and the wheel move it freely,
+    /// and a render only brings the active tab back when it changed.
+    revealed: Option<usize>,
 }
 
 /// Colour of the active tab's underline.
@@ -153,7 +164,10 @@ impl Tabs {
             wrap: false,
             nav: NavKeys::DEFAULT,
             keymap: TabAction::default_keymap(),
+            close_target_w: 3,
             fit: 0,
+            max_first: 0,
+            revealed: None,
         }
     }
 
@@ -171,7 +185,10 @@ impl Tabs {
             wrap: false,
             nav: NavKeys::DEFAULT,
             keymap: TabAction::default_keymap(),
+            close_target_w: 3,
             fit: 0,
+            max_first: 0,
+            revealed: None,
         }
     }
 
@@ -235,6 +252,40 @@ impl Tabs {
         self
     }
 
+    /// See [`Self::close_target_w`].
+    pub fn close_target_w(mut self, cells: u16) -> Self {
+        self.close_target_w = cells;
+        self
+    }
+
+    /// Replace the tabs, keeping the strip's scroll window and active
+    /// index (clamped): an app that rebuilds its items every update keeps
+    /// the window the user scrolled to.
+    pub fn set_items(&mut self, items: Vec<TabItem>) {
+        self.items = items;
+        let last = self.items.len().saturating_sub(1);
+        self.active = self.active.min(last);
+        self.cursor = self.cursor.min(last);
+        self.first = self.first.min(last);
+    }
+
+    /// Scroll the strip's window by `dx` (or `dy` when there is no
+    /// horizontal component: a plain wheel over a horizontal strip scrolls
+    /// it sideways, as macOS does for horizontal-only scroll views). The
+    /// active tab does not change.
+    pub fn on_wheel(&mut self, dx: i32, dy: i32) -> Outcome {
+        let delta = if dx != 0 { dx } else { dy };
+        if delta == 0 || self.max_first == 0 {
+            return Outcome::Ignored;
+        }
+        let to = (self.first as i64 + delta as i64).clamp(0, self.max_first as i64) as usize;
+        if to == self.first {
+            return Outcome::Consumed;
+        }
+        self.first = to;
+        Outcome::Changed
+    }
+
     pub fn middle_click_closes(mut self, on: bool) -> Self {
         self.middle_click_closes = on;
         self
@@ -293,9 +344,14 @@ impl Tabs {
             self.cursor = 0;
             return;
         }
-        self.active = i.min(self.items.len() - 1);
-        self.cursor = self.active;
-        self.ensure_visible(self.active);
+        let to = i.min(self.items.len() - 1);
+        self.cursor = to;
+        if to != self.active {
+            // a re-assertion of the same tab (an app syncing its state)
+            // leaves a window the user scrolled alone
+            self.active = to;
+            self.ensure_visible(to);
+        }
     }
 
     pub fn remove(&mut self, i: usize) {
@@ -390,7 +446,7 @@ impl Tabs {
             return (Outcome::Changed, None);
         }
         if id == self.right_id() {
-            self.first = (self.first + 1).min(self.items.len().saturating_sub(1));
+            self.first = (self.first + 1).min(self.max_first);
             return (Outcome::Changed, None);
         }
         for i in 0..self.items.len() {
@@ -431,8 +487,10 @@ impl Tabs {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
         // the strip is a focus stop with the geometry it draws in; tab and
-        // button regions registered after it take precedence under the mouse
+        // button regions registered after it take precedence under the mouse.
+        // It is a scroll region too: the wheel moves its window
         ctx.control(self.id, area, false);
+        ctx.scrollable(self.id, area);
         self.areas = vec![Rect::ZERO; self.items.len()];
         let y = area.y;
         if area.height >= 2 {
@@ -456,10 +514,28 @@ impl Tabs {
         let left_w: u16 = if overflow { 4 } else { 0 };
         let right_w: u16 = if overflow { 4 } else { 0 };
         let avail = area.width.saturating_sub(left_w + right_w + new_w);
-        // make sure the active tab is within the window
+        // the furthest the window scrolls: the first tab of the run that
+        // ends with the last tab and fits
+        self.max_first = {
+            let mut used = 0u16;
+            let mut f = self.items.len();
+            while f > 0 && used + widths[f - 1] + 1 <= avail {
+                used += widths[f - 1] + 1;
+                f -= 1;
+            }
+            if overflow {
+                f.min(self.items.len().saturating_sub(1))
+            } else {
+                0
+            }
+        };
+        // the window only follows the active tab when it changed (a click,
+        // a key, the app); a strip the user scrolled stays where it is
+        let reveal = self.revealed != Some(self.active);
+        self.revealed = Some(self.active);
+        self.first = self.first.min(self.max_first);
         let mut fit;
-        // shrink `first` if active is before it
-        if self.active < self.first {
+        if reveal && self.active < self.first {
             self.first = self.active;
         }
         loop {
@@ -475,7 +551,7 @@ impl Tabs {
             if fit == 0 && !self.items.is_empty() {
                 fit = 1;
             }
-            if self.active >= self.first + fit && self.first + 1 < self.items.len() {
+            if reveal && self.active >= self.first + fit && self.first + 1 < self.items.len() {
                 self.first += 1;
                 continue;
             }
@@ -564,11 +640,18 @@ impl Tabs {
                 buf.set_string(cx + 1, y, t.glyphs.dirty, st.fg(t.warning));
                 cx += 2;
             }
+            // the ×'s hit target: `close_target_w` cells centred on the
+            // glyph, kept inside the tab
+            let close_hit = {
+                let cw = self.close_target_w.max(1).min(w);
+                let left = (cx + 1).saturating_sub((cw - 1) / 2).max(x);
+                let left = left.min(x + w - cw);
+                Rect::new(left, y, cw, 1)
+            };
             if it.closable {
                 let cid = self.close_id(i);
                 let cs = t.close_glyph(ctx.state(cid), st);
                 buf.set_string(cx + 1, y, t.glyphs.close, cs);
-                ctx.clickable(cid, Rect::new(cx + 1, y, 1, 1));
             }
             if active && area.height >= 2 {
                 let accent = match self.rule {
@@ -590,7 +673,7 @@ impl Tabs {
             ctx.clickable(tid, r);
             // close button on top
             if it.closable {
-                ctx.clickable(self.close_id(i), Rect::new(cx + 1, y, 1, 1));
+                ctx.clickable(self.close_id(i), close_hit);
             }
             x += w + 1;
         }
@@ -904,6 +987,118 @@ mod tests {
             );
             assert_ne!(look(&pressed, cx), look(&hover, cx), "{level:?}: × presses");
         }
+    }
+
+    fn many(n: usize) -> Tabs {
+        let labels: Vec<String> = (0..n).map(|i| format!("Tab{i:02}")).collect();
+        let refs: Vec<&str> = labels.iter().map(String::as_str).collect();
+        Tabs::new(WidgetId::of("many"), &refs)
+    }
+
+    fn draw_hits(tabs: &mut Tabs, w: u16) -> (Buffer, HitRegistry) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, 2));
+        tabs.render(Rect::new(0, 0, w, 2), &mut buf, &mut ctx, theme.canvas);
+        drop(ctx);
+        (buf, hits)
+    }
+
+    #[test]
+    fn the_arrows_scroll_the_window_while_the_active_tab_sits_at_its_edge() {
+        let mut tabs = many(12);
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.first, 0);
+        assert!(tabs.hidden().1 > 0, "the strip overflows");
+        // the active tab is the first one shown: › still scrolls
+        let right = tabs.right_id();
+        tabs.on_click(right);
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.first, 1, "the window stays scrolled after a render");
+        assert_eq!(tabs.active, 0, "scrolling does not activate");
+        tabs.on_click(right);
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.first, 2);
+        // ‹ scrolls back
+        tabs.on_click(tabs.left_id());
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.first, 1);
+        // activating a tab off-screen brings it back into the window
+        tabs.set_active(11);
+        draw_hits(&mut tabs, 40);
+        assert!(tabs.areas[11].width > 0, "the new active tab is shown");
+    }
+
+    #[test]
+    fn the_wheel_scrolls_the_strip_on_both_axes_and_stops_at_its_ends() {
+        let mut tabs = many(12);
+        let (_, hits) = draw_hits(&mut tabs, 40);
+        let over = hits.hit_scroll(ratatui::layout::Position::new(10, 0));
+        assert!(
+            over.is_some_and(|id| tabs.owns(id)),
+            "the wheel over the strip reaches it"
+        );
+        assert_eq!(tabs.on_wheel(0, 1), Outcome::Changed, "vertical wheel");
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.first, 1);
+        assert_eq!(tabs.on_wheel(1, 0), Outcome::Changed, "horizontal wheel");
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.first, 2);
+        assert_eq!(tabs.on_wheel(-1, 0), Outcome::Changed);
+        assert_eq!(tabs.first, 1);
+        for _ in 0..30 {
+            tabs.on_wheel(0, 1);
+        }
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.hidden().1, 0, "the last tab is in view");
+        assert_eq!(tabs.on_wheel(0, 1), Outcome::Consumed, "at the end");
+        assert_eq!(tabs.active, 0, "the wheel never activates");
+        // a strip that fits ignores the wheel
+        let mut few = many(2);
+        draw_hits(&mut few, 40);
+        assert_eq!(few.on_wheel(0, 1), Outcome::Ignored);
+    }
+
+    #[test]
+    fn set_items_keeps_the_scrolled_window() {
+        let mut tabs = many(12);
+        draw_hits(&mut tabs, 40);
+        tabs.on_wheel(0, 2);
+        draw_hits(&mut tabs, 40);
+        let first = tabs.first;
+        assert!(first > 0);
+        let items = tabs.items.clone();
+        tabs.set_items(items);
+        tabs.set_active(0);
+        draw_hits(&mut tabs, 40);
+        assert_eq!(tabs.first, first, "an unchanged active tab does not scroll");
+    }
+
+    #[test]
+    fn the_close_target_is_three_cells_wide_by_default() {
+        let mut tabs = Tabs::with_items(
+            WidgetId::of("t"),
+            vec![TabItem::new("General").closable(), TabItem::new("Logs").closable()],
+        );
+        let (buf, hits) = draw_hits(&mut tabs, 60);
+        let r = tabs.areas[0];
+        let cx = (r.x..r.right())
+            .find(|&x| buf[(x, 0)].symbol() == "×")
+            .unwrap();
+        let at = |x| hits.hit(ratatui::layout::Position::new(x, 0));
+        assert_eq!(at(cx), Some(tabs.close_id(0)));
+        assert_eq!(at(cx - 1), Some(tabs.close_id(0)));
+        assert_eq!(at(cx + 1), Some(tabs.close_id(0)));
+        assert_eq!(at(cx - 2), Some(tabs.tab_id(0)));
+        // configurable back to one cell
+        let mut one = tabs.clone().close_target_w(1);
+        let (_, hits) = draw_hits(&mut one, 60);
+        assert_eq!(
+            hits.hit(ratatui::layout::Position::new(cx - 1, 0)),
+            Some(one.tab_id(0))
+        );
     }
 
     #[test]

@@ -1526,9 +1526,7 @@ impl CapsuleScreen {
                 it
             })
             .collect();
-        let first = self.tabs.first;
-        self.tabs = Tabs::with_items(STRIP, items);
-        self.tabs.first = first;
+        self.tabs.set_items(items);
         self.tabs.set_active(d.active);
         self.tabs.render(
             Rect::new(area.x + 1, area.y, area.width.saturating_sub(2), 2),
