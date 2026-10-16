@@ -188,7 +188,11 @@ pub struct Ladders {
     pub highlight_danger: Ladder,
     pub accent: Ladder,
     pub danger: Ladder,
-    /// Scrollbar thumb ink.
+    /// Scrollbar thumb ink: rest is a neutral grey, hover a lighter grey,
+    /// pressed (held or dragged) the phosphor accent. The thumb keeps one
+    /// glyph in every state, so colour carries the state (plus
+    /// [`StateModifiers::thumb_hover`] / [`StateModifiers::thumb_pressed`]
+    /// where colour cannot).
     pub handle: Ladder,
     /// Splitter seam ink.
     pub seam: Ladder,
@@ -212,6 +216,13 @@ pub struct StateModifiers {
     pub focused: Modifier,
     /// Added to a disabled control.
     pub disabled: Modifier,
+    /// Added to a hovered scrollbar thumb. Empty where the handle ladder
+    /// carries hover in colour; `BOLD` in monochrome (WCAG 1.4.1: colour
+    /// alone cannot carry state there).
+    pub thumb_hover: Modifier,
+    /// Added to a pressed (held, dragged) scrollbar thumb. Empty where the
+    /// ladder's accent step carries it; `REVERSED` in monochrome.
+    pub thumb_pressed: Modifier,
 }
 
 impl StateModifiers {
@@ -225,6 +236,8 @@ impl StateModifiers {
         pressed_fill: Modifier::BOLD,
         focused: Modifier::BOLD,
         disabled: Modifier::empty(),
+        thumb_hover: Modifier::empty(),
+        thumb_pressed: Modifier::empty(),
     };
     /// 16 colours: four greys cannot carry three steps, so pressed is
     /// reversed video and hover on a grey plane underlines.
@@ -236,6 +249,8 @@ impl StateModifiers {
         pressed_fill: Modifier::REVERSED.union(Modifier::BOLD),
         focused: Modifier::BOLD,
         disabled: Modifier::empty(),
+        thumb_hover: Modifier::empty(),
+        thumb_pressed: Modifier::empty(),
     };
     /// `NO_COLOR`: only modifiers survive. Hover underlines, pressed is
     /// reversed, fills are reversed and pressing one drops the reverse.
@@ -247,6 +262,8 @@ impl StateModifiers {
         pressed_fill: Modifier::BOLD.union(Modifier::UNDERLINED),
         focused: Modifier::BOLD,
         disabled: Modifier::DIM,
+        thumb_hover: Modifier::BOLD,
+        thumb_pressed: Modifier::REVERSED,
     };
 }
 
@@ -551,7 +568,7 @@ impl Theme {
                 highlight_danger: Ladder::new(RED_45, RED_45_HOVER, RED_45_PRESSED),
                 accent: Ladder::new(GREEN, GREEN_80, GREEN_60),
                 danger: Ladder::new(RED_FILL, RED_FILL_HOVER, RED_FILL_PRESSED),
-                handle: Ladder::new(WHITE_50, WHITE_70, WHITE),
+                handle: Ladder::new(WHITE_50, WHITE_70, GREEN),
                 seam: Ladder::new(WHITE_30, WHITE_50, WHITE),
             },
             mods: StateModifiers::COLOR,
@@ -708,7 +725,7 @@ impl Theme {
             highlight_danger: lad(88, 124, 52),
             accent: lad(78, 71, 65),
             danger: lad(160, 124, 88),
-            handle: lad(245, 250, 231),
+            handle: lad(245, 252, 78),
             seam: lad(239, 245, 231),
         };
     }
@@ -761,7 +778,7 @@ impl Theme {
             highlight_danger: Ladder::new(Red, Red, Red),
             accent: Ladder::new(LightGreen, Green, LightGreen),
             danger: Ladder::new(Red, Red, Red),
-            handle: Ladder::new(DarkGray, Gray, White),
+            handle: Ladder::new(Gray, White, LightGreen),
             seam: Ladder::new(DarkGray, Gray, White),
         };
     }
@@ -1132,11 +1149,28 @@ impl Theme {
             };
         }
 
-        if glyph {
-            let lad = match kind {
-                Kind::Handle => self.ladders.handle,
-                _ => self.ladders.seam,
+        if kind == Kind::Handle {
+            // a scrollbar thumb keeps one glyph in every state: rest is the
+            // neutral step, hover the lighter one, pressed the accent.
+            // Focus does not light it (the `▎` is the only focus cue); in
+            // monochrome the state modifiers carry hover and press
+            let lad = self.ladders.handle;
+            let mut style = Style::new().fg(lad.step(s.hovered, s.pressed));
+            if s.pressed {
+                style = style.add_modifier(m.thumb_pressed);
+            } else if s.hovered {
+                style = style.add_modifier(m.thumb_hover);
+            }
+            return Interactive {
+                style,
+                gutter: " ",
+                gutter_style: Style::new(),
+                on_fill: false,
             };
+        }
+
+        if glyph {
+            let lad = self.ladders.seam;
             // focus raises the ink one step and hover one more; pressed is
             // the top step plus weight
             let fg = if s.pressed {
@@ -1460,10 +1494,13 @@ impl Theme {
         Style::new().fg(self.border_subtle)
     }
 
-    pub fn scrollbar_thumb(&self, focused: bool, hovered: bool) -> Style {
+    /// A scrollbar thumb at rest, hovered or pressed (held, dragged): one
+    /// glyph, the state in the handle ladder's colour (see
+    /// [`Ladders::handle`]).
+    pub fn scrollbar_thumb(&self, hovered: bool, pressed: bool) -> Style {
         let s = VisualState {
-            focused,
             hovered,
+            pressed,
             ..Default::default()
         };
         self.interactive(Kind::Handle, s, Plane::Canvas).style
@@ -1630,14 +1667,13 @@ pub struct Glyphs {
     pub more_titles: &'static str,
     /// Vertical scrollbar track; also a vertical divider. `│`.
     pub scroll_track: &'static str,
-    /// Vertical scrollbar thumb; also a held divider. `┃`.
+    /// Vertical scrollbar thumb in every state (rest, hover, held: colour
+    /// carries the state); also a held divider. `┃`.
     pub scroll_thumb: &'static str,
     /// Horizontal scrollbar track; also a horizontal divider. `─`.
     pub scroll_h_track: &'static str,
-    /// Horizontal scrollbar thumb; also a held divider. `━`.
+    /// Horizontal scrollbar thumb in every state; also a held divider. `━`.
     pub scroll_h_thumb: &'static str,
-    /// A scrollbar thumb being dragged, both axes. `█`.
-    pub scroll_held: &'static str,
     /// Spinner animation frames, one cell each. Braille dots.
     pub spinner: &'static [&'static str],
     /// A finished task or step. `✓`.
@@ -1715,7 +1751,6 @@ impl Glyphs {
         scroll_thumb: "┃",
         scroll_h_track: "─",
         scroll_h_thumb: "━",
-        scroll_held: "█",
         spinner: &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
         done: "✓",
         arrow: "→",
@@ -1773,7 +1808,6 @@ impl Glyphs {
         scroll_thumb: "#",
         scroll_h_track: "-",
         scroll_h_thumb: "=",
-        scroll_held: "@",
         spinner: &["|", "/", "-", "\\"],
         done: "+",
         arrow: ">",
@@ -2746,5 +2780,57 @@ mod tests {
                 assert_ne!(t.success, t.accent, "{level:?}");
             }
         }
+    }
+
+    #[test]
+    fn the_thumb_ladder_is_neutral_lighter_then_accent_at_every_level() {
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let h = t.ladders.handle;
+            let thumb = |hovered, pressed| t.scrollbar_thumb(hovered, pressed);
+            let (rest, hover, pressed) =
+                (thumb(false, false), thumb(true, false), thumb(true, true));
+            if level == ColorLevel::Mono {
+                // NO_COLOR: a modifier, never colour, tells the states apart
+                assert_eq!(rest.add_modifier, Modifier::empty());
+                assert_eq!(hover.add_modifier, Modifier::BOLD);
+                assert_eq!(pressed.add_modifier, Modifier::REVERSED);
+                continue;
+            }
+            assert!(
+                h.rest != h.hover && h.hover != h.pressed && h.rest != h.pressed,
+                "{level:?}: {h:?}"
+            );
+            assert_eq!(h.pressed, t.accent, "{level:?}: pressed is the accent");
+            assert_ne!(
+                h.rest, t.border_subtle,
+                "{level:?}: the thumb stands off the track"
+            );
+            assert_ne!(h.hover, t.accent, "{level:?}");
+            assert_eq!(
+                (rest.fg, hover.fg, pressed.fg),
+                (Some(h.rest), Some(h.hover), Some(h.pressed))
+            );
+            for st in [rest, hover, pressed] {
+                assert_eq!(
+                    st.add_modifier,
+                    Modifier::empty(),
+                    "{level:?}: colour carries it"
+                );
+            }
+            // container focus does not light the thumb (one focus cue)
+            let focused = t.interactive(
+                Kind::Handle,
+                VisualState {
+                    focused: true,
+                    ..Default::default()
+                },
+                Plane::Canvas,
+            );
+            assert_eq!(focused.style, rest, "{level:?}");
+        }
+        // hover is lighter than rest in truecolor
+        let t = Theme::junie();
+        assert!(luminance(t.ladders.handle.hover) > luminance(t.ladders.handle.rest));
     }
 }
