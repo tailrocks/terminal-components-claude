@@ -600,6 +600,9 @@ impl TextArea {
             ctx.clickable(self.id, Rect::new(area.x, area.y, lw + 2, 1));
         }
         ctx.control(self.id, body, self.disabled);
+        if !self.disabled {
+            ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
+        }
         ctx.scrollable(self.id, body);
         let fs = t.field_style(s);
         crate::ui::ctx::fill(buf, body, fs);
