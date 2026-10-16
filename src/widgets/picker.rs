@@ -11,6 +11,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
+use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
@@ -458,22 +459,9 @@ impl Picker {
         id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
-    fn step(&mut self, delta: isize) {
-        if self.items.is_empty() {
-            return;
-        }
-        let n = self.items.len() as isize;
-        let mut c = self.cursor as isize;
-        for _ in 0..n {
-            c = (c + delta).clamp(0, n - 1);
-            if !self.items[c as usize].disabled {
-                break;
-            }
-            if c == 0 || c == n - 1 {
-                break;
-            }
-        }
-        self.cursor = c as usize;
+    /// A keyboard move: the next render keeps the cursor in view.
+    fn move_to(&mut self, i: usize) {
+        self.cursor = i;
         self.cursor_dirty = true;
         self.scroll.ensure_visible(self.cursor);
     }
@@ -487,18 +475,21 @@ impl Picker {
                 && (matches!(key.code, KeyCode::Char(_))
                     || matches!(n, Nav::Home | Nav::End | Nav::Left | Nav::Right)))
         });
-        let page = self.scroll.viewport_len.max(1) as isize;
-        let n = self.items.len() as isize;
-        match nav {
-            Some(Nav::Down) => self.step(1),
-            Some(Nav::Up) => self.step(-1),
-            Some(Nav::PageDown) => self.step(page),
-            Some(Nav::PageUp) => self.step(-page),
-            Some(Nav::Home) if key.plain() => self.step(-n),
-            Some(Nav::End) if key.plain() => self.step(n),
-            _ => return self.on_other_key(key),
+        let nav = nav.filter(|n| key.plain() || !matches!(n, Nav::Home | Nav::End));
+        let Some(nav) = nav else {
+            return self.on_other_key(key);
+        };
+        match self
+            .cursor()
+            .apply(nav, self, self.scroll.viewport_len)
+            .index()
+        {
+            Some(i) => {
+                self.move_to(i);
+                (Outcome::Changed, None)
+            }
+            None => self.on_other_key(key),
         }
-        (Outcome::Changed, None)
     }
 
     fn on_other_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
@@ -528,11 +519,15 @@ impl Picker {
                 None => (Outcome::Consumed, None),
             },
             KeyCode::Char('n') | KeyCode::Char('j') if key.ctrl() => {
-                self.step(1);
+                if let Some(i) = self.cursor().step(1, self).index() {
+                    self.move_to(i);
+                }
                 (Outcome::Changed, None)
             }
             KeyCode::Char('p') | KeyCode::Char('k') if key.ctrl() => {
-                self.step(-1);
+                if let Some(i) = self.cursor().step(-1, self).index() {
+                    self.move_to(i);
+                }
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerAction::NextScope)),
@@ -982,6 +977,24 @@ impl Picker {
     }
 }
 
+impl RowSource for Picker {
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+    fn enabled(&self, i: usize) -> bool {
+        !self.items[i].disabled
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.items[i].label
+    }
+}
+
+impl Navigable for Picker {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1059,6 +1072,27 @@ mod tests {
 
     fn k(code: KeyCode, mods: ratatui::crossterm::event::KeyModifiers) -> Key {
         Key { code, mods }
+    }
+
+    #[test]
+    fn home_end_and_paging_never_land_on_a_disabled_end_row() {
+        // duplication-widgets P0: `step(±n)` clamped onto a disabled end row
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let mut p = picker(5);
+        // Home/End edit a searchable picker's query; a plain one moves
+        p.searchable = false;
+        p.items[0].disabled = true;
+        p.items[4].disabled = true;
+        p.cursor = 2;
+        p.on_key(&k(KeyCode::Home, M::NONE));
+        assert_eq!(p.cursor, 1, "Home stops on the first enabled row");
+        p.on_key(&k(KeyCode::End, M::NONE));
+        assert_eq!(p.cursor, 3, "End stops on the last enabled row");
+        p.scroll.viewport_len = 10;
+        p.on_key(&k(KeyCode::PageUp, M::NONE));
+        assert_eq!(p.cursor, 1, "PageUp snaps to an enabled row");
+        p.on_key(&k(KeyCode::PageDown, M::NONE));
+        assert_eq!(p.cursor, 3, "PageDown snaps to an enabled row");
     }
 
     #[test]

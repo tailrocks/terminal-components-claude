@@ -6,7 +6,8 @@ use ratatui::style::{Color, Modifier};
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
-use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, unassigned_chord};
+use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::ScrollState;
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -552,6 +553,11 @@ impl TreeView {
         self.id.part(PartRef::item(Part::ICON, ItemKey::index(i)))
     }
 
+    /// The cursor with this tree's rules.
+    fn nav_cursor(&self) -> Cursor {
+        Cursor::new(self.cursor).wrap(self.wrap)
+    }
+
     fn set_cursor(&mut self, i: usize) {
         self.cursor = i.min(self.rows.len().saturating_sub(1));
         self.scroll.ensure_visible(self.cursor);
@@ -664,10 +670,7 @@ impl TreeView {
         if self.rows.is_empty() {
             return (Outcome::Ignored, None);
         }
-        if matches!(key.code, KeyCode::Char(_))
-            && key.chord()
-            && lookup(&self.keymap, key).is_none()
-        {
+        if unassigned_chord(key, &self.keymap) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
@@ -678,42 +681,28 @@ impl TreeView {
             }
             return (Outcome::Changed, None);
         }
-        let Some(nav) = self.nav.action(key) else {
-            return self.on_plain_key(key);
+        let nav = match KeyStep::of(key, &self.nav, self.type_ahead) {
+            Some(KeyStep::Type(c)) => {
+                let moved = self
+                    .nav_cursor()
+                    .type_ahead(c, &mut self.typeahead, &self.rows[..]);
+                if let Moved::To(i) = moved {
+                    self.set_cursor(i);
+                }
+                return (moved.outcome(), None);
+            }
+            Some(KeyStep::Nav(nav)) => nav,
+            None => return self.on_plain_key(key),
         };
         let out = match nav {
-            Nav::Up => {
-                self.set_cursor(crate::core::nav::step_index(
-                    self.cursor,
-                    self.rows.len(),
-                    -1,
-                    self.wrap,
-                ));
-                Outcome::Changed
-            }
-            Nav::Down => {
-                self.set_cursor(crate::core::nav::step_index(
-                    self.cursor,
-                    self.rows.len(),
-                    1,
-                    self.wrap,
-                ));
-                Outcome::Changed
-            }
-            Nav::PageUp => {
-                self.set_cursor(self.cursor.saturating_sub(self.scroll.viewport_len.max(1)));
-                Outcome::Changed
-            }
-            Nav::PageDown => {
-                self.set_cursor(self.cursor + self.scroll.viewport_len.max(1));
-                Outcome::Changed
-            }
-            Nav::Home => {
-                self.set_cursor(0);
-                Outcome::Changed
-            }
-            Nav::End => {
-                self.set_cursor(usize::MAX);
+            Nav::Up | Nav::Down | Nav::PageUp | Nav::PageDown | Nav::Home | Nav::End => {
+                // notes are not selectable: the cursor steps over them
+                let moved = self
+                    .nav_cursor()
+                    .apply(nav, &self.rows[..], self.scroll.viewport_len);
+                if let Some(i) = moved.index() {
+                    self.set_cursor(i);
+                }
                 Outcome::Changed
             }
             Nav::Right => {
@@ -751,26 +740,6 @@ impl TreeView {
 
     /// Activation keys (not navigation, not a mapped action).
     fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
-        if let KeyCode::Char(c) = key.code
-            && self.type_ahead
-            && key.plain()
-            && !c.is_whitespace()
-        {
-            let prefix = self.typeahead.feed(c).to_owned();
-            let found = crate::core::typeahead::TypeAhead::find(
-                &prefix,
-                self.rows.iter().map(|r| r.label.as_str()),
-                self.cursor,
-                |i| !self.rows[i].note,
-            );
-            return match found {
-                Some(i) => {
-                    self.set_cursor(i);
-                    (Outcome::Changed, None)
-                }
-                None => (Outcome::Ignored, None),
-            };
-        }
         let out = match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
                 let row = &self.rows[self.cursor];
@@ -1183,6 +1152,37 @@ impl TreeView {
     }
 }
 
+/// Visible rows; notes are not selectable.
+impl RowSource for [FlatRow] {
+    fn len(&self) -> usize {
+        <[FlatRow]>::len(self)
+    }
+    fn enabled(&self, i: usize) -> bool {
+        !self[i].note
+    }
+    fn label(&self, i: usize) -> &str {
+        &self[i].label
+    }
+}
+
+impl RowSource for TreeView {
+    fn len(&self) -> usize {
+        self.rows.len()
+    }
+    fn enabled(&self, i: usize) -> bool {
+        self.rows[..].enabled(i)
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.rows[i].label
+    }
+}
+
+impl Navigable for TreeView {
+    fn cursor(&self) -> Cursor {
+        self.nav_cursor()
+    }
+}
+
 #[cfg(test)]
 mod identity_tests {
     use super::*;
@@ -1469,6 +1469,32 @@ mod scroll_tests {
     }
 
     #[test]
+    fn arrows_and_ends_step_over_notes() {
+        use ratatui::crossterm::event::KeyModifiers;
+        let key = |code| Key {
+            code,
+            mods: KeyModifiers::NONE,
+        };
+        let nodes = vec![
+            TreeNode::dir("Empty", vec![TreeNode::note("nothing here")]),
+            TreeNode::leaf("Tables"),
+            TreeNode::note("end of list"),
+        ];
+        let mut tv = TreeView::new(WidgetId::of("t"), nodes);
+        tv.expand_all();
+        let labels: Vec<&str> = tv.rows().iter().map(|r| r.label.as_str()).collect();
+        assert_eq!(labels, ["Empty", "nothing here", "Tables", "end of list"]);
+        tv.on_key(&key(KeyCode::Down));
+        assert_eq!(tv.cursor, 2, "Down passes over the note");
+        tv.on_key(&key(KeyCode::Down));
+        assert_eq!(tv.cursor, 2, "the trailing note is never reached");
+        tv.on_key(&key(KeyCode::End));
+        assert_eq!(tv.cursor, 2, "End stops on the last selectable row");
+        tv.on_key(&key(KeyCode::Up));
+        assert_eq!(tv.cursor, 0);
+    }
+
+    #[test]
     fn type_ahead_jumps_to_the_next_matching_row_when_on() {
         use ratatui::crossterm::event::KeyModifiers;
         let key = |c| Key {
@@ -1491,8 +1517,8 @@ mod scroll_tests {
         );
         assert_eq!(
             tv.on_key(&key('z')).0,
-            Outcome::Ignored,
-            "no match: left to the owner"
+            Outcome::Consumed,
+            "no match: consumed, never half-typed to the owner (plan §3)"
         );
         let mut off = TreeView::new(WidgetId::of("t"), nodes);
         assert_eq!(off.on_key(&key('o')).0, Outcome::Ignored, "off by default");

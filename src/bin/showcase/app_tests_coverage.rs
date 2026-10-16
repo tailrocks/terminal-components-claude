@@ -212,9 +212,10 @@ fn navigation_edges_and_page_entry_are_deterministic() {
 
     h.key(KeyCode::End);
     assert_eq!(h.app.nav.cursor, last);
-    h.key(KeyCode::Char('k'));
+    // the nav tree type-selects, so its letters are a prefix, not vim keys
+    h.key(KeyCode::Up);
     assert_eq!(h.app.nav.cursor, last - 1);
-    h.key(KeyCode::Char('j'));
+    h.key(KeyCode::Down);
     assert_eq!(h.app.nav.cursor, last);
     h.key(KeyCode::Home);
     assert_eq!(h.app.nav.cursor, 0, "Overview, the top-level page");
