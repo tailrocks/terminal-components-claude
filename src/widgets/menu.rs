@@ -305,6 +305,14 @@ impl ContextMenu {
         self
     }
 
+    /// The pause after which the next letter starts a new type-ahead
+    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
+    /// (1 s; APG suggests 500–1000 ms).
+    pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.typeahead.timeout = timeout;
+        self
+    }
+
     /// See [`Self::type_ahead`].
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
@@ -779,6 +787,9 @@ pub struct MenuBar {
     /// The open menu takes type-ahead ([`ContextMenu::type_ahead`]).
     /// Default from the [`crate::core::list::NavProfile`].
     pub type_ahead: bool,
+    /// The open menu's [`ContextMenu::type_ahead_timeout`]. Default
+    /// [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`].
+    pub type_ahead_timeout: std::time::Duration,
     /// The chevron title as last drawn ([`Overflow::Chevron`] with hidden
     /// titles), else `Rect::ZERO`.
     pub more_area: Rect,
@@ -820,6 +831,7 @@ impl MenuBar {
             overflow: Overflow::Hide,
             more_area: Rect::ZERO,
             type_ahead: crate::core::list::NavProfile::current().type_ahead(),
+            type_ahead_timeout: crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT,
             open_on: OpenOn::Press,
             press_drag: true,
             press_handled: None,
@@ -860,6 +872,12 @@ impl MenuBar {
     }
 
     /// See [`Self::type_ahead`].
+    /// See [`Self::type_ahead_timeout`].
+    pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.type_ahead_timeout = timeout;
+        self
+    }
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
@@ -1033,7 +1051,8 @@ impl MenuBar {
             let menu = ContextMenu::new(self.more_id().sub("menu"), items)
                 .anchor(self.more_area, Placement::Below)
                 .nav(self.nav)
-                .type_ahead(self.type_ahead);
+                .type_ahead(self.type_ahead)
+                .type_ahead_timeout(self.type_ahead_timeout);
             self.open = Some(menu);
             return;
         }
@@ -1050,7 +1069,8 @@ impl MenuBar {
         let menu = ContextMenu::new(self.label_id(i).sub("menu"), self.menus[i].clone())
             .anchor(anchor, Placement::Below)
             .nav(self.nav)
-            .type_ahead(self.type_ahead);
+            .type_ahead(self.type_ahead)
+            .type_ahead_timeout(self.type_ahead_timeout);
         self.open = Some(menu);
     }
 
