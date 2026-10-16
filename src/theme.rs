@@ -1695,33 +1695,20 @@ impl Theme {
     }
 
     fn status_color(&self, kind: StatusKind) -> Color {
-        match kind {
-            StatusKind::Ok => self.success,
-            StatusKind::Fail => self.error,
-            StatusKind::Warn | StatusKind::Pending => self.warning,
-            StatusKind::Running => self.accent,
-            StatusKind::Queued => self.text_muted,
-            StatusKind::Info => self.info,
-            StatusKind::Skipped => self.text_faint,
-        }
+        self.tone(kind.tone())
     }
 
     /// The glyph and style of a deployment environment badge: production
     /// is the danger label in bold with `◆`, staging the warning with `◇`,
     /// development information with `·`, local muted with no glyph.
     pub fn env(&self, env: EnvKind) -> (&'static str, Style) {
-        let g = &self.glyphs;
-        match env {
-            EnvKind::Production => (
-                g.env_production,
-                Style::new()
-                    .fg(self.danger_label)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            EnvKind::Staging => (g.env_staging, Style::new().fg(self.warning)),
-            EnvKind::Development => (g.env_development, Style::new().fg(self.info)),
-            EnvKind::Local => ("", Style::new().fg(self.text_muted)),
-        }
+        let style = Style::new().fg(self.tone(env.tone()));
+        let style = if env == EnvKind::Production {
+            style.add_modifier(Modifier::BOLD)
+        } else {
+            style
+        };
+        (self.glyphs.env(env), style)
     }
 
     /// Syntax palette, for code only: keywords in the information blue
@@ -1810,6 +1797,22 @@ impl StatusKind {
         StatusKind::Info,
         StatusKind::Skipped,
     ];
+
+    /// The [`Tone`] of this status, for widgets that take a tone (a
+    /// [`Segment`](crate::widgets::segments::Segment), a
+    /// [`Prop`](crate::widgets::props::Prop)): the hue [`Theme::status`]
+    /// draws its glyph in (running: [`Tone::Active`]).
+    pub const fn tone(self) -> Tone {
+        match self {
+            StatusKind::Ok => Tone::Success,
+            StatusKind::Fail => Tone::Error,
+            StatusKind::Warn | StatusKind::Pending => Tone::Warning,
+            StatusKind::Running => Tone::Active,
+            StatusKind::Queued => Tone::Muted,
+            StatusKind::Info => Tone::Info,
+            StatusKind::Skipped => Tone::Faint,
+        }
+    }
 }
 
 /// A deployment environment [`Theme::env`] badges.
@@ -1819,6 +1822,20 @@ pub enum EnvKind {
     Staging,
     Development,
     Local,
+}
+
+impl EnvKind {
+    /// The [`Tone`] of this environment, for widgets that take a tone:
+    /// production [`Tone::Danger`], staging [`Tone::Warning`], development
+    /// [`Tone::Info`], local [`Tone::Muted`] (the hue of [`Theme::env`]).
+    pub const fn tone(self) -> Tone {
+        match self {
+            EnvKind::Production => Tone::Danger,
+            EnvKind::Staging => Tone::Warning,
+            EnvKind::Development => Tone::Info,
+            EnvKind::Local => Tone::Muted,
+        }
+    }
 }
 
 /// Language-agnostic syntax classes for the code editor.
@@ -1991,6 +2008,16 @@ pub struct Glyphs {
 }
 
 impl Glyphs {
+    /// The badge glyph of an environment (local has none: `""`).
+    pub fn env(&self, env: EnvKind) -> &'static str {
+        match env {
+            EnvKind::Production => self.env_production,
+            EnvKind::Staging => self.env_staging,
+            EnvKind::Development => self.env_development,
+            EnvKind::Local => "",
+        }
+    }
+
     /// Today's look: box drawing, geometric shapes and Braille.
     pub const UNICODE: Self = Self {
         focus_bar: "▎",
@@ -3303,6 +3330,18 @@ mod tests {
                     t.status_at(StatusKind::Running, 1).0,
                     t.glyphs.spinner_frame(1)
                 );
+                // the tones widgets take are the hues the glyphs draw in
+                for kind in StatusKind::ALL {
+                    assert_eq!(t.status(kind).1.fg, Some(t.tone(kind.tone())), "{kind:?}");
+                }
+                for env in [
+                    EnvKind::Production,
+                    EnvKind::Staging,
+                    EnvKind::Development,
+                    EnvKind::Local,
+                ] {
+                    assert_eq!(t.env(env).1.fg, Some(t.tone(env.tone())), "{env:?}");
+                }
                 // environments: production is bold (its mono cue), the
                 // others have their own glyph
                 let (g, st) = t.env(EnvKind::Production);
