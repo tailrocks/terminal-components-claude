@@ -2311,7 +2311,7 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, _ctx: &mut RenderCtx) {
+    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let editing = match self.screen {
             Screen::Connections => self.connections.is_editing(),
@@ -2335,6 +2335,8 @@ impl App {
             },
         };
         let mut hints = hints;
+        // the focused cursor row is cut: name the reveal key
+        junie_tui::ui::reveal::advertise(&mut hints, ctx.reveal_hint, |h| h.key, hint);
         if self.modal.is_none() && !editing {
             hints.push(hint("Tab", "Next"));
         }
