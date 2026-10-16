@@ -82,6 +82,9 @@ pub struct ContextMenu {
     pub title: Option<String>,
     /// How the menu closes without a choice (Esc, a click outside).
     pub dismiss: Dismiss,
+    /// While open, the menu owns the keyboard, so the page under it shows
+    /// no focus (see [`ContextMenu::hides_page_focus`]). Default on.
+    pub hide_owner_focus: bool,
 }
 
 impl ContextMenu {
@@ -96,12 +99,24 @@ impl ContextMenu {
             area: Rect::ZERO,
             title: None,
             dismiss: Dismiss::LIGHT,
+            hide_owner_focus: true,
         }
     }
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
+    }
+
+    pub fn hide_owner_focus(mut self, on: bool) -> Self {
+        self.hide_owner_focus = on;
+        self
+    }
+
+    /// Whether the page under this open menu should draw without focus:
+    /// pass it to [`RenderCtx::page_under_layer`] at frame start.
+    pub fn hides_page_focus(&self) -> bool {
+        self.hide_owner_focus
     }
 
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
@@ -412,6 +427,9 @@ pub struct MenuBar {
     /// macOS and Windows menu-bar convention). Off: only a click or the
     /// arrow keys switch menus.
     pub hover_switch: bool,
+    /// With a menu open the keyboard is in the menu, so the page under it
+    /// shows no focus (see [`MenuBar::hides_page_focus`]). Default on.
+    pub hide_owner_focus: bool,
 }
 
 impl MenuBar {
@@ -427,7 +445,20 @@ impl MenuBar {
             brand_area: Rect::ZERO,
             dismiss: Dismiss::LIGHT,
             hover_switch: true,
+            hide_owner_focus: true,
         }
+    }
+
+    pub fn hide_owner_focus(mut self, on: bool) -> Self {
+        self.hide_owner_focus = on;
+        self
+    }
+
+    /// Whether the page should draw without focus this frame (a menu is
+    /// open and [`MenuBar::hide_owner_focus`] is on): pass it to
+    /// [`RenderCtx::page_under_layer`] at frame start.
+    pub fn hides_page_focus(&self) -> bool {
+        self.hide_owner_focus && self.open.is_some()
     }
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
@@ -645,11 +676,15 @@ impl MenuBar {
             }
             if is_cursor {
                 st = st.fg(t.text_primary).add_modifier(Modifier::BOLD);
+                let fs = crate::ui::ctx::VisualState {
+                    focused: true,
+                    ..Default::default()
+                };
                 buf.set_string(
                     x.saturating_sub(1),
                     area.y,
-                    "▎",
-                    Style::new().fg(t.focus).bg(bg),
+                    t.gutter_symbol(fs),
+                    t.gutter(fs, bg, false),
                 );
             }
             buf.set_string(x, area.y, &text, st);

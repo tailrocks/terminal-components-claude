@@ -220,7 +220,7 @@ impl TextArea {
         if self.disabled {
             s.hovered = false;
         }
-        if !s.focused && self.editing {
+        if !ctx.interaction.has_focus(self.id) && self.editing {
             self.commit();
             s.editing = false;
         }

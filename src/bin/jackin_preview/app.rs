@@ -2273,6 +2273,11 @@ impl App {
         {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            ctx.page_under_layer(
+                !self.modals.is_empty()
+                    || self.host_menu.hides_page_focus()
+                    || self.screens.get(self.route).is_some_and(|s| s.layer_open()),
+            );
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
             cursor = ctx.cursor;
