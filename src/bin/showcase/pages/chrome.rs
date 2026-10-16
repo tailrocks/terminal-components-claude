@@ -173,8 +173,8 @@ impl ChromePage {
         .wrap(self.on("chrome.wrap"))
         .type_ahead(self.on("chrome.type_ahead"))
         .nav(match self.opt("chrome.nav") {
-            "no-vim" => NavKeys::NO_VIM,
-            _ => NavKeys::DEFAULT,
+            "vim" => NavKeys::VIM,
+            _ => NavKeys::default(),
         })
         .dismiss(match self.opt("chrome.dismiss") {
             "escape" => Dismiss::ESCAPE,
@@ -191,8 +191,8 @@ impl ChromePage {
     fn readout(&self) -> [String; 2] {
         let b = &self.bar;
         let on = |v: bool| if v { "on" } else { "off" };
-        let nav = if b.nav == NavKeys::NO_VIM {
-            "no-vim"
+        let nav = if b.nav == NavKeys::VIM {
+            "vim"
         } else {
             "default"
         };

@@ -202,7 +202,7 @@ fn the_list_activates_and_copies_through_its_keymap() {
 #[test]
 fn list_builders_rebuild_the_list() {
     let mut h = Harness::new(220, 80, PageId::TextUtilities);
-    h.opt("textutilities.nav=no-vim");
+    h.opt("textutilities.nav=vim");
     h.opt("textutilities.track_click=jump");
     h.opt("textutilities.scrollbar_gap=0");
     h.opt("textutilities.reveal=inline");
@@ -210,20 +210,20 @@ fn list_builders_rebuild_the_list() {
     let text = h.text();
     assert!(
         text.contains(
-            "PropsList · nav no-vim · copy y · track_click Jump · scrollbar_gap 0 · label share 25% · reveal InlineWrap"
+            "PropsList · nav vim · copy y · track_click Jump · scrollbar_gap 0 · label share 25% · reveal InlineWrap"
         ),
         "{text}"
     );
     let l = h.list();
-    assert_eq!(l.nav, junie_tui::core::keymap::NavKeys::NO_VIM);
+    assert_eq!(l.nav, junie_tui::core::keymap::NavKeys::VIM);
     assert_eq!(l.scrollbar_gap, 0);
-    // vim letters no longer move the cursor
+    // vim letters move the cursor too
     let (x, y) = h.find("Port  ").unwrap();
     h.click(x, y);
     h.key(KeyCode::Char('j'));
-    assert_eq!(h.list().cursor, 1);
-    h.key(KeyCode::Down);
     assert_eq!(h.list().cursor, 2);
+    h.key(KeyCode::Down);
+    assert_eq!(h.list().cursor, 3);
 }
 
 #[test]
