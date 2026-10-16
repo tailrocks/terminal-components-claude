@@ -13,6 +13,7 @@
 # app-local exclusions
 app::jackin_preview::intro | jackin-only brand animation, product owner decision 2026-10-16 | permanent
 app::jackin_preview::outro | jackin-only brand animation, product owner decision 2026-10-16 | permanent
+app::jackin_preview::handoff_fade | jackin-only transition, owner decision 2026-10-17 | permanent
 
 # core::edit
 
