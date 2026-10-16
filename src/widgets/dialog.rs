@@ -16,7 +16,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
-use crate::theme::{ButtonKind, Strings};
+use crate::theme::{ButtonKind, StatusKind, Strings};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::widgets::button::{Button, ButtonRow, RowAlign, RowOverflow};
@@ -55,6 +55,10 @@ pub enum DialogResult {
 pub struct Dialog {
     pub id: WidgetId,
     pub title: String,
+    /// A status glyph before the title ([`crate::theme::Theme::status`]),
+    /// e.g. [`StatusKind::Warn`] on a write gate against production.
+    /// Default `None`.
+    pub title_status: Option<StatusKind>,
     pub body: DialogBody,
     pub actions: Vec<Button>,
     /// Index of the action Esc maps to (usually a Cancel button).
@@ -323,6 +327,7 @@ impl Dialog {
             initial_focus: ok_id,
             dismiss: Dismiss::LIGHT,
             close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
+            title_status: None,
             confirm_index: None,
             body_scroll: true,
             max_height: None,
@@ -369,6 +374,7 @@ impl Dialog {
             initial_focus: cancel_id,
             dismiss: Dismiss::LIGHT,
             close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
+            title_status: None,
             confirm_index: None,
             body_scroll: true,
             max_height: None,
@@ -416,6 +422,7 @@ impl Dialog {
             initial_focus: input_id,
             dismiss: Dismiss::LIGHT,
             close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
+            title_status: None,
             confirm_index: None,
             body_scroll: true,
             max_height: None,
@@ -504,6 +511,7 @@ impl Dialog {
                 Dismiss::LIGHT
             },
             close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
+            title_status: None,
             confirm_index: token.map(|_| 1),
             body_scroll: true,
             max_height: None,
@@ -669,6 +677,12 @@ impl Dialog {
     }
 
     /// Set how the dialog closes without an action.
+    /// A status glyph before the title (see [`Dialog::title_status`]).
+    pub fn title_status(mut self, kind: StatusKind) -> Self {
+        self.title_status = Some(kind);
+        self
+    }
+
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
@@ -1299,10 +1313,17 @@ impl Dialog {
         if inner.is_empty() {
             return;
         }
+        let mut title_x = inner.x;
+        if let Some(kind) = self.title_status {
+            let (glyph, st) = t.status(kind);
+            let fg = t.legible(st.fg.unwrap_or(t.text_primary), bg);
+            buf.set_string(title_x, inner.y, glyph, st.fg(fg).bg(bg));
+            title_x += crate::ui::text::width(glyph) as u16 + 1;
+        }
         buf.set_string(
-            inner.x,
+            title_x,
             inner.y,
-            crate::ui::text::truncate(&self.title, inner.width as usize),
+            crate::ui::text::truncate(&self.title, inner.right().saturating_sub(title_x) as usize),
             t.title().bg(bg),
         );
         let body_y = inner.y + 2;
@@ -1545,6 +1566,39 @@ mod tests {
         );
         d.width = width;
         d
+    }
+
+    #[test]
+    fn a_title_status_leads_the_title_with_its_glyph_and_hue() {
+        let theme = Theme::junie();
+        let screen = Rect::new(0, 0, 80, 24);
+        let draw = |d: &mut Dialog| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut buf = Buffer::empty(screen);
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            d.render(screen, &mut buf, &mut ctx);
+            buf
+        };
+        let row = |buf: &Buffer, y: u16| {
+            (0..80)
+                .map(|x| buf[(x, y)].symbol().to_owned())
+                .collect::<String>()
+        };
+        let mut plain = gate(70);
+        let buf = draw(&mut plain);
+        let y = (0..24)
+            .find(|&y| row(&buf, y).contains("Trash 4 items"))
+            .unwrap();
+        assert!(!row(&buf, y).contains("▲"));
+        let mut d = gate(70).title_status(StatusKind::Warn);
+        let buf = draw(&mut d);
+        let line = row(&buf, y);
+        assert!(line.contains("▲ Trash 4 items"), "{line:?}");
+        let x = (0..80).find(|&x| buf[(x, y)].symbol() == "▲").unwrap();
+        let (_, st) = theme.status(StatusKind::Warn);
+        let c = &buf[(x, y)];
+        assert_eq!(c.fg, theme.legible(st.fg.unwrap(), c.bg));
     }
 
     #[test]
