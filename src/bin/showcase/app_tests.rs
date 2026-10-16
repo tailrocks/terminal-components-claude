@@ -1167,3 +1167,30 @@ fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
     h.mouse(MouseKind::Move, view.x + 1, view.y);
     assert!(open(&h).is_empty());
 }
+
+#[test]
+fn a_pass_through_select_closes_and_lets_the_outside_click_land() {
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    let sort = WidgetId::of("chips").sub("sort");
+    let size = WidgetId::of("chips").sub("size");
+    let sort_field = h.app.hits.area_of(sort).unwrap();
+    let size_field = h.app.hits.area_of(size).unwrap();
+
+    // "Sort by" keeps the default policy: the outside click only closes
+    h.click(sort_field.x + 2, sort_field.y);
+    assert!(h.app.hits.area_of(sort.child(0)).is_some());
+    h.click(size_field.x + 2, size_field.y);
+    assert!(h.app.hits.area_of(sort.child(0)).is_none(), "sort closed");
+    assert!(
+        h.app.hits.area_of(size.child(0)).is_none(),
+        "size not opened"
+    );
+
+    // "Page size" passes the click through: it closes and Sort by opens
+    h.click(size_field.x + 2, size_field.y);
+    assert!(h.app.hits.area_of(size.child(0)).is_some());
+    h.click(sort_field.x + 2, sort_field.y);
+    assert!(h.app.hits.area_of(size.child(0)).is_none(), "size closed");
+    assert!(h.app.hits.area_of(sort.child(0)).is_some(), "sort opened");
+    assert_eq!(h.app.focus.current(), Some(sort));
+}
