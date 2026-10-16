@@ -106,6 +106,12 @@ form sits at the list's right; the baseline `form_new` frames at the
 same sizes show the list. HEAD draws the list in both, so the form
 pages now look like the baseline's own `form_new`.
 
+After the re-approval, `cargo xtask visual check-touched` caught the
+grid fixes that landed meanwhile (middle-cut reference values eee37267b,
+cursor column kept in view 33fb0d4ce, one row of scroll context
+ab64d7535): 247 tablepro captures re-approved with them by name, and the
+tab-pane focus fix moved 80 dialog frames, re-approved with it.
+
 Owner confirmation: none needed for tablepro.
 
 ## holla (classified, not accepted yet)
