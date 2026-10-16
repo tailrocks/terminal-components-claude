@@ -638,6 +638,58 @@ fn page_context_and_shell_do_not_duplicate_tab_hints() {
     }
 }
 
+/// Layout audit #1 and #17: on a short terminal pages stacked sections
+/// past their area (Panels' "Target" and Chips' segment strip landed in the
+/// blank row above the footer, the Task runner's rows ran into its own
+/// buttons, Tables squeezed its table to one row). Every focus stop of
+/// these pages is now inside the page area when focused, the row above
+/// the footer stays blank, and a table keeps at least four rows.
+#[test]
+fn short_pages_scroll_by_section_and_never_draw_past_their_area() {
+    let pages = [
+        PageId::Panels,
+        PageId::TaskRunner,
+        PageId::Tables,
+        PageId::Chips,
+        PageId::Sidebars,
+    ];
+    for (w, hh) in [(72u16, 20u16), (80, 24)] {
+        for page in pages {
+            let mut h = Harness::new(w, hh, page);
+            let spacer = hh - 2;
+            let mut seen = std::collections::HashSet::new();
+            for _ in 0..30 {
+                let text = h.text();
+                let row = text.lines().nth(spacer as usize).unwrap().to_owned();
+                assert!(
+                    row.trim().is_empty(),
+                    "{page:?} {w}x{hh}: drawn on the row above the footer: {row:?}\n{text}"
+                );
+                let Some(f) = h.app.focus.current() else {
+                    break;
+                };
+                if !seen.insert(f) {
+                    break;
+                }
+                if let Some(a) = h.app.hits.area_of(f) {
+                    assert!(
+                        a.bottom() <= spacer,
+                        "{page:?} {w}x{hh}: focused {f:?} at {a:?} is past the page\n{text}"
+                    );
+                }
+                h.key(tab());
+            }
+        }
+    }
+    let mut h = Harness::new(72, 20, PageId::Tables);
+    h.key(tab());
+    let text = h.text();
+    assert!(
+        text.contains("#1043"),
+        "the table keeps four rows and its bar on a short terminal\n{text}"
+    );
+}
+
 /// Visual regression baseline: a stable digest of every cell (symbol, fg,
 /// bg, modifiers) for each showcase page from the minimum through wide
 /// terminals, in every supported palette, with focus on the first control.
