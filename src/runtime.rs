@@ -423,9 +423,98 @@ fn first_poll_delay() -> Option<Duration> {
 /// `poll` interrupted by a signal is not an error: the loop re-checks the
 /// suspension flag and polls again.
 fn poll_uninterrupted(wait: Duration) -> std::io::Result<bool> {
-    match event::poll(wait) {
+    match poll_input(wait) {
         Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Ok(false),
         other => other,
+    }
+}
+
+/// Wait up to `wait` for an input event, seeing every byte the terminal
+/// has queued. Every input poll of the runtime goes through here.
+///
+/// crossterm 0.29 waits on the terminal with an edge-triggered readiness
+/// (mio: epoll on Linux, kqueue on macOS) and, on a readiness, reads one
+/// buffer (1 KiB) and stops as soon as that buffer parses into an event.
+/// Bytes queued past that buffer raise no new readiness, so they stay in
+/// the kernel, unseen, until the terminal sends more: the tail of a burst
+/// longer than one buffer (a key flood, a paste without bracketed paste),
+/// a quit included, waits for the next keystroke. When crossterm has
+/// nothing while the terminal still has bytes queued, [`tty_input::rearm`]
+/// raises a fresh readiness for its reader.
+fn poll_input(wait: Duration) -> std::io::Result<bool> {
+    if event::poll(Duration::ZERO)? {
+        return Ok(true);
+    }
+    #[cfg(unix)]
+    if tty_input::rearm() && event::poll(Duration::ZERO)? {
+        return Ok(true);
+    }
+    if wait.is_zero() {
+        return Ok(false);
+    }
+    event::poll(wait)
+}
+
+/// The terminal crossterm reads, seen with level-triggered checks.
+#[cfg(unix)]
+mod tty_input {
+    use std::mem::MaybeUninit;
+    use std::os::fd::{AsRawFd, RawFd};
+    use std::sync::OnceLock;
+
+    /// crossterm's input descriptor: stdin when it is a terminal, otherwise
+    /// `/dev/tty` (crossterm `tty_fd`).
+    fn fd() -> Option<RawFd> {
+        static TTY: OnceLock<Option<(RawFd, Option<std::fs::File>)>> = OnceLock::new();
+        TTY.get_or_init(|| {
+            // SAFETY: isatty only inspects a descriptor number.
+            if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
+                return Some((libc::STDIN_FILENO, None));
+            }
+            let tty = std::fs::File::open("/dev/tty").ok()?;
+            Some((tty.as_raw_fd(), Some(tty)))
+        })
+        .as_ref()
+        .map(|(fd, _)| *fd)
+    }
+
+    /// The terminal has input queued that nobody has read.
+    fn queued(fd: RawFd) -> bool {
+        let mut p = libc::pollfd {
+            fd,
+            events: libc::POLLIN,
+            revents: 0,
+        };
+        // SAFETY: one valid pollfd, no wait.
+        unsafe { libc::poll(&mut p, 1, 0) > 0 && p.revents & libc::POLLIN != 0 }
+    }
+
+    /// When input is queued, re-apply the terminal's own attributes: the
+    /// line discipline wakes its readers on every attribute change, which
+    /// is the fresh readiness crossterm's reader waits for. Nothing changes
+    /// in the terminal (`TCSANOW`, the attributes it already has; no drain,
+    /// no flush). Only the foreground process group sets attributes: a
+    /// background one would be stopped by `SIGTTOU`. Returns whether it
+    /// re-armed.
+    pub fn rearm() -> bool {
+        let Some(fd) = fd() else {
+            return false;
+        };
+        if !queued(fd) {
+            return false;
+        }
+        // SAFETY: plain queries on an open descriptor; `tcsetattr` gets the
+        // attributes `tcgetattr` just filled in.
+        unsafe {
+            if libc::tcgetpgrp(fd) != libc::getpgrp() {
+                return false;
+            }
+            let mut attrs = MaybeUninit::<libc::termios>::uninit();
+            if libc::tcgetattr(fd, attrs.as_mut_ptr()) != 0 {
+                return false;
+            }
+            libc::tcsetattr(fd, libc::TCSANOW, attrs.as_ptr()) == 0
+        }
     }
 }
 
@@ -579,7 +668,7 @@ impl SizeWatch {
 }
 
 fn next_ready_input() -> std::io::Result<Option<Input>> {
-    while event::poll(Duration::ZERO)? {
+    while poll_input(Duration::ZERO)? {
         let config = InputConfig {
             // the protocol reports Ctrl+\\ and friends as themselves
             legacy_ctrl_punctuation: !keyboard::active(),
@@ -776,7 +865,7 @@ pub fn drain_pending_input() -> std::io::Result<usize> {
     }
     let mut n = 0;
     let drained = loop {
-        match event::poll(Duration::ZERO) {
+        match poll_input(Duration::ZERO) {
             Ok(false) => break Ok(n),
             Ok(true) => match event::read() {
                 Ok(_) => n += 1,
