@@ -1218,12 +1218,25 @@ impl Screen for CleanupPage {
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
-        if w.tick != self.last_tick {
-            self.last_tick = w.tick;
-            self.rebuild(w);
-            return Outcome::Changed;
+        if w.tick == self.last_tick {
+            return Outcome::Ignored;
         }
-        Outcome::Ignored
+        self.last_tick = w.tick;
+        // the world moves every tick, the review only when its candidates,
+        // checks or rows do: an idle review asks for no redraw
+        super::rebuild_on_tick(
+            self,
+            |s| {
+                (
+                    s.cats.clone(),
+                    s.special.clone(),
+                    s.rows.clone(),
+                    s.checked.clone(),
+                    s.cursor,
+                )
+            },
+            |s| s.rebuild(w),
+        )
     }
 
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {

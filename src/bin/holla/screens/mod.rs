@@ -428,6 +428,24 @@ pub fn row_choice(
     Some((row, keys.chars().nth(k).map(replay_key), k))
 }
 
+/// A tick's rebuild of a screen's view from the world: `Changed` only when
+/// what `view` reads differs afterwards. The simulated world advances every
+/// tick (reduced motion included); a screen whose rows did not change asks
+/// for no redraw, so an idle screen draws nothing.
+pub(crate) fn rebuild_on_tick<S, V: PartialEq>(
+    screen: &mut S,
+    view: impl Fn(&S) -> V,
+    rebuild: impl FnOnce(&mut S),
+) -> Outcome {
+    let before = view(screen);
+    rebuild(screen);
+    if view(screen) == before {
+        Outcome::Ignored
+    } else {
+        Outcome::Changed
+    }
+}
+
 pub fn plural(n: usize, one: &str, many: &str) -> String {
     if n == 1 {
         format!("{n} {one}")
