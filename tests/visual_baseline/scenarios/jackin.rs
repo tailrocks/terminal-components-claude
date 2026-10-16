@@ -155,9 +155,12 @@ pub const SURFACES: &[Root] = &[
     // Enter begins the edit, the second Enter commits and applies. The applied
     // filter renders in the tree title, truncated to the panel (`Accounts · filt…`).
     Root::new("jackin/accounts/add_form", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account"]),
-    // j_accounts_form_ref: empty required Display name — Enter starts edit,
-    // Enter commits and TextInput::validate paints "Required".
-    Root::new("jackin/accounts/add_form_required", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account", "enter", "enter", "wait:Required"]),
+    // j_accounts_form_ref: empty required Display name. An edit that only
+    // passes the field does not judge it (ValidateOn::Change, f7e8b7538);
+    // Save does: Tab to Save (name, purpose, provider, source, 1Password
+    // reference, Enter plain text instead, Validate, Cancel, Save), Enter,
+    // and the form marks the name "Required" and focuses it.
+    Root::new("jackin/accounts/add_form_required", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:Required"]),
     Root::new("jackin/accounts/filter", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["/", "type:work", "enter", "wait:Accounts · filt"]),
     Root::new("jackin/usage/detail", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["u", "down", "enter", "wait:Back to list"]),
     Root::new("jackin/settings/route", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global"]),
