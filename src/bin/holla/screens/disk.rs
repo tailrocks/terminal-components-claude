@@ -41,6 +41,9 @@ use crate::sim::world::World;
 pub const TREE: WidgetId = WidgetId::of("disk.tree");
 pub const DETAIL: WidgetId = WidgetId::of("disk.detail");
 pub const LIST: WidgetId = WidgetId::of("disk.list");
+/// A filesystem fills toward its limit later than a quota: attention at
+/// 80%, danger at 95%.
+pub const FS_METER: MeterTone = MeterTone::Level { warn: 80, crit: 95 };
 /// A row's context menu.
 pub const ROW_MENU: WidgetId = WidgetId::of("disk.row.menu");
 
@@ -1668,7 +1671,7 @@ impl Screen for DiskPage {
                 if mw >= 8 {
                     Meter::new(Some(f.pct()))
                         .value(format!("{}%", f.pct()))
-                        .tone(MeterTone::Normal)
+                        .tone(FS_METER)
                         .visual(MeterVisual::Line)
                         .render(Rect::new(area.x + 27, body_y, mw, 1), buf, ctx, t.canvas);
                     let text = format!("{} of {} GB", f.used_gb, f.total_gb);
