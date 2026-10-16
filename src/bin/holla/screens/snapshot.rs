@@ -1499,19 +1499,8 @@ impl Screen for SnapshotPage {
             }
         }
         if has_sb {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    inner.x,
-                    inner.y,
-                    (inner.right() - 1).saturating_sub(inner.x),
-                    inner.height,
-                ),
-                &self.scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(inner.right() - 1, inner.y, 1, inner.height),
+            scrollbar::render_with_fade(
+                Rect::new(inner.x, inner.y, inner.width, inner.height),
                 buf,
                 ctx,
                 BODY,

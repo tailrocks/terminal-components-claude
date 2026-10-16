@@ -818,19 +818,8 @@ impl EditorScreen {
             ctx.clickable(rid, rect);
         }
         if has_sb {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    body.x,
-                    body.y,
-                    (body.right() - 1).saturating_sub(body.x),
-                    body.height,
-                ),
-                &self.role_scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(body.right() - 1, body.y, 1, body.height),
+            scrollbar::render_with_fade(
+                Rect::new(body.x, body.y, body.width, body.height),
                 buf,
                 ctx,
                 ROLES,
@@ -1109,19 +1098,8 @@ impl EditorScreen {
             }
         }
         if has_sb {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    body.x,
-                    body.y,
-                    (body.right() - 1).saturating_sub(body.x),
-                    body.height,
-                ),
-                &self.acct.scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(body.right() - 1, body.y, 1, body.height),
+            scrollbar::render_with_fade(
+                Rect::new(body.x, body.y, body.width, body.height),
                 buf,
                 ctx,
                 ACCOUNTS,
