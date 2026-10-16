@@ -1,41 +1,50 @@
 //! Visual-baseline suite: every capturable surface of the four binaries,
-//! driven as real processes in PTYs via the tuisnap library and gated
-//! cell-exact (`.ansi`), content (`.txt`), render-level (`.html`) and
-//! pixel-exact (`.png`) against the approved frames in `snapshots/`
-//! (the grouped multi-artifact store; scratch under `target/tuisnap/`).
+//! driven as real processes in PTYs through tuiscotti (`tuiscotti::tui`,
+//! pinned to tailrocks/tuiscotti `main` in `Cargo.toml`) and gated against
+//! the approved artifacts in `snapshots/`
+//! (`<app>/<sub_group>/<cols>x<rows>/<palette>.<ext>`). Which artifacts are
+//! committed and gated (`.ansi` cell-exact, `.txt` content, `.png`
+//! decoded-pixel, `.html` render-level) is the single constant
+//! [`support::COMMITTED`]; scratch (actuals, diffs) lives under
+//! `target/tuiscotti/`.
 //!
-//! This suite replaces the retired `tools/tuisnap_baseline.sh`; the capture
-//! matrix and its rationale live in `docs/baseline/tuisnap-coverage.md` and
-//! `docs/baseline/snapshots-v2.md` (grouped taxonomy). Capture names are
-//! grouped paths (`<app>/<sub_group>/<leaf>`); argv, boot needles, send steps
-//! and per-capture timeouts are the bash runner's, verbatim (via
-//! [`tuisnap::pty::run_once`], the same runner the `tuisnap run` CLI used);
-//! the `pointer` module adds the mouse/resize group the CLI could not
-//! express (hover, drag-select, wheel scroll-fade, resize sequences). The
-//! `audit` module generates the 10-fixture × 5 sizes × 5 colours audit
-//! matrix data-drivenly; the audit-flow variant matrices live in
-//! `showcase.rs` (keyboard) and `pointer.rs` (drag-select).
+//! The capture matrix and its rationale live in
+//! `docs/baseline/tuisnap-coverage.md` and `docs/baseline/snapshots-v2.md`
+//! (grouped taxonomy). Capture names are grouped paths
+//! (`<app>/<sub_group>/<leaf>`); argv, boot needles, send steps and
+//! per-capture timeouts are the original bash runner's, verbatim. The
+//! `pointer` module adds the mouse/resize group (hover, drag-select, wheel
+//! scroll-fade, resize sequences). The `audit` module generates the
+//! 10-fixture × 5 sizes × 5 colours audit matrix data-drivenly; the
+//! audit-flow variant matrices live in `showcase.rs` (keyboard) and
+//! `pointer.rs` (drag-select).
 //!
 //! Every capture test is `#[ignore]`d: default `cargo nextest run` compiles
-//! the suite and runs only the cheap non-PTY [`store_integrity`] check. Run
-//! the PTY baseline explicitly:
+//! the suite and runs only the cheap non-PTY [`store_integrity`] check.
+//!
+//! Migration status (`docs/visual-testing/tuiscotti-migration.md`): the
+//! committed store still holds the retired tuisnap engine's approvals. Only
+//! groups in [`support::REAPPROVED_PREFIXES`] gate on tuiscotti; every other
+//! capture is skipped unless `VISUAL_FULL=1`:
 //!
 //! ```sh
 //! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
-//! cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
-//! cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
+//! VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
+//! # approve reviewed actuals (local only, never in CI):
+//! VISUAL_ACCEPT=showcase/pages cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'
 //! ```
 //!
-//! Gate policy (fail-closed): only `matched` passes. Pending and
-//! missing-approval captures fail until the whole suite is generated and
-//! explicitly blessed with `tuisnap accept --grouped --store snapshots
-//! --all`; drift after approval or a capture error also fails.
+//! Gate policy (fail-closed): only a full match passes; a missing approved
+//! artifact fails. Approval is never implicit: [`accept_actuals`] is the only
+//! writer of `snapshots/`, and it runs only on explicit request.
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
+mod ansi_cursor;
 mod audit;
 mod holla;
 mod jackin;
+mod modes;
 mod pointer;
 mod showcase;
 mod support;
@@ -44,51 +53,48 @@ mod tablepro;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use tuisnap::grouped::{self, GroupedStore};
-use tuisnap::{Profile, VENDORED_FACES};
+use support::{COMMITTED, LEGACY_EXTS};
 
-const STORE_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
+fn known_ext(ext: &str) -> bool {
+    LEGACY_EXTS.contains(&ext) || COMMITTED.iter().any(|a| a.ext() == ext)
+}
 
 /// Cheap non-PTY gate: committed `snapshots/` names match the suite, each
-/// scenario is `group/sub_group/leaf` with exactly four artifacts, and the
-/// legacy `shots/` corpus is gone.
+/// scenario is `group/sub_group/<cols>x<rows>/<color>` with exactly the
+/// [`COMMITTED`] artifacts (re-approved groups) or the legacy tuisnap four
+/// (groups pending re-approval), and the legacy `shots/` corpus is gone.
 #[test]
 fn store_integrity() {
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let approved = manifest.join("snapshots");
-    let store = GroupedStore::new(&approved);
-    let store_names: BTreeSet<String> = store
-        .approved_names()
-        .expect("list approved names")
-        .into_iter()
-        .collect();
-
+    let approved = support::approved_root();
     let (by_name, extra) = walk_store(&approved);
     assert!(
         extra.is_empty(),
-        "snapshots/ has files that are not .ansi/.txt/.png/.html: {}",
+        "snapshots/ has files outside the committed artifact set: {}",
         extra.join(", ")
     );
+    let store_names: BTreeSet<String> = by_name.keys().cloned().collect();
 
+    let committed: BTreeSet<String> = COMMITTED.iter().map(|a| a.ext().to_string()).collect();
+    let legacy: BTreeSet<String> = LEGACY_EXTS.iter().map(|e| e.to_string()).collect();
     let mut incomplete = Vec::new();
     for (name, exts) in &by_name {
-        let missing: Vec<_> = STORE_EXTS
-            .iter()
-            .copied()
-            .filter(|ext| !exts.contains(*ext))
-            .collect();
-        if !missing.is_empty() || exts.len() != STORE_EXTS.len() {
-            incomplete.push(format!("{name} has {exts:?} (missing {missing:?})"));
+        let want = if support::is_reapproved(name) {
+            &committed
+        } else {
+            &legacy
+        };
+        if exts != want {
+            incomplete.push(format!("{name} has {exts:?}, expected {want:?}"));
         }
     }
     assert!(
         incomplete.is_empty(),
-        "every scenario needs exactly four artifacts (.ansi/.txt/.png/.html): {}",
+        "scenarios with the wrong artifact set: {}",
         incomplete.join("; ")
     );
 
     for name in &store_names {
-        grouped::validate_name(name).unwrap_or_else(|e| panic!("{e}"));
+        tuiscotti::grouped::validate_name(name).unwrap_or_else(|e| panic!("{e}"));
         let slashes = name.bytes().filter(|&b| b == b'/').count();
         assert!(
             slashes >= 2,
@@ -136,7 +142,7 @@ fn store_integrity() {
     );
 
     assert!(
-        !Path::new("shots").exists(),
+        !Path::new(env!("CARGO_MANIFEST_DIR")).join("shots").exists(),
         "legacy shots/ corpus must be deleted"
     );
 }
@@ -171,7 +177,7 @@ fn walk_store_dir(
             extra.push(rel);
             continue;
         };
-        if STORE_EXTS.contains(&ext) {
+        if known_ext(ext) {
             by_name
                 .entry(name.to_string())
                 .or_default()
@@ -194,24 +200,45 @@ fn posix_rel(root: &Path, path: &Path) -> String {
         .join("/")
 }
 
-/// Write a fast file-link index at `target/tuisnap/report.html`. Does not
-/// re-render PNGs and does not embed them. Per-capture `#[ignore]` tests are
-/// the gate; this only indexes on-disk actual vs approved bytes.
+/// Explicit, local-only approval: copy the reviewed actuals under
+/// `target/tuiscotti/actual/<VISUAL_ACCEPT prefix>` into `snapshots/`,
+/// exactly the [`COMMITTED`] artifacts, removing any other legacy artifact
+/// of an accepted scenario so the store follows the format set. Requires
+/// `VISUAL_ACCEPT` (a capture-name prefix, `*` for everything); never run
+/// in CI. tuiscotti's `GroupedStore::accept_all` always copies all four
+/// artifacts, so it cannot follow a smaller format set.
 #[test]
-#[ignore = "rebuilds target/tuisnap/report.html; run after accept; skip with --skip rebuild_review_html"]
-fn rebuild_review_html() {
-    let store = support::store();
-    let mut renderer = Profile::default_profile()
-        .renderer(&VENDORED_FACES)
-        .expect("vendored faces parse");
-    let report = store
-        .report_with(&mut renderer, 1.0, "tuisnap visual report")
-        .expect("report generation");
-    eprintln!(
-        "report: {} ({} captures, {} failed)",
-        report.path.display(),
-        report.outcomes.len(),
-        report.failed()
+#[ignore = "approves reviewed actuals into snapshots/; set VISUAL_ACCEPT=<prefix> and run explicitly"]
+fn accept_actuals() {
+    let prefix = std::env::var("VISUAL_ACCEPT")
+        .expect("set VISUAL_ACCEPT=<capture-name prefix> (or `*`) to approve actuals");
+    let prefix = if prefix == "*" { String::new() } else { prefix };
+    let actual = support::actual_root();
+    let approved = support::approved_root();
+    let (actuals, _) = walk_store(&actual);
+    let mut accepted = 0usize;
+    for name in actuals.keys().filter(|n| n.starts_with(&prefix)) {
+        for ext in LEGACY_EXTS {
+            let target = approved.join(format!("{name}.{ext}"));
+            if !COMMITTED.iter().any(|a| a.ext() == ext) && target.exists() {
+                std::fs::remove_file(&target)
+                    .unwrap_or_else(|e| panic!("remove {}: {e}", target.display()));
+            }
+        }
+        for artifact in COMMITTED {
+            let source = actual.join(format!("{name}.{}", artifact.ext()));
+            let target = approved.join(format!("{name}.{}", artifact.ext()));
+            std::fs::create_dir_all(target.parent().expect("nested name"))
+                .unwrap_or_else(|e| panic!("mkdir for {}: {e}", target.display()));
+            std::fs::copy(&source, &target).unwrap_or_else(|e| {
+                panic!("copy {} -> {}: {e}", source.display(), target.display())
+            });
+        }
+        accepted += 1;
+    }
+    eprintln!("accepted {accepted} scenario(s) under `{prefix}`");
+    assert!(
+        accepted > 0,
+        "no actuals under target/tuiscotti/actual/{prefix}"
     );
-    assert_eq!(report.failed(), 0, "unmatched gates — review report.html");
 }
