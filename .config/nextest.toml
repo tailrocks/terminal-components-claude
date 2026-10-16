@@ -3,7 +3,9 @@
 #
 # Default: `cargo nextest run`
 # Visual baseline: `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`
-# HTML report: `cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'`
+#   (groups pending tuiscotti re-approval also need `VISUAL_FULL=1`)
+# Approve reviewed actuals (local only):
+#   `VISUAL_ACCEPT=<prefix> cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'`
 
 [test-groups]
 # Real TUI binaries in PTYs; cap concurrency so boot does not starve.
@@ -12,9 +14,8 @@ pty = { max-threads = 8 }
 [profile.default]
 fail-fast = false
 slow-timeout = { period = "60s" }
-# The HTML report re-verifies every actual; it is a publish step, not the
-# capture gate.
-default-filter = "not test(rebuild_review_html)"
+# Approval writes snapshots/; it never runs as part of a gate.
+default-filter = "not test(=accept_actuals)"
 
 [[profile.default.overrides]]
 filter = "binary(visual_baseline)"

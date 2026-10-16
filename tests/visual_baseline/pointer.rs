@@ -16,9 +16,7 @@
 
 use std::time::Duration;
 
-use tuisnap::pty::{MouseButton, Scroll, Session};
-
-use crate::support::{self, Case, Color, HOLLA, SHOWCASE, TABLEPRO};
+use crate::support::{self, Case, Color, HOLLA, MouseButton, SHOWCASE, Scroll, Session, TABLEPRO};
 
 const SHOWCASE_BOOT: &str = "Junie Design system";
 const HOLLA_BOOT: &str = "holla❯";
@@ -27,23 +25,14 @@ const HOLLA_BOOT: &str = "holla❯";
 /// waiting until it appears. The hand-off to the pointer calls swaps the
 /// axes (they take `(col, row)`).
 fn find(s: &mut Session, needle: &str) -> (u16, u16) {
-    let mut hit = None;
-    s.wait_until(|screen| {
-        hit = screen.find(needle);
-        hit.is_some()
-    })
-    .unwrap_or_else(|e| panic!("`{needle}` never appeared: {e:#}"));
-    hit.expect("wait_until passed with the needle on screen")
+    s.find(needle).unwrap_or_else(|e| panic!("{e}"))
 }
 
-/// Bare-pointer move. termlens models clicks, drags and the wheel but has no
-/// button-less motion report, so the bytes a real terminal sends for one are
-/// written verbatim: every app enables SGR any-motion tracking
-/// (`?1003h` + `?1006h` via crossterm's `EnableMouseCapture`), where a move
-/// to `(col, row)` is `CSI < 35 ; col+1 ; row+1 M`.
+/// Bare-pointer move: a button-less motion report. Every app enables SGR
+/// any-motion tracking (`?1003h` + `?1006h` via crossterm's
+/// `EnableMouseCapture`); tuiscotti refuses the move otherwise.
 fn mouse_move(s: &mut Session, col: u16, row: u16) {
-    s.type_text(&format!("\x1b[<35;{};{}M", col + 1, row + 1))
-        .expect("mouse move report");
+    s.mouse_move(col, row).expect("mouse move report");
 }
 
 fn hover_over(s: &mut Session, needle: &str) {
