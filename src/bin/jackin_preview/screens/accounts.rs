@@ -27,7 +27,7 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::splitter::Splitter;
-use junie_tui::widgets::viewport::{Span, render_spans};
+use junie_tui::widgets::viewport::{Span, render_spans, wrap_spans};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -1755,6 +1755,16 @@ impl AccountsScreen {
                     Line::Text(v, tone) => {
                         for p in junie_tui::ui::text::wrap(&v, body.width as usize) {
                             rendered.push(Line::Text(p, tone));
+                        }
+                    }
+                    Line::PropSpans(k, spans) => {
+                        // toned parts wrap like a plain value (the Health line)
+                        let vw = body.width.saturating_sub(label_w) as usize;
+                        for (i, p) in wrap_spans(&spans, vw.max(8)).into_iter().enumerate() {
+                            rendered.push(Line::PropSpans(
+                                if i == 0 { k.clone() } else { String::new() },
+                                p,
+                            ));
                         }
                     }
                     other => rendered.push(other),
