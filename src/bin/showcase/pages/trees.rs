@@ -1,26 +1,90 @@
+//! Trees (plan §7, SC15): the `TreeView`.
+//!
+//! Playground: a project tree with a row menu and the selection read back,
+//! and a connections tree whose environment glyphs carry their own tone, a
+//! degraded node's label its tone, an empty folder a note, and lazy nodes
+//! that load their children (busy, then `set_children`) when first
+//! expanded (`TreeAction::Expand`). The built trees and the last
+//! `TreeAction` are read back. Options: every `TreeView` builder. States:
+//! the tree by itself in every state it has. Hints name only keys the
+//! tree's `NavKeys` deliver.
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::page_options;
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::keymap::{KeyBinding, NavKeys, hint_key};
+use junie_tui::core::scroll::{Scrollable, TrackClick};
+use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
 use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::tree::TreeView;
+use junie_tui::widgets::tree::{BranchAction, TreeAction, TreeCmd, TreeNode, TreeView};
 use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("trees");
 const MENU: WidgetId = WidgetId::of("trees.menu");
+/// The project tree and the connections tree.
+pub const PROJECT: WidgetId = ID.sub("tree");
+pub const CONNECTIONS: WidgetId = ID.sub("connections");
+
+/// Ticks a lazy node takes to load.
+const LOAD_TICKS: u8 = 4;
+
+/// The connections (demo data): environments with lazy databases.
+fn connections() -> Vec<TreeNode> {
+    vec![
+        TreeNode::dir(
+            "production",
+            vec![
+                TreeNode::lazy("orders-db").meta("postgres"),
+                TreeNode::lazy("billing-db").meta("postgres"),
+                TreeNode::leaf_meta("replica-eu", "lag 4.2 s").label_tone(Tone::Warning),
+            ],
+        )
+        .glyph("◆")
+        .glyph_tone(Tone::Danger),
+        TreeNode::dir(
+            "staging",
+            vec![TreeNode::lazy("orders-db").meta("postgres")],
+        )
+        .glyph("◇")
+        .glyph_tone(Tone::Warning),
+        TreeNode::dir("archive", vec![TreeNode::note("No connections")]).glyph("○"),
+    ]
+}
+
+/// What a lazy node loads (demo data).
+fn tables() -> Vec<TreeNode> {
+    vec![
+        TreeNode::leaf_meta("customers", "48k rows"),
+        TreeNode::leaf_meta("orders", "1.2M rows"),
+        TreeNode::leaf_meta("refunds", "3k rows"),
+    ]
+}
 
 pub struct TreesPage {
+    template: Template,
     tree: TreeView,
+    conns: TreeView,
+    /// The lazy node loading and the ticks left.
+    loading: Option<(Vec<usize>, u8)>,
+    /// What the trees reported last.
+    last: String,
     /// The row menu and the visible row it is about.
     menu: RowMenu<usize>,
+    /// Value indices of the page options, in `page_options` order.
+    opts: Vec<usize>,
 }
 
 /// What the row menu's items do.
@@ -34,10 +98,161 @@ enum RowAction {
 
 impl TreesPage {
     pub fn new() -> Self {
-        Self {
-            tree: TreeView::new(ID.sub("tree"), crate::data::project_tree()),
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            tree: TreeView::new(PROJECT, crate::data::project_tree()),
+            conns: TreeView::new(CONNECTIONS, connections()),
+            loading: None,
+            last: "—".into(),
             menu: RowMenu::default(),
+            opts: page_options(PageId::Trees)
+                .iter()
+                .map(|o| o.default)
+                .collect(),
+        };
+        page.conns.expanded.insert(vec![0]);
+        page.conns.flatten();
+        page.rebuild();
+        page
+    }
+
+    /// The connections tree (tests read it back).
+    #[allow(dead_code)]
+    pub fn conns(&self) -> &TreeView {
+        &self.conns
+    }
+
+    /// The value of option `key` as the table spells it.
+    fn opt(&self, key: &str) -> &'static str {
+        let table = page_options(PageId::Trees);
+        let i = table
+            .iter()
+            .position(|o| o.key == key)
+            .unwrap_or_else(|| panic!("no option {key}"));
+        table[i].values[self.opts[i]]
+    }
+
+    /// `t` with the options applied through its builders.
+    fn build(&self, t: TreeView) -> TreeView {
+        let mut t = t
+            .branch_activate(match self.opt("trees.branch") {
+                "activate" => BranchAction::Activate,
+                "both" => BranchAction::Both,
+                _ => BranchAction::Toggle,
+            })
+            .row_click_toggles(self.opt("trees.row_click") == "on")
+            .indent(self.opt("trees.indent").parse().unwrap_or(2))
+            .divider(self.opt("trees.divider") == "on")
+            .alt_click_recursive(self.opt("trees.alt_click") == "on")
+            .reserve_right(self.opt("trees.reserve_right").parse().unwrap_or(0))
+            .show_meta(self.opt("trees.show_meta") == "on")
+            .track_click(match self.opt("trees.track_click") {
+                "jump" => TrackClick::Jump,
+                _ => TrackClick::Page,
+            })
+            .nav(match self.opt("trees.nav") {
+                "vim" => NavKeys::VIM,
+                _ => NavKeys::default(),
+            })
+            .wrap(self.opt("trees.wrap") == "on")
+            .type_ahead(self.opt("trees.type_ahead") == "on")
+            .selected_marker(match self.opt("trees.marker") {
+                "chevron" => Some("›"),
+                _ => None,
+            });
+        if self.opt("trees.keymap") == "custom" {
+            t = t.keymap(vec![
+                (KeyBinding::char('e'), TreeCmd::ExpandAll),
+                (KeyBinding::char('c'), TreeCmd::CollapseAll),
+            ]);
         }
+        t
+    }
+
+    /// Rebuild both trees through their builders, keeping their nodes,
+    /// open folders, cursor and selection.
+    fn rebuild(&mut self) {
+        let keep = |old: &TreeView, new: TreeView| {
+            let mut new = new;
+            new.nodes = old.nodes.clone();
+            new.expanded = old.expanded.clone();
+            new.selected = old.selected.clone();
+            new.cursor = old.cursor;
+            new.flatten();
+            new
+        };
+        let tree = self.build(TreeView::new(PROJECT, vec![]));
+        self.tree = keep(&self.tree, tree);
+        let conns = self.build(TreeView::new(CONNECTIONS, vec![]));
+        self.conns = keep(&self.conns, conns);
+    }
+
+    fn tree_mut(&mut self, id: WidgetId) -> Option<&mut TreeView> {
+        [&mut self.tree, &mut self.conns]
+            .into_iter()
+            .find(|t| t.id == id)
+    }
+
+    /// What a tree reported.
+    fn on_action(&mut self, id: WidgetId, a: Option<TreeAction>, cx: &mut PageCtx) {
+        let Some(a) = a else { return };
+        let t = if id == CONNECTIONS {
+            &mut self.conns
+        } else {
+            &mut self.tree
+        };
+        let name =
+            |t: &TreeView, p: &[usize]| t.node(p).map(|n| n.label.clone()).unwrap_or_default();
+        match a {
+            TreeAction::Expand(p) => {
+                self.last = format!("Expand({})", name(t, &p));
+                // a lazy node: fetch its children (here, a few ticks)
+                t.set_busy(&p, true);
+                self.loading = Some((p, LOAD_TICKS));
+            }
+            TreeAction::Activate(p) => {
+                self.last = format!("Activate({})", name(t, &p));
+                cx.status(format!("Opened {}", name(t, &p)));
+            }
+        }
+    }
+
+    /// The trees as built, read back.
+    fn readout(&self) -> Vec<String> {
+        let t = &self.tree;
+        let keys = format!(
+            "{} TreeCmd::ExpandAll · {} TreeCmd::CollapseAll",
+            hint_key(&t.keymap, TreeCmd::ExpandAll).unwrap_or("none"),
+            hint_key(&t.keymap, TreeCmd::CollapseAll).unwrap_or("none"),
+        );
+        vec![
+            format!(
+                "branch_activate {:?} · row_click_toggles {} · indent {} · divider {} · alt_click_recursive {} · reserve_right {} · show_meta {}",
+                t.branch_activate,
+                t.row_click_toggles,
+                t.indent,
+                t.divider,
+                t.alt_click_recursive,
+                t.reserve_right,
+                t.show_meta,
+            ),
+            format!(
+                "nav {} · wrap {} · type-ahead {} · track_click {:?} · selected_marker {:?} · {keys}",
+                if t.nav == NavKeys::VIM {
+                    "vim"
+                } else {
+                    "default"
+                },
+                t.wrap,
+                if t.type_ahead { "on" } else { "off" },
+                t.scroll.track_click.unwrap_or_default(),
+                t.selected_marker,
+            ),
+            format!(
+                "last TreeAction: {}   (TreeAction::Expand on a lazy node · TreeAction::Activate on a leaf, or a branch per branch_activate)",
+                self.last
+            ),
+        ]
     }
 
     /// What visible row `i` offers: only what the tree's keys already do.
@@ -61,12 +276,16 @@ impl TreesPage {
             };
             (RowAction::Open, open)
         };
-        let collapse = MenuItem::new("Collapse all").shortcut("-");
+        let shortcut = |m: MenuItem, c| match hint_key(&self.tree.keymap, c) {
+            Some(k) => m.shortcut(k),
+            None => m,
+        };
+        let collapse = shortcut(MenuItem::new("Collapse all"), TreeCmd::CollapseAll);
         vec![
             (first.0, first.1.separator()),
             (
                 RowAction::ExpandAll,
-                MenuItem::new("Expand all").shortcut("*"),
+                shortcut(MenuItem::new("Expand all"), TreeCmd::ExpandAll),
             ),
             (
                 RowAction::CollapseAll,
@@ -96,21 +315,18 @@ impl TreesPage {
         match action {
             RowAction::Open => self.tree.on_key(&plain(KeyCode::Enter)).0,
             RowAction::Fold => self.tree.toggle(row).0,
-            RowAction::ExpandAll => self.tree.on_key(&plain(KeyCode::Char('*'))).0,
-            RowAction::CollapseAll => self.tree.on_key(&plain(KeyCode::Char('-'))).0,
+            RowAction::ExpandAll => {
+                self.tree.expand_all();
+                Outcome::Changed
+            }
+            RowAction::CollapseAll => {
+                self.tree.collapse_all();
+                Outcome::Changed
+            }
         }
     }
-}
 
-impl Page for TreesPage {
-    fn title(&self) -> &'static str {
-        "Trees"
-    }
-    fn blurb(&self) -> &'static str {
-        "Indent carries hierarchy; the focus bar never moves"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, (area.width * 3 / 5).max(30), 2);
         let panel = Panel::card(Some("Project")).focused(ctx.interaction.focused(self.tree.id));
@@ -123,9 +339,8 @@ impl Page for TreesPage {
         let panel = Panel::card(Some("Selection"));
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(10)), buf, t);
-        let sel = self.tree.selected.clone();
         let mut y = inner.y;
-        match sel {
+        match self.tree.selected.clone() {
             Some(path) => {
                 let mut nodes = &self.tree.nodes;
                 let mut parts = Vec::new();
@@ -136,7 +351,7 @@ impl Page for TreesPage {
                 buf.set_string(
                     inner.x,
                     y,
-                    junie_tui::ui::text::truncate(&parts.join("/"), inner.width as usize),
+                    text::truncate(&parts.join("/"), inner.width as usize),
                     t.primary().bg(bg),
                 );
                 y += 1;
@@ -156,53 +371,168 @@ impl Page for TreesPage {
         y += 2;
         let rows = self.tree.rows();
         let cur = &rows[self.tree.cursor.min(rows.len().saturating_sub(1))];
-        buf.set_string(inner.x, y, "cursor", t.faint().bg(bg));
-        buf.set_string(
-            inner.x + 8,
-            y,
-            junie_tui::ui::text::truncate(&cur.label, inner.width.saturating_sub(8) as usize),
-            t.secondary().bg(bg),
-        );
-        y += 1;
-        buf.set_string(inner.x, y, "visible", t.faint().bg(bg));
-        buf.set_string(
-            inner.x + 8,
-            y,
-            format!("{} rows", rows.len()),
-            t.secondary().bg(bg),
-        );
-        y += 1;
-        buf.set_string(inner.x, y, "open", t.faint().bg(bg));
-        buf.set_string(
-            inner.x + 8,
-            y,
-            format!("{} folders", self.tree.expanded.len()),
-            t.secondary().bg(bg),
-        );
+        for (k, v) in [
+            ("cursor", cur.label.clone()),
+            ("visible", format!("{} rows", rows.len())),
+            ("open", format!("{} folders", self.tree.expanded.len())),
+        ] {
+            if y >= inner.bottom() {
+                break;
+            }
+            buf.set_string(inner.x, y, k, t.faint().bg(bg));
+            buf.set_string(
+                inner.x + 8,
+                y,
+                text::truncate(&v, inner.width.saturating_sub(8) as usize),
+                t.secondary().bg(bg),
+            );
+            y += 1;
+        }
+
+        // the connections: toned glyphs, a toned label, a note, lazy nodes
+        let top = r.y + r.height.min(10) + 1;
+        if top + 4 < r.bottom() {
+            let meta = if self.loading.is_some() {
+                "loading…"
+            } else {
+                "→ loads a database"
+            };
+            let panel = Panel::card(Some("Connections"))
+                .meta(meta)
+                .focused(ctx.interaction.focused(self.conns.id));
+            let bg = panel.bg(t);
+            let card = Rect::new(
+                r.x,
+                top,
+                r.width,
+                (card.bottom().saturating_sub(top)).max(6),
+            );
+            let inner = panel.render(card, buf, t);
+            self.conns.render(inner, buf, ctx, bg);
+        }
+
+        // the built trees, read back
+        let mut y = card.bottom() + 1;
+        for line in self.readout() {
+            for l in text::wrap(&line, area.width as usize) {
+                if y >= area.bottom() {
+                    break;
+                }
+                buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
+                y += 1;
+            }
+        }
         self.menu.render(area, buf, ctx);
+    }
+}
+
+/// The States grid: a small tree, drawn by itself.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let mut files = TreeView::new(
+        id.child(0),
+        vec![
+            TreeNode::dir(
+                "src",
+                vec![
+                    TreeNode::leaf_meta("main.rs", "1.2 KB"),
+                    TreeNode::leaf_meta("lib.rs", "640 B"),
+                ],
+            ),
+            TreeNode::lazy("target"),
+        ],
+    );
+    files.expanded.insert(vec![0]);
+    files.flatten();
+    let mut envs = TreeView::new(id.child(1), connections());
+    envs.expanded.insert(vec![0]);
+    envs.flatten();
+    StateGrid::new(id)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Selected,
+            Busy,
+            Overflow,
+            Narrow,
+        ])
+        .column_width(30)
+        .column("Files", files)
+        .column("Connections", envs)
+}
+
+impl Page for TreesPage {
+    fn title(&self) -> &'static str {
+        "Trees"
+    }
+    fn blurb(&self) -> &'static str {
+        "Indent carries hierarchy; the focus bar never moves"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
     }
 
     fn layer_open(&self) -> bool {
-        self.menu.hides_page_focus()
+        self.menu.hides_page_focus() || self.template.popup_open()
+    }
+
+    fn animating(&self) -> bool {
+        self.loading.is_some()
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let PageEvent::Tick = ev
+            && let Some((path, left)) = self.loading.as_mut()
+        {
+            *left = left.saturating_sub(1);
+            if *left == 0 {
+                let path = path.clone();
+                self.loading = None;
+                // the owner hands the loaded children back
+                for t in [&mut self.tree, &mut self.conns] {
+                    if t.node(&path).is_some_and(|n| n.busy) {
+                        t.set_children(&path, tables());
+                    }
+                }
+            }
+            return Outcome::Changed;
+        }
         if let Some((out, chosen)) = self.menu.handle(ev) {
             return match chosen {
                 Some((row, i)) => self.choose(row, i).or(out),
                 None => out,
             };
         }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
         match ev {
             PageEvent::Key(key) => {
-                if !cx.focus.is(self.tree.id) {
-                    return Outcome::Ignored;
-                }
-                if let Some(req) = self.menu.config.on_key(&self.tree, key) {
+                if cx.focus.is(self.tree.id)
+                    && let Some(req) = self.menu.config.on_key(&self.tree, key)
+                {
                     self.open_menu(req);
                     return Outcome::Changed;
                 }
-                self.tree.on_key(key).0
+                let Some(id) = cx.focus.current() else {
+                    return Outcome::Ignored;
+                };
+                let Some(t) = self.tree_mut(id) else {
+                    return Outcome::Ignored;
+                };
+                let (o, a) = t.on_key(key);
+                self.on_action(id, a, cx);
+                o
             }
             PageEvent::Secondary { id, pos } => {
                 let cfg = self.menu.config;
@@ -214,34 +544,101 @@ impl Page for TreesPage {
                 Outcome::Changed
             }
             PageEvent::Click { id, pos } => {
-                if let Some((row, toggle)) = self.tree.locate(*id) {
-                    cx.focus.focus(self.tree.id);
-                    // Alt-click opens or closes the whole subtree
-                    return self.tree.on_click_with(row, toggle, cx.mods).0;
-                }
-                if *id == scrollbar::id_for(self.tree.id) {
-                    return self.tree.on_scrollbar(*pos);
+                let mods = cx.mods;
+                for tid in [PROJECT, CONNECTIONS] {
+                    let Some(t) = self.tree_mut(tid) else {
+                        continue;
+                    };
+                    if let Some((row, toggle)) = t.locate(*id) {
+                        cx.focus.focus(tid);
+                        // Alt-click opens or closes the whole subtree
+                        let (o, a) = t.on_click_with(row, toggle, mods);
+                        self.on_action(tid, a, cx);
+                        return o;
+                    }
+                    if *id == scrollbar::id_for(tid) {
+                        return t.on_scrollbar(*pos);
+                    }
                 }
                 Outcome::Ignored
             }
-            PageEvent::Drag { pressed, pos } if *pressed == scrollbar::id_for(self.tree.id) => {
-                self.tree.on_scrollbar_drag(*pos)
+            PageEvent::Drag { pressed, pos } => {
+                for t in [&mut self.tree, &mut self.conns] {
+                    if *pressed == scrollbar::id_for(t.id) {
+                        return t.on_scrollbar_drag(*pos);
+                    }
+                }
+                Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } if self.tree.owns(*id) => self.tree.on_wheel(*delta),
+            PageEvent::Wheel { id, delta } => {
+                for t in [&mut self.tree, &mut self.conns] {
+                    if t.owns(*id) {
+                        return t.on_wheel(*delta);
+                    }
+                }
+                Outcome::Ignored
+            }
             _ => Outcome::Ignored,
         }
     }
 
-    fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.menu.is_open() {
             return MENU_HINTS.to_vec();
         }
-        vec![
-            ("↑↓", "Move"),
-            ("←→", "Fold / unfold"),
-            ("Enter", "Open"),
-            ("*", "Expand all"),
-            OPEN_HINT,
-        ]
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        // only keys the tree's NavKeys and key map deliver
+        let t = if focus == Some(self.conns.id) {
+            &self.conns
+        } else {
+            &self.tree
+        };
+        let mut hints = Vec::new();
+        if let Some(k) = t.nav.move_hint(t.type_ahead) {
+            hints.push((k, "Move"));
+        }
+        if t.nav.arrows {
+            hints.push(("←→", "Fold / unfold"));
+        }
+        hints.push(("Enter", "Open"));
+        if let Some(k) = t.nav.ends_hint(t.type_ahead) {
+            hints.push((k, "Ends"));
+        }
+        if let Some(k) = hint_key(&t.keymap, TreeCmd::ExpandAll) {
+            hints.push((k, "Expand all"));
+        }
+        if focus == Some(self.tree.id) {
+            hints.push(OPEN_HINT);
+        }
+        hints
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        let i = page_options(PageId::Trees)
+            .iter()
+            .position(|o| o.key == key)?;
+        Some(self.opts[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let table = page_options(PageId::Trees);
+        if let Some(i) = table.iter().position(|o| o.key == key) {
+            self.opts[i] = value.min(table[i].values.len() - 1);
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }

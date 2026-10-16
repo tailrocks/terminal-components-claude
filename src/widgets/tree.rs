@@ -1168,6 +1168,76 @@ impl Navigable for TreeView {
     }
 }
 
+/// Rows a [`TreeView`] sample shows in a States grid.
+const SPECIMEN_ROWS: usize = 4;
+
+/// A tree drawn alone, in a forced state, for a States grid
+/// ([`crate::ui::specimen`]): its first visible rows with the cursor on
+/// the second. Hover and press land on the cursor row (where the pointer
+/// would be), selected opens it (the selected leaf), busy shows the first
+/// branch loading, overflow lengthens the cursor row's label past the row.
+impl crate::ui::specimen::Specimen for TreeView {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(
+            state,
+            Rest | Hover | Pressed | Focused | FocusedHover | Selected | Busy | Overflow | Narrow
+        )
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        self.rows.len().clamp(1, SPECIMEN_ROWS) as u16
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut t = self.clone();
+        t.flatten();
+        t.cursor = 1.min(t.rows.len().saturating_sub(1));
+        let path = t.rows.get(t.cursor).map(|r| r.path.clone());
+        match (state, path) {
+            (Selected, Some(p)) => t.selected = Some(p),
+            (Overflow, Some(p)) => {
+                if let Some(n) = t.node_mut(&p) {
+                    n.label = format!("{} and a label far longer than its row", n.label);
+                }
+                t.flatten();
+            }
+            (Busy, _) => {
+                if let Some(p) = t
+                    .rows
+                    .iter()
+                    .find(|r| r.has_children)
+                    .map(|r| r.path.clone())
+                {
+                    t.set_busy(&p, true);
+                }
+            }
+            _ => {}
+        }
+        let v = state.visual();
+        if v.hovered {
+            ctx.interaction.hover = Some(t.row_id(t.cursor));
+            if v.pressed {
+                ctx.interaction.pressed = Some(t.row_id(t.cursor));
+            }
+        }
+        crate::ui::ctx::fill(buf, area, ratatui::style::Style::new().bg(bg));
+        t.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod identity_tests {
     use super::*;
