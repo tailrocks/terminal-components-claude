@@ -2921,4 +2921,99 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::menu::UnknownKey::Swallow",
         Option("menus", "menus.unknown_key=swallow"),
     ),
+    // Focus & navigation (SC28)
+    (
+        "core::event::InputConfig",
+        Option("focusnavigation", "shell.shift_wheel_horizontal"),
+    ),
+    (
+        "core::focus::FocusRing",
+        Demo("focusnavigation", "Ring reading order"),
+    ),
+    (
+        "core::focus::FocusFallback",
+        Option("focusnavigation", "shell.focus_fallback"),
+    ),
+    (
+        "core::focus::FocusFallback::Nearest",
+        Option("focusnavigation", "shell.focus_fallback=nearest"),
+    ),
+    (
+        "core::focus::FocusFallback::First",
+        Option("focusnavigation", "shell.focus_fallback=first"),
+    ),
+    (
+        "core::focus::FocusChange",
+        Demo("focusnavigation", "Change none yet"),
+    ),
+    ("core::focus::Focus", Demo("focusnavigation", "Focus ring")),
+    (
+        "core::keyboard::KeyboardProtocol",
+        Option("focusnavigation", "shell.keyboard_protocol"),
+    ),
+    (
+        "core::keyboard::KeyboardProtocol::Auto",
+        Option("focusnavigation", "shell.keyboard_protocol=auto"),
+    ),
+    (
+        "core::keyboard::KeyboardProtocol::On",
+        Option("focusnavigation", "shell.keyboard_protocol=on"),
+    ),
+    (
+        "core::keyboard::KeyboardProtocol::Off",
+        Option("focusnavigation", "shell.keyboard_protocol=off"),
+    ),
+    (
+        "core::keyboard::ProtocolState",
+        Demo("focusnavigation", "On pushes ESC[>5u"),
+    ),
+    ("core::keymap::Nav", Demo("focusnavigation", "Nav map")),
+    ("core::keymap::Nav::Up", Demo("focusnavigation", "Up ↑")),
+    ("core::keymap::Nav::Down", Demo("focusnavigation", "Down ↓")),
+    ("core::keymap::Nav::Left", Demo("focusnavigation", "Left ←")),
+    (
+        "core::keymap::Nav::Right",
+        Demo("focusnavigation", "Right →"),
+    ),
+    (
+        "core::keymap::Nav::PageUp",
+        Demo("focusnavigation", "PageUp PgUp"),
+    ),
+    (
+        "core::keymap::Nav::PageDown",
+        Demo("focusnavigation", "PageDown PgDn"),
+    ),
+    (
+        "core::keymap::Nav::Home",
+        Demo("focusnavigation", "Home Home"),
+    ),
+    ("core::keymap::Nav::End", Demo("focusnavigation", "End End")),
+    (
+        "core::keymap::NavKeys",
+        Option("focusnavigation", "focusnavigation.nav"),
+    ),
+    (
+        "core::keymap::NavKeys::vim",
+        Option("focusnavigation", "focusnavigation.nav=vim"),
+    ),
+    (
+        "core::keymap::NavKeys::page",
+        Option("focusnavigation", "focusnavigation.nav=no-page"),
+    ),
+    (
+        "core::keymap::NavKeys::home_end",
+        Option("focusnavigation", "focusnavigation.nav=no-home-end"),
+    ),
+    (
+        "core::keymap::NavKeys::arrows",
+        Option("focusnavigation", "focusnavigation.nav=vim-no-arrows"),
+    ),
+    (
+        "core::keymap::KeyBinding",
+        Demo("focusnavigation", "palette Ctrl+K"),
+    ),
+    (
+        "core::keymap::KeyBinding::shift",
+        Demo("focusnavigation", "back Shift+Tab"),
+    ),
 ];

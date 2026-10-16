@@ -47,9 +47,27 @@ fn start_delay() -> Option<std::time::Duration> {
 /// [`shapes_for`](crate::core::shape::shapes_for).
 ///
 /// An adapter until the shell implements `Application` (plan S7).
+///
+/// `impl_application!(App, input)` also forwards inherent
+/// `input_config(&self) -> InputConfig` and
+/// `keyboard_protocol(&self) -> KeyboardProtocol` methods, for an app whose
+/// input normalisation or keyboard protocol is configurable.
 #[macro_export]
 macro_rules! impl_application {
     ($app:ty) => {
+        $crate::impl_application!(@impl $app {});
+    };
+    ($app:ty, input) => {
+        $crate::impl_application!(@impl $app {
+            fn input_config(&self) -> $crate::core::event::InputConfig {
+                <$app>::input_config(self)
+            }
+            fn keyboard_protocol(&self) -> $crate::core::keyboard::KeyboardProtocol {
+                <$app>::keyboard_protocol(self)
+            }
+        });
+    };
+    (@impl $app:ty { $($extra:item)* }) => {
         impl $crate::runtime::Application for $app {
             fn handle(
                 &mut self,
@@ -69,6 +87,7 @@ macro_rules! impl_application {
             fn shapes(&self) -> $crate::core::shape::Shapes {
                 $crate::core::shape::shapes_for(&self.pointer, &self.hits)
             }
+            $($extra)*
         }
     };
 }
