@@ -190,6 +190,17 @@ remainder recorded here with its reason. Commits are on
 | 24 | Fixed: centring excludes the trailing gap; `Theme::hintbar.align` set once per app | f0cb83a02 |
 | 25 | Fixed: `Spacing::chrome_edge` (2) for menu bars and segment strips | 23ccf0a20 |
 
+### Follow-ups landed later
+
+- **#1, `Stack` scrollbar.** A press on the bare track now follows
+  `Stack::track_click` (default `Jump`; `TrackClick::Page` pages by
+  children), as do the vertical bars of `Dialog` bodies (#2), `StepRail`
+  and `PropsList` (#14): `200e688ad`.
+- **#14, `PropsList` reveal.** `RevealMode::InlineWrap` wraps the cursor
+  row's value in place (the row grows, the rows below move down, a long
+  value scrolls before the sheet) instead of falling back to the
+  tooltip: `580d279f1`.
+
 ### Not done, with reasons
 
 - **#1, `Panel::render` signature.** It still returns `Rect`. Changing it to
