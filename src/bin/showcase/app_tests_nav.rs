@@ -283,7 +283,9 @@ fn slash_filters_the_sidebar_and_enter_opens_the_match() {
         "its group as context"
     );
     assert!(!rows.iter().any(|r| r.contains("Buttons")), "{rows:#?}");
-    assert!(rows[0].contains("grid"), "the query row: {rows:#?}");
+    // the card's title, its padding row, then the query field
+    assert!(rows[0].contains("Components"), "the card title: {rows:#?}");
+    assert!(rows[2].contains("/ grid"), "the query row: {rows:#?}");
     h.key(KeyCode::Enter);
     assert_eq!(h.app.page, PageId::Grid);
     assert!(h.app.nav_filter.is_none(), "opening ends the filter");
@@ -379,9 +381,47 @@ fn the_current_page_marker_is_neutral_unless_the_sidebar_has_focus() {
     let side = h.app.sidebar_area();
     let buf = h.term.backend().buffer();
     assert!(
-        (side.top()..side.bottom())
-            .all(|y| !(buf[(side.x, y)].symbol() == "▎" && buf[(side.x, y)].fg == t.focus)),
+        (side.top()..side.bottom()).all(|y| (side.left()..side.right())
+            .all(|x| !(buf[(x, y)].symbol() == "▎" && buf[(x, y)].fg == t.focus))),
         "{:#?}",
         h.sidebar()
     );
+}
+
+/// The sidebar's card belongs to the tree: its title shows focus-within
+/// (primary and bold, never a second `▎`), and a click on the title or the
+/// padding focuses the tree instead of landing on nothing.
+#[test]
+fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
+    use ratatui::style::Modifier;
+    let mut h = Harness::new(72, 20, PageId::Lists);
+    let t = h.app.theme;
+    h.key(KeyCode::Tab);
+    assert_ne!(h.app.focus.current(), Some(NAV));
+    let side = h.app.sidebar_area();
+    let title = |h: &Harness| h.term.backend().buffer()[(side.x + 1, side.y)].clone();
+    assert_eq!(title(&h).symbol(), "C");
+    assert_eq!(
+        title(&h).fg,
+        t.text_secondary,
+        "at rest the title is secondary"
+    );
+    for (x, y) in [
+        (side.x + 1, side.y),
+        (side.x, side.y + 5),
+        (side.right() - 1, side.bottom() - 1),
+    ] {
+        h.key(KeyCode::Tab);
+        if h.app.focus.current() == Some(NAV) {
+            h.key(KeyCode::Tab);
+        }
+        assert_ne!(h.app.focus.current(), Some(NAV));
+        h.click(x, y);
+        assert_eq!(h.app.focus.current(), Some(NAV), "a click at ({x},{y})");
+        assert_eq!(h.app.page, PageId::Lists, "the padding opens no page");
+    }
+    let cell = title(&h);
+    assert_eq!(cell.fg, t.text_primary);
+    assert!(cell.modifier.contains(Modifier::BOLD));
+    assert_eq!(h.sidebar()[0].matches('▎').count(), 0);
 }
