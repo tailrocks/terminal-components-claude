@@ -48,46 +48,114 @@ impl Prop {
     }
 }
 
-/// Returns the number of rows used.
+/// How a property sheet shares its width between labels and values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Sheet {
+    /// When the full label column would leave the values fewer than
+    /// `value_min` cells, the column shrinks to this share of the width, in
+    /// percent: a label longer than that sits on its own row with its value
+    /// below it, instead of pushing every value off the edge. Default `40`.
+    pub label_max_share: u16,
+    /// The fewest cells the values keep beside the labels. Below it the
+    /// label column is capped ([`Sheet::label_max_share`]), and if that is
+    /// still too little the whole sheet stacks: each label on its own row,
+    /// its value indented below. Default `12`.
+    pub value_min: u16,
+}
+
+impl Default for Sheet {
+    fn default() -> Self {
+        Self {
+            label_max_share: 40,
+            value_min: 12,
+        }
+    }
+}
+
+/// Indent of a value under its own label in a stacked row.
+const STACK_INDENT: u16 = 2;
+
 /// One visual row of a property sheet: the property it belongs to, its
-/// label (first row only) and the value text for that row.
+/// label (first row only), the value text for that row and the column the
+/// value starts at, relative to the sheet.
 struct Row<'a> {
     prop: &'a Prop,
     label: Option<&'a str>,
     value: String,
+    value_x: u16,
 }
 
-fn label_width(props: &[Prop]) -> u16 {
-    props
-        .iter()
-        .map(|p| crate::ui::text::width(&p.label))
-        .max()
-        .unwrap_or(0) as u16
-        + 2
+/// The label column at `width` for labels of these widths (gap included):
+/// as wide as the widest label while the values keep `value_min` cells,
+/// otherwise the widest label within the sheet's share, or `None` when even
+/// that leaves too little and the sheet stacks.
+fn column(widths: impl Iterator<Item = u16> + Clone, width: u16, sheet: Sheet) -> Option<u16> {
+    let full = widths.clone().max().unwrap_or(2);
+    if width.saturating_sub(full) >= sheet.value_min {
+        return Some(full);
+    }
+    let cap = (width as u32 * sheet.label_max_share.min(100) as u32 / 100) as u16;
+    // the widest label that fits the cap sets the column; longer ones stack
+    let label_w = widths.filter(|w| *w <= cap).max().unwrap_or(cap.max(1));
+    (width.saturating_sub(label_w) >= sheet.value_min).then_some(label_w)
+}
+
+fn label_column(props: &[Prop], width: u16, sheet: Sheet) -> Option<u16> {
+    column(
+        props
+            .iter()
+            .map(|p| crate::ui::text::width(&p.label) as u16 + 2),
+        width,
+        sheet,
+    )
+}
+
+fn value_rows<'a>(p: &'a Prop, label: Option<&'a str>, x: u16, vw: usize, out: &mut Vec<Row<'a>>) {
+    if p.wrap {
+        let lines = crate::ui::text::wrap(&p.value, vw.max(4));
+        for (i, line) in lines.into_iter().enumerate() {
+            out.push(Row {
+                prop: p,
+                label: if i == 0 { label } else { None },
+                value: line,
+                value_x: x,
+            });
+        }
+    } else {
+        out.push(Row {
+            prop: p,
+            label,
+            value: crate::ui::text::truncate(&p.value, vw),
+            value_x: x,
+        });
+    }
 }
 
 /// The rows a sheet occupies at `width`, computed once for measuring and
 /// rendering so a dialog sized by `measure` never overflows its frame.
-fn rows(props: &[Prop], width: u16) -> Vec<Row<'_>> {
-    let label_w = label_width(props);
-    let vw = width.saturating_sub(label_w) as usize;
+fn rows(props: &[Prop], width: u16, sheet: Sheet) -> Vec<Row<'_>> {
+    let column = label_column(props, width, sheet);
     let mut out = vec![];
     for p in props {
-        if p.wrap {
-            let lines = crate::ui::text::wrap(&p.value, vw.max(4));
-            for (i, line) in lines.into_iter().enumerate() {
+        match column {
+            // the label fits its column: label and value share a row
+            Some(label_w) if crate::ui::text::width(&p.label) as u16 + 2 <= label_w => {
+                let vw = width.saturating_sub(label_w) as usize;
+                value_rows(p, Some(&p.label), label_w, vw, &mut out);
+            }
+            // a label too long for the column, or a stacked sheet: the
+            // label takes its own row and the value goes under it
+            _ => {
                 out.push(Row {
                     prop: p,
-                    label: (i == 0).then_some(p.label.as_str()),
-                    value: line,
+                    label: Some(&p.label),
+                    value: String::new(),
+                    value_x: 0,
                 });
+                let x = column.unwrap_or(STACK_INDENT.min(width.saturating_sub(1)));
+                let vw = width.saturating_sub(x) as usize;
+                value_rows(p, None, x, vw, &mut out);
             }
-        } else {
-            out.push(Row {
-                prop: p,
-                label: Some(&p.label),
-                value: crate::ui::text::truncate(&p.value, vw),
-            });
         }
     }
     out
@@ -95,27 +163,51 @@ fn rows(props: &[Prop], width: u16) -> Vec<Row<'_>> {
 
 /// Rows the sheet needs at `width`, including wrapped values.
 pub fn measure(props: &[Prop], width: u16) -> u16 {
-    rows(props, width).len() as u16
+    measure_with(props, width, Sheet::default())
 }
 
+/// [`measure`] with explicit column rules.
+pub fn measure_with(props: &[Prop], width: u16, sheet: Sheet) -> u16 {
+    rows(props, width, sheet).len() as u16
+}
+
+/// Draw the sheet; returns the number of rows used.
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, props: &[Prop], bg: Color) -> u16 {
+    render_with(area, buf, t, props, bg, Sheet::default())
+}
+
+/// [`render`] with explicit column rules.
+pub fn render_with(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    props: &[Prop],
+    bg: Color,
+    sheet: Sheet,
+) -> u16 {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return 0;
     }
-    let label_w = label_width(props);
     let mut y = area.y;
-    for row in rows(props, area.width) {
+    for row in rows(props, area.width, sheet) {
         if y >= area.bottom() {
             break;
         }
         if let Some(label) = row.label {
-            buf.set_string(area.x, y, label, t.muted().bg(bg));
+            buf.set_string(
+                area.x,
+                y,
+                crate::ui::text::truncate(label, area.width as usize),
+                t.muted().bg(bg),
+            );
         }
         let style = ratatui::style::Style::new()
             .fg(t.tone(row.prop.tone))
             .bg(bg);
-        buf.set_string(area.x + label_w, y, &row.value, style);
+        if !row.value.is_empty() {
+            buf.set_string(area.x + row.value_x, y, &row.value, style);
+        }
         y += 1;
     }
     y - area.y
@@ -145,6 +237,14 @@ pub struct PropsList {
     pub area: Rect,
     /// Revealing cut values; `reveal.config` overrides the global default.
     pub reveal: RevealState,
+    /// Blank columns between the values and the scrollbar (default
+    /// [`scrollbar::GAP`]).
+    pub scrollbar_gap: u16,
+    /// How the label column shares a row with the values: when the full
+    /// column would starve the values it is capped, and labels longer than
+    /// the cap are cut with `…` (rows never stack in a list). Default
+    /// [`Sheet::default`].
+    pub sheet: Sheet,
 }
 
 impl PropsList {
@@ -158,7 +258,21 @@ impl PropsList {
             area: Rect::ZERO,
             track: Rect::ZERO,
             reveal: RevealState::default(),
+            scrollbar_gap: scrollbar::GAP,
+            sheet: Sheet::default(),
         }
+    }
+
+    /// Blank columns between the values and the scrollbar.
+    pub fn scrollbar_gap(mut self, gap: u16) -> Self {
+        self.scrollbar_gap = gap;
+        self
+    }
+
+    /// How the label column shares a row with the values.
+    pub fn sheet(mut self, sheet: Sheet) -> Self {
+        self.sheet = sheet;
+        self
     }
 
     /// How cut values are revealed (default: [`RenderCtx::reveal`]).
@@ -284,14 +398,21 @@ impl PropsList {
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         let has_sb = self.scroll.overflows();
-        let row_w = area.width.saturating_sub(u16::from(has_sb));
-        let label_w = self
+        let sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
+        let row_w = sp.body.width;
+        // values end one cell short of the row, or the gap short of the bar
+        let value_right = sp.content.right().min(sp.body.right().saturating_sub(1));
+        // the labels start after the 2-cell gutter; a list never stacks, so
+        // a starved sheet keeps its capped column and cuts the longer labels
+        let label_area = row_w.saturating_sub(2);
+        let widths = self
             .props
             .iter()
-            .map(|p| crate::ui::text::width(&p.label))
-            .max()
-            .unwrap_or(0) as u16
-            + 2;
+            .map(|p| crate::ui::text::width(&p.label) as u16 + 2);
+        let label_w = column(widths, label_area, self.sheet).unwrap_or_else(|| {
+            (label_area as u32 * self.sheet.label_max_share.min(100) as u32 / 100) as u16
+        });
+        let label_w = label_w.max(3);
         for (k, i) in self.scroll.visible_range().enumerate() {
             let y = area.y + k as u16;
             let p = &self.props[i];
@@ -310,12 +431,12 @@ impl PropsList {
             buf.set_string(
                 row.x + 2,
                 y,
-                &p.label,
+                crate::ui::text::truncate(&p.label, label_w.saturating_sub(2) as usize),
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
             let vx = row.x + 2 + label_w;
             let hint_w: u16 = if p.copyable && s.focused { 8 } else { 0 };
-            let vw = row.right().saturating_sub(vx + 1 + hint_w) as usize;
+            let vw = value_right.saturating_sub(vx + hint_w) as usize;
             buf.set_string(
                 vx,
                 y,
@@ -340,16 +461,11 @@ impl PropsList {
             ctx.clickable(rid, row);
         }
         self.track = Rect::ZERO;
-        if has_sb {
+        if let Some(sb) = sp.track {
             crate::ui::fade::scroll_edges_except(
                 buf,
                 ctx,
-                Rect::new(
-                    area.x,
-                    area.y,
-                    (area.right() - 1).saturating_sub(area.x),
-                    area.height,
-                ),
+                sp.body,
                 &self.scroll,
                 &self
                     .scroll
@@ -359,7 +475,6 @@ impl PropsList {
                     .into_iter()
                     .collect::<Vec<_>>(),
             );
-            let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
@@ -409,5 +524,87 @@ mod reveal_scroll_tests {
             l.scroll.offset, offset,
             "the reveal scrolled, not the sheet"
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::ui::ctx::Interaction;
+
+    fn sheet_text(props: &[Prop], w: u16) -> Vec<String> {
+        let t = Theme::junie();
+        let area = Rect::new(0, 0, w, 8);
+        let mut buf = Buffer::empty(area);
+        render(area, &mut buf, &t, props, t.canvas);
+        (0..8)
+            .map(|y| {
+                (0..w)
+                    .map(|x| buf[(x, y)].symbol())
+                    .collect::<String>()
+                    .trim_end()
+                    .to_owned()
+            })
+            .collect()
+    }
+
+    /// A long label no longer pushes every value to the edge: it takes its
+    /// own row and the others keep a short column (layout audit #14).
+    #[test]
+    fn a_label_wider_than_its_share_sits_above_its_value() {
+        let props = vec![
+            Prop::new("Name", "orders"),
+            Prop::new("A rather long label for one fact", "value"),
+        ];
+        let lines = sheet_text(&props, 40);
+        assert_eq!(lines[0], "Name  orders");
+        assert_eq!(lines[1], "A rather long label for one fact");
+        assert_eq!(lines[2], "      value");
+        assert_eq!(measure(&props, 40), 3);
+        // with room for the values the column stays as wide as its labels
+        let lines = sheet_text(&props, 60);
+        assert_eq!(lines[0], "Name                              orders");
+    }
+
+    #[test]
+    fn a_sheet_too_narrow_for_its_values_stacks() {
+        let props = vec![Prop::new("Database", "warehouse")];
+        let lines = sheet_text(&props, 16);
+        assert_eq!(lines[0], "Database");
+        assert_eq!(lines[1], "  warehouse");
+        // with the rules relaxed it keeps one row
+        let t = Theme::junie();
+        let area = Rect::new(0, 0, 16, 2);
+        let mut buf = Buffer::empty(area);
+        let sheet = Sheet {
+            label_max_share: 100,
+            value_min: 4,
+        };
+        assert_eq!(render_with(area, &mut buf, &t, &props, t.canvas, sheet), 1);
+    }
+
+    #[test]
+    fn a_props_list_caps_its_label_column() {
+        let mut l = PropsList::new(
+            WidgetId::of("p"),
+            vec![
+                Prop::new("A rather long label for one fact", "value"),
+                Prop::new("Name", "orders"),
+            ],
+        );
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, 40, 2);
+        let mut buf = Buffer::empty(area);
+        l.render(area, &mut buf, &mut ctx, t.canvas);
+        let row: String = (0..40).map(|x| buf[(x, 1)].symbol()).collect();
+        // the label column is capped at 40% of the row: values stay visible
+        assert!(row.contains("orders"), "{row:?}");
+        let first: String = (0..40).map(|x| buf[(x, 0)].symbol()).collect();
+        assert!(first.contains('…') && first.contains("value"), "{first:?}");
     }
 }
