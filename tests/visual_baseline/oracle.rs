@@ -323,7 +323,9 @@ pub fn check_store(store: &Path, expect: &Expect<'_>) -> Result<String, String> 
     for name in &stored {
         let text = std::fs::read_to_string(store.join(format!("{name}.ansi")))
             .map_err(|e| format!("read {name}.ansi: {e}"))?;
-        if crate::ansi_cursor::decode(&text, provenance.clone()).is_none() {
+        let canonical = tuiscotti::formats::ansi::frame_from_ansi(&text, provenance.clone())
+            .is_ok_and(|frame| tuiscotti::render::ansi_dump_with_cursor(&frame) == text);
+        if !canonical {
             return Err(format!(
                 "{name}.ansi is not a normalized SGR dump with one cursor trailer"
             ));
@@ -399,7 +401,9 @@ pub fn store_check_accepts_and_rejects() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, body).unwrap();
     };
-    let ansi = "\x1b[0mx\n\x1b[?25l";
+    // a canonical `.ansi` (blank 1x1 screen, hidden cursor)
+    let blank = tuiscotti::render::frame_from_screen(&tuiscotti::Screen::blank(1, 1), "t");
+    let ansi = &tuiscotti::render::ansi_dump_with_cursor(&blank);
 
     put(MANIFEST, &manifest(true, 0, 0, "", ""));
     assert!(check_store(&store, &expect).is_ok(), "pending skeleton");
@@ -415,6 +419,12 @@ pub fn store_check_accepts_and_rejects() {
         check_store(&store, &expect),
         Ok(format!("oracle v0 at {}: 2 scenario(s)", "a".repeat(40)))
     );
+    put("holla/p/b/72x20/nocolor.ansi", "x\n");
+    assert!(
+        check_store(&store, &expect).is_err(),
+        "no cursor trailer: not canonical"
+    );
+    put("holla/p/b/72x20/nocolor.ansi", ansi);
     put(MANIFEST, &manifest(false, 2, 1, "rev1", &hash));
     assert!(check_store(&store, &expect).is_err(), "wrong count");
     put(MANIFEST, &manifest(false, 1, 1, "rev2", &hash));
