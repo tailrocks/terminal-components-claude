@@ -7,4 +7,5 @@ pub mod hit;
 pub mod id;
 pub mod pointer;
 pub mod scroll;
+pub mod selection;
 pub mod text;
