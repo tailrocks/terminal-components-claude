@@ -47,3 +47,4 @@ pub mod too_small;
 pub mod toolbar;
 pub mod tree;
 pub mod viewport;
+mod viewport_specimen;
