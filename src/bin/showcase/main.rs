@@ -4,6 +4,8 @@ mod app;
 #[cfg(test)]
 mod app_tests;
 #[cfg(test)]
+mod app_tests_catalog;
+#[cfg(test)]
 mod app_tests_celleditors;
 #[cfg(test)]
 mod app_tests_context;
@@ -15,6 +17,9 @@ mod app_tests_mouse;
 mod app_tests_nav;
 #[cfg(test)]
 mod app_tests_selectable;
+#[cfg(test)]
+mod catalog_scan;
+mod coverage;
 mod data;
 mod pages;
 
