@@ -2572,20 +2572,26 @@ impl Layer<ModalResult, World> for UsageDialog {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, _: &mut LayerCx<'_, World>) -> Outcome {
+    /// A vertical wheel notch scrolls the body; a click picks a tab.
+    fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, World>) -> Outcome {
+        if let Some((axis, delta)) = ev.wheel() {
+            if axis == Axis::Horizontal {
+                return Outcome::Consumed;
+            }
+            self.scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        if !ev.is(Phase::Click) {
+            return Outcome::Ignored;
+        }
         for (i, _) in self.tab_areas.iter().enumerate() {
-            if WidgetId::of("capsule.usage.tab").child(i) == id {
+            if WidgetId::of("capsule.usage.tab").child(i) == ev.id {
                 self.tab = i;
                 self.tabbar_focus = true;
                 return Outcome::Changed;
             }
         }
         Outcome::Consumed
-    }
-
-    fn on_wheel(&mut self, delta: i32, _pos: Position) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
     }
 
     fn on_tick(&mut self, w: &World) -> Outcome {

@@ -5,7 +5,10 @@
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::Focus;
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layout::{Split, SplitDir};
@@ -206,53 +209,39 @@ impl InspectChanges {
         Outcome::Changed
     }
 
-    /// Wheel with the pointer position: the region under the pointer scrolls.
-    pub fn on_wheel_at(&mut self, delta: i32, pos: Position) -> Outcome {
+    /// A wheel notch on `axis` at `pos`: vertically the region under the
+    /// pointer scrolls (the open diff, or the list, in the compact view);
+    /// sideways only the diff under the pointer pans.
+    pub fn wheel_at(&mut self, axis: Axis, delta: i32, pos: Position) -> Outcome {
+        if axis == Axis::Horizontal {
+            let over_diff = match self.mode {
+                InspectMode::Advanced => self.diff_area.contains(pos),
+                InspectMode::Compact => self.open,
+            };
+            return if over_diff {
+                self.diff.wheel(axis, delta).outcome()
+            } else {
+                Outcome::Consumed
+            };
+        }
         match self.mode {
             InspectMode::Advanced => {
                 if self.tree_area.contains(pos) {
-                    self.tree.on_wheel(delta)
+                    self.tree.wheel(axis, delta).outcome()
                 } else if self.diff_area.contains(pos) {
-                    self.diff.on_wheel(delta)
+                    self.diff.wheel(axis, delta).outcome()
                 } else {
                     Outcome::Consumed
                 }
             }
             InspectMode::Compact => {
                 if self.open {
-                    self.diff.on_wheel(delta)
+                    self.diff.wheel(axis, delta).outcome()
                 } else {
                     self.list_scroll.scroll_by(delta as isize);
                     Outcome::Changed
                 }
             }
-        }
-    }
-
-    /// Drag on the seam resizes the split; drag in the diff extends a selection.
-    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if pressed == self.seam.id && !self.stacked {
-            return self.seam.on_drag(&mut self.split, self.container, 1, pos);
-        }
-        if scrollbar::is_bar_of(pressed, self.diff.id()) {
-            return self.diff.on_bar_drag(pressed, pos);
-        }
-        if self.diff.owns(pressed) {
-            return self.diff.on_drag(pos);
-        }
-        Outcome::Ignored
-    }
-
-    /// Horizontal wheel: the diff under the pointer pans sideways.
-    pub fn on_wheel_h_at(&mut self, delta: i32, pos: Position) -> Outcome {
-        let over_diff = match self.mode {
-            InspectMode::Advanced => self.diff_area.contains(pos),
-            InspectMode::Compact => self.open,
-        };
-        if over_diff {
-            self.diff.on_wheel_h(delta)
-        } else {
-            Outcome::Consumed
         }
     }
 
@@ -685,88 +674,75 @@ impl Layer<ModalResult, World> for InspectChanges {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, World>) -> Outcome {
+    /// The wheel scrolls the region under the pointer; a drag on the
+    /// seam resizes the split; the tree and the diff take their gestures
+    /// through their widgets (a press anchors a selection in the diff, a
+    /// drag extends it, their bars page and drag); a click picks a row of
+    /// the compact list (again opens it) or pages its bar.
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, World>) -> Outcome {
         let focus = &mut *cx.focus;
-        match self.mode {
-            InspectMode::Compact => {
-                if self.open {
-                    if self.diff.owns(id) {
-                        if scrollbar::is_bar_of(id, self.diff.id()) {
-                            return self.diff.on_scrollbar(pos);
-                        }
-                        return self.diff.on_click(pos);
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            return self.wheel_at(axis, delta, pos);
+        }
+        let click = ev.is(Phase::Click);
+        if ev.is(Phase::Drag) && id == self.seam.id && !self.stacked {
+            return self.seam.on_drag(&mut self.split, self.container, 1, pos);
+        }
+        let diff_live = self.mode == InspectMode::Advanced || self.open;
+        if diff_live && let Some(r) = self.diff.route(ev) {
+            if self.mode == InspectMode::Advanced && (click || ev.is(Phase::Press)) {
+                self.set_region(Region::Diff, focus);
+            }
+            return r.outcome();
+        }
+        if self.mode == InspectMode::Advanced
+            && let Some(r) = self.tree.route(ev)
+        {
+            if click {
+                self.set_region(Region::Tree, focus);
+            }
+            let (o, act) = r.into_parts();
+            if let Some(TreeAction::Activate(path)) = act
+                && let Some(i) = self.file_of_path(&path)
+            {
+                self.select_file(i);
+            }
+            return if click { o.or(Outcome::Changed) } else { o };
+        }
+        if !click {
+            return Outcome::Ignored;
+        }
+        if self.mode == InspectMode::Compact && !self.open {
+            for i in 0..self.compact_rows() {
+                if self.id.sub("row").child(i) == id {
+                    let same = self.cursor == i;
+                    self.cursor = i;
+                    focus.focus(self.id);
+                    if same && i < self.changes.files.len() {
+                        self.select_file(i);
+                        self.open = true;
+                        focus.focus(self.diff.id());
                     }
-                    return Outcome::Consumed;
-                }
-                for i in 0..self.compact_rows() {
-                    if self.id.sub("row").child(i) == id {
-                        let same = self.cursor == i;
-                        self.cursor = i;
-                        focus.focus(self.id);
-                        if same && i < self.changes.files.len() {
-                            self.select_file(i);
-                            self.open = true;
-                            focus.focus(self.diff.id());
-                        }
-                        return Outcome::Changed;
-                    }
-                }
-                if id == scrollbar::id_for(self.id) {
-                    let track = Rect::new(
-                        self.list_area.right() - 1,
-                        self.list_area.y,
-                        1,
-                        self.list_area.height,
-                    );
-                    self.list_scroll.scroll_to(scrollbar::offset_for_click(
-                        track,
-                        pos,
-                        &self.list_scroll,
-                    ));
                     return Outcome::Changed;
                 }
-                Outcome::Consumed
             }
-            InspectMode::Advanced => {
-                if let Some((row, toggle)) = self.tree.locate(id) {
-                    self.set_region(Region::Tree, focus);
-                    let (o, ev) = if toggle {
-                        self.tree.on_click_toggle(row)
-                    } else {
-                        self.tree.on_click_row(row)
-                    };
-                    if let Some(TreeAction::Activate(path)) = ev
-                        && let Some(i) = self.file_of_path(&path)
-                    {
-                        self.select_file(i);
-                    }
-                    return o.or(Outcome::Changed);
-                }
-                if id == scrollbar::id_for(self.tree.id) {
-                    return self.tree.on_scrollbar(pos);
-                }
-                if self.diff.owns(id) {
-                    self.set_region(Region::Diff, focus);
-                    if scrollbar::is_bar_of(id, self.diff.id()) {
-                        return self.diff.on_scrollbar(pos);
-                    }
-                    return self.diff.on_click(pos);
-                }
-                Outcome::Consumed
+            if id == scrollbar::id_for(self.id) {
+                let track = Rect::new(
+                    self.list_area.right() - 1,
+                    self.list_area.y,
+                    1,
+                    self.list_area.height,
+                );
+                self.list_scroll.scroll_to(scrollbar::offset_for_click(
+                    track,
+                    pos,
+                    &self.list_scroll,
+                ));
+                return Outcome::Changed;
             }
         }
-    }
-
-    fn on_wheel(&mut self, delta: i32, pos: Position) -> Outcome {
-        self.on_wheel_at(delta, pos)
-    }
-
-    fn on_wheel_h(&mut self, delta: i32, pos: Position) -> Outcome {
-        self.on_wheel_h_at(delta, pos)
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        InspectChanges::on_drag(self, pressed, pos)
+        Outcome::Consumed
     }
 
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _w: &World) {
@@ -1029,12 +1005,12 @@ mod tests {
         );
         let tree_pos = Position::new(m.tree_area.x + 1, m.tree_area.y + 1);
         let diff_pos = Position::new(m.diff_area.x + 1, m.diff_area.y + 1);
-        assert_eq!(m.on_wheel_at(2, tree_pos), Outcome::Changed);
+        assert_eq!(m.wheel_at(Axis::Vertical, 2, tree_pos), Outcome::Changed);
         assert_eq!(m.tree.scroll.offset, 2);
         // the wheel reaches the diff; at a boundary it is consumed, else it
         // moves the view
         let d0 = m.diff.term.scroll.offset;
-        let out = m.on_wheel_at(3, diff_pos);
+        let out = m.wheel_at(Axis::Vertical, 3, diff_pos);
         assert!(
             matches!(out, Outcome::Changed | Outcome::Consumed),
             "{out:?}"
