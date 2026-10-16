@@ -1564,10 +1564,10 @@ impl App {
                 };
                 self.with_top(|s, w, cx| s.on_secondary(id, m.pos, w, cx))
             }
-            MouseKind::WheelUp
-            | MouseKind::WheelDown
-            | MouseKind::WheelLeft
-            | MouseKind::WheelRight => {
+            // nothing here scrolls sideways, and a sideways swipe must
+            // never scroll rows
+            MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Consumed,
+            MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = self.pointer.wheel_delta(m.kind);
                 if let Some(top) = self.modals.last_mut() {
                     return match &mut top.modal {

@@ -1712,10 +1712,10 @@ impl App {
                 let reqs = std::mem::take(&mut cx.requests);
                 o.or(self.apply_requests(reqs, route))
             }
-            MouseKind::WheelUp
-            | MouseKind::WheelDown
-            | MouseKind::WheelLeft
-            | MouseKind::WheelRight => {
+            // nothing here scrolls sideways, and a sideways swipe must
+            // never scroll rows
+            MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Consumed,
+            MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = self.pointer.wheel_delta(m.kind);
                 if let Some(top) = self.modals.last_mut() {
                     return match &mut top.modal {

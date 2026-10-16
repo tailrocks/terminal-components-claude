@@ -14,7 +14,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Widget};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
@@ -276,6 +276,17 @@ pub struct ScrollPanel {
     /// The scrollbar track as last drawn: presses and drags map through it.
     track: Rect,
     wrapped_cache: (u16, Vec<String>),
+    /// Horizontal position in cells (only while not wrapping): lines wider
+    /// than the panel scroll sideways instead of being cut.
+    pub hscroll: ScrollState,
+    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
+    pub horizontal: Option<HScroll>,
+    /// The policy resolved at the last render (events use it).
+    h_cfg: HScroll,
+    /// The horizontal scrollbar track as last drawn.
+    htrack: Rect,
+    /// The last scrollbar press landed on the horizontal bar.
+    h_held: bool,
 }
 
 impl ScrollPanel {
@@ -290,7 +301,48 @@ impl ScrollPanel {
             area: Rect::ZERO,
             track: Rect::ZERO,
             wrapped_cache: (0, vec![]),
+            hscroll: ScrollState::default(),
+            horizontal: None,
+            h_cfg: HScroll::default(),
+            htrack: Rect::ZERO,
+            h_held: false,
         }
+    }
+
+    /// Override the app-wide horizontal scrolling policy.
+    pub fn horizontal(mut self, policy: HScroll) -> Self {
+        self.horizontal = Some(policy);
+        self
+    }
+
+    /// The panel itself or one of its scrollbars.
+    pub fn owns(&self, id: WidgetId) -> bool {
+        id == self.id || scrollbar::is_bar_of(id, self.id)
+    }
+
+    /// Lines scroll sideways: not wrapping and the policy allows it.
+    fn h_enabled(&self) -> bool {
+        !self.wrap && self.h_cfg.enabled
+    }
+
+    /// Scroll sideways by `delta` steps; reports a change like
+    /// [`on_wheel`](Self::on_wheel).
+    fn scroll_h(&mut self, delta: isize) -> Outcome {
+        // nothing wider than the panel: the arrows stay free for the page
+        if !self.h_enabled() || !self.hscroll.overflows() {
+            return Outcome::Ignored;
+        }
+        let step = self.h_cfg.step.max(1) as isize;
+        if self.hscroll.scroll_by(delta * step) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    /// Horizontal wheel (or Shift+wheel): `step` cells per notch.
+    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
+        self.scroll_h(delta.signum() as isize)
     }
 
     pub fn wrap(mut self, w: bool) -> Self {
@@ -324,6 +376,13 @@ impl ScrollPanel {
             KeyCode::PageDown => self.scroll.page_down(),
             KeyCode::Home | KeyCode::Char('g') if key.plain() => self.scroll.jump_start(),
             KeyCode::End | KeyCode::Char('G') => self.scroll.jump_end(),
+            // the panel has no caret, so the arrows scroll sideways
+            KeyCode::Left | KeyCode::Char('h') if key.plain() || key.shift() => {
+                return self.scroll_h(-1);
+            }
+            KeyCode::Right | KeyCode::Char('l') if key.plain() || key.shift() => {
+                return self.scroll_h(1);
+            }
             KeyCode::Char('f') if key.plain() && self.tail => {
                 let was = self.follow;
                 if was {
@@ -369,8 +428,19 @@ impl ScrollPanel {
         }
     }
 
-    /// The pointer went down on the scrollbar (or a completed click).
+    /// The pointer went down on either scrollbar (or a completed click);
+    /// a press on the horizontal bar ([`scrollbar::h_id_for`]) moves
+    /// sideways.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
+        self.h_held = !self.htrack.is_empty() && self.htrack.contains(pos);
+        if self.h_held {
+            let click = self.h_cfg.track_click;
+            return if scrollbar::press_h(self.htrack, pos, &mut self.hscroll, click) {
+                Outcome::Changed
+            } else {
+                Outcome::Consumed
+            };
+        }
         let moved = scrollbar::press(self.track(), pos, &mut self.scroll);
         self.settle_follow();
         if moved {
@@ -380,8 +450,15 @@ impl ScrollPanel {
         }
     }
 
-    /// The pointer dragged along the scrollbar after a press.
+    /// The pointer dragged along the scrollbar it pressed.
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if self.h_held && !self.htrack.is_empty() {
+            return if scrollbar::drag_h(self.htrack, pos, &mut self.hscroll) {
+                Outcome::Changed
+            } else {
+                Outcome::Consumed
+            };
+        }
         let moved = scrollbar::drag(self.track(), pos, &mut self.scroll);
         self.settle_follow();
         if moved {
@@ -409,8 +486,22 @@ impl ScrollPanel {
         } else {
             self.lines.len()
         };
+        // the horizontal axis: the widest line against the text width
+        let widest = if self.h_enabled() {
+            self.lines
+                .iter()
+                .map(|l| crate::ui::text::width(l))
+                .max()
+                .unwrap_or(0)
+        } else {
+            0
+        };
+        self.hscroll.set_content(widest);
+        self.hscroll.set_viewport(text_w as usize);
+        let has_hb = self.h_enabled() && area.height > 1 && self.h_cfg.shows_bar(&self.hscroll);
         self.scroll.set_content(len);
-        self.scroll.set_viewport(area.height as usize);
+        self.scroll
+            .set_viewport(area.height.saturating_sub(u16::from(has_hb)) as usize);
         if self.follow {
             self.scroll.jump_end();
         }
@@ -429,6 +520,7 @@ impl ScrollPanel {
         if area.is_empty() {
             return;
         }
+        self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.measure(area);
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
@@ -444,9 +536,19 @@ impl ScrollPanel {
             let y = area.y + i as u16;
             let line = &lines[li];
             let st = style_line(t, line).bg(bg);
-            let text = crate::ui::text::fit(line, text_w as usize);
+            let text = if self.h_enabled() && self.hscroll.offset > 0 {
+                crate::ui::text::fit(
+                    &crate::ui::text::slice_cells(line, self.hscroll.offset, text_w as usize),
+                    text_w as usize,
+                )
+            } else {
+                crate::ui::text::fit(line, text_w as usize)
+            };
             buf.set_string(area.x, y, &text, st);
         }
+        // rows the vertical viewport covers (the horizontal bar takes the
+        // last one)
+        let rows_h = (self.scroll.viewport_len as u16).min(area.height);
         if self.scroll.overflows() {
             crate::ui::fade::scroll_edges(
                 buf,
@@ -455,15 +557,39 @@ impl ScrollPanel {
                     area.x,
                     area.y,
                     (area.right() - 1).saturating_sub(area.x),
-                    area.height,
+                    rows_h,
                 ),
                 &self.scroll,
             );
-            let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
+            let sb = Rect::new(area.right() - 1, area.y, 1, rows_h);
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         } else {
             self.track = Rect::ZERO;
+        }
+        self.htrack = Rect::ZERO;
+        if rows_h < area.height && self.h_enabled() {
+            // the corner under the vertical bar stays blank
+            let y = area.y + rows_h;
+            fill(
+                buf,
+                Rect::new(area.x, y, area.width, 1),
+                Style::new().bg(bg),
+            );
+            let w = area
+                .width
+                .saturating_sub(u16::from(self.scroll.overflows()));
+            let hb = Rect::new(area.x, y, w, 1);
+            self.htrack = hb;
+            scrollbar::render_horizontal_with(
+                hb,
+                buf,
+                ctx,
+                self.id,
+                &self.hscroll,
+                focused,
+                self.h_cfg.bar == ScrollbarVisibility::Always,
+            );
         }
     }
 }
@@ -487,6 +613,69 @@ mod scroll_panel_tests {
         (0..buf.area.width)
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect::<String>()
+    }
+
+    fn draw_panel(p: &mut ScrollPanel, area: Rect) -> (Buffer, HitRegistry) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(area);
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            p.render(area, &mut buf, &mut ctx, theme.surface, |t, _| t.muted());
+        }
+        (buf, hits)
+    }
+
+    #[test]
+    fn lines_wider_than_the_panel_scroll_sideways_with_a_visible_position() {
+        let area = Rect::new(0, 0, 20, 4);
+        let lines = vec![
+            "CREATE TABLE customers (id uuid PRIMARY KEY, email text)".to_owned(),
+            "short".to_owned(),
+        ];
+        let mut p = ScrollPanel::new(WidgetId::of("ddl"), lines);
+        let (buf, hits) = draw_panel(&mut p, area);
+        let bar = row(&buf, 3);
+        assert!(
+            bar.starts_with(scrollbar::H_THUMB),
+            "bar on the last row: {bar:?}"
+        );
+        assert!(bar.contains(scrollbar::H_TRACK));
+        assert_eq!(
+            hits.hit(Position::new(10, 3)),
+            Some(scrollbar::h_id_for(p.id))
+        );
+        assert!(row(&buf, 0).starts_with("CREATE TABLE"));
+
+        // → scrolls by the step, the line shows a leading … and the
+        // thumb moves right
+        assert_eq!(p.on_key(&key(KeyCode::Right)), Outcome::Changed);
+        assert_eq!(p.hscroll.offset, HScroll::default().step);
+        let (buf, _) = draw_panel(&mut p, area);
+        assert!(row(&buf, 0).starts_with('…'), "{}", row(&buf, 0));
+        assert!(!row(&buf, 3).starts_with(scrollbar::H_THUMB));
+
+        // the wheel and a drag on the bar reach the end
+        assert_eq!(p.on_wheel_h(1), Outcome::Changed);
+        let (buf, _) = draw_panel(&mut p, area);
+        let thumb = (0..20)
+            .find(|&x| buf[(x, 3)].symbol() == scrollbar::H_THUMB)
+            .unwrap();
+        assert_eq!(p.on_scrollbar(Position::new(thumb, 3)), Outcome::Consumed);
+        assert_eq!(p.on_scrollbar_drag(Position::new(40, 3)), Outcome::Changed);
+        assert_eq!(p.hscroll.offset, p.hscroll.max_offset());
+        assert_eq!(p.scroll.offset, 0, "rows did not move");
+
+        // wrapping text never scrolls sideways; neither does a disabled policy
+        let mut wrapped = ScrollPanel::new(WidgetId::of("w"), p.lines.clone()).wrap(true);
+        let (buf, _) = draw_panel(&mut wrapped, area);
+        assert!(!row(&buf, 3).contains(scrollbar::H_THUMB));
+        assert_eq!(wrapped.on_key(&key(KeyCode::Right)), Outcome::Ignored);
+        let mut off =
+            ScrollPanel::new(WidgetId::of("o"), p.lines.clone()).horizontal(HScroll::off());
+        draw_panel(&mut off, area);
+        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
     }
 
     #[test]

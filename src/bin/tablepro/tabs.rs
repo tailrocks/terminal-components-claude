@@ -1495,7 +1495,7 @@ impl QueryTab {
                         tree.on_click_row(row).0
                     };
                 }
-                if id == scrollbar::id_for(raw.id) {
+                if scrollbar::is_bar_of(id, raw.id) {
                     return raw.on_scrollbar(pos);
                 }
                 Outcome::Ignored
@@ -1516,12 +1516,23 @@ impl QueryTab {
         {
             return g.on_drag(pressed, pos);
         }
+        if let Some(r) = self.results.get_mut(self.active_result)
+            && let ResultBody::Plan { raw, .. } = &mut r.body
+            && scrollbar::is_bar_of(pressed, raw.id)
+        {
+            return raw.on_scrollbar_drag(pos);
+        }
         Outcome::Ignored
     }
 
     pub fn on_wheel(&mut self, id: WidgetId, delta: i32, horizontal: bool) -> Outcome {
+        // a sideways wheel reaches only horizontal scrolling
         if self.completion.owns(id) {
-            return self.completion.on_wheel(delta);
+            return if horizontal {
+                Outcome::Consumed
+            } else {
+                self.completion.on_wheel(delta)
+            };
         }
         if id == self.editor.id || id == scrollbar::id_for(self.editor.id) {
             return self.editor.on_wheel(delta, horizontal);
@@ -1533,9 +1544,17 @@ impl QueryTab {
             ResultBody::Rows(g) if g.owns(id) => g.on_wheel(delta, horizontal),
             ResultBody::Plan { tree, raw, .. } => {
                 if tree.owns(id) {
-                    tree.on_wheel(delta)
-                } else if id == raw.id || id == scrollbar::id_for(raw.id) {
-                    raw.on_wheel(delta)
+                    if horizontal {
+                        Outcome::Consumed
+                    } else {
+                        tree.on_wheel(delta)
+                    }
+                } else if raw.owns(id) {
+                    if horizontal {
+                        raw.on_wheel_h(delta)
+                    } else {
+                        raw.on_wheel(delta)
+                    }
                 } else {
                     Outcome::Ignored
                 }
