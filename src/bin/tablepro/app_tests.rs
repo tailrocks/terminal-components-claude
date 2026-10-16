@@ -1126,3 +1126,87 @@ fn cell_edit_footer_says_apply_not_commit() {
     assert!(f.contains("Esc Cancel"), "{f}");
     assert!(!f.contains("Commit"), "{f}");
 }
+
+/// Layout audit #1: on a short terminal the connection form stacked its
+/// fields with `y += h`, so labels overwrote the hint bar and the button
+/// row landed on "Database". Every field now stays above the buttons, the
+/// focused one is scrolled into view, and the footer is untouched.
+#[test]
+fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus() {
+    let form = WidgetId::of("connections").sub("form");
+    // only the fields: the tab strip, the buttons and the header show
+    // focus their own way
+    let fields: Vec<WidgetId> = [
+        "name", "engine", "host", "port", "db", "user", "pw", "promptpw", "env", "group", "safe",
+        "ssl", "ssh", "sshhost", "sshuser", "local", "startup",
+    ]
+    .iter()
+    .map(|n| form.sub(n))
+    .collect();
+    for (w, hh) in [(72u16, 20u16), (80, 24)] {
+        for advanced in [false, true] {
+            let mut h = H::new(w, hh);
+            h.ctrl('n');
+            if advanced {
+                h.tab_to(form.sub("tabs"));
+                h.key(KeyCode::Right);
+            }
+            let buttons = h.app.hits.area_of(form.sub("test")).expect("buttons drawn");
+            let footer = hh - 1;
+            let mut seen = std::collections::HashSet::new();
+            for _ in 0..40 {
+                let Some(f) = h.focus() else { break };
+                if !seen.insert(f) {
+                    break;
+                }
+                if fields.contains(&f) {
+                    if let Some(a) = h.app.hits.area_of(f) {
+                        assert!(
+                            a.bottom() <= buttons.y,
+                            "{w}x{hh} advanced={advanced}: {f:?} at {a:?} runs into the buttons at {buttons:?}\n{}",
+                            h.text()
+                        );
+                    }
+                    // the single focus gutter is on screen above the
+                    // buttons: the focused field was scrolled into view
+                    let text = h.text();
+                    let gutter = text.lines().position(|l| l.contains('▎'));
+                    assert!(
+                        gutter.is_some_and(|y| (y as u16) < buttons.y),
+                        "{w}x{hh} advanced={advanced}: focused {f:?} is not in view\n{text}"
+                    );
+                }
+                h.key(KeyCode::Tab);
+            }
+            // nothing from the form is drawn on the hint row
+            let last = h.text().lines().nth(footer as usize).unwrap().to_owned();
+            for label in [
+                "Database",
+                "Username",
+                "Password",
+                "Prompt",
+                "SSH user",
+                "Local only",
+            ] {
+                assert!(!last.contains(label), "{w}x{hh}: {last}");
+            }
+        }
+    }
+}
+
+#[test]
+fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
+    let mut h = H::new(72, 20);
+    h.ctrl('n');
+    let (x, y) = h.find("Name *").expect("the form opens at its first field");
+    assert_eq!(
+        h.app.hits.hit_scroll(Position::new(x, y)),
+        Some(WidgetId::of("connections").sub("form").sub("left"))
+    );
+    h.mouse(MouseKind::WheelDown, x, y);
+    let text = h.text();
+    assert!(!text.contains("Name *"), "{text}");
+    assert!(text.contains("Engine"), "one field per notch: {text}");
+    h.mouse(MouseKind::WheelUp, x, y);
+    assert!(h.text().contains("Name *"));
+}

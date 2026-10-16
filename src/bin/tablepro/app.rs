@@ -2005,7 +2005,7 @@ impl App {
                         .as_mut()
                         .map(|w| w.on_drag(pressed, m.pos))
                         .unwrap_or(Outcome::Ignored),
-                    Screen::Connections => Outcome::Ignored,
+                    Screen::Connections => self.connections.on_drag(pressed, m.pos),
                 }
             }
             MouseKind::Down => {
@@ -2071,6 +2071,7 @@ impl App {
                         .as_mut()
                         .map(|w| w.on_wheel(id, delta, horizontal))
                         .unwrap_or(Outcome::Ignored),
+                    Screen::Connections if !horizontal => self.connections.on_wheel(id, delta),
                     Screen::Connections => Outcome::Ignored,
                 }
             }
