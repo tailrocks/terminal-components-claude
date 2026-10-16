@@ -438,7 +438,7 @@ impl Page for TaskRunnerPage {
                     }
                     return Outcome::Changed;
                 }
-                if *id == scrollbar::id_for(self.log.id) {
+                if scrollbar::is_bar_of(*id, self.log.id) {
                     return self.log.on_scrollbar(*pos);
                 }
                 if *id == scrollbar::id_for(self.tree.id) {
@@ -447,7 +447,7 @@ impl Page for TaskRunnerPage {
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } => {
-                if *pressed == scrollbar::id_for(self.log.id) {
+                if scrollbar::is_bar_of(*pressed, self.log.id) {
                     return self.log.on_scrollbar_drag(*pos);
                 }
                 if *pressed == scrollbar::id_for(self.tree.id) {
@@ -459,11 +459,12 @@ impl Page for TaskRunnerPage {
                 if self.tree.owns(*id) {
                     return self.tree.on_wheel(*delta);
                 }
-                if *id == self.log.id || *id == scrollbar::id_for(self.log.id) {
+                if self.log.owns(*id) {
                     return self.log.on_wheel(*delta);
                 }
                 Outcome::Ignored
             }
+            PageEvent::WheelH { id, delta } if self.log.owns(*id) => self.log.on_wheel_h(*delta),
             PageEvent::DialogClosed { id, result, .. } if *id == CANCEL_DLG => {
                 if *result == DialogResult::Action(1) {
                     self.cancel_now(cx);

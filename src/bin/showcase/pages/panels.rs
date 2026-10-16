@@ -177,7 +177,7 @@ impl Page for PanelsPage {
                     return self.nested.on_click(row);
                 }
                 for p in self.panels() {
-                    if scrollbar::id_for(p.id) == *id {
+                    if scrollbar::is_bar_of(*id, p.id) {
                         return p.on_scrollbar(*pos);
                     }
                     if p.id == *id {
@@ -188,7 +188,7 @@ impl Page for PanelsPage {
             }
             PageEvent::Drag { pressed, pos } => {
                 for p in self.panels() {
-                    if scrollbar::id_for(p.id) == *pressed {
+                    if scrollbar::is_bar_of(*pressed, p.id) {
                         return p.on_scrollbar_drag(*pos);
                     }
                 }
@@ -199,8 +199,16 @@ impl Page for PanelsPage {
                     return self.nested.on_wheel(*delta);
                 }
                 for p in self.panels() {
-                    if p.id == *id || scrollbar::id_for(p.id) == *id {
+                    if p.owns(*id) {
                         return p.on_wheel(*delta);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::WheelH { id, delta } => {
+                for p in self.panels() {
+                    if p.owns(*id) {
+                        return p.on_wheel_h(*delta);
                     }
                 }
                 Outcome::Ignored

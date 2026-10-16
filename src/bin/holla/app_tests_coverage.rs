@@ -570,6 +570,12 @@ fn finder_file_and_modal_mouse_contracts() {
         .area_of(files::PREVIEW)
         .expect("file preview hit");
     let before = preview.text();
+    preview.mouse(MouseKind::WheelRight, area.x + 2, area.y + 2);
+    assert_eq!(
+        preview.text(),
+        before,
+        "a sideways wheel scrolled vertically"
+    );
     preview.mouse(MouseKind::WheelDown, area.x + 2, area.y + 2);
     assert_ne!(preview.text(), before, "file preview wheel did not redraw");
     preview.mouse(MouseKind::Down, area.x + 2, area.y + 2);
