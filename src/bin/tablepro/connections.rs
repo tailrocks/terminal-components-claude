@@ -1254,6 +1254,7 @@ impl ConnectionsScreen {
             .iter()
             .position(|ids| focus.is_some_and(|f| ids.contains(&f)));
             let l = stack.layout(lc, &lkids, &mut form.stacks[0][0], lfocus);
+            Stack::chrome(&l, lc, buf, ctx, lid, &form.stacks[0][0]);
             match l.slot(0) {
                 Some(r) => form.name.render(r, buf, ctx, bg),
                 None => ctx.focus_stop(form.name.id),
@@ -1286,7 +1287,6 @@ impl ConnectionsScreen {
                 Some(r) => form.prompt_pw.render(r, buf, ctx, bg),
                 None => ctx.focus_stop(form.prompt_pw.id),
             }
-            Stack::chrome(&l, lc, buf, ctx, lid, &form.stacks[0][0]);
 
             let desc = SafeMode::ALL[form.safe.selected.min(5)].description();
             let desc_lines: Vec<String> =
@@ -1305,6 +1305,7 @@ impl ConnectionsScreen {
                 .iter()
                 .position(|&id| focus == Some(id));
             let rl = stack.layout(rc, &rkids, &mut form.stacks[0][1], rfocus);
+            Stack::chrome(&rl, rc, buf, ctx, rid, &form.stacks[0][1]);
             match rl.slot(0) {
                 Some(r) => form.env.render(r, buf, ctx, bg),
                 None => ctx.focus_stop(form.env.id),
@@ -1324,7 +1325,6 @@ impl ConnectionsScreen {
                     buf.set_string(r.x + 2, r.y + i as u16, line, t.muted().bg(bg));
                 }
             }
-            Stack::chrome(&rl, rc, buf, ctx, rid, &form.stacks[0][1]);
         } else {
             form.ssh_host.disabled = !form.ssh.on;
             form.ssh_user.disabled = !form.ssh.on;
@@ -1347,6 +1347,7 @@ impl ConnectionsScreen {
             .iter()
             .position(|&id| focus == Some(id));
             let l = stack.layout(lc, &lkids, &mut form.stacks[1][0], lfocus);
+            Stack::chrome(&l, lc, buf, ctx, lid, &form.stacks[1][0]);
             match l.slot(0) {
                 Some(r) => form.ssl.render(r, buf, ctx, bg),
                 None => ctx.focus_stop(form.ssl.id),
@@ -1369,7 +1370,6 @@ impl ConnectionsScreen {
                 Some(r) => form.local_only.render(r, buf, ctx, bg),
                 None => ctx.focus_stop(form.local_only.id),
             }
-            Stack::chrome(&l, lc, buf, ctx, lid, &form.stacks[1][0]);
 
             let rkids = [
                 StackChild::flex(3, form.startup.height()),
@@ -1378,6 +1378,7 @@ impl ConnectionsScreen {
             ];
             let rfocus = (focus == Some(form.startup.id)).then_some(0);
             let rl = stack.layout(rc, &rkids, &mut form.stacks[1][1], rfocus);
+            Stack::chrome(&rl, rc, buf, ctx, rid, &form.stacks[1][1]);
             match rl.slot(0) {
                 Some(r) => form.startup.render(r, buf, ctx, bg),
                 None => ctx.focus_stop(form.startup.id),
@@ -1393,7 +1394,6 @@ impl ConnectionsScreen {
                     t.muted().bg(bg),
                 );
             }
-            Stack::chrome(&rl, rc, buf, ctx, rid, &form.stacks[1][1]);
         }
         // footer: test + actions
         let ay = inner.bottom().saturating_sub(1);
