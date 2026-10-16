@@ -990,3 +990,23 @@ fn clicking_the_editor_closes_completion_and_places_the_caret() {
         "the same click moved the caret"
     );
 }
+
+#[test]
+fn the_switcher_is_the_only_layer_showing_focus() {
+    let mut h = H::connected(120, 40);
+    let cues = |h: &H| {
+        let t = h.app.theme;
+        let buf = h.term.backend().buffer();
+        let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
+        let tint = buf.content().iter().filter(|c| c.bg == t.accent_bg).count();
+        (bars, tint)
+    };
+    h.ctrl('o');
+    assert!(matches!(h.app.modal, Some(Modal::Picker(..))));
+    assert_eq!(cues(&h), (1, 0), "only the query field\n{}", h.text());
+    h.key(KeyCode::Esc);
+    h.ctrl('l');
+    assert!(h.text().contains("Safe Mode · this connection"));
+    // a fixed-choice picker marks its cursor with a fill, like a menu
+    assert_eq!(cues(&h), (0, 0), "{}", h.text());
+}

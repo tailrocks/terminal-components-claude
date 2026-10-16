@@ -2952,6 +2952,12 @@ impl App {
         {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            let layer = self.menu.hides_page_focus()
+                || self.modals.last().is_some_and(|e| match &e.modal {
+                    Modal::Menu(m) => m.hides_page_focus(),
+                    _ => true,
+                });
+            ctx.page_under_layer(layer);
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
             cursor = ctx.cursor;

@@ -126,6 +126,12 @@ pub trait Page {
     fn animating(&self) -> bool {
         false
     }
+    /// True while the page draws a layer above itself (a modal picker, an
+    /// open menu that owns the keyboard): the shell then renders the page
+    /// with no focus indicator ([`RenderCtx::page_under_layer`]).
+    fn layer_open(&self) -> bool {
+        false
+    }
 }
 
 /// Shared helpers for laying out demo sections.

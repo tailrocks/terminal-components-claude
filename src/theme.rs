@@ -341,12 +341,11 @@ impl Theme {
             Some(c) if Some(c) == style.bg => bg,
             Some(c) if (c == self.canvas || c == self.surface) && dark_plane => bg,
             Some(c) if c == self.canvas || c == self.surface => self.text_muted,
-            Some(c)
-                if c == self.text_primary
-                    || c == self.accent
-                    || c == self.error
-                    || c == self.warning =>
-            {
+            // focus and accent cues (an active tab rule, a selection
+            // marker) drop to the faint tier: under a modal nothing on the
+            // page may still read as "here" or "active"
+            Some(c) if c == self.accent || c == self.focus => self.text_faint,
+            Some(c) if c == self.text_primary || c == self.error || c == self.warning => {
                 self.text_muted
             }
             Some(c) if c == self.text_secondary || c == self.text_on_accent => self.text_faint,

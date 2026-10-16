@@ -28,7 +28,11 @@ pub struct Interaction {
     pub pressed: Option<WidgetId>,
     /// Brief pressed feedback after an activation (keyboard or mouse).
     pub flash: Option<WidgetId>,
-    /// Focus is hidden while a modal covers the content below it.
+    /// Focus is hidden while a modal or a keyboard-owned popup covers the
+    /// content below it: the page draws no focus indicator, so the only
+    /// one on screen is inside the topmost layer. Set it at frame start
+    /// with [`RenderCtx::page_under_layer`]; [`RenderCtx::begin_modal`]
+    /// clears it for the layer it opens.
     pub focus_hidden: bool,
     /// Hover feedback is suppressed until the pointer moves again after a
     /// keyboard-driven change.
@@ -37,8 +41,16 @@ pub struct Interaction {
 }
 
 impl Interaction {
+    /// Whether `id` shows as focused: it holds focus and no layer covers
+    /// it. Use this for visuals.
     pub fn focused(&self, id: WidgetId) -> bool {
-        !self.focus_hidden && self.focus == Some(id)
+        !self.focus_hidden && self.has_focus(id)
+    }
+    /// Whether `id` holds keyboard focus, shown or not. Use this for
+    /// behaviour (commit an edit on blur, close a dropdown): a layer
+    /// opening above a control hides its focus but does not blur it.
+    pub fn has_focus(&self, id: WidgetId) -> bool {
+        self.focus == Some(id)
     }
     /// The hovered widget, unless hover is suppressed by keyboard use: what
     /// pointer-following behaviour (a menu cursor, a menu-bar switch)
@@ -168,6 +180,16 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// Declare, before the page draws, whether a layer (a modal, or a
+    /// keyboard-owned popup such as an open menu) will be drawn above it
+    /// this frame. While one is, page content renders with no focus
+    /// indicator: exactly one "you are here" cue stays on screen, inside
+    /// the topmost layer. [`Self::begin_modal`] clears the flag for the
+    /// layer it opens.
+    pub fn page_under_layer(&mut self, open: bool) {
+        self.interaction.focus_hidden = open;
+    }
+
     /// Enter modal mode: pending page overlays land first (they belong to
     /// the layer the modal covers), then everything registered so far is
     /// unreachable.
@@ -196,6 +218,11 @@ impl<'a> RenderCtx<'a> {
                 let st = t.backdrop(c.style());
                 c.set_style(st);
                 c.modifier = ratatui::style::Modifier::empty();
+                // a focus bar under the modal is never "here": the only
+                // focus indicator belongs to the modal
+                if c.symbol() == "▎" {
+                    c.set_symbol(" ");
+                }
             }
         }
         self.begin_modal(buf);
@@ -211,5 +238,32 @@ pub fn fill(buf: &mut Buffer, area: Rect, style: ratatui::style::Style) {
                 cell.set_style(style);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_page_under_a_layer_shows_no_focus_and_the_layer_does() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let id = WidgetId::of("field");
+        let interaction = Interaction {
+            focus: Some(id),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+        ctx.page_under_layer(true);
+        assert!(!ctx.state(id).focused, "the page draws no focus");
+        assert!(ctx.interaction.has_focus(id), "but the control keeps it");
+        // a bar drawn anyway (a hardcoded glyph) never survives the backdrop
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 3));
+        buf.set_string(0, 0, "▎", ratatui::style::Style::new().fg(t.focus));
+        ctx.modal_backdrop(&mut buf, Rect::new(0, 0, 10, 3));
+        assert_eq!(buf[(0, 0)].symbol(), " ");
+        assert!(ctx.state(id).focused, "the modal's own layer shows focus");
     }
 }

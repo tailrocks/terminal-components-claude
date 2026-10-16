@@ -204,3 +204,29 @@ fn command_palette_scrolls_with_the_wheel_and_keeps_the_selection() {
         h.text()
     );
 }
+
+/// Focus cues on screen: `▎` bars and cells tinted with the focus green.
+fn focus_cues(h: &H) -> (usize, usize) {
+    let t = h.app.theme;
+    let buf = h.term.backend().buffer();
+    let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
+    let green = buf
+        .content()
+        .iter()
+        .filter(|c| c.bg == t.accent_bg || (c.symbol() != "▎" && c.fg == t.focus))
+        .count();
+    (bars, green)
+}
+
+#[test]
+fn the_new_tab_picker_is_the_only_layer_showing_focus() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::F(10));
+    // the open menu owns the keyboard: nothing on the page reads as focused
+    assert_eq!(focus_cues(&h).0, 0, "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("New tab"), "{}", h.text());
+    // one bar (the query field), no green anywhere else: not on the cursor
+    // row, not on the page's active tab under the modal
+    assert_eq!(focus_cues(&h), (1, 0), "{}", h.text());
+}
