@@ -17,6 +17,7 @@ use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
+use crate::widgets::menu::{ContextMenu, MenuEvent, MenuItem};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TabItem {
@@ -81,6 +82,14 @@ pub struct Tabs {
     /// inside the tab (a one-cell target is too small to hit reliably).
     /// Default 3.
     pub close_target_w: u16,
+    /// An overflowing strip shows a `+N` button (N tabs hidden) that opens
+    /// a menu of the hidden tabs; choosing one activates it (the
+    /// overflow list of browser and editor tab bars). Default `true`.
+    pub overflow_menu: bool,
+    /// The open overflow menu and the tab each of its rows stands for.
+    menu: Option<(ContextMenu, Vec<usize>)>,
+    /// Where the `+N` button was drawn (the menu's anchor).
+    more_area: Rect,
     /// Number of tabs that fit in the last render.
     fit: usize,
     /// Largest useful [`Self::first`] in the last render: the window that
@@ -165,6 +174,9 @@ impl Tabs {
             nav: NavKeys::DEFAULT,
             keymap: TabAction::default_keymap(),
             close_target_w: 3,
+            overflow_menu: true,
+            menu: None,
+            more_area: Rect::ZERO,
             fit: 0,
             max_first: 0,
             revealed: None,
@@ -186,6 +198,9 @@ impl Tabs {
             nav: NavKeys::DEFAULT,
             keymap: TabAction::default_keymap(),
             close_target_w: 3,
+            overflow_menu: true,
+            menu: None,
+            more_area: Rect::ZERO,
             fit: 0,
             max_first: 0,
             revealed: None,
@@ -252,6 +267,70 @@ impl Tabs {
         self
     }
 
+    /// See [`Self::overflow_menu`].
+    pub fn overflow_menu(mut self, on: bool) -> Self {
+        self.overflow_menu = on;
+        self
+    }
+
+    /// The overflow menu is open: it owns the keyboard and the wheel.
+    pub fn menu_open(&self) -> bool {
+        self.menu.is_some()
+    }
+
+    /// The `+N` overflow button.
+    pub fn more_id(&self) -> WidgetId {
+        self.id.sub("more")
+    }
+
+    /// The overflow menu.
+    pub fn menu_id(&self) -> WidgetId {
+        self.id.sub("more-menu")
+    }
+
+    /// Tabs outside the window, in strip order.
+    fn hidden_tabs(&self) -> Vec<usize> {
+        let end = (self.first + self.fit).min(self.items.len());
+        (0..self.first.min(self.items.len()))
+            .chain(end..self.items.len())
+            .collect()
+    }
+
+    fn open_menu(&mut self) {
+        let tabs = self.hidden_tabs();
+        if tabs.is_empty() {
+            return;
+        }
+        let items = tabs
+            .iter()
+            .map(|&i| {
+                let it = &self.items[i];
+                match &it.prefix {
+                    Some(p) => MenuItem::new(format!("{p} {}", it.label)),
+                    None => MenuItem::new(it.label.clone()),
+                }
+            })
+            .collect();
+        let menu =
+            ContextMenu::new(self.menu_id(), items).anchor_control(self.more_id(), self.more_area);
+        self.menu = Some((menu, tabs));
+    }
+
+    fn menu_event(&mut self, ev: Option<MenuEvent>) -> Option<TabEvent> {
+        match ev? {
+            MenuEvent::Chosen(k) => {
+                let (_, tabs) = self.menu.take()?;
+                let i = *tabs.get(k)?;
+                self.set_active(i);
+                Some(TabEvent::Activated(i))
+            }
+            MenuEvent::Dismissed => {
+                self.menu = None;
+                None
+            }
+        }
+    }
+
     /// See [`Self::close_target_w`].
     pub fn close_target_w(mut self, cells: u16) -> Self {
         self.close_target_w = cells;
@@ -274,6 +353,13 @@ impl Tabs {
     /// it sideways, as macOS does for horizontal-only scroll views). The
     /// active tab does not change.
     pub fn on_wheel(&mut self, dx: i32, dy: i32) -> Outcome {
+        if let Some((menu, _)) = self.menu.as_mut() {
+            return if dy != 0 {
+                menu.on_wheel(dy)
+            } else {
+                Outcome::Consumed
+            };
+        }
         let delta = if dx != 0 { dx } else { dy };
         if delta == 0 || self.max_first == 0 {
             return Outcome::Ignored;
@@ -326,6 +412,8 @@ impl Tabs {
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id
             || id == self.new_id()
+            || id == self.more_id()
+            || self.menu.as_ref().is_some_and(|(m, _)| m.owns(id))
             || id == self.left_id()
             || id == self.right_id()
             || self.locate(id).is_some()
@@ -376,6 +464,10 @@ impl Tabs {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TabEvent>) {
+        if let Some((menu, _)) = self.menu.as_mut() {
+            let (o, ev) = menu.on_key(key);
+            return (o, self.menu_event(ev));
+        }
         let action = lookup(&self.keymap, key);
         if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) && action.is_none() {
             // an unassigned modified chord never performs a plain action
@@ -438,6 +530,20 @@ impl Tabs {
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<TabEvent>) {
+        if let Some((menu, _)) = self.menu.as_mut()
+            && menu.owns(id)
+        {
+            let ev = menu.on_click(id);
+            return (Outcome::Changed, self.menu_event(ev));
+        }
+        if id == self.more_id() {
+            if self.menu.take().is_none() {
+                self.open_menu();
+            }
+            return (Outcome::Changed, None);
+        }
+        // any other click on the strip closes an open overflow menu
+        self.menu = None;
         if id == self.new_id() {
             return (Outcome::Changed, Some(TabEvent::New));
         }
@@ -513,7 +619,13 @@ impl Tabs {
         // `‹N` / `N›` hidden counts (the grid idiom); N is at most two digits
         let left_w: u16 = if overflow { 4 } else { 0 };
         let right_w: u16 = if overflow { 4 } else { 0 };
-        let avail = area.width.saturating_sub(left_w + right_w + new_w);
+        // ` +N ` sized for the most tabs that could hide
+        let more_w: u16 = if overflow && self.overflow_menu {
+            3 + self.items.len().to_string().len() as u16
+        } else {
+            0
+        };
+        let avail = area.width.saturating_sub(left_w + right_w + more_w + new_w);
         // the furthest the window scrolls: the first tab of the run that
         // ends with the last tab and fits
         self.max_first = {
@@ -680,7 +792,7 @@ impl Tabs {
         if overflow {
             let hidden_right = self.items.len().saturating_sub(self.first + fit);
             let more_right = hidden_right > 0;
-            let rx = area.right().saturating_sub(right_w + new_w);
+            let rx = area.right().saturating_sub(right_w + more_w + new_w);
             let st = if more_right {
                 ctx.title_style(self.right_id(), bg)
             } else {
@@ -696,12 +808,30 @@ impl Tabs {
                 ctx.clickable(self.right_id(), Rect::new(rx, y, 4, 1));
             }
         }
+        if more_w > 0 {
+            let hidden = self.hidden_tabs().len();
+            let mx = area.right().saturating_sub(more_w + new_w);
+            let mid = self.more_id();
+            let r = Rect::new(mx, y, more_w, 1);
+            self.more_area = r;
+            let st = ctx.title_style(mid, bg);
+            let text = format!(" +{hidden}");
+            buf.set_string(mx, y, format!("{text:<w$}", w = more_w as usize), st);
+            ctx.clickable(mid, r);
+        } else {
+            self.more_area = Rect::ZERO;
+            // nothing hides any more: the menu has nothing to list
+            self.menu = None;
+        }
         if self.allow_new {
             let nx = area.right().saturating_sub(new_w);
             let nid = self.new_id();
             let st = ctx.title_style(nid, bg);
             buf.set_string(nx, y, " + ", st);
             ctx.clickable(nid, Rect::new(nx, y, 3, 1));
+        }
+        if let Some((menu, _)) = self.menu.as_mut() {
+            menu.render(*buf.area(), buf, ctx);
         }
     }
 }
@@ -1074,6 +1204,80 @@ mod tests {
         tabs.set_active(0);
         draw_hits(&mut tabs, 40);
         assert_eq!(tabs.first, first, "an unchanged active tab does not scroll");
+    }
+
+    fn draw_full(tabs: &mut Tabs, w: u16) -> (Buffer, HitRegistry) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, 20));
+        tabs.render(Rect::new(0, 0, w, 2), &mut buf, &mut ctx, theme.canvas);
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        (buf, hits)
+    }
+
+    #[test]
+    fn the_plus_n_button_lists_the_hidden_tabs_and_choosing_one_activates_it() {
+        let mut tabs = many(12);
+        let (buf, hits) = draw_full(&mut tabs, 40);
+        let hidden = tabs.hidden().1;
+        assert!(hidden > 0);
+        let text = row(&buf, 0);
+        assert!(text.contains(&format!("+{hidden}")), "{text}");
+        let more = hits
+            .area_of(tabs.more_id())
+            .expect("the +N button is a target");
+        // a click opens the menu of hidden tabs
+        tabs.on_click(tabs.more_id());
+        assert!(tabs.menu_open());
+        let (buf, hits) = draw_full(&mut tabs, 40);
+        let menu_rows: Vec<String> = (1..20).map(|y| row(&buf, y)).collect();
+        assert!(
+            menu_rows.iter().any(|r| r.contains("Tab11")),
+            "the last (hidden) tab is listed:\n{}",
+            menu_rows.join("\n")
+        );
+        assert!(
+            !menu_rows.iter().any(|r| r.contains("Tab00")),
+            "a shown tab is not listed"
+        );
+        // its rows are targets the strip owns; the last one is Tab11
+        let last_row = tabs.menu.as_ref().unwrap().0.row_id(hidden - 1);
+        assert!(hits.area_of(last_row).is_some());
+        assert!(tabs.owns(last_row));
+        assert_eq!(
+            tabs.on_click(last_row).1,
+            Some(TabEvent::Activated(11)),
+            "choosing activates"
+        );
+        assert!(!tabs.menu_open());
+        draw_full(&mut tabs, 40);
+        assert!(
+            tabs.areas[11].width > 0,
+            "the chosen tab is scrolled into view"
+        );
+        // Esc and a click outside close it without a choice
+        tabs.on_click(tabs.more_id());
+        let esc = Key {
+            code: KeyCode::Esc,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        assert_eq!(tabs.on_key(&esc).1, None);
+        assert!(!tabs.menu_open());
+        tabs.on_click(tabs.more_id());
+        let (_, hits) = draw_full(&mut tabs, 40);
+        let outside = hits
+            .hit(ratatui::layout::Position::new(more.x, 15))
+            .expect("the menu's backdrop");
+        assert!(tabs.owns(outside));
+        tabs.on_click(outside);
+        assert!(!tabs.menu_open());
+        // off: no button
+        let mut plain = many(12).overflow_menu(false);
+        let (_, hits) = draw_full(&mut plain, 40);
+        assert!(hits.area_of(plain.more_id()).is_none());
     }
 
     #[test]
