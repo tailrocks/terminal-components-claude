@@ -1071,6 +1071,11 @@ widgets::select::Select::wrap | Chips & selects page options | SC10
 widgets::select::Select::type_ahead | Chips & selects page options | SC10
 widgets::select::Select::arrows | Chips & selects page options | SC10
 widgets::select::Select::close_on_blur | Chips & selects page options | SC10
+widgets::select::Select::tab_in_open | Chips & selects page options | SC10
+widgets::select::TabInOpen | Chips & selects page options | SC10
+widgets::select::TabInOpen::Choose | Chips & selects page options | SC10
+widgets::select::TabInOpen::Close | Chips & selects page options | SC10
+widgets::select::TabInOpen::Swallow | Chips & selects page options | SC10
 
 # widgets::splitter
 widgets::splitter::SeamDoubleClick | Splits & stacks page | SC23
