@@ -208,9 +208,37 @@ pub static SHELL: &[Opt] = &[
 /// arm with keys `<slug>.<name>`, and the page implements
 /// `Page::option_value` and `Page::set_option` for them.
 pub fn page_options(page: PageId) -> &'static [Opt] {
-    let _ = page;
-    &[]
+    match page {
+        PageId::Columns => COLUMNS,
+        PageId::Tables => BASIC_TABLE,
+        _ => &[],
+    }
 }
+
+/// Columns (SC11): the width solver and `ColumnSizing` on a `DataTable`.
+static COLUMNS: &[Opt] = &[
+    Opt::new(
+        "columns.width",
+        "Row width",
+        &["full", "72", "56", "40", "28"],
+    ),
+    Opt::new("columns.resizable", "Resizable columns", OFF_ON).default(1),
+    Opt::new("columns.seam_w", "Seam hit width", &["1", "2", "3"]).default(1),
+    Opt::new("columns.min_width", "Narrowest drag", &["3", "6", "10"]),
+    Opt::new(
+        "columns.header_labels",
+        "Header menu labels",
+        &["default", "custom"],
+    ),
+];
+
+/// Basic table (SC11): the selection model.
+static BASIC_TABLE: &[Opt] = &[Opt::new(
+    "basictable.selection",
+    "Selection",
+    &["none", "single", "multi"],
+)
+.default(1)];
 
 /// Every option `--opt` accepts: the shell-wide ones, then each page's.
 pub fn all() -> impl Iterator<Item = &'static Opt> {
