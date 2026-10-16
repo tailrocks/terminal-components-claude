@@ -494,6 +494,7 @@ widgets::button::RowLayout | Buttons page options and States grid | SC7
 widgets::button::ButtonRow::align | Buttons page options and States grid | SC7
 widgets::button::ButtonRow::gap | Buttons page options and States grid | SC7
 widgets::button::ButtonRow::overflow | Buttons page options and States grid | SC7
+widgets::button::ButtonRow::wrap | Buttons page options and States grid | SC7
 
 # widgets::chips
 widgets::chips::ChipCmd | Chips & selects page options | SC10
@@ -533,6 +534,7 @@ widgets::choice_dialog::ChoiceDialog::stepper | Dialog kinds page | SC18
 widgets::choice_dialog::ChoiceDialog::width | Dialog kinds page | SC18
 widgets::choice_dialog::ChoiceDialog::option_tones | Dialog kinds page | SC18
 widgets::choice_dialog::ChoiceDialog::close_button | Dialog kinds page: a custom close button | SC18
+widgets::choice_dialog::ChoiceDialog::button_row | Dialog kinds page: button-row wrap | SC18
 
 # widgets::code
 widgets::code::Severity | Code editor page options | SC24
@@ -692,6 +694,7 @@ widgets::form_dialog::FormDialog::width | Dialog kinds page | SC18
 widgets::form_dialog::FormDialog::meta | Dialog kinds page | SC18
 widgets::form_dialog::FormDialog::nav | Dialog kinds page | SC18
 widgets::form_dialog::FormDialog::close_button | Dialog kinds page: a custom close button | SC18
+widgets::form_dialog::FormDialog::button_row | Dialog kinds page: button-row wrap | SC18
 
 # widgets::grid
 widgets::grid::CellValue | Data grid page options | SC12
