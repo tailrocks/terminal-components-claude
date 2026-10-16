@@ -952,3 +952,31 @@ fn terminal_reaches_success_failure_and_splitter_states() {
     assert!(!failure.app.pages[PageId::Terminal.index()].animating());
     assert!(failure.text().contains("failed"));
 }
+
+/// Keyboard audit #21: `q` never quits over unsaved settings, and Ctrl+C
+/// asks Cancel / Discard first; a clean showcase quits at once.
+#[test]
+fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
+    let mut h = Harness::new(140, 45, PageId::Settings);
+    let settings = WidgetId::of("settings");
+    h.click_id(settings.sub("automerge"));
+    assert!(h.text().contains("General · unsaved"));
+    h.key(KeyCode::Char('q'));
+    assert!(!h.app.quit, "q never drops unsaved edits");
+    assert!(h.text().contains("General · unsaved"));
+    h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
+    assert!(!h.app.quit, "Ctrl+C asks first");
+    assert!(h.text().contains("Unsaved changes"), "{}", h.text());
+    // Cancel (the default) stays
+    h.key(KeyCode::Enter);
+    assert!(!h.app.quit);
+    assert!(h.app.dialog.is_none());
+    // Discard quits
+    h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
+    h.key(KeyCode::Char('d'));
+    assert!(h.app.quit);
+
+    let mut clean = Harness::new(140, 45, PageId::Settings);
+    clean.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
+    assert!(clean.app.quit, "a clean quit never asks");
+}
