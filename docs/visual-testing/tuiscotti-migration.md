@@ -48,7 +48,8 @@ with `VISUAL_FULL=1`, where it fails until it is re-approved.
 
 | Group | Scenarios | Status |
 |---|---|---|
-| `showcase/pages` | 450 | re-approved (pilot) |
+| `showcase/pages` (18 legacy pages + `selectable`) | 475 | re-approved (pilot) |
+| `showcase/flows/selectable` (new) | 50 | approved on tuiscotti |
 | every other group | 7,100 | pending re-approval |
 
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
@@ -82,6 +83,12 @@ since the approval (the `↑↓` footer hint in 445, scrollbar gap and
 horizontal bar, list counters, sidebar indicator, theme colours). The
 cursor is hidden in all 450 pilot captures. A second gate run against the
 new approvals matched all 450.
+
+Approvals go stale fast while the UI is moving: after one rebase (54 new
+commits on the branch) all 450 pilot scenarios differed again, again from
+product changes only, and were re-approved on that HEAD (a later gate run
+matched all 525 pilot and selectable scenarios in 278 s). Whoever changes
+a re-approved surface re-runs the group and approves it with the change.
 
 | Size | Before (4 files) | After (`.ansi`) |
 |---|---|---|
