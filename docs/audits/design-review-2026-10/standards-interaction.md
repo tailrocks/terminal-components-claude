@@ -136,3 +136,8 @@ Defaults must follow the standards cited in this review. Every behaviour
 stays configurable, so users who prefer different behaviour can override
 the defaults (app-wide profile, per-widget setting, or key map; see
 `AGENTS.md`, "Component architecture").
+
+## Status (plan S4)
+
+- Verdict 12 (vim keys on, type-ahead off): fixed. `NavProfile::Desktop` is the default (desktop keys, type-ahead on in lists, trees, selects and menus); `NavProfile::Vim` is the opt-in profile. Disabled rows stay skipped by the arrows (`Cursor::skip_disabled`, per widget), as before.
+- Gap 10 (type-ahead timing): the reset is `TypeAhead::DEFAULT_TIMEOUT` (1 s), configurable per widget (`type_ahead_timeout`); the search wraps. Wide-character truncation is not part of S4.
