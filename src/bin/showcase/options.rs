@@ -215,6 +215,8 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Tabs => TABS,
         PageId::Menus => MENUS,
         PageId::Buttons => BUTTONS,
+        PageId::Inputs => INPUTS,
+        PageId::TextAreas => TEXTAREAS,
         _ => &[],
     }
 }
@@ -244,6 +246,91 @@ pub static BUTTONS: &[Opt] = &[
         "States focus mark",
         &["thin", "colon"],
     ),
+];
+
+/// Inputs (SC8): how a `TextInput` starts, ends and selects, and its keys.
+pub static INPUTS: &[Opt] = &[
+    Opt::new(
+        "inputs.edit_entry",
+        "Edit entry",
+        &["theme", "immediate", "type-to-edit", "explicit"],
+    ),
+    Opt::new(
+        "inputs.focus_select",
+        "Focus selects",
+        &["select-all", "caret-end", "caret-start"],
+    ),
+    Opt::new(
+        "inputs.field_keys",
+        "Field keys",
+        &["theme", "emacs", "desktop"],
+    ),
+    Opt::new("inputs.text_keymap", "Text key map", &["preset", "custom"]),
+    Opt::new(
+        "inputs.blur_action",
+        "On blur",
+        &["commit", "cancel", "keep"],
+    ),
+    Opt::new(
+        "inputs.pointer_select",
+        "Pointer selects",
+        &["default", "no-drag", "no-word", "no-line", "by-word", "off"],
+    ),
+    Opt::new("inputs.label_hit", "Label click focuses", OFF_ON).default(1),
+    Opt::new("inputs.wrap_label", "Wrap long labels", OFF_ON),
+    Opt::new("inputs.plain_label", "Hide \"optional\"", OFF_ON),
+    Opt::new(
+        "inputs.required_message",
+        "Required message",
+        &["theme", "custom"],
+    ),
+];
+
+/// Text areas (SC8): the `TextInput` knobs a `TextArea` shares, and its
+/// own.
+pub static TEXTAREAS: &[Opt] = &[
+    Opt::new(
+        "textareas.edit_entry",
+        "Edit entry",
+        &["theme", "immediate", "type-to-edit", "explicit"],
+    ),
+    Opt::new(
+        "textareas.focus_select",
+        "Focus selects",
+        &["caret-end", "select-all", "caret-start"],
+    ),
+    Opt::new("textareas.esc_reverts", "Esc reverts", OFF_ON),
+    Opt::new(
+        "textareas.field_keys",
+        "Field keys",
+        &["theme", "emacs", "desktop"],
+    ),
+    Opt::new(
+        "textareas.text_keymap",
+        "Text key map",
+        &["preset", "custom"],
+    ),
+    Opt::new(
+        "textareas.nav",
+        "Scroll keys",
+        &["default", "no-vim", "no-page"],
+    ),
+    Opt::new(
+        "textareas.pointer_select",
+        "Pointer selects",
+        &["default", "no-drag", "no-word", "no-line", "by-word", "off"],
+    ),
+    Opt::new(
+        "textareas.blur_action",
+        "On blur",
+        &["commit", "cancel", "keep"],
+    ),
+    Opt::new(
+        "textareas.horizontal",
+        "Horizontal scroll",
+        &["theme", "on", "off"],
+    ),
+    Opt::new("textareas.label_hit", "Label click focuses", OFF_ON).default(1),
 ];
 
 /// A page's option values: an index into each option's values, in the
