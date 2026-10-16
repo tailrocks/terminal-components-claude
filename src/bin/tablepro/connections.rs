@@ -493,7 +493,7 @@ impl ConnectionsScreen {
                 let event = self.action(3, cx);
                 return (Outcome::Changed, event);
             }
-            if key.ctrl_char('d') {
+            if key.alt() && key.code == KeyCode::Char('d') {
                 let event = self.action(2, cx);
                 return (Outcome::Changed, event);
             }
@@ -935,7 +935,7 @@ impl ConnectionsScreen {
             hint("Enter", "Connect"),
             hint("e", "Edit…"),
             hint("d", "Delete…"),
-            hint("Ctrl+D", "Duplicate"),
+            hint("Alt+D", "Duplicate"),
             hint("/", "Filter"),
             hint("Ctrl+N", "New"),
         ]
