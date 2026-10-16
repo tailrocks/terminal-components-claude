@@ -465,7 +465,7 @@ impl UsageScreen {
         let focused = ctx.interaction.focused(LIST);
         self.list_area = area;
         self.scroll.set_viewport(area.height as usize);
-        self.scroll.ensure_visible(self.cursor());
+        self.scroll.follow(self.cursor());
         ctx.control(LIST, area, false);
         ctx.scrollable(LIST, area);
         let has_sb = self.scroll.overflows();
