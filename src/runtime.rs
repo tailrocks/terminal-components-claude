@@ -30,7 +30,8 @@ use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::cursor::Show;
 use ratatui::crossterm::event::{
-    self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
+    self, DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
+    EnableFocusChange, EnableMouseCapture, Event, MouseEventKind,
 };
 use ratatui::crossterm::execute;
 use ratatui::crossterm::style::Colored;
@@ -229,7 +230,8 @@ impl TerminalSession {
                 out,
                 EnterAlternateScreen,
                 EnableMouseCapture,
-                EnableBracketedPaste
+                EnableBracketedPaste,
+                EnableFocusChange
             )?;
             // progressive enhancement: Cmd (super) chords reach the app
             // where the terminal speaks the kitty keyboard protocol
@@ -286,7 +288,8 @@ impl TerminalSession {
             out,
             EnterAlternateScreen,
             EnableMouseCapture,
-            EnableBracketedPaste
+            EnableBracketedPaste,
+            EnableFocusChange
         ) {
             restore_terminal();
             return Err(e);
@@ -379,7 +382,13 @@ fn restore_terminal() {
     if let Some(pop) = keyboard::session::leave() {
         let _ = out.write_all(pop.as_bytes());
     }
-    let _ = execute!(out, DisableBracketedPaste, DisableMouseCapture, Show);
+    let _ = execute!(
+        out,
+        DisableFocusChange,
+        DisableBracketedPaste,
+        DisableMouseCapture,
+        Show
+    );
     let _ = out.write_all(ENABLE_WRAP.as_bytes());
     let _ = execute!(out, LeaveAlternateScreen);
     let _ = out.flush();
@@ -578,6 +587,85 @@ impl SizeWatch {
     }
 }
 
+/// Ignores the click that brings the terminal window to the front (SIg1).
+///
+/// With focus reporting on (`?1004`), the terminal says when its window
+/// gains focus. A press that lands within [`Self::window`] of that is the
+/// click the user made to activate the window, not one aimed at the app:
+/// macOS does not deliver a window's first click to its content either
+/// (except where the content opts in). The press, its drags and its
+/// release are dropped; the wheel and pointer motion pass.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FocusClickGuard {
+    /// How long after focus arrives a press is the activating click.
+    /// Default [`Self::DEFAULT_WINDOW`] (300 ms); zero turns it off.
+    pub window: Duration,
+    gained_at: Option<Instant>,
+    swallowing: bool,
+}
+
+impl FocusClickGuard {
+    /// 300 ms: long enough for the activating click's press to follow the
+    /// focus report, short enough that a deliberate click right after
+    /// switching windows still lands.
+    pub const DEFAULT_WINDOW: Duration = Duration::from_millis(300);
+
+    pub const fn new(window: Duration) -> Self {
+        Self {
+            window,
+            gained_at: None,
+            swallowing: false,
+        }
+    }
+
+    /// Whether `ev`, read at `now`, is dropped. Focus reports are always
+    /// consumed here (they are not application input).
+    pub fn drops(&mut self, ev: &Event, now: Instant) -> bool {
+        match ev {
+            Event::FocusGained => {
+                self.gained_at = Some(now);
+                true
+            }
+            Event::FocusLost => {
+                self.gained_at = None;
+                true
+            }
+            Event::Mouse(m) => match m.kind {
+                MouseEventKind::Down(_) => {
+                    let fresh = self
+                        .gained_at
+                        .take()
+                        .is_some_and(|at| now.saturating_duration_since(at) < self.window);
+                    self.swallowing = fresh;
+                    fresh
+                }
+                MouseEventKind::Drag(_) => self.swallowing,
+                MouseEventKind::Up(_) => std::mem::take(&mut self.swallowing),
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+}
+
+impl Default for FocusClickGuard {
+    fn default() -> Self {
+        Self::new(Self::DEFAULT_WINDOW)
+    }
+}
+
+thread_local! {
+    static FOCUS_GUARD: std::cell::Cell<FocusClickGuard> =
+        std::cell::Cell::new(FocusClickGuard::default());
+}
+
+/// Set how long after the terminal window gains focus a click is ignored
+/// ([`FocusClickGuard`]); `Duration::ZERO` turns the guard off. Applies to
+/// the runtime on this thread.
+pub fn set_focus_click_guard(window: Duration) {
+    FOCUS_GUARD.with(|g| g.set(FocusClickGuard::new(window)));
+}
+
 fn next_ready_input() -> std::io::Result<Option<Input>> {
     while event::poll(Duration::ZERO)? {
         let config = InputConfig {
@@ -585,7 +673,17 @@ fn next_ready_input() -> std::io::Result<Option<Input>> {
             legacy_ctrl_punctuation: !keyboard::active(),
             ..InputConfig::default()
         };
-        if let Some(input) = Input::from_crossterm_with(event::read()?, config) {
+        let ev = event::read()?;
+        let dropped = FOCUS_GUARD.with(|g| {
+            let mut guard = g.get();
+            let d = guard.drops(&ev, Instant::now());
+            g.set(guard);
+            d
+        });
+        if dropped {
+            continue;
+        }
+        if let Some(input) = Input::from_crossterm_with(ev, config) {
             keyboard::observe(&input);
             return Ok(Some(input));
         }
@@ -796,6 +894,45 @@ mod tests {
     use super::*;
     use std::cell::Cell;
     use std::io::{self, ErrorKind};
+
+    /// SIg1: the click that activates the terminal window (within 300 ms
+    /// of the focus report) is dropped, press, drags and release together;
+    /// a later click, the wheel and motion pass; a zero window is off.
+    #[test]
+    fn the_window_activating_click_is_ignored() {
+        use ratatui::crossterm::event::{MouseButton, MouseEvent};
+        let mouse = |kind| {
+            Event::Mouse(MouseEvent {
+                kind,
+                column: 3,
+                row: 4,
+                modifiers: KeyModifiers::NONE,
+            })
+        };
+        let down = mouse(MouseEventKind::Down(MouseButton::Left));
+        let drag = mouse(MouseEventKind::Drag(MouseButton::Left));
+        let up = mouse(MouseEventKind::Up(MouseButton::Left));
+        let t0 = Instant::now();
+        let ms = |n| t0 + Duration::from_millis(n);
+        let mut g = FocusClickGuard::default();
+        assert!(!g.drops(&down, t0), "no focus report: the click lands");
+        assert!(!g.drops(&up, t0));
+        assert!(g.drops(&Event::FocusGained, ms(1000)));
+        assert!(!g.drops(&mouse(MouseEventKind::Moved), ms(1010)));
+        assert!(!g.drops(&mouse(MouseEventKind::ScrollDown), ms(1020)));
+        assert!(g.drops(&down, ms(1100)), "the activating press");
+        assert!(g.drops(&drag, ms(1120)));
+        assert!(g.drops(&up, ms(1150)), "and its release");
+        assert!(!g.drops(&down, ms(1200)), "the next click is the user's");
+        assert!(!g.drops(&up, ms(1210)));
+        // a press after the window has passed is aimed at the app
+        assert!(g.drops(&Event::FocusGained, ms(2000)));
+        assert!(!g.drops(&down, ms(2400)));
+        assert!(!g.drops(&up, ms(2410)));
+        let mut off = FocusClickGuard::new(Duration::ZERO);
+        assert!(off.drops(&Event::FocusGained, t0));
+        assert!(!off.drops(&down, t0), "zero turns the guard off");
+    }
 
     thread_local! {
         static RESTORATIONS: Cell<usize> = const { Cell::new(0) };
