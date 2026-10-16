@@ -9,7 +9,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
-use junie_tui::widgets::menu::MenuItem;
+use junie_tui::widgets::menu::{ContextMenu, MenuItem};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir, TableEvent, Tone};
@@ -17,6 +17,7 @@ use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("tables");
 const MENU: WidgetId = WidgetId::of("tables.menu");
+const HEADER_MENU: WidgetId = WidgetId::of("tables.header-menu");
 
 pub fn task_columns() -> Vec<Column> {
     vec![
@@ -77,6 +78,9 @@ pub struct TablesPage {
     /// The task table's cell menu and the `(display row, column)` it is
     /// about.
     menu: RowMenu<(usize, usize)>,
+    /// The task table's header menu (sort, fit, reset widths) and the
+    /// column it is about.
+    header_menu: RowMenu<usize>,
 }
 
 /// What the cell menu's items do.
@@ -178,6 +182,7 @@ impl TablesPage {
             empty,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
             menu: RowMenu::default(),
+            header_menu: RowMenu::default(),
         }
     }
 }
@@ -250,13 +255,20 @@ impl Page for TablesPage {
             None => ctx.focus_stop(self.empty.id),
         }
         self.menu.render(area, buf, ctx);
+        self.header_menu.render(area, buf, ctx);
     }
 
     fn layer_open(&self) -> bool {
-        self.menu.hides_page_focus()
+        self.menu.hides_page_focus() || self.header_menu.hides_page_focus()
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some((out, chosen)) = self.header_menu.handle(ev) {
+            return match chosen.and_then(|(c, i)| Some((c, self.table.header_menu(c).get(i)?.0))) {
+                Some((c, action)) => self.table.on_header_action(c, action).or(out),
+                None => out,
+            };
+        }
         if let Some((out, chosen)) = self.menu.handle(ev) {
             return match chosen {
                 Some((cell, i)) => self.choose(cell, i, cx).or(out),
@@ -286,6 +298,25 @@ impl Page for TablesPage {
                 }
                 Outcome::Ignored
             }
+            PageEvent::Secondary { id, pos } if self.table.locate_header_menu(*id).is_some() => {
+                let Some(c) = self.table.locate_header_menu(*id) else {
+                    return Outcome::Ignored;
+                };
+                cx.focus.focus(self.table.id);
+                let items = self
+                    .table
+                    .header_menu(c)
+                    .into_iter()
+                    .map(|(_, m)| m)
+                    .collect();
+                let title = self.table.columns[c].title.clone();
+                let menu = ContextMenu::new(HEADER_MENU, items).at(*pos).title(title);
+                self.header_menu.open(menu, c);
+                Outcome::Changed
+            }
+            PageEvent::Press { id, pos } if self.table.locate_seam(*id).is_some() => {
+                self.table.on_press(*id, *pos, cx.clicks)
+            }
             PageEvent::Secondary { id, pos } => {
                 let cfg = self.menu.config;
                 let Some(req) = cfg.on_secondary(&mut self.table, *id, *pos) else {
@@ -313,8 +344,8 @@ impl Page for TablesPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Drag { pressed, pos } if scrollbar::is_bar_of(*pressed, self.table.id) => {
-                self.table.on_bar_drag(*pressed, *pos)
+            PageEvent::Drag { pressed, pos } if self.table.owns(*pressed) => {
+                self.table.on_drag(*pressed, *pos)
             }
             PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),
             PageEvent::Wheel { id, delta } if self.empty.owns(*id) => self.empty.on_wheel(*delta),
