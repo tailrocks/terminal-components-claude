@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Navigation / Sidebars            i Inspector   ? Help  [0m
                                                                                 [0m
- [0m[1mComponents[0m      25  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, co… [0m
+ [0m[1mComponents[0m      54  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, co… [0m
                                                                                 [0m
     Overview                                         Tasks                      [0m
   ▸ App shell           Workspace               │                               [0m
@@ -10,13 +10,13 @@
       Lists                                     │    ›  current item ·          [0m
       Trees             Project                 │    persists when focus        [0m
  [0m[1m▎  › Sidebars     [0m     M Members               │    leaves                     [0m
-  ▸ Overlays            E Environment           │    ▎  keyboard cursor · only  [0m
-  ▸ Feedback         [0m[2m   $ Billing               [0m│    while focused              [0m
-  ▸ Layout                                      │    ░  hover · follows the     [0m
-  ▸ Text & code         Preferences             │    pointer                    [0m
-  ▸ Screens             K Keyboard              │                               [0m
-                        A Appearance            │    Disabled items are         [0m
-                                                │    skipped and ignore the     [0m
+      Tabs              E Environment           │    ▎  keyboard cursor · only  [0m
+      Menus          [0m[2m   $ Billing               [0m│    while focused              [0m
+  ▸ Overlays                                    │    ░  hover · follows the     [0m
+  ▸ Feedback            Preferences             │    pointer                    [0m
+  ▸ Layout              K Keyboard              │                               [0m
+  ▸ Text & code         A Appearance            │    Disabled items are         [0m
+  ▸ Screens                                     │    skipped and ignore the     [0m
                                                      pointer.                   [0m
                        Collapse                      Collapsed mode keeps row…  [0m
                                                                                 [0m
