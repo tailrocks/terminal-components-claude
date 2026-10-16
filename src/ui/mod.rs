@@ -4,6 +4,7 @@ pub mod columns;
 pub mod context;
 pub mod ctx;
 pub mod fade;
+pub mod layer;
 pub mod layout;
 pub mod leave;
 pub mod modal;

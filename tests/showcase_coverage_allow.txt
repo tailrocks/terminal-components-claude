@@ -151,6 +151,7 @@ core::intent::DismissReason::Esc | Inspector pane: app-wide option or State tab 
 core::intent::DismissReason::OutsideClick | Inspector pane: app-wide option or State tab readout | SC1
 core::intent::DismissReason::FocusOut | Inspector pane: app-wide option or State tab readout | SC1
 core::intent::DismissReason::Programmatic | Inspector pane: app-wide option or State tab readout | SC1
+core::intent::DismissReason::CloseButton | Inspector pane: app-wide option or State tab readout | SC1
 core::intent::LayerEvent | Inspector pane: app-wide option or State tab readout | SC1
 core::intent::LayerEvent::Opened | Inspector pane: app-wide option or State tab readout | SC1
 core::intent::LayerEvent::Dismissed | Inspector pane: app-wide option or State tab readout | SC1
@@ -393,6 +394,7 @@ ui::modal::Frame::min_size | Popups & tooltips page | SC19
 ui::modal::Frame::chrome | Popups & tooltips page | SC19
 ui::modal::Frame::backdrop | Popups & tooltips page | SC19
 ui::modal::Frame::dim | Popups & tooltips page | SC19
+ui::modal::Frame::overlay | Popups & tooltips page: layer API (plan S5) | SC19
 
 # ui::popup
 ui::popup::Dismiss | Popups & tooltips page | SC19
@@ -402,6 +404,7 @@ ui::popup::RefuseFeedback::None | Popups & tooltips page | SC19
 ui::popup::Dismiss::pass_through | Popups & tooltips page | SC19
 ui::popup::Dismiss::close_button | Popups & tooltips page | SC19
 ui::popup::Dismiss::refuse_feedback | Popups & tooltips page | SC19
+ui::popup::Dismiss::focus_out | Popups & tooltips page: layer API (plan S5) | SC19
 ui::popup::Placement | Popups & tooltips page | SC19
 ui::popup::Placement::Below | Popups & tooltips page | SC19
 ui::popup::Placement::Above | Popups & tooltips page | SC19
@@ -450,6 +453,26 @@ ui::tooltip::Tooltips::delay_ms | Popups & tooltips page | SC19
 ui::tooltip::Tooltips::max_width | Popups & tooltips page | SC19
 ui::tooltip::Tip | Popups & tooltips page | SC19
 ui::tooltip::Tip::shortcut | Popups & tooltips page | SC19
+ui::layer::LayerKind | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerKind::Modal | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerKind::Popover | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerKind::Tooltip | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerSpec | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerSpec::anchor | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerSpec::backdrop | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerSpec::initial_focus | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerSpec::restore_focus | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerSpec::inert_below | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerSpec::hides_page_focus | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerCx | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerTag | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerTag::key | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerTag::n | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerEntry | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::Dismissed | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::Dismissed::None | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::Dismissed::Refused | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::Dismissed::Closed | Popups & tooltips page: layer API (plan S5) | SC19
 
 # widgets::breadcrumb
 widgets::breadcrumb::Breadcrumb | Breadcrumbs & rails page | SC5
@@ -509,6 +532,7 @@ widgets::choice_dialog::ChoiceDialog::line | Dialog kinds page | SC18
 widgets::choice_dialog::ChoiceDialog::stepper | Dialog kinds page | SC18
 widgets::choice_dialog::ChoiceDialog::width | Dialog kinds page | SC18
 widgets::choice_dialog::ChoiceDialog::option_tones | Dialog kinds page | SC18
+widgets::choice_dialog::ChoiceDialog::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::code
 widgets::code::Severity | Code editor page options | SC24
@@ -667,6 +691,7 @@ widgets::form_dialog::FormDialog::action | Dialog kinds page | SC18
 widgets::form_dialog::FormDialog::width | Dialog kinds page | SC18
 widgets::form_dialog::FormDialog::meta | Dialog kinds page | SC18
 widgets::form_dialog::FormDialog::nav | Dialog kinds page | SC18
+widgets::form_dialog::FormDialog::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::grid
 widgets::grid::CellValue | Data grid page options | SC12
@@ -777,6 +802,7 @@ widgets::help::HelpOverlay::keymap | Help & keys and Quit & leave pages | SC6
 widgets::help::HelpOverlay::max_percent | Help & keys and Quit & leave pages | SC6
 widgets::help::HelpOverlay::title | Help & keys and Quit & leave pages | SC6
 widgets::help::HelpOverlay::dismiss | Help & keys and Quit & leave pages | SC6
+widgets::help::HelpOverlay::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::hintbar
 widgets::hintbar::HintLayer | Chrome and Status & hints pages | SC4
@@ -811,6 +837,7 @@ widgets::info_dialog::InfoDialog::action | Dialog kinds page | SC18
 widgets::info_dialog::InfoDialog::width | Dialog kinds page | SC18
 widgets::info_dialog::InfoDialog::meta | Dialog kinds page | SC18
 widgets::info_dialog::InfoDialog::error | Dialog kinds page | SC18
+widgets::info_dialog::InfoDialog::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::input
 widgets::input::TextValidator | Inputs and Text areas page options | SC8

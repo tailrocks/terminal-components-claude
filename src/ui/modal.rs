@@ -107,21 +107,11 @@ pub trait Modal {
     fn dismiss(&self) -> Dismiss;
 }
 
-impl Modal for crate::widgets::dialog::Dialog {
+/// Every [`Overlay`](crate::ui::layer::Overlay) can sit on a
+/// [`ModalStack`] under its own policy.
+impl<O: crate::ui::layer::Overlay> Modal for O {
     fn dismiss(&self) -> Dismiss {
-        self.dismiss
-    }
-}
-
-impl Modal for crate::widgets::picker::Picker {
-    fn dismiss(&self) -> Dismiss {
-        self.dismiss
-    }
-}
-
-impl Modal for crate::widgets::menu::ContextMenu {
-    fn dismiss(&self) -> Dismiss {
-        self.dismiss
+        crate::ui::layer::Overlay::dismiss(self)
     }
 }
 
@@ -340,6 +330,19 @@ impl<'a> Frame<'a> {
     /// See [`Self::dismiss`].
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = Some(dismiss);
+        self
+    }
+
+    /// The frame of `overlay`: its [`Dismiss`] policy and its close button
+    /// ([`Overlay::close_button`]), so every framed modal takes a custom
+    /// `×` the same way.
+    ///
+    /// [`Overlay::close_button`]: crate::ui::layer::Overlay::close_button
+    pub fn overlay<O: crate::ui::layer::Overlay + ?Sized>(mut self, overlay: &O) -> Self {
+        self.dismiss = Some(overlay.dismiss());
+        if let Some(b) = overlay.close_button() {
+            self.close_button = b.clone();
+        }
         self
     }
     pub fn title(mut self, title: &'a str) -> Self {
