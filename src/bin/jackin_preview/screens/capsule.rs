@@ -2516,6 +2516,9 @@ impl UsageDialog {
 /// The Usage dialog on the app's layer stack. Light dismiss (Esc on the
 /// tab bar, an outside click, its close button) reports `Custom("close")`.
 impl Layer<ModalResult, World> for UsageDialog {
+    fn animating(&self) -> bool {
+        true
+    }
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(junie_tui::ui::popup::Dismiss::LIGHT)
             .initial_focus(WidgetId::of("capsule.usage"))

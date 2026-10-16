@@ -296,6 +296,16 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
     fn hints(&self, _focused: Option<WidgetId>) -> Vec<Hint> {
         Vec::new()
     }
+    /// A field of the layer is editing text: the footer shows the EDIT
+    /// badge and letters type instead of acting.
+    fn is_editing(&self) -> bool {
+        false
+    }
+    /// The layer animates (a spinner, a progress run) and needs ticks to
+    /// redraw.
+    fn animating(&self) -> bool {
+        false
+    }
     /// Resolve to the cancel result for `reason`. [`ShellLayers::dismiss`]
     /// calls it only when [`Self::spec`]'s policy allows `reason`.
     fn on_dismiss(&mut self, reason: DismissReason);

@@ -35,13 +35,11 @@ use crate::rain::{self, HANDOFF_LEN, IntroState, OutroState, handoff_stage};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::accounts::AccountsScreen;
 use crate::screens::capsule::CapsuleScreen;
-use crate::screens::capsule::UsageDialog;
 use crate::screens::cockpit::CockpitScreen;
 use crate::screens::editor::EditorScreen;
-use crate::screens::inspect::InspectChanges;
 use crate::screens::manager::ManagerScreen;
 use crate::screens::modals::{
-    ChoiceDialog, FileBrowser, FormAction, FormDialog, HelpOverlay, InfoDialog, InfoResult, OpFlow,
+    ChoiceDialog, FormAction, FormDialog, HelpOverlay, InfoDialog, InfoResult,
 };
 use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
@@ -1509,21 +1507,12 @@ impl App {
     /// Whether the top layer animates (a loading chain, a refresh): the
     /// shell ticks faster while it does.
     fn layer_animates(&self) -> bool {
-        self.layers.top().is_some_and(|t| {
-            t.get::<OpFlow>().is_some()
-                || t.get::<FileBrowser>().is_some()
-                || t.get::<InspectChanges>().is_some()
-                || t.get::<UsageDialog>().is_some()
-        })
+        self.layers.top().is_some_and(|t| t.layer.animating())
     }
 
     /// Whether a field in the top layer is being edited (the EDIT badge).
     fn layer_editing(&self) -> bool {
-        self.layers.top().is_some_and(|t| {
-            t.get::<Dialog>().is_some_and(Dialog::is_editing)
-                || t.get::<FormDialog>().is_some_and(FormDialog::is_editing)
-                || t.get::<FileBrowser>().is_some_and(FileBrowser::is_editing)
-        })
+        self.layers.top().is_some_and(|t| t.layer.is_editing())
     }
 
     /// The footer's hints for the top layer: its own, or this app's line
