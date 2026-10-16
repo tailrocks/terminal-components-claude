@@ -144,7 +144,7 @@ crate::baseline_case!(jackin_manager_tree_expanded_120x40_truecolor => Case::new
 crate::baseline_case!(jackin_manager_detail_drawer_120x40_truecolor => Case::new("jackin/manager/detail_drawer/120x40/truecolor", JACKIN, RETURNING, 120, 40, Color::Truecolor, "jackin❯").sends(&["tab"]));
 crate::baseline_case!(jackin_manager_menu_open_120x40_truecolor => Case::new("jackin/manager/menu_open/120x40/truecolor", JACKIN, RETURNING, 120, 40, Color::Truecolor, "jackin❯").sends(&["f10", "wait:New workspace…"]));
 crate::baseline_case!(jackin_manager_help_overlay_120x40_truecolor => Case::new("jackin/manager/help_overlay/120x40/truecolor", JACKIN, RETURNING, 120, 40, Color::Truecolor, "jackin❯").sends(&["?", "wait:Keyboard shortcuts"]));
-crate::baseline_case!(jackin_manager_quit_confirm_120x40_truecolor => Case::new("jackin/manager/quit_confirm/120x40/truecolor", JACKIN, RETURNING, 120, 40, Color::Truecolor, "jackin❯").sends(&["ctrl-q", "wait:Exit jackin❯?"]));
+crate::baseline_case!(jackin_manager_quit_confirm_120x40_truecolor => Case::new("jackin/manager/quit_confirm/120x40/truecolor", JACKIN, RETURNING, 120, 40, Color::Truecolor, "jackin❯").sends(&["ctrl-q", "wait:Quit jackin❯?"]));
 crate::baseline_case!(jackin_manager_launch_picker_120x40_truecolor => Case::new("jackin/manager/launch_picker/120x40/truecolor", JACKIN, RETURNING, 120, 40, Color::Truecolor, "jackin❯").sends(&["enter", "wait:Launch · choose Agent"]));
 crate::baseline_case_with_variants!(
     jackin_manager_new_workspace_prelude_120x40_truecolor => Case::new("jackin/manager/new_workspace_prelude/120x40/truecolor", JACKIN, FIRST_400, 120, 40, Color::Truecolor, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),

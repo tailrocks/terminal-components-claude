@@ -1213,7 +1213,7 @@ impl App {
         } else {
             "No instances are running. The pending Construct entry is released.".into()
         };
-        let d = Dialog::confirm(WidgetId::of("quit"), "Exit jackin❯?", &body, "Quit");
+        let d = Dialog::confirm(WidgetId::of("quit"), "Quit jackin❯?", &body, "Quit");
         self.push_modal(Modal::Dialog(d), ModalTag::new("quit"), self.route);
     }
 

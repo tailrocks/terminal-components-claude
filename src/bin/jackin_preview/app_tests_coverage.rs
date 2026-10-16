@@ -243,14 +243,14 @@ fn modal_outside_click_traps_focus_and_restores_the_owner() {
     c.ctrl('q');
     let choice = c.text();
     assert!(
-        choice.contains("Unsaved work") || choice.contains("Exit"),
+        choice.contains("Unsaved work") || choice.contains("Quit jackin"),
         "{choice}"
     );
     let p = outside(&c);
     c.mouse(MouseKind::Down, p.x, p.y);
     c.mouse(MouseKind::Up, p.x, p.y);
     assert!(
-        c.text().contains("Unsaved work") || c.text().contains("Exit"),
+        c.text().contains("Unsaved work") || c.text().contains("Quit jackin"),
         "destructive choice dismissed outside: {}",
         c.text()
     );
@@ -465,7 +465,7 @@ fn cockpit_blocked_sidecar_abort_log_and_info_paths_are_screen_level() {
     h.key(KeyCode::Char('x'));
     assert!(h.text().contains("Blocked"), "{}", h.text());
     h.ctrl('q');
-    assert!(h.text().contains("Exit jackin"), "{}", h.text());
+    assert!(h.text().contains("Quit jackin"), "{}", h.text());
     h.key(KeyCode::Char('y'));
     assert!(h.app.quit);
 
@@ -759,7 +759,7 @@ fn capsule_dirty_exit_covers_new_agent_inspect_keep_and_discard() {
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
     assert!(
-        h.text().contains("Exit and discard changes"),
+        h.text().contains("Quit and discard changes"),
         "{}",
         h.text()
     );
