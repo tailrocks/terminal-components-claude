@@ -634,19 +634,8 @@ impl UsageScreen {
             }
         }
         if has_sb {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    area.y,
-                    (area.right() - 1).saturating_sub(area.x),
-                    area.height,
-                ),
-                &self.scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(area.right() - 1, area.y, 1, area.height),
+            scrollbar::render_with_fade(
+                Rect::new(area.x, area.y, area.width, area.height),
                 buf,
                 ctx,
                 LIST,
@@ -794,19 +783,8 @@ impl UsageScreen {
             }
         }
         if self.detail_scroll.overflows() {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    body.y,
-                    (area.right() - 1).saturating_sub(area.x),
-                    body.height,
-                ),
-                &self.detail_scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(area.right() - 1, body.y, 1, body.height),
+            scrollbar::render_with_fade(
+                Rect::new(area.x, body.y, area.width, body.height),
                 buf,
                 ctx,
                 DETAIL,
