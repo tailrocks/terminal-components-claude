@@ -360,6 +360,20 @@ pub fn render_status(
     badge: Option<(&str, BadgeKind)>,
     right: Option<(&str, Option<StatusKind>)>,
 ) -> usize {
+    render_status_at(area, buf, t, hints, badge, right).0
+}
+
+/// [`render_status`] that also reports where each drawn hint landed (see
+/// [`render_parts_at`]), for a footer whose hints are click targets
+/// ([`crate::widgets::hintbar::HintKeys::register`]).
+pub fn render_status_at(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Option<StatusKind>)>,
+) -> (usize, Vec<(usize, Rect)>) {
     let right = right.map(|(text, kind)| match kind {
         Some(kind) => {
             let (mark, mark_style) = t.status(kind);
@@ -372,7 +386,8 @@ pub fn render_status(
         }
         None => Right::toned(t, text, Tone::Secondary),
     });
-    render_right(
+    let mut spots = Vec::new();
+    let n = render_right(
         area,
         buf,
         t,
@@ -381,8 +396,9 @@ pub fn render_status(
         right,
         &[],
         &t.hintbar,
-        &mut Vec::new(),
-    )
+        &mut spots,
+    );
+    (n, spots)
 }
 
 /// The status at the right edge: a message, and the glyph that leads it
