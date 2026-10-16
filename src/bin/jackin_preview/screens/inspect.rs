@@ -16,7 +16,7 @@ use junie_tui::widgets::diff::DiffView;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
-use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
+use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -338,7 +338,7 @@ impl InspectChanges {
         match self.region {
             Region::Tree => {
                 let (o, ev) = self.tree.on_key(key);
-                if let Some(TreeEvent::Activate(path)) = ev
+                if let Some(TreeAction::Activate(path)) = ev
                     && let Some(i) = self.file_of_path(&path)
                 {
                     self.select_file(i);
@@ -715,7 +715,7 @@ impl CustomModal for InspectChanges {
                     } else {
                         self.tree.on_click_row(row)
                     };
-                    if let Some(TreeEvent::Activate(path)) = ev
+                    if let Some(TreeAction::Activate(path)) = ev
                         && let Some(i) = self.file_of_path(&path)
                     {
                         self.select_file(i);

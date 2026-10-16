@@ -16,11 +16,11 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipCmd};
-use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorEvent, Severity};
-use junie_tui::widgets::completion::{Completion, CompletionEvent, CompletionItem};
+use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorAction, Severity};
+use junie_tui::widgets::completion::{Completion, CompletionAction, CompletionItem};
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::grid::{
-    CellKind, CellValue, ColumnSpec, DataGrid, GridCmd, GridEvent, GridRows, RowTotal,
+    CellKind, CellValue, ColumnSpec, DataGrid, GridAction, GridCmd, GridRows, RowTotal,
 };
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -30,7 +30,7 @@ use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir};
-use junie_tui::widgets::tabs::{TabCmd, TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabAction, TabCmd, TabItem, Tabs};
 use junie_tui::widgets::tree::{TreeNode, TreeView};
 
 use crate::app::Cx;
@@ -1371,11 +1371,11 @@ impl QueryTab {
             if self.completion.is_open() {
                 let (o, ev) = self.completion.on_key(key);
                 match ev {
-                    Some(CompletionEvent::Accept(i)) => {
+                    Some(CompletionAction::Accept(i)) => {
                         self.accept_completion(i);
                         return Outcome::Changed;
                     }
-                    Some(CompletionEvent::Dismiss) => return Outcome::Changed,
+                    Some(CompletionAction::Dismiss) => return Outcome::Changed,
                     None => {
                         if o.consumed() {
                             return o;
@@ -1395,17 +1395,17 @@ impl QueryTab {
             }
             let (o, ev) = self.editor.on_key(key);
             match ev {
-                Some(EditorEvent::Changed) => {
+                Some(EditorAction::Changed) => {
                     self.editor.diagnostics.clear();
                     self.trigger_completion(cat, false);
                 }
-                Some(EditorEvent::CursorMoved) => {
+                Some(EditorAction::CursorMoved) => {
                     if self.completion.is_open() {
                         self.trigger_completion(cat, false);
                     }
                 }
-                Some(EditorEvent::Committed) => self.completion.close(),
-                Some(EditorEvent::Leave { backward }) => {
+                Some(EditorAction::Committed) => self.completion.close(),
+                Some(EditorAction::Leave { backward }) => {
                     if backward {
                         cx.focus_prev()
                     } else {
@@ -1430,8 +1430,8 @@ impl QueryTab {
             }
             let (o, ev) = self.result_tabs.on_key(key);
             match ev {
-                Some(TabEvent::Activated(i)) => self.set_active_result(i),
-                Some(TabEvent::Close(i)) => self.close_result(i),
+                Some(TabAction::Activated(i)) => self.set_active_result(i),
+                Some(TabAction::Close(i)) => self.close_result(i),
                 _ => {}
             }
             return o;
@@ -1444,11 +1444,11 @@ impl QueryTab {
             ResultBody::Rows(g) if f == g.id => {
                 let (o, ev) = g.on_key(key);
                 match ev {
-                    Some(GridEvent::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
-                    Some(GridEvent::SortRequested(_)) => {}
-                    Some(GridEvent::LeaveForward) => cx.focus_next(),
-                    Some(GridEvent::LeaveBackward) => cx.focus_prev(),
-                    Some(GridEvent::ReadOnly { reason }) => cx.status(reason),
+                    Some(GridAction::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
+                    Some(GridAction::SortRequested(_)) => {}
+                    Some(GridAction::LeaveForward) => cx.focus_next(),
+                    Some(GridAction::LeaveBackward) => cx.focus_prev(),
+                    Some(GridAction::ReadOnly { reason }) => cx.status(reason),
                     _ => {}
                 }
                 o
@@ -1480,7 +1480,7 @@ impl QueryTab {
             return self.seam.on_click(&mut self.split, cx.clicks);
         }
         if self.completion.is_open() {
-            if let Some(CompletionEvent::Accept(i)) = self.completion.on_click(id) {
+            if let Some(CompletionAction::Accept(i)) = self.completion.on_click(id) {
                 self.accept_completion(i);
                 return Outcome::Changed;
             }
@@ -1501,8 +1501,8 @@ impl QueryTab {
             cx.focus.focus(self.result_tabs.id);
             let (o, ev) = self.result_tabs.on_click(id);
             match ev {
-                Some(TabEvent::Activated(i)) => self.set_active_result(i),
-                Some(TabEvent::Close(i)) => self.close_result(i),
+                Some(TabAction::Activated(i)) => self.set_active_result(i),
+                Some(TabAction::Close(i)) => self.close_result(i),
                 _ => {}
             }
             return o;
@@ -1514,7 +1514,7 @@ impl QueryTab {
             ResultBody::Rows(g) if g.owns(id) => {
                 cx.focus.focus(g.id);
                 let (o, ev) = g.on_click(id, pos);
-                if let Some(GridEvent::Copy(s)) = ev {
+                if let Some(GridAction::Copy(s)) = ev {
                     cx.status(format!("Copied {} chars", s.len()));
                 }
                 o

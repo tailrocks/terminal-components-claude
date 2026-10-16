@@ -19,7 +19,7 @@ pub struct TreeNode {
     /// One-cell muted glyph before the label (object kind).
     pub glyph: Option<std::borrow::Cow<'static, str>>,
     /// Children are fetched on first expand; until then the node shows `▸`
-    /// and expanding emits [`TreeEvent::Expand`].
+    /// and expanding emits [`TreeAction::Expand`].
     pub lazy: bool,
     /// A load is in flight (spinner instead of the fold glyph).
     pub busy: bool,
@@ -97,7 +97,7 @@ pub struct FlatRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TreeEvent {
+pub enum TreeAction {
     /// A lazy node was expanded: the owner should fetch and `set_children`.
     Expand(Path),
     /// Enter on a leaf.
@@ -111,7 +111,7 @@ pub enum BranchAction {
     /// Expand or collapse it (the long-standing behaviour).
     #[default]
     Toggle,
-    /// Activate it like a leaf ([`TreeEvent::Activate`]); ←/→ and the
+    /// Activate it like a leaf ([`TreeAction::Activate`]); ←/→ and the
     /// disclosure still expand and collapse.
     Activate,
     /// Toggle it and activate it.
@@ -352,20 +352,20 @@ impl TreeView {
     }
 
     /// Run [`Self::branch_activate`] on branch row `i`.
-    fn branch(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
+    fn branch(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let path = self.rows[i].path.clone();
         match self.branch_activate {
             BranchAction::Toggle => self.toggle(i),
             BranchAction::Activate => {
                 self.selected = Some(path.clone());
-                (Outcome::Changed, Some(TreeEvent::Activate(path)))
+                (Outcome::Changed, Some(TreeAction::Activate(path)))
             }
             BranchAction::Both => {
                 let (o, ev) = self.toggle(i);
                 self.selected = Some(path.clone());
                 (
                     o.or(Outcome::Changed),
-                    ev.or(Some(TreeEvent::Activate(path))),
+                    ev.or(Some(TreeAction::Activate(path))),
                 )
             }
         }
@@ -525,7 +525,7 @@ impl TreeView {
         self.scroll.ensure_visible(self.cursor);
     }
 
-    pub fn toggle(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
+    pub fn toggle(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let Some(row) = self.rows.get(i) else {
             return (Outcome::Consumed, None);
         };
@@ -543,7 +543,7 @@ impl TreeView {
             }
             self.refold(i);
             if lazy {
-                return (Outcome::Changed, Some(TreeEvent::Expand(path)));
+                return (Outcome::Changed, Some(TreeAction::Expand(path)));
             }
             return (Outcome::Changed, None);
         }
@@ -628,7 +628,7 @@ impl TreeView {
         self.flatten();
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TreeEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
         if self.rows.is_empty() {
             return (Outcome::Ignored, None);
         }
@@ -718,7 +718,7 @@ impl TreeView {
     }
 
     /// Activation keys (not navigation, not a mapped action).
-    fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeEvent>) {
+    fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
         if let KeyCode::Char(c) = key.code
             && self.type_ahead
             && key.plain()
@@ -750,7 +750,7 @@ impl TreeView {
                     self.selected = Some(row.path.clone());
                     return (
                         Outcome::Changed,
-                        Some(TreeEvent::Activate(row.path.clone())),
+                        Some(TreeAction::Activate(row.path.clone())),
                     );
                 }
             }
@@ -759,7 +759,7 @@ impl TreeView {
         (out, None)
     }
 
-    pub fn on_click_row(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
+    pub fn on_click_row(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         if i >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
@@ -776,12 +776,12 @@ impl TreeView {
             self.selected = Some(self.rows[i].path.clone());
             (
                 Outcome::Changed,
-                Some(TreeEvent::Activate(self.rows[i].path.clone())),
+                Some(TreeAction::Activate(self.rows[i].path.clone())),
             )
         }
     }
 
-    pub fn on_click_toggle(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
+    pub fn on_click_toggle(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         self.set_cursor(i);
         self.toggle(i)
     }
@@ -795,7 +795,7 @@ impl TreeView {
         i: usize,
         toggle: bool,
         mods: KeyModifiers,
-    ) -> (Outcome, Option<TreeEvent>) {
+    ) -> (Outcome, Option<TreeAction>) {
         if self.alt_click_recursive
             && mods.contains(KeyModifiers::ALT)
             && self.rows.get(i).is_some_and(|r| r.has_children && !r.note)
@@ -812,9 +812,9 @@ impl TreeView {
 
     /// Open (when row `i` is closed) or close (when open) the branch at row
     /// `i` together with every loaded descendant branch. A lazy branch
-    /// still asks for its first level ([`TreeEvent::Expand`]); deeper
+    /// still asks for its first level ([`TreeAction::Expand`]); deeper
     /// levels load as they are opened.
-    pub fn toggle_recursive(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
+    pub fn toggle_recursive(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let Some(row) = self.rows.get(i) else {
             return (Outcome::Consumed, None);
         };
@@ -858,7 +858,7 @@ impl TreeView {
         }
         self.refold(i);
         if open && lazy {
-            return (Outcome::Changed, Some(TreeEvent::Expand(path)));
+            return (Outcome::Changed, Some(TreeAction::Expand(path)));
         }
         (Outcome::Changed, None)
     }
@@ -1203,7 +1203,7 @@ mod identity_tests {
         let mut a =
             TreeView::new(WidgetId::of("t"), nodes.clone()).branch_activate(BranchAction::Activate);
         let (_, ev) = a.on_key(&enter);
-        assert_eq!(ev, Some(TreeEvent::Activate(vec![0])));
+        assert_eq!(ev, Some(TreeAction::Activate(vec![0])));
         assert_eq!(a.rows().len(), 2, "activating does not collapse");
         let mut quiet = TreeView::new(WidgetId::of("t"), nodes).row_click_toggles(false);
         quiet.on_click_row(0);

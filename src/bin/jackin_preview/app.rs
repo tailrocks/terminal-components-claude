@@ -15,7 +15,7 @@ use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::dialog::{DialogBody, DialogResult};
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::picker::PickerEvent;
+use junie_tui::widgets::picker::PickerAction;
 use junie_tui::widgets::segments::{self, Segment};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
@@ -31,7 +31,7 @@ use crate::screens::capsule::CapsuleScreen;
 use crate::screens::cockpit::CockpitScreen;
 use crate::screens::editor::EditorScreen;
 use crate::screens::manager::ManagerScreen;
-use crate::screens::modals::{FormEvent, HelpOverlay, InfoResult};
+use crate::screens::modals::{FormAction, HelpOverlay, InfoResult};
 use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
 use crate::screens::usage::UsageScreen;
@@ -39,7 +39,7 @@ use crate::screens::{Cx, Go, Modal, ModalResult, ModalTag, Request, Screen};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
 use junie_tui::widgets::brand::Lockup;
-use junie_tui::widgets::menu::{MenuBar, MenuBarEvent, MenuItem};
+use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
 pub const MIN_WIDTH: u16 = 72;
 pub const MIN_HEIGHT: u16 = 20;
@@ -689,11 +689,11 @@ impl App {
         if host && self.host_menu.is_open() {
             let (o, ev) = self.host_menu.on_key(&key);
             return match ev {
-                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                Some(MenuBarAction::Chosen(mi, ii)) => {
                     let label = self.host_menu.menus[mi][ii].label.clone();
                     self.run_host_menu(&label)
                 }
-                Some(MenuBarEvent::Brand) => {
+                Some(MenuBarAction::Brand) => {
                     self.open_about();
                     Outcome::Changed
                 }
@@ -1526,19 +1526,19 @@ impl App {
             Modal::Picker(p) => {
                 let (o, ev) = p.on_key(&key);
                 match ev {
-                    Some(PickerEvent::QueryChanged) => {
+                    Some(PickerAction::QueryChanged) => {
                         self.refresh_picker();
                         Outcome::Changed
                     }
-                    Some(PickerEvent::Chosen(i)) => {
+                    Some(PickerAction::Chosen(i)) => {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::Picked(i))
                     }
-                    Some(PickerEvent::ChosenAlt(i)) => {
+                    Some(PickerAction::ChosenAlt(i)) => {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::PickedAlt(i))
                     }
-                    Some(PickerEvent::NextScope) => {
+                    Some(PickerAction::NextScope) => {
                         let tag = top.tag.clone();
                         let owner = top.owner;
                         let mut cx = Cx {
@@ -1555,13 +1555,13 @@ impl App {
                         self.refresh_picker();
                         Outcome::Changed
                     }
-                    Some(PickerEvent::Cancelled) => {
+                    Some(PickerAction::Cancelled) => {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::Cancelled)
                     }
-                    Some(PickerEvent::Back)
-                    | Some(PickerEvent::Secondary(_))
-                    | Some(PickerEvent::Submit)
+                    Some(PickerAction::Back)
+                    | Some(PickerAction::Secondary(_))
+                    | Some(PickerAction::Submit)
                     | None => o.or(Outcome::Consumed),
                 }
             }
@@ -1587,11 +1587,11 @@ impl App {
                 let mut out = o.or(Outcome::Consumed);
                 for ev in events {
                     match ev {
-                        FormEvent::Changed(_) => {
+                        FormAction::Changed(_) => {
                             self.form_changed();
                             out = Outcome::Changed;
                         }
-                        FormEvent::Choose(name) => {
+                        FormAction::Choose(name) => {
                             let tag = top_tag(&self.modals);
                             let owner = top_owner(&self.modals);
                             let values = form_values(&self.modals);
@@ -1613,7 +1613,7 @@ impl App {
                             self.apply_requests(reqs, owner);
                             return Outcome::Changed;
                         }
-                        FormEvent::Action(name) => {
+                        FormAction::Action(name) => {
                             let tag = top_tag(&self.modals);
                             let owner = top_owner(&self.modals);
                             let values = form_values(&self.modals);
@@ -1635,12 +1635,12 @@ impl App {
                             self.apply_requests(reqs, owner);
                             return Outcome::Changed;
                         }
-                        FormEvent::Save => {
+                        FormAction::Save => {
                             let values = form_values(&self.modals);
                             let entry = self.pop_modal().unwrap();
                             return self.deliver(entry, ModalResult::Form(Some(values)));
                         }
-                        FormEvent::Cancel => {
+                        FormAction::Cancel => {
                             let entry = self.pop_modal().unwrap();
                             return self.deliver(entry, ModalResult::Form(None));
                         }
@@ -1750,11 +1750,11 @@ impl App {
         if Self::is_host(self.route) && self.host_menu.owns(id) {
             let (o, ev) = self.host_menu.on_click(id);
             return match ev {
-                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                Some(MenuBarAction::Chosen(mi, ii)) => {
                     let label = self.host_menu.menus[mi][ii].label.clone();
                     self.run_host_menu(&label)
                 }
-                Some(MenuBarEvent::Brand) => {
+                Some(MenuBarAction::Brand) => {
                     self.open_about();
                     Outcome::Changed
                 }
@@ -2138,7 +2138,7 @@ impl App {
                 out.or(Outcome::Changed)
             }
             Modal::Picker(p) => {
-                if let Some(PickerEvent::Chosen(i)) = p.on_click(id) {
+                if let Some(PickerAction::Chosen(i)) = p.on_click(id) {
                     let entry = self.pop_modal().unwrap();
                     return self.deliver(entry, ModalResult::Picked(i));
                 }
@@ -2165,8 +2165,8 @@ impl App {
                 let events = std::mem::take(&mut f.events);
                 for ev in events {
                     match ev {
-                        FormEvent::Changed(_) => self.form_changed(),
-                        FormEvent::Choose(name) => {
+                        FormAction::Changed(_) => self.form_changed(),
+                        FormAction::Choose(name) => {
                             let tag = top_tag(&self.modals);
                             let owner = top_owner(&self.modals);
                             let values = form_values(&self.modals);
@@ -2188,7 +2188,7 @@ impl App {
                             self.apply_requests(reqs, owner);
                             return Outcome::Changed;
                         }
-                        FormEvent::Action(name) => {
+                        FormAction::Action(name) => {
                             let tag = top_tag(&self.modals);
                             let owner = top_owner(&self.modals);
                             let values = form_values(&self.modals);
@@ -2210,12 +2210,12 @@ impl App {
                             self.apply_requests(reqs, owner);
                             return Outcome::Changed;
                         }
-                        FormEvent::Save => {
+                        FormAction::Save => {
                             let values = form_values(&self.modals);
                             let entry = self.pop_modal().unwrap();
                             return self.deliver(entry, ModalResult::Form(Some(values)));
                         }
-                        FormEvent::Cancel => {
+                        FormAction::Cancel => {
                             let entry = self.pop_modal().unwrap();
                             return self.deliver(entry, ModalResult::Form(None));
                         }

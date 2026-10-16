@@ -10,14 +10,14 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::table::SortDir;
-use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
-use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
+use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
+use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
 use crate::app::Cx;
 use crate::db::{Catalog, Connection, ObjectKind};
@@ -635,14 +635,14 @@ impl Workbench {
         if f == self.explorer_filter.id {
             let (o, ev) = self.explorer_filter.on_key(key);
             match ev {
-                Some(InputEvent::Changed)
-                | Some(InputEvent::Committed)
-                | Some(InputEvent::Cancelled) => {
+                Some(InputAction::Changed)
+                | Some(InputAction::Committed)
+                | Some(InputAction::Cancelled) => {
                     let q = self.explorer_filter.text().to_owned();
                     self.explorer
                         .set_filter(if q.is_empty() { None } else { Some(&q) });
                 }
-                Some(InputEvent::CommittedTab { backward }) => {
+                Some(InputAction::CommittedTab { backward }) => {
                     if backward {
                         cx.focus_prev()
                     } else {
@@ -694,7 +694,7 @@ impl Workbench {
                 return Outcome::Changed;
             }
             let (o, ev) = self.explorer.on_key(key);
-            if let Some(TreeEvent::Expand(path)) = ev {
+            if let Some(TreeAction::Expand(path)) = ev {
                 self.pending_loads.push((path, 3));
             }
             return o;
@@ -702,9 +702,9 @@ impl Workbench {
         if f == self.strip.id {
             let (o, ev) = self.strip.on_key(key);
             match ev {
-                Some(TabEvent::Activated(i)) => self.set_active(i),
-                Some(TabEvent::Close(i)) => return self.request_close(i, cx),
-                Some(TabEvent::New) => {
+                Some(TabAction::Activated(i)) => self.set_active(i),
+                Some(TabAction::Close(i)) => return self.request_close(i, cx),
+                Some(TabAction::New) => {
                     self.new_query("");
                     if let Some(pf) = self.primary_focus() {
                         cx.focus.focus(pf);
@@ -756,26 +756,26 @@ impl Workbench {
         if f == t.chips.id {
             let (o, ev) = t.chips.on_key(key);
             match ev {
-                Some(junie_tui::widgets::chips::ChipEvent::Remove(i)) => {
+                Some(junie_tui::widgets::chips::ChipAction::Remove(i)) => {
                     t.filters.remove(i);
                     t.load(cat);
                     cx.status("Filter removed");
                 }
-                Some(junie_tui::widgets::chips::ChipEvent::Toggle(i)) => {
+                Some(junie_tui::widgets::chips::ChipAction::Toggle(i)) => {
                     t.filters[i].enabled = !t.filters[i].enabled;
                     t.load(cat);
                 }
-                Some(junie_tui::widgets::chips::ChipEvent::Activate(i)) => {
+                Some(junie_tui::widgets::chips::ChipAction::Activate(i)) => {
                     cx.requests.push(crate::app::Request::EditFilter(Some(i)));
                 }
-                Some(junie_tui::widgets::chips::ChipEvent::Add) => {
+                Some(junie_tui::widgets::chips::ChipAction::Add) => {
                     cx.requests.push(crate::app::Request::EditFilter(None))
                 }
-                Some(junie_tui::widgets::chips::ChipEvent::ClearAll) => {
+                Some(junie_tui::widgets::chips::ChipAction::ClearAll) => {
                     t.filters.clear();
                     t.load(cat);
                 }
-                Some(junie_tui::widgets::chips::ChipEvent::Lead) => {
+                Some(junie_tui::widgets::chips::ChipAction::Lead) => {
                     t.match_all = !t.match_all;
                     t.load(cat);
                 }
@@ -804,16 +804,16 @@ impl Workbench {
 
     fn grid_event(
         t: &mut TableTab,
-        ev: junie_tui::widgets::grid::GridEvent,
+        ev: junie_tui::widgets::grid::GridAction,
         cx: &mut Cx,
         cat: &Catalog,
         _conn: &str,
         _db: &str,
         _history: &mut History,
     ) -> Outcome {
-        use junie_tui::widgets::grid::GridEvent;
+        use junie_tui::widgets::grid::GridAction;
         match ev {
-            GridEvent::SortRequested(s) => {
+            GridAction::SortRequested(s) => {
                 t.sort = s;
                 t.load(cat);
                 match s {
@@ -829,11 +829,11 @@ impl Workbench {
                     None => cx.status("Sort cleared"),
                 }
             }
-            GridEvent::FetchMore => {
+            GridAction::FetchMore => {
                 cx.status("Showing the first 500 rows · add a LIMIT or filter to narrow");
                 t.grid.set_loading(false);
             }
-            GridEvent::Refresh => {
+            GridAction::Refresh => {
                 if t.dirty_count() > 0 {
                     cx.requests.push(crate::app::Request::ConfirmDiscard);
                 } else {
@@ -841,21 +841,21 @@ impl Workbench {
                     cx.status("Refreshed");
                 }
             }
-            GridEvent::CommitRequested => cx.requests.push(crate::app::Request::CommitPending),
-            GridEvent::DiscardRequested => cx.requests.push(crate::app::Request::ConfirmDiscard),
-            GridEvent::PreviewSql => cx.requests.push(crate::app::Request::PreviewSql),
-            GridEvent::Copy(s) => cx.status(format!("Copied {} chars", s.len())),
-            GridEvent::FilterOnCell { col, value } => {
+            GridAction::CommitRequested => cx.requests.push(crate::app::Request::CommitPending),
+            GridAction::DiscardRequested => cx.requests.push(crate::app::Request::ConfirmDiscard),
+            GridAction::PreviewSql => cx.requests.push(crate::app::Request::PreviewSql),
+            GridAction::Copy(s) => cx.status(format!("Copied {} chars", s.len())),
+            GridAction::FilterOnCell { col, value } => {
                 cx.requests
                     .push(crate::app::Request::FilterOnCell(col, value));
             }
-            GridEvent::OpenFilters => cx.requests.push(crate::app::Request::EditFilter(None)),
-            GridEvent::ClearFilters => {
+            GridAction::OpenFilters => cx.requests.push(crate::app::Request::EditFilter(None)),
+            GridAction::ClearFilters => {
                 t.filters.clear();
                 t.load(cat);
                 cx.status("Filters cleared");
             }
-            GridEvent::FollowReference { row, col } => {
+            GridAction::FollowReference { row, col } => {
                 let name = t.columns[col].0.clone();
                 let v = t.grid.value(row, col).text();
                 if let Some(target) = cat
@@ -870,18 +870,18 @@ impl Workbench {
                     ));
                 }
             }
-            GridEvent::OpenViewer { row, col } => {
+            GridAction::OpenViewer { row, col } => {
                 let v = t.grid.value(row, col).clone();
                 cx.requests
                     .push(crate::app::Request::OpenViewer(t.columns[col].0.clone(), v));
             }
-            GridEvent::LeaveForward => cx.focus_next(),
-            GridEvent::LeaveBackward => cx.focus_prev(),
-            GridEvent::ReadOnly { reason } => cx.status(reason),
-            GridEvent::CellChanged { .. }
-            | GridEvent::RowInserted(_)
-            | GridEvent::RowDeleted(_)
-            | GridEvent::Activated(_) => {}
+            GridAction::LeaveForward => cx.focus_next(),
+            GridAction::LeaveBackward => cx.focus_prev(),
+            GridAction::ReadOnly { reason } => cx.status(reason),
+            GridAction::CellChanged { .. }
+            | GridAction::RowInserted(_)
+            | GridAction::RowDeleted(_)
+            | GridAction::Activated(_) => {}
         }
         Outcome::Changed
     }
@@ -897,10 +897,10 @@ impl Workbench {
         if f == h.search.id {
             let (o, ev) = h.search.on_key(key);
             match ev {
-                Some(InputEvent::Changed)
-                | Some(InputEvent::Committed)
-                | Some(InputEvent::Cancelled) => h.refresh(history, conn),
-                Some(InputEvent::CommittedTab { backward }) => {
+                Some(InputAction::Changed)
+                | Some(InputAction::Committed)
+                | Some(InputAction::Cancelled) => h.refresh(history, conn),
+                Some(InputAction::CommittedTab { backward }) => {
                     if backward {
                         cx.focus_prev()
                     } else {
@@ -1102,7 +1102,7 @@ impl Workbench {
             } else {
                 self.explorer.on_click_row(row)
             };
-            if let Some(TreeEvent::Expand(path)) = ev {
+            if let Some(TreeAction::Expand(path)) = ev {
                 self.pending_loads.push((path, 3));
             }
             return o;
@@ -1121,14 +1121,14 @@ impl Workbench {
             cx.focus.focus(self.strip.id);
             let (o, ev) = self.strip.on_click(id);
             match ev {
-                Some(TabEvent::Activated(i)) => {
+                Some(TabAction::Activated(i)) => {
                     self.set_active(i);
                     if let Some(pf) = self.primary_focus() {
                         cx.focus.focus(pf);
                     }
                 }
-                Some(TabEvent::Close(i)) => return self.request_close(i, cx),
-                Some(TabEvent::New) => {
+                Some(TabAction::Close(i)) => return self.request_close(i, cx),
+                Some(TabAction::New) => {
                     self.new_query("");
                     if let Some(pf) = self.primary_focus() {
                         cx.focus.focus(pf);
@@ -1175,17 +1175,17 @@ impl Workbench {
                     cx.focus.focus(t.chips.id);
                     let (o, ev) = t.chips.on_click(id);
                     match ev {
-                        Some(junie_tui::widgets::chips::ChipEvent::Remove(i)) => {
+                        Some(junie_tui::widgets::chips::ChipAction::Remove(i)) => {
                             t.filters.remove(i);
                             t.load(cat);
                         }
-                        Some(junie_tui::widgets::chips::ChipEvent::Activate(i)) => {
+                        Some(junie_tui::widgets::chips::ChipAction::Activate(i)) => {
                             cx.requests.push(crate::app::Request::EditFilter(Some(i)))
                         }
-                        Some(junie_tui::widgets::chips::ChipEvent::Add) => {
+                        Some(junie_tui::widgets::chips::ChipAction::Add) => {
                             cx.requests.push(crate::app::Request::EditFilter(None))
                         }
-                        Some(junie_tui::widgets::chips::ChipEvent::Lead) => {
+                        Some(junie_tui::widgets::chips::ChipAction::Lead) => {
                             t.match_all = !t.match_all;
                             t.load(cat);
                         }

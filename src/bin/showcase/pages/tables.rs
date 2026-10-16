@@ -12,7 +12,7 @@ use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::menu::{ContextMenu, MenuItem};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir, TableEvent, Tone};
+use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir, TableAction, Tone};
 use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("tables");
@@ -156,7 +156,7 @@ impl TablesPage {
             CellAction::Select => {
                 self.table.cursor_row = cell.0;
                 let (out, tev) = self.table.on_key(&plain(KeyCode::Enter));
-                if let Some(TableEvent::Activated(row)) = tev {
+                if let Some(TableAction::Activated(row)) = tev {
                     cx.status(format!("Selected {}", self.table.rows[row][1].text));
                 }
                 out
@@ -288,7 +288,7 @@ impl Page for TablesPage {
                         return Outcome::Changed;
                     }
                     let (out, tev) = self.table.on_key(key);
-                    if let Some(TableEvent::Activated(row)) = tev {
+                    if let Some(TableAction::Activated(row)) = tev {
                         cx.status(format!("Selected {}", self.table.rows[row][1].text));
                     }
                     return out;
@@ -334,7 +334,7 @@ impl Page for TablesPage {
                 if let Some((row, col)) = self.table.locate(*id) {
                     cx.focus.focus(self.table.id);
                     let (out, tev) = self.table.on_click_cell(row, col.unwrap_or(0), *pos);
-                    if let Some(TableEvent::Activated(r)) = tev {
+                    if let Some(TableAction::Activated(r)) = tev {
                         cx.status(format!("Selected {}", self.table.rows[r][1].text));
                     }
                     return out;

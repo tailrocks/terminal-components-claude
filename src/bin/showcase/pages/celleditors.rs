@@ -11,7 +11,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::option_editor::{ColumnEditor, OptionItem, Options};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
+use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
 
 const ID: WidgetId = WidgetId::of("celleditors");
 
@@ -280,16 +280,16 @@ impl CellEditorsPage {
         }
     }
 
-    fn on_event(&mut self, ev: Option<TableEvent>, cx: &mut PageCtx) {
+    fn on_event(&mut self, ev: Option<TableAction>, cx: &mut PageCtx) {
         match ev {
-            Some(TableEvent::Committed { col, .. }) => {
+            Some(TableAction::Committed { col, .. }) => {
                 self.edits += 1;
                 let name = self.table.columns[col].title.clone();
                 cx.status(format!("{name} saved"));
             }
-            Some(TableEvent::Cancelled) => cx.status("Edit cancelled"),
-            Some(TableEvent::LeaveForward) => cx.focus_next(),
-            Some(TableEvent::LeaveBackward) => cx.focus_prev(),
+            Some(TableAction::Cancelled) => cx.status("Edit cancelled"),
+            Some(TableAction::LeaveForward) => cx.focus_next(),
+            Some(TableAction::LeaveBackward) => cx.focus_prev(),
             _ => {}
         }
     }

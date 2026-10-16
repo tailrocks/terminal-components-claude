@@ -12,12 +12,12 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::popup::Dismiss;
-use junie_tui::widgets::chips::{Chip, ChipBar, ChipEvent};
+use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::segments::{self, Segment};
-use junie_tui::widgets::select::{Select, SelectEvent};
+use junie_tui::widgets::select::{Select, SelectAction};
 
 const ID: WidgetId = WidgetId::of("chips");
 
@@ -81,16 +81,16 @@ impl ChipsPage {
         });
     }
 
-    fn on_chip(&mut self, ev: Option<ChipEvent>, cx: &mut PageCtx) {
+    fn on_chip(&mut self, ev: Option<ChipAction>, cx: &mut PageCtx) {
         match ev {
-            Some(ChipEvent::Activate(i)) => {
+            Some(ChipAction::Activate(i)) => {
                 self.last = format!("edit {}", self.filters.chips[i].label);
                 cx.status(format!(
                     "Would open the editor for {}",
                     self.filters.chips[i].label
                 ));
             }
-            Some(ChipEvent::Toggle(i)) => {
+            Some(ChipAction::Toggle(i)) => {
                 let c = &mut self.filters.chips[i];
                 c.enabled = !c.enabled;
                 self.last = format!(
@@ -99,22 +99,22 @@ impl ChipsPage {
                     c.label
                 );
             }
-            Some(ChipEvent::Remove(i)) => {
+            Some(ChipAction::Remove(i)) => {
                 let c = self.filters.chips.remove(i);
                 self.last = format!("removed {}", c.label);
             }
-            Some(ChipEvent::Add) => {
+            Some(ChipAction::Add) => {
                 let label = CANDIDATES[self.next_candidate % CANDIDATES.len()];
                 self.next_candidate += 1;
                 self.filters.chips.push(Chip::new(label));
                 self.filters.cursor = self.filters.chips.len() - 1;
                 self.last = format!("added {label}");
             }
-            Some(ChipEvent::ClearAll) => {
+            Some(ChipAction::ClearAll) => {
                 self.filters.chips.clear();
                 self.last = "cleared all filters".into();
             }
-            Some(ChipEvent::Lead) => {
+            Some(ChipAction::Lead) => {
                 self.match_all = !self.match_all;
                 self.sync_lead();
                 self.last = format!("match {}", if self.match_all { "all" } else { "any" });
@@ -202,7 +202,7 @@ impl Page for ChipsPage {
                 for sel in self.selects() {
                     if sel.id == f {
                         let (o, ev) = sel.on_key(key);
-                        if let Some(SelectEvent::Changed(i)) = ev {
+                        if let Some(SelectAction::Changed(i)) = ev {
                             let msg = format!("{} → {}", sel.label, sel.options[i]);
                             cx.status(msg);
                         }
@@ -226,7 +226,7 @@ impl Page for ChipsPage {
                             cx.focus.focus(sel.id);
                         }
                         let (o, ev) = sel.on_click(*id);
-                        if let Some(SelectEvent::Changed(i)) = ev {
+                        if let Some(SelectAction::Changed(i)) = ev {
                             let msg = format!("{} → {}", sel.label, sel.options[i]);
                             cx.status(msg);
                         }

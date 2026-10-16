@@ -16,7 +16,7 @@ use crate::widgets::field_common::{
     Applied, EditAction, PointerField, PointerSelect, PressState, apply_edit, click_select,
     drag_select, edit_key_with, paste_clipboard, press_select,
 };
-use crate::widgets::input::InputEvent;
+use crate::widgets::input::InputAction;
 use crate::widgets::scrollbar;
 
 /// Multi-line editor. Focus starts editing per its [`EditEntry`] like
@@ -227,7 +227,7 @@ impl TextArea {
     /// An edit in progress ends per [`Self::blur_action`] and reports
     /// `Committed` (or `Cancelled`, which restores the text from before
     /// editing) so the owner's hooks run; `None` when not editing.
-    pub fn on_blur(&mut self) -> Option<InputEvent> {
+    pub fn on_blur(&mut self) -> Option<InputAction> {
         if !self.editing {
             return None;
         }
@@ -238,13 +238,13 @@ impl TextArea {
         match self.blur_action {
             BlurAction::Commit => {
                 self.commit();
-                Some(InputEvent::Committed)
+                Some(InputAction::Committed)
             }
             BlurAction::Cancel => {
                 self.editing = false;
                 let snap = std::mem::take(&mut self.snapshot);
                 self.buffer.set_text(snap);
-                Some(InputEvent::Cancelled)
+                Some(InputAction::Cancelled)
             }
             BlurAction::Keep => None,
         }
@@ -293,7 +293,7 @@ impl TextArea {
         self.buffer.clear_selection();
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputAction>) {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
@@ -320,7 +320,7 @@ impl TextArea {
                 // Paste (Cmd+V, the preset's key) goes the bracketed-paste
                 // way, which picks the edit up where typing would
                 let o = paste_clipboard(|t| self.on_paste(t));
-                return (o, (o == Outcome::Changed).then_some(InputEvent::Changed));
+                return (o, (o == Outcome::Changed).then_some(InputAction::Changed));
             } else if entry != EditEntry::Explicit
                 && let KeyCode::Char(c) = key.code
                 && !key.chord()
@@ -329,7 +329,7 @@ impl TextArea {
                 self.begin_edit();
                 self.undo.record(&self.buffer, EditKind::Typing);
                 self.buffer.insert_char(c);
-                return (Outcome::Changed, Some(InputEvent::Changed));
+                return (Outcome::Changed, Some(InputAction::Changed));
             } else {
                 let _moved = match self.nav.action(key) {
                     Some(Nav::Up) => self.scroll.scroll_by(-1),
@@ -351,22 +351,22 @@ impl TextArea {
                 (
                     Outcome::Changed,
                     Some(if dirty {
-                        InputEvent::Cancelled
+                        InputAction::Cancelled
                     } else {
-                        InputEvent::Committed
+                        InputAction::Committed
                     }),
                 )
             }
             EditAction::Commit | EditAction::Cancel => {
                 self.commit();
-                (Outcome::Changed, Some(InputEvent::Committed))
+                (Outcome::Changed, Some(InputAction::Committed))
             }
             EditAction::Tab { backward } => {
                 self.commit();
                 request_focus_next(backward);
                 (
                     Outcome::Changed,
-                    Some(InputEvent::CommittedTab { backward }),
+                    Some(InputAction::CommittedTab { backward }),
                 )
             }
             EditAction::None => match key.code {
@@ -386,7 +386,7 @@ impl TextArea {
                 _ => (crate::widgets::field_common::unbound_key(key), None),
             },
             action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
-                Some(Applied::Edited) => (Outcome::Changed, Some(InputEvent::Changed)),
+                Some(Applied::Edited) => (Outcome::Changed, Some(InputAction::Changed)),
                 _ => (Outcome::Changed, None),
             },
         }
@@ -966,7 +966,7 @@ mod tests {
         a.render(area, &mut buf, &mut ctx, theme.canvas);
         assert!(a.editing, "render is not a blur: on_blur ends the edit");
         assert_eq!(ctx.cursor, None);
-        assert_eq!(a.on_blur(), Some(InputEvent::Committed));
+        assert_eq!(a.on_blur(), Some(InputAction::Committed));
     }
 
     #[test]
@@ -986,11 +986,11 @@ mod tests {
             a
         };
         let mut commit = edited(BlurAction::default());
-        assert_eq!(commit.on_blur(), Some(InputEvent::Committed));
+        assert_eq!(commit.on_blur(), Some(InputAction::Committed));
         assert!(!commit.editing);
         assert_eq!(commit.buffer.text(), "old\nnew");
         let mut cancel = edited(BlurAction::Cancel);
-        assert_eq!(cancel.on_blur(), Some(InputEvent::Cancelled));
+        assert_eq!(cancel.on_blur(), Some(InputAction::Cancelled));
         assert!(!cancel.editing);
         assert_eq!(cancel.buffer.text(), "old");
         let mut keep = edited(BlurAction::Keep);
@@ -1084,21 +1084,21 @@ mod tests {
             "one\nx",
             "caret at the end, Enter a newline"
         );
-        assert_eq!(a.on_key(&key(KeyCode::Esc)).1, Some(InputEvent::Committed));
+        assert_eq!(a.on_key(&key(KeyCode::Esc)).1, Some(InputAction::Committed));
         assert!(!a.editing);
         assert_eq!(a.buffer.text(), "one\nx", "Esc is Done: the text stays");
         a.on_key(&key(KeyCode::Char('y')));
         assert!(a.editing, "typing picks the edit up again");
         assert_eq!(
             a.on_key(&key(KeyCode::Tab)).1,
-            Some(InputEvent::CommittedTab { backward: false })
+            Some(InputAction::CommittedTab { backward: false })
         );
         let mut r = TextArea::new(WidgetId::of("r"), "Notes", 3)
             .value("keep")
             .esc_reverts(true);
         render(&mut r, area, &mut buf, ColorLevel::TrueColor);
         r.on_key(&key(KeyCode::Char('x')));
-        assert_eq!(r.on_key(&key(KeyCode::Esc)).1, Some(InputEvent::Cancelled));
+        assert_eq!(r.on_key(&key(KeyCode::Esc)).1, Some(InputAction::Cancelled));
         assert_eq!(r.buffer.text(), "keep");
     }
 

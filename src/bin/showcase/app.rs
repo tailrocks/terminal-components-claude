@@ -19,7 +19,7 @@ use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
+use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
 pub const MIN_WIDTH: u16 = 72;
 pub const MIN_HEIGHT: u16 = 20;
@@ -1299,7 +1299,7 @@ impl App {
     /// [`NavExpand::CurrentGroup`]).
     fn nav_event(
         &mut self,
-        f: impl FnOnce(&mut TreeView) -> (Outcome, Option<TreeEvent>),
+        f: impl FnOnce(&mut TreeView) -> (Outcome, Option<TreeAction>),
     ) -> Outcome {
         let auto_open =
             |nav: &TreeView, g: Option<usize>| g.map(|g| nav.expanded.contains(&vec![g]));
@@ -1308,7 +1308,7 @@ impl App {
         if auto_open(&self.nav, self.nav_auto) != before {
             self.nav_auto = None;
         }
-        if let Some(TreeEvent::Activate(path)) = ev
+        if let Some(TreeAction::Activate(path)) = ev
             && let Some(page) = PageId::from_nav_path(&path)
         {
             self.goto(page);

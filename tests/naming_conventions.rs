@@ -58,6 +58,18 @@ fn declarations(dir: &str, keyword: &str) -> Vec<(String, usize, String)> {
 }
 
 #[test]
+fn widget_output_enums_are_actions_not_events() {
+    let events: Vec<_> = declarations("src/widgets", "enum ")
+        .into_iter()
+        .filter(|(_, _, name)| name.ends_with("Event"))
+        .collect();
+    assert!(
+        events.is_empty(),
+        "widget output enums are named `XAction` (plan §1.9): {events:?}"
+    );
+}
+
+#[test]
 fn key_map_command_enums_are_cmds() {
     let wrong: Vec<_> = declarations("src", "impl Actions for ")
         .into_iter()

@@ -357,7 +357,7 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::{Interaction, RenderCtx};
     use crate::widgets::list::{ListItem, SelectMode};
-    use crate::widgets::menu::MenuEvent;
+    use crate::widgets::menu::MenuAction;
     use ratatui::buffer::Buffer;
 
     const MENU: WidgetId = WidgetId::of("ctx.menu");
@@ -470,7 +470,7 @@ mod tests {
             panic!("outside the menu");
         };
         assert!(m.owns(backdrop), "the click closes the open menu");
-        assert_eq!(m.on_click(backdrop), Some(MenuEvent::Dismissed));
+        assert_eq!(m.on_click(backdrop), Some(MenuAction::Dismissed));
         let below = reopen.expect("the row beneath");
         assert_eq!(l.locate(below), Some(7));
         assert_eq!(p.hover, Some(below));

@@ -12,7 +12,7 @@ use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::Dialog;
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::progress::spinner_frame;
@@ -20,7 +20,7 @@ use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::select::Select;
-use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -1547,14 +1547,14 @@ impl EditorScreen {
         if focus == Some(NAME) {
             let (o, ev) = self.name.on_key(key);
             match ev {
-                Some(InputEvent::Committed) => {
+                Some(InputAction::Committed) => {
                     self.name.error = None;
                     self.name.validate();
                     self.sync_pending();
                     cx.status(format!("Name {} · save to apply", self.pending.name));
                     return Outcome::Changed;
                 }
-                Some(InputEvent::Cancelled) => {
+                Some(InputAction::Cancelled) => {
                     cx.status("Reverted");
                     return Outcome::Changed;
                 }
@@ -1704,7 +1704,7 @@ impl Screen for EditorScreen {
                 return Outcome::Changed;
             }
             let (o, ev) = self.tabs.on_key(key);
-            if let Some(TabEvent::Activated(i)) = ev {
+            if let Some(TabAction::Activated(i)) = ev {
                 self.tab = EdTab::ALL[i.min(4)];
                 return Outcome::Changed;
             }
@@ -1822,7 +1822,7 @@ impl Screen for EditorScreen {
         }
         if self.tabs.owns(id) {
             let (o, ev) = self.tabs.on_click(id);
-            if let Some(TabEvent::Activated(i)) = ev {
+            if let Some(TabAction::Activated(i)) = ev {
                 self.tab = EdTab::ALL[i.min(4)];
             }
             cx.focus.focus(TABS);
@@ -2005,14 +2005,14 @@ impl Screen for EditorScreen {
             return Outcome::Ignored;
         }
         match self.name.on_blur() {
-            Some(InputEvent::Committed) => {
+            Some(InputAction::Committed) => {
                 self.name.error = None;
                 self.name.validate();
                 self.sync_pending();
                 cx.status(format!("Name {} · save to apply", self.pending.name));
                 Outcome::Changed
             }
-            Some(InputEvent::Cancelled) => {
+            Some(InputAction::Cancelled) => {
                 cx.status("Reverted");
                 Outcome::Changed
             }

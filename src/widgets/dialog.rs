@@ -20,7 +20,7 @@ use crate::theme::{ButtonKind, Strings};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::widgets::button::{Button, ButtonRow, RowAlign, RowOverflow};
-use crate::widgets::input::{InputEvent, TextInput};
+use crate::widgets::input::{InputAction, TextInput};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::panel::Panel;
 use crate::widgets::scrollbar;
@@ -961,7 +961,7 @@ impl Dialog {
         {
             let (o, ev) = inp.on_key(key);
             match ev {
-                Some(InputEvent::CommittedTab { backward }) => {
+                Some(InputAction::CommittedTab { backward }) => {
                     if backward {
                         focus.prev(ring);
                     } else {
@@ -969,7 +969,7 @@ impl Dialog {
                     }
                     return Outcome::Changed;
                 }
-                Some(InputEvent::Committed) => {
+                Some(InputAction::Committed) => {
                     // Enter submits a prompt. A typed acknowledgement presses
                     // its gated action once the token matches
                     // (`AckEnter::Submit`), or only moves on to the buttons

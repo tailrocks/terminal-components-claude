@@ -9,7 +9,7 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::button::{Button, row_layout_right};
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
@@ -1144,7 +1144,7 @@ impl Screen for ArgsPage {
                 Field::Text(t) => {
                     let (o, ev) = t.on_key(key);
                     match ev {
-                        Some(InputEvent::CommittedTab { backward }) => {
+                        Some(InputAction::CommittedTab { backward }) => {
                             if backward {
                                 cx.focus.prev(cx.ring);
                             } else {
@@ -1152,7 +1152,7 @@ impl Screen for ArgsPage {
                             }
                             return Outcome::Changed;
                         }
-                        Some(InputEvent::Committed) => {
+                        Some(InputAction::Committed) => {
                             cx.focus.next(cx.ring);
                             return Outcome::Changed;
                         }

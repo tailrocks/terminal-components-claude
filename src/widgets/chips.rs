@@ -12,7 +12,7 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::{ButtonKind, Kind};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
-use crate::widgets::menu::{ContextMenu, MenuEvent, MenuItem};
+use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
 /// How many items of a horizontal run fit in `avail` cells (`widths` each,
 /// `gap` cells between them), and the `+N` marker naming the ones that do
@@ -117,7 +117,7 @@ impl Actions for ChipCmd {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChipEvent {
+pub enum ChipAction {
     Activate(usize),
     Toggle(usize),
     Remove(usize),
@@ -187,15 +187,15 @@ impl ChipBar {
         self.menu = Some((menu, hidden));
     }
 
-    fn menu_event(&mut self, ev: Option<MenuEvent>) -> Option<ChipEvent> {
+    fn menu_event(&mut self, ev: Option<MenuAction>) -> Option<ChipAction> {
         match ev? {
-            MenuEvent::Chosen(k) => {
+            MenuAction::Chosen(k) => {
                 let (_, hidden) = self.menu.take()?;
                 let i = *hidden.get(k)?;
                 self.cursor = i;
-                Some(ChipEvent::Activate(i))
+                Some(ChipAction::Activate(i))
             }
-            MenuEvent::Dismissed => {
+            MenuAction::Dismissed => {
                 self.menu = None;
                 None
             }
@@ -238,7 +238,7 @@ impl ChipBar {
         self.chips.len() + usize::from(self.add_label.is_some())
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ChipEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ChipAction>) {
         if let Some((menu, _)) = self.menu.as_mut() {
             let (o, ev) = menu.on_key(key);
             return (o, self.menu_event(ev));
@@ -257,10 +257,10 @@ impl ChipBar {
             Some(ChipCmd::Remove)
                 if self.cursor < self.chips.len() && self.chips[self.cursor].removable =>
             {
-                return (Outcome::Changed, Some(ChipEvent::Remove(self.cursor)));
+                return (Outcome::Changed, Some(ChipAction::Remove(self.cursor)));
             }
-            Some(ChipCmd::Add) => return (Outcome::Changed, Some(ChipEvent::Add)),
-            Some(ChipCmd::ClearAll) => return (Outcome::Changed, Some(ChipEvent::ClearAll)),
+            Some(ChipCmd::Add) => return (Outcome::Changed, Some(ChipAction::Add)),
+            Some(ChipCmd::ClearAll) => return (Outcome::Changed, Some(ChipAction::ClearAll)),
             _ => {}
         }
         let to = match self.nav.action(key).filter(|_| key.plain()) {
@@ -277,19 +277,19 @@ impl ChipBar {
         match key.code {
             KeyCode::Enter => {
                 if self.cursor < self.chips.len() {
-                    (Outcome::Changed, Some(ChipEvent::Activate(self.cursor)))
+                    (Outcome::Changed, Some(ChipAction::Activate(self.cursor)))
                 } else {
-                    (Outcome::Changed, Some(ChipEvent::Add))
+                    (Outcome::Changed, Some(ChipAction::Add))
                 }
             }
             KeyCode::Char(' ') if self.cursor < self.chips.len() => {
-                (Outcome::Changed, Some(ChipEvent::Toggle(self.cursor)))
+                (Outcome::Changed, Some(ChipAction::Toggle(self.cursor)))
             }
             _ => (Outcome::Ignored, None),
         }
     }
 
-    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ChipEvent>) {
+    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ChipAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
             && menu.owns(id)
         {
@@ -306,18 +306,18 @@ impl ChipBar {
         self.menu = None;
         if id == self.add_id() {
             self.cursor = self.chips.len();
-            return (Outcome::Changed, Some(ChipEvent::Add));
+            return (Outcome::Changed, Some(ChipAction::Add));
         }
         if id == self.lead_id() {
-            return (Outcome::Changed, Some(ChipEvent::Lead));
+            return (Outcome::Changed, Some(ChipAction::Lead));
         }
         for i in 0..self.chips.len() {
             if self.close_id(i) == id {
-                return (Outcome::Changed, Some(ChipEvent::Remove(i)));
+                return (Outcome::Changed, Some(ChipAction::Remove(i)));
             }
             if self.chip_id(i) == id {
                 self.cursor = i;
-                return (Outcome::Changed, Some(ChipEvent::Activate(i)));
+                return (Outcome::Changed, Some(ChipAction::Activate(i)));
             }
         }
         (Outcome::Ignored, None)
@@ -612,7 +612,7 @@ mod overflow_tests {
         let last = bar.menu.as_ref().unwrap().0.row_id(hidden - 1);
         assert!(hits.area_of(last).is_some());
         assert!(bar.owns(last));
-        assert_eq!(bar.on_click(last).1, Some(ChipEvent::Activate(3)));
+        assert_eq!(bar.on_click(last).1, Some(ChipAction::Activate(3)));
         assert_eq!(bar.cursor, 3);
         assert!(!bar.menu_open());
         // Esc and an outside click close it without a choice

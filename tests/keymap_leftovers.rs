@@ -10,8 +10,8 @@ use junie_tui::widgets::form_dialog::FormDialog;
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
 use junie_tui::widgets::help::{HelpCmd, HelpOverlay};
 use junie_tui::widgets::info_dialog::{InfoCmd, InfoDialog, InfoResult};
-use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarEvent, MenuItem};
-use junie_tui::widgets::props::{Prop, PropsCmd, PropsEvent, PropsList};
+use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarAction, MenuItem};
+use junie_tui::widgets::props::{Prop, PropsAction, PropsCmd, PropsList};
 use junie_tui::widgets::table::{Cell, Column, DataTable};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Constraint;
@@ -92,11 +92,11 @@ fn info_dialog_keys_are_a_keymap_and_nav_keys() {
 fn props_copy_and_help_close_are_keymaps() {
     let props = || vec![Prop::new("Path", "/tmp/x").copyable()];
     let mut p = PropsList::new(WidgetId::of("p"), props());
-    assert_eq!(p.on_key(&ch('y')).1, Some(PropsEvent::Copy(0)));
+    assert_eq!(p.on_key(&ch('y')).1, Some(PropsAction::Copy(0)));
     let mut p = PropsList::new(WidgetId::of("p"), props())
         .keymap(vec![(KeyBinding::char('c'), PropsCmd::Copy)]);
     assert_eq!(p.on_key(&ch('y')).1, None);
-    assert_eq!(p.on_key(&ch('c')).1, Some(PropsEvent::Copy(0)));
+    assert_eq!(p.on_key(&ch('c')).1, Some(PropsAction::Copy(0)));
 
     let help = || HelpOverlay::new(WidgetId::of("h"), "App", vec![("Move", vec![("k", "Up")])]);
     let mut h = help();
@@ -147,7 +147,7 @@ fn context_menus_take_type_ahead_when_asked() {
     assert_eq!(bar.open_index(), Some(0));
     assert_eq!(bar.open.as_ref().unwrap().cursor, 3);
     let (_, ev) = bar.on_key(&key(KeyCode::Right));
-    assert_eq!(ev, Some(MenuBarEvent::Opened(1)), "arrows still switch");
+    assert_eq!(ev, Some(MenuBarAction::Opened(1)), "arrows still switch");
 }
 
 #[test]

@@ -11,7 +11,7 @@ use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
 use crate::widgets::button::{Button, row_layout_right};
-use crate::widgets::props::{Prop, PropsEvent, PropsList};
+use crate::widgets::props::{Prop, PropsAction, PropsList};
 use crate::widgets::scrollbar;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -156,13 +156,13 @@ impl InfoDialog {
         if cur == Some(self.props.id) {
             let (o, ev) = self.props.on_key(key);
             match ev {
-                Some(PropsEvent::Copy(i)) => {
+                Some(PropsAction::Copy(i)) => {
                     if let Some(Some(v)) = self.copy_values.get(i) {
                         self.result = Some(InfoResult::Copy(v.clone()));
                     }
                     return Outcome::Changed;
                 }
-                Some(PropsEvent::Activate(i)) => {
+                Some(PropsAction::Activate(i)) => {
                     if let Some(Some(v)) = self.copy_values.get(i) {
                         self.result = Some(InfoResult::Copy(v.clone()));
                         return Outcome::Changed;
