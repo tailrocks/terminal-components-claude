@@ -12,6 +12,7 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::selection::{RowSelection, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
+use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::field_common::{EditAction, edit_key};
 use crate::widgets::option_editor::{
@@ -190,6 +191,11 @@ pub struct DataTable {
     pub area: Rect,
     body: Rect,
     col_rects: Vec<Rect>,
+    /// User column widths from dragging a header seam or autofit
+    /// ([`ColumnSizing`]); `sizing.resizable` turns the seams off.
+    pub sizing: ColumnSizing,
+    /// Labels of the header context menu ([`Self::header_menu`]).
+    pub header_labels: HeaderLabels,
     /// Numeric sort for these columns.
     pub numeric: Vec<bool>,
     /// How a cut cell reveals its full text on hover (see
@@ -311,6 +317,8 @@ impl DataTable {
             track: Rect::ZERO,
             body: Rect::ZERO,
             col_rects: vec![],
+            sizing: ColumnSizing::default(),
+            header_labels: HeaderLabels::DEFAULT,
             numeric,
             reveal: None,
             horizontal: None,
@@ -681,6 +689,135 @@ impl DataTable {
     pub fn overflow_marks(mut self, on: bool) -> Self {
         self.overflow_marks = on;
         self
+    }
+
+    /// Header seams resize columns by drag (double-click autofits).
+    /// Default on.
+    pub fn resizable_columns(mut self, on: bool) -> Self {
+        self.sizing.resizable = on;
+        self
+    }
+
+    /// Hit width of a header seam in cells (default
+    /// [`crate::ui::columns::DEFAULT_SEAM_W`]).
+    pub fn seam_hit_w(mut self, cells: u16) -> Self {
+        self.sizing.seam_w = cells.max(1);
+        self
+    }
+
+    /// The resize seam after column `c` in the header.
+    pub fn seam_id(&self, c: usize) -> WidgetId {
+        self.id.sub("seam").child(c)
+    }
+
+    pub fn locate_seam(&self, id: WidgetId) -> Option<usize> {
+        (0..self.columns.len()).find(|&c| self.seam_id(c) == id)
+    }
+
+    /// The column whose header menu a secondary click on `id` opens (its
+    /// header or its seam).
+    pub fn locate_header_menu(&self, id: WidgetId) -> Option<usize> {
+        self.locate_header(id).or_else(|| self.locate_seam(id))
+    }
+
+    /// Button down on `id` with the click count it starts: a press on a
+    /// header seam starts a resize (keeping the grab offset); the second
+    /// press of a double click fits the column to its content.
+    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        let Some(c) = self.locate_seam(id) else {
+            return Outcome::Ignored;
+        };
+        if !self.sizing.resizable {
+            return Outcome::Consumed;
+        }
+        if count >= 2 {
+            self.sizing.release();
+            self.autofit(c);
+            return Outcome::Changed;
+        }
+        let w = self.col_rects.get(c).map_or(0, |r| r.width);
+        self.sizing.press(c, w, pos.x);
+        Outcome::Changed
+    }
+
+    /// A drag held since a press on `pressed`: a header seam resizes its
+    /// column cell by cell, a scrollbar scrolls.
+    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if self.locate_seam(pressed).is_some() {
+            return match self.sizing.drag_to(pos.x) {
+                Some(_) => Outcome::Changed,
+                None => Outcome::Consumed,
+            };
+        }
+        if scrollbar::is_bar_of(pressed, self.id) {
+            return self.on_bar_drag(pressed, pos);
+        }
+        Outcome::Ignored
+    }
+
+    /// Fit column `c` to its title and the text of the visible rows (no
+    /// wider than the table), as a user width.
+    pub fn autofit(&mut self, c: usize) {
+        let Some(col) = self.columns.get(c) else {
+            return;
+        };
+        let cap = (self.area.width.saturating_sub(4) as usize).max(6);
+        let mut need = crate::ui::text::width(&col.title)
+            + if self.sort.is_some_and(|(sc, _)| sc == c) {
+                2
+            } else {
+                0
+            };
+        for d in self.scroll.visible_range() {
+            if let Some(cell) = self.order.get(d).and_then(|&r| self.rows[r].get(c)) {
+                need = need.max(crate::ui::text::width_capped(&cell.text, cap));
+            }
+        }
+        self.sizing.set(c, need.min(cap) as u16);
+    }
+
+    /// The header context menu of column `c`: sort, autofit and reset
+    /// widths, each paired with the action [`Self::on_header_action`] runs.
+    pub fn header_menu(&self, c: usize) -> Vec<(HeaderAction, crate::widgets::menu::MenuItem)> {
+        let sortable = self.columns.get(c).is_some_and(|col| col.sortable);
+        let sorted = self.sort.and_then(|(sc, d)| (sc == c).then_some(d));
+        crate::ui::columns::header_menu(
+            &self.header_labels,
+            sortable,
+            sorted,
+            self.sizing.resizable,
+            !self.sizing.is_default(),
+        )
+    }
+
+    /// Run a header menu command on column `c`.
+    pub fn on_header_action(&mut self, c: usize, action: HeaderAction) -> Outcome {
+        let want = match action {
+            HeaderAction::SortAsc => Some(Some((c, SortDir::Asc))),
+            HeaderAction::SortDesc => Some(Some((c, SortDir::Desc))),
+            HeaderAction::ClearSort => Some(None),
+            HeaderAction::Autofit => {
+                self.autofit(c);
+                return Outcome::Changed;
+            }
+            HeaderAction::ResetWidths => {
+                self.sizing.reset();
+                return Outcome::Changed;
+            }
+        };
+        if let Some(want) = want {
+            if c >= self.columns.len() || !self.columns[c].sortable {
+                return Outcome::Consumed;
+            }
+            // sort_by cycles asc, desc, none: step until it lands on `want`
+            for _ in 0..3 {
+                if self.sort == want {
+                    break;
+                }
+                self.sort_by(c);
+            }
+        }
+        Outcome::Changed
     }
 
     /// How cut cells reveal their full text (default: [`RenderCtx::reveal`]).
@@ -1411,7 +1548,7 @@ impl DataTable {
         let mut fit = 0usize;
         let mut used = 0u16;
         for i in self.hscroll.offset..n {
-            let w = self.columns[i].min_width();
+            let w = self.sizing.width(i, self.columns[i].min_width());
             let need = if fit == 0 { w } else { w + gap };
             if used + need > area.width {
                 break;
@@ -1424,7 +1561,13 @@ impl DataTable {
         self.hscroll.viewport_len = fit;
         self.hscroll.clamp();
         let visible = self.hscroll.offset..(self.hscroll.offset + fit).min(n);
-        let constraints: Vec<Constraint> = visible.clone().map(|i| self.columns[i].width).collect();
+        let constraints: Vec<Constraint> = visible
+            .clone()
+            .map(|i| match self.sizing.user(i) {
+                Some(w) => Constraint::Length(w),
+                None => self.columns[i].width,
+            })
+            .collect();
         let rects = Layout::horizontal(constraints).spacing(gap).split(area);
         self.col_rects = vec![Rect::ZERO; n];
         for (k, i) in visible.enumerate() {
@@ -1521,18 +1664,29 @@ impl DataTable {
             };
             let ind = ind.as_str();
             let ind_w = crate::ui::text::width(ind);
-            let title = format!(
-                "{}{}",
-                crate::ui::text::truncate(&col.title, (r.width as usize).saturating_sub(ind_w)),
-                ind
-            );
+            let shown =
+                crate::ui::text::truncate(&col.title, (r.width as usize).saturating_sub(ind_w));
+            let cut = shown != col.title;
+            let title = format!("{shown}{ind}");
             let text = match col.align {
                 Align::Left => crate::ui::text::fit(&title, r.width as usize),
                 Align::Right => crate::ui::text::fit_right(&title, r.width as usize),
             };
             buf.set_string(r.x, header_y, &text, st);
+            let head = Rect::new(r.x, header_y, r.width, 1);
             if col.sortable {
-                ctx.clickable(hid, Rect::new(r.x, header_y, r.width, 1));
+                ctx.clickable(hid, head);
+            } else if cut && !ctx.inert {
+                // a cut title reveals on hover even when it does not sort
+                ctx.hits.register_hover(hid, head);
+            }
+            if cut {
+                crate::ui::reveal::truncated(ctx, self.reveal, hid, head, &col.title);
+            }
+            if self.sizing.resizable {
+                let sid = self.seam_id(ci);
+                let hit = self.sizing.seam_rect(r.right(), header_y, 2, area);
+                crate::ui::columns::render_seam(buf, ctx, sid, hit, r.right(), header_bg, false);
             }
         }
         if check_w > 0 && area.width > 3 + check_w {
@@ -1897,6 +2051,7 @@ impl DataTable {
             || scrollbar::is_bar_of(id, self.id)
             || self.locate(id).is_some()
             || self.locate_header(id).is_some()
+            || self.locate_seam(id).is_some()
             || id == self.check_all_id()
             || self.locate_check(id).is_some()
     }
@@ -2021,6 +2176,66 @@ mod tests {
             t.render(area, &mut buf, &mut ctx, theme.surface);
         }
         (buf, hits)
+    }
+
+    #[test]
+    fn header_seams_resize_autofit_and_the_menu_resets() {
+        let mut t = wide_table();
+        let area = Rect::new(0, 0, 60, 8);
+        let (_, hits) = draw(&mut t, area);
+        let head = hits.area_of(t.header_id(0)).unwrap();
+        let sid = t.seam_id(0);
+        let seam = hits.area_of(sid).expect("a seam after the first column");
+        assert_eq!(seam.x, head.right(), "in the gap after the title");
+        assert_eq!(head.width, 10);
+        // the grab offset is kept: press one cell into the seam
+        t.on_press(sid, Position::new(seam.x + 1, seam.y), 1);
+        t.on_drag(sid, Position::new(seam.x + 1, seam.y));
+        t.on_drag(sid, Position::new(seam.x + 5, seam.y));
+        let (_, hits) = draw(&mut t, area);
+        assert_eq!(hits.area_of(t.header_id(0)).unwrap().width, 14);
+        assert_eq!(hits.area_of(t.header_id(1)).unwrap().x, head.x + 14 + 2);
+        // a double press fits "col0" / "r0c0" (4 cells)
+        t.on_press(sid, Position::new(seam.x, seam.y), 2);
+        let (_, hits) = draw(&mut t, area);
+        assert_eq!(hits.area_of(t.header_id(0)).unwrap().width, 4);
+        // the header menu sorts and resets
+        assert_eq!(t.locate_header_menu(sid), Some(0));
+        t.on_header_action(0, HeaderAction::SortDesc);
+        assert_eq!(t.sort, Some((0, SortDir::Desc)));
+        t.on_header_action(0, HeaderAction::ClearSort);
+        assert_eq!(t.sort, None);
+        t.on_header_action(0, HeaderAction::ResetWidths);
+        let (_, hits) = draw(&mut t, area);
+        assert_eq!(hits.area_of(t.header_id(0)).unwrap().width, 10);
+        // off: no seam
+        let mut t = wide_table().resizable_columns(false);
+        let (_, hits) = draw(&mut t, area);
+        assert!(hits.area_of(t.seam_id(0)).is_none());
+    }
+
+    #[test]
+    fn a_cut_header_title_reveals_on_hover() {
+        let long = "a column title much wider than its column";
+        let cols = vec![Column::new(long, Constraint::Length(8))];
+        let mut t = DataTable::new(WidgetId::of("cut"), cols, vec![vec![Cell::new("x")]]);
+        let area = Rect::new(0, 0, 70, 6);
+        let theme = Theme::junie();
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let hover = Interaction {
+            hover: Some(t.header_id(0)),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
+        t.render(area, &mut buf, &mut ctx, theme.surface);
+        ctx.flush_overlays(&mut buf);
+        let all: String = (0..area.height)
+            .flat_map(|y| (0..area.width).map(move |x| (x, y)))
+            .map(|(x, y)| buf[(x, y)].symbol().to_string())
+            .collect();
+        assert!(all.contains(long), "{all}");
     }
 
     fn thumb_x(buf: &Buffer, y: u16) -> Option<u16> {

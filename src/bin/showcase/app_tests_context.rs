@@ -336,6 +336,33 @@ fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {
 }
 
 #[test]
+fn tables_header_seam_resizes_and_the_header_menu_sorts_and_resets() {
+    let mut h = Harness::new(PageId::Tables);
+    let tasks = WidgetId::of("tables").sub("tasks");
+    let (head, seam) = (tasks.sub("header").child(2), tasks.sub("seam").child(2));
+    let before = h.app.hits.area_of(head).expect("the Owner title");
+    let s = h.app.hits.area_of(seam).expect("a seam after Owner");
+    assert_eq!(s.x, before.right());
+    // drag the seam four cells right: the Owner column follows the pointer
+    h.mouse(MouseKind::Down, (s.x, s.y));
+    h.mouse(MouseKind::Drag, (s.x + 4, s.y));
+    h.mouse(MouseKind::Up, (s.x + 4, s.y));
+    assert_eq!(h.app.hits.area_of(head).unwrap().width, before.width + 4);
+    // right-click the title: the header menu
+    h.right_click((before.x + 1, before.y));
+    let menu = h
+        .menu(WidgetId::of("tables.header-menu"))
+        .expect("the header menu");
+    let shown = h.text_in(menu);
+    assert!(shown.contains("Sort Descending"), "{shown}");
+    h.click(h.at("Sort Descending"));
+    assert!(h.text().contains("sorted by owner ▾"), "{}", h.text());
+    h.right_click((before.x + 1, before.y));
+    h.click(h.at("Reset Column Widths"));
+    assert_eq!(h.app.hits.area_of(head).unwrap().width, before.width);
+}
+
+#[test]
 fn tables_shift_f10_opens_under_the_cursor_row() {
     let mut h = Harness::new(PageId::Tables);
     h.click(h.at("jonas"));
