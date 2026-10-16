@@ -122,11 +122,12 @@ impl Layer<ModalResult> for CtxMenu {
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_>) -> Outcome {
         Layer::<ModalResult>::on_key(&mut self.menu, key, cx)
     }
-    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_>) -> Outcome {
-        Layer::<ModalResult>::on_click(&mut self.menu, id, pos, cx)
-    }
-    fn on_wheel(&mut self, delta: i32, pos: Position) -> Outcome {
-        Layer::<ModalResult>::on_wheel(&mut self.menu, delta, pos)
+    fn pointer(
+        &mut self,
+        ev: &junie_tui::core::pointer::PointerEvent,
+        cx: &mut LayerCx<'_>,
+    ) -> Outcome {
+        Layer::<ModalResult>::pointer(&mut self.menu, ev, cx)
     }
     fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
         vec![
