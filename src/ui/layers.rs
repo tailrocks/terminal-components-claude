@@ -152,7 +152,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
         Outcome::Changed
     }
     fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        Picker::on_wheel(self, delta)
+        Scrollable::on_wheel(self, delta)
     }
     fn on_paste(&mut self, text: &str) -> Outcome {
         let (o, ev) = Picker::on_paste(self, text);
@@ -248,7 +248,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
         FormDialog::on_release(self, pressed, pos)
     }
     fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        FormDialog::on_wheel(self, delta)
+        Scrollable::on_wheel(self, delta)
     }
     fn on_paste(&mut self, text: &str) -> Outcome {
         FormDialog::on_paste(self, text)
@@ -324,7 +324,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
         )
     }
     fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        InfoDialog::on_wheel(self, delta)
+        Scrollable::on_wheel(self, delta)
     }
     fn on_dismiss(&mut self, reason: DismissReason) {
         let _ = Overlay::on_dismiss(self, reason);
@@ -352,7 +352,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOv
         HelpOverlay::on_click(self, id)
     }
     fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        HelpOverlay::on_wheel(self, delta)
+        Scrollable::on_wheel(self, delta)
     }
     fn on_dismiss(&mut self, reason: DismissReason) {
         let _ = Overlay::on_dismiss(self, reason);

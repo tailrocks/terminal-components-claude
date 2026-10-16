@@ -981,7 +981,7 @@ impl OpFlow {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.picker.on_wheel(delta)
+        Scrollable::on_wheel(&mut self.picker, delta)
     }
 
     /// Footer hints for the current step (the shell's hint bar shows them).
