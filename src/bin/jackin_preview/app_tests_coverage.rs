@@ -1064,3 +1064,17 @@ fn launch_failure_screen_exposes_stage_detail_and_ack_route() {
     assert_eq!(h.app.route, Route::Manager);
     assert!(status(&h).contains("still running"), "{}", status(&h));
 }
+
+#[test]
+fn cancel_launch_dialog_names_both_choices_unambiguously() {
+    let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40);
+    h.key(KeyCode::Char('c'));
+    let t = h.text();
+    assert!(t.contains("Cancel the launch?"), "{t}");
+    assert!(t.contains("Keep launching"), "{t}");
+    assert!(t.contains("Cancel launch"), "{t}");
+    // focus opens on the safe choice, and the footer names it
+    let footer = t.lines().last().unwrap_or_default().to_owned();
+    assert!(footer.contains("Enter Keep launching"), "{footer}");
+    assert!(footer.contains("y Cancel launch"), "{footer}");
+}

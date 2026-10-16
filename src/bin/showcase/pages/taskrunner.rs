@@ -404,7 +404,8 @@ impl Page for TaskRunnerPage {
                             "Cancel pipeline?",
                             "Running tasks stop immediately. Finished tasks keep their results.",
                             "Cancel pipeline",
-                        ));
+                        )
+                        .cancel_label("Keep running"));
                     }
                     return o;
                 }
@@ -432,7 +433,8 @@ impl Page for TaskRunnerPage {
                             "Cancel pipeline?",
                             "Running tasks stop immediately. Finished tasks keep their results.",
                             "Cancel pipeline",
-                        ));
+                        )
+                        .cancel_label("Keep running"));
                     }
                     return Outcome::Changed;
                 }
