@@ -12,7 +12,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::theme::{CursorStyle, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::popup::{Dismiss, backdrop_id};
+use crate::ui::popup::{Dismiss, Place, backdrop_id, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::brand::Lockup;
 use ratatui::crossterm::event::KeyCode;
@@ -73,15 +73,10 @@ impl MenuItem {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Placement {
-    /// Under the anchor, left edges aligned.
-    Below,
-    /// Above the anchor, left edges aligned.
-    Above,
-    /// To the right of the anchor, top edges aligned.
-    Right,
-}
+/// Menus are placed like every other popup: this is
+/// [`crate::ui::popup::Placement`], re-exported so `menu::Placement`
+/// paths keep compiling.
+pub use crate::ui::popup::Placement;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuEvent {
@@ -108,10 +103,14 @@ pub struct ContextMenu {
     /// How a label cut by a narrow screen reveals its full text on hover
     /// (see [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
-    /// Cells kept free between the menu and the screen's left and right
-    /// edges, so its frame never lands on a panel border. Given up when
-    /// the menu would not fit otherwise. Default 1.
-    pub edge_margin: u16,
+    /// How the menu is fitted to the screen ([`popup::place_with`]).
+    /// Default [`Place::MENU`]: one free column from the left and right
+    /// edges (given up when the menu would not fit otherwise), none above
+    /// or below, and full height kept when neither side of the anchor has
+    /// room, because a menu does not scroll.
+    ///
+    /// [`popup::place_with`]: crate::ui::popup::place_with
+    pub fit: Place,
     /// Narrowest label column in cells (the frame and gutters add 6).
     /// Default 8.
     pub min_width: u16,
@@ -137,14 +136,21 @@ impl ContextMenu {
             dismiss: Dismiss::LIGHT,
             hide_owner_focus: true,
             reveal: None,
-            edge_margin: 1,
+            fit: Place::MENU,
             min_width: 8,
         }
     }
 
-    /// See [`Self::edge_margin`].
+    /// Cells kept free between the menu and the screen's left and right
+    /// edges (`fit.margin`). Default 1.
     pub fn edge_margin(mut self, cells: u16) -> Self {
-        self.edge_margin = cells;
+        self.fit.margin = cells;
+        self
+    }
+
+    /// See [`Self::fit`].
+    pub fn fit(mut self, fit: Place) -> Self {
+        self.fit = fit;
         self
     }
 
@@ -213,34 +219,7 @@ impl ContextMenu {
 
     fn placed(&self, screen: Rect) -> Rect {
         let (w, h) = self.size();
-        let w = w.min(screen.width);
-        let h = h.min(screen.height);
-        let (mut x, mut y) = match self.placement {
-            Placement::Below => (self.anchor.x, self.anchor.bottom()),
-            Placement::Above => (self.anchor.x, self.anchor.y.saturating_sub(h)),
-            Placement::Right => (self.anchor.right(), self.anchor.y),
-        };
-        if y + h > screen.bottom() {
-            // flip above when there is more room there
-            let above = self.anchor.y.saturating_sub(h);
-            y = if self.placement == Placement::Below && above >= screen.y {
-                above
-            } else {
-                screen.bottom().saturating_sub(h)
-            };
-        }
-        if y < screen.y {
-            y = screen.y;
-        }
-        // keep off the side edges when there is room, never shrink for it
-        let m = self.edge_margin.min(screen.width.saturating_sub(w) / 2);
-        if x + w > screen.right() - m {
-            x = (screen.right() - m).saturating_sub(w);
-        }
-        if x < screen.x + m {
-            x = screen.x + m;
-        }
-        Rect::new(x, y, w, h)
+        place_with(screen, self.anchor, w, h, self.placement, self.fit)
     }
 
     fn step(&mut self, delta: isize) {
@@ -778,6 +757,30 @@ mod tests {
             .edge_margin(0)
             .anchor(Rect::new(0, 2, 1, 1), Placement::Below);
         assert_eq!(flush.placed(screen).x, 0);
+    }
+
+    #[test]
+    fn a_submenu_opened_right_flips_left_instead_of_covering_its_anchor() {
+        let screen = Rect::new(0, 0, 60, 20);
+        let row = Rect::new(40, 3, 16, 1);
+        let r = ContextMenu::new(WidgetId::of("m"), items())
+            .anchor(row, Placement::Right)
+            .placed(screen);
+        assert!(r.right() <= row.x, "opens left of the row: {r:?}");
+        assert_eq!(r.y, row.y);
+        let r = ContextMenu::new(WidgetId::of("m"), items())
+            .anchor(Rect::new(4, 3, 16, 1), Placement::Right)
+            .placed(screen);
+        assert_eq!(r.x, 20, "opens right of the row");
+    }
+
+    #[test]
+    fn a_menu_above_its_anchor_flips_below_near_the_top() {
+        let screen = Rect::new(0, 0, 60, 20);
+        let r = ContextMenu::new(WidgetId::of("m"), items())
+            .anchor(Rect::new(4, 1, 8, 1), Placement::Above)
+            .placed(screen);
+        assert_eq!(r.y, 2, "below the anchor, never over it: {r:?}");
     }
 
     fn key(code: KeyCode) -> Key {
