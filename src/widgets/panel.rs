@@ -192,7 +192,8 @@ impl<'a> Panel<'a> {
             cx += crate::ui::text::width(&title) as u16;
         }
         let mut right = x + w;
-        if let Some(meta) = meta {
+        // an empty meta draws nothing, not a blank gap in the frame
+        if let Some(meta) = meta.filter(|m| !m.is_empty()) {
             let text = if framed { format!(" {meta} ") } else { meta };
             let tw = crate::ui::text::width(&text) as u16;
             if right >= cx + tw + u16::from(cx > x) {
