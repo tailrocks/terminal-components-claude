@@ -342,6 +342,20 @@ fn count(hay: &str, needle: &str) -> usize {
     hay.matches(needle).count()
 }
 
+/// Whether the frame drawn after the latest alternate-screen entry has been
+/// written out completely. A frame reaches the pty in several writes (the
+/// stdout buffer flushes whenever it fills), so "some bytes arrived" is not
+/// readiness: a reader polling between two writes sees half a frame. Ratatui
+/// ends every draw with exactly one cursor-visibility escape, after the last
+/// cell (`?25l` hidden, `?25h` shown), and nothing between re-entry and the
+/// draw emits one, so its presence after the re-entry marks the whole frame.
+fn frame_completed_after_reentry(text: &str) -> bool {
+    text.rfind("\x1b[?1049h").is_some_and(|at| {
+        let resumed = &text[at..];
+        resumed.contains("\x1b[?25l") || resumed.contains("\x1b[?25h")
+    })
+}
+
 /// Helper mode entry: only the re-invoked child runs the job-control parent.
 #[test]
 fn helper_entry() {
@@ -407,7 +421,7 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         pty.wait_until("raw mode after fg", |p| p.is_raw());
         pty.wait_until("a full redraw after fg", |p| {
             let text = p.output_text();
-            count(&text, "\x1b[?1049h") == cycle + 1 && text.len() > seen + 200
+            count(&text, "\x1b[?1049h") == cycle + 1 && frame_completed_after_reentry(&text)
         });
         let text = pty.output_text();
         let after = &text[seen..];
