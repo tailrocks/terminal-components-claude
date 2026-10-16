@@ -5,6 +5,7 @@ pub mod event;
 pub mod focus;
 pub mod hit;
 pub mod id;
+pub mod nav;
 pub mod pointer;
 pub mod scroll;
 pub mod selection;

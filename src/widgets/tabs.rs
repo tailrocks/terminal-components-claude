@@ -70,6 +70,8 @@ pub struct Tabs {
     pub middle_click_closes: bool,
     /// Plain digits 1-9 jump to that tab. Default `true`.
     pub digit_jump: bool,
+    /// ←/→ past the last tab lands on the first and back. Default off.
+    pub wrap: bool,
     /// Keys that close the cursor tab. Default `x` and Delete.
     pub close_keys: &'static [KeyCode],
     /// The plain letter that asks for a new tab (with
@@ -116,6 +118,7 @@ impl Tabs {
             rule: TabRule::Auto,
             middle_click_closes: true,
             digit_jump: true,
+            wrap: false,
             close_keys: DEFAULT_CLOSE_KEYS,
             new_key: Some('n'),
             fit: 0,
@@ -134,6 +137,7 @@ impl Tabs {
             rule: TabRule::Auto,
             middle_click_closes: true,
             digit_jump: true,
+            wrap: false,
             close_keys: DEFAULT_CLOSE_KEYS,
             new_key: Some('n'),
             fit: 0,
@@ -142,6 +146,12 @@ impl Tabs {
 
     pub fn rule(mut self, rule: TabRule) -> Self {
         self.rule = rule;
+        self
+    }
+
+    /// See [`Self::wrap`].
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
         self
     }
 
@@ -265,11 +275,21 @@ impl Tabs {
         }
         match key.code {
             KeyCode::Left | KeyCode::Char('h') if key.plain() => {
-                self.set_active(self.cursor.saturating_sub(1));
+                self.set_active(crate::core::nav::step_index(
+                    self.cursor,
+                    self.items.len(),
+                    -1,
+                    self.wrap,
+                ));
                 (Outcome::Changed, Some(TabEvent::Activated(self.active)))
             }
             KeyCode::Right | KeyCode::Char('l') if key.plain() => {
-                self.set_active((self.cursor + 1).min(self.items.len() - 1));
+                self.set_active(crate::core::nav::step_index(
+                    self.cursor,
+                    self.items.len(),
+                    1,
+                    self.wrap,
+                ));
                 (Outcome::Changed, Some(TabEvent::Activated(self.active)))
             }
             KeyCode::Home if key.plain() => {
