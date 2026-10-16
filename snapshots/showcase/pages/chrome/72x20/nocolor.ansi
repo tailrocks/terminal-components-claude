@@ -2,18 +2,18 @@
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mChrome[0m  Brand lockup · menu bar with anchored men… [0m
                                                                         [0m
-    Overview      ┃   [0m[1;7m app❯ [0m   File   View   Help                       [0m
-  ▾ App shell     ┃                                                     [0m
- [0m[1m▎  › Chrome      [0m┃    Sessions  right-click or Shift+F10 for the tab…  [0m
-      Status & h… ┃                                                     [0m
-      Breadcrumb… ┃       1 Claude Code (Work)                working   [0m
-      Help & keys ┃       2 Codex (Primary)                      idle   [0m
-      Quit & lea… ┃       3 Shell                                       [0m
-      Focus & na… ┃       4 docs                              blocked   [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▾ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+ [0m[1m▎  › Chrome      [0m┃                                                     [0m
+      Status & h… ┃   [0m[1;7m app❯ [0m   File   Edit   View   Session   Help      [0m
+      Breadcrumb… ┃                                                     [0m
+      Help & keys ┃    Sessions  right-click or Shift+F10 for the tab…  [0m
+      Quit & lea… ┃                                                     [0m
+      Focus & na… ┃       1 Claude Code (Work)               working ┃  [0m
   ▸ Inputs & for… ┃                                                     [0m
   ▸ Tables        ┃                                                     [0m
-  ▸ Navigation    ┆                                                     [0m
-  ▸ Overlays      ┆   [0m[1mpayments-platform[0m   PR #482 · settlement backoff  [0m
+  ▸ Navigation    ┆   [0m[1mpayments-platform[0m   PR #482 · settlement backoff  [0m
+  ▸ Overlays      ┆                                                     [0m
  [0m[2m ▸ Feedback      [0m┆   hint bar · topmost layer wins:                    [0m
                       [0m[1m↑↓[0m Move  …                      last: nothing yet [0m
                                                                         [0m
