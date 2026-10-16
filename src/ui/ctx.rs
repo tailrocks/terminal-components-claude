@@ -470,6 +470,18 @@ impl<'a> RenderCtx<'a> {
         self.interaction.focus_hidden = false;
     }
 
+    /// A panel about to draw over everything drawn so far (a form that
+    /// takes the whole page on a narrow terminal): pending page overlays
+    /// land first, then everything registered so far is inert, out of the
+    /// Tab ring and the pointer's reach (keyboard audit K27). Unlike
+    /// [`Self::begin_modal`] the page stays the active layer: nothing is
+    /// dimmed and its focus stays visible.
+    pub fn cover(&mut self, buf: &mut Buffer) {
+        self.flush_overlays(buf);
+        self.hits.push_barrier();
+        self.ring.push_barrier();
+    }
+
     /// Dim `screen` behind a modal and enter modal mode. The bottom row
     /// stays live: the footer's key hints belong to the modal. Shorthand
     /// for [`Self::modal_backdrop_with`] and [`Backdrop::DEFAULT`].
