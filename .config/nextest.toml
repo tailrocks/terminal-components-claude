@@ -40,6 +40,29 @@ threads-required = 2
 [profile.ci]
 fail-fast = false
 slow-timeout = { period = "60s", terminate-after = 10 }
+# VISUAL SMOKE TOGGLE (prepared, disabled; see .velnor/config.toml). With
+# velnor `run_ignored = "all"` CI runs `cargo nextest run --profile ci
+# --run-ignored all`; this filter then keeps every non-ignored test plus the
+# smoke tier, and drops the other ignored tests (perf measurements, the
+# legacy approval test, the full and narrow tiers).
+# default-filter = '''
+#   not test(=accept_actuals)
+#   & not test(=measure_widgets)
+#   & not test(=perf_tests::measure_table_surfaces)
+#   & (
+#     not binary(visual_baseline)
+#     | not test(/::[0-9]+x[0-9]+::/)
+#     | test(/::120x40::truecolor$/)
+#     | test(/::72x20::nocolor$/)
+#   )
+# '''
+#
+# [[profile.ci.overrides]]
+# # 4-vCPU ubuntu-24.04 runners: 4 PTY slots (plan §C3).
+# filter = "binary(visual_baseline)"
+# test-group = "pty-ci"
+#
+# (and under [test-groups]: pty-ci = { max-threads = 4 })
 
 # Visual tiers (docs/visual-testing/plan.md §C1). Each scenario is one test
 # named `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`; a tier is a filter
