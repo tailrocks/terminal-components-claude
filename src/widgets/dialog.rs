@@ -789,6 +789,20 @@ impl Dialog {
         }
     }
 
+    /// Focus moved off one of the dialog's controls (see
+    /// [`crate::core::focus::Focus::take_changes`]): its field ends the
+    /// edit per its `blur_action`. Leaving the field never submits the
+    /// dialog; only Enter or a button does.
+    pub fn on_blur(&mut self, change: crate::core::focus::FocusChange) -> Outcome {
+        match self.input_mut() {
+            Some(inp) if inp.id == change.from => match inp.on_blur() {
+                Some(_) => Outcome::Changed,
+                None => Outcome::Ignored,
+            },
+            _ => Outcome::Ignored,
+        }
+    }
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         match self.input_mut() {
             Some(inp) => inp.on_paste(text).or(Outcome::Consumed),
