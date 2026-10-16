@@ -1,7 +1,23 @@
 # Visual regression testing and refactor completion plan
 
-Status: proposed, 2026-10-16. Owner: main session (coordinates); all work is
-done by subagents (AGENTS.md, Way of working).
+Status: in progress, 2026-10-16. Owner: main session (coordinates); all work
+is done by subagents (AGENTS.md, Way of working).
+
+**Progress** (task numbers from §H; details in
+[`tuiscotti-migration.md`](tuiscotti-migration.md) and [`README.md`](README.md)):
+
+| Task | State |
+|---|---|
+| T0, T1 | done: tuiscotti `a47c9aa`, `.ansi` + cursor trailer gate, review PNG/HTML on mismatch |
+| T2 | done: `harness = false` (libtest-mimic), one test per scenario, 12,131 named tests; gated run 277 s → 135 s |
+| T3 | partial: `VISUAL_BIN_DIR` binary resolution and `env_clear` pinning; per-scenario `HOME` and the env-leak test remain |
+| T4 | partial: `cargo xtask visual {list, accept, render, import}`, `accept`/`import` refuse under `CI`; `ratchet` and `sync-oracle` remain (needed for T20/T21) |
+| T5 | open: the store is still `snapshots/`; `ORACLE.toml` and `baselines/oracle/` not started |
+| T6 | partial: tablepro `--motion full\|reduced\|paused` and `--frame N`; rendered-time audit and `JUNIE_NOW` remain |
+| T7, T8 | T7 done by velnor (`Required`); T8 blocked on velnor 0.1.8 (no schedule, dispatch, artifacts or real partitions). The smoke tier inside the required run is prepared and disabled (`.velnor/config.toml`, `docs/ci.md`) until T18 |
+| T11 | done: all 302 hand-written roots are table rows, names unchanged, every combo's case identical |
+| T12–T16 | rows added as pending (no approval, not gating): hover, held press, disabled, selected+hover in all four apps; open overlays moved to `OVERLAYS` with both dismissals; 4 resizes per app; narrow tier. Element inventories are first passes, not complete; the T15 grep check is open |
+| T18 | open: oracle v0 (blocks enabling the smoke tier in CI) |
 
 Evidence for every claim below is in [`research/`](research/):
 `research-tuiscotti.md` (tool), `research-infra.md` (this branch's suite),
@@ -66,12 +82,12 @@ scenario table ──expand──> Scenario{name, bin, argv, env, size, steps, r
 
 | Item | Choice |
 |---|---|
-| Test granularity | **One nextest test per scenario** (not per root). A `harness = false` test binary (`libtest-mimic`) lists generated trials named `<app>::<group>::<leaf>[::<state>]::<cols>x<rows>::<color>`. Today one root runs 25 combos in series (about 14 s each under load, one drift fails all 25). |
+| Test granularity | **One nextest test per scenario** (not per root). A `harness = false` test binary (`libtest-mimic`) lists generated trials named `<app>::<group>::<leaf>[::<state>]::<cols>x<rows>::<color>`. Done (T2): before, one root ran 25 combos in series and one drift failed all 25. |
 | Binary resolution | `bin(name)`: `VISUAL_BIN_DIR/<name>` if set, else `env!("CARGO_BIN_EXE_<name>")`. The same harness file then works on `main`, where binaries live in other crates. |
 | Renderer | One shared `Renderer` per process, used only to build review artifacts. |
 | Gate code | Local wrapper in `tests/visual_baseline/support.rs` (replaces `gate()`), about 150 lines on public APIs: `render::ansi_dump`, cursor trailer encode/decode (from the formats probe `src/minimal.rs`), `Renderer::{render_png, render_html}`, `diff::compare_png`. Switch to the upstream `ArtifactSet::AnsiCursor` when it lands (§G). |
-| Hover | tuiscotti `mouse_move`, which fails closed with `ModeNotEnabled`. Drop the raw `CSI <35;c;r M` bytes in `pointer.rs`. |
-| Pressed | `mouse_down` with no `mouse_up`, in `--motion paused`. For keyboard activation, the press flash is frozen at `--frame N`. |
+| Hover | tuiscotti `mouse_move`, which fails closed with `ModeNotEnabled` (`Root::hover`; `pointer.rs` is gone). |
+| Pressed | `mouse_down` with no `mouse_up`, in `--motion paused` (`Root::press`; `scenario_tables` rejects a press row without paused motion). For keyboard activation, the press flash is frozen at `--frame N`. |
 | Coordinates | Resolved from locators (`get_by_text(..).region()`) at capture time, never hardcoded, so a layout change shows up as a frame diff rather than a mis-click. |
 
 ### B2. Scenario definition: generated from state tables
@@ -151,6 +167,11 @@ has diffed against it. History keeps it.
 | **narrow** | nightly, manual | `SURFACES` + `OVERLAYS` only | `40x12`, `60x18` × truecolor, nocolor |
 | **boot + journeys** | every PR (plain `cargo nextest run`) | 4 boot tests + journeys | 80x24 |
 
+Implemented as nextest profiles in `.config/nextest.toml` (`smoke`: 886
+tests, `full`: 11,075, `narrow`: 1,056), each a filter on the scenario-name
+suffix; run with `--run-ignored only`, shard with `--partition hash:k/n`.
+The tables are `MATRIX` and `SMOKE` in `tests/visual_baseline/scenarios/mod.rs`.
+
 ### C2. Coverage gaps to close (from research-infra §2)
 
 | Gap | Today | Target | Task |
@@ -163,6 +184,14 @@ has diffed against it. History keeps it.
 | Sizes below 72x20 | none | narrow tier (40x12, 60x18) | T16 |
 | Resize | 2 roots per app, jackin 0 | at least 4 per app, grow and shrink across a breakpoint | T16 |
 | Colour levels | 5 | unchanged; every state checked at every level | — |
+
+Status: every row above has pending table rows (not gating until
+re-approved): 29 `ELEMENTS` roots across the four apps (hover, held press,
+disabled hover/press, selected+hover), 46 `OVERLAYS` roots with
+`-dismissed-esc` / `-dismissed-outside` (the open-overlay journeys moved
+there, names unchanged), 10 new `RESIZES` roots (4 per app, jackin
+included) and the narrow tier. The inventories are a first pass; extend
+them per app in T12–T16.
 
 ### C3. Runtime estimate and sharding
 

@@ -15,6 +15,7 @@
 //! ```sh
 //! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
 //! cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(/^tablepro::/)'
+//! cargo nextest run --profile smoke --run-ignored only    # 120x40/truecolor + 72x20/nocolor
 //! VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'test(/^holla::parity::/)'
 //! ```
 //!
@@ -26,7 +27,7 @@
 //! scenarios already re-approved on tuiscotti ([`support::is_reapproved`])
 //! gate; every other capture is skipped unless `VISUAL_FULL=1`. Gate policy
 //! is fail-closed: only a full match passes, and approval is never implicit
-//! (`accept_actuals`, local only).
+//! (`cargo xtask visual accept`, local only).
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
@@ -78,7 +79,6 @@ fn main() {
             "modes::jackin_boot_sets_terminal_modes",
             modes::jackin_boot_sets_terminal_modes,
         ),
-        Trial::test("accept_actuals", || catch(accept_actuals)).with_ignored_flag(true),
     ];
     for scenario in scenarios::all() {
         trials.push(
@@ -231,44 +231,4 @@ fn posix_rel(root: &Path, path: &Path) -> String {
         })
         .collect::<Vec<_>>()
         .join("/")
-}
-
-/// Explicit, local-only approval: copy the reviewed actuals under
-/// `target/tuiscotti/actual/<VISUAL_ACCEPT prefix>` into `snapshots/`,
-/// exactly the [`COMMITTED`] artifacts, removing any other legacy artifact
-/// of an accepted scenario so the store follows the format set. Requires
-/// `VISUAL_ACCEPT` (a capture-name prefix, `*` for everything); never run
-/// in CI.
-fn accept_actuals() {
-    let prefix = std::env::var("VISUAL_ACCEPT")
-        .expect("set VISUAL_ACCEPT=<capture-name prefix> (or `*`) to approve actuals");
-    let prefix = if prefix == "*" { String::new() } else { prefix };
-    let actual = support::actual_root();
-    let approved = support::approved_root();
-    let (actuals, _) = walk_store(&actual);
-    let mut accepted = 0usize;
-    for name in actuals.keys().filter(|n| n.starts_with(&prefix)) {
-        for ext in LEGACY_EXTS {
-            let target = approved.join(format!("{name}.{ext}"));
-            if !COMMITTED.iter().any(|a| a.ext() == ext) && target.exists() {
-                std::fs::remove_file(&target)
-                    .unwrap_or_else(|e| panic!("remove {}: {e}", target.display()));
-            }
-        }
-        for artifact in COMMITTED {
-            let source = actual.join(format!("{name}.{}", artifact.ext()));
-            let target = approved.join(format!("{name}.{}", artifact.ext()));
-            std::fs::create_dir_all(target.parent().expect("nested name"))
-                .unwrap_or_else(|e| panic!("mkdir for {}: {e}", target.display()));
-            std::fs::copy(&source, &target).unwrap_or_else(|e| {
-                panic!("copy {} -> {}: {e}", source.display(), target.display())
-            });
-        }
-        accepted += 1;
-    }
-    eprintln!("accepted {accepted} scenario(s) under `{prefix}`");
-    assert!(
-        accepted > 0,
-        "no actuals under target/tuiscotti/actual/{prefix}"
-    );
 }
