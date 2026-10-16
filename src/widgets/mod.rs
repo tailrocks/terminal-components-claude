@@ -13,6 +13,7 @@ pub mod diff;
 pub mod empty;
 pub mod field_common;
 pub mod grid;
+pub mod help;
 pub mod hintbar;
 pub mod input;
 pub mod keyhint;
