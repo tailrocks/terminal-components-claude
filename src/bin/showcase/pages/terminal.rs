@@ -12,16 +12,17 @@ use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{Actions, KeyBinding, NavKeys};
-use junie_tui::core::scroll::{HScroll, Scrollable, TrackClick};
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
+use junie_tui::core::scroll::{HScroll, TrackClick};
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::steps::{Step, StepRail, StepState};
 use junie_tui::widgets::viewport::{Mark, Span, TextViewport, ViewportAction, ViewportCmd};
@@ -420,6 +421,46 @@ impl TerminalPage {
     }
 }
 
+impl TerminalPage {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        if ev.id == SEAM {
+            return match ev.phase() {
+                Some(Phase::Press) => {
+                    self.seam.on_press(&self.split, self.container, 2, ev.pos());
+                    Outcome::Consumed
+                }
+                Some(Phase::Click) => self.seam.on_click(&mut self.split, ev.count()),
+                Some(Phase::Drag) => {
+                    self.seam
+                        .on_drag(&mut self.split, self.container, 2, ev.pos())
+                }
+                _ => Outcome::Ignored,
+            };
+        }
+        if let Some(r) = self.term.route(ev) {
+            if ev.id == self.term.id && (ev.is(Phase::Press) || ev.is(Phase::Click)) {
+                cx.focus.focus(self.term.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.rail.route(ev) {
+            if ev.index_of(Part::ROW).is_some() && ev.is(Phase::Click) {
+                cx.focus.focus(self.rail.id);
+            }
+            return r.outcome();
+        }
+        if self.run.route(ev).and_then(|r| r.into_action()).is_some() {
+            self.reset(None);
+            return Outcome::Changed;
+        }
+        if self.fail.route(ev).and_then(|r| r.into_action()).is_some() {
+            self.reset(Some(1));
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+}
+
 impl Page for TerminalPage {
     fn title(&self) -> &'static str {
         "Terminal"
@@ -489,61 +530,7 @@ impl Page for TerminalPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Press { id, pos } if *id == self.term.id => {
-                cx.focus.focus(self.term.id);
-                self.term.on_click(*pos)
-            }
-            PageEvent::Press { id, pos } if *id == SEAM => {
-                self.seam.on_press(&self.split, self.container, 2, *pos);
-                Outcome::Consumed
-            }
-            PageEvent::Click { id, .. } if *id == SEAM => {
-                self.seam.on_click(&mut self.split, cx.clicks)
-            }
-            PageEvent::Click { id, pos } => {
-                if *id == self.term.id {
-                    cx.focus.focus(self.term.id);
-                    return Outcome::Consumed;
-                }
-                if scrollbar::is_bar_of(*id, self.term.id) {
-                    return self.term.on_scrollbar(*pos);
-                }
-                if let Some(row) = self.rail.locate(*id) {
-                    cx.focus.focus(self.rail.id);
-                    return self.rail.on_click(row);
-                }
-                if *id == self.run.id && self.run.on_click() {
-                    self.reset(None);
-                    return Outcome::Changed;
-                }
-                if *id == self.fail.id && self.fail.on_click() {
-                    self.reset(Some(1));
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                if *pressed == SEAM {
-                    return self.seam.on_drag(&mut self.split, self.container, 2, *pos);
-                }
-                if *pressed == self.term.id {
-                    return self.term.on_drag(*pos);
-                }
-                if scrollbar::is_bar_of(*pressed, self.term.id) {
-                    return self.term.on_bar_drag(*pressed, *pos);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                if self.term.owns(*id) {
-                    return self.term.on_wheel(*delta);
-                }
-                if self.rail.owns(*id) {
-                    return self.rail.on_wheel(*delta);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::WheelH { id, delta } if self.term.owns(*id) => self.term.on_wheel_h(*delta),
+            PageEvent::Pointer(ev) => self.pointer(ev, cx),
             _ => Outcome::Ignored,
         }
     }

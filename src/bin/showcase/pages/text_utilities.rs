@@ -20,8 +20,10 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys};
-use junie_tui::core::scroll::{Scrollable, TrackClick};
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::core::scroll::TrackClick;
 use junie_tui::core::text::TextBuffer;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
@@ -422,19 +424,17 @@ impl Page for TextUtilitiesPage {
                 act(self, a, cx);
                 o
             }
-            PageEvent::Click { id, pos } if self.list.owns(*id) => {
-                cx.focus.focus(LIST);
-                if let Some(row) = self.list.locate(*id) {
-                    let (o, a) = self.list.on_click(row);
-                    act(self, a, cx);
-                    return o;
+            PageEvent::Pointer(ev) => {
+                let Some(r) = self.list.route(ev) else {
+                    return Outcome::Ignored;
+                };
+                if ev.is(Phase::Click) {
+                    cx.focus.focus(LIST);
                 }
-                self.list.on_scrollbar(*pos)
+                let (o, a) = r.into_parts();
+                act(self, a, cx);
+                o
             }
-            PageEvent::Drag { pressed, pos } if self.list.owns(*pressed) => {
-                self.list.on_scrollbar_drag(*pos)
-            }
-            PageEvent::Wheel { id, delta } if self.list.owns(*id) => self.list.on_wheel(*delta),
             _ => Outcome::Ignored,
         }
     }

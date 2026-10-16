@@ -12,6 +12,7 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
@@ -342,17 +343,24 @@ impl Page for ProgressPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, .. } if *id == self.restart.id => {
-                if self.restart.on_click() {
-                    self.restart();
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.restart.route(ev)
+                    && r.outcome() != Outcome::Ignored
+                {
+                    if r.into_action().is_some() {
+                        self.restart();
+                    }
+                    return Outcome::Changed;
                 }
-                Outcome::Changed
-            }
-            PageEvent::Click { id, .. } if *id == self.pause.id => {
-                if self.pause.on_click() {
-                    self.toggle_pause();
+                if let Some(r) = self.pause.route(ev)
+                    && r.outcome() != Outcome::Ignored
+                {
+                    if r.into_action().is_some() {
+                        self.toggle_pause();
+                    }
+                    return Outcome::Changed;
                 }
-                Outcome::Changed
+                Outcome::Ignored
             }
             _ => Outcome::Ignored,
         }
