@@ -337,6 +337,10 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("core::scroll::HScroll::bar"),
     Capability::builder("core::scroll::HScroll::step"),
     Capability::builder("core::scroll::HScroll::track_click"),
+    Capability::ty("core::scroll::ScrollPane"),
+    Capability::builder("core::scroll::ScrollPane::horizontal"),
+    Capability::builder("core::scroll::ScrollPane::track_click"),
+    Capability::builder("core::scroll::ScrollPane::columns"),
     // core::selection
     Capability::ty("core::selection::SelectionMode"),
     Capability::variant("core::selection::SelectionMode::None"),

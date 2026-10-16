@@ -2,7 +2,16 @@
 //!
 //! [`ScrollState`] is a pure model: content length, viewport length and
 //! offset. It knows nothing about rendering; the scrollbar widget derives
-//! geometry from it.
+//! geometry from it. [`ScrollPane`] puts both axes, the policies and the
+//! drawn tracks together, and [`Scrollable`] gives every widget the same
+//! wheel and scrollbar handling.
+
+use ratatui::layout::{Position, Rect};
+
+use crate::core::event::Outcome;
+use crate::core::hit::{Axis, Bar};
+use crate::core::id::WidgetId;
+use crate::core::response::Response;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ScrollState {
@@ -358,9 +367,562 @@ impl HScroll {
     }
 }
 
+/// A scrolled region: the vertical and horizontal [`ScrollState`], the
+/// horizontal policy, the track-click policy and the bars as last drawn.
+///
+/// Every scrolling widget embeds one (as its `scroll` field) and implements
+/// [`Scrollable`], so the wheel, a press on either track, a thumb drag and
+/// the paging repeat behave the same in every widget. The pane dereferences
+/// to its vertical state, so `widget.scroll.offset` and
+/// `widget.scroll.jump_end()` read as they did on a bare [`ScrollState`].
+///
+/// The bars are drawn by `ScrollPane::draw_v`, `draw_h` and `draw_divider`
+/// (in [`crate::widgets::scrollbar`]), which remember the tracks they drew:
+/// a press maps through the track the user saw, and a bar that was not
+/// drawn this frame has nothing to press.
+#[derive(Debug, Default, Clone)]
+pub struct ScrollPane {
+    /// The vertical state (rows).
+    pub v: ScrollState,
+    /// The horizontal state (cells for free text, columns for tables and
+    /// grids; see [`ScrollPane::columns`]).
+    pub h: ScrollState,
+    /// Horizontal policy: on or off, bar visibility, step, track click.
+    pub h_cfg: HScroll,
+    /// What a press on the bare vertical track does; `None` follows the
+    /// app-wide [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
+    pub track_click: Option<TrackClick>,
+    /// The horizontal unit is a column: a wheel notch moves one column
+    /// whatever [`HScroll::step`] says (tables and grids).
+    pub columns: bool,
+    /// The resolved vertical policy, set by [`Self::begin`].
+    v_click: TrackClick,
+    /// The vertical track as last drawn (empty when no bar was drawn).
+    v_track: Rect,
+    /// The horizontal track as last drawn.
+    h_track: Rect,
+    /// The widget the bars were drawn for (their hit ids derive from it).
+    owner: Option<WidgetId>,
+    /// The axis of the bar the held press started on.
+    held: Option<Axis>,
+}
+
+impl std::ops::Deref for ScrollPane {
+    type Target = ScrollState;
+    fn deref(&self) -> &ScrollState {
+        &self.v
+    }
+}
+
+impl std::ops::DerefMut for ScrollPane {
+    fn deref_mut(&mut self) -> &mut ScrollState {
+        &mut self.v
+    }
+}
+
+impl From<ScrollState> for ScrollPane {
+    fn from(v: ScrollState) -> Self {
+        Self {
+            v,
+            ..Self::default()
+        }
+    }
+}
+
+impl ScrollPane {
+    /// A pane over `content_len` rows.
+    pub fn new(content_len: usize) -> Self {
+        ScrollState::new(content_len).into()
+    }
+
+    /// Builder for [`Self::h_cfg`].
+    pub fn horizontal(mut self, policy: HScroll) -> Self {
+        self.h_cfg = policy;
+        self
+    }
+
+    /// Builder for [`Self::track_click`].
+    pub fn track_click(mut self, click: TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
+    }
+
+    /// Builder for [`Self::columns`].
+    pub fn columns(mut self, columns: bool) -> Self {
+        self.columns = columns;
+        self
+    }
+
+    /// Start a frame: resolve the vertical track-click policy against the
+    /// app-wide default and forget last frame's tracks (a bar that is not
+    /// drawn again cannot be pressed).
+    pub fn begin(&mut self, app_click: TrackClick) {
+        self.v_click = self.track_click.unwrap_or(app_click);
+        self.v_track = Rect::ZERO;
+        self.h_track = Rect::ZERO;
+    }
+
+    /// The vertical track-click policy in force this frame.
+    pub fn v_click(&self) -> TrackClick {
+        self.v_click
+    }
+
+    /// The vertical track as last drawn, empty when no bar was drawn.
+    pub fn v_track(&self) -> Rect {
+        self.v_track
+    }
+
+    /// The horizontal track as last drawn, empty when no bar was drawn.
+    pub fn h_track(&self) -> Rect {
+        self.h_track
+    }
+
+    /// Record a track drawn for `owner` on `axis` (the `draw_*` methods do
+    /// this; a widget that draws a bar by hand calls it itself).
+    pub fn set_track(&mut self, owner: WidgetId, axis: Axis, track: Rect) {
+        self.owner = Some(owner);
+        match axis {
+            Axis::Vertical => self.v_track = track,
+            Axis::Horizontal => self.h_track = track,
+        }
+    }
+
+    /// Forget the track drawn on `axis` (its bar is gone this frame).
+    pub fn clear_track(&mut self, axis: Axis) {
+        match axis {
+            Axis::Vertical => self.v_track = Rect::ZERO,
+            Axis::Horizontal => self.h_track = Rect::ZERO,
+        }
+    }
+
+    /// The axis of the bar a held press started on.
+    pub fn held(&self) -> Option<Axis> {
+        self.held
+    }
+
+    /// The state on `axis`.
+    pub fn axis(&mut self, axis: Axis) -> &mut ScrollState {
+        match axis {
+            Axis::Vertical => &mut self.v,
+            Axis::Horizontal => &mut self.h,
+        }
+    }
+
+    /// Cells (or columns) one horizontal wheel notch or arrow press moves.
+    pub fn h_step(&self) -> usize {
+        if self.columns {
+            1
+        } else {
+            self.h_cfg.step.max(1)
+        }
+    }
+
+    /// Whether horizontal scrolling can move at all: it is enabled and the
+    /// content is wider than the view.
+    pub fn h_scrolls(&self) -> bool {
+        self.h_cfg.enabled && self.h.overflows()
+    }
+
+    /// A wheel notch of `delta` on `axis`. Vertical moves `delta` rows.
+    /// Horizontal moves one [`Self::h_step`] per notch whatever the
+    /// notch's size, and is ignored while horizontal scrolling is off or
+    /// the content fits, so the notch can reach an owner that can still
+    /// move. At a boundary the notch is consumed without a repaint.
+    pub fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
+        let moved = match axis {
+            Axis::Vertical => self.v.scroll_by(delta as isize),
+            Axis::Horizontal => {
+                if !self.h_scrolls() {
+                    return Response::ignored();
+                }
+                let step = self.h_step() as isize;
+                self.h.scroll_by(delta.signum() as isize * step)
+            }
+        };
+        changed(moved)
+    }
+
+    /// The pointer went down at `pos`: on the horizontal track or the
+    /// vertical one (they never overlap). On the thumb this grabs it; on
+    /// the bare track it acts per the axis's [`TrackClick`]. A press on
+    /// neither track holds nothing and is ignored.
+    pub fn press(&mut self, pos: Position) -> Response<()> {
+        let axis = if self.h_track.contains(pos) {
+            Axis::Horizontal
+        } else if self.v_track.contains(pos) {
+            Axis::Vertical
+        } else {
+            self.held = None;
+            return Response::ignored();
+        };
+        self.press_on(axis, pos)
+    }
+
+    /// [`Self::press`] on the bar of `axis`, wherever `pos` is.
+    pub fn press_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
+        let (track, click) = match axis {
+            Axis::Vertical => (self.v_track, self.v_click),
+            Axis::Horizontal => (self.h_track, self.h_cfg.track_click),
+        };
+        if track.is_empty() {
+            self.held = None;
+            return Response::ignored();
+        }
+        self.held = Some(axis);
+        let (cell, len) = track_cell(track, axis, pos);
+        changed(self.axis(axis).press_track_with(cell, len, click))
+    }
+
+    /// The pointer moved to `pos` while held after [`Self::press`]: the
+    /// thumb of the held bar follows, keeping the grabbed cell under the
+    /// pointer. With no held bar the vertical one takes the drag.
+    pub fn drag(&mut self, pos: Position) -> Response<()> {
+        let axis = self.held.unwrap_or(Axis::Vertical);
+        self.drag_on(axis, pos)
+    }
+
+    /// [`Self::drag`] on the bar of `axis` (a drag that names its bar).
+    pub fn drag_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
+        let track = match axis {
+            Axis::Vertical => self.v_track,
+            Axis::Horizontal => self.h_track,
+        };
+        if track.is_empty() {
+            return Response::consumed();
+        }
+        self.held = Some(axis);
+        let (cell, len) = track_cell(track, axis, pos);
+        changed(self.axis(axis).drag_track(cell, len))
+    }
+
+    /// The button was released: the next press starts a new grab.
+    pub fn release(&mut self) {
+        self.v.release_track();
+        self.h.release_track();
+        self.held = None;
+    }
+
+    /// The axis of the bar with hit id `bar_id`, when it is one of this
+    /// pane's bars.
+    pub fn axis_of(&self, bar_id: WidgetId) -> Option<Axis> {
+        let owner = self.owner?;
+        if bar_id == owner.sub("scrollbar") {
+            Some(Axis::Vertical)
+        } else if bar_id == owner.sub("hscrollbar") {
+            Some(Axis::Horizontal)
+        } else {
+            None
+        }
+    }
+
+    /// A press (`pressed`) or drag on a [`Bar`] the pointer layer grabbed:
+    /// the bar names its axis, so nothing is inferred.
+    pub fn bar(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
+        if pressed {
+            self.press_on(bar.axis, pos)
+        } else {
+            self.drag_on(bar.axis, pos)
+        }
+    }
+}
+
+/// The cell of `track` under `pos` on `axis`, clamped to the track (a
+/// pointer past either end still drags to that end), and the track length.
+fn track_cell(track: Rect, axis: Axis, pos: Position) -> (usize, usize) {
+    match axis {
+        Axis::Vertical => (
+            pos.y
+                .saturating_sub(track.y)
+                .min(track.height.saturating_sub(1)) as usize,
+            track.height as usize,
+        ),
+        Axis::Horizontal => (
+            pos.x
+                .saturating_sub(track.x)
+                .min(track.width.saturating_sub(1)) as usize,
+            track.width as usize,
+        ),
+    }
+}
+
+/// `changed` when the view moved, else consumed without a repaint.
+fn changed(moved: bool) -> Response<()> {
+    if moved {
+        Response::changed()
+    } else {
+        Response::consumed()
+    }
+}
+
+/// A widget that scrolls through a [`ScrollPane`]. The wheel, the bars and
+/// their drags come from the provided methods, once for every widget; a
+/// widget only hands out its pane and, when scrolling has side effects
+/// (a log's tail follow, a reading position), reacts in
+/// [`Self::after_scroll`].
+///
+/// The `on_*` methods returning [`Outcome`] are adapters for routers not
+/// yet on `Response`; they go with the per-widget handlers (S6, S15).
+pub trait Scrollable {
+    /// The widget's pane.
+    fn pane(&mut self) -> &mut ScrollPane;
+
+    /// The view on `axis` may have moved by wheel or bar (`moved` says
+    /// whether it did). Returns whether anything else changed that needs a
+    /// repaint (a tail follow switching off, for instance).
+    fn after_scroll(&mut self, _axis: Axis, _moved: bool) -> bool {
+        false
+    }
+
+    /// A wheel notch the widget handles before its pane (a revealed label
+    /// that reads on, an open popup that takes the wheel). `None` lets the
+    /// pane scroll.
+    fn wheel_first(&mut self, _axis: Axis, _delta: i32) -> Option<Response<()>> {
+        None
+    }
+
+    /// A wheel notch of `delta` on `axis` ([`ScrollPane::wheel`]).
+    fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
+        if let Some(r) = self.wheel_first(axis, delta) {
+            return r;
+        }
+        let r = self.pane().wheel(axis, delta);
+        settle(self, axis, r)
+    }
+
+    /// A press on either of the widget's bars ([`ScrollPane::press`]).
+    fn bar_press(&mut self, pos: Position) -> Response<()> {
+        let r = self.pane().press(pos);
+        match self.pane().held() {
+            Some(axis) => settle(self, axis, r),
+            None => r,
+        }
+    }
+
+    /// A drag along the held bar ([`ScrollPane::drag`]).
+    fn bar_drag(&mut self, pos: Position) -> Response<()> {
+        let axis = self.pane().held().unwrap_or(Axis::Vertical);
+        let r = self.pane().drag_on(axis, pos);
+        settle(self, axis, r)
+    }
+
+    /// A press or drag on a [`Bar`] grabbed by the pointer layer
+    /// ([`ScrollPane::bar`]): how a router reaches any widget's bars.
+    fn bar_input(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
+        let r = self.pane().bar(bar, pos, pressed);
+        settle(self, bar.axis, r)
+    }
+
+    /// Adapter: [`Self::wheel`] vertically.
+    fn on_wheel(&mut self, delta: i32) -> Outcome {
+        self.wheel(Axis::Vertical, delta).outcome()
+    }
+
+    /// Adapter: [`Self::wheel`] horizontally.
+    fn on_wheel_h(&mut self, delta: i32) -> Outcome {
+        self.wheel(Axis::Horizontal, delta).outcome()
+    }
+
+    /// Adapter: [`Self::bar_press`]. The router sent the press to one of
+    /// this widget's bars, so a press beside both tracks is still consumed.
+    fn on_scrollbar(&mut self, pos: Position) -> Outcome {
+        match self.bar_press(pos).outcome() {
+            Outcome::Ignored => Outcome::Consumed,
+            o => o,
+        }
+    }
+
+    /// Adapter: [`Self::bar_drag`].
+    fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        self.bar_drag(pos).outcome()
+    }
+
+    /// Adapter: a drag while `pressed` (one of this widget's bar ids) is
+    /// held. The axis follows the id, so a drag works whether or not the
+    /// press was routed first.
+    fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        let axis = self.pane().axis_of(pressed).unwrap_or(Axis::Vertical);
+        let r = self.pane().drag_on(axis, pos);
+        settle(self, axis, r).outcome()
+    }
+}
+
+/// Run the widget's [`Scrollable::after_scroll`] and fold what it changed
+/// into `r`.
+fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Response<()> {
+    if w.after_scroll(axis, r.is_changed()) {
+        r.repaint()
+    } else {
+        r
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A pane over 100 rows in a 10-row view and 40 cells in a 10-cell
+    /// view, with both tracks drawn: vertical at column 10, rows 0..10;
+    /// horizontal on row 10, columns 0..10.
+    fn pane() -> ScrollPane {
+        let mut p = ScrollPane::new(100);
+        p.set_viewport(10);
+        p.h = ScrollState::new(40);
+        p.h.set_viewport(10);
+        p.begin(TrackClick::Page);
+        let owner = WidgetId::of("w");
+        p.set_track(owner, Axis::Vertical, Rect::new(10, 0, 1, 10));
+        p.set_track(owner, Axis::Horizontal, Rect::new(0, 10, 10, 1));
+        p
+    }
+
+    #[test]
+    fn a_pane_derefs_to_its_vertical_state() {
+        let mut p = ScrollPane::new(50);
+        p.set_viewport(10);
+        assert!(p.jump_end());
+        assert_eq!(p.offset, 40);
+        assert_eq!(p.v.offset, 40);
+    }
+
+    #[test]
+    fn the_wheel_moves_rows_vertically_and_one_step_per_notch_sideways() {
+        let mut p = pane();
+        assert!(p.wheel(Axis::Vertical, 3).is_changed());
+        assert_eq!(p.offset, 3);
+        // a notch of any size moves one step sideways
+        assert!(p.wheel(Axis::Horizontal, 3).is_changed());
+        assert_eq!(p.h.offset, 4, "HScroll::step cells");
+        let mut cols = pane().columns(true);
+        assert!(cols.wheel(Axis::Horizontal, 3).is_changed());
+        assert_eq!(cols.h.offset, 1, "a column per notch");
+        // the boundary consumes the notch without a repaint
+        let r = p.wheel(Axis::Vertical, -10);
+        assert!(r.is_changed());
+        let r = p.wheel(Axis::Vertical, -1);
+        assert!(r.is_consumed() && !r.is_changed());
+        // nothing wider than the view, or sideways off: the notch passes on
+        let mut fits = pane();
+        fits.h.set_viewport(40);
+        assert!(!fits.wheel(Axis::Horizontal, 1).is_consumed());
+        let mut off = pane().horizontal(HScroll::off());
+        assert!(!off.wheel(Axis::Horizontal, 1).is_consumed());
+    }
+
+    #[test]
+    fn a_press_picks_its_bar_and_the_drag_stays_on_it() {
+        let mut p = pane();
+        // the bare vertical track pages (the default)
+        assert!(p.press(Position::new(10, 9)).is_changed());
+        assert_eq!((p.offset, p.held()), (10, Some(Axis::Vertical)));
+        p.release();
+        assert_eq!(p.held(), None);
+        // the horizontal thumb is grabbed and dragged; the drag stays on
+        // the horizontal bar even over the vertical track
+        assert!(!p.press(Position::new(0, 10)).is_changed());
+        assert_eq!(p.held(), Some(Axis::Horizontal));
+        assert!(p.drag(Position::new(9, 10)).is_changed());
+        assert!(p.h.at_end());
+        assert_eq!(p.offset, 10, "the vertical view did not move");
+        // a press on neither bar holds nothing
+        assert!(!p.press(Position::new(3, 3)).is_consumed());
+        assert_eq!(p.held(), None);
+    }
+
+    #[test]
+    fn jump_stays_an_override_of_the_paging_default() {
+        let mut p = pane().track_click(TrackClick::Jump);
+        p.begin(TrackClick::Page);
+        assert_eq!(p.v_click(), TrackClick::Jump);
+        p.set_track(WidgetId::of("w"), Axis::Vertical, Rect::new(10, 0, 1, 10));
+        assert!(p.press(Position::new(10, 9)).is_changed());
+        assert!(p.at_end(), "Jump: the thumb lands under the pointer");
+        let mut app = pane();
+        app.begin(TrackClick::Jump);
+        assert_eq!(app.v_click(), TrackClick::Jump, "None follows the app");
+    }
+
+    #[test]
+    fn begin_forgets_the_tracks_so_an_undrawn_bar_cannot_be_pressed() {
+        let mut p = pane();
+        p.begin(TrackClick::Page);
+        assert_eq!(p.v_track(), Rect::ZERO);
+        assert!(!p.press(Position::new(10, 9)).is_consumed());
+        assert_eq!(p.offset, 0);
+    }
+
+    #[test]
+    fn a_grabbed_bar_names_its_axis() {
+        let mut p = pane();
+        let owner = WidgetId::of("w");
+        assert_eq!(p.axis_of(owner.sub("scrollbar")), Some(Axis::Vertical));
+        assert_eq!(p.axis_of(owner.sub("hscrollbar")), Some(Axis::Horizontal));
+        assert_eq!(p.axis_of(WidgetId::of("x")), None);
+        let bar = Bar {
+            id: owner.sub("hscrollbar"),
+            owner,
+            axis: Axis::Horizontal,
+            track: p.h_track(),
+        };
+        assert!(p.bar(&bar, Position::new(9, 10), true).is_changed());
+        assert_eq!(p.h.offset, 10, "one page sideways");
+        assert_eq!(p.offset, 0);
+    }
+
+    /// A widget whose pane scrolls and whose tail follow is a side effect.
+    struct Log {
+        pane: ScrollPane,
+        follow: bool,
+        first: bool,
+    }
+
+    impl Scrollable for Log {
+        fn pane(&mut self) -> &mut ScrollPane {
+            &mut self.pane
+        }
+        fn after_scroll(&mut self, axis: Axis, _moved: bool) -> bool {
+            let was = self.follow;
+            if axis == Axis::Vertical {
+                self.follow = self.pane.at_end();
+            }
+            was != self.follow
+        }
+        fn wheel_first(&mut self, _axis: Axis, _delta: i32) -> Option<Response<()>> {
+            self.first.then(Response::consumed)
+        }
+    }
+
+    #[test]
+    fn scrollable_folds_side_effects_into_the_response() {
+        let mut log = Log {
+            pane: pane(),
+            follow: false,
+            first: false,
+        };
+        log.pane.jump_end();
+        // at the end the wheel cannot move, but the follow switching on is
+        // a change
+        assert_eq!(log.on_wheel(1), Outcome::Changed);
+        assert!(log.follow);
+        assert_eq!(log.on_wheel(1), Outcome::Consumed, "nothing changed");
+        assert_eq!(log.on_wheel(-1), Outcome::Changed);
+        assert!(!log.follow);
+        // the widget's own wheel handling goes first
+        log.first = true;
+        assert_eq!(log.on_wheel(-5), Outcome::Consumed);
+        assert_eq!(log.pane.offset, 89);
+        // the bar adapters reach the same pane
+        log.pane.scroll_to(80);
+        assert_eq!(log.on_scrollbar(Position::new(10, 9)), Outcome::Changed);
+        assert!(log.follow, "a page to the end follows again");
+        assert_eq!(
+            log.on_scrollbar(Position::new(3, 3)),
+            Outcome::Consumed,
+            "routed to the bar, so consumed"
+        );
+        let id = WidgetId::of("w").sub("hscrollbar");
+        assert_eq!(log.on_bar_drag(id, Position::new(9, 10)), Outcome::Changed);
+        assert!(log.pane.h.at_end());
+    }
 
     #[test]
     fn visibility_policy_decides_when_a_bar_draws() {

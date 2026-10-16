@@ -2,8 +2,9 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Style;
 
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
-use crate::core::scroll::{ScrollState, TrackClick};
+use crate::core::scroll::{ScrollPane, ScrollState, ScrollbarVisibility, TrackClick};
 use crate::theme::{Glyphs, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, VisualState};
 
@@ -108,6 +109,8 @@ pub fn render_vertical(
         }
     }
     ctx.scrollbar(sb_id, area, container, crate::core::hit::Axis::Vertical);
+    let thumb_rect = Rect::new(area.x, area.y + start as u16, 1, len as u16);
+    ctx.scrollbar_thumb(sb_id, thumb_rect, container);
 }
 
 /// Render a horizontal scrollbar into a 1-row area: the mirror of
@@ -156,6 +159,8 @@ pub fn render_horizontal_with(
     }
     if scroll.overflows() {
         ctx.scrollbar(sb_id, area, container, crate::core::hit::Axis::Horizontal);
+        let thumb_rect = Rect::new(area.x + start as u16, area.y, len as u16, 1);
+        ctx.scrollbar_thumb(sb_id, thumb_rect, container);
     }
 }
 
@@ -310,6 +315,130 @@ pub fn apply_with(
     }
 }
 
+/// A scrolled list's faded edges and its vertical bar, the pair every
+/// hand-drawn scrolling region needs. `area` is the whole region with the
+/// bar's column on its right. Call it after the rows are painted: while
+/// `scroll` overflows, the rows nearest an edge that hides more content
+/// fade ([`crate::ui::fade::scroll_edges`]) and the bar is drawn in the
+/// right column. Returns the content rectangle (the area less the bar's
+/// column while there is a bar).
+pub fn render_with_fade(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    container: WidgetId,
+    scroll: &ScrollState,
+    focused: bool,
+) -> Rect {
+    render_with_fade_except(area, buf, ctx, container, scroll, focused, &[])
+}
+
+/// [`render_with_fade`] keeping the rows in `keep` whole (a cursor row
+/// whose focus bar sits on the container plane; see
+/// [`crate::ui::fade::scroll_edges_except`]).
+pub fn render_with_fade_except(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    container: WidgetId,
+    scroll: &ScrollState,
+    focused: bool,
+    keep: &[u16],
+) -> Rect {
+    if !scroll.overflows() || area.width < 2 {
+        return area;
+    }
+    let content = Rect::new(area.x, area.y, area.width - 1, area.height);
+    crate::ui::fade::scroll_edges_except(buf, ctx, content, scroll, keep);
+    render_vertical(
+        Rect::new(area.right() - 1, area.y, 1, area.height),
+        buf,
+        ctx,
+        container,
+        scroll,
+        focused,
+    );
+    content
+}
+
+impl ScrollPane {
+    /// Draw the vertical bar for `owner` in `area` ([`render_vertical`]) and
+    /// remember its track for presses and drags. Nothing is drawn, and
+    /// nothing can be pressed, while the content fits.
+    pub fn draw_v(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        owner: WidgetId,
+        focused: bool,
+    ) {
+        render_vertical(area, buf, ctx, owner, &self.v, focused);
+        self.remember(Axis::Vertical, owner, area, buf);
+    }
+
+    /// [`ScrollPane::draw_v`] for a bar that is also a divider
+    /// ([`render_divider`]): solid while the content fits.
+    pub fn draw_divider(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        owner: WidgetId,
+        focused: bool,
+    ) {
+        render_divider(area, buf, ctx, owner, &self.v, focused);
+        self.remember(Axis::Vertical, owner, area, buf);
+    }
+
+    /// Draw the horizontal bar for `owner` in `area` per
+    /// [`HScroll::bar`](crate::core::scroll::HScroll) (a full thumb when
+    /// the policy is `Always` and the content fits) and remember its track.
+    pub fn draw_h(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        owner: WidgetId,
+        focused: bool,
+    ) {
+        let always = self.h_cfg.bar == ScrollbarVisibility::Always;
+        render_horizontal_with(area, buf, ctx, owner, &self.h, focused, always);
+        self.remember(Axis::Horizontal, owner, area, buf);
+    }
+
+    /// [`render_with_fade`] over the vertical state, remembering the track.
+    pub fn draw_with_fade(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        owner: WidgetId,
+        focused: bool,
+        keep: &[u16],
+    ) -> Rect {
+        let content = render_with_fade_except(area, buf, ctx, owner, &self.v, focused, keep);
+        if content != area {
+            let track = Rect::new(area.right() - 1, area.y, 1, area.height);
+            self.remember(Axis::Vertical, owner, track, buf);
+        }
+        content
+    }
+
+    fn remember(&mut self, axis: Axis, owner: WidgetId, area: Rect, buf: &Buffer) {
+        let area = area.intersection(*buf.area());
+        let state = match axis {
+            Axis::Vertical => &self.v,
+            Axis::Horizontal => &self.h,
+        };
+        if area.is_empty() || !state.overflows() {
+            self.clear_track(axis);
+        } else {
+            self.set_track(owner, axis, area);
+        }
+    }
+}
+
 /// "12–24 of 120" style position label.
 pub fn position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {
@@ -357,6 +486,87 @@ mod tests {
             hover: Some(id),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn render_with_fade_fades_the_hidden_edge_and_draws_the_bar_beside_it() {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 8, 6);
+        let mut buf = Buffer::empty(area);
+        for y in 0..6 {
+            buf.set_string(
+                0,
+                y,
+                "xxxxxxxx",
+                Style::new().fg(theme.text_primary).bg(theme.canvas),
+            );
+        }
+        let mut s = ScrollState::new(20);
+        s.set_viewport(6);
+        let id = WidgetId::of("c");
+        let content = {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            render_with_fade(area, &mut buf, &mut ctx, id, &s, false)
+        };
+        assert_eq!(
+            content,
+            Rect::new(0, 0, 7, 6),
+            "the bar takes the last column"
+        );
+        assert_eq!(buf[(7, 0)].symbol(), theme.glyphs.scroll_thumb);
+        assert_eq!(hits.hit(Position::new(7, 4)), Some(id_for(id)));
+        assert_ne!(
+            buf[(0, 5)].fg,
+            buf[(0, 2)].fg,
+            "the bottom edge hides rows: faded"
+        );
+        assert_eq!(
+            buf[(0, 0)].fg,
+            buf[(0, 2)].fg,
+            "nothing above: the top stays"
+        );
+        // content that fits: no bar, no fade, the whole area is content
+        s.set_viewport(30);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        assert_eq!(
+            render_with_fade(area, &mut buf, &mut ctx, id, &s, false),
+            area
+        );
+    }
+
+    #[test]
+    fn a_pane_remembers_the_tracks_it_drew_and_its_thumb_is_a_part() {
+        use crate::core::id::{Part, PartRef};
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 6));
+        let mut pane = ScrollPane::new(40);
+        pane.set_viewport(5);
+        pane.h = ScrollState::new(30);
+        pane.h.set_viewport(9);
+        let id = WidgetId::of("c");
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            pane.begin(ctx.track_click);
+            pane.draw_v(Rect::new(9, 0, 1, 5), &mut buf, &mut ctx, id, false);
+            pane.draw_h(Rect::new(0, 5, 9, 1), &mut buf, &mut ctx, id, false);
+        }
+        assert_eq!(pane.v_track(), Rect::new(9, 0, 1, 5));
+        assert_eq!(pane.h_track(), Rect::new(0, 5, 9, 1));
+        let part = |x, y| hits.resolve(Position::new(x, y)).map(|h| (h.owner, h.part));
+        assert_eq!(part(9, 0), Some((id, PartRef::of(Part::THUMB))));
+        assert_eq!(part(9, 4), Some((id, PartRef::of(Part::TRACK))));
+        assert_eq!(part(0, 5), Some((id, PartRef::of(Part::THUMB))));
+        assert_eq!(part(8, 5), Some((id, PartRef::of(Part::TRACK))));
+        // the content fits next frame: nothing drawn, nothing to press
+        pane.set_viewport(50);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        pane.begin(ctx.track_click);
+        pane.draw_v(Rect::new(9, 0, 1, 5), &mut buf, &mut ctx, id, false);
+        assert_eq!(pane.v_track(), Rect::ZERO);
     }
 
     #[test]

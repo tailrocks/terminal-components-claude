@@ -347,6 +347,14 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// Register the thumb of `owner`'s scrollbar `id` (after
+    /// [`Self::scrollbar`]): its cells resolve to [`Part::THUMB`](crate::core::id::Part::THUMB).
+    pub fn scrollbar_thumb(&mut self, id: WidgetId, thumb: Rect, owner: WidgetId) {
+        if !self.inert {
+            self.hits.register_thumb(id, owner, thumb);
+        }
+    }
+
     /// Register a wheel-scrollable container.
     pub fn scrollable(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {

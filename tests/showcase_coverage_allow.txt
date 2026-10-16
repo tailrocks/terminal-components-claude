@@ -253,6 +253,10 @@ core::scroll::HScroll | Panels and Scrolling page options | SC22
 core::scroll::HScroll::bar | Panels and Scrolling page options | SC22
 core::scroll::HScroll::step | Panels and Scrolling page options | SC22
 core::scroll::HScroll::track_click | Panels and Scrolling page options | SC22
+core::scroll::ScrollPane | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
+core::scroll::ScrollPane::horizontal | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
+core::scroll::ScrollPane::track_click | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
+core::scroll::ScrollPane::columns | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
 
 # core::selection
 core::selection::SelectionMode | Columns and Basic table pages | SC11
