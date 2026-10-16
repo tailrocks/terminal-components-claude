@@ -32,6 +32,9 @@ pub struct HelpOverlay {
     pub hint: String,
     /// Which keys scroll (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
+    /// The theme's strings as of the last render: a title and hint still
+    /// reading them follow a change ([`crate::theme::Strings::follow`]).
+    strings: crate::theme::Strings,
 }
 
 impl HelpOverlay {
@@ -60,9 +63,10 @@ impl HelpOverlay {
             scroll: ScrollState::default(),
             area: Rect::ZERO,
             closed: false,
-            title: "Keyboard shortcuts".into(),
-            hint: "↑↓ Scroll · Esc Close".into(),
+            title: crate::theme::Strings::DEFAULT.help_title.into(),
+            hint: crate::theme::Strings::DEFAULT.help_footer.into(),
             nav: NavKeys::DEFAULT,
+            strings: crate::theme::Strings::DEFAULT,
         }
     }
 
@@ -105,6 +109,10 @@ impl HelpOverlay {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let s = ctx.theme.strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        crate::theme::Strings::follow(&mut self.title, old.help_title, s.help_title);
+        crate::theme::Strings::follow(&mut self.hint, old.help_footer, s.help_footer);
         let w = screen.width.saturating_sub(4);
         let h = screen.height.saturating_sub(3);
         let (area, inner) = Frame::new(w, h)

@@ -71,6 +71,9 @@ pub struct ListBox {
     pub scroll: ScrollState,
     pub area: Rect,
     pub empty_text: String,
+    /// The theme's strings as of the last render: default text still
+    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+    strings: crate::theme::Strings,
     /// A full empty state (title, hint, error tone) shown instead of
     /// [`Self::empty_text`] when set. Default `None`.
     pub empty: Option<crate::widgets::empty::EmptyState>,
@@ -134,7 +137,8 @@ impl ListBox {
             scroll: ScrollState::new(n),
             area: Rect::ZERO,
             track: Rect::ZERO,
-            empty_text: "Nothing here yet".to_owned(),
+            empty_text: crate::theme::Strings::DEFAULT.empty_list.to_owned(),
+            strings: crate::theme::Strings::DEFAULT,
             empty: None,
             anchor: None,
             reveal: RevealState::default(),
@@ -469,6 +473,9 @@ impl ListBox {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        let s = ctx.theme.strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        crate::theme::Strings::follow(&mut self.empty_text, old.empty_list, s.empty_list);
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
