@@ -407,7 +407,50 @@ pub enum Dismissed<R, W: ?Sized = (), O = ()> {
     Closed(LayerEntry<R, W, O>, Option<R>),
 }
 
+/// What [`ShellLayers::pointer`] did with a pointer event.
+pub enum LayerPointer<R, W: ?Sized = (), O = ()> {
+    /// The top layer took it (`Ignored` when no layer is open).
+    Handled(Outcome),
+    /// A click on a backdrop the top layer leaves alone (its frame's
+    /// [`crate::ui::modal::BACKDROP`], a picker's): an outside click,
+    /// dismissed under the layer's policy. A refused one is for the host
+    /// to flash ([`crate::ui::modal::refuse_outside_click`]).
+    Dismissed(Dismissed<R, W, O>),
+}
+
 impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
+    /// Hand a pointer event to the top layer ([`Layer::pointer`]). A
+    /// completed click on a backdrop that the layer leaves alone is an
+    /// outside click and goes through [`Self::dismiss`]; a popup inside
+    /// the layer (a select in a form) owns its own backdrop and takes it
+    /// first.
+    pub fn pointer(
+        &mut self,
+        ev: &PointerEvent,
+        focus: &mut Focus,
+        ring: &FocusRing,
+        app: &W,
+    ) -> LayerPointer<R, W, O> {
+        let Some(top) = self.top_mut() else {
+            return LayerPointer::Handled(Outcome::Ignored);
+        };
+        // the top frame's own backdrop: never a popup's inside the layer
+        if ev.is(Phase::Click) && ev.id == crate::ui::modal::BACKDROP {
+            return LayerPointer::Dismissed(self.dismiss(DismissReason::OutsideClick, focus));
+        }
+        let out = {
+            let mut cx = LayerCx { focus, ring, app };
+            top.layer.pointer(ev, &mut cx)
+        };
+        if out == Outcome::Ignored
+            && ev.is(Phase::Click)
+            && ev.part().part == crate::core::id::Part::BACKDROP
+        {
+            return LayerPointer::Dismissed(self.dismiss(DismissReason::OutsideClick, focus));
+        }
+        LayerPointer::Handled(out)
+    }
+
     /// Open `layer` on top for `owner`.
     pub fn open(
         &mut self,
