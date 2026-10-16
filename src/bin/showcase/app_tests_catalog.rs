@@ -22,6 +22,8 @@ use ratatui::{Terminal, backend::TestBackend};
 use crate::app::{App, PageId};
 use crate::catalog_scan::{self, Item};
 use crate::coverage::{SHOWN, Shown};
+use crate::pages::template::Section;
+use junie_tui::ui::specimen::SpecimenState;
 
 const ALLOWLIST: &str = include_str!("../../../tests/showcase_coverage_allow.txt");
 
@@ -226,11 +228,8 @@ fn squash(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Text of every rendered row of `page` at a generous size, one row per
-/// line, whitespace runs collapsed.
-fn page_text(page: PageId) -> String {
-    let mut app = App::new(Theme::junie());
-    app.goto(page);
+/// The rows of a 220x80 frame of `app`, whitespace runs collapsed.
+fn frame_text(app: &mut App) -> String {
     let mut term = Terminal::new(TestBackend::new(220, 80)).unwrap();
     term.draw(|frame| app.render(frame)).unwrap();
     let buf = term.backend().buffer();
@@ -246,11 +245,45 @@ fn page_text(page: PageId) -> String {
     text
 }
 
+/// Text of every rendered row of `page` at a generous size, one row per
+/// line, whitespace runs collapsed. A page on the Playground | Options |
+/// States template renders each of its sections.
+fn page_text(page: PageId) -> String {
+    let mut app = App::new(Theme::junie());
+    app.goto(page);
+    let sections = app.pages[page.index()].template().is_some();
+    if !sections {
+        return frame_text(&mut app);
+    }
+    let mut text = String::new();
+    for section in Section::ALL {
+        if let Some(t) = app.pages[page.index()].template_mut() {
+            t.set_section(section);
+        }
+        text.push_str(&frame_text(&mut app));
+    }
+    text
+}
+
+/// The States rows `page` draws whole in its States section at 220x80,
+/// and the frame's text; `None` when the page has no States section.
+fn page_states(page: PageId) -> Option<(Vec<SpecimenState>, String)> {
+    let mut app = App::new(Theme::junie());
+    app.goto(page);
+    app.pages[page.index()]
+        .template_mut()?
+        .set_section(Section::States);
+    let text = frame_text(&mut app);
+    let rows = app.pages[page.index()].template()?.state_rows().to_vec();
+    Some((rows, text))
+}
+
 /// Problems with the declarations themselves: each must hold in the
 /// running showcase.
 fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
     let mut problems = Vec::new();
     let mut pages: HashMap<&str, String> = HashMap::new();
+    let mut states: HashMap<&str, Option<(Vec<SpecimenState>, String)>> = HashMap::new();
     for (id, how) in shown {
         match *how {
             Shown::Demo(slug, label) => {
@@ -265,14 +298,36 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
                     ));
                 }
             }
-            // No page has an option table (SC1) or a States grid (SC2) yet,
-            // so no such declaration can hold.
+            // No page has an option table (SC1) yet, so no such
+            // declaration can hold.
             Shown::Option(slug, key) => problems.push(format!(
                 "{id}: page {slug:?} has no option {key:?} (option tables arrive with SC1)"
             )),
-            Shown::StateRow(slug, row) => problems.push(format!(
-                "{id}: page {slug:?} has no States row {row:?} (States grids arrive with SC2)"
-            )),
+            // the page's States section draws the row whole, under its label
+            Shown::StateRow(slug, row) => {
+                let Some(page) = PageId::from_name(slug) else {
+                    problems.push(format!("{id}: StateRow on unknown page {slug:?}"));
+                    continue;
+                };
+                let Some(state) = SpecimenState::from_slug(row) else {
+                    problems.push(format!("{id}: {row:?} is not a States row name"));
+                    continue;
+                };
+                let grid = states.entry(slug).or_insert_with(|| page_states(page));
+                match grid {
+                    None => problems.push(format!(
+                        "{id}: page {slug:?} has no States section (StateRow declaration)"
+                    )),
+                    Some((rows, text)) => {
+                        let labelled = text.lines().any(|l| l.contains(state.label()));
+                        if !rows.contains(&state) || !labelled {
+                            problems.push(format!(
+                                "{id}: page {slug:?} draws no States row {row:?} (StateRow declaration)"
+                            ));
+                        }
+                    }
+                }
+            }
         }
     }
     problems
@@ -447,7 +502,12 @@ fn gate_fails_on_a_declaration_the_showcase_does_not_hold() {
         (*id, Shown::Demo("buttons", "no such text anywhere")),
         (*id, Shown::Demo("nosuchpage", "x")),
         (*id, Shown::Option("buttons", "glow")),
-        (*id, Shown::StateRow("buttons", "hover")),
+        // a row the page's grid does not have, a row name that is no
+        // state, a page with no States section, an unknown page
+        (*id, Shown::StateRow("buttons", "error")),
+        (*id, Shown::StateRow("inputs", "sideways")),
+        (*id, Shown::StateRow("diff", "rest")),
+        (*id, Shown::StateRow("nosuchpage", "rest")),
     ];
     assert_eq!(declaration_problems(&wrong).len(), wrong.len());
 }

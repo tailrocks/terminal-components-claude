@@ -70,6 +70,15 @@ pub const SURFACES: &[Root] = &[
     // Cell editors (pages/celleditors.rs, docs/showcase/tables.md): a table
     // of constrained columns; pending first approval.
     Root::new("showcase/pages/celleditors", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["wait:checkout-api"]).pending(),
+    // ------------------------------------------- page template sections (SC2) --
+    // A widget page is Playground | Options | States (plan §7, SCP2): Tab
+    // focuses the section strip, a digit opens a section. Options names the
+    // step that brings its controls (SC1); States is the page's StateGrid.
+    // Pending first approval.
+    Root::new("showcase/sections/buttons-options", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab", "2", "wait:No live options yet"]).pending(),
+    Root::new("showcase/sections/buttons-states", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
+    Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No live options yet"]).pending(),
+    Root::new("showcase/sections/inputs-states", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),
@@ -115,6 +124,10 @@ pub const ELEMENTS: &[Root] = &[
     Root::new("showcase/elements/nav/filter", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["/", "type:grid"]).pending(),
     Root::new("showcase/elements/selectable/selected-hover", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected"]).hover("Ari Moreno").pending(),
     Root::new("showcase/elements/lists/selected-hover", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "space"]).hover("Python").pending(),
+    // Pending: the States section's Compare levels toggle on (the grid at
+    // truecolor, 256, 16 and no colour) and the toggle hovered.
+    Root::new("showcase/elements/states/compare-levels", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "tab", "enter", "wait:256 colors"]).pending(),
+    Root::new("showcase/elements/states/compare-hover", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).hover("Compare levels").pending(),
     Root::new("showcase/elements/lists/row-pressed", Bin::Showcase, &["--page", "lists", "--motion", "paused"], BOOT).press("Python").pending(),
 ];
 

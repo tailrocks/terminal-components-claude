@@ -1,11 +1,12 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::theme::ButtonKind;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::panel::Panel;
 
@@ -13,6 +14,7 @@ const ID: WidgetId = WidgetId::of("buttons");
 const LONG_JOB_TICKS: u8 = 28;
 
 pub struct ButtonsPage {
+    template: Template,
     buttons: Vec<Button>,
     clicks: u32,
     last: Option<String>,
@@ -35,6 +37,7 @@ impl ButtonsPage {
             Button::secondary(ID.child(8), "Start long job"),
         ];
         Self {
+            template: Template::new(ID, states_grid()),
             buttons,
             clicks: 0,
             last: None,
@@ -59,19 +62,10 @@ impl ButtonsPage {
         }
         self.last = Some(msg);
     }
-}
 
-impl Page for ButtonsPage {
-    fn title(&self) -> &'static str {
-        "Buttons"
-    }
-    fn blurb(&self) -> &'static str {
-        "Primary, secondary, subtle, danger, toggle, disabled, busy"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[15, 1, 11]);
+        let rows = crate::pages::layout::rows(area, &[15, 0]);
 
         // Interactive playground on a card
         let panel = Panel::card(Some("Playground")).meta("hover · click · Tab · Enter / Space");
@@ -96,96 +90,61 @@ impl Page for ButtonsPage {
             }
             y += 3;
         }
-
-        // Static state matrix (rendered, not interactive) so every state is
-        // visible at once regardless of the pointer.
-        let panel = Panel::card(Some("State matrix")).meta("reference rendering");
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[2], buf, t);
-        let states: [(&str, junie_tui::ui::ctx::VisualState); 6] = [
-            ("default", Default::default()),
-            (
-                "hover",
-                junie_tui::ui::ctx::VisualState {
-                    hovered: true,
-                    ..Default::default()
-                },
-            ),
-            (
-                "focus",
-                junie_tui::ui::ctx::VisualState {
-                    focused: true,
-                    ..Default::default()
-                },
-            ),
-            (
-                "focus + hover",
-                junie_tui::ui::ctx::VisualState {
-                    focused: true,
-                    hovered: true,
-                    ..Default::default()
-                },
-            ),
-            (
-                "pressed",
-                junie_tui::ui::ctx::VisualState {
-                    pressed: true,
-                    focused: true,
-                    ..Default::default()
-                },
-            ),
-            (
-                "disabled",
-                junie_tui::ui::ctx::VisualState {
-                    disabled: true,
-                    ..Default::default()
-                },
-            ),
-        ];
-        let kinds = [
-            (ButtonKind::Primary, "Primary"),
-            (ButtonKind::Secondary, "Secondary"),
-            (ButtonKind::Subtle, "Subtle"),
-            (ButtonKind::Danger, "Danger"),
-        ];
-        let col_w = 15u16;
-        let label_w = 15u16;
-        // header
-        for (k, (_, name)) in kinds.iter().enumerate() {
-            let x = inner.x + label_w + k as u16 * col_w;
-            if x + col_w > inner.right() + 1 {
-                break;
-            }
-            buf.set_string(x, inner.y, name, t.muted().bg(bg));
-        }
-        for (si, (sname, s)) in states.iter().enumerate() {
-            let y = inner.y + 1 + si as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            buf.set_string(inner.x, y, sname, t.secondary().bg(bg));
-            for (k, (kind, _)) in kinds.iter().enumerate() {
-                let x = inner.x + label_w + k as u16 * col_w;
-                if x + col_w > inner.right() + 1 {
-                    break;
-                }
-                let style = t.button(*kind, *s, bg);
-                let on_accent = *kind == ButtonKind::Primary && !s.disabled;
-                let gutter = t.gutter(*s, style.bg.unwrap_or(bg), on_accent);
-                buf.set_string(x, y, t.gutter_symbol(*s), gutter);
-                buf.set_string(x + 1, y, " Label ", style);
-            }
-        }
         if let Some(last) = &self.last {
             let text = format!("last: {last} · {} activations", self.clicks);
-            let y = rows[2].bottom() + 1;
+            let y = rows[0].bottom() + 1;
             if y < area.bottom() {
                 buf.set_string(area.x, y, &text, t.faint());
             }
         }
     }
+}
+
+/// The States grid: every button kind in every state it has, drawn by
+/// `Button` itself ([`junie_tui::ui::specimen`]).
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    StateGrid::new(id)
+        .rows(&[
+            Rest,
+            Hover,
+            Focused,
+            FocusedHover,
+            Pressed,
+            Disabled,
+            Selected,
+            Busy,
+        ])
+        .row(Overflow)
+        .column("Primary", Button::primary(id.child(0), "Label"))
+        .column("Secondary", Button::secondary(id.child(1), "Label"))
+        .column("Subtle", Button::subtle(id.child(2), "Label"))
+        .column("Danger", Button::danger(id.child(3), "Label"))
+        .column("Toggle", Button::toggle(id.child(4), "Label", false))
+}
+
+impl Page for ButtonsPage {
+    fn title(&self) -> &'static str {
+        "Buttons"
+    }
+    fn blurb(&self) -> &'static str {
+        "Primary, secondary, subtle, danger, toggle, disabled, busy"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
         match ev {
             PageEvent::Tick => {
                 if let Some(ticks) = self.busy_ticks {
@@ -226,11 +185,21 @@ impl Page for ButtonsPage {
         }
     }
 
-    fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
-        vec![("Enter / Space", "Activate")]
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        self.template
+            .hints(focus)
+            .unwrap_or_else(|| vec![("Enter / Space", "Activate")])
     }
 
     fn animating(&self) -> bool {
         self.busy_ticks.is_some()
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
