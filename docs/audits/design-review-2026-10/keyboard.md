@@ -183,3 +183,56 @@ with the caret: holla `flows::args`, `flows::finder::query*`,
 `accounts::add_form*`, `accounts::filter`; showcase pages `inputs`, `forms`,
 `textareas`, `codeeditor`, `dialogs`; tablepro scenarios on the query
 editor, filter editor and connection form. They were not re-approved here.
+
+## Status (data-loss and quit-safety pass)
+
+This pass took the data-loss and quit-safety findings, plus the standards
+review's corrections to them (Apple alerts HIG, Windows UX):
+
+- Destructive dialogs open on Cancel, which is also the Enter target, and
+  the destructive button is red text, never the accent fill. This was
+  already true; nothing changed.
+- `y`/`n` gave way to mnemonics taken from the button labels, so no
+  `quick_answer` knob was added.
+- Quitting asks only when data would be lost. A clean quit never asks,
+  and Esc never quits.
+- Ctrl+C copies when there is a selection; otherwise it quits through the
+  guard.
+- A prompt ignores backdrop clicks once its text is edited.
+
+Commit hashes are the ones on `design/interaction-polish`.
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 2 | Fixed | 3ec122eb2 | `Dialog::ack_enter: AckEnter { Submit, NextField }`, default `Submit`. Enter presses the gated action once the text matches. When it does not match, the field keeps editing and shows "Does not match" (`Strings::ack_mismatch`). Whether the field already has the caret when the dialog opens is the caret-on-focus pass (`EditEntry`, #1/#7). |
+| 3 | Fixed | 57a010b10 | holla gives the page the first chance at Ctrl+C, so the Plan tab cancels its remaining steps. A page with nothing to cancel ignores the key. Ctrl+C, Ctrl+Q, the menu's Quit and the too-small screen all call one `request_quit`. It asks only while activities or a cleanup are running; a clean quit leaves at once. |
+| 4 | Fixed | a741dde5d, 8a8c20253 | Library `ui::leave`: `QuitKeys`, `KeyContext`, `letters_allowed`, `Stakes`, `LeaveGuard<T>` with `request`/`request_quit`/`resolve`, and `unsaved_dialog` (Cancel / Discard / Save). In jackin, screens report `leave_stakes()` and offer `request_leave()`. Ctrl+C, Ctrl+Q (now on every host screen) and the menu's Quit ask first on a dirty Editor or Settings screen, and the app quits once that flow leaves the screen. `q` never fires over a field or unsaved edits. |
+| 6 | Fixed | fbf74a458 | tablepro: the connection form records its values when it opens. `ConnectionsScreen::leave` guards `e`, Ctrl+N, Esc and quitting with Save / Discard / Cancel when the form is dirty. Esc that no control takes now cancels the form. `e` and `q` never fire over a focused text field, and `q` never fires over a dirty form. |
+| 21 | Fixed | 57a010b10, 8a8c20253, 7b54eb459 | `QuitKeys::esc_quits` defaults to `false`. Esc at the root of holla's Here and of jackin's manager now shows "Esc never quits · Ctrl+Q quits" instead of quitting. In showcase, pages report `leave_stakes()` (Settings, the selectable table and the data grid), and `q`, Ctrl+C and Ctrl+Q go through `request_quit`. It offers Cancel / Discard (`LeaveGuard::save(false)`). tablepro's Esc ladder never quit. jackin's informational "Quit jackin❯?" on a clean manager was removed, together with its visual scenario and snapshots: running instances keep running, so nothing is lost. |
+| 22 | Fixed (superseded) | 3ec122eb2 | The standards review replaced `quick_answer` with label mnemonics: `Dialog::mnemonics: bool`, default on. Each action's first free letter presses it and is drawn underlined (`Button::mnemonic`). Mnemonics work only while the dialog has no text field. `DialogAction::default_keymap()` is now empty, so `y` never runs Delete from the Cancel button. `accelerators(Some(('y', 'n')))` brings the old keys back. This is a visual change: dialog buttons underline one letter. |
+| 24 | Fixed | a218fa032 | tablepro query results have no save path, so their grid is no longer editable. Enter says "Query results are read-only · open the table to edit its rows." Before, edits were accepted and then dropped. |
+| 25 | Fixed | a218fa032 | Enter or F2 on a read-only column, on a row marked for deletion, or on a non-editable grid that gives a `read_only_reason` now returns `GridEvent::ReadOnly { reason }` (`Strings::grid_read_only`, `grid_row_deleted`). tablepro and showcase show the reason in the status line. `DataGrid::cell_editable()` drops "Enter Edit" from the hints in tablepro and on the showcase grid page. The showcase digest changed on that page only. |
+| review (4) | Fixed | 5d8f70d13, ce040d12a | A focused TextInput or TextArea used to swallow Ctrl+C even with nothing selected. Now it lets the key through to the app's guard and copies only a selection. `QuitKeys::classify` returns `LeaveKey::Copy` when the app reports a selection. |
+| review (5) | Fixed | 3ec122eb2, f5e313c6a | `Dialog::guard_dirty_prompt: bool`, default on: an edited prompt ignores backdrop clicks, while Esc and Cancel still close it. A backdrop dismissal already needed both the press and the release on the backdrop (`PointerState::release`), and a pointer test now locks that in. |
+
+Deferred, with reasons:
+
+- Viewports and lists with a text selection (Shift+arrows) do not report
+  it through `KeyContext::selection` yet. In each app the page sees Ctrl+C
+  first, so a page that copies a selection still can, but no app reports
+  `LeaveKey::Copy` today. Each viewport needs a `has_selection()` and
+  per-app plumbing. That belongs with the hints pass (#10), which already
+  touches every page's focused-widget lookup.
+- tablepro's workbench quit for pending row changes and unsaved queries
+  still uses its destructive "Quit TablePro?" dialog, not Save / Discard /
+  Cancel. Saving row changes needs the SQL preview and commit flow, and
+  queries have no save target, so there is nothing for a Save button to
+  do on the way out.
+- A jackin capsule or cockpit with unsaved work keeps its own exit
+  dialogs, which already ask. They were left alone.
+- This pass did not re-run the visual suite's smoke and full tiers,
+  which are outside the default gate. Scenarios that show a dialog
+  without a text field now capture the underlined mnemonic, so any of
+  them not yet approved with it need re-approval in the harness pass. The
+  removed `jackin/manager/quit_confirm` scenario is gone from the tables
+  and the snapshot store.
