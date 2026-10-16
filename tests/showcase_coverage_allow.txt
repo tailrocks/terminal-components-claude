@@ -317,7 +317,6 @@ ui::ctx::Interaction | Inspector pane: app-wide option or State tab readout | SC
 ui::ctx::FocusVisible | Inspector pane: app-wide option or State tab readout | SC1
 ui::ctx::FocusVisible::Always | Inspector pane: app-wide option or State tab readout | SC1
 ui::ctx::FocusVisible::KeyboardOnly | Inspector pane: app-wide option or State tab readout | SC1
-ui::ctx::VisualState | States grid on every widget page | SC2
 ui::ctx::RenderCtx | Inspector pane: app-wide option or State tab readout | SC1
 ui::ctx::Backdrop | Popups & tooltips page | SC19
 ui::ctx::Backdrop::keep_bottom | Popups & tooltips page | SC19
@@ -435,29 +434,9 @@ ui::reveal::RevealState | Popups & tooltips page | SC19
 ui::reveal::RevealLine | Popups & tooltips page | SC19
 
 # ui::text
-ui::specimen::SpecimenState | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Rest | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Hover | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Pressed | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Focused | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::FocusedHover | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Selected | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Disabled | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Busy | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Error | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Editing | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Empty | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Loading | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Overflow | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::SpecimenState::Narrow | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid::row | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid::rows | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid::column | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid::label_width | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid::column_width | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid::narrow_width | States grid on the Buttons and Inputs pages | SC2
-ui::specimen::StateGrid::focus_mark | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Loading | no SC2 specimen loads; the Pickers States grid | SC20
+ui::specimen::StateGrid::label_width | Buttons States grid layout knob | SC7
+ui::specimen::StateGrid::focus_mark | Buttons States grid: an overridden focus depiction | SC7
 ui::text::WrapOpts | Text utilities page | SC26
 
 # ui::tooltip
@@ -1379,19 +1358,7 @@ runtime::SizeWatch | runtime plumbing exercised by every run; no visible surface
 runtime::InputPump | runtime plumbing exercised by every run; no visible surface | permanent
 
 # state
-state::rest | States grid on every widget page | SC2
-state::hover | States grid on every widget page | SC2
-state::pressed | States grid on every widget page | SC2
-state::focused | States grid on every widget page | SC2
-state::focused_hover | States grid on every widget page | SC2
-state::selected | States grid on every widget page | SC2
-state::disabled | States grid on every widget page | SC2
-state::busy | States grid on every widget page | SC2
-state::error | States grid on every widget page | SC2
-state::empty | States grid on every widget page | SC2
-state::loading | States grid on every widget page | SC2
-state::overflow | States grid on every widget page | SC2
-state::narrow | States grid on every widget page | SC2
+state::loading | no SC2 specimen loads (Button, TextInput); Pickers PickerStatus::Loading | SC20
 
 # widgets::too_small
 widgets::too_small::TooSmall | TooSmall demo on Status & hints | SC30
