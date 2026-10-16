@@ -4,12 +4,12 @@
 //! with a cursor for detail selection.
 
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::widgets::scrollbar;
@@ -80,9 +80,18 @@ pub struct StepRail {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+    /// Which keys move the cursor of a selectable rail (default
+    /// [`NavKeys::DEFAULT`]).
+    pub nav: NavKeys,
 }
 
 impl StepRail {
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
     pub fn new(id: WidgetId, steps: Vec<Step>) -> Self {
         let n = steps.len();
         Self {
@@ -96,6 +105,7 @@ impl StepRail {
             numbered: true,
             track_click: None,
             v_click: crate::core::scroll::TrackClick::Jump,
+            nav: NavKeys::DEFAULT,
         }
     }
 
@@ -163,13 +173,17 @@ impl StepRail {
         if !self.selectable || self.steps.is_empty() {
             return Outcome::Ignored;
         }
-        match key.code {
-            KeyCode::Up | KeyCode::Char('k') if key.plain() => {
-                self.set_cursor(self.cursor.saturating_sub(1))
-            }
-            KeyCode::Down | KeyCode::Char('j') if key.plain() => self.set_cursor(self.cursor + 1),
-            KeyCode::Home | KeyCode::Char('g') if key.plain() => self.set_cursor(0),
-            KeyCode::End | KeyCode::Char('G') => self.set_cursor(usize::MAX),
+        if !key.plain() {
+            return Outcome::Ignored;
+        }
+        let page = self.scroll.viewport_len.max(1);
+        match self.nav.action(key) {
+            Some(Nav::Up) => self.set_cursor(self.cursor.saturating_sub(1)),
+            Some(Nav::Down) => self.set_cursor(self.cursor + 1),
+            Some(Nav::PageUp) => self.set_cursor(self.cursor.saturating_sub(page)),
+            Some(Nav::PageDown) => self.set_cursor(self.cursor + page),
+            Some(Nav::Home) => self.set_cursor(0),
+            Some(Nav::End) => self.set_cursor(usize::MAX),
             _ => return Outcome::Ignored,
         }
         Outcome::Changed

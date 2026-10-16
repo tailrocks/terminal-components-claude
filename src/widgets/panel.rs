@@ -7,13 +7,13 @@
 //! gutter bar belongs to the focused control inside.
 
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, Widget};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -379,9 +379,40 @@ pub struct ScrollPanel {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+    /// Which keys scroll (default [`NavKeys::DEFAULT`]; ←/→ scroll
+    /// sideways, since the panel has no caret).
+    pub nav: NavKeys,
+    /// The panel's own action keys (default [`PanelAction::default_keymap`]).
+    pub keymap: KeyMap<PanelAction>,
+}
+
+/// A [`ScrollPanel`] action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PanelAction {
+    /// A tailing panel: pause following, or jump to the end and follow
+    /// again. Default `f`.
+    Follow,
+}
+
+impl Actions for PanelAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![(KeyBinding::char('f'), PanelAction::Follow)]
+    }
 }
 
 impl ScrollPanel {
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<PanelAction>) -> Self {
+        self.keymap = keymap;
+        self
+    }
+
     pub fn new(id: WidgetId, lines: Vec<String>) -> Self {
         Self {
             track_click: None,
@@ -400,6 +431,8 @@ impl ScrollPanel {
             h_cfg: HScroll::default(),
             htrack: Rect::ZERO,
             h_held: false,
+            nav: NavKeys::DEFAULT,
+            keymap: PanelAction::default_keymap(),
         }
     }
 
@@ -463,31 +496,31 @@ impl ScrollPanel {
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
-        let moved = match key.code {
-            KeyCode::Up | KeyCode::Char('k') if key.plain() => self.scroll.scroll_by(-1),
-            KeyCode::Down | KeyCode::Char('j') if key.plain() => self.scroll.scroll_by(1),
-            KeyCode::PageUp => self.scroll.page_up(),
-            KeyCode::PageDown => self.scroll.page_down(),
-            KeyCode::Home | KeyCode::Char('g') if key.plain() => self.scroll.jump_start(),
-            KeyCode::End | KeyCode::Char('G') => self.scroll.jump_end(),
+        if let Some(PanelAction::Follow) = lookup(&self.keymap, key)
+            && self.tail
+        {
+            let was = self.follow;
+            if was {
+                self.follow = false;
+            } else {
+                self.scroll.jump_end();
+                self.follow = true;
+            }
+            return Outcome::Changed;
+        }
+        let Some(nav) = self.nav.action(key).filter(|_| key.plain()) else {
+            return Outcome::Ignored;
+        };
+        let moved = match nav {
+            Nav::Up => self.scroll.scroll_by(-1),
+            Nav::Down => self.scroll.scroll_by(1),
+            Nav::PageUp => self.scroll.page_up(),
+            Nav::PageDown => self.scroll.page_down(),
+            Nav::Home => self.scroll.jump_start(),
+            Nav::End => self.scroll.jump_end(),
             // the panel has no caret, so the arrows scroll sideways
-            KeyCode::Left | KeyCode::Char('h') if key.plain() || key.shift() => {
-                return self.scroll_h(-1);
-            }
-            KeyCode::Right | KeyCode::Char('l') if key.plain() || key.shift() => {
-                return self.scroll_h(1);
-            }
-            KeyCode::Char('f') if key.plain() && self.tail => {
-                let was = self.follow;
-                if was {
-                    self.follow = false;
-                } else {
-                    self.scroll.jump_end();
-                    self.follow = true;
-                }
-                return Outcome::Changed;
-            }
-            _ => return Outcome::Ignored,
+            Nav::Left => return self.scroll_h(-1),
+            Nav::Right => return self.scroll_h(1),
         };
         let was = self.follow;
         self.settle_follow();
@@ -710,7 +743,7 @@ mod scroll_panel_tests {
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyModifiers;
+    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
     fn key(code: KeyCode) -> Key {
         Key {
