@@ -6,6 +6,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
+use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -653,14 +654,40 @@ impl UsageScreen {
                 let lines = Self::account_lines(&a, w);
                 self.detail_scroll.set_content(lines.len());
                 self.detail_scroll.set_viewport(body.height as usize);
+                // the limit rows share one column layout measured from
+                // their labels: a long label is cut only when the row is
+                // genuinely short, never to a fixed width
+                let (label_need, rest_need) = lines
+                    .iter()
+                    .filter(|(_, _, m)| m.is_some())
+                    .map(|(text, ..)| {
+                        let (l, r) = text.split_once('\u{1}').unwrap_or((text, ""));
+                        (width(l) as u16, width(r) as u16)
+                    })
+                    .fold((0, 0), |(a, b), (l, r)| (a.max(l), b.max(r)));
+                let cols = columns::solve(
+                    &[
+                        Col::content(label_need.min(10), label_need),
+                        Col::fixed(meter_w + 6),
+                        Col::content(rest_need.min(8), rest_need).flex(1, u16::MAX),
+                    ],
+                    body.width,
+                    2,
+                );
+                let label_w = cols[0];
                 for (k, i) in self.detail_scroll.visible_range().enumerate() {
                     let (text, tone, meter) = &lines[i];
                     let y = body.y + k as u16;
                     match meter {
                         Some((pct, mt)) => {
                             let (label, rest) = text.split_once('\u{1}').unwrap_or((text, ""));
-                            buf.set_string(body.x, y, fit(label, 15), t.primary().bg(bg));
-                            let mx = body.x + 16;
+                            buf.set_string(
+                                body.x,
+                                y,
+                                fit(label, label_w as usize),
+                                t.primary().bg(bg),
+                            );
+                            let mx = body.x + label_w + 2;
                             Meter::new(Some(*pct))
                                 .value(format!("{pct:>3}%"))
                                 .tone(*mt)
