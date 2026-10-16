@@ -153,6 +153,10 @@ pub struct InputConfig {
     /// one-button context click; elsewhere Ctrl-click stays a primary
     /// click with Ctrl held (toggle selection).
     pub ctrl_click_secondary: bool,
+    /// Terminals using the legacy key encoding report Ctrl+\\, Ctrl+],
+    /// Ctrl+^ and Ctrl+_ as Ctrl+4..7 (the same control bytes). Map them
+    /// back so a binding names the key the user pressed. On by default.
+    pub legacy_ctrl_punctuation: bool,
 }
 
 impl Default for InputConfig {
@@ -160,6 +164,7 @@ impl Default for InputConfig {
         Self {
             shift_wheel_horizontal: true,
             ctrl_click_secondary: cfg!(target_os = "macos"),
+            legacy_ctrl_punctuation: true,
         }
     }
 }
@@ -190,10 +195,26 @@ impl Input {
                 modifiers,
                 kind: KeyEventKind::Press | KeyEventKind::Repeat,
                 ..
-            }) => Some(Input::Key(Key {
-                code,
-                mods: modifiers,
-            })),
+            }) => {
+                let code = match code {
+                    KeyCode::Char(c @ '4'..='7')
+                        if config.legacy_ctrl_punctuation
+                            && modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        KeyCode::Char(match c {
+                            '4' => '\\',
+                            '5' => ']',
+                            '6' => '^',
+                            _ => '_',
+                        })
+                    }
+                    code => code,
+                };
+                Some(Input::Key(Key {
+                    code,
+                    mods: modifiers,
+                }))
+            }
             Event::Mouse(MouseEvent {
                 kind,
                 column,
@@ -268,6 +289,28 @@ mod tests {
             KeyModifiers::NONE,
         )));
         assert_eq!(m.wheel(), Some((1, 0)));
+    }
+
+    #[test]
+    fn legacy_ctrl_digits_decode_to_the_punctuation_pressed() {
+        let key = |c, cfg| match Input::from_crossterm_with(
+            Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL)),
+            cfg,
+        ) {
+            Some(Input::Key(k)) => k.code,
+            other => panic!("{other:?}"),
+        };
+        let on = InputConfig::default();
+        assert_eq!(key('4', on), KeyCode::Char('\\'));
+        assert_eq!(key('5', on), KeyCode::Char(']'));
+        assert_eq!(key('6', on), KeyCode::Char('^'));
+        assert_eq!(key('7', on), KeyCode::Char('_'));
+        assert_eq!(key('3', on), KeyCode::Char('3'));
+        let off = InputConfig {
+            legacy_ctrl_punctuation: false,
+            ..on
+        };
+        assert_eq!(key('4', off), KeyCode::Char('4'));
     }
 
     #[test]
