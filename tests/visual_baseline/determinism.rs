@@ -38,7 +38,7 @@ const FORBIDDEN: [&str; 13] = [
 
 /// Reviewed `Instant::now` uses per file, with why they cannot change a
 /// frame's content.
-const INSTANT_ALLOWED: [(&str, usize, &str); 4] = [
+const INSTANT_ALLOWED: [(&str, usize, &str); 5] = [
     (
         "src/runtime.rs",
         4,
@@ -48,6 +48,11 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 4] = [
         "src/core/typeahead.rs",
         1,
         "type-ahead buffer reset after a pause between keys",
+    ),
+    (
+        "src/clock.rs",
+        1,
+        "WallClock origin: apps read it for press-flash and status expiry, which only happen on a tick (stopped by --motion paused); SimClock never reads it",
     ),
     (
         "src/bin/showcase/app.rs",
