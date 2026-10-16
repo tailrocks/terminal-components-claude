@@ -582,9 +582,9 @@ fn modal_traps_focus_and_restores_it() {
     assert!(h.app.dialog.is_none(), "click outside cancels");
     assert_eq!(h.app.focus.current(), before, "focus restored");
     assert!(h.text().contains("Cancelled"));
-    // y answers a confirm
+    // the Run button's mnemonic answers a confirm
     h.key(KeyCode::Enter);
-    h.key(KeyCode::Char('y'));
+    h.key(KeyCode::Char('r'));
     assert!(h.text().contains("Task started"));
 }
 
@@ -701,7 +701,10 @@ fn settings_screen_remove_member_flow() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Jonas Weber"));
     h.key(KeyCode::Enter);
+    // `y` no longer removes from the Cancel button; Remove's mnemonic does
     h.key(KeyCode::Char('y'));
+    assert!(h.find_row("jonas@acme.dev").is_some());
+    h.key(KeyCode::Char('r'));
     assert!(h.find_row("jonas@acme.dev").is_none());
     assert!(h.text().contains("5 members"));
 }
@@ -721,7 +724,7 @@ fn task_runner_animates_and_can_be_cancelled() {
     h.key(tab()); // cancel button (run is disabled while running, so skipped)
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Cancel pipeline?"));
-    h.key(KeyCode::Char('y'));
+    h.key(KeyCode::Char('c'));
     assert!(h.text().contains("cancelled"));
     assert!(!h.text().contains("Pipeline · running"));
     assert!(!h.app.pages[PageId::TaskRunner.index()].animating());

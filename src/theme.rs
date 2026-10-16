@@ -1829,6 +1829,9 @@ pub struct Strings {
     /// The hint while the acknowledgement is unmet; `{}` is the token.
     /// `"{}" to confirm` (after the key `Type`).
     pub type_to_confirm_hint: &'static str,
+    /// The error under a typed acknowledgement when Enter is pressed and
+    /// the text does not match the token. `Does not match`.
+    pub ack_mismatch: &'static str,
     /// The last shown line of a cut preview; `{}` is the hidden count.
     /// `… {} more`.
     pub more_cut: &'static str,
@@ -1908,6 +1911,7 @@ impl Strings {
         save: "Save",
         type_to_confirm: "Type {} to confirm",
         type_to_confirm_hint: "\"{}\" to confirm",
+        ack_mismatch: "Does not match",
         more_cut: "… {} more",
         more_count: "{} more",
         required: "Required",

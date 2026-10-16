@@ -730,8 +730,6 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
     cleanup.key(KeyCode::Enter);
     cleanup.type_str("TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
     cleanup.key(KeyCode::Enter);
-    cleanup.key(KeyCode::Tab);
-    cleanup.key(KeyCode::Enter);
     assert!(cleanup.app.world.cleanup_job.is_some());
     cleanup.ticks(1);
     assert!(cleanup.app.world.cleanup_job.is_none());

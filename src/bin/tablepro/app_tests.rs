@@ -531,9 +531,12 @@ fn safety_gate_intercepts_dangerous_statement_on_production() {
     h.key(KeyCode::Enter);
     h.type_str("wrong");
     h.key(KeyCode::Enter);
-    h.key(KeyCode::Right);
-    h.key(KeyCode::Enter);
-    assert!(h.app.modal().is_none(), "Enter landed on Cancel");
+    assert!(h.app.modal().is_some(), "a wrong token never submits");
+    assert!(h.text().contains("Does not match"), "{}", h.text());
+    // Esc reverts the edit, a second Esc cancels the dialog
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Esc);
+    assert!(h.app.modal().is_none(), "{}", h.text());
     assert!(!h.wb_query().is_running());
     h.ctrl('r');
     h.key(KeyCode::Esc);
@@ -1123,7 +1126,7 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     );
     let f = footer(&h);
     assert!(f.contains("Enter Cancel"), "{f}");
-    assert!(f.contains("y Delete"), "{f}");
+    assert!(!f.contains("y Delete"), "no one-key Delete: {f}");
     assert!(!f.contains("Confirm"), "{f}");
 
     // a typed acknowledgement says what to type, not "Enter Confirm"
@@ -1135,7 +1138,9 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     h.ctrl('r');
     let f = footer(&h);
     assert!(f.contains("Type \"orders\" to confirm"), "{f}");
-    assert!(f.contains("Enter Next"), "{f}");
+    // Enter presses the gated action once armed; until then it only
+    // says the text does not match, so the footer offers no Enter
+    assert!(!f.contains("Enter Next"), "{f}");
     // the Safe Mode fact says what to do, without jargon
     let t = h.text();
     assert!(t.contains("type to confirm"), "{t}");

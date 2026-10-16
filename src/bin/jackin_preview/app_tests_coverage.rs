@@ -305,7 +305,8 @@ fn manager_stop_purge_delete_and_refresh_keep_fixture_state_coherent() {
     );
 
     h.key(KeyCode::Char('t'));
-    h.key(KeyCode::Char('y'));
+    // Stop's mnemonic (Keep running takes `k`)
+    h.key(KeyCode::Char('s'));
     for _ in 0..40 {
         if h.app.world.instance("jk-7f3a").unwrap().status == InstanceStatus::PreservedDirty {
             break;
@@ -326,8 +327,6 @@ fn manager_stop_purge_delete_and_refresh_keep_fixture_state_coherent() {
     h.key(KeyCode::Enter);
     h.type_str("c41e");
     h.key(KeyCode::Enter);
-    h.key(KeyCode::Right);
-    h.key(KeyCode::Enter);
     for _ in 0..50 {
         if h.app.world.instance("jk-c41e").unwrap().status == InstanceStatus::Purged {
             break;
@@ -345,7 +344,7 @@ fn manager_stop_purge_delete_and_refresh_keep_fixture_state_coherent() {
     select_workspace(&mut h, 1);
     h.key(KeyCode::Char('d'));
     assert!(h.text().contains("Delete workspace"), "{}", h.text());
-    h.key(KeyCode::Char('y'));
+    h.key(KeyCode::Char('d'));
     assert!(!h.app.world.workspaces.iter().any(|w| w.id == 1));
     assert!(h.app.world.instance("jk-7f3a").unwrap().workspace.is_none());
     assert!(
@@ -466,7 +465,7 @@ fn cockpit_blocked_sidecar_abort_log_and_info_paths_are_screen_level() {
     assert!(h.text().contains("Blocked"), "{}", h.text());
     h.ctrl('q');
     assert!(h.text().contains("Quit jackin"), "{}", h.text());
-    h.key(KeyCode::Char('y'));
+    h.key(KeyCode::Char('q'));
     assert!(h.app.quit);
 
     let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40);
@@ -765,8 +764,7 @@ fn capsule_dirty_exit_covers_new_agent_inspect_keep_and_discard() {
     );
     h.key(KeyCode::Enter);
     h.type_str("payments-platform");
-    h.key(KeyCode::Enter);
-    h.key(KeyCode::Right);
+    // Enter on the matching acknowledgement presses the gated action
     h.key(KeyCode::Enter);
     assert_eq!(h.app.route, Route::Manager);
     assert_eq!(h.app.world.instance("jk-7f3a").unwrap().uncommitted, 0);
@@ -1081,7 +1079,8 @@ fn cancel_launch_dialog_names_both_choices_unambiguously() {
     // focus opens on the safe choice, and the footer names it
     let footer = t.lines().last().unwrap_or_default().to_owned();
     assert!(footer.contains("Enter Keep launching"), "{footer}");
-    assert!(footer.contains("y Cancel launch"), "{footer}");
+    // no `y` one-key answer: the buttons carry their own mnemonics
+    assert!(!footer.contains("y Cancel launch"), "{footer}");
 }
 
 /// hscroll follow-up: a capsule pane with a line wider than itself pans
