@@ -1496,3 +1496,25 @@ fn the_account_drawer_keeps_every_action_whole_at_72_columns() {
     // the wrapped inspector text keeps the gap before its scrollbar (#14)
     assert!(!t.contains("›│") && !t.contains("›┃"), "{t}");
 }
+
+/// Type-ahead and single-letter shortcuts (keyboard.md decision log): a
+/// closed select type-selects (S4), but `q` (Back to the manager) is a
+/// shortcut on the editor, so it goes back instead of being typed into the
+/// "On dirty exit" select. On the S4 tip the select swallowed `q` as a
+/// type-ahead miss and the editor stayed.
+#[test]
+fn q_leaves_the_editor_from_a_focused_select() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 0, 120, 40);
+    h.key(KeyCode::Char('e'));
+    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    let policy = crate::screens::editor::DIRTY_POLICY;
+    for _ in 0..12 {
+        if h.app.focus.current() == Some(policy) {
+            break;
+        }
+        h.key(KeyCode::Tab);
+    }
+    assert_eq!(h.app.focus.current(), Some(policy), "{}", h.text());
+    h.key(KeyCode::Char('q'));
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+}

@@ -339,3 +339,26 @@ fn an_error_status_waits_for_the_next_action_and_information_expires() {
     assert!(h.app.status.is_none(), "the error goes on the next action");
     assert!(!h.text().contains("Disk full"));
 }
+
+/// Type-ahead and single-letter shortcuts (keyboard.md decision log): the
+/// disk tree type-selects (S4), and the page's hinted letters (`s` Sort,
+/// `f` Fold noise) still run while it has focus. A guard: holla's pages
+/// take their letters before the tree, so this held on the S4 tip too;
+/// the library rule (`core::list::route_key`) keeps it true for any page.
+#[test]
+fn page_letters_win_over_the_focused_disk_tree() {
+    let mut h = H::new(Scenario::DiskCleanup, Motion::Paused, 0, 120, 40);
+    let tree = crate::screens::disk::TREE;
+    for _ in 0..8 {
+        if h.app.focus.current() == Some(tree) {
+            break;
+        }
+        h.key(KeyCode::Tab);
+    }
+    assert_eq!(h.app.focus.current(), Some(tree), "{}", h.text());
+    h.key(KeyCode::Char('s'));
+    assert!(h.text().contains("Sorted by apparent size"), "{}", h.text());
+    h.key(KeyCode::Char('f'));
+    assert!(h.text().contains("Noise folders"), "{}", h.text());
+    assert_eq!(h.app.focus.current(), Some(tree));
+}
