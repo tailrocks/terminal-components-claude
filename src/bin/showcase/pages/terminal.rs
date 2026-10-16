@@ -321,7 +321,7 @@ impl Page for TerminalPage {
                     cx.focus.focus(self.term.id);
                     return Outcome::Consumed;
                 }
-                if *id == scrollbar::id_for(self.term.id) {
+                if scrollbar::is_bar_of(*id, self.term.id) {
                     return self.term.on_scrollbar(*pos);
                 }
                 if let Some(row) = self.rail.locate(*id) {
@@ -345,8 +345,8 @@ impl Page for TerminalPage {
                 if *pressed == self.term.id {
                     return self.term.on_drag(*pos);
                 }
-                if *pressed == scrollbar::id_for(self.term.id) {
-                    return self.term.on_scrollbar_drag(*pos);
+                if scrollbar::is_bar_of(*pressed, self.term.id) {
+                    return self.term.on_bar_drag(*pressed, *pos);
                 }
                 Outcome::Ignored
             }
@@ -359,6 +359,7 @@ impl Page for TerminalPage {
                 }
                 Outcome::Ignored
             }
+            PageEvent::WheelH { id, delta } if self.term.owns(*id) => self.term.on_wheel_h(*delta),
             _ => Outcome::Ignored,
         }
     }
@@ -371,6 +372,7 @@ impl Page for TerminalPage {
         if focus == Some(self.term.id) {
             vec![
                 ("↑↓", "Scroll"),
+                ("←→", "Pan"),
                 ("Home End", "Oldest / live"),
                 ("f", "Follow"),
                 ("drag", "Select"),

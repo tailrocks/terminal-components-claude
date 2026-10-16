@@ -74,6 +74,8 @@ pub struct CapsuleScreen {
     pub prefix_until: Option<i64>,
     drag: Option<(Vec<u8>, Rect)>,
     selecting: Option<PaneId>,
+    /// The pane whose horizontal bar the pointer holds.
+    hbar_held: Option<PaneId>,
     pub pane_rects: Vec<(PaneId, Rect)>,
     seams: Vec<Seam>,
     /// Shared tab strip; rebuilt from the daemon every frame, keeps its window.
@@ -137,6 +139,7 @@ impl CapsuleScreen {
             prefix_until: None,
             drag: None,
             selecting: None,
+            hbar_held: None,
             pane_rects: vec![],
             seams: vec![],
             tabs: Tabs::with_items(STRIP, vec![]),
@@ -1378,6 +1381,9 @@ impl CapsuleScreen {
                     pane.term.scroll.jump_start();
                     return Outcome::Changed;
                 }
+                // scrolled back there is no caret: the arrows pan
+                KeyCode::Left if key.plain() => return pane.term.on_wheel_h(-1),
+                KeyCode::Right if key.plain() => return pane.term.on_wheel_h(1),
                 KeyCode::End | KeyCode::Esc => {
                     pane.term.set_follow(true);
                     return Outcome::Changed;
@@ -1590,12 +1596,10 @@ impl CapsuleScreen {
                 && term.caret_visible
                 && let Some(c) = term.caret
             {
-                // re-place the hardware cursor (render skipped it while inert)
-                let li = term.scroll.visible_range();
-                let line_row = c.line.saturating_sub(li.start);
-                if li.contains(&c.line) {
-                    let cx_ = inner.x + (c.col as u16).min(inner.width.saturating_sub(1));
-                    ctx.set_cursor(Position::new(cx_, inner.y + line_row as u16));
+                // re-place the hardware cursor (render skipped it while
+                // inert), through both scroll offsets
+                if let Some(p) = term.screen_pos(c) {
+                    ctx.set_cursor(p);
                 }
             }
             let _ = saved_focus;
@@ -2030,7 +2034,9 @@ impl Screen for CapsuleScreen {
                 t.focused = pid;
             }
             self.prime(pid, w);
-            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
+            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
+                && !pane.term.hbar().contains(pos)
+            {
                 pane.term.on_click(pos);
             }
             return Outcome::Changed;
@@ -2048,6 +2054,12 @@ impl Screen for CapsuleScreen {
             }
             self.prime(pid, w);
             if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
+                // a press on the horizontal bar scrolls sideways and holds
+                // the bar for the drag that follows
+                if pane.term.hbar().contains(pos) {
+                    self.hbar_held = Some(pid);
+                    return pane.term.on_scrollbar(pos).or(Outcome::Changed);
+                }
                 pane.term.on_click(pos);
             }
             return Outcome::Changed;
@@ -2130,6 +2142,14 @@ impl Screen for CapsuleScreen {
                 return Outcome::Changed;
             }
         }
+        // the horizontal bar of a pane follows the pointer
+        if let Some(pid) = self.hbar_held {
+            self.prime(pid, w);
+            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
+                let bar = scrollbar::h_id_for(pane.term.id);
+                return pane.term.on_bar_drag(bar, pos);
+            }
+        }
         // text selection drag within a pane
         if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed) {
             self.prime(pid, w);
@@ -2150,6 +2170,9 @@ impl Screen for CapsuleScreen {
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
+        if self.hbar_held.take().is_some() {
+            return Outcome::Changed;
+        }
         if self.drag.take().is_some() {
             cx.status("Split resized");
             return Outcome::Changed;
@@ -2176,6 +2199,18 @@ impl Screen for CapsuleScreen {
             && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
         {
             return pane.term.on_wheel(delta);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_wheel_h(&mut self, _id: WidgetId, delta: i32, pos: Position, w: &mut World) -> Outcome {
+        if let Some(pid) = self.pane_at(pos) {
+            self.prime(pid, w);
+        }
+        if let Some(pid) = self.pane_at(pos)
+            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
+        {
+            return pane.term.on_wheel_h(delta);
         }
         Outcome::Ignored
     }
