@@ -417,6 +417,34 @@ fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
 }
 
 #[test]
+fn usage_limit_labels_take_the_width_they_measure_when_the_row_has_room() {
+    for (w, hgt) in [(100u16, 30u16), (120, 40)] {
+        let mut h = H::new(Scenario::Returning, Motion::Full, 0, w, hgt);
+        h.key(KeyCode::Char('u'));
+        h.key(KeyCode::Down);
+        if w < 120 {
+            // the narrow layout opens the account as a page of its own
+            h.key(KeyCode::Enter);
+        }
+        let t = h.text();
+        let limits: Vec<&str> = t
+            .lines()
+            .skip_while(|l| !l.contains("Limits"))
+            .skip(1)
+            .take_while(|l| l.contains('%'))
+            .collect();
+        assert!(limits.len() >= 3, "{w}x{hgt}: limit rows\n{t}");
+        for l in &limits {
+            let label = l.split('%').next().unwrap_or("");
+            assert!(
+                !label.contains('…'),
+                "{w}x{hgt}: a limit label is cut while the row has room: {l:?}\n{t}"
+            );
+        }
+    }
+}
+
+#[test]
 fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::End);

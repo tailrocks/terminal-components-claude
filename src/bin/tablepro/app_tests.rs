@@ -610,6 +610,23 @@ fn silent_level_runs_scoped_writes_but_confirms_destructive() {
 }
 
 #[test]
+fn quick_switcher_details_are_not_cut_beside_unused_label_cells() {
+    let mut h = H::connected(72, 20);
+    h.ctrl('o');
+    let t = h.text();
+    let row = t
+        .lines()
+        .find(|l| l.contains("login_attempts"))
+        .unwrap_or_else(|| panic!("a table row\n{t}"));
+    // the schema detail fits once the label column gives back the cells
+    // its short labels do not use
+    assert!(
+        row.contains("audit") && !row.contains("audit ·…"),
+        "the detail is not cut while the label column has room: {row:?}\n{t}"
+    );
+}
+
+#[test]
 fn quick_switcher_opens_table() {
     let mut h = H::connected(120, 40);
     h.ctrl('o');

@@ -7,6 +7,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{CursorStyle, Theme, Tone};
+use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width, wrap};
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -882,18 +883,32 @@ impl FinderPage {
             .max()
             .unwrap_or(4) as u16;
         let content_w = row_w.saturating_sub(4);
-        let label_w = max_label.min((content_w * 36 / 100).max(14));
         // the safety classes keep a column of their own that never drops:
         // the reason gives way first (CONCEPT §16)
         let risk_w = item_rows
             .iter()
             .filter(|(it, _)| matches!(it.risk, Risk::Destructive | Risk::Privileged))
-            .map(|(it, _)| width(it.risk.label()) as u16 + 2)
+            .map(|(it, _)| width(it.risk.label()) as u16)
             .max()
             .unwrap_or(0);
-        let fixed = label_w + 2 + type_w + 2 + scope_w + risk_w;
-        let reason_w = content_w.saturating_sub(fixed + 2);
-        let show_reason = reason_w >= 12;
+        // one solver for the row: a dropped reason gives its room back to
+        // the label instead of leaving it blank
+        let label_cap = max_label.min((content_w * 36 / 100).max(14));
+        let mut cols = vec![
+            // the label keeps its 36% before the reason may show, and
+            // takes all it needs once the reason has dropped
+            Col::content(label_cap, label_cap).max(max_label),
+            Col::fixed(type_w),
+            Col::fixed(scope_w),
+            // the reason takes whatever the row has left, at least 12
+            Col::content(12, 12).flex(1, u16::MAX).droppable(1),
+        ];
+        if risk_w > 0 {
+            cols.push(Col::fixed(risk_w));
+        }
+        let widths = columns::solve(&cols, content_w, 2);
+        let (label_w, type_w, scope_w, reason_w) = (widths[0], widths[1], widths[2], widths[3]);
+        let show_reason = reason_w > 0;
         for (k, i) in self.scroll.visible_range().enumerate() {
             let y = area.y + k as u16;
             let row = Rect::new(area.x, y, row_w, 1);
@@ -1001,12 +1016,7 @@ impl FinderPage {
                     );
                     x += scope_w + 2;
                     if show_reason {
-                        let mut reason = rk.reason.clone();
-                        if let Some(tag) = &rk.tag
-                            && !reason.starts_with(tag)
-                        {
-                            reason = format!("{tag} · {reason}");
-                        }
+                        let reason = row_reason(rk);
                         let rs = plain.fg(t.row_ink(
                             &cr,
                             if rk.tag.is_some() {
@@ -1691,4 +1701,12 @@ pub fn item_facts(it: &Item, w: &World, theme: &Theme) -> Vec<junie_tui::widgets
     v.push(Prop::new("Risk", it.risk.label()).tone(risk_tone(it.risk)));
     v.push(Prop::new("Data", it.freshness.label()).tone(Tone::Muted));
     v
+}
+
+/// The reason a result row shows: its ranking reason, led by its tag.
+fn row_reason(rk: &Ranked) -> String {
+    match &rk.tag {
+        Some(tag) if !rk.reason.starts_with(tag.as_str()) => format!("{tag} · {}", rk.reason),
+        _ => rk.reason.clone(),
+    }
 }
