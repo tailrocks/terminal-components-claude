@@ -236,7 +236,7 @@ impl<'a> Panel<'a> {
                 crate::ui::text::width(&title) as u16,
                 1,
             );
-            crate::ui::reveal::queue_title(cut, full);
+            crate::ui::reveal::queue_cut(cut, full);
             let title = if framed { format!(" {title} ") } else { title };
             buf.set_string(cx, y, &title, style);
             cx += crate::ui::text::width(&title) as u16;
@@ -845,7 +845,7 @@ mod title_reveal_tests {
     use crate::core::focus::FocusRing;
     use crate::core::hit::HitRegistry;
     use crate::ui::ctx::Interaction;
-    use crate::ui::reveal::title_id;
+    use crate::ui::reveal::cut_id;
 
     const TITLE: &str = "Connections to the production analytics warehouse";
 
@@ -883,7 +883,7 @@ mod title_reveal_tests {
         let id = hits
             .hover_at(on_title)
             .expect("a hover region on the title");
-        assert_eq!(id, title_id(Rect::new(3, 0, 1, 1)));
+        assert_eq!(id, cut_id(Rect::new(3, 0, 1, 1)));
         assert_eq!(hits.hit(on_title), Some(WidgetId::of("card")));
         let (text, _) = frame(Some(id));
         assert!(text.contains(TITLE), "hover shows the full title: {text}");
