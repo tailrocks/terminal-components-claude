@@ -22,7 +22,7 @@ use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::{Panel, PanelFocus};
-use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
+use junie_tui::widgets::progress::{Meter, MeterLevel, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::select::Select;
@@ -2042,12 +2042,19 @@ impl QuotaTone {
 }
 
 /// The one quota-meter tone for every jackin screen (accounts, usage, the
-/// capsule usage dialog and status bar).
+/// capsule usage dialog and status bar). The domain classifies each
+/// window (`QuotaStatus`), so the meter takes its level from the status
+/// and never re-derives one from the percentage: a pay-as-you-go window
+/// at 100% that the provider reports available reads healthy, as its
+/// status cell does.
 pub fn quota_tone(win: &QuotaWindow, phase: Freshness) -> QuotaTone {
     let tone = match (phase, win.status) {
         (Freshness::Refreshing, _) => MeterTone::Refreshing,
         (_, QuotaStatus::Exhausted) => MeterTone::Exhausted,
         (_, QuotaStatus::Warning) => MeterTone::Warning,
+        (_, QuotaStatus::Available | QuotaStatus::NotStarted) => {
+            MeterTone::Fixed(MeterLevel::Low)
+        }
         _ => MeterTone::Normal,
     };
     QuotaTone {
