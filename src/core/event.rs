@@ -84,6 +84,16 @@ pub enum MouseKind {
     /// Secondary (right) button pressed: a context action. With
     /// [`InputConfig::ctrl_click_secondary`], Ctrl + primary click too.
     Secondary,
+    /// Secondary button moved while held (a right-drag into an open
+    /// context menu). With [`InputConfig::ctrl_click_secondary`], a
+    /// primary drag with Ctrl held too.
+    SecondaryDrag,
+    /// Secondary button released. Over a menu row after the pointer moved
+    /// from the opening press, it chooses the row (press, drag, release:
+    /// [`crate::widgets::menu::ContextMenu::release_selects`]). With
+    /// [`InputConfig::ctrl_click_secondary`], a primary release with Ctrl
+    /// held too.
+    SecondaryUp,
     /// Middle button pressed (closes a tab, as in browsers and editors).
     Middle,
     WheelUp,
@@ -310,14 +320,34 @@ impl Input {
                     {
                         MouseKind::Secondary
                     }
+                    // a one-button context click held with Ctrl: its drag and
+                    // release stay secondary, so press-drag-release reaches
+                    // the context menu it opened
+                    MouseEventKind::Drag(MouseButton::Left)
+                        if config.ctrl_click_secondary
+                            && modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        MouseKind::SecondaryDrag
+                    }
+                    MouseEventKind::Up(MouseButton::Left)
+                        if config.ctrl_click_secondary
+                            && modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        MouseKind::SecondaryUp
+                    }
                     MouseEventKind::Moved => MouseKind::Move,
                     MouseEventKind::Down(MouseButton::Left) => MouseKind::Down,
                     MouseEventKind::Up(MouseButton::Left) => MouseKind::Up,
                     MouseEventKind::Drag(MouseButton::Left) => MouseKind::Drag,
                     MouseEventKind::Down(MouseButton::Right) => MouseKind::Secondary,
+                    MouseEventKind::Drag(MouseButton::Right) => MouseKind::SecondaryDrag,
+                    MouseEventKind::Up(MouseButton::Right) => MouseKind::SecondaryUp,
                     MouseEventKind::Down(MouseButton::Middle) => MouseKind::Middle,
                     MouseEventKind::ScrollUp => MouseKind::WheelUp,
                     MouseEventKind::ScrollDown => MouseKind::WheelDown,
+                    // SGR buttons 66 and 67: the native horizontal wheel
+                    // (trackpad swipes in iTerm2, kitty, WezTerm), with or
+                    // without Shift
                     MouseEventKind::ScrollLeft => MouseKind::WheelLeft,
                     MouseEventKind::ScrollRight => MouseKind::WheelRight,
                     _ => return None,
@@ -533,6 +563,71 @@ mod tests {
             )),
             MouseKind::WheelDown
         );
+    }
+
+    #[test]
+    fn secondary_drag_and_release_are_reported() {
+        let none = KeyModifiers::NONE;
+        let off = InputConfig {
+            ctrl_click_secondary: false,
+            ..InputConfig::default()
+        };
+        let on = InputConfig {
+            ctrl_click_secondary: true,
+            ..InputConfig::default()
+        };
+        let kind = |k, mods, cfg| mouse(Input::from_crossterm_with(raw(k, mods), cfg)).kind;
+        for cfg in [on, off] {
+            assert_eq!(
+                kind(MouseEventKind::Drag(MouseButton::Right), none, cfg),
+                MouseKind::SecondaryDrag
+            );
+            assert_eq!(
+                kind(MouseEventKind::Up(MouseButton::Right), none, cfg),
+                MouseKind::SecondaryUp
+            );
+        }
+        // a Ctrl-click context press keeps its drag and release secondary
+        let ctrl = KeyModifiers::CONTROL;
+        assert_eq!(
+            kind(MouseEventKind::Drag(MouseButton::Left), ctrl, on),
+            MouseKind::SecondaryDrag
+        );
+        assert_eq!(
+            kind(MouseEventKind::Up(MouseButton::Left), ctrl, on),
+            MouseKind::SecondaryUp
+        );
+        assert_eq!(
+            kind(MouseEventKind::Up(MouseButton::Left), ctrl, off),
+            MouseKind::Up
+        );
+    }
+
+    /// SGR mouse reports buttons 66/67 for a native horizontal wheel;
+    /// crossterm decodes them as `ScrollLeft`/`ScrollRight`. They stay
+    /// horizontal with Shift held and with Shift+wheel mapping off.
+    #[test]
+    fn native_horizontal_wheel_stays_horizontal() {
+        let off = InputConfig {
+            shift_wheel_horizontal: false,
+            ..InputConfig::default()
+        };
+        for mods in [KeyModifiers::NONE, KeyModifiers::SHIFT] {
+            for cfg in [InputConfig::default(), off] {
+                let left = mouse(Input::from_crossterm_with(
+                    raw(MouseEventKind::ScrollLeft, mods),
+                    cfg,
+                ));
+                assert_eq!(left.kind, MouseKind::WheelLeft);
+                assert_eq!(left.wheel(), Some((-1, 0)));
+                let right = mouse(Input::from_crossterm_with(
+                    raw(MouseEventKind::ScrollRight, mods),
+                    cfg,
+                ));
+                assert_eq!(right.kind, MouseKind::WheelRight);
+                assert_eq!(right.wheel(), Some((1, 0)));
+            }
+        }
     }
 
     #[test]

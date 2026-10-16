@@ -42,6 +42,11 @@ pub struct Interaction {
     /// then, as macOS does for buttons clicked with the mouse.
     pub pointer_focus: bool,
     pub tick: u64,
+    /// The terminal has not reported pointer motion without a button held
+    /// ([`crate::core::pointer::PointerState::reports_motion`]): hover
+    /// does not follow the pointer, so hover-driven behaviour (a menu-bar
+    /// hover switch) is not relied on. Default `false`.
+    pub motion_unreported: bool,
 }
 
 /// When a control shows its focus indicator.
