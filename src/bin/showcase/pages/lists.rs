@@ -199,13 +199,13 @@ impl Page for ListsPage {
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.multi.id) {
             vec![
-                ("↑ ↓", "Move"),
+                ("↑↓", "Move"),
                 ("Space", "Toggle"),
                 ("a", "All / none"),
                 ("Shift+↓", "Range"),
             ]
         } else {
-            vec![("↑ ↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
+            vec![("↑↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
         }
     }
 }

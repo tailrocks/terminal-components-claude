@@ -855,7 +855,7 @@ impl Screen for ActivityTab {
         let waiting = a.is_some_and(|a| a.waiting.is_some());
         let mut v = vec![];
         if focus == Some(CHIPS) {
-            v.push(hint("← →", "Stream"));
+            v.push(hint("←→", "Stream"));
             v.push(hint("Space", "Show / hide"));
         } else {
             v.push(hint("↑↓", "Scroll"));

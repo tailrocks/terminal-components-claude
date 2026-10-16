@@ -3279,7 +3279,7 @@ impl App {
             let focus = self.focus.current();
             if focus == Some(TABS) {
                 vec![
-                    hint("← →", "Switch tab"),
+                    hint("←→", "Switch tab"),
                     hint("1–9", "Jump"),
                     hint("x", "Close"),
                     hint("Enter", "Into the tab"),
@@ -3309,7 +3309,7 @@ impl App {
         let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
         let menu_layer = (!modal && self.menu.is_open()).then(|| {
             HintLayer::new(vec![
-                hint("← →", "Menu"),
+                hint("←→", "Menu"),
                 hint("↑↓", "Move"),
                 hint("Enter", "Choose"),
                 hint("Esc", "Close"),

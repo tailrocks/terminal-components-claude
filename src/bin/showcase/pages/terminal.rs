@@ -370,7 +370,7 @@ impl Page for TerminalPage {
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.term.id) {
             vec![
-                ("↑ ↓", "Scroll"),
+                ("↑↓", "Scroll"),
                 ("Home End", "Oldest / live"),
                 ("f", "Follow"),
                 ("drag", "Select"),
@@ -378,7 +378,7 @@ impl Page for TerminalPage {
                 ("Esc", "Clear"),
             ]
         } else if focus == Some(self.rail.id) {
-            vec![("↑ ↓", "Move"), ("wheel", "Scroll")]
+            vec![("↑↓", "Move"), ("wheel", "Scroll")]
         } else {
             vec![("Enter", "Activate"), ("drag ┃", "Resize")]
         }

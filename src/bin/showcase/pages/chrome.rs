@@ -136,7 +136,7 @@ impl ChromePage {
         let menu = self.bar.is_open().then(|| {
             HintLayer::new(vec![
                 hint("↑↓", "Move"),
-                hint("← →", "Switch menu"),
+                hint("←→", "Switch menu"),
                 hint("Enter", "Choose"),
                 hint("Esc", "Close"),
             ])
@@ -150,7 +150,7 @@ impl ChromePage {
         });
         let screen = Some(if focus == Some(BAR) {
             HintLayer::new(vec![
-                hint("← →", "Menu"),
+                hint("←→", "Menu"),
                 hint("Enter", "Open"),
                 hint("Tab", "Next"),
             ])

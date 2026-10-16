@@ -568,7 +568,7 @@ impl Workbench {
     pub fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.explorer.id) {
             return vec![
-                hint("↑ ↓", "Move"),
+                hint("↑↓", "Move"),
                 hint("Enter", "Open"),
                 hint("→", "Expand"),
                 hint("/", "Filter"),
@@ -584,7 +584,7 @@ impl Workbench {
         }
         if focus == Some(self.strip.id) {
             return vec![
-                hint("← →", "Switch"),
+                hint("←→", "Switch"),
                 hint("Ctrl+T", "New query"),
                 hint("x", "Close"),
                 hint("Ctrl+G", "Tab list"),

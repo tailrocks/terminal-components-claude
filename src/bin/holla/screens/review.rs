@@ -530,7 +530,7 @@ impl Screen for GatePage {
             ];
         }
         vec![
-            hint("← →", "Choose"),
+            hint("←→", "Choose"),
             hint("Enter", "Activate"),
             hint("Tab", "Next"),
             hint("y", "Copy sequence"),
@@ -910,7 +910,7 @@ impl Screen for TrustPage {
 
     fn hints(&self, _focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         vec![
-            hint("← →", "Choose"),
+            hint("←→", "Choose"),
             hint("Enter", "Activate"),
             hint("Tab", "Next"),
             hint("Esc", "Cancel"),

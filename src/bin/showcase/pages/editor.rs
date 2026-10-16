@@ -552,7 +552,7 @@ impl Page for EditorPage {
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
         if self.completion.is_open() {
-            vec![("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
+            vec![("↑↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
         } else if self.editor.editing {
             vec![
                 ("Ctrl+Space", "Complete"),

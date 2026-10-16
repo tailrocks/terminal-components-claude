@@ -170,7 +170,7 @@ impl Page for EditablePage {
             vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
         } else {
             vec![
-                ("↑ ↓ ← →", "Cell"),
+                ("↑↓←→", "Cell"),
                 ("Enter", "Edit"),
                 ("s", "Sort"),
                 ("click twice", "Edit"),

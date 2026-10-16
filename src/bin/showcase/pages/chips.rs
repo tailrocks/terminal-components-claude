@@ -327,7 +327,7 @@ impl Page for ChipsPage {
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.filters.id) {
             vec![
-                ("← →", "Move"),
+                ("←→", "Move"),
                 ("Space", "Toggle"),
                 ("Enter", "Edit / add"),
                 ("x", "Remove"),
@@ -336,7 +336,7 @@ impl Page for ChipsPage {
         } else if focus
             .is_some_and(|f| [self.sort.id, self.page_size.id, self.engine.id].contains(&f))
         {
-            vec![("Enter", "Open"), ("↑ ↓", "Choose"), ("Esc", "Close")]
+            vec![("Enter", "Open"), ("↑↓", "Choose"), ("Esc", "Close")]
         } else {
             vec![("Tab", "Next")]
         }

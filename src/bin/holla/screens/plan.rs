@@ -949,7 +949,7 @@ impl Screen for PlanReviewPage {
         }
         if focus == Some(CANCEL) || focus == Some(CONFIRM) {
             return vec![
-                hint("← →", "Choose"),
+                hint("←→", "Choose"),
                 hint("Enter", "Activate"),
                 hint("Esc", "Discard plan"),
             ];
