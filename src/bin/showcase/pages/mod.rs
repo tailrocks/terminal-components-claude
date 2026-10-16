@@ -165,6 +165,15 @@ pub trait Page {
     fn layer_open(&self) -> bool {
         false
     }
+    /// The value index of the page option `key` (one of
+    /// `crate::options::page_options` for this page), `None` for a key the
+    /// page does not have.
+    fn option_value(&self, _key: &str) -> Option<usize> {
+        None
+    }
+    /// Set the page option `key` to value index `value`, rebuilding the
+    /// widget through its builder (the Inspector's Options tab and `--opt`).
+    fn set_option(&mut self, _key: &str, _value: usize) {}
     /// The page's Playground | Options | States template, for pages built
     /// on it ([`template::Template`]).
     #[allow(dead_code)] // tests and the coverage gate read it

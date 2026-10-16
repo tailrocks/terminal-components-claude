@@ -18,6 +18,8 @@ mod app_tests_mouse;
 #[cfg(test)]
 mod app_tests_nav;
 #[cfg(test)]
+mod app_tests_options;
+#[cfg(test)]
 mod app_tests_selectable;
 #[cfg(test)]
 mod app_tests_template;
@@ -25,6 +27,8 @@ mod app_tests_template;
 mod catalog_scan;
 mod coverage;
 mod data;
+mod inspector;
+mod options;
 mod pages;
 
 use crate::app::{App, NavExpand, PageId};
@@ -70,6 +74,11 @@ struct Cli {
     /// Which sidebar groups are open.
     #[arg(long, value_enum, value_name = "POLICY")]
     nav: Option<NavArg>,
+    /// Set a live option at launch, as the Inspector's Options tab would
+    /// (repeatable): shell.<key>=<value> or <page>.<key>=<value>. An
+    /// unknown key or value lists the valid ones.
+    #[arg(long = "opt", value_parser = options::parse_opt, value_name = "KEY=VALUE")]
+    opt: Vec<options::OptSet>,
 }
 
 fn parse_page(value: &str) -> Result<PageId, String> {
@@ -93,6 +102,9 @@ fn main() -> std::io::Result<()> {
         app.goto(p);
     }
     app.set_nav_expand(cli.nav.map(NavExpand::from).unwrap_or_default());
+    for set in cli.opt {
+        app.apply_opt(set);
+    }
     junie_tui::shell::run(&mut app)
 }
 
