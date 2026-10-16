@@ -2,19 +2,19 @@
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mLists[0m  Single and multiple selection, disabled it… [0m
                                                                         [0m
-    Overview      ┃    Language          Files to in…      Search res…  [0m
-  ▸ App shell     ┃                                                     [0m
-  ▸ Inputs & for… ┃    Chosen: Rust      Space toggl…                   [0m
-  ▸ Tables        ┃                                                     [0m
-  ▾ Navigation    ┃     › Rust    ┃       ✓ src/ap… ┃                   [0m
- [0m[1m▎  › Lists       [0m┃       TypeSc… ┃       ✓ src/ap… ┃                   [0m
-      Trees       ┃       Python  ┃      [0m[2m   src/db… [0m┃                   [0m
-      Sidebars    ┃       Kotlin  ┃         tests/… ┃      No results…  [0m
-      Tabs        ┃       Go      ┆      [0m[2m   Cargo.… [0m┃                   [0m
-      Menus       ┃       Java    ┆         docs/w… ┃                   [0m
-  ▸ Overlays      ┃       Swift   ┆         src/wo… ┆                   [0m
-  ▸ Feedback      ┆       C#      ┆         src/co… ┆                   [0m
- [0m[2m ▸ Layout        [0m┆    [0m[2m   Ruby    [0m┆      [0m[2m   README… [0m┆                   [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃    Language          Files to in…      Search res…  [0m
+  ▾ Navigation    ┃                                                     [0m
+ [0m[1m▎  › Lists       [0m┃    Chosen: Rust      Space toggl…                   [0m
+      Trees       ┃                                                     [0m
+      Sidebars    ┃     › Rust    ┃       ✓ src/ap… ┃                   [0m
+      Tabs        ┃       TypeSc… ┆       ✓ src/ap… ┃                   [0m
+      Menus       ┃       Python  ┆      [0m[2m   src/db… [0m┃      No results…  [0m
+  ▸ Overlays      ┃       Kotlin  ┆         tests/… ┆                   [0m
+  ▸ Feedback      ┆       Go      ┆      [0m[2m   Cargo.… [0m┆                   [0m
+ [0m[2m ▸ Layout        [0m┆    [0m[2m   Java    [0m┆      [0m[2m   docs/w… [0m┆                   [0m
                                                                         [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m

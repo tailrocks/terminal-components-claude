@@ -2,20 +2,20 @@
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar ne… [0m
                                                                         [0m
-    Overview      ┃    Project                               1–4 of 16  [0m
-  ▸ App shell     ┃                                                     [0m
-  ▸ Inputs & for… ┃     ▾ src                                        ┃  [0m
-  ▸ Tables        ┃       ▸ api                                      ┆  [0m
-  ▾ Navigation    ┃       ▸ db                                       ┆  [0m
-      Lists       ┃    [0m[2m   ▸ workers                                  [0m┆  [0m
- [0m[1m▎  › Trees       [0m┃                                                     [0m
-      Sidebars    ┃    Selection                                        [0m
-      Tabs        ┃                                                     [0m
-      Menus       ┃    Nothing selected                                 [0m
-  ▸ Overlays      ┃    Enter on a file selects it                       [0m
-  ▸ Feedback      ┆                                                     [0m
- [0m[2m ▸ Layout        [0m┆    cursor  src                                      [0m
-                       visible 16 rows                                  [0m
-                       open    5 folders                                [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃    Project                               1–2 of 16  [0m
+  ▾ Navigation    ┃                                                     [0m
+      Lists       ┃     ▾ src                                        ┃  [0m
+ [0m[1m▎  › Trees       [0m┃       ▸ api                                      ┆  [0m
+      Sidebars    ┃                                                     [0m
+      Tabs        ┃    Selection                                        [0m
+      Menus       ┃  branch_activate Toggle · row_click_toggles true ·  [0m
+  ▸ Overlays      ┃  indent 2 · divider false · alt_click_recursive true[0m
+  ▸ Feedback      ┆  · reserve_right 0 · show_meta true                 [0m
+ [0m[2m ▸ Layout        [0m┆  nav default · wrap false · type-ahead on ·         [0m
+                     track_click Page · selected_marker None · *        [0m
+                                                                        [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l
