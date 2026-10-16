@@ -966,3 +966,27 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
     assert_eq!(error.kind(), ErrorKind::ValueValidation);
     assert!(error.to_string().contains("no connection named"));
 }
+
+#[test]
+fn clicking_the_editor_closes_completion_and_places_the_caret() {
+    let mut h = H::connected(120, 40);
+    h.key(KeyCode::Tab); // editor
+    h.key(KeyCode::Char('i'));
+    h.type_str("SELECT * FROM ord");
+    assert!(h.wb_query().completion.is_open());
+    let before = h.wb_query().editor.cursor_offset();
+    let popup = h.wb_query().completion.area;
+    let caret = h.wb_query().editor.cursor_cell().expect("caret on screen");
+    // a click on the same line, left of the caret and outside the popup
+    let x = caret.x.saturating_sub(5);
+    assert!(!popup.contains(ratatui::layout::Position::new(x, caret.y)));
+    h.click(x, caret.y);
+    assert!(
+        !h.wb_query().completion.is_open(),
+        "outside click closed the list"
+    );
+    assert!(
+        h.wb_query().editor.cursor_offset() < before,
+        "the same click moved the caret"
+    );
+}
