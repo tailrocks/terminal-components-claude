@@ -1692,12 +1692,7 @@ impl DataGrid {
         );
         if self.overflow_badges && self.hscroll.offset > 0 {
             let lbl = format!("‹{}", self.hscroll.offset);
-            let hovered = ctx.interaction.hovered(self.left_id());
-            let st = if hovered {
-                t.primary().bg(t.lift(bg))
-            } else {
-                t.faint().bg(bg)
-            };
+            let st = title_style(ctx, self.left_id(), bg);
             buf.set_string(grid_area.x + 1, header_y, &lbl, st);
             ctx.clickable(
                 self.left_id(),
@@ -1713,20 +1708,10 @@ impl DataGrid {
             let ci = self.hscroll.offset + k;
             let col = &self.columns[ci];
             let hid = self.header_id(ci);
-            let hovered = ctx.interaction.hovered(hid);
             let sorted = self.sort.map(|(c, _)| c == ci).unwrap_or(false);
             let filtered = self.filtered_cols.contains(&ci);
-            let mut st = if sorted || filtered || ci == self.cursor.1 && focused {
-                t.primary().bg(bg)
-            } else {
-                t.muted().bg(bg)
-            };
-            if hovered && col.sortable {
-                st = st
-                    .fg(t.text_primary)
-                    .add_modifier(Modifier::UNDERLINED)
-                    .underline_color(t.border_strong);
-            }
+            let active = sorted || filtered || ci == self.cursor.1 && focused;
+            let st = header_style(ctx, hid, bg, col.sortable, active);
             let mut suffix = String::new();
             if filtered {
                 suffix.push_str(" ∇");
@@ -1764,12 +1749,7 @@ impl DataGrid {
         if self.overflow_badges && hidden_right > 0 {
             let lbl = format!("{hidden_right}›");
             let x = cols_area.right() + 1;
-            let hovered = ctx.interaction.hovered(self.right_id());
-            let st = if hovered {
-                t.primary().bg(t.lift(bg))
-            } else {
-                t.faint().bg(bg)
-            };
+            let st = title_style(ctx, self.right_id(), bg);
             buf.set_string(x, header_y, &lbl, st);
             ctx.clickable(
                 self.right_id(),
@@ -2189,6 +2169,46 @@ impl Theme {
             RowState::Deleted => ("−", self.text_muted),
             RowState::Error => ("!", self.error),
         }
+    }
+}
+
+/// A clickable header link (overflow badge `‹n`/`n›`): the title ladder.
+pub(crate) fn title_style(ctx: &RenderCtx, id: WidgetId, bg: Color) -> Style {
+    let t = ctx.theme;
+    let mut s = ctx.state(id);
+    s.focused = false;
+    t.interactive(crate::theme::Kind::Title, s, t.plane_of(bg))
+        .style
+}
+
+/// A column header: sortable headers walk the title ladder; the sorted,
+/// filtered or cursor column reads in primary ink, the rest muted.
+pub(crate) fn header_style(
+    ctx: &RenderCtx,
+    id: WidgetId,
+    bg: Color,
+    sortable: bool,
+    active: bool,
+) -> Style {
+    let t = ctx.theme;
+    let base = if sortable {
+        title_style(ctx, id, bg)
+    } else {
+        Style::new().bg(bg)
+    };
+    let lifted = sortable && (ctx.interaction.hovered(id) || ctx.interaction.pressed(id));
+    let ink = if active || lifted {
+        t.text_primary
+    } else {
+        t.text_muted
+    };
+    let st = base.fg(t.legible(ink, base.bg.unwrap_or(bg)));
+    // where muted ink must lift to stay readable (a card plane), weight
+    // keeps the active column apart
+    if active {
+        st.add_modifier(ratatui::style::Modifier::BOLD)
+    } else {
+        st
     }
 }
 
