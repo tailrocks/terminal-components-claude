@@ -282,3 +282,104 @@ fn a_read_only_result_grid_names_why_edits_are_unavailable() {
         Some("Table tabs only")
     );
 }
+
+#[test]
+fn a_right_click_on_a_connection_row_offers_its_commands() {
+    let mut h = H::new(120, 40);
+    let tree = h.app.connections.tree().id;
+    // the second connection row (row 0 is its group)
+    let row = (0..h.app.connections.tree().rows().len())
+        .filter(|&r| h.app.connections.connection_at_row(r).is_some())
+        .nth(1)
+        .expect("two connections");
+    let conn = h.app.connections.connection_at_row(row).unwrap();
+    let name = h.app.connections.connections[conn].name.clone();
+    let r = area(&h, h.app.connections.tree().row_id(row));
+    h.mouse(MouseKind::Secondary, r.x + 3, r.y);
+    let m = menu(&h);
+    assert_eq!(m.target, Target::Connection(row));
+    assert_eq!(m.owner, tree);
+    assert_eq!(h.app.connections.selected, Some(conn), "selects the row");
+    assert!(h.text().contains("Duplicate"));
+    choose(&mut h, "Delete…");
+    let text = h.text();
+    assert!(text.contains("Delete connection?"), "the delete gate opens");
+    assert!(text.contains(&name), "for the right-clicked connection");
+}
+
+#[test]
+fn shift_f10_on_the_connections_list_opens_its_menu_under_the_cursor() {
+    let mut h = H::new(120, 40);
+    let tree = h.app.connections.tree().id;
+    h.app.focus.focus(tree);
+    h.draw();
+    assert!(
+        h.text().contains("Shift+F10 Menu"),
+        "the hint bar names the key"
+    );
+    let cursor = h.app.connections.tree().cursor;
+    let row = area(&h, h.app.connections.tree().row_id(cursor));
+    shift_f10(&mut h);
+    let m = menu(&h);
+    assert_eq!(m.target, Target::Connection(cursor));
+    assert_eq!(m.menu.area.y, row.y + 1, "under the cursor row");
+    choose(&mut h, "New connection…");
+    assert!(h.app.modal().is_none());
+    assert_eq!(
+        h.focus(),
+        Some(WidgetId::of("connections").sub("form").sub("name")),
+        "the new-connection form opens on its name"
+    );
+}
+
+#[test]
+fn the_history_list_menu_runs_the_right_clicked_query() {
+    let mut h = H::connected(120, 40);
+    h.ctrl('y');
+    let (list, sql) = match h.wb().active_tab() {
+        Some(WorkTab::History(t)) => {
+            let id = *t.filtered.get(2).expect("three queries");
+            let e = h.app.history.entries.iter().find(|e| e.id == id).unwrap();
+            (t.list.id, e.sql.clone())
+        }
+        _ => panic!("expected the history tab"),
+    };
+    let r = area(&h, list.child(2));
+    h.mouse(MouseKind::Secondary, r.x + 2, r.y);
+    let m = menu(&h);
+    assert_eq!(m.target, Target::History(2));
+    assert_eq!(m.owner, list);
+    let item = |l: &str| m.menu.items.iter().any(|i| i.label == l);
+    assert!(item("Open in new tab") && item("Copy query") && item("Show failed only"));
+    choose(&mut h, "Run in new tab");
+    assert!(
+        matches!(h.wb().active_tab(), Some(WorkTab::Query(q)) if q.editor.text() == sql),
+        "the right-clicked query, not the first one"
+    );
+}
+
+#[test]
+fn shift_f10_on_the_history_list_toggles_its_scope() {
+    let mut h = H::connected(180, 40);
+    h.ctrl('y');
+    let list = match h.wb().active_tab() {
+        Some(WorkTab::History(t)) => t.list.id,
+        _ => panic!("expected the history tab"),
+    };
+    h.app.focus.focus(list);
+    h.draw();
+    assert!(
+        h.text().contains("Shift+F10 Menu"),
+        "listed last: a wide bar shows it"
+    );
+    shift_f10(&mut h);
+    choose(&mut h, "Show all connections");
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::History(t)) if t.scope_all));
+}
+
+#[test]
+fn the_help_dialog_lists_the_context_menu_key() {
+    let mut h = H::connected(120, 40);
+    h.key(KeyCode::Char('?'));
+    assert!(h.text().contains("Shift+F10"));
+}
