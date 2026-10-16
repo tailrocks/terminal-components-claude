@@ -1487,7 +1487,7 @@ impl Workbench {
             WorkTab::Query(q) => q.name.clone(),
             WorkTab::History(_) => "Query history".into(),
         };
-        let focus_in_tab = ctx.interaction.focus.is_some_and(|f| {
+        let focus_in_tab = ctx.interaction.shown_focus().is_some_and(|f| {
             f != self.explorer.id && f != self.explorer_filter.id && f != self.strip.id
         });
         let meta = match active {

@@ -80,6 +80,13 @@ impl Interaction {
     pub fn focused_under(&self, id: WidgetId, layer_open: bool) -> bool {
         !layer_open && self.focused(id)
     }
+    /// The focused widget as visuals may show it: `None` while a layer
+    /// covers the page. A container that marks "focus is somewhere in
+    /// me" (a pane title, a card) reads this, never the raw focus, so it
+    /// shows nothing under a modal or popup.
+    pub fn shown_focus(&self) -> Option<WidgetId> {
+        self.focus.filter(|_| !self.focus_hidden)
+    }
     /// Whether `id` holds keyboard focus, shown or not. Use this for
     /// behaviour (commit an edit on blur, close a dropdown): a layer
     /// opening above a control hides its focus but does not blur it.
