@@ -236,3 +236,70 @@ Deferred, with reasons:
   them not yet approved with it need re-approval in the harness pass. The
   removed `jackin/manager/quit_confirm` scenario is gone from the tables
   and the snapshot store.
+
+## Status (Select All, product request)
+
+Request: wherever a desktop interface offers Select All, the library
+offers it too, for example Cmd+A or Ctrl+A in text inputs and text areas.
+
+Standards decision. Select All is Cmd+A on macOS and Ctrl+A on Windows
+and Linux. On macOS, Ctrl+A means "line start" in every Cocoa text field
+and in terminal readline. A terminal delivers Cmd to an application only
+through the kitty keyboard protocol, as the super modifier. So the
+library does three things:
+
+1. It enables the kitty keyboard protocol as a progressive enhancement.
+   On enter it asks the terminal (`CSI ? u`). When the terminal answers,
+   it pushes `CSI > 5 u` (disambiguate plus report alternate keys). It
+   pops the flags on leave, on panic and on suspend, and pushes them again
+   on continue. `JUNIE_TUI_KEYBOARD_PROTOCOL` (`auto`, `on`, `off`)
+   overrides detection. Cmd+A (super) is Select All everywhere it arrives.
+2. The default `FieldKeys` follows the client platform, using the shared
+   `ClientPlatform` detector. Clients on Windows and Linux get `Desktop`
+   (Ctrl+A select all, Ctrl+C/X/V). macOS clients get `Emacs` (Ctrl+A
+   line start, Ctrl+L select all). Cmd+A selects all in both presets
+   whenever the terminal delivers it. The request's "Ctrl+A selects all on
+   macOS" is available as `FieldKeys::Desktop`, either per widget
+   (`.field_keys(..)`) or as an app profile (`Theme::with_field_keys`).
+3. A hint names "⌘A" only once super delivery is confirmed, meaning a
+   Cmd chord actually arrived or the app said so with
+   `keyboard::set_super_delivered`. Until then a hint names the
+   platform's deliverable key. Pushing the flags is not proof on its own,
+   because a macOS terminal can keep Cmd+A for its own menu.
+
+Commit hashes are the ones on `design/interaction-polish`.
+
+| Area | Status | Commit(s) | Notes |
+|---|---|---|---|
+| Kitty keyboard protocol | Fixed | 2653b782b | `core::keyboard`: `FLAGS`, `push`, `POP`, `QUERY`, `parse_flags_reply`, the reference `encode`/`decode` codec, `KeyboardProtocol { Auto, On, Off }` and the `ProtocolState` enter/leave/resume machine. The runtime uses it in `TerminalSession::enter`, `reenter` and `restore_terminal`. `super_delivered`, `set_super_delivered` and `observe` back the hint rule. `Key::cmd` and `Key::chord` make every widget and app guard treat a Cmd chord as a command, never as typed text or a letter shortcut (`NavKeys` vim letters too). |
+| Text Select All | Fixed | 170ce0e90 | One path. `TextCmd::SelectAll` is resolved by `field_common::edit_key_in` into `EditAction::SelectAll`, which `apply_edit` applies. It covers TextInput (and the Dialog and FormDialog prompt fields), TextArea, CodeEditor (while editing, and while browsing or read-only, where it selects for Copy) and the DataGrid and DataTable cell editors. A field that waits for Enter or F2 starts its edit with everything selected. |
+| Platform presets | Fixed | 170ce0e90 | `FieldKeys::for_platform`, `FieldKeys::default()` (client platform) and `Theme::field_keys: Option<FieldKeys>` (`None` means the platform's preset). `FieldKeys::text_keymap()` binds Cmd+A, plus Ctrl+L (Emacs) or Ctrl+A (Desktop). Ctrl+L select all stays in Emacs. |
+| Row Select All | Fixed | 170ce0e90 | `keymap::SELECT_ALL` (Cmd+A, Ctrl+A) and `select_all_bindings`. Outside a text field Ctrl+A has no line-start meaning, so it is deliverable on every platform. `ListAction::SelectAll` and `TableAction::SelectAll` act only in multi-selection; a single-selection list or table ignores the chord. `GridAction::SelectAll` marks every row, as Space marks one. DataTable's hard-coded Ctrl/Cmd+A became the key-map action. |
+| Read-only text | Fixed | 170ce0e90 | `ViewportAction::SelectAll` and `TextViewport::select_all`. They select every retained line, so `y` copies it. Logs, the showcase terminal, jackin panes and DiffView inherit it. |
+| Remapping | Fixed | 170ce0e90 | Text controls take `.text_keymap(KeyMap<TextCmd>)`. Rows and viewports take their `KeyMap`. `label_for` and `hint_key` name the first deliverable binding. |
+| Tests | Fixed | 2653b782b, 170ce0e90 | Protocol sequences, codec, query reply and the suspend/continue state machine. Platform defaults passed as data. Select All per widget family. App tests: showcase inputs (Cmd+A, then Ctrl+A per platform) and the tablepro query editor (Cmd+A). The full suite also passes with `JUNIE_TUI_CLIENT_PLATFORM=linux`. App tests that meant "select the field" with Ctrl+L now press Cmd+A, so they hold on every client platform. |
+
+Deferred, with reasons:
+
+- Picker, combo (`OptionEditor`) and CodeEditor find-bar queries are
+  plain `String`s with no selection model, so there is nothing to select
+  all of. S11 moves them onto `EditField` and `TextBuffer`, and they then
+  inherit `EditAction::SelectAll` with no extra code. holla's finder
+  query (#36) keeps its own Ctrl+A select all, pinned by HP02.
+- No text context menu or Edit menu exists yet. The standard Edit
+  `ContextSource` (Cut, Copy, Paste, Select All) is S13. Its Select All
+  item takes its shortcut label from `label_for(&keys.text_keymap(),
+  TextCmd::SelectAll)`, so it says "⌘A" only where Cmd is delivered.
+- ScrollPanel, InfoDialog and PropsList have no text selection (M31
+  moves ScrollPanel selection onto `TextViewport` in S11). TreeView and
+  ChipBar have no multi-selection. Select All does not apply to any of
+  them yet.
+- Cmd+C, Cmd+X, Cmd+V and Cmd+Z are not bound. This pass covers Select
+  All only. The protocol now delivers those chords, so binding them is a
+  key-map entry in the same `TextCmd` table.
+- No footer hint names Select All, so no capture changed and the
+  showcase digest needed no re-approval. The hint rule lives in
+  `label_for`/`hint_key`, so the S8b hint pass gets it automatically.
+- With the protocol on, a terminal reports Ctrl+4..7 as themselves, so
+  the runtime turns `InputConfig::legacy_ctrl_punctuation` off while the
+  flags are pushed.
