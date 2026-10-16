@@ -80,6 +80,8 @@ pub struct ContextMenu {
     pub area: Rect,
     /// Optional title row above the items (e.g. what the menu is about).
     pub title: Option<String>,
+    /// How the menu closes without a choice (Esc, a click outside).
+    pub dismiss: Dismiss,
 }
 
 impl ContextMenu {
@@ -93,7 +95,13 @@ impl ContextMenu {
             placement: Placement::Below,
             area: Rect::ZERO,
             title: None,
+            dismiss: Dismiss::LIGHT,
         }
+    }
+
+    pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
+        self.dismiss = dismiss;
+        self
     }
 
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
@@ -121,7 +129,7 @@ impl ContextMenu {
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || self.locate(id).is_some()
+        id == self.id || id == backdrop_id(self.id) || self.locate(id).is_some()
     }
 
     /// Frame-inclusive size.
@@ -215,12 +223,13 @@ impl ContextMenu {
                     (Outcome::Consumed, None)
                 }
             }
-            KeyCode::Esc => (Outcome::Changed, Some(MenuEvent::Dismissed)),
+            KeyCode::Esc if self.dismiss.escape => (Outcome::Changed, Some(MenuEvent::Dismissed)),
             _ => (Outcome::Consumed, None),
         }
     }
 
-    /// A completed click on `id`: a row chooses it, anywhere else dismisses.
+    /// A completed click on `id`: a row chooses it, anywhere else dismisses
+    /// (when the [`Dismiss`] policy allows an outside click).
     pub fn on_click(&mut self, id: WidgetId) -> Option<MenuEvent> {
         match self.locate(id) {
             Some(i) if !self.items[i].disabled => {
@@ -229,17 +238,25 @@ impl ContextMenu {
             }
             Some(_) => None,
             None if id == self.id => None,
-            None => Some(MenuEvent::Dismissed),
+            None => self.on_click_outside(),
         }
     }
 
     pub fn on_click_outside(&mut self) -> Option<MenuEvent> {
-        Some(MenuEvent::Dismissed)
+        self.dismiss.outside_click.then_some(MenuEvent::Dismissed)
     }
 
+    /// Place the menu inside `screen` and queue it as an overlay
+    /// ([`RenderCtx::overlay`]): it lands above everything drawn after it,
+    /// and a click outside reaches it through its backdrop.
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.prepare(screen.intersection(*buf.area()), ctx);
-        self.paint(buf, ctx);
+        let menu = self.clone();
+        ctx.overlay(move |buf, ctx| {
+            ctx.hits.push_barrier();
+            crate::ui::popup::backdrop(ctx, menu.id, menu.dismiss, *buf.area());
+            menu.paint(buf, ctx);
+        });
     }
 
     /// Resolve the popover rectangle and let the pointer move the cursor.
@@ -738,6 +755,7 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
         let mut m = ContextMenu::new(WidgetId::of("m"), items()).at(Position::new(5, 2));
         m.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
         let row3 = m.row_id(3);
         let area = hits.area_of(row3).expect("row registered");
         assert_eq!(hits.hit(Position::new(area.x + 2, area.y)), Some(row3));
@@ -745,6 +763,14 @@ mod tests {
         assert_eq!(m.on_click(m.row_id(1)), None, "disabled rows do nothing");
         assert_eq!(
             m.on_click(WidgetId::of("elsewhere")),
+            Some(MenuEvent::Dismissed)
+        );
+        // a click outside lands on the menu's backdrop; the policy decides
+        assert_eq!(hits.hit(Position::new(50, 18)), Some(backdrop_id(m.id)));
+        let mut sticky = m.clone().dismiss(Dismiss::ESCAPE);
+        assert_eq!(sticky.on_click(backdrop_id(m.id)), None);
+        assert_eq!(
+            sticky.on_key(&key(KeyCode::Esc)).1,
             Some(MenuEvent::Dismissed)
         );
         // danger row is drawn in the error tone, shortcut right-aligned
