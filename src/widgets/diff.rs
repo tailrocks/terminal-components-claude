@@ -10,7 +10,10 @@ use ratatui::style::Color;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
+use crate::core::response::Response;
+use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::{Glyphs, Strings, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{expand_tabs, fit, truncate, width};
@@ -242,7 +245,7 @@ impl DiffView {
             self.file = file;
             self.dirty = true;
             self.term.scroll.jump_start();
-            self.term.hscroll.jump_start();
+            self.term.scroll.h.jump_start();
             self.term.set_follow(false);
         }
     }
@@ -304,35 +307,12 @@ impl DiffView {
         self.term.on_key(key)
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.term.on_wheel(delta)
-    }
-
     pub fn on_click(&mut self, pos: Position) -> Outcome {
         self.term.on_click(pos)
     }
 
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         self.term.on_drag(pos)
-    }
-
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        self.term.on_scrollbar(pos)
-    }
-
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        self.term.on_scrollbar_drag(pos)
-    }
-
-    /// A drag holding either scrollbar id (vertical or horizontal).
-    pub fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        self.term.on_bar_drag(pressed, pos)
-    }
-
-    /// Horizontal wheel (or Shift+wheel): unified lines wider than the
-    /// view scroll sideways.
-    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
-        self.term.on_wheel_h(delta)
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -603,6 +583,22 @@ pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> V
 
 fn review_fits(file: &DiffFile, width: u16) -> bool {
     usize::from(width) >= 2 * (num_width(file) + 1 + 16) + 3
+}
+
+/// The diff scrolls through its viewport's pane, with the viewport's
+/// hooks (unified lines wider than the view scroll sideways).
+impl Scrollable for DiffView {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.term.scroll
+    }
+
+    fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
+        self.term.wheel_first(axis, delta)
+    }
+
+    fn after_scroll(&mut self, axis: Axis, moved: bool) -> bool {
+        self.term.after_scroll(axis, moved)
+    }
 }
 
 #[cfg(test)]

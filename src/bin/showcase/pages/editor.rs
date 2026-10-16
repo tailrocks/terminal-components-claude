@@ -11,6 +11,7 @@ use ratatui::style::Style;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::Scrollable;
 use junie_tui::theme::{SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::fuzzy;
@@ -538,13 +539,13 @@ impl Page for EditorPage {
                 if self.completion.owns(*id) {
                     self.completion.on_wheel(*delta)
                 } else if self.editor.owns(*id) {
-                    self.editor.on_wheel(*delta, false)
+                    self.editor.on_wheel(*delta)
                 } else {
                     Outcome::Ignored
                 }
             }
             PageEvent::WheelH { id, delta } if self.editor.owns(*id) => {
-                self.editor.on_wheel(*delta, true)
+                self.editor.on_wheel_h(*delta)
             }
             PageEvent::DialogClosed { .. }
             | PageEvent::Secondary { .. }

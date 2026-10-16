@@ -41,6 +41,7 @@ use crate::screens::usage::UsageScreen;
 use crate::screens::{Cx, Go, Modal, ModalResult, ModalTag, Request, Screen};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
+use junie_tui::core::scroll::Scrollable;
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
