@@ -59,6 +59,22 @@ compatible ranges (`^`). Determinism stays guarded by your committed
 Where ratatui types are public API, consider a feature per ratatui major
 version, or an isolated adapter crate.
 
+Evidence from our dependency upgrade (2026-10-16, `docs/dependencies.md`),
+`cargo update -p <crate> --precise <latest> --dry-run` at this rev:
+
+| Crate | Held at | Latest | tuiscotti pin |
+|---|---|---|---|
+| `unicode-width` | 0.2.0 | 0.2.2 | `Cargo.toml:32` `=0.2.0` (via `tuiscotti-core`) |
+| `insta` | 1.48.0 | 1.49.0 | `Cargo.toml:27` `=1.48.0` (via `tuiscotti-insta`) |
+| `serde_json` | 1.0.151 | 1.0.154 | `Cargo.toml:29` `=1.0.151` (via `tuiscotti-core`) |
+| `sha2` | 0.11.0 | 0.11.1 | `Cargo.toml:30` `=0.11.0` (via `tuiscotti-insta`) |
+| `ratatui` | 0.29.0 (second copy) | 0.30.2 | `Cargo.toml:31` `=0.29.0` |
+| `crossterm` | 0.28.1 (second copy) | 0.29.0 | `Cargo.toml:22` `=0.28.1` |
+
+`unicode-width` is the one that reaches our shipped binaries: Cargo keeps a
+single 0.2.x in the lockfile, so the library and all four apps measure
+text with the 0.2.0 tables only because a dev-dependency pins them.
+
 ### P3. Minimal artifact mode: one `.ansi` plus a cursor trailer per scenario
 
 `GroupedStore` always reads, renders, accepts and seals four artifacts:
