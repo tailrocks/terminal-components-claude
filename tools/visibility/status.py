@@ -3767,8 +3767,11 @@ def validate_execution_attempt_history(
             require(type(counts.get(name)) is int and counts[name] >= 0,
                     "{}.counts.{} must be a nonnegative integer".format(label, name))
         require(counts["inventory"] == counts["selected"] + counts["filtered"]
-                and counts["selected"] == counts["started"] + counts["incomplete"]
-                and counts["started"] == counts["passed"] + counts["failed"],
+                and counts["passed"] + counts["failed"] <= counts["started"]
+                and counts["started"] <= counts["selected"]
+                and counts["incomplete"] == (
+                    counts["selected"] - counts["passed"] - counts["failed"]
+                ),
                 "{}.counts do not reconcile inventory, selection, and terminal results"
                 .format(label))
 
