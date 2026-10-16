@@ -681,7 +681,7 @@ fn modal_traps_focus_and_restores_it() {
     h.key(tab());
     let before = h.app.shell.focus.current();
     h.key(KeyCode::Enter);
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.dialog().is_some());
     assert!(h.text().contains("Run task now?"));
     let ring: Vec<_> = h.app.shell.ring.reachable().to_vec();
     assert_eq!(ring.len(), 2, "only the dialog's two actions are reachable");
@@ -692,7 +692,7 @@ fn modal_traps_focus_and_restores_it() {
     // clicking the page behind does nothing to it
     let (x, y) = h.find("Rename task").unwrap();
     h.click(x, y);
-    assert!(h.app.dialog.is_none(), "click outside cancels");
+    assert!(h.app.dialog().is_none(), "click outside cancels");
     assert_eq!(h.app.shell.focus.current(), before, "focus restored");
     assert!(h.text().contains("Cancelled"));
     // the Run button's mnemonic answers a confirm
@@ -717,7 +717,7 @@ fn prompt_dialog_validates_and_returns_value() {
     );
     h.key(KeyCode::Backspace);
     h.key(KeyCode::Enter); // submit empty → blocked
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.dialog().is_some());
     assert!(h.text().contains("Name cannot be empty"));
     assert!(
         h.term.backend().cursor_visible(),
@@ -725,7 +725,7 @@ fn prompt_dialog_validates_and_returns_value() {
     );
     h.type_str("Ship it");
     h.key(KeyCode::Enter);
-    assert!(h.app.dialog.is_none());
+    assert!(h.app.dialog().is_none());
     assert!(h.text().contains("Task: Ship it"));
 }
 

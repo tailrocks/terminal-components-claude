@@ -87,11 +87,11 @@ fn the_brand_asks_and_quits_by_mouse() {
 fn the_help_dialog_closes_by_its_close_button() {
     let mut h = Harness::new(120, 40, PageId::Overview);
     h.key(KeyCode::Char('?'));
-    assert!(h.app.help.is_some());
+    assert!(h.app.help().is_some());
     let x = h.area_of(CLOSE);
     assert!(h.text().lines().nth(x.y as usize).unwrap().contains('×'));
     h.click(x.x + 1, x.y);
-    assert!(h.app.help.is_none(), "{:?} {}", h.app.help, h.text());
+    assert!(h.app.help().is_none(), "{:?} {}", h.app.help(), h.text());
 }
 
 // docs/design/close-button.md: the Rename task dialog's × is a three-cell
@@ -123,5 +123,5 @@ fn the_rename_dialog_close_plate_lights_whole_and_closes_on_its_edge() {
     }
     assert_eq!(bg(&h, plate.right()), rest[0], "the border beside it stays");
     h.click(plate.x, plate.y);
-    assert!(h.app.dialog.is_none(), "{}", h.text());
+    assert!(h.app.dialog().is_none(), "{}", h.text());
 }

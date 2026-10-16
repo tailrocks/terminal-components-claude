@@ -9,7 +9,7 @@ use ratatui::layout::Rect;
 
 use crate::inspector::{self, Inspector};
 use crate::options::{OptSet, ShellOptions};
-use crate::pages::{Cx, Go, Page, PageEvent, Request};
+use crate::pages::{Cx, DIALOG_TAG, Go, HELP_TAG, LayerRes, Page, PageEvent, Request};
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::FocusChange;
@@ -21,9 +21,15 @@ use junie_tui::core::response::Response;
 use junie_tui::shell::{self, Shell};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::layer::{
+    DismissReason, Dismissed, Layer, LayerCx, LayerEntry, LayerPointer, LayerTag, ShellLayers,
+    Taken,
+};
+use junie_tui::ui::layers::LayerResult;
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
+use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
-use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
+use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::too_small::TooSmall;
@@ -608,10 +614,11 @@ pub struct App {
     pub shell: Shell,
     /// The pointer clock (press flash, hover delay, status expiry).
     pub(crate) clock: WallClock,
-    pub dialog: Option<Dialog>,
-    /// The keyboard reference (`?`, the header link, a page's request):
-    /// the library `HelpOverlay`, a modal like the dialog.
-    pub help: Option<HelpOverlay>,
+    /// The shell's layer stack: the dialogs (the shell's own and the
+    /// pages') and the keyboard reference (`?`, the header link, a page's
+    /// request). Each entry's owner is the page that opened it (`None`:
+    /// the shell); focus moves into a layer and comes back when it closes.
+    pub layers: Layers,
     pub inspector: bool,
     /// The Inspector's State | Options pane (`i`).
     pub insp: Inspector,
@@ -644,9 +651,11 @@ pub struct App {
     /// Type-to-filter in the sidebar (`/`): the query while filtering.
     pub nav_filter: Option<String>,
     layout: ShellLayout,
-    /// Focus to restore when the help dialog closes.
-    saved_focus: Option<WidgetId>,
 }
+
+/// The showcase's layer stack: owned by a page (its index) or the shell.
+pub type Layers = ShellLayers<LayerRes, (), Option<usize>>;
+type LayerSlot = LayerEntry<LayerRes, (), Option<usize>>;
 
 #[derive(Debug, Default, Clone, Copy)]
 struct ShellLayout {
@@ -758,8 +767,7 @@ impl App {
             nav_auto: None,
             shell,
             clock: WallClock::new(),
-            dialog: None,
-            help: None,
+            layers: Layers::new(),
             inspector: false,
             insp: Inspector::new(PageId::Overview),
             options,
@@ -776,7 +784,6 @@ impl App {
             nav_reveal: true,
             nav_filter: None,
             layout: ShellLayout::default(),
-            saved_focus: None,
         };
         app.sync_nav(None);
         // Paused fast-forward: page Tick handlers are pure functions of the
@@ -866,8 +873,7 @@ impl App {
         page.animating()
             || self.shell.pointer.has_flash()
             || self
-                .dialog
-                .as_ref()
+                .dialog()
                 .is_some_and(|d| d.actions.iter().any(|b| b.busy))
     }
 
@@ -899,9 +905,7 @@ impl App {
     /// pages, so fields end their edits on the event path.
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = Outcome::Ignored;
-        if let Some(d) = self.dialog.as_mut() {
-            out = out.or(d.on_blur(ch));
-        }
+        out = out.or(self.layers.on_blur(ch));
         out = out.or(self.insp.on_blur(Some(ch.from)));
         for i in 0..self.pages.len() {
             out = out.or(self.dispatch_to(i, PageEvent::Blur(ch)));
@@ -914,11 +918,12 @@ impl App {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Paste(text) => {
-                if let Some(d) = self.dialog.as_mut() {
-                    return d.on_paste(&text);
-                }
-                if self.help.is_some() {
-                    return Outcome::Consumed;
+                if let Some(top) = self.layers.top_mut() {
+                    // the reference takes no text; a dialog's field does
+                    if top.get::<HelpOverlay>().is_some() {
+                        return Outcome::Consumed;
+                    }
+                    return top.layer.on_paste(&text);
                 }
                 self.dispatch(PageEvent::Paste(text))
             }
@@ -970,29 +975,19 @@ impl App {
         let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let out = self.pages[i].handle(&ev, &mut cx);
         let requests = cx.take();
-        self.apply_requests(requests);
+        self.apply_requests(requests, i);
         out
     }
 
     /// What the pages asked of the shell, in order.
-    fn apply_requests(&mut self, requests: Vec<Request>) {
+    fn apply_requests(&mut self, requests: Vec<Request>, owner: usize) {
         for r in requests {
             match r {
                 Request::Status(s, tone) => self.shell.status.set_at(s, tone, self.clock.now()),
                 Request::StatusAs(s, kind) => {
                     self.shell.status.set_at(s, kind.tone(), self.clock.now());
                 }
-                Request::Open(layer, _) => {
-                    let layer: Box<dyn std::any::Any> = layer;
-                    match layer.downcast::<Dialog>() {
-                        Ok(d) => self.open_dialog(*d),
-                        Err(layer) => {
-                            if let Ok(h) = layer.downcast::<HelpOverlay>() {
-                                self.show_help(*h);
-                            }
-                        }
-                    }
-                }
+                Request::Open(layer, tag) => self.open_layer(layer, tag, Some(owner)),
                 Request::Go(Go::SetOption(set)) => self.apply_opt(set),
                 Request::Help => self.open_help(),
                 Request::RefusedOutsideClick(dismiss) => {
@@ -1032,48 +1027,145 @@ impl App {
         }
     }
 
-    fn open_dialog(&mut self, d: Dialog) {
-        self.saved_focus = self.shell.focus.current();
-        self.shell.focus.set(Some(d.initial_focus));
-        self.dialog = Some(d);
+    /// Open `d` as the shell's own dialog.
+    pub(crate) fn open_dialog(&mut self, d: Dialog) {
+        self.open_layer(Box::new(d), LayerTag::new(DIALOG_TAG), None);
+    }
+
+    /// The open dialog, if one is on the layer stack.
+    pub fn dialog(&self) -> Option<&Dialog> {
+        self.layers.iter().rev().find_map(|e| e.get::<Dialog>())
+    }
+
+    /// The open keyboard reference, if one is on the layer stack.
+    #[allow(dead_code)] // tests read it
+    pub fn help(&self) -> Option<&HelpOverlay> {
+        self.layers
+            .iter()
+            .rev()
+            .find_map(|e| e.get::<HelpOverlay>())
+    }
+
+    /// Open `layer` on top for `owner` (a page's index; `None`: the
+    /// shell). Focus moves into it and comes back when it closes. A
+    /// keyboard reference refuses to open over another layer: one modal
+    /// at a time, and the open one keeps the keyboard.
+    fn open_layer(&mut self, layer: Box<dyn Layer<LayerRes>>, tag: LayerTag, owner: Option<usize>) {
+        if tag.kind == HELP_TAG && !self.layers.is_empty() {
+            self.set_status("Close the open dialog first".into());
+            return;
+        }
+        let any: &dyn std::any::Any = layer.as_ref();
+        // the reference's one focus stop is its Done button (its keys
+        // reach it wherever focus is)
+        let initial = match any.downcast_ref::<HelpOverlay>() {
+            Some(h) => Some(h.done.id),
+            None => layer.spec().initial_focus,
+        };
+        self.layers.push(
+            LayerEntry { layer, tag, owner },
+            &mut self.shell.focus,
+            initial,
+        );
+        if let Some(d) = self.layers.top_as_mut::<Dialog>() {
+            // clear of the header and footer rows at least; a dialog that
+            // asks for more chrome (`Dialog::chrome`) gets it
+            d.chrome = (d.chrome.0.max(1), d.chrome.1.max(1));
+        }
         self.shell.pointer.hover = None;
         self.shell.pointer.pressed = None;
     }
 
-    fn close_dialog(&mut self) -> Outcome {
-        let Some(d) = self.dialog.take() else {
-            return Outcome::Ignored;
+    /// A key for the top layer; `None` when no layer is open.
+    fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
+        let top = self.layers.top_mut()?;
+        let mut cx = LayerCx {
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
+            app: &(),
         };
-        self.shell.focus.set(self.saved_focus.take());
-        if d.id == self.leave.id {
-            if let Some(result) = d.result
-                && let Resolved::Discard(_) = self.leave.resolve(result)
-            {
-                self.shell.quit = true;
-            }
-            return Outcome::Changed;
+        let out = top.layer.on_key(key, &mut cx);
+        Some(self.settle_layer(out))
+    }
+
+    /// After input reached the top layer: a result closes it and goes to
+    /// its owner.
+    fn settle_layer(&mut self, out: Outcome) -> Outcome {
+        match self.layers.take(&mut self.shell.focus) {
+            None | Some(Taken::Event(_)) => out,
+            Some(Taken::Closed(entry, r)) => self.layer_closed(entry, r).or(out),
         }
-        // the brand's quit confirmation: Quit goes through the same guard
-        // as the q key
-        if d.id == QUIT_DIALOG {
-            if d.result == Some(DialogResult::Action(1)) {
+    }
+
+    /// What a dismissal of the top layer did: a refused outside click
+    /// flashes the frame under its `dismiss` policy; a closed layer's
+    /// result goes to its owner.
+    fn layer_dismissed(
+        &mut self,
+        d: Dismissed<LayerRes, (), Option<usize>>,
+        dismiss: Dismiss,
+    ) -> Outcome {
+        match d {
+            Dismissed::None | Dismissed::Closed(_, None) => Outcome::Changed,
+            Dismissed::Refused => {
+                let now = self.clock.now_ms();
+                junie_tui::ui::modal::refuse_outside_click(&mut self.shell.pointer, dismiss, now);
+                Outcome::Changed
+            }
+            Dismissed::Closed(entry, Some(r)) => self.layer_closed(entry, r).or(Outcome::Changed),
+        }
+    }
+
+    /// A layer closed with `r`: the shell's own dialogs resolve here (the
+    /// quit guard, the brand's quit confirmation); a page's goes back to
+    /// the page that opened it.
+    fn layer_closed(&mut self, entry: LayerSlot, r: LayerRes) -> Outcome {
+        let dialog = entry.get::<Dialog>().map(|d| d.id);
+        let result = match &r {
+            LayerRes::Lib(LayerResult::Dialog { action, .. }) => Some(match action {
+                Some(i) => DialogResult::Action(*i),
+                None => DialogResult::Cancelled,
+            }),
+            _ => None,
+        };
+        let Some(owner) = entry.owner else {
+            if dialog == Some(self.leave.id) {
+                if let Some(result) = result
+                    && let Resolved::Discard(_) = self.leave.resolve(result)
+                {
+                    self.shell.quit = true;
+                }
+                return Outcome::Changed;
+            }
+            // the brand's quit confirmation: Quit goes through the same
+            // guard as the q key
+            if dialog == Some(QUIT_DIALOG) && result == Some(DialogResult::Action(1)) {
                 return self.request_quit();
             }
             return Outcome::Changed;
+        };
+        let r = match (dialog, result, r) {
+            (Some(id), Some(result), LayerRes::Lib(LayerResult::Dialog { text, .. })) => {
+                LayerRes::Dialog {
+                    id,
+                    result,
+                    value: text,
+                }
+            }
+            (_, _, r) => r,
+        };
+        self.page_layer_result(owner, &entry.tag, r)
+            .or(Outcome::Changed)
+    }
+
+    /// A layer page `i` opened reported `r` under `tag`.
+    fn page_layer_result(&mut self, i: usize, _tag: &LayerTag, r: LayerRes) -> Outcome {
+        match r {
+            LayerRes::Dialog { id, result, value } => {
+                self.dispatch_to(i, PageEvent::DialogClosed { id, result, value })
+            }
+            LayerRes::Lib(_) => Outcome::Ignored,
         }
-        if d.id != HELP_DIALOG
-            && let Some(result) = d.result
-        {
-            let id = d.id;
-            let value = match &d.body {
-                DialogBody::Input(i) => Some(i.text().to_owned()),
-                _ => None,
-            };
-            return self
-                .dispatch(PageEvent::DialogClosed { id, result, value })
-                .or(Outcome::Changed);
-        }
-        Outcome::Changed
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
@@ -1083,14 +1175,7 @@ impl App {
             }
             return Outcome::Consumed;
         }
-        if let Some(d) = self.dialog.as_mut() {
-            let out = d.on_key(&key, &mut self.shell.focus, &self.shell.ring);
-            if d.result.is_some() {
-                return self.close_dialog().or(out);
-            }
-            return out.or(Outcome::Consumed);
-        }
-        if let Some(out) = self.help_key(key) {
+        if let Some(out) = self.layer_key(&key) {
             return out;
         }
         if let Some(out) = self.inspector_key(&key) {
@@ -1507,71 +1592,35 @@ impl App {
         self.show_help(h);
     }
 
-    /// Open `h` as the modal reference. It refuses to open over another
-    /// modal: one layer at a time, and the dialog keeps the keyboard.
+    /// Open `h` as the shell's modal reference. It refuses to open over
+    /// another modal: one layer at a time, and the dialog keeps the
+    /// keyboard.
     pub(crate) fn show_help(&mut self, h: HelpOverlay) {
-        if self.dialog.is_some() || self.help.is_some() {
-            self.set_status("Close the open dialog first".into());
-            return;
-        }
-        self.saved_focus = self.shell.focus.current();
-        // its one focus stop: the Done button (the keys reach the overlay
-        // wherever focus is)
-        self.shell.focus.set(Some(h.done.id));
-        self.help = Some(h);
-        self.shell.pointer.hover = None;
-        self.shell.pointer.pressed = None;
+        self.open_layer(Box::new(h), LayerTag::new(HELP_TAG), None);
     }
 
-    /// A modal (the dialog or the reference) is open: the page beneath
+    /// A modal (a dialog or the reference) is open: the page beneath
     /// takes no pointer input and shows no focus.
     fn modal_open(&self) -> bool {
-        self.dialog.is_some() || self.help.is_some()
+        !self.layers.is_empty()
     }
 
-    /// The reference closed: focus goes back where it was.
-    fn close_help(&mut self) -> Outcome {
-        if self.help.take().is_none() {
-            return Outcome::Ignored;
-        }
-        self.shell.focus.set(self.saved_focus.take());
-        Outcome::Changed
-    }
-
-    /// The reference's keys while it is open; `None` when it is closed.
-    fn help_key(&mut self, key: Key) -> Option<Outcome> {
-        let h = self.help.as_mut()?;
-        let out = h.on_key(&key).or(Outcome::Consumed);
-        if h.closed {
-            return Some(self.close_help().or(out));
-        }
-        Some(out)
-    }
-
-    /// The modal layers' share of a pointer event: the open dialog or the
-    /// reference takes every event the router resolved (the page beneath
-    /// is unreachable behind their barrier); `None` when neither is open.
-    fn modal_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
-        // a click on the frame's backdrop is a click outside it
-        if (self.dialog.is_some() || self.help.is_some())
-            && ev.is(junie_tui::core::intent::Phase::Click)
-            && ev.id == junie_tui::ui::modal::BACKDROP
-        {
-            return Some(PointerHost::outside(self, ev.pos()).outcome());
-        }
-        if let Some(d) = self.dialog.as_mut() {
-            let out = d.pointer_in(ev, &mut self.shell.focus).outcome();
-            if d.result.is_some() {
-                return Some(self.close_dialog().or(out));
-            }
-            return Some(out);
-        }
-        let h = self.help.as_mut()?;
-        let out = h.route(ev).map_or(Outcome::Ignored, |r| r.outcome());
-        if h.closed {
-            return Some(self.close_help().or(out));
-        }
-        Some(out)
+    /// The layers' share of a pointer event: the top layer takes every
+    /// event the router resolved (the page beneath is unreachable behind
+    /// its barrier), and a click on its backdrop is an outside click
+    /// under its own policy (`ShellLayers::pointer`); `None` when no layer
+    /// is open.
+    fn layer_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
+        let dismiss = self.layers.top()?.layer.spec().dismiss;
+        Some(
+            match self
+                .layers
+                .pointer(ev, &mut self.shell.focus, &self.shell.ring, &())
+            {
+                LayerPointer::Handled(out) => self.settle_layer(out),
+                LayerPointer::Dismissed(d) => self.layer_dismissed(d, dismiss),
+            },
+        )
     }
 
     /// The shell's own targets: the header links, the footer hints and the
@@ -1791,19 +1840,10 @@ impl App {
         if self.inspector_overlay() {
             self.draw_inspector_overlay(area, buf, ctx);
         }
-        if let Some(d) = self.dialog.as_mut() {
-            // clear of the header and footer rows at least; a dialog that
-            // asks for more chrome (`Dialog::chrome`) gets it
-            let (top, bottom) = d.chrome;
-            d.render_in(
-                area,
-                junie_tui::widgets::dialog::body_bounds(area, top.max(1), bottom.max(1)),
-                buf,
-                ctx,
-            );
-        }
-        if let Some(h) = self.help.as_mut() {
-            h.render(area, buf, ctx);
+        // the layers, bottom first (a dialog keeps clear of the header and
+        // footer rows: `open_layer`)
+        for e in self.layers.iter_mut() {
+            e.layer.render(area, buf, ctx, &());
         }
     }
 
@@ -1974,7 +2014,7 @@ impl App {
     fn state_props(&self) -> Vec<junie_tui::widgets::props::Prop> {
         use junie_tui::widgets::props::Prop;
         let page = &self.pages[self.page.index()];
-        let mode = if self.dialog.is_some() {
+        let mode = if self.dialog().is_some() {
             "MODAL"
         } else if page.editing() {
             "EDIT"
@@ -2109,16 +2149,19 @@ impl App {
             .inspector
             .then(|| self.insp.hints(self.shell.focus.current()))
             .flatten();
-        if let Some(d) = self.dialog.as_ref() {
-            dialog_hints = Some(d.hints(self.shell.focus.current()));
-        } else if let Some(h) = self.help.as_ref() {
-            // the reference's own keys
-            use junie_tui::widgets::keyhint::Hint as KeyHint;
-            let mut own = vec![KeyHint::new("↑↓", "Scroll")];
-            if h.dismiss.escape {
-                own.push(KeyHint::new("Esc", "Close"));
-            }
-            dialog_hints = Some(own);
+        if let Some(top) = self.layers.top() {
+            dialog_hints = Some(match top.get::<HelpOverlay>() {
+                // the reference's own keys
+                Some(h) => {
+                    use junie_tui::widgets::keyhint::Hint as KeyHint;
+                    let mut own = vec![KeyHint::new("↑↓", "Scroll")];
+                    if h.dismiss.escape {
+                        own.push(KeyHint::new("Esc", "Close"));
+                    }
+                    own
+                }
+                None => top.layer.hints(self.shell.focus.current()),
+            });
         } else if let Some(own) = page.layer_hints(self.shell.focus.current()) {
             // a page's own layer (a picker, a form): its keys
             dialog_hints = Some(own);
@@ -2267,7 +2310,7 @@ impl PointerHost for App {
     }
 
     fn deliver(&mut self, ev: &PointerEvent) -> Response<()> {
-        let out = match self.modal_pointer(ev) {
+        let out = match self.layer_pointer(ev) {
             Some(out) => out,
             None => match self.chrome_pointer(ev) {
                 Some(out) => out,
@@ -2280,27 +2323,16 @@ impl PointerHost for App {
         out.into()
     }
 
-    /// A click on nothing: outside the open dialog or reference, it
-    /// dismisses it under its `Dismiss` policy (a refused click flashes
-    /// the frame).
+    /// A click on nothing: outside the open layer, it dismisses it under
+    /// its `Dismiss` policy (a refused click flashes the frame).
     fn outside(&mut self, _pos: ratatui::layout::Position) -> Response<()> {
-        let now = self.clock.now_ms();
-        if let Some(d) = self.dialog.as_mut() {
-            let out = d.on_click_outside();
-            if d.result.is_some() {
-                return self.close_dialog().or(out).into();
-            }
-            let dismiss = d.dismiss;
-            junie_tui::ui::modal::refuse_outside_click(&mut self.shell.pointer, dismiss, now);
-        }
-        if let Some(h) = self.help.as_mut() {
-            let reason = junie_tui::core::intent::DismissReason::OutsideClick;
-            if junie_tui::ui::layer::dismiss(h, reason).is_some() {
-                return self.close_help().into();
-            }
-            let dismiss = h.dismiss;
-            junie_tui::ui::modal::refuse_outside_click(&mut self.shell.pointer, dismiss, now);
-        }
+        let Some(dismiss) = self.layers.top().map(|e| e.layer.spec().dismiss) else {
+            return Response::changed();
+        };
+        let d = self
+            .layers
+            .dismiss(DismissReason::OutsideClick, &mut self.shell.focus);
+        self.layer_dismissed(d, dismiss);
         Response::changed()
     }
 }

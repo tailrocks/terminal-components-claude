@@ -353,7 +353,7 @@ fn grid_save_review_asks_for_the_table_name_before_it_saves() {
     h.key(KeyCode::Delete);
     assert_eq!(grid_page(&h).grid.pending.total(), 1);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
-    assert!(h.app.dialog.is_some(), "Ctrl+S opens the save review");
+    assert!(h.app.dialog().is_some(), "Ctrl+S opens the save review");
     assert!(h.text().contains("Save changes"), "{}", h.text());
     // Enter before the token is typed does not save
     h.key(KeyCode::Enter);
@@ -362,7 +362,7 @@ fn grid_save_review_asks_for_the_table_name_before_it_saves() {
         h.key(KeyCode::Char(c));
     }
     h.key(KeyCode::Enter);
-    assert!(h.app.dialog.is_none(), "{}", h.text());
+    assert!(h.app.dialog().is_none(), "{}", h.text());
     for _ in 0..6 {
         h.app.handle(Input::Tick);
     }
