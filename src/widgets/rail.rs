@@ -121,6 +121,36 @@ impl SidebarRail {
     }
 }
 
+/// The collapsed rail drawn alone, in a forced state, for a States grid
+/// ([`crate::ui::specimen`]): rest, hover and press on the rail, as tall
+/// as its glyph and label.
+impl crate::ui::specimen::Specimen for SidebarRail {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        self.collapsed_rail && matches!(state, Rest | Hover | Pressed)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        2 + self.label.chars().count() as u16
+    }
+
+    fn specimen(
+        &self,
+        _state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        crate::ui::ctx::fill(buf, area, ratatui::style::Style::new().bg(bg));
+        self.render_rail(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

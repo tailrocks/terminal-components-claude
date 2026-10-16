@@ -86,7 +86,7 @@ pub const SURFACES: &[Root] = &[
     // and shows an EmptyState naming the step that fills it. Each step
     // re-captures its page; pending first approval.
     Root::new("showcase/pages/statushints", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["wait:HintBar::resolve"]).pending(),
-    Root::new("showcase/planned/breadcrumbsrails", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["wait:arrives with SC5"]).pending(),
+    Root::new("showcase/pages/breadcrumbsrails", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["wait:RailAction::Expand"]).pending(),
     Root::new("showcase/planned/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     Root::new("showcase/planned/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     // SC9 filled Checks & radios: the page and its sections
@@ -186,6 +186,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/textutilities-states", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["tab", "3", "wait:Narrow labels"]).pending(),
     Root::new("showcase/sections/textutilities-width-8", Bin::Showcase, &["--page", "textutilities", "--opt", "textutilities.width=8", "--opt", "textutilities.duration=compact"], BOOT).sends(&["wait:width 8"]).pending(),
     Root::new("showcase/sections/textutilities-list-focus", Bin::Showcase, &["--page", "textutilities"], BOOT).click("Port").pending(),
+    Root::new("showcase/sections/breadcrumbsrails-options", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["tab", "2", "wait:Deep trail width"]).pending(),
+    Root::new("showcase/sections/breadcrumbsrails-states", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["tab", "3", "wait:Plain text"]).pending(),
+    Root::new("showcase/sections/breadcrumbsrails-collapsed", Bin::Showcase, &["--page", "breadcrumbsrails", "--opt", "breadcrumbsrails.collapsed=on"], BOOT).sends(&["wait:RailAction::Expand"]).pending(),
+    Root::new("showcase/sections/breadcrumbsrails-narrow-trail", Bin::Showcase, &["--page", "breadcrumbsrails", "--opt", "breadcrumbsrails.width=20"], BOOT).sends(&["wait:width 20"]).pending(),
+    Root::new("showcase/elements/breadcrumbs/crumb-hover", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).hover("Users ›").pending(),
+    Root::new("showcase/elements/rails/collapse-hover", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).hover("‹").pending(),
     // Overview (SC3): the theme explorer's options and every Kind on a plane.
     Root::new("showcase/sections/overview-options", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "2", "wait:State modifiers"]).pending(),
     Root::new("showcase/sections/overview-states", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "3", "wait:Cursor fill"]).pending(),
