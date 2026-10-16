@@ -117,10 +117,18 @@ fix, with the reason.
    stop, ←/→ through `Cursor` skipping disabled items unless
    `skip_disabled(false)`, Home/End, Enter/Space run or flip a toggle,
    shortcuts and tips, separators, the one `▎` on the cursor item).
-   Follow-up, not built: an overflow menu. Items that do not fit are not
-   drawn, so an app gives the toolbar its `width()`; a `»` menu of the
-   hidden items (as `Tabs` has `+N`) belongs with the S5 overflow work.
-   The States grid has no overflow row for that reason.
+   Fixed since (nav follow-ups): items that did not fit were silently not
+   drawn, so keyboard and mouse users lost commands (APG toolbar, WCAG
+   2.1.1). They now go behind an overflow `»` `IconButton`, the last
+   ←/→ stop, whose `ContextMenu` (overlay layer) lists them with
+   shortcuts, toggle state and disabled reasons; `Toolbar::overflow`,
+   `more_button` and `more_glyph` override it. The Toolbars page shows it
+   in a Narrow toolbar card, `toolbars.overflow` and an Overflow States
+   row. The toolbar owns its menu over the shared `ContextMenu`, the way
+   S5 left `Tabs` `+N`, `ChipBar` and `MenuBar` `»` (S5 added no shared
+   overflow helper); a later one moves all four together. Proof:
+   `toolbar::tests::items_that_do_not_fit_go_behind_an_overflow_button_at_the_end`,
+   `app_tests_toolbars::the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu`.
 
 ## SC5 Breadcrumbs & rails
 

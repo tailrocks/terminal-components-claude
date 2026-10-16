@@ -3363,6 +3363,22 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::toolbar::Toolbar::gap",
         Option("toolbars", "toolbars.gap"),
     ),
+    (
+        "widgets::toolbar::Toolbar::overflow",
+        Option("toolbars", "toolbars.overflow=off"),
+    ),
+    (
+        "widgets::toolbar::Toolbar::more_glyph",
+        Option("toolbars", "toolbars.overflow=…"),
+    ),
+    (
+        "widgets::toolbar::Toolbar::more_button",
+        Demo("toolbars", "Narrow toolbar"),
+    ),
+    (
+        "widgets::toolbar::ToolItem::reason",
+        Demo("toolbars", "No query is running"),
+    ),
     // ---- Breadcrumbs & rails (SC5)
     (
         "widgets::breadcrumb::Breadcrumb",
