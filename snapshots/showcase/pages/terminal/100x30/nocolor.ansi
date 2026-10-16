@@ -3,16 +3,16 @@
  [0m[1mComponents[0m      25  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step… [0m
                                                                                                     [0m
     Overview         ╭─ Viewport ─────────── 37 lines · following ─╮ │  Step rail           7 of 7  [0m
-  ▸ App shell        │  [0m[2m  #4 RUN cargo build --release           [0m│ │ │                              [0m
-  ▸ Inputs & forms   │    #5 RUN apt-get install -y build-essent │ │ │   ✓ 01 Resolve wor…  0.8 s   [0m
-  ▸ Tables           │    #6 COPY rust-toolchain.toml ./         │ │ │   ✓ 02 Pull base i…  2.1 s   [0m
-  ▸ Navigation       │    #7 RUN cargo fetch --locked            │ │ │   ✓ 03 Build conta…  3.2 s   [0m
-  ▸ Overlays         │    #8 RUN cargo build --release           │ │ │     04 Mount sour…  cached   [0m
-  ▸ Feedback         │    #9 RUN apt-get install -y build-essent │ │ │   ✓ 05 Resolve cre…  1.4 s   [0m
-  ▸ Layout           │    #10 COPY rust-toolchain.toml ./        │ │ │   ✓ 06 Start agent   1.1 s   [0m
-  ▾ Text & code      │    #11 RUN cargo fetch --locked           │ │ │   ✓ 07 Ready         0.1 s   [0m
-      Code editor    │    #12 RUN cargo build --release          │ │ │                              [0m
-      Diff           │    #13 RUN apt-get install -y build-essen │ │ │                              [0m
+  ▸ App shell        │  [0m[2m  #4 RUN cargo build --release           [0m┆ │ │                              [0m
+  ▸ Inputs & forms   │    #5 RUN apt-get install -y build-essent ┆ │ │   ✓ 01 Resolve wor…  0.8 s   [0m
+  ▸ Tables           │    #6 COPY rust-toolchain.toml ./         ┆ │ │   ✓ 02 Pull base i…  2.1 s   [0m
+  ▸ Navigation       │    #7 RUN cargo fetch --locked            ┆ │ │   ✓ 03 Build conta…  3.2 s   [0m
+  ▸ Overlays         │    #8 RUN cargo build --release           ┆ │ │     04 Mount sour…  cached   [0m
+  ▸ Feedback         │    #9 RUN apt-get install -y build-essent ┆ │ │   ✓ 05 Resolve cre…  1.4 s   [0m
+  ▸ Layout           │    #10 COPY rust-toolchain.toml ./        ┆ │ │   ✓ 06 Start agent   1.1 s   [0m
+  ▾ Text & code      │    #11 RUN cargo fetch --locked           ┆ │ │   ✓ 07 Ready         0.1 s   [0m
+      Code editor    │    #12 RUN cargo build --release          ┆ │ │                              [0m
+      Diff           │    #13 RUN apt-get install -y build-essen ┆ │ │                              [0m
  [0m[1m▎  › Terminal     [0m  │    #14 COPY rust-toolchain.toml ./        ┃ │ │                              [0m
   ▸ Screens          │  ✓ Build container                        ┃ │ │                              [0m
                      │  [0m[1m▶ Resolve credentials[0m                    ┃ │ │                              [0m
@@ -24,7 +24,7 @@
                      │  [0m[1m▶ Ready[0m                                  ┃ │ │                              [0m
                      │  ✓ Ready                                  ┃ │ │                              [0m
                      │  [0m[1mpayments-platform ❯ [0m                     ┃ │ │                              [0m
-                     │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────  │ │   [0m[1;7mRun [0m   Run with a failu…   [0m
+                     │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ │   [0m[1;7mRun [0m   Run with a failu…   [0m
                      ╰─────────────────────────────────────────────╯ │                              [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m

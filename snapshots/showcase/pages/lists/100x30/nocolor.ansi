@@ -14,11 +14,11 @@
   ▸ Feedback              Java             ┃         docs/webhooks.md        No results for “retr…  [0m
   ▸ Layout                Swift            ┃         src/workers/maile…                             [0m
   ▸ Text & code           C#               ┃         src/config.rs                                  [0m
-  ▸ Screens               Ruby             │         README.md                                      [0m
-                          Scala            │         src/main.rs                                    [0m
-                          Elixir           │         tests/auth_f… new                              [0m
-                          Haskell          │         src/db/pool.rs                                 [0m
-                       [0m[2m   Zig              [0m│                                                        [0m
+  ▸ Screens               Ruby             ┆         README.md                                      [0m
+                          Scala            ┆         src/main.rs                                    [0m
+                          Elixir           ┆         tests/auth_f… new                              [0m
+                          Haskell          ┆         src/db/pool.rs                                 [0m
+                       [0m[2m   Zig              [0m┆                                                        [0m
                                                                                                     [0m
                                                                                                     [0m
                                                                                                     [0m

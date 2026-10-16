@@ -4,17 +4,17 @@
                                                                         [0m
     Overview           Wrapped text      Long list         Log          [0m
   ▸ App shell                                                           [0m
-  ▸ Inputs & forms     Junie      ┃         Row 001 ┃      [0m[2m 736.30s… [0m│  [0m
-  ▸ Tables             works      │         Row 002 │       736.67s… │  [0m
-  ▸ Navigation         through a  │         Row 003 │       737.04s… │  [0m
-  ▸ Overlays           task the   │         Row 004 │       737.41s… │  [0m
-  ▸ Feedback           way a      │         Row 005 │       737.78s… │  [0m
-  ▾ Layout             careful    │         Row 006 │       738.15s… │  [0m
-      Panels           engineer   │         Row 007 │       738.52s… │  [0m
- [0m[1m▎  › Scrolling    [0m    would: it  │         Row 008 │       738.89s… │  [0m
-  ▸ Text & code        reads the  │         Row 009 │       739.26s… │  [0m
-  ▸ Screens            relevant   │         Row 010 │       739.63s… ┃  [0m
-                       [0m[2mcode,      [0m│      [0m[2m   Row 011 [0m│      ━─────────   [0m
+  ▸ Inputs & forms     Junie      ┃         Row 001 ┃      [0m[2m 736.30s… [0m┆  [0m
+  ▸ Tables             works      ┆         Row 002 ┆       736.67s… ┆  [0m
+  ▸ Navigation         through a  ┆         Row 003 ┆       737.04s… ┆  [0m
+  ▸ Overlays           task the   ┆         Row 004 ┆       737.41s… ┆  [0m
+  ▸ Feedback           way a      ┆         Row 005 ┆       737.78s… ┆  [0m
+  ▾ Layout             careful    ┆         Row 006 ┆       738.15s… ┆  [0m
+      Panels           engineer   ┆         Row 007 ┆       738.52s… ┆  [0m
+ [0m[1m▎  › Scrolling    [0m    would: it  ┆         Row 008 ┆       738.89s… ┆  [0m
+  ▸ Text & code        reads the  ┆         Row 009 ┆       739.26s… ┆  [0m
+  ▸ Screens            relevant   ┆         Row 010 ┆       739.63s… ┃  [0m
+                       [0m[2mcode,      [0m┆      [0m[2m   Row 011 [0m┆      ━┄┄┄┄┄┄┄┄┄   [0m
                                                                         [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m

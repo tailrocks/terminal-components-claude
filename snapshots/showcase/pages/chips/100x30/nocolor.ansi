@@ -14,18 +14,18 @@
   ▸ Navigation           Sort by                 Page size               Engine                    ┃[0m
   ▸ Overlays             created_at        ▾     50                ▾   [0m[2m  PostgreSQL           ▾ [0m   ┃[0m
   ▸ Feedback             Applies to the next…                            Fixed by the connection   ┃[0m
-  ▸ Layout                                                                                         │[0m
-  ▸ Text & code                                                                                    │[0m
-  ▸ Screens                                                                                        │[0m
-                                                                                                   │[0m
-                       Segment strip                                                               │[0m
-                                                                                                   │[0m
-                         ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m     3 pending  ? help     │[0m
-                                                                                                   │[0m
-                         ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  [0m[1msafe[0m                                               │[0m
-                       the same strip at 44 columns: low-priority segments leave first, from th…   │[0m
-                                                                                                   │[0m
-                                                                                                   │[0m
+  ▸ Layout                                                                                         ┆[0m
+  ▸ Text & code                                                                                    ┆[0m
+  ▸ Screens                                                                                        ┆[0m
+                                                                                                   ┆[0m
+                       Segment strip                                                               ┆[0m
+                                                                                                   ┆[0m
+                         ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m     3 pending  ? help     ┆[0m
+                                                                                                   ┆[0m
+                         ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  [0m[1msafe[0m                                               ┆[0m
+                       the same strip at 44 columns: low-priority segments leave first, from th…   ┆[0m
+                                                                                                   ┆[0m
+                                                                                                   ┆[0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l

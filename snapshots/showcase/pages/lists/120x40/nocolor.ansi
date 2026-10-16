@@ -14,11 +14,11 @@
   ▸ Feedback                   Java                  ┃         docs/webhook… modified         No results for “retry”    [0m
   ▸ Layout                     Swift                 ┃         src/workers/… modified                                   [0m
   ▸ Text & code                C#                    ┃         src/config.rs modified                                   [0m
-  ▸ Screens                    Ruby                  │         README.md     modified                                   [0m
-                               Scala                 │         src/main.rs   modified                                   [0m
-                               Elixir                │         tests/auth_flow.rs new                                   [0m
-                               Haskell               │         src/db/pool.… modified                                   [0m
-                            [0m[2m   Zig                   [0m│                                                                  [0m
+  ▸ Screens                    Ruby                  ┆         README.md     modified                                   [0m
+                               Scala                 ┆         src/main.rs   modified                                   [0m
+                               Elixir                ┆         tests/auth_flow.rs new                                   [0m
+                               Haskell               ┆         src/db/pool.… modified                                   [0m
+                            [0m[2m   Zig                   [0m┆                                                                  [0m
                                                                                                                         [0m
                                                                                                                         [0m
                                                                                                                         [0m
