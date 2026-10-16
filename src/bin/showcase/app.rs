@@ -630,7 +630,7 @@ impl App {
 
     fn open_help(&mut self) {
         let text = "Tab / Shift+Tab   move keyboard focus\n\
-                    ↑ ↓ ← →           move inside the focused control\n\
+                    ↑↓←→              move inside the focused control\n\
                     Enter / Space     activate · start editing\n\
                     Esc               cancel editing · back to navigation\n\
                     [ ]               previous / next page\n\
@@ -1216,7 +1216,7 @@ impl App {
         if let Some(d) = self.dialog.as_ref() {
             dialog_hints = Some(d.hints(self.focus.current()));
         } else if self.focus.is(NAV) {
-            hints.push(("↑ ↓", "Move"));
+            hints.push(("↑↓", "Move"));
             hints.push(("Enter", "Open"));
             hints.push(("Tab", "Into page"));
             hints.push(("q", "Quit"));

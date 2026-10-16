@@ -385,7 +385,7 @@ impl Page for FormsPage {
             ];
         }
         match focus {
-            Some(f) if f == self.mode.id => vec![("↑ ↓", "Choose"), ("Ctrl+S", "Submit")],
+            Some(f) if f == self.mode.id => vec![("↑↓", "Choose"), ("Ctrl+S", "Submit")],
             Some(f)
                 if f == self.run_tests.id || f == self.open_pr.id || f == self.auto_approve.id =>
             {

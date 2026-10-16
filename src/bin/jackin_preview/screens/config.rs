@@ -1162,7 +1162,7 @@ impl ConfigTabs {
                 v.push(hint("a", "Add…"));
             }
             (Tab::Environments, Some(RowKey::Section(Some(_)))) => {
-                v.push(hint("← →", "Fold role"));
+                v.push(hint("←→", "Fold role"));
                 v.push(hint("a", "Add…"));
             }
             (Tab::Environments, Some(RowKey::AddRoleOverride | RowKey::RoleSummary)) => {

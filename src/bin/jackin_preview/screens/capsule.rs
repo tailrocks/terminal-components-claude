@@ -2479,7 +2479,7 @@ impl Screen for CapsuleScreen {
         }
         if self.menubar.is_open() {
             return vec![
-                hint("← →", "Menu"),
+                hint("←→", "Menu"),
                 hint("↑↓", "Move"),
                 hint("Enter", "Choose"),
                 hint("Esc", "Close"),
@@ -2687,7 +2687,7 @@ impl CustomModal for UsageDialog {
         vec![
             hint("r", "Refresh"),
             hint("Tab", "Tabs / body"),
-            hint("← →", "Provider"),
+            hint("←→", "Provider"),
             hint("Esc", "Close"),
         ]
     }

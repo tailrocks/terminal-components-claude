@@ -135,8 +135,8 @@ impl Page for TreesPage {
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
         vec![
-            ("↑ ↓", "Move"),
-            ("← →", "Fold / unfold"),
+            ("↑↓", "Move"),
+            ("←→", "Fold / unfold"),
             ("Enter", "Open"),
             ("*", "Expand all"),
         ]

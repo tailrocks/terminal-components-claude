@@ -2547,7 +2547,7 @@ impl Screen for AccountsScreen {
         }
         if self.actions.iter().any(|b| Some(b.id) == focus) {
             return vec![
-                hint("← →", "Choose"),
+                hint("←→", "Choose"),
                 hint("Enter", "Run"),
                 hint("Esc", "Back"),
             ];
