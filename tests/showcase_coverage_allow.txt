@@ -130,7 +130,6 @@ core::pointer::PointerState | State tab readout of the library dispatcher: shown
 core::pointer::PointerEvent | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::pointer::PointerParts | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::pointer::PointerRouter | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
-widgets::hintbar::HintKeys | the showcase footer becomes clickable when its shell moves onto PointerRouter (S6 showcase commit) | SC4
 
 # core::response
 core::response::Flow | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
