@@ -9,7 +9,7 @@
 //! FormDialog drew bars that lit up on hover but had no handler (mouse
 //! audit M17).
 
-use junie_tui::core::event::Outcome;
+use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::{Axis, Bar, HitRegistry};
 use junie_tui::core::id::WidgetId;
@@ -35,6 +35,7 @@ use junie_tui::widgets::textarea::TextArea;
 use junie_tui::widgets::tree::{TreeNode, TreeView};
 use junie_tui::widgets::viewport::{Span, TextViewport};
 use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Constraint, Position, Rect};
 
 const SCREEN: Rect = Rect::new(0, 0, 60, 16);
@@ -214,6 +215,125 @@ fn tables_and_grids_step_one_column_per_sideways_notch() {
     let mut narrow = DataTable::new(WidgetId::of("n"), cols, vec![vec![Cell::new("x")]]);
     frame(|a, b, c| narrow.render(a, b, c, Theme::junie().surface));
     assert_eq!(narrow.on_wheel_h(1), Outcome::Ignored);
+}
+
+/// Draw one frame into a buffer and return its text, one line per row.
+fn screen(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> Vec<String> {
+    let theme = Theme::junie();
+    let mut hits = HitRegistry::default();
+    let mut ring = FocusRing::default();
+    let mut buf = Buffer::empty(SCREEN);
+    {
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        draw(SCREEN, &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
+    }
+    (0..SCREEN.height)
+        .map(|y| {
+            (0..SCREEN.width)
+                .map(|x| buf[(x, y)].symbol().to_string())
+                .collect()
+        })
+        .collect()
+}
+
+/// Narrow columns first, then wider ones, then one wider than the view.
+const STEP_WIDTHS: [u16; 10] = [6, 6, 6, 6, 6, 6, 30, 30, 40, 70];
+
+fn right() -> Key {
+    Key {
+        code: KeyCode::Right,
+        mods: KeyModifiers::NONE,
+    }
+}
+
+/// After each Right the cursor column is drawn whole: it lies in the
+/// columns that fit, or (wider than the view) starts the view, and its
+/// header is on screen. Before T3 the offset was worked out from the
+/// previous offset's column count, so the move onto the 30-cell column
+/// left it off screen.
+fn assert_cursor_column_whole(name: &str, offset: usize, fit: usize, cursor: usize, top: &str) {
+    assert!(
+        offset <= cursor && (cursor < offset + fit || cursor == offset),
+        "{name}: cursor column {cursor} outside columns {offset}..{}\n{top}",
+        offset + fit
+    );
+    let label = format!("h{cursor}x");
+    assert!(top.contains(&label), "{name}: {label} not drawn\n{top}");
+}
+
+#[test]
+fn moving_right_keeps_the_table_cursor_column_whole() {
+    let cols = STEP_WIDTHS
+        .iter()
+        .enumerate()
+        .map(|(i, &w)| Column::new(&format!("h{i}x"), Constraint::Length(w)))
+        .collect();
+    let rows = vec![
+        (0..STEP_WIDTHS.len())
+            .map(|c| Cell::new(format!("v{c}")))
+            .collect(),
+    ];
+    let mut t = DataTable::new(WidgetId::of("table"), cols, rows).cell_nav(true);
+    screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
+    for _ in 1..STEP_WIDTHS.len() {
+        t.on_key(&right());
+        let lines = screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
+        let h = t.scroll.h;
+        assert_cursor_column_whole(
+            "DataTable",
+            h.offset,
+            h.viewport_len,
+            t.cursor_col,
+            &lines[0],
+        );
+    }
+    assert_eq!(
+        t.scroll.h.offset,
+        STEP_WIDTHS.len() - 1,
+        "wider than the view: its start"
+    );
+}
+
+#[test]
+fn moving_right_keeps_the_grid_cursor_column_whole() {
+    let cols = (0..STEP_WIDTHS.len())
+        .map(|i| ColumnSpec::new(&format!("h{i}x"), CellKind::Text))
+        .collect();
+    let mut g = DataGrid::new(WidgetId::of("grid"), cols);
+    let row = STEP_WIDTHS
+        .iter()
+        .map(|&w| CellValue::Text("w".repeat(w as usize)))
+        .collect();
+    g.set_rows(GridRows {
+        rows: vec![row],
+        total: RowTotal::Exact(1),
+        more: false,
+    });
+    screen(|a, b, c| g.render(a, b, c, Theme::junie().surface));
+    for _ in 1..STEP_WIDTHS.len() {
+        g.on_key(&right());
+        let lines = screen(|a, b, c| g.render(a, b, c, Theme::junie().surface));
+        let h = g.scroll.h;
+        assert_cursor_column_whole("DataGrid", h.offset, h.viewport_len, g.cursor.1, &lines[0]);
+    }
+}
+
+/// A sideways wheel after a keyboard move is the user's: the next frame
+/// does not pull the cursor column back into view.
+#[test]
+fn a_sideways_notch_after_a_move_is_not_undone() {
+    let mut t = wide_table().cell_nav(true);
+    screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
+    t.on_key(&right());
+    screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
+    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
+    screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
+    assert_eq!(t.scroll.h.offset, 1);
+    assert_eq!(t.cursor_col, 1);
+    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
+    screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
+    assert_eq!(t.scroll.h.offset, 2, "the cursor column may leave the view");
 }
 
 fn long_lines(n: usize) -> Vec<String> {
