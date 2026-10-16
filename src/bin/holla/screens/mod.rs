@@ -85,10 +85,7 @@ pub enum Go {
         args: Vec<(String, String)>,
     },
     /// Show the alternatives menu for an item at an anchor.
-    Alternatives {
-        item: String,
-        anchor: Rect,
-    },
+    Alternatives { item: String, anchor: Rect },
     /// Push a page onto the Here tab.
     Push(Page),
     /// Pop the top page of the Here tab.
@@ -102,17 +99,13 @@ pub enum Go {
     /// A gate-1 page was accepted for a plan or an item.
     Gate1Accepted(GateTarget),
     /// A trust page accepted a configuration.
-    Trusted {
-        config: String,
-        then: String,
-    },
+    Trusted { config: String, then: String },
     /// Build the cleanup plan for the selected candidates and review it.
     CleanupPlan(Vec<String>),
     /// Restart an activity in place (a failed launch's retry).
     Restart(String),
     /// Close the active tab (asks when something runs).
     CloseTab,
-    Quit,
     /// Re-read the project configuration (an edit was simulated).
     Reload,
     /// Run an ad-hoc typed command as an activity (an OS opener, a reveal).

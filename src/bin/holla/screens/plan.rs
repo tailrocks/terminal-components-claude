@@ -1363,10 +1363,11 @@ impl Screen for PlanTab {
                     )
                     .cancel_label("Keep running");
                     cx.open(Modal::Dialog(d), ModalTag::new("cancel-plan"));
+                    Outcome::Changed
                 } else {
-                    cx.status("The plan is not running");
+                    // nothing to cancel: the shell's quit guard takes it
+                    Outcome::Ignored
                 }
-                Outcome::Changed
             }
             KeyCode::Char('x') => {
                 cx.go(Go::CloseTab);
