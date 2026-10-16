@@ -95,6 +95,145 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
+    // SC24: Code editor
+    ("widgets::code::Severity", StateRow("codeeditor", "error")),
+    (
+        "widgets::code::Severity::Error",
+        StateRow("codeeditor", "error"),
+    ),
+    (
+        "widgets::code::Severity::Warning",
+        Demo("codeeditor", "unused variable"),
+    ),
+    ("widgets::code::Diagnostic", StateRow("codeeditor", "error")),
+    (
+        "widgets::code::FindState",
+        Demo("codeeditor", "Find closed"),
+    ),
+    (
+        "widgets::code::CodeCmd",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeCmd::Edit",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeCmd::Append",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeCmd::PrevBlock",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeCmd::NextBlock",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeCmd::Find",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeCmd::NextMatch",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeCmd::PrevMatch",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeEditor::edit_entry",
+        Option("codeeditor", "codeeditor.edit_entry"),
+    ),
+    (
+        "widgets::code::CodeEditor::esc_reverts",
+        Option("codeeditor", "codeeditor.esc_reverts"),
+    ),
+    (
+        "widgets::code::CodeEditor::tab_leaves",
+        Option("codeeditor", "codeeditor.tab_leaves"),
+    ),
+    (
+        "widgets::code::CodeEditor::text_keymap",
+        Option("codeeditor", "codeeditor.text_keymap"),
+    ),
+    (
+        "widgets::code::CodeEditor::field_keys",
+        Option("codeeditor", "codeeditor.field_keys"),
+    ),
+    (
+        "widgets::code::CodeEditor::nav",
+        Option("codeeditor", "codeeditor.nav"),
+    ),
+    (
+        "widgets::code::CodeEditor::keymap",
+        Option("codeeditor", "codeeditor.keymap"),
+    ),
+    (
+        "widgets::code::CodeEditor::scrollbar_gap",
+        Option("codeeditor", "codeeditor.scrollbar_gap"),
+    ),
+    (
+        "widgets::code::CodeEditor::horizontal",
+        Option("codeeditor", "codeeditor.horizontal"),
+    ),
+    (
+        "widgets::code::CodeEditor::highlighter",
+        Option("codeeditor", "codeeditor.highlighter"),
+    ),
+    (
+        "widgets::code::CodeEditor::segmenter",
+        Option("codeeditor", "codeeditor.segmenter"),
+    ),
+    (
+        "widgets::code::CodeEditor::read_only",
+        Option("codeeditor", "codeeditor.read_only"),
+    ),
+    (
+        "widgets::code::CodeEditor::placeholder",
+        Option("codeeditor", "codeeditor.document=empty"),
+    ),
+    (
+        "widgets::code::CodeEditor::track_click",
+        Option("codeeditor", "codeeditor.track_click"),
+    ),
+    (
+        "widgets::completion::CompletionItem",
+        Option("codeeditor", "codeeditor.completion_rows"),
+    ),
+    (
+        "widgets::completion::Completion",
+        Option("codeeditor", "codeeditor.completion_rows"),
+    ),
+    (
+        "widgets::completion::Completion::nav",
+        Option("codeeditor", "codeeditor.completion_nav"),
+    ),
+    (
+        "widgets::completion::Completion::max_rows",
+        Option("codeeditor", "codeeditor.completion_rows"),
+    ),
+    (
+        "widgets::completion::Completion::popup_width",
+        Option("codeeditor", "codeeditor.completion_width"),
+    ),
+    (
+        "widgets::completion::Completion::placement",
+        Option("codeeditor", "codeeditor.completion_placement"),
+    ),
+    (
+        "widgets::completion::Completion::fit",
+        Option("codeeditor", "codeeditor.completion_fit"),
+    ),
+    (
+        "widgets::completion::Completion::cursor_style",
+        Option("codeeditor", "codeeditor.completion_cursor"),
+    ),
+    (
+        "widgets::completion::Completion::dismiss",
+        Option("codeeditor", "codeeditor.completion_dismiss"),
+    ),
     // SC23: Splits & stacks
     (
         "ui::layout::SplitDir",

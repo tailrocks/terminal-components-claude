@@ -44,6 +44,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/sidebars", Bin::Showcase, &["--page", "sidebars"], BOOT),
     Root::new("showcase/pages/dialogs", Bin::Showcase, &["--page", "dialogs"], BOOT),
     Root::new("showcase/pages/codeeditor", Bin::Showcase, &["--page", "codeeditor"], BOOT),
+    // SC24: the Code editor's sections, a read-only editor and the
+    // completion popup above the line
+    Root::new("showcase/sections/codeeditor-options", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "2", "wait:Command keys"]).pending(),
+    Root::new("showcase/sections/codeeditor-states", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "3", "wait:expected an item"]).pending(),
+    Root::new("showcase/flows/codeeditor/read-only", Bin::Showcase, &["--page", "codeeditor", "--opt", "codeeditor.read_only=on"], BOOT).sends(&["wait:read-only"]).pending(),
+    Root::new("showcase/flows/codeeditor/plain", Bin::Showcase, &["--page", "codeeditor", "--opt", "codeeditor.highlighter=off", "--opt", "codeeditor.segmenter=off"], BOOT).sends(&["wait:0 blocks"]).pending(),
     Root::new("showcase/pages/datagrid", Bin::Showcase, &["--page", "datagrid"], BOOT),
     Root::new("showcase/pages/chips", Bin::Showcase, &["--page", "chipsselects"], BOOT),
     // SC10: the Chips & selects sections, a narrow chip bar with its +N
@@ -300,7 +306,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/chrome/context", Bin::Showcase, &["--page", "chrome"], BOOT).live(interact::chrome_context).dismiss_pending(),
     // S7: two typed characters open the completion popup (focus starts the
     // edit, EditEntry::Immediate, 1da20cc01).
-    Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "type:cl", "wait:Client"]).dismiss_pending(),
+    Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "tab", "type:cl", "wait:Client"]).dismiss_pending(),
     // datagrid_preview: `p` opens the Pending changes facts dialog with the
     // exact UPDATE statements.
     // SC12: Ctrl+S opens the save review (typed token `customers`) before
@@ -379,11 +385,11 @@ pub const JOURNEYS: &[Root] = &[
     // editor_diag: `}` jumps to the second block, Ctrl+R runs it; the run is 10
     // ticks of 80 ms, then finish_run flags the unwrap() warning — the `77 ms`
     // is computed (40 + 1·37), not measured, so the wait needle is exact.
-    Root::new("showcase/flows/editor/diag", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "}", "ctrl-r", "wait:Block ran in 77 ms"]),
+    Root::new("showcase/flows/editor/diag", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "tab", "}", "ctrl-r", "wait:Block ran in 77 ms"]),
     // editor_running: the in-flight run pinned — Ctrl+R sets run_ticks=10 and
     // the running block, paused motion never decrements it, and the gutter
     // spinner reads interaction.tick (code.rs:748), frozen at frame 0.
-    Root::new("showcase/flows/editor/running", Bin::Showcase, &["--page", "codeeditor", "--motion", "paused"], BOOT).sends(&["tab", "}", "ctrl-r"]),
+    Root::new("showcase/flows/editor/running", Bin::Showcase, &["--page", "codeeditor", "--motion", "paused"], BOOT).sends(&["tab", "tab", "}", "ctrl-r"]),
     Root::new("showcase/flows/datagrid/pending", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(GRID_EDITS),
     // datagrid_failed: the "server" rejects seats > 500 (grid.rs finish_commit)
     // — deterministic: row 1001 is marked `!`, row 1002 stays `•`. The 4-tick
