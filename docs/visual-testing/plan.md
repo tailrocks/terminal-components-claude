@@ -119,6 +119,7 @@ so the first re-capture is reviewable as a diff against old frames.
 | `TZ` | `UTC` | Any rendered time. |
 | `HOME`, cwd | both `target/tuiscotti/home/<scenario name>`, emptied before each spawn | No history or config leaks; nothing an earlier run left reaches the app. |
 | `SHELL` | `/bin/sh` | The PTY layer sets it from the user account even after `env_clear`. |
+| `JUNIE_TUI_CLIENT_PLATFORM` | `macos` | Client-platform hints (Option+click) would otherwise follow the build OS, macOS locally and Linux in CI. |
 | App noise | `HOLLA_NO_HISTORY=1`; never set `HOLLA_NO_MOTION`, `JACKIN_NO_MOTION`, `CLICOLOR_FORCE`, `FORCE_COLOR` | Same policy as today. |
 | Motion | `--motion paused --frame N` wherever the binary has motion | Deterministic frames. |
 | **New: tablepro** | add `--motion full\|reduced\|paused` and `--frame N` | tablepro has no determinism flags today (T6). |
@@ -133,6 +134,7 @@ could change between runs, and where each one stands:
 | Random ids and data | none: tablepro rows and UUIDs come from a SplitMix64 stream seeded per table (`db.rs`); `HashMap`/`HashSet` are only looked up, never iterated into output | no seed flag needed |
 | `Instant::now` | runtime tick timer and input coalescing, type-ahead reset, showcase/tablepro press-flash and status expiry | decides *when* a frame is drawn, never its content; flash and status only expire on a tick, which `--motion paused` stops |
 | Spinners and animations | tick-driven in all four apps (`--motion paused --frame N` freezes them; jackin rain and holla spinners included) | captures settle on a quiet window; rows with live motion use paused or content-gated waits |
+| Build OS | `core::event::ClientPlatform` falls back to `target_os` without terminal variables (85cec55af), so Option+click vs Ctrl+click hints followed the machine | captures pin `JUNIE_TUI_CLIENT_PLATFORM=macos`; `target_os` uses are a reviewed list in the guard |
 | Parent environment | see the `HOME`/`SHELL` rows above | `isolation::env_isolation` |
 
 Guards: `determinism::sources_are_deterministic` (default run) fails on
