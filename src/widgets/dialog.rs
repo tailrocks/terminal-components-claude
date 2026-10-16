@@ -72,6 +72,10 @@ pub struct Dialog {
     pub initial_focus: WidgetId,
     /// How the dialog closes without an action (Esc, backdrop click).
     pub dismiss: Dismiss,
+    /// The `×` in the top border while [`Self::dismiss`] shows one (id
+    /// always [`crate::ui::modal::CLOSE`]). Default
+    /// [`IconButton::close`](crate::widgets::icon_button::IconButton::close).
+    pub close_button: crate::widgets::icon_button::IconButton,
     /// The action a typed acknowledgement arms: disabled, and refused even
     /// if triggered, until the token matches. `None`: nothing is gated.
     pub confirm_index: Option<usize>,
@@ -318,6 +322,7 @@ impl Dialog {
             result: None,
             initial_focus: ok_id,
             dismiss: Dismiss::LIGHT,
+            close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
             confirm_index: None,
             body_scroll: true,
             max_height: None,
@@ -363,6 +368,7 @@ impl Dialog {
             result: None,
             initial_focus: cancel_id,
             dismiss: Dismiss::LIGHT,
+            close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
             confirm_index: None,
             body_scroll: true,
             max_height: None,
@@ -409,6 +415,7 @@ impl Dialog {
             result: None,
             initial_focus: input_id,
             dismiss: Dismiss::LIGHT,
+            close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
             confirm_index: None,
             body_scroll: true,
             max_height: None,
@@ -496,6 +503,7 @@ impl Dialog {
             } else {
                 Dismiss::LIGHT
             },
+            close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
             confirm_index: token.map(|_| 1),
             body_scroll: true,
             max_height: None,
@@ -663,6 +671,12 @@ impl Dialog {
     /// Set how the dialog closes without an action.
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
+        self
+    }
+
+    /// See [`Self::close_button`].
+    pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
+        self.close_button = button;
         self
     }
 
@@ -1277,7 +1291,7 @@ impl Dialog {
         ratatui::widgets::Widget::render(block, area, buf);
         let _ = panel;
         let close = if self.dismiss.shows_close() {
-            crate::ui::modal::close_button(area, buf, ctx, bg)
+            crate::ui::modal::close_button_with(&self.close_button, area, buf, ctx, bg)
         } else {
             Rect::ZERO
         };
