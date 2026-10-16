@@ -361,10 +361,16 @@ impl Theme {
             st = st.add_modifier(Modifier::BOLD);
         }
         if s.pressed {
-            st = Style::new()
-                .fg(self.canvas)
-                .bg(self.text_primary)
+            // pressed is the strongest neutral plane, never an inverted
+            // flood: widgets re-tint row text (values, markers, tones) after
+            // calling this, and on a white fill white text vanishes
+            st = st
+                .fg(self.text_primary)
+                .bg(self.popover)
                 .add_modifier(Modifier::BOLD);
+            if self.level == ColorLevel::Mono {
+                st = st.add_modifier(Modifier::REVERSED);
+            }
         }
         st
     }
@@ -667,6 +673,50 @@ fn nearest_16(r: u8, g: u8, b: u8) -> Color {
 
 #[cfg(test)]
 mod tests {
+
+    fn luminance(c: Color) -> f64 {
+        let Color::Rgb(r, g, b) = c else {
+            panic!("truecolor expected, got {c:?}")
+        };
+        let ch = |v: u8| {
+            let v = v as f64 / 255.0;
+            if v <= 0.03928 {
+                v / 12.92
+            } else {
+                ((v + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+    }
+
+    fn contrast(a: Color, b: Color) -> f64 {
+        let (x, y) = (luminance(a), luminance(b));
+        (x.max(y) + 0.05) / (x.min(y) + 0.05)
+    }
+
+    #[test]
+    fn row_text_stays_readable_in_every_state_including_retinted_values() {
+        let t = Theme::junie();
+        for bg in [t.canvas, t.surface, t.surface_elevated] {
+            for bits in 0u8..16 {
+                let s = crate::ui::ctx::VisualState {
+                    focused: bits & 1 != 0,
+                    hovered: bits & 2 != 0,
+                    pressed: bits & 4 != 0,
+                    selected: bits & 8 != 0,
+                    ..Default::default()
+                };
+                let st = t.row(s, bg);
+                let fill = st.bg.unwrap();
+                // widgets re-tint values with the normal tone after row()
+                for fg in [st.fg.unwrap(), t.text_primary] {
+                    let c = contrast(fg, fill);
+                    assert!(c >= 4.5, "{s:?} on {bg:?}: {fg:?}/{fill:?} = {c:.2}");
+                }
+            }
+        }
+    }
+
     use super::*;
 
     #[test]
