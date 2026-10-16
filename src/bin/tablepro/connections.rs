@@ -1005,7 +1005,8 @@ impl ConnectionsScreen {
                 r,
                 buf,
                 t,
-                &junie_tui::widgets::empty::EmptyState::new("Select a connection"),
+                &junie_tui::widgets::empty::EmptyState::new("Select a connection")
+                    .hint("↑↓ moves, Ctrl+N creates one"),
                 t.canvas,
             );
             return;

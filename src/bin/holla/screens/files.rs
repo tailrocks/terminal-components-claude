@@ -689,7 +689,7 @@ impl FilesPage {
                 buf,
                 t,
                 &EmptyState::new("Empty folder").hint(if self.entries.is_empty() {
-                    "nothing here"
+                    "← goes to the parent"
                 } else {
                     "Ctrl+H shows hidden entries"
                 }),

@@ -876,7 +876,7 @@ impl App {
                 Outcome::Changed
             }
             Decision::Deny => {
-                self.set_status("Cannot execute write queries: TablePro's Safe Mode is set to read-only for this connection".into());
+                self.set_status("Cannot execute write queries: TablePro's Safe Mode is set to read-only for this connection · Ctrl+L changes Safe Mode".into());
                 Outcome::Changed
             }
             Decision::Confirm { deliberate } => {
@@ -944,9 +944,9 @@ impl App {
                             "{} · {}",
                             level.label(),
                             if deliberate {
-                                "deliberate confirmation required"
+                                "type to confirm"
                             } else {
-                                "confirmation required"
+                                "confirm before running"
                             }
                         ),
                     )
@@ -1063,9 +1063,9 @@ impl App {
                     "{} · {}",
                     level.label(),
                     if deliberate {
-                        "deliberate confirmation required"
+                        "type to confirm"
                     } else if level.requires_confirmation() || deletes > 0 {
-                        "confirmation required"
+                        "confirm before running"
                     } else {
                         "runs after this review"
                     }
