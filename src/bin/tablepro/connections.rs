@@ -12,6 +12,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
+use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
 use junie_tui::widgets::input::{InputEvent, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
@@ -790,15 +791,42 @@ impl ConnectionsScreen {
         Outcome::Changed
     }
 
+    /// The text fields the pointer selects in: the filter, and the
+    /// form's inputs and startup script while the form is open.
+    fn pointer_fields(&mut self) -> Vec<&mut dyn PointerField> {
+        let mut v: Vec<&mut dyn PointerField> = vec![&mut self.filter];
+        if let Some(f) = self.form.as_mut() {
+            v.extend([
+                &mut f.name as &mut dyn PointerField,
+                &mut f.host,
+                &mut f.port,
+                &mut f.database,
+                &mut f.user,
+                &mut f.password,
+                &mut f.ssh_host,
+                &mut f.ssh_user,
+                &mut f.startup,
+            ]);
+        }
+        v
+    }
+
+    /// A press on hit `id` with the click count it starts: a field
+    /// remembers it for the drag (the second press of a double click
+    /// selects the word).
+    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        route_press(&mut self.pointer_fields(), id, pos, count).unwrap_or(Outcome::Ignored)
+    }
+
     pub fn on_click(
         &mut self,
         id: WidgetId,
         pos: Position,
         cx: &mut crate::app::Cx,
     ) -> (Outcome, Option<ConnEvent>) {
-        if id == self.filter.id {
+        if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, cx.clicks) {
             cx.focus.focus(id);
-            return (self.filter.on_click(pos), None);
+            return (o, None);
         }
         if let Some((row, toggle)) = self.tree.locate(id) {
             cx.focus.focus(self.tree.id);
@@ -880,6 +908,9 @@ impl ConnectionsScreen {
 
     /// A drag after a press on `pressed` (a form column's scrollbar).
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if let Some(o) = route_drag(&mut self.pointer_fields(), pressed, pos) {
+            return o;
+        }
         match self.form_stack(pressed) {
             Some((st, true)) => {
                 st.on_scrollbar_drag(pos);
@@ -901,25 +932,7 @@ impl ConnectionsScreen {
             cx.focus.focus(form.tabs.id);
             return form.tabs.on_click(id).0;
         }
-        for inp in [
-            &mut form.name,
-            &mut form.host,
-            &mut form.port,
-            &mut form.database,
-            &mut form.user,
-            &mut form.password,
-            &mut form.ssh_host,
-            &mut form.ssh_user,
-        ] {
-            if inp.id == id {
-                cx.focus.focus(id);
-                return inp.on_click(pos);
-            }
-        }
-        if form.startup.id == id {
-            cx.focus.focus(id);
-            return form.startup.on_click(pos);
-        }
+        // the text fields take clicks through `pointer_fields` (on_click)
         for sel in [&mut form.engine, &mut form.group] {
             if sel.owns(id) {
                 cx.focus.focus(sel.id);
