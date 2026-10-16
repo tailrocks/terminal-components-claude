@@ -35,6 +35,18 @@ impl ListItem {
     }
 }
 
+/// What a single click on a row does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ClickAction {
+    /// A click activates the row (chooses it, or toggles it in a multi
+    /// list). The long-standing behaviour of this list.
+    #[default]
+    Activate,
+    /// A click only moves the cursor; a double click (or Return) activates,
+    /// as in macOS table and outline views.
+    Select,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectMode {
     Single,
@@ -65,6 +77,11 @@ pub struct ListBox {
     /// Blank columns between the labels and the scrollbar (default
     /// [`scrollbar::GAP`]).
     pub scrollbar_gap: u16,
+    /// Arrow, page and Home/End movement steps over disabled rows (they
+    /// cannot be used, so the cursor never parks on them). Default `true`.
+    pub skip_disabled: bool,
+    /// What a single click on a row does. Default [`ClickAction::Activate`].
+    pub click: ClickAction,
 }
 
 impl ListBox {
@@ -84,7 +101,48 @@ impl ListBox {
             anchor: None,
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
+            skip_disabled: true,
+            click: ClickAction::Activate,
         }
+    }
+
+    pub fn skip_disabled(mut self, on: bool) -> Self {
+        self.skip_disabled = on;
+        self
+    }
+
+    pub fn click(mut self, click: ClickAction) -> Self {
+        self.click = click;
+        self
+    }
+
+    pub fn mode(mut self, mode: SelectMode) -> Self {
+        self.mode = mode;
+        self
+    }
+
+    /// The enabled row nearest `to`, searching away from the cursor first
+    /// (the direction of travel), then back toward it.
+    fn enabled_near(&self, to: usize) -> usize {
+        let n = self.items.len();
+        if !self.skip_disabled || n == 0 || !self.items[to].disabled {
+            return to;
+        }
+        let forward = to >= self.cursor;
+        let ahead: Box<dyn Iterator<Item = usize>> = if forward {
+            Box::new(to..n)
+        } else {
+            Box::new((0..=to).rev())
+        };
+        let behind: Box<dyn Iterator<Item = usize>> = if forward {
+            Box::new((0..to).rev())
+        } else {
+            Box::new(to + 1..n)
+        };
+        ahead
+            .chain(behind)
+            .find(|&i| !self.items[i].disabled)
+            .unwrap_or(to)
     }
 
     /// Blank columns between the labels and the scrollbar.
@@ -154,7 +212,7 @@ impl ListBox {
     }
 
     fn move_cursor(&mut self, to: usize, extend: bool) {
-        let to = to.min(self.items.len().saturating_sub(1));
+        let to = self.enabled_near(to.min(self.items.len().saturating_sub(1)));
         if self.mode == SelectMode::Multi && extend {
             let anchor = *self.anchor.get_or_insert(self.cursor);
             let (a, b) = (anchor.min(to), anchor.max(to));
@@ -241,13 +299,24 @@ impl ListBox {
     }
 
     pub fn on_click(&mut self, row: usize) -> Outcome {
+        self.on_click_count(row, 1)
+    }
+
+    /// A click on `row` that is the `count`th of a multi-click (from
+    /// [`crate::core::pointer::PointerState::count_click`]). Under
+    /// [`ClickAction::Select`] only a double click activates.
+    pub fn on_click_count(&mut self, row: usize, count: u8) -> Outcome {
         if row >= self.items.len() {
             return Outcome::Consumed;
         }
         self.cursor = row;
         self.anchor = None;
         self.scroll.ensure_visible(row);
-        self.activate(row)
+        match self.click {
+            ClickAction::Activate => self.activate(row),
+            ClickAction::Select if count >= 2 => self.activate(row),
+            ClickAction::Select => Outcome::Changed,
+        }
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
@@ -661,6 +730,55 @@ mod reveal_tests {
 #[cfg(test)]
 mod scroll_tests {
     use super::*;
+
+    fn disabled_list() -> ListBox {
+        ListBox::new(
+            WidgetId::of("dl"),
+            vec![
+                ListItem::new("a").disabled(true),
+                ListItem::new("b"),
+                ListItem::new("c").disabled(true),
+                ListItem::new("d"),
+                ListItem::new("e").disabled(true),
+            ],
+            SelectMode::Single,
+        )
+    }
+
+    fn press(l: &mut ListBox, code: KeyCode) {
+        l.on_key(&Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        });
+    }
+
+    #[test]
+    fn the_cursor_steps_over_disabled_rows_unless_configured_not_to() {
+        let mut l = disabled_list();
+        l.cursor = 1;
+        press(&mut l, KeyCode::Down);
+        assert_eq!(l.cursor, 3, "skips c");
+        press(&mut l, KeyCode::End);
+        assert_eq!(l.cursor, 3, "e is disabled: End stops on d");
+        press(&mut l, KeyCode::Home);
+        assert_eq!(l.cursor, 1, "a is disabled: Home stops on b");
+        let mut plain = disabled_list().skip_disabled(false);
+        plain.cursor = 1;
+        press(&mut plain, KeyCode::Down);
+        assert_eq!(plain.cursor, 2);
+    }
+
+    #[test]
+    fn select_clicks_move_the_cursor_and_double_clicks_activate() {
+        let mut l = disabled_list().click(ClickAction::Select);
+        l.on_click_count(3, 1);
+        assert_eq!((l.cursor, l.chosen), (3, None));
+        l.on_click_count(3, 2);
+        assert_eq!(l.chosen, Some(3));
+        let mut act = disabled_list();
+        act.on_click(1);
+        assert_eq!(act.chosen, Some(1));
+    }
     use crate::core::focus::FocusRing;
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
