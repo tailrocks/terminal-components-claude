@@ -126,7 +126,21 @@ impl HintBar {
         ctx: &mut crate::ui::ctx::RenderCtx,
         layer: &HintLayer,
     ) -> HintKeys {
-        let t = ctx.theme;
+        let spots = Self::render_at(area, buf, ctx.theme, layer);
+        HintKeys::register(ctx, buf, &layer.hints, spots)
+    }
+
+    /// [`Self::render`] reporting where each hint landed, for a footer
+    /// whose hits register later ([`HintKeys::register`]): an app that
+    /// draws its footer under popups still painted as overlays registers
+    /// the hints after them, so the footer stays on the topmost layer and
+    /// the layers in between keep only their own regions.
+    pub fn render_at(
+        area: Rect,
+        buf: &mut Buffer,
+        t: &Theme,
+        layer: &HintLayer,
+    ) -> Vec<(usize, Rect)> {
         let style = crate::theme::HintBarStyle {
             align: layer.align.unwrap_or(t.hintbar.align),
             ..t.hintbar
@@ -141,7 +155,7 @@ impl HintBar {
             &layer.status_parts,
             &style,
         );
-        HintKeys::register(ctx, buf, &layer.hints, spots)
+        spots
     }
 
     /// The first present layer wins; `layers` is ordered from the topmost
