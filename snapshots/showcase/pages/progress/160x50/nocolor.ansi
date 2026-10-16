@@ -32,7 +32,7 @@
                             High       ━━━━━━━━━━━━━━━━━━━━━── 91% used !                          [0m[1m 91% used                    [0m    !                           [0m
                             Warning    ━━━━━━━━━━━━━━━━━━━──── 82% used ▲                          [0m[1m 82% used                 [0m       ▲                           [0m
                             Exhausted  ━━━━━━━━━━━━━━━━━━━━━━ 100% used[0m[1m ![0m                          [0m[1m 100% used                       ![0m                           [0m
-                            Stale      ━━━━━━━━━━━━─────────── 54% used                            [0m[1m 54% used        [0m                                            [0m
+                            Stale      ╍╍╍╍╍╍╍╍╍╍╍╍─────────── [0m[3m54% used[0m                            [0m[1;3m 54% used        [0m[3m               [0m                             [0m
                             Refreshing ━━━━━━━━━━───────── ⠋ refreshing                            [0m[1m ⠋ refreshing    [0m                                            [0m
                             Error      quota read failed !                                         quota read failed !                                          [0m
                             Unknown    —                                                           —                                                            [0m
