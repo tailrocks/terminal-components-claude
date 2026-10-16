@@ -24,6 +24,7 @@ use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame}
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
+use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
 use junie_tui::widgets::tabs::{TabEvent, TabItem, TabRule, Tabs};
 use ratatui::buffer::Buffer;
@@ -1620,19 +1621,11 @@ impl CapsuleScreen {
         // seams on top
         let seams = self.seams.clone();
         for (i, s) in seams.iter().enumerate() {
+            // the shared splitter: the same rest, hover and drag ladder as
+            // every other split in the library
             let sid = PANES.sub("seam").child(i);
-            let hovered = ctx.interaction.hovered(sid)
-                || self.drag.as_ref().is_some_and(|(p, _)| *p == s.path);
-            let glyph = match (s.dir, hovered) {
-                (SplitDir::Horizontal, false) => "│",
-                (SplitDir::Horizontal, true) => "┃",
-                (SplitDir::Vertical, false) => "─",
-                (SplitDir::Vertical, true) => "━",
-            };
-            for pos in s.handle.positions() {
-                buf.set_string(pos.x, pos.y, glyph, t.border(hovered).bg(t.canvas));
-            }
-            ctx.clickable(sid, s.handle);
+            let held = self.drag.as_ref().is_some_and(|(p, _)| *p == s.path);
+            Splitter::new(sid, s.dir).render_held(s.handle, buf, ctx, t.canvas, held);
         }
         ctx.control(PANES, Rect::new(body.x, body.y, 1, 1), false);
     }
