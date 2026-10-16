@@ -198,6 +198,43 @@ impl<'a> RenderCtx<'a> {
         self.overlays.push((self.inert, Box::new(draw)));
     }
 
+    /// Draw with `draw` confined to `area`: cells it writes outside `area`
+    /// are restored, hit regions it registers are cut to `area` and the
+    /// editing cursor is dropped when it lands outside. Use it around
+    /// content that may be taller or wider than the rect it was given (a
+    /// partially scrolled child, a body that can overflow) so it can never
+    /// paint over its neighbours, the footer or a frame. Overlays queued
+    /// inside escape the clip on purpose: they float above the page.
+    pub fn clip<R>(
+        &mut self,
+        buf: &mut Buffer,
+        area: Rect,
+        draw: impl FnOnce(&mut Buffer, &mut Self) -> R,
+    ) -> R {
+        let area = area.intersection(buf.area);
+        let before = buf.clone();
+        let hits_from = self.hits.len();
+        let cursor = self.cursor;
+        let out = draw(buf, self);
+        let full = buf.area;
+        for y in full.top()..full.bottom() {
+            for x in full.left()..full.right() {
+                let p = Position::new(x, y);
+                if !area.contains(p) {
+                    buf[(x, y)] = before[(x, y)].clone();
+                }
+            }
+        }
+        self.hits.clip_since(hits_from, area);
+        if let Some(p) = self.cursor
+            && self.cursor != cursor
+            && !area.contains(p)
+        {
+            self.cursor = cursor;
+        }
+        out
+    }
+
     /// Draw every queued overlay, oldest first. Overlays queued while
     /// flushing are drawn too, above the one that queued them. Every
     /// application calls this once after drawing its frame.
@@ -277,6 +314,31 @@ pub fn fill(buf: &mut Buffer, area: Rect, style: ratatui::style::Style) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_clip_keeps_cells_hits_and_cursor_inside_its_rect() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 4));
+        buf.set_string(0, 3, "footer", ratatui::style::Style::new());
+        let clip = Rect::new(0, 0, 10, 2);
+        let id = WidgetId::of("tall");
+        ctx.clip(&mut buf, clip, |buf, ctx| {
+            for y in 0..4 {
+                buf.set_string(0, y, "xxxxxxxxxx", ratatui::style::Style::new());
+            }
+            ctx.clickable(id, Rect::new(0, 0, 10, 4));
+            ctx.set_cursor(Position::new(1, 3));
+        });
+        assert_eq!(buf[(0, 1)].symbol(), "x");
+        assert_eq!(buf[(0, 2)].symbol(), " ", "nothing drawn below the clip");
+        assert_eq!(buf[(0, 3)].symbol(), "f", "the footer survives");
+        assert_eq!(ctx.hits.area_of(id), Some(clip));
+        assert_eq!(ctx.hits.hit(Position::new(0, 3)), None);
+        assert_eq!(ctx.cursor, None);
+    }
 
     #[test]
     fn a_page_under_a_layer_shows_no_focus_and_the_layer_does() {
