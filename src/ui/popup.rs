@@ -32,6 +32,27 @@ pub struct Dismiss {
     /// and popovers): the click only closes. Dialogs are modal and ignore
     /// it: nothing beneath a dialog is reachable.
     pub pass_through: bool,
+    /// A modal frame whose policy lets Esc close it draws a close button
+    /// (`×`) in its top border, so a pointer user always has a visible way
+    /// out (WCAG 2.2 "no keyboard trap" for the mouse; the macOS window
+    /// close control). Default on; ignored by popups and menus, which
+    /// light-dismiss instead.
+    pub close_button: bool,
+    /// What a refused outside click shows. Default
+    /// [`RefuseFeedback::Flash`].
+    pub refuse_feedback: RefuseFeedback,
+}
+
+/// What a click outside a modal shows when its [`Dismiss`] policy refuses
+/// to close it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RefuseFeedback {
+    /// The modal's frame flashes (macOS flashes a sheet's window when a
+    /// click lands outside it), so the click visibly did something.
+    #[default]
+    Flash,
+    /// Nothing: the click is swallowed silently.
+    None,
 }
 
 impl Dismiss {
@@ -40,6 +61,8 @@ impl Dismiss {
         escape: true,
         outside_click: true,
         pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
     /// Only Esc closes: a stray click cannot throw away a decision in
     /// progress (destructive confirmations, typed acknowledgements).
@@ -47,12 +70,16 @@ impl Dismiss {
         escape: true,
         outside_click: false,
         pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
     /// Only an explicit action closes it.
     pub const NEVER: Self = Self {
         escape: false,
         outside_click: false,
         pass_through: false,
+        close_button: false,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 }
 
@@ -61,6 +88,25 @@ impl Dismiss {
     pub const fn pass_through(mut self, on: bool) -> Self {
         self.pass_through = on;
         self
+    }
+
+    /// See [`Self::close_button`].
+    pub const fn close_button(mut self, on: bool) -> Self {
+        self.close_button = on;
+        self
+    }
+
+    /// See [`Self::refuse_feedback`].
+    pub const fn refuse_feedback(mut self, feedback: RefuseFeedback) -> Self {
+        self.refuse_feedback = feedback;
+        self
+    }
+
+    /// Whether a modal under this policy shows its close button: only when
+    /// Esc may close it, so the button never offers a way out the keyboard
+    /// does not have.
+    pub const fn shows_close(self) -> bool {
+        self.close_button && self.escape
     }
 }
 

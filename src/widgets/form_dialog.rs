@@ -696,6 +696,7 @@ impl FormDialog {
         let (area, inner) = crate::ui::modal::Frame::new(self.width, h)
             .title(&self.title)
             .meta(self.meta.as_deref())
+            .dismiss(self.dismiss)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;
