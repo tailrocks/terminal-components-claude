@@ -171,6 +171,20 @@ pub struct TreeView {
     pub nav: NavKeys,
     /// The tree's own action keys (default [`TreeAction::default_keymap`]).
     pub keymap: KeyMap<TreeAction>,
+    /// Typing a prefix moves the cursor to the next row whose label starts
+    /// with it, as in macOS outline views. Off by default: plain letters
+    /// stay with the owner's shortcuts. Navigation letters (`j`/`k`/`g`
+    /// per [`Self::nav`]) and mapped actions keep priority.
+    pub type_ahead: bool,
+    typeahead: crate::core::typeahead::TypeAhead,
+    /// Keep the last column as a divider at every size: a track when the
+    /// rows fit, the scrollbar when they overflow (a sidebar edge). Off by
+    /// default: the column is taken only while the tree scrolls.
+    pub divider: bool,
+    /// A marker drawn in the disclosure slot of the selected leaf (`›` in a
+    /// navigation sidebar: the current page). Accent while the tree has
+    /// focus, primary ink otherwise. Default `None`.
+    pub selected_marker: Option<&'static str>,
 }
 
 /// A [`TreeView`] action a key can be bound to.
@@ -262,6 +276,10 @@ impl TreeView {
             rows_built: 0,
             nav: NavKeys::DEFAULT,
             keymap: TreeAction::default_keymap(),
+            type_ahead: false,
+            typeahead: Default::default(),
+            divider: false,
+            selected_marker: None,
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -301,6 +319,24 @@ impl TreeView {
 
     pub fn indent(mut self, cols: u16) -> Self {
         self.indent = cols;
+        self
+    }
+
+    /// See [`Self::type_ahead`].
+    pub fn type_ahead(mut self, on: bool) -> Self {
+        self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::divider`].
+    pub fn divider(mut self, on: bool) -> Self {
+        self.divider = on;
+        self
+    }
+
+    /// See [`Self::selected_marker`].
+    pub fn selected_marker(mut self, marker: Option<&'static str>) -> Self {
+        self.selected_marker = marker;
         self
     }
 
@@ -672,6 +708,26 @@ impl TreeView {
 
     /// Activation keys (not navigation, not a mapped action).
     fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeEvent>) {
+        if let KeyCode::Char(c) = key.code
+            && self.type_ahead
+            && key.plain()
+            && !c.is_whitespace()
+        {
+            let prefix = self.typeahead.feed(c).to_owned();
+            let found = crate::core::typeahead::TypeAhead::find(
+                &prefix,
+                self.rows.iter().map(|r| r.label.as_str()),
+                self.cursor,
+                |i| !self.rows[i].note,
+            );
+            return match found {
+                Some(i) => {
+                    self.set_cursor(i);
+                    (Outcome::Changed, None)
+                }
+                None => (Outcome::Ignored, None),
+            };
+        }
         let out = match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
                 let row = &self.rows[self.cursor];
@@ -796,7 +852,9 @@ impl TreeView {
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         let has_sb = self.scroll.overflows();
-        let full_w = area.width.saturating_sub(if has_sb { 1 } else { 0 });
+        let full_w = area
+            .width
+            .saturating_sub(if has_sb || self.divider { 1 } else { 0 });
         // the owner's trailing columns keep their strip while a usable label
         // column remains beside them; labels end before the strip
         let reserve = if self.reserve_right > 0 && full_w >= self.reserve_right + Self::MIN_LABEL {
@@ -873,6 +931,12 @@ impl TreeView {
             buf.set_string(x, y, glyph, gs);
             if row.has_children {
                 ctx.clickable(tid, Rect::new(x, y, 2, 1));
+            } else if s.selected
+                && !row.busy
+                && let Some(m) = self.selected_marker
+            {
+                // the current item is a fact: accent only while focused
+                buf.set_string(x, y, m, st.fg(t.chosen(focused)));
             }
             x += 2;
             let meta_w = row
@@ -936,6 +1000,10 @@ impl TreeView {
         // widget, not to a row whose display index it already scrolled away
         ctx.scrollable(self.id, area);
         self.track = Rect::ZERO;
+        if self.divider && !has_sb {
+            let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
+            scrollbar::render_divider(sb, buf, ctx, self.id, &self.scroll, focused);
+        }
         if has_sb {
             crate::ui::fade::scroll_edges_except(
                 buf,
@@ -1214,6 +1282,74 @@ mod scroll_tests {
         };
         assert_eq!(label_fg(&mut tv, None), theme.text_primary);
         assert_eq!(label_fg(&mut tv, Some(WidgetId::of("t"))), theme.accent);
+    }
+
+    #[test]
+    fn type_ahead_jumps_to_the_next_matching_row_when_on() {
+        use ratatui::crossterm::event::KeyModifiers;
+        let key = |c| Key {
+            code: KeyCode::Char(c),
+            mods: KeyModifiers::NONE,
+        };
+        let nodes = vec![
+            TreeNode::dir("Tables", vec![TreeNode::leaf("Data grid")]),
+            TreeNode::dir("Overlays", vec![TreeNode::leaf("Dialogs")]),
+        ];
+        let mut tv = TreeView::new(WidgetId::of("t"), nodes.clone()).type_ahead(true);
+        assert_eq!(tv.on_key(&key('o')).0, Outcome::Changed);
+        assert_eq!(tv.cursor_path(), Some(&[1][..]));
+        tv.typeahead.reset(); // a pause: the next letter starts a new prefix
+        tv.on_key(&key('d'));
+        assert_eq!(
+            tv.cursor_path(),
+            Some(&[1, 0][..]),
+            "the next match after the cursor"
+        );
+        assert_eq!(
+            tv.on_key(&key('z')).0,
+            Outcome::Ignored,
+            "no match: left to the owner"
+        );
+        let mut off = TreeView::new(WidgetId::of("t"), nodes);
+        assert_eq!(off.on_key(&key('o')).0, Outcome::Ignored, "off by default");
+        assert_eq!(off.cursor, 0);
+    }
+
+    #[test]
+    fn a_divider_keeps_the_last_column_and_the_marker_names_the_selected_leaf() {
+        use crate::widgets::scrollbar::TRACK;
+        let theme = Theme::junie();
+        let nodes = vec![TreeNode::dir("Group", vec![TreeNode::leaf("Page")])];
+        let mut tv = TreeView::new(WidgetId::of("t"), nodes)
+            .divider(true)
+            .selected_marker(Some("›"));
+        tv.selected = Some(vec![0, 0]);
+        let draw = |tv: &mut TreeView, focus: Option<WidgetId>| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let inter = Interaction {
+                focus,
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 4));
+            tv.render(Rect::new(0, 0, 20, 4), &mut buf, &mut ctx, theme.canvas);
+            buf
+        };
+        let buf = draw(&mut tv, None);
+        for y in 0..4 {
+            assert_eq!(buf[(19, y)].symbol(), TRACK, "row {y}: the divider");
+        }
+        let x = (0..19)
+            .find(|&x| buf[(x, 1)].symbol() == "›")
+            .expect("marker on the selected leaf");
+        assert_eq!(buf[(x, 1)].fg, theme.text_primary, "neutral without focus");
+        let buf = draw(&mut tv, Some(WidgetId::of("t")));
+        assert_eq!(buf[(x, 1)].fg, theme.accent, "accent with focus");
+        assert!(
+            (0..19).all(|x| buf[(x, 0)].symbol() != "›"),
+            "a group row keeps its disclosure"
+        );
     }
 
     #[test]
