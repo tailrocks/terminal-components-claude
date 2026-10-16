@@ -324,7 +324,6 @@ fn manager_stop_purge_delete_and_refresh_keep_fixture_state_coherent() {
     select_instance(&mut h, "jk-c41e");
     h.key(KeyCode::Char('p'));
     assert!(h.text().contains("Purge instance"), "{}", h.text());
-    h.key(KeyCode::Enter);
     h.type_str("c41e");
     h.key(KeyCode::Enter);
     for _ in 0..50 {
@@ -762,7 +761,6 @@ fn capsule_dirty_exit_covers_new_agent_inspect_keep_and_discard() {
         "{}",
         h.text()
     );
-    h.key(KeyCode::Enter);
     h.type_str("payments-platform");
     // Enter on the matching acknowledgement presses the gated action
     h.key(KeyCode::Enter);
@@ -830,11 +828,9 @@ fn editor_environment_validation_and_masking_stay_local() {
 
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('a'));
-    h.key(KeyCode::Enter);
     h.type_str("DEPLOY_TOKEN");
     h.key(KeyCode::Tab);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Enter);
     h.type_str("sk-live-test-secret-1234");
     h.key(KeyCode::Tab);
     h.tab_to(WidgetId::of("editor.cfg").sub("form").sub("save"));
@@ -1027,7 +1023,8 @@ fn prelude_invalid_destination_and_backtracking_do_not_create_workspace() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("absolute path"), "{}", h.text());
     assert_eq!(h.app.route, Route::Prelude);
-    h.key(KeyCode::Esc);
+    // Enter applied the value, so the field has nothing to revert: one Esc
+    // passes straight to the prelude and steps back
     h.key(KeyCode::Esc);
     assert!(h.text().contains("step 2 of 5"), "{}", h.text());
     h.key(KeyCode::Esc);

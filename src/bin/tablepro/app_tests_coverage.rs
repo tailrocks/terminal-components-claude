@@ -37,7 +37,7 @@ fn accept_dialog(h: &mut H) {
 }
 
 fn confirm_destructive(h: &mut H, token: &str) {
-    h.key(KeyCode::Enter);
+    // the ack field opens editing (EditEntry::Immediate)
     h.type_str(token);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Right);
@@ -253,6 +253,9 @@ fn query_execution_and_result_routes() {
         }));
     }
 
+    // the dialog handed focus back to the editor, editing again: Esc ends
+    // the edit ("Done"), then Tab leaves (Tab indents while editing)
+    h.key(KeyCode::Esc);
     h.key(KeyCode::Tab);
     h.key(KeyCode::Char('p'));
     assert!(active_query(&h).results.iter().any(|r| r.pinned));
@@ -291,7 +294,6 @@ fn query_execution_and_result_routes() {
 
     let mut h = H::connected(120, 40);
     h.ctrl('t');
-    h.key(KeyCode::Char('i'));
     h.app.handle(Input::Paste("SELECT * FROM ord".into()));
     h.draw();
     h.ctrl(' ');
@@ -325,7 +327,6 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
 
     let mut h = H::connected(120, 40);
     h.ctrl('t');
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT 1");
     h.key(KeyCode::Esc);
     let tabs = h.wb().tabs.len();
@@ -333,13 +334,15 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
     assert!(h.app.modal().is_some());
     h.key(KeyCode::Esc);
     assert_eq!(h.wb().tabs.len(), tabs);
+    // focus came back to the editor, editing again (Ctrl+W deletes a word
+    // there): Esc ends the edit so Ctrl+W reaches the tab
+    h.key(KeyCode::Esc);
     h.ctrl('w');
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     assert_eq!(h.wb().tabs.len(), tabs - 1);
 
     h.ctrl('t');
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT 2");
     h.key(KeyCode::Esc);
     h.ctrl('c');
@@ -780,6 +783,9 @@ fn edited_form() -> H {
     if !h.app.connections.is_editing() {
         h.key(KeyCode::Enter);
     }
+    // keyboard focus selected the name (FocusSelect::SelectAll): End puts
+    // the caret after it so the typing appends
+    h.key(KeyCode::End);
     h.type_str(" v2");
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
