@@ -1455,6 +1455,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::toolbar::ToolItem::toggle"),
     Capability::builder("widgets::toolbar::ToolItem::separator"),
     Capability::builder("widgets::toolbar::ToolItem::tip"),
+    Capability::builder("widgets::toolbar::ToolItem::reason"),
     Capability::ty("widgets::toolbar::ToolbarAction"),
     Capability::variant("widgets::toolbar::ToolbarAction::Activated"),
     Capability::variant("widgets::toolbar::ToolbarAction::Toggled"),
@@ -1463,6 +1464,9 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::toolbar::Toolbar::wrap"),
     Capability::builder("widgets::toolbar::Toolbar::skip_disabled"),
     Capability::builder("widgets::toolbar::Toolbar::gap"),
+    Capability::builder("widgets::toolbar::Toolbar::overflow"),
+    Capability::builder("widgets::toolbar::Toolbar::more_button"),
+    Capability::builder("widgets::toolbar::Toolbar::more_glyph"),
     // widgets::tree
     Capability::ty("widgets::tree::TreeNode"),
     Capability::builder("widgets::tree::TreeNode::glyph"),
