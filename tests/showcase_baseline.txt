@@ -100,7 +100,7 @@
 80x24 TrueColor Tables 3af0fe5f7b5198de
 80x24 TrueColor Editable tables 9c2f04852dedc8a9
 80x24 TrueColor Panels a3dad2da6bcd5a47
-80x24 TrueColor Sidebars 7ca5ded600b5d6c2
+80x24 TrueColor Sidebars f3132ac2021c465b
 80x24 TrueColor Dialogs f2e38c6f6799fccc
 80x24 TrueColor Progress 91a554a4899d2088
 80x24 TrueColor Scrolling fdf94e64befed7e3
@@ -123,7 +123,7 @@
 80x24 Ansi256 Tables 2aad4b772e639a94
 80x24 Ansi256 Editable tables 6f2b5e370839cfc9
 80x24 Ansi256 Panels 11610729bdce2bfd
-80x24 Ansi256 Sidebars e94805d26ca6b09e
+80x24 Ansi256 Sidebars bca2ba1f2a97b86e
 80x24 Ansi256 Dialogs 8bd04e7519e4a63b
 80x24 Ansi256 Progress 17599d07eae4ea2a
 80x24 Ansi256 Scrolling 8bfbf450b9a6a547
@@ -146,7 +146,7 @@
 80x24 Ansi16 Tables d38e4b89492d2560
 80x24 Ansi16 Editable tables d42f1d415fb33923
 80x24 Ansi16 Panels 51be5df71b278f49
-80x24 Ansi16 Sidebars 5378b5a8a3cd4dc5
+80x24 Ansi16 Sidebars 0ae6d2a931a295d8
 80x24 Ansi16 Dialogs c20cb2fde32c9f35
 80x24 Ansi16 Progress baafd53382658e0d
 80x24 Ansi16 Scrolling 664507f1a4de4edf
@@ -169,7 +169,7 @@
 80x24 Mono Tables 7fdd761b8996c052
 80x24 Mono Editable tables c1b2f66ebd276083
 80x24 Mono Panels be44686af2cd3ff3
-80x24 Mono Sidebars f1ccfb54da13ee79
+80x24 Mono Sidebars f9eea34dde198074
 80x24 Mono Dialogs fffe38a361ef376b
 80x24 Mono Progress fe8778141fa838ff
 80x24 Mono Scrolling d075945a83471118
@@ -192,7 +192,7 @@
 72x20 TrueColor Tables d44515d4d8bb81ea
 72x20 TrueColor Editable tables 0fb2ede4e9e32079
 72x20 TrueColor Panels e9cb992b009f61e4
-72x20 TrueColor Sidebars ced01f488b237b55
+72x20 TrueColor Sidebars 9926a7b6e03e6990
 72x20 TrueColor Dialogs 99188221dd06cb20
 72x20 TrueColor Progress 0a57a4fd2d3d072d
 72x20 TrueColor Scrolling 584f3f74ee31e86b
@@ -215,7 +215,7 @@
 72x20 Ansi256 Tables 4d6fb725fb96b5c4
 72x20 Ansi256 Editable tables c90c78d36e52dcb1
 72x20 Ansi256 Panels bbdf75285840b011
-72x20 Ansi256 Sidebars 7ce44e5d98740301
+72x20 Ansi256 Sidebars f07a8e4204b2b1d3
 72x20 Ansi256 Dialogs 8cda26170a00a3d2
 72x20 Ansi256 Progress 1ddb3622bf41b771
 72x20 Ansi256 Scrolling 490fc9198205924e
@@ -238,7 +238,7 @@
 72x20 Ansi16 Tables a3f3cb8ef41a359c
 72x20 Ansi16 Editable tables 7c19269a9b2b7e07
 72x20 Ansi16 Panels 1fbde9f60ed6c01d
-72x20 Ansi16 Sidebars 2602d41ba898d64d
+72x20 Ansi16 Sidebars d84da1bd75c26d77
 72x20 Ansi16 Dialogs 457bacde1072ac37
 72x20 Ansi16 Progress eebcacafe3004a7c
 72x20 Ansi16 Scrolling fdfb0a118c98b1e0
@@ -261,7 +261,7 @@
 72x20 Mono Tables 1b6eed08092a46e6
 72x20 Mono Editable tables 469c99ca4f89fbbf
 72x20 Mono Panels 00050e2412949b4d
-72x20 Mono Sidebars d3a48d43f8fe3379
+72x20 Mono Sidebars 12de20004fdcfae3
 72x20 Mono Dialogs a866a7351269fab9
 72x20 Mono Progress 2bf162f0afbdffa8
 72x20 Mono Scrolling 4fb16dd703ffd1b4
