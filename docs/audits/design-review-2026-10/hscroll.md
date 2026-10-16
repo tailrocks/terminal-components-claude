@@ -15,12 +15,12 @@ was no horizontal bar anywhere, and no widget handled shift+wheel.
 | Surface | Overflow today | H position shown | H inputs | Decision |
 |---|---|---|---|---|
 | `DataGrid` (`grid.rs`; tablepro table/query results, showcase grid) | column paging on `hscroll: ScrollState` (`layout_columns`), cells cut with `…`/`truncate_middle`, reveal on hover/`→` | `‹n`/`n›` header badges, `cols a–b of n` label | ←/→ move cell (scrolls), Ctrl+←/→ page, wheel left/right one column, badge clicks | **Horizontal bar** on the bottom row of the body, column units (snap). Badges and label kept, both configurable. |
-| `DataTable` (`table.rs`; tablepro structure, showcase tables/editable) | column paging on `hscroll`, `…` header edge marks | `…` edge marks | ←/→ page columns (cell nav when `cell_nav`), `on_wheel_h` (showcase only) | **Horizontal bar**, column units. `on_wheel` takes the axis. |
-| `ScrollPanel` (`panel.rs`; tablepro DDL, EXPLAIN raw, history detail, showcase panels/scrolling) | `wrap=false` lines hard-clipped with `…` | none | none | **Two-axis**: `h: ScrollState` by cell when not wrapping, bar on the bottom row, corner cell left blank. |
+| `DataTable` (`table.rs`; tablepro structure, showcase tables/editable) | column paging on `hscroll`, `…` header edge marks | `…` edge marks | ←/→ page columns (cell nav when `cell_nav`), `on_wheel_h` (showcase only) | **Horizontal bar**, column units; `on_wheel_h` one column per notch. `…` marks kept (`overflow_marks`). |
+| `ScrollPanel` (`panel.rs`; tablepro DDL, EXPLAIN raw, history detail, showcase panels/scrolling) | `wrap=false` lines hard-clipped with `…` | none | none | **Two-axis**: `hscroll: ScrollState` by cell when not wrapping, bar on the bottom row, corner cell blank, ←/→ scroll (no caret). |
 | `TextViewport` (`viewport.rs`; terminal, logs, unified diff, holla preview/plan/activity) | `wrap=false` lines clipped silently | none | ←/→ move caret only | **Recorded, not this pass**: selection/caret mapping (`pos_at`, `CellPos`) is cell-exact and wide; a horizontal offset touches selection, marks and the follow logic. Follow-up below. |
-| `CodeView` (`code.rs`; tablepro editor, showcase editor) | own `hscroll: usize`, `…` edge marks, caret keeps 4-col margin | none | ←/→ ±8, wheel ±4, click maps through | **Horizontal bar** on the bottom row (it already scrolls). Clamp to the widest line. |
+| `CodeEditor` (`code.rs`; tablepro editor, showcase editor) | own `hscroll: usize`, `…` edge marks, caret keeps 4-col margin | none | ←/→ ±8, wheel ±4, click maps through | **Horizontal bar** on the bottom row (it already scrolls). Clamp to the widest line. |
 | `TextArea` (`textarea.rs`) | `hscroll` follows the cursor, `…` edges | none | cursor keys | No bar: single-purpose input; the caret is the position. |
-| `Dialog` bodies (`dialog.rs`) | text wraps; facts truncate | none | ←/→ move between buttons | No hscroll: text wraps, facts reveal. Code previews belong in a `ScrollPanel` body, which gains both axes. |
+| `Dialog` bodies (`dialog.rs`) | text wraps; facts truncate | none | ←/→ move between buttons | Text wraps and facts reveal. The **code preview** (SQL, paths) never wraps: it scrolls sideways under its own bar (Shift+←/→, sideways wheel, bar), plain ←/→ keep choosing the action. |
 | `PropsList` / `props::render` | value `…` or `.wrap()`, `RevealState` (`→`) | none | `→` reveal | No hscroll: one value per row, reveal shows the full value. |
 | `List`, `Picker`, `Completion`, `Steps` | labels `…` | none | none | No hscroll: one item per row; reveal is the tool. |
 | `Tree` (`tree.rs`; EXPLAIN plan, explorer, holla disk) | labels `fit`, meta dropped | none | ←/→ collapse/expand | No hscroll (←/→ are taken by the tree); deep plans use the raw `ScrollPanel` tab, which gains hscroll. Reveal for tree labels is a follow-up. |
@@ -70,6 +70,21 @@ was no horizontal bar anywhere, and no widget handled shift+wheel.
 8. **Visibility.** `ScrollbarVisibility::{Auto, Always, Never}`; `Auto`
    (macOS default) draws only while content overflows.
 
+## Status
+
+| Surface | Commit |
+|---|---|
+| Bar, `HScroll`, Shift+wheel | `d11ab0792` feat(scroll) |
+| `DataGrid` | `76ccdab11` feat(grid), `72a319a98` test(tablepro) |
+| `DataTable` + tablepro wheel routing | `f8203570d` feat(table) |
+| `ScrollPanel` + app routing, holla/jackin wheel | `5edf2bba8` feat(panel) |
+| `CodeEditor` | `7e9bc5277` feat(code) |
+| `Dialog` code preview | `0957f37f9` feat(dialog), `e44df5ead` fix(holla,jackin) |
+| Drags without a routed press | `74d704b06` fix(scroll) |
+
+Every widget with a horizontal bar exposes `owns(id)` (both bar ids)
+and `on_bar_drag(pressed, pos)`; pages route `scrollbar::is_bar_of`.
+
 ## Knobs
 
 | Name | Type | Default |
@@ -81,6 +96,8 @@ was no horizontal bar anywhere, and no widget handled shift+wheel.
 | `RenderCtx::hscroll` | `HScroll` (app-wide default) | `HScroll::default()` |
 | widget `horizontal` | `Option<HScroll>` (override) | `None` |
 | `DataGrid::overflow_badges` | `bool` | `true` |
+| `DataTable::overflow_marks` | `bool` | `true` |
+| `DataGrid`/`DataTable`/`ScrollPanel`/`CodeEditor`/`Dialog::horizontal` | `Option<HScroll>` | `None` (app default) |
 | `InputConfig::shift_wheel_horizontal` | `bool` | `true` |
 
 ## Plan
@@ -100,5 +117,15 @@ was no horizontal bar anywhere, and no widget handled shift+wheel.
   selection painting and marks to account for the offset.
 - `DiffView` unified mode inherits it from `TextViewport`.
 - Reveal for `Tree`, `List`, `Picker`, `DataTable` cut labels.
-- Shared pointer router (interaction refactor): replace the per-app
-  `scrollbar::h_id_for` routing once it lands.
+- Shared pointer router (interaction refactor, `core/pointer.rs`): it
+  landed during this work with `PointerConfig::shift_wheel_horizontal`,
+  which nothing reads, because modifiers are dropped before the pointer
+  sees the event. The normalisation lives in
+  `Input::from_crossterm_with(InputConfig)`; the two knobs should become
+  one (the runtime would pass the pointer's setting through).
+- Per-app bar routing (`scrollbar::is_bar_of`, `on_bar_drag`) should move
+  into the shared router so a page never routes a scrollbar by hand.
+- Vertical bars keep `TrackClick::Jump`; offering `Page` on them too
+  would make the two axes configurable together.
+- Holla and jackin screens get the sideways wheel through the pointer
+  refactor's `on_wheel_h`; none of their screens has wide content yet.
