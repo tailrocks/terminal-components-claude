@@ -32,13 +32,15 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::list::{
     Cursor, KeyStep, Moved, NavProfile, Navigable, RowFn, RowSource, TypeAheadPrecedence,
 };
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::{
-    FollowCursor, HScroll, ScrollPane, ScrollState, Scrollable, ScrollbarVisibility, TrackClick,
+    FollowCursor, HScroll, ScrollPane, ScrollState, ScrollbarVisibility, TrackClick,
 };
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
@@ -738,6 +740,84 @@ fn states_grid() -> StateGrid {
         )
 }
 
+impl ScrollingPage {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        let click = ev.is(Phase::Click);
+        if let Some(r) = self.region.route(ev) {
+            if ev.id == self.region.id && (click || ev.is(Phase::Press)) {
+                cx.focus.focus(self.region.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.list.route(ev) {
+            if click && ev.index_of(Part::ROW).is_some() {
+                cx.focus.focus(self.list.id);
+            }
+            return r.outcome();
+        }
+        for p in [&mut self.prose, &mut self.log] {
+            if let Some(r) = p.route(ev) {
+                return r.outcome();
+            }
+        }
+        if let Some(r) = self.tree.route(ev) {
+            if click && (ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some()) {
+                cx.focus.focus(self.tree.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.table.route(ev) {
+            if click && !scrollbar::is_bar_of(ev.id, self.table.id) {
+                cx.focus.focus(self.table.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.grid.route(ev) {
+            if click {
+                cx.focus.focus(self.grid.id);
+            }
+            return r.outcome();
+        }
+        // the hand-drawn panes: the page paints them, so it moves them
+        if let Some((axis, delta)) = ev.wheel() {
+            for (pane, owner) in self.panes() {
+                let over = ev.id == owner || scrollbar::is_bar_of(ev.id, owner);
+                if !over {
+                    continue;
+                }
+                return match axis {
+                    Axis::Vertical => pane
+                        .wheel(Axis::Vertical, delta)
+                        .outcome()
+                        .or(Outcome::Consumed),
+                    Axis::Horizontal if owner == HAND => {
+                        pane.wheel(Axis::Horizontal, delta).outcome()
+                    }
+                    Axis::Horizontal => Outcome::Ignored,
+                };
+            }
+            return Outcome::Ignored;
+        }
+        for (pane, owner) in self.panes() {
+            if !scrollbar::is_bar_of(ev.id, owner) {
+                continue;
+            }
+            return match ev.phase() {
+                // the press grabs the thumb or pages the track
+                Some(Phase::Press) => pane.press(ev.pos()).outcome().or(Outcome::Consumed),
+                Some(Phase::Drag) => pane.drag(ev.pos()).outcome(),
+                // the completed click (or a release away) ends the grab
+                Some(Phase::Click | Phase::Release) => {
+                    pane.release();
+                    Outcome::Consumed
+                }
+                _ => Outcome::Ignored,
+            };
+        }
+        Outcome::Ignored
+    }
+}
+
 impl Page for ScrollingPage {
     fn title(&self) -> &'static str {
         "Scrolling"
@@ -804,151 +884,7 @@ impl Page for ScrollingPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Press { id, pos } => {
-                if self.region.owns(*id) {
-                    if *id == self.region.id {
-                        cx.focus.focus(self.region.id);
-                    }
-                    return self.region.on_press(*id, *pos);
-                }
-                if self.list.locate(*id).is_some() {
-                    return Outcome::Ignored;
-                }
-                // the press grabs the thumb or pages the track
-                if *id == scrollbar::id_for(self.list.id) {
-                    return self.list.on_scrollbar(*pos);
-                }
-                for p in [&mut self.prose, &mut self.log] {
-                    if scrollbar::is_bar_of(*id, p.id) {
-                        return p.on_scrollbar(*pos);
-                    }
-                }
-                for (pane, owner) in self.panes() {
-                    if scrollbar::is_bar_of(*id, owner) {
-                        return pane.press(*pos).outcome().or(Outcome::Consumed);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Click { id, pos } => {
-                if self.region.owns(*id) {
-                    if *id == self.region.id {
-                        cx.focus.focus(self.region.id);
-                    }
-                    return self.region.on_click(*id).0;
-                }
-                if let Some(row) = self.list.locate(*id) {
-                    cx.focus.focus(self.list.id);
-                    return self.list.on_click(row);
-                }
-                if let Some((i, toggle)) = self.tree.locate(*id) {
-                    cx.focus.focus(self.tree.id);
-                    return if toggle {
-                        self.tree.on_click_toggle(i).0
-                    } else {
-                        self.tree.on_click_row(i).0
-                    };
-                }
-                if let Some((row, col)) = self.table.locate(*id) {
-                    cx.focus.focus(self.table.id);
-                    return self.table.on_click_cell(row, col.unwrap_or(0), *pos).0;
-                }
-                if self.grid.owns(*id) {
-                    cx.focus.focus(self.grid.id);
-                    return self.grid.on_click(*id, *pos).0;
-                }
-                // the completed click after a press on a bar: the grab ends
-                if *id == scrollbar::id_for(self.list.id) {
-                    self.list.pane().release();
-                    return Outcome::Consumed;
-                }
-                for p in [&mut self.prose, &mut self.log] {
-                    if scrollbar::is_bar_of(*id, p.id) {
-                        p.pane().release();
-                        return Outcome::Consumed;
-                    }
-                }
-                for (pane, owner) in self.panes() {
-                    if scrollbar::is_bar_of(*id, owner) {
-                        pane.release();
-                        return Outcome::Consumed;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                if self.region.owns(*pressed) {
-                    return self.region.on_drag(*pressed, *pos);
-                }
-                if *pressed == scrollbar::id_for(self.list.id) {
-                    return self.list.on_scrollbar_drag(*pos);
-                }
-                for p in [&mut self.prose, &mut self.log] {
-                    if scrollbar::is_bar_of(*pressed, p.id) {
-                        return p.on_bar_drag(*pressed, *pos);
-                    }
-                }
-                for (pane, owner) in self.panes() {
-                    if scrollbar::is_bar_of(*pressed, owner) {
-                        return pane.drag(*pos).outcome();
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Release { pressed, pos } => {
-                if self.region.owns(*pressed) {
-                    return self.region.on_release(*pos).0;
-                }
-                for (pane, owner) in self.panes() {
-                    if scrollbar::is_bar_of(*pressed, owner) {
-                        pane.release();
-                        return Outcome::Consumed;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                if self.region.open && self.region.owns(*id) {
-                    return self.region.on_wheel(*delta);
-                }
-                if self.list.owns(*id) {
-                    return self.list.on_wheel(*delta);
-                }
-                for p in [&mut self.prose, &mut self.log] {
-                    if p.owns(*id) {
-                        return p.on_wheel(*delta);
-                    }
-                }
-                if self.tree.owns(*id) {
-                    return self.tree.on_wheel(*delta);
-                }
-                if self.table.owns(*id) {
-                    return self.table.on_wheel(*delta);
-                }
-                if self.grid.owns(*id) {
-                    return self.grid.on_wheel(*delta);
-                }
-                for (pane, owner) in self.panes() {
-                    if *id == owner || scrollbar::is_bar_of(*id, owner) {
-                        return pane
-                            .wheel(Axis::Vertical, *delta)
-                            .outcome()
-                            .or(Outcome::Consumed);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::WheelH { id, delta } => {
-                for p in [&mut self.prose, &mut self.log] {
-                    if p.owns(*id) {
-                        return p.on_wheel_h(*delta);
-                    }
-                }
-                if *id == HAND || scrollbar::is_bar_of(*id, HAND) {
-                    return self.hand.wheel(Axis::Horizontal, *delta).outcome();
-                }
-                Outcome::Ignored
-            }
+            PageEvent::Pointer(ev) => self.pointer(ev, cx),
             _ => Outcome::Ignored,
         }
     }
