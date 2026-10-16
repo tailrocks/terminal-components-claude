@@ -20,6 +20,7 @@ use ratatui::style::Style;
 
 /// A question with radio options and buttons (mount destination choice,
 /// dirty-exit branches, split direction…).
+#[derive(Clone)]
 pub struct ChoiceDialog {
     /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
     /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
@@ -132,6 +133,14 @@ impl ChoiceDialog {
         self.radio.id
     }
 
+    /// The frame's height in rows: the stepper, the lines, the options and
+    /// the button row inside the frame.
+    pub fn height(&self) -> u16 {
+        let body = self.lines.len() as u16 + if self.lines.is_empty() { 0 } else { 1 };
+        let stepper = if self.stepper.is_some() { 2 } else { 0 };
+        2 + 2 + stepper + body + self.radio.height() + 2 + 1
+    }
+
     fn fire(&mut self, i: usize) -> Outcome {
         self.fired = Some(i);
         self.result = Some(if i == self.cancel_index {
@@ -224,9 +233,7 @@ impl ChoiceDialog {
                 Strings::follow(&mut b.label, old.next, s.next);
             }
         }
-        let body = self.lines.len() as u16 + if self.lines.is_empty() { 0 } else { 1 };
-        let stepper = if self.stepper.is_some() { 2 } else { 0 };
-        let h = 2 + 2 + stepper + body + self.radio.height() + 2 + 1;
+        let h = self.height();
         let (area, inner) = crate::ui::modal::Frame::new(self.width, h)
             .title(&self.title)
             .meta(None)
