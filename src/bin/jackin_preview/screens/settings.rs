@@ -15,7 +15,7 @@ use junie_tui::widgets::picker::PickerItem;
 use junie_tui::widgets::progress::spinner_frame;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::Segment;
-use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -859,7 +859,7 @@ impl Screen for SettingsScreen {
                 return Outcome::Changed;
             }
             let (o, ev) = self.tabs.on_key(key);
-            if let Some(TabEvent::Activated(i)) = ev {
+            if let Some(TabAction::Activated(i)) = ev {
                 self.tab = StTab::ALL[i.min(4)];
                 return Outcome::Changed;
             }
@@ -984,7 +984,7 @@ impl Screen for SettingsScreen {
         }
         if self.tabs.owns(id) {
             let (o, ev) = self.tabs.on_click(id);
-            if let Some(TabEvent::Activated(i)) = ev {
+            if let Some(TabAction::Activated(i)) = ev {
                 self.tab = StTab::ALL[i.min(4)];
             }
             cx.focus.focus(TABS);

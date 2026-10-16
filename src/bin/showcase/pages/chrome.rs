@@ -16,7 +16,7 @@ use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::hint;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
-use junie_tui::widgets::menu::{MenuBar, MenuBarEvent, MenuItem};
+use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
 use ratatui::crossterm::event::KeyCode;
@@ -260,7 +260,7 @@ impl Page for ChromePage {
             PageEvent::Key(key) => {
                 if self.bar.is_open() || cx.focus.is(BAR) {
                     let (o, ev) = self.bar.on_key(key);
-                    if let Some(MenuBarEvent::Chosen(m, i)) = ev {
+                    if let Some(MenuBarAction::Chosen(m, i)) = ev {
                         self.act(m, i, cx);
                     }
                     if o.consumed() {
@@ -296,7 +296,7 @@ impl Page for ChromePage {
             // a title opens its menu on the press (MenuBar::open_on)
             PageEvent::Press { id, .. } if self.bar.owns(*id) => {
                 let (o, ev) = self.bar.on_press(*id);
-                if let Some(MenuBarEvent::Opened(_)) = ev {
+                if let Some(MenuBarAction::Opened(_)) = ev {
                     cx.focus.focus(BAR);
                 }
                 o
@@ -305,12 +305,12 @@ impl Page for ChromePage {
                 if self.bar.owns(*id) || self.bar.is_open() {
                     let (o, ev) = self.bar.on_click(*id);
                     match ev {
-                        Some(MenuBarEvent::Chosen(m, i)) => self.act(m, i, cx),
-                        Some(MenuBarEvent::Brand) => {
+                        Some(MenuBarAction::Chosen(m, i)) => self.act(m, i, cx),
+                        Some(MenuBarAction::Brand) => {
                             self.last = "brand".into();
                             cx.status("Brand lockup activated");
                         }
-                        Some(MenuBarEvent::Opened(_)) => cx.focus.focus(BAR),
+                        Some(MenuBarAction::Opened(_)) => cx.focus.focus(BAR),
                         _ => {}
                     }
                     if o.consumed() {

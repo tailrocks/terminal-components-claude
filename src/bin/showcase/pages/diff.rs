@@ -13,7 +13,7 @@ use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::diff::{DiffFile, DiffHunk, DiffLine, DiffMode, DiffStatus, DiffView};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::viewport::ViewportEvent;
+use junie_tui::widgets::viewport::ViewportAction;
 
 const ID: WidgetId = WidgetId::of("diff");
 
@@ -117,7 +117,7 @@ impl Page for DiffPage {
                 }
                 if cx.focus.is(self.view.id()) {
                     let (outcome, event) = self.view.on_key(key);
-                    if let Some(ViewportEvent::Copy(text)) = event {
+                    if let Some(ViewportAction::Copy(text)) = event {
                         self.copied = Some(text);
                         cx.status("Selection copied");
                     }

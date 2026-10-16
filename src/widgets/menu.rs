@@ -92,7 +92,7 @@ impl MenuItem {
 pub use crate::ui::popup::Placement;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MenuEvent {
+pub enum MenuAction {
     Chosen(usize),
     Dismissed,
 }
@@ -413,7 +413,7 @@ impl ContextMenu {
         }
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuAction>) {
         if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
@@ -470,19 +470,19 @@ impl ContextMenu {
         match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
                 if self.items.get(self.cursor).is_some_and(|i| !i.disabled) {
-                    (Outcome::Changed, Some(MenuEvent::Chosen(self.cursor)))
+                    (Outcome::Changed, Some(MenuAction::Chosen(self.cursor)))
                 } else {
                     (Outcome::Consumed, None)
                 }
             }
-            KeyCode::Esc if self.dismiss.escape => (Outcome::Changed, Some(MenuEvent::Dismissed)),
+            KeyCode::Esc if self.dismiss.escape => (Outcome::Changed, Some(MenuAction::Dismissed)),
             _ => (Outcome::Consumed, None),
         }
     }
 
     /// A completed click on `id`: a row chooses it, anywhere else dismisses
     /// (when the [`Dismiss`] policy allows an outside click).
-    pub fn on_click(&mut self, id: WidgetId) -> Option<MenuEvent> {
+    pub fn on_click(&mut self, id: WidgetId) -> Option<MenuAction> {
         if self.page_marker(id) {
             return None;
         }
@@ -490,7 +490,7 @@ impl ContextMenu {
             Some(i) if !self.items[i].disabled => {
                 self.cursor = i;
                 self.cursor_hidden = false;
-                Some(MenuEvent::Chosen(i))
+                Some(MenuAction::Chosen(i))
             }
             Some(_) => None,
             None if id == self.id => None,
@@ -498,8 +498,8 @@ impl ContextMenu {
         }
     }
 
-    pub fn on_click_outside(&mut self) -> Option<MenuEvent> {
-        self.dismiss.outside_click.then_some(MenuEvent::Dismissed)
+    pub fn on_click_outside(&mut self) -> Option<MenuAction> {
+        self.dismiss.outside_click.then_some(MenuAction::Dismissed)
     }
 
     /// Place the menu inside `screen` and queue it as an overlay
@@ -734,7 +734,7 @@ impl ContextMenu {
 // ------------------------------------------------------------------ bar
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MenuBarEvent {
+pub enum MenuBarAction {
     /// A menu opened (index). With [`Overflow::Chevron`], `labels.len()`
     /// is the chevron's menu of hidden titles.
     Opened(usize),
@@ -870,7 +870,7 @@ impl MenuBar {
     /// menu right away (or closes it when it is the open one); the click
     /// that follows does nothing more. Anything else is left to
     /// [`Self::on_click`].
-    pub fn on_press(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarEvent>) {
+    pub fn on_press(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarAction>) {
         self.press_handled = None;
         if self.open_on != OpenOn::Press {
             return (Outcome::Ignored, None);
@@ -881,10 +881,10 @@ impl MenuBar {
         self.press_handled = Some(id);
         if self.open_index() == Some(i) {
             self.close();
-            return (Outcome::Changed, Some(MenuBarEvent::Closed));
+            return (Outcome::Changed, Some(MenuBarAction::Closed));
         }
         self.open_menu(i);
-        (Outcome::Changed, Some(MenuBarEvent::Opened(i)))
+        (Outcome::Changed, Some(MenuBarAction::Opened(i)))
     }
 
     /// See [`Self::type_ahead`].
@@ -1060,7 +1060,7 @@ impl MenuBar {
         self.open = None;
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuBarEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuBarAction>) {
         let n = self.labels.len();
         if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             // an unassigned modified chord never performs a plain action
@@ -1082,7 +1082,7 @@ impl MenuBar {
         {
             let i = self.step(d);
             self.open_menu(i);
-            return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
+            return (Outcome::Changed, Some(MenuBarAction::Opened(i)));
         }
         let from_chevron = self.cursor == n && chevron;
         if let Some(menu) = self.open.as_mut() {
@@ -1090,27 +1090,27 @@ impl MenuBar {
                 Some(Nav::Left) if n > 1 => {
                     let i = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
                     self.open_menu(i);
-                    return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
+                    return (Outcome::Changed, Some(MenuBarAction::Opened(i)));
                 }
                 Some(Nav::Right) if n > 1 => {
                     let i = crate::core::nav::step_index(self.cursor, n, 1, self.wrap);
                     self.open_menu(i);
-                    return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
+                    return (Outcome::Changed, Some(MenuBarAction::Opened(i)));
                 }
                 _ => {}
             }
             let (o, ev) = menu.on_key(key);
             return match ev {
-                Some(MenuEvent::Chosen(i)) if from_chevron => self.choose_hidden(i),
-                Some(MenuEvent::Chosen(i)) => {
+                Some(MenuAction::Chosen(i)) if from_chevron => self.choose_hidden(i),
+                Some(MenuAction::Chosen(i)) => {
                     let m = self.cursor;
                     self.close();
-                    (Outcome::Changed, Some(MenuBarEvent::Chosen(m, i)))
+                    (Outcome::Changed, Some(MenuBarAction::Chosen(m, i)))
                 }
-                Some(MenuEvent::Dismissed) if !self.dismiss.escape => (Outcome::Consumed, None),
-                Some(MenuEvent::Dismissed) => {
+                Some(MenuAction::Dismissed) if !self.dismiss.escape => (Outcome::Consumed, None),
+                Some(MenuAction::Dismissed) => {
                     self.close();
-                    (Outcome::Changed, Some(MenuBarEvent::Closed))
+                    (Outcome::Changed, Some(MenuBarAction::Closed))
                 }
                 None => (o, None),
             };
@@ -1141,7 +1141,7 @@ impl MenuBar {
             {
                 let i = self.cursor;
                 self.open_menu(i);
-                (Outcome::Changed, Some(MenuBarEvent::Opened(i)))
+                (Outcome::Changed, Some(MenuBarAction::Opened(i)))
             }
             _ => (Outcome::Ignored, None),
         }
@@ -1150,7 +1150,7 @@ impl MenuBar {
     /// A completed click. Labels toggle their menu, rows choose, the brand
     /// fires `Brand`, anything else while open closes the menu (when the
     /// [`Dismiss`] policy allows; the click is consumed either way).
-    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarEvent>) {
+    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarAction>) {
         // the press on this title already opened (or closed) its menu: the
         // release over it keeps that state
         let handled = self.press_handled.take();
@@ -1162,19 +1162,19 @@ impl MenuBar {
                 return (Outcome::Consumed, None);
             }
             self.close();
-            return (Outcome::Changed, Some(MenuBarEvent::Closed));
+            return (Outcome::Changed, Some(MenuBarAction::Closed));
         }
         if id == self.brand_id() {
             self.close();
-            return (Outcome::Changed, Some(MenuBarEvent::Brand));
+            return (Outcome::Changed, Some(MenuBarAction::Brand));
         }
         if let Some(i) = self.title_at(id) {
             if self.open_index() == Some(i) {
                 self.close();
-                return (Outcome::Changed, Some(MenuBarEvent::Closed));
+                return (Outcome::Changed, Some(MenuBarAction::Closed));
             }
             self.open_menu(i);
-            return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
+            return (Outcome::Changed, Some(MenuBarAction::Opened(i)));
         }
         let from_chevron = self.chevron() && self.cursor == self.labels.len();
         if let Some(menu) = self.open.as_mut() {
@@ -1182,18 +1182,18 @@ impl MenuBar {
                 return (Outcome::Changed, None);
             }
             return match menu.on_click(id) {
-                Some(MenuEvent::Chosen(item)) if from_chevron => self.choose_hidden(item),
-                Some(MenuEvent::Chosen(item)) => {
+                Some(MenuAction::Chosen(item)) if from_chevron => self.choose_hidden(item),
+                Some(MenuAction::Chosen(item)) => {
                     let m = self.cursor;
                     self.close();
-                    (Outcome::Changed, Some(MenuBarEvent::Chosen(m, item)))
+                    (Outcome::Changed, Some(MenuBarAction::Chosen(m, item)))
                 }
-                Some(MenuEvent::Dismissed) if !self.dismiss.outside_click => {
+                Some(MenuAction::Dismissed) if !self.dismiss.outside_click => {
                     (Outcome::Consumed, None)
                 }
-                Some(MenuEvent::Dismissed) => {
+                Some(MenuAction::Dismissed) => {
                     self.close();
-                    (Outcome::Changed, Some(MenuBarEvent::Closed))
+                    (Outcome::Changed, Some(MenuBarAction::Closed))
                 }
                 None => (Outcome::Consumed, None),
             };
@@ -1202,12 +1202,12 @@ impl MenuBar {
     }
 
     /// Item `i` of the chevron's menu: open that hidden title's menu.
-    fn choose_hidden(&mut self, i: usize) -> (Outcome, Option<MenuBarEvent>) {
+    fn choose_hidden(&mut self, i: usize) -> (Outcome, Option<MenuBarAction>) {
         let Some(&title) = self.hidden().get(i) else {
             return (Outcome::Consumed, None);
         };
         self.open_menu(title);
-        (Outcome::Changed, Some(MenuBarEvent::Opened(title)))
+        (Outcome::Changed, Some(MenuBarAction::Opened(title)))
     }
 
     /// Hovering another label while a menu is open switches to it. The bar
@@ -1483,9 +1483,9 @@ mod tests {
         m.on_key(&key(KeyCode::End));
         assert_eq!(m.cursor, 3);
         let (_, ev) = m.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(MenuEvent::Chosen(3)));
+        assert_eq!(ev, Some(MenuAction::Chosen(3)));
         let (_, ev) = m.on_key(&key(KeyCode::Esc));
-        assert_eq!(ev, Some(MenuEvent::Dismissed));
+        assert_eq!(ev, Some(MenuAction::Dismissed));
     }
 
     #[test]
@@ -1514,11 +1514,11 @@ mod tests {
         let row3 = m.row_id(3);
         let area = hits.area_of(row3).expect("row registered");
         assert_eq!(hits.hit(Position::new(area.x + 2, area.y)), Some(row3));
-        assert_eq!(m.on_click(row3), Some(MenuEvent::Chosen(3)));
+        assert_eq!(m.on_click(row3), Some(MenuAction::Chosen(3)));
         assert_eq!(m.on_click(m.row_id(1)), None, "disabled rows do nothing");
         assert_eq!(
             m.on_click(WidgetId::of("elsewhere")),
-            Some(MenuEvent::Dismissed)
+            Some(MenuAction::Dismissed)
         );
         // a click outside lands on the menu's backdrop; the policy decides
         assert_eq!(hits.hit(Position::new(50, 18)), Some(backdrop_id(m.id)));
@@ -1526,7 +1526,7 @@ mod tests {
         assert_eq!(sticky.on_click(backdrop_id(m.id)), None);
         assert_eq!(
             sticky.on_key(&key(KeyCode::Esc)).1,
-            Some(MenuEvent::Dismissed)
+            Some(MenuAction::Dismissed)
         );
         // danger row is drawn in the error tone, shortcut right-aligned
         assert_eq!(buf[(area.x + 2, area.y)].fg, t.error_soft);
@@ -1573,26 +1573,26 @@ mod tests {
         assert_eq!(bar.areas.len(), 2);
         assert!(bar.areas[0].x > bar.brand_area.right());
         let (_, ev) = bar.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(MenuBarEvent::Opened(0)));
+        assert_eq!(ev, Some(MenuBarAction::Opened(0)));
         assert!(bar.is_open());
         let (_, ev) = bar.on_key(&key(KeyCode::Right));
-        assert_eq!(ev, Some(MenuBarEvent::Opened(1)));
+        assert_eq!(ev, Some(MenuBarAction::Opened(1)));
         assert_eq!(bar.open_index(), Some(1));
         let (_, ev) = bar.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(MenuBarEvent::Chosen(1, 0)));
+        assert_eq!(ev, Some(MenuBarAction::Chosen(1, 0)));
         assert!(!bar.is_open());
         // click toggles, click on the brand fires Brand
         let (_, ev) = bar.on_click(bar.label_id(0));
-        assert_eq!(ev, Some(MenuBarEvent::Opened(0)));
+        assert_eq!(ev, Some(MenuBarAction::Opened(0)));
         bar.render(Rect::new(0, 0, 60, 1), &mut buf, &mut ctx, t.canvas);
         ctx.flush_overlays(&mut buf);
         let popover = bar.open.as_ref().unwrap().area;
         assert_eq!(popover.y, 1, "anchored beneath the label");
         assert_eq!(popover.x, bar.areas[0].x);
         let (_, ev) = bar.on_click(bar.label_id(0));
-        assert_eq!(ev, Some(MenuBarEvent::Closed));
+        assert_eq!(ev, Some(MenuBarAction::Closed));
         let (_, ev) = bar.on_click(bar.brand_id());
-        assert_eq!(ev, Some(MenuBarEvent::Brand));
+        assert_eq!(ev, Some(MenuBarAction::Brand));
         // hover switching is on by default and can be turned off
         bar.open_menu(0);
         assert_eq!(bar.on_hover(Some(bar.label_id(1))), Outcome::Changed);
@@ -1603,7 +1603,7 @@ mod tests {
         // Esc closes an open menu
         bar.open_menu(1);
         let (_, ev) = bar.on_key(&key(KeyCode::Esc));
-        assert_eq!(ev, Some(MenuBarEvent::Closed));
+        assert_eq!(ev, Some(MenuBarAction::Closed));
     }
 
     fn two_menus() -> MenuBar {
@@ -1634,18 +1634,18 @@ mod tests {
         let mut bar = two_menus();
         bar_hits(&mut bar, Interaction::default());
         let file = bar.label_id(0);
-        assert_eq!(bar.on_press(file).1, Some(MenuBarEvent::Opened(0)));
+        assert_eq!(bar.on_press(file).1, Some(MenuBarAction::Opened(0)));
         assert_eq!(bar.on_click(file), (Outcome::Consumed, None), "release");
         assert_eq!(bar.open_index(), Some(0));
         // pressing the open title closes it, its release keeps it shut
-        assert_eq!(bar.on_press(file).1, Some(MenuBarEvent::Closed));
+        assert_eq!(bar.on_press(file).1, Some(MenuBarAction::Closed));
         assert_eq!(bar.on_click(file).1, None);
         assert!(!bar.is_open());
         // OpenOn::Release: the press does nothing, the click toggles
         let mut bar = two_menus().open_on(OpenOn::Release);
         bar_hits(&mut bar, Interaction::default());
         assert_eq!(bar.on_press(file), (Outcome::Ignored, None));
-        assert_eq!(bar.on_click(file).1, Some(MenuBarEvent::Opened(0)));
+        assert_eq!(bar.on_click(file).1, Some(MenuBarAction::Opened(0)));
     }
 
     #[test]
@@ -1659,7 +1659,7 @@ mod tests {
         // a drag across the titles switches menus: any title's press counts
         assert!(hits.accepts_release(quit, ReleaseFrom::Press(bar.label_id(1))));
         let (_, ev) = bar.on_click(quit);
-        assert_eq!(ev, Some(MenuBarEvent::Chosen(0, 1)));
+        assert_eq!(ev, Some(MenuBarAction::Chosen(0, 1)));
         // press_drag off: a release elsewhere cancels the click
         let mut bar = two_menus().press_drag(false);
         bar_hits(&mut bar, Interaction::default());
@@ -2004,7 +2004,7 @@ mod tests {
         assert!(bar.more_area.right() <= 24);
         // clicking the chevron lists the hidden titles
         let (_, ev) = bar.on_click(bar.more_id());
-        assert_eq!(ev, Some(MenuBarEvent::Opened(4)));
+        assert_eq!(ev, Some(MenuBarAction::Opened(4)));
         let items: Vec<&str> = bar
             .open
             .as_ref()
@@ -2017,7 +2017,7 @@ mod tests {
         // choosing one opens that title's menu under the chevron
         bar.on_key(&key(KeyCode::Down));
         let (_, ev) = bar.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(MenuBarEvent::Opened(3)));
+        assert_eq!(ev, Some(MenuBarAction::Opened(3)));
         assert_eq!(bar.open_index(), Some(3));
         bar_row(&mut bar, &t, 24);
         let open = bar.open.as_ref().unwrap();
@@ -2026,7 +2026,7 @@ mod tests {
         assert!(open.area.x <= bar.more_area.x && open.area.right() > bar.more_area.x);
         // its items choose as usual
         let (_, ev) = bar.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(MenuBarEvent::Chosen(3, 0)));
+        assert_eq!(ev, Some(MenuBarAction::Chosen(3, 0)));
     }
 
     #[test]
@@ -2042,10 +2042,10 @@ mod tests {
         bar.on_key(&key(KeyCode::Left));
         assert_eq!(bar.cursor, 4);
         let (_, ev) = bar.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(MenuBarEvent::Opened(4)));
+        assert_eq!(ev, Some(MenuBarAction::Opened(4)));
         // with the chevron menu open, Left moves to Edit's menu
         let (_, ev) = bar.on_key(&key(KeyCode::Left));
-        assert_eq!(ev, Some(MenuBarEvent::Opened(1)));
+        assert_eq!(ev, Some(MenuBarAction::Opened(1)));
         // hovering the chevron while a hidden title's menu shows keeps it
         bar.open_menu(3);
         bar_row(&mut bar, &t, 24);

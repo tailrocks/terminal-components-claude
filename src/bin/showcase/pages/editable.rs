@@ -8,7 +8,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::option_editor::{ColumnEditor, Options};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
+use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
 
 const ID: WidgetId = WidgetId::of("editable");
 
@@ -131,12 +131,12 @@ impl Page for EditablePage {
                 return Outcome::Ignored;
             }
             return match self.table.on_blur() {
-                Some(TableEvent::Committed { .. }) => {
+                Some(TableAction::Committed { .. }) => {
                     self.edits += 1;
                     cx.status("Cell saved");
                     Outcome::Changed
                 }
-                Some(TableEvent::Cancelled) => {
+                Some(TableAction::Cancelled) => {
                     cx.status("Edit cancelled");
                     Outcome::Changed
                 }
@@ -150,13 +150,13 @@ impl Page for EditablePage {
                 }
                 let (out, tev) = self.table.on_key(key);
                 match tev {
-                    Some(TableEvent::Committed { .. }) => {
+                    Some(TableAction::Committed { .. }) => {
                         self.edits += 1;
                         cx.status("Cell saved");
                     }
-                    Some(TableEvent::Cancelled) => cx.status("Edit cancelled"),
-                    Some(TableEvent::LeaveForward) => cx.focus_next(),
-                    Some(TableEvent::LeaveBackward) => cx.focus_prev(),
+                    Some(TableAction::Cancelled) => cx.status("Edit cancelled"),
+                    Some(TableAction::LeaveForward) => cx.focus_next(),
+                    Some(TableAction::LeaveBackward) => cx.focus_prev(),
                     _ => {}
                 }
                 out
@@ -166,11 +166,11 @@ impl Page for EditablePage {
                 if let Some((out, tev)) = self.table.on_click_editor(*id) {
                     cx.focus.focus(self.table.id);
                     match tev {
-                        Some(TableEvent::Committed { .. }) => {
+                        Some(TableAction::Committed { .. }) => {
                             self.edits += 1;
                             cx.status("Cell saved");
                         }
-                        Some(TableEvent::Cancelled) => cx.status("Edit cancelled"),
+                        Some(TableAction::Cancelled) => cx.status("Edit cancelled"),
                         _ => {}
                     }
                     return out;
@@ -184,7 +184,7 @@ impl Page for EditablePage {
                     let (out, tev) =
                         self.table
                             .on_click_cell(row, col.unwrap_or(self.table.cursor_col), *pos);
-                    if let Some(TableEvent::Committed { .. }) = tev {
+                    if let Some(TableAction::Committed { .. }) = tev {
                         self.edits += 1;
                     }
                     return out;

@@ -8,7 +8,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::textarea::TextArea;
 
@@ -258,8 +258,8 @@ impl Page for FormsPage {
                 let route_input = |inp: &mut TextInput, cx: &mut PageCtx| -> Outcome {
                     let (out, iev) = inp.on_key(key);
                     match iev {
-                        Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
-                        Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
+                        Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
+                        Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
                         _ => {}
                     }
                     out
@@ -273,8 +273,8 @@ impl Page for FormsPage {
                 if f == self.description.id {
                     let (out, iev) = self.description.on_key(key);
                     match iev {
-                        Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
-                        Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
+                        Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
+                        Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
                         _ => {}
                     }
                     return out;

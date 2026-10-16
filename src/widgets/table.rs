@@ -281,7 +281,7 @@ impl Actions for TableCmd {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TableEvent {
+pub enum TableAction {
     Committed {
         row: usize,
         col: usize,
@@ -602,14 +602,14 @@ impl DataTable {
 
     /// A click on a row's checkbox: toggles that row and moves the cursor
     /// there.
-    pub fn on_click_check(&mut self, display: usize) -> (Outcome, Option<TableEvent>) {
+    pub fn on_click_check(&mut self, display: usize) -> (Outcome, Option<TableAction>) {
         if display >= self.rows.len() || !self.multi() {
             return (Outcome::Consumed, None);
         }
         self.set_cursor(display, self.cursor_col);
         let src = self.order[display];
         if self.toggle_row(src) {
-            (Outcome::Changed, Some(TableEvent::SelectionChanged))
+            (Outcome::Changed, Some(TableAction::SelectionChanged))
         } else {
             (Outcome::Changed, None)
         }
@@ -617,7 +617,7 @@ impl DataTable {
 
     /// A click on the header checkbox: all when not everything is
     /// selected, none otherwise.
-    pub fn on_click_check_all(&mut self) -> (Outcome, Option<TableEvent>) {
+    pub fn on_click_check_all(&mut self) -> (Outcome, Option<TableAction>) {
         if !self.multi() {
             return (Outcome::Consumed, None);
         }
@@ -626,7 +626,7 @@ impl DataTable {
             .selection
             .toggle_all(self.order.iter().copied(), |r| !disabled.contains(&r))
         {
-            (Outcome::Changed, Some(TableEvent::SelectionChanged))
+            (Outcome::Changed, Some(TableAction::SelectionChanged))
         } else {
             (Outcome::Consumed, None)
         }
@@ -634,10 +634,10 @@ impl DataTable {
 
     /// Multi-mode keys: Space, Shift+movement, Esc ([`TableCmd::SelectAll`]
     /// is a key-map action).
-    fn on_key_multi(&mut self, key: &Key) -> Option<(Outcome, Option<TableEvent>)> {
+    fn on_key_multi(&mut self, key: &Key) -> Option<(Outcome, Option<TableAction>)> {
         let changed = |c: bool| {
             if c {
-                (Outcome::Changed, Some(TableEvent::SelectionChanged))
+                (Outcome::Changed, Some(TableAction::SelectionChanged))
             } else {
                 (Outcome::Consumed, None)
             }
@@ -652,7 +652,7 @@ impl DataTable {
                 if key.mods.is_empty() && self.esc_clears && !self.selection.is_empty() =>
             {
                 self.selection.clear();
-                Some((Outcome::Changed, Some(TableEvent::SelectionChanged)))
+                Some((Outcome::Changed, Some(TableAction::SelectionChanged)))
             }
             _ if key.shift()
                 && !command
@@ -679,7 +679,7 @@ impl DataTable {
                     .extend(&self.order, from, self.cursor_row, |r| {
                         !disabled.contains(&r)
                     });
-                Some((Outcome::Changed, c.then_some(TableEvent::SelectionChanged)))
+                Some((Outcome::Changed, c.then_some(TableAction::SelectionChanged)))
             }
             _ => None,
         }
@@ -977,7 +977,7 @@ impl DataTable {
 
     /// Start editing the cursor cell: a text editor, a constrained
     /// editor's popup, or (Checkbox) the flipped value committed at once.
-    pub fn start_edit(&mut self) -> (Outcome, Option<TableEvent>) {
+    pub fn start_edit(&mut self) -> (Outcome, Option<TableAction>) {
         if self.rows.is_empty() {
             return (Outcome::Consumed, None);
         }
@@ -1011,7 +1011,7 @@ impl DataTable {
 
     /// Store a chosen value through the edit pipeline: the validator may
     /// reject it (the message comes back), a sorted column re-sorts.
-    fn apply_value(&mut self, src: usize, col: usize, text: String) -> Result<TableEvent, String> {
+    fn apply_value(&mut self, src: usize, col: usize, text: String) -> Result<TableAction, String> {
         if let Some(err) = self.validator.as_ref().and_then(|v| (v.0)(col, &text)) {
             return Err(err);
         }
@@ -1026,15 +1026,15 @@ impl DataTable {
                 self.scroll.ensure_visible(pos);
             }
         }
-        Ok(TableEvent::Committed { row: src, col })
+        Ok(TableAction::Committed { row: src, col })
     }
 
     /// Resolve what an open constrained editor reported.
-    fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<TableEvent> {
+    fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<TableAction> {
         let (value, tab) = match r? {
             ChoiceResult::Cancel => {
                 self.choice = None;
-                return Some(TableEvent::Cancelled);
+                return Some(TableAction::Cancelled);
             }
             ChoiceResult::Commit(v) => (v, None),
             ChoiceResult::CommitAndTab { value, backward } => (value, Some(backward)),
@@ -1065,19 +1065,19 @@ impl DataTable {
 
     /// Move the cell cursor to the next (previous) editable column of the
     /// row; `Some(Leave…)` when there is none.
-    fn tab_to_editable(&mut self, backward: bool) -> Option<TableEvent> {
+    fn tab_to_editable(&mut self, backward: bool) -> Option<TableAction> {
         let n = self.columns.len();
         let mut col = self.cursor_col;
         loop {
             if backward {
                 if col == 0 {
-                    return Some(TableEvent::LeaveBackward);
+                    return Some(TableAction::LeaveBackward);
                 }
                 col -= 1;
             } else {
                 col += 1;
                 if col >= n {
-                    return Some(TableEvent::LeaveForward);
+                    return Some(TableAction::LeaveForward);
                 }
             }
             if self.columns[col].editable {
@@ -1091,7 +1091,7 @@ impl DataTable {
     /// A click on an open constrained editor (an option, the popup, the
     /// backdrop) or on a cell's `▾`; `None` when `id` is neither, so the
     /// owner routes it on.
-    pub fn on_click_editor(&mut self, id: WidgetId) -> Option<(Outcome, Option<TableEvent>)> {
+    pub fn on_click_editor(&mut self, id: WidgetId) -> Option<(Outcome, Option<TableAction>)> {
         if let Some(c) = self.choice.as_mut()
             && c.editor.owns(id)
         {
@@ -1109,7 +1109,7 @@ impl DataTable {
         None
     }
 
-    pub fn commit_edit(&mut self) -> Option<TableEvent> {
+    pub fn commit_edit(&mut self) -> Option<TableAction> {
         let e = self.edit.take()?;
         let src = e.row;
         let text = e.buffer.text().to_owned();
@@ -1133,24 +1133,24 @@ impl DataTable {
                 self.scroll.ensure_visible(pos);
             }
         }
-        Some(TableEvent::Committed {
+        Some(TableAction::Committed {
             row: src,
             col: e.col,
         })
     }
 
-    pub fn cancel_edit(&mut self) -> Option<TableEvent> {
+    pub fn cancel_edit(&mut self) -> Option<TableAction> {
         if self.choice.take().is_some() {
-            return Some(TableEvent::Cancelled);
+            return Some(TableAction::Cancelled);
         }
-        self.edit.take().map(|_| TableEvent::Cancelled)
+        self.edit.take().map(|_| TableAction::Cancelled)
     }
 
     /// Focus left the table (see [`crate::core::focus::Focus::take_changes`]).
     /// A cell edit in progress ends per [`Self::blur_action`] and reports
     /// `Committed` or `Cancelled` like Enter or Esc (an invalid value stays
     /// open with its error and reports nothing).
-    pub fn on_blur(&mut self) -> Option<TableEvent> {
+    pub fn on_blur(&mut self) -> Option<TableAction> {
         if let Some(c) = &self.choice {
             return match self.editor_config.blur {
                 BlurAction::Commit => match c.editor.blur_value(&self.editor_config) {
@@ -1169,7 +1169,7 @@ impl DataTable {
         }
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TableEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TableAction>) {
         if let Some(c) = self.choice.as_mut() {
             let (out, r) = c.editor.on_key(key, &self.editor_config);
             return (out, self.on_choice(r));
@@ -1273,7 +1273,7 @@ impl DataTable {
                 TableCmd::SortByColumn => (self.sort_by(c), None),
                 TableCmd::SelectAll if self.multi() => {
                     if self.select_all() {
-                        (Outcome::Changed, Some(TableEvent::SelectionChanged))
+                        (Outcome::Changed, Some(TableAction::SelectionChanged))
                     } else {
                         (Outcome::Consumed, None)
                     }
@@ -1315,13 +1315,13 @@ impl DataTable {
                 if self.selection_mode == SelectionMode::Single {
                     self.selected = Some(src);
                 }
-                (Outcome::Changed, Some(TableEvent::Activated(src)))
+                (Outcome::Changed, Some(TableAction::Activated(src)))
             }
             _ => (Outcome::Ignored, None),
         }
     }
 
-    fn on_nav(&mut self, nav: Nav) -> (Outcome, Option<TableEvent>) {
+    fn on_nav(&mut self, nav: Nav) -> (Outcome, Option<TableAction>) {
         let (r, c) = (self.cursor_row, self.cursor_col);
         match nav {
             Nav::Up => {
@@ -1394,7 +1394,7 @@ impl DataTable {
         display: usize,
         col: usize,
         pos: Position,
-    ) -> (Outcome, Option<TableEvent>) {
+    ) -> (Outcome, Option<TableAction>) {
         self.on_click_cell_with(display, col, pos, KeyModifiers::NONE)
     }
 
@@ -1409,7 +1409,7 @@ impl DataTable {
         col: usize,
         pos: Position,
         mods: KeyModifiers,
-    ) -> (Outcome, Option<TableEvent>) {
+    ) -> (Outcome, Option<TableAction>) {
         if display >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
@@ -1448,7 +1448,7 @@ impl DataTable {
             } else if mods.intersects(self.toggle_mods) {
                 self.selection.toggle(src, enabled)
             } else if same && self.selection.len() == 1 && self.selection.contains(src) {
-                return (Outcome::Changed, Some(TableEvent::Activated(src)));
+                return (Outcome::Changed, Some(TableAction::Activated(src)));
             } else if !enabled(src) {
                 // a disabled row takes the cursor, the selection stays
                 false
@@ -1457,7 +1457,7 @@ impl DataTable {
             };
             return (
                 Outcome::Changed,
-                changed.then_some(TableEvent::SelectionChanged),
+                changed.then_some(TableAction::SelectionChanged),
             );
         }
         if same && self.cell_nav && self.columns[col].editable {
@@ -1471,7 +1471,7 @@ impl DataTable {
             if self.selection_mode == SelectionMode::Single {
                 self.selected = Some(src);
             }
-            return (Outcome::Changed, Some(TableEvent::Activated(src)));
+            return (Outcome::Changed, Some(TableAction::Activated(src)));
         }
         (Outcome::Changed, None)
     }
@@ -2370,7 +2370,7 @@ mod tests {
         t.edit.as_mut().unwrap().buffer.set_text("renamed");
         draw(&mut t, Rect::new(0, 0, 60, 10));
         assert!(t.edit.is_some(), "render is not a blur");
-        assert_eq!(t.on_blur(), Some(TableEvent::Committed { row: 0, col: 0 }));
+        assert_eq!(t.on_blur(), Some(TableAction::Committed { row: 0, col: 0 }));
     }
 
     #[test]
@@ -2386,11 +2386,11 @@ mod tests {
         let mut commit = edited(BlurAction::Commit);
         assert_eq!(
             commit.on_blur(),
-            Some(TableEvent::Committed { row: 0, col: 0 })
+            Some(TableAction::Committed { row: 0, col: 0 })
         );
         assert_eq!(commit.rows[0][0].text, "renamed");
         let mut cancel = edited(BlurAction::Cancel);
-        assert_eq!(cancel.on_blur(), Some(TableEvent::Cancelled));
+        assert_eq!(cancel.on_blur(), Some(TableAction::Cancelled));
         assert_ne!(cancel.rows[0][0].text, "renamed");
         let mut keep = edited(BlurAction::Keep);
         assert_eq!(keep.on_blur(), None);
@@ -2415,7 +2415,7 @@ mod tests {
         t.edit.as_mut().unwrap().buffer.set_text("fixed");
         assert_eq!(
             t.commit_edit(),
-            Some(TableEvent::Committed { row: 0, col: 0 })
+            Some(TableAction::Committed { row: 0, col: 0 })
         );
         assert_eq!(t.rows[0][0].text, "fixed");
         assert_eq!(t.rows[1][0].text, "alpha");
@@ -2433,7 +2433,7 @@ mod tests {
             }
             assert_eq!(
                 t.commit_edit(),
-                Some(TableEvent::Committed { row: 1, col: 0 })
+                Some(TableAction::Committed { row: 1, col: 0 })
             );
             assert_eq!(t.rows[1][0].text, "fixed");
             assert_eq!(t.rows[0][0].text, "beta");
@@ -2508,7 +2508,7 @@ mod tests {
         e.buffer.select_all();
         e.buffer.insert_str("zeta");
         let ev = t.commit_edit();
-        assert_eq!(ev, Some(TableEvent::Committed { row: 0, col: 0 }));
+        assert_eq!(ev, Some(TableAction::Committed { row: 0, col: 0 }));
         assert_eq!(t.rows[0][0].text, "zeta");
         t.begin_edit();
         t.edit.as_mut().unwrap().buffer.insert_str("!!!");
@@ -2542,11 +2542,11 @@ mod tests {
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         };
         let (_, ev) = t.on_key(&tab);
-        assert_eq!(ev, Some(TableEvent::Committed { row: 0, col: 0 }));
+        assert_eq!(ev, Some(TableAction::Committed { row: 0, col: 0 }));
         assert_eq!(t.cursor_col, 1);
         assert!(t.is_editing());
         let (_, ev) = t.on_key(&tab);
-        assert_eq!(ev, Some(TableEvent::LeaveForward));
+        assert_eq!(ev, Some(TableAction::LeaveForward));
         assert!(!t.is_editing());
     }
 
@@ -2688,7 +2688,7 @@ mod tests {
         let mut t = members();
         let (out, ev) = t.on_key(&k(KeyCode::Char(' '), KeyModifiers::NONE));
         assert_eq!(out, Outcome::Changed);
-        assert_eq!(ev, Some(TableEvent::SelectionChanged));
+        assert_eq!(ev, Some(TableAction::SelectionChanged));
         assert_eq!(t.selected_rows(), vec![0]);
         assert_eq!(t.selection_label(), "1 selected");
         t.on_key(&k(KeyCode::Char(' '), KeyModifiers::NONE));
@@ -2717,7 +2717,7 @@ mod tests {
     fn multi_select_all_and_esc_clear_are_configurable() {
         let mut t = members();
         let (_, ev) = t.on_key(&k(KeyCode::Char('a'), KeyModifiers::CONTROL));
-        assert_eq!(ev, Some(TableEvent::SelectionChanged));
+        assert_eq!(ev, Some(TableAction::SelectionChanged));
         assert_eq!(t.selected_rows(), vec![0, 1, 2, 3, 5]);
         assert_eq!(t.selection_state(), TriState::All);
         // Cmd+A works the same where the terminal reports it
@@ -2799,7 +2799,7 @@ mod tests {
         let mut t = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::Other));
         let p = Position::new(0, 0);
         let (_, ev) = t.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
-        assert_eq!(ev, Some(TableEvent::SelectionChanged));
+        assert_eq!(ev, Some(TableAction::SelectionChanged));
         assert_eq!(t.selected_rows(), vec![1]);
         t.on_click_cell_with(3, 0, p, KeyModifiers::SHIFT);
         assert_eq!(t.selected_rows(), vec![1, 2, 3]);
@@ -2812,7 +2812,7 @@ mod tests {
         assert_eq!(t.selected_rows(), vec![0]);
         // a plain click on the sole selected cursor row activates it
         let (_, ev) = t.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
-        assert_eq!(ev, Some(TableEvent::Activated(0)));
+        assert_eq!(ev, Some(TableAction::Activated(0)));
         // a plain click on a disabled row moves the cursor only
         t.on_click_cell_with(4, 0, p, KeyModifiers::NONE);
         assert_eq!(t.cursor_row, 4);
@@ -2916,7 +2916,7 @@ mod tests {
 
         assert_eq!(t.locate_check(t.check_id(1)), Some(1));
         let (_, ev) = t.on_click_check(1);
-        assert_eq!(ev, Some(TableEvent::SelectionChanged));
+        assert_eq!(ev, Some(TableAction::SelectionChanged));
         assert_eq!(t.cursor_row, 1);
         let (buf, _) = draw(&mut t, area);
         assert_eq!(boxed(&buf, 2), "[✓]");
@@ -2955,12 +2955,12 @@ mod tests {
     fn single_mode_keeps_its_chosen_row_marker() {
         let mut t = members().selection_mode(SelectionMode::Single);
         let (_, ev) = t.on_key(&k(KeyCode::Char(' '), KeyModifiers::NONE));
-        assert_eq!(ev, Some(TableEvent::Activated(0)));
+        assert_eq!(ev, Some(TableAction::Activated(0)));
         assert_eq!(t.selected_rows(), vec![0]);
         assert!(!t.select_all(), "select all is a multi-mode action");
         let mut none = members().selection_mode(SelectionMode::None);
         let (_, ev) = none.on_key(&k(KeyCode::Enter, KeyModifiers::NONE));
-        assert_eq!(ev, Some(TableEvent::Activated(0)));
+        assert_eq!(ev, Some(TableAction::Activated(0)));
         assert!(none.selected_rows().is_empty());
     }
 
@@ -3019,7 +3019,7 @@ mod select_all_tests {
             mods: KeyModifiers::ALT,
         });
         assert_eq!(out, Outcome::Changed);
-        assert_eq!(ev, Some(TableEvent::SelectionChanged));
+        assert_eq!(ev, Some(TableAction::SelectionChanged));
         assert_eq!(t.selected_rows(), vec![0, 1, 2]);
     }
 }

@@ -11,7 +11,7 @@ use super::{Hint, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::widgets::menu::{ContextMenu, MenuEvent};
+use junie_tui::widgets::menu::{ContextMenu, MenuAction};
 
 /// The footer hints while a row menu is open.
 pub const MENU_HINTS: [Hint; 3] = [("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Close")];
@@ -79,11 +79,11 @@ impl<T: Clone> RowMenu<T> {
             _ => return None,
         };
         match event {
-            Some(MenuEvent::Chosen(i)) => {
+            Some(MenuAction::Chosen(i)) => {
                 let (_, target) = self.open.take()?;
                 Some((Outcome::Changed, Some((target, i))))
             }
-            Some(MenuEvent::Dismissed) => {
+            Some(MenuAction::Dismissed) => {
                 self.open = None;
                 Some((Outcome::Changed, None))
             }

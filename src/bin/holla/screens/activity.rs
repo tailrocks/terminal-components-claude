@@ -13,12 +13,12 @@ use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::chips::{Chip, ChipBar, ChipEvent};
+use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::statusbar::StatusItem;
-use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportEvent, line_text};
+use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportAction, line_text};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -512,7 +512,7 @@ impl Screen for ActivityTab {
         if cx.focus.is(CHIPS) {
             let (o, ev) = self.chips.on_key(key);
             match ev {
-                Some(ChipEvent::Toggle(i)) | Some(ChipEvent::Activate(i)) => {
+                Some(ChipAction::Toggle(i)) | Some(ChipAction::Activate(i)) => {
                     let name = self.chips.chips[i].label.clone();
                     self.toggle_stream(name, w);
                     return Outcome::Changed;
@@ -628,8 +628,8 @@ impl Screen for ActivityTab {
         if cx.focus.is(VIEW) {
             let (o, ev) = self.view.on_key(key);
             match ev {
-                Some(ViewportEvent::Copy(text)) => cx.copy(text),
-                Some(ViewportEvent::FollowChanged(f)) => cx.status(if f {
+                Some(ViewportAction::Copy(text)) => cx.copy(text),
+                Some(ViewportAction::FollowChanged(f)) => cx.status(if f {
                     "Following the tail"
                 } else {
                     "Follow paused · End resumes"
@@ -661,7 +661,7 @@ impl Screen for ActivityTab {
     fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.chips.owns(id) {
             let (o, ev) = self.chips.on_click(id);
-            if let Some(ChipEvent::Activate(i)) | Some(ChipEvent::Toggle(i)) = ev {
+            if let Some(ChipAction::Activate(i)) | Some(ChipAction::Toggle(i)) = ev {
                 let name = self.chips.chips[i].label.clone();
                 self.toggle_stream(name, w);
             }

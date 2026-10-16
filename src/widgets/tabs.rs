@@ -19,7 +19,7 @@ use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
-use crate::widgets::menu::{ContextMenu, MenuEvent, MenuItem};
+use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TabItem {
@@ -64,7 +64,7 @@ pub struct Tabs {
     /// First visible tab (strip scroll).
     pub first: usize,
     pub areas: Vec<Rect>,
-    /// Show a trailing `+` that emits `TabEvent::New`.
+    /// Show a trailing `+` that emits `TabAction::New`.
     pub allow_new: bool,
     /// How the active tab's underline is coloured. Default
     /// [`TabRule::Auto`]: the accent unless a layer covers the strip.
@@ -165,7 +165,7 @@ impl Actions for TabCmd {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TabEvent {
+pub enum TabAction {
     Activated(usize),
     Close(usize),
     New,
@@ -328,15 +328,15 @@ impl Tabs {
         self.menu = Some((menu, tabs));
     }
 
-    fn menu_event(&mut self, ev: Option<MenuEvent>) -> Option<TabEvent> {
+    fn menu_event(&mut self, ev: Option<MenuAction>) -> Option<TabAction> {
         match ev? {
-            MenuEvent::Chosen(k) => {
+            MenuAction::Chosen(k) => {
                 let (_, tabs) = self.menu.take()?;
                 let i = *tabs.get(k)?;
                 self.set_active(i);
-                Some(TabEvent::Activated(i))
+                Some(TabAction::Activated(i))
             }
-            MenuEvent::Dismissed => {
+            MenuAction::Dismissed => {
                 self.menu = None;
                 None
             }
@@ -391,14 +391,14 @@ impl Tabs {
 
     /// A middle click on `id`: closes the closable tab under it (or whose
     /// × it is) when [`Self::middle_click_closes`] is on.
-    pub fn on_middle_click(&self, id: WidgetId) -> Option<TabEvent> {
+    pub fn on_middle_click(&self, id: WidgetId) -> Option<TabAction> {
         if !self.middle_click_closes {
             return None;
         }
         let i = self
             .locate(id)
             .or_else(|| (0..self.items.len()).find(|&i| self.close_id(i) == id))?;
-        self.items[i].closable.then_some(TabEvent::Close(i))
+        self.items[i].closable.then_some(TabAction::Close(i))
     }
 
     pub fn tab_id(&self, i: usize) -> WidgetId {
@@ -475,7 +475,7 @@ impl Tabs {
         }
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TabEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TabAction>) {
         if let Some((menu, _)) = self.menu.as_mut() {
             let (o, ev) = menu.on_key(key);
             return (o, self.menu_event(ev));
@@ -488,7 +488,7 @@ impl Tabs {
         if self.items.is_empty() {
             return match (action, key.code) {
                 (_, KeyCode::Enter) | (Some(TabCmd::New), _) if self.allow_new => {
-                    (Outcome::Changed, Some(TabEvent::New))
+                    (Outcome::Changed, Some(TabAction::New))
                 }
                 _ => (Outcome::Ignored, None),
             };
@@ -497,16 +497,16 @@ impl Tabs {
             Some(TabCmd::Jump(i)) => {
                 return if i < self.items.len() {
                     self.set_active(i);
-                    (Outcome::Changed, Some(TabEvent::Activated(i)))
+                    (Outcome::Changed, Some(TabAction::Activated(i)))
                 } else {
                     (Outcome::Ignored, None)
                 };
             }
             Some(TabCmd::Close) if self.items[self.cursor].closable => {
-                return (Outcome::Changed, Some(TabEvent::Close(self.cursor)));
+                return (Outcome::Changed, Some(TabAction::Close(self.cursor)));
             }
             Some(TabCmd::New) if self.allow_new => {
-                return (Outcome::Changed, Some(TabEvent::New));
+                return (Outcome::Changed, Some(TabAction::New));
             }
             _ => {}
         }
@@ -530,18 +530,18 @@ impl Tabs {
         };
         if let Some(to) = to {
             self.set_active(to);
-            return (Outcome::Changed, Some(TabEvent::Activated(self.active)));
+            return (Outcome::Changed, Some(TabAction::Activated(self.active)));
         }
         match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
                 self.set_active(self.cursor);
-                (Outcome::Changed, Some(TabEvent::Activated(self.active)))
+                (Outcome::Changed, Some(TabAction::Activated(self.active)))
             }
             _ => (Outcome::Ignored, None),
         }
     }
 
-    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<TabEvent>) {
+    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<TabAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
             && menu.owns(id)
         {
@@ -557,7 +557,7 @@ impl Tabs {
         // any other click on the strip closes an open overflow menu
         self.menu = None;
         if id == self.new_id() {
-            return (Outcome::Changed, Some(TabEvent::New));
+            return (Outcome::Changed, Some(TabAction::New));
         }
         if id == self.left_id() {
             self.first = self.first.saturating_sub(1);
@@ -569,12 +569,12 @@ impl Tabs {
         }
         for i in 0..self.items.len() {
             if self.close_id(i) == id {
-                return (Outcome::Changed, Some(TabEvent::Close(i)));
+                return (Outcome::Changed, Some(TabAction::Close(i)));
             }
         }
         if let Some(i) = self.locate(id) {
             self.set_active(i);
-            return (Outcome::Changed, Some(TabEvent::Activated(i)));
+            return (Outcome::Changed, Some(TabAction::Activated(i)));
         }
         (Outcome::Ignored, None)
     }
@@ -872,13 +872,16 @@ mod tests {
                 TabItem::new("c").closable(),
             ],
         );
-        assert_eq!(t.on_key(&k(KeyCode::End)).1, Some(TabEvent::Activated(2)));
-        assert_eq!(t.on_key(&k(KeyCode::Home)).1, Some(TabEvent::Activated(0)));
+        assert_eq!(t.on_key(&k(KeyCode::End)).1, Some(TabAction::Activated(2)));
+        assert_eq!(t.on_key(&k(KeyCode::Home)).1, Some(TabAction::Activated(0)));
         assert_eq!(
             t.on_key(&k(KeyCode::Char('2'))).1,
-            Some(TabEvent::Activated(1))
+            Some(TabAction::Activated(1))
         );
-        assert_eq!(t.on_key(&k(KeyCode::Char('x'))).1, Some(TabEvent::Close(1)));
+        assert_eq!(
+            t.on_key(&k(KeyCode::Char('x'))).1,
+            Some(TabAction::Close(1))
+        );
         let mut quiet = t
             .clone()
             .digit_jump(false)
@@ -888,7 +891,7 @@ mod tests {
         assert_eq!(quiet.on_key(&k(KeyCode::Char('3'))).1, None);
         assert_eq!(quiet.on_key(&k(KeyCode::Char('x'))).1, None);
         assert_eq!(quiet.on_key(&k(KeyCode::Char('n'))).1, None);
-        assert_eq!(quiet.on_key(&k(KeyCode::Char('+'))).1, Some(TabEvent::New));
+        assert_eq!(quiet.on_key(&k(KeyCode::Char('+'))).1, Some(TabAction::New));
     }
 
     #[test]
@@ -898,8 +901,8 @@ mod tests {
             id,
             vec![TabItem::new("Here"), TabItem::new("Logs").closable()],
         );
-        assert_eq!(t.on_middle_click(t.tab_id(1)), Some(TabEvent::Close(1)));
-        assert_eq!(t.on_middle_click(t.close_id(1)), Some(TabEvent::Close(1)));
+        assert_eq!(t.on_middle_click(t.tab_id(1)), Some(TabAction::Close(1)));
+        assert_eq!(t.on_middle_click(t.close_id(1)), Some(TabAction::Close(1)));
         assert_eq!(t.on_middle_click(t.tab_id(0)), None, "not closable");
         t = t.middle_click_closes(false);
         assert_eq!(t.on_middle_click(t.tab_id(1)), None);
@@ -1324,7 +1327,7 @@ mod tests {
         assert!(tabs.owns(last_row));
         assert_eq!(
             tabs.on_click(last_row).1,
-            Some(TabEvent::Activated(11)),
+            Some(TabAction::Activated(11)),
             "choosing activates"
         );
         assert!(!tabs.menu_open());

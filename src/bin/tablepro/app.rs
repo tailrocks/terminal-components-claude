@@ -26,8 +26,8 @@ use junie_tui::widgets::field_common::{route_click, route_drag, route_press};
 use junie_tui::widgets::grid::CellValue;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{self, Hint, hint};
-use junie_tui::widgets::menu::MenuEvent;
-use junie_tui::widgets::picker::{Picker, PickerEvent, PickerItem};
+use junie_tui::widgets::menu::MenuAction;
+use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::select::Select;
@@ -1773,7 +1773,7 @@ impl App {
                 let kind = *kind;
                 let (o, ev) = p.on_key(&key);
                 match ev {
-                    Some(PickerEvent::QueryChanged) => {
+                    Some(PickerAction::QueryChanged) => {
                         if kind == PickerKind::Switcher {
                             self.refresh_switcher();
                         } else if kind == PickerKind::TabList {
@@ -1802,18 +1802,18 @@ impl App {
                         }
                         Outcome::Changed
                     }
-                    Some(PickerEvent::NextScope) => {
+                    Some(PickerAction::NextScope) => {
                         if kind == PickerKind::Switcher {
                             self.scope = (self.scope + 1) % 4;
                             self.refresh_switcher();
                         }
                         Outcome::Changed
                     }
-                    Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => {
-                        let alt = matches!(ev, Some(PickerEvent::ChosenAlt(_)));
+                    Some(PickerAction::Chosen(i)) | Some(PickerAction::ChosenAlt(i)) => {
+                        let alt = matches!(ev, Some(PickerAction::ChosenAlt(_)));
                         self.picker_chosen(kind, i, alt)
                     }
-                    Some(PickerEvent::Secondary(i)) => {
+                    Some(PickerAction::Secondary(i)) => {
                         if kind == PickerKind::TabList {
                             if let Some(w) = self.workbench.as_mut() {
                                 let idx = p
@@ -1828,13 +1828,13 @@ impl App {
                         }
                         Outcome::Changed
                     }
-                    Some(PickerEvent::Cancelled) => {
+                    Some(PickerAction::Cancelled) => {
                         self.close_modal();
                         Outcome::Changed
                     }
                     // a query that matches nothing is not a command: the
                     // picker stays open with it
-                    Some(PickerEvent::Back) | Some(PickerEvent::Submit) | None => {
+                    Some(PickerAction::Back) | Some(PickerAction::Submit) | None => {
                         o.or(Outcome::Consumed)
                     }
                 }
@@ -1842,8 +1842,8 @@ impl App {
             Modal::Menu(m) => {
                 let (o, ev) = m.menu.on_key(&key);
                 match ev {
-                    Some(MenuEvent::Chosen(i)) => self.context_chosen(i),
-                    Some(MenuEvent::Dismissed) => {
+                    Some(MenuAction::Chosen(i)) => self.context_chosen(i),
+                    Some(MenuAction::Dismissed) => {
                         self.close_modal();
                         Outcome::Changed
                     }
@@ -1981,7 +1981,7 @@ impl App {
         focus: &mut Focus,
         ring: &FocusRing,
     ) -> FilterOutcome {
-        use junie_tui::widgets::input::InputEvent;
+        use junie_tui::widgets::input::InputAction;
         let cur = focus.current();
         // Esc cancels unless it has an edit to revert first (a field that
         // focus put in editing but holds no change lets it through)
@@ -2010,7 +2010,7 @@ impl App {
         }
         if cur == Some(f.column.id) {
             let (o, ev) = f.column.on_key(key);
-            if let Some(junie_tui::widgets::select::SelectEvent::Changed(i)) = ev {
+            if let Some(junie_tui::widgets::select::SelectAction::Changed(i)) = ev {
                 let ops = FilterOp::ordered_for(f.columns[i].1);
                 let labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
                 f.op = Select::new(f.op.id, "Operator", &labels, 0)
@@ -2025,14 +2025,14 @@ impl App {
             if cur == Some(inp.id) {
                 let (o, ev) = inp.on_key(key);
                 match ev {
-                    Some(InputEvent::CommittedTab { backward }) => {
+                    Some(InputAction::CommittedTab { backward }) => {
                         if backward {
                             focus.prev(ring)
                         } else {
                             focus.next(ring)
                         }
                     }
-                    Some(InputEvent::Committed) => return FilterOutcome::Apply,
+                    Some(InputAction::Committed) => return FilterOutcome::Apply,
                     _ => {}
                 }
                 if !o.consumed() && key.is(KeyCode::Enter) {
@@ -2269,14 +2269,14 @@ impl App {
                 }
                 Modal::Picker(kind, p, _) => {
                     let kind = *kind;
-                    if let Some(PickerEvent::Chosen(i)) = p.on_click(id) {
+                    if let Some(PickerAction::Chosen(i)) = p.on_click(id) {
                         return self.picker_chosen(kind, i, false);
                     }
                     Outcome::Changed
                 }
                 Modal::Menu(menu) => match menu.menu.on_click(id) {
-                    Some(MenuEvent::Chosen(i)) => self.context_chosen(i),
-                    Some(MenuEvent::Dismissed) => {
+                    Some(MenuAction::Chosen(i)) => self.context_chosen(i),
+                    Some(MenuAction::Dismissed) => {
                         self.close_modal();
                         Outcome::Changed
                     }
@@ -2297,7 +2297,7 @@ impl App {
         }
         // the explorer's rail and collapse button (mouse #8)
         if let Some(ev) = self.workbench.as_ref().and_then(|w| w.rail.on_click(id)) {
-            return self.set_explorer(ev == junie_tui::widgets::rail::RailEvent::Expand);
+            return self.set_explorer(ev == junie_tui::widgets::rail::RailAction::Expand);
         }
         // the query toolbar (mouse #7)
         if let Some(action) = crate::tabs::toolbar_action(id) {
@@ -2638,7 +2638,7 @@ impl App {
         if f.column.owns(id) {
             focus.focus(f.column.id);
             let (o, ev) = f.column.on_click(id);
-            if let Some(junie_tui::widgets::select::SelectEvent::Changed(i)) = ev {
+            if let Some(junie_tui::widgets::select::SelectAction::Changed(i)) = ev {
                 let ops = FilterOp::ordered_for(f.columns[i].1);
                 let labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
                 f.op = Select::new(f.op.id, "Operator", &labels, 0)

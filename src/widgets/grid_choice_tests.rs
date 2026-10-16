@@ -96,7 +96,7 @@ fn a_select_cell_commits_into_the_pending_queue() {
     assert!(text(&buf).contains("enterprise"), "{}", text(&buf));
     g.on_key(&key(KeyCode::Down));
     let (_, ev) = g.on_key(&key(KeyCode::Enter));
-    assert_eq!(ev, Some(GridEvent::CellChanged { row: 0, col: 1 }));
+    assert_eq!(ev, Some(GridAction::CellChanged { row: 0, col: 1 }));
     assert_eq!(g.value(0, 1), &CellValue::Text("pro".into()));
     assert!(
         g.pending.is_dirty(0, 1),
@@ -122,7 +122,7 @@ fn alt_down_and_the_mouse_open_and_choose() {
     let opt = g.choice.as_ref().unwrap().editor.option_id(0);
     assert!(hits.area_of(opt).is_some(), "options are clickable");
     let (_, ev) = g.on_click(opt, Position::new(0, 0));
-    assert_eq!(ev, Some(GridEvent::CellChanged { row: 0, col: 1 }));
+    assert_eq!(ev, Some(GridAction::CellChanged { row: 0, col: 1 }));
     assert_eq!(g.value(0, 1), &CellValue::Text("free".into()));
     // the ▾ on the cursor cell opens in one click; outside cancels
     let (_, hits) = draw(&mut g);
@@ -140,12 +140,12 @@ fn a_checkbox_flips_and_tab_opens_the_next_constrained_cell() {
     let mut g = grid();
     g.cursor = (0, 3);
     let (_, ev) = g.on_key(&key(KeyCode::Enter));
-    assert_eq!(ev, Some(GridEvent::CellChanged { row: 0, col: 3 }));
+    assert_eq!(ev, Some(GridAction::CellChanged { row: 0, col: 3 }));
     assert_eq!(g.value(0, 3), &CellValue::Text("yes".into()));
     g.cursor = (0, 1);
     g.on_key(&key(KeyCode::Enter));
     let (_, ev) = g.on_key(&key(KeyCode::Tab));
-    assert_eq!(ev, Some(GridEvent::CellChanged { row: 0, col: 1 }));
+    assert_eq!(ev, Some(GridAction::CellChanged { row: 0, col: 1 }));
     assert_eq!(g.cursor.1, 2);
     assert!(g.choice.is_some(), "the segmented tier opened");
     let (buf, _) = draw(&mut g);

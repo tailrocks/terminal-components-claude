@@ -23,7 +23,7 @@ use junie_tui::widgets::progress::{
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
-use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
+use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -1265,7 +1265,7 @@ impl Screen for DiskPage {
                     return Outcome::Ignored;
                 }
                 let (o, ev) = self.tree.on_key(key);
-                if let Some(TreeEvent::Activate(_)) = ev {
+                if let Some(TreeAction::Activate(_)) = ev {
                     return Outcome::Changed;
                 }
                 if o.consumed() {
