@@ -413,7 +413,12 @@ impl Dialog {
         let t = ctx.theme;
         // dim backdrop; the footer row stays live because its hints belong to the dialog
         ctx.modal_backdrop(buf, screen);
-        let width = self.width.min(screen.width.saturating_sub(4)).max(20);
+        // never wider than the screen, however narrow it gets
+        let width = self
+            .width
+            .min(screen.width.saturating_sub(4))
+            .max(20)
+            .min(screen.width);
         let height = self.height(width).min(screen.height.saturating_sub(2));
         let area = screen.centered(Constraint::Length(width), Constraint::Length(height));
         self.area = area;

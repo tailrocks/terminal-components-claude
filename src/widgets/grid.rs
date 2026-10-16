@@ -1618,7 +1618,12 @@ impl DataGrid {
             buf.set_string(grid_area.x + 1, header_y, &lbl, st);
             ctx.clickable(
                 self.left_id(),
-                Rect::new(grid_area.x + 1, header_y, lbl.len() as u16, 1),
+                Rect::new(
+                    grid_area.x + 1,
+                    header_y,
+                    crate::ui::text::width(&lbl) as u16,
+                    1,
+                ),
             );
         }
         for (k, rect) in self.col_rects.clone().iter().enumerate() {
@@ -1683,7 +1688,10 @@ impl DataGrid {
                 t.faint().bg(bg)
             };
             buf.set_string(x, header_y, &lbl, st);
-            ctx.clickable(self.right_id(), Rect::new(x, header_y, lbl.len() as u16, 1));
+            ctx.clickable(
+                self.right_id(),
+                Rect::new(x, header_y, crate::ui::text::width(&lbl) as u16, 1),
+            );
         }
 
         if self.rows.is_empty() && !self.more {
