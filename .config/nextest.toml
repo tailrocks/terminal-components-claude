@@ -2,7 +2,9 @@
 # required for PTY captures (libtest --test-threads shares one process).
 #
 # Default: `cargo nextest run`
-# Visual baseline: `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`
+# Visual baseline (one test per scenario, named
+# `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`):
+#   `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`
 #   (groups pending tuiscotti re-approval also need `VISUAL_FULL=1`)
 # Approve reviewed actuals (local only):
 #   `VISUAL_ACCEPT=<prefix> cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'`
@@ -20,18 +22,18 @@ default-filter = "not test(=accept_actuals)"
 [[profile.default.overrides]]
 filter = "binary(visual_baseline)"
 test-group = "pty"
-# Audit matrices run 25 PTYs in one test; 4×60s killed them under load.
-slow-timeout = { period = "60s", terminate-after = 10 }
+# One capture per test: boot, steps (timeouts up to 60 s for the streaming
+# terminal page) and, on a mismatch, the review PNG/HTML render.
+slow-timeout = { period = "60s", terminate-after = 3 }
 
 [[profile.default.overrides]]
+# Boot-streaming screens: give them a second slot so they do not starve.
 filter = '''
-  test(scrolling)
-  or test(tablepro_audit)
-  or test(holla_audit)
-  or test(jackin_audit)
-  or test(showcase_audit)
-  or test(terminal_default)
-  or test(docker_done)
+  binary(visual_baseline) & (
+    test(/::scrolling::/)
+    or test(/^showcase::pages::terminal::/)
+    or test(/^holla::flows::docker::done::/)
+  )
 '''
 threads-required = 2
 

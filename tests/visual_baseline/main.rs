@@ -3,68 +3,110 @@
 //! pinned to tailrocks/tuiscotti `main` in `Cargo.toml`) and gated against
 //! the approved artifacts in `snapshots/`
 //! (`<app>/<sub_group>/<cols>x<rows>/<palette>.<ext>`). Which artifacts are
-//! committed and gated (`.ansi` cell-exact, `.txt` content, `.png`
-//! decoded-pixel, `.html` render-level) is the single constant
-//! [`support::COMMITTED`]; scratch (actuals, diffs) lives under
-//! `target/tuiscotti/`.
+//! committed and gated is the single constant [`support::COMMITTED`]
+//! (one `.ansi` with a cursor trailer); scratch (actuals, review PNG/HTML,
+//! diffs) lives under `target/tuiscotti/`.
 //!
-//! The capture matrix and its rationale live in
-//! `docs/baseline/tuisnap-coverage.md` and `docs/baseline/snapshots-v2.md`
-//! (grouped taxonomy). Capture names are grouped paths
-//! (`<app>/<sub_group>/<leaf>`); argv, boot needles, send steps and
-//! per-capture timeouts are the original bash runner's, verbatim. The
-//! `pointer` module adds the mouse/resize group (hover, drag-select, wheel
-//! scroll-fade, resize sequences). The `audit` module generates the
-//! 10-fixture × 5 sizes × 5 colours audit matrix data-drivenly; the
-//! audit-flow variant matrices live in `showcase.rs` (keyboard) and
-//! `pointer.rs` (drag-select).
-//!
-//! Every capture test is `#[ignore]`d: default `cargo nextest run` compiles
-//! the suite and runs only the cheap non-PTY [`store_integrity`] check.
-//!
-//! Migration status (`docs/visual-testing/tuiscotti-migration.md`): the
-//! committed store still holds the retired tuisnap engine's approvals. Only
-//! scenarios already re-approved ([`support::is_reapproved`]: approved files
-//! are exactly the committed set) gate on tuiscotti; every other
-//! capture is skipped unless `VISUAL_FULL=1`:
+//! `harness = false` (libtest-mimic): scenarios come from the typed state
+//! tables in [`scenarios`] and each one is its own test, named
+//! `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`, so one drift fails one
+//! test and nextest filters by app, group, size or palette:
 //!
 //! ```sh
 //! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
-//! VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
-//! # approve reviewed actuals (local only, never in CI):
-//! VISUAL_ACCEPT=showcase/pages cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'
+//! cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(/^tablepro::/)'
+//! VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'test(/^holla::parity::/)'
 //! ```
 //!
-//! Gate policy (fail-closed): only a full match passes; a missing approved
-//! artifact fails. Approval is never implicit: [`accept_actuals`] is the only
-//! writer of `snapshots/`, and it runs only on explicit request.
+//! Every capture test is ignored: the default `cargo nextest run` runs only
+//! the cheap checks (`store_integrity`, `scenario_tables`, the cursor-trailer
+//! round trip) and the four boot-mode tests.
+//!
+//! Migration status (`docs/visual-testing/tuiscotti-migration.md`): only
+//! scenarios already re-approved on tuiscotti ([`support::is_reapproved`])
+//! gate; every other capture is skipped unless `VISUAL_FULL=1`. Gate policy
+//! is fail-closed: only a full match passes, and approval is never implicit
+//! (`accept_actuals`, local only).
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 mod ansi_cursor;
-mod audit;
-mod holla;
-mod jackin;
 mod modes;
-mod pointer;
-mod showcase;
+mod scenarios;
 mod support;
-mod tablepro;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
+use libtest_mimic::{Arguments, Failed, Trial};
 use support::{COMMITTED, LEGACY_EXTS};
+
+fn main() {
+    let args = Arguments::from_args();
+    let mut trials = vec![
+        check("store_integrity", store_integrity),
+        check("scenario_tables", || {
+            if let Err(e) = scenarios::check_tables() {
+                panic!("scenario tables are inconsistent:\n{e}");
+            }
+        }),
+        check(
+            "ansi_cursor::ansi_cursor_round_trips_cells_and_visible_cursor",
+            ansi_cursor::ansi_cursor_round_trips_cells_and_visible_cursor,
+        ),
+        check(
+            "modes::showcase_boot_sets_terminal_modes",
+            modes::showcase_boot_sets_terminal_modes,
+        ),
+        check(
+            "modes::tablepro_boot_sets_terminal_modes",
+            modes::tablepro_boot_sets_terminal_modes,
+        ),
+        check(
+            "modes::holla_boot_sets_terminal_modes",
+            modes::holla_boot_sets_terminal_modes,
+        ),
+        check(
+            "modes::jackin_boot_sets_terminal_modes",
+            modes::jackin_boot_sets_terminal_modes,
+        ),
+        Trial::test("accept_actuals", || catch(accept_actuals)).with_ignored_flag(true),
+    ];
+    for scenario in scenarios::all() {
+        trials.push(
+            Trial::test(scenario.test_name(), move || catch(|| scenario.run()))
+                .with_ignored_flag(true),
+        );
+    }
+    libtest_mimic::run(&args, trials).exit();
+}
+
+fn check(name: &str, body: fn()) -> Trial {
+    Trial::test(name, move || catch(body))
+}
+
+/// Turn a panic (the suite's assertion style) into a test failure with the
+/// panic message.
+fn catch(body: impl FnOnce()) -> Result<(), Failed> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)).map_err(|e| {
+        e.downcast_ref::<String>()
+            .cloned()
+            .or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string()))
+            .unwrap_or_else(|| "test panicked".into())
+            .into()
+    })
+}
 
 fn known_ext(ext: &str) -> bool {
     LEGACY_EXTS.contains(&ext) || COMMITTED.iter().any(|a| a.ext() == ext)
 }
 
-/// Cheap non-PTY gate: committed `snapshots/` names match the suite, each
-/// scenario is `group/sub_group/<cols>x<rows>/<color>` with exactly the
-/// [`COMMITTED`] artifacts (re-approved groups) or the legacy tuisnap four
-/// (groups pending re-approval), and the legacy `shots/` corpus is gone.
-#[test]
+/// Cheap non-PTY gate: the committed `snapshots/` names match the scenario
+/// tables, each scenario is `group/sub_group/<cols>x<rows>/<color>` with
+/// exactly the [`COMMITTED`] artifacts (re-approved) or the legacy tuisnap
+/// four (pending re-approval), and the legacy `shots/` corpus is gone.
+/// Pending rows and the narrow tier may be absent; nothing in the store may
+/// be outside the tables.
 fn store_integrity() {
     let approved = support::approved_root();
     let (by_name, extra) = walk_store(&approved);
@@ -92,56 +134,36 @@ fn store_integrity() {
     );
     let reapproved = by_name.values().filter(|exts| *exts == &committed).count();
     eprintln!(
-        "re-approved on tuiscotti: {reapproved} of {} scenarios",
+        "re-approved on tuiscotti: {reapproved} of {} stored scenarios",
         by_name.len()
     );
 
-    for name in &store_names {
-        tuiscotti::grouped::validate_name(name).unwrap_or_else(|e| panic!("{e}"));
-        let slashes = name.bytes().filter(|&b| b == b'/').count();
-        assert!(
-            slashes >= 2,
-            "scenario `{name}` must be nested under group/sub_group/… (at least two `/`)"
-        );
-        let mut parts = name.rsplit('/');
-        let color = parts.next().expect("color leaf");
-        let size = parts.next().expect("size folder");
-        assert!(
-            matches!(color, "truecolor" | "256" | "16" | "none" | "nocolor"),
-            "scenario `{name}` last component must be a color suffix"
-        );
-        let size_ok = size.split_once('x').is_some_and(|(cols, rows)| {
-            !cols.is_empty()
-                && !rows.is_empty()
-                && cols.chars().all(|ch| ch.is_ascii_digit())
-                && rows.chars().all(|ch| ch.is_ascii_digit())
-        });
-        assert!(
-            size_ok,
-            "scenario `{name}` must put terminal size in its own <cols>x<rows> folder"
-        );
-    }
-
-    let suite = support::suite_capture_names();
-    let pending: Vec<_> = suite.difference(&store_names).cloned().collect();
+    let all = scenarios::all();
+    let suite: BTreeSet<String> = all.iter().map(|s| s.name.clone()).collect();
+    let required: BTreeSet<String> = all
+        .iter()
+        .filter(|s| !s.pending)
+        .map(|s| s.name.clone())
+        .collect();
+    let missing: Vec<_> = required.difference(&store_names).cloned().collect();
     let orphans: Vec<_> = store_names.difference(&suite).cloned().collect();
     assert!(
         orphans.is_empty(),
-        "store contains stale names not in suite inventory ({}): {:?}",
+        "store contains names not in the scenario tables ({}): {:?}",
         orphans.len(),
         orphans
     );
     eprintln!(
-        "store inventory: {} approved, {} suite captures, {} pending first approval",
+        "store inventory: {} stored, {} scenarios ({} pending first approval)",
         store_names.len(),
         suite.len(),
-        pending.len()
+        suite.len() - required.len(),
     );
     assert!(
-        pending.is_empty(),
+        missing.is_empty(),
         "store is missing approved snapshots ({}): {:?}",
-        pending.len(),
-        pending
+        missing.len(),
+        missing
     );
 
     assert!(
@@ -208,10 +230,7 @@ fn posix_rel(root: &Path, path: &Path) -> String {
 /// exactly the [`COMMITTED`] artifacts, removing any other legacy artifact
 /// of an accepted scenario so the store follows the format set. Requires
 /// `VISUAL_ACCEPT` (a capture-name prefix, `*` for everything); never run
-/// in CI. tuiscotti's `GroupedStore::accept_all` always copies all four
-/// artifacts, so it cannot follow a smaller format set.
-#[test]
-#[ignore = "approves reviewed actuals into snapshots/; set VISUAL_ACCEPT=<prefix> and run explicitly"]
+/// in CI.
 fn accept_actuals() {
     let prefix = std::env::var("VISUAL_ACCEPT")
         .expect("set VISUAL_ACCEPT=<capture-name prefix> (or `*`) to approve actuals");
