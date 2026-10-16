@@ -1217,11 +1217,7 @@ impl Screen for ArgsPage {
 
     fn hints(&self, _focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if self.is_editing() {
-            return vec![
-                hint("Enter", "Commit"),
-                hint("Tab", "Next field"),
-                hint("Esc", "Revert"),
-            ];
+            return junie_tui::widgets::keyhint::EDIT_FIELD.to_vec();
         }
         vec![
             hint("Enter", "Edit"),

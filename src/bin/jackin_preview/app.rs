@@ -2564,11 +2564,7 @@ impl App {
                 ],
                 Some(Modal::Form(f)) => {
                     if f.is_editing() {
-                        vec![
-                            hint("Enter", "Commit"),
-                            hint("Tab", "Next field"),
-                            hint("Esc", "Revert"),
-                        ]
+                        junie_tui::widgets::keyhint::EDIT_FIELD.to_vec()
                     } else {
                         vec![
                             hint("Tab", "Next field"),

@@ -1021,3 +1021,21 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     assert!(f.contains("Type \"orders\" to confirm"), "{f}");
     assert!(f.contains("Enter Next"), "{f}");
 }
+
+#[test]
+fn cell_edit_footer_says_apply_not_commit() {
+    // "Commit" collides with the database commit behind Ctrl+S
+    let mut h = H::connected(120, 40);
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter); // orders
+    for _ in 0..6 {
+        h.key(KeyCode::Right);
+    }
+    h.key(KeyCode::Enter);
+    let f = footer(&h);
+    assert!(f.contains("Enter Apply"), "{f}");
+    assert!(f.contains("Esc Cancel"), "{f}");
+    assert!(!f.contains("Commit"), "{f}");
+}
