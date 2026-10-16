@@ -210,7 +210,7 @@ fn structure_sections_and_workbench_grid_routes() {
         h.key(KeyCode::Right);
     }
     h.key(KeyCode::Enter);
-    assert!(h.app.modal.is_some());
+    assert!(h.app.modal().is_some());
     assert!(h.text().contains("shipping_address"), "{}", h.text());
     h.key(KeyCode::Esc);
 }
@@ -233,7 +233,7 @@ fn query_execution_and_result_routes() {
         "SELECT * FROM orders LIMIT 1; INSERT INTO orders; ALTER TABLE orders ADD COLUMN coverage_flag boolean",
     );
     h.alt('r');
-    if h.app.modal.is_some() {
+    if h.app.modal().is_some() {
         accept_dialog(&mut h);
     }
     h.ticks(32);
@@ -266,7 +266,7 @@ fn query_execution_and_result_routes() {
     set_safe_mode(&mut h, SafeMode::Silent);
     set_query(&mut h, "DELETE FROM orders WHERE id = 1");
     h.ctrl('r');
-    if h.app.modal.is_some() {
+    if h.app.modal().is_some() {
         accept_dialog(&mut h);
     }
     h.ticks(10);
@@ -278,7 +278,7 @@ fn query_execution_and_result_routes() {
     set_safe_mode(&mut h, SafeMode::Silent);
     set_query(&mut h, "TRUNCATE orders");
     h.ctrl('r');
-    assert!(h.app.modal.is_some());
+    assert!(h.app.modal().is_some());
     confirm_destructive(&mut h, "orders");
     h.ticks(10);
     assert!(
@@ -314,7 +314,7 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
     assert_eq!(h.wb_table().grid.pending.total(), 1);
 
     h.key(KeyCode::Char('p'));
-    assert!(h.app.modal.is_some());
+    assert!(h.app.modal().is_some());
     assert!(h.text().contains("UPDATE public.orders"));
     h.key(KeyCode::Esc);
     h.key(KeyCode::Char('U'));
@@ -330,7 +330,7 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
     h.key(KeyCode::Esc);
     let tabs = h.wb().tabs.len();
     h.ctrl('w');
-    assert!(h.app.modal.is_some());
+    assert!(h.app.modal().is_some());
     h.key(KeyCode::Esc);
     assert_eq!(h.wb().tabs.len(), tabs);
     h.ctrl('w');
@@ -343,7 +343,7 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
     h.type_str("SELECT 2");
     h.key(KeyCode::Esc);
     h.ctrl('c');
-    assert!(h.app.modal.is_some());
+    assert!(h.app.modal().is_some());
     h.key(KeyCode::Esc);
     assert!(!h.app.quit);
     h.ctrl('c');
@@ -396,7 +396,7 @@ fn history_picker_and_filter_routes() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Down);
     h.key(KeyCode::Char('r'));
-    assert!(h.app.modal.is_some(), "{}", h.text());
+    assert!(h.app.modal().is_some(), "{}", h.text());
     h.key(KeyCode::Esc);
     h.app.workbench.as_mut().unwrap().connection.safe_mode = SafeMode::Silent;
     h.draw();
@@ -418,7 +418,7 @@ fn history_picker_and_filter_routes() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("A value is required"));
     h.key(KeyCode::Esc);
-    assert!(h.app.modal.is_none());
+    assert!(h.app.modal().is_none());
 }
 
 #[test]
@@ -472,19 +472,30 @@ fn overlays_trap_focus_and_restore_after_outside_dismissal() {
     let origin = h.focus();
 
     h.ctrl('o');
-    assert!(matches!(h.app.modal, Some(Modal::Picker(..))));
+    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
     assert_ne!(h.focus(), origin);
     h.key(KeyCode::Tab);
-    assert!(h.app.modal.is_some());
+    assert!(h.app.modal().is_some());
     assert_ne!(h.focus(), origin);
     h.click(0, 0);
-    assert!(h.app.modal.is_none());
+    assert!(h.app.modal().is_none());
     assert_eq!(h.focus(), origin);
 
+    // a form holds typed input: a stray click outside keeps it (its
+    // dismiss policy is Esc-only, interaction #5); Esc closes it
     h.ctrl('f');
-    assert!(matches!(h.app.modal, Some(Modal::Filter(_))));
+    assert!(matches!(h.app.modal(), Some(Modal::Filter(_))));
+    let typed = match h.app.modal() {
+        Some(Modal::Filter(f)) => f.value.text().to_owned(),
+        _ => unreachable!(),
+    };
     h.click(0, 0);
-    assert!(h.app.modal.is_none());
+    match h.app.modal() {
+        Some(Modal::Filter(f)) => assert_eq!(f.value.text(), typed),
+        _ => panic!("a stray click threw the filter editor away"),
+    }
+    h.key(KeyCode::Esc);
+    assert!(h.app.modal().is_none());
     assert_eq!(h.focus(), origin);
 }
 
