@@ -11,7 +11,7 @@ use ratatui::style::{Color, Modifier, Style};
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
@@ -230,11 +230,13 @@ impl StepRail {
             let y = area.y + k as u16;
             let step = &self.steps[i];
             let rid = self.row_id(i);
-            let mut s = ctx.state(rid);
+            // a read-only step list is inert: no hover, press or focus
+            let mut s = if self.selectable {
+                ctx.child_state(self.id, rid, i == self.cursor)
+            } else {
+                VisualState::default()
+            };
             s.focused = focused && i == self.cursor;
-            if !self.selectable {
-                s.hovered = false;
-            }
             let row = Rect::new(area.x, y, row_w, 1);
             let st = t.row(s, bg);
             fill(buf, row, st);
@@ -364,5 +366,36 @@ mod tests {
         r.set_state(2, StepState::Failed);
         assert_eq!(r.failed(), Some(2));
         assert_eq!(r.frontier(), Some(3));
+    }
+
+    #[test]
+    fn a_read_only_step_rail_does_not_react_to_hover_or_press() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        use crate::theme::Theme;
+        use crate::ui::ctx::Interaction;
+        let mut r = StepRail::new(
+            WidgetId::of("r"),
+            ["a", "b"].iter().map(|s| Step::new(s)).collect(),
+        );
+        let theme = Theme::junie();
+        let rid = r.row_id(0);
+        let render = |r: &mut StepRail, interaction: Interaction| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 2));
+            r.render(Rect::new(0, 0, 20, 2), &mut buf, &mut ctx, theme.canvas);
+            buf
+        };
+        let rest = render(&mut r, Interaction::default());
+        let pressed = render(
+            &mut r,
+            Interaction {
+                hover: Some(rid),
+                pressed: Some(rid),
+                ..Default::default()
+            },
+        );
+        assert_eq!(rest, pressed);
     }
 }

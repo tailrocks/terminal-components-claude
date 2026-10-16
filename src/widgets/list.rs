@@ -270,16 +270,13 @@ impl ListBox {
                 1,
             );
             let rid = self.row_id(li);
-            let mut s = ctx.state(rid);
+            let mut s = ctx.child_state(self.id, rid, li == self.cursor);
             s.focused = focused && li == self.cursor;
             s.disabled = item.disabled;
             s.selected = match self.mode {
                 SelectMode::Single => self.chosen == Some(li),
                 SelectMode::Multi => self.checked[li],
             };
-            if item.disabled {
-                s.hovered = false;
-            }
             let st = t.row(s, bg);
             fill(buf, row, st);
             buf.set_string(
@@ -482,5 +479,26 @@ mod scroll_tests {
         assert!(l.scroll.visible_range().contains(&l.cursor));
         l.on_wheel(-40);
         assert_eq!(l.scroll.offset, 0);
+    }
+
+    #[test]
+    fn enter_on_a_focused_list_flashes_its_cursor_row() {
+        let items = (0..3).map(|i| ListItem::new(&format!("Row {i}"))).collect();
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        // applications flash the focused id, which is the list itself
+        let interaction = Interaction {
+            focus: Some(l.id),
+            flash: Some(l.id),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 3));
+        l.render(Rect::new(0, 0, 40, 3), &mut buf, &mut ctx, theme.canvas);
+        let pressed = theme.ladder(crate::theme::Plane::Canvas).pressed;
+        assert_eq!(buf[(4, 0)].bg, pressed, "cursor row shows the press");
+        assert_eq!(buf[(4, 1)].bg, theme.canvas, "other rows stay at rest");
     }
 }
