@@ -4,16 +4,18 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusChange, FocusRing, forward_blur};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::field_common::{route_click, route_drag, route_press};
+use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::select::{Select, SelectAction};
@@ -220,30 +222,53 @@ impl FilterEditor {
         }
     }
 
-    fn click(&mut self, id: WidgetId, pos: Position, clicks: u8, focus: &mut Focus) -> Step {
-        if self.column.owns(id) {
-            focus.focus(self.column.id);
-            let (o, ev) = self.column.on_click(id);
-            if let Some(SelectAction::Changed(i)) = ev {
+    /// A pointer event on the editor: its selects take every phase of
+    /// their gestures (press-drag-release, the wheel and the bar of an open
+    /// list), the value fields their press, drag and click, the buttons a
+    /// click.
+    fn pointer_step(&mut self, ev: &PointerEvent, focus: &mut Focus) -> Step {
+        let (id, pos) = (ev.id, ev.pos());
+        let focusing = ev.is(Phase::Press) || ev.is(Phase::Click);
+        if let Some(r) = self.column.route(ev) {
+            if focusing {
+                focus.focus(self.column.id);
+            }
+            let (o, act) = r.into_parts();
+            if let Some(SelectAction::Changed(i)) = act {
                 self.column_changed(i);
             }
             return Step::Keep(o.or(Outcome::Changed));
         }
-        if self.op.owns(id) {
-            focus.focus(self.op.id);
-            return Step::Keep(self.op.on_click(id).0.or(Outcome::Changed));
+        if let Some(r) = self.op.route(ev) {
+            if focusing {
+                focus.focus(self.op.id);
+            }
+            return Step::Keep(r.outcome().or(Outcome::Changed));
         }
-        if let Some(o) = route_click(&mut [&mut self.value, &mut self.value2], id, pos, clicks) {
-            focus.focus(id);
-            return Step::Keep(o);
+        let fields: &mut [&mut dyn PointerField] = &mut [&mut self.value, &mut self.value2];
+        match ev.phase() {
+            Some(Phase::Press) => {
+                let _ = route_press(fields, id, pos, ev.count());
+                Step::Keep(Outcome::Changed)
+            }
+            Some(Phase::Drag) => {
+                Step::Keep(route_drag(fields, id, pos).unwrap_or(Outcome::Consumed))
+            }
+            Some(Phase::Click) => {
+                if let Some(o) = route_click(fields, id, pos, ev.count()) {
+                    focus.focus(id);
+                    return Step::Keep(o);
+                }
+                if self.apply.id == id && self.apply.on_click() {
+                    return Step::Apply;
+                }
+                if self.cancel.id == id && self.cancel.on_click() {
+                    return Step::Cancel;
+                }
+                Step::Keep(Outcome::Changed)
+            }
+            _ => Step::Keep(Outcome::Consumed),
         }
-        if self.apply.id == id && self.apply.on_click() {
-            return Step::Apply;
-        }
-        if self.cancel.id == id && self.cancel.on_click() {
-            return Step::Cancel;
-        }
-        Step::Keep(Outcome::Changed)
     }
 
     fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -393,29 +418,9 @@ impl Layer<ModalResult> for FilterEditor {
         self.step(step, cx.focus)
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_>) -> Outcome {
-        self.on_click_count(id, pos, 1, cx)
-    }
-
-    fn on_click_count(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        count: u8,
-        cx: &mut LayerCx<'_>,
-    ) -> Outcome {
-        let step = self.click(id, pos, count, cx.focus);
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_>) -> Outcome {
+        let step = self.pointer_step(ev, cx.focus);
         self.step(step, cx.focus)
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-        route_press(&mut [&mut self.value, &mut self.value2], id, pos, count);
-        Outcome::Changed
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        route_drag(&mut [&mut self.value, &mut self.value2], pressed, pos)
-            .unwrap_or(Outcome::Consumed)
     }
 
     fn on_paste(&mut self, text: &str) -> Outcome {
