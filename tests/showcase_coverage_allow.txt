@@ -332,10 +332,6 @@ ui::layers::LayerResult::Choice | Popups & tooltips page: layer API (plan S5) | 
 ui::layers::LayerResult::Info | Popups & tooltips page: layer API (plan S5) | SC19
 ui::layers::LayerResult::Help | Popups & tooltips page: layer API (plan S5) | SC19
 
-# widgets::breadcrumb
-widgets::breadcrumb::Breadcrumb | Breadcrumbs & rails page | SC5
-widgets::breadcrumb::Breadcrumb::clickable | Breadcrumbs & rails page | SC5
-
 # widgets::button
 
 # widgets::chips
@@ -642,13 +638,6 @@ widgets::picker::Picker::cursor_style | Pickers page options | SC20
 # widgets::progress
 
 # widgets::props
-
-# widgets::rail
-widgets::rail::RailAction | Breadcrumbs & rails page | SC5
-widgets::rail::RailAction::Expand | Breadcrumbs & rails page | SC5
-widgets::rail::RailAction::Collapse | Breadcrumbs & rails page | SC5
-widgets::rail::SidebarRail | Breadcrumbs & rails page | SC5
-widgets::rail::SidebarRail::collapsed_rail | Breadcrumbs & rails page | SC5
 
 # widgets::scrollbar
 widgets::scrollbar::Bars | Panels and Scrolling page options | SC22

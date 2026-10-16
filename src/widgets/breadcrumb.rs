@@ -13,7 +13,7 @@ use ratatui::style::{Color, Modifier};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
-use crate::ui::text::{truncate, width};
+use crate::ui::text::{truncate, truncate_middle, width};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Breadcrumb {
@@ -65,7 +65,10 @@ impl Breadcrumb {
 
     /// Draw the trail on one row of `area`, left-aligned on `bg`. When it
     /// is too wide, the outermost levels collapse into a leading `…` and
-    /// the current page keeps the room it needs.
+    /// the current page keeps the room it needs; a current page wider than
+    /// the row is cut in the middle, so its start and its end (a file's
+    /// extension, a version) both stay readable, as the macOS path bar cuts
+    /// a long name.
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         self.areas = vec![Rect::ZERO; self.segments.len()];
@@ -96,11 +99,21 @@ impl Breadcrumb {
         let mut x = area.x;
         let y = area.y;
         let right = area.right();
-        let put = |buf: &mut Buffer, x: &mut u16, s: &str, st: ratatui::style::Style| -> Rect {
+        let put = |buf: &mut Buffer,
+                   x: &mut u16,
+                   s: &str,
+                   st: ratatui::style::Style,
+                   middle: bool|
+         -> Rect {
             if *x >= right {
                 return Rect::ZERO;
             }
-            let s = truncate(s, (right - *x) as usize);
+            let room = (right - *x) as usize;
+            let s = if middle {
+                truncate_middle(s, room)
+            } else {
+                truncate(s, room)
+            };
             let w = width(&s) as u16;
             buf.set_string(*x, y, &s, st);
             let r = Rect::new(*x, y, w, 1);
@@ -108,8 +121,8 @@ impl Breadcrumb {
             r
         };
         if from > 0 {
-            put(buf, &mut x, ell, t.faint().bg(bg));
-            put(buf, &mut x, &sep, t.faint().bg(bg));
+            put(buf, &mut x, ell, t.faint().bg(bg), false);
+            put(buf, &mut x, &sep, t.faint().bg(bg), false);
         }
         for i in from..n {
             let current = i + 1 == n;
@@ -117,22 +130,72 @@ impl Breadcrumb {
             if current {
                 // the current page: neutral, never the focus accent
                 let st = t.title().bg(bg);
-                self.areas[i] = put(buf, &mut x, &label, st);
+                self.areas[i] = put(buf, &mut x, &label, st, true);
             } else if self.clickable {
                 let id = self.segment_id(i);
                 let st = t.interactive(Kind::Title, ctx.state(id), plane).style;
-                let r = put(buf, &mut x, &label, st);
+                let r = put(buf, &mut x, &label, st, false);
                 if !r.is_empty() {
                     ctx.register_part(self.id, Self::segment_part(i), r);
                 }
                 self.areas[i] = r;
-                put(buf, &mut x, &sep, t.faint().bg(bg));
+                put(buf, &mut x, &sep, t.faint().bg(bg), false);
             } else {
                 let st = t.secondary().bg(bg).remove_modifier(Modifier::BOLD);
-                self.areas[i] = put(buf, &mut x, &label, st);
-                put(buf, &mut x, &sep, t.faint().bg(bg));
+                self.areas[i] = put(buf, &mut x, &label, st, false);
+                put(buf, &mut x, &sep, t.faint().bg(bg), false);
             }
         }
+    }
+}
+
+/// A trail drawn alone, in a forced state, for a States grid
+/// ([`crate::ui::specimen`]): hover and press land on the first link (where
+/// the pointer would be), overflow is a deeper trail than its cell holds
+/// (the outer levels collapse into `…`), narrow the trail in the narrow
+/// slot.
+impl crate::ui::specimen::Specimen for Breadcrumb {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        match state {
+            Rest | Overflow | Narrow => true,
+            Hover | Pressed => self.clickable && self.segments.len() > 1,
+            _ => false,
+        }
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut b = self.clone();
+        if state == Overflow {
+            let at = b.segments.len().saturating_sub(1);
+            for (k, s) in ["Volumes", "Archive", "2026", "October"].iter().enumerate() {
+                b.segments.insert(at + k, (*s).to_owned());
+            }
+        }
+        // the pointer rests on the first link, not on the trail
+        let first = b.segment_id(0);
+        match state {
+            Hover => ctx.interaction.hover = Some(first),
+            Pressed => {
+                ctx.interaction.hover = Some(first);
+                ctx.interaction.pressed = Some(first);
+            }
+            _ => {}
+        }
+        crate::ui::ctx::fill(buf, area, ratatui::style::Style::new().bg(bg));
+        b.render(area, buf, ctx, bg);
     }
 }
 
@@ -208,5 +271,18 @@ mod tests {
         assert!(s.starts_with("… › "), "{s}");
         assert!(s.contains("Top files"), "{s}");
         assert_eq!(b.areas[0], Rect::ZERO);
+    }
+
+    #[test]
+    fn a_current_page_too_wide_is_cut_in_the_middle() {
+        let mut b = Breadcrumb::new(
+            WidgetId::of("crumbs"),
+            vec!["settlement-backoff-retry-policy-v2.md".into()],
+        );
+        let (buf, _) = draw(&mut b, 20, None);
+        let s = text(&buf);
+        assert!(s.starts_with("settlement"), "{s}");
+        assert!(s.trim_end().ends_with("v2.md"), "{s}");
+        assert!(s.contains('…'), "{s}");
     }
 }
