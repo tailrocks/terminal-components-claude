@@ -1599,6 +1599,48 @@ impl QueryTab {
         }
     }
 
+    /// Run, Run all, Explain and (while running) Cancel, left-aligned on
+    /// one row; they lift on hover and press like every button.
+    fn render_toolbar(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        let running = self.running.is_some();
+        let mut buttons = vec![
+            Button::secondary(TOOLBAR_RUN, "Run")
+                .tooltip("Run the statement at the cursor")
+                .shortcut("Ctrl+R")
+                .disabled(running),
+            Button::subtle(TOOLBAR_RUN_ALL, "Run all")
+                .tooltip("Run every statement")
+                .shortcut("Alt+R")
+                .disabled(running),
+            Button::subtle(TOOLBAR_EXPLAIN, "Explain")
+                .tooltip("Show the plan of the statement at the cursor")
+                .shortcut("Ctrl+X")
+                .disabled(running),
+        ];
+        if running {
+            buttons.push(
+                Button::secondary(TOOLBAR_CANCEL, "Cancel")
+                    .tooltip("Cancel the running query")
+                    .shortcut("Esc"),
+            );
+        }
+        // the commands have chords: the toolbar takes no Tab stops
+        let mut buttons: Vec<Button> = buttons.into_iter().map(|b| b.focusable(false)).collect();
+        let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
+        let rects = junie_tui::widgets::button::row_layout(area, &widths, 1);
+        for (b, r) in buttons.iter_mut().zip(rects) {
+            if r.right() <= area.right() {
+                b.render(r, buf, ctx, bg);
+            }
+        }
+    }
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.editor.editing {
             return self.editor.on_paste(text);
@@ -1618,7 +1660,13 @@ impl QueryTab {
     ) {
         let t = ctx.theme;
         let (top, bottom) = self.split.vertical(area, 1);
-        // editor
+        // the toolbar row, then the editor
+        let top = if top.height > 3 {
+            self.render_toolbar(Rect::new(top.x, top.y, top.width, 1), buf, ctx, bg);
+            Rect::new(top.x, top.y + 1, top.width, top.height - 1)
+        } else {
+            top
+        };
         if !top.is_empty() {
             self.editor.render(top, buf, ctx, bg);
         }
@@ -2013,6 +2061,33 @@ impl QueryTab {
 /// Width of the EXPLAIN metric columns: cost, rows, actual and the share
 /// with its hot marker (`{:>13} {:>8} {:>10} {:>4} ▲`).
 const PLAN_COLS_W: u16 = 40;
+
+/// The query toolbar's commands: Run, Run all, Explain and, while a query
+/// runs, Cancel, as buttons above the editor (mouse audit #7). Each one is
+/// also a chord (Ctrl+R, Alt+R, Ctrl+X, Esc) the toolbar's tooltips name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToolbarAction {
+    Run,
+    RunAll,
+    Explain,
+    Cancel,
+}
+
+pub const TOOLBAR_RUN: WidgetId = WidgetId::of("query.toolbar.run");
+pub const TOOLBAR_RUN_ALL: WidgetId = WidgetId::of("query.toolbar.run_all");
+pub const TOOLBAR_EXPLAIN: WidgetId = WidgetId::of("query.toolbar.explain");
+pub const TOOLBAR_CANCEL: WidgetId = WidgetId::of("query.toolbar.cancel");
+
+/// The toolbar command a click on `id` stands for.
+pub fn toolbar_action(id: WidgetId) -> Option<ToolbarAction> {
+    match id {
+        i if i == TOOLBAR_RUN => Some(ToolbarAction::Run),
+        i if i == TOOLBAR_RUN_ALL => Some(ToolbarAction::RunAll),
+        i if i == TOOLBAR_EXPLAIN => Some(ToolbarAction::Explain),
+        i if i == TOOLBAR_CANCEL => Some(ToolbarAction::Cancel),
+        _ => None,
+    }
+}
 
 /// The EXPLAIN metric header; every cell lines up with [`PLAN_COLS_W`]'s
 /// columns (the share's last digit sits under `%`).
