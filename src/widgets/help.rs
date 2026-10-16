@@ -186,7 +186,12 @@ impl HelpOverlay {
                 if *heading {
                     buf.set_string(x, y, key, t.secondary().bg(bg).add_modifier(Modifier::BOLD));
                 } else {
-                    buf.set_string(x, y, truncate(key, 12), t.key_hint_key().bg(bg));
+                    buf.set_string(
+                        x,
+                        y,
+                        truncate(&t.glyphs.key_label(key), 12),
+                        t.key_hint_key().bg(bg),
+                    );
                     buf.set_string(
                         x + 13,
                         y,
