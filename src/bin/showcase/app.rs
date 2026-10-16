@@ -1033,7 +1033,9 @@ impl App {
             if y >= area.bottom() {
                 break;
             }
-            let row = Rect::new(area.x, y, area.width.saturating_sub(u16::from(overflow)), 1);
+            // the last column is always the divider (and the scrollbar
+            // when the list overflows): rows never run under it
+            let row = Rect::new(area.x, y, area.width.saturating_sub(1), 1);
             let rid = NAV.child(i);
             let mut s = ctx.state(rid);
             s.focused = focused && i == self.nav_cursor;
@@ -1090,15 +1092,17 @@ impl App {
                     .into_iter()
                     .collect::<Vec<_>>(),
             );
-            scrollbar::render_vertical(
-                Rect::new(area.right() - 1, area.y, 1, area.height),
-                buf,
-                ctx,
-                NAV,
-                &self.nav_scroll,
-                focused,
-            );
         }
+        // one divider at every size; the thumb appears on it when the
+        // list overflows (layout audit #19)
+        scrollbar::render_divider(
+            Rect::new(area.right().saturating_sub(1), area.y, 1, area.height),
+            buf,
+            ctx,
+            NAV,
+            &self.nav_scroll,
+            focused,
+        );
     }
 
     fn draw_main(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

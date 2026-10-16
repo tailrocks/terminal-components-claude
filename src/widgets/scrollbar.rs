@@ -43,6 +43,33 @@ fn thumb_style(ctx: &RenderCtx, sb_id: WidgetId, focused: bool) -> Style {
     ctx.theme.interactive(Kind::Handle, s, Plane::Canvas).style
 }
 
+/// A 1-column divider that is also the container's scrollbar: the track
+/// line is drawn whether or not the content overflows, and the thumb (with
+/// its click region) is laid over it only when it does. A pane edge that
+/// doubles as a scrollbar keeps one look at every size instead of
+/// appearing only once the content outgrows the view.
+pub fn render_divider(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    container: WidgetId,
+    scroll: &ScrollState,
+    focused: bool,
+) {
+    let area = area.intersection(*buf.area());
+    if area.is_empty() {
+        return;
+    }
+    if scroll.overflows() {
+        render_vertical(area, buf, ctx, container, scroll, focused);
+        return;
+    }
+    let track = ctx.theme.scrollbar_track();
+    for y in area.top()..area.bottom() {
+        buf.set_string(area.x, y, TRACK, track);
+    }
+}
+
 /// Render a vertical scrollbar into a 1-column area. Draws nothing when the
 /// content fits. Registers a clickable region for track clicks and drags.
 pub fn render_vertical(
