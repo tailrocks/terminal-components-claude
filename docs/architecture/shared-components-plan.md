@@ -298,6 +298,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 | Step | State | Commits | Deviations and notes |
 |---|---|---|---|
 | S0 | Done, 2026-10-16 | `a3e367e8f` (expand: core types), `9e9d5b248` (`XAction` → `XCmd`), `a6343ba8e` (`XEvent` → `XAction`) | See "S0 outcome" below. |
+| S1 | Done, 2026-10-16 | `f164ffde7` (part-tagged hits; every library widget, showcase NavList, holla cleanup), `a83663c33` (jackin roster rows keyed by instance) | See "S1 outcome" below. |
 | S2 | Done, 2026-10-16 | `a5b1a82cf` (expand: leaf pieces), `262b70d60` (CLI), `45968977b` (motion and clean-start drift), `8396c3d11` (clocks), `ae4d7eb41` (status line drift), "too-small screen, centred hints and text helpers" (leaf migrations) | See "S2 outcome" below. |
 | S1, S3–S22, T | Not started | — | — |
 
@@ -352,6 +353,27 @@ Each step's agent updates its row when the step lands: state, commits, and every
 - S8b: the footer draws `StatusLine::get()`; when it is an error it should win over hints (SV11 "error > hint").
 - S22: the 12 wall-clock spinner sites still animate under `--motion reduced`; once they read `ctx.interaction.tick`, reduced motion stills them too (SVg8).
 - SC30 (showcase): demonstrate `TooSmall`, `Theme::centred_hints` and Reduced motion, then delete their allowlist lines.
+
+**S1 outcome.** Part-tagged hits are in the library:
+- `core::hit`: every `HitRegion` carries `owner` and `part`; `Hit { owner, part }`; `HitRegistry::{register_part, register_part_as, resolve, part_of, regions, raise}`. A widget's own region is its `Part::CONTAINER`, a scrollbar resolves to its owner's `Part::TRACK`, a light-dismiss backdrop to `Part::BACKDROP`. `PartMap` (per widget, rebuilt every render, also when inert) answers id → `PartRef` for what the widget drew, with the column of a 2-D part.
+- `core::id`: `WidgetId::part(PartRef)` is the one id rule (a `ROW` or `TAB` item keeps its old `child(i)` id; every other part hashes item, then part); `WidgetId::item_of(id, part, items)` is the one inverse over a known item set; `PartRef::OVERFLOW_BEFORE` / `OVERFLOW_AFTER` name the `‹N`/▲ and `N›`/▼ indicators (`PartRef::of(Part::OVERFLOW)` is the `+N` button).
+- `RenderCtx::{part, part_as, part_cell, register_part}` register a part (and record it in the widget's map); `IconButton::part_of(owner, part)` makes a × or + a part of its owner; `columns::render_seam` takes `(owner, column)`.
+- Widgets on parts: List, Tree, Props, Steps, Picker, Completion (`PartMap`); Select, ChoiceEditor, ContextMenu, MenuBar, Tabs, Chips, Breadcrumb, RadioGroup, Rail and the table/grid headers and seams (`item_of`); DataTable and DataGrid rows, cells, row numbers, checkboxes and `▾` (`PartMap`, cells keyed by row as on `main`). FormDialog, ChoiceDialog and InfoDialog lift child parts with `raise`, keeping owner and part. Apps: showcase `NavList`, holla cleanup list, jackin roster.
+- `tests/hit_parts.rs` renders each widget alone and checks that every clickable region resolves to the widget and a part; `grid::tests::cells_row_numbers_and_headers_resolve_to_the_grid` does the same for the grid.
+- No behaviour change and no drift fix in `f164ffde7`; the showcase digest is unchanged; pilot, smoke and `check-touched` pass.
+
+**S1 deviations from the row above:**
+1. `owns`, `locate` and `row_id` stay as adapters (deleted in S6), but their bodies no longer scan derived ids: a widget that only knows what it drew reads its `PartMap`; a collection whose items all exist (tabs, options, menu rows, titles, chips, crumbs, headers, seams) uses `WidgetId::item_of`, so `locate` answers before the first render as it did.
+2. Part ids other than rows and tabs changed (close, new, overflow, header, seam, checkbox, row number, tree disclosure, rail collapse, chip lead). Every caller goes through the accessors; four app tests that spelled ids by hand now derive them with `WidgetId::part`.
+3. 2-D parts follow `main`: a cell is `Part::CELL` keyed by its row, and the column is the cell's (`PartMap::cell`); each cell keeps its own id (`row id.child(col)`) so hover stays per cell. The `▾` of a constrained cell is `Part::ACTIONS`, the grid's fetch-more row `PartRef::of(Part::ROW)`, a tree disclosure and the rail's collapse button `Part::ICON`, a table checkbox `Part::MARKER` (select-all: no item), a chip `Part::ROW`, its × `Part::CLOSE`, its add button `Part::NEW`, its lead label `Part::TITLE`.
+4. Owners that are their own widgets keep their own ids: the menu-bar brand, `Segments` (app ids), popup surfaces, `ChoiceEditor` inside a table or grid.
+5. The jackin roster finding (`a83663c33`): the old click guessed `running[(y - 4) / 4]`, which holds in every current layout, so its test (each roster row selects its own instance, every scenario) passes on the parent too; it locks the behaviour.
+6. The gate's pilot filter must be `test(/^showcase::pages/)`: test names use `::`, and `test(/^showcase\/pages/)` selects no test (nextest then fails with "no tests to run").
+
+**Notes for later steps:**
+- S3: `register_bar` registers `Part::TRACK` for the whole bar; split `TRACK`/`THUMB` when `ScrollPane` draws the thumb.
+- S6: the router resolves with `HitRegistry::resolve` and hands widgets `Intent::Pointer { part }`; then delete `PartMap`, `item_of` callers in `locate`/`owns`, and the adapters. `HitRegistry::part_of(id)` bridges ids still held by `PointerState` (pressed, hover).
+- S16: app screens still draw lists by hand and scan derived ids: holla disk, files, finder, plan, review; jackin manager tree (`row_id`, `toggle_id`, `detail_row_id`), accounts tree, capsule seams, config, editor, inspect, settings, usage; tablepro `app.rs` (one scan). They move onto the widgets (or `ctx.part` plus a `PartMap`) with their screens.
 
 ## 5. Per-widget documentation (`docs/components/<widget>.md`)
 
