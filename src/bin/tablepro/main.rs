@@ -90,5 +90,3 @@ fn main() -> std::io::Result<()> {
     app.set_motion(cli.common.motion(NO_MOTION_ENV), cli.common.frame);
     junie_tui::shell::run(&mut app)
 }
-
-junie_tui::impl_application!(App);
