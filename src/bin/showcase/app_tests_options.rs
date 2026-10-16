@@ -247,8 +247,12 @@ fn the_overlay_options_work_at_80_by_24() {
     h.key(KeyCode::Char('i'));
     h.key(KeyCode::Right);
     assert_eq!(h.app.insp.tab(), Tab::Options);
-    h.key(KeyCode::Tab);
+    // the page's own options come first, then the shell's
     let first = h.app.insp.options.control_id("shell.color").unwrap();
+    let page = crate::options::page_options(PageId::Overview).len();
+    for _ in 0..=page {
+        h.key(KeyCode::Tab);
+    }
     assert_eq!(h.app.focus.current(), Some(first));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Down);

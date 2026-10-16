@@ -223,9 +223,10 @@ fn editor_booleans_are_literals() {
 #[test]
 fn overview_roles_draw_statuses_environments_tones_code_and_link() {
     let t = Theme::junie();
-    let h = Harness::new(160, 50, PageId::Overview);
-    // the Roles card is in the left column; the Principles text on the
-    // right also names some glyphs
+    // every card of the playground shows at once at this size
+    let h = Harness::new(220, 80, PageId::Overview);
+    // the Roles card starts its band; the Principles text above it also
+    // names some glyphs
     let (roles_x, roles_y) = h.find("Roles");
     let at = |needle: &str| {
         let (x, y) = h
