@@ -19,6 +19,57 @@ pub enum ProgressStatus {
     Paused,
 }
 
+/// Cells the value column takes at the end of a determinate bar: the
+/// percentage (` 100%`) and the 2-cell status glyph.
+pub const VALUE_W: u16 = 7;
+
+/// How a progress bar lays out its label and the end of its track. Bars
+/// stacked in one column line up when they share a layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BarLayout {
+    /// The label column's width. `None` measures each label, so bars with
+    /// labels of different lengths start their tracks at different
+    /// columns; `Some(w)` pads or cuts every label to `w`. Default `None`.
+    pub label_width: Option<u16>,
+    /// Keep the value column ([`VALUE_W`]) at the end of the track even
+    /// when the bar shows no value (indeterminate), so a determinate and an
+    /// indeterminate bar of the same width end at the same column.
+    /// Default `true`.
+    pub reserve_value: bool,
+}
+
+impl Default for BarLayout {
+    fn default() -> Self {
+        Self {
+            label_width: None,
+            reserve_value: true,
+        }
+    }
+}
+
+impl BarLayout {
+    pub fn label_width(mut self, w: u16) -> Self {
+        self.label_width = Some(w);
+        self
+    }
+    pub fn reserve_value(mut self, on: bool) -> Self {
+        self.reserve_value = on;
+        self
+    }
+
+    /// Draw the label, if it fits, and return the column the track starts at.
+    fn label(&self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, label: &str, bg: Color) -> u16 {
+        let label_w = self.label_width.unwrap_or(width(label) as u16);
+        let has_label = label_w > 0 && !label.is_empty() && area.width > label_w + 8;
+        if !has_label {
+            return area.x;
+        }
+        let text = crate::ui::text::truncate(label, label_w as usize);
+        buf.set_string(area.x, area.y, text, ctx.theme.primary().bg(bg));
+        area.x + label_w + 2
+    }
+}
+
 /// Determinate progress bar: `label ━━━━━━───── 64%`.
 pub fn render_bar(
     area: Rect,
@@ -29,6 +80,30 @@ pub fn render_bar(
     status: ProgressStatus,
     bg: Color,
 ) {
+    render_bar_with(
+        area,
+        buf,
+        ctx,
+        label,
+        ratio,
+        status,
+        bg,
+        BarLayout::default(),
+    );
+}
+
+/// [`render_bar`] with an explicit label and value layout.
+#[allow(clippy::too_many_arguments)]
+pub fn render_bar_with(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    label: &str,
+    ratio: f64,
+    status: ProgressStatus,
+    bg: Color,
+    layout: BarLayout,
+) {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return;
@@ -36,13 +111,7 @@ pub fn render_bar(
     let t = ctx.theme;
     let ratio = ratio.clamp(0.0, 1.0);
     let pct = format!("{:>4}", format!("{}%", (ratio * 100.0).round() as u32));
-    let label_w = width(label) as u16;
-    let has_label = label_w > 0 && area.width > label_w + 8;
-    let mut x = area.x;
-    if has_label {
-        buf.set_string(x, area.y, label, t.primary().bg(bg));
-        x += label_w + 2;
-    }
+    let mut x = layout.label(area, buf, ctx, label, bg);
     let pct_w = 5u16;
     // fixed 2-cell trailing glyph column keeps percentages aligned
     let suffix = match status {
@@ -51,7 +120,7 @@ pub fn render_bar(
         ProgressStatus::Paused => " ‖",
         ProgressStatus::Active => "  ",
     };
-    let track_w = area.right().saturating_sub(x).saturating_sub(pct_w + 2);
+    let track_w = area.right().saturating_sub(x).saturating_sub(VALUE_W);
     if track_w < 6 {
         // too narrow for a meaningful bar: percentage only
         buf.set_string(x, area.y, pct.trim_start(), t.secondary().bg(bg));
@@ -346,19 +415,29 @@ pub fn render_indeterminate(
     label: &str,
     bg: Color,
 ) {
+    render_indeterminate_with(area, buf, ctx, label, bg, BarLayout::default());
+}
+
+/// [`render_indeterminate`] with an explicit label and value layout.
+pub fn render_indeterminate_with(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    label: &str,
+    bg: Color,
+    layout: BarLayout,
+) {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return;
     }
     let t = ctx.theme;
-    let label_w = width(label) as u16;
-    let has_label = label_w > 0 && area.width > label_w + 8;
-    let mut x = area.x;
-    if has_label {
-        buf.set_string(x, area.y, label, t.primary().bg(bg));
-        x += label_w + 2;
-    }
-    let track_w = area.right().saturating_sub(x).max(1) as i64;
+    let x = layout.label(area, buf, ctx, label, bg);
+    let reserve = if layout.reserve_value { VALUE_W } else { 0 };
+    let room = area.right().saturating_sub(x);
+    // the reserve goes first when the bar would shrink below 6 cells
+    let reserve = if room >= reserve + 6 { reserve } else { 0 };
+    let track_w = room.saturating_sub(reserve).max(1) as i64;
     let seg = (track_w / 5).clamp(2, 8);
     let period = track_w + seg;
     let pos = (ctx.interaction.tick as i64 % period) - seg;
@@ -411,6 +490,57 @@ mod tests {
         (0..buf.area.width)
             .map(|x| buf[(x, 0)].symbol().to_owned())
             .collect()
+    }
+
+    /// The last track cell of each bar, rendered in one column.
+    fn track_ends(layout: BarLayout, labels: [&str; 2]) -> (u16, u16, u16, u16) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 2));
+        let bg = theme.canvas;
+        let r0 = Rect::new(0, 0, 40, 1);
+        let r1 = Rect::new(0, 1, 40, 1);
+        render_bar_with(
+            r0,
+            &mut buf,
+            &mut ctx,
+            labels[0],
+            0.5,
+            ProgressStatus::Active,
+            bg,
+            layout,
+        );
+        render_indeterminate_with(r1, &mut buf, &mut ctx, labels[1], bg, layout);
+        let span = |y: u16| {
+            let xs: Vec<u16> = (0..40)
+                .filter(|&x| matches!(buf[(x, y)].symbol(), "━" | "─"))
+                .collect();
+            (xs[0], *xs.last().unwrap())
+        };
+        let (a0, a1) = span(0);
+        let (b0, b1) = span(1);
+        (a0, a1, b0, b1)
+    }
+
+    /// A determinate and an indeterminate bar of the same width start and
+    /// end their tracks at the same columns (layout audit #18).
+    #[test]
+    fn determinate_and_indeterminate_tracks_line_up() {
+        let (a0, a1, b0, b1) = track_ends(BarLayout::default(), ["Build", "Build"]);
+        assert_eq!((a0, a1), (b0, b1));
+        // a shared label column lines up labels of different lengths
+        let (a0, a1, b0, b1) =
+            track_ends(BarLayout::default().label_width(9), ["Build", "Resolving"]);
+        assert_eq!((a0, a1), (b0, b1));
+        // without the reserve the sweep runs to the edge
+        let (_, a1, _, b1) = track_ends(
+            BarLayout::default().reserve_value(false),
+            ["Build", "Build"],
+        );
+        assert_eq!(b1, 39);
+        assert!(a1 < b1);
     }
 
     #[test]
