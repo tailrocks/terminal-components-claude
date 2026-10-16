@@ -549,6 +549,24 @@ impl<'a> RenderCtx<'a> {
     }
 }
 
+/// Keep every ink of a hand-drawn row readable on its own fill: a cell
+/// whose background differs from the `plane` it sits on (a selected or
+/// hovered row) takes [`Theme::legible`] of its ink, the step up the text
+/// ladder that reads at 4.5:1. Cells on the plane itself are left alone,
+/// so the row's rest look keeps its hierarchy. Apps that draw list rows
+/// by hand call it after the row, the way the library lists resolve
+/// their own inks.
+pub fn legible_on_fill(buf: &mut Buffer, area: Rect, t: &Theme, plane: ratatui::style::Color) {
+    for pos in area.positions() {
+        if let Some(c) = buf.cell_mut(pos)
+            && c.bg != plane
+            && !c.symbol().trim().is_empty()
+        {
+            c.fg = t.legible(c.fg, c.bg);
+        }
+    }
+}
+
 /// Fill an area with a background colour without touching symbols.
 pub fn fill(buf: &mut Buffer, area: Rect, style: ratatui::style::Style) {
     for y in area.top()..area.bottom() {

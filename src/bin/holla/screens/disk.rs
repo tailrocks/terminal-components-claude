@@ -11,7 +11,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::{ContextAnchor, ContextSource};
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -916,6 +916,7 @@ impl DiskPage {
             if avail >= 6 && !kind.is_empty() {
                 buf.set_string(x, y, truncate(kind, avail), plain.fg(t.text_muted));
             }
+            legible_on_fill(buf, row, t, bg);
             ctx.clickable(rid, row);
         }
         if has_sb {

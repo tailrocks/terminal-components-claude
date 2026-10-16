@@ -8,7 +8,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, fit_right, truncate, truncate_middle, width};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -790,6 +790,8 @@ impl FilesPage {
                     }),
                 );
             }
+            // the cursor row is a fill: its details step up to stay readable
+            legible_on_fill(buf, row, t, bg);
             ctx.clickable(rid, row);
         }
         if has_sb {
@@ -899,6 +901,8 @@ impl FilesPage {
                     st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
                 );
             }
+            // the cursor row is a fill: its details step up to stay readable
+            legible_on_fill(buf, row, t, bg);
             ctx.clickable(rid, row);
         }
         if has_sb {

@@ -12,7 +12,7 @@ use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
@@ -701,6 +701,7 @@ impl CleanupPage {
                             }),
                         );
                     }
+                    legible_on_fill(buf, row, t, bg);
                     ctx.part(&mut self.parts, LIST, row_part(i), row);
                 }
                 Row::Candidate(ci, ki) => {
@@ -784,6 +785,7 @@ impl CleanupPage {
                             plain.fg(if ineligible { quiet } else { t.text_faint }),
                         );
                     }
+                    legible_on_fill(buf, row, t, bg);
                     ctx.part(&mut self.parts, LIST, row_part(i), row);
                 }
             }
