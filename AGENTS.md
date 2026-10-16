@@ -146,6 +146,10 @@ components work; they are not where behaviour lives.
   for long; local-only state is a risk, not a convenience.
 - Before each push: `git fetch` and rebase onto the remote branch, re-run
   the gate, then push. Never force-push shared branches.
+- Upstream PRs (velnor-new, tuiscotti): when the owner sends a link or
+  says "check velnor-new" / "check tuiscotti" / "check upstream", follow
+  the Upstream PR loop in `docs/upstream/README.md` and answer with one
+  relay line per PR.
 - Every finding raised in a review or audit is either fixed (by a subagent)
   or recorded with a reason in docs/audits; none is silently dropped.
 
