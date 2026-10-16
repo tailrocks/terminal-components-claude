@@ -1313,6 +1313,11 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::textarea::TextArea::help"),
     Capability::builder("widgets::textarea::TextArea::horizontal"),
     Capability::builder("widgets::textarea::TextArea::label_hit"),
+    // widgets::too_small
+    Capability::ty("widgets::too_small::TooSmall"),
+    Capability::builder("widgets::too_small::TooSmall::brand_style"),
+    Capability::builder("widgets::too_small::TooSmall::min"),
+    Capability::builder("widgets::too_small::TooSmall::quit_hint"),
     // widgets::tree
     Capability::ty("widgets::tree::TreeNode"),
     Capability::builder("widgets::tree::TreeNode::glyph"),
@@ -1462,6 +1467,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("theme::Theme::with_edit_entry"),
     Capability::builder("theme::Theme::with_field_keys"),
     Capability::builder("theme::Theme::with_state_modifiers"),
+    Capability::builder("theme::Theme::centred_hints"),
     Capability::ty("theme::Tone"),
     Capability::variant("theme::Tone::Normal"),
     Capability::variant("theme::Tone::Secondary"),

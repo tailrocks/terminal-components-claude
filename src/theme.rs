@@ -623,6 +623,14 @@ impl Theme {
         Self::for_level_with(level, &LevelOverrides::default())
     }
 
+    /// This theme with the footer hints centred
+    /// (`hintbar.align = HintAlign::Center`) on every screen, set once
+    /// instead of per hint layer. The default is left-aligned.
+    pub fn centred_hints(mut self) -> Self {
+        self.hintbar.align = HintAlign::Center;
+        self
+    }
+
     /// [`Self::for_level`] plus explicit per-level adjustments.
     pub fn for_level_with(level: ColorLevel, overrides: &LevelOverrides) -> Self {
         let mut t = Self::junie();
