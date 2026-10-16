@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{ButtonKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -41,6 +41,12 @@ use junie_tui::widgets::menu::MenuItem;
 pub const TREE: WidgetId = WidgetId::of("manager.tree");
 pub const DETAIL: WidgetId = WidgetId::of("manager.detail");
 pub const ROSTER: WidgetId = WidgetId::of("manager.roster");
+
+/// A running instance's row in the roster: keyed by the instance, so a
+/// click selects that instance wherever its row is drawn.
+fn roster_row(instance: &str) -> PartRef {
+    PartRef::item(Part::ROW, ItemKey::text(instance))
+}
 pub const SEAM: WidgetId = WidgetId::of("manager.seam");
 pub const MENU: WidgetId = WidgetId::of("manager.menu");
 
@@ -1622,7 +1628,7 @@ impl ManagerScreen {
                 Some(&i.role),
                 None,
             );
-            let rid = ROSTER.child(y as usize);
+            let rid = ROSTER.part(roster_row(&i.id));
             let mut s = ctx.state(rid);
             s.selected = self.selected == RowKey::Instance(i.id.clone());
             let st = t.row(s, bg);
@@ -1673,7 +1679,7 @@ impl ManagerScreen {
                 ),
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
-            ctx.clickable(rid, r);
+            ctx.register_part(ROSTER, roster_row(&i.id), r);
             y += 4;
         }
         let preserved: Vec<_> = w
@@ -2384,19 +2390,16 @@ impl Screen for ManagerScreen {
             cx.focus.focus(ROSTER);
             return Outcome::Changed;
         }
-        // roster rows: child ids by y; select the instance
-        for i in w.running() {
-            let _ = i;
-        }
-        if let Some(y) = (0..200usize).find(|k| ROSTER.child(*k) == id) {
-            // find the running instance rendered at that y
-            let running = w.running();
-            let _ = y;
-            if let Some(inst) = running.get(((pos.y as usize).saturating_sub(4)) / 4) {
-                self.select_instance(&inst.id.clone(), w);
-                cx.focus.focus(TREE);
-                return Outcome::Changed;
-            }
+        // a roster row names its instance: select that one
+        if let Some(inst) = w
+            .running()
+            .into_iter()
+            .find(|i| ROSTER.part(roster_row(&i.id)) == id)
+        {
+            let inst = inst.id.clone();
+            self.select_instance(&inst, w);
+            cx.focus.focus(TREE);
+            return Outcome::Changed;
         }
         Outcome::Ignored
     }
