@@ -88,6 +88,10 @@ pub struct ContextMenu {
     /// How a label cut by a narrow screen reveals its full text on hover
     /// (see [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
+    /// Cells kept free between the menu and the screen's left and right
+    /// edges, so its frame never lands on a panel border. Given up when
+    /// the menu would not fit otherwise. Default 1.
+    pub edge_margin: u16,
 }
 
 impl ContextMenu {
@@ -104,7 +108,14 @@ impl ContextMenu {
             dismiss: Dismiss::LIGHT,
             hide_owner_focus: true,
             reveal: None,
+            edge_margin: 1,
         }
+    }
+
+    /// See [`Self::edge_margin`].
+    pub fn edge_margin(mut self, cells: u16) -> Self {
+        self.edge_margin = cells;
+        self
     }
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
@@ -189,11 +200,13 @@ impl ContextMenu {
         if y < screen.y {
             y = screen.y;
         }
-        if x + w > screen.right() {
-            x = screen.right().saturating_sub(w);
+        // keep off the side edges when there is room, never shrink for it
+        let m = self.edge_margin.min(screen.width.saturating_sub(w) / 2);
+        if x + w > screen.right() - m {
+            x = (screen.right() - m).saturating_sub(w);
         }
-        if x < screen.x {
-            x = screen.x;
+        if x < screen.x + m {
+            x = screen.x + m;
         }
         Rect::new(x, y, w, h)
     }
@@ -746,6 +759,23 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    #[test]
+    fn a_menu_keeps_off_the_screen_side_edges() {
+        let screen = Rect::new(0, 0, 60, 20);
+        let items = vec![MenuItem::new("Open"), MenuItem::new("Close")];
+        let m = ContextMenu::new(WidgetId::of("m"), items.clone())
+            .anchor(Rect::new(0, 2, 1, 1), Placement::Below);
+        assert_eq!(m.placed(screen).x, 1);
+        let r = ContextMenu::new(WidgetId::of("m"), items.clone())
+            .anchor(Rect::new(59, 2, 1, 1), Placement::Below)
+            .placed(screen);
+        assert_eq!(r.right(), 59);
+        let flush = ContextMenu::new(WidgetId::of("m"), items)
+            .edge_margin(0)
+            .anchor(Rect::new(0, 2, 1, 1), Placement::Below);
+        assert_eq!(flush.placed(screen).x, 0);
+    }
 
     fn key(code: KeyCode) -> Key {
         Key {
