@@ -138,6 +138,9 @@ pub enum Request {
     Status(String),
     /// Set a live option ([`PageCtx::set_option`]).
     SetOption(crate::options::OptSet),
+    /// Open a keyboard reference as the shell's modal
+    /// ([`PageCtx::open_help`]); the shell's `?` opens its own the same way.
+    OpenHelp(Box<junie_tui::widgets::help::HelpOverlay>),
 }
 
 pub struct PageCtx<'a> {
@@ -170,6 +173,11 @@ impl PageCtx<'_> {
     /// through `App::apply_opt`, the path `--opt` and the Inspector take.
     pub fn set_option(&mut self, set: crate::options::OptSet) {
         self.requests.push(Request::SetOption(set));
+    }
+    /// Open `help` as the shell's modal reference. The shell refuses it
+    /// over another modal and gives focus back when it closes.
+    pub fn open_help(&mut self, help: junie_tui::widgets::help::HelpOverlay) {
+        self.requests.push(Request::OpenHelp(Box::new(help)));
     }
 }
 

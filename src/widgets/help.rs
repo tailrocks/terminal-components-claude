@@ -75,6 +75,18 @@ pub struct HelpOverlay {
     strings: crate::theme::Strings,
 }
 
+impl std::fmt::Debug for HelpOverlay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HelpOverlay")
+            .field("id", &self.id)
+            .field("title", &self.title)
+            .field("scope", &self.scope)
+            .field("sections", &self.sections.len())
+            .field("closed", &self.closed)
+            .finish_non_exhaustive()
+    }
+}
+
 impl HelpOverlay {
     /// See [`Self::close_button`].
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {

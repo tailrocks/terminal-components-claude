@@ -3253,4 +3253,108 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::rail::RailAction::Collapse",
         Demo("breadcrumbsrails", "RailAction::Collapse"),
     ),
+    // ---- Help & keys, Quit & leave (SC6)
+    (
+        "widgets::help::HelpOverlay",
+        Demo("helpkeys", "Open help overlay"),
+    ),
+    ("widgets::help::HelpCmd", Demo("helpkeys", "HelpCmd::Close")),
+    (
+        "widgets::help::HelpCmd::Close",
+        Option("helpkeys", "helpkeys.keymap"),
+    ),
+    (
+        "widgets::help::HelpOverlay::nav",
+        Option("helpkeys", "helpkeys.nav"),
+    ),
+    (
+        "widgets::help::HelpOverlay::keymap",
+        Option("helpkeys", "helpkeys.keymap"),
+    ),
+    (
+        "widgets::help::HelpOverlay::max_percent",
+        Option("helpkeys", "helpkeys.max_percent"),
+    ),
+    (
+        "widgets::help::HelpOverlay::title",
+        Option("helpkeys", "helpkeys.title"),
+    ),
+    (
+        "widgets::help::HelpOverlay::dismiss",
+        Option("helpkeys", "helpkeys.dismiss"),
+    ),
+    (
+        "widgets::keyref::KeyReference",
+        StateRow("helpkeys", "overflow"),
+    ),
+    (
+        "widgets::keyref::KeyReference::section",
+        Demo("helpkeys", "Results"),
+    ),
+    (
+        "widgets::keyref::KeyReference::key",
+        Demo("helpkeys", "Ctrl+Shift+Enter"),
+    ),
+    (
+        "widgets::keyref::KeyReference::gap",
+        Option("helpkeys", "helpkeys.gap"),
+    ),
+    (
+        "widgets::keyref::KeyReference::key_max_share",
+        Option("helpkeys", "helpkeys.key_max_share"),
+    ),
+    ("ui::leave::Stakes", Demo("quitleave", "Stakes::max")),
+    (
+        "ui::leave::Stakes::Clean",
+        Option("quitleave", "quitleave.stakes=clean"),
+    ),
+    (
+        "ui::leave::Stakes::Unsaved",
+        Option("quitleave", "quitleave.stakes=unsaved"),
+    ),
+    (
+        "ui::leave::Stakes::Running",
+        Option("quitleave", "quitleave.stakes=running"),
+    ),
+    ("ui::leave::Stakes::max", Demo("quitleave", "Stakes::max")),
+    ("ui::leave::LeaveKey", Demo("quitleave", "→ LeaveKey")),
+    ("ui::leave::LeaveKey::Copy", Demo("quitleave", "Copy")),
+    ("ui::leave::LeaveKey::Quit", Demo("quitleave", "Quit")),
+    ("ui::leave::KeyContext", Demo("quitleave", "text focus")),
+    (
+        "ui::leave::QuitKeys",
+        Demo("quitleave", "QuitKeys::classify"),
+    ),
+    (
+        "ui::leave::QuitKeys::letter",
+        Option("quitleave", "quitleave.letter"),
+    ),
+    (
+        "ui::leave::QuitKeys::esc_quits",
+        Option("quitleave", "quitleave.esc_quits"),
+    ),
+    ("ui::leave::Leave", Demo("quitleave", "Leave::Quit")),
+    ("ui::leave::Leave::Quit", Demo("quitleave", "Leave::Quit")),
+    (
+        "ui::leave::Leave::To",
+        Demo("quitleave", "Leave::To(Overview)"),
+    ),
+    ("ui::leave::Resolved", Demo("quitleave", "Resolved::Stay")),
+    (
+        "ui::leave::Resolved::Stay",
+        Demo("quitleave", "Resolved::Stay"),
+    ),
+    (
+        "ui::leave::Resolved::Save",
+        Demo("quitleave", "Resolved::Save(to)"),
+    ),
+    (
+        "ui::leave::Resolved::Discard",
+        Demo("quitleave", "Resolved::Discard(to)"),
+    ),
+    ("ui::leave::LeaveGuard", Demo("quitleave", "LeaveGuard")),
+    (
+        "ui::leave::LeaveGuard::save",
+        Option("quitleave", "quitleave.save"),
+    ),
 ];

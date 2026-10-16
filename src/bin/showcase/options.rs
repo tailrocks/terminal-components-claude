@@ -261,6 +261,8 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::EmptyError => EMPTY_ERROR,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
+        PageId::HelpKeys => HELP_KEYS,
+        PageId::QuitLeave => QUIT_LEAVE,
         _ => &[],
     }
 }
@@ -789,6 +791,38 @@ static BREADCRUMBS_RAILS: &[Opt] = &[
     Opt::new("breadcrumbsrails.collapsed_rail", "Collapsed rail", OFF_ON)
         .default(1)
         .needs(&[("breadcrumbsrails.collapsed", "on")]),
+];
+
+/// Help & keys (SC6): the `KeyReference` layout and the `HelpOverlay`
+/// builders (the readout reads the overlay the options build).
+static HELP_KEYS: &[Opt] = &[
+    Opt::new("helpkeys.width", "Reference width", &["full", "40", "28"]),
+    Opt::new(
+        "helpkeys.key_max_share",
+        "Key column share",
+        &["40", "25", "60"],
+    ),
+    Opt::new("helpkeys.gap", "Column gap", &["3", "6"]),
+    Opt::new("helpkeys.title", "Overlay title", &["default", "custom"]),
+    Opt::new("helpkeys.max_percent", "Overlay size", &["80", "60", "100"]),
+    Opt::new("helpkeys.nav", "Scroll keys", &["default", "vim"]),
+    Opt::new("helpkeys.keymap", "Close keys", &["default", "f1"]),
+    Opt::new("helpkeys.dismiss", "Dismiss", &["light", "escape"]),
+];
+
+/// Quit & leave (SC6): the page's `LeaveGuard`, the stakes at start, and
+/// the `QuitKeys` its table classifies with.
+static QUIT_LEAVE: &[Opt] = &[
+    Opt::new(
+        "quitleave.stakes",
+        "Stakes at start",
+        &["clean", "unsaved", "running"],
+    ),
+    Opt::new("quitleave.save", "Guard can save", OFF_ON).default(1),
+    Opt::new("quitleave.letter", "Quit letter", &["q", "x", "none"]),
+    Opt::new("quitleave.esc_quits", "Esc quits", OFF_ON),
+    Opt::new("quitleave.ctrl_c", "Ctrl+C quits", OFF_ON).default(1),
+    Opt::new("quitleave.ctrl_q", "Ctrl+Q quits", OFF_ON).default(1),
 ];
 
 /// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through

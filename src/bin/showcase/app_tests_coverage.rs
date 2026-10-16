@@ -160,11 +160,11 @@ fn header_help_and_inspector_are_mouse_actions() {
     let mut h = Harness::new(120, 40, PageId::Overview);
 
     h.click_id(HEADER_HELP);
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.help.is_some());
     assert!(h.text().contains("Keyboard & mouse"));
 
-    h.click_label("Close");
-    assert!(h.app.dialog.is_none());
+    h.click_label("Done");
+    assert!(h.app.help.is_none());
 
     h.click_id(HEADER_INSPECT);
     assert!(h.app.inspector);

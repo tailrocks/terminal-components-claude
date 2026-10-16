@@ -196,29 +196,6 @@ ui::ctx::Backdrop::keep_top | Popups & tooltips page | SC19
 
 # ui::layout
 
-# ui::leave
-ui::leave::Stakes | Help & keys and Quit & leave pages | SC6
-ui::leave::Stakes::Clean | Help & keys and Quit & leave pages | SC6
-ui::leave::Stakes::Unsaved | Help & keys and Quit & leave pages | SC6
-ui::leave::Stakes::Running | Help & keys and Quit & leave pages | SC6
-ui::leave::Stakes::max | Help & keys and Quit & leave pages | SC6
-ui::leave::LeaveKey | Help & keys and Quit & leave pages | SC6
-ui::leave::LeaveKey::Copy | Help & keys and Quit & leave pages | SC6
-ui::leave::LeaveKey::Quit | Help & keys and Quit & leave pages | SC6
-ui::leave::KeyContext | Help & keys and Quit & leave pages | SC6
-ui::leave::QuitKeys | Help & keys and Quit & leave pages | SC6
-ui::leave::QuitKeys::letter | Help & keys and Quit & leave pages | SC6
-ui::leave::QuitKeys::esc_quits | Help & keys and Quit & leave pages | SC6
-ui::leave::Leave | Help & keys and Quit & leave pages | SC6
-ui::leave::Leave::Quit | Help & keys and Quit & leave pages | SC6
-ui::leave::Leave::To | Help & keys and Quit & leave pages | SC6
-ui::leave::Resolved | Help & keys and Quit & leave pages | SC6
-ui::leave::Resolved::Stay | Help & keys and Quit & leave pages | SC6
-ui::leave::Resolved::Save | Help & keys and Quit & leave pages | SC6
-ui::leave::Resolved::Discard | Help & keys and Quit & leave pages | SC6
-ui::leave::LeaveGuard | Help & keys and Quit & leave pages | SC6
-ui::leave::LeaveGuard::save | Help & keys and Quit & leave pages | SC6
-
 # ui::modal
 ui::modal::Dismissal | stacked modals on Dialog kinds (after S5, S7) | SC31
 ui::modal::Dismissal::None | stacked modals on Dialog kinds (after S5, S7) | SC31
@@ -507,14 +484,6 @@ widgets::form_dialog::FormDialog::close_button | Dialog kinds page: a custom clo
 widgets::form_dialog::FormDialog::button_row | Dialog kinds page: button-row wrap | SC18
 
 # widgets::help
-widgets::help::HelpCmd | Help & keys and Quit & leave pages | SC6
-widgets::help::HelpCmd::Close | Help & keys and Quit & leave pages | SC6
-widgets::help::HelpOverlay | Help & keys and Quit & leave pages | SC6
-widgets::help::HelpOverlay::nav | Help & keys and Quit & leave pages | SC6
-widgets::help::HelpOverlay::keymap | Help & keys and Quit & leave pages | SC6
-widgets::help::HelpOverlay::max_percent | Help & keys and Quit & leave pages | SC6
-widgets::help::HelpOverlay::title | Help & keys and Quit & leave pages | SC6
-widgets::help::HelpOverlay::dismiss | Help & keys and Quit & leave pages | SC6
 widgets::help::HelpOverlay::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::hintbar
@@ -549,13 +518,6 @@ widgets::input::InputAction::Changed | widget edit events and outcomes: the Insp
 widgets::input::TextInput::type_to_edit | deprecated alias of TextInput::edit_entry, shown through inputs.edit_entry | permanent
 
 # widgets::keyhint
-
-# widgets::keyref
-widgets::keyref::KeyReference | Help & keys and Quit & leave pages | SC6
-widgets::keyref::KeyReference::section | Help & keys and Quit & leave pages | SC6
-widgets::keyref::KeyReference::key | Help & keys and Quit & leave pages | SC6
-widgets::keyref::KeyReference::gap | Help & keys and Quit & leave pages | SC6
-widgets::keyref::KeyReference::key_max_share | Help & keys and Quit & leave pages | SC6
 
 # widgets::list
 widgets::list::ListItem | Lists and Trees page options | SC15
