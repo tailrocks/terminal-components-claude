@@ -75,3 +75,13 @@ fix, with the reason.
    expand/migrate/contract work (plan §4), not a page step's; SC28 shows
    what the library has today: `NavKeys` per widget, `NavProfile`
    defaults, the ring, the fallback and focus requests.
+
+## SC27 Settings, Task runner
+
+1. **The legacy capture `showcase/flows/settings/toggled_off` changes on
+   purpose.** Two toggles leave General dirty, and the tab now carries the
+   dirty mark (`TabItem::dirty`, `Theme::glyphs.dirty`) after its label;
+   every other cell is as the `visual-baseline` tag draws it (the tab
+   strip's look is the tag's; only the two-cell mark is new). The capture
+   is `legacy` (not gated); it is re-recorded with the next showcase
+   re-approval of the Settings flows.
