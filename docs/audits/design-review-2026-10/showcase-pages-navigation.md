@@ -38,6 +38,11 @@ fix, with the reason.
    Trees, Selection and Chrome pages owned by other running steps (SC4,
    SC11, SC13, SC15). Follow-up: extract it as a library "open context
    menu about T" once those steps land, and point the apps' copies at it.
+   Placed in plan step **S22** (`CommandMenu` + `ContextAnchor::row`):
+   its contract deletes `src/bin/showcase/pages/row_menu.rs` and moves
+   `pages/chrome.rs`, `columns.rs`, `lists.rs`, `menus.rs`,
+   `selectable.rs`, `tables.rs` and `trees.rs` onto `CommandMenu`, beside
+   jackin's `screens/rowmenu.rs`.
 2. **Primary press-drag-release on a button menu is not offered.**
    `ContextMenu::release_selects` covers the secondary gesture (right-press,
    drag, release); the primary gesture is wired only for `MenuBar` titles
@@ -93,7 +98,11 @@ fix, with the reason.
    navigable widget moves focus across its edges, which is an S-step's
    expand/migrate/contract work (plan §4), not a page step's; SC28 shows
    what the library has today: `NavKeys` per widget, `NavProfile`
-   defaults, the ring, the fallback and focus requests.
+   defaults, the ring, the fallback and focus requests. Planned: library
+   step **S27** (plan §7.3: scope, acceptance, deps S4, S7, S8a), shown
+   by **SC57** on the Focus & navigation and Toolbars pages. They have no
+   catalog id yet, so no allowlist line; the inventory rows (§7.7) point
+   at S27/SC57.
 
 ## SC27 Settings, Task runner
 

@@ -147,7 +147,7 @@ Pointer intents that a widget returns `Ignored` for bubble up the parent chain r
 | `NavList` | Moved from `showcase/pages/sidebars.rs`: `NavList::new(id, Vec<NavItem { label, icon, section, badge, disabled }>).current(i).collapsed(b)`; `ClickPolicy` Activate (a navigation role, SI14) | S sidebar; later any app sidebar | S17 |
 | `DetailCard` | `DetailCard::new(title).meta(m).props(v).actions(..).empty(EmptyState)` → body `Rect` | T connections, history, affected rows, plan cards; S selectable | S17 |
 | `ActionRow` | `ActionRow::new(&mut [&mut Button]).message(text, Tone).align(Right)`; one button-row navigation (no wrap, skips disabled: K32) | H snapshot, activity, review; T connections, tabs; S forms, settings, selectable; `Dialog`/`FormDialog` buttons | S17 |
-| `CommandMenu<T, C>` + `ContextAnchor::row(list, i, area, &scroll)` | Moved from `jackin_preview/screens/rowmenu.rs`: `open(target, anchor, title, Vec<(MenuItem, C)>)`; `Component<Action = (T, C)>` | J accounts, manager, config; H `mod.rs:376-436` | S22 |
+| `CommandMenu<T, C>` + `ContextAnchor::row(list, i, area, &scroll)` | Moved from `jackin_preview/screens/rowmenu.rs`: `open(target, anchor, title, Vec<(MenuItem, C)>)`; `Component<Action = (T, C)>` | J accounts, manager, config; H `mod.rs:376-436`; S `pages/row_menu.rs` (`RowMenu<T>`) and its seven row pages | S22 |
 | `FileBrowser` | Moved from J `modals.rs:30-526`; file access behind `trait FileSource`; implements `Layer`; takes `&[Step]` | J prelude, config | S22 |
 | `StepLine` + `Wizard<S>` | `StepLine::new(&[Step])` (inline `StepRail`); `Wizard` handles steps, Back/Next and back-navigation; `ChoiceDialog::stepper(&[Step])` | J prelude; S taskrunner | S22 |
 | `TextViewport::find()` + `FindState` | `FindState { query: EditField, matches, at }` with `update`, `meta()`, `apply(&mut TextViewport)`; `TextViewport::line_numbers(bool)` | H activity, files; J cockpit log | S22 |
@@ -288,7 +288,7 @@ The rules that go with the gate:
 | **S19** MasterDetail | `MasterDetail` | 14 sites across all 4 apps; `SPLIT_MIN` imports | M20 (splitter handle in T, hit ±1, grab offset), K18 (`SplitKeys`: Alt+Shift+arrows, hinted) | Narrow-tier captures | S17 |
 | **S20** EditorShell | `EditorShell` | J settings and editor shells | K4 (leave guard through `EditorShell`) | Editor journeys | S14, S18 |
 | **S21** FilterTree / FilterList | `FilterTree`, `FilterList` | T connections and workbench filters; S sidebar filter; J's 3 filter prompts | — | Filter journeys | S11, S16 |
-| **S22** Moved app widgets | `CommandMenu`, `ContextAnchor::row`, `FileBrowser` + `FileSource`, `StepLine`/`Wizard`, `FindState` + `line_numbers` | J `rowmenu.rs`; H `mod.rs:376-436`; J `modals.rs:30-526`; J prelude stepper; H activity and files find code; 12 wall-clock spinner sites; J dead code (`wrapped_arrow`, `saved_focus`, empty `modal_hints`) | — | J and H journeys | S5, S11, S13 |
+| **S22** Moved app widgets | `CommandMenu`, `ContextAnchor::row`, `FileBrowser` + `FileSource`, `StepLine`/`Wizard`, `FindState` + `line_numbers` | J `rowmenu.rs`; H `mod.rs:376-436`; S `pages/row_menu.rs` (`RowMenu<T>`: the open menu plus the page-event routing onto `ContextMenu::on_key`/`on_click`/`on_wheel`, `MENU_HINTS`, `OPEN_HINT`, `plain`) and its users `pages/chrome.rs:68`, `pages/columns.rs:151`, `pages/lists.rs:26`, `pages/menus.rs:192-194`, `pages/selectable.rs:339`, `pages/tables.rs:146-149`, `pages/trees.rs:23` (recorded in `docs/audits/design-review-2026-10/showcase-pages-navigation.md`, SC16 1); J `modals.rs:30-526`; J prelude stepper; H activity and files find code; 12 wall-clock spinner sites; J dead code (`wrapped_arrow`, `saved_focus`, empty `modal_hints`) | — | J and H journeys | S5, S11, S13 |
 | **T** Theme track | Plane-relative `text_faint` (SV3), mono hover and press (SV2), the panel title marker (SV4), `border_strong` field outlines (SVg1), one pressed direction (SVg2), success vs accent (SV14), `COLORFGBG` (SVg7) | Theme only; never app code | All **visual**, each re-approved on its own | Contrast test on every plane | S0 |
 
 ### Step status
@@ -549,7 +549,7 @@ The groups stay as they are. New pages are added as leaves; slugs are fixed now,
 
 ### 7.3 Extraction steps added by this track
 
-The apps inventory names patterns that no S-step extracts yet. They become S-steps in §4 with the same rules (expand, migrate, contract; every app copy deleted; the gate G), and each carries its showcase demo (the SC step shown) in the same change.
+The apps inventory names patterns that no S-step extracts yet. They become S-steps in §4 with the same rules (expand, migrate, contract; every app copy deleted; the gate G), and each carries its showcase demo (the SC step shown) in the same change. S27 is a library step the track found missing (no app copy to extract): it closes `docs/audits/design-review-2026-10/showcase-pages-navigation.md` SC28 6 and the Strategy B rows of `showcase-coverage-library.md` (the nav modules and the nav policy fields). Acceptance beyond G: a widget test per navigable widget for each `AdjacentMove` variant at both edges (focus lands on the neighbour, one `▎`), a cross-app key-order test showing `AdjacentKeys` never takes a key a focused text field needs, `Scope` keeping moves inside an open modal (no keyboard trap: Esc and Tab still leave per the modal's `Dismiss`), defaults unchanged (digest unchanged), and the catalog lines removed from the allowlist by SC57.
 
 | Step | Adds (expand) | Migrates; deletes in all apps (contract) | Deps | Demo |
 |---|---|---|---|---|
@@ -557,6 +557,7 @@ The apps inventory names patterns that no S-step extracts yet. They become S-ste
 | **S24** Row-model extensions | `TreeView` tri-state check column and trailing action row ("+ New …"); `DataTable` group heading rows, match ranges (bold matched characters), never-dropped columns, row marks `+ • −`, group fold rows; a `StepRail` table variant (plan outline) | H cleanup checklist, H finder grouped table, J config change tables, H plan outline, J manager/accounts action rows | S16 | SC43 |
 | **S25** `PickerChain` | Chained `Picker` with a crumb scope, Backspace back, `PickerStatus` per level, live suggestions | J OpFlow (`modals.rs:551-948`), H go-to-path | S12, S22 | SC44 |
 | **S26** `PaneTree`, zoom, cross-fade | n-ary split tree with focus and hover borders, zoom and resize chords; H and J zoom moved onto `Split::toggle_max`/`Maximized`; `ui::fade::dim_buffer` cross-fade under `Motion` | J capsule panes, H plan zoom, J handoff cross-fade | S2, S19 | SC45 |
+| **S27** Strategy B nav policies | Library step, not an extraction: `core::nav::{FocusPolicy, AdjacentMove, AdjacentKeys, Scope, Bounds}` (what a navigable widget does at its edges: stop, wrap, or hand focus to the adjacent control in the ring; which keys may cross; the scope a move stays in, such as a modal, a toolbar or a pane; the bounds a cursor clamps to), each with a field and builder on `Tabs`, `TreeView`, `ListBox`, `Select`, `Picker`, `ContextMenu`/`MenuBar`, `Dialog` and `Toolbar`; `KeyRouter` honours `AdjacentMove` before the shell's Tab handling; `NavProfile` presets (Desktop: stop at edges; Vim: stop) keep today's behaviour as the default. Catalog ids for every type, variant and builder | The per-widget `wrap`/edge checks (`Cursor::wrap` callers, `MenuBar` ←/→ hand-off, `Tabs` end stops) move onto the policy; no app keeps its own edge rule | S4, S7, S8a | SC57 |
 
 ### 7.4 Acceptance for every SC step
 
@@ -609,7 +610,7 @@ Files named are the files the step owns; steps in the same parallel group own di
 | **SC25** Diff + Terminal | `DiffStatus` Added/Deleted/Renamed; no-file and narrow states; `unified_lines`/`review_lines` (`_with`); multi-file changes tree with the diff following the cursor, stacked when narrow. `TextViewport` caret, wrap, hscroll, scrollbar_gap, track_click, nav, keymap, with_lines, `ViewportCmd`, `SelectionChanged`, `WorkCounters`, `Mark`/`CellPos`, retention-drop meta, service prefix column, ANSI spans, horizontal wheel; `Span` italic/underline/reversed; `StepRail` selectable, numbered, track_click, nav and an "N/11" counter segment. | `pages/diff.rs`, `pages/terminal.rs` | SC2 |
 | **SC26** Text utilities | `ui::text` truncate_middle, thousands, fit_right, slice_cells, wider_than, width_capped, find_ranges, `WrapOpts`/`wrap_with` (keep_indent, hang_at_gap); `props::Sheet`, `measure(_with)`, `render_with`, copyable `Prop`; `PropsList` with `PropsAction`/`PropsCmd`. | `pages/text_utilities.rs` | SC2 |
 | **SC27** Settings + Task runner | Task runner `leave_stakes` Running (quit while running); Settings tabs with dirty markers. | `pages/settings.rs`, `pages/taskrunner.rs` | SC2, SC14 |
-| **SC28** Focus & navigation + Toolbars | Strategy B nav policies (`FocusPolicy`, `AdjacentMove`, `AdjacentKeys`, `Scope`, `Bounds`) applied to Tabs, Tree, List, Select, Picker, Menu, Dialog and Toolbar; the `Toolbar` widget; `FocusFallback` Nearest/First; `request_focus_next`/`cancel_focus_request`; `InputConfig` (shift_wheel_horizontal, ctrl_click_secondary, legacy_ctrl_punctuation); `KeyboardProtocol` Auto/On/Off with the kitty flags and `super_delivered`; per-widget `nav()` (vim, page, home/end off); `.keymap()` override examples (`KeyMap`, `label_for`, `hint_key`, `select_all_bindings`). | `pages/focus_navigation.rs`, `pages/toolbars.rs` | SC2 |
+| **SC28** Focus & navigation + Toolbars | Strategy B nav policies (`FocusPolicy`, `AdjacentMove`, `AdjacentKeys`, `Scope`, `Bounds`) applied to Tabs, Tree, List, Select, Picker, Menu, Dialog and Toolbar (moved to S27, demo SC57: the types do not exist); the `Toolbar` widget; `FocusFallback` Nearest/First; `request_focus_next`/`cancel_focus_request`; `InputConfig` (shift_wheel_horizontal, ctrl_click_secondary, legacy_ctrl_punctuation); `KeyboardProtocol` Auto/On/Off with the kitty flags and `super_delivered`; per-widget `nav()` (vim, page, home/end off); `.keymap()` override examples (`KeyMap`, `label_for`, `hint_key`, `select_all_bindings`). | `pages/focus_navigation.rs`, `pages/toolbars.rs` | SC2 |
 
 **Follow-ons gated on S-steps (group SC-F; each lands with its S-step)**
 
@@ -632,6 +633,7 @@ Files named are the files the step owns; steps in the same parallel group own di
 | **SC43** | Tri-state checklist tree, trailing action row; `DataTable` group rows, match ranges, row marks, change table; plan outline table | S24 | `pages/trees.rs`, `pages/tables.rs`, `pages/taskrunner.rs` |
 | **SC44** | `PickerChain` (crumb scope, Backspace back, per-level status) | S25 | `pages/pickers.rs` |
 | **SC45** | Pane tree page (nested splits, borders, zoom, resize chords); cross-fade under `Motion` | S26 | `pages/pane_tree.rs`, `pages/overview.rs` |
+| **SC57** | Strategy B on Focus & navigation and Toolbars: `focusnavigation.*` options per policy (`FocusPolicy`, `AdjacentMove` stop/wrap/next control, `AdjacentKeys`, `Scope`, `Bounds`) applied to a list, a tab strip, a tree, a select and a toolbar side by side, with a readout of where each edge key sends focus; `toolbars.adjacent` | S27 | `pages/focus_navigation.rs`, `pages/toolbars.rs` |
 
 **Screens (group SC-S; composed from the library only, parallel among themselves)**
 
@@ -656,7 +658,7 @@ Files named are the files the step owns; steps in the same parallel group own di
 | SC-A | SC0 | Alone: it writes the registry and the allowlist every later step edits. |
 | SC-B | SC1 ‖ SC2 | Disjoint: SC1 owns the Inspector, `options.rs` and `--opt`; SC2 owns `specimen.rs`, the template, page registration and stubs. Both may run beside S-group B or later. |
 | SC-C | SC3 ‖ SC4 ‖ SC7 ‖ SC8 ‖ SC9 ‖ SC10 ‖ SC11 ‖ SC12 ‖ SC13 ‖ SC14 ‖ SC15 ‖ SC16 ‖ SC17 ‖ SC18 ‖ SC19 ‖ SC20 ‖ SC21 ‖ SC22 ‖ SC23 ‖ SC24 ‖ SC25 ‖ SC26 ‖ SC28; then SC5 → SC6 (both touch `app.rs`); SC27 after SC14 | One agent per step, disjoint page files; each rebases only its allowlist lines. Run 4–6 at a time. A page step must not run while an S-step migrates the same page file (check §4's owners). |
-| SC-F | SC29–SC45 | Each in the same change as its S-step, or by a paired agent in that S-step's group. |
+| SC-F | SC29–SC45, SC57 | Each in the same change as its S-step, or by a paired agent in that S-step's group. |
 | SC-S | SC46–SC56 | When their deps have landed; parallel among themselves. |
 
 ### 7.7 Inventory mapping
@@ -702,8 +704,8 @@ Every ⚠️ and ❌ row of both inventories maps to at least one SC step; the �
 | core | `shape::PointerShape` (5 shapes) | ⚠️ | SC1 (State tab: shape indicator) |
 | core | `shape::CaretShape` (4), `ShapeSupport`, `ShapeSync` | ❌ | SC1 (`caret_shape`, `ShapeSupport` readout) |
 | core | `typeahead::TypeAhead` (timeout) | ⚠️ | SC15 (timeout knob) |
-| core | Strategy B — `nav.rs` modules (`FocusPolicy`, `AdjacentMove`, `AdjacentKeys`, `Scope`, `Bounds`) | ❌ | SC28 |
-| core | Strategy B — nav policy fields on Tabs/Tree/List/Select/Picker/Menu/Dialog/Toolbar | ❌ | SC28 |
+| core | Strategy B — `nav.rs` modules (`FocusPolicy`, `AdjacentMove`, `AdjacentKeys`, `Scope`, `Bounds`) | ❌ | S27; SC57 (not built: no type, no catalog id yet) |
+| core | Strategy B — nav policy fields on Tabs/Tree/List/Select/Picker/Menu/Dialog/Toolbar | ❌ | S27; SC57 |
 | core | Strategy B — Toolbar widget | ❌ | SC28 (Toolbars page) |
 | ui | `columns::Col` (content/fixed/flex/max/droppable) + `solve` | ❌ | SC11 |
 | ui | `columns::ColumnSizing` (resizable/seam_w/min_width) | ⚠️ | SC11 |
@@ -951,12 +953,12 @@ Each step's agent updates its row when the step lands: state, commits, deviation
 | SC12 | Done, 2026-10-16 | fix(grid): a reference arrow never covers its value; feat(showcase): Data grid page on the template (SC12); test(visual): showcase datagrid re-approval | See "SC12 outcome" below. Allowlist: SC12 98 → 0. |
 | SC13 | Done, 2026-10-16 | feat(showcase): Editable, Selection and Cell editors on the template (SC13); test(visual): showcase editable and selectable re-approval | See "SC13 outcome" below. Allowlist: SC13 56 → 0 (60 at the start; 4 shown by SC11). |
 | SC27 | Done, 2026-10-16 | feat(showcase): Settings dirty tab and Task runner quit guard (SC27) | See "SC27 outcome" below. No allowlist lines of its own (`leave::Stakes` stays with SC6). |
-| SC28 | Done, 2026-10-16 | feat(showcase): Focus & navigation page (SC28); feat(toolbar): Toolbar widget and Toolbars page (SC28) | See "SC28 outcome" below. Allowlist: SC28 28 → 0. Strategy B not built (recorded). |
+| SC28 | Done, 2026-10-16 | feat(showcase): Focus & navigation page (SC28); feat(toolbar): Toolbar widget and Toolbars page (SC28) | See "SC28 outcome" below. Allowlist: SC28 28 → 0. Strategy B not built (recorded; now S27, demo SC57). |
 | SC5 | Done, 2026-10-16 | feat(showcase): Breadcrumbs & rails page (SC5); feat(showcase): the header crumb is the library Breadcrumb (SC5); test(visual): showcase header crumb re-approval | See "SC5 outcome" below. Allowlist: SC5 7 → 0. |
 | SC21 | Done, 2026-10-17 | feat(showcase): Progress and Empty & error pages (SC21); test(visual): progress re-approval | See "SC21 outcome" below. Allowlist: SC21 9 → 0. |
 | SC23 | Done, 2026-10-17 | feat(showcase): Splits & stacks page (SC23) | See "SC23 outcome" below. Allowlist: SC23 25 → 0. |
 | SC24 | Done, 2026-10-17 | feat(showcase): Code editor options, find and states (SC24); test(visual): code editor re-approval | See "SC24 outcome" below. Allowlist: SC24 44 → 0 (36 shown, 8 `EditorAction` / `CompletionAction` lines re-pointed to SC34). |
-| SC6, SC15, SC17–SC20, SC22, SC25, SC29–SC56, S23–S26 | Not started | — | — |
+| SC6, SC15, SC17–SC20, SC22, SC25, SC29–SC57, S23–S27 | Not started | — | — |
 
 **SC13 outcome.**
 - Editable (`pages/editable.rs`): the template. Playground: the task table, its legend, a Columns card that reads each `Column` (alignment, editable, text or `▾ Select`) and an Events card naming the `TableAction` each key asks for. Options (12, `editable.*`): rows (tasks, empty `EmptyState`), type-ahead (off, any, Task column), the `▾` affordance (`editor_config`), overflow marks, numeric columns, vim keys (`nav`), key map (`TableCmd` rebound: `o` sorts; the footer hint follows through `hint_key`), horizontal bar, reveal, track click, blur action and header-menu labels. States: a table of text cells and one with a constrained column, ten rows.
@@ -1053,7 +1055,7 @@ Each step's agent updates its row when the step lands: state, commits, deviation
 **SC28 outcome (Toolbars).**
 - Library `widgets::toolbar::{Toolbar, ToolItem, ToolbarAction}`: the WAI-ARIA toolbar pattern (one focus stop; ←/→ through `Cursor` with a horizontal axis, skipping disabled items by default; Home/End; Enter/Space run the cursor item or flip a toggle; clicks run items; shortcuts shown muted after the label and in the tooltip; separators; the one `▎` gutter on the cursor item while focused). Builders: `nav`, `wrap`, `skip_disabled`, `gap`; `ToolItem::{shortcut, disabled, toggle, separator, tip}`. `Specimen` for the States grid. Unit tests in `toolbar.rs`.
 - Page `pages/toolbars.rs` (`--page toolbars`): a query toolbar (Run F5, Run all, Stop disabled until a run starts, Format, Explain, Wrap and Line numbers toggles) and a formatting toolbar of toggles, with the last `ToolbarAction`. Options `toolbars.{nav, wrap, skip_disabled, gap}`. States: commands and toggles in rest, hover, pressed, focused, focus + hover, selected, disabled and narrow.
-- Not built (recorded): an overflow menu for items that do not fit; Strategy B nav policies.
+- Not built (recorded): Strategy B nav policies (now step S27, demo SC57).
 - Tests: `app_tests_toolbars.rs` (one Tab stop, arrows skip disabled, one `▎`; Enter and clicks, the run state; every option; States rows). Digest: Toolbars rows. Visual: pending `showcase/pages/toolbars`, `sections/toolbars-{options,states}`, `elements/toolbars/{focused,item-hover}`; the planned-page row is gone.
 
 **SC5 outcome.**
