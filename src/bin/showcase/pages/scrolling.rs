@@ -165,7 +165,7 @@ impl Page for ScrollingPage {
                 }
                 for p in [&mut self.prose, &mut self.log] {
                     if scrollbar::is_bar_of(*pressed, p.id) {
-                        return p.on_scrollbar_drag(*pos);
+                        return p.on_bar_drag(*pressed, *pos);
                     }
                 }
                 Outcome::Ignored

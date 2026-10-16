@@ -710,6 +710,43 @@ fn panels_route_wheel_and_nested_list_clicks() {
 }
 
 #[test]
+fn a_panel_with_wide_lines_shows_and_moves_its_horizontal_position() {
+    use junie_tui::widgets::scrollbar;
+    let mut h = Harness::new(80, 24, PageId::Panels);
+    let log = WidgetId::of("panels").sub("log");
+    let bar = h.area(scrollbar::h_id_for(log));
+    let thumb_x = |h: &Harness| {
+        let buf = h.term.backend().buffer();
+        (bar.x..bar.right()).find(|&x| buf[(x, bar.y)].symbol() == scrollbar::H_THUMB)
+    };
+    assert_eq!(
+        thumb_x(&h),
+        Some(bar.x),
+        "the log starts at its left edge: {:?} {}",
+        bar,
+        h.row(bar.y)
+    );
+
+    // a sideways wheel over the log moves its lines and the thumb
+    let area = h.area(log);
+    let before = h.text();
+    assert_eq!(
+        h.mouse(MouseKind::WheelRight, area.x + 2, area.y + 1),
+        Outcome::Changed
+    );
+    assert_ne!(h.text(), before);
+    assert!(thumb_x(&h) > Some(bar.x));
+
+    // dragging the thumb back to the left edge restores the start
+    let grab = thumb_x(&h).unwrap();
+    h.mouse(MouseKind::Down, grab, bar.y);
+    h.mouse(MouseKind::Drag, 0, bar.y);
+    h.mouse(MouseKind::Up, 0, bar.y);
+    assert_eq!(thumb_x(&h), Some(bar.x));
+    assert_eq!(h.text(), before);
+}
+
+#[test]
 fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
     let mut h = Harness::new(120, 40, PageId::Sidebars);
     let collapse = WidgetId::of("sidebars").sub("collapse");
