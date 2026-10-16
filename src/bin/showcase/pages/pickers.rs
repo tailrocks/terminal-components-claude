@@ -377,7 +377,8 @@ impl Page for PickersPage {
                 Kind::Level => "↑↓ Move · Enter Set level · Esc Keep",
             };
             let screen = *buf.area();
-            p.render(screen, buf, ctx, hints);
+            p.hints = hints.to_owned();
+            p.draw(screen, buf, ctx);
         }
     }
 

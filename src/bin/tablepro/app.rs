@@ -2269,7 +2269,8 @@ impl App {
                             "↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connection"
                         }
                     };
-                    p.render(area, buf, ctx, hints);
+                    p.hints = hints.to_owned();
+                    p.draw(area, buf, ctx);
                 }
                 Modal::Filter(f) => Self::draw_filter_editor(f, area, buf, ctx),
             }

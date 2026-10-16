@@ -2387,7 +2387,10 @@ impl App {
                             buf,
                             ctx,
                         ),
-                        Modal::Picker(p) => p.render(area, buf, ctx, &hints),
+                        Modal::Picker(p) => {
+                            p.hints = hints;
+                            p.draw(area, buf, ctx);
+                        }
                         Modal::Browser(b) => {
                             let stepper = self.screens.prelude.as_ref().map(|p| p.stepper_line());
                             b.render(area, buf, ctx, stepper.as_deref());

@@ -40,18 +40,16 @@ pub fn modal_frame(
     height: u16,
     title: &str,
     meta: Option<&str>,
-    center: bool,
+    // kept for the call sites: the "upper" and "middle" frame placements
+    // always resolved to the same centred rectangle
+    _center: bool,
 ) -> (Rect, Rect) {
     // placed in the body, clear of the header and the footer, with the
     // dialog's margin around it
     junie_tui::ui::modal::Frame::new(width_, height)
         .title(title)
         .meta(meta)
-        .placement(if center {
-            junie_tui::ui::modal::FramePlacement::Middle
-        } else {
-            junie_tui::ui::modal::FramePlacement::Upper
-        })
+        .placement(junie_tui::ui::popup::Placement::Center)
         .render(screen, buf, ctx)
 }
 
@@ -1913,7 +1911,7 @@ impl OpFlow {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        self.picker.render(screen, buf, ctx, "");
+        self.picker.draw(screen, buf, ctx);
     }
 }
 
