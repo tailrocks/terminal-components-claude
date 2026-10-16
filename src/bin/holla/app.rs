@@ -54,6 +54,7 @@ use crate::screens::review::{ArgsPage, GatePage, TrustPage};
 use crate::screens::snapshot::SnapshotPage;
 use crate::screens::{Cx, GateTarget, Go, Modal, ModalResult, ModalTag, Page, Request, Screen};
 use crate::sim::world::{Msg, World};
+use junie_tui::core::scroll::Scrollable;
 
 /// The canonical product mark; every brand lockup renders exactly this.
 pub const BRAND_MARK: &str = "holla❯";

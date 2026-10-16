@@ -7,14 +7,16 @@
 //! gutter bar belongs to the focused control inside.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Color;
 use ratatui::widgets::{Block, Borders, Widget};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
+use crate::core::response::Response;
+use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
@@ -383,32 +385,18 @@ use ratatui::style::Style;
 pub struct ScrollPanel {
     pub id: WidgetId,
     pub lines: Vec<String>,
-    pub scroll: ScrollState,
+    /// Rows (`scroll`, the vertical state) and cells (`scroll.h`) with both bars
+    /// ([`Scrollable`]).
+    pub scroll: ScrollPane,
     /// Following the tail right now (only ever true for a tailing panel).
     pub follow: bool,
     /// The panel tails its content: new lines keep the end in view.
     pub tail: bool,
     pub wrap: bool,
     pub area: Rect,
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     wrapped_cache: (u16, Vec<String>),
-    /// Horizontal position in cells (only while not wrapping): lines wider
-    /// than the panel scroll sideways instead of being cut.
-    pub hscroll: ScrollState,
     /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
     pub horizontal: Option<HScroll>,
-    /// The policy resolved at the last render (events use it).
-    h_cfg: HScroll,
-    /// The horizontal scrollbar track as last drawn.
-    htrack: Rect,
-    /// The last scrollbar press landed on the horizontal bar.
-    h_held: bool,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// Which keys scroll (default [`NavKeys::DEFAULT`]; ←/→ scroll
     /// sideways, since the panel has no caret).
     pub nav: NavKeys,
@@ -445,22 +433,15 @@ impl ScrollPanel {
 
     pub fn new(id: WidgetId, lines: Vec<String>) -> Self {
         Self {
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
             id,
             lines,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             follow: false,
             tail: false,
             wrap: false,
             area: Rect::ZERO,
-            track: Rect::ZERO,
             wrapped_cache: (0, vec![]),
-            hscroll: ScrollState::default(),
             horizontal: None,
-            h_cfg: HScroll::default(),
-            htrack: Rect::ZERO,
-            h_held: false,
             nav: NavKeys::DEFAULT,
             keymap: PanelCmd::default_keymap(),
         }
@@ -479,27 +460,13 @@ impl ScrollPanel {
 
     /// Lines scroll sideways: not wrapping and the policy allows it.
     fn h_enabled(&self) -> bool {
-        !self.wrap && self.h_cfg.enabled
+        !self.wrap && self.scroll.h_cfg.enabled
     }
 
-    /// Scroll sideways by `delta` steps; reports a change like
-    /// [`on_wheel`](Self::on_wheel).
+    /// Scroll sideways by `delta` steps (the arrows); the wheel's rule:
+    /// nothing wider than the panel leaves the arrows free for the page.
     fn scroll_h(&mut self, delta: isize) -> Outcome {
-        // nothing wider than the panel: the arrows stay free for the page
-        if !self.h_enabled() || !self.hscroll.overflows() {
-            return Outcome::Ignored;
-        }
-        let step = self.h_cfg.step.max(1) as isize;
-        if self.hscroll.scroll_by(delta * step) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// Horizontal wheel (or Shift+wheel): `step` cells per notch.
-    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
-        self.scroll_h(delta.signum() as isize)
+        self.wheel(Axis::Horizontal, delta as i32).outcome()
     }
 
     pub fn wrap(mut self, w: bool) -> Self {
@@ -561,78 +528,6 @@ impl ScrollPanel {
         }
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        let moved = self.scroll.scroll_by(delta as isize);
-        let was = self.follow;
-        self.settle_follow();
-        if moved || was != self.follow {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.area.y,
-                1,
-                self.area.height,
-            )
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on either scrollbar (or a completed click);
-    /// a press on the horizontal bar ([`scrollbar::h_id_for`]) moves
-    /// sideways.
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        self.h_held = !self.htrack.is_empty() && self.htrack.contains(pos);
-        if self.h_held {
-            let click = self.h_cfg.track_click;
-            return if scrollbar::press_h(self.htrack, pos, &mut self.hscroll, click) {
-                Outcome::Changed
-            } else {
-                Outcome::Consumed
-            };
-        }
-        let moved = scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click);
-        self.settle_follow();
-        if moved {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged while holding `pressed` (either of this
-    /// widget's scrollbar ids): the axis follows the id, so a drag works
-    /// whether or not the press was routed first.
-    pub fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        self.h_held = pressed == scrollbar::h_id_for(self.id);
-        self.on_scrollbar_drag(pos)
-    }
-
-    /// The pointer dragged along the scrollbar it pressed.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if self.h_held && !self.htrack.is_empty() {
-            return if scrollbar::drag_h(self.htrack, pos, &mut self.hscroll) {
-                Outcome::Changed
-            } else {
-                Outcome::Consumed
-            };
-        }
-        let moved = scrollbar::drag(self.track(), pos, &mut self.scroll);
-        self.settle_follow();
-        if moved {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     /// Lay the content out for `area` without drawing: the wrap cache,
     /// content and viewport lengths and the tail follow are settled, so a
     /// position label read afterwards is exact. `render` calls it too.
@@ -661,9 +556,10 @@ impl ScrollPanel {
         } else {
             0
         };
-        self.hscroll.set_content(widest);
-        self.hscroll.set_viewport(text_w as usize);
-        let has_hb = self.h_enabled() && area.height > 1 && self.h_cfg.shows_bar(&self.hscroll);
+        self.scroll.h.set_content(widest);
+        self.scroll.h.set_viewport(text_w as usize);
+        let has_hb =
+            self.h_enabled() && area.height > 1 && self.scroll.h_cfg.shows_bar(&self.scroll.h);
         self.scroll.set_content(len);
         self.scroll
             .set_viewport(area.height.saturating_sub(u16::from(has_hb)) as usize);
@@ -676,7 +572,7 @@ impl ScrollPanel {
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
@@ -688,12 +584,12 @@ impl ScrollPanel {
         bg: Color,
         style_line: fn(&Theme, &str) -> Style,
     ) {
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
         }
-        self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.measure(area);
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
@@ -709,9 +605,9 @@ impl ScrollPanel {
             let y = area.y + i as u16;
             let line = &lines[li];
             let st = style_line(t, line).bg(bg);
-            let text = if self.h_enabled() && self.hscroll.offset > 0 {
+            let text = if self.h_enabled() && self.scroll.h.offset > 0 {
                 crate::ui::text::fit(
-                    &crate::ui::text::slice_cells(line, self.hscroll.offset, text_w as usize),
+                    &crate::ui::text::slice_cells(line, self.scroll.h.offset, text_w as usize),
                     text_w as usize,
                 )
             } else {
@@ -723,24 +619,10 @@ impl ScrollPanel {
         // last one)
         let rows_h = (self.scroll.viewport_len as u16).min(area.height);
         if self.scroll.overflows() {
-            crate::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    area.y,
-                    (area.right() - 1).saturating_sub(area.x),
-                    rows_h,
-                ),
-                &self.scroll,
-            );
-            let sb = Rect::new(area.right() - 1, area.y, 1, rows_h);
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
-        } else {
-            self.track = Rect::ZERO;
+            let body = Rect::new(area.x, area.y, area.width, rows_h);
+            self.scroll
+                .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
-        self.htrack = Rect::ZERO;
         if rows_h < area.height && self.h_enabled() {
             // the corner under the vertical bar stays blank
             let y = area.y + rows_h;
@@ -753,17 +635,29 @@ impl ScrollPanel {
                 .width
                 .saturating_sub(u16::from(self.scroll.overflows()));
             let hb = Rect::new(area.x, y, w, 1);
-            self.htrack = hb;
-            scrollbar::render_horizontal_with(
-                hb,
-                buf,
-                ctx,
-                self.id,
-                &self.hscroll,
-                focused,
-                self.h_cfg.bar == ScrollbarVisibility::Always,
-            );
+            self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
+    }
+}
+
+impl Scrollable for ScrollPanel {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
+    }
+
+    /// Wrapped lines never scroll sideways.
+    fn wheel_first(&mut self, axis: Axis, _delta: i32) -> Option<Response<()>> {
+        (axis == Axis::Horizontal && !self.h_enabled()).then(Response::ignored)
+    }
+
+    /// Following resumes at the end and pauses anywhere else.
+    fn after_scroll(&mut self, axis: Axis, _moved: bool) -> bool {
+        if axis != Axis::Vertical {
+            return false;
+        }
+        let was = self.follow;
+        self.settle_follow();
+        was != self.follow
     }
 }
 
@@ -774,6 +668,7 @@ mod scroll_panel_tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+    use ratatui::layout::Position;
 
     fn key(code: KeyCode) -> Key {
         Key {
@@ -824,7 +719,7 @@ mod scroll_panel_tests {
         // → scrolls by the step, the line shows a leading … and the
         // thumb moves right
         assert_eq!(p.on_key(&key(KeyCode::Right)), Outcome::Changed);
-        assert_eq!(p.hscroll.offset, HScroll::default().step);
+        assert_eq!(p.scroll.h.offset, HScroll::default().step);
         let (buf, _) = draw_panel(&mut p, area);
         assert!(row(&buf, 0).starts_with('…'), "{}", row(&buf, 0));
         assert!(!row(&buf, 3).starts_with(scrollbar::H_THUMB));
@@ -837,7 +732,7 @@ mod scroll_panel_tests {
             .unwrap();
         assert_eq!(p.on_scrollbar(Position::new(thumb, 3)), Outcome::Consumed);
         assert_eq!(p.on_scrollbar_drag(Position::new(40, 3)), Outcome::Changed);
-        assert_eq!(p.hscroll.offset, p.hscroll.max_offset());
+        assert_eq!(p.scroll.h.offset, p.scroll.h.max_offset());
         assert_eq!(p.scroll.offset, 0, "rows did not move");
 
         // wrapping text never scrolls sideways; neither does a disabled policy
@@ -1012,7 +907,7 @@ mod scroll_panel_tests {
         assert_eq!(log.on_key(&key(KeyCode::Char('f'))), Outcome::Changed);
         assert!(log.follow && log.scroll.at_end());
         // the scrollbar behaves the same: the thumb dragged to the end follows
-        log.track_click = Some(crate::core::scroll::TrackClick::Jump);
+        log.scroll.track_click = Some(crate::core::scroll::TrackClick::Jump);
         drawn(&mut log, 20, 5);
         assert_eq!(log.on_scrollbar(Position::new(19, 0)), Outcome::Changed);
         assert!(!log.follow);
@@ -1067,6 +962,7 @@ mod title_reveal_tests {
     use crate::core::hit::HitRegistry;
     use crate::ui::ctx::Interaction;
     use crate::ui::reveal::cut_id;
+    use ratatui::layout::Position;
 
     const TITLE: &str = "Connections to the production analytics warehouse";
 
@@ -1130,6 +1026,7 @@ mod track_click_tests {
     use crate::core::scroll::TrackClick;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::ui::ctx::Interaction;
+    use ratatui::layout::Position;
 
     fn draw(p: &mut ScrollPanel, click: TrackClick) {
         let theme = Theme::junie();

@@ -1350,7 +1350,11 @@ impl Workbench {
                     };
                 }
                 if h.detail.owns(id) {
-                    return h.detail.on_wheel(delta, horizontal);
+                    return if horizontal {
+                        h.detail.on_wheel_h(delta)
+                    } else {
+                        h.detail.on_wheel(delta)
+                    };
                 }
                 Outcome::Ignored
             }

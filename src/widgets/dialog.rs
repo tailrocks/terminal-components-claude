@@ -13,9 +13,11 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Margin, Position, Rect};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
+use crate::core::response::Response;
+use crate::core::scroll::{HScroll, ScrollPane, ScrollState, Scrollable};
 use crate::theme::{ButtonKind, StatusKind, Strings};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, place_with};
@@ -116,26 +118,14 @@ pub struct Dialog {
     /// The theme's dialog padding (`spacing.dialog`), captured at render
     /// like `gap`.
     pad: crate::theme::Insets,
-    /// Body scroll position (Text and Facts bodies).
-    pub scroll: ScrollState,
-    /// The scrollbar track drawn last frame (empty when the body fits).
-    track: Rect,
+    /// Body scroll position (Text and Facts bodies) and, in `scroll.h`,
+    /// the code preview's horizontal position in cells ([`Scrollable`]).
+    pub scroll: ScrollPane,
     /// Horizontal scrolling of the code preview; `None` follows
     /// [`RenderCtx::hscroll`]. Preformatted lines are never wrapped, so a
     /// line wider than the dialog scrolls sideways (Shift+←/→, the
     /// sideways wheel, the bar under the preview).
     pub horizontal: Option<HScroll>,
-    /// Horizontal position of the code preview, in cells.
-    pub code_scroll: ScrollState,
-    /// The policy resolved at the last render (sizing and events use it).
-    h_cfg: HScroll,
-    /// The code preview's horizontal track drawn last frame.
-    htrack: Rect,
-    /// What a press on the bare vertical track of a scrolling body does;
-    /// `None` follows [`RenderCtx::track_click`].
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// The theme's strings as of the last render: labels built from them
     /// follow a change ([`Strings::follow`]), and hints read them.
     strings: Strings,
@@ -340,14 +330,8 @@ impl Dialog {
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
             pad: crate::theme::Spacing::DEFAULT.dialog,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             horizontal: None,
-            code_scroll: ScrollState::default(),
-            h_cfg: HScroll::default(),
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
-            htrack: Rect::ZERO,
-            track: Rect::ZERO,
             strings: Strings::DEFAULT,
             ack_enter: AckEnter::Submit,
             mnemonics: true,
@@ -387,14 +371,8 @@ impl Dialog {
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
             pad: crate::theme::Spacing::DEFAULT.dialog,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             horizontal: None,
-            code_scroll: ScrollState::default(),
-            h_cfg: HScroll::default(),
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
-            htrack: Rect::ZERO,
-            track: Rect::ZERO,
             strings: Strings::DEFAULT,
             ack_enter: AckEnter::Submit,
             mnemonics: true,
@@ -435,14 +413,8 @@ impl Dialog {
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
             pad: crate::theme::Spacing::DEFAULT.dialog,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             horizontal: None,
-            code_scroll: ScrollState::default(),
-            h_cfg: HScroll::default(),
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
-            htrack: Rect::ZERO,
-            track: Rect::ZERO,
             strings: Strings::DEFAULT,
             ack_enter: AckEnter::Submit,
             mnemonics: true,
@@ -524,14 +496,8 @@ impl Dialog {
                 .overflow(RowOverflow::Wrap),
             gap: crate::theme::Spacing::DEFAULT.button_gap,
             pad: crate::theme::Spacing::DEFAULT.dialog,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             horizontal: None,
-            code_scroll: ScrollState::default(),
-            h_cfg: HScroll::default(),
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
-            htrack: Rect::ZERO,
-            track: Rect::ZERO,
             strings: Strings::DEFAULT,
             ack_enter: AckEnter::Submit,
             mnemonics: true,
@@ -642,7 +608,7 @@ impl Dialog {
         if self.scroll.overflows() {
             v.push(hint("↑↓", s.hint_scroll));
         }
-        if self.h_cfg.enabled && self.code_scroll.overflows() {
+        if self.scroll.h_cfg.enabled && self.scroll.h.overflows() {
             v.push(hint("⇧←→", s.hint_scroll_code));
         }
         v.extend(dismiss_hint());
@@ -773,24 +739,7 @@ impl Dialog {
 
     /// Scroll the code preview sideways by `delta` steps.
     fn scroll_code(&mut self, delta: isize) -> Outcome {
-        if !self.h_cfg.enabled || !self.code_scroll.overflows() {
-            return Outcome::Ignored;
-        }
-        let step = self.h_cfg.step.max(1) as isize;
-        if self.code_scroll.scroll_by(delta * step) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The sideways wheel: scrolls a code preview wider than the dialog.
-    /// Consumed either way (nothing under a modal scrolls).
-    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
-        match self.scroll_code(delta.signum() as isize) {
-            Outcome::Ignored => Outcome::Consumed,
-            o => o,
-        }
+        self.scroll.wheel(Axis::Horizontal, delta as i32).outcome()
     }
 
     /// The pointer moved while held on one of the dialog's scrollbars.
@@ -801,18 +750,10 @@ impl Dialog {
         {
             return inp.on_drag(pos);
         }
-        let moved = if pressed == scrollbar::h_id_for(self.id) && !self.htrack.is_empty() {
-            scrollbar::drag_h(self.htrack, pos, &mut self.code_scroll)
-        } else if pressed == scrollbar::id_for(self.id) && !self.track.is_empty() {
-            scrollbar::drag(self.track, pos, &mut self.scroll)
-        } else {
-            return Outcome::Consumed;
-        };
-        if moved {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
+        if scrollbar::is_bar_of(pressed, self.id) {
+            return self.on_bar_drag(pressed, pos);
         }
+        Outcome::Consumed
     }
 
     /// Rows the typed acknowledgement takes in a dialog `width` wide: the
@@ -851,7 +792,7 @@ impl Dialog {
             DialogBody::Text(_) => 0,
             DialogBody::Input(i) => i.height_for(self.field_width(width)),
             DialogBody::Facts { code, ack, .. } => {
-                Self::code_rows(code, self.inner_width(width), &self.h_cfg)
+                Self::code_rows(code, self.inner_width(width), &self.scroll.h_cfg)
                     + self.ack_rows(ack.as_ref(), width)
             }
         }
@@ -921,16 +862,6 @@ impl Dialog {
         self.anchor = anchor;
         self.placement = placement;
         self
-    }
-
-    /// Scroll the body by `delta` rows (the wheel). Consumed either way:
-    /// nothing under a modal scrolls.
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
     }
 
     pub fn confirm_index(mut self, index: Option<usize>) -> Self {
@@ -1110,10 +1041,10 @@ impl Dialog {
             }
             // Shift+←/→ scroll a code preview wider than the dialog; the
             // plain arrows keep moving between the actions
-            (Some(Nav::Left), _) if arrow && key.shift() && self.code_scroll.overflows() => {
+            (Some(Nav::Left), _) if arrow && key.shift() && self.scroll.h.overflows() => {
                 self.scroll_code(-1)
             }
-            (Some(Nav::Right), _) if arrow && key.shift() && self.code_scroll.overflows() => {
+            (Some(Nav::Right), _) if arrow && key.shift() && self.scroll.h.overflows() => {
                 self.scroll_code(1)
             }
             (Some(nav @ (Nav::Left | Nav::Right)), _) => {
@@ -1190,23 +1121,13 @@ impl Dialog {
             focus.focus(id);
             return inp.on_click_count(pos, count.max(1));
         }
-        if id == scrollbar::h_id_for(self.id) && !self.htrack.is_empty() {
-            let click = self.h_cfg.track_click;
-            let moved = scrollbar::press_h(self.htrack, pos, &mut self.code_scroll, click);
-            return if moved {
-                Outcome::Changed
-            } else {
-                Outcome::Consumed
-            };
-        }
-        if id == scrollbar::id_for(self.id) {
-            let moved = scrollbar::press_with(self.track, pos, &mut self.scroll, self.v_click);
-            self.scroll.release_track();
-            return if moved {
-                Outcome::Changed
-            } else {
-                Outcome::Consumed
-            };
+        if scrollbar::is_bar_of(id, self.id) {
+            let o = self.on_scrollbar(pos);
+            if id == scrollbar::id_for(self.id) {
+                // a completed click: the vertical grab ends with it
+                self.scroll.v.release_track();
+            }
+            return o;
         }
         for i in 0..self.actions.len() {
             if self.actions[i].id == id {
@@ -1243,8 +1164,8 @@ impl Dialog {
     pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.follow_strings(ctx.theme.strings);
         let t = ctx.theme;
-        self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.scroll.begin(ctx.track_click);
         self.gap = t.spacing.button_gap;
         // at least one column of padding: the scrollbar lives there
         self.pad = crate::theme::Insets::new(t.spacing.dialog.x.max(1), t.spacing.dialog.y);
@@ -1281,8 +1202,6 @@ impl Dialog {
             ),
         };
         self.area = area;
-        self.track = Rect::ZERO;
-        self.htrack = Rect::ZERO;
         let bg = t.surface_elevated;
         fill(buf, area, ratatui::style::Style::new().bg(bg));
         let panel = Panel::framed(None).focused(true);
@@ -1371,15 +1290,15 @@ impl Dialog {
                     // preformatted lines never wrap: a wider one scrolls
                     // sideways, cut with … on the side it continues past
                     let extent = Self::code_extent(code, inner.width);
-                    let off = self.code_scroll.offset;
-                    self.code_scroll.set_content(extent.content_len);
-                    self.code_scroll.set_viewport(extent.viewport_len);
-                    let off = if self.h_cfg.enabled {
-                        off.min(self.code_scroll.max_offset())
+                    let off = self.scroll.h.offset;
+                    self.scroll.h.set_content(extent.content_len);
+                    self.scroll.h.set_viewport(extent.viewport_len);
+                    let off = if self.scroll.h_cfg.enabled {
+                        off.min(self.scroll.h.max_offset())
                     } else {
                         0
                     };
-                    self.code_scroll.offset = off;
+                    self.scroll.h.offset = off;
                     let cut = |line: &str, w: u16| {
                         if off > 0 {
                             crate::ui::text::slice_cells(line, off, w as usize)
@@ -1400,19 +1319,10 @@ impl Dialog {
                         buf.set_string(inner.x, y + i as u16, &shown, t.secondary().bg(bg));
                     }
                     y += max as u16;
-                    if self.h_cfg.shows_bar(&self.code_scroll) {
+                    if self.scroll.h_cfg.shows_bar(&self.scroll.h) {
                         let hb = Rect::new(inner.x, y, inner.width, 1);
                         if hb.y < actions_y {
-                            self.htrack = hb;
-                            scrollbar::render_horizontal_with(
-                                hb,
-                                buf,
-                                ctx,
-                                self.id,
-                                &self.code_scroll,
-                                true,
-                                self.h_cfg.bar == ScrollbarVisibility::Always,
-                            );
+                            self.scroll.draw_h(hb, buf, ctx, self.id, true);
                         }
                         y += 1;
                     }
@@ -1427,7 +1337,8 @@ impl Dialog {
         if self.scroll.overflows() && viewport > 0 {
             // the scrollbar sits in the padding just inside the frame, one
             // column off the text, so the text keeps its width
-            self.track = Rect::new(area.right() - 2, body_y, 1, viewport);
+            let track = Rect::new(area.right() - 2, body_y, 1, viewport);
+            self.scroll.set_track(self.id, Axis::Vertical, track);
             let below = self.scroll.max_offset() - self.scroll.offset;
             if below > 0 && scroll_bottom < actions_y {
                 buf.set_string(
@@ -1482,11 +1393,14 @@ impl Dialog {
         if !close.is_empty() {
             ctx.clickable(crate::ui::modal::CLOSE, close);
         }
-        if !self.track.is_empty() {
-            scrollbar::render_vertical(self.track, buf, ctx, self.id, &self.scroll, true);
+        // the bars go on top of the surface and buttons registered above
+        let track = self.scroll.v_track();
+        if !track.is_empty() {
+            self.scroll.draw_v(track, buf, ctx, self.id, true);
         }
-        if !self.htrack.is_empty() && self.code_scroll.overflows() {
-            ctx.hits.register(scrollbar::h_id_for(self.id), self.htrack);
+        let htrack = self.scroll.h_track();
+        if !htrack.is_empty() && self.scroll.h.overflows() {
+            ctx.hits.register(scrollbar::h_id_for(self.id), htrack);
         }
     }
 }
@@ -1519,6 +1433,23 @@ fn blit_rows(src: &Buffer, from: u16, dst: &mut Buffer, at: Rect) {
             ) {
                 *d = c.clone();
             }
+        }
+    }
+}
+
+impl Scrollable for Dialog {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
+    }
+
+    /// Nothing under a modal scrolls: a notch the body or the code
+    /// preview cannot take is still consumed.
+    fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
+        let r = self.scroll.wheel(axis, delta);
+        if r.is_consumed() {
+            r
+        } else {
+            Response::consumed()
         }
     }
 }
@@ -1613,7 +1544,7 @@ mod tests {
             (buf, hits)
         };
         let (buf, hits) = draw(&mut d);
-        let bar = d.htrack;
+        let bar = d.scroll.h_track();
         assert!(!bar.is_empty(), "the preview gets a horizontal bar");
         assert_eq!(buf[(bar.x, bar.y)].symbol(), scrollbar::H_THUMB);
         assert_eq!(
@@ -1636,7 +1567,7 @@ mod tests {
             mods: ratatui::crossterm::event::KeyModifiers::SHIFT,
         };
         assert_eq!(d.on_key(&shift, &mut focus, &ring), Outcome::Changed);
-        assert_eq!(d.code_scroll.offset, HScroll::default().step);
+        assert_eq!(d.scroll.h.offset, HScroll::default().step);
         let (buf, _) = draw(&mut d);
         assert!(line(&buf).contains('…'), "cut on the left: {}", line(&buf));
         assert!(
@@ -1662,7 +1593,7 @@ mod tests {
             ),
             Outcome::Changed
         );
-        assert_eq!(d.code_scroll.offset, d.code_scroll.max_offset());
+        assert_eq!(d.scroll.h.offset, d.scroll.h.max_offset());
         let (buf, _) = draw(&mut d);
         assert!(
             line(&buf).contains("aa10');"),
@@ -2277,7 +2208,7 @@ mod track_click_tests {
     fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
         let text: Vec<String> = (1..=40).map(|i| format!("line {i:02}")).collect();
         let mut d = Dialog::confirm(WidgetId::of("help"), "Keys", &text.join("\n"), "Close");
-        d.track_click = click;
+        d.scroll.track_click = click;
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -2286,8 +2217,8 @@ mod track_click_tests {
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         ctx.track_click = app;
         d.render_in(screen, screen, &mut buf, &mut ctx);
-        assert!(!d.track.is_empty(), "the body scrolls");
-        let bottom = Position::new(d.track.x, d.track.bottom() - 1);
+        assert!(!d.scroll.v_track().is_empty(), "the body scrolls");
+        let bottom = Position::new(d.scroll.v_track().x, d.scroll.v_track().bottom() - 1);
         let mut focus = Focus::default();
         assert_eq!(
             d.on_click(scrollbar::id_for(d.id), bottom, &mut focus),

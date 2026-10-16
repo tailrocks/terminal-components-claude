@@ -31,9 +31,11 @@ use ratatui::style::{Color, Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility, TrackClick};
+use crate::core::response::Response;
+use crate::core::scroll::{HScroll, ScrollPane, ScrollState, Scrollable, TrackClick};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::width;
@@ -421,10 +423,10 @@ struct Anchor {
 
 #[derive(Debug, Clone)]
 pub struct TextViewport {
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     pub id: WidgetId,
-    pub scroll: ScrollState,
+    /// Rows (`scroll`, the vertical state) and cells (`scroll.h`) with both bars
+    /// ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub follow: bool,
     pub wrap: bool,
     /// Caret exposed as the hardware cursor while following and focused.
@@ -463,23 +465,8 @@ pub struct TextViewport {
     /// Blank columns between the text and the scrollbar (default
     /// [`scrollbar::GAP`]).
     pub scrollbar_gap: u16,
-    /// Horizontal position in cells (only while not wrapping): the first
-    /// content column drawn at the left edge. Lines wider than the text
-    /// area scroll sideways instead of being cut.
-    pub hscroll: ScrollState,
     /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
     pub horizontal: Option<HScroll>,
-    /// The policy resolved at the last render (events use it).
-    h_cfg: HScroll,
-    /// The horizontal scrollbar track as last drawn.
-    htrack: Rect,
-    /// The last scrollbar press landed on the horizontal bar.
-    h_held: bool,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`].
-    pub track_click: Option<TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: TrackClick,
     /// Which keys scroll (default [`NavKeys::DEFAULT`]). Shift+arrows
     /// always extend a keyboard selection.
     pub nav: NavKeys,
@@ -532,8 +519,7 @@ impl TextViewport {
     pub fn new(id: WidgetId) -> Self {
         Self {
             id,
-            track: Rect::ZERO,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             follow: true,
             wrap: false,
             caret: None,
@@ -558,13 +544,7 @@ impl TextViewport {
             work: WorkCounters::default(),
             scrollbar_gap: scrollbar::GAP,
             rows_h: 0,
-            hscroll: ScrollState::default(),
             horizontal: None,
-            h_cfg: HScroll::default(),
-            htrack: Rect::ZERO,
-            h_held: false,
-            track_click: None,
-            v_click: TrackClick::Page,
             nav: NavKeys::DEFAULT,
             keymap: ViewportCmd::default_keymap(),
         }
@@ -578,21 +558,21 @@ impl TextViewport {
 
     /// Override the app-wide vertical track-click policy.
     pub fn track_click(mut self, click: TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
     /// Lines scroll sideways: not wrapping (wrapped text never overflows
     /// sideways) and the policy allows it.
     pub fn h_enabled(&self) -> bool {
-        !self.wrap && self.h_cfg.enabled
+        !self.wrap && self.scroll.h_cfg.enabled
     }
 
     /// The horizontal offset in cells applied to drawing and pointer
     /// mapping (0 while horizontal scrolling is off).
     fn hoff(&self) -> usize {
         if self.h_enabled() {
-            self.hscroll.offset
+            self.scroll.h.offset
         } else {
             0
         }
@@ -619,12 +599,12 @@ impl TextViewport {
         if !self.h_enabled() {
             return false;
         }
-        let before = self.hscroll.offset;
+        let before = self.scroll.h.offset;
         if cols.end > cols.start {
-            self.hscroll.ensure_visible(cols.end - 1);
+            self.scroll.h.ensure_visible(cols.end - 1);
         }
-        self.hscroll.ensure_visible(cols.start);
-        self.hscroll.offset != before
+        self.scroll.h.ensure_visible(cols.start);
+        self.scroll.h.offset != before
     }
 
     /// Display columns covered by a source byte range of a logical line.
@@ -651,24 +631,11 @@ impl TextViewport {
         }
     }
 
-    /// Scroll sideways by `delta` steps of [`HScroll::step`] cells.
+    /// Scroll sideways by `delta` steps of [`HScroll::step`] cells (the
+    /// wheel's rule: nothing wider than the text leaves the arrows free for
+    /// the owner).
     fn scroll_h(&mut self, delta: isize) -> Outcome {
-        // nothing wider than the text: the arrows stay free for the owner
-        if !self.h_enabled() || !self.hscroll.overflows() {
-            return Outcome::Ignored;
-        }
-        let step = self.h_cfg.step.max(1) as isize;
-        if self.hscroll.scroll_by(delta * step) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// Horizontal wheel (or Shift+wheel): `step` cells per notch. Follow
-    /// is vertical and is left as it is.
-    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
-        self.scroll_h(delta.signum() as isize)
+        self.wheel(Axis::Horizontal, delta as i32).outcome()
     }
 
     /// Blank columns between the text and the scrollbar.
@@ -1135,7 +1102,7 @@ impl TextViewport {
             self.lay_out(area.width, rows);
             if h_on {
                 self.sync_h();
-                if area.height > 1 && self.h_cfg.shows_bar(&self.hscroll) {
+                if area.height > 1 && self.scroll.h_cfg.shows_bar(&self.scroll.h) {
                     // the horizontal bar takes the bottom row; fewer text
                     // rows may make the text overflow vertically, which
                     // only narrows it (the bar stays)
@@ -1144,20 +1111,21 @@ impl TextViewport {
                     self.sync_h();
                 }
             } else {
-                self.hscroll = ScrollState::default();
+                self.scroll.h = ScrollState::default();
             }
             self.rows_h = rows;
             self.layout_size = Some(size);
             // the horizontal bar's row, known before drawing so a copy
             // rendered elsewhere still routes presses on the original
-            self.htrack = if rows < area.height && h_on {
+            if rows < area.height && h_on {
                 let w = area
                     .width
                     .saturating_sub(u16::from(self.scroll.overflows()));
-                Rect::new(area.x, area.y + rows, w, 1)
+                let track = Rect::new(area.x, area.y + rows, w, 1);
+                self.scroll.set_track(self.id, Axis::Horizontal, track);
             } else {
-                Rect::ZERO
-            };
+                self.scroll.clear_track(Axis::Horizontal);
+            }
         } else {
             self.scroll.set_viewport(self.rows_h as usize);
         }
@@ -1169,8 +1137,8 @@ impl TextViewport {
     /// The horizontal axis: the widest line against the text width.
     fn sync_h(&mut self) {
         let widest = self.lines.iter().map(|l| l.width).max().unwrap_or(0);
-        self.hscroll.set_content(widest);
-        self.hscroll.set_viewport(self.text_w());
+        self.scroll.h.set_content(widest);
+        self.scroll.h.set_viewport(self.text_w());
     }
 
     /// Lay the text out for a `width` × `rows` text region, deciding the
@@ -1478,71 +1446,6 @@ impl TextViewport {
         Outcome::Changed
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if !self.scroll.scroll_by(delta as isize) {
-            return Outcome::Consumed;
-        }
-        self.follow = self.is_at_tail();
-        self.remember_reading();
-        Outcome::Changed
-    }
-
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            let text = self.text_rect();
-            Rect::new(text.right().saturating_sub(1), text.y, 1, text.height)
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on either scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it (or
-    /// pages, under [`TrackClick::Page`]). A press on the horizontal bar
-    /// ([`scrollbar::h_id_for`]) moves sideways.
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        self.h_held = !self.htrack.is_empty() && self.htrack.contains(pos);
-        if self.h_held {
-            let click = self.h_cfg.track_click;
-            return if scrollbar::press_h(self.htrack, pos, &mut self.hscroll, click) {
-                Outcome::Changed
-            } else {
-                Outcome::Consumed
-            };
-        }
-        if !scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
-            return Outcome::Consumed;
-        }
-        self.follow = self.is_at_tail();
-        self.remember_reading();
-        Outcome::Changed
-    }
-
-    /// The pointer dragged while holding `pressed` (either of this
-    /// widget's scrollbar ids): the axis follows the id, so a drag works
-    /// whether or not the press was routed first.
-    pub fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        self.h_held = pressed == scrollbar::h_id_for(self.id);
-        self.on_scrollbar_drag(pos)
-    }
-
-    /// The pointer dragged along the scrollbar it pressed.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if self.h_held && !self.htrack.is_empty() {
-            return if scrollbar::drag_h(self.htrack, pos, &mut self.hscroll) {
-                Outcome::Changed
-            } else {
-                Outcome::Consumed
-            };
-        }
-        if !scrollbar::drag(self.track(), pos, &mut self.scroll) {
-            return Outcome::Consumed;
-        }
-        self.follow = self.is_at_tail();
-        self.remember_reading();
-        Outcome::Changed
-    }
-
     /// The viewport itself or one of its scrollbars.
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id || scrollbar::is_bar_of(id, self.id)
@@ -1810,11 +1713,11 @@ impl TextViewport {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
-        if h_cfg != self.h_cfg {
-            self.h_cfg = h_cfg;
+        if h_cfg != self.scroll.h_cfg {
+            self.scroll.h_cfg = h_cfg;
             self.layout_size = None;
         }
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         self.set_area(area);
         let has_sb = self.scroll.overflows();
         let text_w = self.layout_width;
@@ -1905,39 +1808,16 @@ impl TextViewport {
             }
         }
         if has_sb {
-            crate::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    area.y,
-                    (area.right() - 1).saturating_sub(area.x),
-                    text.height,
-                ),
-                &self.scroll,
-            );
-            let sb = Rect::new(area.right() - 1, area.y, 1, text.height);
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
-        } else {
-            self.track = Rect::ZERO;
+            let body = Rect::new(area.x, area.y, area.width, text.height);
+            self.scroll
+                .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
-        self.htrack = Rect::ZERO;
         if text.height < area.height && self.h_enabled() {
             // the bottom row: the horizontal bar; the corner under the
             // vertical bar stays blank
             let w = area.width.saturating_sub(u16::from(has_sb));
             let hb = Rect::new(area.x, text.bottom(), w, 1);
-            self.htrack = hb;
-            scrollbar::render_horizontal_with(
-                hb,
-                buf,
-                ctx,
-                self.id,
-                &self.hscroll,
-                focused,
-                self.h_cfg.bar == ScrollbarVisibility::Always,
-            );
+            self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
         // the hardware cursor: the keyboard selection head while selecting,
         // else the producer caret while following
@@ -2013,7 +1893,29 @@ impl TextViewport {
     /// The horizontal bar's track after the last layout (empty without
     /// one): owners that route presses by position test it.
     pub fn hbar(&self) -> Rect {
-        self.htrack
+        self.scroll.h_track()
+    }
+}
+
+impl Scrollable for TextViewport {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
+    }
+
+    /// Wrapped text never scrolls sideways.
+    fn wheel_first(&mut self, axis: Axis, _delta: i32) -> Option<Response<()>> {
+        (axis == Axis::Horizontal && !self.h_enabled()).then(Response::ignored)
+    }
+
+    /// Scrolling back pauses the tail follow and the reading position is
+    /// kept; reaching the tail follows again. Sideways scrolling leaves
+    /// follow alone.
+    fn after_scroll(&mut self, axis: Axis, moved: bool) -> bool {
+        if axis == Axis::Vertical && moved {
+            self.follow = self.is_at_tail();
+            self.remember_reading();
+        }
+        false
     }
 }
 
@@ -2176,7 +2078,7 @@ mod tests {
             v.wrap = wrap;
             let mut fresh = TextViewport::with_lines(v.id, v.lines().cloned().collect()).wrap(wrap);
             assert_eq!(render(&mut v, w, h), render(&mut fresh, w, h));
-            assert_eq!(v.scroll, fresh.scroll);
+            assert_eq!(v.scroll.v, fresh.scroll.v);
         }
         v.set_lines(lines(2));
         let mut fresh = TextViewport::with_lines(v.id, lines(2));
@@ -2664,14 +2566,14 @@ mod tests {
         let buf = render(&mut v, 30, 6);
         // 5 text rows, the bottom row is the bar
         assert_eq!(v.scroll.viewport_len, 5);
-        assert!(v.hscroll.overflows());
-        assert_eq!(v.hscroll.content_len, 80);
+        assert!(v.scroll.h.overflows());
+        assert_eq!(v.scroll.h.content_len, 80);
         let bar0 = bar_row(&buf, 5);
         assert!(bar0.starts_with(scrollbar::H_THUMB), "{bar0}");
         assert!(bar0.contains(scrollbar::H_TRACK), "{bar0}");
         assert!(row(&buf, 2).starts_with("0123456789"));
         assert_eq!(v.on_wheel_h(1), Outcome::Changed);
-        assert_eq!(v.hscroll.offset, 4, "one notch is HScroll::step cells");
+        assert_eq!(v.scroll.h.offset, 4, "one notch is HScroll::step cells");
         let buf = render(&mut v, 30, 6);
         assert!(row(&buf, 2).starts_with("456789"), "{}", row(&buf, 2));
         // short lines scroll too: `line 0 alpha beta` loses `line`
@@ -2680,16 +2582,16 @@ mod tests {
         // the arrows scroll sideways too (no producer caret)
         let (o, _) = v.on_key(&key(KeyCode::Right, KeyModifiers::NONE));
         assert_eq!(o, Outcome::Changed);
-        assert_eq!(v.hscroll.offset, 8);
+        assert_eq!(v.scroll.h.offset, 8);
         v.on_key(&key(KeyCode::Left, KeyModifiers::NONE));
         v.on_key(&key(KeyCode::Left, KeyModifiers::NONE));
-        assert_eq!(v.hscroll.offset, 0);
+        assert_eq!(v.scroll.h.offset, 0);
         // the end stops at the widest line
         for _ in 0..40 {
             v.on_wheel_h(1);
         }
-        assert_eq!(v.hscroll.offset, v.hscroll.max_offset());
-        assert_eq!(v.hscroll.offset, 80 - v.hscroll.viewport_len);
+        assert_eq!(v.scroll.h.offset, v.scroll.h.max_offset());
+        assert_eq!(v.scroll.h.offset, 80 - v.scroll.h.viewport_len);
     }
 
     #[test]
@@ -2699,7 +2601,7 @@ mod tests {
         render(&mut v, 30, 6);
         let (o, _) = v.on_key(&key(KeyCode::Right, KeyModifiers::NONE));
         assert_eq!(o, Outcome::Ignored);
-        assert_eq!(v.hscroll.offset, 0);
+        assert_eq!(v.scroll.h.offset, 0);
         assert_eq!(v.on_wheel_h(1), Outcome::Changed, "the wheel still scrolls");
     }
 
@@ -2707,7 +2609,7 @@ mod tests {
     fn mouse_selection_maps_through_the_horizontal_offset() {
         let mut v = wide();
         render(&mut v, 30, 6);
-        v.hscroll.scroll_to(13);
+        v.scroll.h.scroll_to(13);
         render(&mut v, 30, 6);
         assert_eq!(
             v.pos_at(Position::new(0, 2)),
@@ -2723,11 +2625,11 @@ mod tests {
         assert_ne!(buf[(5, 2)].bg, sel_bg);
         // a drag past the right edge scrolls sideways and keeps selecting
         v.on_drag(Position::new(40, 2));
-        assert_eq!(v.hscroll.offset, 17);
+        assert_eq!(v.scroll.h.offset, 17);
         let sel = v.selected_text().unwrap();
         assert!(sel.starts_with("3456789"), "{sel}");
         // a double-click selects the word under the pointer, offset-aware
-        v.hscroll.scroll_to(4);
+        v.scroll.h.scroll_to(4);
         v.select_word_at(Position::new(4, 0));
         assert_eq!(v.selected_text().as_deref(), Some("alpha"));
     }
@@ -2742,13 +2644,13 @@ mod tests {
             current: true,
         }]);
         v.reveal_line(2);
-        let visible = v.hscroll.visible_range();
+        let visible = v.scroll.h.visible_range();
         assert!(
             visible.contains(&61) && visible.contains(&63),
             "{visible:?}"
         );
         let buf = render(&mut v, 30, 6);
-        let x = (61 - v.hscroll.offset) as u16;
+        let x = (61 - v.scroll.h.offset) as u16;
         let t = Theme::junie();
         assert_eq!(
             buf[(x, 2)].bg,
@@ -2758,15 +2660,15 @@ mod tests {
         assert_eq!(buf[(x, 2)].symbol(), "1");
         // reveal_mark scrolls back to an earlier match
         v.reveal_mark(2, 2..3);
-        assert!(v.hscroll.visible_range().contains(&2));
+        assert!(v.scroll.h.visible_range().contains(&2));
         // a keyboard selection head is kept in view sideways
-        v.hscroll.scroll_to(0);
+        v.scroll.h.scroll_to(0);
         v.on_click(Position::new(0, 2));
         v.on_drag(Position::new(1, 2));
         for _ in 0..40 {
             v.on_key(&key(KeyCode::Right, KeyModifiers::SHIFT));
         }
-        assert!(v.hscroll.visible_range().contains(&40), "{:?}", v.hscroll);
+        assert!(v.scroll.h.visible_range().contains(&40), "{:?}", v.scroll.h);
     }
 
     #[test]
@@ -2783,7 +2685,7 @@ mod tests {
         }
         render(&mut v, 30, 6);
         assert!(v.follow && v.is_at_tail());
-        assert_eq!(v.hscroll.offset, 8, "the horizontal position is kept");
+        assert_eq!(v.scroll.h.offset, 8, "the horizontal position is kept");
         assert_eq!(v.scroll.viewport_len, 5);
         // the producer caret is not drawn at an edge while scrolled away
         let t = Theme::junie();
@@ -2803,7 +2705,7 @@ mod tests {
         v.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, t.canvas);
         assert_eq!(ctx.cursor, None);
         // in view, it is
-        v.hscroll.scroll_to(0);
+        v.scroll.h.scroll_to(0);
         v.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, t.canvas);
         assert_eq!(ctx.cursor, Some(Position::new(2, 4)));
     }
@@ -2812,7 +2714,7 @@ mod tests {
     fn wrapping_switches_horizontal_scrolling_off() {
         let mut v = wide().wrap(true);
         let buf = render(&mut v, 30, 6);
-        assert!(!v.hscroll.overflows());
+        assert!(!v.scroll.h.overflows());
         assert_eq!(v.on_wheel_h(1), Outcome::Ignored);
         assert!(!bar_row(&buf, 5).contains(scrollbar::H_TRACK));
         // and the policy can switch it off without wrapping
@@ -2829,21 +2731,21 @@ mod tests {
         let mut v = wide().horizontal(HScroll::default().track_click(TrackClick::Jump));
         render(&mut v, 30, 6);
         // the bar stops short of the vertical bar's corner, which stays blank
-        assert_eq!(v.htrack, Rect::new(0, 5, 29, 1));
+        assert_eq!(v.scroll.h_track(), Rect::new(0, 5, 29, 1));
         assert!(v.owns(scrollbar::h_id_for(v.id)));
         assert_eq!(v.on_scrollbar(Position::new(28, 5)), Outcome::Changed);
-        assert_eq!(v.hscroll.offset, v.hscroll.max_offset());
+        assert_eq!(v.scroll.h.offset, v.scroll.h.max_offset());
         assert_eq!(v.scroll.offset, 0, "the vertical axis did not move");
         assert_eq!(
             v.on_bar_drag(scrollbar::h_id_for(v.id), Position::new(0, 5)),
             Outcome::Changed
         );
-        assert_eq!(v.hscroll.offset, 0);
+        assert_eq!(v.scroll.h.offset, 0);
         // TrackClick::Page (the default) on the horizontal axis pages
         let mut v = wide();
         render(&mut v, 30, 6);
         v.on_scrollbar(Position::new(28, 5));
-        assert_eq!(v.hscroll.offset, v.hscroll.viewport_len);
+        assert_eq!(v.scroll.h.offset, v.scroll.h.viewport_len);
     }
 
     #[test]
