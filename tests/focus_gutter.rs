@@ -63,10 +63,13 @@ fn button_focus_remains_unambiguous_without_colour() {
                     expected,
                     "{level:?} {kind:?}: focused={focused}, disabled={disabled}"
                 );
-                assert_eq!(
-                    buf[(1, 0)].modifier.contains(Modifier::DIM),
-                    disabled && level == ColorLevel::Mono
-                );
+                // dim intensity marks disabled only: always without colour,
+                // and at 16 colours where the disabled grey is the plane
+                let dim = buf[(1, 0)].modifier.contains(Modifier::DIM);
+                assert!(!dim || disabled, "{level:?} {kind:?}: dim while enabled");
+                if level == ColorLevel::Mono {
+                    assert_eq!(dim, disabled, "{kind:?}");
+                }
             }
         }
     }
