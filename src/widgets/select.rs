@@ -31,6 +31,19 @@ pub enum SelectArrows {
     Open,
 }
 
+/// What Tab (and Shift+Tab) do while the list is open (K13).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TabInOpen {
+    /// Choose the highlighted option, close the list and let Tab move
+    /// focus on (macOS popup buttons, WAI-ARIA select-only combobox).
+    #[default]
+    Choose,
+    /// Close the list without choosing and let Tab move focus on.
+    Close,
+    /// Keep the list open; Tab does nothing (the old behaviour).
+    Swallow,
+}
+
 /// What the wheel does over the open list.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WheelMode {
@@ -95,6 +108,10 @@ pub struct Select {
     /// [`SelectArrows::Step`] (the long-standing behaviour; `Open` is the macOS
     /// popup-button convention).
     pub arrows: SelectArrows,
+    /// What Tab does while the list is open. Default
+    /// [`TabInOpen::Choose`]. Help (`?`, F1) and the other function keys
+    /// close the list without choosing and pass through to the page.
+    pub tab_in_open: TabInOpen,
     /// A placeholder shown instead of the value while the field stands for
     /// several differing values (a bulk edit: `— mixed —`). Choosing any
     /// option clears it. Default `None`.
@@ -183,6 +200,7 @@ impl Select {
             visible_rows: Self::MAX_ROWS as usize,
             reveal: None,
             arrows: SelectArrows::Step,
+            tab_in_open: TabInOpen::Choose,
             mixed: None,
             type_ahead: false,
             wrap: false,
@@ -419,6 +437,27 @@ impl Select {
                     self.cursor = self.selected;
                     (Outcome::Changed, None)
                 }
+                // Tab chooses and moves on (K13): `Ignored` lets the
+                // owner's Tab move focus after the list closed
+                KeyCode::Tab | KeyCode::BackTab => match self.tab_in_open {
+                    TabInOpen::Choose => {
+                        self.open = false;
+                        (Outcome::Ignored, self.choose(self.cursor))
+                    }
+                    TabInOpen::Close => {
+                        self.open = false;
+                        self.cursor = self.selected;
+                        (Outcome::Ignored, None)
+                    }
+                    TabInOpen::Swallow => (Outcome::Consumed, None),
+                },
+                // help (`?`, F1) and the other function keys close the
+                // list and pass through to the page; letters stay with it
+                KeyCode::Char('?') | KeyCode::F(_) => {
+                    self.open = false;
+                    self.cursor = self.selected;
+                    (Outcome::Ignored, None)
+                }
                 _ => (Outcome::Consumed, None),
             };
         }
@@ -461,6 +500,12 @@ impl Select {
 
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::tab_in_open`].
+    pub fn tab_in_open(mut self, tab: TabInOpen) -> Self {
+        self.tab_in_open = tab;
         self
     }
 
@@ -1318,5 +1363,43 @@ mod tests {
         let mut off = Select::new(WidgetId::of("o"), "Mode", &["One", "Two"], 0).label_hit(false);
         let (_, hits) = draw_with(&mut off, None);
         assert_eq!(hits.hit(label), None);
+    }
+
+    /// Keyboard audit #13: Tab in an open list chose nothing and was
+    /// swallowed, as were `?` and the function keys. Tab now chooses the
+    /// highlighted option and lets focus move on (`Ignored`); `?` closes the
+    /// list without choosing and reaches the page; `tab_in_open` keeps the
+    /// other behaviours.
+    #[test]
+    fn tab_in_an_open_list_chooses_and_moves_on() {
+        let k = |code| Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 0);
+        s.on_key(&k(KeyCode::Enter));
+        s.on_key(&k(KeyCode::Down));
+        assert_eq!(
+            s.on_key(&k(KeyCode::Tab)),
+            (Outcome::Ignored, Some(SelectAction::Changed(1)))
+        );
+        assert!(!s.open);
+        assert_eq!(s.selected, 1);
+        s.on_key(&k(KeyCode::Enter));
+        s.on_key(&k(KeyCode::Down));
+        assert_eq!(s.on_key(&k(KeyCode::Char('?'))), (Outcome::Ignored, None));
+        assert!(!s.open, "help closes the list");
+        assert_eq!(s.selected, 1, "without choosing");
+        let mut close =
+            Select::new(WidgetId::of("s"), "S", &["a", "b"], 0).tab_in_open(TabInOpen::Close);
+        close.on_key(&k(KeyCode::Enter));
+        close.on_key(&k(KeyCode::Down));
+        assert_eq!(close.on_key(&k(KeyCode::BackTab)), (Outcome::Ignored, None));
+        assert_eq!((close.open, close.selected), (false, 0));
+        let mut keep =
+            Select::new(WidgetId::of("s"), "S", &["a", "b"], 0).tab_in_open(TabInOpen::Swallow);
+        keep.on_key(&k(KeyCode::Enter));
+        assert_eq!(keep.on_key(&k(KeyCode::Tab)), (Outcome::Consumed, None));
+        assert!(keep.open);
     }
 }
