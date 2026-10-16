@@ -888,6 +888,36 @@ impl Scrollable for TextArea {
     }
 }
 
+/// The area's pointer gestures: a wheel or a bar press scrolls it; a
+/// press anchors a drag with the click count it starts
+/// ([`TextArea::on_press_count`]), a drag selects ([`TextArea::on_drag`])
+/// and a completed click places the caret or selects a word or the line
+/// ([`TextArea::on_click_count`]).
+impl crate::core::pointer::MouseTarget for TextArea {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::intent::Phase;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r;
+        }
+        let pos = ev.pos();
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press_count(pos, ev.count().max(1)).into(),
+            Some(Phase::Drag) => self.on_drag(pos).into(),
+            Some(Phase::Click) => self.on_click_count(pos, ev.count().max(1)).into(),
+            _ => crate::core::response::Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
