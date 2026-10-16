@@ -169,13 +169,17 @@ fn report(label: &str, h: &mut H) {
     };
     for (name, inputs) in scenarios(h) {
         let per_event = run(h, &inputs, 1);
-        let coalesced = run(h, &inputs, inputs.len());
+        // the runtime's own pump with its default policy
+        let t = Instant::now();
+        let frames = pump(h, junie_tui::runtime::Coalesce::default(), &inputs);
+        let runtime = t.elapsed();
         println!(
-            "{label:<14} {w}x{ht:<3} {name:<22} handle {:>8.1} µs/event  draw {:>8.1} µs/frame  per-event loop {:>7.2} ms  coalesced {:>6.2} ms",
+            "{label:<14} {w}x{ht:<3} {name:<22} handle {:>8.1} µs/event  draw {:>8.1} µs/frame  per-event loop {:>7.2} ms ({} frames)  runtime pump {:>6.2} ms ({frames} frames)",
             per_event.per_event_us(),
             per_event.per_frame_us(),
             per_event.total_ms(),
-            coalesced.total_ms(),
+            per_event.frames,
+            runtime.as_secs_f64() * 1e3,
         );
     }
     // resize between the two measured sizes and back

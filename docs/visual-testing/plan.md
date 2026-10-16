@@ -358,7 +358,8 @@ from research-formats):
 
 ## P. Performance (table scrolling)
 
-PO request (2026-10-16): table components lag when scrolling. Findings,
+PO request (2026-10-16): table components lag when scrolling. Status: P1–P4
+fixed with guards; remaining risks recorded. Findings,
 measurements and status live in
 `docs/audits/design-review-2026-10/performance.md`.
 
