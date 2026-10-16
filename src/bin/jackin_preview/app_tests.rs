@@ -1,5 +1,6 @@
 //! End-to-end interaction tests through the real App on a TestBackend.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -89,14 +90,14 @@ impl H {
     /// Tab until `id` has focus (bounded), panicking with the ring on failure.
     pub fn tab_to(&mut self, id: junie_tui::core::id::WidgetId) {
         for _ in 0..24 {
-            if self.app.focus.current() == Some(id) {
+            if self.app.shell.focus.current() == Some(id) {
                 return;
             }
             self.key(KeyCode::Tab);
         }
         panic!(
             "focus never reached {id:?}: at {:?}",
-            self.app.focus.current()
+            self.app.shell.focus.current()
         );
     }
     pub fn text(&self) -> String {
@@ -183,7 +184,10 @@ fn manager_navigation_expand_and_detail_focus() {
     h.key(KeyCode::Tab);
     assert!(h.text().contains("Live topology"));
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.focus.current(), Some(crate::screens::manager::TREE));
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(crate::screens::manager::TREE)
+    );
     // mouse: click the row of infra-control-plane
     let (x, y) = h.find("infra-control-plane").unwrap();
     h.click(x, y);
@@ -259,7 +263,7 @@ fn detach_reconnect_and_final_exit_plays_one_outro() {
         h.text()
     );
     h.key(KeyCode::Enter);
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 }
 
 #[test]
@@ -558,13 +562,13 @@ fn a_short_editor_general_tab_scrolls_instead_of_reaching_the_actions() {
             !row.contains("dirty"),
             "a field on the action row: {row}\n{text}"
         );
-        let Some(f) = h.app.focus.current() else {
+        let Some(f) = h.app.shell.focus.current() else {
             break;
         };
         if !seen.insert(f) {
             break;
         }
-        if let Some(a) = h.app.hits.area_of(f)
+        if let Some(a) = h.app.shell.hits.area_of(f)
             && a.y != save_y
             && a.y > 3
         {
@@ -629,15 +633,15 @@ fn leaving_the_editor_name_field_by_click_runs_its_commit_hook() {
     h.key(KeyCode::Char('e'));
     assert_eq!(h.app.route, Route::Editor);
     let name = crate::screens::editor::NAME;
-    let a = h.app.hits.area_of(name).expect("the name field");
+    let a = h.app.shell.hits.area_of(name).expect("the name field");
     h.click(a.x + 3, a.y);
     h.type_str("-x");
     let dead = (2..40)
         .flat_map(|y| (0..120).map(move |x| ratatui::layout::Position::new(x, y)))
-        .find(|p| h.app.hits.hit(*p).is_none())
+        .find(|p| h.app.shell.hits.hit(*p).is_none())
         .expect("some cell holds no control");
     h.click(dead.x, dead.y);
-    assert_eq!(h.app.focus.current(), Some(name), "focus stays");
+    assert_eq!(h.app.shell.focus.current(), Some(name), "focus stays");
     assert!(
         h.text().contains("save to apply"),
         "the editor's Committed hook ran: {}",
@@ -879,7 +883,10 @@ fn complete_jackin_flow_keyboard_first() {
     // 13 back to the manager, focus on the tree
     h.key(KeyCode::Esc);
     assert_eq!(h.app.route, Route::Manager);
-    assert_eq!(h.app.focus.current(), Some(crate::screens::manager::TREE));
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(crate::screens::manager::TREE)
+    );
     // 14 create a workspace through the prelude (current directory as source)
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
@@ -1139,7 +1146,7 @@ fn complete_jackin_flow_keyboard_first() {
         h.text()
     );
     h.key(KeyCode::Enter);
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 }
 
 #[test]
@@ -1509,12 +1516,12 @@ fn q_leaves_the_editor_from_a_focused_select() {
     assert_eq!(h.app.route, Route::Editor, "{}", h.text());
     let policy = crate::screens::editor::DIRTY_POLICY;
     for _ in 0..12 {
-        if h.app.focus.current() == Some(policy) {
+        if h.app.shell.focus.current() == Some(policy) {
             break;
         }
         h.key(KeyCode::Tab);
     }
-    assert_eq!(h.app.focus.current(), Some(policy), "{}", h.text());
+    assert_eq!(h.app.shell.focus.current(), Some(policy), "{}", h.text());
     h.key(KeyCode::Char('q'));
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
 }
@@ -1537,7 +1544,7 @@ fn saving_a_new_account_without_a_name_marks_the_field_and_stays() {
     assert!(!text.contains("Display name is required"), "{text}");
     assert!(text.contains("New account"), "the form stays open: {text}");
     let name = crate::screens::accounts::FORM.sub("name");
-    assert_eq!(h.app.focus.current(), Some(name), "{text}");
+    assert_eq!(h.app.shell.focus.current(), Some(name), "{text}");
 }
 
 #[test]
@@ -1551,7 +1558,7 @@ fn tab_reaches_the_fields_below_a_short_add_account_form() {
     let mut seen = false;
     for _ in 0..4 {
         h.key(KeyCode::Tab);
-        if h.app.focus.current() == Some(source) {
+        if h.app.shell.focus.current() == Some(source) {
             seen = true;
             break;
         }

@@ -1,6 +1,7 @@
 //! Interaction tests for the Capsule chrome (menu bar, tab context menu,
 //! status bar), the shell hint bar, the inspector and palette scrolling.
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -47,18 +48,19 @@ fn hover_hit_testing_and_reverse_focus_navigation_are_deterministic() {
     let (x, y) = h.find("Shell").unwrap();
     let id = h
         .app
+        .shell
         .hits
         .hit(Position::new(x, y))
         .expect("rendered shell must be clickable");
     h.mouse(MouseKind::Move, x, y);
-    assert_eq!(h.app.pointer.hover, Some(id));
+    assert_eq!(h.app.shell.pointer.hover, Some(id));
 
     let mut manager = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    let start = manager.app.focus.current();
+    let start = manager.app.shell.focus.current();
     manager.key(KeyCode::Tab);
-    assert_ne!(manager.app.focus.current(), start);
+    assert_ne!(manager.app.shell.focus.current(), start);
     manager.key(KeyCode::BackTab);
-    assert_eq!(manager.app.focus.current(), start);
+    assert_eq!(manager.app.shell.focus.current(), start);
 }
 
 #[test]

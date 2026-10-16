@@ -19,6 +19,7 @@ use crate::scenario::{Motion, Scenario};
 fn backdrop(h: &H, hit: WidgetId) -> bool {
     use junie_tui::core::id::Part;
     h.app
+        .shell
         .hits
         .part_of(hit)
         .is_some_and(|x| x.part.part == Part::BACKDROP)
@@ -33,8 +34,8 @@ fn outside(h: &H) -> Position {
             .flat_map(move |y| (0..area.width).map(move |x| Position::new(x, y)))
     };
     cells()
-        .find(|p| h.app.hits.hit(*p).is_none())
-        .or_else(|| cells().find(|p| h.app.hits.hit(*p).is_some_and(|id| backdrop(h, id))))
+        .find(|p| h.app.shell.hits.hit(*p).is_none())
+        .or_else(|| cells().find(|p| h.app.shell.hits.hit(*p).is_some_and(|id| backdrop(h, id))))
         .unwrap_or_else(|| panic!("no free cell outside the layer:\n{}", h.text()))
 }
 
@@ -49,7 +50,7 @@ struct Kind {
 fn dialog() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Down);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::Char('d'));
     assert!(
         h.app
@@ -63,7 +64,7 @@ fn dialog() -> (H, Option<Option<WidgetId>>) {
 
 fn picker() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.ctrl('\\');
     assert!(
         h.app
@@ -92,7 +93,7 @@ fn browser() -> (H, Option<Option<WidgetId>>) {
 
 fn choice() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.ctrl('q');
     assert!(
         h.app
@@ -107,7 +108,7 @@ fn choice() -> (H, Option<Option<WidgetId>>) {
 fn form() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
     assert_eq!(h.app.route, Route::Accounts);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::Char('a'));
     assert!(
         h.app
@@ -128,7 +129,7 @@ fn op() -> (H, Option<Option<WidgetId>>) {
     for _ in 0..4 {
         h.key(KeyCode::Tab);
     }
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::Enter);
     h.ticks(4);
     assert!(
@@ -144,7 +145,7 @@ fn op() -> (H, Option<Option<WidgetId>>) {
 
 fn info() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     let (x, y) = h.find("Help").unwrap();
     h.click(x, y);
     let (x, y) = h.find("About jackin-preview").unwrap();
@@ -161,7 +162,7 @@ fn info() -> (H, Option<Option<WidgetId>>) {
 
 fn help() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::Char('?'));
     assert!(
         h.app
@@ -175,15 +176,17 @@ fn help() -> (H, Option<Option<WidgetId>>) {
 
 fn usage() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     let chip = h
         .app
+        .shell
         .hits
         .area_of(crate::screens::capsule::USAGE_CHIP)
         .expect("the usage chip");
     let x = (chip.x..chip.right())
         .find(|&x| {
-            h.app.hits.hit(Position::new(x, chip.y)) == Some(crate::screens::capsule::USAGE_CHIP)
+            h.app.shell.hits.hit(Position::new(x, chip.y))
+                == Some(crate::screens::capsule::USAGE_CHIP)
         })
         .expect("a cell of the usage chip takes the click");
     h.click(x, chip.y);
@@ -199,7 +202,7 @@ fn usage() -> (H, Option<Option<WidgetId>>) {
 
 fn inspect() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::F(10));
     h.key(KeyCode::Right);
     h.key(KeyCode::Right);
@@ -268,7 +271,7 @@ fn assert_closed(name: &str, how: &str, h: &H, below: usize, owner: Option<Optio
     );
     if let Some(owner) = owner {
         assert_eq!(
-            h.app.focus.current(),
+            h.app.shell.focus.current(),
             owner,
             "{name}: K9: {how} did not give the owner its focus back"
         );
@@ -284,7 +287,7 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
         let (mut h, owner) = (kind.open)();
         let below = h.app.layer_count() - 1;
         assert_ne!(
-            Some(h.app.focus.current()),
+            Some(h.app.shell.focus.current()),
             owner,
             "{name}: focus moved into the layer"
         );
@@ -312,7 +315,7 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
                 "{name}: a refused outside click closed it"
             );
             assert!(
-                h.app.pointer.has_flash(),
+                h.app.shell.pointer.has_flash(),
                 "{name}: a refused outside click did not flash the frame"
             );
         }
@@ -320,7 +323,7 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
         // the × in a frame means what Esc means (a picker has no frame
         // button: it light-dismisses)
         let (mut h, owner) = (kind.open)();
-        let close = h.app.hits.area_of(CLOSE);
+        let close = h.app.shell.hits.area_of(CLOSE);
         if let Some(x) = close {
             assert!(
                 policy.shows_close(),
@@ -350,6 +353,7 @@ fn the_failure_details_scrollbar_drags_through_the_layer() {
     let bar = junie_tui::widgets::scrollbar::id_for(WidgetId::of("cockpit.failure"));
     let track = h
         .app
+        .shell
         .hits
         .area_of(bar)
         .unwrap_or_else(|| panic!("the detail scrolls at 100x24:\n{}", h.text()));
@@ -404,6 +408,7 @@ fn a_focus_change_reaches_the_form_under_the_layer_it_opened() {
     let chooser = crate::screens::accounts::FORM.sub("op");
     let r = h
         .app
+        .shell
         .hits
         .area_of(chooser)
         .unwrap_or_else(|| panic!("the 1Password chooser:\n{}", h.text()));
@@ -417,7 +422,7 @@ fn a_focus_change_reaches_the_form_under_the_layer_it_opened() {
     );
     h.key(KeyCode::Esc);
     assert_eq!(h.app.layer_count(), 1);
-    assert_eq!(h.app.focus.current(), Some(chooser), "K9");
+    assert_eq!(h.app.shell.focus.current(), Some(chooser), "K9");
     assert_eq!(name_editing(&h), Some(false), "the name edit ended on blur");
     let f = h
         .app

@@ -90,5 +90,3 @@ fn main() -> std::io::Result<()> {
     // stale key presses from the launching shell must not skip the ritual
     junie_tui::shell::run(&mut app)
 }
-
-junie_tui::impl_application!(App);

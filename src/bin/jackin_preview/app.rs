@@ -4,29 +4,27 @@
 
 use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
-use junie_tui::core::hit::HitRegistry;
+use junie_tui::core::focus::FocusChange;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{
     MouseTarget, PointerEvent, PointerHost, PointerParts, PointerRouter,
 };
 use junie_tui::core::response::Response;
-use junie_tui::shell::StatusLine;
+use junie_tui::shell::{self, PageKey, Shell};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
-use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, ShellLayers, Taken,
 };
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, letters_allowed};
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::dialog::Dialog;
-use junie_tui::widgets::hintbar::{HintBar, HintKeys, HintLayer};
+use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::picker::{Picker, PickerAction};
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::too_small::TooSmall;
-use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -152,13 +150,9 @@ const ROUTES: [Route; 8] = [
     Route::Capsule,
 ];
 
-/// The hints a footer drew and the cell each landed on.
-type FooterDrawn = (Vec<Hint>, Vec<(usize, Rect)>);
-
 pub struct App {
     pub theme: Theme,
     pub scenario: Scenario,
-    pub motion: Motion,
     pub world: World,
     pub route: Route,
     pub intro: Option<IntroState>,
@@ -166,28 +160,16 @@ pub struct App {
     pub handoff: Option<u64>,
     pub screens: Screens,
     layers: Layers,
-    pub focus: Focus,
-    pub ring: FocusRing,
-    pub hits: HitRegistry,
-    /// The pointer router: hover, press, flash and click-count state.
-    pub pointer: PointerRouter,
-    /// The footer's hints that name one key: a click runs it (mouse #1).
-    footer_keys: HintKeys,
-    /// The hints the footer drew this frame and where: their hits
-    /// register once the overlays are down, on the topmost layer.
-    footer_drawn: Option<FooterDrawn>,
-    /// The footer status ([`StatusLine`]: 5 s on the world clock; an
-    /// error stays until the next action).
-    pub status: StatusLine,
-    pub size: (u16, u16),
-    pub quit: bool,
+    /// Focus, ring, hit regions, pointer, the footer status (5 s on the
+    /// world clock; an error stays until the next action), size, motion
+    /// and quit: the library shell's state.
+    pub shell: Shell,
     /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Esc never
     /// quits, `q` never fires over a field or unsaved edits.
     pub quit_keys: QuitKeys,
     /// A quit is waiting on the screen's unsaved-changes question: when
     /// that flow leaves for the manager (Save or Discard), the app quits.
     quit_after_leave: bool,
-    too_small: bool,
     /// The application menu bar shown on every host screen.
     pub host_menu: MenuBar,
     host_menu_route: Route,
@@ -219,10 +201,11 @@ impl App {
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let mut world = crate::domain::fixtures::world_for(scenario);
         world.clock.running = motion != Motion::Paused;
+        let mut shell = Shell::new();
+        shell.motion = motion;
         let mut app = Self {
             theme: theme.centred_hints(),
             scenario,
-            motion,
             world,
             route: Route::Manager,
             intro: None,
@@ -230,18 +213,9 @@ impl App {
             handoff: None,
             screens: Screens::default(),
             layers: ShellLayers::new(),
-            focus: Focus::default(),
-            ring: FocusRing::default(),
-            hits: HitRegistry::default(),
-            pointer: PointerRouter::default(),
-            footer_keys: HintKeys::default(),
-            footer_drawn: None,
-            status: StatusLine::new(),
-            size: (0, 0),
-            quit: false,
+            shell,
             quit_keys: QuitKeys::DEFAULT,
             quit_after_leave: false,
-            too_small: false,
             host_menu: Self::build_host_menu(Route::Manager),
             host_menu_route: Route::Manager,
             intro_guard: 3,
@@ -262,7 +236,7 @@ impl App {
                     ExitDecision::Outro { elapsed_secs } => elapsed_secs,
                     _ => Some(8_040),
                 };
-                self.outro = Some(OutroState::new(self.motion, elapsed, frame));
+                self.outro = Some(OutroState::new(self.shell.motion, elapsed, frame));
                 self.route = Route::Outro;
                 return;
             }
@@ -270,11 +244,11 @@ impl App {
         }
         match self.world.arbiter.request_entry() {
             EntryDecision::PlayIntro => {
-                if frame >= rain::INTRO_END && self.motion != Motion::Reduced {
+                if frame >= rain::INTRO_END && self.shell.motion != Motion::Reduced {
                     self.world.arbiter.complete_entry(self.world.now_ms());
                     self.enter_manager();
                 } else {
-                    self.intro = Some(IntroState::new(self.motion, frame));
+                    self.intro = Some(IntroState::new(self.shell.motion, frame));
                     self.route = Route::Intro;
                 }
             }
@@ -315,8 +289,8 @@ impl App {
                 });
                 if frame > 0 {
                     let mut cx = Cx {
-                        focus: &mut self.focus,
-                        ring: &self.ring,
+                        focus: &mut self.shell.focus,
+                        ring: &self.shell.ring,
                         requests: vec![],
                         clicks: 1,
                     };
@@ -338,8 +312,8 @@ impl App {
     fn enter_manager(&mut self) {
         self.route = Route::Manager;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -349,14 +323,14 @@ impl App {
     }
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
-        self.status.set_at(s, tone, self.world.clock.now());
+        self.shell.status.set_at(s, tone, self.world.clock.now());
     }
 
     fn animating(&self) -> bool {
         matches!(
             self.route,
             Route::Intro | Route::Outro | Route::Handoff | Route::Cockpit | Route::Capsule
-        ) || self.pointer.has_flash()
+        ) || self.shell.pointer.has_flash()
             || self
                 .screens
                 .get(self.route)
@@ -367,7 +341,7 @@ impl App {
     }
 
     pub fn tick_interval(&self) -> std::time::Duration {
-        if self.motion == Motion::Paused {
+        if self.shell.motion == Motion::Paused {
             return std::time::Duration::from_millis(500);
         }
         std::time::Duration::from_millis(self.route.tick_ms(self.animating()))
@@ -378,48 +352,20 @@ impl App {
         self.world.now_ms().max(0) as u64
     }
 
-    fn interaction(&self) -> Interaction {
-        let flash = self.pointer.flashing(self.now_ms());
-        Interaction {
-            focus: self.focus.current(),
-            hover: self.pointer.hover,
-            pressed: self.pointer.pressed,
-            flash,
-            focus_hidden: false,
-            hover_suppressed: self.pointer.hover_suppressed,
-            pointer_focus: self.pointer.pointer_focus,
-            motion_unreported: !self.pointer.reports_motion(),
-            tick: (self.world.now_ms() / 80) as u64,
-            // a paused capture has no clock: hover content shows at once
-            hover_ms: (self.motion != Motion::Paused).then(|| self.pointer.hover_ms(self.now_ms())),
-        }
-    }
-
     // ------------------------------------------------------------- input
-
-    pub fn handle(&mut self, input: Input) -> Outcome {
-        // an error status has been seen once the user acts again
-        let seen = self.status.on_input(&input);
-        let out = self.handle_input(input);
-        let out = if seen { out.or(Outcome::Changed) } else { out };
-        out.or(self.forward_blur())
-    }
 
     /// Hand every focus change the input caused to every open layer and
     /// the screens, so fields end their edits on the event path.
-    fn forward_blur(&mut self) -> Outcome {
-        let mut out = Outcome::Ignored;
-        for ch in self.focus.settle(&self.ring) {
-            for entry in self.layers.iter_mut() {
-                out = out.or(entry.layer.on_blur(ch));
-            }
+    fn blur_all(&mut self, ch: FocusChange) -> Outcome {
+        let mut out = self.layers.on_blur(ch);
+        {
             // what an ended edit reported (a form field changed) reaches
             // the owner, as Enter's does
             out = self.settle_layers(out);
             for route in ROUTES {
                 let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
+                    focus: &mut self.shell.focus,
+                    ring: &self.shell.ring,
                     requests: vec![],
                     clicks: 1,
                 };
@@ -435,14 +381,11 @@ impl App {
 
     fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
-            Input::Resize(w, h) => {
-                self.size = (w, h);
-                Outcome::Changed
-            }
+            Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Paste(text) => self.on_paste(&text),
             Input::Key(key) => {
-                self.pointer.suppress_hover();
+                self.shell.pointer.suppress_hover();
                 // shortcuts first, then type-ahead (one rule, in the library)
                 junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
@@ -459,20 +402,20 @@ impl App {
             Outcome::Ignored
         };
         let now = self.now_ms();
-        if self.pointer.expire_flash(now) {
+        if self.shell.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
         // a held drag past a selecting body's edge autoscrolls, a press
         // held on a scrollbar track keeps paging (the simulated clock
         // keeps its own tick rate)
         out = out.or(PointerRouter::tick(self));
-        if self.status.expire(self.world.clock.now()) {
+        if self.shell.status.expire(self.world.clock.now()) {
             out = Outcome::Changed;
         }
         if let Some(at) = self.exit_after_status
             && self.world.now_ms() >= at
         {
-            self.quit = true;
+            self.shell.quit = true;
             return Outcome::Changed;
         }
         if self.intro_guard > 0 {
@@ -492,13 +435,13 @@ impl App {
                 if let Some(s) = self.outro.as_mut() {
                     s.on_tick();
                     if s.is_done() {
-                        self.quit = true;
+                        self.shell.quit = true;
                     }
                 }
                 return Outcome::Changed;
             }
             Route::Handoff => {
-                if self.motion != Motion::Paused {
+                if self.shell.motion != Motion::Paused {
                     let h = self.handoff.unwrap_or(0) + 1;
                     self.handoff = Some(h);
                     if h >= HANDOFF_LEN {
@@ -517,8 +460,8 @@ impl App {
         // screen tick
         let route = self.route;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -538,8 +481,8 @@ impl App {
     fn dispatch_msg(&mut self, m: Msg) -> Outcome {
         let route = self.route;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -568,8 +511,8 @@ impl App {
         self.screens.cockpit = None;
         self.route = Route::Capsule;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -593,15 +536,15 @@ impl App {
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
-        if self.too_small {
+        if self.shell.too_small {
             if key.is_char('q') || key.ctrl_char('c') {
-                self.quit = true;
+                self.shell.quit = true;
             }
             return Outcome::Consumed;
         }
         match self.route {
             Route::Intro => {
-                if self.intro_guard > 0 && self.motion != Motion::Paused {
+                if self.intro_guard > 0 && self.shell.motion != Motion::Paused {
                     return Outcome::Consumed;
                 }
                 if matches!(key.code, KeyCode::Enter | KeyCode::Esc) {
@@ -615,7 +558,7 @@ impl App {
                 }
                 if key.ctrl_char('c') {
                     self.world.arbiter.release_entry();
-                    self.quit = true;
+                    self.shell.quit = true;
                 }
                 return Outcome::Consumed;
             }
@@ -624,13 +567,13 @@ impl App {
                     if let Some(s) = self.outro.as_mut() {
                         s.skip();
                         if s.is_done() {
-                            self.quit = true;
+                            self.shell.quit = true;
                         }
                     }
                     return Outcome::Changed;
                 }
                 if key.ctrl_char('c') {
-                    self.quit = true;
+                    self.shell.quit = true;
                 }
                 return Outcome::Consumed;
             }
@@ -727,8 +670,8 @@ impl App {
             }
         }
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -742,20 +685,20 @@ impl App {
             if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
                 && key.plain()
                 && !editing
-                && let Some(f) = self.focus.current()
+                && let Some(f) = self.shell.focus.current()
             {
                 let now = self.now_ms();
-                self.pointer.flash(f, now);
+                self.shell.pointer.flash(f, now);
             }
             return out;
         }
         match key.code {
             KeyCode::Tab => {
-                self.focus.next(&self.ring);
+                self.shell.focus.next(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::BackTab => {
-                self.focus.prev(&self.ring);
+                self.shell.focus.prev(&self.shell.ring);
                 Outcome::Changed
             }
             // a quit chord an editing field passed on (fields bind no
@@ -795,8 +738,8 @@ impl App {
             }
             KeyCode::Esc => {
                 let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
+                    focus: &mut self.shell.focus,
+                    ring: &self.shell.ring,
                     requests: vec![],
                     clicks: 1,
                 };
@@ -833,13 +776,13 @@ impl App {
             .is_some_and(|s| !s.leave_stakes(&self.world).is_clean());
         if !dirty {
             self.world.arbiter.release_entry();
-            self.quit = true;
+            self.shell.quit = true;
             return Outcome::Consumed;
         }
         self.quit_after_leave = true;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -927,7 +870,7 @@ impl App {
             "Workspace manager" => {
                 if editing_screen {
                     // the editor asks about unsaved work on its own way out
-                    return self.handle(key(KeyCode::Esc, KeyModifiers::NONE));
+                    return shell::handle(self, key(KeyCode::Esc, KeyModifiers::NONE));
                 }
                 self.go(Go::Manager);
             }
@@ -947,33 +890,42 @@ impl App {
             "Quit" => {
                 return self.request_quit();
             }
-            "New workspace…" => return self.handle(key(KeyCode::Char('n'), KeyModifiers::NONE)),
-            "Edit workspace…" | "Edit account…" => {
-                return self.handle(key(KeyCode::Char('e'), KeyModifiers::NONE));
+            "New workspace…" => {
+                return shell::handle(self, key(KeyCode::Char('n'), KeyModifiers::NONE));
             }
-            "Launch…" => return self.handle(key(KeyCode::Enter, KeyModifiers::NONE)),
-            "Prewarm" => return self.handle(key(KeyCode::Char('w'), KeyModifiers::NONE)),
+            "Edit workspace…" | "Edit account…" => {
+                return shell::handle(self, key(KeyCode::Char('e'), KeyModifiers::NONE));
+            }
+            "Launch…" => return shell::handle(self, key(KeyCode::Enter, KeyModifiers::NONE)),
+            "Prewarm" => return shell::handle(self, key(KeyCode::Char('w'), KeyModifiers::NONE)),
             "Delete workspace…" => {
-                return self.handle(key(KeyCode::Char('d'), KeyModifiers::NONE));
+                return shell::handle(self, key(KeyCode::Char('d'), KeyModifiers::NONE));
             }
             "Refresh" | "Refresh selection" => {
-                return self.handle(key(
-                    if self.route == Route::Manager {
-                        KeyCode::F(5)
-                    } else {
-                        KeyCode::Char('r')
-                    },
-                    KeyModifiers::NONE,
-                ));
+                return shell::handle(
+                    self,
+                    key(
+                        if self.route == Route::Manager {
+                            KeyCode::F(5)
+                        } else {
+                            KeyCode::Char('r')
+                        },
+                        KeyModifiers::NONE,
+                    ),
+                );
             }
-            "Refresh all" => return self.handle(key(KeyCode::F(5), KeyModifiers::NONE)),
-            "Save…" => return self.handle(key(KeyCode::Char('s'), KeyModifiers::CONTROL)),
-            "Cancel" => return self.handle(key(KeyCode::Esc, KeyModifiers::NONE)),
-            "Add account…" => return self.handle(key(KeyCode::Char('a'), KeyModifiers::NONE)),
-            "Validate" => return self.handle(key(KeyCode::Char('v'), KeyModifiers::NONE)),
-            "Filter…" => return self.handle(key(KeyCode::Char('/'), KeyModifiers::NONE)),
+            "Refresh all" => return shell::handle(self, key(KeyCode::F(5), KeyModifiers::NONE)),
+            "Save…" => {
+                return shell::handle(self, key(KeyCode::Char('s'), KeyModifiers::CONTROL));
+            }
+            "Cancel" => return shell::handle(self, key(KeyCode::Esc, KeyModifiers::NONE)),
+            "Add account…" => {
+                return shell::handle(self, key(KeyCode::Char('a'), KeyModifiers::NONE));
+            }
+            "Validate" => return shell::handle(self, key(KeyCode::Char('v'), KeyModifiers::NONE)),
+            "Filter…" => return shell::handle(self, key(KeyCode::Char('/'), KeyModifiers::NONE)),
             "Manage in Accounts" => {
-                return self.handle(key(KeyCode::Char('m'), KeyModifiers::NONE));
+                return shell::handle(self, key(KeyCode::Char('m'), KeyModifiers::NONE));
             }
             _ => self.set_status(
                 &format!("{label}: not available in the preview"),
@@ -1388,9 +1340,9 @@ impl App {
     /// remembers the control it covers, K9) and the page under it shows
     /// no hover or press.
     fn open_layer(&mut self, layer: Box<AppLayer>, tag: LayerTag, owner: Route) {
-        self.layers.open(layer, tag, owner, &mut self.focus);
-        self.pointer.hover = None;
-        self.pointer.pressed = None;
+        self.layers.open(layer, tag, owner, &mut self.shell.focus);
+        self.shell.pointer.hover = None;
+        self.shell.pointer.pressed = None;
         if let Some(c) = self.screens.capsule.as_mut() {
             c.dialog_open = true;
         }
@@ -1409,7 +1361,7 @@ impl App {
     /// layer open; a result closes it (the stack gives focus back to the
     /// control it covered, K9) and reaches the screen that opened it.
     fn settle_layers(&mut self, mut out: Outcome) -> Outcome {
-        while let Some(taken) = self.layers.take(&mut self.focus) {
+        while let Some(taken) = self.layers.take(&mut self.shell.focus) {
             out = out.or(match taken {
                 Taken::Event(r) => self.layer_event(r),
                 Taken::Closed(entry, r) => {
@@ -1487,7 +1439,7 @@ impl App {
                 && Some(a) != cancel_index
             {
                 self.world.arbiter.release_entry();
-                self.quit = true;
+                self.shell.quit = true;
             }
             return Outcome::Changed;
         }
@@ -1497,8 +1449,8 @@ impl App {
     /// Tell `owner`, the screen that opened a layer, what it reported.
     fn tell_owner(&mut self, owner: Route, tag: &LayerTag, r: ModalResult) -> Outcome {
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -1572,8 +1524,8 @@ impl App {
             return Outcome::Ignored;
         };
         let mut cx = LayerCx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             app: &self.world,
         };
         let o = top.layer.on_key(&key, &mut cx);
@@ -1587,7 +1539,7 @@ impl App {
     /// with its cancel result, or stays (a refused outside click flashes
     /// its frame).
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
-        let d = self.layers.dismiss(reason, &mut self.focus);
+        let d = self.layers.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, d)
     }
 
@@ -1607,7 +1559,11 @@ impl App {
                     .unwrap_or_default();
                 let now = self.now_ms();
                 if reason == DismissReason::OutsideClick
-                    && junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now)
+                    && junie_tui::ui::modal::refuse_outside_click(
+                        &mut self.shell.pointer,
+                        dismiss,
+                        now,
+                    )
                 {
                     Outcome::Changed
                 } else {
@@ -1651,7 +1607,7 @@ impl App {
         let Some(top) = self.layers.top() else {
             return vec![];
         };
-        let own = top.layer.hints(self.focus.current());
+        let own = top.layer.hints(self.shell.focus.current());
         if !own.is_empty() {
             return own;
         }
@@ -1716,7 +1672,7 @@ impl App {
         }
         // a footer hint naming one key runs it (mouse #1)
         if ev.on(HintBar::ID) {
-            return match self.footer_keys.clicked(ev) {
+            return match self.shell.footer_keys.clicked(ev) {
                 Some(key) => self.on_key(key).or(Outcome::Changed),
                 None => Outcome::Consumed,
             };
@@ -1734,7 +1690,7 @@ impl App {
     /// ([`junie_tui::core::pointer::PointerConfig::click_skips_animation`]).
     fn skip_animation(&mut self) -> Outcome {
         if matches!(self.route, Route::Intro | Route::Outro)
-            && self.pointer.config.click_skips_animation
+            && self.shell.pointer.config.click_skips_animation
         {
             return self.on_key(Key {
                 code: KeyCode::Enter,
@@ -1754,7 +1710,7 @@ impl App {
         }
         match self
             .layers
-            .pointer(ev, &mut self.focus, &self.ring, &self.world)
+            .pointer(ev, &mut self.shell.focus, &self.shell.ring, &self.world)
         {
             LayerPointer::Handled(o) => self.settle_layers(o),
             LayerPointer::Dismissed(d) => self.dismissed(DismissReason::OutsideClick, d),
@@ -1808,8 +1764,8 @@ impl App {
     fn screen_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         let route = self.route;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: ev.count().max(1),
         };
@@ -1833,7 +1789,7 @@ impl App {
                 Request::Open(layer, tag) => self.open_layer(layer, tag, owner),
                 // the owner closes its layer without a result
                 Request::Close => {
-                    self.layers.pop(&mut self.focus);
+                    self.layers.pop(&mut self.shell.focus);
                     self.layer_gone();
                 }
                 Request::Go(g) => self.go(g),
@@ -1854,7 +1810,7 @@ impl App {
         if self.quit_after_leave && matches!(g, Go::Manager) {
             self.quit_after_leave = false;
             self.world.arbiter.release_entry();
-            self.quit = true;
+            self.shell.quit = true;
             return;
         }
         let now = self.world.now_ms();
@@ -1909,7 +1865,7 @@ impl App {
                     agent,
                     account,
                     plan,
-                    self.motion,
+                    self.shell.motion,
                 ));
                 self.route = Route::Cockpit;
                 self.enter_route();
@@ -1936,7 +1892,7 @@ impl App {
                 if self.route == Route::Cockpit {
                     self.handoff = Some(0);
                     self.route = Route::Handoff;
-                    if self.motion == Motion::Reduced {
+                    if self.shell.motion == Motion::Reduced {
                         self.finish_handoff();
                     }
                 } else {
@@ -2046,7 +2002,7 @@ impl App {
             }
             Go::Quit => {
                 self.world.arbiter.release_entry();
-                self.quit = true;
+                self.shell.quit = true;
             }
         }
     }
@@ -2057,9 +2013,9 @@ impl App {
         let decision = self.world.arbiter.request_exit(self.world.now_ms());
         match decision {
             ExitDecision::Outro { elapsed_secs } => {
-                self.outro = Some(OutroState::new(self.motion, elapsed_secs, 0));
+                self.outro = Some(OutroState::new(self.shell.motion, elapsed_secs, 0));
                 self.route = Route::Outro;
-                self.layers.clear(&mut self.focus);
+                self.layers.clear(&mut self.shell.focus);
             }
             ExitDecision::StillInside { remaining } => {
                 self.route = Route::Manager;
@@ -2112,8 +2068,8 @@ impl App {
     fn enter_route(&mut self) {
         let route = self.route;
         let mut cx = Cx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: vec![],
             clicks: 1,
         };
@@ -2126,66 +2082,14 @@ impl App {
 
     // ------------------------------------------------------------ render
 
-    pub fn render(&mut self, frame: &mut Frame) {
-        let area = frame.area();
-        self.size = (area.width, area.height);
-        let theme = self.theme;
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let interaction = self.interaction();
-        let cursor;
-        {
-            let buf = frame.buffer_mut();
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            ctx.page_under_layer(
-                self.layers.hides_page_focus()
-                    || self.host_menu.hides_page_focus()
-                    || self.screens.get(self.route).is_some_and(|s| s.layer_open()),
-            );
-            self.draw(area, buf, &mut ctx);
-            ctx.flush_overlays(buf);
-            // the footer belongs to the topmost layer (it names that
-            // layer's keys): its hints register above every popup
-            self.footer_keys = match self.footer_drawn.take() {
-                Some((hints, spots)) => HintKeys::register(&mut ctx, buf, &hints, spots),
-                None => HintKeys::default(),
-            };
-            cursor = ctx.cursor;
-        }
-        self.hits = hits;
-        self.pointer.refresh_hover(&self.hits);
-        self.ring = ring;
-        if self.layers.is_empty() {
-            if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
-                let pf = self.screens.get(self.route).and_then(|s| s.primary_focus());
-                self.focus
-                    .set(pf.filter(|p| self.ring.contains(*p)).or(self.ring.first()));
-            }
-        } else {
-            self.focus.ensure_valid(&self.ring);
-        }
-        if let Some(pos) = cursor {
-            frame.set_cursor_position(pos);
-        }
-    }
-
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        fill(buf, area, t.base());
-        let brand = format!(" {BRAND_MARK} ");
-        let too_small =
-            TooSmall::new(&brand).brand_style(junie_tui::widgets::brand::Lockup::style(&t));
-        self.too_small = too_small.applies(area);
-        if self.too_small {
-            too_small.render(area, buf, &t);
-            return;
-        }
         match self.route {
             Route::Intro => {
                 let mut state = self
                     .intro
                     .take()
-                    .unwrap_or_else(|| IntroState::new(self.motion, 0));
+                    .unwrap_or_else(|| IntroState::new(self.shell.motion, 0));
                 rain::render_intro(buf, area, &mut state, &t);
                 self.intro = Some(state);
             }
@@ -2193,7 +2097,7 @@ impl App {
                 let mut state = self
                     .outro
                     .take()
-                    .unwrap_or_else(|| OutroState::new(self.motion, None, 0));
+                    .unwrap_or_else(|| OutroState::new(self.shell.motion, None, 0));
                 rain::render_outro(buf, area, &mut state, &t);
                 self.outro = Some(state);
             }
@@ -2334,7 +2238,12 @@ impl App {
         ) {
             right.push(
                 Segment::new(
-                    format!("{} · {}×{}", t.level.label(), self.size.0, self.size.1),
+                    format!(
+                        "{} · {}×{}",
+                        t.level.label(),
+                        self.shell.size.0,
+                        self.shell.size.1
+                    ),
                     Tone::Faint,
                 )
                 .priority(1),
@@ -2376,7 +2285,7 @@ impl App {
         let hints: Vec<Hint> = if modal {
             self.layer_hints()
         } else {
-            let focus = self.focus.current();
+            let focus = self.shell.focus.current();
             self.screens
                 .get(self.route)
                 .map(|s| s.hints(focus, &self.world))
@@ -2392,7 +2301,7 @@ impl App {
         } else {
             None
         };
-        let status = self.status.get();
+        let status = self.shell.status.get();
         // still-inside feedback takes the status slot when present
         let still = self
             .screens
@@ -2424,18 +2333,66 @@ impl App {
         layer.status = status;
         let spots = HintBar::render_at(area, buf, &t, &layer);
         // an inert frame (the handoff) takes no clicks
-        self.footer_drawn = (!ctx.inert).then_some((layer.hints, spots));
+        if !ctx.inert {
+            self.shell.footer_drawn(layer.hints, spots);
+        }
+    }
+}
+
+/// The brand on the too-small screen.
+const BRAND_PADDED: &str = " jackin❯ ";
+
+impl shell::App for App {
+    type Status = ();
+    fn shell(&self) -> &Shell {
+        &self.shell
+    }
+    fn shell_mut(&mut self) -> &mut Shell {
+        &mut self.shell
+    }
+    fn theme(&self) -> Theme {
+        self.theme
+    }
+    fn too_small(&self) -> TooSmall<'_> {
+        TooSmall::new(BRAND_PADDED).brand_style(Lockup::style(&self.theme))
+    }
+    fn now_ms(&self) -> u64 {
+        App::now_ms(self)
+    }
+    fn tick(&self) -> u64 {
+        (self.world.now_ms() / 80) as u64
+    }
+    fn tick_interval(&self) -> std::time::Duration {
+        App::tick_interval(self)
+    }
+    fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        App::draw(self, area, buf, ctx)
+    }
+    fn on_input(&mut self, input: Input) -> Outcome {
+        self.handle_input(input)
+    }
+    fn on_blur(&mut self, ch: FocusChange) -> Outcome {
+        self.blur_all(ch)
+    }
+    fn layer_open(&self) -> bool {
+        !self.layers.is_empty()
+    }
+    fn page_under_layer(&self) -> bool {
+        self.layers.hides_page_focus()
+            || self.host_menu.hides_page_focus()
+            || self.screens.get(self.route).is_some_and(|s| s.layer_open())
+    }
+    fn page_key(&self) -> PageKey {
+        PageKey(self.route as u64)
+    }
+    fn primary_focus(&self) -> Option<WidgetId> {
+        self.screens.get(self.route).and_then(|s| s.primary_focus())
     }
 }
 
 impl PointerHost for App {
     fn pointer_parts(&mut self) -> PointerParts<'_> {
-        PointerParts {
-            router: &mut self.pointer,
-            hits: &self.hits,
-            focus: &mut self.focus,
-            ring: &self.ring,
-        }
+        self.shell.pointer_parts()
     }
 
     fn layer_open(&self) -> bool {

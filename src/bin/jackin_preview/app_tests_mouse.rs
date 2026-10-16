@@ -19,7 +19,7 @@ fn outside(h: &H) -> Position {
     for y in 1..area.height.saturating_sub(1) {
         for x in 0..area.width {
             let p = Position::new(x, y);
-            if matches!(h.app.hits.hit(p), None | Some(BACKDROP)) {
+            if matches!(h.app.shell.hits.hit(p), None | Some(BACKDROP)) {
                 return p;
             }
         }
@@ -49,6 +49,7 @@ fn the_wheel_scrolls_the_roles_list_without_snapping_back_to_the_cursor() {
     let mut h = hard_editor_roles();
     let area = h
         .app
+        .shell
         .hits
         .area_of(ROLES)
         .expect("the Roles list must be on screen");
@@ -63,7 +64,11 @@ fn the_wheel_scrolls_the_roles_list_without_snapping_back_to_the_cursor() {
     // a repaint (a tick, a hover) keeps the view where the wheel left it
     h.ticks(2);
     h.mouse(MouseKind::Move, at.x, at.y);
-    assert_eq!(h.app.hits.area_of(ROLES), Some(area), "the list moved");
+    assert_eq!(
+        h.app.shell.hits.area_of(ROLES),
+        Some(area),
+        "the list moved"
+    );
     assert_eq!(
         first_row(&h.text()),
         scrolled,
@@ -82,13 +87,14 @@ fn help_closes_by_its_close_button_its_done_button_and_a_click_beside_it() {
         h
     };
     let mut h = open();
-    let frame = h.app.hits.area_of(SURFACE).expect("help frame");
+    let frame = h.app.shell.hits.area_of(SURFACE).expect("help frame");
     assert!(
         frame.width <= 96 && frame.height <= 32,
         "help covers the page: {frame:?}"
     );
     let x = h
         .app
+        .shell
         .hits
         .area_of(CLOSE)
         .expect("help draws a close button");
@@ -128,6 +134,7 @@ fn a_form_closes_by_the_close_button_in_its_frame() {
     let mut h = new_account_form();
     let x = h
         .app
+        .shell
         .hits
         .area_of(CLOSE)
         .expect("form draws a close button");
@@ -140,7 +147,7 @@ fn a_form_closes_by_the_close_button_in_its_frame() {
 #[test]
 fn a_refused_outside_click_flashes_the_form_frame() {
     let mut h = new_account_form();
-    let frame = h.app.hits.area_of(SURFACE).expect("form frame");
+    let frame = h.app.shell.hits.area_of(SURFACE).expect("form frame");
     let corner = |h: &H| h.term.backend().buffer()[(frame.x, frame.y)].fg;
     let rest = corner(&h);
     let p = outside(&h);
@@ -167,7 +174,7 @@ fn a_click_skips_the_intro() {
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
     // the knob turns it off
     let mut off = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
-    off.app.pointer.config = off.app.pointer.config.click_skips_animation(false);
+    off.app.shell.pointer.config = off.app.shell.pointer.config.click_skips_animation(false);
     off.ticks(3);
     off.click(60, 20);
     assert_eq!(off.app.route, Route::Intro);
@@ -185,6 +192,7 @@ fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() 
     // the build log, once there is one
     for _ in 0..80 {
         if h.app
+            .shell
             .hits
             .area_of(crate::screens::cockpit::CHIP_ACTIVITY)
             .is_some()
@@ -195,6 +203,7 @@ fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() 
     }
     let chip = h
         .app
+        .shell
         .hits
         .area_of(crate::screens::cockpit::CHIP_ACTIVITY)
         .expect("the activity line links to the build log");
@@ -202,6 +211,7 @@ fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() 
     assert!(h.text().contains("Docker build"), "{}", h.text());
     let x = h
         .app
+        .shell
         .hits
         .area_of(CLOSE)
         .expect("the log has a close button");
@@ -219,6 +229,7 @@ fn a_taken_over_capsule_reconnects_by_mouse() {
     assert!(h.text().contains("Attach taken over"));
     let r = h
         .app
+        .shell
         .hits
         .area_of(crate::screens::capsule::TAKEOVER_RECONNECT)
         .expect("a Reconnect button");
@@ -237,6 +248,7 @@ fn a_taken_over_capsule_reconnects_by_mouse() {
     h.draw();
     let r = h
         .app
+        .shell
         .hits
         .area_of(crate::screens::capsule::TAKEOVER_LEAVE)
         .expect("a Workspace manager button");
@@ -250,17 +262,24 @@ fn an_app_modal_frame_closes_by_its_close_button() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     let chip = h
         .app
+        .shell
         .hits
         .area_of(crate::screens::capsule::USAGE_CHIP)
         .expect("the usage chip");
     let x = (chip.x..chip.right())
         .find(|&x| {
-            h.app.hits.hit(Position::new(x, chip.y)) == Some(crate::screens::capsule::USAGE_CHIP)
+            h.app.shell.hits.hit(Position::new(x, chip.y))
+                == Some(crate::screens::capsule::USAGE_CHIP)
         })
         .expect("a cell of the usage chip takes the click");
     h.click(x, chip.y);
     assert!(h.text().contains("read-only projection"), "{}", h.text());
-    let x = h.app.hits.area_of(CLOSE).expect("the Usage modal has ×");
+    let x = h
+        .app
+        .shell
+        .hits
+        .area_of(CLOSE)
+        .expect("the Usage modal has ×");
     h.click(x.x + 1, x.y);
     assert!(!h.text().contains("read-only projection"), "{}", h.text());
     assert_eq!(h.app.route, Route::Capsule);
@@ -269,7 +288,7 @@ fn an_app_modal_frame_closes_by_its_close_button() {
 /// Every drawn roster row, as (column of its `◉`, its y, the instance id
 /// suffix it names).
 fn roster_rows(h: &H) -> Vec<(u16, u16, String)> {
-    let Some(card) = h.app.hits.area_of(crate::screens::manager::ROSTER) else {
+    let Some(card) = h.app.shell.hits.area_of(crate::screens::manager::ROSTER) else {
         return vec![];
     };
     let mut rows = vec![];
