@@ -809,11 +809,13 @@ impl AccountsScreen {
         };
         let name = get("name").trim().to_owned();
         if name.is_empty() {
-            cx.with_form(|f| f.error = Some("Display name is required".into()));
+            cx.with_top::<FormDialog>(|f| f.error = Some("Display name is required".into()));
             return;
         }
         if name.chars().count() > 64 {
-            cx.with_form(|f| f.error = Some("Display name is too long (64 max)".into()));
+            cx.with_top::<FormDialog>(|f| {
+                f.error = Some("Display name is too long (64 max)".into())
+            });
             return;
         }
         let provider = REGISTERABLE[choice("provider").min(3)];
@@ -822,7 +824,7 @@ impl AccountsScreen {
         let outcome = match self.run_validation(&values, w) {
             Ok(o) => o,
             Err(e) => {
-                cx.with_form(move |f| f.error = Some(e));
+                cx.with_top::<FormDialog>(move |f| f.error = Some(e));
                 return;
             }
         };
@@ -855,7 +857,7 @@ impl AccountsScreen {
                 .map(|i| i.message.clone())
                 .unwrap_or("Validation failed".into());
             let note = Self::validation_note(&outcome);
-            cx.with_form(move |f| {
+            cx.with_top::<FormDialog>(move |f| {
                 f.error = Some(msg);
                 f.set_note("validation", note);
             });
@@ -884,7 +886,7 @@ impl AccountsScreen {
             && Some(&dup.id) != editing.as_ref()
         {
             let msg = format!("Already registered: this source is used by {}", dup.title());
-            cx.with_form(move |f| f.error = Some(msg));
+            cx.with_top::<FormDialog>(move |f| f.error = Some(msg));
             return;
         }
         if let Some(subject) = &outcome.identity.subject
@@ -900,7 +902,7 @@ impl AccountsScreen {
                 "Already registered: {} authenticates the same identity",
                 dup.title()
             );
-            cx.with_form(move |f| f.error = Some(msg));
+            cx.with_top::<FormDialog>(move |f| f.error = Some(msg));
             return;
         }
         let name_taken = w.accounts.name_taken(provider, &name, editing.as_deref());
@@ -2465,6 +2467,7 @@ impl Screen for AccountsScreen {
             };
         }
         match ev.phase() {
+            Some(Phase::Click) if id == SEAM => self.seam.on_click(&mut self.split, ev.count()),
             Some(Phase::Click) => self.click(id, pos, w, cx),
             Some(Phase::Secondary) => self.secondary(id, pos, w, cx),
             Some(Phase::Drag) => self.drag(id, pos),
@@ -2514,7 +2517,7 @@ impl Screen for AccountsScreen {
                     }
                     "plain" => {
                         let w2 = w.op.clone();
-                        cx.with_form(move |f| {
+                        cx.with_top::<FormDialog>(move |f| {
                             if let Some(field) = f.field_mut("source")
                                 && let super::modals::FieldKindW::Radio(r) = &mut field.kind
                             {
@@ -2523,7 +2526,7 @@ impl Screen for AccountsScreen {
                             }
                             let _ = &w2;
                         });
-                        cx.with_form(|f| {
+                        cx.with_top::<FormDialog>(|f| {
                             // re-reveal with the changed radio
                             f.set_visible("op", false);
                             f.set_visible("op_note", false);
@@ -2543,7 +2546,7 @@ impl Screen for AccountsScreen {
                             if let Some(ctx) = self.form.as_mut() {
                                 ctx.validation = Some(o);
                             }
-                            cx.with_form(move |f| {
+                            cx.with_top::<FormDialog>(move |f| {
                                 f.set_note("validation", note);
                                 f.error = None;
                             });
@@ -2554,7 +2557,7 @@ impl Screen for AccountsScreen {
                             });
                         }
                         Err(e) => {
-                            cx.with_form(move |f| f.error = Some(e));
+                            cx.with_top::<FormDialog>(move |f| f.error = Some(e));
                         }
                     },
                     "save" => self.save_form(values, w, cx),
@@ -2585,7 +2588,7 @@ impl Screen for AccountsScreen {
                     ctx.validation = None;
                 }
                 let endpoint = w.op.endpoint_of(&r);
-                cx.with_form(move |f| {
+                cx.with_top::<FormDialog>(move |f| {
                     f.set_chooser("op", &path, None);
                     f.set_note(
                         "op_note",
@@ -2612,7 +2615,7 @@ impl Screen for AccountsScreen {
             ("op", ModalResult::Op(None)) => Outcome::Changed,
             ("browse", ModalResult::Browser(BrowserResult::Chosen { path, .. })) => {
                 let tilde = w.tilde(&path);
-                cx.with_form(move |f| f.set_text("folder", &tilde));
+                cx.with_top::<FormDialog>(move |f| f.set_text("folder", &tilde));
                 Outcome::Changed
             }
             (
@@ -2812,9 +2815,6 @@ impl Screen for AccountsScreen {
 /// their derived ids until S16 moves them onto widgets).
 impl AccountsScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == SEAM {
-            return self.seam.on_click(&mut self.split, cx.clicks);
-        }
         self.build_rows(w);
         if self.menu.is_open() {
             let (o, chosen) = self.menu.on_click(id);

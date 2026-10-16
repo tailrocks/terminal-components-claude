@@ -2204,7 +2204,7 @@ impl ConfigTabs {
             ("cfg.mount.browse", ModalResult::Browser(BrowserResult::Chosen { path, .. })) => {
                 let tilde = w.tilde(&path);
                 let base = path.rsplit('/').next().unwrap_or("mount").to_owned();
-                cx.with_form(move |f| {
+                cx.with_top::<FormDialog>(move |f| {
                     f.set_chooser("host", &tilde, None);
                     if f.text("dest").trim().is_empty() {
                         f.set_text("dest", &format!("/workspace/{base}"));
@@ -2213,7 +2213,7 @@ impl ConfigTabs {
                 Outcome::Changed
             }
             ("cfg.mount.browse", ModalResult::Browser(BrowserResult::GitUrl(url))) => {
-                cx.with_form(move |f| {
+                cx.with_top::<FormDialog>(move |f| {
                     if let Some(fld) = f.field_mut("kind")
                         && let FieldKindW::Radio(r) = &mut fld.kind
                     {
@@ -2240,7 +2240,7 @@ impl ConfigTabs {
                         .map(|d| d.masked)
                         .unwrap_or("••••••••".into());
                 self.op_ref = Some(r);
-                cx.with_form(move |f| {
+                cx.with_top::<FormDialog>(move |f| {
                     f.set_chooser(
                         "op",
                         &path,
@@ -2355,7 +2355,7 @@ impl ConfigTabs {
     fn save_mount(&mut self, values: FormValues, w: &World, cx: &mut Cx) -> Outcome {
         let dest = text(&values, "dest").trim().to_owned();
         if !dest.starts_with('/') {
-            cx.with_form(|f| {
+            cx.with_top::<FormDialog>(|f| {
                 f.error = Some("Destination must be an absolute path inside the Construct".into())
             });
             return Outcome::Changed;
@@ -2367,14 +2367,18 @@ impl ConfigTabs {
                 .trim_start_matches("https://")
                 .to_owned();
             if url.is_empty() || !url.contains('/') {
-                cx.with_form(|f| f.error = Some("Git URL is required (host/org/repo)".into()));
+                cx.with_top::<FormDialog>(|f| {
+                    f.error = Some("Git URL is required (host/org/repo)".into())
+                });
                 return Outcome::Changed;
             }
             MountSource::Git(url)
         } else {
             let host = chooser_value(&values, "host");
             if host.is_empty() || host == "not chosen" {
-                cx.with_form(|f| f.error = Some("Choose the host directory first".into()));
+                cx.with_top::<FormDialog>(|f| {
+                    f.error = Some("Choose the host directory first".into())
+                });
                 return Outcome::Changed;
             }
             MountSource::Host(crate::sim::world::expand(&w.home, &host))
@@ -2389,7 +2393,9 @@ impl ConfigTabs {
             .iter()
             .any(|m| m.destination == dest && Some(&m.destination) != original.as_ref())
         {
-            cx.with_form(move |f| f.error = Some(format!("{dest} is already a mount destination")));
+            cx.with_top::<FormDialog>(move |f| {
+                f.error = Some(format!("{dest} is already a mount destination"))
+            });
             return Outcome::Changed;
         }
         let iso = match choice(&values, "iso") {
@@ -2451,14 +2457,14 @@ impl ConfigTabs {
     fn save_env(&mut self, values: FormValues, _w: &World, cx: &mut Cx) -> Outcome {
         let key = text(&values, "key").trim().to_owned();
         if let Some(e) = env_key_error(&key) {
-            cx.with_form(move |f| f.error = Some(e));
+            cx.with_top::<FormDialog>(move |f| f.error = Some(e));
             return Outcome::Changed;
         }
         let value = match choice(&values, "src") {
             0 => {
                 let v = text(&values, "value");
                 if v.is_empty() {
-                    cx.with_form(|f| f.error = Some("Value cannot be empty".into()));
+                    cx.with_top::<FormDialog>(|f| f.error = Some("Value cannot be empty".into()));
                     return Outcome::Changed;
                 }
                 EnvValue::Plain(v)
@@ -2466,7 +2472,7 @@ impl ConfigTabs {
             1 => match self.op_ref.clone() {
                 Some(r) => EnvValue::OnePassword(r),
                 None => {
-                    cx.with_form(|f| {
+                    cx.with_top::<FormDialog>(|f| {
                         f.error = Some("Choose a 1Password item and field first".into())
                     });
                     return Outcome::Changed;
@@ -2475,7 +2481,9 @@ impl ConfigTabs {
             _ => {
                 let h = text(&values, "host").trim().to_owned();
                 if let Some(e) = env_key_error(&h) {
-                    cx.with_form(move |f| f.error = Some(format!("Host variable: {e}")));
+                    cx.with_top::<FormDialog>(move |f| {
+                        f.error = Some(format!("Host variable: {e}"))
+                    });
                     return Outcome::Changed;
                 }
                 EnvValue::HostEnv(h)
@@ -2496,7 +2504,9 @@ impl ConfigTabs {
         }
         let list = self.pending.env_of_mut(role.as_deref());
         if list.iter().any(|e| e.key == key) {
-            cx.with_form(move |f| f.error = Some(format!("{key} already exists in this scope")));
+            cx.with_top::<FormDialog>(move |f| {
+                f.error = Some(format!("{key} already exists in this scope"))
+            });
             return Outcome::Changed;
         }
         list.push(EnvVar {
