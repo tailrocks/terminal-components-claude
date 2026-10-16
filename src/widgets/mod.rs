@@ -16,6 +16,7 @@ pub mod grid;
 pub mod hintbar;
 pub mod input;
 pub mod keyhint;
+pub mod keyref;
 pub mod list;
 pub mod menu;
 pub mod panel;
