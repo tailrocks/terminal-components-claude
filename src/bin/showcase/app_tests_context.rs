@@ -185,8 +185,8 @@ fn a_secondary_click_outside_a_dialog_stays_swallowed() {
     let mut h = Harness::new(PageId::Chrome);
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Keyboard & mouse"));
-    // a session row the help dialog leaves uncovered
-    let row = h.at("1 Claude Code (Work)");
+    // a sidebar row the help overlay leaves uncovered (it dims it)
+    let row = h.at("Overview");
     assert_eq!(h.right_click(row), Outcome::Consumed);
     assert!(h.text().contains("Keyboard & mouse"), "the dialog stays");
     assert!(

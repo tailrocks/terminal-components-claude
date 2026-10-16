@@ -93,8 +93,8 @@ pub const SURFACES: &[Root] = &[
     // re-captures its page; pending first approval.
     Root::new("showcase/pages/statushints", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["wait:HintBar::resolve"]).pending(),
     Root::new("showcase/pages/breadcrumbsrails", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["wait:RailAction::Expand"]).pending(),
-    Root::new("showcase/planned/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
-    Root::new("showcase/planned/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
+    Root::new("showcase/pages/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:HelpCmd::Close"]).pending(),
+    Root::new("showcase/pages/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:QuitKeys::classify"]).pending(),
     // SC9 filled Checks & radios: the page and its sections
     Root::new("showcase/pages/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:Select all rows"]).pending(),
     Root::new("showcase/sections/checksradios-options", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "2", "wait:Checkbox click target"]).pending(),
@@ -196,6 +196,16 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/breadcrumbsrails-states", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["tab", "3", "wait:Plain text"]).pending(),
     Root::new("showcase/sections/breadcrumbsrails-collapsed", Bin::Showcase, &["--page", "breadcrumbsrails", "--opt", "breadcrumbsrails.collapsed=on"], BOOT).sends(&["wait:RailAction::Expand"]).pending(),
     Root::new("showcase/sections/breadcrumbsrails-narrow-trail", Bin::Showcase, &["--page", "breadcrumbsrails", "--opt", "breadcrumbsrails.width=20"], BOOT).sends(&["wait:width 20"]).pending(),
+    Root::new("showcase/sections/helpkeys-options", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["tab", "2", "wait:Overlay size"]).pending(),
+    Root::new("showcase/sections/helpkeys-states", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["tab", "3", "wait:Narrow keys"]).pending(),
+    Root::new("showcase/sections/helpkeys-reference-narrow", Bin::Showcase, &["--page", "helpkeys", "--opt", "helpkeys.width=28", "--opt", "helpkeys.key_max_share=25"], BOOT).sends(&["wait:width 28"]).pending(),
+    Root::new("showcase/sections/quitleave-options", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["tab", "2", "wait:Quit letter"]).pending(),
+    Root::new("showcase/sections/quitleave-states", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["tab", "3", "wait:Discard"]).pending(),
+    Root::new("showcase/sections/quitleave-running", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=running"], BOOT).sends(&["wait:Stop export"]).pending(),
+    Root::new("showcase/overlays/helpkeys_overlay", Bin::Showcase, &["--page", "helpkeys"], BOOT).click("Open help overlay").pending().dismiss_pending(),
+    Root::new("showcase/overlays/helpkeys_overlay_small", Bin::Showcase, &["--page", "helpkeys", "--opt", "helpkeys.max_percent=60", "--opt", "helpkeys.title=custom"], BOOT).click("Open help overlay").pending().dismiss_pending(),
+    Root::new("showcase/overlays/quitleave_unsaved", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=unsaved"], BOOT).click("Leave for Overview").pending().dismiss_pending(),
+    Root::new("showcase/overlays/quitleave_running", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=running"], BOOT).click("Quit    Stop export").pending().dismiss_pending(),
     Root::new("showcase/elements/breadcrumbs/crumb-hover", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).hover("Users ›").pending(),
     Root::new("showcase/elements/rails/collapse-hover", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).hover("‹").pending(),
     // Overview (SC3): the theme explorer's options and every Kind on a plane.

@@ -121,6 +121,91 @@ impl KeyReference {
     }
 }
 
+/// Width a [`KeyReference`] sample is laid out at in a States grid; a
+/// narrow slot wraps it narrower.
+const SPECIMEN_W: usize = 32;
+
+/// The reference drawn alone for a States grid ([`crate::ui::specimen`]):
+/// rest at the sample width, overflow with a description too long for
+/// its row (it hangs under the description column), narrow in the narrow
+/// slot. Sections read bold; keys take the key-hint ink.
+impl crate::ui::specimen::Specimen for KeyReference {
+    fn specimen_id(&self) -> crate::core::id::WidgetId {
+        crate::core::id::WidgetId::of("keyref.specimen")
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Overflow | Narrow)
+    }
+
+    fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
+        let w = if state == crate::ui::specimen::SpecimenState::Narrow {
+            // the grid's default narrow slot
+            24
+        } else {
+            SPECIMEN_W
+        };
+        self.sample(state).lines(w).len().max(1) as u16
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: ratatui::layout::Rect,
+        buf: &mut ratatui::buffer::Buffer,
+        ctx: &mut crate::ui::ctx::RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        let t = ctx.theme;
+        crate::ui::ctx::fill(buf, area, ratatui::style::Style::new().bg(bg));
+        let r = self.sample(state);
+        let sections: Vec<&str> = r
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                Entry::Section(s) => Some(s.as_str()),
+                Entry::Key { .. } => None,
+            })
+            .collect();
+        let key_w = r.key_column(Some(area.width as usize));
+        for (i, line) in r.lines(area.width as usize).iter().enumerate() {
+            let y = area.y + i as u16;
+            if y >= area.bottom() {
+                break;
+            }
+            if sections.contains(&line.as_str()) {
+                let st = t
+                    .secondary()
+                    .bg(bg)
+                    .add_modifier(ratatui::style::Modifier::BOLD);
+                buf.set_string(area.x, y, line, st);
+                continue;
+            }
+            buf.set_string(area.x, y, line, t.secondary().bg(bg));
+            // the key column of a row that starts one (not a hanging line)
+            let head: String = line.chars().take(key_w).collect();
+            if !head.starts_with(' ') {
+                buf.set_string(area.x, y, head.trim_end(), t.key_hint_key().bg(bg));
+            }
+        }
+    }
+}
+
+impl KeyReference {
+    /// The reference as a States sample shows it in `state`.
+    fn sample(&self, state: crate::ui::specimen::SpecimenState) -> Self {
+        let mut r = self.clone();
+        if state == crate::ui::specimen::SpecimenState::Overflow {
+            r = r.key(
+                "Ctrl+Shift+F",
+                "find in every open file, and list each match under its file",
+            );
+        }
+        r
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

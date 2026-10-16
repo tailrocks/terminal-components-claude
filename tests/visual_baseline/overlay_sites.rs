@@ -16,7 +16,7 @@ use std::path::Path;
 use crate::determinism::{code_only, non_test};
 
 /// What opens or draws an overlay in the four apps.
-const OPENERS: [&str; 14] = [
+const OPENERS: [&str; 15] = [
     "req.menu(",
     "ModalTag::new(",
     // a layer opened on an app's `ShellLayers` (plan S5)
@@ -33,6 +33,8 @@ const OPENERS: [&str; 14] = [
     // the shared leave guard (`ui::leave::LeaveGuard`) returns its dialog
     ".request_quit(&",
     ".request(Leave::",
+    // a keyboard reference (the showcase shell opens it as its modal)
+    "HelpOverlay::new(",
 ];
 
 /// Lines that mention an opener without opening anything.
@@ -144,7 +146,9 @@ pub const SITES: &[Site] = &[
     rows("showcase/pages/dialogs.rs::open", &["showcase/flows/dialogs/open", "showcase/flows/dialogs/prompt", "showcase/flows/dialogs/destructive"]),
     rows("showcase/pages/grid.rs::changes_dialog", &["showcase/flows/datagrid/preview", "showcase/flows/datagrid/save-review"]),
     rows("showcase/pages/empty_error.rs::open_menu", &["showcase/overlays/emptyerror_row_actions"]),
+    rows("showcase/pages/help_keys.rs::build_help", &["showcase/overlays/helpkeys_overlay", "showcase/overlays/helpkeys_overlay_small"]),
     rows("showcase/pages/lists.rs::open_menu", &["showcase/overlays/lists_context"]),
+    rows("showcase/pages/quit_leave.rs::handle", &["showcase/overlays/quitleave_unsaved", "showcase/overlays/quitleave_running"]),
     rows("showcase/pages/menus.rs::open_row_menu", &["showcase/overlays/menus_row_keyboard", "showcase/overlays/menus_row_pointer"]),
     rows("showcase/pages/pickers.rs::open", &["showcase/flows/pickers/open"]),
     rows("showcase/pages/pickers.rs::render", &["showcase/flows/pickers/open"]),
