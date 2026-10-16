@@ -9,9 +9,10 @@ use crate::app_tests_context::{
     assert_at_pointer, assert_below_row, choose, menu_area, right_click, shift_f10,
 };
 use crate::app_tests_parity::open;
+use crate::domain::activity::ActivityState;
 use crate::domain::plan::{PlanPhase, StepState};
 use crate::scenario::{Motion, Scenario};
-use crate::screens::{disk, plan};
+use crate::screens::{activity, disk, plan};
 
 fn until<F: Fn(&H) -> bool>(h: &mut H, max_ticks: usize, f: F) -> bool {
     for _ in 0..max_ticks {
@@ -204,4 +205,92 @@ fn a_disk_overview_row_menu_analyzes_the_row() {
         "Analyze opened the scan\n{}",
         h.text()
     );
+}
+
+// -------------------------------------------------------------- activity
+
+fn activities() -> H {
+    H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40)
+}
+
+fn activity_state(h: &H, name: &str) -> ActivityState {
+    h.app
+        .world
+        .activities
+        .iter()
+        .find(|a| a.name == name)
+        .map(|a| a.state)
+        .unwrap_or_else(|| panic!("no activity {name}"))
+}
+
+#[test]
+fn an_activity_output_right_click_opens_its_menu_at_the_pointer_and_stops_it() {
+    let mut h = activities();
+    h.alt(KeyCode::Char('1'));
+    let name = h.app.world.activities[0].name.clone();
+    assert!(activity_state(&h, &name).live(), "{}", h.text());
+    let v = row(&h, activity::VIEW);
+    let (x, y) = (v.x + 4, v.y + 2);
+    right_click(&mut h, x, y);
+    assert_eq!(h.app.focus.current(), Some(activity::MENU), "{}", h.text());
+    assert_at_pointer(&h, activity::MENU, x, y);
+    let t = h.text();
+    assert!(
+        t.contains("Select text first"),
+        "copy needs a selection\n{t}"
+    );
+    assert!(t.contains("Still running · s stops it first"), "{t}");
+    choose(&mut h, "Stop");
+    assert!(h.app.modals.is_empty());
+    assert!(
+        !matches!(activity_state(&h, &name), ActivityState::Running),
+        "{:?}",
+        activity_state(&h, &name)
+    );
+    assert_eq!(h.app.focus.current(), Some(activity::VIEW));
+}
+
+#[test]
+fn shift_f10_opens_the_activity_menu_at_the_top_of_the_output() {
+    let mut h = activities();
+    h.alt(KeyCode::Char('1'));
+    let v = row(&h, activity::VIEW);
+    assert_eq!(h.app.focus.current(), Some(activity::VIEW));
+    shift_f10(&mut h);
+    assert_eq!(h.app.focus.current(), Some(activity::MENU), "{}", h.text());
+    assert_below_row(&h, activity::MENU, v.y);
+    choose(&mut h, "Find…");
+    assert!(h.text().contains("Close find"), "{}", h.text());
+}
+
+#[test]
+fn a_stream_chip_menu_hides_the_stream_and_reopens_from_the_output() {
+    let mut h = activities();
+    h.alt(KeyCode::Char('4'));
+    assert!(h.text().contains("merged logs"), "{}", h.text());
+    let a = h
+        .app
+        .world
+        .activities
+        .iter()
+        .position(|a| a.services().len() > 1)
+        .expect("a merged activity");
+    let stream = h.app.world.activities[a].services()[0].clone();
+    // open the output menu, then right-click the chip outside it
+    let v = row(&h, activity::VIEW);
+    right_click(&mut h, v.x + 30, v.y + 4);
+    assert_eq!(h.app.focus.current(), Some(activity::MENU));
+    let chip = row(&h, activity::CHIPS.child(0));
+    let (cx, cy) = (chip.x, chip.y);
+    right_click(&mut h, cx + 1, cy);
+    assert_eq!(h.app.modals.len(), 1, "{}", h.text());
+    assert_at_pointer(&h, activity::MENU, cx + 1, cy);
+    assert!(h.text().contains("Hide stream"), "{}", h.text());
+    choose(&mut h, "Hide stream");
+    assert!(
+        h.app.world.activities[a].hidden_services.contains(&stream),
+        "{:?}",
+        h.app.world.activities[a].hidden_services
+    );
+    assert_eq!(h.app.focus.current(), Some(activity::CHIPS));
 }
