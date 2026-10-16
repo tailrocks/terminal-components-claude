@@ -15,7 +15,7 @@
 use ratatui::layout::Position;
 
 use super::event::{MouseKind, Outcome};
-use super::hit::HitRegistry;
+use super::hit::{HitRegistry, ReleaseFrom};
 use super::id::WidgetId;
 
 /// When a pointer press moves keyboard focus to the control under it.
@@ -204,6 +204,14 @@ pub struct PointerState {
     edge: Option<ratatui::layout::Rect>,
     /// When the last autoscroll step ran.
     autoscroll_at: Option<u64>,
+    /// Where the held secondary press started (until its release).
+    secondary_at: Option<Position>,
+    /// The release resolved by [`Self::on_up`] completes the held press on
+    /// another control that accepts it ([`HitRegistry::accept_release`]).
+    accepted: Option<WidgetId>,
+    /// The terminal reported pointer motion with no button held (any-motion
+    /// tracking). Until then, hover-only behaviour is not relied on.
+    motion_seen: bool,
     last_click: Option<LastClick>,
     hover_refresh: Option<Position>,
 }
@@ -230,6 +238,7 @@ impl PointerState {
     /// Pointer moved: hover follows it and suppression ends.
     pub fn on_move(&mut self, hits: &HitRegistry, pos: Position) -> Outcome {
         self.pos = Some(pos);
+        self.motion_seen = true;
         let was = self.hover;
         let suppressed = self.hover_suppressed;
         self.hover_suppressed = false;
@@ -325,10 +334,22 @@ impl PointerState {
         self.grab.filter(|b| self.pressed == Some(b.id))
     }
 
+    /// Whether the terminal reports pointer motion with no button held
+    /// (any-motion tracking, `?1003`). Some terminals, and tmux without
+    /// passthrough, report motion only while a button is held: there hover
+    /// never follows the pointer, so hover-driven behaviour (a menu-bar
+    /// hover switch) must not be relied on, and click and the arrow keys
+    /// do the job ([`crate::widgets::menu::MenuBar::hover_switch`]).
+    /// `false` until the first buttonless move arrives.
+    pub fn reports_motion(&self) -> bool {
+        self.motion_seen
+    }
+
     /// Secondary button: hover lands on the target, no press is held.
     pub fn on_secondary(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
         self.pressed = None;
+        self.secondary_at = Some(pos);
         let hit = hits.hit(pos);
         self.hover = hit;
         hit
@@ -362,11 +383,55 @@ impl PointerState {
         }
     }
 
+    /// Secondary button moved while held: hover follows the pointer (onto
+    /// the rows of the context menu the press opened).
+    pub fn on_secondary_drag(&mut self, hits: &HitRegistry, pos: Position) -> Outcome {
+        self.pos = Some(pos);
+        let was = self.hover;
+        self.hover_suppressed = false;
+        self.hover = hits.hit(pos);
+        if self.hover != was {
+            Outcome::Changed
+        } else {
+            Outcome::Ignored
+        }
+    }
+
+    /// Secondary button released: the control a press-drag-release chose,
+    /// if any. That is the control under the pointer when it accepts a
+    /// secondary release ([`HitRegistry::accept_release`] with
+    /// [`ReleaseFrom::Secondary`], an open context menu's rows) and the
+    /// pointer moved at least one cell from the press, so the release of a
+    /// plain right-click never picks the row it opened under. Deliver it as
+    /// a click.
+    pub fn on_secondary_up(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
+        self.pos = Some(pos);
+        let from = self.secondary_at.take()?;
+        if from == pos {
+            return None;
+        }
+        let hit = hits.hit(pos)?;
+        hits.accepts_release(hit, ReleaseFrom::Secondary)
+            .then_some(hit)
+    }
+
     /// Button up: the control under the pointer, plus — when it is a
     /// pass-through backdrop the press started on — the control beneath it
-    /// that the same click also reaches.
-    pub fn on_up(&self, hits: &HitRegistry, pos: Position) -> (Option<WidgetId>, Option<WidgetId>) {
+    /// that the same click also reaches. A control that accepts a release
+    /// from the held press ([`HitRegistry::accept_release`]) completes the
+    /// click in [`Self::release`].
+    pub fn on_up(
+        &mut self,
+        hits: &HitRegistry,
+        pos: Position,
+    ) -> (Option<WidgetId>, Option<WidgetId>) {
         let hit = hits.hit(pos);
+        self.accepted = match (hit, self.pressed) {
+            (Some(h), Some(p)) if h != p && hits.accepts_release(h, ReleaseFrom::Press(p)) => {
+                Some(h)
+            }
+            _ => None,
+        };
         let beneath = hit
             .filter(|id| self.pressed == Some(*id))
             .and_then(|id| hits.pass_through_target(id, pos));
@@ -376,12 +441,13 @@ impl PointerState {
     /// Resolve a release over `hit`, consuming the held press.
     pub fn release(&mut self, hit: Option<WidgetId>) -> Release {
         let pressed = self.pressed.take();
+        let accepted = self.accepted.take();
         self.grab = None;
         self.edge = None;
         match hit {
             None if pressed.is_none() => Release::Outside,
             None => Release::Cancelled,
-            Some(id) if pressed == Some(id) => Release::Click(id),
+            Some(id) if pressed == Some(id) || accepted == Some(id) => Release::Click(id),
             Some(_) => Release::Cancelled,
         }
     }
@@ -498,6 +564,62 @@ mod tests {
         h.register(a, Rect::new(0, 0, 10, 1));
         h.register(b, Rect::new(0, 1, 10, 1));
         (h, a, b)
+    }
+
+    #[test]
+    fn a_release_completes_a_press_from_elsewhere_only_where_accepted() {
+        let (mut h, a, b) = hits();
+        let mut p = PointerState::default();
+        p.on_down(&h, Position::new(1, 0));
+        let (hit, _) = p.on_up(&h, Position::new(1, 1));
+        assert_eq!(p.release(hit), Release::Cancelled, "not accepted");
+        h.accept_release(b, ReleaseFrom::Press(a));
+        p.on_down(&h, Position::new(1, 0));
+        let (hit, _) = p.on_up(&h, Position::new(1, 1));
+        assert_eq!(p.release(hit), Release::Click(b), "press-drag-release");
+        // a press that started on another control is not accepted
+        p.on_down(&h, Position::new(1, 1));
+        p.press(WidgetId::of("c"));
+        let (hit, _) = p.on_up(&h, Position::new(1, 1));
+        assert_eq!(p.release(hit), Release::Cancelled);
+    }
+
+    #[test]
+    fn a_secondary_release_chooses_an_accepting_row_after_movement() {
+        let (mut h, a, b) = hits();
+        h.accept_release(b, ReleaseFrom::Secondary);
+        let mut p = PointerState::default();
+        // a plain right-click: press and release on the same cell
+        p.on_secondary(&h, Position::new(1, 1));
+        assert_eq!(p.on_secondary_up(&h, Position::new(1, 1)), None);
+        // press, drag onto the row, release
+        p.on_secondary(&h, Position::new(1, 0));
+        assert_eq!(
+            p.on_secondary_drag(&h, Position::new(2, 1)),
+            Outcome::Changed
+        );
+        assert_eq!(p.hover, Some(b));
+        assert_eq!(p.on_secondary_up(&h, Position::new(2, 1)), Some(b));
+        // over a row that does not accept it
+        p.on_secondary(&h, Position::new(1, 1));
+        assert_eq!(p.on_secondary_up(&h, Position::new(3, 0)), None);
+        let _ = a;
+        // a release with no secondary press held
+        assert_eq!(p.on_secondary_up(&h, Position::new(2, 1)), None);
+    }
+
+    #[test]
+    fn motion_is_reported_after_the_first_buttonless_move() {
+        let (h, _, _) = hits();
+        let mut p = PointerState::default();
+        p.on_down(&h, Position::new(1, 0));
+        p.on_drag(&h, Position::new(2, 0));
+        assert!(
+            !p.reports_motion(),
+            "drags report motion with a button held"
+        );
+        p.on_move(&h, Position::new(3, 0));
+        assert!(p.reports_motion());
     }
 
     #[test]
