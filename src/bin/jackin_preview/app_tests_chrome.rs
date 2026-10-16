@@ -50,7 +50,7 @@ fn hover_hit_testing_and_reverse_focus_navigation_are_deterministic() {
         .hit(Position::new(x, y))
         .expect("rendered shell must be clickable");
     h.mouse(MouseKind::Move, x, y);
-    assert_eq!(h.app.hover, Some(id));
+    assert_eq!(h.app.pointer.hover, Some(id));
 
     let mut manager = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     let start = manager.app.focus.current();
