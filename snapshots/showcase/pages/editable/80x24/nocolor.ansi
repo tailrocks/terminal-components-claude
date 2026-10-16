@@ -2,24 +2,24 @@
                                                                                 [0m
  [0m[1mComponents[0m      54  [0m[1mEditable tables[0m  Navigation is reversed cell; editing is … [0m
                                                                                 [0m
-    Overview           Tasks                               0 edits · 1–9 of 14  [0m
-  ▸ App shell                                                                   [0m
-  ▸ Inputs & forms        ID     Task                              Owner    …   [0m
-  ▾ Tables                #1040  Add rate limiting to auth endpo…  mira      ┃  [0m
-      Basic table         #1041  Migrate sessions table to UUID …  jonas     ┃  [0m
- [0m[1m▎  › Editable     [0m       #1042  Fix flaky checkout integration …  ana       ┃  [0m
-      Data grid           #1043  Write release notes for 3.2       mira      ┃  [0m
-      Selection           #1044  Replace deprecated Vue mixins     kai       ┃  [0m
-      Cell editors        #1045  Upgrade Postgres driver to 0.9    jonas     ┆  [0m
-      Columns             #1046  Extract billing service module    sofia     ┆  [0m
-  ▸ Navigation            #1047  Add OpenTelemetry tracing spans   kai       ┆  [0m
-  ▸ Overlays           [0m[2m   #1048  Remove legacy feature flags       ana       [0m┆  [0m
-  ▸ Feedback              ━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
-  ▸ Layout                                                                      [0m
-  ▸ Text & code                                                                 [0m
-  ▸ Screens          reversed  cell cursor (navigation)                         [0m
-                     ▁         editing cursor + accent underline                [0m
-                     !         validation error                                 [0m
+    Overview         [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▾ Tables             Tasks                            0 edits · 1–10 of 14   ┃[0m
+      Basic table                                                              ┃[0m
+ [0m[1m▎  › Editable     [0m       ID     Task                            Owner    …    ┃[0m
+      Data grid           #1040  Add rate limiting to auth end…  mira      ┃   ┆[0m
+      Selection           #1041  Migrate sessions table to UUI…  jonas     ┃   ┆[0m
+      Cell editors        #1042  Fix flaky checkout integratio…  ana       ┃   ┆[0m
+      Columns             #1043  Write release notes for 3.2     mira      ┃   ┆[0m
+  ▸ Navigation            #1044  Replace deprecated Vue mixins   kai       ┃   ┆[0m
+  ▸ Overlays              #1045  Upgrade Postgres driver to 0.9  jonas     ┃   ┆[0m
+  ▸ Feedback              #1046  Extract billing service module  sofia     ┃   ┆[0m
+  ▸ Layout                #1047  Add OpenTelemetry tracing spa…  kai       ┆   ┆[0m
+  ▸ Text & code           #1048  Remove legacy feature flags     ana       ┆   ┆[0m
+  ▸ Screens            [0m[2m   #1049  Generate API client from Open…  sofia     [0m┆   ┆[0m
+                          ━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┆[0m
+                                                                               ┆[0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l
