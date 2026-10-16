@@ -67,7 +67,17 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/scrolling", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s"]),
     // `✓ 07 Ready` is the step-rail end-state at every width (the rail's
     // `7 of 7` counter compacts to `7/7` at 72 columns); 30s is tight under load.
-    Root::new("showcase/pages/terminal", Bin::Showcase, &["--page", "terminal"], BOOT).sends(&["wait:✓ 07 Ready"]).timeout(60000),
+    Root::new("showcase/pages/terminal", Bin::Showcase, &["--page", "terminal"], BOOT).sends(&["wait:✓ Ready"]).timeout(60000),
+    // SC25: Diff and Terminal sections, the narrow and no-file diff, a
+    // renamed file, find marks and retention in the terminal
+    Root::new("showcase/sections/diff-options", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "2", "wait:Page width"]).pending(),
+    Root::new("showcase/sections/diff-states", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "3", "wait:No file selected"]).pending(),
+    Root::new("showcase/flows/diff/narrow", Bin::Showcase, &["--page", "diff", "--opt", "diff.width=narrow"], BOOT).sends(&["wait:Changes"]).pending(),
+    Root::new("showcase/flows/diff/renamed", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "tab", "tab", "tab", "end", "wait:use super::exponential"]).pending(),
+    Root::new("showcase/sections/terminal-options", Bin::Showcase, &["--page", "terminal", "--motion", "paused"], BOOT).sends(&["tab", "2", "wait:Find marks"]).pending(),
+    Root::new("showcase/sections/terminal-states", Bin::Showcase, &["--page", "terminal", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Step rail"]).pending(),
+    Root::new("showcase/flows/terminal/marks", Bin::Showcase, &["--page", "terminal", "--motion", "paused", "--opt", "terminal.mark=on"], BOOT).sends(&["wait:jackin launch"]).pending(),
+    Root::new("showcase/flows/terminal/retention", Bin::Showcase, &["--page", "terminal", "--opt", "terminal.max_lines=20"], BOOT).sends(&["wait:last 20 kept"]).timeout(60000).pending(),
     // Selectable table (pages/selectable.rs): members table in multi-selection
     // mode beside a member editor (stacked under the table below 120 columns,
     // so readiness waits on a table row). Default state: nothing selected.
@@ -359,8 +369,8 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/inputs/editing", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "enter", "wait:EDIT"]),
     Root::new("showcase/flows/inputs/selected", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "enter", "ctrl-l", "wait:EDIT"]),
     Root::new("showcase/flows/forms/invalid", Bin::Showcase, &["--page", "forms"], BOOT).sends(&["tab", "ctrl-s", "wait:Required"]),
-    Root::new("showcase/flows/diff/review", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "enter", "wait:● Review"]),
-    Root::new("showcase/flows/diff/empty", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "enter", "tab", "enter", "wait:No file selected"]),
+    Root::new("showcase/flows/diff/review", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "tab", "enter", "wait:● Review"]),
+    Root::new("showcase/flows/diff/empty", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "tab", "enter", "tab", "enter", "wait:No file selected"]),
     Root::new("showcase/flows/buttons/focus", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab"]),
     Root::new("showcase/flows/lists/moved", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "tab", "down", "down"]),
     Root::new("showcase/flows/trees/expanded", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "tab", "right"]),
@@ -443,7 +453,7 @@ pub const JOURNEYS: &[Root] = &[
     // running (24 of 40), the rail meta and layer lines all pinned.
     Root::new("showcase/flows/terminal/mid", Bin::Showcase, &["--page", "terminal", "--motion", "paused", "--frame", "60"], BOOT),
     // ---------------------------------------------------------- pointer flows --
-    Root::new("showcase/flows/diff/drag-selected", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "enter", "wait:● Review"]).live(interact::diff_drag_select),
+    Root::new("showcase/flows/diff/drag-selected", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "tab", "enter", "wait:● Review"]).live(interact::diff_drag_select),
     // S12: the inspector registers no scroll region, so the capturable form is
     // the inspector open while a wheel scroll runs under it (the repainted
     // inspector shows the pointer's `mouse` row from the same interaction).
@@ -457,7 +467,7 @@ pub const JOURNEYS: &[Root] = &[
     // The 28-line task description scrolls inside its 8-row viewport.
     Root::new("showcase/fade/textarea/wheel", Bin::Showcase, &["--page", "textareas"], BOOT).live(interact::textarea_wheel),
     // Review mode, then the wheel over the Old pane scrolls the 5-hunk diff.
-    Root::new("showcase/fade/diff/wheel", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "enter", "wait:● Review"]).live(interact::diff_wheel),
+    Root::new("showcase/fade/diff/wheel", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "tab", "enter", "wait:● Review"]).live(interact::diff_wheel),
     // `--frame 1600` seeks to the boot stream's end state (2000 lines), then
     // the wheel moves the follow-tail log off the tail.
     Root::new("showcase/fade/scrolling/wheel-fade", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).live(interact::scrolling_wheel_up),
