@@ -7,7 +7,7 @@
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::hit::{Axis, PartMap};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
@@ -62,8 +62,6 @@ struct Special {
 }
 
 pub struct CleanupPage {
-    /// The list rows registered in the last render, by id.
-    parts: PartMap,
     /// Filter: one category id, or a special recursive cleanup.
     pub filter: Option<String>,
     cats: Vec<InsightCategory>,
@@ -95,7 +93,6 @@ fn row_part(i: usize) -> PartRef {
 impl CleanupPage {
     pub fn new(filter: Option<&str>) -> Self {
         Self {
-            parts: PartMap::default(),
             filter: filter.map(str::to_owned),
             cats: vec![],
             special: None,
@@ -595,7 +592,6 @@ impl CleanupPage {
     }
 
     fn render_list(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
-        self.parts.clear();
         let t = ctx.theme;
         let bg = t.canvas;
         let focused = ctx.interaction.focused(LIST);
@@ -705,7 +701,7 @@ impl CleanupPage {
                         );
                     }
                     legible_on_fill(buf, row, t, bg);
-                    ctx.part(&mut self.parts, LIST, row_part(i), row);
+                    ctx.register_part(LIST, row_part(i), row);
                 }
                 Row::Candidate(ci, ki) => {
                     let c = &self.cats[*ci];
@@ -789,7 +785,7 @@ impl CleanupPage {
                         );
                     }
                     legible_on_fill(buf, row, t, bg);
-                    ctx.part(&mut self.parts, LIST, row_part(i), row);
+                    ctx.register_part(LIST, row_part(i), row);
                 }
             }
         }

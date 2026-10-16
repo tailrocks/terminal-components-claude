@@ -194,8 +194,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::variant("core::hit::ReleaseFrom::Press"),
     Capability::variant("core::hit::ReleaseFrom::Secondary"),
     Capability::ty("core::hit::Hit"),
-    Capability::ty("core::hit::PartEntry"),
-    Capability::ty("core::hit::PartMap"),
     // core::id
     Capability::ty("core::id::WidgetId"),
     Capability::builder("core::id::WidgetId::child"),

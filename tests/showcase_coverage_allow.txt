@@ -58,8 +58,6 @@ core::hit::ReleaseFrom | State tab readout of the library dispatcher: shown once
 core::hit::ReleaseFrom::Press | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::hit::ReleaseFrom::Secondary | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::hit::Hit | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
-core::hit::PartEntry | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
-core::hit::PartMap | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::id
 core::id::WidgetId | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34

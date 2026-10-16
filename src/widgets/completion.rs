@@ -9,7 +9,6 @@ use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::Axis;
-use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Moved, Navigable, RowSource};
@@ -54,8 +53,6 @@ impl CompletionItem {
 
 #[derive(Debug, Clone)]
 pub struct Completion {
-    /// The rows registered in the last render, by id.
-    parts: PartMap,
     pub id: WidgetId,
     pub items: Vec<CompletionItem>,
     pub cursor: usize,
@@ -129,7 +126,6 @@ impl Completion {
             fit: crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET),
             placement: Placement::Below,
             area: Rect::ZERO,
-            parts: PartMap::default(),
             dismiss: Dismiss::LIGHT.pass_through(true),
             cursor_style: CursorStyle::default(),
             nav: Self::NAV,
@@ -219,10 +215,10 @@ impl Completion {
         }
     }
 
-    /// The drawn row `id` is (the inverse [`Self::on_click`] needs until
-    /// S15 hands it the routed part).
+    /// The row `id` is (the inverse [`Self::on_click`] needs until S15
+    /// hands it the routed part).
     fn row_of(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
+        self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<CompletionAction> {
@@ -239,7 +235,6 @@ impl Completion {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        self.parts.clear();
         self.scroll.begin(ctx.track_click);
         if !self.is_open() {
             return;
@@ -267,12 +262,8 @@ impl Completion {
             .inner(ratatui::layout::Margin::new(1, 1));
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(inner.height as usize);
-        // the overlay paints from a copy, so the rows it will register are
-        // recorded here
-        for i in self.scroll.visible_range() {
-            self.parts.record(self.row_id(i), Self::row_part(i));
-        }
-        // and so is the bar's track, for presses and drags
+        // the overlay paints from a copy, so the bar's track is recorded
+        // here, for presses and drags
         if self.scroll.overflows() && inner.width >= 2 {
             let track = Rect::new(inner.right() - 1, inner.y, 1, inner.height);
             self.scroll.set_track(self.id, Axis::Vertical, track);

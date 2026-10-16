@@ -519,29 +519,25 @@ impl HitRegistry {
     }
 }
 
-/// One part a widget registered in its last render
-/// ([`PartMap::record`]).
+/// One part a widget recorded in its last render ([`PartMap::record`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PartEntry {
-    pub id: WidgetId,
-    pub part: PartRef,
-    /// The column of a 2-D part (a grid cell): `main` takes it from the
-    /// pointer position; until pointer intents carry the part (S6) the
-    /// id-based adapters read it here.
-    pub col: Option<usize>,
+struct PartEntry {
+    id: WidgetId,
+    part: PartRef,
+    /// The column of a 2-D part (a grid cell): the router resolves a cell
+    /// to its row only, so the id-taking methods read the column here.
+    col: Option<usize>,
 }
 
-/// The parts one widget registered in its last render, keyed by region
-/// id. A widget keeps one and fills it through
-/// [`RenderCtx::part`](crate::ui::ctx::RenderCtx::part), so its id-based
-/// adapters (`owns`, `locate`, until the pointer router hands widgets a
-/// [`PartRef`]) look an id up instead of re-deriving and comparing every
-/// candidate id by hand.
+/// The parts a widget recorded in its last render, keyed by region id:
+/// crate-private, kept only by the widgets whose id-taking methods
+/// (`DataTable::on_click_editor`, `DataGrid::on_click`/`on_drag`, deleted
+/// in S15) still map an id back to a 2-D cell. Everything else reads the
+/// part the router resolved ([`PointerEvent::part`]).
 ///
-/// The map is rebuilt on every render whether or not the frame is inert,
-/// so a widget drawn under a modal still knows its own ids.
+/// [`PointerEvent::part`]: crate::core::pointer::PointerEvent::part
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct PartMap {
+pub(crate) struct PartMap {
     entries: Vec<PartEntry>,
 }
 
@@ -570,18 +566,8 @@ impl PartMap {
     }
 
     /// The entry recorded under `id`.
-    pub fn entry(&self, id: WidgetId) -> Option<&PartEntry> {
+    fn entry(&self, id: WidgetId) -> Option<&PartEntry> {
         self.entries.iter().rev().find(|e| e.id == id)
-    }
-
-    /// The part recorded under `id`.
-    pub fn get(&self, id: WidgetId) -> Option<PartRef> {
-        self.entry(id).map(|e| e.part)
-    }
-
-    /// Whether `id` is one of the recorded parts.
-    pub fn contains(&self, id: WidgetId) -> bool {
-        self.entry(id).is_some()
     }
 
     /// The positional item of `id` when it is a `part` part
@@ -597,18 +583,6 @@ impl PartMap {
     pub fn cell(&self, id: WidgetId, part: Part) -> Option<(usize, usize)> {
         let e = self.entry(id).filter(|e| e.part.part == part)?;
         Some((e.part.item?.as_index()?, e.col?))
-    }
-
-    /// The item key of `id` when it is a `part` part.
-    pub fn key(&self, id: WidgetId, part: Part) -> Option<ItemKey> {
-        self.entry(id)
-            .filter(|e| e.part.part == part)
-            .and_then(|e| e.part.item)
-    }
-
-    /// Whether `id` is the part-without-item `part`.
-    pub fn is(&self, id: WidgetId, part: Part) -> bool {
-        self.entry(id).is_some_and(|e| e.part == PartRef::of(part))
     }
 }
 
@@ -698,10 +672,10 @@ mod tests {
         assert_eq!(m.index(w.child(4), Part::ROW), Some(4));
         assert_eq!(m.index(w.child(4), Part::TAB), None);
         assert_eq!(m.cell(w.child(4).child(2), Part::CELL), Some((4, 2)));
-        assert!(m.is(w.part(PartRef::of(Part::NEW)), Part::NEW));
-        assert!(!m.contains(w));
+        assert_eq!(m.index(w.part(PartRef::of(Part::NEW)), Part::NEW), None);
+        assert_eq!(m.index(w, Part::ROW), None);
         m.clear();
-        assert!(!m.contains(w.child(4)));
+        assert_eq!(m.index(w.child(4), Part::ROW), None);
     }
 
     #[test]

@@ -8,7 +8,6 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Navigable, RowSource};
@@ -88,8 +87,6 @@ pub enum PickerStatus {
 
 #[derive(Debug, Clone)]
 pub struct Picker {
-    /// The rows registered in the last render, by id.
-    parts: PartMap,
     pub id: WidgetId,
     pub status: PickerStatus,
     pub title: String,
@@ -207,7 +204,6 @@ impl Picker {
             strings: crate::theme::Strings::DEFAULT,
             empty: None,
             area: Rect::ZERO,
-            parts: PartMap::default(),
             searchable: true,
             cursor_style: CursorStyle::default(),
             cursor_dirty: true,
@@ -629,10 +625,10 @@ impl Picker {
         }
     }
 
-    /// The drawn row `id` is (the inverse [`Self::on_click`] needs until
-    /// S15 hands it the routed part).
+    /// The row `id` is (the inverse [`Self::on_click`] needs until S15
+    /// hands it the routed part).
     fn row_of(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
+        self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
@@ -662,7 +658,6 @@ impl Picker {
 
     fn paint(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
         self.scroll.begin(ctx.track_click);
-        self.parts.clear();
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         use crate::theme::Strings;
@@ -960,7 +955,7 @@ impl Picker {
                 }
             }
             if !it.disabled {
-                ctx.part(&mut self.parts, self.id, Self::row_part(i), row);
+                ctx.register_part(self.id, Self::row_part(i), row);
             }
         }
         if has_sb {

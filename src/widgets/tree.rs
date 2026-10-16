@@ -4,7 +4,6 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, unassigned_chord};
 use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
@@ -146,8 +145,6 @@ pub enum BranchAction {
 
 #[derive(Debug, Clone)]
 pub struct TreeView {
-    /// The rows and disclosures registered in the last render, by id.
-    parts: PartMap,
     pub id: WidgetId,
     pub nodes: Vec<TreeNode>,
     pub expanded: std::collections::HashSet<Path>,
@@ -294,7 +291,6 @@ impl TreeView {
             selected: None,
             scroll: ScrollPane::default(),
             area: Rect::ZERO,
-            parts: PartMap::default(),
             rows: vec![],
             filter: None,
             reserve_right: 0,
@@ -892,7 +888,6 @@ impl TreeView {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        self.parts.clear();
         self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -969,12 +964,7 @@ impl TreeView {
             // the label (registered before the early `continue`); the
             // disclosure, registered later, wins hit-testing over it
             if !row.note {
-                ctx.part(
-                    &mut self.parts,
-                    self.id,
-                    PartRef::item(Part::ROW, ItemKey::index(ri)),
-                    full,
-                );
+                ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(ri)), full);
             }
             if x + 2 >= rect.right() {
                 continue;
@@ -999,8 +989,7 @@ impl TreeView {
             };
             buf.set_string(x, y, glyph, gs);
             if row.has_children {
-                ctx.part(
-                    &mut self.parts,
+                ctx.register_part(
                     self.id,
                     PartRef::item(Part::ICON, ItemKey::index(ri)),
                     Rect::new(x, y, 2, 1),
@@ -1074,8 +1063,7 @@ impl TreeView {
             }
             // toggle region registered after row so it wins hit-testing
             if row.has_children {
-                ctx.part(
-                    &mut self.parts,
+                ctx.register_part(
                     self.id,
                     PartRef::item(Part::ICON, ItemKey::index(ri)),
                     Rect::new(rect.x + 1 + indent, y, 2, 1),

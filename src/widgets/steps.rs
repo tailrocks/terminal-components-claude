@@ -8,7 +8,6 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::NavKeys;
 use crate::core::list::{Cursor, Navigable, RowSource};
@@ -66,8 +65,6 @@ impl Step {
 
 #[derive(Debug, Clone)]
 pub struct StepRail {
-    /// The rows registered in the last render, by id.
-    parts: PartMap,
     pub id: WidgetId,
     pub steps: Vec<Step>,
     pub selectable: bool,
@@ -98,7 +95,6 @@ impl StepRail {
             cursor: 0,
             scroll: ScrollPane::new(n),
             area: Rect::ZERO,
-            parts: PartMap::default(),
             numbered: true,
             nav: NavKeys::default(),
         }
@@ -193,7 +189,6 @@ impl StepRail {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        self.parts.clear();
         self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -301,7 +296,7 @@ impl StepRail {
                 buf.set_string(row.right().saturating_sub(mw as u16 + 1), y, m, meta_style);
             }
             if self.selectable {
-                ctx.part(&mut self.parts, self.id, Self::row_part(i), row);
+                ctx.register_part(self.id, Self::row_part(i), row);
             }
             let _ = frontier;
         }

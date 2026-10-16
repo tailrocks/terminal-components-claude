@@ -5,7 +5,6 @@ use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::Axis;
-use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{
     Actions, KeyBinding, KeyMap, NavKeys, lookup, select_all_bindings, unassigned_chord,
@@ -76,8 +75,6 @@ pub enum SelectMode {
 /// row (see [`crate::ui::reveal`]).
 #[derive(Debug, Clone)]
 pub struct ListBox {
-    /// The rows registered in the last render, by id.
-    parts: PartMap,
     pub id: WidgetId,
     pub items: Vec<ListItem>,
     pub cursor: usize,
@@ -158,7 +155,6 @@ impl ListBox {
             checked: vec![false; n],
             scroll: ScrollPane::new(n),
             area: Rect::ZERO,
-            parts: PartMap::default(),
             empty_text: crate::theme::Strings::DEFAULT.empty_list.to_owned(),
             strings: crate::theme::Strings::DEFAULT,
             empty: None,
@@ -453,7 +449,6 @@ impl ListBox {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        self.parts.clear();
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         crate::theme::Strings::follow(&mut self.empty_text, old.empty_list, s.empty_list);
@@ -587,7 +582,7 @@ impl ListBox {
                 };
                 buf.set_string(mx, y, m, ms);
             }
-            ctx.part(&mut self.parts, self.id, Self::row_part(li), row);
+            ctx.register_part(self.id, Self::row_part(li), row);
             y += h;
         }
         // the scroll region also sits above the rows: a wheel burst handled
