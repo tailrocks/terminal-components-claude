@@ -1221,6 +1221,21 @@ impl Workbench {
         }
     }
 
+    /// A control lost focus: its field, grid or table ends the edit (see
+    /// [`junie_tui::core::focus::Focus::take_changes`]).
+    pub fn on_blur(&mut self, ch: junie_tui::core::focus::FocusChange) -> Outcome {
+        use junie_tui::core::focus::forward_blur;
+        let mut out = forward_blur(ch, &mut [&mut self.explorer_filter]);
+        for tab in &mut self.tabs {
+            out = out.or(match tab {
+                WorkTab::Table(t) => forward_blur(ch, &mut [&mut t.grid, &mut t.structure]),
+                WorkTab::History(h) => forward_blur(ch, &mut [&mut h.search]),
+                WorkTab::Query(_) => Outcome::Ignored,
+            });
+        }
+        out
+    }
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.explorer_filter.editing {
             return self.explorer_filter.on_paste(text);
