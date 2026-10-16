@@ -1,0 +1,25 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Selectable table       i Inspector   ? Help  [0m
+                                                                                [0m
+[0m[2m   Forms          [0m│  [0m[1mSelectable table[0m  Select rows, edit one or many together,… [0m
+   Lists          │                                                             [0m
+   Trees          │    Members                                     1–3 of 12   ┃[0m
+   Tables         │                                                            ┃[0m
+   Editable tabl… ┃       [ ] Name              Role    Status     Region …    ┃[0m
+   Panels         ┃       [0m[2m[ ][0m Dana Whitfield    Owner   Active     EU      ┃   ┃[0m
+   Sidebars       ┃       [ ] Ari Moreno        Admin   Active     US      │   ┃[0m
+   Dialogs        ┃       [ ] Cleo Barnes       Editor  Active     EU      │   ┃[0m
+   Progress       ┃           ━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────    ┃[0m
+   Scrolling      ┃                                                            ┃[0m
+   Terminal       ┃                                                            ┃[0m
+   Code editor    ┃                                                            │[0m
+   Diff           ┃                                                            │[0m
+   Data grid      ┃                                                            │[0m
+   Chips & selec… ┃                                                            │[0m
+   Pickers        ┃                                                            │[0m
+   Chrome         ┃                                                            │[0m
+   Settings       ┃                                                            │[0m
+   Task runner    ┃                                                            │[0m
+[0m[1m▎› Selectable ta… [0m┃                                                            │[0m
+                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
+[?25l
