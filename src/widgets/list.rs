@@ -90,6 +90,9 @@ pub struct ListBox {
     /// Typing a prefix jumps to the matching row (macOS lists). Off by
     /// default: plain letters keep their vim and action bindings.
     pub type_ahead: bool,
+    /// ↑ on the first row lands on the last and ↓ on the last on the
+    /// first. Default off: it stops at the end.
+    pub wrap: bool,
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
@@ -115,8 +118,15 @@ impl ListBox {
             skip_disabled: true,
             click: ClickAction::Activate,
             type_ahead: false,
+            wrap: false,
             typeahead: Default::default(),
         }
+    }
+
+    /// See [`Self::wrap`].
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
+        self
     }
 
     pub fn type_ahead(mut self, on: bool) -> Self {
@@ -288,11 +298,13 @@ impl ListBox {
         }
         match key.code {
             KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => {
-                self.move_cursor(self.cursor.saturating_sub(1), shift);
+                let to = crate::core::nav::step_index(self.cursor, self.items.len(), -1, self.wrap);
+                self.move_cursor(to, shift);
                 Outcome::Changed
             }
             KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') => {
-                self.move_cursor(self.cursor + 1, shift);
+                let to = crate::core::nav::step_index(self.cursor, self.items.len(), 1, self.wrap);
+                self.move_cursor(to, shift);
                 Outcome::Changed
             }
             KeyCode::PageUp => {
