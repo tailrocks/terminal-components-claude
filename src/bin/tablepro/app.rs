@@ -15,6 +15,8 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::modal::{Dismissal, ModalStack};
+use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::grid::CellValue;
@@ -107,13 +109,26 @@ pub struct FilterEditor {
     pub cancel: Button,
     pub area: Rect,
     columns: Vec<(String, crate::db::ColType)>,
+    /// A form holds typed input: only Esc (or Cancel) discards it, a stray
+    /// click outside does not.
+    pub dismiss: Dismiss,
 }
 
-#[allow(clippy::large_enum_variant)] // one overlay at a time
+#[allow(clippy::large_enum_variant)] // overlays are few and short-lived
 pub enum Modal {
     Dialog(Dialog),
     Picker(PickerKind, Picker, Option<SwitcherIndex>),
     Filter(FilterEditor),
+}
+
+impl junie_tui::ui::modal::Modal for Modal {
+    fn dismiss(&self) -> Dismiss {
+        match self {
+            Modal::Dialog(d) => d.dismiss,
+            Modal::Picker(_, p, _) => p.dismiss,
+            Modal::Filter(f) => f.dismiss,
+        }
+    }
 }
 
 pub struct App {
@@ -129,12 +144,12 @@ pub struct App {
     pub pointer: PointerState,
     /// Origin of the pointer clock.
     epoch: Instant,
-    pub modal: Option<Modal>,
+    /// Open overlays, bottom to top; each restores the focus it covered.
+    pub modals: ModalStack<Modal>,
     pub size: (u16, u16),
     pub tick: u64,
     pub status: Option<(String, Instant)>,
     pub quit: bool,
-    saved_focus: Option<WidgetId>,
     too_small: bool,
     /// Simulated commit in flight: ticks left.
     committing: Option<u32>,
@@ -158,12 +173,11 @@ impl App {
             hits: HitRegistry::default(),
             pointer: PointerState::default(),
             epoch: Instant::now(),
-            modal: None,
+            modals: ModalStack::new(),
             size: (0, 0),
             tick: 0,
             status: None,
             quit: false,
-            saved_focus: None,
             too_small: false,
             committing: None,
             scope: 0,
@@ -235,10 +249,10 @@ impl App {
             }
             Input::Tick => self.on_tick(),
             Input::Paste(text) => {
-                if let Some(Modal::Dialog(d)) = self.modal.as_mut() {
+                if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
                     return d.on_paste(&text);
                 }
-                if let Some(Modal::Filter(f)) = self.modal.as_mut() {
+                if let Some(Modal::Filter(f)) = self.modals.top_mut() {
                     if f.value.editing {
                         return f.value.on_paste(&text);
                     }
@@ -493,7 +507,7 @@ impl App {
             }
             return Outcome::Consumed;
         }
-        if self.modal.is_some() {
+        if !self.modals.is_empty() {
             return self.modal_key(key);
         }
         // global chords that work everywhere (not while editing text)
@@ -1184,9 +1198,8 @@ impl App {
     // ---- overlays ------------------------------------------------------
 
     fn open_dialog(&mut self, d: Dialog) {
-        self.saved_focus = self.focus.current();
-        self.focus.set(Some(d.initial_focus));
-        self.modal = Some(Modal::Dialog(d));
+        let initial = Some(d.initial_focus);
+        self.modals.push(Modal::Dialog(d), &mut self.focus, initial);
         self.pointer.hover = None;
         self.pointer.pressed = None;
     }
@@ -1240,13 +1253,18 @@ impl App {
         p.width = 88;
         self.scope = 0;
         p.scope = Some("All · Tab scope".into());
-        self.saved_focus = self.focus.current();
-        self.modal = Some(Modal::Picker(PickerKind::Switcher, p, Some(index)));
+        let keep = self.focus.current();
+        self.modals.push(
+            Modal::Picker(PickerKind::Switcher, p, Some(index)),
+            &mut self.focus,
+            keep,
+        );
         self.refresh_switcher();
     }
 
     fn refresh_switcher(&mut self) {
-        let Some(Modal::Picker(PickerKind::Switcher, p, Some(index))) = self.modal.as_mut() else {
+        let Some(Modal::Picker(PickerKind::Switcher, p, Some(index))) = self.modals.top_mut()
+        else {
             return;
         };
         let scopes = ["All", "Tables", "Schemas", "Queries"];
@@ -1345,8 +1363,12 @@ impl App {
             .collect();
         p.set_items(items);
         p.cursor = w.active;
-        self.saved_focus = self.focus.current();
-        self.modal = Some(Modal::Picker(PickerKind::TabList, p, None));
+        let keep = self.focus.current();
+        self.modals.push(
+            Modal::Picker(PickerKind::TabList, p, None),
+            &mut self.focus,
+            keep,
+        );
     }
 
     fn open_safe_mode_picker(&mut self) {
@@ -1376,8 +1398,12 @@ impl App {
             .position(|s| *s == current)
             .unwrap_or(0);
         p.empty_text = String::new();
-        self.saved_focus = self.focus.current();
-        self.modal = Some(Modal::Picker(PickerKind::SafeMode, p, None));
+        let keep = self.focus.current();
+        self.modals.push(
+            Modal::Picker(PickerKind::SafeMode, p, None),
+            &mut self.focus,
+            keep,
+        );
     }
 
     fn open_filter_editor(
@@ -1437,23 +1463,29 @@ impl App {
             cancel: Button::subtle(f.sub("cancel"), "Cancel"),
             area: Rect::ZERO,
             columns,
+            dismiss: Dismiss::ESCAPE,
         };
-        self.saved_focus = self.focus.current();
-        self.focus.focus(if value.is_empty() {
+        let initial = Some(if value.is_empty() {
             editor.value.id
         } else {
             editor.apply.id
         });
-        self.modal = Some(Modal::Filter(editor));
+        self.modals
+            .push(Modal::Filter(editor), &mut self.focus, initial);
     }
 
     fn close_modal(&mut self) {
-        self.modal = None;
-        self.focus.set(self.saved_focus.take());
+        self.modals.pop(&mut self.focus);
+    }
+
+    /// The topmost overlay.
+    #[cfg(test)]
+    pub fn modal(&self) -> Option<&Modal> {
+        self.modals.top()
     }
 
     fn modal_key(&mut self, key: Key) -> Outcome {
-        let Some(modal) = self.modal.as_mut() else {
+        let Some(modal) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match modal {
@@ -1624,7 +1656,7 @@ impl App {
                 Outcome::Changed
             }
             PickerKind::TabList => {
-                let idx = match &self.modal {
+                let idx = match self.modals.top() {
                     Some(Modal::Picker(_, p, _)) => p
                         .items
                         .get(i)
@@ -1674,6 +1706,7 @@ impl App {
         use junie_tui::widgets::input::InputEvent;
         let cur = focus.current();
         if key.is(KeyCode::Esc)
+            && f.dismiss.escape
             && !f.value.editing
             && !f.value2.editing
             && !f.column.open
@@ -1756,7 +1789,7 @@ impl App {
     }
 
     fn apply_filter(&mut self) -> Outcome {
-        let Some(Modal::Filter(f)) = self.modal.as_mut() else {
+        let Some(Modal::Filter(f)) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         let ops = FilterOp::ordered_for(f.columns[f.column.selected].1);
@@ -1880,7 +1913,7 @@ impl App {
         let release = self.pointer.release(hit);
         let Release::Click(id) = release else {
             // click outside a modal cancels it (dialogs decide themselves)
-            if let Some(modal) = self.modal.as_mut()
+            if let Some(modal) = self.modals.top_mut()
                 && release == Release::Outside
             {
                 match modal {
@@ -1892,8 +1925,11 @@ impl App {
                             return self.dialog_closed(did, result, None).or(out);
                         }
                     }
-                    Modal::Picker(..) | Modal::Filter(_) => {
-                        self.close_modal();
+                    // everything else follows its own dismiss policy
+                    _ => {
+                        if self.modals.outside_click() == Dismissal::Close {
+                            self.close_modal();
+                        }
                         return Outcome::Changed;
                     }
                 }
@@ -1902,7 +1938,7 @@ impl App {
         };
         let now = self.now_ms();
         self.pointer.flash(id, now);
-        if let Some(modal) = self.modal.as_mut() {
+        if let Some(modal) = self.modals.top_mut() {
             return match modal {
                 Modal::Dialog(d) => {
                     let out = d.on_click(id, m.pos, &mut self.focus);
@@ -1995,7 +2031,7 @@ impl App {
                 let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
                     return Outcome::Ignored;
                 };
-                if self.modal.is_some() {
+                if !self.modals.is_empty() {
                     return Outcome::Consumed;
                 }
                 match self.screen {
@@ -2009,13 +2045,13 @@ impl App {
             }
             MouseKind::Down => {
                 let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
-                    return if self.modal.is_some() {
+                    return if !self.modals.is_empty() {
                         Outcome::Consumed
                     } else {
                         Outcome::Ignored
                     };
                 };
-                if self.modal.is_some() {
+                if !self.modals.is_empty() {
                     return Outcome::Changed;
                 }
                 if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
@@ -2043,13 +2079,13 @@ impl App {
             | MouseKind::WheelRight => {
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 let delta = self.pointer.wheel_delta(m.kind);
-                if let Some(Modal::Picker(_, p, _)) = self.modal.as_mut() {
+                if let Some(Modal::Picker(_, p, _)) = self.modals.top_mut() {
                     return p.on_wheel(delta);
                 }
-                if let Some(Modal::Dialog(d)) = self.modal.as_mut() {
+                if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
                     return d.on_wheel(delta);
                 }
-                if self.modal.is_some() {
+                if !self.modals.is_empty() {
                     return Outcome::Consumed;
                 }
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
@@ -2120,7 +2156,7 @@ impl App {
         {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            ctx.page_under_layer(self.modal.is_some());
+            ctx.page_under_layer(!self.modals.is_empty());
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
             cursor = ctx.cursor;
@@ -2128,7 +2164,7 @@ impl App {
         self.hits = hits;
         self.pointer.refresh_hover(&self.hits);
         self.ring = ring;
-        if self.modal.is_none() {
+        if self.modals.is_empty() {
             if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
                 self.focus.set(self.ring.first());
             }
@@ -2187,9 +2223,9 @@ impl App {
         }
         self.draw_footer(footer, buf, ctx);
         // overlays
-        let modal = self.modal.take();
-        if let Some(mut modal) = modal {
-            match &mut modal {
+        let mut modals = std::mem::take(&mut self.modals);
+        for modal in modals.iter_mut() {
+            match modal {
                 Modal::Dialog(d) => d.render_in(
                     area,
                     junie_tui::widgets::dialog::body_bounds(area, 1, 1),
@@ -2212,8 +2248,8 @@ impl App {
                 }
                 Modal::Filter(f) => Self::draw_filter_editor(f, area, buf, ctx),
             }
-            self.modal = Some(modal);
         }
+        self.modals = modals;
     }
 
     fn draw_strip(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -2317,7 +2353,7 @@ impl App {
             Screen::Connections => self.connections.is_editing(),
             Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
         };
-        let hints: Vec<Hint> = match &self.modal {
+        let hints: Vec<Hint> = match self.modals.top() {
             Some(Modal::Dialog(d)) => d.hints(self.focus.current()),
             Some(Modal::Picker(..)) => vec![],
             Some(Modal::Filter(_)) => vec![
@@ -2337,10 +2373,10 @@ impl App {
         let mut hints = hints;
         // the focused cursor row is cut: name the reveal key
         junie_tui::ui::reveal::advertise(&mut hints, ctx.reveal_hint, |h| h.key, hint);
-        if self.modal.is_none() && !editing {
+        if self.modals.is_empty() && !editing {
             hints.push(hint("Tab", "Next"));
         }
-        let badge = if editing && self.modal.is_none() {
+        let badge = if editing && self.modals.is_empty() {
             Some(("EDIT", BadgeKind::Edit))
         } else {
             None
