@@ -5,6 +5,8 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
@@ -115,6 +117,64 @@ impl FormsPage {
         *self = Self::new();
         cx.focus.focus(self.name.id);
         cx.status("Form reset");
+    }
+}
+
+impl FormsPage {
+    /// Each control takes its own pointer events; a click on a text field
+    /// or a radio option focuses it (the options are not focus stops).
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        let click = ev.is(Phase::Click);
+        for inp in [&mut self.name, &mut self.reviewer] {
+            if let Some(r) = inp.route(ev) {
+                if click {
+                    cx.focus.focus(inp.id);
+                }
+                return r.outcome();
+            }
+        }
+        if let Some(r) = self.description.route(ev) {
+            if click {
+                cx.focus.focus(self.description.id);
+            }
+            return r.outcome();
+        }
+        if let Some(r) = self.mode.route(ev) {
+            if click && r.outcome() != Outcome::Ignored {
+                cx.focus.focus(self.mode.id);
+            }
+            return r.outcome();
+        }
+        let toggles = [
+            self.run_tests.route(ev),
+            self.open_pr.route(ev),
+            self.auto_approve.route(ev),
+            self.notify.route(ev),
+        ];
+        if let Some(r) = toggles.into_iter().flatten().next() {
+            return r.outcome();
+        }
+        if let Some(r) = self.submit.route(ev) {
+            if r.into_action().is_some() {
+                self.do_submit(cx);
+            }
+            return if click {
+                Outcome::Changed
+            } else {
+                Outcome::Ignored
+            };
+        }
+        if let Some(r) = self.reset.route(ev) {
+            if r.into_action().is_some() {
+                self.do_reset(cx);
+            }
+            return if click {
+                Outcome::Changed
+            } else {
+                Outcome::Ignored
+            };
+        }
+        Outcome::Ignored
     }
 }
 
@@ -322,52 +382,7 @@ impl Page for FormsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, pos } => {
-                let id = *id;
-                if id == self.name.id {
-                    cx.focus.focus(id);
-                    return self.name.on_click(*pos);
-                }
-                if id == self.reviewer.id {
-                    cx.focus.focus(id);
-                    return self.reviewer.on_click(*pos);
-                }
-                if id == self.description.id {
-                    cx.focus.focus(id);
-                    return self.description.on_click(*pos);
-                }
-                for i in 0..self.mode.options.len() {
-                    if self.mode.option_id(i) == id {
-                        cx.focus.focus(self.mode.id);
-                        return self.mode.on_click(i);
-                    }
-                }
-                if id == self.run_tests.id {
-                    return self.run_tests.on_click();
-                }
-                if id == self.open_pr.id {
-                    return self.open_pr.on_click();
-                }
-                if id == self.auto_approve.id {
-                    return self.auto_approve.on_click();
-                }
-                if id == self.notify.id {
-                    return self.notify.on_click();
-                }
-                if id == self.submit.id {
-                    if self.submit.on_click() {
-                        self.do_submit(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                if id == self.reset.id {
-                    if self.reset.on_click() {
-                        self.do_reset(cx);
-                    }
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
+            PageEvent::Pointer(p) => self.pointer(p, cx),
             _ => Outcome::Ignored,
         }
     }

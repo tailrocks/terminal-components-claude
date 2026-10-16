@@ -9,6 +9,8 @@ use ratatui::layout::Rect;
 
 use super::{Hint, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::menu::{ContextMenu, MenuAction};
@@ -79,9 +81,18 @@ impl<T: Clone> RowMenu<T> {
                 // the menu owns the keyboard while it is open
                 (o.or(Outcome::Consumed), e)
             }
-            PageEvent::Click { id, .. } => (Outcome::Changed, menu.on_click(*id)),
-            PageEvent::Press { .. } | PageEvent::Drag { .. } => (Outcome::Consumed, None),
-            PageEvent::Secondary { id, .. } if menu.owns(*id) => (Outcome::Consumed, None),
+            PageEvent::Pointer(p) => match menu.route(p) {
+                // the menu's own row, marker, backdrop or wheel
+                Some(r) if r.outcome() != Outcome::Ignored => r.into_parts(),
+                Some(_) => return None,
+                // a click elsewhere is outside the menu; a press or drag
+                // elsewhere is swallowed while it is open
+                None => match p.phase() {
+                    Some(Phase::Click) => (Outcome::Changed, menu.on_click(p.id)),
+                    Some(Phase::Press | Phase::Drag) => (Outcome::Consumed, None),
+                    _ => return None,
+                },
+            },
             _ => return None,
         };
         match event {

@@ -14,11 +14,13 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
 use crate::pages::row_menu::{MENU_HINTS, RowMenu};
+use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::columns::{self, Col, HeaderLabels};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
@@ -26,7 +28,6 @@ use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::menu::ContextMenu;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
-use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::table::{Cell, Column, DataTable, Tone};
 
 const ID: WidgetId = WidgetId::of("columns");
@@ -337,6 +338,47 @@ impl ColumnsPage {
     }
 }
 
+impl ColumnsPage {
+    /// A secondary click on a header opens its menu; the sized table takes
+    /// its headers, seams (a press focuses it), cells, bar and wheel; the
+    /// two specimen tables their cells.
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        if ev.is(Phase::Secondary) {
+            let Some(c) = self.sized.locate_header_menu(ev.id) else {
+                return Outcome::Ignored;
+            };
+            cx.focus.focus(self.sized.id);
+            self.sized.cursor_col = c;
+            let items = self
+                .sized
+                .header_menu(c)
+                .into_iter()
+                .map(|(_, m)| m)
+                .collect();
+            let title = self.sized.columns[c].title.clone();
+            let menu = ContextMenu::new(HEADER_MENU, items)
+                .at(ev.pos())
+                .title(title);
+            self.header_menu.open(menu, c);
+            return Outcome::Changed;
+        }
+        if ev.is(Phase::Press) && self.sized.locate_seam(ev.id).is_some() {
+            cx.focus.focus(self.sized.id);
+        }
+        if ev.is(Phase::Click)
+            && let Some(c) = self.sized.locate_header(ev.id)
+        {
+            self.sized.cursor_col = c;
+        }
+        for t in [&mut self.sized, &mut self.rules, &mut self.row] {
+            if let Some((out, _)) = route_table(t, ev, cx) {
+                return out;
+            }
+        }
+        Outcome::Ignored
+    }
+}
+
 impl Page for ColumnsPage {
     fn title(&self) -> &'static str {
         "Columns"
@@ -400,55 +442,7 @@ impl Page for ColumnsPage {
             PageEvent::Key(key) if cx.focus.is(self.sized.id) => self.sized.on_key(key).0,
             PageEvent::Key(key) if cx.focus.is(self.rules.id) => self.rules.on_key(key).0,
             PageEvent::Key(key) if cx.focus.is(self.row.id) => self.row.on_key(key).0,
-            PageEvent::Secondary { id, pos } => {
-                let Some(c) = self.sized.locate_header_menu(*id) else {
-                    return Outcome::Ignored;
-                };
-                cx.focus.focus(self.sized.id);
-                self.sized.cursor_col = c;
-                let items = self
-                    .sized
-                    .header_menu(c)
-                    .into_iter()
-                    .map(|(_, m)| m)
-                    .collect();
-                let title = self.sized.columns[c].title.clone();
-                let menu = ContextMenu::new(HEADER_MENU, items).at(*pos).title(title);
-                self.header_menu.open(menu, c);
-                Outcome::Changed
-            }
-            PageEvent::Press { id, pos } if self.sized.locate_seam(*id).is_some() => {
-                cx.focus.focus(self.sized.id);
-                self.sized.on_press(*id, *pos, cx.clicks)
-            }
-            PageEvent::Drag { pressed, pos } if self.sized.owns(*pressed) => {
-                self.sized.on_drag(*pressed, *pos)
-            }
-            PageEvent::Click { id, pos } => {
-                if let Some(c) = self.sized.locate_header(*id) {
-                    cx.focus.focus(self.sized.id);
-                    self.sized.cursor_col = c;
-                    return self.sized.on_click_header(c);
-                }
-                if let Some((row, col)) = self.sized.locate(*id) {
-                    cx.focus.focus(self.sized.id);
-                    return self.sized.on_click_cell(row, col.unwrap_or(0), *pos).0;
-                }
-                for t in [&mut self.rules, &mut self.row] {
-                    if let Some((row, col)) = t.locate(*id) {
-                        cx.focus.focus(t.id);
-                        return t.on_click_cell(row, col.unwrap_or(0), *pos).0;
-                    }
-                }
-                if scrollbar::is_bar_of(*id, self.sized.id) {
-                    return self.sized.on_scrollbar(*pos);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } if self.sized.owns(*id) => self.sized.on_wheel(*delta),
-            PageEvent::WheelH { id, delta } if self.sized.owns(*id) => {
-                self.sized.on_wheel_h(*delta)
-            }
+            PageEvent::Pointer(p) => self.pointer(p, cx),
             _ => Outcome::Ignored,
         }
     }
