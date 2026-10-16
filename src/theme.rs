@@ -1643,6 +1643,8 @@ pub struct Glyphs {
     pub control: &'static str,
     /// Arrow-key names in hints: up, down, left, right. `↑ ↓ ← →`.
     pub arrows: [&'static str; 4],
+    /// The Shift key in hints (`⇧←→`). `⇧`.
+    pub shift: &'static str,
     /// Popup, dialog, menu and panel borders. Rounded box drawing.
     pub border: ratatui::symbols::border::Set<'static>,
 }
@@ -1701,6 +1703,7 @@ impl Glyphs {
         tab: "⇥",
         control: "·",
         arrows: ["↑", "↓", "←", "→"],
+        shift: "⇧",
         border: ratatui::symbols::border::ROUNDED,
     };
 
@@ -1758,6 +1761,7 @@ impl Glyphs {
         tab: ">",
         control: ".",
         arrows: ["^", "v", "<", ">"],
+        shift: "S",
         border: ratatui::symbols::border::Set {
             top_left: "+",
             top_right: "+",
@@ -1779,10 +1783,13 @@ impl Glyphs {
     }
 
     /// `s` with every arrow-key character (`↑ ↓ ← →`) replaced by
-    /// [`Self::arrows`] and the range dash `–` by [`Self::dash`], for key
-    /// labels built from the Unicode names.
+    /// [`Self::arrows`], `⇧` by [`Self::shift`] and the range dash `–` by
+    /// [`Self::dash`], for key labels built from the Unicode names.
     pub fn key_label<'a>(&self, s: &'a str) -> std::borrow::Cow<'a, str> {
-        if self.arrows == Self::UNICODE.arrows && self.dash == Self::UNICODE.dash {
+        if self.arrows == Self::UNICODE.arrows
+            && self.dash == Self::UNICODE.dash
+            && self.shift == Self::UNICODE.shift
+        {
             return std::borrow::Cow::Borrowed(s);
         }
         let mut out = String::with_capacity(s.len());
@@ -1793,6 +1800,7 @@ impl Glyphs {
                 '←' => out.push_str(self.arrows[2]),
                 '→' => out.push_str(self.arrows[3]),
                 '–' => out.push_str(self.dash),
+                '⇧' => out.push_str(self.shift),
                 c => out.push(c),
             }
         }
@@ -1823,6 +1831,8 @@ pub struct Strings {
     pub cancel: &'static str,
     /// The save button of form dialogs. `Save`.
     pub save: &'static str,
+    /// The close button of info dialogs. `Close`.
+    pub close: &'static str,
     /// The typed acknowledgement of a dangerous dialog; `{}` is the token.
     /// `Type {} to confirm`.
     pub type_to_confirm: &'static str,
@@ -1906,6 +1916,7 @@ impl Strings {
     pub const DEFAULT: Self = Self {
         cancel: "Cancel",
         save: "Save",
+        close: "Close",
         type_to_confirm: "Type {} to confirm",
         type_to_confirm_hint: "\"{}\" to confirm",
         more_cut: "… {} more",
