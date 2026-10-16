@@ -115,6 +115,14 @@ pub struct Picker {
     /// Which dismissals close the picker without choosing. Default
     /// [`Dismiss::LIGHT`]: Esc and a click outside both cancel.
     pub dismiss: crate::ui::popup::Dismiss,
+    /// The query caret as a byte offset, or `None` at the end (where an
+    /// owner that rewrites [`Self::query`] leaves it).
+    caret: Option<usize>,
+    /// Delete on the query emits [`PickerEvent::Secondary`] for the
+    /// cursor row (close a tab, forget an entry) instead of deleting
+    /// forward. Default `true` (today's binding); off, Delete deletes the
+    /// character after the caret like a search field.
+    pub delete_is_secondary: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -157,6 +165,44 @@ impl Picker {
             cursor_dirty: true,
             reveal: None,
             dismiss: crate::ui::popup::Dismiss::LIGHT,
+            caret: None,
+            delete_is_secondary: true,
+        }
+    }
+
+    pub fn delete_is_secondary(mut self, on: bool) -> Self {
+        self.delete_is_secondary = on;
+        self
+    }
+
+    /// The query caret as a byte offset (clamped to a boundary: an owner
+    /// may have rewritten the query).
+    pub fn caret(&self) -> usize {
+        match self.caret {
+            Some(c) if c <= self.query.len() && self.query.is_char_boundary(c) => c,
+            _ => self.query.len(),
+        }
+    }
+
+    fn set_caret(&mut self, at: usize) {
+        self.caret = (at < self.query.len()).then_some(at);
+    }
+
+    /// Byte offset of the grapheme boundary before / after the caret.
+    fn grapheme_step(&self, forward: bool) -> Option<usize> {
+        use unicode_segmentation::UnicodeSegmentation;
+        let c = self.caret();
+        if forward {
+            self.query[c..]
+                .grapheme_indices(true)
+                .nth(1)
+                .map(|(i, _)| c + i)
+                .or((c < self.query.len()).then_some(self.query.len()))
+        } else {
+            self.query[..c]
+                .grapheme_indices(true)
+                .next_back()
+                .map(|(i, _)| i)
         }
     }
 
@@ -244,12 +290,25 @@ impl Picker {
             .filter(|k| !k.is_empty())
     }
 
+    /// Delete the grapheme before the caret.
     fn pop_grapheme(&mut self) -> bool {
-        use unicode_segmentation::UnicodeSegmentation;
-        let Some((i, _)) = self.query.grapheme_indices(true).next_back() else {
+        let Some(i) = self.grapheme_step(false) else {
             return false;
         };
-        self.query.truncate(i);
+        let c = self.caret();
+        self.query.replace_range(i..c, "");
+        self.set_caret(i);
+        true
+    }
+
+    /// Delete the grapheme after the caret.
+    fn delete_forward(&mut self) -> bool {
+        let Some(e) = self.grapheme_step(true) else {
+            return false;
+        };
+        let c = self.caret();
+        self.query.replace_range(c..e, "");
+        self.set_caret(c);
         true
     }
 
@@ -285,7 +344,9 @@ impl Picker {
         if flat.is_empty() {
             return (Outcome::Consumed, None);
         }
-        self.query.push_str(&flat);
+        let c = self.caret();
+        self.query.insert_str(c, &flat);
+        self.set_caret(c + flat.len());
         (Outcome::Changed, Some(PickerEvent::QueryChanged))
     }
 
@@ -377,11 +438,48 @@ impl Picker {
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
+            KeyCode::Delete if self.searchable && !self.delete_is_secondary => {
+                if self.delete_forward() {
+                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                } else {
+                    (Outcome::Consumed, None)
+                }
+            }
+            KeyCode::Left if self.searchable && key.plain() => {
+                if let Some(i) = self.grapheme_step(false) {
+                    self.set_caret(i);
+                }
+                (Outcome::Changed, None)
+            }
+            KeyCode::Right if self.searchable && key.plain() => {
+                if let Some(i) = self.grapheme_step(true) {
+                    self.set_caret(i);
+                }
+                (Outcome::Changed, None)
+            }
+            KeyCode::Home if self.searchable && key.ctrl() => {
+                self.set_caret(0);
+                (Outcome::Changed, None)
+            }
+            KeyCode::End if self.searchable && key.ctrl() => {
+                self.caret = None;
+                (Outcome::Changed, None)
+            }
+            KeyCode::Char('a') if self.searchable && key.ctrl() => {
+                self.set_caret(0);
+                (Outcome::Changed, None)
+            }
+            KeyCode::Char('e') if self.searchable && key.ctrl() => {
+                self.caret = None;
+                (Outcome::Changed, None)
+            }
             KeyCode::Delete => match self.eligible(self.cursor) {
                 Some(i) => (Outcome::Changed, Some(PickerEvent::Secondary(i))),
                 None => (Outcome::Consumed, None),
             },
-            KeyCode::Backspace if self.query.is_empty() => {
+            KeyCode::Backspace
+                if self.query.is_empty() || self.caret() == 0 && !self.searchable =>
+            {
                 (Outcome::Changed, Some(PickerEvent::Back))
             }
             KeyCode::Backspace if self.searchable && (key.ctrl() || key.alt()) => {
@@ -413,7 +511,9 @@ impl Picker {
                 }
             }
             KeyCode::Char(c) if self.searchable && !key.ctrl() && !key.alt() => {
-                self.query.push(c);
+                let at = self.caret();
+                self.query.insert(at, c);
+                self.set_caret(at + c.len_utf8());
                 (Outcome::Changed, Some(PickerEvent::QueryChanged))
             }
             KeyCode::Char('j') if !self.searchable => {
@@ -527,8 +627,9 @@ impl Picker {
                         .underline_color(t.text_secondary),
                 );
             }
+            let before = width(&self.query[..self.caret()]);
             ctx.set_cursor(ratatui::layout::Position::new(
-                field.x + 2 + width(&self.query).min(field.width.saturating_sub(3) as usize) as u16,
+                field.x + 2 + before.min(field.width.saturating_sub(3) as usize) as u16,
                 y,
             ));
             y += 2;
@@ -768,6 +869,36 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+
+    #[test]
+    fn the_query_caret_moves_and_edits_in_place() {
+        let k = |code, mods| Key { code, mods };
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let mut p = picker(3);
+        for c in "ordrs".chars() {
+            p.on_key(&k(KeyCode::Char(c), M::NONE));
+        }
+        p.on_key(&k(KeyCode::Left, M::NONE));
+        p.on_key(&k(KeyCode::Left, M::NONE));
+        p.on_key(&k(KeyCode::Char('e'), M::NONE));
+        assert_eq!(p.query, "orders");
+        assert_eq!(p.caret(), 4);
+        p.on_key(&k(KeyCode::Backspace, M::NONE));
+        assert_eq!(p.query, "ordrs");
+        p.on_key(&k(KeyCode::Char('a'), M::CONTROL));
+        assert_eq!(p.caret(), 0);
+        // Delete stays the secondary action by default
+        assert!(matches!(
+            p.on_key(&k(KeyCode::Delete, M::NONE)).1,
+            Some(PickerEvent::Secondary(_)) | None
+        ));
+        assert_eq!(p.query, "ordrs");
+        let mut f = picker(3).delete_is_secondary(false);
+        f.query = "xyz".into();
+        f.on_key(&k(KeyCode::Char('a'), M::CONTROL));
+        f.on_key(&k(KeyCode::Delete, M::NONE));
+        assert_eq!(f.query, "yz");
+    }
 
     #[test]
     fn dismissal_follows_the_picker_policy() {
