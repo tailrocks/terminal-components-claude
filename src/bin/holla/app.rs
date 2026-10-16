@@ -75,7 +75,7 @@ pub struct TabEntry {
 }
 
 pub(crate) struct ModalEntry {
-    modal: Modal,
+    pub(crate) modal: Modal,
     tag: ModalTag,
     owner: usize,
 }

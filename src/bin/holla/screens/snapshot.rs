@@ -7,10 +7,12 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
+use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual};
 use junie_tui::widgets::props::{self, Prop};
@@ -20,10 +22,15 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
-use crate::screens::{Cx, Go, Screen, StatusBits, plural, scroll_drag, scroll_press};
+use crate::screens::{
+    Cx, Go, ModalResult, ModalTag, Screen, StatusBits, open_context, plural, row_choice,
+    scroll_drag, scroll_press,
+};
 use crate::sim::world::World;
 
 pub const BODY: WidgetId = WidgetId::of("snapshot.body");
+/// The body's context menu.
+pub const MENU: WidgetId = WidgetId::of("snapshot.menu");
 
 /// A follow-up action: label, item id, arguments.
 type FollowUp = (String, String, Vec<(String, String)>);
@@ -1225,6 +1232,38 @@ impl SnapshotPage {
     }
 }
 
+impl SnapshotPage {
+    /// The body's context menu: the page's own keys, then its follow-up
+    /// actions. An item past the keys in the tag (`0:keys`) runs the
+    /// follow-up at that offset, like its button.
+    fn body_menu(&self, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
+        let mut items = vec![MenuItem::new("Copy").shortcut("y")];
+        let mut keys = String::from("y");
+        if self.kind.starts_with("config:") {
+            items.push(MenuItem::new("Re-read configuration").shortcut("r"));
+            items.push(MenuItem::new("Revoke trust").shortcut("u").danger());
+            keys.push_str("ru");
+        } else {
+            items.push(MenuItem::new("Refresh").shortcut("r"));
+            keys.push('r');
+        }
+        if let Some(last) = items.last_mut() {
+            last.separator_after = !self.follow_ups.is_empty();
+        }
+        for (label, _, _) in &self.follow_ups {
+            items.push(MenuItem::new(format!("{label}…")));
+        }
+        open_context(
+            cx,
+            MENU,
+            anchor,
+            self.title.clone(),
+            items,
+            ModalTag::new("snapshot-body").key(format!("0:{keys}")),
+        )
+    }
+}
+
 impl Screen for SnapshotPage {
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
         let running = self.report_index().is_some_and(|idx| {
@@ -1466,6 +1505,53 @@ impl Screen for SnapshotPage {
         }
     }
 
+    fn on_secondary(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        _w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        if id != BODY {
+            return Outcome::Ignored;
+        }
+        cx.focus.focus(BODY);
+        self.body_menu(ContextAnchor::Pointer(pos), cx)
+    }
+
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(BODY) {
+            return Outcome::Ignored;
+        }
+        // a read-only text body has no cursor row: the menu opens at its
+        // top line
+        let at = Position::new(self.body_area.x, self.body_area.y);
+        self.body_menu(ContextAnchor::Pointer(at), cx)
+    }
+
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        let Some((_, key, k)) = row_choice(tag, "snapshot-body", &result) else {
+            return Outcome::Changed;
+        };
+        if let Some(key) = key {
+            return self.on_key(&key, w, cx).or(Outcome::Changed);
+        }
+        let keys = tag
+            .key
+            .split_once(':')
+            .map_or(0, |(_, k)| k.chars().count());
+        if let Some((_, item, args)) = self.follow_ups.get(k - keys).cloned() {
+            cx.go(Go::Run { item, args });
+        }
+        Outcome::Changed
+    }
+
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if focus.is_some_and(|f| self.buttons.iter().any(|b| b.id == f)) {
             return vec![
@@ -1479,6 +1565,7 @@ impl Screen for SnapshotPage {
             v.push(hint("Tab", "Next actions"));
         }
         v.push(hint("Esc", "Back"));
+        v.push(junie_tui::widgets::keyhint::CONTEXT_MENU);
         v
     }
 
