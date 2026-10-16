@@ -189,6 +189,14 @@ impl ListBox {
         self
     }
 
+    /// The pause after which the next letter starts a new type-ahead
+    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
+    /// (1 s; APG suggests 500–1000 ms).
+    pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.typeahead.timeout = timeout;
+        self
+    }
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
@@ -941,6 +949,29 @@ mod scroll_tests {
         press(&mut m, KeyCode::Char('a'));
         assert_eq!(m.checked, vec![true, true], "a toggles all");
         assert_eq!(m.cursor, 1);
+    }
+
+    #[test]
+    fn the_type_ahead_pause_is_configurable() {
+        // SIg10: a pause starts a new prefix; the pause is a knob
+        let items = || {
+            vec![
+                ListItem::new("alpha"),
+                ListItem::new("bravo"),
+                ListItem::new("romeo"),
+            ]
+        };
+        let mut patient = ListBox::new(WidgetId::of("p"), items(), SelectMode::Single);
+        press(&mut patient, KeyCode::Char('b'));
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        press(&mut patient, KeyCode::Char('r'));
+        assert_eq!(patient.cursor, 1, "`br` within 1 s stays on bravo");
+        let mut quick = ListBox::new(WidgetId::of("q"), items(), SelectMode::Single)
+            .type_ahead_timeout(std::time::Duration::ZERO);
+        press(&mut quick, KeyCode::Char('b'));
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        press(&mut quick, KeyCode::Char('r'));
+        assert_eq!(quick.cursor, 2, "after the pause `r` starts over: romeo");
     }
 
     #[test]
