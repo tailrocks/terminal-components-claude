@@ -339,6 +339,13 @@ mod palette {
     pub const WHITE_50: Color = rgb(0x808080);
     pub const WHITE_30: Color = rgb(0x4d4d4d);
     pub const WHITE_15: Color = rgb(0x262626);
+    /// Faint metadata: at least 3:1 on every dark plane (the 30% step was
+    /// 2.1:1 on a card), and one step above the disabled grey.
+    pub const WHITE_43: Color = rgb(0x737373);
+    /// Subtle borders: visible on the canvas, surfaces and cards.
+    pub const WHITE_23: Color = rgb(0x3a3a3a);
+    /// Success: its own green, apart from the accent that marks focus.
+    pub const SUCCESS: Color = rgb(0x3fb950);
     pub const GREEN: Color = rgb(0x48e054);
     pub const GREEN_80: Color = rgb(0x3ab343);
     pub const GREEN_60: Color = rgb(0x2e9a38);
@@ -465,12 +472,12 @@ impl Theme {
             highlight: HIGHLIGHT,
             highlight_danger: RED_45,
             error_soft: RED_SOFT,
-            border_subtle: WHITE_15,
+            border_subtle: WHITE_23,
             border_strong: WHITE_30,
             text_primary: WHITE,
             text_secondary: WHITE_70,
             text_muted: WHITE_50,
-            text_faint: WHITE_30,
+            text_faint: WHITE_43,
             text_ghost: WHITE_15,
             text_on_accent: ON_GREEN,
             accent: GREEN,
@@ -483,7 +490,7 @@ impl Theme {
             error: RED,
             error_bg: RED_20,
             warning: AMBER,
-            success: GREEN,
+            success: SUCCESS,
             info: PURPLE,
             accent_bg_hover: GREEN_35,
             selection_bg: BLUE_20,
@@ -634,7 +641,7 @@ impl Theme {
         self.selection_bg = i(17);
         self.accent_bg_subtle = i(22);
         self.focus = i(78);
-        self.success = i(78);
+        self.success = i(71);
         self.disabled = i(239);
         self.error = i(167);
         self.error_soft = i(174);
@@ -687,7 +694,7 @@ impl Theme {
         self.selection_bg = Blue;
         self.accent_bg_subtle = Black;
         self.focus = LightGreen;
-        self.success = LightGreen;
+        self.success = Green;
         self.disabled = DarkGray;
         self.error = LightRed;
         self.error_soft = LightRed;
@@ -2045,6 +2052,33 @@ mod tests {
                     let st = t.backdrop(Style::new().fg(fg).bg(bg));
                     assert_ne!(st.fg, st.bg, "{level:?}: {fg:?} on {bg:?}");
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn faint_text_reads_and_stays_apart_from_disabled_and_success_from_focus() {
+        let t = Theme::junie();
+        for bg in [
+            t.canvas,
+            t.surface,
+            t.surface_elevated,
+            t.field,
+            t.surface_overlay,
+        ] {
+            let c = contrast(t.text_faint, bg);
+            assert!(c >= 3.0, "faint on {bg:?} = {c:.2}");
+            let b = contrast(t.border_subtle, bg);
+            assert!(
+                b > 1.3 || bg == t.surface_overlay,
+                "border on {bg:?} = {b:.2}"
+            );
+        }
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            assert_ne!(t.text_faint, t.disabled, "{level:?}");
+            if level != ColorLevel::Mono {
+                assert_ne!(t.success, t.accent, "{level:?}");
             }
         }
     }
