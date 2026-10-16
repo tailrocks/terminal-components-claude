@@ -1074,9 +1074,7 @@ impl DataTable {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
         let editing = self.edit.is_some() && focused;
-        if !ctx.interaction.has_focus(self.id) && self.edit.is_some() {
-            self.commit_edit();
-        }
+        // a cell edit that lost focus is ended by `on_blur`, never here
 
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
@@ -1671,6 +1669,16 @@ mod tests {
         t.cursor_row = 1; // alpha
         t.sort_by(0);
         assert_eq!(t.source_row(t.cursor_row), 1);
+    }
+
+    #[test]
+    fn rendering_without_focus_never_ends_the_cell_edit() {
+        let mut t = table();
+        t.begin_edit();
+        t.edit.as_mut().unwrap().buffer.set_text("renamed");
+        draw(&mut t, Rect::new(0, 0, 60, 10));
+        assert!(t.edit.is_some(), "render is not a blur");
+        assert_eq!(t.on_blur(), Some(TableEvent::Committed { row: 0, col: 0 }));
     }
 
     #[test]

@@ -1747,9 +1747,7 @@ impl DataGrid {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        if !ctx.interaction.has_focus(self.id) && self.edit.is_some() {
-            self.commit_edit();
-        }
+        // a cell edit that lost focus is ended by `on_blur`, never here
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
 
@@ -2453,6 +2451,20 @@ mod tests {
         });
         g.scroll.set_viewport(5);
         g
+    }
+
+    #[test]
+    fn rendering_without_focus_never_ends_the_cell_edit() {
+        let mut g = grid();
+        g.set_cursor(0, 1, false);
+        g.begin_edit();
+        g.edit.as_mut().unwrap().buffer.set_text("renamed");
+        render_at(&mut g, Rect::new(0, 0, 80, 12), Interaction::default());
+        assert!(g.is_editing(), "render is not a blur");
+        assert!(
+            g.pending.is_empty(),
+            "nothing committed behind the owner's back"
+        );
     }
 
     #[test]
