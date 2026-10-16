@@ -214,6 +214,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Overview => OVERVIEW,
         PageId::Chrome => CHROME,
         PageId::StatusHints => STATUS_HINTS,
+        PageId::TextUtilities => TEXT_UTILITIES,
         _ => &[],
     }
 }
@@ -290,6 +291,46 @@ static STATUS_HINTS: &[Opt] = &[
     ),
     Opt::new("statushints.badge", "EDIT badge", OFF_ON),
     Opt::new("statushints.hidden", "Hidden files shown", OFF_ON),
+];
+
+/// Text utilities (SC26): the helpers' width and styles, and the
+/// `PropsList` builders (its readout reads the built list back).
+static TEXT_UTILITIES: &[Opt] = &[
+    Opt::new("textutilities.width", "Width", &["8", "12", "20", "32"]).default(2),
+    Opt::new(
+        "textutilities.sheet",
+        "Label column",
+        &["default", "narrow-labels"],
+    ),
+    Opt::new(
+        "textutilities.wrap",
+        "Wrap",
+        &["default", "plain", "no-hang", "no-indent"],
+    ),
+    Opt::new(
+        "textutilities.duration",
+        "Duration style",
+        &["spoken", "compact"],
+    ),
+    Opt::new("textutilities.case", "Match case", OFF_ON),
+    Opt::new("textutilities.nav", "List nav keys", &["default", "no-vim"]),
+    Opt::new("textutilities.copy_key", "Copy key", &["y", "c"]),
+    Opt::new(
+        "textutilities.track_click",
+        "Track click",
+        &["page", "jump"],
+    ),
+    Opt::new(
+        "textutilities.scrollbar_gap",
+        "Scrollbar gap",
+        &["0", "1", "2"],
+    )
+    .default(1),
+    Opt::new(
+        "textutilities.reveal",
+        "Reveal",
+        &["tooltip", "inline", "off"],
+    ),
 ];
 
 /// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through

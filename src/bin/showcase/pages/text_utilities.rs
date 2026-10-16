@@ -1,14 +1,487 @@
-//! Text utilities (Text & code): a planned page (plan §7.2), registered with its
-//! `--page` slug so parallel steps do not collide. SC26 replaces this
-//! stub with the page.
+//! Text utilities (plan §7, SC26): the `ui::text` helpers, the text
+//! buffer model, property sheets and the interactive `PropsList`.
+//!
+//! Playground: every helper applied to sample text at the chosen width
+//! (drawn as a property sheet through `props::render_with`), wrapping with
+//! `WrapOpts`, a `TextBuffer` with its `CursorPos`, and a `PropsList` with
+//! copyable, toned and wrapped rows. Options: the width, the sheet's
+//! column rule, wrap options, duration style, match case, and the list's
+//! builders (`nav`, `keymap`, `track_click`, `scrollbar_gap`, `sheet`,
+//! `reveal`). States: the list drawn by itself in every state it has.
 
-use crate::pages::Page;
-use crate::pages::stub::StubPage;
+use std::time::Duration;
+
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+
+use crate::app::PageId;
+use crate::options::page_options;
+use crate::pages::template::{Section, Template};
+use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use junie_tui::core::event::Outcome;
+use junie_tui::core::id::WidgetId;
+use junie_tui::core::keymap::{KeyBinding, NavKeys};
+use junie_tui::core::scroll::{Scrollable, TrackClick};
+use junie_tui::core::text::TextBuffer;
+use junie_tui::theme::Tone;
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::reveal::{Reveal, RevealMode};
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text::{self, DurationStyle, WrapOpts};
+use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop, PropsAction, PropsCmd, PropsList, Sheet};
+
+const ID: WidgetId = WidgetId::of("textutilities");
+const LIST: WidgetId = WidgetId::of("textutilities.props");
+
+/// The sample every cutting helper works on.
+const SAMPLE: &str = "payments-platform/settlement-backoff";
+/// A breadcrumb trail for `truncate_sep` and `crumb_fit`.
+const TRAIL: &str = "Tables › payments › settlements";
+/// The wrapping sample: a paragraph, an indented block and a key list.
+const PROSE: &str = "Wrapping keeps words whole and hard-wraps a word longer than the line.\n    An indented block keeps its indent on every continuation line.\nCtrl+F    find in the focused text; Enter steps to the next match, Shift+Enter back";
+
+pub struct TextUtilitiesPage {
+    template: Template,
+    list: PropsList,
+    /// Value indices of the page options, in `page_options` order.
+    opts: Vec<usize>,
+    /// What the list reported last.
+    last: String,
+}
+
+/// The list's rows: copyable, toned and wrapped values, one long enough
+/// to be cut.
+fn list_props() -> Vec<Prop> {
+    vec![
+        Prop::new("Host", "db-primary.payments.internal").copyable(),
+        Prop::new("Port", "5432").copyable(),
+        Prop::new("Health", "healthy").tone(Tone::Success),
+        Prop::new("Replication lag", "2.4 s").tone(Tone::Warning),
+        Prop::new(
+            "Connection string",
+            "postgres://app@db-primary.payments.internal:5432/settlements?sslmode=verify-full",
+        )
+        .copyable(),
+        Prop::new(
+            "Notes",
+            "Failover is manual: promote the replica, then repoint the pooler and restart the workers.",
+        )
+        .wrap(),
+        Prop::new("Owner", "payments-platform"),
+        Prop::new("Region", "eu-west-1"),
+    ]
+}
+
+impl TextUtilitiesPage {
+    pub fn new() -> Self {
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            list: PropsList::new(LIST, list_props()),
+            opts: page_options(PageId::TextUtilities)
+                .iter()
+                .map(|o| o.default)
+                .collect(),
+            last: "—".into(),
+        };
+        page.list = page.build_list();
+        page
+    }
+
+    /// The live list (tests read its builders back).
+    #[allow(dead_code)]
+    pub fn list(&self) -> &PropsList {
+        &self.list
+    }
+
+    /// The value of option `key` as the table spells it.
+    fn opt(&self, key: &str) -> &'static str {
+        let table = page_options(PageId::TextUtilities);
+        let i = table
+            .iter()
+            .position(|o| o.key == key)
+            .unwrap_or_else(|| panic!("no option {key}"));
+        table[i].values[self.opts[i]]
+    }
+
+    /// The sheet rule of `textutilities.sheet`.
+    fn sheet(&self) -> Sheet {
+        match self.opt("textutilities.sheet") {
+            "narrow-labels" => Sheet {
+                label_max_share: 25,
+                value_min: 20,
+            },
+            _ => Sheet::default(),
+        }
+    }
+
+    /// The list, built from the options through its builders.
+    fn build_list(&self) -> PropsList {
+        let reveal = match self.opt("textutilities.reveal") {
+            "inline" => Reveal::default().mode(RevealMode::InlineWrap),
+            "off" => Reveal::default().hover(false).keyboard(None),
+            _ => Reveal::default(),
+        };
+        let mut list = PropsList::new(LIST, list_props())
+            .nav(match self.opt("textutilities.nav") {
+                "no-vim" => NavKeys::NO_VIM,
+                _ => NavKeys::DEFAULT,
+            })
+            .track_click(match self.opt("textutilities.track_click") {
+                "jump" => TrackClick::Jump,
+                _ => TrackClick::Page,
+            })
+            .scrollbar_gap(self.opt("textutilities.scrollbar_gap").parse().unwrap_or(1))
+            .sheet(self.sheet())
+            .reveal(reveal);
+        if self.opt("textutilities.copy_key") == "c" {
+            list = list.keymap(vec![(KeyBinding::char('c'), PropsCmd::Copy)]);
+        }
+        list.cursor = self.list.cursor.min(list.props.len().saturating_sub(1));
+        list
+    }
+
+    /// The built list read back.
+    fn list_readout(&self) -> String {
+        let l = &self.list;
+        let key = junie_tui::core::keymap::label_for(&l.keymap, PropsCmd::Copy)
+            .unwrap_or_else(|| "none".into());
+        let reveal = match l.reveal.config {
+            Some(r) if r.keyboard.is_none() && !r.hover => "off".to_owned(),
+            Some(r) => format!("{:?}", r.mode),
+            None => "app default".into(),
+        };
+        format!(
+            "PropsList · nav {} · copy {key} · track_click {:?} · scrollbar_gap {} · label share {}% · reveal {reveal}",
+            if l.nav == NavKeys::NO_VIM {
+                "no-vim"
+            } else {
+                "default"
+            },
+            l.scroll.track_click.unwrap_or_default(),
+            l.scrollbar_gap,
+            l.sheet.label_max_share,
+        )
+    }
+
+    /// Every helper on the sample at the chosen width, as a property sheet.
+    fn helpers(&self, w: usize) -> Vec<Prop> {
+        let style = match self.opt("textutilities.duration") {
+            "compact" => DurationStyle::Compact,
+            _ => DurationStyle::Spoken,
+        };
+        let case = self.opt("textutilities.case") == "on";
+        let hay = "SELECT id FROM users; select name from users";
+        let ranges: Vec<String> = text::find_ranges(hay, "select", case)
+            .iter()
+            .map(|r| format!("{}..{}", r.start, r.end))
+            .collect();
+        let durations = [
+            Duration::from_millis(0),
+            Duration::from_millis(840),
+            Duration::from_millis(1_250),
+            Duration::from_secs(182),
+            Duration::from_secs(8_040),
+        ]
+        .map(|d| text::duration(d, style))
+        .join(" · ");
+        vec![
+            Prop::new("truncate", text::truncate(SAMPLE, w)),
+            Prop::new("truncate_middle", text::truncate_middle(SAMPLE, w)),
+            Prop::new("truncate_sep", text::truncate_sep(TRAIL, w)),
+            Prop::new("crumb_fit", text::crumb_fit(TRAIL, w)),
+            Prop::new("slice_cells", text::slice_cells(SAMPLE, 9, w)),
+            Prop::new("fit", format!("[{}]", text::fit("ok", w))),
+            Prop::new("fit_right", format!("[{}]", text::fit_right("42", w))),
+            Prop::new(
+                "wider_than",
+                format!(
+                    "{} (width {})",
+                    text::wider_than(SAMPLE, w),
+                    text::width(SAMPLE)
+                ),
+            ),
+            Prop::new("width_capped", text::width_capped(SAMPLE, w).to_string()),
+            Prop::new(
+                "width",
+                format!("{} cells for 日本語 abc", text::width("日本語 abc")),
+            ),
+            Prop::new(
+                "center_x",
+                format!(
+                    "\"ok\" starts at {} of {w}",
+                    text::center_x(Rect::new(0, 0, w as u16, 1), "ok")
+                ),
+            ),
+            Prop::new("thousands", text::thousands(1_234_567)),
+            Prop::new(
+                "plural",
+                format!(
+                    "{} · {}",
+                    text::plural(1, "row", "rows"),
+                    text::plural(3, "row", "rows")
+                ),
+            ),
+            Prop::new(
+                "bytes",
+                [512, 1_536, 3_435_973_837].map(text::bytes).join(" · "),
+            ),
+            Prop::new(&format!("duration {style:?}"), durations),
+            Prop::new(
+                "find_ranges",
+                format!(
+                    "\"select\" {} → {}",
+                    if case { "case-sensitive" } else { "any case" },
+                    ranges.join(", ")
+                ),
+            ),
+            Prop::new(
+                "Prop::wrap",
+                "a value marked wrap continues on the rows below instead of being cut at the edge",
+            )
+            .wrap(),
+        ]
+    }
+
+    fn wrap_opts(&self) -> WrapOpts {
+        match self.opt("textutilities.wrap") {
+            "plain" => WrapOpts::PLAIN,
+            "no-hang" => WrapOpts {
+                hang_at_gap: None,
+                ..WrapOpts::default()
+            },
+            "no-indent" => WrapOpts {
+                keep_indent: false,
+                ..WrapOpts::default()
+            },
+            _ => WrapOpts::default(),
+        }
+    }
+
+    fn width(&self) -> usize {
+        self.opt("textutilities.width").parse().unwrap_or(20)
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let (left, right) = crate::pages::layout::columns(area, 64.min(area.width * 11 / 20), 2);
+        let w = self.width();
+
+        // the helpers, as a property sheet
+        let helpers = self.helpers(w);
+        let title = format!("ui::text at width {w}");
+        let panel = Panel::card(Some(&title)).meta("props::render_with");
+        let bg = panel.bg(t);
+        let sheet = self.sheet();
+        let inner_w = left.width.saturating_sub(4);
+        let h = props::measure_with(&helpers, inner_w, sheet) + 3;
+        let card = Rect::new(left.x, left.y, left.width, h.min(left.height));
+        let inner = panel.render(card, buf, t);
+        props::render_with(inner, buf, t, &helpers, bg, sheet);
+
+        // wrapping
+        let below = card.bottom() + 1;
+        if below + 4 < left.bottom() {
+            let ww = (w + 16).min(inner_w as usize);
+            let opts = self.wrap_opts();
+            let lines = text::wrap_with(PROSE, ww, opts);
+            let title = format!(
+                "wrap_with at {ww} · keep_indent {} · hang_at_gap {:?}",
+                opts.keep_indent, opts.hang_at_gap
+            );
+            let panel = Panel::card(Some(&title));
+            let bg = panel.bg(t);
+            let h = (lines.len() as u16 + 3).min(left.bottom() - below);
+            let inner = panel.render(Rect::new(left.x, below, left.width, h), buf, t);
+            for (i, l) in lines.iter().enumerate() {
+                let y = inner.y + i as u16;
+                if y >= inner.bottom() {
+                    break;
+                }
+                buf.set_string(inner.x, y, l, t.secondary().bg(bg));
+                // the wrap width, as a faint rule
+                let edge = inner.x + ww as u16;
+                if edge < inner.right() {
+                    buf.set_string(edge, y, "┊", t.faint().bg(bg));
+                }
+            }
+        }
+
+        // the interactive list
+        let mut y = right.y;
+        let panel = Panel::card(Some("PropsList"))
+            .meta("Enter activates · y copies")
+            .focused(ctx.interaction.focused(LIST));
+        let bg = panel.bg(t);
+        let h = 13.min(right.height);
+        let inner = panel.render(Rect::new(right.x, y, right.width, h), buf, t);
+        self.list.render(inner, buf, ctx, bg);
+        y += h;
+        let last = format!(
+            "last PropsAction: {}   (Activate(row) on Enter or a click · Copy(row) on the copy key)",
+            self.last
+        );
+        for line in [self.list_readout(), last] {
+            if y < right.bottom() {
+                buf.set_string(
+                    right.x,
+                    y,
+                    text::truncate(&line, right.width as usize),
+                    t.faint().bg(t.canvas),
+                );
+            }
+            y += 1;
+        }
+        y += 1;
+
+        // the text buffer under every text control
+        if y + 5 < right.bottom() {
+            let mut b = TextBuffer::multi("SELECT id, name\nFROM users\nWHERE active");
+            b.select_word_at(b.text().find("users").unwrap_or(0));
+            let pos = b.cursor_pos();
+            let panel = Panel::card(Some("TextBuffer · the model under every text control"));
+            let bg = panel.bg(t);
+            let inner = panel.render(Rect::new(right.x, y, right.width, 8), buf, t);
+            let list = [
+                Prop::new("text", b.text().replace('\n', " ⏎ ")),
+                Prop::new(
+                    "selection",
+                    format!(
+                        "{:?} \"{}\"",
+                        b.selection(),
+                        b.selected_text().unwrap_or("")
+                    ),
+                ),
+                Prop::new("cursor_pos", format!("{pos:?}")),
+                Prop::new("selection_lines", format!("{:?}", b.selection_lines())),
+            ];
+            props::render(inner, buf, t, &list, bg);
+        }
+    }
+}
+
+/// The States grid: the list in every state it has, drawn by itself.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let rows = |n: usize| list_props().into_iter().take(n).collect::<Vec<_>>();
+    StateGrid::new(id)
+        .rows(&[Rest, Focused, Overflow, Narrow])
+        .column_width(48)
+        .column("Facts", PropsList::new(id.child(0), rows(3)))
+        .column(
+            "Narrow labels",
+            PropsList::new(id.child(1), rows(3)).sheet(Sheet {
+                label_max_share: 25,
+                value_min: 20,
+            }),
+        )
+}
+
+impl Page for TextUtilitiesPage {
+    fn title(&self) -> &'static str {
+        "Text utilities"
+    }
+
+    fn blurb(&self) -> &'static str {
+        "Text helpers (truncation, wrapping, widths), property sheets and PropsList"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        let act = |page: &mut Self, a: Option<PropsAction>, cx: &mut PageCtx| {
+            let Some(a) = a else { return };
+            let p = &page.list.props[match a {
+                PropsAction::Copy(i) | PropsAction::Activate(i) => i,
+            }];
+            match a {
+                PropsAction::Copy(_) => {
+                    cx.status(format!("Copied {}", p.label));
+                    page.last = format!("Copy({})", p.label);
+                }
+                PropsAction::Activate(_) => {
+                    cx.status(format!("{}: {}", p.label, p.value));
+                    page.last = format!("Activate({})", p.label);
+                }
+            }
+        };
+        match ev {
+            PageEvent::Key(key) if cx.focus.is(LIST) => {
+                let (o, a) = self.list.on_key(key);
+                act(self, a, cx);
+                o
+            }
+            PageEvent::Click { id, pos } if self.list.owns(*id) => {
+                cx.focus.focus(LIST);
+                if let Some(row) = self.list.locate(*id) {
+                    let (o, a) = self.list.on_click(row);
+                    act(self, a, cx);
+                    return o;
+                }
+                self.list.on_scrollbar(*pos)
+            }
+            PageEvent::Drag { pressed, pos } if self.list.owns(*pressed) => {
+                self.list.on_scrollbar_drag(*pos)
+            }
+            PageEvent::Wheel { id, delta } if self.list.owns(*id) => self.list.on_wheel(*delta),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        if focus == Some(LIST) {
+            let copy = if self.opt("textutilities.copy_key") == "c" {
+                "c"
+            } else {
+                "y"
+            };
+            return vec![("↑↓", "Move"), ("Enter", "Open"), (copy, "Copy")];
+        }
+        Vec::new()
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        let i = page_options(PageId::TextUtilities)
+            .iter()
+            .position(|o| o.key == key)?;
+        Some(self.opts[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let table = page_options(PageId::TextUtilities);
+        if let Some(i) = table.iter().position(|o| o.key == key) {
+            self.opts[i] = value.min(table[i].values.len() - 1);
+            self.list = self.build_list();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
+}
 
 pub fn page() -> Box<dyn Page> {
-    Box::new(StubPage::new(
-        "Text utilities",
-        "SC26",
-        "Text helpers (truncation, wrapping, widths), property sheets and PropsList",
-    ))
+    Box::new(TextUtilitiesPage::new())
 }

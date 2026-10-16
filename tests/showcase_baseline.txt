@@ -54,7 +54,9 @@
 120x40 TrueColor Code editor b7b01d42a86fcdfd
 120x40 TrueColor Diff 2d88450ea0d6a151
 120x40 TrueColor Terminal 88e390fd97939ad7
-120x40 TrueColor Text utilities 9145db46a3dac60a
+120x40 TrueColor Text utilities 5174a915a10fe13d
+120x40 TrueColor Text utilities · Options a44f465867449f34
+120x40 TrueColor Text utilities · States 9352f7882ae3684c
 120x40 TrueColor Settings 0b37e14fc191fb00
 120x40 TrueColor Task runner 8808bb4fb964b26e
 120x40 TrueColor Query workbench c98375a5a36f6eec
@@ -124,7 +126,9 @@
 120x40 Ansi256 Code editor 94429470e200178b
 120x40 Ansi256 Diff e7c9f5977b3d6d67
 120x40 Ansi256 Terminal 81f9f84c8ab23ccb
-120x40 Ansi256 Text utilities a328f814068ee702
+120x40 Ansi256 Text utilities 0a68e1dda2170dfe
+120x40 Ansi256 Text utilities · Options 51e59d4cac05df30
+120x40 Ansi256 Text utilities · States a687d20727b0cbd3
 120x40 Ansi256 Settings f9a83077e52f8267
 120x40 Ansi256 Task runner f6a03aaea95e9850
 120x40 Ansi256 Query workbench ba1dd6aeb2c7c095
@@ -194,7 +198,9 @@
 120x40 Ansi16 Code editor c76efe9abe6fa80e
 120x40 Ansi16 Diff 206668a7468b08ad
 120x40 Ansi16 Terminal 09d867d695cec90f
-120x40 Ansi16 Text utilities 552295bbd169142e
+120x40 Ansi16 Text utilities 4a56fa4201ac39d6
+120x40 Ansi16 Text utilities · Options 575ff0244edaac48
+120x40 Ansi16 Text utilities · States 52b8f8d1f36c0504
 120x40 Ansi16 Settings 631b2e2d991f97cf
 120x40 Ansi16 Task runner ae295be982cd3cc3
 120x40 Ansi16 Query workbench b7a7c36eec88d896
@@ -264,7 +270,9 @@
 120x40 Mono Code editor 51b442838c63cfcb
 120x40 Mono Diff da7ca866d1cadeed
 120x40 Mono Terminal 3832a4fb8bc65378
-120x40 Mono Text utilities ed54102e14df80f9
+120x40 Mono Text utilities ccb9a900867e42c4
+120x40 Mono Text utilities · Options a9556f1331df0d2f
+120x40 Mono Text utilities · States cced08fa0021af6d
 120x40 Mono Settings 0c75fcaae524e492
 120x40 Mono Task runner 131cac91db79694b
 120x40 Mono Query workbench fb745a7bba59c267
@@ -334,7 +342,9 @@
 80x24 TrueColor Code editor 5fbee61cce55f8cb
 80x24 TrueColor Diff 17df687ca5d74170
 80x24 TrueColor Terminal cd152073816daf8d
-80x24 TrueColor Text utilities b5b3e20567c32453
+80x24 TrueColor Text utilities 1e789579d639c4ec
+80x24 TrueColor Text utilities · Options ed4848b8c40df958
+80x24 TrueColor Text utilities · States 5f8033612b836da2
 80x24 TrueColor Settings d9cc238df6ce8a66
 80x24 TrueColor Task runner b164ff6ebecf6c73
 80x24 TrueColor Query workbench 1efb904e1a8b3f51
@@ -404,7 +414,9 @@
 80x24 Ansi256 Code editor f64eed7ca3b704ca
 80x24 Ansi256 Diff 2933e64c34ac1149
 80x24 Ansi256 Terminal 5206aa2eb5601946
-80x24 Ansi256 Text utilities dc14984db6b888e7
+80x24 Ansi256 Text utilities f868a8850ecdf8b7
+80x24 Ansi256 Text utilities · Options db344fcd7366766a
+80x24 Ansi256 Text utilities · States 193b5f17bf8adfb1
 80x24 Ansi256 Settings a5e5911d348b3b31
 80x24 Ansi256 Task runner 7f7297d092e21881
 80x24 Ansi256 Query workbench 28a4202db1e676b2
@@ -474,7 +486,9 @@
 80x24 Ansi16 Code editor adbf0539e2a011fd
 80x24 Ansi16 Diff 363c2c8de00daf91
 80x24 Ansi16 Terminal e6894dc5f03c9faa
-80x24 Ansi16 Text utilities 8a1d5f6647245f25
+80x24 Ansi16 Text utilities 04d82e761f0d4835
+80x24 Ansi16 Text utilities · Options 4c173373307472b5
+80x24 Ansi16 Text utilities · States 56ee0dd131f0012c
 80x24 Ansi16 Settings 76a7751a26e20a2a
 80x24 Ansi16 Task runner 1583f97a9430366b
 80x24 Ansi16 Query workbench fcae7bd87775aeb3
@@ -544,7 +558,9 @@
 80x24 Mono Code editor 4b4b203aea747d56
 80x24 Mono Diff b7f32f3e77dededa
 80x24 Mono Terminal 472d5b3fa01fe844
-80x24 Mono Text utilities 9dfde23c102c5477
+80x24 Mono Text utilities ba59bf9e431a220a
+80x24 Mono Text utilities · Options 50ec72042eced727
+80x24 Mono Text utilities · States 2c38a2698207ec26
 80x24 Mono Settings 8fb370eff98dbb6e
 80x24 Mono Task runner ad0a56ec5c3bba10
 80x24 Mono Query workbench 6e101ee0c2ca72b9
@@ -614,7 +630,9 @@
 72x20 TrueColor Code editor 19d948fa3da5cb02
 72x20 TrueColor Diff 9e710f958ea3eaf4
 72x20 TrueColor Terminal b2a9da4e5f9fba38
-72x20 TrueColor Text utilities d11e2264f169d745
+72x20 TrueColor Text utilities f90d674efccd0826
+72x20 TrueColor Text utilities · Options 83ea28152087a79e
+72x20 TrueColor Text utilities · States bfd637aa99d18759
 72x20 TrueColor Settings 94ee6a2e68bf384b
 72x20 TrueColor Task runner f2f0849b5c0b32e8
 72x20 TrueColor Query workbench b87909f71e4aef56
@@ -684,7 +702,9 @@
 72x20 Ansi256 Code editor f0b48ff5c63eb403
 72x20 Ansi256 Diff b632038e9d3884e9
 72x20 Ansi256 Terminal 0189464824c25dd5
-72x20 Ansi256 Text utilities 1c3980634a42dfc5
+72x20 Ansi256 Text utilities 9afe81d361ecc411
+72x20 Ansi256 Text utilities · Options 6bd2c5a18500a258
+72x20 Ansi256 Text utilities · States eba175b695ec03d4
 72x20 Ansi256 Settings 587eaa5739b30ed8
 72x20 Ansi256 Task runner f40afb288b0e2cb4
 72x20 Ansi256 Query workbench 7e42072e3e34aca8
@@ -754,7 +774,9 @@
 72x20 Ansi16 Code editor cd76de268e7be1e4
 72x20 Ansi16 Diff f710943cdd3a5eec
 72x20 Ansi16 Terminal 85c91d6e9f96bd32
-72x20 Ansi16 Text utilities 11a73d1bdfb382c5
+72x20 Ansi16 Text utilities 9d39d417774a1d60
+72x20 Ansi16 Text utilities · Options a199c4b8c35e8148
+72x20 Ansi16 Text utilities · States e3e07cbfff4d846b
 72x20 Ansi16 Settings 6636be96b3b06a29
 72x20 Ansi16 Task runner 5f09d24db9a46630
 72x20 Ansi16 Query workbench b3e9f7b2ed9ceaae
@@ -824,7 +846,9 @@
 72x20 Mono Code editor f9df3987d69ca0a6
 72x20 Mono Diff 3781c68ce2a732e7
 72x20 Mono Terminal 0a473d70e6ec4c14
-72x20 Mono Text utilities f80e72ed16fdb4d3
+72x20 Mono Text utilities 345f87723ecbcbc9
+72x20 Mono Text utilities · Options 56a1a232201a44f2
+72x20 Mono Text utilities · States d1bae1f82808f715
 72x20 Mono Settings 653616906b2e25d5
 72x20 Mono Task runner 50e3f453be4d3d0b
 72x20 Mono Query workbench 961d5f5db7743410
@@ -894,7 +918,9 @@
 100x30 TrueColor Code editor 5d4a9840979e7a05
 100x30 TrueColor Diff efacbc2f0a1d8496
 100x30 TrueColor Terminal ba78a5a3881b2dfe
-100x30 TrueColor Text utilities 49b1358343d42062
+100x30 TrueColor Text utilities b06177099842ad15
+100x30 TrueColor Text utilities · Options 0427ef169755633e
+100x30 TrueColor Text utilities · States 82fa2d30a44f973d
 100x30 TrueColor Settings b1e2b562fd35f66e
 100x30 TrueColor Task runner 002f1f0cc15dae06
 100x30 TrueColor Query workbench 27d71a55a4a2c87d
@@ -964,7 +990,9 @@
 100x30 Ansi256 Code editor b0e77aece120a962
 100x30 Ansi256 Diff 348732bb807249fe
 100x30 Ansi256 Terminal eeeb5d940ec0ff41
-100x30 Ansi256 Text utilities 270157846f4fd6e0
+100x30 Ansi256 Text utilities 9515dda2eda5de16
+100x30 Ansi256 Text utilities · Options 0178b23c1cd5b297
+100x30 Ansi256 Text utilities · States d86fb31ef0ca5444
 100x30 Ansi256 Settings 7c65aa07f90aad35
 100x30 Ansi256 Task runner 698ec8131f8dffca
 100x30 Ansi256 Query workbench 50826d4dd382562a
@@ -1034,7 +1062,9 @@
 100x30 Ansi16 Code editor 7f0b89d407a4ccf9
 100x30 Ansi16 Diff a0b3ce93427ba038
 100x30 Ansi16 Terminal c5299377dfa47c92
-100x30 Ansi16 Text utilities bec271a021674d80
+100x30 Ansi16 Text utilities 2795ccc052624190
+100x30 Ansi16 Text utilities · Options bf1ab53658955844
+100x30 Ansi16 Text utilities · States eff298bf9af8675a
 100x30 Ansi16 Settings 4ee755ae6d442b28
 100x30 Ansi16 Task runner 02a40ec54b710d80
 100x30 Ansi16 Query workbench 7318405f7b4d8005
@@ -1104,7 +1134,9 @@
 100x30 Mono Code editor 738abdb14e108b86
 100x30 Mono Diff a9c053755f1426e6
 100x30 Mono Terminal 20cc7e5fba468f89
-100x30 Mono Text utilities 6165ffb30e31ad1b
+100x30 Mono Text utilities 03ad660f07e14c06
+100x30 Mono Text utilities · Options 9a8b1ce0ca82590d
+100x30 Mono Text utilities · States cd396fde38ae9dd7
 100x30 Mono Settings d7f7184560a9b0b9
 100x30 Mono Task runner 920e8c982e1ae386
 100x30 Mono Query workbench 6b30e66818a9c0fc
@@ -1174,7 +1206,9 @@
 160x50 TrueColor Code editor ce691b98b88c781e
 160x50 TrueColor Diff 744ea8c9322081cf
 160x50 TrueColor Terminal 680fdab5cf0dc764
-160x50 TrueColor Text utilities e817fe488dd4002d
+160x50 TrueColor Text utilities 29bab940546b8d6f
+160x50 TrueColor Text utilities · Options 0644b41d8b4d7053
+160x50 TrueColor Text utilities · States e6ac0de323bb542c
 160x50 TrueColor Settings 1072604da9ff8eda
 160x50 TrueColor Task runner c42ec80180078f37
 160x50 TrueColor Query workbench 0185d2a75f288cc7
@@ -1244,7 +1278,9 @@
 160x50 Ansi256 Code editor 381b0d5820a8db69
 160x50 Ansi256 Diff dcb44f4fd43732d8
 160x50 Ansi256 Terminal d366b37c51430490
-160x50 Ansi256 Text utilities 0ac7e475e61dd331
+160x50 Ansi256 Text utilities 381eb069ca2fcdd0
+160x50 Ansi256 Text utilities · Options dcedbc18c2b66c19
+160x50 Ansi256 Text utilities · States cf0b2dcc0949d1d7
 160x50 Ansi256 Settings 09d14c3ba57d7312
 160x50 Ansi256 Task runner a3d0f685304c0b27
 160x50 Ansi256 Query workbench a442e74a489e631e
@@ -1314,7 +1350,9 @@
 160x50 Ansi16 Code editor a8e7ffb2b1f15342
 160x50 Ansi16 Diff 9df542468ebaddc4
 160x50 Ansi16 Terminal f8a80abc0a567c52
-160x50 Ansi16 Text utilities 837c91d5e4c715bb
+160x50 Ansi16 Text utilities 5c994956c3a28123
+160x50 Ansi16 Text utilities · Options 2f096675b103a015
+160x50 Ansi16 Text utilities · States 0d74907a7ef313b2
 160x50 Ansi16 Settings 754f3fac0486ac15
 160x50 Ansi16 Task runner 4e2f3cb5ebae7ff4
 160x50 Ansi16 Query workbench 817978178c9317a5
@@ -1384,7 +1422,9 @@
 160x50 Mono Code editor 3324b3f4094f2d8f
 160x50 Mono Diff be15379fc05a8fd4
 160x50 Mono Terminal 4c918eef0f8d8541
-160x50 Mono Text utilities 4547f9a35115d3b0
+160x50 Mono Text utilities 0a2dd50e460c2653
+160x50 Mono Text utilities · Options c2eeaa0a6f334d90
+160x50 Mono Text utilities · States b0ba5107ba3838fd
 160x50 Mono Settings 8dc528b87232c394
 160x50 Mono Task runner 26ff0c7c735b5988
 160x50 Mono Query workbench fd97c28e2247e758
