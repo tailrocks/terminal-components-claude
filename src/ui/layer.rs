@@ -488,6 +488,13 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         }
     }
 
+    /// Hand a focus change to every open layer, bottom to top (the blur
+    /// fan-out: a field in a covered layer ends its edit too).
+    pub fn on_blur(&mut self, change: FocusChange) -> Outcome {
+        self.iter_mut()
+            .fold(Outcome::Ignored, |out, e| out.or(e.layer.on_blur(change)))
+    }
+
     /// Whether a layer that hides the page focus is open: pass it to
     /// [`RenderCtx::page_under_layer`] at frame start.
     pub fn hides_page_focus(&self) -> bool {

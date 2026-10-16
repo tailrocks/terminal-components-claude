@@ -2,6 +2,9 @@
 //! library instead of writing it (docs/architecture/shared-components-plan.md
 //! §1.8). This module grows step by step; today it holds the leaf pieces:
 //!
+//! - [`Shell`] and [`App`]: the state every app keeps and the trait that
+//!   gives an app [`Application`]: the render prologue and epilogue, focus
+//!   upkeep ([`PageKey`]) and the blur fan-out.
 //! - [`StatusLine`]: the transient status message and its expiry rule.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
@@ -10,8 +13,10 @@
 //!   `handle`/`render`/`tick_interval` methods and `quit`/`pointer`/`hits`
 //!   fields, until `Shell` implements [`Application`] itself (plan S7).
 
+mod app;
 mod status;
 
+pub use app::{App, PageKey, Shell, blur_fan_out, handle, render};
 pub use status::StatusLine;
 
 use crate::runtime::Application;
