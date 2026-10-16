@@ -53,10 +53,9 @@ impl Harness {
     }
 
     fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Outcome {
-        let out = self.app.handle(Input::Mouse(Mouse {
-            kind,
-            pos: Position::new(x, y),
-        }));
+        let out = self
+            .app
+            .handle(Input::Mouse(Mouse::new(kind, Position::new(x, y))));
         self.draw();
         out
     }

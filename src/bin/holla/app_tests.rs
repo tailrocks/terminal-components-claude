@@ -63,10 +63,9 @@ impl H {
         self.draw();
     }
     pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Outcome {
-        let o = self.app.handle(Input::Mouse(Mouse {
-            kind,
-            pos: Position::new(x, y),
-        }));
+        let o = self
+            .app
+            .handle(Input::Mouse(Mouse::new(kind, Position::new(x, y))));
         self.draw();
         o
     }
