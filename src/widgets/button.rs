@@ -64,6 +64,12 @@ impl Button {
         (width(&self.label) + 2 + marker) as u16
     }
 
+    /// The footer hint for this button while it has focus: Enter names
+    /// what it does (`Enter Save…`, `Enter Cancel`), never a generic verb.
+    pub fn hint(&self) -> crate::widgets::keyhint::Hint {
+        crate::widgets::keyhint::Hint::new("Enter", self.label.clone())
+    }
+
     pub fn can_activate(&self) -> bool {
         !self.disabled && !self.busy
     }
@@ -219,5 +225,12 @@ mod tests {
                 assert_ne!(c.fg, c.bg, "cell {x} {:?} is invisible", c.symbol());
             }
         }
+    }
+
+    #[test]
+    fn the_focused_hint_names_the_button() {
+        let b = Button::subtle(WidgetId::of("b"), "Cancel");
+        let h = b.hint();
+        assert_eq!((h.key, h.action.as_ref()), ("Enter", "Cancel"));
     }
 }

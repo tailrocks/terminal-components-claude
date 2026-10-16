@@ -2444,9 +2444,9 @@ impl Screen for ManagerScreen {
             v.push(hint("Esc", "Back"));
             return v;
         }
-        if self.actions.iter().any(|b| Some(b.id) == focus) {
+        if let Some(b) = self.actions.iter().find(|b| Some(b.id) == focus) {
             v.push(hint("←→", "Choose"));
-            v.push(hint("Enter", "Run"));
+            v.push(b.hint());
             v.push(hint("Esc", "Back"));
             return v;
         }

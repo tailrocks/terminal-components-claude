@@ -1332,3 +1332,26 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
         Err(error) if error.kind() == ErrorKind::DisplayHelp
     ));
 }
+
+#[test]
+fn settings_footer_names_the_focused_button_and_the_tab_strip_action() {
+    let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 220, 40);
+    for _ in 0..8 {
+        h.ticks(3);
+        if h.app.route == Route::Manager {
+            break;
+        }
+        h.key(KeyCode::Enter);
+    }
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app.route, Route::Settings);
+    let footer = |h: &H| h.text().lines().last().unwrap_or_default().to_owned();
+    h.tab_to(crate::screens::settings::TABS);
+    let f = footer(&h);
+    assert!(f.contains("Enter Edit fields"), "{f}");
+    // a focused button names itself, never a generic "Run"
+    h.tab_to(crate::screens::settings::CANCEL);
+    let f = footer(&h);
+    assert!(f.contains("Enter Cancel"), "{f}");
+    assert!(!f.contains("Enter Run"), "{f}");
+}
