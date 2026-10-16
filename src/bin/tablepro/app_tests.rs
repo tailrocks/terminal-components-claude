@@ -1273,3 +1273,14 @@ fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
     h.mouse(MouseKind::WheelUp, x, y);
     assert!(h.text().contains("Name *"));
 }
+
+#[test]
+fn a_click_marks_focus_as_pointer_focus_until_the_next_key() {
+    // interaction #24: KeyboardOnly controls hide their ring after a click
+    let mut h = H::connected(120, 40);
+    let (x, y) = h.find("customers").unwrap();
+    h.click(x, y);
+    assert!(h.app.pointer.pointer_focus, "focus came from the click");
+    h.key(KeyCode::Down);
+    assert!(!h.app.pointer.pointer_focus, "a key shows focus again");
+}

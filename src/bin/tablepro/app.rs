@@ -235,6 +235,7 @@ impl App {
             flash,
             focus_hidden: false,
             hover_suppressed: self.pointer.hover_suppressed,
+            pointer_focus: self.pointer.pointer_focus,
             tick: self.tick,
         }
     }
@@ -2024,6 +2025,18 @@ impl App {
     }
 
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
+        let before = self.focus.current();
+        let out = self.route_mouse(m);
+        // focus a click moved shows only on controls that want a ring
+        // after a click (FocusVisible)
+        let pressed = m.kind == MouseKind::Down && self.pointer.pressed.is_some();
+        if pressed || (m.kind == MouseKind::Up && self.focus.current() != before) {
+            self.pointer.focused_by_click();
+        }
+        out
+    }
+
+    fn route_mouse(&mut self, m: Mouse) -> Outcome {
         self.pointer.pos = Some(m.pos);
         match m.kind {
             MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),

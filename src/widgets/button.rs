@@ -20,6 +20,9 @@ pub struct Button {
     pub on: Option<bool>,
     pub busy: bool,
     pub area: Rect,
+    /// When the focus ring shows. Default [`FocusVisible::Always`];
+    /// `KeyboardOnly` hides it after a click, as macOS buttons do.
+    pub focus_visible: crate::ui::ctx::FocusVisible,
 }
 
 impl Button {
@@ -32,7 +35,13 @@ impl Button {
             on: None,
             busy: false,
             area: Rect::ZERO,
+            focus_visible: crate::ui::ctx::FocusVisible::Always,
         }
+    }
+
+    pub fn focus_visible(mut self, mode: crate::ui::ctx::FocusVisible) -> Self {
+        self.focus_visible = mode;
+        self
     }
 
     pub fn primary(id: WidgetId, label: &str) -> Self {
@@ -118,6 +127,7 @@ impl Button {
             return;
         }
         let mut s = ctx.state(self.id);
+        s.focused = ctx.interaction.focus_visible(self.id, self.focus_visible);
         s.disabled = self.disabled;
         s.busy = self.busy;
         s.selected = self.on.unwrap_or(false);
@@ -568,6 +578,46 @@ mod tests {
                 assert_ne!(c.fg, c.bg, "cell {x} {:?} is invisible", c.symbol());
             }
         }
+    }
+
+    #[test]
+    fn keyboard_only_focus_hides_the_ring_after_a_click() {
+        use crate::ui::ctx::FocusVisible;
+        let t = Theme::junie();
+        let id = WidgetId::of("b");
+        let draw = |mode: FocusVisible, pointer_focus: bool| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let i = Interaction {
+                focus: Some(id),
+                pointer_focus,
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&t, i, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
+            let mut b = Button::secondary(id, "Save").focus_visible(mode);
+            let w = b.width();
+            b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
+            buf
+        };
+        let rest = {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
+            let mut b = Button::secondary(id, "Save");
+            let w = b.width();
+            b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
+            buf
+        };
+        let keyboard = draw(FocusVisible::KeyboardOnly, false);
+        assert_ne!(keyboard, rest, "keyboard focus shows");
+        assert_eq!(
+            draw(FocusVisible::KeyboardOnly, true),
+            rest,
+            "a click shows no ring"
+        );
+        assert_ne!(draw(FocusVisible::Always, true), rest, "Always keeps it");
     }
 
     #[test]
