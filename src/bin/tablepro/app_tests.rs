@@ -1299,9 +1299,13 @@ fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
     let mut h = H::new(72, 20);
     h.ctrl('n');
     let (x, y) = h.find("Name *").expect("the form opens at its first field");
-    assert_eq!(
-        h.app.hits.hit_scroll(Position::new(x, y)),
-        Some(WidgetId::of("connections").sub("form").sub("left"))
+    // the label belongs to its field (label_hit); the form scrolls
+    // beneath both
+    assert!(
+        h.app
+            .hits
+            .scroll_stack(Position::new(x, y))
+            .contains(&WidgetId::of("connections").sub("form").sub("left"))
     );
     h.mouse(MouseKind::WheelDown, x, y);
     let text = h.text();
