@@ -62,6 +62,19 @@ pub trait Application {
     fn shapes(&self) -> crate::core::shape::Shapes {
         crate::core::shape::Shapes::default()
     }
+    /// How raw terminal events become [`Input`] (Shift+wheel sideways,
+    /// Ctrl+click as a secondary click, legacy Ctrl punctuation). Default
+    /// [`InputConfig::default`], the client platform's conventions. Read
+    /// before each burst of input, so an app can change it live.
+    fn input_config(&self) -> InputConfig {
+        InputConfig::default()
+    }
+    /// Whether the session enables the kitty keyboard protocol. Default
+    /// [`KeyboardProtocol::current`]: [`KeyboardProtocol::ENV`], else
+    /// [`KeyboardProtocol::Auto`]. Read once, when the session starts.
+    fn keyboard_protocol(&self) -> KeyboardProtocol {
+        KeyboardProtocol::current()
+    }
 }
 
 /// Input coalescing policy of the event loop.
@@ -217,6 +230,15 @@ impl TerminalSession {
     /// Returns a terminal I/O error if setup fails. Once raw mode is enabled,
     /// every later setup failure restores the terminal before returning.
     pub fn enter() -> std::io::Result<Self> {
+        Self::enter_with(KeyboardProtocol::current())
+    }
+
+    /// [`Self::enter`] under keyboard-protocol policy `protocol` (an app's
+    /// [`Application::keyboard_protocol`]).
+    ///
+    /// # Errors
+    /// As [`Self::enter`].
+    pub fn enter_with(protocol: KeyboardProtocol) -> std::io::Result<Self> {
         enable_raw_mode()?;
         let (terminal, restoration) = initialize_with_restoration(restore_terminal, || {
             // start crossterm's input reader now: it registers its SIGWINCH
@@ -233,7 +255,7 @@ impl TerminalSession {
             )?;
             // progressive enhancement: Cmd (super) chords reach the app
             // where the terminal speaks the kitty keyboard protocol
-            if let Some(push) = keyboard::session::enter(KeyboardProtocol::current(), || {
+            if let Some(push) = keyboard::session::enter(protocol, || {
                 ratatui::crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false)
             }) {
                 out.write_all(push.as_bytes())?;
@@ -389,7 +411,7 @@ fn restore_terminal() {
 /// Run an application until it asks to quit. The terminal is restored on
 /// every exit path: normal quit, I/O error, or panic.
 pub fn run(app: &mut impl Application) -> std::io::Result<()> {
-    let mut session = TerminalSession::enter()?;
+    let mut session = TerminalSession::enter_with(app.keyboard_protocol())?;
     #[cfg(unix)]
     job_control::install();
     let result = event_loop(&mut session, app);
@@ -487,8 +509,9 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         // an input held back for the previous frame is ready without polling
         if pump.has_pending() || poll_uninterrupted(wait)? {
             pump.set_policy(app.coalesce());
+            let config = effective_input_config(app.input_config(), keyboard::active());
             let changed = pump.drain(app, || {
-                let input = next_ready_input()?;
+                let input = next_ready_input(config)?;
                 if let Some(input) = &input {
                     sizes.observe(input);
                 }
@@ -578,13 +601,18 @@ impl SizeWatch {
     }
 }
 
-fn next_ready_input() -> std::io::Result<Option<Input>> {
+/// The app's input configuration under the session's keyboard protocol:
+/// the protocol reports Ctrl+\\ and friends as themselves, so the legacy
+/// mapping applies only without it.
+fn effective_input_config(app: InputConfig, protocol_active: bool) -> InputConfig {
+    InputConfig {
+        legacy_ctrl_punctuation: app.legacy_ctrl_punctuation && !protocol_active,
+        ..app
+    }
+}
+
+fn next_ready_input(config: InputConfig) -> std::io::Result<Option<Input>> {
     while event::poll(Duration::ZERO)? {
-        let config = InputConfig {
-            // the protocol reports Ctrl+\\ and friends as themselves
-            legacy_ctrl_punctuation: !keyboard::active(),
-            ..InputConfig::default()
-        };
         if let Some(input) = Input::from_crossterm_with(event::read()?, config) {
             keyboard::observe(&input);
             return Ok(Some(input));
@@ -796,6 +824,33 @@ mod tests {
     use super::*;
     use std::cell::Cell;
     use std::io::{self, ErrorKind};
+
+    #[test]
+    fn the_event_loop_reads_input_through_the_apps_input_config() {
+        let app = InputConfig {
+            shift_wheel_horizontal: false,
+            ctrl_click_secondary: true,
+            legacy_ctrl_punctuation: true,
+        };
+        assert_eq!(effective_input_config(app, false), app, "the app's own");
+        assert_eq!(
+            effective_input_config(app, true),
+            InputConfig {
+                legacy_ctrl_punctuation: false,
+                ..app
+            },
+            "the protocol reports Ctrl punctuation as itself"
+        );
+        let off = InputConfig {
+            legacy_ctrl_punctuation: false,
+            ..app
+        };
+        assert_eq!(
+            effective_input_config(off, false),
+            off,
+            "an app may opt out"
+        );
+    }
 
     thread_local! {
         static RESTORATIONS: Cell<usize> = const { Cell::new(0) };

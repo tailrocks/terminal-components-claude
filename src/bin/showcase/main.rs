@@ -16,6 +16,8 @@ mod app_tests_context;
 #[cfg(test)]
 mod app_tests_coverage;
 #[cfg(test)]
+mod app_tests_focusnav;
+#[cfg(test)]
 mod app_tests_inputs_forms;
 #[cfg(test)]
 mod app_tests_menus;
@@ -122,4 +124,4 @@ fn main() -> std::io::Result<()> {
     junie_tui::shell::run(&mut app)
 }
 
-junie_tui::impl_application!(App);
+junie_tui::impl_application!(App, input);
