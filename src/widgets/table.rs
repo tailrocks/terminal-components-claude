@@ -964,21 +964,8 @@ impl DataTable {
     }
 
     fn ensure_col_visible(&mut self) {
-        // horizontal scroll is in columns
-        let n = self.columns.len();
-        if self.scroll.h.viewport_len == 0 {
-            return;
-        }
-        if self.cursor_col < self.scroll.h.offset {
-            self.scroll.h.offset = self.cursor_col;
-        } else if self.cursor_col >= self.scroll.h.offset + self.scroll.h.viewport_len {
-            self.scroll.h.offset = self.cursor_col + 1 - self.scroll.h.viewport_len;
-        }
-        self.scroll.h.offset = self
-            .scroll
-            .h
-            .offset
-            .min(n.saturating_sub(self.scroll.h.viewport_len));
+        // the whole cursor column, measured at the offset it lands on
+        self.scroll.reveal_column(self.cursor_col);
     }
 
     pub fn begin_edit(&mut self) -> Outcome {
@@ -995,6 +982,10 @@ impl DataTable {
         if !self.columns[col].editable {
             return (Outcome::Consumed, None);
         }
+        // the editor (and a popup's anchor) is the cell on screen, even
+        // after the view was scrolled away from it
+        self.scroll.ensure_visible(self.cursor_row);
+        self.ensure_col_visible();
         let src = self.order[self.cursor_row];
         let text = self.rows[src][col].text.clone();
         let editor = &self.columns[col].editor;
@@ -1451,17 +1442,10 @@ impl DataTable {
         let n = self.columns.len();
         // decide how many columns fit starting at hscroll.offset
         let gap = 2u16;
-        let mut fit = 0usize;
-        let mut used = 0u16;
-        for i in self.scroll.h.offset..n {
-            let w = self.sizing.width(i, self.columns[i].min_width());
-            let need = if fit == 0 { w } else { w + gap };
-            if used + need > area.width {
-                break;
-            }
-            used += need;
-            fit += 1;
-        }
+        let widths = (0..n)
+            .map(|i| self.sizing.width(i, self.columns[i].min_width()))
+            .collect();
+        let fit = self.scroll.layout_columns(widths, gap, area.width);
         let fit = fit.max(1).min(n - self.scroll.h.offset.min(n));
         self.scroll.h.content_len = n;
         self.scroll.h.viewport_len = fit;

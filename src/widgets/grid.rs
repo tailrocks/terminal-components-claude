@@ -1125,6 +1125,10 @@ impl DataGrid {
         if let Some(reason) = self.read_only_reason_at_cursor() {
             return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
         }
+        // the editor (and a popup's anchor) is the cell on screen, even
+        // after the view was scrolled away from it
+        self.scroll.ensure_visible(self.cursor.0);
+        self.ensure_col_visible();
         let spec = &self.columns[col];
         let v = self.value(src, col).clone();
         // a constrained column: a checkbox flips, the others open a popup
@@ -1465,20 +1469,8 @@ impl DataGrid {
     }
 
     fn ensure_col_visible(&mut self) {
-        let n = self.columns.len();
-        if self.scroll.h.viewport_len == 0 {
-            return;
-        }
-        if self.cursor.1 < self.scroll.h.offset {
-            self.scroll.h.offset = self.cursor.1;
-        } else if self.cursor.1 >= self.scroll.h.offset + self.scroll.h.viewport_len {
-            self.scroll.h.offset = self.cursor.1 + 1 - self.scroll.h.viewport_len;
-        }
-        self.scroll.h.offset = self
-            .scroll
-            .h
-            .offset
-            .min(n.saturating_sub(self.scroll.h.viewport_len));
+        // the whole cursor column, measured at the offset it lands on
+        self.scroll.reveal_column(self.cursor.1);
     }
 
     /// Is the display cell inside the current range selection?
@@ -2258,17 +2250,8 @@ impl DataGrid {
     fn layout_columns(&mut self, area: Rect) {
         let n = self.columns.len();
         let gap = 2u16;
-        let mut fit = 0;
-        let mut used = 0u16;
-        for i in self.scroll.h.offset..n {
-            let w = self.col_w(i);
-            let need = if fit == 0 { w } else { w + gap };
-            if used + need > area.width {
-                break;
-            }
-            used += need;
-            fit += 1;
-        }
+        let widths = (0..n).map(|i| self.col_w(i)).collect();
+        let fit = self.scroll.layout_columns(widths, gap, area.width);
         let fit = fit
             .max(1)
             .min(n.saturating_sub(self.scroll.h.offset).max(1));

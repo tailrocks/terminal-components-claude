@@ -324,3 +324,42 @@ fn read_only_and_text_cells_show_no_affordance() {
     let glyph = Theme::junie().glyphs.disclosure_open;
     assert!(!text(&buf).contains(glyph), "{}", text(&buf));
 }
+
+/// A constrained editor opened on a column the view was scrolled away
+/// from brings the column back first, so its popup anchors to a cell on
+/// screen (finding T3: with no cell drawn the popup did not appear).
+#[test]
+fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {
+    use crate::core::scroll::Scrollable;
+    let theme = Theme::junie();
+    let mut t = table();
+    let narrow = |t: &mut DataTable| {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let inter = Interaction {
+            focus: Some(t.id),
+            ..Default::default()
+        };
+        let mut buf = Buffer::empty(Rect::new(0, 0, 32, 14));
+        {
+            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+            t.render(Rect::new(0, 0, 32, 8), &mut buf, &mut ctx, theme.canvas);
+            ctx.flush_overlays(&mut buf);
+        }
+        buf
+    };
+    narrow(&mut t);
+    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
+    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
+    narrow(&mut t);
+    assert_eq!(t.scroll.h.offset, 2, "the Env column is scrolled away");
+    t.on_key(&key(KeyCode::Enter));
+    assert!(t.choice.is_some());
+    let buf = narrow(&mut t);
+    assert!(t.scroll.h.offset <= 1, "the edited column is back in view");
+    assert!(
+        text(&buf).contains("Production"),
+        "the popup draws at its cell:\n{}",
+        text(&buf)
+    );
+}
