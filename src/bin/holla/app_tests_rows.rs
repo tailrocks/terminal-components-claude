@@ -120,7 +120,7 @@ fn l16_l19_navigation_keys_land_on_rows_and_the_focused_preview_scrolls() {
     h.key(KeyCode::Home);
     let (before, _) = finder_cursor(&mut h);
     h.key(KeyCode::Tab);
-    assert!(h.app.focus.is(finder::PREVIEW), "{}", h.text());
+    assert!(h.app.shell.focus.is(finder::PREVIEW), "{}", h.text());
     let off = preview_offset(&mut h);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
@@ -133,7 +133,7 @@ fn l16_l19_navigation_keys_land_on_rows_and_the_focused_preview_scrolls() {
     // a query change resets the preview scroll and returns to the list
     h.type_str("pull");
     assert_eq!(preview_offset(&mut h), 0);
-    assert!(!h.app.focus.is(finder::PREVIEW));
+    assert!(!h.app.shell.focus.is(finder::PREVIEW));
 }
 
 // ------------------------------------------------------------ HP03 I-F10 I-F12 · HP04 I-B14
@@ -146,7 +146,7 @@ fn i_f10_i_f12_file_actions_reveal_through_open_r_and_analyze_the_folder() {
     let (_, y) = h
         .find("index.html")
         .unwrap_or_else(|| panic!("{}", h.text()));
-    let list = h.app.hits.area_of(files::LIST).unwrap();
+    let list = h.app.shell.hits.area_of(files::LIST).unwrap();
     h.click(list.x + 2, y);
     h.alt(KeyCode::Enter);
     assert!(!h.app.modals.is_empty(), "the actions menu: {}", h.text());
@@ -163,7 +163,7 @@ fn i_f10_i_f12_file_actions_reveal_through_open_r_and_analyze_the_folder() {
     // analyze from the menu: the Disk page for that folder, not for cwd
     open(&mut h, "Browse ~/work/site");
     let (_, y) = h.find("assets").unwrap_or_else(|| panic!("{}", h.text()));
-    let list = h.app.hits.area_of(files::LIST).unwrap();
+    let list = h.app.shell.hits.area_of(files::LIST).unwrap();
     h.click(list.x + 2, y);
     h.alt(KeyCode::Enter);
     h.key(KeyCode::Down);
@@ -191,7 +191,7 @@ fn i_b14_context_markers_and_recommendations_are_preview_only() {
     h.type_str("~/work");
     h.key(KeyCode::Enter);
     let (_, y) = h.find("site").unwrap_or_else(|| panic!("{}", h.text()));
-    let list = h.app.hits.area_of(files::LIST).unwrap();
+    let list = h.app.shell.hits.area_of(files::LIST).unwrap();
     h.click(list.x + 2, y);
     let t = h.text();
     assert!(t.contains("markers · .git"), "{t}");
@@ -669,12 +669,13 @@ fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
     let field = crate::screens::review::ARG.child(0);
     let area = h
         .app
+        .shell
         .hits
         .area_of(field)
         .unwrap_or_else(|| panic!("the path field is hittable: {}", h.text()));
     // one completed click: focused and editing, the caret under the pointer
     h.click(area.x + 3, area.y);
-    assert!(h.app.focus.is(field), "{}", h.text());
+    assert!(h.app.shell.focus.is(field), "{}", h.text());
     assert!(
         h.text().contains("EDIT"),
         "editing after one click: {}",
@@ -696,16 +697,16 @@ fn a_click_on_dead_space_ends_an_argument_edit_in_place() {
     h.ticks(10);
     open(&mut h, "Analyze a custom path");
     let field = crate::screens::review::ARG.child(0);
-    let area = h.app.hits.area_of(field).expect("the path field");
+    let area = h.app.shell.hits.area_of(field).expect("the path field");
     h.click(area.x + 3, area.y);
     h.type_str("X");
     assert!(h.text().contains("EDIT"));
     let dead = (2..40)
         .flat_map(|y| (0..120).map(move |x| ratatui::layout::Position::new(x, y)))
-        .find(|p| h.app.hits.hit(*p).is_none())
+        .find(|p| h.app.shell.hits.hit(*p).is_none())
         .expect("some cell holds no control");
     h.click(dead.x, dead.y);
-    assert!(h.app.focus.is(field), "focus stays on the field");
+    assert!(h.app.shell.focus.is(field), "focus stays on the field");
     assert!(!h.text().contains("EDIT"), "the edit ended: {}", h.text());
     assert!(
         h.text().contains("/XUsers/alex/work/big"),
@@ -729,7 +730,12 @@ fn scrolled_output_fades_toward_the_hidden_lines_and_clears_at_the_edges() {
     h.type_str("Emit a burst");
     h.key(KeyCode::Enter);
     h.ticks(12);
-    let view = h.app.hits.area_of(crate::screens::activity::VIEW).unwrap();
+    let view = h
+        .app
+        .shell
+        .hits
+        .area_of(crate::screens::activity::VIEW)
+        .unwrap();
     let (x, top, bottom) = (view.x + 2, view.y, view.bottom() - 1);
     // following the tail: more above, nothing below
     assert!(
@@ -759,7 +765,12 @@ fn the_cursor_row_of_a_scrolled_list_is_never_faded() {
     h.ticks(6);
     open(&mut h, "Review cleanup candidates");
     h.key(KeyCode::End);
-    let list = h.app.hits.area_of(crate::screens::cleanup::LIST).unwrap();
+    let list = h
+        .app
+        .shell
+        .hits
+        .area_of(crate::screens::cleanup::LIST)
+        .unwrap();
     // the row inside the list, not the preview title on the right
     let cursor_y = (list.y..list.bottom())
         .find(|&y| {

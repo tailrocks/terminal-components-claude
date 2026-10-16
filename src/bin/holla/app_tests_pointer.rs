@@ -13,6 +13,7 @@ use crate::screens::{Go, Page};
 /// The area of the latest region of `owner`'s `part`.
 fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
     h.app
+        .shell
         .hits
         .regions()
         .iter()
@@ -31,15 +32,18 @@ fn a_click_on_a_footer_hint_runs_its_key() {
         .unwrap_or_else(|| panic!("the footer names Tab\n{}", h.text()));
     let x = line[..at].chars().count() as u16;
     let y = h.text().lines().count() as u16 - 1;
-    let before = h.app.focus.current();
+    let before = h.app.shell.focus.current();
     h.click(x, y);
     assert_ne!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         before,
         "the click on Tab moved focus to the preview\n{}",
         h.text()
     );
-    assert_eq!(h.app.focus.current(), Some(crate::screens::finder::PREVIEW));
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(crate::screens::finder::PREVIEW)
+    );
 }
 
 /// M17 (routing): a press on the files page's jump picker's scrollbar
@@ -108,11 +112,20 @@ fn a_press_dragged_onto_a_choice_option_chooses_it_on_release() {
     let (mut h, field) = choice_args();
     // the field's value row, by its disclosure mark
     let (x, y) = h.find("▾").expect("the choice field is drawn");
-    let under = h.app.hits.hit((x, y).into()).expect("the mark is a target");
-    assert_eq!(h.app.hits.part_of(under).map(|p| p.owner), Some(field));
+    let under = h
+        .app
+        .shell
+        .hits
+        .hit((x, y).into())
+        .expect("the mark is a target");
+    assert_eq!(
+        h.app.shell.hits.part_of(under).map(|p| p.owner),
+        Some(field)
+    );
     h.mouse(MouseKind::Down, x, y);
     let option = h
         .app
+        .shell
         .hits
         .regions()
         .iter()

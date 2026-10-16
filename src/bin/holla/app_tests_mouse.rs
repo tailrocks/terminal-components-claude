@@ -26,7 +26,10 @@ fn the_breadcrumb_goes_back_one_level_or_to_the_root_by_mouse() {
     assert_eq!(parts.len(), 3, "{parts:?}");
     // one level back: the middle link
     let mid = h.app.crumbs.areas[1];
-    assert_eq!(h.app.hits.hit(mid.as_position()), Some(CRUMBS.child(1)));
+    assert_eq!(
+        h.app.shell.hits.hit(mid.as_position()),
+        Some(CRUMBS.child(1))
+    );
     h.click(mid.x, mid.y);
     assert_eq!(h.app.tabs[0].stack.len(), 2, "{}", h.text());
     // to the root: the first link
@@ -43,7 +46,7 @@ fn the_breadcrumb_goes_back_one_level_or_to_the_root_by_mouse() {
 fn the_current_page_in_the_trail_is_not_a_link() {
     let mut h = nested();
     let last = h.app.crumbs.areas[2];
-    assert_eq!(h.app.hits.hit(last.as_position()), None);
+    assert_eq!(h.app.shell.hits.hit(last.as_position()), None);
     h.click(last.x, last.y);
     assert_eq!(h.app.tabs[0].stack.len(), 3);
 }

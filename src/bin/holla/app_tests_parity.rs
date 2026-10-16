@@ -4,6 +4,7 @@
 //! are the semantic regressions the capability matrix requires; captures are
 //! the visual half.
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 
 use junie_tui::core::event::Input;
@@ -695,7 +696,7 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
         let (_, y) = h
             .find(name)
             .unwrap_or_else(|| panic!("{name} listed\n{}", h.text()));
-        let cur = h.app.hits.area_of(files::LIST).unwrap();
+        let cur = h.app.shell.hits.area_of(files::LIST).unwrap();
         h.click(cur.x + 2, y);
         h.ticks(1);
         let t = h.text();
@@ -708,7 +709,7 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
     }
     // a broken link and an unreadable directory are errors, never crashes
     let (_, y) = h.find("broken").unwrap();
-    let cur = h.app.hits.area_of(files::LIST).unwrap();
+    let cur = h.app.shell.hits.area_of(files::LIST).unwrap();
     h.click(cur.x + 2, y);
     assert!(h.text().contains("broken symbol"), "{}", h.text());
     let (_, y) = h.find("private").unwrap();
@@ -2193,7 +2194,12 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
     // the list row, not the detail pane's heading of the same name: End
     // leaves one row of context below the cursor (ScrollState::context),
     // so the detail heading no longer shares its line with a blank list row
-    let list = h.app.hits.area_of(crate::screens::cleanup::LIST).unwrap();
+    let list = h
+        .app
+        .shell
+        .hits
+        .area_of(crate::screens::cleanup::LIST)
+        .unwrap();
     let y = (list.y..list.bottom())
         .find(|&y| {
             h.row(y)
@@ -2231,7 +2237,12 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
         let (_, y) = h
             .find(name)
             .unwrap_or_else(|| panic!("{name}\n{}", h.text()));
-        let tree = h.app.hits.area_of(crate::screens::disk::TREE).unwrap();
+        let tree = h
+            .app
+            .shell
+            .hits
+            .area_of(crate::screens::disk::TREE)
+            .unwrap();
         h.click(tree.x + 6, y);
     }
     assert!(h.text().contains("4 selected"), "{}", h.text());
@@ -2421,7 +2432,12 @@ fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
     open(&mut h, "Analyze disk usage");
     h.ticks(30);
     let (_, y) = h.find("big").unwrap_or_else(|| panic!("{}", h.text()));
-    let tree = h.app.hits.area_of(crate::screens::disk::TREE).unwrap();
+    let tree = h
+        .app
+        .shell
+        .hits
+        .area_of(crate::screens::disk::TREE)
+        .unwrap();
     h.click(tree.x + 6, y);
     h.key(KeyCode::Char('d'));
     assert!(
@@ -2483,7 +2499,12 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     open(&mut h, "Analyze disk usage");
     h.ticks(30);
     let (_, y) = h.find("big").unwrap_or_else(|| panic!("{}", h.text()));
-    let tree = h.app.hits.area_of(crate::screens::disk::TREE).unwrap();
+    let tree = h
+        .app
+        .shell
+        .hits
+        .area_of(crate::screens::disk::TREE)
+        .unwrap();
     h.click(tree.x + 6, y);
     h.key(KeyCode::Char('d'));
     h.key(KeyCode::Right);
@@ -2509,7 +2530,7 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     assert!(h.text().contains("Leave when it settles"), "{}", h.text());
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
-    assert!(!h.app.quit, "the quit waits for the cleanup");
+    assert!(!h.app.shell.quit, "the quit waits for the cleanup");
     assert!(h.app.quitting);
     assert!(h.app.world.cleanup_job.is_some(), "nothing was dropped");
     assert!(
@@ -2529,7 +2550,11 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
         2,
         "the log landed before the quit"
     );
-    assert!(h.app.quit, "quit after the cleanup settled: {}", h.text());
+    assert!(
+        h.app.shell.quit,
+        "quit after the cleanup settled: {}",
+        h.text()
+    );
 }
 
 // ------------------------------------------------------------ HP23
@@ -2653,7 +2678,7 @@ fn hp23_platform_capabilities_are_stated_and_never_faked() {
     let (_, y) = l
         .find("package.json")
         .unwrap_or_else(|| panic!("{}", l.text()));
-    let list = l.app.hits.area_of(files::LIST).unwrap();
+    let list = l.app.shell.hits.area_of(files::LIST).unwrap();
     l.click(list.x + 2, y);
     l.alt(KeyCode::Enter);
     assert!(!l.app.modals.is_empty(), "the actions menu: {}", l.text());
