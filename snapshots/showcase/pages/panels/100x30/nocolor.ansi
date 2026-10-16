@@ -15,7 +15,7 @@
    Progress            content starts at the padding         │  [0m[2mpause, redirect, or take over at [0m│ │[0m
    Scrolling           edge.                                 ╰─────────────────────────────────────╯[0m
    Terminal                                                                                         [0m
-   Code editor                                                 Card · scrollable         1–8 of 60  [0m
+   Code editor                                                 Card · scrollable         1–7 of 60  [0m
    Diff                                                                                             [0m
    Data grid           Nested                                     0.00s  info   Resolving works… ┃  [0m
    Chips & selects                                                0.37s  info   Fetching crates… │  [0m
@@ -23,8 +23,9 @@
    Chrome                 Local                                   1.11s  info   Compiling serde… │  [0m
    Settings               CLI                                     1.48s  warn   unused import: … │  [0m
    Task runner         [0m[2m   Cloud                      [0m             1.85s  info   Compiling tokio… │  [0m
-                                                                  2.22s  info   Running unittes… │  [0m
-                                                               [0m[2m   2.59s  info   test api::auth:… [0m│  [0m
+                                                               [0m[2m   2.22s  info   Running unittes… [0m│  [0m
+                                                               ━━━━━━━━━━━━━━━───────────────────   [0m
                                                                                                     [0m
                                                                                                     [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                         [0m
+[?25l

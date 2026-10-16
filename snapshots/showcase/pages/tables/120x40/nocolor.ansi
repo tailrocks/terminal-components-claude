@@ -2,7 +2,7 @@
                                                                                                                         [0m
    Foundations            [0m[1mTables[0m  Sort by header, hover rows, select with Enter, overflow scrolls                       [0m
    Overview                                                                                                             [0m
-                            Tasks                                                                unsorted · 1–21 of 24  [0m
+                            Tasks                                                                unsorted · 1–20 of 24  [0m
    Components                                                                                                           [0m
    Buttons                     ID     Task                      Owner    Status     Branch                  Changes …   [0m
    Inputs                      #1040  Add rate limiting to au…  mira     Done       feat/rate-limit              14  ┃  [0m
@@ -21,11 +21,11 @@
    Code editor                 #1053  Add pagination to audit…  ana      Done       feat/audit-pages             16  ┃  [0m
    Diff                        #1054  Refactor retry helper i…  sofia    ▸ Running  refactor/retry               11  ┃  [0m
    Data grid                   #1055  Rotate signing keys qua…  mira     Queued     sec/key-rotation              0  ┃  [0m
-   Chips & selects             #1056  Fix timezone bug in sch…  jonas    Done       fix/tz-scheduler              7  ┃  [0m
-   Pickers                     #1057  Document webhook retry …  kai      Done       docs/webhooks                 2  ┃  [0m
+   Chips & selects             #1056  Fix timezone bug in sch…  jonas    Done       fix/tz-scheduler              7  │  [0m
+   Pickers                     #1057  Document webhook retry …  kai      Done       docs/webhooks                 2  │  [0m
    Chrome                      #1058  Add dark mode to admin …  ana      Paused     feat/admin-dark              40  │  [0m
-                               #1059  Bump minimum Node to 22   sofia    Queued     chore/node-22                 0  │  [0m
-   Screens                  [0m[2m   #1060  Cache dependency graph …  mira     ▸ Running  perf/dep-cache               19  [0m│  [0m
+                            [0m[2m   #1059  Bump minimum Node to 22   sofia    Queued     chore/node-22                 0  [0m│  [0m
+   Screens                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────   [0m
    Settings                                                                                                             [0m
    Task runner                                                                                                          [0m
                             Checks                                                                                      [0m
@@ -37,4 +37,5 @@
                                                                                                                         [0m
                                                                                                                         [0m
                                                                                                                         [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                             [0m
+[?25l

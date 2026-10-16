@@ -11,7 +11,7 @@
    Lists                           typecheck                integration   queued                                                                                [0m
    Trees                       ▾ test                       e2e           queued                                                                                [0m
    Tables                          unit                                                                                                                         [0m
-   Editable tables                 integration               [0m[1mRun pipeline [0m   [0m[2mCancel [0m                                                                            [0m
+   Editable tables                 integration               [0m[1;7mRun pipeline [0m   [0m[2mCancel [0m                                                                            [0m
    Panels                          e2e                                                                                                                          [0m
    Sidebars                    ▾ deploy                                                                                                                         [0m
    Dialogs                         staging                  Log                                                                                    · following  [0m
@@ -47,4 +47,5 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                     [0m
+[?25l

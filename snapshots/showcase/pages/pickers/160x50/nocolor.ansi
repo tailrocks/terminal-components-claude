@@ -4,7 +4,7 @@
    Overview                                                                                                                                                     [0m
                             Open a picker                                                                                                                       [0m
    Components                                                                                                                                                   [0m
-   Buttons                   [0m[1mOpen quickly [0m   Switch tab    Choose a level                                                                                       [0m
+   Buttons                   [0m[1;7mOpen quickly [0m   Switch tab    Choose a level                                                                                       [0m
    Inputs                                                                                                                                                       [0m
    Text areas               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate action · Tabs: Delete closes a row · Level: n…  [0m
    Forms                                                                                                                                                        [0m
@@ -47,4 +47,5 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                     [0m
+[?25l

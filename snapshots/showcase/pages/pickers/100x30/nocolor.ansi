@@ -4,7 +4,7 @@
    Buttons                                                                                          [0m
    Inputs              Open a picker                                                                [0m
    Text areas                                                                                       [0m
-   Forms                [0m[1mOpen quickly [0m   Switch tab    Choose a level                                [0m
+   Forms                [0m[1;7mOpen quickly [0m   Switch tab    Choose a level                                [0m
    Lists                                                                                            [0m
    Trees               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the …  [0m
    Tables                                                                                           [0m
@@ -27,4 +27,5 @@
                                                                                                     [0m
                                                                                                     [0m
                                                                                                     [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                         [0m
+[?25l

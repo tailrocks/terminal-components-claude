@@ -4,7 +4,7 @@
    Buttons        ┃                                                             [0m
    Inputs         ┃                                  Tasks                      [0m
    Text areas     ┃     Workspace                                               [0m
-   Forms          ┃   › T Tasks                3     One focus stop. ↑ ↓ move   [0m
+   Forms          ┃   › T Tasks                3     One focus stop. ↑↓ move    [0m
    Lists          ┃     R Runs                       the cursor, Enter opens.   [0m
    Trees          ┃     B Branches                                              [0m
    Tables         ┃                                  ›  current item ·          [0m
@@ -21,4 +21,5 @@
    Chips & selec… │    Collapse                      Collapsed mode keeps rows  [0m
 [0m[2m   Pickers        [0m│                                                             [0m
                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
+[?25l

@@ -11,7 +11,7 @@
    Editable tables            typecheck                integration   queued                         [0m
    Panels                 ▾ test                       e2e           queued                         [0m
    Sidebars                   unit                                                                  [0m
-   Dialogs                    integration               [0m[1mRun pipeline [0m   [0m[2mCancel [0m                     [0m
+   Dialogs                    integration               [0m[1;7mRun pipeline [0m   [0m[2mCancel [0m                     [0m
    Progress                   e2e                                                                   [0m
    Scrolling              ▾ deploy                                                                  [0m
    Terminal                   staging                  Log                             · following  [0m
@@ -24,7 +24,8 @@
    Settings                                                                                         [0m
 [0m[1m▎› Task runner     [0m                                                                                 [0m
                                                                                                     [0m
+                                                       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───  [0m
                                                                                                     [0m
                                                                                                     [0m
-                                                                                                    [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                         [0m
+[?25l

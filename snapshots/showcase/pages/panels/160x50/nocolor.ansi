@@ -25,13 +25,13 @@
    Pickers                  [0m[2m   Cloud                      [0m  control.                          │                                                                │[0m
    Chrome                                                                                     ╰────────────────────────────────────────────────────────────────╯[0m
                                                                                                                                                                 [0m
-   Screens                                                                                      Card · scrollable                                   1–18 of 60  [0m
+   Screens                                                                                      Card · scrollable                                   1–17 of 60  [0m
    Settings                                                                                                                                                     [0m
    Task runner                                                                                     0.00s  info   Resolving workspace members                 ┃  [0m
                                                                                                    0.37s  info   Fetching crates.io index                    ┃  [0m
                                                                                                    0.74s  info   Compiling proc-macro2 v1.0.86               ┃  [0m
                                                                                                    1.11s  info   Compiling serde v1.0.210                    ┃  [0m
-                                                                                                   1.48s  warn   unused import: `std::fmt` in src/api/mod.r… ┃  [0m
+                                                                                                   1.48s  warn   unused import: `std::fmt` in src/api/mod.r… │  [0m
                                                                                                    1.85s  info   Compiling tokio v1.40.0                     │  [0m
                                                                                                    2.22s  info   Running unittests src/lib.rs                │  [0m
                                                                                                    2.59s  info   test api::auth::tests::rejects_expired ...… │  [0m
@@ -43,8 +43,9 @@
                                                                                                    4.81s  info   Fetching crates.io index                    │  [0m
                                                                                                    5.18s  info   Compiling proc-macro2 v1.0.86               │  [0m
                                                                                                    5.55s  info   Compiling serde v1.0.210                    │  [0m
-                                                                                                   5.92s  warn   unused import: `std::fmt` in src/api/mod.r… │  [0m
-                                                                                                [0m[2m   6.29s  info   Compiling tokio v1.40.0                     [0m│  [0m
+                                                                                                [0m[2m   5.92s  warn   unused import: `std::fmt` in src/api/mod.r… [0m│  [0m
+                                                                                                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────   [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                     [0m
+[?25l
