@@ -8,7 +8,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
@@ -448,6 +448,7 @@ fn render_outline(
         if avail >= 6 && !meta.is_empty() {
             buf.set_string(x, y, truncate_sep(&meta, avail), plain.fg(meta_tone));
         }
+        legible_on_fill(buf, row, t, bg);
         ctx.clickable(rid, row);
     }
     if has_sb {
