@@ -10,16 +10,17 @@ use ratatui::style::Modifier;
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::keymap::hint_key;
 use junie_tui::theme::{SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::Split;
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::chips::{Chip, ChipBar};
+use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar};
 use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorEvent, Severity};
 use junie_tui::widgets::completion::{Completion, CompletionEvent, CompletionItem};
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::grid::{
-    CellKind, CellValue, ColumnSpec, DataGrid, GridEvent, GridRows, RowTotal,
+    CellKind, CellValue, ColumnSpec, DataGrid, GridAction, GridEvent, GridRows, RowTotal,
 };
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -28,7 +29,7 @@ use junie_tui::widgets::panel::{Panel, ScrollPanel};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir};
-use junie_tui::widgets::tabs::{TabEvent, TabItem, TabRule, Tabs};
+use junie_tui::widgets::tabs::{TabAction, TabEvent, TabItem, TabRule, Tabs};
 use junie_tui::widgets::tree::{TreeNode, TreeView};
 
 use crate::app::Cx;
@@ -730,27 +731,30 @@ impl TableTab {
             Some(f) if f == self.mode_tabs.id => {
                 vec![hint("←→", "Switch"), hint("Ctrl+D", "Data / Structure")]
             }
-            Some(f) if f == self.chips.id => vec![
-                hint("Enter", "Edit filter"),
-                hint("Space", "Enable"),
-                hint("Delete", "Remove"),
-                hint("+", "Add"),
-            ],
+            Some(f) if f == self.chips.id => {
+                // action keys come from the chip bar's keymap
+                let km = &self.chips.keymap;
+                let mut h = vec![hint("Enter", "Edit filter"), hint("Space", "Enable")];
+                h.extend(hint_key(km, ChipAction::Remove).map(|k| hint(k, "Remove")));
+                h.extend(hint_key(km, ChipAction::Add).map(|k| hint(k, "Add")));
+                h
+            }
             Some(f) if f == self.structure_tabs.id => {
                 vec![hint("←→", "Section"), hint("1–6", "Jump")]
             }
             Some(f) if f == self.grid.id => {
-                let mut h = vec![
-                    hint("↑↓←→", "Cell"),
-                    hint("Enter", "Edit"),
-                    hint("s", "Sort"),
-                    hint("f", "Filter"),
-                ];
-                if self.grid.editable {
-                    h.insert(2, hint("Alt+D", "Duplicate row"));
+                // action keys come from the grid's keymap
+                let km = &self.grid.keymap;
+                let mut h = vec![hint("↑↓←→", "Cell"), hint("Enter", "Edit")];
+                if self.grid.editable
+                    && let Some(k) = hint_key(km, GridAction::DuplicateRow)
+                {
+                    h.push(hint(k, "Duplicate row"));
                 }
+                h.extend(hint_key(km, GridAction::Sort).map(|k| hint(k, "Sort")));
+                h.extend(hint_key(km, GridAction::FilterOnCell).map(|k| hint(k, "Filter")));
                 if self.dirty_count() > 0 {
-                    h.push(hint("Ctrl+S", "Save"));
+                    h.extend(hint_key(km, GridAction::Commit).map(|k| hint(k, "Save")));
                 } else {
                     h.push(hint("Space", "Select row"));
                 }
@@ -1306,15 +1310,16 @@ impl QueryTab {
             if g.is_editing() {
                 return vec![hint("Enter", "Apply"), hint("Esc", "Cancel")];
             }
-            let mut hints = vec![
-                hint("↑↓←→", "Cell"),
-                hint("Enter", "Edit"),
-                hint("s", "Sort"),
-                hint("y", "Copy"),
-            ];
-            if g.editable {
-                hints.insert(2, hint("Alt+D", "Duplicate row"));
+            // action keys come from the grid's keymap
+            let km = &g.keymap;
+            let mut hints = vec![hint("↑↓←→", "Cell"), hint("Enter", "Edit")];
+            if g.editable
+                && let Some(k) = hint_key(km, GridAction::DuplicateRow)
+            {
+                hints.push(hint(k, "Duplicate row"));
             }
+            hints.extend(hint_key(km, GridAction::Sort).map(|k| hint(k, "Sort")));
+            hints.extend(hint_key(km, GridAction::Copy).map(|k| hint(k, "Copy")));
             hints.push(junie_tui::widgets::keyhint::CONTEXT_MENU);
             return hints;
         }
@@ -1326,12 +1331,14 @@ impl QueryTab {
                 hint("Ctrl+X", "Explain"),
                 hint("/", "Find"),
             ],
-            Some(f) if f == self.result_tabs.id => vec![
-                hint("←→", "Result"),
-                hint("p", "Pin"),
-                hint("x", "Close"),
-                hint("Enter", "Go to statement"),
-            ],
+            Some(f) if f == self.result_tabs.id => {
+                let mut h = vec![hint("←→", "Result"), hint("p", "Pin")];
+                h.extend(
+                    hint_key(&self.result_tabs.keymap, TabAction::Close).map(|k| hint(k, "Close")),
+                );
+                h.push(hint("Enter", "Go to statement"));
+                h
+            }
             _ => vec![hint("↑↓", "Move")],
         }
     }

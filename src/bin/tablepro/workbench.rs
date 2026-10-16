@@ -584,14 +584,21 @@ impl Workbench {
             ];
         }
         if focus == Some(self.strip.id) {
-            return vec![
-                hint("←→", "Switch"),
-                hint("Ctrl+T", "New query"),
-                hint("x", "Close"),
+            let mut v = vec![hint("←→", "Switch"), hint("Ctrl+T", "New query")];
+            // the close key comes from the strip's keymap
+            v.extend(
+                junie_tui::core::keymap::hint_key(
+                    &self.strip.keymap,
+                    junie_tui::widgets::tabs::TabAction::Close,
+                )
+                .map(|k| hint(k, "Close")),
+            );
+            v.extend([
                 hint("Ctrl+G", "Tab list"),
                 hint("z", "Zoom"),
                 junie_tui::widgets::keyhint::CONTEXT_MENU,
-            ];
+            ]);
+            return v;
         }
         match self.active_tab() {
             Some(WorkTab::Table(t)) => t.hints(focus),
