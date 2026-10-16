@@ -1165,7 +1165,7 @@ impl Theme {
         let weighted = match kind {
             Kind::Button(ButtonKind::Primary) => true,
             Kind::CursorRow(CursorStyle::Fill) => fill,
-            Kind::Tab | Kind::Title => s.selected || s.focused,
+            Kind::Tab | Kind::Title | Kind::Chip => s.selected || s.focused,
             Kind::Field | Kind::Close => false,
             _ => s.focused,
         };
