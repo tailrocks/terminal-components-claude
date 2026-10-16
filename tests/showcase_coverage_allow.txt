@@ -251,20 +251,6 @@ core::text::CursorPos | Text utilities page | SC26
 # core::typeahead
 core::typeahead::TypeAhead | Lists and Trees page options | SC15
 
-# ui::context
-ui::context::ContextKeys | Menus page | SC16
-ui::context::ContextKeys::shift_f10 | Menus page | SC16
-ui::context::ContextKeys::menu_key | Menus page | SC16
-ui::context::ContextKeys::extra | Menus page | SC16
-ui::context::ContextConfig | Menus page | SC16
-ui::context::ContextConfig::keys | Menus page | SC16
-ui::context::ContextConfig::moves_cursor | Menus page | SC16
-ui::context::ContextAnchor | Menus page | SC16
-ui::context::ContextAnchor::Pointer | Menus page | SC16
-ui::context::ContextAnchor::Control | Menus page | SC16
-ui::context::ContextRequest | Menus page | SC16
-ui::context::ContextRequest::map | Menus page | SC16
-
 # ui::ctx
 ui::ctx::Interaction | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 ui::ctx::FocusVisible | per-widget focus ring policy (Button::focus_visible): the Buttons page option | SC7
@@ -850,31 +836,6 @@ widgets::list::ListBox::empty | Lists and Trees page options | SC15
 widgets::list::ListBox::track_click | Lists and Trees page options | SC15
 
 # widgets::menu
-widgets::menu::MenuItem | Menus page | SC16
-widgets::menu::MenuItem::shortcut | Menus page | SC16
-widgets::menu::MenuItem::disabled | Menus page | SC16
-widgets::menu::MenuItem::reason | Menus page | SC16
-widgets::menu::MenuItem::danger | Menus page | SC16
-widgets::menu::MenuItem::danger_if | Menus page | SC16
-widgets::menu::MenuItem::separator | Menus page | SC16
-widgets::menu::MenuItem::separator_if | Menus page | SC16
-widgets::menu::MenuAction | Menus page | SC16
-widgets::menu::MenuAction::Chosen | Menus page | SC16
-widgets::menu::MenuAction::Dismissed | Menus page | SC16
-widgets::menu::ContextMenu::release_selects | Menus page | SC16
-widgets::menu::ContextMenu::max_rows | Menus page | SC16
-widgets::menu::ContextMenu::min_width | Menus page | SC16
-widgets::menu::ContextMenu::nav | Menus page | SC16
-widgets::menu::ContextMenu::edge_margin | Menus page | SC16
-widgets::menu::ContextMenu::wrap | Menus page | SC16
-widgets::menu::ContextMenu::type_ahead | Menus page | SC16
-widgets::menu::ContextMenu::fit | Menus page | SC16
-widgets::menu::ContextMenu::dismiss | Menus page | SC16
-widgets::menu::ContextMenu::hide_owner_focus | Menus page | SC16
-widgets::menu::ContextMenu::anchor | Menus page | SC16
-widgets::menu::ContextMenu::at | Menus page | SC16
-widgets::menu::ContextMenu::anchor_control | Menus page | SC16
-widgets::menu::ContextMenu::title | Menus page | SC16
 widgets::menu::MenuBarAction | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBarAction::Opened | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBarAction::Chosen | Chrome and Status & hints pages | SC4

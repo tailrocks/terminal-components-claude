@@ -84,7 +84,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
     Root::new("showcase/planned/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:arrives with SC9"]).pending(),
     Root::new("showcase/planned/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
-    Root::new("showcase/planned/menus", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["wait:arrives with SC16"]).pending(),
     Root::new("showcase/planned/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:arrives with SC18"]).pending(),
     Root::new("showcase/planned/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:arrives with SC19"]).pending(),
     Root::new("showcase/planned/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:arrives with SC41"]).pending(),
@@ -126,6 +125,11 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/tabs", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["wait:Editor strip"]).pending(),
     Root::new("showcase/sections/tabs-options", Bin::Showcase, &["--page", "tabs"], BOOT).sends(&["tab", "2", "wait:Active rule"]).pending(),
     Root::new("showcase/sections/tabs-states", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
+    // SC16 Menus: the file list and the Actions button, the option table
+    // and the menus' States grid. Pending first approval.
+    Root::new("showcase/pages/menus", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["wait:Actions menu"]).pending(),
+    Root::new("showcase/sections/menus-options", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "2", "wait:Actions placement"]).pending(),
+    Root::new("showcase/sections/menus-states", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "3", "wait:Commands"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),
@@ -219,6 +223,12 @@ pub const OVERLAYS: &[Root] = &[
     // (x on orders.sql) asks Cancel / Discard / Save first.
     Root::new("showcase/overlays/tabs_overflow_menu", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).click("+").pending().dismiss_pending(),
     Root::new("showcase/overlays/tabs_close_dirty", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).sends(&["tab", "tab", "right", "x", "wait:Discard"]).pending().dismiss_pending(),
+    // SC16 Menus: a file's menu from the keyboard (under its row) and from
+    // a right-click (at the pointer, with reasons), and the Actions menu
+    // under its button.
+    Root::new("showcase/overlays/menus_row_keyboard", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "tab", "shift-f10", "wait:Duplicate"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/menus_row_pointer", Bin::Showcase, &["--page", "menus"], BOOT).right_click("README.md").pending().dismiss_pending(),
+    Root::new("showcase/overlays/menus_actions", Bin::Showcase, &["--page", "menus"], BOOT).click("Actions ▾").pending().dismiss_pending(),
     // mouse #40: the brand asks before quitting.
     Root::new("showcase/overlays/quit_confirm", Bin::Showcase, &["--page", "overview"], BOOT).click("Junie").pending().dismiss_pending(),
     // Unsaved Settings edits: `q` asks Cancel / Discard first (7b54eb459).

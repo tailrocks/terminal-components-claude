@@ -1106,4 +1106,144 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tabs::Tabs::middle_click_closes",
         Option("tabs", "tabs.middle_click"),
     ),
+    // Menus (SC16)
+    (
+        "ui::context::ContextKeys",
+        Option("menus", "menus.shift_f10"),
+    ),
+    (
+        "ui::context::ContextKeys::shift_f10",
+        Option("menus", "menus.shift_f10"),
+    ),
+    (
+        "ui::context::ContextKeys::menu_key",
+        Option("menus", "menus.menu_key"),
+    ),
+    (
+        "ui::context::ContextKeys::extra",
+        Option("menus", "menus.extra_key"),
+    ),
+    (
+        "ui::context::ContextConfig",
+        Demo("menus", "a click moves the cursor"),
+    ),
+    (
+        "ui::context::ContextConfig::keys",
+        Option("menus", "menus.shift_f10"),
+    ),
+    (
+        "ui::context::ContextConfig::moves_cursor",
+        Option("menus", "menus.moves_cursor"),
+    ),
+    (
+        "ui::context::ContextAnchor",
+        Demo("menus", "Pointer at a right-click, Control under the row"),
+    ),
+    (
+        "ui::context::ContextAnchor::Pointer",
+        Demo("menus", "Pointer at a right-click"),
+    ),
+    (
+        "ui::context::ContextAnchor::Control",
+        Demo("menus", "Control under the row for a key"),
+    ),
+    (
+        "ui::context::ContextRequest",
+        Demo("menus", "Request none yet"),
+    ),
+    (
+        "ui::context::ContextRequest::map",
+        Demo("menus", "Request none yet"),
+    ),
+    ("widgets::menu::MenuItem", Demo("menus", "Open    Enter")),
+    (
+        "widgets::menu::MenuItem::shortcut",
+        Demo("menus", "Rename     F2"),
+    ),
+    (
+        "widgets::menu::MenuItem::disabled",
+        Demo("menus", "Share…    Off"),
+    ),
+    (
+        "widgets::menu::MenuItem::reason",
+        Demo("menus", "Share…    Off"),
+    ),
+    ("widgets::menu::MenuItem::danger", Demo("menus", "Delete")),
+    ("widgets::menu::MenuItem::danger_if", Demo("menus", "Trash")),
+    (
+        "widgets::menu::MenuItem::separator",
+        Demo("menus", "Copy path"),
+    ),
+    (
+        "widgets::menu::MenuItem::separator_if",
+        Demo("menus", "Share…    Off"),
+    ),
+    (
+        "widgets::menu::MenuAction",
+        Demo("menus", "Chosen(i) or Dismissed"),
+    ),
+    (
+        "widgets::menu::MenuAction::Chosen",
+        Demo("menus", "Chosen(i)"),
+    ),
+    (
+        "widgets::menu::MenuAction::Dismissed",
+        Demo("menus", "or Dismissed"),
+    ),
+    (
+        "widgets::menu::ContextMenu::release_selects",
+        Option("menus", "menus.release_selects"),
+    ),
+    (
+        "widgets::menu::ContextMenu::max_rows",
+        Option("menus", "menus.max_rows"),
+    ),
+    (
+        "widgets::menu::ContextMenu::min_width",
+        Option("menus", "menus.min_width"),
+    ),
+    (
+        "widgets::menu::ContextMenu::nav",
+        Option("menus", "menus.nav"),
+    ),
+    (
+        "widgets::menu::ContextMenu::edge_margin",
+        Option("menus", "menus.edge_margin"),
+    ),
+    (
+        "widgets::menu::ContextMenu::wrap",
+        Option("menus", "menus.wrap"),
+    ),
+    (
+        "widgets::menu::ContextMenu::type_ahead",
+        Option("menus", "menus.type_ahead"),
+    ),
+    (
+        "widgets::menu::ContextMenu::fit",
+        Option("menus", "menus.fit"),
+    ),
+    (
+        "widgets::menu::ContextMenu::dismiss",
+        Option("menus", "menus.dismiss"),
+    ),
+    (
+        "widgets::menu::ContextMenu::hide_owner_focus",
+        Option("menus", "menus.hide_owner_focus"),
+    ),
+    (
+        "widgets::menu::ContextMenu::anchor",
+        Option("menus", "menus.placement"),
+    ),
+    (
+        "widgets::menu::ContextMenu::at",
+        Demo("menus", "Pointer at a right-click"),
+    ),
+    (
+        "widgets::menu::ContextMenu::anchor_control",
+        Demo("menus", "Actions ▾"),
+    ),
+    (
+        "widgets::menu::ContextMenu::title",
+        Option("menus", "menus.title"),
+    ),
 ];
