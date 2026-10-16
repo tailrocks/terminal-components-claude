@@ -171,6 +171,23 @@ fn reduced_motion_and_paused_frames_are_deterministic() {
 }
 
 #[test]
+fn the_manager_detail_card_tabs_in_visual_order() {
+    // K30: the card draws its action row before its header stop; Tab
+    // still reaches the header first, then the buttons left to right
+    let mut h = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(crate::screens::manager::TREE)
+    );
+    h.key(KeyCode::Tab);
+    let detail = crate::screens::manager::DETAIL;
+    assert_eq!(h.app.shell.focus.current(), Some(detail));
+    h.key(KeyCode::Tab);
+    assert_eq!(h.app.shell.focus.current(), Some(detail.sub("launch")));
+}
+
+#[test]
 fn manager_navigation_expand_and_detail_focus() {
     let mut h = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
     h.key(KeyCode::Down);
