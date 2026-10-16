@@ -10,8 +10,8 @@ use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
 use crate::core::id::WidgetId;
-use crate::theme::Tone;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::theme::{Kind, Plane, Tone};
+use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::text::{truncate, width};
 use crate::widgets::progress::{Meter, MeterTone, MeterVisual};
 
@@ -290,15 +290,27 @@ impl StatusBar {
         fill(buf, area, Style::new().bg(bg));
         for p in self.layout(area) {
             let it = &self.group(p.group)[p.index];
-            let hovered = it.id.is_some_and(|id| ctx.interaction.hovered(id));
-            let mut st = Style::new().fg(t.tone(it.tone)).bg(bg);
-            match it.emphasis {
-                Emphasis::Strong => st = st.add_modifier(Modifier::BOLD),
-                Emphasis::Chip => st = st.bg(t.surface_overlay),
-                Emphasis::Plain => {}
-            }
-            if hovered {
-                st = st.bg(t.lift(st.bg.unwrap_or(bg))).fg(t.text_primary);
+            // a clickable item walks the ladder (a chip on the raised plane,
+            // text on the bar); its tone survives every state
+            let kind = match it.emphasis {
+                Emphasis::Chip => Some(Kind::Chip),
+                _ => it.id.map(|_| Kind::Title),
+            };
+            let mut st = match (kind, it.id) {
+                (Some(kind), Some(id)) => {
+                    let mut s = ctx.state(id);
+                    s.focused = false;
+                    t.interactive(kind, s, Plane::Card).style
+                }
+                (Some(kind), None) => {
+                    t.interactive(kind, VisualState::default(), Plane::Card)
+                        .style
+                }
+                _ => Style::new().bg(bg),
+            };
+            st = st.fg(t.legible(t.tone(it.tone), st.bg.unwrap_or(bg)));
+            if it.emphasis == Emphasis::Strong {
+                st = st.add_modifier(Modifier::BOLD);
             }
             let text = if it.emphasis == Emphasis::Chip {
                 format!(" {} ", p.text)
@@ -486,5 +498,39 @@ mod tests {
         assert_eq!(hit, Some(id), "a cut segment is reachable by the pointer");
         let (hovered, _) = draw(Some(id));
         assert!(hovered.contains(long), "{hovered}");
+    }
+
+    #[test]
+    fn a_clickable_chip_keeps_its_tone_and_shows_a_press() {
+        let t = Theme::junie();
+        let id = WidgetId::of("usage");
+        let draw = |interaction: Interaction| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 120, 1));
+            bar().render(Rect::new(0, 0, 120, 1), &mut buf, &mut ctx);
+            let x = (0..120u16)
+                .find(|x| hits.hit(Position::new(*x, 0)) == Some(id))
+                .unwrap();
+            buf[(x + 1, 0)].clone()
+        };
+        let rest = draw(Interaction::default());
+        let hover = draw(Interaction {
+            hover: Some(id),
+            ..Default::default()
+        });
+        let pressed = draw(Interaction {
+            hover: Some(id),
+            pressed: Some(id),
+            ..Default::default()
+        });
+        assert_eq!(
+            hover.fg, t.warning,
+            "a warning chip stays amber under the pointer"
+        );
+        assert_ne!(rest.bg, hover.bg);
+        assert_ne!(hover.bg, pressed.bg, "the chip shows a press");
+        assert_eq!(pressed.bg, t.ladder(crate::theme::Plane::Raised).pressed);
     }
 }
