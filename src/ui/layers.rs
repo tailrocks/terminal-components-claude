@@ -70,6 +70,9 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
     }
+    fn is_editing(&self) -> bool {
+        Dialog::is_editing(self)
+    }
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &W) {
         Dialog::render(self, screen, buf, ctx);
     }
@@ -236,6 +239,9 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDialog {
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
+    }
+    fn is_editing(&self) -> bool {
+        FormDialog::is_editing(self)
     }
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &W) {
         FormDialog::render(self, screen, buf, ctx);

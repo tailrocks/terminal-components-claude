@@ -649,6 +649,9 @@ impl InspectChanges {
 /// The inspector on the app's layer stack. Light dismiss (Esc at the top
 /// level, an outside click, its close button) reports `Custom("close")`.
 impl Layer<ModalResult, World> for InspectChanges {
+    fn animating(&self) -> bool {
+        true
+    }
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(Dismiss::LIGHT).initial_focus(self.initial_focus())
     }

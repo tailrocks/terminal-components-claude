@@ -3259,10 +3259,7 @@ impl App {
         // the focused cursor row is cut: name the reveal key
         let mut hints = hints;
         junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
-        let editing = self
-            .modals
-            .top_as::<Dialog>()
-            .is_some_and(|d| d.is_editing())
+        let editing = self.modals.top().is_some_and(|t| t.layer.is_editing())
             || (!modal && self.top().is_some_and(|s| s.is_editing()) && self.active == 0);
         let badge = if editing {
             Some(("EDIT", BadgeKind::Edit))
