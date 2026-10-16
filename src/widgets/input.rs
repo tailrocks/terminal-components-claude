@@ -99,6 +99,9 @@ pub struct TextInput {
     /// The field held focus at its last render, so a newly gained focus
     /// starts an immediate edit exactly once.
     focus_seen: bool,
+    /// The edit in progress was started by focus (not by the pointer or
+    /// Enter), so it may end quietly with the focus.
+    focus_edit: bool,
     /// What a drag, double click and triple click select.
     /// Default [`PointerSelect::DEFAULT`].
     pub pointer_select: PointerSelect,
@@ -147,6 +150,7 @@ impl TextInput {
             keys: FieldKeys::default(),
             undo: UndoStack::new(),
             focus_seen: false,
+            focus_edit: false,
             pointer_select: PointerSelect::DEFAULT,
             press: PressState::default(),
         }
@@ -255,6 +259,19 @@ impl TextInput {
     pub fn can_undo(&self) -> bool {
         self.undo.can_undo()
     }
+    /// The footer hints for this field while it holds focus: the edit keys
+    /// ([`crate::widgets::keyhint::EDIT_FIELD`]) once focus edits, `Enter
+    /// Edit` while an [`EditEntry::Explicit`] field waits.
+    pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
+        use crate::widgets::keyhint::{EDIT_FIELD, hint};
+        if self.disabled {
+            Vec::new()
+        } else if self.wants_text_input() {
+            EDIT_FIELD.to_vec()
+        } else {
+            vec![hint("Enter", "Edit")]
+        }
+    }
     /// See [`Self::pointer_select`].
     pub fn pointer_select(mut self, sel: PointerSelect) -> Self {
         self.pointer_select = sel;
@@ -266,7 +283,6 @@ impl TextInput {
     /// same event Enter or Esc would, so the owner's validation and save
     /// hooks run; a field that is not editing returns `None`.
     pub fn on_blur(&mut self) -> Option<InputEvent> {
-        self.focus_seen = false;
         if !self.editing {
             return None;
         }
@@ -331,6 +347,7 @@ impl TextInput {
             return;
         }
         self.editing = true;
+        self.focus_edit = false;
         self.snapshot = self.buffer.text().to_owned();
         self.buffer.clear_selection();
     }
@@ -360,11 +377,14 @@ impl TextInput {
         }
         self.begin_edit();
         self.focus_select.apply(&mut self.buffer);
+        self.focus_edit = true;
     }
 
     /// After Enter applied (or Esc reverted) an immediate edit, the field
-    /// keeps the caret: a new edit starts from the applied value.
-    fn resume(&mut self) {
+    /// keeps the caret: a new edit starts from the applied value. Owners
+    /// that end the edit themselves (a submit the validation blocked) call
+    /// it to hand the caret back.
+    pub fn resume(&mut self) {
         if self.entry() == EditEntry::Immediate {
             self.begin_edit();
         }
@@ -433,8 +453,10 @@ impl TextInput {
         let entry = self.entry();
         if !self.editing {
             match entry {
-                // focus already started the edit (a key before the first
-                // render after the focus move starts it here)
+                // a key before the first render after the focus move starts
+                // the focus edit here; after an edit ended in place (a click
+                // on dead space) typing resumes at the caret
+                EditEntry::Immediate if self.focus_seen => self.begin_edit(),
                 EditEntry::Immediate => self.begin_focus_edit(),
                 EditEntry::TypeToEdit | EditEntry::Explicit => {
                     if key.is(KeyCode::Enter) || key.is(KeyCode::F(2)) {
@@ -483,6 +505,10 @@ impl TextInput {
                     Some(InputEvent::CommittedTab { backward }),
                 )
             }
+            // a key the field has no use for (↑↓, PgUp, an unbound chord)
+            // passes on from an immediate edit, so a list under a search
+            // field and the page's shortcuts still answer it
+            EditAction::None if entry == EditEntry::Immediate => (Outcome::Ignored, None),
             EditAction::None => (Outcome::Consumed, None),
             action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
                 Some(Applied::Edited) => {
@@ -588,6 +614,10 @@ impl TextInput {
         if self.disabled {
             return Outcome::Consumed;
         }
+        // the pointer owns this focus: the click places the caret, the
+        // keyboard's focus selection does not apply
+        self.focus_seen = true;
+        self.focus_edit = false;
         let offset = self.offset_at(pos);
         if press_select(
             &mut self.buffer,
@@ -640,6 +670,16 @@ impl TextInput {
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
         if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate {
             self.begin_focus_edit();
+        } else if !ctx.interaction.has_focus(self.id)
+            && self.entry == EditEntry::Immediate
+            && self.editing
+            && self.focus_edit
+            && !self.is_dirty()
+        {
+            // a clean edit focus started ends with the focus even when the
+            // owner never forwarded the blur (nothing to commit or report)
+            self.editing = false;
+            self.buffer.clear_selection();
         }
         self.focus_seen = has_focus;
         let area = area.intersection(*buf.area());
@@ -745,9 +785,14 @@ impl TextInput {
             ctx.autoscroll(inner);
         }
         let text = self.buffer.text();
-        if text.is_empty() && !s.editing {
+        if text.is_empty() {
+            // the placeholder stays until the first character, with the
+            // caret on it while editing (macOS)
             let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
+            if s.editing && inner.width > 0 {
+                ctx.set_cursor(Position::new(inner.x, inner.y));
+            }
         } else {
             // horizontal scroll so the cursor stays visible
             let glyphs = self.display_graphemes(s.editing, t.glyphs.mask);
@@ -1157,7 +1202,10 @@ mod tests {
 
     #[test]
     fn drag_double_and_triple_click_select_text() {
-        let mut i = TextInput::new(WidgetId::of("s"), "Name").value("hello big world");
+        // pointer mechanics from a field that is not editing yet
+        let mut i = TextInput::new(WidgetId::of("s"), "Name")
+            .value("hello big world")
+            .edit_entry(EditEntry::Explicit);
         let area = Rect::new(0, 0, 40, 3);
         let mut buf = Buffer::empty(area);
         render(&mut i, area, &mut buf);
@@ -1285,6 +1333,8 @@ mod tests {
         let mut a = TextInput::new(WidgetId::of("a"), "A").value("a");
         let mut b = TextInput::new(WidgetId::of("b"), "B").value("b");
         a.begin_edit();
+        // a dirty edit: a clean immediate one would end quietly
+        a.buffer.insert_str("x");
         b.begin_edit();
         let change = FocusChange {
             from: a.id,

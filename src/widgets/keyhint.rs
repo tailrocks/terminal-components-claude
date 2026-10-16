@@ -18,7 +18,13 @@
 //! Esc: `Esc Cancel` leaves an edit or a modal without saving, `Esc Close`
 //! closes an overlay or menu, `Esc Back` returns to the previous page.
 //! Field edits use [`EDIT_FIELD`]: `Enter Apply · Esc Cancel · Tab Next
-//! field`.
+//! field`; a multi-line field [`EDIT_TEXT`] (`Tab Next field · Esc Done`)
+//! and a code editor whose Tab indents [`EDIT_CODE`] (`Tab Indent · Esc
+//! Done`: Esc ends the edit, then Tab leaves). "Done" is the one Esc word
+//! for documents, whose Esc keeps the text. A hint never names a chord the
+//! terminal may not deliver (Ctrl+Tab). The text controls build these
+//! from their own state (`TextInput::hints`, `TextArea::hints`,
+//! `CodeEditor::hints`).
 //!
 //! Within one app a letter keeps one meaning across screens:
 //!
@@ -150,6 +156,14 @@ pub const EDIT_FIELD: [Hint; 3] = [
 /// default): `Shift+F10 Menu`. A screen whose focused widget has a context
 /// menu lists it last, so a narrow bar drops it first.
 pub const CONTEXT_MENU: Hint = hint("Shift+F10", "Menu");
+
+/// A multi-line field being edited: Enter is a newline, Tab applies and
+/// moves on, Esc ends the edit keeping the text.
+pub const EDIT_TEXT: [Hint; 2] = [hint("Tab", "Next field"), hint("Esc", "Done")];
+
+/// A code editor being edited while Tab indents: Esc ends the edit (the
+/// text stays), and then Tab and Shift+Tab leave.
+pub const EDIT_CODE: [Hint; 2] = [hint("Tab", "Indent"), hint("Esc", "Done")];
 
 /// [`EDIT_FIELD`] for a grid cell: Tab moves to the next cell.
 pub const EDIT_CELL: [Hint; 3] = [

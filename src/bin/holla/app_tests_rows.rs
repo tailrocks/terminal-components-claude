@@ -389,8 +389,8 @@ fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_valida
         "{}",
         h.text()
     );
+    // the path field holds focus and is editing (EditEntry::Immediate)
     let set_path = |h: &mut H, p: &str| {
-        h.key(KeyCode::Enter);
         h.ctrl(KeyCode::Char('u'));
         h.type_str(p);
         h.key(KeyCode::Enter);

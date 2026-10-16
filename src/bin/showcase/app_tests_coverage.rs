@@ -338,15 +338,14 @@ fn dialogs_cover_choice_destructive_and_prompt_validation() {
     h.key(KeyCode::Enter);
     h.assert_status("Branch feat/rate-limit deleted");
 
+    // the prompt opens editing (EditEntry::Immediate): no Enter first
     h.click_label("Rename task");
-    h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
     h.type_str(&"x".repeat(41));
     h.key(KeyCode::Enter);
     assert!(h.app.dialog.is_some());
     assert!(h.text().contains("Keep it under 40"));
 
-    h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
     h.type_str("Ship it");
     h.key(KeyCode::Enter);
@@ -623,8 +622,8 @@ fn terminal_selection_and_status_actions() {
 fn editor_completion_paste_and_diagnostic_paths() {
     let mut h = Harness::new(140, 45, PageId::Editor);
 
+    // focus starts the edit (EditEntry::Immediate): no `i` first
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("cl");
     assert!(h.text().contains("Client"));
     h.key(KeyCode::Enter);
@@ -640,6 +639,8 @@ fn editor_completion_paste_and_diagnostic_paths() {
 
     let mut diagnostic = Harness::new(140, 45, PageId::Editor);
     diagnostic.key(KeyCode::Tab);
+    // Esc ends the edit focus started ("Done"); `}` is navigation again
+    diagnostic.key(KeyCode::Esc);
     diagnostic.key(KeyCode::Char('}'));
     diagnostic.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
     for _ in 0..10 {
