@@ -8,6 +8,11 @@ license = "MIT"
 
 default-run = "showcase"
 
+# `cargo xtask …` (alias in .cargo/config.toml): repository tasks such as
+# `cargo xtask visual accept` (docs/visual-testing/README.md).
+[workspace]
+members = [".", "xtask"]
+
 [lib]
 name = "junie_tui"
 path = "src/lib.rs"
