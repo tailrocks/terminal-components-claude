@@ -623,6 +623,10 @@ impl Picker {
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
+        // a click outside lands on the picker's backdrop
+        if id == crate::ui::popup::backdrop_id(self.id) {
+            return self.on_click_outside();
+        }
         let i = self.eligible(self.locate(id)?)?;
         self.cursor = i;
         self.cursor_dirty = true;
@@ -658,6 +662,15 @@ impl Picker {
         let t = ctx.theme;
         // dim + modal like Dialog
         ctx.modal_backdrop_with(buf, screen, self.backdrop);
+        // light dismiss is the picker's: a click outside it lands on its
+        // backdrop (under the modal barrier), resolved to the picker's
+        // `Part::BACKDROP`. Modal: nothing beneath is reachable, so the
+        // click never passes through.
+        let modal = crate::ui::popup::Dismiss {
+            pass_through: false,
+            ..self.dismiss
+        };
+        crate::ui::popup::backdrop(ctx, self.id, modal, screen);
         let rows = if self.status == PickerStatus::Ready {
             (self.items.len() as u16).clamp(1, self.max_rows)
         } else {
@@ -981,6 +994,46 @@ impl Navigable for Picker {
 impl Scrollable for Picker {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.scroll
+    }
+}
+
+/// The picker's pointer gestures: a wheel or a bar press scrolls its
+/// list; a completed click on a row chooses it ([`Picker::on_click`]); a
+/// click outside it lands on its backdrop and cancels it when its
+/// [`Picker::dismiss`] policy allows ([`Picker::on_click_outside`]; a
+/// refused one is consumed); any other click on it is consumed.
+impl crate::core::pointer::MouseTarget for Picker {
+    type Action = PickerAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<PickerAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        // the wheel outside the picker (its backdrop) moves nothing
+        if ev.wheel().is_some() && ev.part().part == Part::BACKDROP {
+            return Response::ignored();
+        }
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r.lift();
+        }
+        if !ev.is(Phase::Click) {
+            return Response::ignored();
+        }
+        let chosen = if ev.part().part == Part::BACKDROP {
+            self.on_click_outside()
+        } else {
+            self.on_click(ev.id)
+        };
+        match chosen {
+            Some(a) => Response::emit(a),
+            None => Response::consumed(),
+        }
     }
 }
 
@@ -1399,5 +1452,78 @@ mod tests {
             .anchor(field, Placement::Below);
         p.draw(screen, &mut buf, &mut ctx);
         assert_eq!((p.area.x, p.area.y), (6, 5), "{:?}", p.area);
+    }
+
+    /// The picker over a page, and the pointer event a click at `pos`
+    /// resolves to in that frame (`None`: nothing there is reachable).
+    fn click_over_page(
+        p: &mut Picker,
+        pos: ratatui::layout::Position,
+    ) -> Option<crate::core::pointer::PointerEvent> {
+        use crate::core::intent::Phase;
+        use ratatui::crossterm::event::KeyModifiers;
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let screen = Rect::new(0, 0, 80, 24);
+        let mut buf = Buffer::empty(screen);
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            ctx.hits.register(WidgetId::of("page"), screen);
+            p.draw(screen, &mut buf, &mut ctx);
+        }
+        let id = hits.hit(pos)?;
+        Some(crate::core::pointer::PointerEvent::new(
+            &hits,
+            Phase::Click,
+            id,
+            pos,
+            1,
+            KeyModifiers::NONE,
+        ))
+    }
+
+    /// S5 deviation 5: a click outside the picker lands on its own
+    /// light-dismiss backdrop (under its modal barrier) and cancels it
+    /// through its layer, as Esc does.
+    #[test]
+    fn a_click_outside_the_picker_lands_on_its_backdrop_and_cancels_it() {
+        use crate::ui::layer::{Layer, LayerCx, LayerOut};
+        use crate::ui::layers::LayerResult;
+        let mut p = picker(3);
+        let ev = click_over_page(&mut p, ratatui::layout::Position::new(0, 1))
+            .expect("the picker's backdrop is under the pointer outside it");
+        assert_eq!(ev.owner(), p.id);
+        assert_eq!(ev.part().part, Part::BACKDROP);
+        let mut focus = crate::core::focus::Focus::default();
+        let ring = FocusRing::default();
+        let mut cx = LayerCx {
+            focus: &mut focus,
+            ring: &ring,
+            app: &(),
+        };
+        assert_ne!(
+            Layer::<LayerResult>::pointer(&mut p, &ev, &mut cx),
+            Outcome::Ignored
+        );
+        assert_eq!(
+            Layer::<LayerResult>::take_result(&mut p),
+            Some(LayerOut::Close(LayerResult::Picker(
+                PickerAction::Cancelled
+            )))
+        );
+    }
+
+    /// A picker whose policy refuses an outside click stays open: the
+    /// click on its backdrop is consumed.
+    #[test]
+    fn a_refused_outside_click_on_the_picker_is_consumed() {
+        use crate::core::pointer::MouseTarget;
+        let mut p = picker(3).dismiss(crate::ui::popup::Dismiss::ESCAPE);
+        let ev = click_over_page(&mut p, ratatui::layout::Position::new(0, 1))
+            .expect("the picker's backdrop is under the pointer outside it");
+        let r = p.route(&ev).expect("the backdrop is the picker's");
+        assert!(r.is_consumed());
+        assert_eq!(r.into_action(), None, "it stays open");
     }
 }

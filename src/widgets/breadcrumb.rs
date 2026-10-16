@@ -199,6 +199,30 @@ impl crate::ui::specimen::Specimen for Breadcrumb {
     }
 }
 
+/// The trail's pointer gesture: a completed click on a link goes back to
+/// its level (the action, 0 the outermost; [`Breadcrumb::on_click`]).
+impl crate::core::pointer::MouseTarget for Breadcrumb {
+    type Action = usize;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<usize> {
+        use crate::core::response::Response;
+        if !ev.is(crate::core::intent::Phase::Click) {
+            return Response::ignored();
+        }
+        match self.on_click(ev.id) {
+            Some(level) => Response::emit(level),
+            None => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

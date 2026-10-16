@@ -601,6 +601,35 @@ impl Scrollable for DiffView {
     }
 }
 
+/// The diff's pointer gestures, as the apps route them: a wheel or a bar
+/// press scrolls it; a press anchors a selection ([`DiffView::on_click`])
+/// and a drag extends it ([`DiffView::on_drag`]); the click that
+/// completes the press is consumed.
+impl crate::core::pointer::MouseTarget for DiffView {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id()
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r;
+        }
+        match ev.phase() {
+            Some(Phase::Press) => self.on_click(ev.pos()).into(),
+            Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
+            Some(Phase::Click) => Response::consumed(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

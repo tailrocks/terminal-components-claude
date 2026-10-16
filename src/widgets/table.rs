@@ -2069,6 +2069,69 @@ impl Navigable for DataTable {
     }
 }
 
+/// The table's pointer gestures, as the apps route them: a wheel or a bar
+/// press scrolls it; a press on a header seam starts a resize (a double
+/// press fits the column) and a drag carries it on; a completed click
+/// goes to an open constrained editor or a cell's `▾`
+/// ([`DataTable::on_click_editor`]), the header checkbox, a row's
+/// checkbox, a header (sort) or a cell ([`DataTable::on_click_cell_with`]
+/// with the modifiers held; a row hit keeps the cursor column). The open
+/// constrained editor's popup is the table's too ([`Self::route`]).
+impl crate::core::pointer::MouseTarget for DataTable {
+    type Action = TableAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<TableAction>> {
+        let editor = self.choice.as_ref().map(|c| c.editor.id);
+        (ev.on(self.id) || editor.is_some_and(|e| ev.on(e))).then(|| self.pointer(ev))
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<TableAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if ev.on(self.id)
+            && let Some(r) = crate::core::pointer::scroll_input(self, ev)
+        {
+            return r.lift();
+        }
+        let (id, pos) = (ev.id, ev.pos());
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press(id, pos, ev.count()).into(),
+            Some(Phase::Drag) => self.on_drag(id, pos).into(),
+            Some(Phase::Click) => {
+                if let Some(r) = self.on_click_editor(id) {
+                    return r.into();
+                }
+                if id == self.check_all_id() {
+                    return self.on_click_check_all().into();
+                }
+                if let Some(d) = self.locate_check(id) {
+                    return self.on_click_check(d).into();
+                }
+                if let Some(c) = self.locate_header(id) {
+                    return self.on_click_header(c).into();
+                }
+                match self.locate(id) {
+                    Some((row, col)) => self
+                        .on_click_cell_with(row, col.unwrap_or(self.cursor_col), pos, ev.mods())
+                        .into(),
+                    None => Response::ignored(),
+                }
+            }
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

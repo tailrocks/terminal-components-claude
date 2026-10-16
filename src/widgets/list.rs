@@ -668,6 +668,28 @@ impl Navigable for ListBox {
     }
 }
 
+/// The list's pointer gestures: a wheel or a bar press scrolls it
+/// ([`crate::core::pointer::scroll_input`]); a completed click on a row is
+/// [`ListBox::on_click_count`] with its multi-click count.
+impl crate::core::pointer::MouseTarget for ListBox {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(&mut self, ev: &crate::core::pointer::PointerEvent) -> Response<()> {
+        use crate::core::intent::Phase;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r;
+        }
+        match ev.index_of(Part::ROW) {
+            Some(row) if ev.is(Phase::Click) => self.on_click_count(row, ev.count().max(1)).into(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod reveal_tests {
     use super::*;

@@ -974,10 +974,16 @@ impl OpFlow {
     }
 
     pub fn on_click(&mut self, id: WidgetId, now_ms: i64, op: &SimOnePassword) -> Outcome {
-        if let Some(PickerAction::Chosen(i)) = self.picker.on_click(id) {
-            return self.choose(i, now_ms, op);
+        match self.picker.on_click(id) {
+            Some(PickerAction::Chosen(i)) => self.choose(i, now_ms, op),
+            // a click outside lands on the picker's backdrop: the flow's
+            // own policy decides, as for any outside click
+            Some(PickerAction::Cancelled) if self.dismiss.outside_click => {
+                self.dismissed = true;
+                Outcome::Changed
+            }
+            _ => Outcome::Consumed,
         }
-        Outcome::Consumed
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {

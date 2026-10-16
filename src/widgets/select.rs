@@ -1018,6 +1018,51 @@ impl crate::ui::specimen::Specimen for Select {
     }
 }
 
+/// The select's pointer gestures, as the apps route them: a press opens
+/// the list (press-drag-release) or grabs its bar; a drag follows the
+/// pointer over the options or along the bar; the release of a press
+/// carried elsewhere chooses the option under it
+/// ([`Select::on_release`]); a completed click on the field, an option,
+/// the bar or the backdrop is [`Select::on_click`] (the backdrop closes it
+/// per its dismiss policy); a vertical wheel over the open list
+/// scrolls it, and over the closed field passes on.
+impl crate::core::pointer::MouseTarget for Select {
+    type Action = SelectAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<SelectAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if let Some((axis, delta)) = ev.wheel() {
+            // the wheel over the backdrop, outside the list, is not the
+            // list's: it moves nothing
+            if ev.part().part == Part::BACKDROP {
+                return Response::ignored();
+            }
+            return match axis {
+                crate::core::hit::Axis::Vertical => self.on_wheel(delta).into(),
+                // a sideways notch has nothing to move in an open list
+                crate::core::hit::Axis::Horizontal if self.open => Response::consumed(),
+                crate::core::hit::Axis::Horizontal => Response::ignored(),
+            };
+        }
+        let (id, pos) = (ev.id, ev.pos());
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press(id, pos).into(),
+            Some(Phase::Drag) => self.on_drag(id, pos).into(),
+            Some(Phase::Release) => self.on_release(pos).into(),
+            Some(Phase::Click) => self.on_click(id).into(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

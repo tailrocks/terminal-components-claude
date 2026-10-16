@@ -24,20 +24,30 @@ fn status(h: &H) -> &str {
     h.app.status.text().unwrap_or("")
 }
 
+/// A cell nothing claims, else one on a light-dismiss backdrop (an open
+/// picker's covers the page around it).
 fn outside(h: &H) -> Position {
+    use junie_tui::core::id::Part;
     let area = h.term.backend().buffer().area;
-    for y in area.top()..area.bottom() {
-        for x in area.left()..area.right() {
-            let pos = Position::new(x, y);
-            if h.app.hits.hit(pos).is_none() {
-                return pos;
-            }
-        }
-    }
-    panic!(
-        "no outside hit-test coordinate in {}x{}",
-        area.width, area.height
-    );
+    let cells = || {
+        (area.top()..area.bottom())
+            .flat_map(move |y| (area.left()..area.right()).map(move |x| Position::new(x, y)))
+    };
+    let backdrop = |id| {
+        h.app
+            .hits
+            .part_of(id)
+            .is_some_and(|x| x.part.part == Part::BACKDROP)
+    };
+    cells()
+        .find(|p| h.app.hits.hit(*p).is_none())
+        .or_else(|| cells().find(|p| h.app.hits.hit(*p).is_some_and(backdrop)))
+        .unwrap_or_else(|| {
+            panic!(
+                "no outside hit-test coordinate in {}x{}",
+                area.width, area.height
+            )
+        })
 }
 
 fn hard_manager() -> H {
@@ -200,6 +210,30 @@ fn manager_scrollbar_click_and_drag_change_the_rendered_tree() {
         before_drag,
         "scrollbar drag did not repaint the tree"
     );
+}
+
+/// S6: the command palette (a library `Picker`) registers its own
+/// light-dismiss backdrop under its modal barrier. A click on it, outside
+/// the picker, resolves to the picker's `Part::BACKDROP`, cancels the
+/// picker and gives the owner its focus back.
+#[test]
+fn a_click_on_the_picker_backdrop_cancels_it_and_restores_focus() {
+    use junie_tui::core::id::Part;
+    let mut c = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let owner = c.app.focus.current();
+    c.ctrl('\\');
+    assert!(c.text().contains("Command palette"), "{}", c.text());
+    let p = Position::new(0, 2);
+    let hit = c.app.hits.hit(p).expect("the backdrop covers the page");
+    let part = c.app.hits.part_of(hit).expect("a part-tagged region");
+    assert_eq!(part.part.part, Part::BACKDROP, "{hit:?}");
+    c.mouse(MouseKind::Down, p.x, p.y);
+    c.mouse(MouseKind::Up, p.x, p.y);
+    assert!(
+        !c.text().contains("Command palette"),
+        "the picker survived a click on its backdrop"
+    );
+    assert_eq!(c.app.focus.current(), owner);
 }
 
 #[test]

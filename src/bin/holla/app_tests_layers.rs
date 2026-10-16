@@ -36,11 +36,12 @@ fn outside(h: &H) -> Position {
         .modals
         .top_as::<ContextMenu>()
         .map(|m| backdrop_id(m.id));
+    let picker = h.app.modals.top_as::<Picker>().map(|p| backdrop_id(p.id));
     for y in 0..h.app.size.1 {
         for x in 0..h.app.size.0 {
             let p = Position::new(x, y);
             let hit = h.app.hits.hit(p);
-            if hit.is_none() || hit == menu {
+            if hit.is_none() || hit == menu || (picker.is_some() && hit == picker) {
                 return p;
             }
         }
