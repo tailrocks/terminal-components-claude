@@ -21,6 +21,7 @@ use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
+use junie_tui::widgets::field_common::{route_click, route_drag, route_press};
 use junie_tui::widgets::grid::CellValue;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{self, Hint, hint};
@@ -73,6 +74,9 @@ pub struct Cx<'a> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
     pub requests: Vec<Request>,
+    /// Multi-click count of the click being delivered
+    /// ([`PointerState::count_click`]); 1 for every other event.
+    pub clicks: u8,
 }
 
 impl Cx<'_> {
@@ -653,6 +657,7 @@ impl App {
                     focus: &mut self.focus,
                     ring: &self.ring,
                     requests: Vec::new(),
+                    clicks: 1,
                 };
                 let (o, _) = self.connections.on_key(&key, &mut cx);
                 let reqs = std::mem::take(&mut cx.requests);
@@ -667,6 +672,7 @@ impl App {
                     focus: &mut self.focus,
                     ring: &self.ring,
                     requests: Vec::new(),
+                    clicks: 1,
                 };
                 let o = w.on_key(&key, &mut cx, &mut self.history);
                 let reqs = std::mem::take(&mut cx.requests);
@@ -2073,6 +2079,9 @@ impl App {
         };
         let now = self.now_ms();
         self.pointer.flash(id, now);
+        // multi-clicks count on the page and in modals, by control, cell
+        // and time; fields select a word or a line with them
+        let clicks = self.pointer.count_click(id, m.pos, now);
         if let Some(modal) = self.modals.top_mut() {
             return match modal {
                 Modal::Dialog(d) => {
@@ -2104,7 +2113,7 @@ impl App {
                     None => Outcome::Changed,
                 },
                 Modal::Filter(f) => {
-                    let o = Self::filter_click(f, id, m.pos, &mut self.focus);
+                    let o = Self::filter_click(f, id, m.pos, clicks, &mut self.focus);
                     match o {
                         FilterOutcome::Keep(o) => o,
                         FilterOutcome::Apply => self.apply_filter(),
@@ -2142,6 +2151,7 @@ impl App {
                     focus: &mut self.focus,
                     ring: &self.ring,
                     requests: Vec::new(),
+                    clicks,
                 };
                 let (o, _) = self.connections.on_click(id, m.pos, &mut cx);
                 let reqs = std::mem::take(&mut cx.requests);
@@ -2156,6 +2166,7 @@ impl App {
                     focus: &mut self.focus,
                     ring: &self.ring,
                     requests: Vec::new(),
+                    clicks,
                 };
                 let o = w.on_click(id, m.pos, &mut cx, &mut self.history);
                 let reqs = std::mem::take(&mut cx.requests);
@@ -2189,6 +2200,10 @@ impl App {
                 if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
                     return d.on_drag(pressed, m.pos);
                 }
+                if let Some(Modal::Filter(f)) = self.modals.top_mut() {
+                    return route_drag(&mut [&mut f.value, &mut f.value2], pressed, m.pos)
+                        .unwrap_or(Outcome::Consumed);
+                }
                 if !self.modals.is_empty() {
                     return Outcome::Consumed;
                 }
@@ -2210,13 +2225,26 @@ impl App {
                         Outcome::Ignored
                     };
                 };
+                let count = self.pointer.press_count(id, m.pos, self.now_ms());
+                if let Some(Modal::Filter(f)) = self.modals.top_mut() {
+                    route_press(&mut [&mut f.value, &mut f.value2], id, m.pos, count);
+                }
                 if !self.modals.is_empty() {
                     return Outcome::Changed;
                 }
                 if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
                     self.focus.focus(id);
                 }
-                Outcome::Changed
+                // a field remembers the press for the drag; the second
+                // press of a double click selects the word
+                match self.screen {
+                    Screen::Connections => self.connections.on_press(id, m.pos, count),
+                    Screen::Workbench => self
+                        .workbench
+                        .as_mut()
+                        .map_or(Outcome::Ignored, |w| w.on_press(id, m.pos, count)),
+                }
+                .or(Outcome::Changed)
             }
             MouseKind::Up => {
                 // a pass-through backdrop: the click closes the popup and
@@ -2363,6 +2391,7 @@ impl App {
         f: &mut FilterEditor,
         id: WidgetId,
         pos: Position,
+        clicks: u8,
         focus: &mut Focus,
     ) -> FilterOutcome {
         if f.column.owns(id) {
@@ -2380,11 +2409,9 @@ impl App {
             focus.focus(f.op.id);
             return FilterOutcome::Keep(f.op.on_click(id).0.or(Outcome::Changed));
         }
-        for inp in [&mut f.value, &mut f.value2] {
-            if inp.id == id {
-                focus.focus(id);
-                return FilterOutcome::Keep(inp.on_click(pos));
-            }
+        if let Some(o) = route_click(&mut [&mut f.value, &mut f.value2], id, pos, clicks) {
+            focus.focus(id);
+            return FilterOutcome::Keep(o);
         }
         if f.apply.id == id && f.apply.on_click() {
             return FilterOutcome::Apply;
