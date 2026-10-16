@@ -2391,7 +2391,24 @@ impl App {
             return Outcome::Ignored;
         };
         let (key, target, owner) = (m.keys.get(i).copied().flatten(), m.target, m.owner);
+        let header = m.header.get(i).copied();
         self.close_modal();
+        // a header command runs on the grid itself
+        if let (context::Target::Header(col), Some(action)) = (target, header) {
+            self.focus.focus(owner);
+            let mut cx = Cx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                requests: Vec::new(),
+                clicks: 1,
+            };
+            let o = match self.workbench.as_mut() {
+                Some(w) => w.on_header_action(col, action, &mut cx, &mut self.history),
+                None => Outcome::Ignored,
+            };
+            let reqs = std::mem::take(&mut cx.requests);
+            return self.apply_requests(reqs).or(o).or(Outcome::Changed);
+        }
         let Some(key) = key else {
             return Outcome::Changed;
         };
