@@ -219,6 +219,11 @@ impl TerminalSession {
     pub fn enter() -> std::io::Result<Self> {
         enable_raw_mode()?;
         let (terminal, restoration) = initialize_with_restoration(restore_terminal, || {
+            // start crossterm's input reader now: it registers its SIGWINCH
+            // handler only when first polled, and a resize that lands
+            // before that (right after the first frame) would be ignored
+            // by the default disposition, so the app never repaints
+            prime_input()?;
             let mut out = stdout();
             execute!(
                 out,
@@ -392,6 +397,29 @@ pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     result
 }
 
+/// Start the terminal input source without reading anything from it.
+/// crossterm builds its reader, and with it the `SIGWINCH` handler that
+/// turns a resize into `Input::Resize`, on the first poll; priming it as
+/// the session starts means no resize after that point is lost. (The
+/// keyboard-protocol probe used to do this by accident, only under
+/// `KeyboardProtocol::Auto`.)
+fn prime_input() -> std::io::Result<()> {
+    poll_uninterrupted(Duration::ZERO).map(|_| ())
+}
+
+/// Test instrumentation: `JUNIE_TUI_FIRST_POLL_DELAY_MS` holds the event
+/// loop for that long after the first frame, before it first reads input,
+/// so a PTY test can resize the terminal inside that window
+/// deterministically (`tests/visual_baseline/startup_resize.rs`). Unset in
+/// normal use.
+fn first_poll_delay() -> Option<Duration> {
+    std::env::var("JUNIE_TUI_FIRST_POLL_DELAY_MS")
+        .ok()?
+        .parse()
+        .ok()
+        .map(Duration::from_millis)
+}
+
 /// `poll` interrupted by a signal is not an error: the loop re-checks the
 /// suspension flag and polls again.
 fn poll_uninterrupted(wait: Duration) -> std::io::Result<bool> {
@@ -413,6 +441,8 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
     let mut shapes =
         crate::core::shape::ShapeSync::new(crate::core::shape::ShapeSupport::current());
     let mut hover_due: Option<(u64, Instant)> = None;
+    let mut first_poll_delay = first_poll_delay();
+    let mut sizes = SizeWatch::new(terminal_size(&session.terminal));
     loop {
         #[cfg(unix)]
         if job_control::take_request() {
@@ -420,13 +450,18 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
             // the shapes were reset on the way out: send them again
             shapes.forget();
             // geometry may have changed while stopped: rebuild, then a full draw
-            app.handle(Input::Resize(w, h));
+            let resize = Input::Resize(w, h);
+            sizes.observe(&resize);
+            app.handle(resize);
             dirty = true;
         }
         let terminal = &mut session.terminal;
         if dirty {
             terminal.draw(|f| render_frame(app, f, suppress_colors))?;
             dirty = false;
+            if let Some(delay) = first_poll_delay.take() {
+                std::thread::sleep(delay);
+            }
         }
         // the pointer and caret shapes of what the last frame drew
         if shapes.apply(app.shapes(), terminal.backend_mut())? {
@@ -452,7 +487,13 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         // an input held back for the previous frame is ready without polling
         if pump.has_pending() || poll_uninterrupted(wait)? {
             pump.set_policy(app.coalesce());
-            let changed = pump.drain(app, next_ready_input)?;
+            let changed = pump.drain(app, || {
+                let input = next_ready_input()?;
+                if let Some(input) = &input {
+                    sizes.observe(input);
+                }
+                Ok(input)
+            })?;
             if app.should_quit() {
                 return Ok(());
             }
@@ -469,6 +510,13 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
             // the pointer has rested long enough: draw the held-back content
             dirty = true;
         }
+        // a resize crossterm never reported still reaches the app
+        if let Some(size) = terminal_size(terminal)
+            && let Some(resize) = sizes.check(size)
+            && app.handle(resize) == Outcome::Changed
+        {
+            dirty = true;
+        }
         if last_tick.elapsed() >= interval {
             last_tick = Instant::now();
             if app.handle(Input::Tick) == Outcome::Changed {
@@ -482,6 +530,51 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 return Ok(());
             }
         }
+    }
+}
+
+/// The terminal's size now, if the backend can tell.
+fn terminal_size(terminal: &ratatui::DefaultTerminal) -> Option<(u16, u16)> {
+    terminal.size().ok().map(|s| (s.width, s.height))
+}
+
+/// The terminal size the application was last told, so a resize whose
+/// `SIGWINCH` crossterm never reported still reaches it.
+///
+/// crossterm 0.29's reader returns the first key a poll parses and drops
+/// the rest of that poll's readiness; the `SIGWINCH` pipe is
+/// edge-triggered, so a resize that arrives while a key is waiting is never
+/// reported and the app keeps drawing at the old size (the
+/// `showcase/resize/overview_shrunk` flake: a resize, then Ctrl+L at once).
+/// The event loop compares the real size once per pass and delivers the
+/// missed [`Input::Resize`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SizeWatch {
+    known: Option<(u16, u16)>,
+}
+
+impl SizeWatch {
+    /// Start from the size the first frame is drawn at.
+    pub fn new(size: Option<(u16, u16)>) -> Self {
+        Self { known: size }
+    }
+
+    /// An input on its way to the application: a resize is what it now
+    /// knows.
+    pub fn observe(&mut self, input: &Input) {
+        if let Input::Resize(w, h) = input {
+            self.known = Some((*w, *h));
+        }
+    }
+
+    /// The terminal reports `actual`: the resize the application missed,
+    /// if any (once; it is then what the application knows).
+    pub fn check(&mut self, actual: (u16, u16)) -> Option<Input> {
+        if self.known == Some(actual) {
+            return None;
+        }
+        self.known = Some(actual);
+        Some(Input::Resize(actual.0, actual.1))
     }
 }
 
@@ -707,6 +800,26 @@ mod tests {
         fn flush(&mut self) -> io::Result<()> {
             Ok(())
         }
+    }
+
+    /// A resize the input reader never reported is delivered once from the
+    /// size check; a reported one is not delivered twice.
+    #[test]
+    fn the_size_watch_delivers_a_missed_resize_once() {
+        let mut w = SizeWatch::new(Some((120, 40)));
+        assert_eq!(w.check((120, 40)), None, "nothing changed");
+        // the SIGWINCH was dropped: only the size check sees it
+        assert_eq!(w.check((100, 30)), Some(Input::Resize(100, 30)));
+        assert_eq!(w.check((100, 30)), None, "delivered once");
+        // a reported resize is what the app knows: no duplicate
+        w.observe(&Input::Resize(72, 20));
+        assert_eq!(w.check((72, 20)), None);
+        // other input changes nothing
+        w.observe(&Input::Tick);
+        assert_eq!(w.check((72, 20)), None);
+        // no size at start: the first known size is delivered
+        let mut unknown = SizeWatch::new(None);
+        assert_eq!(unknown.check((80, 24)), Some(Input::Resize(80, 24)));
     }
 
     #[test]
