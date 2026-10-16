@@ -30,6 +30,8 @@ mod app_tests_overview;
 #[cfg(test)]
 mod app_tests_selectable;
 #[cfg(test)]
+mod app_tests_shell_pages;
+#[cfg(test)]
 mod app_tests_tables;
 #[cfg(test)]
 mod app_tests_tabs;

@@ -2300,4 +2300,33 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::menu::UnknownKey::Swallow",
         Option("menus", "menus.unknown_key=swallow"),
     ),
+    // ---- Breadcrumbs & rails (SC5)
+    (
+        "widgets::breadcrumb::Breadcrumb",
+        StateRow("breadcrumbsrails", "overflow"),
+    ),
+    (
+        "widgets::breadcrumb::Breadcrumb::clickable",
+        Option("breadcrumbsrails", "breadcrumbsrails.clickable"),
+    ),
+    (
+        "widgets::rail::SidebarRail",
+        StateRow("breadcrumbsrails", "pressed"),
+    ),
+    (
+        "widgets::rail::SidebarRail::collapsed_rail",
+        Option("breadcrumbsrails", "breadcrumbsrails.collapsed_rail"),
+    ),
+    (
+        "widgets::rail::RailAction",
+        Demo("breadcrumbsrails", "Last RailAction"),
+    ),
+    (
+        "widgets::rail::RailAction::Expand",
+        Demo("breadcrumbsrails", "RailAction::Expand"),
+    ),
+    (
+        "widgets::rail::RailAction::Collapse",
+        Demo("breadcrumbsrails", "RailAction::Collapse"),
+    ),
 ];
