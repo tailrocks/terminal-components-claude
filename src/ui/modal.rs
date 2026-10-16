@@ -29,6 +29,13 @@ pub const CLOSE: WidgetId = WidgetId::of("modal.close");
 /// refused outside click flashes it ([`refuse_outside_click`]).
 pub const SURFACE: WidgetId = WidgetId::of("modal.surface");
 
+/// The light-dismiss backdrop a [`Frame`] with a dismissal policy
+/// registers under itself: a click outside the frame resolves to this
+/// [`crate::core::id::Part::BACKDROP`], which the layer stack turns into
+/// an outside-click dismissal under the policy
+/// ([`crate::ui::layer::ShellLayers::pointer`]).
+pub const BACKDROP: WidgetId = WidgetId::of("modal.backdrop");
+
 /// Cells the default close button takes on the top border: ` × `, the
 /// glyph on a one-cell-padded plate ([`IconButton::DEFAULT_PAD`]).
 pub const CLOSE_WIDTH: u16 = 3;
@@ -416,6 +423,11 @@ impl<'a> Frame<'a> {
         let t = ctx.theme;
         if self.backdrop {
             ctx.modal_backdrop_with(buf, screen, self.dim);
+            // a click outside the frame is the owner's outside click, under
+            // its policy (a refused one flashes the border)
+            if self.dismiss.is_some() && !ctx.inert {
+                ctx.hits.register_backdrop(BACKDROP, screen, false);
+            }
         }
         let area = self.area(screen);
         let bg = t.surface_elevated;
