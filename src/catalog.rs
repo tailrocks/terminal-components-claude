@@ -340,6 +340,7 @@ pub static CAPABILITIES: &[Capability] = &[
     // core::scroll
     Capability::ty("core::scroll::ScrollState"),
     Capability::builder("core::scroll::ScrollState::with_follow_cursor"),
+    Capability::builder("core::scroll::ScrollState::with_context"),
     Capability::ty("core::scroll::FollowCursor"),
     Capability::variant("core::scroll::FollowCursor::OnMove"),
     Capability::variant("core::scroll::FollowCursor::Always"),
