@@ -46,7 +46,7 @@ impl InputsPage {
                 .help("Managed by the organization"),
             TextInput::new(ID.child(4), "Search files")
                 .placeholder("Type a path or symbol…")
-                .type_to_edit(true)
+                .edit_entry(junie_tui::core::edit::EditEntry::TypeToEdit)
                 .help("Selection: Shift+←→  ·  words: Ctrl+←→  ·  clear: Ctrl+U"),
             TextInput::new(ID.child(5), "API key")
                 .masked()

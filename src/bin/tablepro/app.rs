@@ -315,7 +315,7 @@ impl App {
     /// screens, so fields end their edits on the event path.
     fn forward_blur(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
-        for ch in self.focus.take_changes() {
+        for ch in self.focus.settle(&self.ring) {
             for m in self.modals.iter_mut() {
                 out = out.or(match m {
                     Modal::Dialog(d) => d.on_blur(ch),

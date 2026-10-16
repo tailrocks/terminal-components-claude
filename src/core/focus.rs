@@ -125,6 +125,27 @@ pub fn forward_blur(
         .map_or(super::event::Outcome::Ignored, |t| t.blur())
 }
 
+thread_local! {
+    /// A control's request to move focus on ([`request_focus_next`]),
+    /// waiting for the application's [`Focus::settle`].
+    static REQUEST: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
+}
+
+/// Ask the focus ring to move on from the focused control: forward, or
+/// backward when `backward`. A text control calls it when Tab ends its
+/// edit, so the move happens whether or not its owner remembers to; an
+/// owner that moves focus itself while handling the same input wins (its
+/// move cancels the request). Applications apply it with
+/// [`Focus::settle`] after each input.
+pub fn request_focus_next(backward: bool) {
+    REQUEST.with(|r| r.set(Some(backward)));
+}
+
+/// Drop a pending [`request_focus_next`] without applying it.
+pub fn cancel_focus_request() {
+    REQUEST.with(|r| r.set(None));
+}
+
 /// Focus state shared by the whole application.
 #[derive(Debug, Default, Clone)]
 pub struct Focus {
@@ -165,6 +186,10 @@ impl Focus {
     /// Every focus move goes through here so the control that lost focus
     /// is remembered for [`Self::take_changes`].
     fn move_to(&mut self, id: Option<WidgetId>) {
+        if self.current != id {
+            // an explicit move answers any pending request
+            cancel_focus_request();
+        }
         if let Some(from) = self.current
             && self.current != id
             && !self.left.contains(&from)
@@ -172,6 +197,30 @@ impl Focus {
             self.left.push(from);
         }
         self.current = id;
+    }
+
+    /// Apply a pending [`request_focus_next`] against `ring`; `true` when
+    /// focus moved.
+    pub fn apply_request(&mut self, ring: &FocusRing) -> bool {
+        let Some(backward) = REQUEST.with(|r| r.take()) else {
+            return false;
+        };
+        let before = self.current;
+        if backward {
+            self.prev(ring);
+        } else {
+            self.next(ring);
+        }
+        self.current != before
+    }
+
+    /// End of an input: apply a pending [`request_focus_next`], then drain
+    /// the focus changes ([`Self::take_changes`]). Applications call this
+    /// once after handling each input and forward every change to the
+    /// owner of `from`.
+    pub fn settle(&mut self, ring: &FocusRing) -> Vec<FocusChange> {
+        self.apply_request(ring);
+        self.take_changes()
     }
 
     /// End the focused control's edit without moving focus: a click on
@@ -355,6 +404,26 @@ mod tests {
             }]
         );
         assert_eq!(f.current(), Some(a), "focus stays");
+    }
+
+    #[test]
+    fn a_request_moves_focus_at_settle_unless_the_owner_moved_it() {
+        let r = ring(&["a", "b", "c"]);
+        let mut f = Focus::default();
+        f.focus(WidgetId::of("a"));
+        f.take_changes();
+        request_focus_next(false);
+        let changes = f.settle(&r);
+        assert!(f.is(WidgetId::of("b")));
+        assert_eq!(changes.len(), 1);
+        // an owner that moves focus itself answers the request
+        request_focus_next(false);
+        f.prev(&r);
+        f.settle(&r);
+        assert!(f.is(WidgetId::of("a")), "one move, not two");
+        request_focus_next(true);
+        f.settle(&r);
+        assert!(f.is(WidgetId::of("c")), "backward wraps");
     }
 
     #[test]

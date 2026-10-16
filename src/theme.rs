@@ -485,9 +485,22 @@ pub struct Theme {
     /// The library's own copy (button labels, empty and loading states,
     /// validation messages, widget hints). Default [`Strings::DEFAULT`].
     pub strings: Strings,
+    /// How a focused text control starts editing, for every control that
+    /// does not set its own (`TextInput`, `TextArea`, `CodeEditor`,
+    /// `Dialog::prompt`). Default [`EditEntry::Immediate`] (macOS).
+    pub edit_entry: crate::core::edit::EditEntry,
+    /// The control-key preset of text fields that do not set their own.
+    /// Default [`FieldKeys::Emacs`](crate::core::edit::FieldKeys::Emacs),
+    /// the Cocoa text-system bindings.
+    pub field_keys: crate::core::edit::FieldKeys,
 }
 
 impl Theme {
+    /// The library's default [`Self::edit_entry`]: what every text control
+    /// starts from before its first render reads the theme.
+    pub const DEFAULT_EDIT_ENTRY: crate::core::edit::EditEntry =
+        crate::core::edit::EditEntry::Explicit;
+
     pub const fn junie() -> Self {
         use palette::*;
         Self {
@@ -545,6 +558,8 @@ impl Theme {
             spacing: Spacing::DEFAULT,
             glyphs: Glyphs::UNICODE,
             strings: Strings::DEFAULT,
+            edit_entry: Self::DEFAULT_EDIT_ENTRY,
+            field_keys: crate::core::edit::FieldKeys::Emacs,
         }
     }
 
@@ -820,6 +835,20 @@ impl Theme {
     /// [`Strings::ASCII`]).
     pub const fn with_strings(mut self, strings: Strings) -> Self {
         self.strings = strings;
+        self
+    }
+
+    /// The same theme with `entry` as every text control's default
+    /// [`EditEntry`](crate::core::edit::EditEntry).
+    pub const fn with_edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
+        self.edit_entry = entry;
+        self
+    }
+
+    /// The same theme with `keys` as every text field's default
+    /// [`FieldKeys`](crate::core::edit::FieldKeys) preset.
+    pub const fn with_field_keys(mut self, keys: crate::core::edit::FieldKeys) -> Self {
+        self.field_keys = keys;
         self
     }
 
