@@ -998,6 +998,51 @@ impl Navigable for Tabs {
     }
 }
 
+/// The strip's pointer gestures: a completed click on a tab, its `×`, the
+/// `+`, an overflow arrow, the `+N` button or a row of its open menu is
+/// [`Tabs::on_click`]; a middle click closes the tab under it
+/// ([`Tabs::on_middle_click`]); a wheel notch on either axis moves the
+/// window one tab ([`Tabs::on_wheel`]). The overflow menu is the strip's
+/// too ([`Self::route`]).
+impl crate::core::pointer::MouseTarget for Tabs {
+    type Action = TabAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<TabAction>> {
+        let menu = self.menu.as_ref().map(|(m, _)| m.id);
+        (ev.on(self.id) || menu.is_some_and(|m| ev.on(m))).then(|| self.pointer(ev))
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<TabAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if let Some((axis, delta)) = ev.wheel() {
+            let step = delta.signum();
+            return match axis {
+                Axis::Horizontal => self.on_wheel(step, 0).into(),
+                Axis::Vertical => self.on_wheel(0, step).into(),
+            };
+        }
+        match ev.phase() {
+            Some(Phase::Click) => self.on_click(ev.id).into(),
+            Some(Phase::Middle) => match self.on_middle_click(ev.id) {
+                Some(a) => Response::emit(a),
+                None => Response::ignored(),
+            },
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

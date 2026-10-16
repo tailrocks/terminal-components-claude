@@ -151,6 +151,31 @@ impl crate::ui::specimen::Specimen for SidebarRail {
     }
 }
 
+/// The rail's pointer gesture: a completed click on the collapsed rail
+/// expands the sidebar, on the collapse button collapses it
+/// ([`SidebarRail::on_click`]).
+impl crate::core::pointer::MouseTarget for SidebarRail {
+    type Action = RailAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<RailAction> {
+        use crate::core::response::Response;
+        if !ev.is(crate::core::intent::Phase::Click) {
+            return Response::ignored();
+        }
+        match self.on_click(ev.id) {
+            Some(a) => Response::emit(a),
+            None => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
