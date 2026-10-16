@@ -103,6 +103,11 @@ pub struct Tabs {
     /// a menu of the hidden tabs; choosing one activates it (the
     /// overflow list of browser and editor tab bars). Default `true`.
     pub overflow_menu: bool,
+    /// The `+N` overflow button: a padded plate like `+` and `×`, its glyph
+    /// set to `+N` each frame (docs/design/close-button.md). Default
+    /// [`IconButton::new`] on the title ladder, tooltip `Show hidden`
+    /// ([`crate::theme::Strings::tip_overflow`]).
+    pub more_button: IconButton,
     /// The open overflow menu and the tab each of its rows stands for.
     menu: Option<(ContextMenu, Vec<usize>)>,
     /// Where the `+N` button was drawn (the menu's anchor).
@@ -218,6 +223,7 @@ impl Tabs {
             close_button: IconButton::close(WidgetId::of("tabs.close")),
             close_reveal: CloseReveal::Always,
             overflow_menu: true,
+            more_button: IconButton::new(WidgetId::of("tabs.more"), "+"),
             menu: None,
             more_area: Rect::ZERO,
             fit: 0,
@@ -243,6 +249,7 @@ impl Tabs {
             close_button: IconButton::close(WidgetId::of("tabs.close")),
             close_reveal: CloseReveal::Always,
             overflow_menu: true,
+            more_button: IconButton::new(WidgetId::of("tabs.more"), "+"),
             menu: None,
             more_area: Rect::ZERO,
             fit: 0,
@@ -313,6 +320,12 @@ impl Tabs {
     /// See [`Self::overflow_menu`].
     pub fn overflow_menu(mut self, on: bool) -> Self {
         self.overflow_menu = on;
+        self
+    }
+
+    /// See [`Self::more_button`].
+    pub fn more_button(mut self, button: IconButton) -> Self {
+        self.more_button = button;
         self
     }
 
@@ -904,13 +917,23 @@ impl Tabs {
         if more_w > 0 {
             let hidden = self.hidden_tabs().len();
             let mx = area.right().saturating_sub(more_w + new_w);
-            let mid = self.more_id();
             let r = Rect::new(mx, y, more_w, 1);
             self.more_area = r;
-            let st = ctx.title_style(mid, bg);
-            let text = format!(" +{hidden}");
-            buf.set_string(mx, y, format!("{text:<w$}", w = more_w as usize), st);
-            ctx.register_part(self.id, PartRef::of(Part::OVERFLOW), r);
+            // a padded plate like `+` and `×`: the hit area is the plate,
+            // which lights whole on hover (docs/design/close-button.md)
+            let host = ratatui::style::Style::new().bg(bg);
+            crate::ui::ctx::fill(buf, r, host);
+            self.more_button
+                .with_glyph(&format!("+{hidden}"))
+                .part_of(self.id, PartRef::of(Part::OVERFLOW))
+                .render_in(
+                    r,
+                    mx + 1,
+                    buf,
+                    ctx,
+                    host,
+                    Some(Tip::new(t.strings.tip_overflow)),
+                );
         } else {
             self.more_area = Rect::ZERO;
             // nothing hides any more: the menu has nothing to list
@@ -1138,6 +1161,57 @@ mod tests {
         let buf = render_with(&mut tabs, focused);
         assert_eq!(buf[(tabs.areas[2].x, 0)].symbol(), "▎");
         assert_eq!(row(&buf, 0).matches('▎').count(), 1);
+    }
+
+    /// The `+N` overflow button is a padded `IconButton` plate like `+` and
+    /// `×` (docs/design/close-button.md): at rest it reads ` +N`, hovered
+    /// every cell of the plate lights, the hit area is the plate and the
+    /// tooltip names what it does.
+    #[test]
+    fn the_overflow_button_is_a_padded_plate_with_a_tooltip() {
+        let t = Theme::junie();
+        let labels: Vec<String> = (0..12).map(|i| format!("Query {i}")).collect();
+        let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
+        let mut tabs = Tabs::new(WidgetId::of("t"), &labels);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut rest = Buffer::empty(Rect::new(0, 0, 60, 2));
+        {
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            tabs.render(Rect::new(0, 0, 60, 2), &mut rest, &mut ctx, t.canvas);
+        }
+        let plate = hits.area_of(tabs.more_id()).expect("the +N button");
+        assert_eq!(plate, tabs.more_area);
+        let text: String = (plate.left()..plate.right())
+            .map(|x| rest[(x, 0)].symbol().to_owned())
+            .collect();
+        assert!(text.starts_with(" +"), "{text:?}");
+        for x in plate.left()..plate.right() {
+            assert_eq!(
+                hits.hit(ratatui::layout::Position::new(x, 0)),
+                Some(tabs.more_id()),
+                "the whole plate is the target"
+            );
+        }
+        let hover = Interaction {
+            hover: Some(tabs.more_id()),
+            hover_ms: Some(10_000),
+            ..Default::default()
+        };
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut lit = Buffer::empty(Rect::new(0, 0, 60, 6));
+        {
+            let mut ctx = RenderCtx::new(&t, hover, &mut hits, &mut ring);
+            tabs.render(Rect::new(0, 0, 60, 2), &mut lit, &mut ctx, t.canvas);
+            ctx.flush_overlays(&mut lit);
+        }
+        let tips: String = (0..6).map(|y| row(&lit, y) + "\n").collect();
+        for x in plate.left()..plate.right() {
+            assert_ne!(lit[(x, 0)].bg, rest[(x, 0)].bg, "cell {x} lights");
+            assert_eq!(lit[(x, 0)].bg, lit[(plate.x, 0)].bg, "one plate");
+        }
+        assert!(tips.contains(t.strings.tip_overflow), "{tips}");
     }
 
     #[test]

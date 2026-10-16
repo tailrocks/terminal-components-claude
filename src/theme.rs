@@ -2374,6 +2374,9 @@ pub struct Strings {
     pub tip_remove: &'static str,
     /// Tooltip of a tab strip's `+`. `New tab`.
     pub tip_new_tab: &'static str,
+    /// Tooltip of a tab strip's or chip bar's `+N` overflow button, which
+    /// lists what is hidden. `Show hidden`.
+    pub tip_overflow: &'static str,
 }
 
 impl Strings {
@@ -2435,6 +2438,7 @@ impl Strings {
         tip_close_tab: "Close tab",
         tip_remove: "Remove",
         tip_new_tab: "New tab",
+        tip_overflow: "Show hidden",
     };
 
     /// [`Self::DEFAULT`] with 7-bit punctuation (`...`, `|`, `^v`), to pair
