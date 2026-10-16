@@ -1597,23 +1597,26 @@ impl App {
             }
             // only a dialog code preview scrolls sideways here; a sideways swipe must
             // never scroll rows
-            MouseKind::WheelLeft | MouseKind::WheelRight => match self.modals.last_mut() {
-                // a dialog's code preview scrolls sideways
-                Some(top) => match &mut top.modal {
-                    Modal::Dialog(d) => d.on_wheel_h(self.pointer.wheel_delta(m.kind)),
-                    _ => Outcome::Consumed,
-                },
-                None => Outcome::Consumed,
-            },
+            MouseKind::WheelLeft | MouseKind::WheelRight => {
+                let delta = self.pointer.wheel_delta(m.kind);
+                if let Some(top) = self.modals.top_mut() {
+                    // a dialog's code preview scrolls sideways
+                    return match &mut top.modal {
+                        Modal::Dialog(d) => d.on_wheel_h(delta),
+                        _ => Outcome::Consumed,
+                    };
+                }
+                // only content with a horizontal axis takes it
+                let Some(id) = self.hits.hit_scroll(m.pos) else {
+                    return Outcome::Ignored;
+                };
+                let out = self.with_top(|s, w, _| s.on_wheel_h(id, delta, m.pos, w));
+                self.pointer.scrolled(m.pos, out);
+                out
+            }
             MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = self.pointer.wheel_delta(m.kind);
-                // a horizontal swipe is its own axis: it never scrolls a
-                // vertical list
-                let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 if let Some(top) = self.modals.top_mut() {
-                    if horizontal {
-                        return Outcome::Consumed;
-                    }
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),
                         Modal::Text(t) => t.on_wheel(delta),
@@ -1624,11 +1627,7 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
-                let out = if horizontal {
-                    self.with_top(|s, w, _| s.on_wheel_h(id, delta, m.pos, w))
-                } else {
-                    self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w))
-                };
+                let out = self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w));
                 // rows move under a still pointer: re-resolve hover next frame
                 self.pointer.scrolled(m.pos, out);
                 out
