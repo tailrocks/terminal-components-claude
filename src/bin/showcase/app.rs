@@ -24,6 +24,7 @@ use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
+use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::too_small::TooSmall;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
@@ -608,6 +609,9 @@ pub struct App {
     /// The pointer clock (press flash, hover delay, status expiry).
     pub(crate) clock: WallClock,
     pub dialog: Option<Dialog>,
+    /// The keyboard reference (`?`, the header link, a page's request):
+    /// the library `HelpOverlay`, a modal like the dialog.
+    pub help: Option<HelpOverlay>,
     pub inspector: bool,
     /// The Inspector's State | Options pane (`i`).
     pub insp: Inspector,
@@ -654,6 +658,14 @@ pub struct App {
     pointer_mods: KeyModifiers,
     /// Multi-click count of the click being delivered ([`PageCtx::clicks`]).
     pointer_clicks: u8,
+}
+
+/// An input for the open keyboard reference ([`App::help_event`]).
+enum HelpEvent {
+    Key(Key),
+    /// A completed click on `id`, inside or outside the reference.
+    Click(WidgetId),
+    Wheel(i32),
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -769,6 +781,7 @@ impl App {
             pointer: PointerState::new(PointerConfig::DEFAULT.focus_on(FocusOn::Release)),
             clock: WallClock::new(),
             dialog: None,
+            help: None,
             inspector: false,
             insp: Inspector::new(PageId::Overview),
             options,
@@ -975,6 +988,9 @@ impl App {
                 if let Some(d) = self.dialog.as_mut() {
                     return d.on_paste(&text);
                 }
+                if self.help.is_some() {
+                    return Outcome::Consumed;
+                }
                 self.dispatch(PageEvent::Paste(text))
             }
             Input::Key(key) => {
@@ -1024,7 +1040,7 @@ impl App {
         if self.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
-        if self.dialog.is_none() {
+        if !self.modal_open() {
             let page_out = self.dispatch(PageEvent::Tick);
             out = out.or(page_out);
         }
@@ -1050,6 +1066,7 @@ impl App {
                 Request::OpenDialog(d) => self.open_dialog(*d),
                 Request::Status(s) => self.set_status(s),
                 Request::SetOption(set) => self.apply_opt(set),
+                Request::OpenHelp(h) => self.show_help(*h),
             }
         }
         out
@@ -1135,6 +1152,9 @@ impl App {
                 return self.close_dialog().or(out);
             }
             return out.or(Outcome::Consumed);
+        }
+        if let Some(out) = self.help_event(HelpEvent::Key(key)) {
+            return out;
         }
         if let Some(out) = self.inspector_key(&key) {
             return out;
@@ -1505,26 +1525,115 @@ impl App {
         self.open_dialog(d);
     }
 
+    /// `?` and the header link: the shell's keys in the library
+    /// `HelpOverlay`, listed by hand until S8b generates them from the key
+    /// maps (SC33).
     fn open_help(&mut self) {
-        let text = "Tab / Shift+Tab   move keyboard focus\n\
-                    ↑↓←→              move inside the focused control\n\
-                    Enter / Space     activate · start editing\n\
-                    Esc               cancel editing · back to navigation\n\
-                    [ ]               previous / next page\n\
-                    ← →               close / open a sidebar group\n\
-                    a–z               jump to a sidebar row by name\n\
-                    /                 filter the sidebar (Esc clears)\n\
-                    0                 jump to navigation\n\
-                    i                 toggle state inspector\n\
-                    q                 quit\n\n\
-                    Mouse: hover to preview, click to focus and activate, wheel to scroll, drag the scrollbar thumb.";
-        let mut d = Dialog::confirm(HELP_DIALOG, "Keyboard & mouse", text, "Close");
-        d.actions.remove(0);
-        d.actions[0].kind = junie_tui::theme::ButtonKind::Secondary;
-        d.cancel_index = Some(0);
-        d.initial_focus = d.actions[0].id;
-        d.width = 70;
-        self.open_dialog(d);
+        let h = HelpOverlay::new(
+            HELP_DIALOG,
+            "Showcase",
+            vec![
+                (
+                    "Focus",
+                    vec![
+                        ("Tab", "next control"),
+                        ("Shift+Tab", "previous control"),
+                        ("↑↓←→", "move inside the control"),
+                        ("Enter Space", "activate · start editing"),
+                        ("Esc", "cancel editing · back to navigation"),
+                    ],
+                ),
+                (
+                    "Pages",
+                    vec![
+                        ("[ ]", "previous / next page"),
+                        ("0", "jump to navigation"),
+                        ("i", "the Inspector"),
+                        ("?", "this reference"),
+                        ("q Ctrl+Q", "quit"),
+                    ],
+                ),
+                (
+                    "Sidebar",
+                    vec![
+                        ("← →", "close / open a group"),
+                        ("a–z", "jump to a row by name"),
+                        ("/", "filter (Esc clears)"),
+                    ],
+                ),
+                (
+                    "Mouse",
+                    vec![
+                        ("Hover", "preview"),
+                        ("Click", "focus and activate"),
+                        ("Wheel", "scroll"),
+                        ("Drag", "a scrollbar thumb"),
+                    ],
+                ),
+            ],
+        )
+        .title("Keyboard & mouse");
+        self.show_help(h);
+    }
+
+    /// Open `h` as the modal reference. It refuses to open over another
+    /// modal: one layer at a time, and the dialog keeps the keyboard.
+    pub(crate) fn show_help(&mut self, h: HelpOverlay) {
+        if self.dialog.is_some() || self.help.is_some() {
+            self.set_status("Close the open dialog first".into());
+            return;
+        }
+        self.saved_focus = self.focus.current();
+        // its one focus stop: the Done button (the keys reach the overlay
+        // wherever focus is)
+        self.focus.set(Some(h.done.id));
+        self.help = Some(h);
+        self.pointer.hover = None;
+        self.pointer.pressed = None;
+    }
+
+    /// A modal (the dialog or the reference) is open: the page beneath
+    /// takes no pointer input and shows no focus.
+    fn modal_open(&self) -> bool {
+        self.dialog.is_some() || self.help.is_some()
+    }
+
+    /// The reference closed: focus goes back where it was.
+    fn close_help(&mut self) -> Outcome {
+        if self.help.take().is_none() {
+            return Outcome::Ignored;
+        }
+        self.focus.set(self.saved_focus.take());
+        Outcome::Changed
+    }
+
+    /// The reference's own events while it is open; `None` when it is
+    /// closed. A click outside it closes it under its `Dismiss` policy.
+    fn help_event(&mut self, ev: HelpEvent) -> Option<Outcome> {
+        let h = self.help.as_mut()?;
+        let out = match ev {
+            HelpEvent::Key(key) => h.on_key(&key).or(Outcome::Consumed),
+            HelpEvent::Click(id) => {
+                let inside = id == h.id
+                    || id == h.done.id
+                    || id == junie_tui::ui::modal::CLOSE
+                    || id == scrollbar::id_for(h.id);
+                if inside {
+                    h.on_click(id).or(Outcome::Changed)
+                } else {
+                    junie_tui::ui::layer::dismiss(
+                        h,
+                        junie_tui::core::intent::DismissReason::OutsideClick,
+                    );
+                    Outcome::Changed
+                }
+            }
+            HelpEvent::Wheel(delta) => h.on_wheel(delta),
+        };
+        if h.closed {
+            return Some(self.close_help().or(out));
+        }
+        Some(out)
     }
 
     /// A button release at `m.pos` over `hit`.
@@ -1542,19 +1651,28 @@ impl App {
                     let now = self.now_ms();
                     junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
                 }
+                if let Some(h) = self.help.as_mut() {
+                    let reason = junie_tui::core::intent::DismissReason::OutsideClick;
+                    if junie_tui::ui::layer::dismiss(h, reason).is_some() {
+                        return self.close_help();
+                    }
+                    let dismiss = h.dismiss;
+                    let now = self.now_ms();
+                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+                }
                 return Outcome::Changed;
             }
             Release::Cancelled => {
                 // the press-drag of a select ends on an option
                 return match pressed {
-                    Some(pressed) if self.dialog.is_none() && self.insp.owns(pressed) => self
+                    Some(pressed) if !self.modal_open() && self.insp.owns(pressed) => self
                         .dispatch_inspector(PageEvent::Release {
                             pressed,
                             pos: m.pos,
                         })
                         .unwrap_or(Outcome::Ignored)
                         .or(Outcome::Changed),
-                    Some(pressed) if self.dialog.is_none() => self
+                    Some(pressed) if !self.modal_open() => self
                         .dispatch(PageEvent::Release {
                             pressed,
                             pos: m.pos,
@@ -1570,6 +1688,9 @@ impl App {
                 return self.close_dialog().or(out);
             }
             return out.or(Outcome::Changed);
+        }
+        if let Some(out) = self.help_event(HelpEvent::Click(id)) {
+            return out;
         }
         if id == HEADER_HELP {
             self.open_help();
@@ -1625,7 +1746,7 @@ impl App {
         self.pointer_clicks = self.pointer.count_click(id, m.pos, self.now_ms());
         let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
         self.pointer_clicks = 0;
-        if self.dialog.is_none()
+        if !self.modal_open()
             && self.pointer.config.focus_on == FocusOn::Release
             && self.focus.current() == before
             && self.ring.contains(id)
@@ -1658,6 +1779,9 @@ impl App {
                     if let Some(d) = self.dialog.as_mut() {
                         return d.on_drag(pressed, m.pos);
                     }
+                    if self.help.is_some() {
+                        return Outcome::Consumed;
+                    }
                     if pressed == scrollbar::id_for(NAV) {
                         return self.nav.on_scrollbar_drag(m.pos);
                     }
@@ -1677,7 +1801,7 @@ impl App {
             }
             MouseKind::Down => {
                 let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
-                    if self.dialog.is_some() {
+                    if self.modal_open() {
                         return Outcome::Consumed;
                     }
                     self.pointer.dead_space(&mut self.focus);
@@ -1685,10 +1809,10 @@ impl App {
                 };
                 // a press on a modal's own body is dead space inside it:
                 // it ends the focused field's edit in place
-                if self.dialog.is_some() {
+                if self.modal_open() {
                     self.pointer.surface_press(&self.hits, id, &mut self.focus);
                 }
-                if self.dialog.is_some() {
+                if self.modal_open() {
                     return Outcome::Changed;
                 }
                 if let Some((i, _)) = self.nav.locate(id) {
@@ -1748,7 +1872,7 @@ impl App {
             // strip closes the tab under it); a modal or the overlay
             // Inspector swallows it
             MouseKind::Middle => {
-                if self.dialog.is_some() || self.inspector_overlay() {
+                if self.modal_open() || self.inspector_overlay() {
                     return Outcome::Consumed;
                 }
                 match self.hits.hit(m.pos) {
@@ -1760,7 +1884,7 @@ impl App {
                 let route = self.pointer.route_secondary(&self.hits, m.pos);
                 // a dialog registers no light-dismiss backdrop: a secondary
                 // click inside or outside it stays swallowed
-                if self.dialog.is_some() {
+                if self.modal_open() {
                     return Outcome::Consumed;
                 }
                 match route {
@@ -1777,7 +1901,7 @@ impl App {
                         // ... then the control beneath gets the secondary
                         // click, so its menu opens at the new spot
                         match reopen {
-                            Some(id) if self.dialog.is_none() => {
+                            Some(id) if !self.modal_open() => {
                                 out.or(self.dispatch(PageEvent::Secondary { id, pos: m.pos }))
                             }
                             _ => out,
@@ -1794,6 +1918,9 @@ impl App {
                 if let Some(d) = self.dialog.as_mut() {
                     return d.on_wheel_h(delta);
                 }
+                if self.help.is_some() {
+                    return Outcome::Consumed;
+                }
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
@@ -1805,6 +1932,9 @@ impl App {
                 let delta = self.pointer.wheel_delta(m.kind);
                 if let Some(d) = self.dialog.as_mut() {
                     return d.on_wheel(delta);
+                }
+                if let Some(out) = self.help_event(HelpEvent::Wheel(delta)) {
+                    return out;
                 }
                 // the notch goes to the innermost owner that takes it: a
                 // field (or its label) inside a scrolling stack passes it on
@@ -1945,7 +2075,7 @@ impl App {
                 ctx.tooltips = self.tooltips;
                 ctx.reveal = self.reveal;
                 ctx.page_under_layer(
-                    self.dialog.is_some()
+                    self.modal_open()
                         || self.inspector_overlay()
                         || self.pages[self.page.index()].layer_open(),
                 );
@@ -1958,7 +2088,7 @@ impl App {
             self.pointer.refresh_hover(&self.hits);
             // keep focus valid against the freshly built ring
             let before = self.focus.current();
-            if self.dialog.is_none() {
+            if !self.modal_open() {
                 // focus that lost its control falls back per the shell
                 // option (the ring position is recorded each frame for
                 // `Nearest`)
@@ -2051,6 +2181,9 @@ impl App {
                 buf,
                 ctx,
             );
+        }
+        if let Some(h) = self.help.as_mut() {
+            h.render(area, buf, ctx);
         }
     }
 
@@ -2337,6 +2470,14 @@ impl App {
             .flatten();
         if let Some(d) = self.dialog.as_ref() {
             dialog_hints = Some(d.hints(self.focus.current()));
+        } else if let Some(h) = self.help.as_ref() {
+            // the reference's own keys
+            use junie_tui::widgets::keyhint::Hint as KeyHint;
+            let mut own = vec![KeyHint::new("↑↓", "Scroll")];
+            if h.dismiss.escape {
+                own.push(KeyHint::new("Esc", "Close"));
+            }
+            dialog_hints = Some(own);
         } else if let Some(own) = inspector_hints {
             let popup = self.insp.options.popup_open();
             hints.extend(own);
@@ -2386,7 +2527,7 @@ impl App {
                 .map(|(key, action)| junie_tui::widgets::keyhint::hint(key, action))
                 .collect()
         });
-        let badge = (page.editing() && self.dialog.is_none()).then_some(("EDIT", BadgeKind::Edit));
+        let badge = (page.editing() && !self.modal_open()).then_some(("EDIT", BadgeKind::Edit));
         junie_tui::widgets::keyhint::render(area, buf, &t, &hints, badge, self.status.text());
         let _ = ctx;
     }

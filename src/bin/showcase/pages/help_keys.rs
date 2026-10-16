@@ -1,14 +1,377 @@
-//! Help & keys (App shell): a planned page (plan §7.2), registered with its
-//! `--page` slug so parallel steps do not collide. SC6 replaces this
-//! stub with the page.
+//! Help & keys (plan §7, SC6): the `HelpOverlay` and the `KeyReference`.
+//!
+//! Playground: a `KeyReference` laid out at a chosen width (sections, the
+//! key column capped at `key_max_share`, descriptions hanging under their
+//! column when they wrap), and a `HelpOverlay` the page opens over itself:
+//! titled sections in as many columns as fit, scrolling when they do not,
+//! closed by Esc, Enter, its `HelpCmd::Close` keys, its Done button, its
+//! `×` and, under light dismiss, a click outside. Options: the reference's
+//! width, `key_max_share` and `gap`; the overlay's `title`, `max_percent`,
+//! `nav`, `keymap` and `dismiss`. States: the reference by itself.
 
-use crate::pages::Page;
-use crate::pages::stub::StubPage;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+
+use crate::app::PageId;
+use crate::options::page_options;
+use crate::pages::template::{Section, Template};
+use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use junie_tui::core::event::Outcome;
+use junie_tui::core::id::WidgetId;
+use junie_tui::core::keymap::{KeyBinding, NavKeys, label_for};
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::popup::Dismiss;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
+use junie_tui::widgets::button::Button;
+use junie_tui::widgets::help::{HelpCmd, HelpOverlay};
+use junie_tui::widgets::keyref::KeyReference;
+use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
+
+const ID: WidgetId = WidgetId::of("helpkeys");
+/// The button that opens the overlay.
+pub const OPEN: WidgetId = WidgetId::of("helpkeys.open");
+/// The overlay the page opens.
+pub const HELP: WidgetId = WidgetId::of("helpkeys.help");
+
+/// The editor's keys, as the overlay lists them (demo data).
+fn sections() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
+    vec![
+        (
+            "Navigation",
+            vec![
+                ("Ctrl+P", "open a file by name"),
+                ("Ctrl+G", "go to line"),
+                ("Ctrl+Tab", "next editor tab"),
+                ("Alt+←/→", "back / forward"),
+                ("F12", "go to definition"),
+            ],
+        ),
+        (
+            "Editing",
+            vec![
+                ("Ctrl+Z", "undo"),
+                ("Ctrl+Y", "redo"),
+                ("Ctrl+D", "select the next match"),
+                ("Alt+↑/↓", "move the line"),
+                ("Ctrl+/", "toggle a comment"),
+                ("Tab", "indent the selection"),
+            ],
+        ),
+        (
+            "Search",
+            vec![
+                ("Ctrl+F", "find in the file"),
+                ("Enter", "next match"),
+                ("Shift+Enter", "previous match"),
+                ("Ctrl+H", "replace"),
+            ],
+        ),
+        (
+            "View",
+            vec![
+                ("Ctrl+B", "show / hide the sidebar"),
+                ("Ctrl+J", "show / hide the panel"),
+                ("Ctrl+=", "zoom in"),
+                ("Ctrl+-", "zoom out"),
+            ],
+        ),
+        (
+            "Window",
+            vec![
+                ("Ctrl+W", "close the tab"),
+                ("Ctrl+Shift+T", "reopen the closed tab"),
+                ("Ctrl+\\", "split the editor"),
+                ("Ctrl+Q", "quit"),
+            ],
+        ),
+    ]
+}
+
+/// The reference the Playground lays out (demo data).
+fn reference() -> KeyReference {
+    KeyReference::new()
+        .section("Results")
+        .key("↑↓ PgUp PgDn", "move between rows")
+        .key("Enter", "open the row in the detail pane")
+        .key("Ctrl+C", "copy the selected cells as tab-separated text")
+        .section("Query")
+        .key("Ctrl+Enter", "run the statement under the cursor")
+        .key(
+            "Ctrl+Shift+Enter",
+            "run every statement in the editor, top to bottom",
+        )
+        .key("Esc", "cancel the running query")
+}
+
+pub struct HelpKeysPage {
+    template: Template,
+    open: Button,
+    /// Value indices of the page options, in `page_options` order.
+    opts: Vec<usize>,
+}
+
+impl HelpKeysPage {
+    pub fn new() -> Self {
+        Self {
+            template: Template::new(ID, states_grid()),
+            open: Button::secondary(OPEN, "Open help overlay"),
+            opts: page_options(PageId::HelpKeys)
+                .iter()
+                .map(|o| o.default)
+                .collect(),
+        }
+    }
+
+    /// The value of option `key` as the table spells it.
+    fn opt(&self, key: &str) -> &'static str {
+        let table = page_options(PageId::HelpKeys);
+        let i = table
+            .iter()
+            .position(|o| o.key == key)
+            .unwrap_or_else(|| panic!("no option {key}"));
+        table[i].values[self.opts[i]]
+    }
+
+    /// The overlay, built from the options through its builders.
+    pub fn build_help(&self) -> HelpOverlay {
+        let mut h = HelpOverlay::new(HELP, "Editor", sections())
+            .max_percent(self.opt("helpkeys.max_percent").parse().unwrap_or(80))
+            .nav(match self.opt("helpkeys.nav") {
+                "vim" => NavKeys::VIM,
+                _ => NavKeys::default(),
+            })
+            .dismiss(match self.opt("helpkeys.dismiss") {
+                "escape" => Dismiss::ESCAPE,
+                _ => Dismiss::LIGHT,
+            });
+        if self.opt("helpkeys.title") == "custom" {
+            h = h.title("Editor keys");
+        }
+        if self.opt("helpkeys.keymap") == "f1" {
+            h = h.keymap(vec![(
+                KeyBinding::key(ratatui::crossterm::event::KeyCode::F(1)),
+                HelpCmd::Close,
+            )]);
+        }
+        h
+    }
+
+    /// The reference, built from the options through its builders.
+    fn build_reference(&self) -> KeyReference {
+        reference()
+            .key_max_share(self.opt("helpkeys.key_max_share").parse().unwrap_or(40))
+            .gap(self.opt("helpkeys.gap").parse().unwrap_or(3))
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let (left, right) = crate::pages::layout::columns(area, 58.min(area.width * 11 / 20), 2);
+
+        // the reference at the chosen width
+        let r = self.build_reference();
+        let w = match self.opt("helpkeys.width") {
+            "full" => left.width.saturating_sub(4) as usize,
+            n => n.parse().unwrap_or(40),
+        };
+        let lines = r.lines(w);
+        let title = format!("KeyReference at width {w}");
+        let meta = format!("share {}% · gap {}", r.key_max_share, r.gap.max(3));
+        let panel = Panel::card(Some(&title)).meta(&meta);
+        let bg = panel.bg(t);
+        let h = (lines.len() as u16 + 3).min(left.height);
+        let inner = panel.render(Rect::new(left.x, left.y, left.width, h), buf, t);
+        for (i, l) in lines.iter().enumerate() {
+            let y = inner.y + i as u16;
+            if y >= inner.bottom() {
+                break;
+            }
+            let heading = matches!(l.as_str(), "Results" | "Query");
+            let st = if heading {
+                t.secondary()
+                    .bg(bg)
+                    .add_modifier(ratatui::style::Modifier::BOLD)
+            } else {
+                t.secondary().bg(bg)
+            };
+            buf.set_string(inner.x, y, l, st);
+            // the wrap width, as a faint rule
+            let edge = inner.x + w as u16;
+            if edge < inner.right() {
+                buf.set_string(edge, y, "┊", t.faint().bg(bg));
+            }
+        }
+
+        // the overlay the options build, read back
+        let help = self.build_help();
+        // every key the map binds to Close (`label_for` names the first)
+        let first = label_for(&help.keymap, HelpCmd::Close).unwrap_or_else(|| "none".into());
+        let rest: Vec<String> = help
+            .keymap
+            .iter()
+            .filter(|(_, a)| *a == HelpCmd::Close)
+            .map(|(b, _)| b.label())
+            .filter(|l| *l != first)
+            .collect();
+        let close = std::iter::once(first)
+            .chain(rest)
+            .collect::<Vec<_>>()
+            .join(" ");
+        let facts = vec![
+            Prop::new("Title", help.title.clone()),
+            Prop::new("Scope", help.scope.clone()),
+            Prop::new("Max share", format!("{}%", help.max_percent)),
+            Prop::new(
+                "Scroll keys",
+                if help.nav == NavKeys::VIM {
+                    "↑↓ PgUp PgDn Home End j k g G"
+                } else {
+                    "↑↓ PgUp PgDn Home End"
+                },
+            ),
+            Prop::new("HelpCmd::Close", format!("{close} · Esc · Enter")),
+            Prop::new(
+                "Dismiss",
+                if help.dismiss.outside_click {
+                    "light: Esc, ×, outside"
+                } else {
+                    "Esc and × only"
+                },
+            ),
+        ];
+        let panel = Panel::card(Some("HelpOverlay"));
+        let bg = panel.bg(t);
+        let h = 12.min(right.height);
+        let inner = panel.render(Rect::new(right.x, right.y, right.width, h), buf, t);
+        let bw = self.open.width();
+        self.open
+            .render(Rect::new(inner.x, inner.y, bw, 1), buf, ctx, bg);
+        props::render(
+            Rect::new(
+                inner.x,
+                inner.y + 2,
+                inner.width,
+                inner.height.saturating_sub(2),
+            ),
+            buf,
+            t,
+            &facts,
+            bg,
+        );
+        let note = "It opens as the shell's modal and never over another one. \
+                    The showcase's own ? opens one too, listing the shell's keys.";
+        for (i, l) in text::wrap(note, right.width as usize).iter().enumerate() {
+            let y = inner.bottom() + 1 + i as u16;
+            if y >= right.bottom() {
+                break;
+            }
+            buf.set_string(right.x, y, l, t.faint().bg(t.canvas));
+        }
+    }
+}
+
+/// The States grid: the reference by itself.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    StateGrid::new(ID.sub("states"))
+        .rows(&[Rest, Overflow, Narrow])
+        .column_width(40)
+        .column(
+            "Reference",
+            KeyReference::new()
+                .section("Query")
+                .key("Ctrl+Enter", "run the statement")
+                .key("Esc", "cancel"),
+        )
+        .column(
+            "Narrow keys",
+            KeyReference::new()
+                .key_max_share(25)
+                .key("Ctrl+Enter", "run the statement")
+                .key("Esc", "cancel"),
+        )
+}
+
+impl Page for HelpKeysPage {
+    fn title(&self) -> &'static str {
+        "Help & keys"
+    }
+
+    fn blurb(&self) -> &'static str {
+        "HelpOverlay and KeyReference: sections, columns, scrolling, hanging wrap"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        let open = match ev {
+            PageEvent::Key(key) if cx.focus.is(OPEN) => {
+                let (o, act) = self.open.on_key(key);
+                if !act {
+                    return o;
+                }
+                true
+            }
+            PageEvent::Click { id, .. } if *id == OPEN => self.open.on_click(),
+            _ => return Outcome::Ignored,
+        };
+        if open {
+            // the shell owns the modal: routing, light dismiss, focus back
+            // to the button
+            cx.focus.focus(OPEN);
+            cx.open_help(self.build_help());
+        }
+        Outcome::Changed
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        if focus == Some(OPEN) {
+            return vec![("Enter", "Open help")];
+        }
+        Vec::new()
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        let i = page_options(PageId::HelpKeys)
+            .iter()
+            .position(|o| o.key == key)?;
+        Some(self.opts[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let table = page_options(PageId::HelpKeys);
+        if let Some(i) = table.iter().position(|o| o.key == key) {
+            self.opts[i] = value.min(table[i].values.len() - 1);
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
+}
 
 pub fn page() -> Box<dyn Page> {
-    Box::new(StubPage::new(
-        "Help & keys",
-        "SC6",
-        "HelpOverlay and KeyReference: sections, columns, scrolling, hanging wrap",
-    ))
+    Box::new(HelpKeysPage::new())
 }
