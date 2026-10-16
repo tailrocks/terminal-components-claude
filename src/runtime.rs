@@ -541,7 +541,11 @@ impl InputPump {
                 self.pending = Some(input);
                 break;
             }
-            let changed = app.handle(input.clone()) == Outcome::Changed;
+            // the wheel over a pointer-only reveal tooltip scrolls it; no
+            // widget owns that tooltip, so the app never sees the notch
+            let changed = crate::ui::reveal::on_pointer_wheel(&input)
+                .unwrap_or_else(|| app.handle(input.clone()))
+                == Outcome::Changed;
             if app.should_quit() {
                 return Ok(changed || burst.is_some());
             }
@@ -855,6 +859,98 @@ mod tests {
             max_latency: Duration::MAX,
             ..Coalesce::default()
         }
+    }
+
+    #[test]
+    fn the_wheel_over_a_pointer_only_tooltip_scrolls_it_and_not_the_app() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::theme::Theme;
+        use crate::ui::ctx::{Interaction, RenderCtx};
+        use crate::ui::reveal::Reveal;
+        use ratatui::backend::TestBackend;
+        use ratatui::layout::{Position, Rect};
+
+        /// A cut cell under a resting pointer whose full text is longer
+        /// than its 4-row tooltip; every wheel the app sees is counted.
+        struct TipApp {
+            text: String,
+            reveal: Reveal,
+            wheels: usize,
+        }
+        impl Application for TipApp {
+            fn handle(&mut self, input: Input) -> Outcome {
+                if matches!(input, Input::Mouse(m) if m.wheel().is_some()) {
+                    self.wheels += 1;
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            fn render(&mut self, frame: &mut Frame) {
+                let theme = Theme::junie();
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let cell_id = crate::core::id::WidgetId::of("tip cell");
+                let hover = Interaction {
+                    hover: Some(cell_id),
+                    ..Default::default()
+                };
+                let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
+                let cell = Rect::new(2, 1, 6, 1);
+                let reveal = Some(self.reveal);
+                crate::ui::reveal::truncated(&mut ctx, reveal, cell_id, cell, &self.text);
+                ctx.flush_overlays(frame.buffer_mut());
+            }
+            fn should_quit(&self) -> bool {
+                false
+            }
+            fn tick_interval(&self) -> Duration {
+                Duration::from_secs(1)
+            }
+        }
+        let text = (1..=60)
+            .map(|i| format!("line{i:02}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let mut app = TipApp {
+            text,
+            reveal: Reveal::default().max_rows(4),
+            wheels: 0,
+        };
+        let mut terminal = ratatui::Terminal::new(TestBackend::new(40, 12)).unwrap();
+        let mut draw = |app: &mut TipApp| {
+            let buf = terminal.draw(|f| app.render(f)).unwrap().buffer.clone();
+            (0..12)
+                .map(|y| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+        };
+        let wheel = |x, y| Input::Mouse(Mouse::new(MouseKind::WheelDown, Position::new(x, y)));
+        let mut pump = InputPump::new(Coalesce::default());
+        let mut send = |app: &mut TipApp, input: Input| {
+            let mut queue = std::collections::VecDeque::from([input]);
+            pump.drain(app, || Ok(queue.pop_front())).unwrap()
+        };
+        let rows = draw(&mut app);
+        assert!(rows[1].contains("line01"), "{rows:#?}");
+        assert!(rows[4].contains("↓"), "{rows:#?}");
+        assert!(send(&mut app, wheel(3, 1)), "a frame is due");
+        assert_eq!(app.wheels, 0, "the tooltip took the notch");
+        let rows = draw(&mut app);
+        assert!(rows[1].contains("↑"), "scrolled: {rows:#?}");
+        assert!(!rows.iter().any(|r| r.contains("line01 ")), "{rows:#?}");
+        // outside the tooltip the app scrolls as before
+        assert!(send(&mut app, wheel(3, 10)));
+        assert_eq!(app.wheels, 1);
+        // a frame without the tooltip leaves every notch to the app
+        app.reveal = app.reveal.hover(false);
+        draw(&mut app);
+        send(&mut app, wheel(3, 1));
+        assert_eq!(app.wheels, 2);
+        // with scrolling off the tooltip stays put and the app scrolls
+        app.reveal = Reveal::default().max_rows(4).scroll(false);
+        draw(&mut app);
+        send(&mut app, wheel(3, 1));
+        assert_eq!(app.wheels, 3);
     }
 
     #[test]
