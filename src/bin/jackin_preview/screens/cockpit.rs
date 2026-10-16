@@ -85,7 +85,8 @@ impl CockpitScreen {
         let container = format!("jackin-{wsname}-{suffix}");
         let run_id = format!(
             "run-{}-{suffix}",
-            crate::clock::Clock::stamp(w.now_secs())
+            crate::scenario::CLOCK
+                .stamp(w.now_secs())
                 .replace([' ', ':'], "-")
                 .replace('-', "")[..12]
                 .to_owned()

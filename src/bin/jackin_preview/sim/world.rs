@@ -5,7 +5,6 @@
 use std::collections::BTreeMap;
 
 use crate::arbiter::Arbiter;
-use crate::clock::Clock;
 use crate::domain::account::{AccountId, AccountRegistry};
 use crate::domain::agent::{Agent, AuthMode, Provider};
 use crate::domain::instance::{Instance, InstanceId, InstanceStatus};
@@ -15,6 +14,7 @@ use crate::domain::workspace::{
 use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::pty::Daemon;
+use junie_tui::clock::SimClock;
 
 /// Global (host) configuration edited in Settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -148,7 +148,7 @@ pub enum DaemonHealth {
 
 pub struct World {
     pub scenario: Scenario,
-    pub clock: Clock,
+    pub clock: SimClock,
     pub arbiter: Arbiter,
     pub home: String,
     pub cwd: String,

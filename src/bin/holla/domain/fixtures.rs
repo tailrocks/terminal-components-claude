@@ -4,7 +4,6 @@
 
 use std::collections::BTreeMap;
 
-use crate::clock::Clock;
 use crate::domain::activity::ActivityKind;
 use crate::domain::context::{Host, HostRole, Location, Os, Project, ProjectKind, ScopeTag};
 use crate::domain::plan::{Plan, Step};
@@ -624,7 +623,7 @@ fn disk_full() -> DiskState {
             "/private/var/folders".into(),
         ],
         history: vec![CleanupRecord {
-            when_secs: crate::clock::EPOCH_SECS - 12 * 86_400,
+            when_secs: crate::scenario::EPOCH_SECS - 12 * 86_400,
             target: format!("{HOME}/work/legacy/node_modules"),
             method: "Trash".into(),
             reclaimed_gb: 3.9,
@@ -1199,7 +1198,7 @@ fn docker_devbox() -> DockerState {
 }
 
 fn memory_common() -> RankingMemory {
-    let now = crate::clock::EPOCH_SECS;
+    let now = crate::scenario::EPOCH_SECS;
     let mut usage = UsageStore::default();
     let holla = format!("{HOME}/work/holla");
     let acme = format!("{HOME}/work/acme");
@@ -1274,7 +1273,7 @@ pub fn base_world(scenario: Scenario, motion: Motion, host: Host, location: Loca
 }
 
 fn base(scenario: Scenario, motion: Motion, host: Host, location: Location) -> World {
-    let mut clock = Clock::new();
+    let mut clock = crate::scenario::CLOCK;
     clock.running = motion != Motion::Paused;
     let platform = platform_for(host.os, &location.home);
     let tools: BTreeSet<String> = COMMON_TOOLS.iter().map(|s| s.to_string()).collect();
@@ -2123,7 +2122,7 @@ fn docker_cleanup(motion: Motion) -> World {
         None,
         "devbox",
         5,
-        crate::clock::EPOCH_SECS - 86_400,
+        crate::scenario::EPOCH_SECS - 86_400,
     );
     w.sources = sources_for(
         motion,
@@ -2581,7 +2580,7 @@ fn remote_host(motion: Motion) -> World {
         Some("/srv/payments"),
         "prod-eu-1",
         5,
-        crate::clock::EPOCH_SECS - 3_600,
+        crate::scenario::EPOCH_SECS - 3_600,
     );
     w.sources = sources_for(
         motion,

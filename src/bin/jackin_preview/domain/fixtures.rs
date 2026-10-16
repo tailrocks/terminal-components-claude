@@ -4,7 +4,6 @@
 use std::collections::BTreeMap;
 
 use crate::arbiter::{Arbiter, DiscoveryError};
-use crate::clock::Clock;
 use crate::domain::account::{
     Account, AccountId, AccountIdentity, AccountRegistry, Confidence, CredentialSource,
     DetectedKind, IdentitySubject, IssueCode, Lifecycle, Recoverability, RecoverableIssue,
@@ -1262,7 +1261,7 @@ fn accounts_hard(now: i64) -> AccountRegistry {
 // -------------------------------------------------------------- worlds
 
 fn base_world(scenario: Scenario) -> World {
-    let clock = Clock::new();
+    let clock = crate::scenario::CLOCK;
     let now = clock.now_secs();
     let mut w = World {
         scenario,

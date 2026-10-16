@@ -456,7 +456,7 @@ pub fn plural(n: usize, one: &str, many: &str) -> String {
 
 /// `2 min 14 s` from ticks.
 pub fn ticks_label(ticks: u64) -> String {
-    crate::clock::format_duration(ticks * crate::sim::world::TICK_MS as u64 / 1000)
+    junie_tui::ui::text::duration_secs(ticks * crate::sim::world::TICK_MS as u64 / 1000)
 }
 
 /// Tone for a risk word in rows and previews (D-7).

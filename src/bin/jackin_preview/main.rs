@@ -19,7 +19,6 @@ mod app_tests_fields;
 #[cfg(test)]
 mod app_tests_mouse;
 mod arbiter;
-mod clock;
 mod domain;
 mod rain;
 mod scenario;
