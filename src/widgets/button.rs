@@ -125,8 +125,16 @@ impl Button {
         }
         let t = ctx.theme;
         let mut style = t.button(self.kind, s, bg);
+        // a busy button dims its label, but on the accent fill (primary) the
+        // secondary grey is unreadable: keep the on-accent ink there
+        let filled = self.kind == ButtonKind::Primary && !self.disabled;
+        let busy_ink = if filled {
+            t.text_on_accent
+        } else {
+            t.text_secondary
+        };
         if self.busy {
-            style = style.fg(t.text_secondary).remove_modifier(Modifier::BOLD);
+            style = style.fg(busy_ink).remove_modifier(Modifier::BOLD);
         }
         let on_accent = self.kind == ButtonKind::Primary && !self.disabled;
         let gutter = t.gutter(s, style.bg.unwrap_or(bg), on_accent);
@@ -155,7 +163,7 @@ impl Button {
                 area.x + 1,
                 area.y,
                 super::progress::spinner_frame(ctx.interaction.tick),
-                style.fg(t.accent),
+                style.fg(if filled { busy_ink } else { t.accent }),
             );
         }
         buf.set_string(area.x + w - 1, area.y, " ", style);
@@ -184,4 +192,32 @@ pub fn row_layout_right(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
         widths,
         gap,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    #[test]
+    fn a_busy_primary_button_keeps_its_label_and_spinner_visible() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
+        let mut b = Button::primary(WidgetId::of("b"), "Connect");
+        b.busy = true;
+        let w = b.width();
+        b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
+        for x in 1..w - 1 {
+            let c = &buf[(x, 0)];
+            if c.symbol() != " " {
+                assert_ne!(c.fg, c.bg, "cell {x} {:?} is invisible", c.symbol());
+            }
+        }
+    }
 }
