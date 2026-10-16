@@ -208,6 +208,22 @@ impl Page for InputsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let PageEvent::Blur(ch) = ev {
+            let Some(i) = self.fields.iter().position(|f| f.id == ch.from) else {
+                return Outcome::Ignored;
+            };
+            return match self.fields[i].on_blur() {
+                Some(InputEvent::Committed) => {
+                    cx.status(format!("{} saved", self.fields[i].label));
+                    Outcome::Changed
+                }
+                Some(InputEvent::Cancelled) => {
+                    cx.status("Reverted");
+                    Outcome::Changed
+                }
+                _ => Outcome::Ignored,
+            };
+        }
         match ev {
             PageEvent::Key(key) => {
                 let Some(i) = self.focused_index(cx) else {

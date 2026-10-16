@@ -6,6 +6,7 @@ use ratatui::layout::Rect;
 
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
+use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::Button;
@@ -323,6 +324,9 @@ impl Page for GridPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let PageEvent::Blur(ch) = ev {
+            return forward_blur(*ch, &mut [&mut self.grid]);
+        }
         match ev {
             PageEvent::Tick => {
                 if self.commit_ticks == 0 {
