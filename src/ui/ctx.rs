@@ -238,6 +238,14 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// Register a drag-selecting widget's scrolling body for edge
+    /// autoscroll ([`HitRegistry::register_autoscroll`]).
+    pub fn autoscroll(&mut self, area: Rect) {
+        if !self.inert {
+            self.hits.register_autoscroll(area);
+        }
+    }
+
     pub fn state(&self, id: WidgetId) -> VisualState {
         VisualState {
             focused: self.interaction.focused(id),
