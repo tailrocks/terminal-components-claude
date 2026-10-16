@@ -1496,7 +1496,7 @@ mod tests {
     /// through its layer, as Esc does.
     #[test]
     fn a_click_outside_the_picker_lands_on_its_backdrop_and_cancels_it() {
-        use crate::ui::layer::{Layer, LayerCx, LayerOut};
+        use crate::ui::layer::{Dismissed, LayerPointer, LayerTag, ShellLayers};
         use crate::ui::layers::LayerResult;
         let mut p = picker(3);
         let ev = click_over_page(&mut p, ratatui::layout::Position::new(0, 1))
@@ -1505,21 +1505,17 @@ mod tests {
         assert_eq!(ev.part().part, Part::BACKDROP);
         let mut focus = crate::core::focus::Focus::default();
         let ring = FocusRing::default();
-        let mut cx = LayerCx {
-            focus: &mut focus,
-            ring: &ring,
-            app: &(),
-        };
-        assert_ne!(
-            Layer::<LayerResult>::pointer(&mut p, &ev, &mut cx),
-            Outcome::Ignored
-        );
-        assert_eq!(
-            Layer::<LayerResult>::take_result(&mut p),
-            Some(LayerOut::Close(LayerResult::Picker(
-                PickerAction::Cancelled
-            )))
-        );
+        let mut stack: ShellLayers<LayerResult> = ShellLayers::default();
+        stack.open(Box::new(p), LayerTag::new("picker"), (), &mut focus);
+        match stack.pointer(&ev, &mut focus, &ring, &()) {
+            LayerPointer::Dismissed(Dismissed::Closed(_, r)) => assert_eq!(
+                r,
+                Some(LayerResult::Picker(PickerAction::Cancelled)),
+                "the outside click cancels it, as Esc does"
+            ),
+            _ => panic!("the backdrop click dismisses the picker"),
+        }
+        assert!(stack.is_empty());
     }
 
     /// A picker whose policy refuses an outside click stays open: the

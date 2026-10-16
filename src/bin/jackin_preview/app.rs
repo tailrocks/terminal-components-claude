@@ -15,7 +15,9 @@ use junie_tui::core::response::Response;
 use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
-use junie_tui::ui::layer::{DismissReason, Dismissed, LayerCx, LayerEntry, ShellLayers, Taken};
+use junie_tui::ui::layer::{
+    DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, ShellLayers, Taken,
+};
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, letters_allowed};
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::dialog::Dialog;
@@ -1585,7 +1587,17 @@ impl App {
     /// with its cancel result, or stays (a refused outside click flashes
     /// its frame).
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
-        match self.layers.dismiss(reason, &mut self.focus) {
+        let d = self.layers.dismiss(reason, &mut self.focus);
+        self.dismissed(reason, d)
+    }
+
+    /// What a dismissal of the top layer did (see [`Self::dismiss_layer`]).
+    fn dismissed(
+        &mut self,
+        reason: DismissReason,
+        d: Dismissed<ModalResult, World, Route>,
+    ) -> Outcome {
+        match d {
             Dismissed::None => Outcome::Ignored,
             Dismissed::Refused => {
                 let dismiss = self
@@ -1733,22 +1745,20 @@ impl App {
     }
 
     /// An event while a layer is open: the frame's `×` means what Esc
-    /// means, under the layer's own policy; anything else (a popup's own
-    /// backdrop included) is the layer's.
+    /// means and a click on its backdrop is an outside click, both under
+    /// the layer's own policy (`ShellLayers::pointer`); anything else is
+    /// the layer's.
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
         }
-        let Some(top) = self.layers.top_mut() else {
-            return Outcome::Ignored;
-        };
-        let mut cx = LayerCx {
-            focus: &mut self.focus,
-            ring: &self.ring,
-            app: &self.world,
-        };
-        let o = top.layer.pointer(ev, &mut cx);
-        self.settle_layers(o)
+        match self
+            .layers
+            .pointer(ev, &mut self.focus, &self.ring, &self.world)
+        {
+            LayerPointer::Handled(o) => self.settle_layers(o),
+            LayerPointer::Dismissed(d) => self.dismissed(DismissReason::OutsideClick, d),
+        }
     }
 
     /// An event on the chrome around the screen: the host menu bar and

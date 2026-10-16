@@ -10,15 +10,16 @@ use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::editor::ROLES;
-use junie_tui::ui::modal::{CLOSE, SURFACE};
+use junie_tui::ui::modal::{BACKDROP, CLOSE, SURFACE};
 
-/// A screen cell no control claims (the dimmed page around a modal).
+/// A screen cell no control claims (the dimmed page around a modal, where
+/// only the modal frame's backdrop is).
 fn outside(h: &H) -> Position {
     let area = h.term.backend().buffer().area;
     for y in 1..area.height.saturating_sub(1) {
         for x in 0..area.width {
             let p = Position::new(x, y);
-            if h.app.hits.hit(p).is_none() {
+            if matches!(h.app.hits.hit(p), None | Some(BACKDROP)) {
                 return p;
             }
         }
