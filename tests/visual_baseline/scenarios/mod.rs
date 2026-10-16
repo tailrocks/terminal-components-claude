@@ -203,6 +203,9 @@ pub struct Root {
     /// Overlay rows: also capture `-dismissed-esc` and `-dismissed-outside`
     /// (both start from this row's open state), with this status.
     pub dismiss: Option<Status>,
+    /// `(cols, rows)`: the smallest terminal the row's target exists in;
+    /// smaller combos are not generated (the app hides the element there).
+    pub min_size: (u16, u16),
 }
 
 impl Root {
@@ -226,6 +229,7 @@ impl Root {
             status: Status::Stored,
             pointer: None,
             dismiss: None,
+            min_size: (0, 0),
         }
     }
 
@@ -283,6 +287,13 @@ impl Root {
 
     pub const fn right_click(mut self, at: &'static str) -> Self {
         self.pointer = Some(Pointer::RightClick(at));
+        self
+    }
+
+    /// Only generate combos of at least `cols` x `rows`: below that the
+    /// app does not render the row's target (a responsively hidden pane).
+    pub const fn min_size(mut self, cols: u16, rows: u16) -> Self {
+        self.min_size = (cols, rows);
         self
     }
 
@@ -537,6 +548,9 @@ pub fn all() -> Vec<Scenario> {
                 for &(dismiss, status) in &phases {
                     let suffix = dismiss.map_or("", Dismiss::suffix);
                     for &(cols, rows) in tier.sizes {
+                        if cols < root.min_size.0 || rows < root.min_size.1 {
+                            continue;
+                        }
                         for &color in tier.colors {
                             out.push(Scenario {
                                 name: format!(
@@ -600,6 +614,12 @@ pub fn check_tables() -> Result<(), String> {
             if (kind == Kind::Resize) != row.from.is_some() {
                 problems.push(format!(
                     "`{}`: resize rows (and only they) carry a start geometry",
+                    row.root
+                ));
+            }
+            if row.min_size != (0, 0) && row.status != Status::Pending {
+                problems.push(format!(
+                    "`{}`: only pending rows may drop combos (min_size); a stored row keeps every size",
                     row.root
                 ));
             }
