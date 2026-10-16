@@ -1,0 +1,3 @@
+[alias]
+# Repository tasks (xtask/): `cargo xtask visual {list,accept,render,import}`.
+xtask = "run --quiet --package xtask --"
