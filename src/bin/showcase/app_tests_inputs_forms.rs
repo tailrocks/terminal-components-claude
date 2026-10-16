@@ -506,3 +506,106 @@ fn textareas_states_rows_render() {
     }
     assert!(text.contains("Explain why, in the imperative"));
 }
+
+// ------------------------------------------------------------------ SC9
+
+#[test]
+fn checks_hit_decides_whether_blank_row_space_toggles() {
+    for (value, toggles) in [("label", false), ("row", true)] {
+        let mut h = Harness::new(120, 40, PageId::ChecksRadios);
+        h.opt(&format!("checksradios.hit={value}"));
+        let (x, y) = h.at("[ ] Include archived projects");
+        // blank space right of the label, inside the control's row
+        h.click(x + 34, y);
+        let row = h.row(y);
+        assert_eq!(
+            row.contains("[✓] Include archived"),
+            toggles,
+            "{value}: {row}"
+        );
+        h.click(x + 6, y);
+        assert_eq!(
+            h.row(y).contains("[✓] Include archived"),
+            !toggles,
+            "{value}"
+        );
+    }
+}
+
+#[test]
+fn checks_mixed_box_checks_when_toggled() {
+    let mut h = Harness::new(120, 40, PageId::ChecksRadios);
+    let (x, y) = h.at("[–] Select all rows");
+    h.click(x + 5, y);
+    assert!(h.row(y).contains("[✓] Select all rows"), "{}", h.row(y));
+    assert!(h.text().contains("last: Select all rows checked"));
+    h.opt("checksradios.mixed=off");
+    assert!(h.text().contains("[ ] Select all rows"));
+}
+
+#[test]
+fn checks_radio_keys_follow_the_nav_option() {
+    for (value, j_moves, end_moves) in [
+        ("default", true, true),
+        ("no-vim", false, true),
+        ("no-home-end", true, false),
+    ] {
+        let mut h = Harness::new(120, 40, PageId::ChecksRadios);
+        h.opt(&format!("checksradios.radio_nav={value}"));
+        let (x, y) = h.at("Read committed");
+        h.click(x, y);
+        h.key(KeyCode::Char('j'));
+        assert_eq!(
+            h.text().contains("(●) Repeatable read"),
+            j_moves,
+            "{value}: j"
+        );
+        let (x, y) = h.at("Read committed");
+        h.click(x, y);
+        h.key(KeyCode::End);
+        assert_eq!(
+            h.text().contains("(●) Serializable"),
+            end_moves,
+            "{value}: End"
+        );
+    }
+}
+
+#[test]
+fn checks_disabled_option_stops_every_control() {
+    let mut h = Harness::new(120, 40, PageId::ChecksRadios);
+    h.opt("checksradios.disabled=on");
+    let (x, y) = h.at("Auto-save drafts");
+    h.click(x, y);
+    assert!(h.text().contains("Auto-save drafts on"));
+    let (x, y) = h.at("Serializable");
+    h.click(x, y);
+    assert!(h.text().contains("(●) Read committed"));
+    h.opt("checksradios.disabled=off");
+    let (x, y) = h.at("Auto-save drafts");
+    h.click(x, y);
+    assert!(h.text().contains("Auto-save drafts off"));
+}
+
+#[test]
+fn checks_states_grid_shows_all_three_widgets() {
+    let mut h = Harness::new(120, 40, PageId::ChecksRadios);
+    h.section(Section::States);
+    let text = h.text();
+    for col in [
+        "Check off",
+        "Check on",
+        "Mixed",
+        "Radio group",
+        "Toggle off",
+        "Toggle on",
+    ] {
+        assert!(text.contains(col), "{col}: {text}");
+    }
+    let rows = h.app.pages[PageId::ChecksRadios.index()]
+        .template()
+        .unwrap()
+        .state_rows()
+        .to_vec();
+    assert!(rows.contains(&junie_tui::ui::specimen::SpecimenState::Disabled));
+}
