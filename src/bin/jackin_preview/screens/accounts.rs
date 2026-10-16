@@ -21,7 +21,7 @@ use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::panel::{Panel, PanelFocus};
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
@@ -1703,8 +1703,15 @@ impl AccountsScreen {
                 .meta(&scope)
                 .render(area, buf, t)
         } else {
+            // the card is itself the focus stop (it scrolls): its title
+            // carries the one `▎` while no action inside holds focus
             Panel::card(Some(&title))
                 .focused(focused)
+                .focus_mark(if ctx.interaction.focused(INSPECTOR) {
+                    PanelFocus::Bar
+                } else {
+                    PanelFocus::Title
+                })
                 .meta(&scope)
                 .render(area, buf, t)
         };
