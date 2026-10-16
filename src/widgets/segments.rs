@@ -188,6 +188,36 @@ pub fn render(
     }
 }
 
+/// A segment drawn alone, in a forced state, for a States grid
+/// ([`crate::ui::specimen`]): a clickable segment lifts on hover and
+/// press; in the narrow slot a long segment is cut or dropped.
+impl crate::ui::specimen::Specimen for Segment {
+    fn specimen_id(&self) -> WidgetId {
+        self.id.unwrap_or(WidgetId::of("segments.specimen"))
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        match state {
+            Rest | Narrow => true,
+            Hover | Pressed => self.id.is_some(),
+            _ => false,
+        }
+    }
+
+    fn specimen(
+        &self,
+        _state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        crate::ui::ctx::fill(buf, area, ratatui::style::Style::new().bg(bg));
+        render(area, buf, ctx, std::slice::from_ref(self), &[], bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

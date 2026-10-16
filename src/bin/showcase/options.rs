@@ -219,6 +219,8 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::TextAreas => TEXTAREAS,
         PageId::ChecksRadios => CHECKS,
         PageId::Chips => CHIPS,
+        PageId::Chrome => CHROME,
+        PageId::StatusHints => STATUS_HINTS,
         _ => &[],
     }
 }
@@ -512,6 +514,56 @@ static BASIC_TABLE: &[Opt] = &[Opt::new(
     &["none", "single", "multi"],
 )
 .default(1)];
+/// Chrome (SC4): the menu bar's builders. The readout under the bar reads
+/// the built widget back, so every knob shows in the frame.
+static CHROME: &[Opt] = &[
+    // narrow enough that the titles overflow (`chrome.overflow`)
+    Opt::new("chrome.bar", "Bar width", &["full", "narrow"]),
+    Opt::new("chrome.open_on", "Open on", &["press", "release"]),
+    Opt::new("chrome.overflow", "Overflow", &["hide", "chevron"])
+        .needs(&[("chrome.bar", "narrow")]),
+    Opt::new("chrome.hover_switch", "Hover switches menus", OFF_ON).default(1),
+    Opt::new("chrome.press_drag", "Press-drag-release", OFF_ON).default(1),
+    Opt::new("chrome.hide_owner_focus", "Hide page focus", OFF_ON).default(1),
+    Opt::new("chrome.wrap", "Wrap ←/→", OFF_ON).default(1),
+    Opt::new("chrome.type_ahead", "Type-ahead", OFF_ON),
+    Opt::new("chrome.nav", "Nav keys", &["default", "no-vim"]),
+    Opt::new("chrome.dismiss", "Dismiss", &["light", "escape"]),
+    Opt::new("chrome.brand", "Brand", &["lockup", "compact", "none"]),
+];
+
+/// Status & hints (SC4): the resolved hint bar and the theme's
+/// `HintBarStyle`.
+static STATUS_HINTS: &[Opt] = &[
+    // which layers exist: the topmost one wins
+    Opt::new(
+        "statushints.layer",
+        "Top layer",
+        &["screen", "menu", "modal"],
+    ),
+    Opt::new("statushints.align", "Align", &["start", "center"]),
+    Opt::new("statushints.width", "Bar width", &["full", "narrow"]),
+    Opt::new("statushints.compact", "Compact keys", OFF_ON)
+        .needs(&[("statushints.width", "narrow")]),
+    Opt::new("statushints.share", "Status share %", &["50", "30", "80"]).needs(&[
+        ("statushints.width", "narrow"),
+        ("statushints.status", "plain"),
+    ]),
+    Opt::new(
+        "statushints.priority",
+        "F5 priority",
+        &["auto", "normal", "pinned"],
+    )
+    .needs(&[("statushints.width", "narrow")]),
+    Opt::new(
+        "statushints.status",
+        "Status",
+        &["none", "plain", "warning", "error", "parts"],
+    ),
+    Opt::new("statushints.badge", "EDIT badge", OFF_ON),
+    Opt::new("statushints.hidden", "Hidden files shown", OFF_ON),
+];
+
 /// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through
 /// `Theme::interactive`; the States grid draws every kind on the plane.
 static OVERVIEW: &[Opt] = &[
