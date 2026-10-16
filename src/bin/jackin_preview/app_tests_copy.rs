@@ -127,3 +127,20 @@ fn jackin_letters_keep_one_meaning_across_screens() {
     );
     assert!(f.contains("c Accounts"), "{f}");
 }
+
+/// Ctrl+Q is Quit in every hint and menu, so every confirmation it opens
+/// says Quit too: title, body and buttons.
+#[test]
+fn every_quit_confirmation_says_quit() {
+    let cases = [
+        H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40),
+        H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40),
+        H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40),
+    ];
+    for mut h in cases {
+        h.ctrl('q');
+        let t = h.text();
+        assert!(t.contains("Quit"), "{t}");
+        assert!(!t.contains("Exit"), "{t}");
+    }
+}
