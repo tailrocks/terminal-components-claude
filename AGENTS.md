@@ -90,6 +90,22 @@ components work; they are not where behaviour lives.
 - Dismissing a dialog resolves to its cancel action. Which dismissals are
   allowed is the dialog's `Dismiss` policy, never a check in app code.
 
+### Showcase
+
+- The showcase demonstrates every capability of the library: every widget,
+  component and block, every variant, every state and every configuration
+  option. Every new or changed library capability (widget, variant, state,
+  option) must be demonstrated in the showcase in the same change, and the
+  showcase coverage gate must pass. A capability is left out only through
+  the coverage allowlist, with a reason.
+- App-specific UI patterns must be extracted to the library and
+  demonstrated in the showcase before apps use them. An app never ships a
+  pattern the showcase does not show.
+- The showcase is a thin consumer too: its pages add wiring, demo data and
+  option tables, never drawing, interaction or state logic of their own.
+  See the showcase coverage track in
+  `docs/architecture/shared-components-plan.md` (§7).
+
 ### Visual states
 
 - Exactly one keyboard-focus indicator is visible at a time (the phosphor
