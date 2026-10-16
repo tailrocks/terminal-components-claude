@@ -377,6 +377,10 @@ impl Page for GridPage {
                 self.on_event(ev, cx);
                 o
             }
+            // a header seam: drag resizes the column, a double press fits it
+            PageEvent::Press { id, pos } if self.grid.locate_seam(*id).is_some() => {
+                self.grid.on_press(*id, *pos, cx.clicks)
+            }
             PageEvent::Drag { pressed, pos } if self.grid.owns(*pressed) => {
                 self.grid.on_drag(*pressed, *pos)
             }

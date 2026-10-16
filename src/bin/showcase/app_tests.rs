@@ -597,6 +597,32 @@ fn alt_click_on_a_tree_disclosure_opens_the_whole_subtree() {
 }
 
 #[test]
+fn grid_header_seam_drag_resizes_the_column() {
+    let mut h = Harness::new(120, 40, PageId::Grid);
+    let seam = WidgetId::of("grid").sub("grid").sub("seam").child(1);
+    let Some(s) = h.app.hits.area_of(seam) else {
+        panic!("a seam after the second column\n{}", h.text());
+    };
+    let head = h
+        .app
+        .hits
+        .area_of(WidgetId::of("grid").sub("grid").sub("header").child(2));
+    h.mouse(MouseKind::Down, s.x, s.y);
+    h.mouse(MouseKind::Drag, s.x + 3, s.y);
+    h.mouse(MouseKind::Up, s.x + 3, s.y);
+    let after = h.app.hits.area_of(seam).unwrap();
+    assert_eq!(after.x, s.x + 3, "the seam followed the pointer");
+    if let (Some(a), Some(b)) = (
+        head,
+        h.app
+            .hits
+            .area_of(WidgetId::of("grid").sub("grid").sub("header").child(2)),
+    ) {
+        assert_eq!(b.x, a.x + 3, "the next column moved over");
+    }
+}
+
+#[test]
 fn modal_traps_focus_and_restores_it() {
     let mut h = Harness::new(120, 40, PageId::Dialogs);
     h.key(tab());
