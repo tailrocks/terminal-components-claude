@@ -45,17 +45,27 @@ pub fn modal_frame(
 ) -> (Rect, Rect) {
     let t = ctx.theme;
     ctx.modal_backdrop(buf, screen);
-    let w = width_.min(screen.width.saturating_sub(4)).max(20);
-    let h = height.min(screen.height.saturating_sub(2)).max(5);
+    // placed in the body, clear of the header and the footer, with the
+    // dialog's margin around it
+    let bounds = junie_tui::widgets::dialog::body_bounds(screen, 1, 1);
+    let m = junie_tui::widgets::dialog::OUTER_MARGIN;
+    let w = width_
+        .min(bounds.width.saturating_sub(2 * m.horizontal))
+        .max(20)
+        .min(bounds.width);
+    let h = height
+        .min(bounds.height.saturating_sub(2 * m.vertical))
+        .max(5)
+        .min(bounds.height);
     let area = if center {
         Rect::new(
-            screen.x + (screen.width - w) / 2,
-            screen.y + (screen.height.saturating_sub(h)) / 2,
+            bounds.x + (bounds.width - w) / 2,
+            bounds.y + (bounds.height - h) / 2,
             w,
             h,
         )
     } else {
-        place(screen, Rect::ZERO, w, h, Placement::Center)
+        place(bounds, Rect::ZERO, w, h, Placement::Center)
     };
     let bg = t.surface_elevated;
     fill(buf, area, Style::new().bg(bg));
