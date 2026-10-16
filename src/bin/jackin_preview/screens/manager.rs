@@ -1941,6 +1941,34 @@ impl Screen for ManagerScreen {
         }
         let in_detail = focus == Some(DETAIL);
         let action_focus = self.actions.iter().position(|b| Some(b.id) == focus);
+        if (in_detail || action_focus.is_some())
+            && self.menu.is_context_key(key)
+            && let Some(i) = self.cursor()
+        {
+            // the detail drawer and its action buttons are about the
+            // selected row: its menu, under the focused button or the
+            // detail cursor row
+            let anchor = match action_focus {
+                Some(b) => ContextAnchor::Control {
+                    id: self.actions[b].id,
+                    fallback: self.actions[b].area,
+                },
+                None => {
+                    let dy = self.detail_cursor.saturating_sub(self.detail_scroll.offset) as u16;
+                    ContextAnchor::Control {
+                        id: Self::detail_row_id(self.detail_cursor),
+                        fallback: Rect::new(
+                            self.detail_area.x,
+                            self.detail_area.y + dy.min(self.detail_area.height.saturating_sub(1)),
+                            self.detail_area.width.max(1),
+                            1,
+                        ),
+                    }
+                }
+            };
+            self.open_menu(i, anchor, w);
+            return Outcome::Changed;
+        }
         // global letters (any focus)
         match key.code {
             KeyCode::Char('n') if key.plain() && action_focus.is_none() => {
@@ -2371,6 +2399,20 @@ impl Screen for ManagerScreen {
 
     fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
+        // the detail pane (or drawer), its rows and its action buttons are
+        // about the selected row: its menu at the pointer
+        let in_detail = id == DETAIL
+            || (0..self.detail_rows.len()).any(|k| Self::detail_row_id(k) == id)
+            || self.actions.iter().any(|b| b.id == id);
+        if in_detail && let Some(i) = self.cursor() {
+            if self.actions.iter().any(|b| b.id == id) {
+                cx.focus.focus(id);
+            } else {
+                cx.focus.focus(DETAIL);
+            }
+            self.open_menu(i, ContextAnchor::Pointer(pos), w);
+            return Outcome::Changed;
+        }
         let Some(i) = self
             .scroll
             .visible_range()
