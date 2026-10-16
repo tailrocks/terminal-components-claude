@@ -47,6 +47,9 @@ pub struct Select {
     pub cursor_style: CursorStyle,
     /// Option rows the open list showed in the last frame.
     visible_rows: usize,
+    /// How a cut value or option reveals its full text on hover (see
+    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+    pub reveal: Option<crate::ui::reveal::Reveal>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,6 +82,7 @@ impl Select {
             scroll: 0,
             cursor_style: CursorStyle::default(),
             visible_rows: Self::MAX_ROWS as usize,
+            reveal: None,
         }
     }
     pub fn dismiss(mut self, d: Dismiss) -> Self {
@@ -313,6 +317,10 @@ impl Select {
         );
         let value = crate::ui::text::truncate(self.value(), field.width.saturating_sub(5) as usize);
         buf.set_string(field.x + 2, field.y, &value, fs);
+        if !self.disabled && !self.open {
+            let cut = Rect::new(field.x + 2, field.y, field.width.saturating_sub(5), 1);
+            crate::ui::reveal::truncated(ctx, self.reveal, self.id, cut, self.value());
+        }
         buf.set_string(
             field.right().saturating_sub(2),
             field.y,
@@ -355,13 +363,14 @@ impl Select {
             self.scroll = self.cursor + 1 - visible;
         }
         self.scroll = self.scroll.min(self.options.len().saturating_sub(visible));
-        let (id, cursor, selected, scroll, dismiss, cursor_style) = (
+        let (id, cursor, selected, scroll, dismiss, cursor_style, reveal) = (
             self.id,
             self.cursor,
             self.selected,
             self.scroll,
             self.dismiss,
             self.cursor_style,
+            self.reveal,
         );
         let options: Vec<(WidgetId, String)> = self
             .options
@@ -403,6 +412,8 @@ impl Select {
                     st,
                 );
                 ctx.clickable(*rid, row);
+                let cut = Rect::new(row.x + 3, y, row.width.saturating_sub(3), 1);
+                crate::ui::reveal::truncated(ctx, reveal, *rid, cut, opt);
             }
             // more options than rows: arrows on the frame say which way
             let edge = t.text_secondary;
@@ -477,5 +488,48 @@ mod tests {
         let buf = draw(&mut barred);
         let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
         assert_eq!(bars, 2);
+    }
+
+    #[test]
+    fn hovering_a_cut_value_or_option_reveals_it() {
+        let long = "a choice far too long for a thirty column field";
+        let text = |buf: &Buffer| {
+            (0..16)
+                .map(|y| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let mut sel = Select::new(WidgetId::of("s"), "Mode", &[long, "Short"], 0);
+        assert!(!text(&draw(&mut sel)).contains(long));
+        let t = Theme::junie();
+        let hovered = |sel: &mut Select, hover| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover: Some(hover),
+                focus: Some(sel.id),
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 16));
+            sel.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, t.canvas);
+            ctx.flush_overlays(&mut buf);
+            buf
+        };
+        let wide = |buf: &Buffer| {
+            (0..16)
+                .map(|y| (0..60).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let id = sel.id;
+        assert!(
+            wide(&hovered(&mut sel, id)).contains(long),
+            "the field value"
+        );
+        sel.open = true;
+        let opt = sel.option_id(0);
+        let all = wide(&hovered(&mut sel, opt));
+        assert!(all.contains(long), "the option: {all}");
     }
 }
