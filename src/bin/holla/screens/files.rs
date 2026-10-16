@@ -25,11 +25,11 @@ use ratatui::style::{Modifier, Style};
 
 use crate::domain::exec::Command;
 use crate::screens::{
-    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, scroll_drag,
-    scroll_press,
+    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, scroll_drag, scroll_press,
 };
-use crate::sim::fs::{FindHit, Fs, NodeKind, Preview, human};
+use crate::sim::fs::{FindHit, Fs, NodeKind, Preview};
 use crate::sim::world::{SourceState, World};
+use junie_tui::ui::text::plural;
 
 pub const LIST: WidgetId = WidgetId::of("files.list");
 pub const PREVIEW: WidgetId = WidgetId::of("files.preview");
@@ -347,8 +347,8 @@ impl FilesPage {
                     }
                     m.push(format!(
                         "{} of {}",
-                        human(bytes_shown as u64),
-                        human(total_bytes)
+                        junie_tui::ui::text::bytes(bytes_shown as u64),
+                        junie_tui::ui::text::bytes(total_bytes)
                     ));
                     (crate::sim::fs::sanitize(&short), m.join(" · "), lines, None)
                 }
@@ -755,7 +755,7 @@ impl FilesPage {
                         &if e.is_dir {
                             "–".to_owned()
                         } else {
-                            human(e.size)
+                            junie_tui::ui::text::bytes(e.size)
                         },
                         9,
                     ),

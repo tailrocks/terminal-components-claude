@@ -409,5 +409,3 @@ pub fn health_spans(
     }
     v
 }
-
-pub use junie_tui::ui::text::plural;

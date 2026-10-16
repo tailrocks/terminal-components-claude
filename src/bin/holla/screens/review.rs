@@ -23,11 +23,12 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::action::{ArgSpec, Item, Risk};
 use crate::screens::finder::item_facts;
 use crate::screens::{
-    Cx, GateTarget, Go, ModalResult, ModalTag, Screen, StatusBits, heading, open_context, plural,
+    Cx, GateTarget, Go, ModalResult, ModalTag, Screen, StatusBits, heading, open_context,
     risk_tone, row_choice, scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
 use junie_tui::ui::context::ContextAnchor;
+use junie_tui::ui::text::plural;
 use junie_tui::widgets::menu::MenuItem;
 
 pub const SEQUENCE: WidgetId = WidgetId::of("gate.sequence");
@@ -267,7 +268,7 @@ impl GatePage {
                             "{:02}  {verb} {}  # {} · {}",
                             i + 1,
                             crate::domain::exec::quote(&it.path),
-                            crate::sim::fs::human(it.estimate),
+                            junie_tui::ui::text::bytes(it.estimate),
                             it.category
                         )
                     })

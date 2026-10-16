@@ -27,10 +27,11 @@ use ratatui::style::{Modifier, Style};
 
 use crate::domain::plan::{Plan, PlanPhase, StepState};
 use crate::screens::{
-    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, open_context, plural,
-    row_anchor, scroll_drag, scroll_press, ticks_label, truncate_sep,
+    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, open_context, row_anchor,
+    scroll_drag, scroll_press, ticks_label,
 };
 use crate::sim::world::World;
+use junie_tui::ui::text::{plural, truncate_sep};
 
 pub const OUTLINE: WidgetId = WidgetId::of("plan.outline");
 pub const DETAIL: WidgetId = WidgetId::of("plan.detail");
