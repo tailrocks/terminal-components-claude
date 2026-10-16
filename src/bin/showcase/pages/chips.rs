@@ -15,7 +15,9 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys};
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::TrackClick;
 use junie_tui::theme::{CursorStyle, Tone};
 use junie_tui::ui::ctx::RenderCtx;
@@ -519,67 +521,37 @@ impl Page for ChipsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, .. } => {
-                if self.filters.owns(*id) {
-                    cx.focus.focus(self.filters.id);
-                    let (o, ev) = self.filters.on_click(*id);
+            PageEvent::Pointer(ev) => {
+                let click = ev.is(Phase::Click);
+                if let Some(r) = self.filters.route(ev) {
+                    if click {
+                        cx.focus.focus(self.filters.id);
+                    }
+                    let (o, ev) = r.into_parts();
                     self.on_chip(ev, cx);
                     return o;
                 }
-                if self.streams.owns(*id) {
-                    cx.focus.focus(self.streams.id);
-                    let (o, ev) = self.streams.on_click(*id);
+                if let Some(r) = self.streams.route(ev) {
+                    if click {
+                        cx.focus.focus(self.streams.id);
+                    }
+                    let (o, ev) = r.into_parts();
                     self.on_stream(ev);
                     return o;
                 }
                 // a click outside an open list lands on its backdrop, which
-                // the select owns: it closes itself per its dismiss policy
+                // the select owns: it closes itself per its dismiss policy;
+                // a press on the field opens the list, so it takes focus
+                // with it
                 for sel in self.selects() {
-                    if sel.owns(*id) {
-                        if *id == sel.id {
-                            cx.focus.focus(sel.id);
+                    let sid = sel.id;
+                    if let Some(r) = sel.route(ev) {
+                        if (click || ev.is(Phase::Press)) && ev.id == sid {
+                            cx.focus.focus(sid);
                         }
-                        let (o, a) = sel.on_click(*id);
+                        let (o, a) = r.into_parts();
                         Self::select_changed(sel, a, cx);
                         return o;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Press { id, pos } => {
-                for sel in self.selects() {
-                    if sel.owns(*id) {
-                        // a press opens the list, so it takes focus with it
-                        if *id == sel.id {
-                            cx.focus.focus(sel.id);
-                        }
-                        return sel.on_press(*id, *pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                for sel in self.selects() {
-                    if sel.owns(*pressed) {
-                        return sel.on_drag(*pressed, *pos);
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Release { pressed, pos } => {
-                for sel in self.selects() {
-                    if sel.owns(*pressed) {
-                        let (o, a) = sel.on_release(*pos);
-                        Self::select_changed(sel, a, cx);
-                        return o;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                for sel in self.selects() {
-                    if sel.open && sel.owns(*id) {
-                        return sel.on_wheel(*delta);
                     }
                 }
                 Outcome::Ignored
