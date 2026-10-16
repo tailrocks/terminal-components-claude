@@ -23,7 +23,7 @@
 //! `FORCE_COLOR` out, which used to need explicit stripping.
 //!
 //! Re-approval status: the committed store was produced by the retired
-//! tuisnap engine. Only groups listed in [`REAPPROVED_PREFIXES`] gate on the
+//! tuisnap engine. Only scenarios already re-approved ([`is_reapproved`]) gate on the
 //! new engine; every other capture is skipped unless `VISUAL_FULL=1` (see
 //! `docs/visual-testing/tuiscotti-migration.md`).
 
@@ -490,15 +490,18 @@ pub const COMMITTED: &[Artifact] = &[Artifact::Ansi];
 /// not-yet-re-approved part of the store still carries exactly these.
 pub const LEGACY_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
 
-/// Capture-name prefixes already re-approved on tuiscotti main. Captures
-/// under these gate (with `--run-ignored`); everything else is pending
-/// re-approval and runs only with `VISUAL_FULL=1`.
-pub const REAPPROVED_PREFIXES: &[&str] = &[];
-
+/// A scenario is re-approved on tuiscotti when its approved files are
+/// exactly the [`COMMITTED`] set (the retired tuisnap engine left all four
+/// [`LEGACY_EXTS`]). Re-approved scenarios gate (with `--run-ignored`);
+/// every other one is pending re-approval and runs only with
+/// `VISUAL_FULL=1`. Re-approving a group is therefore a pure `snapshots/`
+/// change made by `accept_actuals`; no code list has to follow it.
 pub fn is_reapproved(name: &str) -> bool {
-    REAPPROVED_PREFIXES
-        .iter()
-        .any(|prefix| name.starts_with(prefix))
+    let root = approved_root();
+    LEGACY_EXTS.iter().all(|ext| {
+        let committed = COMMITTED.iter().any(|a| a.ext() == *ext);
+        root.join(format!("{name}.{ext}")).exists() == committed
+    })
 }
 
 /// `VISUAL_FULL=1` opts into captures still pending re-approval.
