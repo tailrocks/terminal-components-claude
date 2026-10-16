@@ -25,7 +25,7 @@ use ratatui::layout::Rect;
 
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
-use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::event::{ClientPlatform, InputConfig, Key, Outcome};
 use junie_tui::core::focus::cancel_focus_request;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::keyboard::{self, KeyboardProtocol, ProtocolState};
@@ -276,7 +276,9 @@ impl FocusNavPage {
             .enter(KeyboardProtocol::On, || false)
             .unwrap_or_default();
         let pop = state.leave().unwrap_or("");
-        let input = junie_tui::core::event::InputConfig::default();
+        // both platforms' defaults, so the page reads the same on every host
+        let mac = InputConfig::for_platform(ClientPlatform::MacOs);
+        let other = InputConfig::for_platform(ClientPlatform::Other);
         let lines = [
             (
                 "Bindings",
@@ -290,10 +292,11 @@ impl FocusNavPage {
             (
                 "Input",
                 format!(
-                    "platform default: Shift+wheel sideways {} · Ctrl+click is right-click {} · legacy Ctrl punctuation {}",
-                    on_off(input.shift_wheel_horizontal),
-                    on_off(input.ctrl_click_secondary),
-                    on_off(input.legacy_ctrl_punctuation)
+                    "Ctrl+click is right-click: macOS {}, elsewhere {} · Shift+wheel sideways {} · legacy Ctrl punctuation {}",
+                    on_off(mac.ctrl_click_secondary),
+                    on_off(other.ctrl_click_secondary),
+                    on_off(mac.shift_wheel_horizontal && other.shift_wheel_horizontal),
+                    on_off(mac.legacy_ctrl_punctuation && other.legacy_ctrl_punctuation)
                 ),
             ),
             (
