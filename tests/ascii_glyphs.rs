@@ -437,7 +437,6 @@ fn ascii_glyphs_keep_the_unicode_widths() {
         (u.radio_on, a.radio_on),
         (u.toggle_on, a.toggle_on),
         (u.toggle_off, a.toggle_off),
-        (u.scroll_held, a.scroll_held),
         (u.key, a.key),
         (u.arrow, a.arrow),
         (u.mask, a.mask),

@@ -8,15 +8,15 @@ use crate::theme::{Glyphs, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, VisualState};
 
 // The default glyphs. Scrollbars draw `Theme::glyphs`
-// (`scroll_track`, `scroll_thumb`, `scroll_h_track`, `scroll_h_thumb`,
-// `scroll_held`); these constants name the `Glyphs::UNICODE` set.
+// (`scroll_track`, `scroll_thumb`, `scroll_h_track`, `scroll_h_thumb`);
+// these constants name the `Glyphs::UNICODE` set. The thumb keeps its
+// glyph in every state: rest, hover and held differ in colour only
+// (`Ladders::handle`), plus a modifier in monochrome.
 pub const TRACK: &str = Glyphs::UNICODE.scroll_track;
 pub const THUMB: &str = Glyphs::UNICODE.scroll_thumb;
 /// Horizontal track and thumb: the vertical glyphs turned on their side.
 pub const H_TRACK: &str = Glyphs::UNICODE.scroll_h_track;
 pub const H_THUMB: &str = Glyphs::UNICODE.scroll_h_thumb;
-/// The thumb while dragged: a full block, so the grab reads without colour.
-pub const THUMB_HELD: &str = Glyphs::UNICODE.scroll_held;
 
 /// Id used for a container's scrollbar hit region.
 pub fn id_for(container: WidgetId) -> WidgetId {
@@ -34,11 +34,11 @@ pub fn is_bar_of(id: WidgetId, container: WidgetId) -> bool {
     id == id_for(container) || id == h_id_for(container)
 }
 
-/// The thumb's style for the bar `sb_id`: rest, hover and pressed are
-/// distinct (pressed is the top step of the handle ladder).
-fn thumb_style(ctx: &RenderCtx, sb_id: WidgetId, focused: bool) -> Style {
+/// The thumb's style for the bar `sb_id`: rest (neutral), hover (lighter)
+/// and pressed (the accent) are distinct colours of one glyph. Container
+/// focus does not change it: the `▎` is the only focus indicator.
+fn thumb_style(ctx: &RenderCtx, sb_id: WidgetId) -> Style {
     let s = VisualState {
-        focused,
         hovered: ctx.interaction.hovered(sb_id),
         pressed: ctx.interaction.pressed == Some(sb_id),
         ..Default::default()
@@ -76,21 +76,22 @@ pub fn render_divider(
 
 /// Render a vertical scrollbar into a 1-column area. Draws nothing when the
 /// content fits. Registers a clickable region for track clicks and drags.
+/// `_focused` (the container's focus) does not change the bar: the thumb
+/// shows rest, hover and pressed only.
 pub fn render_vertical(
     area: Rect,
     buf: &mut Buffer,
     ctx: &mut RenderCtx,
     container: WidgetId,
     scroll: &ScrollState,
-    focused: bool,
+    _focused: bool,
 ) {
     let area = area.intersection(*buf.area());
     if area.is_empty() || !scroll.overflows() {
         return;
     }
     let sb_id = id_for(container);
-    let thumb = thumb_style(ctx, sb_id, focused);
-    let held = ctx.interaction.pressed == Some(sb_id);
+    let thumb = thumb_style(ctx, sb_id);
     let track = ctx.theme.scrollbar_track();
     let g = ctx.theme.glyphs;
     let track_len = area.height as usize;
@@ -98,8 +99,7 @@ pub fn render_vertical(
     for i in 0..track_len {
         let y = area.y + i as u16;
         if i >= start && i < start + len {
-            let sym = if held { g.scroll_held } else { g.scroll_thumb };
-            buf.set_string(area.x, y, sym, thumb);
+            buf.set_string(area.x, y, g.scroll_thumb, thumb);
         } else {
             buf.set_string(area.x, y, g.scroll_track, track);
         }
@@ -130,7 +130,7 @@ pub fn render_horizontal_with(
     ctx: &mut RenderCtx,
     container: WidgetId,
     scroll: &ScrollState,
-    focused: bool,
+    _focused: bool,
     always: bool,
 ) {
     let area = area.intersection(*buf.area());
@@ -138,8 +138,7 @@ pub fn render_horizontal_with(
         return;
     }
     let sb_id = h_id_for(container);
-    let thumb = thumb_style(ctx, sb_id, focused);
-    let held = ctx.interaction.pressed == Some(sb_id);
+    let thumb = thumb_style(ctx, sb_id);
     let track = ctx.theme.scrollbar_track();
     let g = ctx.theme.glyphs;
     let track_len = area.width as usize;
@@ -147,12 +146,7 @@ pub fn render_horizontal_with(
     for i in 0..track_len {
         let x = area.x + i as u16;
         if i >= start && i < start + len {
-            let sym = if held {
-                g.scroll_held
-            } else {
-                g.scroll_h_thumb
-            };
-            buf.set_string(x, area.y, sym, thumb);
+            buf.set_string(x, area.y, g.scroll_h_thumb, thumb);
         } else {
             buf.set_string(x, area.y, g.scroll_h_track, track);
         }
@@ -410,6 +404,97 @@ mod tests {
             rest,
             "hovering the vertical bar does not light the horizontal thumb"
         );
+    }
+
+    /// Rest, hover and pressed thumbs on both axes at `level`: (symbol,
+    /// fg, modifiers) of the first thumb cell.
+    fn thumb_cells(
+        level: crate::theme::ColorLevel,
+    ) -> Vec<
+        [(
+            String,
+            Option<ratatui::style::Color>,
+            ratatui::style::Modifier,
+        ); 3],
+    > {
+        let theme = Theme::for_level(level);
+        let mut s = ScrollState::new(40);
+        s.set_viewport(10);
+        let c = WidgetId::of("c");
+        let mut out = vec![];
+        for vertical in [true, false] {
+            let id = if vertical { id_for(c) } else { h_id_for(c) };
+            let states = [
+                Interaction::default(),
+                hover_on(id),
+                Interaction {
+                    hover: Some(id),
+                    pressed: Some(id),
+                    ..Default::default()
+                },
+            ];
+            let cells = states.map(|i| {
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let area = if vertical {
+                    Rect::new(0, 0, 1, 10)
+                } else {
+                    Rect::new(0, 0, 10, 1)
+                };
+                let mut buf = Buffer::empty(area);
+                {
+                    let mut ctx = RenderCtx::new(&theme, i, &mut hits, &mut ring);
+                    // a focused container: focus must not change the thumb
+                    if vertical {
+                        render_vertical(area, &mut buf, &mut ctx, c, &s, true);
+                    } else {
+                        render_horizontal(area, &mut buf, &mut ctx, c, &s, true);
+                    }
+                }
+                let cell = &buf[(0, 0)];
+                (cell.symbol().to_owned(), Some(cell.fg), cell.modifier)
+            });
+            out.push(cells);
+        }
+        out
+    }
+
+    #[test]
+    fn the_thumb_keeps_one_glyph_and_colour_carries_rest_hover_and_pressed() {
+        use crate::theme::ColorLevel;
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            for (axis, [rest, hover, pressed]) in thumb_cells(level).into_iter().enumerate() {
+                let glyph = if axis == 0 {
+                    t.glyphs.scroll_thumb
+                } else {
+                    t.glyphs.scroll_h_thumb
+                };
+                let ctx = format!("{level:?} axis {axis}");
+                for (name, cell) in [("rest", &rest), ("hover", &hover), ("pressed", &pressed)] {
+                    assert_eq!(cell.0, glyph, "{name} keeps the thumb glyph: {ctx}");
+                }
+                if level == ColorLevel::Mono {
+                    // colour cannot carry state: a modifier does
+                    assert_ne!(rest.2, hover.2, "{ctx}");
+                    assert_ne!(hover.2, pressed.2, "{ctx}");
+                    assert_ne!(rest.2, pressed.2, "{ctx}");
+                } else {
+                    assert_eq!(rest.1, Some(t.ladders.handle.rest), "{ctx}");
+                    assert_eq!(hover.1, Some(t.ladders.handle.hover), "{ctx}");
+                    assert_eq!(pressed.1, Some(t.accent), "pressed is the accent: {ctx}");
+                    assert!(
+                        rest.1 != hover.1 && hover.1 != pressed.1 && rest.1 != pressed.1,
+                        "{ctx}"
+                    );
+                    assert_eq!(
+                        (rest.2, hover.2, pressed.2),
+                        (Default::default(), Default::default(), Default::default()),
+                        "colour alone carries state: {ctx}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
