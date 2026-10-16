@@ -42,7 +42,7 @@ pub async fn fetch(url: &str) -> Result<Body, Error> {
 }
 
 fn client() -> Client {
-    Client::builder().timeout(10).build().unwrap()
+    Client::builder().timeout(10).gzip(true).build().unwrap()
 }
 
 #[test]
@@ -54,8 +54,11 @@ fn backoff_doubles() {
 const KEYWORDS: &[&str] = &[
     "as", "async", "await", "break", "const", "continue", "else", "enum", "fn", "for", "if",
     "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return", "self",
-    "Self", "static", "struct", "trait", "true", "false", "type", "use", "where", "while",
+    "Self", "static", "struct", "trait", "type", "use", "where", "while",
 ];
+
+/// Booleans take the literal tone (as numbers do), not the keyword tone.
+const LITERALS: &[&str] = &["true", "false"];
 
 /// (label, detail, glyph) — a static symbol table stands in for a language server.
 const CANDIDATES: &[(&str, &str, &str)] = &[
@@ -127,7 +130,9 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
             }
             let word = &src[i..j];
             let next = b.get(j).copied();
-            let tone = if KEYWORDS.contains(&word) {
+            let tone = if LITERALS.contains(&word) {
+                SyntaxTone::Literal
+            } else if KEYWORDS.contains(&word) {
                 SyntaxTone::Keyword
             } else if next == Some(b'(')
                 || next == Some(b'!')
