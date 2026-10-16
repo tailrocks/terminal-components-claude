@@ -114,6 +114,9 @@ pub struct ContextMenu {
     /// Narrowest label column in cells (the frame and gutters add 6).
     /// Default 8.
     pub min_width: u16,
+    /// ↑ on the first item lands on the last and ↓ on the last on the
+    /// first. Default on (macOS menus wrap).
+    pub wrap: bool,
     /// A control whose rectangle this frame becomes the anchor when it is
     /// registered (a keyboard-opened context menu follows its cursor row);
     /// `anchor` is the fallback. See [`ContextMenu::anchor_control`].
@@ -142,6 +145,7 @@ impl ContextMenu {
             reveal: None,
             fit: Place::MENU,
             min_width: 8,
+            wrap: true,
             anchor_to: None,
         }
     }
@@ -150,6 +154,12 @@ impl ContextMenu {
     /// edges (`fit.margin`). Default 1.
     pub fn edge_margin(mut self, cells: u16) -> Self {
         self.fit.margin = cells;
+        self
+    }
+
+    /// See [`Self::wrap`].
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
         self
     }
 
@@ -240,11 +250,16 @@ impl ContextMenu {
         if n == 0 {
             return;
         }
-        let mut i = self.cursor as isize;
+        let mut i = self.cursor;
         for _ in 0..n {
-            i = (i + delta).rem_euclid(n as isize);
-            if !self.items[i as usize].disabled {
-                self.cursor = i as usize;
+            let next = crate::core::nav::step_index(i, n, delta, self.wrap);
+            if next == i {
+                // an end of a list that does not wrap
+                return;
+            }
+            i = next;
+            if !self.items[i].disabled {
+                self.cursor = i;
                 return;
             }
         }
@@ -459,6 +474,8 @@ pub struct MenuBar {
     /// macOS and Windows menu-bar convention). Off: only a click or the
     /// arrow keys switch menus.
     pub hover_switch: bool,
+    /// ←/→ past the last title lands on the first and back. Default on.
+    pub wrap: bool,
     /// With a menu open the keyboard is in the menu, so the page under it
     /// shows no focus (see [`MenuBar::hides_page_focus`]). Default on.
     pub hide_owner_focus: bool,
@@ -477,6 +494,7 @@ impl MenuBar {
             brand_area: Rect::ZERO,
             dismiss: Dismiss::LIGHT,
             hover_switch: true,
+            wrap: true,
             hide_owner_focus: true,
         }
     }
@@ -495,6 +513,12 @@ impl MenuBar {
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
+        self
+    }
+
+    /// See [`Self::wrap`].
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
         self
     }
 
@@ -558,12 +582,12 @@ impl MenuBar {
         if let Some(menu) = self.open.as_mut() {
             match key.code {
                 KeyCode::Left | KeyCode::Char('h') if n > 1 => {
-                    let i = (self.cursor + n - 1) % n;
+                    let i = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
                     self.open_menu(i);
                     return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
                 }
                 KeyCode::Right | KeyCode::Char('l') if n > 1 => {
-                    let i = (self.cursor + 1) % n;
+                    let i = crate::core::nav::step_index(self.cursor, n, 1, self.wrap);
                     self.open_menu(i);
                     return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
                 }
@@ -586,11 +610,11 @@ impl MenuBar {
         }
         match key.code {
             KeyCode::Left | KeyCode::Char('h') if n > 0 => {
-                self.cursor = (self.cursor + n - 1) % n;
+                self.cursor = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
                 (Outcome::Changed, None)
             }
             KeyCode::Right | KeyCode::Char('l') if n > 0 => {
-                self.cursor = (self.cursor + 1) % n;
+                self.cursor = crate::core::nav::step_index(self.cursor, n, 1, self.wrap);
                 (Outcome::Changed, None)
             }
             KeyCode::Enter | KeyCode::Down | KeyCode::Char(' ') if n > 0 => {

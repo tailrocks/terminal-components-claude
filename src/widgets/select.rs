@@ -76,6 +76,9 @@ pub struct Select {
     /// list cursor (open), as macOS popup buttons do. Off by default:
     /// plain letters stay with the page's own shortcuts.
     pub type_ahead: bool,
+    /// Stepping past either end (open list ↑/↓, closed field arrows)
+    /// lands on the other end. Default off: it stops at the end.
+    pub wrap: bool,
     typeahead: crate::core::typeahead::TypeAhead,
     /// An open list closes (without changing the value) when the field
     /// loses focus ([`Self::on_blur`]). Default `true`.
@@ -117,6 +120,7 @@ impl Select {
             arrows: SelectArrows::Step,
             mixed: None,
             type_ahead: false,
+            wrap: false,
             typeahead: Default::default(),
             close_on_blur: true,
         }
@@ -241,11 +245,13 @@ impl Select {
         if self.open {
             return match key.code {
                 KeyCode::Up | KeyCode::Char('k') => {
-                    self.cursor = self.cursor.saturating_sub(1);
+                    self.cursor =
+                        crate::core::nav::step_index(self.cursor, self.last() + 1, -1, self.wrap);
                     (Outcome::Changed, None)
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
-                    self.cursor = (self.cursor + 1).min(self.last());
+                    self.cursor =
+                        crate::core::nav::step_index(self.cursor, self.last() + 1, 1, self.wrap);
                     (Outcome::Changed, None)
                 }
                 KeyCode::PageUp => {
@@ -289,15 +295,23 @@ impl Select {
                 (Outcome::Ignored, None)
             }
             KeyCode::Up | KeyCode::Left if key.plain() => {
-                let n = self.selected.saturating_sub(1);
+                let n =
+                    crate::core::nav::step_index(self.selected, self.options.len(), -1, self.wrap);
                 (Outcome::Changed, self.choose(n))
             }
             KeyCode::Down | KeyCode::Right if key.plain() => {
-                let n = (self.selected + 1).min(self.options.len().saturating_sub(1));
+                let n =
+                    crate::core::nav::step_index(self.selected, self.options.len(), 1, self.wrap);
                 (Outcome::Changed, self.choose(n))
             }
             _ => (Outcome::Ignored, None),
         }
+    }
+
+    /// See [`Self::wrap`].
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
+        self
     }
 
     pub fn type_ahead(mut self, on: bool) -> Self {

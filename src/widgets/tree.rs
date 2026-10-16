@@ -154,6 +154,9 @@ pub struct TreeView {
     pub row_click_toggles: bool,
     /// Columns of indentation per depth level. Default 2.
     pub indent: u16,
+    /// ↑ on the first row lands on the last and ↓ on the last on the
+    /// first. Default off: it stops at the end.
+    pub wrap: bool,
     /// What a press on the bare vertical track does; `None` follows
     /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
     pub track_click: Option<crate::core::scroll::TrackClick>,
@@ -231,6 +234,7 @@ impl TreeView {
             branch_activate: BranchAction::Toggle,
             row_click_toggles: true,
             indent: 2,
+            wrap: false,
             rows_built: 0,
         };
         // expand the first level by default
@@ -248,6 +252,12 @@ impl TreeView {
 
     pub fn row_click_toggles(mut self, on: bool) -> Self {
         self.row_click_toggles = on;
+        self
+    }
+
+    /// See [`Self::wrap`].
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
         self
     }
 
@@ -543,11 +553,21 @@ impl TreeView {
         }
         let out = match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
-                self.set_cursor(self.cursor.saturating_sub(1));
+                self.set_cursor(crate::core::nav::step_index(
+                    self.cursor,
+                    self.rows.len(),
+                    -1,
+                    self.wrap,
+                ));
                 Outcome::Changed
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                self.set_cursor(self.cursor + 1);
+                self.set_cursor(crate::core::nav::step_index(
+                    self.cursor,
+                    self.rows.len(),
+                    1,
+                    self.wrap,
+                ));
                 Outcome::Changed
             }
             KeyCode::PageUp => {
