@@ -12,7 +12,7 @@
 //!   widget's `.keymap(..)` builder replaces it. Hints that name a key read
 //!   it back with [`label_for`], so a remapped key is advertised correctly.
 
-use crate::core::event::Key;
+use crate::core::event::{ClientPlatform, Key};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 /// A navigation step, independent of the key that produced it.
@@ -107,7 +107,7 @@ impl NavKeys {
             KeyCode::PageDown if self.page => Nav::PageDown,
             KeyCode::Home if self.home_end => Nav::Home,
             KeyCode::End if self.home_end => Nav::End,
-            KeyCode::Char(c) if self.vim && !key.ctrl() && !key.alt() => match c {
+            KeyCode::Char(c) if self.vim && !key.chord() => match c {
                 'k' | 'K' => Nav::Up,
                 'j' | 'J' => Nav::Down,
                 'h' | 'H' => Nav::Left,
@@ -176,6 +176,19 @@ impl KeyBinding {
         Self::new(KeyCode::Char(c), KeyModifiers::ALT)
     }
 
+    /// Cmd (super) + a character. Delivered only where the terminal
+    /// speaks the kitty keyboard protocol ([`crate::core::keyboard`]).
+    pub const fn cmd(c: char) -> Self {
+        Self::new(KeyCode::Char(c), KeyModifiers::SUPER)
+    }
+
+    /// Whether the terminal delivers this chord: a Cmd (super) chord only
+    /// once [`crate::core::keyboard::super_delivered`] confirms it. Hints
+    /// skip chords that are not deliverable.
+    pub fn deliverable(&self) -> bool {
+        !self.mods.contains(KeyModifiers::SUPER) || crate::core::keyboard::super_delivered()
+    }
+
     /// True when `key` is this chord.
     pub fn matches(&self, key: &Key) -> bool {
         if self.code != key.code {
@@ -188,9 +201,19 @@ impl KeyBinding {
         }
     }
 
-    /// How hints spell this chord: `x`, `Ctrl+S`, `Delete`, `F2`, `Space`.
+    /// How hints spell this chord: `x`, `Ctrl+S`, `Delete`, `F2`, `Space`;
+    /// Cmd chords per [`ClientPlatform::current`] ([`Self::label_on`]).
     pub fn label(&self) -> String {
+        self.label_on(ClientPlatform::current())
+    }
+
+    /// [`Self::label`] for a client on `platform`: Cmd is `⌘` on macOS
+    /// (`⌘A`), `Super+` elsewhere.
+    pub fn label_on(&self, platform: ClientPlatform) -> String {
         let mut out = String::new();
+        if self.mods.contains(KeyModifiers::SUPER) {
+            out.push_str(if platform.is_macos() { "⌘" } else { "Super+" });
+        }
         if self.mods.contains(KeyModifiers::CONTROL) {
             out.push_str("Ctrl+");
         }
@@ -199,7 +222,7 @@ impl KeyBinding {
         }
         let ctrl_or_alt = self
             .mods
-            .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT);
+            .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER);
         if self.mods.contains(KeyModifiers::SHIFT) && !matches!(self.code, KeyCode::Char(_)) {
             out.push_str("Shift+");
         }
@@ -261,20 +284,45 @@ pub fn binding_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<K
     map.iter().find(|(_, a)| *a == action).map(|&(b, _)| b)
 }
 
-/// The hint label of the first key bound to `action`, if any.
+/// The first key bound to `action` that the terminal delivers
+/// ([`KeyBinding::deliverable`]): what a hint may name.
+pub fn deliverable_binding_for<A: PartialEq>(
+    map: &[(KeyBinding, A)],
+    action: A,
+) -> Option<KeyBinding> {
+    map.iter()
+        .find(|(b, a)| *a == action && b.deliverable())
+        .map(|&(b, _)| b)
+}
+
+/// The hint label of the first deliverable key bound to `action`, if any.
 pub fn label_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<String> {
-    binding_for(map, action).map(|b| b.label())
+    deliverable_binding_for(map, action).map(|b| b.label())
+}
+
+/// Select All for anything that is not a text field (multi-selection rows,
+/// read-only text): Cmd+A where the terminal delivers Cmd, then Ctrl+A.
+/// Outside a text field Ctrl+A has no line-start meaning, so it is the
+/// deliverable Select All on every platform. Text fields take theirs from
+/// [`crate::core::edit::FieldKeys::text_keymap`].
+pub const SELECT_ALL: [KeyBinding; 2] = [KeyBinding::cmd('a'), KeyBinding::ctrl('a')];
+
+/// [`SELECT_ALL`] bound to `action`: the default Select All entries of a
+/// widget's [`KeyMap`].
+pub fn select_all_bindings<A: Copy>(action: A) -> impl Iterator<Item = (KeyBinding, A)> {
+    SELECT_ALL.into_iter().map(move |b| (b, action))
 }
 
 /// [`label_for`] as a `&'static str`, for [`crate::widgets::keyhint::Hint`]
-/// keys: each distinct chord's label is interned once, so a footer built
+/// keys (the first deliverable binding, so a Cmd chord is named only where
+/// it arrives): each distinct chord's label is interned once, so a footer built
 /// every frame names the bound key (or drops the hint when the action is
 /// unbound) without allocating.
 pub fn hint_key<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<&'static str> {
     use std::collections::HashMap;
     use std::sync::{Mutex, OnceLock};
     static LABELS: OnceLock<Mutex<HashMap<KeyBinding, &'static str>>> = OnceLock::new();
-    let b = binding_for(map, action)?;
+    let b = deliverable_binding_for(map, action)?;
     let mut labels = LABELS
         .get_or_init(Default::default)
         .lock()
@@ -355,6 +403,34 @@ mod tests {
     }
 
     #[test]
+    fn hints_name_cmd_only_once_the_terminal_delivers_it() {
+        let map: KeyMap<Act> = select_all_bindings(Act::Add).collect();
+        assert_eq!(label_for(&map, Act::Add).as_deref(), Some("Ctrl+A"));
+        assert_eq!(hint_key(&map, Act::Add), Some("Ctrl+A"));
+        crate::core::keyboard::set_super_delivered(true);
+        let cmd = KeyBinding::cmd('a').label();
+        assert_eq!(label_for(&map, Act::Add), Some(cmd.clone()));
+        assert_eq!(hint_key(&map, Act::Add), Some(cmd.as_str()));
+        assert_eq!(
+            lookup(&map, &with(KeyCode::Char('a'), KeyModifiers::SUPER)),
+            Some(Act::Add)
+        );
+        assert_eq!(
+            lookup(&map, &with(KeyCode::Char('a'), KeyModifiers::CONTROL)),
+            Some(Act::Add)
+        );
+    }
+
+    #[test]
+    fn cmd_letters_never_navigate() {
+        let d = NavKeys::DEFAULT;
+        assert_eq!(
+            d.action(&with(KeyCode::Char('j'), KeyModifiers::SUPER)),
+            None
+        );
+    }
+
+    #[test]
     fn each_group_switches_off_on_its_own() {
         let no_vim = NavKeys::NO_VIM;
         for c in ['h', 'j', 'k', 'l', 'g', 'G', 'J', 'K'] {
@@ -416,6 +492,11 @@ mod tests {
             "labels are interned once"
         );
         assert_eq!(KeyBinding::char(' ').label(), "Space");
+        let cmd_a = KeyBinding::cmd('a');
+        assert_eq!(cmd_a.label_on(ClientPlatform::MacOs), "⌘A");
+        assert_eq!(cmd_a.label_on(ClientPlatform::Other), "Super+A");
+        assert!(cmd_a.matches(&with(KeyCode::Char('a'), KeyModifiers::SUPER)));
+        assert!(!cmd_a.matches(&with(KeyCode::Char('a'), KeyModifiers::CONTROL)));
         let remapped: KeyMap<Act> = vec![(KeyBinding::char('d'), Act::Remove)];
         assert_eq!(lookup(&remapped, &key(KeyCode::Char('x'))), None);
         assert_eq!(binding_for(&remapped, Act::Add), None);

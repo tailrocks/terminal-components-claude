@@ -8,7 +8,7 @@ use ratatui::style::{Color, Modifier};
 use crate::core::event::{ClientPlatform, Key, Outcome};
 use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
-use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::selection::{RowSelection, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
@@ -266,11 +266,17 @@ pub struct DataTable {
 pub enum TableAction {
     /// Sort by the cursor column (again: reverse). Default `s`.
     SortByColumn,
+    /// Multi mode: select every enabled row. Default Cmd+A where the
+    /// terminal delivers Cmd, and Ctrl+A
+    /// ([`crate::core::keymap::SELECT_ALL`]); single selection ignores it.
+    SelectAll,
 }
 
 impl Actions for TableAction {
     fn default_keymap() -> KeyMap<Self> {
-        vec![(KeyBinding::char('s'), TableAction::SortByColumn)]
+        let mut map = vec![(KeyBinding::char('s'), TableAction::SortByColumn)];
+        map.extend(select_all_bindings(TableAction::SelectAll));
+        map
     }
 }
 
@@ -626,7 +632,8 @@ impl DataTable {
         }
     }
 
-    /// Multi-mode keys: Space, Shift+movement, Ctrl/Cmd+A, Esc.
+    /// Multi-mode keys: Space, Shift+movement, Esc ([`TableAction::SelectAll`]
+    /// is a key-map action).
     fn on_key_multi(&mut self, key: &Key) -> Option<(Outcome, Option<TableEvent>)> {
         let changed = |c: bool| {
             if c {
@@ -635,9 +642,8 @@ impl DataTable {
                 (Outcome::Consumed, None)
             }
         };
-        let command = key.ctrl() || key.mods.contains(KeyModifiers::SUPER);
+        let command = key.ctrl() || key.cmd();
         match key.code {
-            KeyCode::Char('a' | 'A') if command && !key.alt() => Some(changed(self.select_all())),
             KeyCode::Char(' ') if key.mods.is_empty() => {
                 let src = self.order[self.cursor_row];
                 Some(changed(self.toggle_row(src)))
@@ -1195,7 +1201,8 @@ impl DataTable {
                 | EditAction::Redo
                 | EditAction::Copy
                 | EditAction::Cut
-                | EditAction::Paste) => {
+                | EditAction::Paste
+                | EditAction::SelectAll) => {
                     // a cell edit is short-lived: clipboard keys work, its
                     // undo is Esc
                     crate::widgets::field_common::apply_edit(
@@ -1226,8 +1233,7 @@ impl DataTable {
         if let KeyCode::Char(c) = key.code
             && self.type_ahead
             && !c.is_whitespace()
-            && !key.ctrl()
-            && !key.alt()
+            && !key.chord()
         {
             let col = self.type_ahead_column.unwrap_or(self.cursor_col);
             let prefix = self.typeahead.feed(c).to_owned();
@@ -1255,7 +1261,7 @@ impl DataTable {
             return r;
         }
         if matches!(key.code, KeyCode::Char(_))
-            && (key.ctrl() || key.alt())
+            && key.chord()
             && lookup(&self.keymap, key).is_none()
         {
             // an unassigned modified chord never performs a plain action
@@ -1265,6 +1271,15 @@ impl DataTable {
         if let Some(action) = lookup(&self.keymap, key) {
             return match action {
                 TableAction::SortByColumn => (self.sort_by(c), None),
+                TableAction::SelectAll if self.multi() => {
+                    if self.select_all() {
+                        (Outcome::Changed, Some(TableEvent::SelectionChanged))
+                    } else {
+                        (Outcome::Consumed, None)
+                    }
+                }
+                // single selection: nothing to select all of
+                TableAction::SelectAll => (Outcome::Ignored, None),
             };
         }
         // Alt+↓ opens a constrained cell's popup; plain ↓ stays row
@@ -2965,3 +2980,46 @@ mod tests {
 #[cfg(test)]
 #[path = "table_choice_tests.rs"]
 mod choice_tests;
+
+/// Select All in a multi-selection table goes through its key map.
+#[cfg(test)]
+mod select_all_tests {
+    use super::*;
+
+    fn table(mode: SelectionMode) -> DataTable {
+        DataTable::new(
+            WidgetId::of("t"),
+            vec![Column::new("Name", Constraint::Min(8))],
+            ["a", "b", "c"]
+                .iter()
+                .map(|n| vec![Cell::new(*n)])
+                .collect(),
+        )
+        .selection_mode(mode)
+    }
+
+    #[test]
+    fn select_all_is_a_remappable_action() {
+        let ctrl_a = Key {
+            code: KeyCode::Char('a'),
+            mods: KeyModifiers::CONTROL,
+        };
+        let mut single = table(SelectionMode::Single);
+        assert_eq!(single.on_key(&ctrl_a).0, Outcome::Ignored);
+        let mut t = table(SelectionMode::Multi)
+            .keymap(vec![(KeyBinding::alt('a'), TableAction::SelectAll)]);
+        assert_eq!(
+            t.on_key(&ctrl_a).0,
+            Outcome::Ignored,
+            "the default is unbound"
+        );
+        assert!(t.selected_rows().is_empty());
+        let (out, ev) = t.on_key(&Key {
+            code: KeyCode::Char('a'),
+            mods: KeyModifiers::ALT,
+        });
+        assert_eq!(out, Outcome::Changed);
+        assert_eq!(ev, Some(TableEvent::SelectionChanged));
+        assert_eq!(t.selected_rows(), vec![0, 1, 2]);
+    }
+}

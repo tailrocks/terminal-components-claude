@@ -141,6 +141,9 @@ pub struct CodeEditor {
     /// [`crate::theme::Theme::field_keys`].
     pub field_keys: Option<FieldKeys>,
     keys: FieldKeys,
+    /// The text commands' keys (Select All). `None` (default) uses the
+    /// preset's ([`FieldKeys::text_keymap`]: Cmd+A, plus Ctrl+A or Ctrl+L).
+    pub text_keymap: Option<crate::core::keymap::KeyMap<crate::core::edit::TextCmd>>,
     /// Undo history of the document (Ctrl+Z, Ctrl+Shift+Z).
     undo: UndoStack,
     /// The document as the edit began, for [`Self::esc_reverts`].
@@ -233,6 +236,7 @@ impl CodeEditor {
             esc_reverts: false,
             field_keys: None,
             keys: FieldKeys::default(),
+            text_keymap: None,
             undo: UndoStack::new(),
             snapshot: None,
             focus_seen: false,
@@ -254,6 +258,21 @@ impl CodeEditor {
     pub fn tab_leaves(mut self, on: bool) -> Self {
         self.tab_leaves = on;
         self
+    }
+    /// See [`Self::text_keymap`].
+    pub fn text_keymap(
+        mut self,
+        keymap: crate::core::keymap::KeyMap<crate::core::edit::TextCmd>,
+    ) -> Self {
+        self.text_keymap = Some(keymap);
+        self
+    }
+    /// The edit action `key` means under the resolved preset and text keys.
+    fn edit_action(&self, key: &Key) -> EditAction {
+        match &self.text_keymap {
+            Some(map) => crate::widgets::field_common::edit_key_in(key, true, self.keys, map),
+            None => edit_key_with(key, true, self.keys),
+        }
     }
     /// See [`Self::field_keys`].
     pub fn field_keys(mut self, keys: FieldKeys) -> Self {
@@ -529,7 +548,7 @@ impl CodeEditor {
                         self.refind();
                         return (Outcome::Changed, None);
                     }
-                    KeyCode::Char(c) if !key.ctrl() && !key.alt() => {
+                    KeyCode::Char(c) if !key.chord() => {
                         f.needle.push(c);
                         self.refind();
                         self.goto_match(0);
@@ -560,7 +579,7 @@ impl CodeEditor {
             request_focus_next(backward);
             return (Outcome::Changed, Some(EditorEvent::Leave { backward }));
         }
-        let action = edit_key_with(key, true, self.keys);
+        let action = self.edit_action(key);
         match action {
             EditAction::Cancel if self.esc_reverts => {
                 if let Some(snap) = self.snapshot.take()
@@ -637,6 +656,13 @@ impl CodeEditor {
     }
 
     fn nav_key(&mut self, key: &Key) -> (Outcome, Option<EditorEvent>) {
+        // Select All works outside an edit too (a read-only document
+        // selects for Copy)
+        if matches!(self.edit_action(key), EditAction::SelectAll) {
+            self.buffer.select_all();
+            self.after_change();
+            return (Outcome::Changed, Some(EditorEvent::CursorMoved));
+        }
         if let Some(action) = lookup(&self.keymap, key) {
             return self.on_action(action);
         }
@@ -925,7 +951,7 @@ impl CodeEditor {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
-        self.keys = self.field_keys.unwrap_or(ctx.theme.field_keys);
+        self.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
         // focus newly gained starts an immediate edit: the caret shows the
         // moment Tab lands here
         let shown = ctx.interaction.focused(self.id) && !ctx.inert;
