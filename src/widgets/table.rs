@@ -1224,7 +1224,7 @@ impl DataTable {
                     }
                     (Outcome::Changed, None)
                 }
-                EditAction::None => (Outcome::Consumed, None),
+                EditAction::None => (crate::widgets::field_common::unbound_key(key), None),
             };
         }
         if self.rows.is_empty() {
