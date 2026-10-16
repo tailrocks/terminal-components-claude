@@ -14,7 +14,7 @@
   ▾ Screens                   integration                          ┃   │[0m
       Settings                e2e                                  │   │[0m
  [0m[1m▎  › Task runner  [0m       ▾ deploy                                 │   │[0m
-                       [0m[2m       staging                              [0m│   │[0m
+                       [0m[2m       ◇ staging                            [0m│   │[0m
                                                                        │[0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
