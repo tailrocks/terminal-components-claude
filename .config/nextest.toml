@@ -82,3 +82,13 @@ default-filter = 'binary(visual_baseline) & test(/::(72x20|80x24|100x30|120x40|1
 [profile.narrow]
 # Nightly: 40x12 and 60x18 (truecolor, nocolor) of surfaces and overlays.
 default-filter = 'binary(visual_baseline) & test(/::(40x12|60x18)::(truecolor|nocolor)$/)'
+
+[profile.capture]
+# Oracle candidate (plan §D, E2): full + narrow in one run. Use with
+# VISUAL_FULL=1 so pending captures are included; failures are expected.
+default-filter = '''
+  binary(visual_baseline) & (
+    test(/::(72x20|80x24|100x30|120x40|160x50)::(truecolor|256|16|none|nocolor)$/)
+    | test(/::(40x12|60x18)::(truecolor|nocolor)$/)
+  )
+'''
