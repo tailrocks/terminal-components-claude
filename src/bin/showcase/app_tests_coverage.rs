@@ -668,7 +668,7 @@ fn editor_completion_paste_and_diagnostic_paths() {
     let mut h = Harness::new(140, 45, PageId::Editor);
 
     // focus starts the edit (EditEntry::Immediate): no `i` first
-    h.key(KeyCode::Tab);
+    h.focus(WidgetId::of("editor").sub("code"));
     h.type_str("cl");
     assert!(h.text().contains("Client"));
     h.key(KeyCode::Enter);
@@ -683,7 +683,7 @@ fn editor_completion_paste_and_diagnostic_paths() {
     assert!(h.text().contains("pasted"));
 
     let mut diagnostic = Harness::new(140, 45, PageId::Editor);
-    diagnostic.key(KeyCode::Tab);
+    diagnostic.focus(WidgetId::of("editor").sub("code"));
     // Esc ends the edit focus started ("Done"); `}` is navigation again
     diagnostic.key(KeyCode::Esc);
     diagnostic.key(KeyCode::Char('}'));
