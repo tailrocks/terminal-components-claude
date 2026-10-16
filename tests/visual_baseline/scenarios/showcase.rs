@@ -97,7 +97,16 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:arrives with SC18"]).pending(),
     Root::new("showcase/planned/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:arrives with SC19"]).pending(),
     Root::new("showcase/planned/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:arrives with SC41"]).pending(),
-    Root::new("showcase/planned/emptyerror", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["wait:arrives with SC21"]).pending(),
+    // SC21 filled Empty & error: the page, its sections and an error state
+    Root::new("showcase/pages/emptyerror", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["wait:No connections yet"]).pending(),
+    Root::new("showcase/sections/emptyerror-options", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["tab", "2", "wait:Read-only reason"]).pending(),
+    Root::new("showcase/sections/emptyerror-states", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["tab", "3", "wait:With actions"]).pending(),
+    Root::new("showcase/flows/emptyerror/error", Bin::Showcase, &["--page", "emptyerror", "--opt", "emptyerror.kind=error"], BOOT).sends(&["wait:Could not load connections"]).pending(),
+    Root::new("showcase/elements/emptyerror/action-hover", Bin::Showcase, &["--page", "emptyerror"], BOOT).hover("New connection").pending(),
+    // SC21 Progress sections and options
+    Root::new("showcase/sections/progress-options", Bin::Showcase, &["--page", "progress", "--motion", "paused"], BOOT).sends(&["tab", "2", "wait:Label column"]).pending(),
+    Root::new("showcase/sections/progress-states", Bin::Showcase, &["--page", "progress", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Meter stale"]).pending(),
+    Root::new("showcase/flows/progress/measured-labels", Bin::Showcase, &["--page", "progress", "--motion", "paused", "--opt", "progress.label_width=measured", "--opt", "progress.reserve_value=off"], BOOT).sends(&["wait:Warm caches"]).pending(),
     Root::new("showcase/planned/meters", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
     Root::new("showcase/planned/notices", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
     Root::new("showcase/planned/splitsstacks", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["wait:arrives with SC23"]).pending(),
@@ -301,6 +310,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/menus_row_keyboard", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "tab", "shift-f10", "wait:Duplicate"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/menus_row_pointer", Bin::Showcase, &["--page", "menus"], BOOT).right_click("README.md").pending().dismiss_pending(),
     Root::new("showcase/overlays/menus_actions", Bin::Showcase, &["--page", "menus"], BOOT).click("Actions ▾").pending().dismiss_pending(),
+    Root::new("showcase/overlays/emptyerror_row_actions", Bin::Showcase, &["--page", "emptyerror"], BOOT).click("Row actions ▾").pending().dismiss_pending(),
     // mouse #40: the brand asks before quitting.
     Root::new("showcase/overlays/quit_confirm", Bin::Showcase, &["--page", "overview"], BOOT).click("Junie").pending().dismiss_pending(),
     // Unsaved Settings edits: `q` asks Cancel / Discard first (7b54eb459).
