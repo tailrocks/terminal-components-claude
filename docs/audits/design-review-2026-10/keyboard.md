@@ -294,12 +294,46 @@ Deferred, with reasons:
   moves ScrollPanel selection onto `TextViewport` in S11). TreeView and
   ChipBar have no multi-selection. Select All does not apply to any of
   them yet.
-- Cmd+C, Cmd+X, Cmd+V and Cmd+Z are not bound. This pass covers Select
-  All only. The protocol now delivers those chords, so binding them is a
-  key-map entry in the same `TextCmd` table.
+- Cmd+C, Cmd+X, Cmd+V and Cmd+Z were not bound in this pass. They are
+  now: see "Status (macOS editing chords)" below.
 - No footer hint names Select All, so no capture changed and the
   showcase digest needed no re-approval. The hint rule lives in
   `label_for`/`hint_key`, so the S8b hint pass gets it automatically.
 - With the protocol on, a terminal reports Ctrl+4..7 as themselves, so
   the runtime turns `InputConfig::legacy_ctrl_punctuation` off while the
   flags are pushed.
+
+## Status (macOS editing chords)
+
+Request: now that the kitty keyboard protocol delivers Cmd, every text
+widget answers the macOS standard editing chords.
+
+Standards decision. These are the Cocoa text-system chords: Cmd+C copy,
+Cmd+X cut, Cmd+V paste, Cmd+Z undo, Cmd+Shift+Z redo, Cmd+Left/Right
+line start and end, Cmd+Up/Down text start and end (multi-line),
+Shift with the Cmd arrows to select, Option+Left/Right by word and
+Option+Backspace delete word. No readline key uses Cmd, so the chords
+are additive to both `FieldKeys` presets. Emacs keeps Ctrl+A/E, Ctrl+K,
+Ctrl+W, Ctrl+Y and Alt+W. Desktop keeps Ctrl+A/C/X/V/Y. Neither preset
+loses a key.
+
+| Area | Status | Commit(s) | Notes |
+|---|---|---|---|
+| Text commands | Fixed | see branch log | `TextCmd` gains Copy, Cut, Paste, Undo, Redo, LineStart, LineEnd, DocStart, DocEnd and the SelectTo variants. `edit::CMD_TEXT_KEYS` holds the Cmd chords. `FieldKeys::text_keymap()` lists them first, then the preset's own keys for the same commands: Emacs Ctrl+L, Alt+W, Ctrl+W, Ctrl+Y; Desktop Ctrl+A, Ctrl+C, Ctrl+X, Ctrl+W, Ctrl+V, Ctrl+Y redo. Ctrl+Z and Ctrl+Shift+Z follow in both. These moved out of the hard-coded table in `edit_key_in`, so `.text_keymap(..)` remaps them too. The readline keys (Ctrl+A/E/K/U/H, Alt+B/F) stay with the preset. `field_common::text_cmd_action` is the one translation. A single-line control leaves Cmd+Up/Down to its container. |
+| Shift-aware chords | Fixed | see branch log | A character `KeyBinding` that names Shift (`KeyBinding::shift`) now requires it. Without Shift, matching still ignores Shift. So Cmd+Shift+Z, which arrives as `z` or `Z` with Shift, is listed before Cmd+Z. `label_on` spells it `⇧⌘Z` on macOS and `Super+Shift+Z` elsewhere. |
+| Widgets | Fixed | see branch log | TextInput (with the Dialog and FormDialog prompts), TextArea, CodeEditor and the DataGrid and DataTable cell editors take all the chords through `edit_key_in` and `apply_edit`. CodeEditor while browsing or read-only takes Select All, Copy and the Cmd caret moves. Read-only, Cmd+X, Cmd+V and Cmd+Z do nothing there. On an editable editor while browsing they start the edit. The preset's control keys for those commands (Ctrl+W, Ctrl+Y, Ctrl+Z), and Copy with nothing selected, still pass to the page while browsing, as before. A Paste key on a TextInput or TextArea that is not editing goes through its `on_paste` (`field_common::paste_clipboard`), so it starts the edit as a bracketed paste does. With an empty clipboard the key passes to the page. Cell editors keep "undo is Esc", so Cmd+Z there is a no-op, as Ctrl+Z was. |
+| Row and read-only copy | Fixed | see branch log | `GridAction::Copy` and `ViewportAction::Copy` bind Cmd+C before `y`. Cmd+A was already bound. ListBox and DataTable have no row copy, so only Cmd+A applies to them. |
+| Hints | Fixed | see branch log | A hint names the first deliverable binding. That is `⌘C`, `⇧⌘Z` and so on once super delivery is confirmed (`keyboard::super_delivered`). Until then it is the preset's key: Desktop Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+Z, Ctrl+Y; Emacs Alt+W, Ctrl+W, Ctrl+Y, Ctrl+Z, Ctrl+Shift+Z. A row or log Copy hint stays `y`. The tablepro grid footer reads `hint_key(GridAction::Copy)`, so it shows `⌘C` only after a Cmd chord arrives. The caret moves have no non-Cmd binding in the text key map, so no hint names them unless Cmd is delivered. |
+| Tests | Fixed | see branch log | `field_common::cmd_edit_tests` covers the shared table under both presets, caret moves and selection, and hints with Cmd delivered and not delivered. It also covers TextInput (cut, paste, undo and redo round trip through the clipboard hook; paste starting an Explicit edit), TextArea, CodeEditor (editing, browsing, read-only) and the grid and table cell editors. `grid::cmd_copy_tests` and `viewport::cmd_copy_tests` cover row and log copy and their hint fallback. Showcase app test `inputs_cmd_cut_and_paste_round_trip_through_the_clipboard_hook` runs per client platform. Every new test fails with the Cmd bindings removed. The suite also passes with `JUNIE_TUI_CLIENT_PLATFORM=linux`. |
+
+Deferred, with reasons:
+
+- Cmd+Backspace (delete to line start) and Option+Delete (delete word
+  right) are Cocoa chords outside this request. They are one entry each
+  in `CMD_TEXT_KEYS` and `TextCmd` when wanted.
+- App footers that spell `y Copy` as a literal (showcase terminal and
+  diff pages, holla and jackin log panes) name a key that works. Moving
+  them to `hint_key(&viewport.keymap, ViewportAction::Copy)` so they say
+  `⌘C` when it is delivered belongs to the S8b hint pass.
+- Picker, combo and find-bar queries still have no `TextBuffer` (S11).
+  They gain these chords when they move onto `EditField`.
