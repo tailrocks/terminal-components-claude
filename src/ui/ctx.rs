@@ -350,16 +350,28 @@ impl<'a> RenderCtx<'a> {
     }
 
     /// Dim `screen` behind a modal and enter modal mode. The bottom row
-    /// stays live: the footer's key hints belong to the modal.
+    /// stays live: the footer's key hints belong to the modal. Shorthand
+    /// for [`Self::modal_backdrop_with`] and [`Backdrop::DEFAULT`].
     pub fn modal_backdrop(&mut self, buf: &mut Buffer, screen: Rect) {
+        self.modal_backdrop_with(buf, screen, Backdrop::DEFAULT);
+    }
+
+    /// Dim `screen` behind a modal, except the rows `backdrop` keeps live
+    /// (an app's footer and status rows whose hints belong to the modal),
+    /// and enter modal mode.
+    pub fn modal_backdrop_with(&mut self, buf: &mut Buffer, screen: Rect, backdrop: Backdrop) {
         // overlays first, so the page's open popups dim with the page
         self.flush_overlays(buf);
         let t = self.theme;
+        let top = backdrop.keep_top.min(screen.height);
         let dim = Rect::new(
             screen.x,
-            screen.y,
+            screen.y + top,
             screen.width,
-            screen.height.saturating_sub(1),
+            screen
+                .height
+                .saturating_sub(top)
+                .saturating_sub(backdrop.keep_bottom),
         );
         for pos in dim.positions() {
             if let Some(c) = buf.cell_mut(pos) {
@@ -387,6 +399,46 @@ pub fn fill(buf: &mut Buffer, area: Rect, style: ratatui::style::Style) {
                 cell.set_style(style);
             }
         }
+    }
+}
+
+/// Which rows a modal backdrop leaves undimmed
+/// ([`RenderCtx::modal_backdrop_with`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Backdrop {
+    /// Rows at the bottom of the screen kept live (the footer whose key
+    /// hints belong to the modal, a status bar). Default 1.
+    pub keep_bottom: u16,
+    /// Rows at the top kept live (a header that stays readable). Default 0.
+    pub keep_top: u16,
+}
+
+impl Backdrop {
+    /// One live footer row, nothing kept at the top: today's backdrop.
+    pub const DEFAULT: Self = Self {
+        keep_bottom: 1,
+        keep_top: 0,
+    };
+    /// Dim everything.
+    pub const FULL: Self = Self {
+        keep_bottom: 0,
+        keep_top: 0,
+    };
+
+    pub const fn keep_bottom(mut self, rows: u16) -> Self {
+        self.keep_bottom = rows;
+        self
+    }
+
+    pub const fn keep_top(mut self, rows: u16) -> Self {
+        self.keep_top = rows;
+        self
+    }
+}
+
+impl Default for Backdrop {
+    fn default() -> Self {
+        Self::DEFAULT
     }
 }
 
@@ -439,5 +491,41 @@ mod tests {
         ctx.modal_backdrop(&mut buf, Rect::new(0, 0, 10, 3));
         assert_eq!(buf[(0, 0)].symbol(), " ");
         assert!(ctx.state(id).focused, "the modal's own layer shows focus");
+    }
+
+    #[test]
+    fn a_backdrop_keeps_the_configured_chrome_rows_live() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let screen = Rect::new(0, 0, 4, 6);
+        let style = ratatui::style::Style::new().fg(t.text_primary).bg(t.canvas);
+        let mut buf = Buffer::empty(screen);
+        for y in 0..6 {
+            buf.set_string(0, y, "abcd", style);
+        }
+        ctx.modal_backdrop_with(
+            &mut buf,
+            screen,
+            Backdrop::DEFAULT.keep_bottom(2).keep_top(1),
+        );
+        assert_eq!(
+            buf[(0, 0)].style().fg,
+            Some(t.text_primary),
+            "header row kept"
+        );
+        assert!(
+            buf[(0, 1)].style().fg != Some(t.text_primary),
+            "body dimmed"
+        );
+        assert!(
+            buf[(0, 4)].style().fg == Some(t.text_primary),
+            "status row kept"
+        );
+        assert!(
+            buf[(0, 5)].style().fg == Some(t.text_primary),
+            "footer row kept"
+        );
     }
 }

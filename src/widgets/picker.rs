@@ -12,7 +12,7 @@ use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::scrollbar;
@@ -108,6 +108,9 @@ pub struct Picker {
     /// close"). Default empty: no hint row, for owners with a shell-level
     /// hint bar.
     pub hints: String,
+    /// Which screen rows the dimmed backdrop leaves live. Default
+    /// [`Backdrop::DEFAULT`] (the footer row).
+    pub backdrop: Backdrop,
     /// Optional right-aligned scope label in the query row.
     pub scope: Option<String>,
     pub empty_text: String,
@@ -172,6 +175,7 @@ impl Picker {
             placement: Placement::Center,
             anchor: Rect::ZERO,
             hints: String::new(),
+            backdrop: Backdrop::DEFAULT,
             scope: None,
             empty_text: "No matches".into(),
             area: Rect::ZERO,
@@ -243,6 +247,12 @@ impl Picker {
     /// See [`Self::fit`].
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.fit = fit;
+        self
+    }
+
+    /// See [`Self::backdrop`].
+    pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
+        self.backdrop = backdrop;
         self
     }
 
@@ -602,7 +612,7 @@ impl Picker {
     fn paint(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
         let t = ctx.theme;
         // dim + modal like Dialog
-        ctx.modal_backdrop(buf, screen);
+        ctx.modal_backdrop_with(buf, screen, self.backdrop);
         let rows = if self.status == PickerStatus::Ready {
             (self.items.len() as u16).clamp(1, self.max_rows)
         } else {
