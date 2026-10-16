@@ -36,3 +36,42 @@ fix, with the reason.
    drag, release); the primary gesture is wired only for `MenuBar` titles
    (`release_from` is private). The Actions button opens on click, as
    macOS pop-up buttons do; the page says where the gesture lives.
+
+## SC28 Focus & navigation, Toolbars
+
+1. **Fixed: the runtime hardcoded the input normalisation and the
+   keyboard protocol.** `runtime::run` read `InputConfig::default()` and
+   `KeyboardProtocol::current()` itself, so an app could not turn off
+   Shift+wheel sideways, Ctrl+click as a right click or the legacy Ctrl
+   punctuation mapping, nor choose the protocol other than through the
+   environment. `Application::{input_config, keyboard_protocol}` now
+   carry them (defaults unchanged), `TerminalSession::enter_with` takes
+   the protocol, and `impl_application!(App, input)` forwards an app's
+   own. Proof: `runtime::tests::the_event_loop_reads_input_through_the_apps_input_config`,
+   `app_tests_focusnav::the_shell_input_and_protocol_options_reach_the_runtime_hooks`.
+2. **Fixed: a frame with no focus after the focused control vanished.**
+   The showcase shell fell back to the ring's first stop after drawing,
+   so the frame that removed the control showed no `▎` until the next
+   input. It now applies `Focus::ensure_valid_with` with the
+   `shell.focus_fallback` policy and draws once more when focus moved.
+   Proof: `app_tests_focusnav::a_removed_focused_tag_falls_back_per_the_shell_option`
+   (one `▎` in the same frame).
+3. **The showcase keeps `FocusFallback::First` as its default**, the
+   library's is `Nearest`. Every other page assumes focus returns to the
+   sidebar when a page's control vanishes on navigation; `Nearest` is one
+   option away and is what the Focus & navigation page demonstrates.
+4. **`Ctrl+click is right-click` has no option of its own.** It follows
+   the client platform (`InputConfig::for_platform`), which
+   `shell.platform` already sets; a separate auto/off/on option would
+   duplicate `auto` with one of the others on every host.
+5. **The Input and Protocol lines show the library defaults, not the
+   shell's live values.** A page has no read access to the app's
+   configuration; the Inspector's Options tab shows the live values.
+6. **Not built: Strategy B nav policies (`FocusPolicy`, `AdjacentMove`,
+   `AdjacentKeys`, `Scope`, `Bounds`) and their fields on Tabs, Tree,
+   List, Select, Picker, Menu, Dialog and Toolbar.** They exist only as
+   inventory rows (no type, no catalog id). They change how every
+   navigable widget moves focus across its edges, which is an S-step's
+   expand/migrate/contract work (plan §4), not a page step's; SC28 shows
+   what the library has today: `NavKeys` per widget, `NavProfile`
+   defaults, the ring, the fallback and focus requests.

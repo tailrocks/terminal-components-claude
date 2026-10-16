@@ -89,7 +89,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/breadcrumbsrails", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["wait:arrives with SC5"]).pending(),
     Root::new("showcase/planned/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     Root::new("showcase/planned/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
-    Root::new("showcase/planned/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
     // SC9 filled Checks & radios: the page and its sections
     Root::new("showcase/pages/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:Select all rows"]).pending(),
     Root::new("showcase/sections/checksradios-options", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "2", "wait:Checkbox click target"]).pending(),
@@ -186,6 +185,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/menus", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["wait:Actions menu"]).pending(),
     Root::new("showcase/sections/menus-options", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "2", "wait:Actions placement"]).pending(),
     Root::new("showcase/sections/menus-states", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["tab", "3", "wait:Commands"]).pending(),
+    // SC28 Focus & navigation: the ring, the nav map and the keys card,
+    // the option table and how each control shows focus.
+    Root::new("showcase/pages/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:Nav map"]).pending(),
+    Root::new("showcase/sections/focusnavigation-options", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "2", "wait:List nav keys"]).pending(),
+    Root::new("showcase/sections/focusnavigation-states", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "3", "wait:Tab strip"]).pending(),
+    Root::new("showcase/elements/focusnavigation/vim-map", Bin::Showcase, &["--page", "focusnavigation", "--opt", "focusnavigation.nav=vim"], BOOT).sends(&["wait:Nav map"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),
