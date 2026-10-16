@@ -1379,3 +1379,20 @@ fn a_cut_list_row_advertises_the_reveal_key_in_the_footer() {
         assert!(!footer(&h).contains("Full text"));
     }
 }
+
+#[test]
+fn a_focused_tab_strip_takes_home_and_end() {
+    // interaction #23: Home/End go to the first and last tab
+    let mut h = Harness::new(120, 40, PageId::Settings);
+    h.key(tab());
+    h.key(KeyCode::End);
+    assert!(h.text().contains("Environment") && !h.text().contains("Mira Okafor"));
+    h.key(KeyCode::Home);
+    h.key(KeyCode::Right);
+    assert!(h.text().contains("Mira Okafor"), "{}", h.text());
+    h.key(KeyCode::End);
+    assert!(
+        !h.text().contains("Mira Okafor"),
+        "End left the Members tab"
+    );
+}
