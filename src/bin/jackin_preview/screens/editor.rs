@@ -28,7 +28,7 @@ use ratatui::style::Modifier;
 
 use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab};
 use super::modals::InfoDialog;
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
+use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Provider;
 use crate::domain::workspace::{
@@ -437,8 +437,8 @@ impl EditorScreen {
             confirm,
         );
         cx.open(
-            Modal::Dialog(d),
-            ModalTag::new(if blockers.is_empty() {
+            d,
+            LayerTag::new(if blockers.is_empty() {
                 "preview"
             } else {
                 "preview.cleanup"
@@ -477,7 +477,7 @@ impl EditorScreen {
             )
             .error()
             .width(66);
-            cx.open(Modal::Info(d), ModalTag::new("savefail"));
+            cx.open(d, LayerTag::new("savefail"));
             return;
         }
         let name = self.pending.name.clone();
@@ -521,7 +521,7 @@ impl EditorScreen {
                 ],
                 Some(0),
             );
-            cx.open(Modal::Dialog(d), ModalTag::new("exit"));
+            cx.open(d, LayerTag::new("exit"));
         } else {
             cx.go(Go::Manager);
         }
@@ -1153,7 +1153,7 @@ impl EditorScreen {
                     input,
                     "Apply",
                 );
-                cx.open(Modal::Dialog(d), ModalTag::new("acct.filter"));
+                cx.open(d, LayerTag::new("acct.filter"));
             }
             KeyCode::Char(' ') | KeyCode::Enter => {
                 let Some(AcctRow::Account(id)) = self.acct.rows.get(self.acct.cursor).cloned()
@@ -1277,7 +1277,7 @@ impl EditorScreen {
                     input,
                     "Apply",
                 );
-                cx.open(Modal::Dialog(d), ModalTag::new("roles.filter"));
+                cx.open(d, LayerTag::new("roles.filter"));
             }
             KeyCode::Char(' ') => {
                 if let RoleRow::Role(name) = &row {
@@ -1344,7 +1344,7 @@ impl EditorScreen {
         let (items, targets) = self.role_items(w, "");
         p.set_items(items);
         self.picker_targets = targets;
-        cx.open(Modal::Picker(p), ModalTag::new("role.load"));
+        cx.open(p, LayerTag::new("role.load"));
     }
 
     fn role_items(&self, w: &World, query: &str) -> (Vec<PickerItem>, Vec<String>) {
@@ -1403,7 +1403,7 @@ impl EditorScreen {
             None,
             Button::primary(WidgetId::of("editor.trust.ok"), "Trust & load"),
         );
-        cx.open(Modal::Dialog(d), ModalTag::new("role.trust").key(&e.name));
+        cx.open(d, LayerTag::new("role.trust").key(&e.name));
     }
 
     fn start_role_load(&mut self, name: &str, w: &mut World, cx: &mut Cx) {
@@ -1469,7 +1469,7 @@ impl EditorScreen {
                 )
                 .error()
                 .width(70);
-                cx.open(Modal::Info(d), ModalTag::new("roleerr"));
+                cx.open(d, LayerTag::new("roleerr"));
             }
             None => cx.error(format!("Role {name} is not in the registry")),
         }
@@ -1540,7 +1540,7 @@ impl EditorScreen {
         }
         p.set_items(items);
         self.picker_targets = targets;
-        cx.open(Modal::Picker(p), ModalTag::new("workdir"));
+        cx.open(p, LayerTag::new("workdir"));
     }
 
     fn general_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -2033,7 +2033,7 @@ impl Screen for EditorScreen {
         }
     }
 
-    fn picker_items(&mut self, tag: &ModalTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
         if tag.kind == "role.load" {
             let (items, targets) = self.role_items(w, query);
             self.picker_targets = targets;
@@ -2045,13 +2045,13 @@ impl Screen for EditorScreen {
         None
     }
 
-    fn form_changed(&mut self, tag: &ModalTag, form: &mut super::modals::FormDialog, w: &World) {
+    fn form_changed(&mut self, tag: &LayerTag, form: &mut super::modals::FormDialog, w: &World) {
         self.cfg.form_changed(tag, form, w);
     }
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
