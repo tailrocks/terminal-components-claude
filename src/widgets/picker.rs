@@ -160,6 +160,30 @@ impl Picker {
         }
     }
 
+    /// Width in cells before clamping to the screen. Default 64.
+    pub fn width(mut self, width: u16) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Most rows shown before the list scrolls. Default 12.
+    pub fn max_rows(mut self, rows: u16) -> Self {
+        self.max_rows = rows;
+        self
+    }
+
+    /// The query field's placeholder.
+    pub fn placeholder(mut self, text: &str) -> Self {
+        self.placeholder = text.to_owned();
+        self
+    }
+
+    /// What an empty result says.
+    pub fn empty_text(mut self, text: &str) -> Self {
+        self.empty_text = text.to_owned();
+        self
+    }
+
     pub fn dismiss(mut self, dismiss: crate::ui::popup::Dismiss) -> Self {
         self.dismiss = dismiss;
         self
