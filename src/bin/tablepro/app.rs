@@ -14,7 +14,7 @@ use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
-use junie_tui::theme::{BadgeKind, Theme, Tone};
+use junie_tui::theme::{BadgeKind, StatusKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys};
@@ -61,7 +61,8 @@ const QUIT_DIALOG: WidgetId = WidgetId::of("dialog.quit");
 /// Things screens ask the app to do.
 pub enum Request {
     OpenDialog(Box<Dialog>),
-    Status(String),
+    /// A footer status: neutral (`None`) or of a [`StatusKind`].
+    Status(String, Option<StatusKind>),
     EditFilter(Option<usize>),
     FilterOnCell(usize, CellValue),
     ConfirmDiscard,
@@ -89,8 +90,14 @@ impl Cx<'_> {
     pub fn focus_prev(&mut self) {
         self.focus.prev(self.ring);
     }
+    /// A neutral footer status ("Copied 12 chars").
     pub fn status(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Status(s.into()));
+        self.requests.push(Request::Status(s.into(), None));
+    }
+    /// A footer status of `kind`: its glyph and tone from
+    /// [`Theme::status`] ("✓ Connection saved").
+    pub fn status_as(&mut self, kind: StatusKind, s: impl Into<String>) {
+        self.requests.push(Request::Status(s.into(), Some(kind)));
     }
     pub fn open(&mut self, d: Dialog) {
         self.requests.push(Request::OpenDialog(Box::new(d)));
@@ -186,7 +193,9 @@ pub struct App {
     pub tick: u64,
     /// Tick delivery; see [`Motion`].
     pub motion: Motion,
-    pub status: Option<(String, Instant)>,
+    /// The footer status: its text, when it was set, and its kind
+    /// (`None`: neutral).
+    pub status: Option<(String, Instant, Option<StatusKind>)>,
     pub quit: bool,
     /// Which keys ask to quit, through the leave guard. Default
     /// [`QuitKeys::DEFAULT`]: Ctrl+C (cancels a running query first),
@@ -241,10 +250,13 @@ impl App {
         self.focus.focus(crate::workbench::EXPLORER);
         self.workbench = Some(wb);
         self.screen = Screen::Workbench;
-        self.set_status(format!(
-            "Connected to {}",
-            self.workbench.as_ref().unwrap().connection.name
-        ));
+        self.set_status_as(
+            StatusKind::Ok,
+            format!(
+                "Connected to {}",
+                self.workbench.as_ref().unwrap().connection.name
+            ),
+        );
     }
 
     /// Apply `--motion` / `--frame`. `Paused` fast-forwards `frame` ticks
@@ -287,8 +299,18 @@ impl App {
         }
     }
 
+    /// A neutral footer status.
     fn set_status(&mut self, s: String) {
-        self.status = Some((s, Instant::now()));
+        self.put_status(s, None);
+    }
+
+    /// A footer status of `kind` ([`Theme::status`] glyph and tone).
+    fn set_status_as(&mut self, kind: StatusKind, s: String) {
+        self.put_status(s, Some(kind));
+    }
+
+    fn put_status(&mut self, s: String, kind: Option<StatusKind>) {
+        self.status = Some((s, Instant::now(), kind));
     }
 
     /// Milliseconds on the pointer clock.
@@ -393,7 +415,7 @@ impl App {
                         && let Some(WorkTab::Query(q)) = w.active_tab_mut()
                         && q.cancel()
                     {
-                        self.set_status("Query cancelled".into());
+                        self.set_status_as(StatusKind::Info, "Query cancelled".into());
                         return Outcome::Changed;
                     }
                     return self.request_quit();
@@ -416,7 +438,10 @@ impl App {
                 .iter()
                 .any(|t| matches!(t, WorkTab::Query(q) if q.dirty()));
         if dirty {
-            self.set_status("Save or discard the pending changes before disconnecting".into());
+            self.set_status_as(
+                StatusKind::Warn,
+                "Save or discard the pending changes before disconnecting".into(),
+            );
             return Outcome::Changed;
         }
         let name = w.connection.name.clone();
@@ -548,7 +573,7 @@ impl App {
         if self.pointer.expire_flash(self.now_ms()) {
             out = Outcome::Changed;
         }
-        if let Some((_, at)) = &self.status
+        if let Some((_, at, _)) = &self.status
             && at.elapsed() > Duration::from_secs(5)
         {
             self.status = None;
@@ -610,7 +635,8 @@ impl App {
             out = Outcome::Changed;
             match r {
                 Request::OpenDialog(d) => self.open_dialog(*d),
-                Request::Status(s) => self.set_status(s),
+                Request::Status(s, None) => self.set_status(s),
+                Request::Status(s, Some(kind)) => self.set_status_as(kind, s),
                 Request::EditFilter(i) => self.open_filter_editor(i, None),
                 Request::FilterOnCell(col, v) => {
                     let val = match &v {
@@ -845,7 +871,7 @@ impl App {
                 if let WorkTab::Query(q) = t
                     && q.cancel()
                 {
-                    self.set_status("Query cancelled".into());
+                    self.set_status_as(StatusKind::Info, "Query cancelled".into());
                     return Some(Outcome::Changed);
                 }
             }
@@ -1083,7 +1109,7 @@ impl App {
                 if let WorkTab::Query(q) = t
                     && q.cancel()
                 {
-                    self.set_status("Query cancelled".into());
+                    self.set_status_as(StatusKind::Info, "Query cancelled".into());
                     return Outcome::Changed;
                 }
             }
@@ -1152,7 +1178,7 @@ impl App {
                 Outcome::Changed
             }
             Decision::Deny => {
-                self.set_status("Cannot execute write queries: TablePro's Safe Mode is set to read-only for this connection · Ctrl+L changes Safe Mode".into());
+                self.set_status_as(StatusKind::Warn, "Cannot execute write queries: TablePro's Safe Mode is set to read-only for this connection · Ctrl+L changes Safe Mode".into());
                 Outcome::Changed
             }
             Decision::Confirm { deliberate } => {
@@ -1168,6 +1194,7 @@ impl App {
                 } else {
                     "Execute write query?"
                 };
+                let production = env == Environment::Production;
                 let env_label = format!("{} · {}", conn, env.label());
                 let mut facts = vec![
                     Prop::new("Action", risk.action.clone()).tone(if dangerous {
@@ -1182,8 +1209,9 @@ impl App {
                             stmt.target().map(|t| format!(" · {t}")).unwrap_or_default()
                         ),
                     )
-                    .tone(if env == Environment::Production {
-                        Tone::Normal
+                    // production takes its badge tone (Theme::env)
+                    .tone(if production {
+                        env.kind().tone()
                     } else {
                         Tone::Secondary
                     }),
@@ -1237,13 +1265,17 @@ impl App {
                 } else {
                     None
                 };
-                let confirm = if dangerous || tier == sql::Tier::Destructive {
+                // production is a destructive target whatever the statement
+                let confirm = if dangerous || tier == sql::Tier::Destructive || production {
                     Button::danger(SAFETY_DIALOG.sub("ok"), "Execute")
                 } else {
                     Button::primary(SAFETY_DIALOG.sub("ok"), "Execute")
                 };
                 let mut d =
                     Dialog::facts(SAFETY_DIALOG, title, facts, code, token.as_deref(), confirm);
+                if production {
+                    d = d.title_status(StatusKind::Warn);
+                }
                 if token.is_none() {
                     // dangerous: Cancel keeps focus; plain writes focus Execute
                     d.initial_focus = if dangerous {
@@ -1285,7 +1317,8 @@ impl App {
             return;
         }
         if level == SafeMode::ReadOnly {
-            self.set_status(
+            self.set_status_as(
+                StatusKind::Warn,
                 "Cannot save changes: TablePro's Safe Mode is set to read-only for this connection"
                     .into(),
             );
@@ -1422,10 +1455,13 @@ impl App {
                 source: crate::model::HistorySource::RowEdits,
             });
         }
-        self.set_status(format!(
-            "Saved {n} change{} to {qualified}",
-            if n == 1 { "" } else { "s" }
-        ));
+        self.set_status_as(
+            StatusKind::Ok,
+            format!(
+                "Saved {n} change{} to {qualified}",
+                if n == 1 { "" } else { "s" }
+            ),
+        );
     }
 
     fn open_preview(&mut self) {
@@ -1966,10 +2002,13 @@ impl App {
                         c.safe_mode = level;
                     }
                 }
-                self.set_status(format!(
-                    "Safety level set to {} · saved to the connection",
-                    level.label()
-                ));
+                self.set_status_as(
+                    StatusKind::Ok,
+                    format!(
+                        "Safety level set to {} · saved to the connection",
+                        level.label()
+                    ),
+                );
                 Outcome::Changed
             }
         }
@@ -2161,7 +2200,7 @@ impl App {
                     q.start(statements, all, explain);
                 }
             } else {
-                self.set_status("Cancelled · nothing was executed".into());
+                self.set_status_as(StatusKind::Info, "Cancelled · nothing was executed".into());
             }
             return Outcome::Changed;
         }
@@ -2777,7 +2816,7 @@ impl App {
     fn draw_strip(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let mut left = vec![
-            Segment::new("▪", Tone::Success).priority(9),
+            Segment::new("▪", Tone::Active).priority(9),
             Segment::new("TablePro", Tone::Normal)
                 .bold()
                 .clickable(STRIP_APP)
@@ -2794,14 +2833,22 @@ impl App {
                 if let Some(w) = &self.workbench {
                     let c = &w.connection;
                     let env = c.environment;
-                    let env_seg = match env {
-                        Environment::Production => {
-                            Segment::new("◆ production", Tone::Normal).bold()
-                        }
-                        Environment::Staging => Segment::new("◇ staging", Tone::Secondary),
-                        Environment::Development => Segment::new("development", Tone::Muted),
-                        Environment::Local => Segment::new("local", Tone::Faint),
+                    // the environment badge: glyph and tone from Theme::env
+                    let kind = env.kind();
+                    let glyph = t.glyphs.env(kind);
+                    let label = if glyph.is_empty() {
+                        env.label().to_owned()
+                    } else {
+                        format!("{glyph} {}", env.label())
                     };
+                    let mut env_seg = Segment::new(label, kind.tone());
+                    if t.env(kind)
+                        .1
+                        .add_modifier
+                        .contains(ratatui::style::Modifier::BOLD)
+                    {
+                        env_seg = env_seg.bold();
+                    }
                     left.push(
                         Segment::new(
                             junie_tui::ui::text::truncate_middle(&c.name, 18),
@@ -2821,15 +2868,27 @@ impl App {
                         .priority(7),
                     );
                     let level = c.safe_mode;
-                    let (tone, bold) = match level {
-                        SafeMode::Silent if env == Environment::Production => (Tone::Warning, true),
-                        SafeMode::Silent => (Tone::Faint, false),
-                        SafeMode::Alert | SafeMode::AlertFull => (Tone::Secondary, false),
-                        _ => (Tone::Normal, true),
+                    // safe levels are a passed check (✓ in success); Silent
+                    // on production needs attention (▲ in warning)
+                    let (status, bold) = match level {
+                        SafeMode::Silent if env == Environment::Production => {
+                            (Some(StatusKind::Warn), true)
+                        }
+                        SafeMode::Safe | SafeMode::SafeFull => (Some(StatusKind::Ok), false),
+                        SafeMode::ReadOnly => (None, true),
+                        _ => (None, false),
                     };
-                    let mut s = Segment::new(level.token(), tone)
-                        .clickable(STRIP_SAFE)
-                        .priority(8);
+                    let tone = match (status, level) {
+                        (Some(kind), _) => kind.tone(),
+                        (None, SafeMode::Silent) => Tone::Faint,
+                        (None, SafeMode::Alert | SafeMode::AlertFull) => Tone::Secondary,
+                        (None, _) => Tone::Normal,
+                    };
+                    let text = match status {
+                        Some(kind) => format!("{} {}", t.status(kind).0, level.token()),
+                        None => level.token().to_owned(),
+                    };
+                    let mut s = Segment::new(text, tone).clickable(STRIP_SAFE).priority(8);
                     if bold {
                         s = s.bold();
                     }
@@ -2911,8 +2970,8 @@ impl App {
         } else {
             None
         };
-        let status = self.status.as_ref().map(|s| s.0.as_str());
-        keyhint::render(area, buf, &t, &hints, badge, status);
+        let status = self.status.as_ref().map(|s| (s.0.as_str(), s.2));
+        keyhint::render_status(area, buf, &t, &hints, badge, status);
     }
 
     fn draw_filter_editor(

@@ -68,6 +68,9 @@ pub struct ConnectionsScreen {
     /// another connection), Ctrl+N (a new one), Esc (close) and quitting
     /// (keyboard audit #6).
     pub leave: LeaveGuard<FormLeave>,
+    /// The glyph set the tree's environment glyphs were drawn from (the
+    /// theme's, synced at render).
+    glyphs: junie_tui::theme::Glyphs,
 }
 
 /// Where leaving the connection form goes ([`ConnectionsScreen::leave`]).
@@ -303,13 +306,12 @@ impl ConnForm {
     }
 }
 
+/// An environment's tone, from the library ([`EnvKind::tone`]): production
+/// danger, staging warning, development info, local muted.
+///
+/// [`EnvKind::tone`]: junie_tui::theme::EnvKind::tone
 pub fn env_tone(env: Environment) -> Tone {
-    match env {
-        Environment::Production => Tone::Normal,
-        Environment::Staging => Tone::Secondary,
-        Environment::Development => Tone::Muted,
-        Environment::Local => Tone::Faint,
-    }
+    env.kind().tone()
 }
 
 impl ConnectionsScreen {
@@ -329,6 +331,7 @@ impl ConnectionsScreen {
             retry_btn: Button::secondary(ID.sub("retry"), "Retry"),
             form: None,
             leave: LeaveGuard::new(ID.sub("leave")),
+            glyphs: junie_tui::theme::Glyphs::default(),
         };
         s.rebuild_tree();
         s
@@ -349,12 +352,12 @@ impl ConnectionsScreen {
                     .iter()
                     .filter(|c| &c.group == g)
                     .map(|c| {
-                        let glyph = match c.environment {
-                            Environment::Production => "◆",
-                            Environment::Staging => "◇",
-                            _ => "·",
-                        };
-                        TreeNode::leaf(&c.name).glyph(glyph).meta(c.engine.short())
+                        // the environment's glyph and tone ([`Theme::env`])
+                        let env = c.environment.kind();
+                        TreeNode::leaf(&c.name)
+                            .glyph(self.glyphs.env(env))
+                            .glyph_tone(env.tone())
+                            .meta(c.engine.short())
                     })
                     .collect();
                 TreeNode::dir(g, children)
@@ -917,7 +920,10 @@ impl ConnectionsScreen {
             }
         }
         if !form.validate() {
-            cx.status("Fix the highlighted fields");
+            cx.status_as(
+                junie_tui::theme::StatusKind::Warn,
+                "Fix the highlighted fields",
+            );
             cx.focus.focus(if form.name.error.is_some() {
                 form.name.id
             } else {
@@ -941,7 +947,7 @@ impl ConnectionsScreen {
         self.state = ConnState::Idle;
         self.rebuild_tree();
         self.selected = Some(idx);
-        cx.status("Connection saved");
+        cx.status_as(junie_tui::theme::StatusKind::Ok, "Connection saved");
         if connect {
             self.start_connect(idx);
         } else {
@@ -1224,6 +1230,10 @@ impl ConnectionsScreen {
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
+        if self.glyphs != t.glyphs {
+            self.glyphs = t.glyphs;
+            self.rebuild_tree();
+        }
         let list_w = (area.width / 3).clamp(26, 40);
         let (l, r) = if area.width >= 80 {
             (
@@ -1298,7 +1308,13 @@ impl ConnectionsScreen {
         let panel = Panel::card(Some(&c.name));
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(r.x, r.y, r.width.min(70), card_h), buf, t);
-        let ssl = if c.ssl { "on" } else { "off" };
+        // SSL on is a passed check: the library's ok glyph and tone
+        let ssl = if c.ssl {
+            let ok = junie_tui::theme::StatusKind::Ok;
+            Prop::new("SSL", format!("{} on", t.status(ok).0)).tone(ok.tone())
+        } else {
+            Prop::new("SSL", "off").tone(Tone::Secondary)
+        };
         let ssh = c.ssh.clone().unwrap_or("off".into());
         let mut facts = vec![
             Prop::new("Engine", c.engine.label()),
@@ -1337,7 +1353,8 @@ impl ConnectionsScreen {
                 Tone::Secondary
             })
             .wrap(),
-            Prop::new("SSL / SSH", format!("{ssl} / {ssh}")).tone(Tone::Secondary),
+            ssl,
+            Prop::new("SSH", ssh).tone(Tone::Secondary),
             Prop::new("Last used", c.last_used.clone()).tone(Tone::Muted),
         ];
         if c.environment == Environment::Production && c.safe_mode == SafeMode::Silent {
@@ -1640,17 +1657,18 @@ impl ConnectionsScreen {
         form.save_btn.render(rects[2], buf, ctx, bg);
         form.save_connect_btn.render(rects[3], buf, ctx, bg);
         if let ConnState::Tested(res) = &self.state {
-            let (msg, st) = match res {
-                Ok(m) => (format!("✓ {m}"), t.secondary()),
-                Err(e) => (format!("! {e}"), t.error_fg()),
+            let (kind, m) = match res {
+                Ok(m) => (junie_tui::theme::StatusKind::Ok, m),
+                Err(e) => (junie_tui::theme::StatusKind::Fail, e),
             };
+            let (glyph, gs) = t.status(kind);
             let x = rects[3].right() + 2;
-            buf.set_string(
-                x,
-                ay,
-                junie_tui::ui::text::truncate(&msg, inner.right().saturating_sub(x) as usize),
-                st.bg(bg),
-            );
+            let room = inner.right().saturating_sub(x) as usize;
+            let msg = junie_tui::ui::text::truncate(&format!("{glyph} {m}"), room);
+            buf.set_string(x, ay, &msg, t.status_label(kind).bg(bg));
+            if !msg.is_empty() {
+                buf.set_string(x, ay, glyph, gs.bg(bg));
+            }
         }
     }
 }
