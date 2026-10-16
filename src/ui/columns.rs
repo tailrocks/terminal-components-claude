@@ -350,7 +350,7 @@ pub fn render_seam(
         let glyph = if pressed {
             t.glyphs.scroll_thumb
         } else {
-            t.glyphs.scroll_track
+            t.glyphs.divider
         };
         buf.set_string(glyph_x, hit.y, glyph, style);
     }

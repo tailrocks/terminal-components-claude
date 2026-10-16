@@ -1482,7 +1482,6 @@ mod scroll_tests {
 
     #[test]
     fn a_divider_keeps_the_last_column_and_the_marker_names_the_selected_leaf() {
-        use crate::widgets::scrollbar::TRACK;
         let theme = Theme::junie();
         let nodes = vec![TreeNode::dir("Group", vec![TreeNode::leaf("Page")])];
         let mut tv = TreeView::new(WidgetId::of("t"), nodes)
@@ -1503,7 +1502,11 @@ mod scroll_tests {
         };
         let buf = draw(&mut tv, None);
         for y in 0..4 {
-            assert_eq!(buf[(19, y)].symbol(), TRACK, "row {y}: the divider");
+            assert_eq!(
+                buf[(19, y)].symbol(),
+                theme.glyphs.divider,
+                "row {y}: the divider"
+            );
         }
         let x = (0..19)
             .find(|&x| buf[(x, 1)].symbol() == "›")

@@ -84,6 +84,8 @@ Three findings matter most:
 
 **13. Scrollbars.** The track glyph `│` is identical to panel borders. Change: track in `border_subtle` (or a dotted `┆` / no track at all); thumb in `┃`/`━` in text_secondary; held = `█`. The glyph difference already carries state in mono, which is good.
 
+*Done 2026-10-16:* the dotted track (`┆` / `┄`, its own `Theme::scroll_track` ink). Decision log in [hscroll.md](hscroll.md#decision-the-track-is-a-dotted-rail-2026-10-16). The thumb keeps `┃`/`━` in every state (AGENTS.md); held stays the accent, not `█`.
+
 **14. Selection colour.**
 - **Selection fill.** Selection is information needed to identify state, so it needs 3:1 against adjacent colours (1.4.11). `#173f1c` and `#1f3460` are about 1.7:1. Change: always pair the fill with a non-colour cue (a `✓`/`●` marker column or BOLD) and keep the fill as reinforcement.
 - **Two greens.** Success (`#3fb950`) vs accent (`#48e054`) is 1.46:1 and almost the same hue, so they can't be told apart, especially with deuteranopia. Change: success always carries a `✓` glyph, or shift it toward teal (around `#2fb5a0`).

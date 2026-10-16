@@ -745,7 +745,7 @@ mod reveal_tests {
         let text = render(&mut l, Interaction::default());
         let row: Vec<char> = text.lines().next().unwrap().chars().take(20).collect();
         assert!(
-            matches!(row[19], '│' | '┃'),
+            matches!(row[19], '┆' | '┃'),
             "bar in the last column: {row:?}"
         );
         assert_eq!(row[18], ' ', "one blank column before the bar: {row:?}");
