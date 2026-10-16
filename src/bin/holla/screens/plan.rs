@@ -31,6 +31,7 @@ use crate::screens::{
     row_anchor, scroll_drag, scroll_press, ticks_label, truncate_sep,
 };
 use crate::sim::world::World;
+use junie_tui::core::scroll::Scrollable;
 
 pub const OUTLINE: WidgetId = WidgetId::of("plan.outline");
 pub const DETAIL: WidgetId = WidgetId::of("plan.detail");

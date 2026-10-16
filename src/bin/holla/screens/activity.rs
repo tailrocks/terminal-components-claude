@@ -30,6 +30,7 @@ use crate::screens::{
     Cx, Go, ModalResult, ModalTag, Screen, StatusBits, open_context, ticks_label,
 };
 use crate::sim::world::World;
+use junie_tui::core::scroll::Scrollable;
 
 pub const VIEW: WidgetId = WidgetId::of("activity.view");
 pub const CHIPS: WidgetId = WidgetId::of("activity.chips");

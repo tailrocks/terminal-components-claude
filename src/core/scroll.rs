@@ -380,7 +380,7 @@ impl HScroll {
 /// (in [`crate::widgets::scrollbar`]), which remember the tracks they drew:
 /// a press maps through the track the user saw, and a bar that was not
 /// drawn this frame has nothing to press.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ScrollPane {
     /// The vertical state (rows).
     pub v: ScrollState,

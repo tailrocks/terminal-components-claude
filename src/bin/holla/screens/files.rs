@@ -30,6 +30,7 @@ use crate::screens::{
 };
 use crate::sim::fs::{FindHit, Fs, NodeKind, Preview, human};
 use crate::sim::world::{SourceState, World};
+use junie_tui::core::scroll::Scrollable;
 
 pub const LIST: WidgetId = WidgetId::of("files.list");
 pub const PREVIEW: WidgetId = WidgetId::of("files.preview");
@@ -384,7 +385,7 @@ impl FilesPage {
         self.preview.set_lines(vp);
         self.preview.set_follow(false);
         self.preview.scroll.jump_start();
-        self.preview.hscroll.jump_start();
+        self.preview.scroll.h.jump_start();
     }
 
     fn run_find(&mut self) {

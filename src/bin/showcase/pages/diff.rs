@@ -8,6 +8,7 @@ use ratatui::layout::Rect;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::diff::{DiffFile, DiffHunk, DiffLine, DiffMode, DiffStatus, DiffView};

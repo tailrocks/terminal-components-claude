@@ -1571,7 +1571,11 @@ impl QueryTab {
             };
         }
         if self.editor.owns(id) {
-            return self.editor.on_wheel(delta, horizontal);
+            return if horizontal {
+                self.editor.on_wheel_h(delta)
+            } else {
+                self.editor.on_wheel(delta)
+            };
         }
         let Some(r) = self.results.get_mut(self.active_result) else {
             return Outcome::Ignored;
