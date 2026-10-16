@@ -114,6 +114,9 @@ pub struct Picker {
     /// Optional right-aligned scope label in the query row.
     pub scope: Option<String>,
     pub empty_text: String,
+    /// A full empty state (title, hint, error tone) shown instead of
+    /// [`Self::empty_text`] when set. Default `None`.
+    pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
     /// Show the query field (false for fixed-choice pickers).
     pub searchable: bool,
@@ -178,6 +181,7 @@ impl Picker {
             backdrop: Backdrop::DEFAULT,
             scope: None,
             empty_text: "No matches".into(),
+            empty: None,
             area: Rect::ZERO,
             searchable: true,
             cursor_style: CursorStyle::default(),
@@ -271,6 +275,12 @@ impl Picker {
     /// The query field's placeholder.
     pub fn placeholder(mut self, text: &str) -> Self {
         self.placeholder = text.to_owned();
+        self
+    }
+
+    /// See [`Self::empty`].
+    pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
+        self.empty = Some(state);
         self
     }
 
@@ -759,7 +769,10 @@ impl Picker {
                 list,
                 buf,
                 t,
-                &crate::widgets::empty::EmptyState::new(&self.empty_text),
+                &self
+                    .empty
+                    .clone()
+                    .unwrap_or_else(|| crate::widgets::empty::EmptyState::new(&self.empty_text)),
                 bg,
             );
         }
