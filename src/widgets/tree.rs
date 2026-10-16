@@ -117,6 +117,19 @@ pub struct TreeView {
     rows: Vec<FlatRow>,
     /// Case-insensitive substring filter; ancestors of matches stay visible.
     pub filter: Option<String>,
+    /// Cells kept free at the right of every row (left of the scrollbar)
+    /// for columns the owner draws there (a tree table's metrics). Labels
+    /// and metadata end before them and are cut with `…`, so the trailing
+    /// columns never paint over a label. Default 0: the label row uses the
+    /// full width.
+    pub reserve_right: u16,
+    /// Draw each row's trailing metadata. Default true; an owner that keeps
+    /// a key in `meta` (and draws its own trailing columns) turns it off.
+    pub show_meta: bool,
+    /// The trailing column strip as last drawn (`x` and `width`; `y` and
+    /// `height` span the rows), or `Rect::ZERO` when nothing is reserved or
+    /// the strip does not fit. Owners align their headers and cells to it.
+    trailing: Rect,
 }
 
 impl TreeView {
@@ -132,6 +145,9 @@ impl TreeView {
             track: Rect::ZERO,
             rows: vec![],
             filter: None,
+            reserve_right: 0,
+            show_meta: true,
+            trailing: Rect::ZERO,
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -144,6 +160,29 @@ impl TreeView {
     pub fn rows(&self) -> &[FlatRow] {
         &self.rows
     }
+
+    /// Keep `cells` free at the right of every row for owner-drawn columns.
+    pub fn reserve_right(mut self, cells: u16) -> Self {
+        self.reserve_right = cells;
+        self
+    }
+
+    /// Show or hide the per-row trailing metadata.
+    pub fn show_meta(mut self, on: bool) -> Self {
+        self.show_meta = on;
+        self
+    }
+
+    /// The reserved trailing strip as last drawn; `Rect::ZERO` when there is
+    /// none (nothing reserved, or the tree is too narrow to keep a label of
+    /// at least [`TreeView::MIN_LABEL`] cells beside it).
+    pub fn trailing(&self) -> Rect {
+        self.trailing
+    }
+
+    /// The narrowest label the reserved strip may leave; below it the strip
+    /// is dropped rather than starve the labels.
+    pub const MIN_LABEL: u16 = 12;
 
     pub fn flatten(&mut self) {
         // the focused node is an identity, not a display position: capture
@@ -537,25 +576,41 @@ impl TreeView {
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         let has_sb = self.scroll.overflows();
-        let row_w = area.width.saturating_sub(if has_sb { 1 } else { 0 });
+        let full_w = area.width.saturating_sub(if has_sb { 1 } else { 0 });
+        // the owner's trailing columns keep their strip while a usable label
+        // column remains beside them; labels end before the strip
+        let reserve = if self.reserve_right > 0 && full_w >= self.reserve_right + Self::MIN_LABEL {
+            self.reserve_right
+        } else {
+            0
+        };
+        self.trailing = if reserve > 0 {
+            Rect::new(area.x + full_w - reserve, area.y, reserve, area.height)
+        } else {
+            Rect::ZERO
+        };
+        let row_w = full_w - reserve;
         // metadata is a column: either every visible row shows it or none does
-        let show_meta = self.scroll.visible_range().all(|ri| {
-            let row = &self.rows[ri];
-            let Some(m) = &row.meta else { return true };
-            let need = 1
-                + (row.depth * 2) as u16
-                + 2
-                + if row.glyph.is_some() { 2 } else { 0 }
-                + crate::ui::text::width(&row.label) as u16
-                + 2
-                + crate::ui::text::width(m) as u16
-                + 1;
-            need <= row_w
-        });
+        let show_meta = self.show_meta
+            && self.scroll.visible_range().all(|ri| {
+                let row = &self.rows[ri];
+                let Some(m) = &row.meta else { return true };
+                let need = 1
+                    + (row.depth * 2) as u16
+                    + 2
+                    + if row.glyph.is_some() { 2 } else { 0 }
+                    + crate::ui::text::width(&row.label) as u16
+                    + 2
+                    + crate::ui::text::width(m) as u16
+                    + 1;
+                need <= row_w
+            });
         for (i, ri) in self.scroll.visible_range().enumerate() {
             let y = area.y + i as u16;
             let row = &self.rows[ri];
             let rect = Rect::new(area.x, y, row_w, 1);
+            // the row (fill, press, click) spans the reserved strip too
+            let full = Rect::new(area.x, y, full_w, 1);
             let rid = self.row_id(ri);
             let mut s = ctx.child_state(self.id, rid, ri == self.cursor);
             let tid = self.toggle_id(ri);
@@ -565,7 +620,7 @@ impl TreeView {
             s.focused = focused && ri == self.cursor;
             s.selected = self.selected.as_ref() == Some(&row.path);
             let st = t.row(s, bg);
-            fill(buf, rect, st);
+            fill(buf, full, st);
             buf.set_string(
                 rect.x,
                 y,
@@ -646,7 +701,7 @@ impl TreeView {
                     st.fg(t.text_muted),
                 );
             }
-            ctx.clickable(rid, rect);
+            ctx.clickable(rid, full);
             // toggle region registered after row so it wins hit-testing
             if row.has_children {
                 ctx.clickable(tid, Rect::new(rect.x + 1 + indent, y, 2, 1));
@@ -876,5 +931,34 @@ mod scroll_tests {
         t.on_key(&key);
         render(&mut t);
         assert!(t.scroll.visible_range().contains(&t.cursor));
+    }
+
+    #[test]
+    fn reserved_trailing_columns_cut_labels_with_an_ellipsis_and_stay_clear() {
+        let nodes = vec![TreeNode::leaf_meta(
+            "Parallel Seq Scan on public.orders_archive",
+            "0",
+        )];
+        let mut t = TreeView::new(WidgetId::of("t"), nodes)
+            .reserve_right(20)
+            .show_meta(false);
+        let out = render(&mut t);
+        let row: Vec<char> = out.lines().next().unwrap().chars().collect();
+        let strip = t.trailing();
+        assert_eq!((strip.x, strip.width), (20, 20), "{out}");
+        let label: String = row[..20].iter().collect();
+        assert!(
+            label.trim_end().ends_with('…'),
+            "label cut with …: {label:?}"
+        );
+        assert!(
+            row[20..].iter().all(|c| *c == ' '),
+            "the strip is left for the owner: {out}"
+        );
+        // too narrow for a usable label beside the strip: the strip goes
+        let mut narrow =
+            TreeView::new(WidgetId::of("t"), vec![TreeNode::leaf("x")]).reserve_right(30);
+        render(&mut narrow);
+        assert_eq!(narrow.trailing(), Rect::ZERO);
     }
 }
