@@ -258,6 +258,29 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     );
 }
 
+/// Standards gap 8: an open popup repositions when the terminal is
+/// resized; it never ends up cut off or outside the screen. The row menu
+/// opens near the right edge, then the window narrows under it.
+#[test]
+fn an_open_menu_stays_on_screen_when_the_terminal_shrinks() {
+    let mut h = Harness::new(PageId::Lists);
+    let billing = h.at("src/api/billing.rs");
+    h.right_click((billing.0 + 2, billing.1));
+    let before = h.menu(LISTS_MENU).expect("the row menu");
+    let (w, hgt) = (before.right() - 4, 30);
+    h.term.backend_mut().resize(w, hgt);
+    h.send(Input::Resize(w, hgt));
+    let after = h
+        .menu(LISTS_MENU)
+        .unwrap_or_else(|| panic!("still open\n{}", h.text()));
+    assert!(
+        after.right() <= w && after.bottom() <= hgt,
+        "{after:?} inside {w}×{hgt}\n{}",
+        h.text()
+    );
+    assert_eq!(after.width, before.width, "moved, not cut");
+}
+
 /// Keyboard audit #14: the shortcut letters menus show did nothing. A
 /// row's one-character shortcut chooses it; any other key the menu has no
 /// use for closes it and reaches the page (macOS).
