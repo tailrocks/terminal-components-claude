@@ -27,6 +27,7 @@ fn until<F: Fn(&H) -> bool>(h: &mut H, max_ticks: usize, f: F) -> bool {
 
 fn row(h: &H, id: junie_tui::core::id::WidgetId) -> Rect {
     h.app
+        .shell
         .hits
         .area_of(id)
         .unwrap_or_else(|| panic!("row {id:?} not drawn\n{}", h.text()))
@@ -44,7 +45,7 @@ fn a_plan_step_right_click_opens_its_menu_at_the_pointer_and_toggles_it() {
     let r = row(&h, plan::OUTLINE.child(5));
     let (x, y) = (r.x + 10, r.y);
     right_click(&mut h, x, y);
-    assert_eq!(h.app.focus.current(), Some(plan::STEP_MENU));
+    assert_eq!(h.app.shell.focus.current(), Some(plan::STEP_MENU));
     assert_at_pointer(&h, plan::STEP_MENU, x, y);
     let t = h.text();
     assert!(t.contains("06 "), "titled by the step\n{t}");
@@ -56,7 +57,7 @@ fn a_plan_step_right_click_opens_its_menu_at_the_pointer_and_toggles_it() {
     choose(&mut h, "Exclude step");
     assert!(h.app.modals.is_empty());
     assert!(!h.app.world.plans[0].steps[5].included, "excluded");
-    assert_eq!(h.app.focus.current(), Some(plan::OUTLINE));
+    assert_eq!(h.app.shell.focus.current(), Some(plan::OUTLINE));
 
     // a required step offers the toggle disabled, with its reason
     let r0 = row(&h, plan::OUTLINE.child(0));
@@ -79,7 +80,12 @@ fn shift_f10_opens_the_step_menu_below_the_cursor_row() {
     assert!(!h.app.world.plans[0].steps[5].included);
     let r = row(&h, plan::OUTLINE.child(5));
     shift_f10(&mut h);
-    assert_eq!(h.app.focus.current(), Some(plan::STEP_MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(plan::STEP_MENU),
+        "{}",
+        h.text()
+    );
     assert_below_row(&h, plan::STEP_MENU, r.y);
     choose(&mut h, "Undo last change");
     assert!(h.app.world.plans[0].steps[5].included, "undone");
@@ -154,7 +160,12 @@ fn a_disk_tree_row_right_click_opens_its_menu_at_the_pointer_and_selects_it() {
     let mut h = disk_tree();
     let (x, y) = h.find("vm.img").expect("vm.img row");
     right_click(&mut h, x + 2, y);
-    assert_eq!(h.app.focus.current(), Some(disk::ROW_MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(disk::ROW_MENU),
+        "{}",
+        h.text()
+    );
     assert_at_pointer(&h, disk::ROW_MENU, x + 2, y);
     let t = h.text();
     assert!(t.contains("Copy path") && t.contains("Rescan"), "{t}");
@@ -167,7 +178,7 @@ fn a_disk_tree_row_right_click_opens_its_menu_at_the_pointer_and_selects_it() {
         "{:?}",
         disk_selected(&mut h)
     );
-    assert_eq!(h.app.focus.current(), Some(disk::TREE));
+    assert_eq!(h.app.shell.focus.current(), Some(disk::TREE));
 }
 
 #[test]
@@ -176,7 +187,12 @@ fn shift_f10_opens_the_disk_row_menu_below_the_cursor_row_and_reopens_outside() 
     let (x, y) = h.find("vm.img").expect("vm.img row");
     h.click(x + 2, y);
     shift_f10(&mut h);
-    assert_eq!(h.app.focus.current(), Some(disk::ROW_MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(disk::ROW_MENU),
+        "{}",
+        h.text()
+    );
     assert_below_row(&h, disk::ROW_MENU, y);
     h.key(KeyCode::Esc);
     // a right click on another row, outside the open menu, reopens there
@@ -197,7 +213,12 @@ fn a_disk_overview_row_menu_analyzes_the_row() {
     assert!(h.text().contains("Here › Disk › Overview"), "{}", h.text());
     let depth = h.app.tabs[0].stack.len();
     shift_f10(&mut h);
-    assert_eq!(h.app.focus.current(), Some(disk::ROW_MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(disk::ROW_MENU),
+        "{}",
+        h.text()
+    );
     assert!(h.text().contains("Analyze"), "{}", h.text());
     choose(&mut h, "Analyze");
     assert!(h.app.modals.is_empty());
@@ -233,7 +254,12 @@ fn an_activity_output_right_click_opens_its_menu_at_the_pointer_and_stops_it() {
     let v = row(&h, activity::VIEW);
     let (x, y) = (v.x + 4, v.y + 2);
     right_click(&mut h, x, y);
-    assert_eq!(h.app.focus.current(), Some(activity::MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(activity::MENU),
+        "{}",
+        h.text()
+    );
     assert_at_pointer(&h, activity::MENU, x, y);
     let t = h.text();
     assert!(
@@ -248,7 +274,7 @@ fn an_activity_output_right_click_opens_its_menu_at_the_pointer_and_stops_it() {
         "{:?}",
         activity_state(&h, &name)
     );
-    assert_eq!(h.app.focus.current(), Some(activity::VIEW));
+    assert_eq!(h.app.shell.focus.current(), Some(activity::VIEW));
 }
 
 /// The activity tab's output viewport.
@@ -267,11 +293,16 @@ fn shift_f10_opens_the_activity_menu_at_the_followed_tail() {
     let mut h = activities();
     h.alt(KeyCode::Char('1'));
     let v = row(&h, activity::VIEW);
-    assert_eq!(h.app.focus.current(), Some(activity::VIEW));
+    assert_eq!(h.app.shell.focus.current(), Some(activity::VIEW));
     let drawn = activity_view(&mut h).scroll.visible_range().len() as u16;
     assert!(drawn > 1, "output on screen\n{}", h.text());
     shift_f10(&mut h);
-    assert_eq!(h.app.focus.current(), Some(activity::MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(activity::MENU),
+        "{}",
+        h.text()
+    );
     // no cursor row: the last drawn line of the followed output stands in
     let a = menu_area(&h, activity::MENU);
     assert!(
@@ -297,7 +328,12 @@ fn shift_f10_opens_the_activity_menu_at_the_selection() {
     h.mouse(MouseKind::Up, v.x + 6, v.y + 1);
     assert!(activity_view(&mut h).has_selection(), "{}", h.text());
     shift_f10(&mut h);
-    assert_eq!(h.app.focus.current(), Some(activity::MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(activity::MENU),
+        "{}",
+        h.text()
+    );
     assert_at_pointer(&h, activity::MENU, v.x + 6, v.y + 1);
     assert!(!h.text().contains("Select text first"), "{}", h.text());
 }
@@ -318,7 +354,7 @@ fn a_stream_chip_menu_hides_the_stream_and_reopens_from_the_output() {
     // open the output menu, then right-click the chip outside it
     let v = row(&h, activity::VIEW);
     right_click(&mut h, v.x + 30, v.y + 4);
-    assert_eq!(h.app.focus.current(), Some(activity::MENU));
+    assert_eq!(h.app.shell.focus.current(), Some(activity::MENU));
     let chip = row(&h, activity::CHIPS.child(0));
     let (cx, cy) = (chip.x, chip.y);
     right_click(&mut h, cx + 1, cy);
@@ -331,7 +367,7 @@ fn a_stream_chip_menu_hides_the_stream_and_reopens_from_the_output() {
         "{:?}",
         h.app.world.activities[a].hidden_services
     );
-    assert_eq!(h.app.focus.current(), Some(activity::CHIPS));
+    assert_eq!(h.app.shell.focus.current(), Some(activity::CHIPS));
 }
 
 // --------------------------------------------------------------- cleanup
@@ -351,7 +387,7 @@ fn a_cleanup_row_right_click_opens_its_menu_at_the_pointer_and_unselects() {
     let (x, y) = h.find("Xcode device support").expect("the category row");
     right_click(&mut h, x + 2, y);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(cleanup::ROW_MENU),
         "{}",
         h.text()
@@ -366,22 +402,22 @@ fn a_cleanup_row_right_click_opens_its_menu_at_the_pointer_and_unselects() {
     choose(&mut h, "Unselect category");
     assert!(h.app.modals.is_empty());
     assert!(!h.text().contains("19 selected"), "{}", h.text());
-    assert_eq!(h.app.focus.current(), Some(cleanup::LIST));
+    assert_eq!(h.app.shell.focus.current(), Some(cleanup::LIST));
 }
 
 #[test]
 fn shift_f10_opens_the_cleanup_menu_below_the_cursor_row() {
     let mut h = cleanup_page();
-    assert_eq!(h.app.focus.current(), Some(cleanup::LIST));
+    assert_eq!(h.app.shell.focus.current(), Some(cleanup::LIST));
     shift_f10(&mut h);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(cleanup::ROW_MENU),
         "{}",
         h.text()
     );
     choose(&mut h, "Show details");
-    assert_eq!(h.app.focus.current(), Some(cleanup::DETAIL));
+    assert_eq!(h.app.shell.focus.current(), Some(cleanup::DETAIL));
 }
 
 // ------------------------------------------------------------ snapshot
@@ -396,12 +432,17 @@ fn a_snapshot_body_menu_runs_the_page_keys() {
     let body = row(&h, snapshot::BODY);
     let (x, y) = (body.x + 3, body.y + 1);
     right_click(&mut h, x, y);
-    assert_eq!(h.app.focus.current(), Some(snapshot::MENU), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(snapshot::MENU),
+        "{}",
+        h.text()
+    );
     assert_at_pointer(&h, snapshot::MENU, x, y);
     choose(&mut h, "Refresh");
     assert!(h.text().contains("Refreshed · live"), "{}", h.text());
     // the keyboard opens it at the body's top line
-    h.app.focus.focus(snapshot::BODY);
+    h.app.shell.focus.focus(snapshot::BODY);
     h.draw();
     shift_f10(&mut h);
     assert_below_row(&h, snapshot::MENU, body.y);
@@ -435,11 +476,11 @@ fn the_gate_sequence_menu_copies_or_cancels_but_never_continues() {
     h.draw();
     assert!(h.text().contains("gate 1 of 2"));
     let seq = row(&h, review::SEQUENCE);
-    h.app.focus.focus(review::SEQUENCE);
+    h.app.shell.focus.focus(review::SEQUENCE);
     h.draw();
     shift_f10(&mut h);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(review::SEQUENCE_MENU),
         "{}",
         h.text()
