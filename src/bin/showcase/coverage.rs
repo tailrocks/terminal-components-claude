@@ -95,6 +95,225 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
+    // SC4: Chrome, Status & hints
+    (
+        "widgets::hintbar::HintLayer",
+        Demo("statushints", "screen layer"),
+    ),
+    (
+        "widgets::hintbar::HintLayer::align",
+        Option("statushints", "statushints.align"),
+    ),
+    (
+        "widgets::hintbar::HintLayer::badge",
+        Option("statushints", "statushints.badge"),
+    ),
+    (
+        "widgets::hintbar::HintLayer::status",
+        Option("statushints", "statushints.status"),
+    ),
+    (
+        "widgets::keyhint::Hint",
+        Demo("statushints", "Priorities · HintPriority"),
+    ),
+    (
+        "widgets::keyhint::HintPriority",
+        Option("statushints", "statushints.priority"),
+    ),
+    (
+        "widgets::keyhint::HintPriority::Auto",
+        Option("statushints", "statushints.priority=auto"),
+    ),
+    (
+        "widgets::keyhint::HintPriority::Normal",
+        Option("statushints", "statushints.priority=normal"),
+    ),
+    (
+        "widgets::keyhint::HintPriority::Pinned",
+        Option("statushints", "statushints.priority=pinned"),
+    ),
+    (
+        "widgets::keyhint::Hint::priority",
+        Option("statushints", "statushints.priority"),
+    ),
+    (
+        "widgets::keyhint::Hint::pinned",
+        Demo("statushints", "Hint::pinned keeps F5"),
+    ),
+    (
+        "theme::HintAlign",
+        Option("statushints", "statushints.align"),
+    ),
+    (
+        "theme::HintAlign::Start",
+        Demo("statushints", "HintAlign::Start"),
+    ),
+    (
+        "theme::HintAlign::Center",
+        Demo("statushints", "HintAlign::Center"),
+    ),
+    (
+        "theme::HintBarStyle",
+        Demo("statushints", "HintBarStyle · align Start"),
+    ),
+    (
+        "widgets::menu::MenuBarAction",
+        Demo("chrome", "last MenuBarAction: —"),
+    ),
+    (
+        "widgets::menu::MenuBarAction::Opened",
+        Demo("chrome", "(Opened(menu)"),
+    ),
+    (
+        "widgets::menu::MenuBarAction::Chosen",
+        Demo("chrome", "Chosen(menu, item)"),
+    ),
+    (
+        "widgets::menu::MenuBarAction::Closed",
+        Demo("chrome", "· Closed ·"),
+    ),
+    (
+        "widgets::menu::MenuBarAction::Brand",
+        Demo("chrome", "Closed · Brand)"),
+    ),
+    ("widgets::menu::OpenOn", Option("chrome", "chrome.open_on")),
+    (
+        "widgets::menu::OpenOn::Press",
+        Option("chrome", "chrome.open_on=press"),
+    ),
+    (
+        "widgets::menu::OpenOn::Release",
+        Option("chrome", "chrome.open_on=release"),
+    ),
+    (
+        "widgets::menu::Overflow",
+        Option("chrome", "chrome.overflow"),
+    ),
+    (
+        "widgets::menu::Overflow::Hide",
+        Option("chrome", "chrome.overflow=hide"),
+    ),
+    (
+        "widgets::menu::Overflow::Chevron",
+        Option("chrome", "chrome.overflow=chevron"),
+    ),
+    (
+        "widgets::menu::MenuBar::nav",
+        Option("chrome", "chrome.nav"),
+    ),
+    (
+        "widgets::menu::MenuBar::open_on",
+        Option("chrome", "chrome.open_on"),
+    ),
+    (
+        "widgets::menu::MenuBar::press_drag",
+        Option("chrome", "chrome.press_drag"),
+    ),
+    (
+        "widgets::menu::MenuBar::type_ahead",
+        Option("chrome", "chrome.type_ahead"),
+    ),
+    (
+        "widgets::menu::MenuBar::overflow",
+        Option("chrome", "chrome.overflow"),
+    ),
+    (
+        "widgets::menu::MenuBar::hide_owner_focus",
+        Option("chrome", "chrome.hide_owner_focus"),
+    ),
+    (
+        "widgets::menu::MenuBar::dismiss",
+        Option("chrome", "chrome.dismiss"),
+    ),
+    (
+        "widgets::menu::MenuBar::wrap",
+        Option("chrome", "chrome.wrap"),
+    ),
+    (
+        "widgets::menu::MenuBar::hover_switch",
+        Option("chrome", "chrome.hover_switch"),
+    ),
+    (
+        "widgets::menu::MenuBar::brand",
+        Option("chrome", "chrome.brand"),
+    ),
+    (
+        "widgets::segments::Segment::bold",
+        Demo("chrome", "payments-platform ◆ production"),
+    ),
+    (
+        "widgets::segments::Segment::clickable",
+        Demo("chrome", "Clickable segment"),
+    ),
+    (
+        "widgets::segments::Segment::priority",
+        Demo("chrome", "identity strip · segments drop by priority"),
+    ),
+    (
+        "widgets::segments::Segment::lead",
+        Demo("chrome", "◆ production ◇ staging"),
+    ),
+    (
+        "widgets::statusbar::Emphasis",
+        Demo("chrome", "Status chip"),
+    ),
+    (
+        "widgets::statusbar::Emphasis::Plain",
+        Demo("chrome", "PR #482 · settlement backoff"),
+    ),
+    (
+        "widgets::statusbar::Emphasis::Strong",
+        Demo("chrome", "payments-platform PR #482"),
+    ),
+    (
+        "widgets::statusbar::Emphasis::Chip",
+        Demo("chrome", "Weekly 59%"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::busy",
+        StateRow("chrome", "busy"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::meter",
+        Demo("chrome", "disk ━"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::meter_stale",
+        Demo("chrome", "quota ╍"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::priority",
+        Demo("chrome", "StatusBar::layout places 8 of 8"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::clickable",
+        StateRow("chrome", "hover"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::strong",
+        Demo("chrome", "payments-platform PR #482"),
+    ),
+    (
+        "widgets::statusbar::StatusItem::chip",
+        Demo("chrome", "Weekly 59%"),
+    ),
+    (
+        "widgets::statusbar::Group",
+        Demo("chrome", "places 8 of 8 · Left"),
+    ),
+    ("widgets::statusbar::Group::Left", Demo("chrome", "Left 2,")),
+    (
+        "widgets::statusbar::Group::Center",
+        Demo("chrome", "Center 1,"),
+    ),
+    (
+        "widgets::statusbar::Group::Right",
+        Demo("chrome", "Right 5"),
+    ),
+    (
+        "widgets::statusbar::Placed",
+        Demo("chrome", "StatusBar::layout places"),
+    ),
     // SC3: Overview theme reference
     (
         "theme::Theme::field_hover",
@@ -295,7 +514,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("widgets::brand::Lockup", Demo("chrome", "app❯")),
     (
         "widgets::menu::MenuBar",
-        Demo("chrome", "app❯ File View Help"),
+        Demo("chrome", "app❯ File Edit View Session Help"),
     ),
     (
         "widgets::menu::ContextMenu",

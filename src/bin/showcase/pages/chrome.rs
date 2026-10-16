@@ -1,45 +1,126 @@
-//! Application chrome: the brand lockup, a menu bar with anchored menus, a
-//! status bar with three groups that collapse by priority, a context menu
-//! on list rows, and the hint-bar layer precedence.
+//! Application chrome (plan §7, SC4): the brand lockup, a menu bar with
+//! anchored menus, an identity strip of segments, a status bar with three
+//! groups that collapse by priority, a context menu on list rows, and the
+//! hint-bar layer precedence.
+//!
+//! Options rebuild the menu bar through its builders (`open_on`,
+//! `overflow`, `hover_switch`, `press_drag`, `hide_owner_focus`, `wrap`,
+//! `type_ahead`, `nav`, `dismiss`, `brand`); the readout under the bar
+//! reads the built widget back. States: segments and status items drawn
+//! by themselves in every state they have.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::page_options;
 use crate::pages::row_menu::RowMenu;
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::scroll::Scrollable;
 use junie_tui::theme::{BadgeKind, StatusKind, Tone};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::popup::Dismiss;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::tooltip::Tip;
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::hint;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
-use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
+use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarAction, MenuItem, OpenOn, Overflow};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
+use junie_tui::widgets::progress::MeterTone;
+use junie_tui::widgets::segments::{self, Segment};
+use junie_tui::widgets::statusbar::{Group, StatusBar, StatusItem};
 use junie_tui::widgets::viewport::{Span, render_spans};
 use ratatui::crossterm::event::KeyCode;
 
+const ID: WidgetId = WidgetId::of("chrome");
 const BAR: WidgetId = WidgetId::of("chrome.menubar");
 const SESSIONS: WidgetId = WidgetId::of("chrome.sessions");
 const CONTEXT: WidgetId = WidgetId::of("chrome.context");
 const USAGE: WidgetId = WidgetId::of("chrome.status.usage");
 const PR: WidgetId = WidgetId::of("chrome.status.pr");
+const ENV: WidgetId = WidgetId::of("chrome.strip.env");
+const PENDING: WidgetId = WidgetId::of("chrome.strip.pending");
+
+/// Width of the menu bar under `chrome.bar=narrow`: too narrow for every
+/// title, so `chrome.overflow` shows.
+const NARROW_BAR: u16 = 30;
+
+/// What an open context menu is about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Target {
+    /// A session row's tab menu.
+    Session(usize),
+    /// The app menu anchored at the environment segment.
+    Env,
+}
 
 pub struct ChromePage {
+    template: Template,
     bar: MenuBar,
     sessions: ListBox,
-    context: RowMenu<usize>,
+    context: RowMenu<Target>,
     last: String,
+    /// The last `MenuBarAction` the bar reported.
+    action: Option<MenuBarAction>,
     zoomed: bool,
     hint_area: Rect,
+    /// Value indices of the page options, in `page_options` order.
+    opts: Vec<usize>,
 }
 
 impl ChromePage {
     pub fn new() -> Self {
+        let opts: Vec<usize> = page_options(PageId::Chrome)
+            .iter()
+            .map(|o| o.default)
+            .collect();
+        let items = [
+            ("1 Claude Code (Work)", "working"),
+            ("2 Codex (Primary)", "idle"),
+            ("3 Shell", ""),
+            ("4 docs", "blocked"),
+        ]
+        .into_iter()
+        .map(|(l, m)| ListItem::new(l).meta(m))
+        .collect();
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            bar: MenuBar::new(BAR, Vec::new()),
+            sessions: ListBox::new(SESSIONS, items, SelectMode::Single),
+            context: RowMenu::default(),
+            last: "nothing yet".into(),
+            action: None,
+            zoomed: false,
+            hint_area: Rect::ZERO,
+            opts,
+        };
+        page.bar = page.build_bar();
+        page
+    }
+
+    /// The value of option `key` (`chrome.<name>`) as the table spells it.
+    fn opt(&self, key: &str) -> &'static str {
+        let table = page_options(PageId::Chrome);
+        let i = table
+            .iter()
+            .position(|o| o.key == key)
+            .unwrap_or_else(|| panic!("no option {key}"));
+        table[i].values[self.opts[i]]
+    }
+
+    fn on(&self, key: &str) -> bool {
+        self.opt(key) == "on"
+    }
+
+    /// The menu bar, built from the options through its builders.
+    fn build_bar(&self) -> MenuBar {
         let bar = MenuBar::new(
             BAR,
             vec![
@@ -53,6 +134,13 @@ impl ChromePage {
                     ],
                 ),
                 (
+                    "Edit",
+                    vec![
+                        MenuItem::new("Copy").shortcut("y"),
+                        MenuItem::new("Paste").shortcut("p"),
+                    ],
+                ),
+                (
                     "View",
                     vec![
                         MenuItem::new("Zoom pane").shortcut("z"),
@@ -61,27 +149,107 @@ impl ChromePage {
                         MenuItem::new("Inspect changes").disabled(true),
                     ],
                 ),
+                (
+                    "Session",
+                    vec![
+                        MenuItem::new("Rename…").shortcut("n"),
+                        MenuItem::new("Detach").shortcut("d"),
+                    ],
+                ),
                 ("Help", vec![MenuItem::new("Key reference").shortcut("?")]),
             ],
         )
-        .brand(Lockup::new("app❯"));
-        let items = [
-            ("1 Claude Code (Work)", "working"),
-            ("2 Codex (Primary)", "idle"),
-            ("3 Shell", ""),
-            ("4 docs", "blocked"),
-        ]
-        .into_iter()
-        .map(|(l, m)| ListItem::new(l).meta(m))
-        .collect();
-        Self {
-            bar,
-            sessions: ListBox::new(SESSIONS, items, SelectMode::Single),
-            context: RowMenu::default(),
-            last: "nothing yet".into(),
-            zoomed: false,
-            hint_area: Rect::ZERO,
+        .open_on(match self.opt("chrome.open_on") {
+            "release" => OpenOn::Release,
+            _ => OpenOn::Press,
+        })
+        .overflow(match self.opt("chrome.overflow") {
+            "chevron" => Overflow::Chevron,
+            _ => Overflow::Hide,
+        })
+        .hover_switch(self.on("chrome.hover_switch"))
+        .press_drag(self.on("chrome.press_drag"))
+        .hide_owner_focus(self.on("chrome.hide_owner_focus"))
+        .wrap(self.on("chrome.wrap"))
+        .type_ahead(self.on("chrome.type_ahead"))
+        .nav(match self.opt("chrome.nav") {
+            "no-vim" => NavKeys::NO_VIM,
+            _ => NavKeys::DEFAULT,
+        })
+        .dismiss(match self.opt("chrome.dismiss") {
+            "escape" => Dismiss::ESCAPE,
+            _ => Dismiss::LIGHT,
+        });
+        match self.opt("chrome.brand") {
+            "compact" => bar.brand(Lockup::compact("app❯")),
+            "none" => bar,
+            _ => bar.brand(Lockup::new("app❯")),
         }
+    }
+
+    /// The built bar read back: what each builder set.
+    fn readout(&self) -> [String; 2] {
+        let b = &self.bar;
+        let on = |v: bool| if v { "on" } else { "off" };
+        let nav = if b.nav == NavKeys::NO_VIM {
+            "no-vim"
+        } else {
+            "default"
+        };
+        let dismiss = if b.dismiss.outside_click {
+            "light"
+        } else {
+            "escape"
+        };
+        let brand = match &b.brand {
+            None => "none",
+            Some(l) if l.compact => "compact",
+            Some(_) => "lockup",
+        };
+        [
+            format!(
+                "MenuBar · open_on {:?} · overflow {:?} · hover_switch {} · press_drag {} · hide_owner_focus {}",
+                b.open_on,
+                b.overflow,
+                on(b.hover_switch),
+                on(b.press_drag),
+                on(b.hide_owner_focus),
+            ),
+            format!(
+                "wrap {} · type_ahead {} · nav {nav} · dismiss {dismiss} · brand {brand}",
+                on(b.wrap),
+                on(b.type_ahead),
+            ),
+        ]
+    }
+
+    /// The identity strip: who and where, each fact a segment with its
+    /// own tone and priority; the environment opens the app menu.
+    fn strip(&self, tick: u64, t: &junie_tui::theme::Theme) -> (Vec<Segment>, Vec<Segment>) {
+        let g = &t.glyphs;
+        let left = vec![
+            Segment::new("payments-platform", Tone::Normal)
+                .bold()
+                .priority(9),
+            Segment::new("production", Tone::Danger)
+                .lead(g.env_production, Tone::Danger)
+                .clickable(ENV)
+                .priority(8),
+            Segment::new("staging", Tone::Warning)
+                .lead(g.env_staging, Tone::Warning)
+                .priority(3),
+            Segment::new("deploying", Tone::Secondary)
+                .lead(g.spinner_frame(tick), Tone::Active)
+                .priority(6),
+        ];
+        let right = vec![
+            Segment::new("3 pending", Tone::Secondary)
+                .lead(g.bullet, Tone::Warning)
+                .clickable(PENDING)
+                .priority(5),
+            Segment::new("main ↑2", Tone::Muted).priority(2),
+        ];
+        (left, right)
     }
 
     fn status_bar(&self) -> StatusBar {
@@ -94,15 +262,30 @@ impl ChromePage {
         b.left.push(
             StatusItem::new("PR #482 · settlement backoff", Tone::Secondary)
                 .priority(7)
-                .clickable(PR),
+                .clickable(PR)
+                .tooltip(Tip::new("Open the pull request").shortcut("p")),
         );
-        b.center
-            .push(StatusItem::new("Claude Code · working · 2 tabs", Tone::Secondary).priority(4));
+        b.center.push(
+            StatusItem::new("Claude Code · working · 2 tabs", Tone::Secondary)
+                .busy()
+                .priority(4),
+        );
         b.right.push(
             StatusItem::new("Weekly 59%", Tone::Warning)
                 .chip()
                 .priority(6)
                 .clickable(USAGE),
+        );
+        b.right.push(
+            StatusItem::new("disk", Tone::Muted)
+                .meter(Some(72), MeterTone::Level { warn: 80, crit: 95 })
+                .priority(5),
+        );
+        b.right.push(
+            StatusItem::new("quota", Tone::Muted)
+                .meter(Some(88), MeterTone::Normal)
+                .meter_stale(true)
+                .priority(5),
         );
         b.right.push(
             StatusItem::new("jackin-payments-7f3a", Tone::Muted)
@@ -118,20 +301,29 @@ impl ChromePage {
     fn open_context(&mut self, req: ContextRequest<usize>) {
         let row = req.target;
         let label = self.sessions.items[row].label.clone();
-        self.context
-            .open(req.menu(CONTEXT, self.context_items(row)).title(label), row);
+        self.context.open(
+            req.menu(CONTEXT, self.context_items(Target::Session(row)))
+                .title(label),
+            Target::Session(row),
+        );
     }
 
-    /// The tab menu's items for session `row`.
-    fn context_items(&self, row: usize) -> Vec<MenuItem> {
-        vec![
-            MenuItem::new("Change title…").shortcut("r"),
-            MenuItem::new("Move left").disabled(row == 0),
-            MenuItem::new("Move right")
-                .disabled(row + 1 == self.sessions.items.len())
-                .separator(),
-            MenuItem::new("Close").shortcut("x").danger(),
-        ]
+    /// A context menu's items.
+    fn context_items(&self, target: Target) -> Vec<MenuItem> {
+        match target {
+            Target::Session(row) => vec![
+                MenuItem::new("Change title…").shortcut("r"),
+                MenuItem::new("Move left").disabled(row == 0),
+                MenuItem::new("Move right")
+                    .disabled(row + 1 == self.sessions.items.len())
+                    .separator(),
+                MenuItem::new("Close").shortcut("x").danger(),
+            ],
+            Target::Env => vec![
+                MenuItem::new("Switch to staging"),
+                MenuItem::new("Copy cluster URL").shortcut("y"),
+            ],
+        }
     }
 
     fn layer(&self, focus: Option<WidgetId>) -> HintLayer {
@@ -181,37 +373,45 @@ impl ChromePage {
 
     fn act(&mut self, menu: usize, item: usize, cx: &mut PageCtx) {
         let label = self.bar.menus[menu][item].label.clone();
-        if menu == 1 && item == 0 {
+        if menu == 2 && item == 0 {
             self.zoomed = !self.zoomed;
         }
         self.last = format!("{} › {label}", self.bar.labels[menu]);
         cx.status(label);
     }
-}
 
-impl Page for ChromePage {
-    fn layer_open(&self) -> bool {
-        self.bar.hides_page_focus() || self.context.hides_page_focus()
-    }
-    fn title(&self) -> &'static str {
-        "Chrome"
-    }
-    fn blurb(&self) -> &'static str {
-        "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers"
+    /// Record what the bar reported, and act on a choice or the brand.
+    fn bar_action(&mut self, ev: Option<MenuBarAction>, cx: &mut PageCtx) {
+        let Some(ev) = ev else { return };
+        self.action = Some(ev);
+        match ev {
+            MenuBarAction::Chosen(m, i) => self.act(m, i, cx),
+            MenuBarAction::Brand => {
+                self.last = "brand".into();
+                cx.status("Brand lockup activated");
+            }
+            MenuBarAction::Opened(_) => cx.focus.focus(BAR),
+            MenuBarAction::Closed => {}
+        }
     }
 
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // row 0: menu bar on the canvas
-        let bar_row = Rect::new(area.x, area.y, area.width, 1);
-        self.bar.render(bar_row, buf, ctx, t.canvas);
+        let mut y = area.y;
+        // the menu bar on the canvas, narrow when chrome.bar says so
+        let bar_w = if self.opt("chrome.bar") == "narrow" {
+            area.width.min(NARROW_BAR)
+        } else {
+            area.width
+        };
+        self.bar
+            .render(Rect::new(area.x, y, bar_w, 1), buf, ctx, t.canvas);
+        y += 2;
+        // the status bar, the hint bar and their captions take the last
+        // five rows; everything else stays above them
+        let foot = area.bottom().saturating_sub(5);
         // body: a list of sessions in a card
-        let body = Rect::new(
-            area.x,
-            area.y + 2,
-            area.width,
-            area.height.saturating_sub(6),
-        );
+        let body = Rect::new(area.x, y, area.width, foot.saturating_sub(y).min(11));
         let panel = Panel::card(Some("Sessions"))
             .meta("right-click or Shift+F10 for the tab menu")
             .focused(ctx.interaction.focused(SESSIONS));
@@ -228,11 +428,11 @@ impl Page for ChromePage {
         ];
         let nx = inner.x + list_area.width + 4;
         for (i, n) in notes.iter().enumerate() {
-            let y = inner.y + i as u16;
-            if nx < inner.right() && y < inner.bottom() {
+            let ny = inner.y + i as u16;
+            if nx < inner.right() && ny < inner.bottom() {
                 buf.set_string(
                     nx,
-                    y,
+                    ny,
                     junie_tui::ui::text::truncate(n, inner.right().saturating_sub(nx) as usize),
                     t.muted().bg(bg),
                 );
@@ -261,9 +461,71 @@ impl Page for ChromePage {
                 Some(("Saved", Some(StatusKind::Ok))),
             );
         }
-        // status bar row above the page footer
-        let status_row = Rect::new(area.x, area.bottom().saturating_sub(3), area.width, 1);
-        self.status_bar().render(status_row, buf, ctx);
+        // the built bar read back, then the identity strip on the chrome
+        // plane
+        let mut y = body.bottom() + 1;
+        for line in self.readout() {
+            if y < foot {
+                let text = junie_tui::ui::text::truncate(&line, area.width as usize);
+                buf.set_string(area.x, y, text, t.faint().bg(t.canvas));
+            }
+            y += 1;
+        }
+        // what the bar reported last, and the actions it reports
+        if y < foot {
+            let last = match self.action {
+                Some(a) => format!("{a:?}"),
+                None => "—".into(),
+            };
+            let text = format!(
+                "last MenuBarAction: {last}   (Opened(menu) · Chosen(menu, item) · Closed · Brand)"
+            );
+            buf.set_string(
+                area.x,
+                y,
+                junie_tui::ui::text::truncate(&text, area.width as usize),
+                t.faint().bg(t.canvas),
+            );
+        }
+        y += 2;
+        if y + 1 < foot {
+            buf.set_string(
+                area.x,
+                y,
+                "identity strip · segments drop by priority · ◆ opens the app menu",
+                t.faint().bg(t.canvas),
+            );
+            let (left, right) = self.strip(ctx.interaction.tick, t);
+            let row = Rect::new(area.x, y + 1, area.width, 1);
+            junie_tui::ui::ctx::fill(buf, row, ratatui::style::Style::new().bg(t.surface));
+            segments::render(row, buf, ctx, &left, &right, t.surface);
+        }
+        let ay = y + 2;
+        // status bar row above the hint bar, and where its items went
+        let status_row = Rect::new(area.x, area.bottom().saturating_sub(4), area.width, 1);
+        let status = self.status_bar();
+        let placed = status.layout(status_row);
+        status.render(status_row, buf, ctx);
+        if status_row.y > ay + 1 {
+            let groups: Vec<String> = [Group::Left, Group::Center, Group::Right]
+                .into_iter()
+                .map(|g| {
+                    let n = placed.iter().filter(|p| p.group == g).count();
+                    format!("{g:?} {n}")
+                })
+                .collect();
+            let text = format!(
+                "status bar · StatusBar::layout places {} of 8 · {}",
+                placed.len(),
+                groups.join(", ")
+            );
+            buf.set_string(
+                area.x + 1,
+                status_row.y - 1,
+                junie_tui::ui::text::truncate(&text, area.width.saturating_sub(1) as usize),
+                t.faint().bg(t.canvas),
+            );
+        }
         // the hint layer that a shell would pin to the bottom
         let hint_row = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.hint_area = hint_row;
@@ -278,12 +540,78 @@ impl Page for ChromePage {
         // popovers last so they sit on top
         self.context.render(area, buf, ctx);
     }
+}
+
+/// The States grid: segments and status items in every state they have,
+/// drawn by the widgets themselves.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    StateGrid::new(id)
+        .rows(&[Rest, Hover, Pressed, Busy, Narrow])
+        .column_width(26)
+        .column(
+            "Segment",
+            Segment::new("payments-platform", Tone::Normal).bold(),
+        )
+        .column(
+            "Clickable segment",
+            Segment::new("production", Tone::Danger)
+                .lead("◆", Tone::Danger)
+                .clickable(id.child(1)),
+        )
+        .column(
+            "Status item",
+            StatusItem::new("PR #482 · settlement backoff", Tone::Secondary).clickable(id.child(2)),
+        )
+        .column(
+            "Status chip",
+            StatusItem::new("Weekly 59%", Tone::Warning)
+                .chip()
+                .clickable(id.child(3)),
+        )
+        .column(
+            "Status meter",
+            StatusItem::new("disk", Tone::Muted).meter(Some(72), MeterTone::Normal),
+        )
+}
+
+impl Page for ChromePage {
+    fn layer_open(&self) -> bool {
+        self.bar.hides_page_focus() || self.context.hides_page_focus()
+    }
+    fn title(&self) -> &'static str {
+        "Chrome"
+    }
+    fn blurb(&self) -> &'static str {
+        "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers"
+    }
+
+    fn animating(&self) -> bool {
+        // the strip's deploy spinner and the busy status item
+        true
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
         if let Some((o, chosen)) = self.context.handle(ev) {
-            if let Some((row, i)) = chosen {
-                let label = self.context_items(row)[i].label.clone();
-                self.last = format!("tab › {label}");
+            if let Some((target, i)) = chosen {
+                let label = self.context_items(target)[i].label.clone();
+                self.last = match target {
+                    Target::Session(_) => format!("tab › {label}"),
+                    Target::Env => format!("production › {label}"),
+                };
                 cx.status(label);
             }
             return o;
@@ -292,9 +620,7 @@ impl Page for ChromePage {
             PageEvent::Key(key) => {
                 if self.bar.is_open() || cx.focus.is(BAR) {
                     let (o, ev) = self.bar.on_key(key);
-                    if let Some(MenuBarAction::Chosen(m, i)) = ev {
-                        self.act(m, i, cx);
-                    }
+                    self.bar_action(ev, cx);
                     if o.consumed() {
                         return o;
                     }
@@ -328,23 +654,13 @@ impl Page for ChromePage {
             // a title opens its menu on the press (MenuBar::open_on)
             PageEvent::Press { id, .. } if self.bar.owns(*id) => {
                 let (o, ev) = self.bar.on_press(*id);
-                if let Some(MenuBarAction::Opened(_)) = ev {
-                    cx.focus.focus(BAR);
-                }
+                self.bar_action(ev, cx);
                 o
             }
-            PageEvent::Click { id, .. } => {
+            PageEvent::Click { id, pos } => {
                 if self.bar.owns(*id) || self.bar.is_open() {
                     let (o, ev) = self.bar.on_click(*id);
-                    match ev {
-                        Some(MenuBarAction::Chosen(m, i)) => self.act(m, i, cx),
-                        Some(MenuBarAction::Brand) => {
-                            self.last = "brand".into();
-                            cx.status("Brand lockup activated");
-                        }
-                        Some(MenuBarAction::Opened(_)) => cx.focus.focus(BAR),
-                        _ => {}
-                    }
+                    self.bar_action(ev, cx);
                     if o.consumed() {
                         return o;
                     }
@@ -352,6 +668,19 @@ impl Page for ChromePage {
                 if let Some(row) = self.sessions.locate(*id) {
                     cx.focus.focus(SESSIONS);
                     return self.sessions.on_click(row);
+                }
+                if *id == ENV {
+                    // the app menu, anchored where the segment was clicked
+                    let menu = ContextMenu::new(CONTEXT, self.context_items(Target::Env))
+                        .at(*pos)
+                        .title("production");
+                    self.context.open(menu, Target::Env);
+                    return Outcome::Changed;
+                }
+                if *id == PENDING {
+                    self.last = "strip › 3 pending".into();
+                    cx.status("3 pending changes");
+                    return Outcome::Changed;
                 }
                 if *id == USAGE || *id == PR {
                     self.last = if *id == USAGE {
@@ -379,6 +708,9 @@ impl Page for ChromePage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         self.layer(focus)
             .hints
             .iter()
@@ -388,5 +720,30 @@ impl Page for ChromePage {
                 std::borrow::Cow::Owned(_) => None,
             })
             .collect()
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        let i = page_options(PageId::Chrome)
+            .iter()
+            .position(|o| o.key == key)?;
+        Some(self.opts[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let table = page_options(PageId::Chrome);
+        let Some(i) = table.iter().position(|o| o.key == key) else {
+            return;
+        };
+        self.opts[i] = value.min(table[i].values.len() - 1);
+        self.bar.close();
+        self.bar = self.build_bar();
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
