@@ -67,6 +67,36 @@ pub struct HintBar;
 pub struct HintKeys(Vec<Option<crate::core::event::Key>>);
 
 impl HintKeys {
+    /// Make the drawn hints click targets: `spots` are where each of
+    /// `hints` landed ([`keyhint::render_parts_at`],
+    /// [`keyhint::render_status_at`]). Every hint that names one key
+    /// ([`keyhint::key_of`]) registers as a [`Part::KEY`](crate::core::id::Part::KEY)
+    /// of [`HintBar::ID`]; hover underlines it and a press reverses it.
+    pub fn register(
+        ctx: &mut crate::ui::ctx::RenderCtx,
+        buf: &mut Buffer,
+        hints: &[keyhint::Hint],
+        spots: Vec<(usize, Rect)>,
+    ) -> Self {
+        use crate::core::id::{ItemKey, Part, PartRef};
+        use ratatui::style::{Modifier, Style};
+        let mut keys = vec![None; hints.len()];
+        for (i, cell) in spots {
+            let Some(key) = hints.get(i).and_then(|h| keyhint::key_of(h.key)) else {
+                continue;
+            };
+            keys[i] = Some(key);
+            let part = PartRef::item(Part::KEY, ItemKey::index(i));
+            let id = ctx.register_part(HintBar::ID, part, cell);
+            if ctx.interaction.pressed(id) {
+                buf.set_style(cell, Style::new().add_modifier(Modifier::REVERSED));
+            } else if ctx.interaction.hovered(id) {
+                buf.set_style(cell, Style::new().add_modifier(Modifier::UNDERLINED));
+            }
+        }
+        HintKeys(keys)
+    }
+
     /// The key a click on the footer replays: the hint under a completed
     /// click on [`HintBar::ID`].
     pub fn clicked(
@@ -96,8 +126,6 @@ impl HintBar {
         ctx: &mut crate::ui::ctx::RenderCtx,
         layer: &HintLayer,
     ) -> HintKeys {
-        use crate::core::id::{ItemKey, Part, PartRef};
-        use ratatui::style::Modifier;
         let t = ctx.theme;
         let style = crate::theme::HintBarStyle {
             align: layer.align.unwrap_or(t.hintbar.align),
@@ -113,26 +141,7 @@ impl HintBar {
             &layer.status_parts,
             &style,
         );
-        let mut keys = vec![None; layer.hints.len()];
-        for (i, cell) in spots {
-            let Some(key) = keyhint::key_of(layer.hints[i].key) else {
-                continue;
-            };
-            keys[i] = Some(key);
-            let id = ctx.register_part(Self::ID, PartRef::item(Part::KEY, ItemKey::index(i)), cell);
-            if ctx.interaction.pressed(id) {
-                buf.set_style(
-                    cell,
-                    ratatui::style::Style::new().add_modifier(Modifier::REVERSED),
-                );
-            } else if ctx.interaction.hovered(id) {
-                buf.set_style(
-                    cell,
-                    ratatui::style::Style::new().add_modifier(Modifier::UNDERLINED),
-                );
-            }
-        }
-        HintKeys(keys)
+        HintKeys::register(ctx, buf, &layer.hints, spots)
     }
 
     /// The first present layer wins; `layers` is ordered from the topmost
