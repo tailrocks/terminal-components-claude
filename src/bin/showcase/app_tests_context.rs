@@ -1,0 +1,180 @@
+//! Context menus across the showcase: a secondary click on a row opens
+//! the row's menu at the pointer, Shift+F10 opens it under the cursor row,
+//! and a secondary click outside an open popup closes it and opens the new
+//! menu at the new spot.
+
+use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
+use junie_tui::core::id::WidgetId;
+use junie_tui::theme::Theme;
+use ratatui::Terminal;
+use ratatui::backend::TestBackend;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+use ratatui::layout::{Position, Rect};
+
+use crate::app::{App, PageId};
+
+struct Harness {
+    app: App,
+    term: Terminal<TestBackend>,
+}
+
+impl Harness {
+    fn new(page: PageId) -> Self {
+        let mut app = App::new(Theme::junie());
+        app.goto(page);
+        let mut term = Terminal::new(TestBackend::new(140, 45)).unwrap();
+        term.draw(|f| app.render(f)).unwrap();
+        Self { app, term }
+    }
+
+    fn send(&mut self, input: Input) -> Outcome {
+        let out = self.app.handle(input);
+        self.term.draw(|f| self.app.render(f)).unwrap();
+        out
+    }
+
+    fn key(&mut self, code: KeyCode) -> Outcome {
+        self.key_mod(code, KeyModifiers::NONE)
+    }
+
+    fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) -> Outcome {
+        self.send(Input::Key(Key { code, mods }))
+    }
+
+    fn mouse(&mut self, kind: MouseKind, (x, y): (u16, u16)) -> Outcome {
+        self.send(Input::Mouse(Mouse::new(kind, Position::new(x, y))))
+    }
+
+    fn right_click(&mut self, at: (u16, u16)) -> Outcome {
+        self.mouse(MouseKind::Secondary, at)
+    }
+
+    fn click(&mut self, at: (u16, u16)) {
+        self.mouse(MouseKind::Down, at);
+        self.mouse(MouseKind::Up, at);
+    }
+
+    fn text(&self) -> String {
+        let buf = self.term.backend().buffer();
+        let mut s = String::new();
+        for y in 0..buf.area.height {
+            for x in 0..buf.area.width {
+                s.push_str(buf[(x, y)].symbol());
+            }
+            s.push('\n');
+        }
+        s
+    }
+
+    /// The text of `r` on screen.
+    fn text_in(&self, r: Rect) -> String {
+        let buf = self.term.backend().buffer();
+        let mut s = String::new();
+        for y in r.y..r.bottom() {
+            for x in r.x..r.right() {
+                s.push_str(buf[(x, y)].symbol());
+            }
+            s.push('\n');
+        }
+        s
+    }
+
+    /// Cell position of the first `needle` on screen.
+    fn find(&self, needle: &str) -> Option<(u16, u16)> {
+        let buf = self.term.backend().buffer();
+        let want: Vec<&str> =
+            unicode_segmentation::UnicodeSegmentation::graphemes(needle, true).collect();
+        for y in 0..buf.area.height {
+            let cells: Vec<&str> = (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect();
+            for x in 0..cells.len().saturating_sub(want.len() - 1) {
+                if cells[x..x + want.len()] == want[..] {
+                    return Some((x as u16, y));
+                }
+            }
+        }
+        None
+    }
+
+    fn at(&self, needle: &str) -> (u16, u16) {
+        self.find(needle)
+            .unwrap_or_else(|| panic!("{needle:?} on screen\n{}", self.text()))
+    }
+
+    /// The open menu `id`'s rectangle this frame.
+    fn menu(&self, id: WidgetId) -> Option<Rect> {
+        self.app.hits.area_of(id)
+    }
+}
+
+const CHROME_MENU: WidgetId = WidgetId::of("chrome.context");
+
+// ------------------------------------------------------------------ router
+
+#[test]
+fn a_secondary_click_outside_an_open_menu_reopens_it_on_the_new_row() {
+    let mut h = Harness::new(PageId::Chrome);
+    let codex = h.at("2 Codex (Primary)");
+    let claude = h.at("1 Claude Code");
+    let claude = (claude.0 + 3, claude.1);
+    h.right_click(codex);
+    let first = h.menu(CHROME_MENU).expect("the row menu is open");
+    assert!(h.text_in(first).contains("2 Codex (Primary)"));
+
+    assert!(
+        !first.contains(Position::new(claude.0, claude.1)),
+        "the second click lands outside the open menu"
+    );
+    assert_eq!(h.right_click(claude), Outcome::Changed);
+    let menu = h.menu(CHROME_MENU).expect("a menu opens at the new spot");
+    assert_eq!(
+        (menu.x, menu.y),
+        (claude.0, claude.1 + 1),
+        "the new menu opens at the pointer\n{}",
+        h.text()
+    );
+    let shown = h.text_in(menu);
+    assert!(
+        shown.contains("1 Claude Code"),
+        "about the new row\n{shown}"
+    );
+    assert!(!shown.contains("Codex"), "the first menu closed");
+    assert_eq!(h.count_menus(), 1, "one menu at a time");
+}
+
+impl Harness {
+    fn count_menus(&self) -> usize {
+        self.text().matches("Change title…").count()
+    }
+}
+
+#[test]
+fn a_secondary_click_outside_the_open_menu_bar_closes_it_and_opens_the_row_menu() {
+    let mut h = Harness::new(PageId::Chrome);
+    let shell = h.at("3 Shell");
+    h.click(h.at("File"));
+    assert!(h.text().contains("New tab"), "the File menu is open");
+
+    assert_eq!(h.right_click(shell), Outcome::Changed);
+    let text = h.text();
+    assert!(
+        !text.contains("New tab"),
+        "the menu bar menu closed\n{text}"
+    );
+    let menu = h.menu(CHROME_MENU).expect("the row menu opened");
+    assert_eq!((menu.x, menu.y), (shell.0, shell.1 + 1));
+    assert!(h.text_in(menu).contains("3 Shell"));
+}
+
+#[test]
+fn a_secondary_click_outside_a_dialog_stays_swallowed() {
+    let mut h = Harness::new(PageId::Chrome);
+    h.key(KeyCode::Char('?'));
+    assert!(h.text().contains("Keyboard & mouse"));
+    let codex = h.at("2 Codex (Primary)");
+    assert_eq!(h.right_click(codex), Outcome::Consumed);
+    assert!(h.text().contains("Keyboard & mouse"), "the dialog stays");
+    assert!(
+        h.menu(CHROME_MENU).is_none(),
+        "no menu opens under a dialog"
+    );
+}
