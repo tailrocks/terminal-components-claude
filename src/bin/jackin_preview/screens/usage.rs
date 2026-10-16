@@ -909,7 +909,7 @@ impl Screen for UsageScreen {
             .render(area, buf, t);
         if w.accounts.accounts.is_empty() {
             let e = EmptyState::new("No providers configured.")
-                .hint("Press R to refresh. · c registers an account");
+                .hint("r refreshes · m opens Accounts to add one");
             empty::render(inner, buf, t, &e, t.canvas);
             ctx.control(LIST, Rect::new(inner.x, inner.y, 1, 1), false);
             return;
