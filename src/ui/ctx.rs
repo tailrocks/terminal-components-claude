@@ -120,6 +120,11 @@ pub struct RenderCtx<'a> {
     pub hscroll: crate::core::scroll::HScroll,
     /// The frame's single truncated-text reveal, if any.
     pub(crate) reveal_slot: crate::ui::reveal::Slot,
+    /// The reveal key hint of the focused widget's cut cursor row, set
+    /// while it renders: footers drawn after the content append it with
+    /// [`crate::ui::reveal::advertise`], so the key is named exactly when
+    /// it does something, in every app and for every widget.
+    pub reveal_hint: Option<(&'static str, &'static str)>,
 }
 
 impl<'a> RenderCtx<'a> {
@@ -139,6 +144,7 @@ impl<'a> RenderCtx<'a> {
             overlays: Vec::new(),
             reveal: crate::ui::reveal::Reveal::default(),
             hscroll: crate::core::scroll::HScroll::default(),
+            reveal_hint: None,
             reveal_slot: {
                 crate::ui::reveal::clear_titles();
                 crate::ui::reveal::Slot::default()
