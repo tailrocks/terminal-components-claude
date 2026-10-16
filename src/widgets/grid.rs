@@ -479,6 +479,10 @@ pub struct DataGrid {
     /// The column type-ahead matches; `None` (default) is the cursor's
     /// column.
     pub type_ahead_column: Option<usize>,
+    /// Whether the page's and the app's single-character shortcuts win over
+    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
+    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+    pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     typeahead: crate::core::typeahead::TypeAhead,
     /// How many leading rows [`Self::set_rows`] measures to size columns
     /// (the 95th percentile of their widths, clamped to each column's
@@ -637,6 +641,7 @@ impl DataGrid {
             keymap: GridCmd::default_keymap(),
             type_ahead: false,
             type_ahead_column: None,
+            type_ahead_precedence: None,
             typeahead: Default::default(),
             choice: None,
             editor_config: EditorConfig::default(),
@@ -760,6 +765,15 @@ impl DataGrid {
     /// See [`Self::type_ahead`].
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::type_ahead_precedence`].
+    pub fn type_ahead_precedence(
+        mut self,
+        precedence: crate::core::list::TypeAheadPrecedence,
+    ) -> Self {
+        self.type_ahead_precedence = Some(precedence);
         self
     }
 
@@ -1646,7 +1660,13 @@ impl DataGrid {
                 _ => (Outcome::Ignored, None),
             };
         }
-        if let Some(KeyStep::Type(ch)) = KeyStep::of(key, &self.nav, self.type_ahead) {
+        if let Some(KeyStep::Type(ch)) = KeyStep::ordered(
+            key,
+            &self.nav,
+            self.type_ahead,
+            self.type_ahead_precedence
+                .unwrap_or_else(crate::core::list::TypeAheadPrecedence::current),
+        ) {
             let col = self.type_ahead_column.unwrap_or(c);
             let texts: Vec<String> = self
                 .order
