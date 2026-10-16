@@ -986,10 +986,10 @@ impl Screen for CockpitScreen {
         }
         v.push(hint("i", "Container info"));
         if !self.run.is_terminal() {
-            v.push(hint("c", "Cancel"));
+            v.push(hint("c", "Cancel launch…"));
         }
         v.push(hint("Ctrl+Q", "Quit"));
-        v.push(hint("Ctrl+C", "Abort"));
+        v.push(hint("Ctrl+C", "Abort now"));
         v
     }
 

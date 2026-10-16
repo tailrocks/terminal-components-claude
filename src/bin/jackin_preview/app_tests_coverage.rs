@@ -1067,6 +1067,11 @@ fn launch_failure_screen_exposes_stage_detail_and_ack_route() {
 
 #[test]
 fn cancel_launch_dialog_names_both_choices_unambiguously() {
+    // the footer tells the confirmed cancel apart from the immediate abort
+    let wide = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 220, 40);
+    let footer = wide.text().lines().last().unwrap_or_default().to_owned();
+    assert!(footer.contains("c Cancel launch…"), "{footer}");
+    assert!(footer.contains("Ctrl+C Abort now"), "{footer}");
     let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40);
     h.key(KeyCode::Char('c'));
     let t = h.text();
