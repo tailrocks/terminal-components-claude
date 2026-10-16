@@ -10,7 +10,7 @@ terminal adds the diff write and the emulator's parse for every frame).
 
 | Harness | Run |
 |---|---|
-| Widgets alone (DataGrid, DataTable, ListBox, TreeView; 500 / 10k / 100k rows; 11 columns; long-cell variants; hover reveal of a long value) | `cargo nextest run --cargo-profile release --test table_perf --run-ignored only --no-capture` |
+| Widgets alone (DataGrid, DataTable, ListBox, TreeView; 500 / 10k / 100k rows; 11 columns; long-cell variants; hover reveal of a long value; a resting reveal tooltip alone; TreeView folder toggles) | `cargo nextest run --cargo-profile release --test table_perf --run-ignored only --no-capture` |
 | TablePro app (customers: 48,912 rows, 500 loaded, 11 columns; query results of `SELECT * FROM customers`), per-event drawing against the runtime's `InputPump` | `cargo nextest run --cargo-profile release --bin tablepro --run-ignored only -E 'test(measure_table_surfaces)' --no-capture` |
 
 Scenarios at 120x40 and 200x55: wheel burst, PageDown, End/Home, key
@@ -27,6 +27,8 @@ single figure varies by about ±50%. Read the ratios, not the absolutes.
 | P2 | Per-frame cost grew with the length of cut cell values | DataGrid, 2,000 rows with 64 KiB JSON/text cells: 19–24 ms per frame once those columns were on screen (0.25 ms otherwise). DataTable: 37 ms per frame at 200x55. | `truncate`, `fit` and the reveal's `is_cut` measured the full string for every visible cell. The grid also normalised the whole JSON document, sanitised up to 10,000 chars and cloned the full value twice per visible cell. | **fixed** `3dcff98fa` |
 | P3 | Column width sampling read full values, and its size was hardcoded | `set_rows` with 64 KiB cells: 65 ms for 2,000 rows (200 sampled rows × 11 columns, each a full clone plus a full width). | `sample_widths` cloned and measured each value in full, although the result is clamped to the column max. | **fixed** `3dcff98fa` (`width_sample_rows`) |
 | P4 | Row state scanned every pending cell for every visible row | O(visible rows × pending cells) per frame after a large paste. | Linear scan over a `HashMap`. | **fixed** `3dcff98fa`: the edited rows are collected once per frame |
+| P5 | A reveal resting on a long cut value re-wrapped it every frame | Resting tooltip alone at 200x55: 797 µs per frame at 64 KiB, 6.4 ms at 1 MiB. | `show` copied the full value and `layout` wrapped all of it on every frame the reveal stayed open (the `↓ N more` count needs every line). The open inline reveal did the same. | **fixed** `655ed223f`: the wrapped lines are cached per thread, keyed by cell id, text (length check, then one comparison) and wrap width; any change wraps again. The tooltip shares the cached text instead of copying it. |
+| P6 | Expanding or collapsing one TreeView folder rebuilt every flat row | 2.6 ms per toggle at 100k rows (10 ms on the loaded machine of the first pass); 223 µs at 10k. | `toggle` called `flatten`, which walks and clones every visible row. A lazy expand flattened twice. | **fixed** `50fdf0238`: the toggle splices only the subtree it shows or hides (`refold`). A filter still flattens in full, since its visible set depends on it. `←` finds the parent by scanning up for a shallower row instead of comparing paths. |
 
 Checked and not a problem (frame cost does not depend on the row count):
 
@@ -40,7 +42,7 @@ Checked and not a problem (frame cost does not depend on the row count):
   register.
 - Nothing sorts or filters per frame. DataTable sorts on `sort_by` and
   `set_rows`, DataGrid on `set_rows` with `local_sort`, and TreeView
-  flattens on expand, collapse and filter.
+  flattens on filter (an expand or collapse splices its subtree, P6).
 - Event handling costs at most 1.3 µs per event in every scenario.
 
 ## Before and after (release)
@@ -60,6 +62,8 @@ Checked and not a problem (frame cost does not depend on the row count):
 | DataTable frame, 64 KiB cells on screen, 200x55 | 37.0 ms | 0.38 ms |
 | DataGrid `set_rows`, 2,000 rows of 64 KiB cells | 65 ms | 22 ms (the rest is the caller's own allocation) |
 | DataGrid / DataTable / ListBox / TreeView frame, 100k rows, 120x40 | 242 / 315 / 176 / 163 µs | 164 / 183 / 96 / 96 µs (the machine was less loaded; no algorithmic change) |
+| Resting reveal tooltip alone, 200x55, 64 KiB / 1 MiB value (P5) | 797 µs / 6,357 µs per frame | 373 µs / 609 µs (what is left is the frame itself and one comparison of the value) |
+| TreeView expand or collapse of one folder, 500 / 10k / 100k rows (P6) | 10.3 / 223 / 2,646 µs | 2.2 / 8.1 / 73 µs (the remaining cost is moving the rows after the folder) |
 
 ## Configuration (new knobs)
 
@@ -74,6 +78,9 @@ Checked and not a problem (frame cost does not depend on the row count):
 | `Coalesce::max_latency` | `Duration` | `16 ms` | Longest a burst is handled before a frame is drawn. |
 | `Coalesce::OFF` | const | | Draws after every change, as before. |
 | `DataGrid::width_sample_rows` (field and builder) | `usize` | `DEFAULT_WIDTH_SAMPLE_ROWS` = 200 | Leading rows measured to size the columns, once per `set_rows`. |
+
+P5 and P6 add no knob: the reveal cache and the incremental toggle change
+no behaviour, so there is nothing an app could want different.
 
 `InputPump` (public) is the runtime's dispatcher, so apps can test their
 own bursts with it. `drain_ready_inputs` keeps its uncoalesced behaviour.
@@ -98,6 +105,8 @@ is documented in the test.
 | Cell text reads at most 4w+64 bytes of a 2 MB value. | count | `grid::tests::cell_text_reads_a_prefix_bounded_by_the_cell_width` |
 | Bounded `truncate`, `truncate_middle`, `wider_than` and `cell_text` match the previous implementations on a width corpus (ZWJ, combining marks, CJK, variation selectors, control characters, long values). | equality | `ui::text::tests::bounded_measurement_matches_full_measurement`, `grid::tests::cell_text_from_a_prefix_matches_the_whole_value` |
 | A frame of 128 KiB cells costs at most 8× a frame of short cells, plus 25 ms. Debug build before the fix: 798 ms against 5.9 ms. | wall-clock ratio, best of 5 | `table_perf::long_cut_values_cost_what_their_visible_part_costs` |
+| A reveal resting on a 64 KiB value for 11 frames wraps once; an edit, a resize or another cell wraps again; 5 frames of an open inline reveal wrap once. Before the fix: one wrap per frame. | count | `ui::reveal::tests::a_resting_reveal_wraps_its_text_once` |
+| Collapsing a folder of a 102k-row tree builds 0 rows, expanding it builds the 102 it shows, and both land on the rows and cursor of a full flatten. Before the fix: about 101k rows per toggle. | count + equality | `tree::identity_tests::a_toggle_builds_only_the_rows_it_reveals` |
 
 ## Remaining risks
 
@@ -108,19 +117,20 @@ is documented in the test.
   offset, without its own top scroll region, could drop notches within a
   burst. In that case the app sets `Coalesce { wheel: false, .. }`; the
   better fix is the same one-line registration in that widget.
-- Hovering a cut value wraps the whole value for its reveal on every
-  frame: about 0.25 ms extra per 64 KiB, linear in length. A multi-megabyte
-  JSON cell under a resting pointer costs tens of ms per frame. The `↓ N
-  more` count needs the total line count, so a bounded wrap must count
-  lines without building them. Not done in this pass.
+- A reveal still wraps the whole value once when it opens (and again on
+  an edit, a resize or another cell): about 6 ms for a 1 MiB value. The
+  `↓ N more` count needs every line, so a bounded wrap would have to
+  count lines without building them. While it stays open each frame
+  compares the value once (memcmp), which is linear but cheap.
 - Every frame is still a full render that ratatui diffs. Frame cost is
   O(viewport), not O(data): about 0.15–0.3 ms at 120x40 and 0.3–0.6 ms at
   200x55 in release, of which `Buffer` setup and grapheme-aware
   `set_string` are the bulk. Damage tracking was not needed once bursts
   coalesce.
-- `TreeView::flatten` clones every visible label on expand, collapse and
-  filter. That is O(rows), about 10 ms at 100k rows, per toggle and not per
-  frame.
+- `TreeView::flatten` still clones every visible label on filter,
+  `expand_all`, `collapse_all`, `reveal`, `set_children` and `set_busy`:
+  O(rows), not per frame. A toggle splices instead, but still moves the
+  rows after the folder (`Vec::splice`, about 70 µs at 100k rows).
 - The wall-clock guard could flake on a pathologically loaded runner. Its
   margin is more than 10× the measured gap, and the deterministic guards
   above cover the same fix.

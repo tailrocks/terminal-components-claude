@@ -126,9 +126,12 @@ and `on_bar_drag(pressed, pos)`; pages route `scrollbar::is_bar_of`.
 - Per-app bar routing (`scrollbar::is_bar_of`, `on_bar_drag`) should move
   into the shared router so a page never routes a scrollbar by hand.
 - Vertical bars keep `TrackClick::Jump`; offering `Page` on them too
-  would make the two axes configurable together.
+  would make the two axes configurable together. (Done: `7338c7ecf`,
+  `200e688ad`.)
 - Holla and jackin screens get the sideways wheel through the pointer
   refactor's `on_wheel_h`; none of their screens has wide content yet.
+  (Done for the capsule panes and the Files preview, with app tests in
+  `12e442e71`.)
 
 ## Status: TextViewport and vertical track paging
 
@@ -179,10 +182,25 @@ Knobs added:
 | `RenderCtx::track_click` | `TrackClick` (vertical bars, app-wide) | `Jump` |
 | widget `track_click` (`TextViewport`, `ScrollPanel`, `ListBox`, `TreeView`, `DataTable`, `DataGrid`, `CodeEditor`) | `Option<TrackClick>` | `None` (app default) |
 
+## Status: remaining track paging and app-level proof
+
+| Item | Commit |
+|---|---|
+| `TrackClick::Page` on the vertical bars of `Dialog` (scrolling body), `StepRail`, `PropsList` and `ui::layout::Stack` | `200e688ad` feat(scroll) |
+| App test: jackin capsule pane pans a wide line (sideways wheel, ←/→ while scrolled back, a press on its bar routed through `hbar()`) | `12e442e71` test(apps) |
+| App test: holla Files preview pans `long.txt` (sideways wheel, a track press; the thumb moves in the rendered cells) and a newly opened file starts at its first column | `12e442e71` test(apps) |
+
+Knobs added:
+
+| Name | Type | Default |
+|---|---|---|
+| `Dialog::track_click`, `StepRail::track_click`, `PropsList::track_click` (field; builder on `StepRail` and `PropsList`) | `Option<TrackClick>` | `None` (follows `RenderCtx::track_click`) |
+| `Stack::track_click` (field and builder) | `TrackClick` | `Jump`. `Stack::layout` has no `RenderCtx`, so an owner that follows the app-wide policy passes `ctx.track_click`. |
+
+Every vertical bar in the library now takes the track-click policy.
+
 Still open:
 
-- Vertical bars of `Dialog`, `Steps`, `PropsList` and `ui::layout` still
-  use `scrollbar::press` (always `Jump`).
 - Showcase and holla pages still route bars by hand
   (`scrollbar::is_bar_of`). This waits for the shared pointer router.
 - jackin capsule pane bars are routed by position (`hbar()`), because

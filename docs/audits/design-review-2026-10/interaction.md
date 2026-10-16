@@ -68,9 +68,15 @@ Follow-ups to the truncated-text reveal (`src/ui/reveal.rs`).
 - **Wrapped values** (`Prop::wrap`) are never cut, so they register no
   reveal; rows clipped off the bottom of a sheet are a scrolling concern
   (layout audit #3), not a reveal one.
-- **Scrolling** of a reveal longer than its rows needs per-widget state:
-  it works for `RevealState` owners (ListBox, PropsList). Pointer-only
-  reveals (`ui::reveal::truncated`, queued cuts) end with `↓ N more`.
+- **Scrolling** of a reveal longer than its rows works for `RevealState`
+  owners (ListBox, PropsList) through their own wheel and PgUp/PgDn.
+  Pointer-only reveals (`ui::reveal::truncated`, queued cuts) keep their
+  scroll state in the reveal module: the runtime offers each input to
+  `reveal::on_pointer_wheel` first, so the wheel over the tooltip as last
+  drawn scrolls it (`6e50afe66`; `Reveal::wheel_lines`, default 3).
+- **Inline reveal** (`RevealMode::InlineWrap`): `PropsList` now wraps the
+  cursor row's value in place like `ListBox` (`580d279f1`); tables and
+  grids keep the tooltip.
 
 ## Status (interaction and API pass)
 
