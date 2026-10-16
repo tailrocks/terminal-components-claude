@@ -74,8 +74,9 @@ components work; they are not where behaviour lives.
 
 ### Way of working
 
-- Use subagents for most of the work: parallel audits by category, and
-  implementation agents in isolated worktrees on disjoint files.
+- Always use subagents for the work: parallel audits by category, and
+  implementation agents in isolated worktrees on disjoint files. The main
+  session coordinates, reviews and integrates.
 - Commit small and push often to the working branch; one finding or one
   coherent group per commit.
 
