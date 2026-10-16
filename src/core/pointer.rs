@@ -1215,14 +1215,17 @@ impl PointerRouter {
         p.router.state.flash(id, now);
         let count = p.router.state.count_click(id, m.pos, now);
         let ev = PointerEvent::new(p.hits, Phase::Click, id, m.pos, count, m.mods);
-        let before = p.focus.current();
+        let before = p.focus.moves();
         let out = host.deliver(&ev).outcome();
         // a control the click did not focus is focused here under
-        // [`FocusOn::Release`], so keyboard and pointer agree
+        // [`FocusOn::Release`], so keyboard and pointer agree. A handler
+        // that chose focus itself keeps its choice, even when it named the
+        // control that already had focus (Find hands focus to the editor):
+        // [`Focus::moves`] tells that apart from a handler that did nothing.
         let p = host.pointer_parts();
         if !layer
             && p.router.state.config.focus_on == FocusOn::Release
-            && p.focus.current() == before
+            && p.focus.moves() == before
             && p.ring.contains(id)
         {
             p.focus.focus(id);
