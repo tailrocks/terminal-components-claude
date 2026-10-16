@@ -1194,3 +1194,42 @@ fn a_pass_through_select_closes_and_lets_the_outside_click_land() {
     assert!(h.app.hits.area_of(sort.child(0)).is_some(), "sort opened");
     assert_eq!(h.app.focus.current(), Some(sort));
 }
+
+#[test]
+fn keys_switch_menus_even_with_the_pointer_parked_on_a_title() {
+    let mut h = Harness::new(120, 40, PageId::Chrome);
+    let bar = WidgetId::of("chrome.menubar");
+    let file = h.app.hits.area_of(bar.child(0)).unwrap();
+    h.click(file.x + 1, file.y);
+    let open = |h: &Harness, i: usize| {
+        h.app
+            .hits
+            .area_of(bar.child(i).sub("menu").child(0))
+            .is_some()
+    };
+    assert!(open(&h, 0));
+    // the pointer stays on File; the keyboard wins until it moves
+    h.key(KeyCode::Right);
+    assert!(open(&h, 1), "→ opened View");
+    h.key(KeyCode::Right);
+    assert!(open(&h, 2), "→ opened Help");
+    // inside a menu ↓ is not undone by the parked pointer either
+    h.key(KeyCode::Left);
+    h.key(KeyCode::Left);
+    assert!(open(&h, 0));
+    h.mouse(MouseKind::Move, file.x + 1, file.y + 1);
+    h.key(KeyCode::Down);
+    let style = |h: &Harness, row: usize| {
+        let r = h
+            .app
+            .hits
+            .area_of(bar.child(0).sub("menu").child(row))
+            .unwrap();
+        h.term.backend().buffer()[(r.x + 2, r.y)].bg
+    };
+    assert_ne!(
+        style(&h, 1),
+        style(&h, 0),
+        "cursor moved off the hovered row"
+    );
+}
