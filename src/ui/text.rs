@@ -21,9 +21,51 @@ pub fn width(s: &str) -> usize {
     UnicodeWidthStr::width(s)
 }
 
-/// Truncate to `max` display cells, appending `…` when cut.
+/// Whether `s` is wider than `max` display cells: `width(s) > max`, but
+/// reading only as much of `s` as the answer needs. A cut cell holding a
+/// megabyte of JSON then costs what its visible part costs, not what the
+/// whole value costs, on every frame it is on screen.
+///
+/// No character is wider than its UTF-8 encoding is long, so a string of at
+/// most `max` bytes fits. A longer one is measured on growing prefixes
+/// (ending on a char boundary): once a prefix is wider than `max` plus a
+/// small margin, the whole string is. The margin covers the one case where
+/// a following character narrows the text before it (a text-presentation
+/// selector after an emoji at the prefix's end).
+pub fn wider_than(s: &str, max: usize) -> bool {
+    if s.len() <= max {
+        return false;
+    }
+    let mut end = max.saturating_mul(4).saturating_add(64);
+    loop {
+        if end >= s.len() {
+            return width(s) > max;
+        }
+        let mut cut = end;
+        while !s.is_char_boundary(cut) {
+            cut -= 1;
+        }
+        if width(&s[..cut]) > max.saturating_add(2) {
+            return true;
+        }
+        end = end.saturating_mul(2);
+    }
+}
+
+/// `width(s)` when it is at most `cap`, else any value above `cap`; reads
+/// only a bounded prefix of a long `s` (see [`wider_than`]).
+pub fn width_capped(s: &str, cap: usize) -> usize {
+    if wider_than(s, cap) {
+        cap.saturating_add(1)
+    } else {
+        width(s)
+    }
+}
+
+/// Truncate to `max` display cells, appending `…` when cut. Reads only the
+/// part of `s` that can be shown (see [`wider_than`]).
 pub fn truncate(s: &str, max: usize) -> String {
-    if width(s) <= max {
+    if !wider_than(s, max) {
         return s.to_owned();
     }
     if max == 0 {
@@ -97,7 +139,7 @@ pub fn slice_cells(s: &str, offset: usize, max: usize) -> String {
 
 /// Truncate keeping both ends: `very_long_identifier_name` → `very_l…_name`.
 pub fn truncate_middle(s: &str, max: usize) -> String {
-    if width(s) <= max {
+    if !wider_than(s, max) {
         return s.to_owned();
     }
     if max < 5 {
@@ -105,10 +147,11 @@ pub fn truncate_middle(s: &str, max: usize) -> String {
     }
     let keep_end = (max - 1) / 3;
     let keep_start = max - 1 - keep_end;
-    let gs: Vec<&str> = s.graphemes(true).collect();
+    // both ends are read from their own edge: the middle is never walked
+    let gs = s.graphemes(true);
     let mut head = String::new();
     let mut w = 0;
-    for g in &gs {
+    for g in gs.clone() {
         let gw = width(g);
         if w + gw > keep_start {
             break;
@@ -118,7 +161,7 @@ pub fn truncate_middle(s: &str, max: usize) -> String {
     }
     let mut tail = String::new();
     let mut w = 0;
-    for g in gs.iter().rev() {
+    for g in gs.rev() {
         let gw = width(g);
         if w + gw > keep_end {
             break;
@@ -514,6 +557,117 @@ mod tests {
         assert_eq!(find_ranges("a\u{301}\u{301}", "\u{301}", true), vec![0..5]);
         assert!(find_ranges("text", "", false).is_empty());
         assert!(find_ranges("", "a", false).is_empty());
+    }
+
+    /// Strings whose width is not the sum of their characters' widths,
+    /// short and long, for the bounded-measurement equivalence tests.
+    fn width_corpus() -> Vec<String> {
+        let seeds = [
+            "",
+            "plain ascii",
+            "日本語のテキスト",
+            "e\u{301}combining\u{301}",
+            "👩\u{200D}👩\u{200D}👧 family",
+            "⌚\u{FE0E} text clock ⌚\u{FE0F}",
+            "#\u{FE0F}⃣ keycap",
+            "لا lam-alef",
+            "tab\tand\nnewline\u{7}bell",
+            "\u{200B}\u{200B}\u{200B}zero width",
+        ];
+        let mut out: Vec<String> = seeds.iter().map(|s| (*s).to_owned()).collect();
+        for s in seeds {
+            out.push(s.repeat(7));
+            out.push(s.repeat(400));
+        }
+        // a prefix boundary landing between a char and its selector
+        for k in 0..12 {
+            out.push(format!(
+                "{}⌚\u{FE0E}{}",
+                "x".repeat(k * 13),
+                "y".repeat(300)
+            ));
+        }
+        out.push("\u{200B}".repeat(5_000) + "end");
+        out
+    }
+
+    /// The truncation before bounded measurement, as the reference.
+    fn truncate_reference(s: &str, max: usize) -> String {
+        if width(s) <= max {
+            return s.to_owned();
+        }
+        if max == 0 {
+            return String::new();
+        }
+        let mut out = String::new();
+        let mut w = 0;
+        for g in s.graphemes(true) {
+            let gw = width(g);
+            if w + gw > max - 1 {
+                break;
+            }
+            out.push_str(g);
+            w += gw;
+        }
+        out.push('…');
+        out
+    }
+
+    fn truncate_middle_reference(s: &str, max: usize) -> String {
+        if width(s) <= max {
+            return s.to_owned();
+        }
+        if max < 5 {
+            return truncate_reference(s, max);
+        }
+        let keep_end = (max - 1) / 3;
+        let keep_start = max - 1 - keep_end;
+        let gs: Vec<&str> = s.graphemes(true).collect();
+        let mut head = String::new();
+        let mut w = 0;
+        for g in &gs {
+            let gw = width(g);
+            if w + gw > keep_start {
+                break;
+            }
+            head.push_str(g);
+            w += gw;
+        }
+        let mut tail = String::new();
+        let mut w = 0;
+        for g in gs.iter().rev() {
+            let gw = width(g);
+            if w + gw > keep_end {
+                break;
+            }
+            tail.insert_str(0, g);
+            w += gw;
+        }
+        format!("{head}…{tail}")
+    }
+
+    #[test]
+    fn bounded_measurement_matches_full_measurement() {
+        for s in width_corpus() {
+            for max in (0..48).chain([100, 255, 1_000, 4_000]) {
+                assert_eq!(wider_than(&s, max), width(&s) > max, "{max} {s:?}");
+                assert_eq!(
+                    width_capped(&s, max).min(max + 1),
+                    width(&s).min(max + 1),
+                    "{max} {s:?}"
+                );
+                assert_eq!(
+                    truncate(&s, max),
+                    truncate_reference(&s, max),
+                    "{max} {s:?}"
+                );
+                assert_eq!(
+                    truncate_middle(&s, max),
+                    truncate_middle_reference(&s, max),
+                    "{max} {s:?}"
+                );
+            }
+        }
     }
 
     #[test]
