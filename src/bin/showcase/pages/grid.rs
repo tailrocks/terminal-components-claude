@@ -20,7 +20,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, hint_key, label_for};
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
-use junie_tui::core::scroll::{HScroll, Scrollable, ScrollbarVisibility, TrackClick};
+use junie_tui::core::scroll::{HScroll, ScrollbarVisibility, TrackClick};
 use junie_tui::ui::columns::HeaderLabels;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
@@ -468,8 +468,6 @@ pub struct GridPage {
     sections: crate::pages::layout::Sections,
     commit_ticks: u8,
     saved: u32,
-    /// The held press is the grid's (see [`Self::pointer`]).
-    held_press: bool,
 }
 
 impl GridPage {
@@ -477,29 +475,10 @@ impl GridPage {
     /// the column, a double press fits it), row numbers, its bars, its
     /// pending-bar buttons and an open editor's popup.
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
-        let held = self.held_press;
-        if ev.phase().is_some() && !ev.is(Phase::Drag) {
-            self.held_press = false;
-        }
-        let r = match self.grid.route(ev) {
-            Some(r) => r,
-            // a held drag whose cell scrolled out of the frame resolves to
-            // no owner (the router keeps the held id, not its owner): the
-            // grid that took the press keeps the drag, so it autoscrolls
-            None if held && ev.is(Phase::Drag) => self.grid.pointer(ev),
-            None => return Outcome::Ignored,
+        let Some(r) = self.grid.route(ev) else {
+            return Outcome::Ignored;
         };
-        if ev.is(Phase::Press) {
-            self.held_press = true;
-        }
         let (o, gev) = r.into_parts();
-        // a wheel over the open choice popup: the grid routes it to the
-        // popup but scrolls only on its own regions; the popup takes it
-        if o == Outcome::Ignored
-            && let Some((axis, delta)) = ev.wheel()
-        {
-            return self.grid.wheel(axis, delta).outcome();
-        }
         if ev.is(Phase::Click) {
             // the scrollbar scrolls without taking focus
             if self.grid.bar_ids().contains(&ev.id) {
@@ -525,7 +504,6 @@ impl GridPage {
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
             commit_ticks: 0,
             saved: 0,
-            held_press: false,
         }
     }
 

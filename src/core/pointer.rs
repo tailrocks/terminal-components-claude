@@ -917,6 +917,11 @@ pub struct PointerRouter {
     /// The held press moved (a drag): its release is preceded by
     /// [`Phase::DragEnd`].
     dragged: bool,
+    /// The pressed region and its owner and part as resolved at the press:
+    /// a drag, its end and the release still reach that owner after the
+    /// region scrolled out of the frame (a grid range drag autoscrolling
+    /// past the cell it started on).
+    held: Option<(WidgetId, Hit)>,
 }
 
 impl std::ops::Deref for PointerRouter {
@@ -937,7 +942,32 @@ impl PointerRouter {
         Self {
             state: PointerState::new(config),
             dragged: false,
+            held: None,
         }
+    }
+
+    /// An event of `phase` on the held region `id`: resolved through the
+    /// frame's hits, or, when the region is gone from them, to the owner
+    /// and part it had at the press.
+    fn held_event(
+        &self,
+        hits: &HitRegistry,
+        phase: Phase,
+        id: WidgetId,
+        pos: Position,
+        mods: KeyModifiers,
+    ) -> PointerEvent {
+        let mut ev = PointerEvent::new(hits, phase, id, pos, 1, mods);
+        if hits.part_of(id).is_none()
+            && let Some((held, hit)) = self.held
+            && held == id
+        {
+            ev.hit = hit;
+            if let Intent::Pointer { part, .. } = &mut ev.intent {
+                *part = hit.part;
+            }
+        }
+        ev
     }
 
     /// Route one mouse event through `host`.
@@ -996,7 +1026,9 @@ impl PointerRouter {
                 };
                 p.router.dragged = true;
                 let bar = p.router.state.grabbed();
-                let mut ev = PointerEvent::new(p.hits, Phase::Drag, pressed, m.pos, 1, m.mods);
+                let mut ev = p
+                    .router
+                    .held_event(p.hits, Phase::Drag, pressed, m.pos, m.mods);
                 ev.bar = bar;
                 swallow(host.deliver(&ev).outcome())
             }
@@ -1008,7 +1040,9 @@ impl PointerRouter {
                 let (hit, beneath) = p.router.state.on_up(p.hits, m.pos);
                 let mut out = Outcome::Ignored;
                 if let Some(pressed) = pressed.filter(|_| dragged) {
-                    let ev = PointerEvent::new(p.hits, Phase::DragEnd, pressed, m.pos, 1, m.mods);
+                    let ev = p
+                        .router
+                        .held_event(p.hits, Phase::DragEnd, pressed, m.pos, m.mods);
                     out = host.deliver(&ev).outcome();
                 }
                 out = out.or(Self::release(host, m, hit, layer, now));
@@ -1059,6 +1093,7 @@ impl PointerRouter {
         let now = host.now_ms();
         let p = host.pointer_parts();
         p.router.dragged = false;
+        p.router.held = None;
         let Some(id) = p.router.state.on_down(p.hits, m.pos) else {
             if layer {
                 return Outcome::Consumed;
@@ -1073,6 +1108,7 @@ impl PointerRouter {
         } else if p.router.state.config.focus_on == FocusOn::Press && p.ring.contains(id) {
             p.focus.focus(id);
         }
+        p.router.held = Some((id, hit_of(p.hits, id)));
         // the click count this press starts: the second press of a double
         // click selects a word in a field
         let count = p.router.state.press_count(id, m.pos, now);
@@ -1169,7 +1205,9 @@ impl PointerRouter {
                 let Some(pressed) = pressed else {
                     return Outcome::Changed;
                 };
-                let ev = PointerEvent::new(p.hits, Phase::Release, pressed, m.pos, 1, m.mods);
+                let ev = p
+                    .router
+                    .held_event(p.hits, Phase::Release, pressed, m.pos, m.mods);
                 return host.deliver(&ev).outcome().or(Outcome::Changed);
             }
         };
@@ -1581,6 +1619,32 @@ mod router_tests {
         );
         assert_eq!(host.log[1].index_of(Part::ROW), Some(0), "the held row");
         let _ = body;
+    }
+
+    /// A drag keeps the owner of the region it started on after that
+    /// region scrolled out of the frame (a grid range drag autoscrolling
+    /// past its first cell).
+    #[test]
+    fn a_drag_keeps_its_owner_after_the_pressed_region_scrolls_away() {
+        let (h, list, _) = layout();
+        let mut host = Host::new(h);
+        host.mouse(MouseKind::Down, 2, 0);
+        // the next frame: the list scrolled, row 0 is gone
+        let mut h = HitRegistry::default();
+        h.register(WidgetId::of("body"), Rect::new(0, 0, 20, 10));
+        h.register(list, Rect::new(0, 0, 10, 3));
+        host.hits = h;
+        host.mouse(MouseKind::Drag, 2, 5);
+        host.mouse(MouseKind::Up, 2, 5);
+        assert_eq!(
+            host.phases()[1..],
+            [
+                (Phase::Drag, list),
+                (Phase::DragEnd, list),
+                (Phase::Release, list)
+            ]
+        );
+        assert_eq!(host.log[1].index_of(Part::ROW), Some(0), "the held row");
     }
 
     #[test]
