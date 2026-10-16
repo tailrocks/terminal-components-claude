@@ -1773,25 +1773,17 @@ impl QueryTab {
                                     .saturating_sub(detail_w + if detail_w > 0 { 2 } else { 0 }),
                                 body.height,
                             );
-                            // header row for the tree columns
-                            let cols_x = tree_area.right().saturating_sub(38);
+                            // the metric columns are the tree's reserved
+                            // trailing strip: labels end before it with `…`
+                            // and the header and cells share its x
+                            tree.reserve_right = PLAN_COLS_W;
+                            tree.show_meta = false;
                             buf.set_string(
                                 tree_area.x + 3,
                                 tree_area.y,
                                 "Operation",
                                 t.muted().bg(bg),
                             );
-                            if cols_x > tree_area.x + 20 {
-                                buf.set_string(
-                                    cols_x,
-                                    tree_area.y,
-                                    format!(
-                                        "{:>13} {:>8} {:>10} {:>4}",
-                                        "cost", "rows", "actual", "%"
-                                    ),
-                                    t.muted().bg(bg),
-                                );
-                            }
                             tree.render(
                                 Rect::new(
                                     tree_area.x,
@@ -1803,7 +1795,17 @@ impl QueryTab {
                                 ctx,
                                 bg,
                             );
-                            // overlay metric columns on each visible row
+                            let strip = tree.trailing();
+                            let cols_x = strip.x;
+                            if strip.width > 0 {
+                                buf.set_string(
+                                    cols_x,
+                                    tree_area.y,
+                                    plan_header(),
+                                    t.muted().bg(bg),
+                                );
+                            }
+                            // metric columns on each visible row
                             let rows = tree.rows().to_vec();
                             for (i, ri) in tree.scroll.visible_range().enumerate() {
                                 let y = tree_area.y + 1 + i as u16;
@@ -1812,7 +1814,7 @@ impl QueryTab {
                                 let Some(info) = idx.and_then(|k| nodes.get(k)) else {
                                     continue;
                                 };
-                                if cols_x <= tree_area.x + 20 {
+                                if strip.width == 0 {
                                     continue;
                                 }
                                 let focused_row =
@@ -1842,11 +1844,12 @@ impl QueryTab {
                                     sql::fmt_rows(info.rows),
                                     actual
                                 );
-                                // clear the meta column drawn by the tree (the numeric index)
                                 let bgc = buf[(cols_x, y)].bg;
                                 buf.set_string(cols_x, y, &text, base.bg(bgc));
+                                // the share sits under its "%" header, the
+                                // hot marker one cell past it
                                 let sh = format!(
-                                    "{:>3} {}",
+                                    "{:>4} {}",
                                     share.round() as u32,
                                     if share > 50.0 { "▲" } else { " " }
                                 );
@@ -1941,6 +1944,16 @@ impl QueryTab {
 
 /// LIMIT nodes report a smaller total than their inputs, so cost share is
 /// measured against the most expensive node rather than the root.
+/// Width of the EXPLAIN metric columns: cost, rows, actual and the share
+/// with its hot marker (`{:>13} {:>8} {:>10} {:>4} ▲`).
+const PLAN_COLS_W: u16 = 40;
+
+/// The EXPLAIN metric header; every cell lines up with [`PLAN_COLS_W`]'s
+/// columns (the share's last digit sits under `%`).
+fn plan_header() -> String {
+    format!("{:>13} {:>8} {:>10} {:>4}", "cost", "rows", "actual", "%")
+}
+
 fn max_total_cost(node: &PlanNode) -> f64 {
     node.children
         .iter()
