@@ -28,7 +28,7 @@ fn tab_moves_through_the_ring_and_the_page_reads_the_change_back() {
     let name = page(&h).name.id;
     h.focus(name);
     h.key(KeyCode::Tab);
-    assert_eq!(h.app.focus.current(), Some(page(&h).email.id));
+    assert_eq!(h.app.shell.focus.current(), Some(page(&h).email.id));
     assert_eq!(page(&h).last_change, "Name field → Email field");
     assert!(
         h.text().contains("Email field"),
@@ -46,7 +46,7 @@ fn a_removed_focused_tag_falls_back_per_the_shell_option() {
     h.key(KeyCode::Delete);
     assert_eq!(page(&h).tags.len(), 3);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(alpha),
         "default nearest: the stop before the removed one"
     );
@@ -56,8 +56,12 @@ fn a_removed_focused_tag_falls_back_per_the_shell_option() {
     let beta = page(&h).tags[1].id;
     h.focus(beta);
     h.key(KeyCode::Delete);
-    let first = h.app.ring.first();
-    assert_eq!(h.app.focus.current(), first, "first: the ring's first stop");
+    let first = h.app.shell.ring.first();
+    assert_eq!(
+        h.app.shell.focus.current(),
+        first,
+        "first: the ring's first stop"
+    );
     assert_eq!(h.bars(), 1);
 }
 
@@ -65,7 +69,7 @@ fn a_removed_focused_tag_falls_back_per_the_shell_option() {
 fn the_showcase_focus_fallback_is_the_library_default() {
     let h = harness();
     assert_eq!(
-        h.app.focus_fallback,
+        h.app.shell.focus_fallback,
         junie_tui::core::focus::FocusFallback::default(),
         "the showcase shows library defaults unless an option says otherwise"
     );
@@ -78,12 +82,20 @@ fn tab_in_a_field_moves_on_unless_the_page_cancels_the_request() {
     h.focus(name);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
-    assert_eq!(h.app.focus.current(), Some(email), "request_focus_next");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(email),
+        "request_focus_next"
+    );
     h.opt("focusnavigation.tab_in_field=stays");
     h.focus(name);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
-    assert_eq!(h.app.focus.current(), Some(name), "cancel_focus_request");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(name),
+        "cancel_focus_request"
+    );
     assert!(h.text().contains("stays: cancel_focus_request"));
 }
 
