@@ -785,6 +785,32 @@ fn settings_screen_remove_member_flow() {
     assert!(h.text().contains("5 members"));
 }
 
+/// `--motion reduced` (WCAG 2.3.3, SVg8): the task runner's work still
+/// advances, the decorative phase (spinner frames) stays still. The
+/// showcase used to run reduced as full motion.
+#[test]
+fn reduced_motion_runs_the_work_but_keeps_the_decorative_phase_still() {
+    use junie_tui::motion::Motion;
+    for (motion, phase) in [(Motion::Full, 30), (Motion::Reduced, 0)] {
+        let mut app = App::with_motion(Theme::junie(), motion, 0);
+        app.goto(PageId::TaskRunner);
+        let term = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        let mut h = Harness { app, term };
+        h.draw();
+        h.key(KeyCode::Char('r'));
+        assert!(h.app.animating(), "{motion:?}: the run animates");
+        for _ in 0..30 {
+            h.app.handle(Input::Tick);
+        }
+        h.draw();
+        assert!(
+            h.text().contains("compile started"),
+            "{motion:?}: the run advances"
+        );
+        assert_eq!(h.app.tick, phase, "{motion:?}: decorative phase");
+    }
+}
+
 #[test]
 fn task_runner_animates_and_can_be_cancelled() {
     let mut h = Harness::new(120, 40, PageId::TaskRunner);

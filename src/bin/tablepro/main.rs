@@ -36,6 +36,9 @@ use junie_tui::cli::CommonArgs;
 use crate::app::App;
 use crate::db::Connection;
 
+/// Set to `1` (anything but empty or `0`) for reduced motion.
+const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
+
 #[derive(Debug, Parser)]
 #[command(
     name = "tablepro",
@@ -51,9 +54,12 @@ struct Cli {
 }
 
 fn cli_after_help() -> String {
-    "Motion:    --motion paused pins tick-derived surfaces at --frame N for capture\n\n\
-     Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit"
-        .to_string()
+    format!(
+        "{}\n\
+         Frame:     with --motion paused, the exact tick to render\n\n\
+         Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit",
+        junie_tui::cli::motion_help(NO_MOTION_ENV)
+    )
 }
 
 fn connection_index(connections: &[Connection], name: &str) -> Result<usize, clap::Error> {
@@ -76,8 +82,8 @@ fn main() -> std::io::Result<()> {
             .unwrap_or_else(|error| error.exit());
         app.connect(i);
     }
-    app.set_motion(cli.common.motion.unwrap_or_default(), cli.common.frame);
-    junie_tui::runtime::run(&mut app)
+    app.set_motion(cli.common.motion(NO_MOTION_ENV), cli.common.frame);
+    junie_tui::shell::run(&mut app)
 }
 
 junie_tui::impl_application!(App);

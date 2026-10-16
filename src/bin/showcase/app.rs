@@ -710,7 +710,11 @@ impl App {
         }
         let mut out = auto;
         if self.animating() {
-            self.tick = self.tick.wrapping_add(1);
+            // reduced motion: the pages' work advances, the decorative
+            // phase (spinner frames) stays still
+            if self.motion.animates() {
+                self.tick = self.tick.wrapping_add(1);
+            }
             out = Outcome::Changed;
         }
         if self.pointer.expire_flash(self.now_ms()) {
