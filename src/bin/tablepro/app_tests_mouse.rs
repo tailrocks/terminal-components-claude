@@ -114,3 +114,46 @@ fn a_narrow_workbench_opens_the_explorer_drawer_from_its_rail() {
     assert_eq!(h.focus(), Some(EXPLORER), "{}", h.text());
     assert!(h.text().contains("Explorer"));
 }
+
+// mouse #40: the TablePro segment opens the app menu: open tabs, disconnect, quit
+#[test]
+fn the_app_menu_disconnects_and_quits_by_mouse() {
+    use crate::app::STRIP_APP;
+    let mut h = H::connected(120, 40);
+    let open_menu = |h: &mut H| {
+        let r = h.app.hits.area_of(STRIP_APP).expect("the TablePro segment");
+        h.click(r.x, r.y);
+    };
+    open_menu(&mut h);
+    assert!(
+        h.text().contains("Disconnect") && h.text().contains("Quit TablePro"),
+        "{}",
+        h.text()
+    );
+    let (x, y) = h.find("Disconnect").unwrap();
+    h.click(x, y);
+    assert!(h.app.workbench.is_none(), "{}", h.text());
+    assert!(h.text().contains("Connections"), "{}", h.text());
+    // on the connection list the menu has Quit only
+    open_menu(&mut h);
+    assert!(!h.text().contains("Open tabs…"), "{}", h.text());
+    let (x, y) = h.find("Quit TablePro").unwrap();
+    h.click(x, y);
+    assert!(h.app.quit, "Quit did not quit");
+}
+
+// mouse #40: pending work keeps the connection open
+#[test]
+fn disconnect_keeps_an_unsaved_query() {
+    use crate::app::STRIP_APP;
+    let mut h = H::connected(120, 40);
+    h.key(ratatui::crossterm::event::KeyCode::Tab);
+    h.type_str("SELECT 1");
+    h.key(ratatui::crossterm::event::KeyCode::Esc);
+    let r = h.app.hits.area_of(STRIP_APP).unwrap();
+    h.click(r.x, r.y);
+    let (x, y) = h.find("Disconnect").unwrap();
+    h.click(x, y);
+    assert!(h.app.workbench.is_some());
+    assert!(h.text().contains("before disconnecting"), "{}", h.text());
+}

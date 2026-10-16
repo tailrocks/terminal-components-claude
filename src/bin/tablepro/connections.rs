@@ -25,6 +25,8 @@ use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
 use crate::db::{ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
 const ID: WidgetId = WidgetId::of("connections");
+/// The connection list (where focus lands after a disconnect).
+pub const TREE: WidgetId = WidgetId::of("connections").sub("tree");
 /// The empty connection list's "New connection" button.
 pub const NEW_ID: WidgetId = WidgetId::of("connections").sub("new");
 
