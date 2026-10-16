@@ -21,6 +21,16 @@ use ratatui::style::Style;
 /// A question with radio options and buttons (mount destination choice,
 /// dirty-exit branches, split direction…).
 pub struct ChoiceDialog {
+    /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
+    /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
+    /// [`IconButton::close`] (three-cell plate, `Close · Esc` tooltip);
+    /// every modal takes a custom one the same way
+    /// ([`crate::ui::layer::Overlay::close_button`]).
+    ///
+    /// [`Dismiss`]: crate::ui::popup::Dismiss
+    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
+    /// [`IconButton::close`]: crate::widgets::icon_button::IconButton::close
+    pub close_button: crate::widgets::icon_button::IconButton,
     /// Which dismissals close it. Default `Dismiss::ESCAPE`.
     pub dismiss: crate::ui::popup::Dismiss,
     pub title: String,
@@ -46,9 +56,16 @@ pub struct ChoiceDialog {
 }
 
 impl ChoiceDialog {
+    /// See [`Self::close_button`].
+    pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
+        self.close_button = button;
+        self
+    }
+
     pub fn new(id: WidgetId, title: &str, label: &str, options: &[&str], selected: usize) -> Self {
         Self {
             dismiss: crate::ui::popup::Dismiss::ESCAPE,
+            close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
             title: title.to_owned(),
             lines: vec![],
             radio: RadioGroup::new(id.sub("radio"), label, options, selected),
@@ -203,7 +220,7 @@ impl ChoiceDialog {
         let (area, inner) = crate::ui::modal::Frame::new(self.width, h)
             .title(&self.title)
             .meta(None)
-            .dismiss(self.dismiss)
+            .overlay(&*self)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;
