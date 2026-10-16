@@ -1575,6 +1575,9 @@ pub struct Glyphs {
     pub overflow_left: &'static str,
     /// Items hidden to the right of a strip. `›`.
     pub overflow_right: &'static str,
+    /// The menu-bar title that holds the titles that do not fit
+    /// ([`crate::widgets::menu::Overflow::Chevron`]). `»`.
+    pub more_titles: &'static str,
     /// Vertical scrollbar track; also a vertical divider. `│`.
     pub scroll_track: &'static str,
     /// Vertical scrollbar thumb; also a held divider. `┃`.
@@ -1655,6 +1658,7 @@ impl Glyphs {
         close: "×",
         overflow_left: "‹",
         overflow_right: "›",
+        more_titles: "»",
         scroll_track: "│",
         scroll_thumb: "┃",
         scroll_h_track: "─",
@@ -1711,6 +1715,7 @@ impl Glyphs {
         close: "x",
         overflow_left: "<",
         overflow_right: ">",
+        more_titles: ">",
         scroll_track: "|",
         scroll_thumb: "#",
         scroll_h_track: "-",

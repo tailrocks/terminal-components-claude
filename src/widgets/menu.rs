@@ -576,13 +576,27 @@ impl ContextMenu {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuBarEvent {
-    /// A menu opened (index).
+    /// A menu opened (index). With [`Overflow::Chevron`], `labels.len()`
+    /// is the chevron's menu of hidden titles.
     Opened(usize),
     /// An item was chosen: (menu, item).
     Chosen(usize, usize),
     Closed,
     /// The brand lockup was activated.
     Brand,
+}
+
+/// What a [`MenuBar`] does with titles that do not fit its row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Overflow {
+    /// They are not drawn and cannot be reached with the pointer.
+    #[default]
+    Hide,
+    /// They collapse into one chevron title
+    /// ([`Glyphs::more_titles`](crate::theme::Glyphs::more_titles)) whose
+    /// menu lists them; choosing one opens that title's menu under the
+    /// chevron. The chevron takes part in the arrow keys like any title.
+    Chevron,
 }
 
 #[derive(Debug, Clone)]
@@ -612,6 +626,11 @@ pub struct MenuBar {
     /// Which keys move between titles and through an open menu (default
     /// [`NavKeys::DEFAULT`]; the open menu inherits it).
     pub nav: NavKeys,
+    /// Titles that do not fit. Default [`Overflow::Hide`].
+    pub overflow: Overflow,
+    /// The chevron title as last drawn ([`Overflow::Chevron`] with hidden
+    /// titles), else `Rect::ZERO`.
+    pub more_area: Rect,
 }
 
 impl MenuBar {
@@ -636,7 +655,77 @@ impl MenuBar {
             wrap: true,
             hide_owner_focus: true,
             nav: NavKeys::DEFAULT,
+            overflow: Overflow::Hide,
+            more_area: Rect::ZERO,
         }
+    }
+
+    /// See [`Self::overflow`].
+    pub fn overflow(mut self, overflow: Overflow) -> Self {
+        self.overflow = overflow;
+        self
+    }
+
+    /// The chevron title's id ([`Overflow::Chevron`]).
+    pub fn more_id(&self) -> WidgetId {
+        self.id.sub("more")
+    }
+
+    /// The chevron is on screen: [`Overflow::Chevron`] hid some title.
+    fn chevron(&self) -> bool {
+        !self.more_area.is_empty()
+    }
+
+    /// Titles hidden behind the chevron as of the last render, in order.
+    /// Empty unless [`Overflow::Chevron`] is on and some title did not fit.
+    pub fn hidden(&self) -> Vec<usize> {
+        if !self.chevron() {
+            return vec![];
+        }
+        (0..self.labels.len())
+            .filter(|&i| self.areas.get(i).is_none_or(|r| r.is_empty()))
+            .collect()
+    }
+
+    /// The titles the arrow keys visit, in order: the shown titles, then
+    /// the chevron (`labels.len()`).
+    fn ring(&self) -> Vec<usize> {
+        let n = self.labels.len();
+        let mut v: Vec<usize> = (0..n)
+            .filter(|&i| self.areas.get(i).is_some_and(|r| !r.is_empty()))
+            .collect();
+        v.push(n);
+        v
+    }
+
+    /// The title `delta` steps from the cursor along [`Self::ring`]. A
+    /// hidden title's menu, opened from the chevron, steps from the chevron.
+    fn step(&self, delta: isize) -> usize {
+        let ring = self.ring();
+        let n = self.labels.len();
+        let at = ring
+            .iter()
+            .position(|&i| i == self.cursor)
+            .or_else(|| ring.iter().position(|&i| i == n))
+            .unwrap_or(0);
+        ring[crate::core::nav::step_index(at, ring.len(), delta, self.wrap)]
+    }
+
+    /// The title `id` names: an index, or `labels.len()` for the chevron.
+    fn title_at(&self, id: WidgetId) -> Option<usize> {
+        if self.chevron() && id == self.more_id() {
+            return Some(self.labels.len());
+        }
+        (0..self.labels.len()).find(|i| self.label_id(*i) == id)
+    }
+
+    /// The open menu belongs to the chevron: its own list, or a hidden
+    /// title opened from it.
+    fn chevron_open(&self) -> bool {
+        self.open.is_some()
+            && self.chevron()
+            && (self.cursor == self.labels.len()
+                || self.areas.get(self.cursor).is_none_or(|r| r.is_empty()))
     }
 
     pub fn hide_owner_focus(mut self, on: bool) -> Self {
@@ -685,25 +774,47 @@ impl MenuBar {
     }
 
     pub fn open_index(&self) -> Option<usize> {
-        self.open
-            .as_ref()
-            .and_then(|m| (0..self.labels.len()).find(|i| m.id == self.label_id(*i).sub("menu")))
+        let m = self.open.as_ref()?;
+        if m.id == self.more_id().sub("menu") {
+            return Some(self.labels.len());
+        }
+        (0..self.labels.len()).find(|i| m.id == self.label_id(*i).sub("menu"))
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id
             || id == self.brand_id()
+            || (self.chevron() && id == self.more_id())
             || (self.open.is_some() && id == backdrop_id(self.id))
             || (0..self.labels.len()).any(|i| self.label_id(i) == id)
             || self.open.as_ref().is_some_and(|m| m.owns(id))
     }
 
     pub fn open_menu(&mut self, i: usize) {
+        if i == self.labels.len() && self.chevron() {
+            // the chevron: a menu of the hidden titles
+            self.cursor = i;
+            let items = self
+                .hidden()
+                .into_iter()
+                .map(|h| MenuItem::new(self.labels[h].clone()))
+                .collect();
+            let menu = ContextMenu::new(self.more_id().sub("menu"), items)
+                .anchor(self.more_area, Placement::Below)
+                .nav(self.nav);
+            self.open = Some(menu);
+            return;
+        }
         if i >= self.labels.len() {
             return;
         }
         self.cursor = i;
-        let anchor = self.areas.get(i).copied().unwrap_or(Rect::new(0, 0, 1, 1));
+        let anchor = match self.areas.get(i).copied() {
+            Some(r) if !r.is_empty() => r,
+            // a hidden title opens under the chevron
+            _ if self.chevron() => self.more_area,
+            r => r.unwrap_or(Rect::new(0, 0, 1, 1)),
+        };
         let menu = ContextMenu::new(self.label_id(i).sub("menu"), self.menus[i].clone())
             .anchor(anchor, Placement::Below)
             .nav(self.nav);
@@ -721,6 +832,21 @@ impl MenuBar {
             return (Outcome::Ignored, None);
         }
         let nav = self.nav.action(key);
+        let chevron = self.chevron();
+        let step = match nav {
+            Some(Nav::Left) => Some(-1),
+            Some(Nav::Right) => Some(1),
+            _ => None,
+        };
+        if chevron
+            && self.open.is_some()
+            && let Some(d) = step
+        {
+            let i = self.step(d);
+            self.open_menu(i);
+            return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
+        }
+        let from_chevron = self.cursor == n && chevron;
         if let Some(menu) = self.open.as_mut() {
             match nav {
                 Some(Nav::Left) if n > 1 => {
@@ -737,6 +863,7 @@ impl MenuBar {
             }
             let (o, ev) = menu.on_key(key);
             return match ev {
+                Some(MenuEvent::Chosen(i)) if from_chevron => self.choose_hidden(i),
                 Some(MenuEvent::Chosen(i)) => {
                     let m = self.cursor;
                     self.close();
@@ -751,6 +878,14 @@ impl MenuBar {
             };
         }
         match nav {
+            Some(Nav::Left) if chevron => {
+                self.cursor = self.step(-1);
+                return (Outcome::Changed, None);
+            }
+            Some(Nav::Right) if chevron => {
+                self.cursor = self.step(1);
+                return (Outcome::Changed, None);
+            }
             Some(Nav::Left) if n > 0 => {
                 self.cursor = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
                 return (Outcome::Changed, None);
@@ -789,7 +924,7 @@ impl MenuBar {
             self.close();
             return (Outcome::Changed, Some(MenuBarEvent::Brand));
         }
-        if let Some(i) = (0..self.labels.len()).find(|i| self.label_id(*i) == id) {
+        if let Some(i) = self.title_at(id) {
             if self.open_index() == Some(i) {
                 self.close();
                 return (Outcome::Changed, Some(MenuBarEvent::Closed));
@@ -797,8 +932,10 @@ impl MenuBar {
             self.open_menu(i);
             return (Outcome::Changed, Some(MenuBarEvent::Opened(i)));
         }
+        let from_chevron = self.chevron() && self.cursor == self.labels.len();
         if let Some(menu) = self.open.as_mut() {
             return match menu.on_click(id) {
+                Some(MenuEvent::Chosen(item)) if from_chevron => self.choose_hidden(item),
                 Some(MenuEvent::Chosen(item)) => {
                     let m = self.cursor;
                     self.close();
@@ -817,6 +954,15 @@ impl MenuBar {
         (Outcome::Ignored, None)
     }
 
+    /// Item `i` of the chevron's menu: open that hidden title's menu.
+    fn choose_hidden(&mut self, i: usize) -> (Outcome, Option<MenuBarEvent>) {
+        let Some(&title) = self.hidden().get(i) else {
+            return (Outcome::Consumed, None);
+        };
+        self.open_menu(title);
+        (Outcome::Changed, Some(MenuBarEvent::Opened(title)))
+    }
+
     /// Hovering another label while a menu is open switches to it. The bar
     /// applies this itself on every render, so owners need not call it.
     pub fn on_hover(&mut self, id: Option<WidgetId>) -> Outcome {
@@ -824,8 +970,11 @@ impl MenuBar {
             return Outcome::Ignored;
         }
         if let Some(id) = id
-            && let Some(i) = (0..self.labels.len()).find(|i| self.label_id(*i) == id)
+            && let Some(i) = self.title_at(id)
             && self.open_index() != Some(i)
+            // a hidden title's menu belongs to the chevron: resting on the
+            // chevron keeps it open
+            && !(i == self.labels.len() && self.chevron_open())
         {
             self.open_menu(i);
             return Outcome::Changed;
@@ -859,12 +1008,34 @@ impl MenuBar {
         }
         self.areas.clear();
         let open = self.open_index();
+        let more_text = format!(" {} ", t.glyphs.more_titles);
+        let more_w = width(&more_text) as u16;
+        // with a chevron, titles stop where the chevron still fits after
+        // them; without one, each title only has to fit itself
+        let limit = if self.overflow == Overflow::Chevron && {
+            let all: u16 = self
+                .labels
+                .iter()
+                .map(|l| width(l) as u16 + 3)
+                .sum::<u16>()
+                .saturating_sub(1);
+            x + all > area.right()
+        } {
+            area.right().saturating_sub(more_w + 1)
+        } else {
+            area.right()
+        };
+        let chevron_open = self.chevron_open();
+        let mut hiding = false;
         for (i, label) in self.labels.iter().enumerate() {
             let lid = self.label_id(i);
             let text = format!(" {label} ");
             let w = width(&text) as u16;
-            if x + w > area.right() {
+            if hiding || x + w > limit {
                 self.areas.push(Rect::ZERO);
+                // a chevron keeps the order: once one title is hidden, every
+                // title after it is too
+                hiding = limit < area.right();
                 continue;
             }
             let is_open = open == Some(i);
@@ -889,14 +1060,39 @@ impl MenuBar {
             ctx.clickable(lid, r);
             x += w + 1;
         }
+        self.more_area = Rect::ZERO;
+        if limit < area.right() && x + more_w <= area.right() {
+            let n = self.labels.len();
+            let mid = self.more_id();
+            let mut s = ctx.state(mid);
+            s.focused = focused && self.cursor == n && open.is_none();
+            s.selected = chevron_open;
+            let on = if chevron_open { Plane::Popover } else { plane };
+            let it = t.interactive(Kind::Title, s, on);
+            if s.focused {
+                buf.set_string(
+                    x.saturating_sub(1),
+                    area.y,
+                    it.gutter,
+                    it.gutter_style.bg(bg),
+                );
+            }
+            buf.set_string(x, area.y, &more_text, it.style);
+            self.more_area = Rect::new(x, area.y, more_w, 1);
+            ctx.clickable(mid, self.more_area);
+        }
         let Some(m) = self.open.as_mut() else {
             return;
         };
-        // keep the popover under its (possibly re-laid-out) label
-        if let Some(i) = open
-            && let Some(r) = self.areas.get(i)
-        {
-            m.anchor = *r;
+        // keep the popover under its (possibly re-laid-out) label, or under
+        // the chevron for its own menu and the hidden titles'
+        if let Some(i) = open {
+            match self.areas.get(i) {
+                Some(r) if !r.is_empty() => m.anchor = *r,
+                _ if !self.more_area.is_empty() => m.anchor = self.more_area,
+                Some(r) => m.anchor = *r,
+                None => {}
+            }
         }
         m.prepare(*buf.area(), ctx);
         let menu = m.clone();
@@ -907,6 +1103,9 @@ impl MenuBar {
         let mut titles: Vec<(WidgetId, Rect)> = (0..self.labels.len())
             .map(|i| (self.label_id(i), self.areas[i]))
             .collect();
+        if !self.more_area.is_empty() {
+            titles.push((self.more_id(), self.more_area));
+        }
         if self.brand.is_some() {
             titles.push((self.brand_id(), self.brand_area));
         }
@@ -1310,5 +1509,110 @@ mod tests {
         // the keyboard never lands on it
         m.on_key(&key(KeyCode::Down));
         assert_eq!(m.cursor, 0);
+    }
+
+    fn wide_bar(overflow: Overflow) -> MenuBar {
+        MenuBar::new(
+            WidgetId::of("bar"),
+            vec![
+                ("File", vec![MenuItem::new("New")]),
+                ("Edit", vec![MenuItem::new("Undo")]),
+                ("Selection", vec![MenuItem::new("All")]),
+                ("Window", vec![MenuItem::new("Zoom"), MenuItem::new("Tile")]),
+            ],
+        )
+        .overflow(overflow)
+    }
+
+    fn bar_row(bar: &mut MenuBar, t: &Theme, w: u16) -> String {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, 10));
+        bar.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
+        ctx.flush_overlays(&mut buf);
+        (0..w).map(|x| buf[(x, 0)].symbol()).collect()
+    }
+
+    #[test]
+    fn hidden_titles_are_dropped_by_default() {
+        let t = Theme::junie();
+        let mut bar = wide_bar(Overflow::Hide);
+        let row = bar_row(&mut bar, &t, 24);
+        assert!(row.contains("File") && row.contains("Edit"), "{row}");
+        assert!(!row.contains('»'), "no chevron by default: {row}");
+        assert_eq!(bar.more_area, Rect::ZERO);
+        assert!(bar.hidden().is_empty());
+    }
+
+    #[test]
+    fn a_chevron_collects_the_titles_that_do_not_fit() {
+        let t = Theme::junie();
+        let mut bar = wide_bar(Overflow::Chevron);
+        // everything fits: no chevron
+        let row = bar_row(&mut bar, &t, 60);
+        assert!(row.contains("Window") && !row.contains('»'), "{row}");
+        let row = bar_row(&mut bar, &t, 24);
+        assert!(row.contains(" » "), "{row}");
+        assert!(!row.contains("Window"), "{row}");
+        assert_eq!(bar.hidden(), vec![2, 3], "order kept once one is hidden");
+        assert!(bar.more_area.right() <= 24);
+        // clicking the chevron lists the hidden titles
+        let (_, ev) = bar.on_click(bar.more_id());
+        assert_eq!(ev, Some(MenuBarEvent::Opened(4)));
+        let items: Vec<&str> = bar
+            .open
+            .as_ref()
+            .unwrap()
+            .items
+            .iter()
+            .map(|i| i.label.as_str())
+            .collect();
+        assert_eq!(items, ["Selection", "Window"]);
+        // choosing one opens that title's menu under the chevron
+        bar.on_key(&key(KeyCode::Down));
+        let (_, ev) = bar.on_key(&key(KeyCode::Enter));
+        assert_eq!(ev, Some(MenuBarEvent::Opened(3)));
+        assert_eq!(bar.open_index(), Some(3));
+        bar_row(&mut bar, &t, 24);
+        let open = bar.open.as_ref().unwrap();
+        assert_eq!(open.items.len(), 2, "the Window menu");
+        assert_eq!(open.area.y, 1);
+        assert!(open.area.x <= bar.more_area.x && open.area.right() > bar.more_area.x);
+        // its items choose as usual
+        let (_, ev) = bar.on_key(&key(KeyCode::Enter));
+        assert_eq!(ev, Some(MenuBarEvent::Chosen(3, 0)));
+    }
+
+    #[test]
+    fn the_arrow_keys_visit_the_chevron_like_a_title() {
+        let t = Theme::junie();
+        let mut bar = wide_bar(Overflow::Chevron);
+        bar_row(&mut bar, &t, 24);
+        bar.cursor = 1;
+        bar.on_key(&key(KeyCode::Right));
+        assert_eq!(bar.cursor, 4, "Edit -> chevron, past the hidden titles");
+        bar.on_key(&key(KeyCode::Right));
+        assert_eq!(bar.cursor, 0, "wraps to File");
+        bar.on_key(&key(KeyCode::Left));
+        assert_eq!(bar.cursor, 4);
+        let (_, ev) = bar.on_key(&key(KeyCode::Enter));
+        assert_eq!(ev, Some(MenuBarEvent::Opened(4)));
+        // with the chevron menu open, Left moves to Edit's menu
+        let (_, ev) = bar.on_key(&key(KeyCode::Left));
+        assert_eq!(ev, Some(MenuBarEvent::Opened(1)));
+        // hovering the chevron while a hidden title's menu shows keeps it
+        bar.open_menu(3);
+        bar_row(&mut bar, &t, 24);
+        assert_eq!(bar.on_hover(Some(bar.more_id())), Outcome::Ignored);
+        assert_eq!(bar.open_index(), Some(3));
+    }
+
+    #[test]
+    fn the_chevron_draws_with_the_theme_glyph() {
+        let t = Theme::junie().with_glyphs(crate::theme::Glyphs::ASCII);
+        let mut bar = wide_bar(Overflow::Chevron);
+        let row = bar_row(&mut bar, &t, 24);
+        assert!(row.contains(" > ") && row.is_ascii(), "{row}");
     }
 }
