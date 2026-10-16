@@ -186,7 +186,7 @@ fn chrome_menus_context_and_status_actions_are_reachable() {
     h.assert_status("New tab");
 
     h.click(x, y);
-    h.key(KeyCode::Char('m'));
+    h.key_mod(KeyCode::F(10), KeyModifiers::SHIFT);
     assert!(h.text().contains("Change title"));
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("Change title"));
