@@ -997,7 +997,7 @@ impl Screen for CleanupPage {
                 _ => {}
             }
         }
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             return Outcome::Ignored;
         }
         match key.code {

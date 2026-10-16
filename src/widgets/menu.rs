@@ -414,7 +414,7 @@ impl ContextMenu {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuEvent>) {
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
@@ -1062,7 +1062,7 @@ impl MenuBar {
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuBarEvent>) {
         let n = self.labels.len();
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }

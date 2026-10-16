@@ -1459,7 +1459,7 @@ impl CapsuleScreen {
             }
         }
         match key.code {
-            KeyCode::Char(c) if !key.ctrl() && !key.alt() => {
+            KeyCode::Char(c) if !key.chord() => {
                 pane.term.clear_selection();
                 pane.type_char(c, now, &ws);
             }

@@ -598,7 +598,7 @@ impl Picker {
                     (Outcome::Consumed, None)
                 }
             }
-            KeyCode::Char(c) if self.searchable && !key.ctrl() && !key.alt() => {
+            KeyCode::Char(c) if self.searchable && !key.chord() => {
                 let at = self.caret();
                 self.query.insert(at, c);
                 self.set_caret(at + c.len_utf8());
