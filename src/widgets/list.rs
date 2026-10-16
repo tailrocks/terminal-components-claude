@@ -7,6 +7,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
 use crate::core::scroll::ScrollState;
+use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
 use crate::widgets::scrollbar;
@@ -15,6 +16,9 @@ use crate::widgets::scrollbar;
 pub struct ListItem {
     pub label: String,
     pub meta: Option<String>,
+    /// The metadata's tone. Default [`Tone::Muted`]; a value that carries
+    /// meaning (a slow duration) takes its own.
+    pub meta_tone: Tone,
     pub disabled: bool,
 }
 
@@ -23,11 +27,17 @@ impl ListItem {
         Self {
             label: label.to_owned(),
             meta: None,
+            meta_tone: Tone::Muted,
             disabled: false,
         }
     }
     pub fn meta(mut self, m: &str) -> Self {
         self.meta = Some(m.to_owned());
+        self
+    }
+    /// The metadata's tone (see [`ListItem::meta_tone`]).
+    pub fn meta_tone(mut self, tone: Tone) -> Self {
+        self.meta_tone = tone;
         self
     }
     pub fn disabled(mut self, d: bool) -> Self {
@@ -625,8 +635,10 @@ impl ListBox {
                     .saturating_sub(meta_w as u16);
                 let ms = if item.disabled {
                     st
-                } else {
+                } else if item.meta_tone == Tone::Muted {
                     st.fg(t.text_muted)
+                } else {
+                    st.fg(t.tone_on(item.meta_tone, st.bg.unwrap_or(t.canvas)))
                 };
                 buf.set_string(mx, y, m, ms);
             }
@@ -694,6 +706,32 @@ mod reveal_tests {
             vec![ListItem::new("short"), ListItem::new(LONG)],
             SelectMode::Single,
         )
+    }
+
+    #[test]
+    fn meta_tone_colours_the_metadata_and_defaults_to_muted() {
+        let theme = Theme::junie();
+        let items = vec![
+            ListItem::new("fast").meta("38 ms"),
+            ListItem::new("slow")
+                .meta("1.82 s")
+                .meta_tone(Tone::Warning),
+        ];
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 4));
+        l.render(Rect::new(0, 0, 40, 4), &mut buf, &mut ctx, theme.canvas);
+        let at = |y: u16, s: &str| {
+            (0..40)
+                .find(|&x| buf[(x, y)].symbol() == s)
+                .map(|x| buf[(x, y)].clone())
+                .unwrap()
+        };
+        assert_eq!(at(0, "3").fg, theme.text_muted);
+        let slow = at(1, "1");
+        assert_eq!(slow.fg, theme.tone_on(Tone::Warning, slow.bg));
     }
 
     /// Cut labels stop one blank column short of the scrollbar, never

@@ -7,6 +7,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
+use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
 
@@ -18,6 +19,14 @@ pub struct TreeNode {
     pub meta: Option<String>,
     /// One-cell muted glyph before the label (object kind).
     pub glyph: Option<std::borrow::Cow<'static, str>>,
+    /// The glyph's tone. Default [`Tone::Muted`] (an object kind); a
+    /// glyph that carries meaning (an environment, a status) takes its
+    /// own, made readable on the row ([`crate::theme::Theme::tone_on`]).
+    pub glyph_tone: Tone,
+    /// The label's tone on a row that is neither selected nor a note
+    /// (e.g. the hot node of a query plan in warning). Default `None`:
+    /// the row's ink.
+    pub label_tone: Option<Tone>,
     /// Children are fetched on first expand; until then the node shows `▸`
     /// and expanding emits [`TreeAction::Expand`].
     pub lazy: bool,
@@ -34,6 +43,8 @@ impl TreeNode {
             children: vec![],
             meta: None,
             glyph: None,
+            glyph_tone: Tone::Muted,
+            label_tone: None,
             lazy: false,
             busy: false,
             note: false,
@@ -67,6 +78,18 @@ impl TreeNode {
         self
     }
 
+    /// The glyph's tone (see [`Self::glyph_tone`](TreeNode::glyph_tone)).
+    pub fn glyph_tone(mut self, tone: Tone) -> Self {
+        self.glyph_tone = tone;
+        self
+    }
+
+    /// The label's tone (see [`TreeNode::label_tone`]).
+    pub fn label_tone(mut self, tone: Tone) -> Self {
+        self.label_tone = Some(tone);
+        self
+    }
+
     pub fn note(label: &str) -> Self {
         Self {
             note: true,
@@ -92,6 +115,8 @@ pub struct FlatRow {
     pub has_children: bool,
     pub expanded: bool,
     pub glyph: Option<std::borrow::Cow<'static, str>>,
+    pub glyph_tone: Tone,
+    pub label_tone: Option<Tone>,
     pub busy: bool,
     pub note: bool,
 }
@@ -246,6 +271,8 @@ fn walk(
             has_children,
             expanded,
             glyph: n.glyph.clone(),
+            glyph_tone: n.glyph_tone,
+            label_tone: n.label_tone,
             busy: n.busy,
             note: n.note,
         });
@@ -1056,7 +1083,10 @@ impl TreeView {
             let mut label_style = match (s.selected, focused) {
                 (true, true) => st.fg(t.chosen(true)),
                 (true, false) => st.fg(t.chosen(false)).add_modifier(Modifier::BOLD),
-                _ => st,
+                _ => match row.label_tone {
+                    Some(tone) => st.fg(t.tone_on(tone, st.bg.unwrap_or(t.canvas))),
+                    None => st,
+                },
             };
             if row.note {
                 label_style = st.fg(t.text_muted).remove_modifier(Modifier::BOLD);
@@ -1067,7 +1097,13 @@ impl TreeView {
                     lx,
                     y,
                     g,
-                    st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                    // an object-kind glyph keeps the plain muted ink
+                    st.fg(if row.glyph_tone == Tone::Muted {
+                        t.text_muted
+                    } else {
+                        t.tone_on(row.glyph_tone, st.bg.unwrap_or(t.canvas))
+                    })
+                    .remove_modifier(Modifier::BOLD),
                 );
                 lx += 2;
             }
@@ -1352,6 +1388,37 @@ mod scroll_tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    #[test]
+    fn glyph_and_label_tones_colour_a_row_and_default_to_muted_and_ink() {
+        let theme = Theme::junie();
+        let nodes = vec![
+            TreeNode::leaf("Plain").glyph("·"),
+            TreeNode::leaf("Prod")
+                .glyph("◆")
+                .glyph_tone(Tone::Danger)
+                .label_tone(Tone::Warning),
+        ];
+        let mut tv = TreeView::new(WidgetId::of("t"), nodes);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
+        tv.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
+        let first = |y: u16, s: &str| {
+            (0..40)
+                .find(|&x| buf[(x, y)].symbol() == s)
+                .map(|x| buf[(x, y)].clone())
+                .unwrap()
+        };
+        assert_eq!(first(0, "·").fg, theme.text_muted, "default glyph");
+        let label = first(0, "P").fg;
+        let g = first(1, "◆");
+        assert_eq!(g.fg, theme.tone_on(Tone::Danger, g.bg), "glyph tone");
+        let l = first(1, "P");
+        assert_eq!(l.fg, theme.tone_on(Tone::Warning, l.bg), "label tone");
+        assert_ne!(label, l.fg, "the default label keeps the row's ink");
     }
 
     #[test]
