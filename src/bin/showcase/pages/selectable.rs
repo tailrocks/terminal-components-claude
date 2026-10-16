@@ -1124,6 +1124,14 @@ impl Page for SelectablePage {
         }
     }
 
+    fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
+        if self.dirty() {
+            junie_tui::ui::leave::Stakes::Unsaved { changes: 0 }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
     fn editing(&self) -> bool {
         self.name.editing || self.email.editing || self.notes.editing || self.table.is_editing()
     }

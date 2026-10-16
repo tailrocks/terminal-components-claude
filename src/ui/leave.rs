@@ -178,11 +178,26 @@ pub struct LeaveGuard<T> {
     pub id: WidgetId,
     /// The request waiting for the dialog's answer.
     pending: Option<(Leave<T>, bool)>,
+    /// Whether the owner can save on the way out. Default `true`: the
+    /// unsaved-changes dialog offers Cancel / Discard / Save. `false`
+    /// offers Cancel / Discard (Cancel focused), for owners whose edits
+    /// are saved elsewhere.
+    pub save: bool,
 }
 
 impl<T: Clone> LeaveGuard<T> {
     pub fn new(id: WidgetId) -> Self {
-        Self { id, pending: None }
+        Self {
+            id,
+            pending: None,
+            save: true,
+        }
+    }
+
+    /// See [`Self::save`].
+    pub fn save(mut self, on: bool) -> Self {
+        self.save = on;
+        self
     }
 
     /// Ask to leave for `to` with `stakes` at risk: `Ok(to)` to go now
@@ -195,9 +210,13 @@ impl<T: Clone> LeaveGuard<T> {
     ) -> Result<Leave<T>, Box<Dialog>> {
         let d = match stakes {
             Stakes::Clean => return Ok(to),
-            Stakes::Unsaved { changes } => {
+            Stakes::Unsaved { changes } if self.save => {
                 self.pending = Some((to, true));
                 unsaved_dialog(self.id, *changes, strings)
+            }
+            Stakes::Unsaved { changes } => {
+                self.pending = Some((to, false));
+                discard_dialog(self.id, *changes, strings)
             }
             Stakes::Running { what } => {
                 self.pending = Some((to, false));
@@ -242,12 +261,7 @@ impl<T: Clone> LeaveGuard<T> {
 /// The unsaved-changes dialog: Cancel, Discard, Save (Save focused, Esc
 /// and a backdrop click cancel). Action indices are 0, 1, 2.
 pub fn unsaved_dialog(id: WidgetId, changes: usize, s: &Strings) -> Dialog {
-    let lost = match changes {
-        0 => s.leave_unsaved_some.to_owned(),
-        1 => s.leave_unsaved_one.to_owned(),
-        n => Strings::fill(s.leave_unsaved_many, &[&n]),
-    };
-    let body = Strings::fill(s.leave_unsaved_body, &[&lost]);
+    let body = Strings::fill(s.leave_unsaved_body, &[&lost(changes, s)]);
     let mut d = Dialog::confirm(id, s.leave_unsaved_title, &body, s.save).actions(
         vec![
             Button::subtle(id.sub("cancel"), s.cancel),
@@ -258,6 +272,21 @@ pub fn unsaved_dialog(id: WidgetId, changes: usize, s: &Strings) -> Dialog {
     );
     d.initial_focus = id.sub("save");
     d
+}
+
+/// The unsaved-changes dialog of an owner that cannot save on the way
+/// out: Cancel, Discard (Cancel focused). Action indices are 0, 1.
+pub fn discard_dialog(id: WidgetId, changes: usize, s: &Strings) -> Dialog {
+    let body = Strings::fill(s.leave_discard_body, &[&lost(changes, s)]);
+    Dialog::destructive(id, s.leave_unsaved_title, &body, s.discard)
+}
+
+fn lost(changes: usize, s: &Strings) -> String {
+    match changes {
+        0 => s.leave_unsaved_some.to_owned(),
+        1 => s.leave_unsaved_one.to_owned(),
+        n => Strings::fill(s.leave_unsaved_many, &[&n]),
+    }
 }
 
 /// The running-work dialog: Stay, Stop and leave (Stay focused).
@@ -358,6 +387,22 @@ mod tests {
         g.request_quit(&Stakes::Unsaved { changes: 1 }, &s)
             .unwrap_err();
         assert_eq!(g.resolve(DialogResult::Action(0)), Resolved::Stay);
+    }
+
+    #[test]
+    fn a_guard_that_cannot_save_offers_cancel_and_discard() {
+        let s = Strings::DEFAULT;
+        let mut g: LeaveGuard<()> = LeaveGuard::new(WidgetId::of("leave")).save(false);
+        let d = g
+            .request_quit(&Stakes::Unsaved { changes: 1 }, &s)
+            .unwrap_err();
+        let labels: Vec<_> = d.actions.iter().map(|b| b.label.as_str()).collect();
+        assert_eq!(labels, ["Cancel", "Discard"]);
+        assert_eq!(d.initial_focus, d.actions[0].id, "Cancel is the default");
+        assert_eq!(
+            g.resolve(DialogResult::Action(1)),
+            Resolved::Discard(Leave::Quit)
+        );
     }
 
     #[test]

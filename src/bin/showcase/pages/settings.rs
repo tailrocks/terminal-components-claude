@@ -540,6 +540,14 @@ impl Page for SettingsPage {
         self.name.editing || self.description.editing || self.members.is_editing()
     }
 
+    fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
+        if self.dirty {
+            junie_tui::ui::leave::Stakes::Unsaved { changes: 0 }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.members.is_editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
