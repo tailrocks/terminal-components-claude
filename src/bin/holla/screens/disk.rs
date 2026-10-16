@@ -10,10 +10,12 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
+use junie_tui::ui::context::{ContextAnchor, ContextSource};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{
     Meter, MeterTone, MeterVisual, ProgressStatus, render_bar, render_spinner,
@@ -23,14 +25,15 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
 use crate::domain::stack::Spotlight;
 use crate::screens::{
-    Cx, Go, Page, Screen, StatusBits, heading, plural, scroll_drag, scroll_press,
+    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, plural,
+    row_anchor, scroll_drag, scroll_press,
 };
 use crate::sim::fs::{ScanNode, human};
 use crate::sim::world::World;
@@ -38,6 +41,8 @@ use crate::sim::world::World;
 pub const TREE: WidgetId = WidgetId::of("disk.tree");
 pub const DETAIL: WidgetId = WidgetId::of("disk.detail");
 pub const LIST: WidgetId = WidgetId::of("disk.list");
+/// A row's context menu.
+pub const ROW_MENU: WidgetId = WidgetId::of("disk.row.menu");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Sort {
@@ -944,6 +949,126 @@ impl DiskPage {
     }
 }
 
+impl DiskPage {
+    /// Why `path` cannot be selected (the reason Space would give), if so.
+    fn select_reason(&self, w: &World, path: &str) -> Option<String> {
+        if let Some(r) = self.candidate_skip(w, path) {
+            return Some(r);
+        }
+        self.selected
+            .iter()
+            .any(|s| path.starts_with(&format!("{s}/")))
+            .then(|| "Already covered by a selected ancestor".to_owned())
+    }
+
+    /// The context menu of display row `row` (a tree row, or an overview /
+    /// Top files row): the page's own keys for it. Each item stands for the
+    /// key at its index in the tag (`row:keys`).
+    fn row_menu(&self, row: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
+        let copy = MenuItem::new("Copy path").shortcut("y");
+        let mut review = MenuItem::new("Review deletion…").shortcut("d").danger();
+        if self.selected.is_empty() {
+            review = review.reason("Select at least one entry first");
+        }
+        let (path, items, keys): (String, Vec<MenuItem>, &str) = match self.view {
+            View::Tree => {
+                let Some(path) = self
+                    .tree
+                    .rows()
+                    .get(row)
+                    .and_then(|r| self.fs_path_of(&r.path))
+                else {
+                    return Outcome::Ignored;
+                };
+                let mut select = MenuItem::new(if self.selected.contains(&path) {
+                    "Unselect"
+                } else {
+                    "Select"
+                })
+                .shortcut("Space");
+                if let Some(r) = self.select_reason(w, &path) {
+                    select = select.reason(r);
+                }
+                let mut clean = MenuItem::new("Build cleanup plan…")
+                    .shortcut("c")
+                    .separator();
+                if !self
+                    .selected
+                    .iter()
+                    .any(|p| w.disk.candidates.iter().any(|c| &c.path == p))
+                {
+                    clean = clean.reason("Select rebuildable artifacts first");
+                }
+                let mut cancel = MenuItem::new("Cancel scan").shortcut("x");
+                if !w.scan.as_ref().is_some_and(|s| !s.done(w.tick)) {
+                    cancel = cancel.reason("No scan is running");
+                }
+                let items = vec![
+                    select,
+                    copy,
+                    MenuItem::new(if self.drawer {
+                        "Hide details"
+                    } else {
+                        "Show details"
+                    })
+                    .shortcut("p")
+                    .separator(),
+                    review,
+                    clean,
+                    MenuItem::new("Rescan").shortcut("r"),
+                    cancel,
+                ];
+                (path, items, " ypdcrx")
+            }
+            View::Overview => {
+                let Some(r) = self.overview.get(row) else {
+                    return Outcome::Ignored;
+                };
+                let mut top = MenuItem::new("Top files").shortcut("t");
+                if w.host.os != crate::domain::context::Os::MacOs {
+                    top = top.reason("Spotlight is macOS only");
+                }
+                let items = vec![
+                    MenuItem::new("Analyze").shortcut("Enter"),
+                    copy.separator(),
+                    top,
+                ];
+                (r.path.clone(), items, "\nyt")
+            }
+            View::TopFiles => {
+                let Some(r) = self.top.get(row) else {
+                    return Outcome::Ignored;
+                };
+                let mut select = MenuItem::new(if self.selected.contains(&r.path) {
+                    "Unselect"
+                } else {
+                    "Select"
+                })
+                .shortcut("Space");
+                if r.missing {
+                    select = select.reason("The file vanished");
+                } else if let Some(why) = self.select_reason(w, &r.path) {
+                    select = select.reason(why);
+                }
+                (
+                    r.path.clone(),
+                    vec![select, copy.separator(), review],
+                    " yd",
+                )
+            }
+        };
+        let title = w.location.short(&path);
+        open_context(
+            cx,
+            ROW_MENU,
+            anchor,
+            title,
+            items,
+            ModalTag::new("disk-row").key(format!("{row}:{keys}")),
+        )
+    }
+}
+
 fn short_error(e: &crate::sim::fs::FsError) -> &'static str {
     match e {
         crate::sim::fs::FsError::PermissionDenied(_) => "permission denied",
@@ -1247,6 +1372,80 @@ impl Screen for DiskPage {
             return Outcome::Changed;
         }
         Outcome::Ignored
+    }
+
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        let row = if self.view == View::Tree {
+            let Some(req) = cx.context.on_secondary(&mut self.tree, id, pos) else {
+                return Outcome::Ignored;
+            };
+            cx.focus.focus(TREE);
+            req.target
+        } else {
+            let Some(i) = self
+                .list_scroll
+                .visible_range()
+                .find(|&i| LIST.child(i) == id)
+            else {
+                return Outcome::Ignored;
+            };
+            if cx.context.moves_cursor {
+                self.cursor = i;
+            }
+            cx.focus.focus(LIST);
+            i
+        };
+        self.row_menu(row, ContextAnchor::Pointer(pos), w, cx)
+    }
+
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.view == View::Tree {
+            if !cx.focus.is(TREE) {
+                return Outcome::Ignored;
+            }
+            let Some(req) = self.tree.context_cursor() else {
+                return Outcome::Ignored;
+            };
+            return self.row_menu(req.target, req.anchor, w, cx);
+        }
+        if !cx.focus.is(LIST) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(LIST, self.cursor, self.list_area, self.list_scroll.offset);
+        self.row_menu(self.cursor, anchor, w, cx)
+    }
+
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        if tag.kind == "disk-row"
+            && let ModalResult::MenuChosen(k) = result
+            && let Some((row, keys)) = tag.key.split_once(':')
+            && let Ok(row) = row.parse::<usize>()
+            && let Some(c) = keys.chars().nth(k)
+        {
+            // the chosen row runs its key on the row the menu was opened for
+            if self.view == View::Tree {
+                self.tree.context_select(row);
+            } else {
+                self.cursor = row;
+            }
+            let code = if c == '\n' {
+                KeyCode::Enter
+            } else {
+                KeyCode::Char(c)
+            };
+            let key = Key {
+                code,
+                mods: KeyModifiers::NONE,
+            };
+            return self.on_key(&key, w, cx).or(Outcome::Changed);
+        }
+        Outcome::Changed
     }
 
     fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
