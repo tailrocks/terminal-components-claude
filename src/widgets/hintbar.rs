@@ -7,7 +7,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use crate::theme::{BadgeKind, Theme, Tone};
+use crate::theme::{BadgeKind, HintAlign, Theme, Tone};
 use crate::widgets::keyhint::{self, Hint};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -15,8 +15,10 @@ pub struct HintLayer {
     pub hints: Vec<Hint>,
     pub badge: Option<(&'static str, BadgeKind)>,
     pub status: Option<(String, Tone)>,
-    /// Centre the hints in the row instead of leading from the left.
-    pub centered: bool,
+    /// Alignment for this layer only. `None` (the default) follows the
+    /// theme's [`HintBarStyle::align`](crate::theme::HintBarStyle::align),
+    /// which is where an app sets it once for every screen.
+    pub align: Option<HintAlign>,
 }
 
 impl HintLayer {
@@ -25,11 +27,12 @@ impl HintLayer {
             hints,
             badge: None,
             status: None,
-            centered: false,
+            align: None,
         }
     }
-    pub fn centered(mut self) -> Self {
-        self.centered = true;
+    /// Override the theme's alignment for this layer.
+    pub fn align(mut self, align: HintAlign) -> Self {
+        self.align = Some(align);
         self
     }
     pub fn badge(mut self, text: &'static str, kind: BadgeKind) -> Self {
@@ -61,7 +64,7 @@ impl HintBar {
             &layer.hints,
             layer.badge,
             layer.status.as_ref().map(|(s, tone)| (s.as_str(), *tone)),
-            layer.centered,
+            layer.align.unwrap_or(t.hintbar.align),
         )
     }
 }
@@ -83,6 +86,21 @@ mod tests {
     }
 
     #[test]
+    fn a_layer_follows_the_theme_alignment_unless_it_overrides_it() {
+        let mut t = Theme::junie();
+        t.hintbar.align = HintAlign::Center;
+        let layer = HintLayer::new(vec![hint("Esc", "Back")]);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
+        HintBar::render(Rect::new(0, 0, 40, 1), &mut buf, &t, &layer);
+        // "Esc Back" is 8 cells: centred in 40 it starts at 16
+        assert_eq!(buf[(16, 0)].symbol(), "E");
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
+        let start = layer.align(HintAlign::Start);
+        HintBar::render(Rect::new(0, 0, 40, 1), &mut buf, &t, &start);
+        assert_eq!(buf[(1, 0)].symbol(), "E");
+    }
+
+    #[test]
     fn narrow_rows_drop_from_the_right_and_mark_it() {
         let t = Theme::junie();
         let layer = HintLayer::new(vec![
@@ -100,7 +118,9 @@ mod tests {
             .collect();
         assert!(row.contains("Enter Open"));
         assert!(row.contains('…'), "{row:?}");
-        assert!(!row.contains("Cancel"));
+        // normal hints go from the right; Esc is pinned and stays
+        assert!(!row.contains("Next"), "{row:?}");
+        assert!(row.contains("Esc Cancel"), "{row:?}");
         let mut wide = Buffer::empty(Rect::new(0, 0, 120, 1));
         assert_eq!(
             HintBar::render(Rect::new(0, 0, 120, 1), &mut wide, &t, &layer),

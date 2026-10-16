@@ -26,7 +26,7 @@ use std::borrow::Cow;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use crate::theme::{BadgeKind, Theme, Tone};
+use crate::theme::{BadgeKind, HintAlign, HintBarStyle, Theme, Tone};
 
 /// The key-label vocabulary. Every hint names keys the same way: arrow
 /// pairs without a space, ranges with an en dash, `Delete` in full.
@@ -116,6 +116,23 @@ pub const EDIT_CELL: [Hint; 3] = [
 pub struct Hint {
     pub key: &'static str,
     pub action: Cow<'static, str>,
+    /// Whether the hint survives a narrow row. Default
+    /// [`HintPriority::Auto`]: pinned when its key is one of the theme's
+    /// [`HintBarStyle::pinned_keys`] (Esc, ?, F1).
+    pub priority: HintPriority,
+}
+
+/// How a hint competes for room in a narrow footer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HintPriority {
+    /// Pinned when the key is one of the theme's pinned keys, otherwise
+    /// normal.
+    #[default]
+    Auto,
+    /// Dropped from the right when the row is too narrow.
+    Normal,
+    /// Kept while any normal hint can still be dropped.
+    Pinned,
 }
 
 impl Hint {
@@ -124,6 +141,27 @@ impl Hint {
         Self {
             key,
             action: action.into(),
+            priority: HintPriority::Auto,
+        }
+    }
+
+    /// Set how the hint competes for room.
+    pub fn priority(mut self, priority: HintPriority) -> Self {
+        self.priority = priority;
+        self
+    }
+
+    /// Never drop this hint while a normal one can go.
+    pub fn pinned(self) -> Self {
+        self.priority(HintPriority::Pinned)
+    }
+
+    /// Whether the hint is pinned under `style`.
+    pub fn is_pinned(&self, style: &HintBarStyle) -> bool {
+        match self.priority {
+            HintPriority::Pinned => true,
+            HintPriority::Normal => false,
+            HintPriority::Auto => style.pinned_keys.contains(&self.key),
         }
     }
 }
@@ -132,6 +170,7 @@ pub const fn hint(key: &'static str, action: &'static str) -> Hint {
     Hint {
         key,
         action: Cow::Borrowed(action),
+        priority: HintPriority::Auto,
     }
 }
 
@@ -158,8 +197,10 @@ pub fn render(
 
 /// Like [`render`], with a toned status: an error status is drawn as
 /// `! message` in the error tone and a warning as `▲ message` in the
-/// warning tone, so the weight survives monochrome. Hints that do not fit are dropped from
-/// the right and a faint `…` marks the cut.
+/// warning tone, so the weight survives monochrome. Layout follows the
+/// theme's [`HintBarStyle`]: hints that do not fit are first shown as keys
+/// only, then dropped from the right (pinned ones last), and a faint `…`
+/// marks the cut.
 pub fn render_toned(
     area: Rect,
     buf: &mut Buffer,
@@ -168,11 +209,10 @@ pub fn render_toned(
     badge: Option<(&str, BadgeKind)>,
     right: Option<(&str, Tone)>,
 ) -> usize {
-    render_aligned(area, buf, t, hints, badge, right, false)
+    render_styled(area, buf, t, hints, badge, right, &t.hintbar)
 }
 
-/// Like [`render_toned`]; `centered` places the hints that fit in the
-/// middle of the row (the status keeps the right edge and wins the space).
+/// Like [`render_toned`], with the theme's style but an explicit alignment.
 pub fn render_aligned(
     area: Rect,
     buf: &mut Buffer,
@@ -180,7 +220,78 @@ pub fn render_aligned(
     hints: &[Hint],
     badge: Option<(&str, BadgeKind)>,
     right: Option<(&str, Tone)>,
-    centered: bool,
+    align: HintAlign,
+) -> usize {
+    let style = HintBarStyle { align, ..t.hintbar };
+    render_styled(area, buf, t, hints, badge, right, &style)
+}
+
+/// Gap after each hint, and before the cut marker.
+const GAP: u16 = 2;
+
+/// Cells one hint takes, without the gap after it. A compact hint shows
+/// its key alone.
+fn hint_width(h: &Hint, compact: bool) -> u16 {
+    let kw = crate::ui::text::width(&normalize_key(h.key)) as u16;
+    if compact {
+        kw
+    } else {
+        kw + 1 + crate::ui::text::width(&h.action) as u16
+    }
+}
+
+/// Cells the hints at `keep` take, each followed by a gap, plus a gap for
+/// the cut marker when some are left out.
+fn cost(hints: &[Hint], keep: &[usize], compact: &[bool]) -> u32 {
+    let mut c: u32 = keep
+        .iter()
+        .map(|&i| (hint_width(&hints[i], compact[i]) + GAP) as u32)
+        .sum();
+    if keep.len() < hints.len() {
+        c += GAP as u32;
+    }
+    c
+}
+
+/// Which hints are drawn, and which of them compactly, so they fit in
+/// `room` cells: all in full; else all with normal hints as keys only
+/// (pinned hints keep their action, they are the way out); else in full
+/// with normal hints dropped from the right, then pinned ones.
+fn fit(hints: &[Hint], room: u16, style: &HintBarStyle) -> (Vec<usize>, Vec<bool>) {
+    let room = room as u32;
+    let all: Vec<usize> = (0..hints.len()).collect();
+    let full = vec![false; hints.len()];
+    if cost(hints, &all, &full) <= room {
+        return (all, full);
+    }
+    let pinned: Vec<bool> = hints.iter().map(|h| h.is_pinned(style)).collect();
+    if style.compact {
+        let compact: Vec<bool> = pinned.iter().map(|p| !p).collect();
+        if cost(hints, &all, &compact) <= room {
+            return (all, compact);
+        }
+    }
+    let mut keep = all;
+    let mut order: Vec<usize> = (0..hints.len()).rev().filter(|&i| !pinned[i]).collect();
+    order.extend((0..hints.len()).rev().filter(|&i| pinned[i]));
+    for gone in order {
+        if cost(hints, &keep, &full) <= room {
+            break;
+        }
+        keep.retain(|&i| i != gone);
+    }
+    (keep, full)
+}
+
+/// [`render_toned`] with an explicit [`HintBarStyle`].
+pub fn render_styled(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Tone)>,
+    style: &HintBarStyle,
 ) -> usize {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
@@ -208,7 +319,19 @@ pub fn render_aligned(
         } else {
             format!("{mark} {r}")
         };
-        let available = area.right().saturating_sub(x + 1) as usize;
+        let mut available = area.right().saturating_sub(x + 1) as usize;
+        if !hints.is_empty() {
+            // the pinned hints (the way out, help) keep their room; the
+            // status still keeps its minimum share of the row
+            let share = area.width as usize * style.status_min_share.min(100) as usize / 100;
+            let pinned: Vec<usize> = (0..hints.len())
+                .filter(|&i| hints[i].is_pinned(style))
+                .collect();
+            if !pinned.is_empty() {
+                let need = cost(hints, &pinned, &vec![false; hints.len()]) as usize;
+                available = available.min(share.max(available.saturating_sub(need + 2)));
+            }
+        }
         let text = crate::ui::text::truncate(&text, available);
         let w = crate::ui::text::width(&text) as u16;
         if w > 0 {
@@ -226,52 +349,36 @@ pub fn render_aligned(
         }
     }
     let limit = area.right().saturating_sub(right_w);
-    if centered {
-        // measure what fits, then start so the block sits mid-row
-        let hint_w = |h: &Hint| {
-            crate::ui::text::width(&normalize_key(h.key)) as u16
-                + 1
-                + crate::ui::text::width(&h.action) as u16
-                + 2
+    let (keep, compact) = fit(hints, limit.saturating_sub(x), style);
+    let cut = keep.len() < hints.len();
+    if style.align == HintAlign::Center {
+        // centre the drawn block itself: the gap after the last hint is
+        // not part of it, the cut marker is
+        let mut used = cost(hints, &keep, &compact) as u16;
+        used = if cut {
+            used.saturating_sub(GAP) + 1
+        } else {
+            used.saturating_sub(GAP)
         };
-        let mut used = 0u16;
-        let mut n = 0usize;
-        for (i, h) in hints.iter().enumerate() {
-            let reserve = if i + 1 < hints.len() { 2 } else { 0 };
-            if x + used + hint_w(h) + reserve > limit {
-                break;
-            }
-            used += hint_w(h);
-            n += 1;
-        }
-        if n < hints.len() {
-            used += 2;
-        }
         let free = area.width.saturating_sub(used);
         let mid = area.x + free / 2;
         // never past the badge, never under the status
-        let start = mid.max(x).min(limit.saturating_sub(used).max(x));
-        x = start;
+        x = mid.max(x).min(limit.saturating_sub(used).max(x));
     }
-    let mut drawn = 0usize;
-    for (i, h) in hints.iter().enumerate() {
+    for &i in &keep {
+        let h = &hints[i];
         let key = normalize_key(h.key);
         let kw = crate::ui::text::width(&key) as u16;
-        let w = kw + 1 + crate::ui::text::width(&h.action) as u16 + 2;
-        // keep two cells for the cut marker when more hints follow
-        let reserve = if i + 1 < hints.len() { 2 } else { 0 };
-        if x + w + reserve > limit {
-            break;
-        }
         buf.set_string(x, area.y, &key, t.key_hint_key());
-        buf.set_string(x + kw + 1, area.y, &h.action, t.key_hint_action());
-        x += w;
-        drawn += 1;
+        if !compact[i] {
+            buf.set_string(x + kw + 1, area.y, &h.action, t.key_hint_action());
+        }
+        x += hint_width(h, compact[i]) + GAP;
     }
-    if drawn < hints.len() && x < limit {
+    if cut && x < limit {
         buf.set_string(x, area.y, "…", t.faint());
     }
-    drawn
+    keep.len()
 }
 
 #[cfg(test)]
@@ -403,5 +510,110 @@ mod tests {
         assert_eq!(shown.action, "Hide hidden");
         let hidden = toggle_hint("Ctrl+H", false, "Hide hidden", "Show hidden");
         assert_eq!(hidden.action, "Show hidden");
+    }
+
+    fn draw(width: u16, t: &Theme, hints: &[Hint], status: Option<(&str, Tone)>) -> String {
+        let mut buf = Buffer::empty(Rect::new(0, 0, width, 1));
+        render_toned(Rect::new(0, 0, width, 1), &mut buf, t, hints, None, status);
+        row_text(&buf, width)
+    }
+
+    #[test]
+    fn the_way_out_and_help_are_pinned_while_other_hints_drop() {
+        let t = Theme::junie();
+        let hints = [
+            hint("Enter", "Open"),
+            hint("Space", "Choose"),
+            hint("u", "Add URL"),
+            hint("Tab", "Next"),
+            hint("?", "Help"),
+            hint("Esc", "Cancel"),
+        ];
+        let row = draw(36, &t, &hints, None);
+        assert!(row.contains("Enter Open"), "{row:?}");
+        assert!(row.contains("? Help"), "{row:?}");
+        assert!(row.contains("Esc Cancel"), "{row:?}");
+        assert!(!row.contains("Next") && row.contains('…'), "{row:?}");
+        // the order stays the caller's
+        assert!(row.find("Help") < row.find("Cancel"), "{row:?}");
+        // pinning is per hint too, and Auto follows the theme's keys
+        let row = draw(
+            36,
+            &t,
+            &[
+                hint("Enter", "Open"),
+                hint("Tab", "Next").pinned(),
+                hint("x", "Close a long tab name"),
+            ],
+            None,
+        );
+        assert!(
+            row.contains("Tab Next") && !row.contains("Close"),
+            "{row:?}"
+        );
+        let row = draw(
+            24,
+            &t,
+            &[
+                hint("Enter", "Open the thing now"),
+                hint("Esc", "Back").priority(HintPriority::Normal),
+            ],
+            None,
+        );
+        assert!(!row.contains("Back"), "{row:?}");
+    }
+
+    #[test]
+    fn a_long_status_leaves_the_pinned_hints_their_room() {
+        let t = Theme::junie();
+        let hints = [
+            hint("Enter", "Save"),
+            hint("Esc", "Back"),
+            hint("?", "Help"),
+        ];
+        let status = "Saved the preview of every changed setting to the profile on disk";
+        let row = draw(72, &t, &hints, Some((status, Tone::Secondary)));
+        assert!(row.contains("Esc Back"), "{row:?}");
+        assert!(row.contains("? Help"), "{row:?}");
+        assert!(row.contains("Saved the preview"), "{row:?}");
+        // but the status keeps its minimum share of the row
+        let mut narrow = t;
+        narrow.hintbar.status_min_share = 90;
+        let row = draw(72, &narrow, &hints, Some((status, Tone::Secondary)));
+        assert!(!row.contains("Esc Back"), "{row:?}");
+        // a short status is never cut for hints
+        let row = draw(40, &t, &hints, Some(("Saved", Tone::Secondary)));
+        assert!(row.contains("Saved"), "{row:?}");
+    }
+
+    #[test]
+    fn compact_mode_shows_keys_before_dropping_any() {
+        let mut t = Theme::junie();
+        let hints = [
+            hint("Enter", "Open"),
+            hint("Space", "Choose"),
+            hint("u", "Add URL"),
+            hint("Esc", "Cancel"),
+        ];
+        // off by default: hints drop from the right in full
+        let row = draw(30, &t, &hints, None);
+        assert!(
+            row.contains("Enter Open") && !row.contains("URL"),
+            "{row:?}"
+        );
+        t.hintbar.compact = true;
+        let row = draw(30, &t, &hints, None);
+        assert!(row.contains("Enter  Space  u  Esc Cancel"), "{row:?}");
+        assert!(!row.contains('…'), "{row:?}");
+    }
+
+    #[test]
+    fn a_centred_row_is_centred_on_its_text_not_its_trailing_gap() {
+        let mut t = Theme::junie();
+        t.hintbar.align = HintAlign::Center;
+        // "Esc Back" is 8 cells: 32 free in 40, 16 a side
+        let row = draw(40, &t, &[hint("Esc", "Back")], None);
+        assert_eq!(row.find("Esc"), Some(16), "{row:?}");
+        assert_eq!(row.len() - row.trim_end().len(), 16, "{row:?}");
     }
 }
