@@ -11,6 +11,8 @@ pub enum TokKind {
     Keyword,
     Ident,
     Number,
+    /// `TRUE`, `FALSE`, `NULL`: the literal hue, like numbers.
+    Literal,
     String,
     Operator,
     Punct,
@@ -144,6 +146,14 @@ pub fn is_keyword(word: &str) -> bool {
     KEYWORDS.contains(&up.as_str())
 }
 
+/// `TRUE`, `FALSE` and `NULL`: values, not keywords, though the parser
+/// still reads them as words.
+pub fn is_literal(word: &str) -> bool {
+    ["TRUE", "FALSE", "NULL"]
+        .iter()
+        .any(|l| word.eq_ignore_ascii_case(l))
+}
+
 pub fn tokenize(src: &str) -> Vec<Token> {
     let b = src.as_bytes();
     let mut out = Vec::new();
@@ -191,7 +201,9 @@ pub fn tokenize(src: &str) -> Vec<Token> {
             while i < b.len() && ((b[i] as char).is_alphanumeric() || b[i] == b'_') {
                 i += 1;
             }
-            if is_keyword(&src[start..i]) {
+            if is_literal(&src[start..i]) {
+                TokKind::Literal
+            } else if is_keyword(&src[start..i]) {
                 TokKind::Keyword
             } else {
                 TokKind::Ident
@@ -391,7 +403,7 @@ impl<'a> Words<'a> {
     }
     fn ident(&mut self) -> Option<String> {
         let t = self.toks.get(self.pos)?;
-        if t.kind == TokKind::Ident || t.kind == TokKind::Keyword {
+        if matches!(t.kind, TokKind::Ident | TokKind::Keyword | TokKind::Literal) {
             self.pos += 1;
             Some(self.src[t.start..t.end].trim_matches('"').to_owned())
         } else {
