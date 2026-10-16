@@ -15,7 +15,6 @@ pub mod settings;
 pub mod usage;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::ctx::RenderCtx;
@@ -150,59 +149,11 @@ pub enum Go {
     Quit,
 }
 
-pub enum Request {
-    Status(String),
-    Error(String),
-    Open(Box<AppLayer>, LayerTag),
-    Close,
-    Go(Go),
-    Copy(String),
-    /// Open the key reference for the current screen.
-    Help,
-    /// Mutate the form that is the top modal (after a nested picker).
-    WithForm(Box<dyn FnOnce(&mut FormDialog)>),
-}
+/// What a jackin screen asks of the shell (the library request).
+pub type Request = junie_tui::shell::Request<ModalResult, World, Go>;
 
-pub struct Cx<'a> {
-    pub focus: &'a mut Focus,
-    pub ring: &'a FocusRing,
-    pub requests: Vec<Request>,
-    /// Multi-click count of the click being delivered, or of the click a
-    /// press starts ([`junie_tui::core::pointer::PointerEvent::count`]); 1 for
-    /// every other event.
-    pub clicks: u8,
-}
-
-impl Cx<'_> {
-    pub fn focus_next(&mut self) {
-        self.focus.next(self.ring);
-    }
-    pub fn status(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Status(s.into()));
-    }
-    pub fn error(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Error(s.into()));
-    }
-    /// Open `layer` on the app's layer stack, owned by this screen.
-    pub fn open(&mut self, layer: impl Layer<ModalResult, World>, tag: LayerTag) {
-        self.requests.push(Request::Open(Box::new(layer), tag));
-    }
-    pub fn close(&mut self) {
-        self.requests.push(Request::Close);
-    }
-    pub fn go(&mut self, g: Go) {
-        self.requests.push(Request::Go(g));
-    }
-    pub fn help(&mut self) {
-        self.requests.push(Request::Help);
-    }
-    pub fn copy(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Copy(s.into()));
-    }
-    pub fn with_form(&mut self, f: impl FnOnce(&mut FormDialog) + 'static) {
-        self.requests.push(Request::WithForm(Box::new(f)));
-    }
-}
+/// The event context a jackin screen handles input in (the library one).
+pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, World, Go>;
 
 /// Everything a route screen can do. Default bodies let small screens stay
 /// small; the shell calls only what it needs.
