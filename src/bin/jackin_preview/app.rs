@@ -1721,18 +1721,27 @@ impl App {
                 let reqs = std::mem::take(&mut cx.requests);
                 o.or(self.apply_requests(reqs, route))
             }
-            // nothing here scrolls sideways, and a sideways swipe must
-            // never scroll rows
-            MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Consumed,
+            // a sideways swipe never scrolls rows: modals take none of it,
+            // screens only where content has a horizontal axis
+            MouseKind::WheelLeft | MouseKind::WheelRight => {
+                if !self.modals.is_empty() {
+                    return Outcome::Consumed;
+                }
+                let delta = self.pointer.wheel_delta(m.kind);
+                let Some(id) = self.hits.hit_scroll(m.pos) else {
+                    return Outcome::Consumed;
+                };
+                let route = self.route;
+                let out = match self.screens.get_mut(route) {
+                    Some(s) => s.on_wheel_h(id, delta, m.pos, &mut self.world),
+                    None => Outcome::Ignored,
+                };
+                self.pointer.scrolled(m.pos, out);
+                out.or(Outcome::Consumed)
+            }
             MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = self.pointer.wheel_delta(m.kind);
-                // a horizontal swipe is its own axis: it never scrolls a
-                // vertical list
-                let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 if let Some(top) = self.modals.top_mut() {
-                    if horizontal {
-                        return Outcome::Consumed;
-                    }
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),
                         Modal::Browser(b) => b.on_wheel(delta),
@@ -1750,7 +1759,6 @@ impl App {
                 };
                 let route = self.route;
                 let out = match self.screens.get_mut(route) {
-                    Some(s) if horizontal => s.on_wheel_h(id, delta, m.pos, &mut self.world),
                     Some(s) => s.on_wheel(id, delta, m.pos, &mut self.world),
                     None => Outcome::Ignored,
                 };
