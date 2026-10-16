@@ -1,11 +1,11 @@
 //! Pointer text selection in TablePro's fields through the real App:
 //! click counts, press and drag reach the fields (interaction #16).
 
+use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
 use ratatui::crossterm::event::KeyCode;
 
-use crate::app::Modal;
 use crate::app_tests::H;
 use crate::workbench::WorkTab;
 
@@ -90,8 +90,8 @@ fn a_double_click_in_the_filter_editor_value_selects_the_word() {
     let (x, y) = h.find("abc def").expect("the value");
     h.click(x + 5, y);
     h.click(x + 5, y);
-    let sel = match h.app.modal() {
-        Some(Modal::Filter(f)) => f.value.buffer.selected_text().map(str::to_owned),
+    let sel = match h.app.top_as::<FilterEditor>() {
+        Some(f) => f.value.buffer.selected_text().map(str::to_owned),
         _ => panic!("the filter editor is open"),
     };
     assert_eq!(sel.as_deref(), Some("def"));
@@ -109,8 +109,8 @@ fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
     let value = WidgetId::of("filter-editor").sub("value");
     // Tab landing on the field starts its edit (EditEntry::Immediate)
     h.tab_to(value);
-    let editing = |h: &H| match h.app.modal() {
-        Some(Modal::Filter(f)) => f.value.editing,
+    let editing = |h: &H| match h.app.top_as::<FilterEditor>() {
+        Some(f) => f.value.editing,
         _ => panic!("the filter editor is open"),
     };
     assert!(editing(&h));
@@ -121,7 +121,7 @@ fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
     h.click(x + 30, y);
     assert!(!editing(&h), "dead space ends the edit\n{}", h.text());
     assert!(
-        matches!(h.app.modal(), Some(Modal::Filter(_))),
+        h.app.top_as::<FilterEditor>().is_some(),
         "the editor stays open"
     );
 }

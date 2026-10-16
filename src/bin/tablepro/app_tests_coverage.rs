@@ -1,8 +1,9 @@
+use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::{Input, MouseKind};
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::scrollbar;
 use ratatui::crossterm::event::KeyCode;
 
-use crate::app::Modal;
 use crate::app_tests::H;
 use crate::connections::ConnState;
 use crate::db::SafeMode;
@@ -495,7 +496,7 @@ fn overlays_trap_focus_and_restore_after_outside_dismissal() {
     let origin = h.focus();
 
     h.ctrl('o');
-    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert!(h.app.top_as::<Picker>().is_some());
     assert_ne!(h.focus(), origin);
     h.key(KeyCode::Tab);
     assert!(h.app.modal().is_some());
@@ -507,14 +508,14 @@ fn overlays_trap_focus_and_restore_after_outside_dismissal() {
     // a form holds typed input: a stray click outside keeps it (its
     // dismiss policy is Esc-only, interaction #5); Esc closes it
     h.ctrl('f');
-    assert!(matches!(h.app.modal(), Some(Modal::Filter(_))));
-    let typed = match h.app.modal() {
-        Some(Modal::Filter(f)) => f.value.text().to_owned(),
+    assert!(h.app.top_as::<FilterEditor>().is_some());
+    let typed = match h.app.top_as::<FilterEditor>() {
+        Some(f) => f.value.text().to_owned(),
         _ => unreachable!(),
     };
     h.click(0, 0);
-    match h.app.modal() {
-        Some(Modal::Filter(f)) => assert_eq!(f.value.text(), typed),
+    match h.app.top_as::<FilterEditor>() {
+        Some(f) => assert_eq!(f.value.text(), typed),
         _ => panic!("a stray click threw the filter editor away"),
     }
     h.key(KeyCode::Esc);
@@ -727,8 +728,8 @@ fn open_quickly_query_edits_at_the_caret() {
     h.key(KeyCode::Left);
     h.key(KeyCode::Left);
     h.key(KeyCode::Char('e'));
-    match h.app.modal() {
-        Some(Modal::Picker(_, p, _)) => assert_eq!(p.query, "orders"),
+    match h.app.top_as::<Picker>() {
+        Some(p) => assert_eq!(p.query, "orders"),
         _ => panic!("Open Quickly closed\n{}", h.text()),
     }
 }

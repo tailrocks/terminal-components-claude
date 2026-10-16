@@ -4,13 +4,13 @@
 //! never app-local colours (docs/audits/design-review-2026-10/
 //! colour-follow-ups.md, tablepro).
 
+use junie_tui::widgets::dialog::Dialog;
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::style::{Color, Modifier};
 
 use junie_tui::theme::{ButtonKind, EnvKind, StatusKind, SyntaxTone, Theme, Tone};
 
-use crate::app::Modal;
 use crate::app_tests::H;
 use crate::connections::ConnState;
 
@@ -176,7 +176,7 @@ fn write_gate_on_production_warns_names_the_target_and_arms_a_danger_button() {
     let mut h = H::connected(120, 40);
     set_query(&mut h, "UPDATE orders SET status = 'paid' WHERE id = 'x'");
     h.ctrl('r');
-    let Some(Modal::Dialog(d)) = h.app.modal() else {
+    let Some(d) = h.app.top_as::<Dialog>() else {
         panic!("the write gate opens\n{}", h.text());
     };
     assert_eq!(
@@ -204,7 +204,7 @@ fn write_gate_off_production_keeps_a_plain_title_and_primary_execute() {
     }
     set_query(&mut h, "UPDATE orders SET status = 'paid' WHERE id = 'x'");
     h.ctrl('r');
-    let Some(Modal::Dialog(d)) = h.app.modal() else {
+    let Some(d) = h.app.top_as::<Dialog>() else {
         panic!("the write gate opens\n{}", h.text());
     };
     assert_eq!(d.actions[1].kind, ButtonKind::Primary);
