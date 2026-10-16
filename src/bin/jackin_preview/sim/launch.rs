@@ -329,7 +329,7 @@ impl LaunchRun {
             StepState::Blocked => {
                 self.blocked_at = Some(stage);
                 ev.push(LaunchEvent::Activity(
-                    "Blocked · modeled state with no runtime producer".into(),
+                    "Blocked · this stage cannot continue".into(),
                 ));
                 return ev;
             }
