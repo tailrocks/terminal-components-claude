@@ -85,6 +85,9 @@ pub struct ContextMenu {
     /// While open, the menu owns the keyboard, so the page under it shows
     /// no focus (see [`ContextMenu::hides_page_focus`]). Default on.
     pub hide_owner_focus: bool,
+    /// How a label cut by a narrow screen reveals its full text on hover
+    /// (see [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+    pub reveal: Option<crate::ui::reveal::Reveal>,
 }
 
 impl ContextMenu {
@@ -100,6 +103,7 @@ impl ContextMenu {
             title: None,
             dismiss: Dismiss::LIGHT,
             hide_owner_focus: true,
+            reveal: None,
         }
     }
 
@@ -372,6 +376,15 @@ impl ContextMenu {
             fill(buf, row, st);
             let label_w = inner.width.saturating_sub(3) as usize;
             buf.set_string(row.x + 2, y, truncate(&item.label, label_w), st);
+            if !item.disabled {
+                crate::ui::reveal::truncated(
+                    ctx,
+                    self.reveal,
+                    rid,
+                    Rect::new(row.x + 2, y, label_w as u16, 1),
+                    &item.label,
+                );
+            }
             if let Some(sc) = item.shortcut {
                 let sw = width(sc) as u16;
                 if sw + width(&item.label) as u16 + 5 <= inner.width {
@@ -884,5 +897,42 @@ mod tests {
         bar.open_menu(1);
         let (_, ev) = bar.on_key(&key(KeyCode::Esc));
         assert_eq!(ev, Some(MenuBarEvent::Closed));
+    }
+
+    #[test]
+    fn a_label_cut_by_a_narrow_screen_reveals_itself_on_hover_above_the_menu() {
+        let long = "Open-the-workspace-in-a-new-window";
+        let mut m = ContextMenu::new(WidgetId::of("m"), vec![MenuItem::new(long)])
+            .anchor(Rect::new(0, 0, 1, 1), Placement::Below);
+        let t = Theme::junie();
+        let mut draw = |hover| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover,
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
+            m.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx);
+            ctx.flush_overlays(&mut buf);
+            buf
+        };
+        let text = |buf: &Buffer| {
+            (0..6)
+                .map(|y| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        assert!(!text(&draw(None)).contains(long));
+        let row = WidgetId::of("m").child(0);
+        let buf = draw(Some(row));
+        assert!(text(&buf).contains(long), "{}", text(&buf));
+        // the tooltip lifts off the menu's popover plane
+        let (x, y) = (0..6)
+            .flat_map(|y| (0..40).map(move |x| (x, y)))
+            .find(|&(x, y)| buf[(x, y)].symbol() == "O")
+            .unwrap();
+        assert_ne!(buf[(x, y)].bg, t.popover);
     }
 }

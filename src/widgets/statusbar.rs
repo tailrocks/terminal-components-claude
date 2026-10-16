@@ -122,6 +122,15 @@ pub struct StatusBar {
     pub left: Vec<StatusItem>,
     pub center: Vec<StatusItem>,
     pub right: Vec<StatusItem>,
+    /// How a segment cut by a narrow row reveals its full text on hover
+    /// (see [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+    pub reveal: Option<crate::ui::reveal::Reveal>,
+}
+
+/// The hover region a cut, non-clickable status segment registers so its
+/// full text can be revealed.
+pub fn reveal_id(group: Group, index: usize) -> WidgetId {
+    WidgetId::of("statusbar.reveal").child(group as usize * 1000 + index)
 }
 
 /// Cells between items within a group and between groups.
@@ -329,6 +338,17 @@ impl StatusBar {
             if let Some(id) = it.id {
                 ctx.clickable(id, Rect::new(p.x, area.y, p.width, 1));
             }
+            if p.text != it.text {
+                let lead = u16::from(it.emphasis == Emphasis::Chip) + if it.busy { 2 } else { 0 };
+                let cut = Rect::new(p.x + lead, area.y, width(&p.text) as u16, 1);
+                let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
+                let cfg = self.reveal.unwrap_or(ctx.reveal);
+                if it.id.is_none() && cfg.hover {
+                    // hover-only: reachable by the pointer, never a click target
+                    ctx.clickable(id, cut);
+                }
+                crate::ui::reveal::truncated(ctx, Some(cfg), id, cut, &it.text);
+            }
         }
     }
 }
@@ -435,5 +455,36 @@ mod tests {
             .unwrap();
         assert_eq!(buf[(chip_x + 1, 0)].bg, t.lift(t.surface_overlay));
         assert!(buf[(1, 0)].modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn hovering_a_cut_segment_reveals_its_full_text() {
+        let long = "~/Projects/terminal-components/a/very/deep/working/directory";
+        let mut b = StatusBar::new();
+        b.left.push(StatusItem::new(long, Tone::Normal));
+        let t = Theme::junie();
+        let draw = |hover| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover,
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 80, 3));
+            b.render(Rect::new(0, 2, 30, 1), &mut buf, &mut ctx);
+            ctx.flush_overlays(&mut buf);
+            let text = (0..3)
+                .map(|y| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n");
+            (text, hits.hit(Position::new(3, 2)))
+        };
+        let (rest, hit) = draw(None);
+        assert!(!rest.contains(long));
+        let id = reveal_id(Group::Left, 0);
+        assert_eq!(hit, Some(id), "a cut segment is reachable by the pointer");
+        let (hovered, _) = draw(Some(id));
+        assert!(hovered.contains(long), "{hovered}");
     }
 }
