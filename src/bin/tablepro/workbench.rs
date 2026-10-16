@@ -1047,6 +1047,9 @@ impl Workbench {
                 }
                 if t.structure.owns(id) {
                     cx.focus.focus(t.structure.id);
+                    if scrollbar::is_bar_of(id, t.structure.id) {
+                        return t.structure.on_scrollbar(pos);
+                    }
                     if let Some(c) = t.structure.locate_header(id) {
                         return t.structure.on_click_header(c);
                     }
@@ -1144,7 +1147,7 @@ impl Workbench {
                 if t.grid.owns(pressed) {
                     return t.grid.on_drag(pressed, pos);
                 }
-                if pressed == scrollbar::id_for(t.structure.id) {
+                if scrollbar::is_bar_of(pressed, t.structure.id) {
                     return t.structure.on_scrollbar_drag(pos);
                 }
                 Outcome::Ignored
@@ -1161,8 +1164,14 @@ impl Workbench {
     }
 
     pub fn on_wheel(&mut self, id: WidgetId, delta: i32, horizontal: bool) -> Outcome {
+        // a sideways wheel reaches only horizontal scrolling: a vertical
+        // list never turns it into an up/down scroll
         if self.explorer.owns(id) {
-            return self.explorer.on_wheel(delta);
+            return if horizontal {
+                Outcome::Consumed
+            } else {
+                self.explorer.on_wheel(delta)
+            };
         }
         match self.tabs.get_mut(self.active) {
             Some(WorkTab::Table(t)) => {
@@ -1170,7 +1179,11 @@ impl Workbench {
                     return t.grid.on_wheel(delta, horizontal);
                 }
                 if t.structure.owns(id) {
-                    return t.structure.on_wheel(delta);
+                    return if horizontal {
+                        t.structure.on_wheel_h(delta)
+                    } else {
+                        t.structure.on_wheel(delta)
+                    };
                 }
                 if id == t.ddl.id || id == scrollbar::id_for(t.ddl.id) {
                     return t.ddl.on_wheel(delta);
@@ -1180,7 +1193,11 @@ impl Workbench {
             Some(WorkTab::Query(q)) => q.on_wheel(id, delta, horizontal),
             Some(WorkTab::History(h)) => {
                 if h.list.owns(id) {
-                    return h.list.on_wheel(delta);
+                    return if horizontal {
+                        Outcome::Consumed
+                    } else {
+                        h.list.on_wheel(delta)
+                    };
                 }
                 if id == h.detail.id || id == scrollbar::id_for(h.detail.id) {
                     return h.detail.on_wheel(delta, horizontal);

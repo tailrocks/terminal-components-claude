@@ -5,7 +5,7 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::field_common::{EditAction, edit_key};
@@ -122,6 +122,19 @@ pub struct DataTable {
     /// How a cut cell reveals its full text on hover (see
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
+    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
+    /// The table moves by whole columns and its bar counts columns.
+    pub horizontal: Option<HScroll>,
+    /// The `…` marks at the header's edges when columns are hidden on
+    /// that side.
+    pub overflow_marks: bool,
+    /// The policy resolved at the last render (events use it).
+    h_cfg: HScroll,
+    /// The horizontal scrollbar track as last drawn.
+    htrack: Rect,
+    /// The last scrollbar press landed on the horizontal bar, so the drag
+    /// that follows moves columns.
+    h_held: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,7 +175,24 @@ impl DataTable {
             col_rects: vec![],
             numeric,
             reveal: None,
+            horizontal: None,
+            overflow_marks: true,
+            h_cfg: HScroll::default(),
+            htrack: Rect::ZERO,
+            h_held: false,
         }
+    }
+
+    /// Override the app-wide horizontal scrolling policy.
+    pub fn horizontal(mut self, policy: HScroll) -> Self {
+        self.horizontal = Some(policy);
+        self
+    }
+
+    /// Show or hide the `…` hidden-column marks in the header.
+    pub fn overflow_marks(mut self, on: bool) -> Self {
+        self.overflow_marks = on;
+        self
     }
 
     /// How cut cells reveal their full text (default: [`RenderCtx::reveal`]).
@@ -528,10 +558,13 @@ impl DataTable {
         (Outcome::Changed, None)
     }
 
-    /// Horizontal wheel: pages the visible columns.
+    /// Horizontal wheel: one column per notch.
     pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
+        if !self.h_cfg.enabled {
+            return Outcome::Ignored;
+        }
         let before = self.hscroll.offset;
-        self.hscroll.scroll_by(delta as isize);
+        self.hscroll.scroll_by(delta.signum() as isize);
         if self.hscroll.offset == before {
             Outcome::Consumed
         } else {
@@ -560,19 +593,32 @@ impl DataTable {
         }
     }
 
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
+    /// The pointer went down on either scrollbar (or a completed click):
+    /// a press on the thumb grabs it, a press on the track jumps to it. A
+    /// press on the horizontal bar (its id is [`scrollbar::h_id_for`])
+    /// moves columns.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+        self.h_held = !self.htrack.is_empty() && self.htrack.contains(pos);
+        let moved = if self.h_held {
+            scrollbar::press_h(self.htrack, pos, &mut self.hscroll, self.h_cfg.track_click)
+        } else {
+            scrollbar::press(self.track(), pos, &mut self.scroll)
+        };
+        if moved {
             Outcome::Changed
         } else {
             Outcome::Consumed
         }
     }
 
-    /// The pointer dragged along the scrollbar after a press.
+    /// The pointer dragged along the scrollbar it pressed.
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
+        let moved = if self.h_held && !self.htrack.is_empty() {
+            scrollbar::drag_h(self.htrack, pos, &mut self.hscroll)
+        } else {
+            scrollbar::drag(self.track(), pos, &mut self.scroll)
+        };
+        if moved {
             Outcome::Changed
         } else {
             Outcome::Consumed
@@ -624,18 +670,37 @@ impl DataTable {
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         // gutter (1) + columns + scrollbar (1)
-        self.scroll.set_content(self.rows.len());
-        self.scroll.set_viewport(area.height as usize - 1);
-        let has_sb = self.scroll.overflows();
-        let cols_area = Rect::new(
-            area.x + 3,
-            area.y,
-            area.width.saturating_sub(5 + if has_sb { 1 } else { 0 }),
-            area.height,
-        );
-        self.layout_columns(cols_area);
+        let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.h_cfg = h_cfg;
+        // the viewport is settled once both bars are known: setting a
+        // provisional taller one first would clamp the offset and drop
+        // the cursor row off the bottom
+        let rows_len = self.rows.len();
+        let mut has_sb = rows_len > area.height as usize - 1;
+        let cols_for = |has_sb: bool| {
+            Rect::new(
+                area.x + 3,
+                area.y,
+                area.width.saturating_sub(5 + u16::from(has_sb)),
+                area.height,
+            )
+        };
+        self.layout_columns(cols_for(has_sb));
         let header_y = area.y;
-        let body = Rect::new(area.x, area.y + 1, area.width, area.height - 1);
+        let mut body = Rect::new(area.x, area.y + 1, area.width, area.height - 1);
+        // the horizontal bar takes the bottom row; losing it can make the
+        // rows overflow, which costs a column for the vertical bar
+        let has_hb = !self.rows.is_empty() && body.height > 1 && h_cfg.shows_bar(&self.hscroll);
+        if has_hb {
+            body.height -= 1;
+            if !has_sb && rows_len > body.height as usize {
+                has_sb = true;
+                self.layout_columns(cols_for(true));
+            }
+        }
+        let cols_area = cols_for(has_sb);
+        self.scroll.set_content(rows_len);
+        self.scroll.set_viewport(body.height as usize);
         self.body = body;
 
         // header
@@ -682,7 +747,7 @@ impl DataTable {
             }
         }
         // horizontal overflow indicators
-        if self.hscroll.overflows() {
+        if self.overflow_marks && self.hscroll.overflows() {
             let more_right = self.hscroll.offset + self.hscroll.viewport_len < self.columns.len();
             let more_left = self.hscroll.offset > 0;
             if more_left {
@@ -866,6 +931,28 @@ impl DataTable {
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
+        self.htrack = Rect::ZERO;
+        if has_hb {
+            // under the columns; the corner under the vertical bar stays blank
+            let y = body.bottom();
+            let right = area.right() - u16::from(has_sb);
+            fill(
+                buf,
+                Rect::new(area.x, y, area.width, 1),
+                Style::new().bg(bg),
+            );
+            let hb = Rect::new(cols_area.x, y, right.saturating_sub(cols_area.x), 1);
+            self.htrack = hb;
+            scrollbar::render_horizontal_with(
+                hb,
+                buf,
+                ctx,
+                self.id,
+                &self.hscroll,
+                focused,
+                h_cfg.bar == ScrollbarVisibility::Always,
+            );
+        }
     }
 
     /// Resolve which (display row, col) a widget id refers to.
@@ -885,7 +972,7 @@ impl DataTable {
 
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id
-            || id == scrollbar::id_for(self.id)
+            || scrollbar::is_bar_of(id, self.id)
             || self.locate(id).is_some()
             || self.locate_header(id).is_some()
     }
@@ -970,6 +1057,66 @@ mod tests {
         DataTable::new(WidgetId::of("t"), cols, rows)
             .cell_nav(true)
             .numeric(&[1])
+    }
+
+    fn wide_table() -> DataTable {
+        let cols = (0..9)
+            .map(|i| Column::new(&format!("col{i}"), Constraint::Length(10)))
+            .collect();
+        let rows = (0..3)
+            .map(|r| (0..9).map(|c| Cell::new(format!("r{r}c{c}"))).collect())
+            .collect();
+        DataTable::new(WidgetId::of("wide"), cols, rows)
+    }
+
+    fn draw(t: &mut DataTable, area: Rect) -> (Buffer, HitRegistry) {
+        let mut buf = Buffer::empty(area);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            t.render(area, &mut buf, &mut ctx, theme.surface);
+        }
+        (buf, hits)
+    }
+
+    fn thumb_x(buf: &Buffer, y: u16) -> Option<u16> {
+        (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
+    }
+
+    #[test]
+    fn wide_columns_show_a_horizontal_bar_that_moves_by_columns() {
+        let mut t = wide_table();
+        let area = Rect::new(0, 0, 40, 7);
+        let (buf, hits) = draw(&mut t, area);
+        let y = area.bottom() - 1;
+        assert_eq!(thumb_x(&buf, y), Some(t.htrack.x), "thumb at the left");
+        assert_eq!(
+            hits.hit(Position::new(t.htrack.x + 2, y)),
+            Some(scrollbar::h_id_for(t.id))
+        );
+        assert!(t.owns(scrollbar::h_id_for(t.id)));
+
+        assert_eq!(t.on_wheel_h(3), Outcome::Changed);
+        assert_eq!(t.hscroll.offset, 1, "one column per notch");
+        let (buf, _) = draw(&mut t, area);
+        let grab = thumb_x(&buf, y).unwrap();
+        assert!(grab > t.htrack.x);
+
+        // the shared scrollbar entry point tells the bars apart by position
+        assert_eq!(t.on_scrollbar(Position::new(grab, y)), Outcome::Consumed);
+        assert_eq!(
+            t.on_scrollbar_drag(Position::new(area.right(), y)),
+            Outcome::Changed
+        );
+        assert_eq!(t.hscroll.offset, t.hscroll.max_offset());
+        assert_eq!(t.scroll.offset, 0, "rows did not move");
+
+        let mut off = wide_table().horizontal(HScroll::off());
+        let (buf, _) = draw(&mut off, area);
+        assert_eq!(thumb_x(&buf, y), None);
+        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
     }
 
     #[test]
