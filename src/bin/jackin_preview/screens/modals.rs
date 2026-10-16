@@ -527,6 +527,12 @@ impl FileBrowser {
 /// The browser on the app's layer stack: Esc, Cancel or a dismissal its
 /// policy allows report `Cancelled`; Choose reports the path (or URL).
 impl Layer<ModalResult, World> for FileBrowser {
+    fn animating(&self) -> bool {
+        true
+    }
+    fn is_editing(&self) -> bool {
+        FileBrowser::is_editing(self)
+    }
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(self.dismiss).initial_focus(self.initial_focus())
     }
@@ -1006,6 +1012,9 @@ impl OpFlow {
 /// The 1Password chain on the app's layer stack: it reads the simulated
 /// service and the clock from the world.
 impl Layer<ModalResult, World> for OpFlow {
+    fn animating(&self) -> bool {
+        true
+    }
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(self.dismiss).initial_focus(self.picker.id)
     }
