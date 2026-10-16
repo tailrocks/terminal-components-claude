@@ -57,6 +57,17 @@ impl H {
         self.draw();
         o
     }
+    /// Cmd (super) + `c`, as the kitty keyboard protocol delivers it.
+    /// Cmd+A selects all in a field under every `FieldKeys` preset, so a
+    /// test that means "select the field" holds on every client platform.
+    pub fn cmd(&mut self, c: char) -> Outcome {
+        let o = self.app.handle(Input::Key(Key {
+            code: KeyCode::Char(c),
+            mods: KeyModifiers::SUPER,
+        }));
+        self.draw();
+        o
+    }
     pub fn alt(&mut self, c: char) -> Outcome {
         let o = self.app.handle(Input::Key(Key {
             code: KeyCode::Char(c),
@@ -603,7 +614,7 @@ fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
     assert!(!h.wb_query().is_running());
     h.click(ack_area.x + 2, ack_area.y);
     h.click(ack_area.x + 2, ack_area.y);
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("orders");
     assert!(matches!(h.app.modal(), Some(Modal::Dialog(d)) if d.armed()));
     h.click(confirm_area.x, confirm_area.y);
@@ -638,7 +649,7 @@ fn silent_level_runs_scoped_writes_but_confirms_destructive() {
     );
     h.ticks(10);
     h.key(KeyCode::Char('i'));
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("TRUNCATE orders");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -750,7 +761,7 @@ fn pending_edits_preview_and_save() {
         h.key(KeyCode::Right);
     }
     h.key(KeyCode::Enter);
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("EUR");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("• 1 pending"), "{}", h.text());
@@ -1471,4 +1482,22 @@ fn tab_walk_shows_a_caret_at_every_connection_form_field() {
         carets >= 4,
         "the form's text fields edit on focus: {carets}"
     );
+}
+
+/// Cmd+A in the SQL editor selects the whole query, so typing replaces it.
+#[test]
+fn the_query_editor_selects_all_with_cmd_a() {
+    let mut h = H::connected(80, 24);
+    h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(h.wb_query().editor.id));
+    h.type_str("SELECT 1");
+    h.key(KeyCode::Enter);
+    h.type_str("FROM orders");
+    h.cmd('a');
+    assert_eq!(
+        h.wb_query().editor.buffer.selected_text(),
+        Some("SELECT 1\nFROM orders")
+    );
+    h.type_str("SELECT 2");
+    assert_eq!(h.wb_query().editor.text(), "SELECT 2");
 }

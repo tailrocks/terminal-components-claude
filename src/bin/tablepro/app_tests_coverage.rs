@@ -114,7 +114,7 @@ fn connection_validation_save_edit_and_delete() {
 
     h.key(KeyCode::Char('e'));
     h.key(KeyCode::Enter);
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("Coverage edited");
     h.key(KeyCode::Enter);
     h.ctrl('s');
@@ -627,7 +627,7 @@ fn grid_edit_paste_validation_and_read_only_columns_preserve_state() {
         h.key(KeyCode::Right);
     }
     h.key(KeyCode::Enter);
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("bogus");
     h.key(KeyCode::Enter);
     assert!(h.wb_table().grid.is_editing());
@@ -645,7 +645,7 @@ fn grid_edit_paste_validation_and_read_only_columns_preserve_state() {
     h.key(KeyCode::Esc);
 
     h.key(KeyCode::Enter);
-    h.ctrl('l');
+    h.cmd('a');
     h.app.handle(Input::Paste("paid".into()));
     h.draw();
     h.key(KeyCode::Enter);

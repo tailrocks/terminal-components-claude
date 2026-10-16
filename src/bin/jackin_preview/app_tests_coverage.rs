@@ -632,7 +632,7 @@ fn paste_updates_editor_model_and_filters_newlines_in_capsule_input() {
     editor(&mut ed, 1);
     ed.key(KeyCode::Enter);
     ed.key(KeyCode::Enter);
-    ed.ctrl('l');
+    ed.cmd('a');
     assert_eq!(
         ed.paste("workspace-paste"),
         junie_tui::core::event::Outcome::Changed
@@ -775,7 +775,7 @@ fn editor_validation_and_save_failure_preserve_pending_changes() {
     editor(&mut h, 1);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("infra-control-plane");
     h.key(KeyCode::Enter);
     h.ctrl('s');
@@ -853,7 +853,7 @@ fn accounts_edit_toggle_validate_and_refresh_update_only_the_selected_account() 
     h.key(KeyCode::Char('e'));
     h.tab_to(crate::screens::accounts::FORM.sub("purpose"));
     h.key(KeyCode::Enter);
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("coverage");
     h.key(KeyCode::Enter);
     h.tab_to(crate::screens::accounts::FORM.sub("save"));
@@ -1018,7 +1018,7 @@ fn prelude_invalid_destination_and_backtracking_do_not_create_workspace() {
     h.key(KeyCode::Char(' '));
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
-    h.ctrl('l');
+    h.cmd('a');
     h.type_str("relative/path");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("absolute path"), "{}", h.text());

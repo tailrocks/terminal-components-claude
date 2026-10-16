@@ -443,14 +443,21 @@ pub enum ViewportAction {
     ToggleFollow,
     /// Copy the selection ([`ViewportEvent::Copy`]). Default `y`.
     Copy,
+    /// Select every retained line, ready for Copy. Default Cmd+A where the
+    /// terminal delivers Cmd, and Ctrl+A ([`crate::core::keymap::SELECT_ALL`]).
+    SelectAll,
 }
 
 impl Actions for ViewportAction {
     fn default_keymap() -> KeyMap<Self> {
-        vec![
+        let mut map = vec![
             (KeyBinding::char('f'), ViewportAction::ToggleFollow),
             (KeyBinding::char('y'), ViewportAction::Copy),
-        ]
+        ];
+        map.extend(crate::core::keymap::select_all_bindings(
+            ViewportAction::SelectAll,
+        ));
+        map
     }
 }
 
@@ -1176,6 +1183,32 @@ impl TextViewport {
         Some((a.min(b), a.max(b)))
     }
 
+    /// Select All: every retained line, from the first column of the first
+    /// line to the end of the last. `Changed` when the selection changed.
+    pub fn select_all(&mut self) -> Outcome {
+        self.ensure_index();
+        let (Some(first), Some(last)) = (self.lines.first(), self.lines.last()) else {
+            return Outcome::Consumed;
+        };
+        let all = (
+            Anchor {
+                id: first.id,
+                col: 0,
+            },
+            Anchor {
+                id: last.id,
+                col: last.col_of(last.cells.len()),
+            },
+        );
+        if self.selection == Some(all) {
+            return Outcome::Consumed;
+        }
+        self.selection = Some(all);
+        self.browse = Some(all.1);
+        self.drag_anchor = None;
+        Outcome::Changed
+    }
+
     pub fn clear_selection(&mut self) -> Outcome {
         self.browse = None;
         if self.selection.take().is_some() {
@@ -1659,6 +1692,12 @@ impl TextViewport {
                     Outcome::Changed,
                     Some(ViewportEvent::FollowChanged(self.follow)),
                 );
+            }
+            Some(ViewportAction::SelectAll) => {
+                return match self.select_all() {
+                    Outcome::Changed => (Outcome::Changed, Some(ViewportEvent::SelectionChanged)),
+                    o => (o, None),
+                };
             }
             Some(ViewportAction::Copy) => {
                 return match self.selected_text() {
@@ -2741,5 +2780,55 @@ mod tests {
         render(&mut v, 30, 10);
         v.on_scrollbar(Position::new(29, 9));
         assert_eq!(v.scroll.offset, 40);
+    }
+}
+
+/// Select All in read-only text: every retained line, then Copy.
+#[cfg(test)]
+mod select_all_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::KeyModifiers as M;
+
+    #[test]
+    fn cmd_or_ctrl_a_selects_everything_and_y_copies_it() {
+        for mods in [M::SUPER, M::CONTROL] {
+            let lines = (0..30)
+                .map(|i| vec![Span::plain(format!("line {i}"))])
+                .collect();
+            let mut v = TextViewport::with_lines(WidgetId::of("v"), lines);
+            let t = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 5));
+            v.render(Rect::new(0, 0, 30, 5), &mut buf, &mut ctx, t.canvas);
+            let (out, ev) = v.on_key(&Key {
+                code: KeyCode::Char('a'),
+                mods,
+            });
+            assert_eq!(out, Outcome::Changed);
+            assert_eq!(ev, Some(ViewportEvent::SelectionChanged));
+            let all = v.selected_text().unwrap();
+            assert!(all.starts_with("line 0\nline 1\n"), "{all}");
+            assert!(all.ends_with("line 29"), "{all}");
+            let (_, ev) = v.on_key(&Key {
+                code: KeyCode::Char('y'),
+                mods: M::NONE,
+            });
+            assert_eq!(ev, Some(ViewportEvent::Copy(all)));
+            // again: nothing changes
+            assert_eq!(
+                v.on_key(&Key {
+                    code: KeyCode::Char('a'),
+                    mods,
+                })
+                .0,
+                Outcome::Consumed
+            );
+        }
     }
 }

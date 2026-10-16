@@ -8,6 +8,8 @@
 //! ([`crate::theme::Theme::edit_entry`], [`crate::theme::Theme::field_keys`])
 //! and a per-widget override.
 
+use super::event::ClientPlatform;
+use super::keymap::{Actions, KeyBinding, KeyMap};
 use super::text::TextBuffer;
 
 /// How a focused text control starts editing.
@@ -67,18 +69,72 @@ impl FocusSelect {
 ///
 /// Both presets share the platform-neutral keys: arrows, Home/End,
 /// Backspace/Delete, Ctrl/Alt+arrows by word, Ctrl+Z undo and
-/// Ctrl+Shift+Z redo.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Ctrl+Shift+Z redo, and Cmd+A select all wherever the terminal delivers
+/// Cmd (the kitty keyboard protocol, [`crate::core::keyboard`]).
+///
+/// The default follows the client platform ([`Self::for_platform`]):
+/// macOS fields answer the Cocoa bindings, where Ctrl+A is line start and
+/// Select All is Cmd+A; Windows and Linux fields answer Ctrl+A select all
+/// and Ctrl+C/X/V.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKeys {
     /// The Cocoa text-system bindings macOS fields answer to: Ctrl+A/E
     /// line start/end, Ctrl+K kill to end, Ctrl+U kill to start, Ctrl+W
     /// delete the word (cut the selection when there is one), Ctrl+Y yank,
     /// Alt+B/F by word, Ctrl+L select all.
-    #[default]
     Emacs,
     /// Windows and Linux desktop bindings: Ctrl+A select all, Ctrl+C copy,
-    /// Ctrl+X cut, Ctrl+V paste, Ctrl+Y redo.
+    /// Ctrl+X cut, Ctrl+V paste, Ctrl+Y redo. Also the profile for a macOS
+    /// app that wants Ctrl+A to select all.
     Desktop,
+}
+
+impl FieldKeys {
+    /// The preset a client on `platform` expects: [`Self::Emacs`] on macOS,
+    /// [`Self::Desktop`] elsewhere.
+    pub const fn for_platform(platform: ClientPlatform) -> Self {
+        match platform {
+            ClientPlatform::MacOs => Self::Emacs,
+            ClientPlatform::Other => Self::Desktop,
+        }
+    }
+
+    /// The preset's text commands: Cmd+A, then Ctrl+L ([`Self::Emacs`]) or
+    /// Ctrl+A ([`Self::Desktop`]) select all. A hint names the first
+    /// binding the terminal delivers ([`crate::core::keymap::hint_key`]).
+    pub fn text_keymap(self) -> KeyMap<TextCmd> {
+        let preset = match self {
+            Self::Emacs => KeyBinding::ctrl('l'),
+            Self::Desktop => KeyBinding::ctrl('a'),
+        };
+        vec![
+            (KeyBinding::cmd('a'), TextCmd::SelectAll),
+            (preset, TextCmd::SelectAll),
+        ]
+    }
+}
+
+impl Default for FieldKeys {
+    /// [`Self::for_platform`] for [`ClientPlatform::current`].
+    fn default() -> Self {
+        Self::for_platform(ClientPlatform::current())
+    }
+}
+
+/// A text command a key can be bound to, on top of a [`FieldKeys`]
+/// preset. A text control's `text_keymap(..)` builder replaces the
+/// preset's bindings ([`FieldKeys::text_keymap`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextCmd {
+    /// Select the whole value (Cmd+A; Ctrl+A or Ctrl+L per preset).
+    SelectAll,
+}
+
+impl Actions for TextCmd {
+    /// The client platform's preset ([`FieldKeys::default`]).
+    fn default_keymap() -> KeyMap<Self> {
+        FieldKeys::default().text_keymap()
+    }
 }
 
 /// One state the undo history can return to.
@@ -274,6 +330,48 @@ mod tests {
         b.insert_char('b');
         assert!(u.undo(&mut b));
         assert_eq!(b.text(), "a");
+    }
+
+    /// The platform is input data: both branches are pinned on any host.
+    #[test]
+    fn field_keys_follow_the_client_platform() {
+        assert_eq!(
+            FieldKeys::for_platform(ClientPlatform::MacOs),
+            FieldKeys::Emacs
+        );
+        assert_eq!(
+            FieldKeys::for_platform(ClientPlatform::Other),
+            FieldKeys::Desktop
+        );
+        assert_eq!(
+            FieldKeys::default(),
+            FieldKeys::for_platform(ClientPlatform::current())
+        );
+        let cmd_a = KeyBinding::cmd('a');
+        for keys in [FieldKeys::Emacs, FieldKeys::Desktop] {
+            assert_eq!(
+                keys.text_keymap().first(),
+                Some(&(cmd_a, TextCmd::SelectAll)),
+                "Cmd+A selects all in every preset"
+            );
+        }
+        assert!(
+            FieldKeys::Emacs
+                .text_keymap()
+                .contains(&(KeyBinding::ctrl('l'), TextCmd::SelectAll))
+        );
+        assert!(
+            !FieldKeys::Emacs
+                .text_keymap()
+                .iter()
+                .any(|(b, _)| *b == KeyBinding::ctrl('a')),
+            "Ctrl+A stays line start on macOS"
+        );
+        assert!(
+            FieldKeys::Desktop
+                .text_keymap()
+                .contains(&(KeyBinding::ctrl('a'), TextCmd::SelectAll))
+        );
     }
 
     #[test]

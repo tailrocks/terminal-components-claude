@@ -349,7 +349,7 @@ fn editable_table_commit_cancel_and_validation() {
         h.key(KeyCode::Right);
     }
     h.key(KeyCode::Enter);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str("abc");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Changes must be a whole number"));
@@ -1862,4 +1862,47 @@ fn a_track_press_held_keeps_paging_until_the_thumb_reaches_the_pointer() {
     );
     h.mouse(MouseKind::Up, sx, sy);
     assert!(h.app.tick_interval() > std::time::Duration::from_millis(50));
+}
+
+/// Select All in a text field, per client platform (the platform is input
+/// data, so both run on any host): Cmd+A wherever the terminal delivers
+/// Cmd; Ctrl+A on Windows and Linux; on macOS Ctrl+A stays the Cocoa line
+/// start and Ctrl+L selects all.
+#[test]
+fn inputs_select_all_follows_the_client_platform() {
+    use junie_tui::core::edit::FieldKeys;
+    use junie_tui::core::event::ClientPlatform;
+    for platform in [ClientPlatform::MacOs, ClientPlatform::Other] {
+        let mut h = Harness::new(120, 40, PageId::Inputs);
+        h.app.theme = Theme::junie().with_field_keys(FieldKeys::for_platform(platform));
+        h.draw();
+        let (x, y) = h.find("payments-gateway").expect("the Project name field");
+        h.click(x + 2, y);
+        assert!(h.app.pages[PageId::Inputs.index()].editing());
+        assert_eq!(selected_on_row(&h, y), "", "{platform:?}");
+        h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
+        let value = selected_on_row(&h, y);
+        assert!(
+            value.starts_with("payments-gateway"),
+            "Cmd+A on {platform:?}: {value:?}"
+        );
+        h.key(KeyCode::End);
+        h.key_mod(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        match platform {
+            ClientPlatform::MacOs => {
+                assert_eq!(selected_on_row(&h, y), "", "Ctrl+A is line start");
+                h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+                assert_eq!(selected_on_row(&h, y), value, "Ctrl+L selects all");
+            }
+            ClientPlatform::Other => {
+                assert_eq!(selected_on_row(&h, y), value, "Ctrl+A selects all");
+            }
+        }
+        h.type_str("main");
+        let row = h.row(y);
+        assert!(
+            row.contains("main") && !row.contains("payments-gateway"),
+            "typing replaced the value: {row}"
+        );
+    }
 }

@@ -490,9 +490,11 @@ pub struct Theme {
     /// `Dialog::prompt`). Default [`EditEntry::Immediate`] (macOS).
     pub edit_entry: crate::core::edit::EditEntry,
     /// The control-key preset of text fields that do not set their own.
-    /// Default [`FieldKeys::Emacs`](crate::core::edit::FieldKeys::Emacs),
-    /// the Cocoa text-system bindings.
-    pub field_keys: crate::core::edit::FieldKeys,
+    /// Default `None`: the client platform's preset
+    /// ([`FieldKeys::for_platform`](crate::core::edit::FieldKeys::for_platform):
+    /// the Cocoa bindings on macOS, Desktop elsewhere). An app profile
+    /// sets one for every platform ([`Self::with_field_keys`]).
+    pub field_keys: Option<crate::core::edit::FieldKeys>,
 }
 
 impl Theme {
@@ -559,7 +561,7 @@ impl Theme {
             glyphs: Glyphs::UNICODE,
             strings: Strings::DEFAULT,
             edit_entry: Self::DEFAULT_EDIT_ENTRY,
-            field_keys: crate::core::edit::FieldKeys::Emacs,
+            field_keys: None,
         }
     }
 
@@ -848,7 +850,7 @@ impl Theme {
     /// The same theme with `keys` as every text field's default
     /// [`FieldKeys`](crate::core::edit::FieldKeys) preset.
     pub const fn with_field_keys(mut self, keys: crate::core::edit::FieldKeys) -> Self {
-        self.field_keys = keys;
+        self.field_keys = Some(keys);
         self
     }
 
