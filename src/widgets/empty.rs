@@ -80,6 +80,20 @@ impl EmptyState {
     pub fn on_click(&self, id: WidgetId) -> Option<&EmptyAction> {
         self.actions.iter().find(|a| a.id == id)
     }
+    /// A key while `focus` holds focus: Enter or Space on an action's
+    /// button chooses it, as on any [`Button`]. `Ignored` when `focus`
+    /// is not one of the actions.
+    pub fn on_key(
+        &self,
+        focus: WidgetId,
+        key: &crate::core::event::Key,
+    ) -> (crate::core::event::Outcome, Option<&EmptyAction>) {
+        let Some(a) = self.actions.iter().find(|a| a.id == focus) else {
+            return (crate::core::event::Outcome::Ignored, None);
+        };
+        let (o, act) = Button::secondary(a.id, &a.label).on_key(key);
+        (o, act.then_some(a))
+    }
     pub fn hint(mut self, h: &str) -> Self {
         self.hint = Some(h.to_owned());
         self
@@ -182,6 +196,61 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
     }
 }
 
+/// The id an empty state without actions answers to in a States grid.
+const SAMPLE_ID: WidgetId = WidgetId::of("empty-sample");
+
+/// Rows [`render_ctx`] needs for `e` at `width`: the title, the hint
+/// (after a blank row) and the button row (after a blank row).
+pub fn height(e: &EmptyState, width: u16) -> u16 {
+    let hint = e
+        .hint
+        .as_ref()
+        .map(|h| crate::ui::text::wrap(h, width.saturating_sub(4).max(8) as usize).len() + 1)
+        .unwrap_or(0) as u16;
+    let actions = if e.actions.is_empty() { 0 } else { 2 };
+    1 + hint + actions
+}
+
+/// In a States grid an empty state is drawn by [`render_ctx`]; its
+/// interactive states are those of its first action button.
+impl crate::ui::specimen::Specimen for EmptyState {
+    fn specimen_id(&self) -> WidgetId {
+        self.actions.first().map_or(SAMPLE_ID, |a| a.id)
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        match state {
+            Rest | Error | Overflow | Narrow => true,
+            Hover | Pressed | Focused | FocusedHover => !self.actions.is_empty(),
+            _ => false,
+        }
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        // the hint wraps at most once more in the narrow slot
+        height(self, 24) + u16::from(self.hint.is_some())
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut e = self.clone();
+        match state {
+            Error => e.kind = EmptyKind::Error,
+            Overflow => e.title = format!("{} in a view far too narrow for it", e.title),
+            _ => {}
+        }
+        render_ctx(area, buf, ctx, &e, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,6 +258,31 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::ui::ctx::Interaction;
     use ratatui::layout::Constraint;
+
+    #[test]
+    fn enter_or_space_on_a_focused_action_chooses_it() {
+        use crate::core::event::{Key, Outcome};
+        use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+        let key = |code| Key {
+            code,
+            mods: KeyModifiers::NONE,
+        };
+        let new = WidgetId::of("new");
+        let e = EmptyState::new("No connections")
+            .actions(vec![EmptyAction::primary(new, "New connection")]);
+        let (o, a) = e.on_key(new, &key(KeyCode::Enter));
+        assert_eq!(o, Outcome::Changed);
+        assert_eq!(a.map(|a| a.id), Some(new));
+        assert_eq!(
+            e.on_key(new, &key(KeyCode::Char(' '))).1.map(|a| a.id),
+            Some(new)
+        );
+        assert!(e.on_key(new, &key(KeyCode::Char('x'))).1.is_none());
+        assert_eq!(
+            e.on_key(WidgetId::of("other"), &key(KeyCode::Enter)),
+            (Outcome::Ignored, None)
+        );
+    }
 
     fn text(buf: &Buffer) -> String {
         buf.content().iter().map(|c| c.symbol()).collect()
