@@ -139,7 +139,10 @@ impl<'a> RenderCtx<'a> {
             overlays: Vec::new(),
             reveal: crate::ui::reveal::Reveal::default(),
             hscroll: crate::core::scroll::HScroll::default(),
-            reveal_slot: crate::ui::reveal::Slot::default(),
+            reveal_slot: {
+                crate::ui::reveal::clear_titles();
+                crate::ui::reveal::Slot::default()
+            },
         }
     }
 
@@ -252,6 +255,8 @@ impl<'a> RenderCtx<'a> {
     /// flushing are drawn too, above the one that queued them. Every
     /// application calls this once after drawing its frame.
     pub fn flush_overlays(&mut self, buf: &mut Buffer) {
+        // cut titles drawn by context-free chrome reveal like any cut cell
+        crate::ui::reveal::flush_titles(self);
         while !self.overlays.is_empty() {
             let queued = std::mem::take(&mut self.overlays);
             for (inert, draw) in queued {
