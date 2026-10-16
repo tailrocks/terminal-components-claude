@@ -1227,6 +1227,10 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::progress::Meter::visual"),
     Capability::builder("widgets::progress::Meter::stale"),
     Capability::builder("widgets::progress::Meter::stale_style"),
+    Capability::ty("widgets::progress::ProgressBar"),
+    Capability::builder("widgets::progress::ProgressBar::status"),
+    Capability::builder("widgets::progress::ProgressBar::layout"),
+    Capability::ty("widgets::progress::Tally"),
     // widgets::props
     Capability::ty("widgets::props::Prop"),
     Capability::builder("widgets::props::Prop::copyable"),
