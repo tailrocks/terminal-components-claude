@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Selection       i Inspector   ? Help  [0m
                                                                         [0m
- Components      25  [0m[1mSelectable table[0m  Select rows, edit one or many t… [0m
+ Components      54  [0m[1mSelectable table[0m  Select rows, edit one or many t… [0m
                                                                         [0m
     Overview      ┃    [0m[1mMembers[0m                3 selected · 2–4 of 12   ┃[0m
   ▸ App shell     ┃                                                    ┃[0m
@@ -11,10 +11,10 @@
       Data grid   ┃           ━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┃[0m
     › [0m[1mSelection  [0m ┃                                                    ┆[0m
       Cell edito… ┃                                                    ┆[0m
-  ▸ Navigation    ┃                                                    ┆[0m
-  ▸ Overlays      ┃                                                    ┆[0m
-  ▸ Feedback      ┆                                                    ┆[0m
- [0m[2m ▸ Layout        [0m┆                                                    ┆[0m
+      Columns     ┃                                                    ┆[0m
+  ▸ Navigation    ┆                                                    ┆[0m
+  ▸ Overlays      ┆                                                    ┆[0m
+ [0m[2m ▸ Feedback      [0m┆                                                    ┆[0m
                                                                        ┆[0m
                                                                         [0m
  [0m[1mSpace[0m Select  [0m[1mShift+↑↓[0m Extend  [0m[1mEsc[0m Clear selection  …                  [0m

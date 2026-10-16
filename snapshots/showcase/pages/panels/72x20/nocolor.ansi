@@ -1,20 +1,20 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Panels          i Inspector   ? Help  [0m
                                                                         [0m
- [0m[1mComponents[0m      25  [0m[1mPanels[0m  Cards group; a frame only where a pane ne… [0m
+ [0m[1mComponents[0m      54  [0m[1mPanels[0m  Cards group; a frame only where a pane ne… [0m
                                                                         [0m
-    Overview           Titled card surfa…   ┃  ╭─ Framed · …   1–5/50 ─╮[0m
-  ▸ App shell                               ┃  │  Junie works        ┃ │[0m
-  ▸ Inputs & forms     A card is a filled   ┃  │  through a task the ┆ │[0m
-  ▸ Tables             surface. Its title   ┃  │  way a careful      ┆ │[0m
-  ▸ Navigation         sits in the          ┃  │  engineer would: it ┆ │[0m
-  ▸ Overlays           top-left and         ┃  │  [0m[2mreads the relevant [0m┆ │[0m
-  ▸ Feedback                                ┃  ╰───────────────────────╯[0m
-  ▾ Layout                                  ┃                           [0m
- [0m[1m▎  › Panels       [0m                         ┃    Card · scroll… 1–2/60  [0m
-      Scrolling        Untitled card.       ┆                           [0m
-  ▸ Text & code        Same surface,        ┆       0.00s  info   R… ┃  [0m
-  ▸ Screens            content starts at    ┆       0.37s  info   F… ┆  [0m
-                       the padding edge.    ┆    ━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
+    Overview      ┃    Titled card surfa…   ┃  ╭─ Framed · …   1–5/50 ─╮[0m
+  ▸ App shell     ┃                         ┃  │  Junie works        ┃ │[0m
+  ▸ Inputs & for… ┃    A card is a filled   ┃  │  through a task the ┆ │[0m
+  ▸ Tables        ┃    surface. Its title   ┃  │  way a careful      ┆ │[0m
+  ▸ Navigation    ┃    sits in the          ┃  │  engineer would: it ┆ │[0m
+  ▸ Overlays      ┃    top-left and         ┃  │  [0m[2mreads the relevant [0m┆ │[0m
+  ▸ Feedback      ┃                         ┃  ╰───────────────────────╯[0m
+  ▾ Layout        ┃                         ┃                           [0m
+ [0m[1m▎  › Panels      [0m┃                         ┃    Card · scroll… 1–2/60  [0m
+      Scrolling   ┃    Untitled card.       ┆                           [0m
+      Splits & s… ┃    Same surface,        ┆       0.00s  info   R… ┃  [0m
+      Master-det… ┆    content starts at    ┆       0.37s  info   F… ┆  [0m
+ [0m[2m     Pane tree   [0m┆    the padding edge.    ┆    ━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
                                             ┆                           [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
