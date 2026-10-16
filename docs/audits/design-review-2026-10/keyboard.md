@@ -337,3 +337,10 @@ Deferred, with reasons:
   `⌘C` when it is delivered belongs to the S8b hint pass.
 - Picker, combo and find-bar queries still have no `TextBuffer` (S11).
   They gain these chords when they move onto `EditField`.
+
+## Status (cursor, type-ahead and vim profile, plan S4)
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 33 | Fixed | S4 "desktop keys and type-ahead by default" | `NavKeys::default()` follows `NavProfile::current()`: `Desktop` (default) has no `h j k l g G`; `NavProfile::Vim` turns them on for every widget. Per widget `nav(..)` still overrides. |
+| 34 | Fixed | same | List, Tree, Select, ContextMenu and MenuBar type-select by default under `Desktop` (off under `Vim`), through the one `Cursor::type_ahead`. Type-ahead takes letters and digits only, so `?`, `/`, `*` and Space keep their meaning while a list has focus (a terminal trade-off; see plan "S4 deviations" 3). |
