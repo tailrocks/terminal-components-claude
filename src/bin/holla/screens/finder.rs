@@ -1143,7 +1143,7 @@ impl Screen for FinderPage {
             // keyboard returns to the list (the preview's own letters stay)
             let typed = matches!(
                 key.code,
-                KeyCode::Char(c) if !key.ctrl() && !key.alt() && !matches!(c, 'j' | 'k' | 'y')
+                KeyCode::Char(c) if !key.chord() && !matches!(c, 'j' | 'k' | 'y')
             );
             if typed {
                 self.drawer = false;
@@ -1313,7 +1313,7 @@ impl Screen for FinderPage {
                 }
                 Outcome::Ignored
             }
-            KeyCode::Char(c) if !key.ctrl() && !key.alt() => {
+            KeyCode::Char(c) if !key.chord() => {
                 let mut q = if self.select_all {
                     String::new()
                 } else {

@@ -469,7 +469,7 @@ impl Tabs {
             return (o, self.menu_event(ev));
         }
         let action = lookup(&self.keymap, key);
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) && action.is_none() {
+        if matches!(key.code, KeyCode::Char(_)) && key.chord() && action.is_none() {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }

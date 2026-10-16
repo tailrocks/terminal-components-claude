@@ -61,6 +61,16 @@ impl Key {
     pub fn alt(&self) -> bool {
         self.mods.contains(KeyModifiers::ALT)
     }
+    /// Cmd (the super modifier): delivered only through the kitty keyboard
+    /// protocol ([`crate::core::keyboard`]).
+    pub fn cmd(&self) -> bool {
+        self.mods.contains(KeyModifiers::SUPER)
+    }
+    /// Ctrl, Alt or Cmd is held: the key is a command chord, never typed
+    /// text and never a plain letter shortcut.
+    pub fn chord(&self) -> bool {
+        self.ctrl() || self.alt() || self.cmd()
+    }
     pub fn plain(&self) -> bool {
         self.mods.difference(KeyModifiers::SHIFT).is_empty()
     }

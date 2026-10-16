@@ -494,7 +494,7 @@ impl ChoiceEditor {
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             return (Outcome::Consumed, None);
         }
         let horizontal = self.kind == Kind::Segmented;
