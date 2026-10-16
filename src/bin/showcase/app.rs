@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 
 use crate::pages::{Page, PageCtx, PageEvent, Request};
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
@@ -14,11 +14,11 @@ use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release, SecondaryRoute};
-use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{BadgeKind, Theme};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::widgets::dialog::{Dialog, DialogBody};
 use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
 
 pub const MIN_WIDTH: u16 = 72;
 pub const MIN_HEIGHT: u16 = 20;
@@ -68,129 +68,145 @@ pub enum PageId {
 pub struct NavEntry {
     pub id: PageId,
     pub label: &'static str,
-    pub section: &'static str,
+    /// The sidebar group the page sits under ([`NAV_GROUPS`]).
+    pub group: &'static str,
 }
 
+/// Sidebar groups in tree order: every page sits under exactly one.
+pub const NAV_GROUPS: &[&str] = &[
+    "Foundations",
+    "Inputs & forms",
+    "Tables",
+    "Navigation",
+    "Overlays",
+    "Feedback",
+    "Layout",
+    "Text & code",
+    "Screens",
+];
+
+/// Every page in tree order (group by group): the sidebar, `[`/`]` and
+/// the page vector all follow it.
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Overview,
         label: "Overview",
-        section: "Foundations",
-    },
-    NavEntry {
-        id: PageId::Buttons,
-        label: "Buttons",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Inputs,
-        label: "Inputs",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::TextAreas,
-        label: "Text areas",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Forms,
-        label: "Forms",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Lists,
-        label: "Lists",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Trees,
-        label: "Trees",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Tables,
-        label: "Tables",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Editable,
-        label: "Editable tables",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Panels,
-        label: "Panels",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Sidebars,
-        label: "Sidebars",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Dialogs,
-        label: "Dialogs",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Progress,
-        label: "Progress",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Scrolling,
-        label: "Scrolling",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Terminal,
-        label: "Terminal",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Editor,
-        label: "Code editor",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Diff,
-        label: "Diff",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Grid,
-        label: "Data grid",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Chips,
-        label: "Chips & selects",
-        section: "Components",
-    },
-    NavEntry {
-        id: PageId::Pickers,
-        label: "Pickers",
-        section: "Components",
+        group: "Foundations",
     },
     NavEntry {
         id: PageId::Chrome,
         label: "Chrome",
-        section: "Components",
+        group: "Foundations",
     },
     NavEntry {
-        id: PageId::Settings,
-        label: "Settings",
-        section: "Screens",
+        id: PageId::Buttons,
+        label: "Buttons",
+        group: "Inputs & forms",
     },
     NavEntry {
-        id: PageId::TaskRunner,
-        label: "Task runner",
-        section: "Screens",
+        id: PageId::Inputs,
+        label: "Inputs",
+        group: "Inputs & forms",
+    },
+    NavEntry {
+        id: PageId::TextAreas,
+        label: "Text areas",
+        group: "Inputs & forms",
+    },
+    NavEntry {
+        id: PageId::Chips,
+        label: "Chips & selects",
+        group: "Inputs & forms",
+    },
+    NavEntry {
+        id: PageId::Forms,
+        label: "Forms",
+        group: "Inputs & forms",
+    },
+    NavEntry {
+        id: PageId::Tables,
+        label: "Tables",
+        group: "Tables",
+    },
+    NavEntry {
+        id: PageId::Editable,
+        label: "Editable tables",
+        group: "Tables",
+    },
+    NavEntry {
+        id: PageId::Grid,
+        label: "Data grid",
+        group: "Tables",
     },
     NavEntry {
         id: PageId::Selectable,
         label: "Selectable table",
-        section: "Screens",
+        group: "Tables",
+    },
+    NavEntry {
+        id: PageId::Lists,
+        label: "Lists",
+        group: "Navigation",
+    },
+    NavEntry {
+        id: PageId::Trees,
+        label: "Trees",
+        group: "Navigation",
+    },
+    NavEntry {
+        id: PageId::Sidebars,
+        label: "Sidebars",
+        group: "Navigation",
+    },
+    NavEntry {
+        id: PageId::Dialogs,
+        label: "Dialogs",
+        group: "Overlays",
+    },
+    NavEntry {
+        id: PageId::Pickers,
+        label: "Pickers",
+        group: "Overlays",
+    },
+    NavEntry {
+        id: PageId::Progress,
+        label: "Progress",
+        group: "Feedback",
+    },
+    NavEntry {
+        id: PageId::Panels,
+        label: "Panels",
+        group: "Layout",
+    },
+    NavEntry {
+        id: PageId::Scrolling,
+        label: "Scrolling",
+        group: "Layout",
+    },
+    NavEntry {
+        id: PageId::Editor,
+        label: "Code editor",
+        group: "Text & code",
+    },
+    NavEntry {
+        id: PageId::Diff,
+        label: "Diff",
+        group: "Text & code",
+    },
+    NavEntry {
+        id: PageId::Terminal,
+        label: "Terminal",
+        group: "Text & code",
+    },
+    NavEntry {
+        id: PageId::Settings,
+        label: "Settings",
+        group: "Screens",
+    },
+    NavEntry {
+        id: PageId::TaskRunner,
+        label: "Task runner",
+        group: "Screens",
     },
 ];
 
@@ -202,9 +218,47 @@ const PAGE_ALIASES: &[(&str, PageId)] = &[
     ("selectable", PageId::Selectable),
 ];
 
+/// Which sidebar groups are open: the navigation tree's expansion policy.
+/// Whatever the policy, navigating to a page opens its group.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NavExpand {
+    /// Only the current page's group is open at start. A group opened only
+    /// because navigation passed through it closes again when navigation
+    /// moves on; groups the user opens or closes stay as they are left.
+    #[default]
+    CurrentGroup,
+    /// Only the current page's group is open after every navigation.
+    Accordion,
+    /// Every group starts open.
+    All,
+}
+
 impl PageId {
     pub fn index(self) -> usize {
         NAV_ENTRIES.iter().position(|e| e.id == self).unwrap_or(0)
+    }
+
+    /// The page's path in the sidebar tree: `[group, position in group]`.
+    pub fn nav_path(self) -> Vec<usize> {
+        let e = &NAV_ENTRIES[self.index()];
+        let g = NAV_GROUPS.iter().position(|g| *g == e.group).unwrap_or(0);
+        let k = NAV_ENTRIES
+            .iter()
+            .filter(|x| x.group == e.group)
+            .position(|x| x.id == self)
+            .unwrap_or(0);
+        vec![g, k]
+    }
+
+    /// The page at a sidebar tree path; `None` for a group row.
+    pub fn from_nav_path(path: &[usize]) -> Option<Self> {
+        let [g, k] = path else { return None };
+        let group = NAV_GROUPS.get(*g)?;
+        NAV_ENTRIES
+            .iter()
+            .filter(|e| e.group == *group)
+            .nth(*k)
+            .map(|e| e.id)
     }
     pub fn from_name(name: &str) -> Option<Self> {
         // compare on letters and digits only, so "chips & selects",
@@ -229,11 +283,38 @@ impl PageId {
     }
 }
 
+/// The sidebar tree: [`NAV_GROUPS`] as branches, the pages as leaves.
+/// Type-ahead on, a divider edge, `›` on the current page.
+fn nav_tree() -> TreeView {
+    let nodes = NAV_GROUPS
+        .iter()
+        .map(|g| {
+            let pages = NAV_ENTRIES
+                .iter()
+                .filter(|e| e.group == *g)
+                .map(|e| TreeNode::leaf(e.label))
+                .collect();
+            TreeNode::dir(g, pages)
+        })
+        .collect();
+    TreeView::new(NAV, nodes)
+        .type_ahead(true)
+        .divider(true)
+        .selected_marker(Some("›"))
+}
+
 pub struct App {
     pub theme: Theme,
     pub pages: Vec<Box<dyn Page>>,
     pub page: PageId,
-    pub nav_cursor: usize,
+    /// The navigation sidebar: every page as a leaf under its group.
+    pub nav: TreeView,
+    /// Which sidebar groups are open ([`NavExpand::CurrentGroup`]).
+    pub nav_expand: NavExpand,
+    /// A group navigation opened on its own (not the user): it closes
+    /// again when navigation moves to another group
+    /// ([`NavExpand::CurrentGroup`]).
+    nav_auto: Option<usize>,
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
@@ -249,8 +330,6 @@ pub struct App {
     pub status: Option<(String, Instant)>,
     pub quit: bool,
     pub motion: Motion,
-    nav_areas: Vec<Rect>,
-    nav_scroll: ScrollState,
     nav_reveal: bool,
     layout: ShellLayout,
     /// Focus to restore when the help dialog closes.
@@ -326,7 +405,9 @@ impl App {
             theme,
             pages,
             page: PageId::Overview,
-            nav_cursor: 0,
+            nav: nav_tree(),
+            nav_expand: NavExpand::default(),
+            nav_auto: None,
             focus,
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
@@ -340,14 +421,13 @@ impl App {
             status: None,
             quit: false,
             motion,
-            nav_areas: vec![],
-            nav_scroll: ScrollState::default(),
             nav_reveal: true,
             layout: ShellLayout::default(),
             saved_focus: None,
             pointer_mods: KeyModifiers::NONE,
             pointer_clicks: 0,
         };
+        app.sync_nav(None);
         // Paused fast-forward: page Tick handlers are pure functions of the
         // tick count, so N synchronous dispatches reproduce the exact
         // post-N-ticks state. Every page is advanced (not only the current
@@ -374,11 +454,51 @@ impl App {
         app
     }
 
+    /// Apply [`Self::nav_expand`] after the current page changed from
+    /// `from` (`None` at start) and put the tree cursor and the current
+    /// marker on it.
+    fn sync_nav(&mut self, from: Option<PageId>) {
+        let path = self.page.nav_path();
+        let group = path[0];
+        let prev_auto = self.nav_auto.take();
+        match (self.nav_expand, from) {
+            (NavExpand::All, None) => self.nav.expand_all(),
+            (NavExpand::All, Some(_)) => {}
+            (NavExpand::CurrentGroup, None) | (NavExpand::Accordion, _) => {
+                self.nav.expanded.clear();
+            }
+            (NavExpand::CurrentGroup, Some(_)) => {
+                if let Some(g) = prev_auto
+                    && g != group
+                {
+                    self.nav.expanded.remove(&vec![g]);
+                }
+            }
+        }
+        // the group is navigation's own when navigation opened it now, or
+        // it already was and navigation stays inside it
+        let opened_now = !self.nav.expanded.contains(&vec![group]);
+        if self.nav_expand == NavExpand::CurrentGroup && (opened_now || prev_auto == Some(group)) {
+            self.nav_auto = Some(group);
+        }
+        self.nav.expanded.insert(vec![group]);
+        self.nav.selected = Some(path.clone());
+        self.nav.reveal(&path);
+        self.nav_reveal = true;
+    }
+
+    /// Change the sidebar's expansion policy and apply it from scratch.
+    pub fn set_nav_expand(&mut self, policy: NavExpand) {
+        self.nav_expand = policy;
+        self.nav_auto = None;
+        self.sync_nav(None);
+    }
+
     pub fn goto(&mut self, page: PageId) {
         if self.page != page {
+            let from = self.page;
             self.page = page;
-            self.nav_cursor = page.index();
-            self.nav_reveal = true;
+            self.sync_nav(Some(from));
             // focus stays on nav if it was there; otherwise first widget on page
             if !self.focus.is(NAV) {
                 self.focus.set(None);
@@ -563,48 +683,36 @@ impl App {
             }
             return out.or(Outcome::Consumed);
         }
-        // sidebar navigation owns keys while focused
+        // the sidebar tree owns its navigation keys while focused; a typed
+        // letter is type-ahead only when neither the page's shortcuts nor
+        // the shell's own letters claim it (below)
+        let mut type_ahead = false;
         if self.focus.is(NAV) {
             self.nav_reveal = true;
-            match key.code {
-                KeyCode::Up | KeyCode::Char('k') if key.plain() => {
-                    self.nav_cursor = self.nav_cursor.saturating_sub(1);
-                    return Outcome::Changed;
+            type_ahead = matches!(key.code, KeyCode::Char(c) if !c.is_whitespace())
+                && !key.ctrl()
+                && !key.alt()
+                && self.nav.nav.action(&key).is_none()
+                && junie_tui::core::keymap::lookup(&self.nav.keymap, &key).is_none();
+            let leaf = self.nav.cursor_path().and_then(PageId::from_nav_path);
+            if let Some(target) = leaf
+                && matches!(key.code, KeyCode::Right | KeyCode::Char('l'))
+                && key.plain()
+            {
+                // → on a page opens it and steps into it
+                self.goto(target);
+                self.focus.set(None);
+                self.focus.next(&self.ring);
+                if self.focus.is(NAV) {
+                    self.focus.next(&self.ring);
                 }
-                KeyCode::Down | KeyCode::Char('j') if key.plain() => {
-                    self.nav_cursor = (self.nav_cursor + 1).min(NAV_ENTRIES.len() - 1);
-                    return Outcome::Changed;
+                return Outcome::Changed;
+            }
+            if !type_ahead {
+                let out = self.nav_event(|nav| nav.on_key(&key));
+                if out.consumed() {
+                    return out;
                 }
-                KeyCode::Home | KeyCode::Char('g') if key.plain() => {
-                    self.nav_cursor = 0;
-                    return Outcome::Changed;
-                }
-                KeyCode::End | KeyCode::Char('G') => {
-                    self.nav_cursor = NAV_ENTRIES.len() - 1;
-                    return Outcome::Changed;
-                }
-                KeyCode::PageUp => {
-                    self.nav_cursor = self.nav_cursor.saturating_sub(self.nav_scroll.viewport_len);
-                    return Outcome::Changed;
-                }
-                KeyCode::PageDown => {
-                    self.nav_cursor =
-                        (self.nav_cursor + self.nav_scroll.viewport_len).min(NAV_ENTRIES.len() - 1);
-                    return Outcome::Changed;
-                }
-                KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Right | KeyCode::Char('l') => {
-                    let target = NAV_ENTRIES[self.nav_cursor].id;
-                    self.goto(target);
-                    if matches!(key.code, KeyCode::Right | KeyCode::Char('l')) {
-                        self.focus.set(None);
-                        self.focus.next(&self.ring);
-                        if self.focus.is(NAV) {
-                            self.focus.next(&self.ring);
-                        }
-                    }
-                    return Outcome::Changed;
-                }
-                _ => {}
             }
         }
         // page first (editing widgets capture everything)
@@ -620,6 +728,13 @@ impl App {
                 self.flash(f);
             }
             return out;
+        }
+        let shell_letter = matches!(key.code, KeyCode::Char('q' | 'i' | '?' | '[' | ']' | '0'));
+        if type_ahead && !shell_letter {
+            let out = self.nav_event(|nav| nav.on_key(&key));
+            if out.consumed() {
+                return out;
+            }
         }
         // global keys
         match key.code {
@@ -643,6 +758,7 @@ impl App {
                 self.inspector = !self.inspector;
                 Outcome::Changed
             }
+            // tree order: NAV_ENTRIES lists the pages group by group
             KeyCode::Char(']') => {
                 let next = (self.page.index() + 1) % NAV_ENTRIES.len();
                 self.goto(NAV_ENTRIES[next].id);
@@ -677,6 +793,8 @@ impl App {
                     Enter / Space     activate · start editing\n\
                     Esc               cancel editing · back to navigation\n\
                     [ ]               previous / next page\n\
+                    ← →               close / open a sidebar group\n\
+                    a–z               jump to a sidebar row by name\n\
                     0                 jump to navigation\n\
                     i                 toggle state inspector\n\
                     q                 quit\n\n\
@@ -717,15 +835,26 @@ impl App {
             return Outcome::Changed;
         }
         if id == scrollbar::id_for(NAV) {
-            return self.scroll_nav_to(m.pos);
+            // the press already moved the thumb
+            return Outcome::Consumed;
         }
         if id == HEADER_INSPECT {
             self.inspector = !self.inspector;
             return Outcome::Changed;
         }
-        if let Some(i) = self.nav_index_at(id) {
-            self.nav_cursor = i;
-            self.goto(NAV_ENTRIES[i].id);
+        if let Some((i, toggle)) = self.nav.locate(id) {
+            self.focus.focus(NAV);
+            self.nav_event(|nav| {
+                if toggle {
+                    nav.on_click_toggle(i)
+                } else {
+                    nav.on_click_row(i)
+                }
+            });
+            return Outcome::Changed;
+        }
+        if id == NAV {
+            // the sidebar below its last row
             self.focus.focus(NAV);
             return Outcome::Changed;
         }
@@ -770,7 +899,7 @@ impl App {
                         return d.on_drag(pressed, m.pos);
                     }
                     if pressed == scrollbar::id_for(NAV) {
-                        return self.scroll_nav_to(m.pos);
+                        return self.nav.on_scrollbar_drag(m.pos);
                     }
                     return self.dispatch(PageEvent::Drag {
                         pressed,
@@ -795,10 +924,13 @@ impl App {
                 if self.dialog.is_some() {
                     return Outcome::Changed;
                 }
-                if let Some(i) = self.nav_index_at(id) {
+                if let Some((i, _)) = self.nav.locate(id) {
                     self.focus.focus(NAV);
-                    self.nav_cursor = i;
+                    self.nav.cursor = i;
                     return Outcome::Changed;
+                }
+                if id == scrollbar::id_for(NAV) {
+                    return self.nav.on_scrollbar(m.pos).or(Outcome::Changed);
                 }
                 if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
                     self.focus.focus(id);
@@ -877,17 +1009,11 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
-                let out =
-                    if id == NAV || id == scrollbar::id_for(NAV) || self.nav_index_at(id).is_some()
-                    {
-                        if self.nav_scroll.scroll_by(delta as isize) {
-                            Outcome::Changed
-                        } else {
-                            Outcome::Consumed
-                        }
-                    } else {
-                        self.dispatch(PageEvent::Wheel { id, delta })
-                    };
+                let out = if self.nav.owns(id) {
+                    self.nav.on_wheel(delta)
+                } else {
+                    self.dispatch(PageEvent::Wheel { id, delta })
+                };
                 // the rows under the pointer change with the scroll: hover
                 // is re-resolved once the new frame has registered its hits
                 self.pointer.scrolled(m.pos, out);
@@ -896,24 +1022,28 @@ impl App {
         }
     }
 
-    fn nav_index_at(&self, id: WidgetId) -> Option<usize> {
-        (0..NAV_ENTRIES.len()).find(|&i| NAV.child(i) == id)
-    }
-
-    fn scroll_nav_to(&mut self, pos: Position) -> Outcome {
-        let track = Rect::new(
-            self.layout.sidebar.right() - 1,
-            self.layout.sidebar.y,
-            1,
-            self.layout.sidebar.height,
-        );
-        let before = self.nav_scroll.offset;
-        scrollbar::drag(track, pos, &mut self.nav_scroll);
-        if before == self.nav_scroll.offset {
-            Outcome::Consumed
-        } else {
-            Outcome::Changed
+    /// Run a sidebar tree operation: a page it activates becomes the
+    /// current page, and once the user opens or closes the group navigation
+    /// opened, it is theirs (it no longer closes on its own,
+    /// [`NavExpand::CurrentGroup`]).
+    fn nav_event(
+        &mut self,
+        f: impl FnOnce(&mut TreeView) -> (Outcome, Option<TreeEvent>),
+    ) -> Outcome {
+        let auto_open =
+            |nav: &TreeView, g: Option<usize>| g.map(|g| nav.expanded.contains(&vec![g]));
+        let before = auto_open(&self.nav, self.nav_auto);
+        let (out, ev) = f(&mut self.nav);
+        if auto_open(&self.nav, self.nav_auto) != before {
+            self.nav_auto = None;
         }
+        if let Some(TreeEvent::Activate(path)) = ev
+            && let Some(page) = PageId::from_nav_path(&path)
+        {
+            self.goto(page);
+            return Outcome::Changed;
+        }
+        out
     }
 
     /// Flash a widget as pressed (keyboard activation feedback).
@@ -1069,7 +1199,7 @@ impl App {
         buf.set_string(x, area.y, "Design system", t.secondary());
         x += 14;
         let entry = &NAV_ENTRIES[self.page.index()];
-        let crumb = format!("/ {} / {}", entry.section, entry.label);
+        let crumb = format!("/ {} / {}", entry.group, entry.label);
         buf.set_string(x, area.y, &crumb, t.muted());
         let crumb_w = junie_tui::ui::text::width(&crumb) as u16;
         // right side: capability + actions
@@ -1098,108 +1228,17 @@ impl App {
 
     fn draw_sidebar(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        let focused = ctx.interaction.focused(NAV);
-        let mut y = area.y;
-        let mut section = "";
-        self.nav_areas.clear();
-        let sections = 3u16;
-        let compact = area.height < NAV_ENTRIES.len() as u16 + sections * 2 - 1;
-        let resized = self.nav_scroll.viewport_len != area.height as usize;
-        self.nav_scroll.set_content(NAV_ENTRIES.len());
-        self.nav_scroll.set_viewport(area.height as usize);
+        // the cursor row comes into view after navigation and on resize
+        // (the wheel scrolls freely in between)
+        let resized = self.nav.scroll.viewport_len != area.height as usize;
+        self.nav.scroll.set_viewport(area.height as usize);
         if self.nav_reveal || resized {
-            self.nav_scroll.ensure_visible(self.nav_cursor);
+            self.nav.scroll.ensure_visible(self.nav.cursor);
             self.nav_reveal = false;
         }
-        let overflow = self.nav_scroll.overflows();
-        for (i, e) in NAV_ENTRIES.iter().enumerate().skip(self.nav_scroll.offset) {
-            if e.section != section && !compact {
-                if y > area.y {
-                    y += 1;
-                }
-                if y >= area.bottom() {
-                    break;
-                }
-                buf.set_string(area.x + 3, y, e.section, t.faint());
-                section = e.section;
-                y += 1;
-            } else if e.section != section && compact && y > area.y {
-                // compact: a one-cell gap between groups, no labels
-                section = e.section;
-            }
-            if y >= area.bottom() {
-                break;
-            }
-            // the last column is always the divider (and the scrollbar
-            // when the list overflows): rows never run under it
-            let row = Rect::new(area.x, y, area.width.saturating_sub(1), 1);
-            let rid = NAV.child(i);
-            let mut s = ctx.state(rid);
-            s.focused = focused && i == self.nav_cursor;
-            let current = e.id == self.page;
-            let st = t.row(s, t.canvas);
-            fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(t.canvas), false),
-            );
-            if current {
-                // the current page is a fact: accent only while the nav
-                // holds focus
-                let ms = st.fg(t.chosen(focused));
-                buf.set_string(row.x + 1, y, "›", ms);
-            }
-            let label_style = if current || s.focused || s.hovered {
-                st.fg(t.text_primary)
-            } else {
-                st.fg(t.text_secondary)
-            };
-            buf.set_string(
-                row.x + 3,
-                y,
-                junie_tui::ui::text::fit(e.label, row.width.saturating_sub(4) as usize),
-                label_style,
-            );
-            ctx.clickable(rid, row);
-            self.nav_areas.push(row);
-            y += 1;
-        }
-        // the sidebar as a whole is one focus stop
-        if !ctx.inert {
-            ctx.ring.register(NAV);
-            ctx.hits.register_scroll(NAV, area);
-        }
-        if overflow {
-            junie_tui::ui::fade::scroll_edges_except(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    area.y,
-                    (area.right() - 1).saturating_sub(area.x),
-                    area.height,
-                ),
-                &self.nav_scroll,
-                &self
-                    .nav_areas
-                    .get(self.nav_cursor)
-                    .map(|r| r.y)
-                    .into_iter()
-                    .collect::<Vec<_>>(),
-            );
-        }
-        // one divider at every size; the thumb appears on it when the
-        // list overflows (layout audit #19)
-        scrollbar::render_divider(
-            Rect::new(area.right().saturating_sub(1), area.y, 1, area.height),
-            buf,
-            ctx,
-            NAV,
-            &self.nav_scroll,
-            focused,
-        );
+        // one focus stop; the divider column carries the scrollbar thumb
+        // when the tree overflows (layout audit #19)
+        self.nav.render(area, buf, ctx, t.canvas);
     }
 
     fn draw_main(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -1302,7 +1341,16 @@ impl App {
             dialog_hints = Some(d.hints(self.focus.current()));
         } else if self.focus.is(NAV) {
             hints.push(("↑↓", "Move"));
-            hints.push(("Enter", "Open"));
+            let on_group = self
+                .nav
+                .cursor_path()
+                .is_some_and(|p| PageId::from_nav_path(p).is_none());
+            if on_group {
+                hints.push(("←→", "Fold"));
+                hints.push(("Enter", "Toggle"));
+            } else {
+                hints.push(("Enter", "Open"));
+            }
             hints.push(("Tab", "Into page"));
             hints.push(("q", "Quit"));
         } else {
@@ -1358,44 +1406,41 @@ fn describe_key(k: &Key) -> String {
 mod click_regressions {
     use super::*;
     use junie_tui::core::event::Mouse;
+    use ratatui::layout::Position;
     use ratatui::{Terminal, backend::TestBackend};
 
     #[test]
     fn minimum_sidebar_reveals_last_page_and_wheel_does_not_move_focus() {
         let mut app = App::new(Theme::junie());
+        // every group open: the tree overflows the minimum sidebar
+        app.set_nav_expand(NavExpand::All);
         app.goto(PageId::TaskRunner);
         let mut term = Terminal::new(TestBackend::new(72, 20)).unwrap();
         term.draw(|frame| app.render(frame)).unwrap();
-        assert!(
-            app.hits
-                .area_of(NAV.child(PageId::TaskRunner.index()))
-                .is_some()
-        );
-        assert!(app.nav_scroll.offset > 0);
+        let last = app.nav.rows().len() - 1;
+        assert_eq!(app.nav.cursor, last, "the current page is the last row");
+        assert!(app.hits.area_of(app.nav.row_id(last)).is_some());
+        assert!(app.nav.scroll.offset > 0);
         let focus = app.focus.current();
-        let cursor = app.nav_cursor;
+        let cursor = app.nav.cursor;
         app.handle(Input::Mouse(Mouse::new(
             MouseKind::WheelUp,
             Position::new(2, 4),
         )));
-        let offset = app.nav_scroll.offset;
+        let offset = app.nav.scroll.offset;
         term.draw(|frame| app.render(frame)).unwrap();
         assert_eq!(
-            app.nav_scroll.offset, offset,
+            app.nav.scroll.offset, offset,
             "render must not undo wheel scrolling"
         );
         assert_eq!(app.focus.current(), focus);
-        assert_eq!(app.nav_cursor, cursor);
+        assert_eq!(app.nav.cursor, cursor);
         app.handle(Input::Key(Key {
             code: KeyCode::End,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         }));
         term.draw(|frame| app.render(frame)).unwrap();
-        assert!(
-            app.hits
-                .area_of(NAV.child(PageId::TaskRunner.index()))
-                .is_some()
-        );
+        assert!(app.hits.area_of(app.nav.row_id(last)).is_some());
         let track = app.hits.area_of(scrollbar::id_for(NAV)).unwrap();
         for kind in [MouseKind::Down, MouseKind::Up] {
             app.handle(Input::Mouse(Mouse::new(
@@ -1404,7 +1449,7 @@ mod click_regressions {
             )));
             term.draw(|frame| app.render(frame)).unwrap();
         }
-        assert_eq!(app.nav_scroll.offset, 0);
+        assert_eq!(app.nav.scroll.offset, 0);
         assert_eq!(app.focus.current(), focus);
     }
 

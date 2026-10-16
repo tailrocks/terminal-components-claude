@@ -88,8 +88,18 @@ pub const ELEMENTS: &[Root] = &[
     Root::new("showcase/elements/buttons/disabled-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Disabled primary").pending(),
     Root::new("showcase/elements/buttons/disabled-pressed", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).press("Disabled primary").pending(),
     Root::new("showcase/elements/toggles/verbose-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Verbose").pending(),
-    Root::new("showcase/elements/nav/item-hover", Bin::Showcase, &["--page", "overview"], BOOT).hover("Text areas").pending(),
-    Root::new("showcase/elements/nav/item-pressed", Bin::Showcase, &["--page", "overview", "--motion", "paused"], BOOT).press("Text areas").pending(),
+    // The sidebar is a tree (docs/showcase/tables.md): only the current
+    // page's group is open, so the hovered and pressed page is "Chrome",
+    // the open Foundations group's second page.
+    Root::new("showcase/elements/nav/item-hover", Bin::Showcase, &["--page", "overview"], BOOT).hover("Chrome").pending(),
+    Root::new("showcase/elements/nav/item-pressed", Bin::Showcase, &["--page", "overview", "--motion", "paused"], BOOT).press("Chrome").pending(),
+    // Pending: sidebar tree states. A closed group row hovered, a group
+    // closed with ← ←, every group open (`--nav all`), type-ahead on `t`.
+    Root::new("showcase/elements/nav/group-hover", Bin::Showcase, &["--page", "overview"], BOOT).hover("Tables").pending(),
+    Root::new("showcase/elements/nav/group-collapsed", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["left", "left"]).pending(),
+    Root::new("showcase/elements/nav/all-groups", Bin::Showcase, &["--page", "overview", "--nav", "all"], BOOT).pending(),
+    Root::new("showcase/elements/nav/type-ahead", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["t"]).pending(),
+    Root::new("showcase/elements/nav/current-in-group", Bin::Showcase, &["--page", "datagrid"], BOOT).pending(),
     Root::new("showcase/elements/selectable/selected-hover", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected"]).hover("Ari Moreno").pending(),
     Root::new("showcase/elements/lists/selected-hover", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "space"]).hover("Python").pending(),
     Root::new("showcase/elements/lists/row-pressed", Bin::Showcase, &["--page", "lists", "--motion", "paused"], BOOT).press("Python").pending(),

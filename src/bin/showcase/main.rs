@@ -8,11 +8,13 @@ mod app_tests_context;
 #[cfg(test)]
 mod app_tests_coverage;
 #[cfg(test)]
+mod app_tests_nav;
+#[cfg(test)]
 mod app_tests_selectable;
 mod data;
 mod pages;
 
-use crate::app::{App, Motion, PageId};
+use crate::app::{App, Motion, NavExpand, PageId};
 use clap::{CommandFactory, FromArgMatches, Parser, ValueEnum};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
@@ -22,6 +24,7 @@ struct Options {
     page: Option<PageId>,
     motion: Motion,
     frame: u64,
+    nav: NavExpand,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -43,6 +46,27 @@ impl From<ColorArg> for ColorLevel {
             ColorArg::Ansi256 => Self::Ansi256,
             ColorArg::Ansi16 => Self::Ansi16,
             ColorArg::Mono => Self::Mono,
+        }
+    }
+}
+
+/// Which sidebar groups are open (`NavExpand`).
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum NavArg {
+    /// Only the current page's group (default).
+    Current,
+    /// Only the current page's group, after every navigation too.
+    Accordion,
+    /// Every group.
+    All,
+}
+
+impl From<NavArg> for NavExpand {
+    fn from(value: NavArg) -> Self {
+        match value {
+            NavArg::Current => NavExpand::CurrentGroup,
+            NavArg::Accordion => NavExpand::Accordion,
+            NavArg::All => NavExpand::All,
         }
     }
 }
@@ -69,6 +93,9 @@ struct Cli {
     motion: Option<MotionArg>,
     #[arg(short = 'f', long, default_value_t = 0)]
     frame: u64,
+    /// Which sidebar groups are open.
+    #[arg(long, value_enum, value_name = "POLICY")]
+    nav: Option<NavArg>,
 }
 
 fn parse_page(value: &str) -> Result<PageId, String> {
@@ -95,6 +122,7 @@ fn parse_args() -> Options {
             MotionArg::Paused => Motion::Paused,
         },
         frame: cli.frame,
+        nav: cli.nav.map(NavExpand::from).unwrap_or_default(),
     }
 }
 
@@ -105,6 +133,7 @@ fn main() -> std::io::Result<()> {
     if let Some(p) = opts.page {
         app.goto(p);
     }
+    app.set_nav_expand(opts.nav);
     junie_tui::runtime::run(&mut app)
 }
 

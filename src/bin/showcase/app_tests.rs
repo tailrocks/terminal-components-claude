@@ -646,18 +646,29 @@ fn scrollbar_click_and_drag_move_the_view() {
 
 #[test]
 fn keyboard_navigation_between_pages() {
+    // pages follow the sidebar tree: Overview, Chrome, then Inputs & forms
     let mut h = Harness::new(120, 40, PageId::Overview);
     h.key(KeyCode::Char(']'));
-    assert_eq!(h.app.page, PageId::Buttons);
+    assert_eq!(h.app.page, PageId::Chrome);
     h.key(KeyCode::Char('['));
     assert_eq!(h.app.page, PageId::Overview);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.page, PageId::Chrome);
+    // open the "Inputs & forms" group with →, step in, open its page
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Right);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
     assert_eq!(h.app.page, PageId::Inputs);
+    // the Tables group opens on a click; its first page on another
     let (x, y) = h.find("Tables").unwrap();
     h.click(x, y);
-    assert_eq!(h.app.page, PageId::Tables);
+    assert_eq!(h.app.page, PageId::Inputs, "a group row only folds");
+    let (x, y) = h.find("Editable tables").unwrap();
+    h.click(x, y);
+    assert_eq!(h.app.page, PageId::Editable);
 }
 
 #[test]
