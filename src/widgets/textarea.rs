@@ -3,8 +3,9 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier};
 
+use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect, UndoStack};
 use crate::core::event::{Key, Outcome};
-use crate::core::focus::BlurAction;
+use crate::core::focus::{BlurAction, request_focus_next};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
@@ -12,15 +13,20 @@ use crate::core::text::{CursorPos, TextBuffer};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use crate::widgets::field_common::{
-    EditAction, PointerField, PointerSelect, PressState, click_select, drag_select, edit_key,
-    press_select,
+    Applied, EditAction, PointerField, PointerSelect, PressState, apply_edit, click_select,
+    drag_select, edit_key_with, press_select,
 };
 use crate::widgets::input::InputEvent;
 use crate::widgets::scrollbar;
 
-/// Multi-line editor. Same two modes as [`TextInput`](super::input::TextInput);
-/// in editing mode Enter inserts a newline and Esc *commits* (a document is
-/// not cancelled by leaving it).
+/// Multi-line editor. Focus starts editing per its [`EditEntry`] like
+/// [`TextInput`](super::input::TextInput) (default
+/// [`EditEntry::Immediate`]: the caret shows the moment Tab lands here).
+/// While editing Enter inserts a newline, Tab ends the edit and moves focus
+/// on, and Esc ends the edit keeping the text ("Done": a document is not
+/// cancelled by leaving it; [`Self::esc_reverts`] opts into reverting).
+/// After Esc the area is in navigation: arrows scroll, Tab moves on,
+/// Enter, F2 or typing edit again.
 /// Long lines scroll horizontally with the insertion cursor. Explicit vertical
 /// scrolling stays in place until editing or cursor movement requests follow.
 #[derive(Debug, Clone)]
@@ -53,6 +59,23 @@ pub struct TextArea {
     /// Which keys scroll the area while it is not being edited (default
     /// [`NavKeys::DEFAULT`]). Editing keys are the text buffer's own.
     pub nav: NavKeys,
+    /// How focus starts an edit. `None` (default) follows the theme's
+    /// [`crate::theme::Theme::edit_entry`] ([`EditEntry::Immediate`]).
+    pub edit_entry: Option<EditEntry>,
+    entry: EditEntry,
+    /// Where the caret lands when the keyboard starts an immediate edit.
+    /// Default [`FocusSelect::CaretEnd`]: a document is continued, not
+    /// replaced.
+    pub focus_select: FocusSelect,
+    /// Esc reverts the text to what it was when the edit began instead of
+    /// keeping it. Default `false` (Esc is "Done"; Ctrl+Z undoes).
+    pub esc_reverts: bool,
+    /// The control-key preset. `None` (default) follows the theme's
+    /// [`crate::theme::Theme::field_keys`].
+    pub field_keys: Option<FieldKeys>,
+    keys: FieldKeys,
+    undo: UndoStack,
+    focus_seen: bool,
 }
 
 impl TextArea {
@@ -78,7 +101,51 @@ impl TextArea {
             pointer_select: PointerSelect::DEFAULT,
             press: PressState::default(),
             nav: NavKeys::DEFAULT,
+            edit_entry: None,
+            entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,
+            focus_select: FocusSelect::CaretEnd,
+            esc_reverts: false,
+            field_keys: None,
+            keys: FieldKeys::default(),
+            undo: UndoStack::new(),
+            focus_seen: false,
         }
+    }
+
+    /// See [`Self::edit_entry`].
+    pub fn edit_entry(mut self, entry: EditEntry) -> Self {
+        self.edit_entry = Some(entry);
+        self.entry = entry;
+        self
+    }
+    /// See [`Self::focus_select`].
+    pub fn focus_select(mut self, select: FocusSelect) -> Self {
+        self.focus_select = select;
+        self
+    }
+    /// See [`Self::esc_reverts`].
+    pub fn esc_reverts(mut self, on: bool) -> Self {
+        self.esc_reverts = on;
+        self
+    }
+    /// See [`Self::field_keys`].
+    pub fn field_keys(mut self, keys: FieldKeys) -> Self {
+        self.field_keys = Some(keys);
+        self.keys = keys;
+        self
+    }
+    /// The entry policy in effect.
+    pub fn entry(&self) -> EditEntry {
+        self.edit_entry.unwrap_or(self.entry)
+    }
+    /// The focused area takes printable keys before page shortcuts (see
+    /// [`TextInput::wants_text_input`](super::input::TextInput::wants_text_input)).
+    pub fn wants_text_input(&self) -> bool {
+        !self.disabled && (self.editing || self.entry() != EditEntry::Explicit)
+    }
+    /// The text differs from the one the edit began with.
+    pub fn is_dirty(&self) -> bool {
+        self.editing && self.buffer.text() != self.snapshot
     }
 
     /// See [`Self::pointer_select`].
@@ -104,7 +171,12 @@ impl TextArea {
     /// `Committed` (or `Cancelled`, which restores the text from before
     /// editing) so the owner's hooks run; `None` when not editing.
     pub fn on_blur(&mut self) -> Option<InputEvent> {
+        self.focus_seen = false;
         if !self.editing {
+            return None;
+        }
+        if self.entry() == EditEntry::Immediate && !self.is_dirty() {
+            self.commit();
             return None;
         }
         match self.blur_action {
@@ -125,6 +197,7 @@ impl TextArea {
     pub fn value(mut self, v: &str) -> Self {
         self.buffer.set_text(v);
         self.buffer.move_doc_start(false);
+        self.undo.clear();
         self
     }
     pub fn placeholder(mut self, p: &str) -> Self {
@@ -167,42 +240,63 @@ impl TextArea {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
+        let entry = self.entry();
         if !self.editing {
-            if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
+            if entry == EditEntry::Immediate && !self.focus_seen {
+                // focus arrived and this key beat the first render
+                self.begin_edit();
+                self.focus_select.apply(&mut self.buffer);
+            } else if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
                 self.begin_edit();
                 return (Outcome::Changed, None);
+            } else if entry != EditEntry::Explicit
+                && let KeyCode::Char(c) = key.code
+                && !key.ctrl()
+                && !key.alt()
+            {
+                // typing after Esc ("Done") picks the edit up again
+                self.begin_edit();
+                self.undo.record(&self.buffer, EditKind::Typing);
+                self.buffer.insert_char(c);
+                return (Outcome::Changed, Some(InputEvent::Changed));
+            } else {
+                let _moved = match self.nav.action(key) {
+                    Some(Nav::Up) => self.scroll.scroll_by(-1),
+                    Some(Nav::Down) => self.scroll.scroll_by(1),
+                    Some(Nav::PageUp) => self.scroll.page_up(),
+                    Some(Nav::PageDown) => self.scroll.page_down(),
+                    Some(Nav::Home) => self.scroll.jump_start(),
+                    Some(Nav::End) => self.scroll.jump_end(),
+                    Some(Nav::Left | Nav::Right) | None => return (Outcome::Ignored, None),
+                };
+                return (Outcome::Changed, None);
             }
-            let _moved = match self.nav.action(key) {
-                Some(Nav::Up) => self.scroll.scroll_by(-1),
-                Some(Nav::Down) => self.scroll.scroll_by(1),
-                Some(Nav::PageUp) => self.scroll.page_up(),
-                Some(Nav::PageDown) => self.scroll.page_down(),
-                Some(Nav::Home) => self.scroll.jump_start(),
-                Some(Nav::End) => self.scroll.jump_end(),
-                Some(Nav::Left | Nav::Right) | None => return (Outcome::Ignored, None),
-            };
-            return (Outcome::Changed, None);
         }
         self.follow_cursor = true;
-        match edit_key(key, true) {
+        match edit_key_with(key, true, self.keys) {
+            EditAction::Cancel if entry != EditEntry::Explicit && self.esc_reverts => {
+                let dirty = self.is_dirty();
+                self.revert();
+                (
+                    Outcome::Changed,
+                    Some(if dirty {
+                        InputEvent::Cancelled
+                    } else {
+                        InputEvent::Committed
+                    }),
+                )
+            }
             EditAction::Commit | EditAction::Cancel => {
                 self.commit();
                 (Outcome::Changed, Some(InputEvent::Committed))
             }
             EditAction::Tab { backward } => {
                 self.commit();
+                request_focus_next(backward);
                 (
                     Outcome::Changed,
                     Some(InputEvent::CommittedTab { backward }),
                 )
-            }
-            EditAction::Apply(f) => {
-                f(&mut self.buffer);
-                (Outcome::Changed, Some(InputEvent::Changed))
-            }
-            EditAction::Insert(c) => {
-                self.buffer.insert_char(c);
-                (Outcome::Changed, Some(InputEvent::Changed))
             }
             EditAction::None => match key.code {
                 KeyCode::PageUp => {
@@ -219,13 +313,30 @@ impl TextArea {
                 }
                 _ => (Outcome::Consumed, None),
             },
+            action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
+                Some(Applied::Edited) => (Outcome::Changed, Some(InputEvent::Changed)),
+                _ => (Outcome::Changed, None),
+            },
         }
     }
 
+    /// End the edit restoring the text it began with (Esc under
+    /// [`Self::esc_reverts`]); the revert is itself undoable.
+    fn revert(&mut self) {
+        if self.buffer.text() != self.snapshot {
+            self.undo.record(&self.buffer, EditKind::Other);
+        }
+        self.editing = false;
+        let snap = std::mem::take(&mut self.snapshot);
+        self.buffer.set_text(snap);
+    }
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
-        if !self.editing || self.disabled {
+        if self.disabled || (!self.editing && self.entry() == EditEntry::Explicit) {
             return Outcome::Ignored;
         }
+        self.begin_edit();
+        self.undo.record(&self.buffer, EditKind::Other);
         self.buffer.insert_str(text);
         self.follow_cursor = true;
         Outcome::Changed
@@ -324,6 +435,16 @@ impl TextArea {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
+        self.keys = self.field_keys.unwrap_or(ctx.theme.field_keys);
+        // focus newly gained starts an immediate edit: the caret shows the
+        // moment Tab lands here
+        let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
+        if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate && !self.editing {
+            self.begin_edit();
+            self.focus_select.apply(&mut self.buffer);
+        }
+        self.focus_seen = has_focus;
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             self.area = Rect::ZERO;
@@ -339,7 +460,8 @@ impl TextArea {
             s.hovered = false;
         }
         // An edit that lost focus is ended by `on_blur` on the event path,
-        // never here: render only draws (`s.editing` needs focus).
+        // never here (`s.editing` needs focus); render only starts the
+        // edit a newly gained focus asks for (above).
 
         // label
         let label_style = if self.disabled {

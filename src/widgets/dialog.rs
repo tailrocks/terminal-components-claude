@@ -521,6 +521,17 @@ impl Dialog {
         self
     }
 
+    /// How the prompt's (or the typed acknowledgement's) field starts
+    /// editing. By default the field follows the theme
+    /// ([`EditEntry::Immediate`](crate::core::edit::EditEntry::Immediate)):
+    /// the dialog opens with the caret in the field, ready for typing.
+    pub fn edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
+        if let Some(inp) = self.input_mut() {
+            inp.set_edit_entry(entry);
+        }
+        self
+    }
+
     /// The result a dismissal resolves to: the cancel action if there is
     /// one, so the owner handles "closed" and "Cancel" the same way.
     fn dismissed(&mut self) -> Outcome {
@@ -785,6 +796,17 @@ impl Dialog {
         ring: &crate::core::focus::FocusRing,
     ) -> Outcome {
         let cur = focus.current();
+        // Esc in an immediately edited field cancels the dialog at once (a
+        // sheet's Esc is its Cancel): reverting the field first would only
+        // cost a keystroke, the cancel discards it anyway
+        if key.is(KeyCode::Esc)
+            && self.dismiss.escape
+            && let Some(inp) = self.input_mut()
+            && cur == Some(inp.id)
+            && inp.entry() == crate::core::edit::EditEntry::Immediate
+        {
+            return self.dismissed();
+        }
         // input editing captures first
         let is_facts = matches!(self.body, DialogBody::Facts { .. });
         if let Some(inp) = self.input_mut()
