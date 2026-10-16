@@ -167,7 +167,13 @@ impl SimClock {
         if delta <= 0 {
             "resets now".into()
         } else if delta < 86_400 {
-            format!("resets in {}", crate::ui::text::duration_secs(delta as u64))
+            format!(
+                "resets in {}",
+                crate::ui::text::duration(
+                    std::time::Duration::from_secs(delta as u64),
+                    crate::ui::text::DurationStyle::Spoken,
+                )
+            )
         } else {
             format!(
                 "resets {} {}",
