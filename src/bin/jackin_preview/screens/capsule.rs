@@ -310,6 +310,50 @@ impl CapsuleScreen {
         ));
     }
 
+    /// The focused pane's context menu, opened below `at`: its selection,
+    /// the clipboard and the pane layout. Commands that cannot run now
+    /// stay listed with a reason.
+    fn open_pane_menu(&mut self, at: Position, w: &World) {
+        let pane = self
+            .focused_pane(w)
+            .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)));
+        let selected = pane.is_some_and(|p| p.term.has_selection());
+        let panes = self
+            .daemon(w)
+            .and_then(|d| d.active_tab())
+            .map_or(1, |t| t.leaves().len());
+        let zoomed = self
+            .daemon(w)
+            .and_then(|d| d.active_tab())
+            .is_some_and(|t| t.zoomed.is_some());
+        let mut copy = MenuItem::new("Copy selection").shortcut("y");
+        let mut clear = MenuItem::new("Clear selection").separator();
+        if !selected {
+            copy = copy.reason("Select text first");
+            clear = clear.reason("Nothing is selected");
+        }
+        let mut paste = MenuItem::new("Paste clipboard");
+        if w.clipboard.is_none() {
+            paste = paste.reason("The clipboard is empty");
+        }
+        let mut zoom = MenuItem::new("Zoom pane").shortcut("Ctrl+B z").separator();
+        if zoomed {
+            zoom.label = "Unzoom pane".into();
+        } else if panes < 2 {
+            zoom = zoom.reason("One pane");
+        }
+        let items = vec![
+            copy,
+            paste,
+            clear,
+            MenuItem::new("Split right").shortcut("Ctrl+B %"),
+            MenuItem::new("Split below").shortcut("Ctrl+B \""),
+            zoom,
+            MenuItem::new("Close pane").shortcut("Ctrl+B x").danger(),
+        ];
+        self.tab_menu = Some((usize::MAX, ContextMenu::new(TAB_MENU, items).at(at)));
+    }
+
     fn open_tab_menu(&mut self, tab: usize, w: &World) {
         let Some(area) = self.tabs.areas.get(tab).copied().filter(|r| !r.is_empty()) else {
             return;
@@ -451,7 +495,7 @@ impl CapsuleScreen {
                     cx.status("Pane cleared");
                 }
             }
-            "Zoom pane" => self.toggle_zoom(w, cx),
+            "Zoom pane" | "Unzoom pane" => self.toggle_zoom(w, cx),
             "Redraw" => {
                 self.redraw_flash = 3;
                 cx.status("Redrawn");
@@ -1931,10 +1975,21 @@ impl Screen for CapsuleScreen {
             return o.or(Outcome::Changed);
         }
         if self.context.keys.matches(key) {
-            // the context key: the active tab's menu, under its tab
+            // the context key: the focused pane's menu at its selection,
+            // caret or followed tail; with no pane, the active tab's menu
+            // under its tab (Ctrl+B m opens that one from a pane)
             self.prefix_until = None;
-            let t = self.daemon(w).map(|d| d.active).unwrap_or(0);
-            self.open_tab_menu(t, w);
+            let at = self
+                .focused_pane(w)
+                .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+                .map(|p| p.term.context_point());
+            match at {
+                Some(at) => self.open_pane_menu(at, w),
+                None => {
+                    let t = self.daemon(w).map(|d| d.active).unwrap_or(0);
+                    self.open_tab_menu(t, w);
+                }
+            }
             return Outcome::Changed;
         }
         if key.code == KeyCode::F(10) {
@@ -2101,18 +2156,16 @@ impl Screen for CapsuleScreen {
             self.open_tab_menu(i, w);
             return Outcome::Changed;
         }
-        if self.pane_at(pos).is_some() {
-            // the pane's own context: the Edit menu at the pointer
-            let items = vec![
-                MenuItem::new("Copy selection").shortcut("y"),
-                MenuItem::new("Paste clipboard"),
-                MenuItem::new("Clear selection").separator(),
-                MenuItem::new("Split right").shortcut("Ctrl+B %"),
-                MenuItem::new("Split below").shortcut("Ctrl+B \""),
-                MenuItem::new("Zoom pane").shortcut("Ctrl+B z").separator(),
-                MenuItem::new("Close pane").shortcut("Ctrl+B x").danger(),
-            ];
-            self.tab_menu = Some((usize::MAX, ContextMenu::new(TAB_MENU, items).at(pos)));
+        if let Some(pid) = self.pane_at(pos) {
+            // the pane's own context at the pointer; its commands act on
+            // the pane under the pointer, which takes focus (per
+            // ContextConfig::moves_cursor)
+            if self.context.moves_cursor
+                && let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut())
+            {
+                t.focused = pid;
+            }
+            self.open_pane_menu(pos, w);
             return Outcome::Changed;
         }
         Outcome::Ignored
