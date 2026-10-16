@@ -691,6 +691,68 @@ impl Specimen for crate::widgets::tabs::Tabs {
     }
 }
 
+/// A context menu, opened in the sample's top-left corner: hover and press
+/// land on its second row, disabled is that row disabled under the
+/// pointer (it does not react), overflow caps it at two rows so it
+/// scrolls with its more-below marker.
+impl Specimen for crate::widgets::menu::ContextMenu {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        match state {
+            Rest | Hover | Pressed | Disabled | Overflow | Narrow => self.items.len() > 1,
+            Focused | FocusedHover | Selected | Busy | Error | Editing | Empty | Loading => false,
+        }
+    }
+
+    /// The frame, the title and the rows.
+    fn specimen_height(&self, state: SpecimenState) -> u16 {
+        let mut m = self.clone();
+        if state == SpecimenState::Overflow {
+            m = m.max_rows(2);
+        }
+        m.size().1
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let _ = bg;
+        let mut m = self
+            .clone()
+            .anchor(
+                Rect::new(area.x, area.y, 1, 0),
+                crate::ui::popup::Placement::Below,
+            )
+            .edge_margin(0);
+        m.anchor_to = None;
+        let v = state.visual();
+        let row = 1.min(m.items.len() - 1);
+        if v.disabled {
+            m.items[row].disabled = true;
+        }
+        if v.hovered {
+            ctx.interaction.hover = Some(m.row_id(row));
+        }
+        if v.pressed {
+            ctx.interaction.pressed = Some(m.row_id(row));
+        }
+        if state == SpecimenState::Overflow {
+            m = m.max_rows(2);
+        }
+        m.render(area, buf, ctx);
+        ctx.flush_overlays(buf);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -783,6 +845,47 @@ mod tests {
         assert!(row_text(&buf, 7).contains("Logs !"), "error marks the tab");
         assert!(row_text(&buf, 9).contains('›'), "overflow scrolls");
         assert!(row_text(&buf, 11).contains('–'), "no disabled look");
+    }
+
+    #[test]
+    fn a_menu_sample_opens_in_its_cell_and_a_disabled_row_ignores_the_pointer() {
+        use crate::widgets::menu::{ContextMenu, MenuItem};
+        let t = Theme::junie();
+        let id = WidgetId::of("menu-grid");
+        let menu = ContextMenu::new(
+            id.child(0),
+            vec![
+                MenuItem::new("Open"),
+                MenuItem::new("Rename"),
+                MenuItem::new("Delete"),
+            ],
+        );
+        let h = menu.size().1;
+        let mut g = StateGrid::new(id)
+            .rows(&[
+                SpecimenState::Rest,
+                SpecimenState::Hover,
+                SpecimenState::Disabled,
+                SpecimenState::Overflow,
+            ])
+            .column_width(24)
+            .column("Menu", menu);
+        let (buf, hits) = draw(&mut g, &t, Rect::new(0, 0, 40, 4 * h + 1), false);
+        let rename = |row: u16| {
+            let y = 1 + row * h + 2;
+            let x = (15..39)
+                .find(|&x| buf[(x, y)].symbol() == "R")
+                .expect("Rename");
+            buf[(x, y)].style()
+        };
+        assert_ne!(rename(0), rename(1), "hover lands on the second row");
+        assert_ne!(rename(1), rename(2), "a disabled row does not react");
+        assert!(
+            row_text(&buf, 1).contains('╭'),
+            "the frame sits in its cell"
+        );
+        assert_eq!(g.rendered_rows().len(), 4);
+        assert!(hits.hit(Position::new(18, 3)).is_none(), "no hit regions");
     }
 
     #[test]
