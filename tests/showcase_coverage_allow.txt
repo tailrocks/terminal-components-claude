@@ -1242,66 +1242,10 @@ widgets::viewport::TextViewport::wrap | Diff and Terminal page options | SC25
 widgets::viewport::TextViewport::max_lines | Diff and Terminal page options | SC25
 
 # theme
-theme::CursorStyle | Overview theme token tables | SC3
-theme::CursorStyle::Fill | Overview theme token tables | SC3
-theme::CursorStyle::Bar | Overview theme token tables | SC3
-theme::Interactive | Overview theme token tables | SC3
-theme::Plane | Overview theme token tables | SC3
-theme::Plane::Canvas | Overview theme token tables | SC3
-theme::Plane::Surface | Overview theme token tables | SC3
-theme::Plane::Card | Overview theme token tables | SC3
-theme::Plane::Field | Overview theme token tables | SC3
-theme::Plane::Raised | Overview theme token tables | SC3
-theme::Plane::Popover | Overview theme token tables | SC3
-theme::Plane::Highlight | Overview theme token tables | SC3
-theme::Plane::HighlightDanger | Overview theme token tables | SC3
-theme::Plane::Accent | Overview theme token tables | SC3
-theme::Plane::Danger | Overview theme token tables | SC3
-theme::Plane::up | Overview theme token tables | SC3
-theme::Kind | Overview theme token tables | SC3
-theme::Kind::Row | Overview theme token tables | SC3
-theme::Kind::CursorRow | Overview theme token tables | SC3
-theme::Kind::Button | Overview theme token tables | SC3
-theme::Kind::Tab | Overview theme token tables | SC3
-theme::Kind::Title | Overview theme token tables | SC3
-theme::Kind::Chip | Overview theme token tables | SC3
-theme::Kind::Close | Overview theme token tables | SC3
-theme::Kind::Field | Overview theme token tables | SC3
-theme::Kind::Handle | Overview theme token tables | SC3
-theme::Kind::Seam | Overview theme token tables | SC3
-theme::Ladder | Overview theme token tables | SC3
-theme::Ladders | Overview theme token tables | SC3
-theme::StateModifiers | Overview theme token tables | SC3
-theme::Theme::level | Overview theme token tables | SC3
-theme::Theme::field_hover | Overview theme token tables | SC3
-theme::Theme::highlight_danger | Overview theme token tables | SC3
-theme::Theme::error_soft | Overview theme token tables | SC3
-theme::Theme::text_ghost | Overview theme token tables | SC3
-theme::Theme::scroll_track | Overview theme token tables (drawn by every scrollbar track today) | SC3
-theme::Theme::text_on_accent | Overview theme token tables | SC3
-theme::Theme::accent_bg_subtle | Overview theme token tables | SC3
-theme::Theme::focus | Overview theme token tables | SC3
-theme::Theme::disabled | Overview theme token tables | SC3
-theme::Theme::error_bg | Overview theme token tables | SC3
-theme::Theme::error_strong | Overview theme token tables | SC3
-theme::Theme::success_strong | Overview theme token tables | SC3
-theme::Theme::accent_bg_hover | Overview theme token tables | SC3
-theme::Theme::ladders | Overview theme token tables | SC3
-theme::Theme::mods | Overview theme token tables | SC3
-theme::Theme::tint_selection | Overview theme token tables | SC3
-theme::Theme::hintbar | Overview theme token tables | SC3
-theme::Theme::spacing | Overview theme token tables | SC3
-theme::Theme::with_ladder | Overview theme token tables | SC3
-theme::Theme::with_state_modifiers | Overview theme token tables | SC3
 theme::Theme::centred_hints | Status & hints page: centred footer preset (holla, jackin use it) | SC30
-theme::ButtonKind::Toggle | Overview theme token tables | SC3
-theme::BadgeKind | Overview theme token tables | SC3
-theme::BadgeKind::Edit | Overview theme token tables | SC3
 theme::HintAlign | Chrome and Status & hints pages | SC4
 theme::HintAlign::Start | Chrome and Status & hints pages | SC4
 theme::HintAlign::Center | Chrome and Status & hints pages | SC4
-theme::Insets | Overview theme token tables | SC3
-theme::Spacing | Overview theme token tables | SC3
 theme::HintBarStyle | Chrome and Status & hints pages | SC4
 
 # runtime

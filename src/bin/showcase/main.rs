@@ -20,6 +20,8 @@ mod app_tests_nav;
 #[cfg(test)]
 mod app_tests_options;
 #[cfg(test)]
+mod app_tests_overview;
+#[cfg(test)]
 mod app_tests_selectable;
 #[cfg(test)]
 mod app_tests_tables;
