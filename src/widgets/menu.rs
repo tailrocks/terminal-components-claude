@@ -10,9 +10,12 @@ use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 
+use crate::core::hit::Axis;
 use crate::core::hit::ReleaseFrom;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
+use crate::core::keymap::unassigned_chord;
 use crate::core::keymap::{Nav, NavKeys};
+use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowFn, RowSource};
 use crate::theme::{CursorStyle, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, backdrop_id, place_with};
@@ -397,29 +400,8 @@ impl ContextMenu {
         place_with(screen, self.anchor, w, h, self.placement, self.fit)
     }
 
-    fn step(&mut self, delta: isize) {
-        let n = self.items.len();
-        if n == 0 {
-            return;
-        }
-        self.cursor_dirty = true;
-        let mut i = self.cursor;
-        for _ in 0..n {
-            let next = crate::core::nav::step_index(i, n, delta, self.wrap);
-            if next == i {
-                // an end of a list that does not wrap
-                return;
-            }
-            i = next;
-            if !self.items[i].disabled {
-                self.cursor = i;
-                return;
-            }
-        }
-    }
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuAction>) {
-        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
+        if unassigned_chord::<()>(key, &[]) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
@@ -431,46 +413,30 @@ impl ContextMenu {
             self.cursor_hidden = true;
             return (Outcome::Consumed, None);
         }
-        if let KeyCode::Char(c) = key.code
-            && self.type_ahead
-            && !c.is_whitespace()
-        {
-            let prefix = self.typeahead.feed(c).to_owned();
-            if let Some(i) = crate::core::typeahead::TypeAhead::find(
-                &prefix,
-                self.items.iter().map(|it| it.label.as_str()),
-                self.cursor,
-                |i| !self.items[i].disabled,
-            ) {
-                self.cursor = i;
-                self.cursor_dirty = true;
-                return (Outcome::Changed, None);
+        match KeyStep::of(key, &self.nav, self.type_ahead) {
+            Some(KeyStep::Type(c)) => {
+                let moved = self
+                    .cursor()
+                    .type_ahead(c, &mut self.typeahead, &self.items[..]);
+                if let Moved::To(i) = moved {
+                    self.cursor = i;
+                    self.cursor_dirty = true;
+                }
+                return (moved.outcome(), None);
             }
-            return (Outcome::Consumed, None);
-        }
-        if let Some(nav) = self.nav.action(key) {
-            match nav {
-                Nav::Down => self.step(1),
-                Nav::Up => self.step(-1),
-                Nav::PageDown | Nav::PageUp => {
-                    let delta = if nav == Nav::PageDown { 1 } else { -1 };
-                    let wrap = std::mem::replace(&mut self.wrap, false);
-                    for _ in 0..self.viewport().max(1) {
-                        self.step(delta);
+            Some(KeyStep::Nav(nav)) => {
+                let moved = self.cursor().apply(nav, &self.items[..], self.viewport());
+                return match moved.index() {
+                    Some(i) => {
+                        self.cursor = i;
+                        self.cursor_dirty = true;
+                        (Outcome::Changed, None)
                     }
-                    self.wrap = wrap;
-                }
-                Nav::Home => {
-                    self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
-                    self.cursor_dirty = true;
-                }
-                Nav::End => {
-                    self.cursor = self.items.iter().rposition(|i| !i.disabled).unwrap_or(0);
-                    self.cursor_dirty = true;
-                }
-                Nav::Left | Nav::Right => return (Outcome::Consumed, None),
+                    // ←/→ belong to a menu bar, not to the menu
+                    None => (Outcome::Consumed, None),
+                };
             }
-            return (Outcome::Changed, None);
+            None => {}
         }
         match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
@@ -946,7 +912,26 @@ impl MenuBar {
             .position(|&i| i == self.cursor)
             .or_else(|| ring.iter().position(|&i| i == n))
             .unwrap_or(0);
-        ring[crate::core::nav::step_index(at, ring.len(), delta, self.wrap)]
+        let titles = RowFn {
+            len: ring.len(),
+            enabled: &|_| true,
+            label: &|_| "",
+        };
+        let to = self.title_cursor(at).step(delta, &titles).index();
+        ring[to.unwrap_or(at)]
+    }
+
+    /// A horizontal cursor over the titles at `at`.
+    fn title_cursor(&self, at: usize) -> Cursor {
+        Cursor::new(at).wrap(self.wrap).axis(Axis::Horizontal)
+    }
+
+    /// The title `delta` steps from the cursor over every title.
+    fn title_step(&self, delta: isize) -> usize {
+        self.title_cursor(self.cursor)
+            .step(delta, &self.labels[..])
+            .index()
+            .unwrap_or(self.cursor)
     }
 
     /// The title `id` names: an index, or `labels.len()` for the chevron.
@@ -1074,7 +1059,7 @@ impl MenuBar {
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuBarAction>) {
         let n = self.labels.len();
-        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
+        if unassigned_chord::<()>(key, &[]) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
@@ -1100,12 +1085,12 @@ impl MenuBar {
         if let Some(menu) = self.open.as_mut() {
             match nav {
                 Some(Nav::Left) if n > 1 => {
-                    let i = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
+                    let i = self.title_step(-1);
                     self.open_menu(i);
                     return (Outcome::Changed, Some(MenuBarAction::Opened(i)));
                 }
                 Some(Nav::Right) if n > 1 => {
-                    let i = crate::core::nav::step_index(self.cursor, n, 1, self.wrap);
+                    let i = self.title_step(1);
                     self.open_menu(i);
                     return (Outcome::Changed, Some(MenuBarAction::Opened(i)));
                 }
@@ -1137,11 +1122,11 @@ impl MenuBar {
                 return (Outcome::Changed, None);
             }
             Some(Nav::Left) if n > 0 => {
-                self.cursor = crate::core::nav::step_index(self.cursor, n, -1, self.wrap);
+                self.cursor = self.title_step(-1);
                 return (Outcome::Changed, None);
             }
             Some(Nav::Right) if n > 0 => {
-                self.cursor = crate::core::nav::step_index(self.cursor, n, 1, self.wrap);
+                self.cursor = self.title_step(1);
                 return (Outcome::Changed, None);
             }
             _ => {}
@@ -1404,6 +1389,52 @@ impl MenuBar {
             }
             menu.paint(buf, ctx);
         });
+    }
+}
+
+impl RowSource for [MenuItem] {
+    fn len(&self) -> usize {
+        <[MenuItem]>::len(self)
+    }
+    fn enabled(&self, i: usize) -> bool {
+        !self[i].disabled
+    }
+    fn label(&self, i: usize) -> &str {
+        &self[i].label
+    }
+}
+
+impl RowSource for ContextMenu {
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+    fn enabled(&self, i: usize) -> bool {
+        !self.items[i].disabled
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.items[i].label
+    }
+}
+
+impl Navigable for ContextMenu {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor).wrap(self.wrap)
+    }
+}
+
+/// The titles (the chevron is not a row).
+impl RowSource for MenuBar {
+    fn len(&self) -> usize {
+        self.labels.len()
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.labels[i]
+    }
+}
+
+impl Navigable for MenuBar {
+    fn cursor(&self) -> Cursor {
+        self.title_cursor(self.cursor)
     }
 }
 
