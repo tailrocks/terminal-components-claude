@@ -6,7 +6,10 @@
 use std::collections::{BTreeMap, HashSet};
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -1650,8 +1653,26 @@ impl ConfigTabs {
         out.or(Outcome::Changed)
     }
 
+    /// A pointer event on `tab`'s list: a click picks a row (a second
+    /// click on it runs Enter), folds a section or pages the bar; a
+    /// secondary click opens a row's menu; the wheel scrolls the list.
+    pub fn pointer(&mut self, tab: Tab, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            return match axis {
+                Axis::Vertical => self.wheel(tab, id, delta),
+                Axis::Horizontal => Outcome::Ignored,
+            };
+        }
+        match ev.phase() {
+            Some(Phase::Click) => self.click(tab, id, pos, w, cx),
+            Some(Phase::Secondary) => self.secondary(tab, id, pos, w, cx),
+            _ => Outcome::Ignored,
+        }
+    }
+
     /// A secondary click on one of `tab`'s rows opens its menu at `pos`.
-    pub fn on_secondary(
+    fn secondary(
         &mut self,
         tab: Tab,
         id: WidgetId,
@@ -1737,7 +1758,7 @@ impl ConfigTabs {
         }
     }
 
-    pub fn on_click(
+    fn click(
         &mut self,
         tab: Tab,
         id: WidgetId,
@@ -1784,7 +1805,7 @@ impl ConfigTabs {
         Outcome::Ignored
     }
 
-    pub fn on_wheel(&mut self, tab: Tab, id: WidgetId, delta: i32) -> Outcome {
+    fn wheel(&mut self, tab: Tab, id: WidgetId, delta: i32) -> Outcome {
         let list = self.list_id(tab);
         if id == list || id == scrollbar::id_for(list) {
             self.state(tab).scroll.scroll_by(delta as isize);
