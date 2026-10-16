@@ -937,8 +937,8 @@ impl ConnectionsScreen {
         vec![
             hint("↑ ↓", "Move"),
             hint("Enter", "Connect"),
-            hint("E", "Edit"),
-            hint("D", "Delete"),
+            hint("e", "Edit…"),
+            hint("d", "Delete…"),
             hint("Ctrl+D", "Duplicate"),
             hint("/", "Filter"),
             hint("Ctrl+N", "New"),

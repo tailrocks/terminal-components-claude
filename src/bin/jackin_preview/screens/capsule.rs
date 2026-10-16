@@ -1292,6 +1292,7 @@ impl CapsuleScreen {
             KeyCode::Char('l') => self.move_focus(Direction::Right, w, cx),
             KeyCode::Char('d') => self.detach(cx),
             KeyCode::Char('u') => self.open_usage(w, cx),
+            KeyCode::Char('i') => self.open_container_info(w, cx),
             KeyCode::Char(',') => {
                 let t = self.daemon(w).map(|d| d.active).unwrap_or(0);
                 self.open_rename(t, w, cx);
@@ -2513,7 +2514,7 @@ impl Screen for CapsuleScreen {
                         hint("PgUp PgDn", "Page"),
                         hint("End", "Live"),
                         hint("Esc", "Exit scrollback"),
-                        hint("Ctrl+\\", "Menu"),
+                        hint("Ctrl+\\", "Palette"),
                     ]
                 } else {
                     vec![
