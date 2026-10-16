@@ -18,6 +18,8 @@ mod app_tests_nav;
 #[cfg(test)]
 mod app_tests_selectable;
 #[cfg(test)]
+mod app_tests_template;
+#[cfg(test)]
 mod catalog_scan;
 mod coverage;
 mod data;
