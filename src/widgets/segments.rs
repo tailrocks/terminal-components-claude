@@ -61,6 +61,8 @@ pub fn render(
     }
     let t = ctx.theme;
     let sep = 2u16;
+    // the same inset on both sides: the theme's chrome edge
+    let edge = t.spacing.chrome_edge;
     let w = |s: &Segment| crate::ui::text::width(&s.text) as u16;
     // decide which segments survive
     let mut keep_l: Vec<bool> = vec![true; left.len()];
@@ -78,7 +80,8 @@ pub fn render(
             .filter(|(_, k)| **k)
             .map(|(s, _)| w(s) + sep)
             .sum();
-        l + r + 2
+        // separators sit between segments only; the edges are kept clear
+        (l + r).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
         // drop the lowest priority surviving segment (rightmost on ties)
@@ -127,7 +130,7 @@ pub fn render(
             );
         }
     };
-    let mut x = area.x + 1;
+    let mut x = area.x + edge;
     for (s, k) in left.iter().zip(&keep_l) {
         if !k {
             continue;
@@ -141,7 +144,7 @@ pub fn render(
         draw(buf, ctx, start, s);
         x += sw.saturating_sub(if s.id.is_some() { 2 } else { 0 }) + sep;
     }
-    let mut rx = area.right().saturating_sub(1);
+    let mut rx = area.right().saturating_sub(edge);
     for (s, k) in right.iter().zip(&keep_r).rev() {
         if !k {
             continue;
