@@ -1,5 +1,8 @@
 //! End-to-end interaction tests through the real App on a TestBackend.
 
+use crate::filter_editor::FilterEditor;
+use junie_tui::widgets::dialog::Dialog;
+use junie_tui::widgets::picker::Picker;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -9,7 +12,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
 
-use crate::app::{App, Modal, Screen};
+use crate::app::{App, Screen};
 use crate::workbench::WorkTab;
 
 pub struct H {
@@ -283,7 +286,7 @@ fn sort_and_filter_on_table_tab() {
         h.key(KeyCode::Right);
     }
     h.key(KeyCode::Char('f')); // filter on the current cell value
-    assert!(matches!(h.app.modal(), Some(Modal::Filter(_))));
+    assert!(h.app.top_as::<FilterEditor>().is_some());
     // the value field is prefilled with the cell's value and Apply has focus;
     // go back to the value field and replace it with pending
     h.key(KeyCode::BackTab);
@@ -534,7 +537,7 @@ fn safety_gate_intercepts_dangerous_statement_on_production() {
     h.type_str("DELETE FROM orders");
     h.key(KeyCode::Esc);
     h.ctrl('r');
-    assert!(matches!(h.app.modal(), Some(Modal::Dialog(_))));
+    assert!(h.app.top_as::<Dialog>().is_some());
     let t = h.text();
     assert!(t.contains("DELETE without WHERE"));
     assert!(t.contains("every row in orders"));
@@ -592,8 +595,8 @@ fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
     h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
     h.key(KeyCode::Esc);
     h.ctrl('r');
-    let (ack_id, ack_area, confirm_area) = match h.app.modal() {
-        Some(Modal::Dialog(d)) => match &d.body {
+    let (ack_id, ack_area, confirm_area) = match h.app.top_as::<Dialog>() {
+        Some(d) => match &d.body {
             junie_tui::widgets::dialog::DialogBody::Facts { ack: Some(a), .. } => {
                 (a.input.id, a.input.area, d.actions[1].area)
             }
@@ -605,9 +608,9 @@ fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
     // one click focuses the field and starts editing; a second click keeps it
     h.click(ack_area.x + 2, ack_area.y);
     assert_eq!(h.focus(), Some(ack_id));
-    assert!(matches!(h.app.modal(), Some(Modal::Dialog(d)) if d.is_editing()));
+    assert!(h.app.top_as::<Dialog>().is_some_and(|d| d.is_editing()));
     h.click(ack_area.x + 2, ack_area.y);
-    assert!(matches!(h.app.modal(), Some(Modal::Dialog(d)) if d.is_editing()));
+    assert!(h.app.top_as::<Dialog>().is_some_and(|d| d.is_editing()));
     h.type_str("wrong");
     h.click(confirm_area.x, confirm_area.y);
     assert!(h.app.modal().is_some());
@@ -616,7 +619,7 @@ fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
     h.click(ack_area.x + 2, ack_area.y);
     h.cmd('a');
     h.type_str("orders");
-    assert!(matches!(h.app.modal(), Some(Modal::Dialog(d)) if d.armed()));
+    assert!(h.app.top_as::<Dialog>().is_some_and(|d| d.armed()));
     h.click(confirm_area.x, confirm_area.y);
     assert!(h.app.modal().is_none());
     assert!(h.wb_query().is_running());
@@ -654,7 +657,7 @@ fn silent_level_runs_scoped_writes_but_confirms_destructive() {
     h.key(KeyCode::Esc);
     h.ctrl('r');
     assert!(
-        matches!(h.app.modal(), Some(Modal::Dialog(_))),
+        h.app.top_as::<Dialog>().is_some(),
         "destructive always confirms"
     );
     assert!(h.text().contains("TRUNCATE"));
@@ -681,7 +684,7 @@ fn quick_switcher_details_are_not_cut_beside_unused_label_cells() {
 fn quick_switcher_opens_table() {
     let mut h = H::connected(120, 40);
     h.ctrl('o');
-    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert!(h.app.top_as::<Picker>().is_some());
     h.type_str("cust");
     assert!(h.text().contains("customers"));
     h.key(KeyCode::Enter);
@@ -691,7 +694,7 @@ fn quick_switcher_opens_table() {
     h.ctrl('o');
     h.type_str("x");
     h.key(KeyCode::Esc);
-    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert!(h.app.top_as::<Picker>().is_some());
     h.key(KeyCode::Esc);
     assert!(h.app.modal().is_none());
 }
@@ -742,7 +745,7 @@ fn tab_strip_overflow_and_tab_list() {
         "overflow indicators"
     );
     h.ctrl('g');
-    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert!(h.app.top_as::<Picker>().is_some());
     assert!(h.text().contains("Open tabs"));
     h.key(KeyCode::Up);
     h.key(KeyCode::Enter);
@@ -926,7 +929,7 @@ fn acceptance_flow_keyboard_only() {
         h.key(KeyCode::Right);
     }
     h.key(KeyCode::Char('f'));
-    assert!(matches!(h.app.modal(), Some(Modal::Filter(_))));
+    assert!(h.app.top_as::<FilterEditor>().is_some());
     h.key(KeyCode::BackTab);
     h.key(KeyCode::BackTab);
     // focus starts the edit with the value selected: typing replaces it
@@ -988,7 +991,7 @@ fn acceptance_flow_keyboard_only() {
     h.type_str("DELETE FROM orders");
     h.key(KeyCode::Esc);
     h.ctrl('r');
-    assert!(matches!(h.app.modal(), Some(Modal::Dialog(_))));
+    assert!(h.app.top_as::<Dialog>().is_some());
     assert!(h.text().contains("Type orders to confirm"));
     h.key(KeyCode::Esc);
     assert!(h.app.modal().is_none());
@@ -1131,11 +1134,7 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     // the delete dialog opens on Cancel: Enter cancels, so the footer says so
     let mut h = H::new(120, 40);
     h.key(KeyCode::Char('d'));
-    assert!(
-        matches!(h.app.modal(), Some(Modal::Dialog(_))),
-        "{}",
-        h.text()
-    );
+    assert!(h.app.top_as::<Dialog>().is_some(), "{}", h.text());
     let f = footer(&h);
     assert!(f.contains("Enter Cancel"), "{f}");
     assert!(!f.contains("y Delete"), "no one-key Delete: {f}");
@@ -1169,7 +1168,7 @@ fn the_switcher_is_the_only_layer_showing_focus() {
         (bars, tint)
     };
     h.ctrl('o');
-    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert!(h.app.top_as::<Picker>().is_some());
     assert_eq!(cues(&h), (1, 0), "only the query field\n{}", h.text());
     h.key(KeyCode::Esc);
     h.ctrl('l');
@@ -1197,7 +1196,7 @@ fn the_active_query_tab_shows_the_accent_and_goes_neutral_under_a_modal() {
     assert_eq!(active_rule(&h, &h.wb().strip), t.accent);
     // a modal covers the page: the rule goes neutral (then dims)
     h.ctrl('o');
-    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert!(h.app.top_as::<Picker>().is_some());
     let under = active_rule(&h, &h.wb().strip);
     assert_ne!(under, t.accent, "{}", h.text());
     assert_ne!(under, t.focus);

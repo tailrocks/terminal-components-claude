@@ -1,12 +1,12 @@
 //! Secondary clicks and context menus through the real App.
 
+use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::{Input, Key, MouseKind};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::context::{ContextConfig, ContextKeys};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
-use crate::app::Modal;
 use crate::app_tests::H;
 use crate::context::{CtxMenu, Target};
 use crate::workbench::WorkTab;
@@ -21,10 +21,7 @@ fn open_orders(h: &mut H) {
 }
 
 fn filter_column_open(h: &H) -> Option<bool> {
-    match h.app.modal() {
-        Some(Modal::Filter(f)) => Some(f.column.open),
-        _ => None,
-    }
+    h.app.top_as::<FilterEditor>().map(|f| f.column.open)
 }
 
 #[test]
@@ -45,14 +42,14 @@ fn a_right_click_outside_the_filter_editors_open_select_closes_it() {
         "the right-click outside closes the select, like a click"
     );
     assert!(
-        matches!(h.app.modal(), Some(Modal::Filter(_))),
+        h.app.top_as::<FilterEditor>().is_some(),
         "the form itself stays: only its Esc or Cancel discards it"
     );
 }
 
 fn menu(h: &H) -> &CtxMenu {
-    match h.app.modal() {
-        Some(Modal::Menu(m)) => m,
+    match h.app.top_as::<CtxMenu>() {
+        Some(m) => m,
         _ => panic!("no context menu open"),
     }
 }
@@ -200,7 +197,7 @@ fn a_right_click_outside_an_open_menu_reopens_it_at_the_new_spot() {
         "the new menu opens at the new spot"
     );
     let below = m.menu.area.bottom();
-    assert_eq!(h.app.modals.len(), 1, "one menu at a time");
+    assert_eq!(h.app.layers.len(), 1, "one menu at a time");
     // a right-click on an explorer row below that menu: the row's menu
     let i = (0..h.wb().explorer.rows().len())
         .find(|&i| {

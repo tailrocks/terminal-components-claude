@@ -15,12 +15,15 @@ mod app_tests_coverage;
 #[cfg(test)]
 mod app_tests_fields;
 #[cfg(test)]
+mod app_tests_layers;
+#[cfg(test)]
 mod app_tests_mouse;
 #[cfg(test)]
 mod app_tests_splits;
 mod connections;
 mod context;
 mod db;
+mod filter_editor;
 mod model;
 #[cfg(test)]
 mod motion_tests;
