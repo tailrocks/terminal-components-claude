@@ -85,3 +85,11 @@ fix, with the reason.
    strip's look is the tag's; only the two-cell mark is new). The capture
    is `legacy` (not gated); it is re-recorded with the next showcase
    re-approval of the Settings flows.
+7. **Built: `widgets::toolbar::Toolbar`** (the APG toolbar: one focus
+   stop, ←/→ through `Cursor` skipping disabled items unless
+   `skip_disabled(false)`, Home/End, Enter/Space run or flip a toggle,
+   shortcuts and tips, separators, the one `▎` on the cursor item).
+   Follow-up, not built: an overflow menu. Items that do not fit are not
+   drawn, so an app gives the toolbar its `width()`; a `»` menu of the
+   hidden items (as `Tabs` has `+N`) belongs with the S5 overflow work.
+   The States grid has no overflow row for that reason.
