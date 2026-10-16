@@ -10,7 +10,7 @@
 120x40 TrueColor Panels c862078fe3551816
 120x40 TrueColor Sidebars 47c45bb1ef8eee06
 120x40 TrueColor Dialogs f8dd3d9b714480ec
-120x40 TrueColor Progress 9b22f805742383f3
+120x40 TrueColor Progress 91c1f8e9592fc4d6
 120x40 TrueColor Scrolling dac48016d5dd8106
 120x40 TrueColor Terminal ebfa16dcbd43e531
 120x40 TrueColor Code editor 4326ccdc85c6a95b
@@ -33,7 +33,7 @@
 120x40 Ansi256 Panels 9c3496a0013e6d63
 120x40 Ansi256 Sidebars 2a9d77e06c397244
 120x40 Ansi256 Dialogs d6a8c5edc31de517
-120x40 Ansi256 Progress b79fa92e2b2ab29f
+120x40 Ansi256 Progress ca0cb3cb2af231ae
 120x40 Ansi256 Scrolling 3b26ec919e94561b
 120x40 Ansi256 Terminal 14b5cbb8bbf304e6
 120x40 Ansi256 Code editor 64730ba52f4b7727
@@ -56,7 +56,7 @@
 120x40 Ansi16 Panels c9e79236e4ac1baf
 120x40 Ansi16 Sidebars 4c52127069cb32b7
 120x40 Ansi16 Dialogs 606b3dccd4b5971c
-120x40 Ansi16 Progress b83f826ee3ad90d1
+120x40 Ansi16 Progress c7c0c32d20722013
 120x40 Ansi16 Scrolling c336c91e00867492
 120x40 Ansi16 Terminal bf5e4e61bbcc5784
 120x40 Ansi16 Code editor d066a8a8cb99c4d0
@@ -79,7 +79,7 @@
 120x40 Mono Panels 70142d1c290214d8
 120x40 Mono Sidebars ebae68cf3da72fdc
 120x40 Mono Dialogs 5e8d669434dbaccb
-120x40 Mono Progress 4344c413181d7217
+120x40 Mono Progress f396fd4667694307
 120x40 Mono Scrolling ae03406d931bd0b1
 120x40 Mono Terminal 33c34c382856822f
 120x40 Mono Code editor 4b747253c84b5833
@@ -102,7 +102,7 @@
 80x24 TrueColor Panels 035b8fc945d63db9
 80x24 TrueColor Sidebars b099c220b5d18eff
 80x24 TrueColor Dialogs 020d62808374ce36
-80x24 TrueColor Progress dce0984bbfe3b5eb
+80x24 TrueColor Progress 8bc7b2c77fe3fb52
 80x24 TrueColor Scrolling 84b35107ff940450
 80x24 TrueColor Terminal adaaf31d9dc4c999
 80x24 TrueColor Code editor 6068ae2fbd07a6ca
@@ -125,7 +125,7 @@
 80x24 Ansi256 Panels e8a38500af995db9
 80x24 Ansi256 Sidebars 8ce62c3783786837
 80x24 Ansi256 Dialogs 89c470b4098e3117
-80x24 Ansi256 Progress e3a635665d76adbf
+80x24 Ansi256 Progress 0cde8a7b9d39a42e
 80x24 Ansi256 Scrolling 12317ac9343385ae
 80x24 Ansi256 Terminal 3acf99f2864ff8a5
 80x24 Ansi256 Code editor b63eb389367ead23
@@ -148,7 +148,7 @@
 80x24 Ansi16 Panels 51be5df71b278f49
 80x24 Ansi16 Sidebars 6b68e1bafe5fc826
 80x24 Ansi16 Dialogs c20cb2fde32c9f35
-80x24 Ansi16 Progress e44203effb40f157
+80x24 Ansi16 Progress baafd53382658e0d
 80x24 Ansi16 Scrolling 983f91497a369ef7
 80x24 Ansi16 Terminal f9d0d3bdc7990b8f
 80x24 Ansi16 Code editor 81ee31ae5f3907b1
@@ -171,7 +171,7 @@
 80x24 Mono Panels be44686af2cd3ff3
 80x24 Mono Sidebars 1adc01f3c408964c
 80x24 Mono Dialogs fffe38a361ef376b
-80x24 Mono Progress 82a577dbb6d81ecd
+80x24 Mono Progress fe8778141fa838ff
 80x24 Mono Scrolling d87d5f838a42501c
 80x24 Mono Terminal aadd5521c5e98113
 80x24 Mono Code editor 8b932f63fde29775
@@ -194,7 +194,7 @@
 72x20 TrueColor Panels 1162b9191b44a142
 72x20 TrueColor Sidebars 5a0d4109d968acab
 72x20 TrueColor Dialogs ec43bb40206c4c32
-72x20 TrueColor Progress 1d40b8bb1dabdd58
+72x20 TrueColor Progress 2819ee171c789963
 72x20 TrueColor Scrolling b060497e7b9cdfe7
 72x20 TrueColor Terminal d270feb6b3cb5514
 72x20 TrueColor Code editor b8cd32834685de04
@@ -217,7 +217,7 @@
 72x20 Ansi256 Panels c5dccec9a253afa1
 72x20 Ansi256 Sidebars 32bc54046c076e4d
 72x20 Ansi256 Dialogs a9ddc3d0ee7fdc7e
-72x20 Ansi256 Progress e6f4f47df17aa694
+72x20 Ansi256 Progress b6d6862e9351314d
 72x20 Ansi256 Scrolling ede5c0af89a9191f
 72x20 Ansi256 Terminal 8c600415fffd6806
 72x20 Ansi256 Code editor 295cc42214892645
@@ -240,7 +240,7 @@
 72x20 Ansi16 Panels 7038714fd0826615
 72x20 Ansi16 Sidebars 2602d41ba898d64d
 72x20 Ansi16 Dialogs 457bacde1072ac37
-72x20 Ansi16 Progress 4a6fc460f1d99ae8
+72x20 Ansi16 Progress eebcacafe3004a7c
 72x20 Ansi16 Scrolling a158382eee8bbb97
 72x20 Ansi16 Terminal 4edd9e859b36d43a
 72x20 Ansi16 Code editor d792a911bd7e080a
@@ -263,7 +263,7 @@
 72x20 Mono Panels 6c1aefce672bec71
 72x20 Mono Sidebars d3a48d43f8fe3379
 72x20 Mono Dialogs a866a7351269fab9
-72x20 Mono Progress d89708324d857210
+72x20 Mono Progress 2bf162f0afbdffa8
 72x20 Mono Scrolling 52cc120530ba98b1
 72x20 Mono Terminal f854693356c0ef44
 72x20 Mono Code editor 51d0902118cce242
@@ -286,7 +286,7 @@
 100x30 TrueColor Panels 2fab3ff14a221121
 100x30 TrueColor Sidebars 86c7e0bc61ca3140
 100x30 TrueColor Dialogs 9a83a45875ed5287
-100x30 TrueColor Progress a5dd103c3cbcbba4
+100x30 TrueColor Progress 7979425ccf2c5455
 100x30 TrueColor Scrolling 9e3708bc537599d0
 100x30 TrueColor Terminal 763b724feb7ed10a
 100x30 TrueColor Code editor acdfb716c04b5472
@@ -309,7 +309,7 @@
 100x30 Ansi256 Panels c88f6ee45336e4c2
 100x30 Ansi256 Sidebars bdde91bea75ee414
 100x30 Ansi256 Dialogs 8febd84344a9768c
-100x30 Ansi256 Progress 3d4761a9449035d1
+100x30 Ansi256 Progress 2c75decac3f877c0
 100x30 Ansi256 Scrolling 038f4e4ca95816db
 100x30 Ansi256 Terminal 34565d278e09984c
 100x30 Ansi256 Code editor d74f6a1414d0d83b
@@ -332,7 +332,7 @@
 100x30 Ansi16 Panels 5d895056529868bf
 100x30 Ansi16 Sidebars 35fb1988e40b5947
 100x30 Ansi16 Dialogs c19e7b47219c936f
-100x30 Ansi16 Progress 36a72484743822a7
+100x30 Ansi16 Progress e5f6d1c77fdafd1f
 100x30 Ansi16 Scrolling abb6af0577067d3e
 100x30 Ansi16 Terminal 825bed7ecc20f1f1
 100x30 Ansi16 Code editor 27712b658be3fab3
@@ -355,7 +355,7 @@
 100x30 Mono Panels 447d94fa7afb2657
 100x30 Mono Sidebars ed631aebf27982c2
 100x30 Mono Dialogs 29d22f0bca37540a
-100x30 Mono Progress 3b34139ce76f7ff4
+100x30 Mono Progress 7dfe59c02ead39fa
 100x30 Mono Scrolling 4c5f752dedec737c
 100x30 Mono Terminal bce141e839190cae
 100x30 Mono Code editor 2000ff389fcec91a
@@ -378,7 +378,7 @@
 160x50 TrueColor Panels 1862208465e4e7ba
 160x50 TrueColor Sidebars 7a21cb7cda54df5d
 160x50 TrueColor Dialogs 9b2eb165a54391e7
-160x50 TrueColor Progress 46e8a857852c6bb5
+160x50 TrueColor Progress b9f302a0a1300ae2
 160x50 TrueColor Scrolling e3b0113af837cefb
 160x50 TrueColor Terminal 864d84a1bf3a1a86
 160x50 TrueColor Code editor 6dfbd29c7acc55af
@@ -401,7 +401,7 @@
 160x50 Ansi256 Panels 0963a4fc90f561f5
 160x50 Ansi256 Sidebars 53cbde6f192200b7
 160x50 Ansi256 Dialogs d11e8b3bb3c049d6
-160x50 Ansi256 Progress 02f6cf6859d63f7d
+160x50 Ansi256 Progress 7c724a9e0709248c
 160x50 Ansi256 Scrolling c642c80c70c29746
 160x50 Ansi256 Terminal 48d8416c3ded4a05
 160x50 Ansi256 Code editor 30468923c2b1b323
@@ -424,7 +424,7 @@
 160x50 Ansi16 Panels a15b4aa20e872706
 160x50 Ansi16 Sidebars 5301fd1c630d0ab2
 160x50 Ansi16 Dialogs fc12a3bb4316867f
-160x50 Ansi16 Progress 8a09f73f699e2b7e
+160x50 Ansi16 Progress 9238a4ecd8399736
 160x50 Ansi16 Scrolling d29087c484120101
 160x50 Ansi16 Terminal e148075470911e43
 160x50 Ansi16 Code editor 68e87d100b81cee9
@@ -447,7 +447,7 @@
 160x50 Mono Panels 67c4872290708ce5
 160x50 Mono Sidebars 8a3c573cdcef1741
 160x50 Mono Dialogs 241bf5259fa5bf42
-160x50 Mono Progress 3f4553bc23933080
+160x50 Mono Progress 4d497b7cf6dd4886
 160x50 Mono Scrolling d2f148f70519861a
 160x50 Mono Terminal 22ff853e082efd6c
 160x50 Mono Code editor c806e04e1c119e74
