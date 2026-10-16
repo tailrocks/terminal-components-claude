@@ -350,10 +350,8 @@ impl Page for ToolbarsPage {
                 for k in 0..3 {
                     let bar = self.bar_mut(k);
                     let bid = bar.id;
-                    // the overflow menu is the bar's too (Toolbar's own
-                    // `route` only takes the strip's events)
-                    if ev.on(bid) || (bar.menu_open() && ev.on(bar.menu_id())) {
-                        let r = bar.pointer(ev);
+                    // the overflow menu is the bar's too
+                    if let Some(r) = bar.route(ev) {
                         if !ev.is(Phase::Click) {
                             return r.outcome();
                         }

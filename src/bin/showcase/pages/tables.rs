@@ -9,7 +9,6 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::core::selection::{SelectionMode, TriState};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
@@ -293,13 +292,6 @@ pub fn route_table(
     cx: &mut PageCtx,
 ) -> Option<(Outcome, Option<TableAction>)> {
     let (out, action) = t.route(ev)?.into_parts();
-    // a wheel over the open choice popup: the table routes it to the popup
-    // but scrolls only on its own regions; the popup takes the wheel first
-    if out == Outcome::Ignored
-        && let Some((axis, delta)) = ev.wheel()
-    {
-        return Some((t.wheel(axis, delta).outcome(), None));
-    }
     if ev.is(Phase::Click) && ev.bar.is_none() && out != Outcome::Ignored {
         cx.focus.focus(t.id);
     }

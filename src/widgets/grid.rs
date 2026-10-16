@@ -3194,7 +3194,9 @@ impl crate::core::pointer::MouseTarget for DataGrid {
     ) -> crate::core::response::Response<GridAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        if ev.on(self.id)
+        // a wheel over the open choice popup (the widget's too) reaches it
+        // first ([`Scrollable::wheel_first`])
+        if (ev.on(self.id) || ev.wheel().is_some())
             && let Some(r) = crate::core::pointer::scroll_input(self, ev)
         {
             return r.lift();
