@@ -11,6 +11,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
+use crate::core::list::{Cursor, Moved, Navigable, RowSource};
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -181,22 +182,18 @@ impl Completion {
         if !self.is_open() {
             return (Outcome::Ignored, None);
         }
-        let last = self.items.len() - 1;
-        let page = self.scroll.viewport_len.max(1);
         let up_down = key.plain() || key.ctrl();
-        let to = match (self.nav.action(key), key.code) {
-            (Some(Nav::Down), _) if up_down => Some((self.cursor + 1).min(last)),
-            (Some(Nav::Up), _) if up_down => Some(self.cursor.saturating_sub(1)),
-            (Some(Nav::PageDown), _) => Some((self.cursor + page).min(last)),
-            (Some(Nav::PageUp), _) => Some(self.cursor.saturating_sub(page)),
-            (Some(Nav::Home), _) => Some(0),
-            (Some(Nav::End), _) => Some(last),
+        let mut cursor = self.cursor();
+        let moved = match (self.nav.action(key), key.code) {
+            (Some(Nav::Down | Nav::Up), _) if !up_down => Moved::Ignored,
+            (Some(nav @ (Nav::Left | Nav::Right)), _) => cursor.apply(nav, self, 1),
+            (Some(nav), _) => cursor.apply(nav, self, self.scroll.viewport_len),
             // the editor's emacs keys
-            (_, KeyCode::Char('n')) if key.ctrl() => Some((self.cursor + 1).min(last)),
-            (_, KeyCode::Char('p')) if key.ctrl() => Some(self.cursor.saturating_sub(1)),
-            _ => None,
+            (_, KeyCode::Char('n')) if key.ctrl() => cursor.step(1, self),
+            (_, KeyCode::Char('p')) if key.ctrl() => cursor.step(-1, self),
+            _ => Moved::Ignored,
         };
-        if let Some(to) = to {
+        if let Some(to) = moved.index() {
             self.cursor = to;
             self.scroll.ensure_visible(self.cursor);
             return (Outcome::Changed, None);
@@ -359,6 +356,21 @@ impl Completion {
                 true,
             );
         }
+    }
+}
+
+impl RowSource for Completion {
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.items[i].label
+    }
+}
+
+impl Navigable for Completion {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor)
     }
 }
 
