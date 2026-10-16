@@ -1429,18 +1429,33 @@ impl Screen for FinderPage {
     fn on_secondary(
         &mut self,
         id: WidgetId,
-        _pos: Position,
+        pos: Position,
         _w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
         if let Some(i) = self.locate_row(id)
-            && matches!(self.rows[i], Row::Item(..))
+            && let Some(Row::Item(ix, _)) = self.rows.get(i)
+            && let Some(item) = self.items.get(*ix).map(|it| it.id.clone())
         {
-            self.cursor = i;
+            if cx.context.moves_cursor {
+                self.cursor = i;
+            }
             cx.focus.focus(FINDER);
-            return self.alternatives(cx);
+            // the menu opens at the pointer, about the row under it
+            cx.go(Go::Alternatives {
+                item,
+                anchor: Rect::new(pos.x, pos.y, 1, 1),
+            });
+            return Outcome::Changed;
         }
         Outcome::Ignored
+    }
+
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(FINDER) {
+            return Outcome::Ignored;
+        }
+        self.alternatives(cx)
     }
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
