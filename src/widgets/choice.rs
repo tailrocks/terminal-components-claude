@@ -106,13 +106,14 @@ impl Checkbox {
             t.gutter_symbol(s),
             t.gutter(s, st.bg.unwrap_or(bg), false),
         );
+        let g = &t.glyphs;
         let mark = match (area.width < 4, self.checked, self.mixed) {
-            (true, _, true) => "–",
-            (false, _, true) => "[–]",
-            (true, true, _) => "✓",
-            (true, false, _) => "□",
-            (false, true, _) => "[✓]",
-            (false, false, _) => "[ ]",
+            (true, _, true) => g.dash,
+            (false, _, true) => g.check_mixed,
+            (true, true, _) => g.tick,
+            (true, false, _) => g.check_off_narrow,
+            (false, true, _) => g.check_on,
+            (false, false, _) => g.check_off,
         };
         let mark_style = if self.disabled {
             st
@@ -254,11 +255,12 @@ impl RadioGroup {
                 t.gutter(s, st.bg.unwrap_or(bg), false),
             );
             let on = i == self.selected;
+            let g = &t.glyphs;
             let mark = match (row.width < 4, on) {
-                (true, true) => "●",
-                (true, false) => "○",
-                (false, true) => "(●)",
-                (false, false) => "( )",
+                (true, true) => g.dot_on,
+                (true, false) => g.dot_off,
+                (false, true) => g.radio_on,
+                (false, false) => g.radio_off,
             };
             let ms = if self.disabled {
                 st
@@ -349,15 +351,16 @@ impl Toggle {
             t.gutter_symbol(s),
             t.gutter(s, st.bg.unwrap_or(bg), false),
         );
+        let g = &t.glyphs;
         let (sw, ss) = if self.disabled {
-            (if self.on { "──●" } else { "○──" }, st)
+            (if self.on { g.toggle_on } else { g.toggle_off }, st)
         } else if self.on {
-            ("──●", st.fg(t.chosen(s.focused)))
+            (g.toggle_on, st.fg(t.chosen(s.focused)))
         } else {
-            ("○──", st.fg(t.text_muted))
+            (g.toggle_off, st.fg(t.text_muted))
         };
         let sw = if area.width < 4 {
-            if self.on { "●" } else { "○" }
+            if self.on { g.dot_on } else { g.dot_off }
         } else {
             sw
         };

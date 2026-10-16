@@ -322,7 +322,7 @@ impl StatusBar {
                     Emphasis::Chip => (" ", p.text.as_str()),
                     _ => ("", p.text.as_str()),
                 };
-                let spin = crate::widgets::progress::spinner_frame(ctx.interaction.tick);
+                let spin = t.glyphs.spinner_frame(ctx.interaction.tick);
                 let mut x = p.x;
                 if !lead.is_empty() {
                     buf.set_string(x, area.y, lead, st);
@@ -340,7 +340,9 @@ impl StatusBar {
                 let label_w = width(&text) as u16;
                 let mx = p.x + label_w + 1;
                 let mw = p.width.saturating_sub(label_w + 1);
-                let value = pct.map(|v| format!("{v}%")).unwrap_or_else(|| "—".into());
+                let value = pct
+                    .map(|v| format!("{v}%"))
+                    .unwrap_or_else(|| t.glyphs.none.into());
                 Meter::new(pct)
                     .value(value)
                     .tone(tone)

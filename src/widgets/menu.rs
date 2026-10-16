@@ -450,7 +450,7 @@ impl ContextMenu {
         fill(buf, area, Style::new().bg(bg));
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
-            .border_type(ratatui::widgets::BorderType::Rounded)
+            .border_set(t.glyphs.border)
             .border_style(Style::new().fg(t.border_subtle).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
         // the popover itself is a hit target so clicks inside its frame
@@ -477,7 +477,7 @@ impl ContextMenu {
             buf.set_string(
                 area.right().saturating_sub(3),
                 area.y,
-                "▴",
+                t.glyphs.more_above,
                 t.muted().bg(bg),
             );
         }
@@ -489,7 +489,7 @@ impl ContextMenu {
                 buf.set_string(
                     area.right().saturating_sub(3),
                     area.bottom().saturating_sub(1),
-                    "▾",
+                    t.glyphs.more_below,
                     t.muted().bg(bg),
                 );
                 break;
@@ -500,7 +500,12 @@ impl ContextMenu {
                 if item.separator_after && line > first {
                     // its separator is the first row shown
                     for x in inner.x + 1..inner.right().saturating_sub(1) {
-                        buf.set_string(x, y, "─", Style::new().fg(t.rule_on(bg)).bg(bg));
+                        buf.set_string(
+                            x,
+                            y,
+                            t.glyphs.bar_empty,
+                            Style::new().fg(t.rule_on(bg)).bg(bg),
+                        );
                     }
                     y += 1;
                 }
@@ -554,7 +559,12 @@ impl ContextMenu {
             y += 1;
             if item.separator_after && y < inner.bottom() {
                 for x in inner.x + 1..inner.right().saturating_sub(1) {
-                    buf.set_string(x, y, "─", Style::new().fg(t.rule_on(bg)).bg(bg));
+                    buf.set_string(
+                        x,
+                        y,
+                        t.glyphs.bar_empty,
+                        Style::new().fg(t.rule_on(bg)).bg(bg),
+                    );
                 }
                 y += 1;
             }

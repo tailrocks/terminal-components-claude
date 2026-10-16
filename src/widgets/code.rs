@@ -926,13 +926,13 @@ impl CodeEditor {
             let mut marker_style = fs;
             if let Some(r) = &running {
                 if r.start >= ls && r.start <= le {
-                    marker = crate::widgets::progress::spinner_frame(ctx.interaction.tick);
+                    marker = t.glyphs.spinner_frame(ctx.interaction.tick);
                     marker_style = fs.fg(t.accent);
                 }
             } else if let Some(b) = &block {
                 let first_content = b.start;
                 if first_content >= ls && first_content <= le {
-                    marker = "›";
+                    marker = t.glyphs.current;
                     // the block marker is a position aid beside the
                     // focus bar, never a second green cue
                     marker_style = fs.fg(if focused {
@@ -984,7 +984,7 @@ impl CodeEditor {
             let mut x = text_area.x;
             let mut col = 0usize;
             if self.hscroll > 0 && !line.is_empty() {
-                put(buf, x, y, "…", fs.fg(t.text_muted));
+                put(buf, x, y, t.glyphs.ellipsis, fs.fg(t.text_muted));
             }
             let underline_line = s.editing && li == cur.line;
             for (gi, g) in line.grapheme_indices(true) {
@@ -1004,7 +1004,7 @@ impl CodeEditor {
                         buf,
                         text_area.right().saturating_sub(1),
                         y,
-                        "…",
+                        t.glyphs.ellipsis,
                         fs.fg(t.text_muted),
                     );
                     break;
@@ -1172,7 +1172,13 @@ impl CodeEditor {
             return;
         }
         let pos = if s.editing || focused {
-            format!("ln {}/{} · col {}", cur.line + 1, line_count, cur.col + 1)
+            format!(
+                "ln {}/{}{}col {}",
+                cur.line + 1,
+                line_count,
+                t.glyphs.separator,
+                cur.col + 1
+            )
         } else if self.scroll.overflows() {
             scrollbar::position_label(&self.scroll)
         } else {

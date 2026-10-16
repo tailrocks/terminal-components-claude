@@ -376,13 +376,17 @@ impl<'a> RenderCtx<'a> {
         );
         for pos in dim.positions() {
             if let Some(c) = buf.cell_mut(pos) {
+                // a focus bar under the modal is never "here": the only
+                // focus indicator belongs to the modal. An ASCII bar (`|`)
+                // is also ordinary text, so it must carry the focus ink.
+                let bar = t.glyphs.focus_bar;
+                let is_bar = c.symbol() == bar
+                    && (!bar.is_ascii() || c.fg == t.focus || c.fg == t.text_on_accent);
                 let st = t.backdrop(c.style());
                 c.set_style(st);
                 // only the backdrop's own dimming survives
                 c.modifier = st.add_modifier;
-                // a focus bar under the modal is never "here": the only
-                // focus indicator belongs to the modal
-                if c.symbol() == "▎" {
+                if is_bar {
                     c.set_symbol(" ");
                 }
             }

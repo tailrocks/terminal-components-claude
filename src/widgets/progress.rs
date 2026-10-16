@@ -5,8 +5,12 @@ use ratatui::style::Color;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 
+/// The default spinner frames. Widgets draw `Theme::glyphs.spinner`
+/// ([`crate::theme::Glyphs::spinner_frame`]); this is the Unicode set.
 pub const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
+/// A frame of [`SPINNER`], for app code without a theme at hand. Widgets
+/// use [`crate::theme::Glyphs::spinner_frame`].
 pub fn spinner_frame(tick: u64) -> &'static str {
     SPINNER[(tick % SPINNER.len() as u64) as usize]
 }
@@ -115,10 +119,10 @@ pub fn render_bar_with(
     let pct_w = 5u16;
     // fixed 2-cell trailing glyph column keeps percentages aligned
     let suffix = match status {
-        ProgressStatus::Done => " ✓",
-        ProgressStatus::Error => " !",
-        ProgressStatus::Paused => " ‖",
-        ProgressStatus::Active => "  ",
+        ProgressStatus::Done => format!(" {}", t.glyphs.done),
+        ProgressStatus::Error => " !".to_owned(),
+        ProgressStatus::Paused => format!(" {}", t.glyphs.paused),
+        ProgressStatus::Active => "  ".to_owned(),
     };
     let track_w = area.right().saturating_sub(x).saturating_sub(VALUE_W);
     if track_w < 6 {
@@ -136,16 +140,22 @@ pub fn render_bar_with(
     };
     for i in 0..track_w {
         let (sym, st) = if i < filled {
-            ("━", ratatui::style::Style::new().fg(fill_color).bg(bg))
+            (
+                t.glyphs.bar_fill,
+                ratatui::style::Style::new().fg(fill_color).bg(bg),
+            )
         } else {
-            ("─", ratatui::style::Style::new().fg(t.border_subtle).bg(bg))
+            (
+                t.glyphs.bar_empty,
+                ratatui::style::Style::new().fg(t.border_subtle).bg(bg),
+            )
         };
         buf.set_string(x + i, area.y, sym, st);
     }
     x += track_w;
     buf.set_string(x, area.y, format!(" {pct}"), t.secondary().bg(bg));
     let st = ratatui::style::Style::new().fg(fill_color).bg(bg);
-    buf.set_string(x + pct_w, area.y, suffix, st);
+    buf.set_string(x + pct_w, area.y, &suffix, st);
 }
 
 /// Consumption thresholds shared by every meter: a value at or below
@@ -260,7 +270,7 @@ impl Meter {
     }
 
     /// (run colour, text colour, two-cell suffix, whether a run is drawn)
-    fn palette(&self, t: &crate::theme::Theme) -> (Color, Color, &'static str, bool) {
+    fn palette(&self, t: &crate::theme::Theme) -> (Color, Color, String, bool) {
         let level_color = |l: MeterLevel| match l {
             MeterLevel::Low => t.text_secondary,
             MeterLevel::Medium => t.warning,
@@ -275,14 +285,29 @@ impl Meter {
                 } else {
                     c
                 };
-                (c, text, "  ", self.used_pct.is_some())
+                (c, text, "  ".into(), self.used_pct.is_some())
             }
-            MeterTone::Warning => (t.warning, t.warning, " ▲", self.used_pct.is_some()),
-            MeterTone::Exhausted => (t.error, t.error, " !", true),
-            MeterTone::Stale => (t.text_faint, t.text_muted, "  ", self.used_pct.is_some()),
-            MeterTone::Refreshing => (t.text_muted, t.text_muted, "  ", self.used_pct.is_some()),
-            MeterTone::Error => (t.error, t.error, " !", false),
-            MeterTone::Unknown => (t.text_faint, t.text_faint, "  ", false),
+            MeterTone::Warning => (
+                t.warning,
+                t.warning,
+                format!(" {}", t.glyphs.warning),
+                self.used_pct.is_some(),
+            ),
+            MeterTone::Exhausted => (t.error, t.error, " !".into(), true),
+            MeterTone::Stale => (
+                t.text_faint,
+                t.text_muted,
+                "  ".into(),
+                self.used_pct.is_some(),
+            ),
+            MeterTone::Refreshing => (
+                t.text_muted,
+                t.text_muted,
+                "  ".into(),
+                self.used_pct.is_some(),
+            ),
+            MeterTone::Error => (t.error, t.error, " !".into(), false),
+            MeterTone::Unknown => (t.text_faint, t.text_faint, "  ".into(), false),
         }
     }
 
@@ -294,8 +319,13 @@ impl Meter {
         let t = ctx.theme;
         let (fill_color, text_color, suffix, has_run) = self.palette(t);
         let value = match self.tone {
-            MeterTone::Refreshing => format!("{} refreshing", spinner_frame(ctx.interaction.tick)),
-            MeterTone::Unknown if self.value.is_empty() => "—".to_owned(),
+            MeterTone::Refreshing => {
+                format!(
+                    "{} refreshing",
+                    t.glyphs.spinner_frame(ctx.interaction.tick)
+                )
+            }
+            MeterTone::Unknown if self.value.is_empty() => t.glyphs.none.to_owned(),
             _ => self.value.clone(),
         };
         let ratio = (self.used_pct.unwrap_or(0).min(100) as f64) / 100.0;
@@ -311,7 +341,7 @@ impl Meter {
             buf.set_string(area.x, area.y, &text, text_style);
             let sx = area.x + width(&text) as u16;
             if sx + 2 <= area.right() {
-                buf.set_string(sx, area.y, suffix, suffix_style);
+                buf.set_string(sx, area.y, &suffix, suffix_style);
             }
             return;
         }
@@ -331,15 +361,21 @@ impl Meter {
                 let filled = ((track_w as f64) * ratio).round() as u16;
                 for i in 0..track_w {
                     let (sym, st) = if i < filled {
-                        ("━", ratatui::style::Style::new().fg(fill_color).bg(bg))
+                        (
+                            t.glyphs.bar_fill,
+                            ratatui::style::Style::new().fg(fill_color).bg(bg),
+                        )
                     } else {
-                        ("─", ratatui::style::Style::new().fg(t.border_subtle).bg(bg))
+                        (
+                            t.glyphs.bar_empty,
+                            ratatui::style::Style::new().fg(t.border_subtle).bg(bg),
+                        )
                     };
                     buf.set_string(area.x + i, area.y, sym, st);
                 }
                 let x = area.x + track_w + 1;
                 buf.set_string(x, area.y, &value, text_style);
-                buf.set_string(x + vw, area.y, suffix, suffix_style);
+                buf.set_string(x + vw, area.y, &suffix, suffix_style);
             }
             MeterVisual::Block => {
                 // the whole width minus the marker is the bar; the value sits
@@ -384,7 +420,7 @@ impl Meter {
                     };
                     buf.set_string(area.x + i, area.y, sym, st);
                 }
-                buf.set_string(area.x + bar_w, area.y, suffix, suffix_style);
+                buf.set_string(area.x + bar_w, area.y, &suffix, suffix_style);
             }
         }
     }
@@ -444,9 +480,15 @@ pub fn render_indeterminate_with(
     for i in 0..track_w {
         let in_seg = i >= pos && i < pos + seg;
         let (sym, st) = if in_seg {
-            ("━", ratatui::style::Style::new().fg(t.accent).bg(bg))
+            (
+                t.glyphs.bar_fill,
+                ratatui::style::Style::new().fg(t.accent).bg(bg),
+            )
         } else {
-            ("─", ratatui::style::Style::new().fg(t.border_subtle).bg(bg))
+            (
+                t.glyphs.bar_empty,
+                ratatui::style::Style::new().fg(t.border_subtle).bg(bg),
+            )
         };
         buf.set_string(x + i as u16, area.y, sym, st);
     }
@@ -462,7 +504,7 @@ pub fn render_spinner(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: 
     buf.set_string(
         area.x,
         area.y,
-        spinner_frame(ctx.interaction.tick),
+        t.glyphs.spinner_frame(ctx.interaction.tick),
         t.accent_fg().bg(bg),
     );
     buf.set_string(area.x + 2, area.y, label, t.secondary().bg(bg));

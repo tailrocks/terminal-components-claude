@@ -148,10 +148,14 @@ impl Button {
         let gutter = it.gutter_style;
         let mut text = String::new();
         if self.busy {
-            text.push_str(super::progress::spinner_frame(ctx.interaction.tick));
+            text.push_str(t.glyphs.spinner_frame(ctx.interaction.tick));
             text.push(' ');
         } else if let Some(on) = self.on {
-            text.push(if on { '●' } else { '○' });
+            text.push_str(if on {
+                t.glyphs.dot_on
+            } else {
+                t.glyphs.dot_off
+            });
             text.push(' ');
         }
         text.push_str(&self.label);
@@ -164,13 +168,22 @@ impl Button {
         {
             let ms = style.fg(if on { t.accent } else { t.text_muted });
             let ms = if s.pressed { style } else { ms };
-            buf.set_string(area.x + 1, area.y, if on { "●" } else { "○" }, ms);
+            buf.set_string(
+                area.x + 1,
+                area.y,
+                if on {
+                    t.glyphs.dot_on
+                } else {
+                    t.glyphs.dot_off
+                },
+                ms,
+            );
         }
         if self.busy {
             buf.set_string(
                 area.x + 1,
                 area.y,
-                super::progress::spinner_frame(ctx.interaction.tick),
+                t.glyphs.spinner_frame(ctx.interaction.tick),
                 style.fg(if filled { busy_ink } else { t.accent }),
             );
         }
@@ -258,7 +271,8 @@ pub struct RowLayout {
     pub hidden: Vec<usize>,
 }
 
-/// Label of the overflow button.
+/// Label of the overflow button with the default glyphs; the button draws
+/// [`crate::theme::Glyphs::ellipsis`].
 pub const MORE_LABEL: &str = "…";
 
 impl ButtonRow {
@@ -385,7 +399,7 @@ impl ButtonRow {
                 // keep the primary and as many others, in order, as fit
                 // beside it and the `…` button; the rest fold away
                 let primary = Self::primary(buttons).unwrap_or(0);
-                let more_w = (width(MORE_LABEL) + 2) as u16;
+                let more_w = (width(theme.glyphs.ellipsis) + 2) as u16;
                 let mut budget = area.width.saturating_sub(widths[primary] + gap + more_w);
                 let mut keep = vec![false; buttons.len()];
                 keep[primary] = true;
@@ -455,7 +469,7 @@ impl ButtonRow {
             }
         }
         if let Some(r) = layout.more {
-            let mut more = Button::subtle(Self::more_id(owner), MORE_LABEL);
+            let mut more = Button::subtle(Self::more_id(owner), ctx.theme.glyphs.ellipsis);
             more.render(r, buf, ctx, bg);
         }
         layout
