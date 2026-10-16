@@ -16,10 +16,12 @@ use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::BlurAction;
+use crate::core::hit::Axis;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
+use crate::core::response::Response;
+use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::text::TextBuffer;
 use crate::theme::{SyntaxTone, Theme};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
@@ -402,8 +404,6 @@ enum GridDrag {
 
 #[derive(Debug, Clone)]
 pub struct DataGrid {
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     /// The cells, row numbers and `▾`s registered in the last render.
     parts: PartMap,
     pub id: WidgetId,
@@ -422,8 +422,9 @@ pub struct DataGrid {
     pub selected_rows: BTreeSet<usize>,
     pub pending: PendingChanges,
     undo: Vec<UndoAction>,
-    pub scroll: ScrollState,
-    pub hscroll: ScrollState,
+    /// Rows (`scroll`, the vertical state) and columns (`scroll.h`) with both bars
+    /// ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub edit: Option<EditState>,
     pub editable: bool,
     /// What a cell edit in progress does when the grid loses focus
@@ -464,10 +465,6 @@ pub struct DataGrid {
     /// side (clickable, one column per click). They complement the bar:
     /// the bar shows where, the badges how many.
     pub overflow_badges: bool,
-    /// The policy resolved at the last render (events use it).
-    h_cfg: HScroll,
-    /// The horizontal scrollbar track as last drawn.
-    htrack: Rect,
     /// Which keys move the cursor (default [`NavKeys::DEFAULT`]). `g`/`G`
     /// go to the first/last row, Home/End to the row's first/last cell,
     /// Ctrl+Home/End to the first/last row; Ctrl+←/→ page sideways.
@@ -487,11 +484,6 @@ pub struct DataGrid {
     /// min/max). Default [`DEFAULT_WIDTH_SAMPLE_ROWS`]; widths are measured
     /// once per dataset, never per frame.
     pub width_sample_rows: usize,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// The constrained editor open on a cell, if any.
     pub choice: Option<GridChoice>,
     /// Behaviour of every constrained column editor
@@ -593,8 +585,6 @@ impl DataGrid {
     pub fn new(id: WidgetId, columns: Vec<ColumnSpec>) -> Self {
         let widths = columns.iter().map(|c| c.min_width).collect();
         Self {
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
             id,
             columns,
             rows: vec![],
@@ -609,8 +599,7 @@ impl DataGrid {
             selected_rows: BTreeSet::new(),
             pending: PendingChanges::default(),
             undo: vec![],
-            scroll: ScrollState::default(),
-            hscroll: ScrollState::default(),
+            scroll: ScrollPane::default().columns(true),
             edit: None,
             editable: true,
             blur_action: BlurAction::Commit,
@@ -622,7 +611,6 @@ impl DataGrid {
             validator: Validator::default(),
             row_numbers: true,
             area: Rect::ZERO,
-            track: Rect::ZERO,
             parts: PartMap::default(),
             body: Rect::ZERO,
             drag: None,
@@ -643,8 +631,6 @@ impl DataGrid {
             reveal: None,
             horizontal: None,
             overflow_badges: true,
-            h_cfg: HScroll::default(),
-            htrack: Rect::ZERO,
             width_sample_rows: DEFAULT_WIDTH_SAMPLE_ROWS,
             nav: NavKeys::DEFAULT,
             keymap: GridCmd::default_keymap(),
@@ -1471,18 +1457,19 @@ impl DataGrid {
 
     fn ensure_col_visible(&mut self) {
         let n = self.columns.len();
-        if self.hscroll.viewport_len == 0 {
+        if self.scroll.h.viewport_len == 0 {
             return;
         }
-        if self.cursor.1 < self.hscroll.offset {
-            self.hscroll.offset = self.cursor.1;
-        } else if self.cursor.1 >= self.hscroll.offset + self.hscroll.viewport_len {
-            self.hscroll.offset = self.cursor.1 + 1 - self.hscroll.viewport_len;
+        if self.cursor.1 < self.scroll.h.offset {
+            self.scroll.h.offset = self.cursor.1;
+        } else if self.cursor.1 >= self.scroll.h.offset + self.scroll.h.viewport_len {
+            self.scroll.h.offset = self.cursor.1 + 1 - self.scroll.h.viewport_len;
         }
-        self.hscroll.offset = self
-            .hscroll
+        self.scroll.h.offset = self
+            .scroll
+            .h
             .offset
-            .min(n.saturating_sub(self.hscroll.viewport_len));
+            .min(n.saturating_sub(self.scroll.h.viewport_len));
     }
 
     /// Is the display cell inside the current range selection?
@@ -1693,12 +1680,14 @@ impl DataGrid {
                 Nav::Up => self.set_cursor(r.saturating_sub(1), c, shift),
                 Nav::Down => self.set_cursor(r + 1, c, shift),
                 Nav::Left if ctrl => {
-                    self.hscroll
-                        .scroll_by(-(self.hscroll.viewport_len.max(1) as isize));
+                    self.scroll
+                        .h
+                        .scroll_by(-(self.scroll.h.viewport_len.max(1) as isize));
                 }
                 Nav::Right if ctrl => {
-                    self.hscroll
-                        .scroll_by(self.hscroll.viewport_len.max(1) as isize);
+                    self.scroll
+                        .h
+                        .scroll_by(self.scroll.h.viewport_len.max(1) as isize);
                 }
                 Nav::Left => self.set_cursor(r, c.saturating_sub(1), shift),
                 Nav::Right => self.set_cursor(r, c + 1, shift),
@@ -1995,18 +1984,15 @@ impl DataGrid {
             return (Outcome::Changed, Some(GridAction::FetchMore));
         }
         if id == self.left_id() {
-            self.hscroll.scroll_by(-1);
+            self.scroll.h.scroll_by(-1);
             return (Outcome::Changed, None);
         }
         if id == self.right_id() {
-            self.hscroll.scroll_by(1);
+            self.scroll.h.scroll_by(1);
             return (Outcome::Changed, None);
         }
-        if id == scrollbar::id_for(self.id) {
+        if scrollbar::is_bar_of(id, self.id) {
             return (self.on_scrollbar(pos), None);
-        }
-        if id == scrollbar::h_id_for(self.id) {
-            return (self.on_hscrollbar(pos), None);
         }
         if let Some(c) = self.locate_header(id) {
             if self.edit.is_some() {
@@ -2045,7 +2031,7 @@ impl DataGrid {
             if let Some(e) = &self.edit {
                 if self.order.get(d) == Some(&e.row) && e.col == c {
                     // click inside the editor places the cursor
-                    if let Some(rect) = self.col_rects.get(c.saturating_sub(self.hscroll.offset)) {
+                    if let Some(rect) = self.col_rects.get(c.saturating_sub(self.scroll.h.offset)) {
                         let cw = rect.width.saturating_sub(1) as usize;
                         let off = e
                             .buffer
@@ -2068,7 +2054,7 @@ impl DataGrid {
             }
             let same = self.cursor == (d, c) && self.anchor.is_none();
             // click on the trailing → of a reference cell follows it
-            if let Some(rect) = self.col_rects.get(c.saturating_sub(self.hscroll.offset))
+            if let Some(rect) = self.col_rects.get(c.saturating_sub(self.scroll.h.offset))
                 && self.columns[c].references.is_some()
                 && pos.x + 1 == rect.right()
                 && let Some(&src) = self.order.get(d)
@@ -2100,11 +2086,8 @@ impl DataGrid {
                 None => Outcome::Consumed,
             };
         }
-        if pressed == scrollbar::id_for(self.id) {
-            return self.on_scrollbar_drag(pos);
-        }
-        if pressed == scrollbar::h_id_for(self.id) {
-            return self.on_hscrollbar_drag(pos);
+        if scrollbar::is_bar_of(pressed, self.id) {
+            return self.on_bar_drag(pressed, pos);
         }
         // a drag from a row number paints the rows' marks
         let row_origin = match self.drag {
@@ -2146,7 +2129,7 @@ impl DataGrid {
         let (Some(first), Some(last)) = (self.col_rects.first(), self.col_rects.last()) else {
             return self.cursor.1;
         };
-        let off = self.hscroll.offset;
+        let off = self.scroll.h.offset;
         let c = if x < first.x {
             off.saturating_sub(1)
         } else if x >= last.right() + 2 {
@@ -2192,84 +2175,6 @@ impl DataGrid {
         }
         self.set_cursor(d, self.cursor.1, false);
         Outcome::Changed
-    }
-
-    pub fn on_wheel(&mut self, delta: i32, horizontal: bool) -> Outcome {
-        if let Some(c) = self.choice.as_mut()
-            && !horizontal
-        {
-            return c.editor.on_wheel(delta);
-        }
-        if horizontal && !self.h_cfg.enabled {
-            return Outcome::Ignored;
-        }
-        let moved = if horizontal {
-            self.hscroll.scroll_by(delta.signum() as isize)
-        } else {
-            self.scroll.scroll_by(delta as isize)
-        };
-        if moved {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.body.y,
-                1,
-                self.body.height,
-            )
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged along the scrollbar after a press.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer went down on the horizontal scrollbar: the thumb is
-    /// grabbed, or the track click moves by columns.
-    pub fn on_hscrollbar(&mut self, pos: Position) -> Outcome {
-        if self.htrack.is_empty() {
-            return Outcome::Ignored;
-        }
-        if scrollbar::press_h(self.htrack, pos, &mut self.hscroll, self.h_cfg.track_click) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged along the horizontal scrollbar after a press.
-    pub fn on_hscrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if self.htrack.is_empty() {
-            return Outcome::Ignored;
-        }
-        if scrollbar::drag_h(self.htrack, pos, &mut self.hscroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
     }
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
@@ -2323,11 +2228,11 @@ impl DataGrid {
 
     /// `cols 3–9 of 14` when columns overflow horizontally.
     pub fn cols_label(&self) -> Option<String> {
-        if self.rows.is_empty() || !self.hscroll.overflows() {
+        if self.rows.is_empty() || !self.scroll.h.overflows() {
             return None;
         }
-        let c0 = self.hscroll.offset + 1;
-        let c1 = (self.hscroll.offset + self.hscroll.viewport_len).min(self.columns.len());
+        let c0 = self.scroll.h.offset + 1;
+        let c1 = (self.scroll.h.offset + self.scroll.h.viewport_len).min(self.columns.len());
         Some(format!("cols {c0}–{c1} of {}", self.columns.len()))
     }
 
@@ -2356,7 +2261,7 @@ impl DataGrid {
         let gap = 2u16;
         let mut fit = 0;
         let mut used = 0u16;
-        for i in self.hscroll.offset..n {
+        for i in self.scroll.h.offset..n {
             let w = self.col_w(i);
             let need = if fit == 0 { w } else { w + gap };
             if used + need > area.width {
@@ -2365,20 +2270,22 @@ impl DataGrid {
             used += need;
             fit += 1;
         }
-        let fit = fit.max(1).min(n.saturating_sub(self.hscroll.offset).max(1));
-        self.hscroll.content_len = n;
-        self.hscroll.viewport_len = fit;
-        self.hscroll.clamp();
+        let fit = fit
+            .max(1)
+            .min(n.saturating_sub(self.scroll.h.offset).max(1));
+        self.scroll.h.content_len = n;
+        self.scroll.h.viewport_len = fit;
+        self.scroll.h.clamp();
         self.col_rects.clear();
         let mut x = area.x;
-        for i in self.hscroll.offset..(self.hscroll.offset + fit).min(n) {
+        for i in self.scroll.h.offset..(self.scroll.h.offset + fit).min(n) {
             let w = self.col_w(i).min(area.right().saturating_sub(x));
             self.col_rects.push(Rect::new(x, area.y, w, area.height));
             x += w + gap;
         }
         // the next column shows clipped rather than leaving the pane blank;
         // it is not part of the viewport, so moving onto it scrolls
-        let next = self.hscroll.offset + fit;
+        let next = self.scroll.h.offset + fit;
         if next < n && x < area.right() {
             let rest = area.right() - x;
             if rest >= 6 {
@@ -2411,7 +2318,7 @@ impl DataGrid {
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
@@ -2424,7 +2331,7 @@ impl DataGrid {
             self.drag = None;
         }
         self.follow_strings(ctx.theme.strings);
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         self.fit_header_marks();
         let area = area.intersection(*buf.area());
         if area.is_empty() || area.height < 2 {
@@ -2455,7 +2362,7 @@ impl DataGrid {
             grid_area.height.saturating_sub(1),
         );
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
-        self.h_cfg = h_cfg;
+        self.scroll.h_cfg = h_cfg;
         // the viewport is settled once both bars are known: setting a
         // provisional taller one first would clamp the offset and drop
         // the cursor row off the bottom
@@ -2483,7 +2390,7 @@ impl DataGrid {
         // can make the rows overflow, which costs a column for the
         // vertical bar, so the columns are laid out again
         let has_rows = !self.rows.is_empty() || self.more;
-        let has_hb = has_rows && body.height > 1 && h_cfg.shows_bar(&self.hscroll);
+        let has_hb = has_rows && body.height > 1 && h_cfg.shows_bar(&self.scroll.h);
         if has_hb {
             body.height -= 1;
             if !has_sb && rows_len > body.height as usize {
@@ -2506,8 +2413,8 @@ impl DataGrid {
             Rect::new(grid_area.x, header_y, grid_area.width, 1),
             Style::new().bg(bg),
         );
-        if self.overflow_badges && self.hscroll.offset > 0 {
-            let lbl = format!("{}{}", t.glyphs.overflow_left, self.hscroll.offset);
+        if self.overflow_badges && self.scroll.h.offset > 0 {
+            let lbl = format!("{}{}", t.glyphs.overflow_left, self.scroll.h.offset);
             let st = ctx.title_style(self.left_id(), bg);
             buf.set_string(grid_area.x + 1, header_y, &lbl, st);
             ctx.register_part(
@@ -2523,7 +2430,7 @@ impl DataGrid {
         }
         for k in 0..self.col_rects.len() {
             let rect = &self.col_rects[k];
-            let ci = self.hscroll.offset + k;
+            let ci = self.scroll.h.offset + k;
             let col = &self.columns[ci];
             let hid = self.header_id(ci);
             let sorted = self.sort.map(|(c, _)| c == ci).unwrap_or(false);
@@ -2597,7 +2504,7 @@ impl DataGrid {
         let hidden_right = self
             .columns
             .len()
-            .saturating_sub(self.hscroll.offset + self.hscroll.viewport_len);
+            .saturating_sub(self.scroll.h.offset + self.scroll.h.viewport_len);
         if self.overflow_badges && hidden_right > 0 {
             let lbl = format!("{hidden_right}{}", t.glyphs.overflow_right);
             let x = cols_area.right() + 1;
@@ -2682,7 +2589,8 @@ impl DataGrid {
             let src = self.order[d];
             let rid = self.rownum_id(d);
             let mut s = ctx.child_state(self.id, rid, d == self.cursor.0);
-            let visible_cols = self.hscroll.offset..self.hscroll.offset + self.hscroll.viewport_len;
+            let visible_cols =
+                self.scroll.h.offset..self.scroll.h.offset + self.scroll.h.viewport_len;
             let hovered_cell = visible_cols
                 .clone()
                 .find(|&c| ctx.interaction.hovered(self.cell_id(d, c)));
@@ -2749,7 +2657,7 @@ impl DataGrid {
             }
             for k in 0..self.col_rects.len() {
                 let rect = &self.col_rects[k];
-                let ci = self.hscroll.offset + k;
+                let ci = self.scroll.h.offset + k;
                 let col = &self.columns[ci];
                 let cell_rect = Rect::new(rect.x, y, rect.width, 1);
                 let is_cursor = focused && (d, ci) == self.cursor;
@@ -2936,7 +2844,6 @@ impl DataGrid {
         // before the next frame (see `runtime::Coalesce`) then routes to the
         // widget, not to a row whose display index it already scrolled away
         ctx.scrollable(self.id, area);
-        self.track = Rect::ZERO;
         if has_sb {
             crate::ui::fade::scroll_edges(
                 buf,
@@ -2950,10 +2857,8 @@ impl DataGrid {
                 &self.scroll,
             );
             let sb = Rect::new(area.right() - 1, body.y, 1, body.height);
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
-        self.htrack = Rect::ZERO;
         if has_hb {
             // under the scrolling columns only: the row-number gutter is
             // frozen, and the corner under the vertical bar stays blank
@@ -2965,16 +2870,7 @@ impl DataGrid {
                 Style::new().bg(bg),
             );
             let hb = Rect::new(cols_area.x, y, right.saturating_sub(cols_area.x), 1);
-            self.htrack = hb;
-            scrollbar::render_horizontal_with(
-                hb,
-                buf,
-                ctx,
-                self.id,
-                &self.hscroll,
-                focused,
-                h_cfg.bar == ScrollbarVisibility::Always,
-            );
+            self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
 
         // pending bar
@@ -3209,6 +3105,18 @@ impl crate::core::focus::BlurTarget for DataGrid {
     }
 }
 
+impl Scrollable for DataGrid {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
+    }
+
+    /// An open choice popup takes the vertical wheel.
+    fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
+        let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
+        Some(c.editor.on_wheel(delta).into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3362,7 +3270,7 @@ mod tests {
     #[test]
     fn clicking_another_cell_keeps_invalid_editor_and_cursor() {
         let mut g = grid();
-        g.hscroll.set_viewport(g.columns.len());
+        g.scroll.h.set_viewport(g.columns.len());
         g.set_cursor(0, 2, false);
         g.begin_edit();
         g.edit.as_mut().unwrap().buffer.set_text("not a number");
@@ -3401,7 +3309,7 @@ mod tests {
             let text = format!("{}終", "日本語👩‍💻cafe\u{301}".repeat(8));
             g.on_paste(&text);
             let (after, cursor) = render_editor(&mut g, level);
-            let rect = g.col_rects[1 - g.hscroll.offset];
+            let rect = g.col_rects[1 - g.scroll.h.offset];
             let cell = Rect::new(rect.x, cursor.y, rect.width, 1);
             assert!(cell.contains(cursor));
             assert_eq!(after[(cursor.x - 2, cursor.y)].symbol(), "終");
@@ -3663,7 +3571,7 @@ mod tests {
         let mut g = wide_grid();
         let area = Rect::new(0, 0, 60, 8);
         let (buf, hits) = render_at(&mut g, area, Interaction::default());
-        assert!(g.hscroll.overflows());
+        assert!(g.scroll.h.overflows());
         let y = area.bottom() - 1;
         let bar = row_text(&buf, y);
         assert!(
@@ -3673,11 +3581,11 @@ mod tests {
         assert!(bar.contains(scrollbar::H_TRACK));
         assert_eq!(
             thumb_x(&buf, y),
-            Some(g.htrack.x),
+            Some(g.scroll.h_track().x),
             "the thumb starts at the left"
         );
         assert_eq!(
-            hits.hit(Position::new(g.htrack.x + 1, y)),
+            hits.hit(Position::new(g.scroll.h_track().x + 1, y)),
             Some(scrollbar::h_id_for(g.id))
         );
         assert!(g.owns(scrollbar::h_id_for(g.id)));
@@ -3687,10 +3595,10 @@ mod tests {
         );
 
         // a wheel to the right moves one column and the thumb with it
-        assert_eq!(g.on_wheel(3, true), Outcome::Changed);
-        assert_eq!(g.hscroll.offset, 1);
+        assert_eq!(g.on_wheel_h(3), Outcome::Changed);
+        assert_eq!(g.scroll.h.offset, 1);
         let (buf, _) = render_at(&mut g, area, Interaction::default());
-        assert!(thumb_x(&buf, y) > Some(g.htrack.x));
+        assert!(thumb_x(&buf, y) > Some(g.scroll.h_track().x));
 
         // dragging the thumb to the right end shows the last columns
         let grab = Position::new(thumb_x(&buf, y).unwrap(), y);
@@ -3700,7 +3608,7 @@ mod tests {
             g.on_drag(scrollbar::h_id_for(g.id), Position::new(area.right(), y)),
             Outcome::Changed
         );
-        assert_eq!(g.hscroll.offset, g.hscroll.max_offset());
+        assert_eq!(g.scroll.h.offset, g.scroll.h.max_offset());
         let (buf, _) = render_at(&mut g, area, Interaction::default());
         assert!(
             row_text(&buf, 0).contains("column_10"),
@@ -3716,17 +3624,17 @@ mod tests {
     fn horizontal_policy_and_badges_are_configurable() {
         let area = Rect::new(0, 0, 60, 8);
         let mut g = wide_grid()
-            .horizontal(HScroll::default().bar(ScrollbarVisibility::Never))
+            .horizontal(HScroll::default().bar(crate::core::scroll::ScrollbarVisibility::Never))
             .overflow_badges(false);
         let (buf, hits) = render_at(&mut g, area, Interaction::default());
         assert!(!row_text(&buf, area.bottom() - 1).contains(scrollbar::H_THUMB));
         assert_eq!(hits.area_of(scrollbar::h_id_for(g.id)), None);
         assert!(!row_text(&buf, 0).contains('›'), "no hidden-column badge");
-        assert_eq!(g.on_wheel(1, true), Outcome::Changed, "still scrolls");
+        assert_eq!(g.on_wheel_h(1), Outcome::Changed, "still scrolls");
 
         let mut off = wide_grid().horizontal(HScroll::off());
         render_at(&mut off, area, Interaction::default());
-        assert_eq!(off.on_wheel(1, true), Outcome::Ignored);
+        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
 
         // content that fits draws no bar by default
         let mut fits = grid();

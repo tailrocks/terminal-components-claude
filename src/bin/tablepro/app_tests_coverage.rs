@@ -581,7 +581,7 @@ fn grid_pointer_drag_scrollbar_and_horizontal_wheel_update_state() {
 
     if let Some(WorkTab::Table(table)) = h.app.workbench.as_mut().unwrap().active_tab_mut() {
         table.grid.scroll.offset = 0;
-        table.grid.hscroll.offset = 0;
+        table.grid.scroll.h.offset = 0;
     }
     h.draw();
     let scrollbar_area = h
@@ -604,9 +604,9 @@ fn grid_pointer_drag_scrollbar_and_horizontal_wheel_update_state() {
     assert!(h.wb_table().grid.scroll.offset > before);
 
     let grid_area = h.app.hits.area_of(grid_id).expect("grid hit");
-    let before = h.wb_table().grid.hscroll.offset;
+    let before = h.wb_table().grid.scroll.h.offset;
     h.mouse(MouseKind::WheelRight, grid_area.x + 8, grid_area.y + 3);
-    assert!(h.wb_table().grid.hscroll.offset > before);
+    assert!(h.wb_table().grid.scroll.h.offset > before);
 }
 
 #[test]
@@ -692,7 +692,7 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
     h.ticks(3);
     let grid = &h.wb_table().grid;
     assert_eq!(grid.columns.len(), 11);
-    assert!(grid.hscroll.overflows(), "11 columns do not fit");
+    assert!(grid.scroll.h.overflows(), "11 columns do not fit");
     let hbar_id = scrollbar::h_id_for(grid.id);
     let grid_id = grid.id;
     let bar = h.app.hits.area_of(hbar_id).expect("horizontal bar hit");
@@ -702,7 +702,7 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
     // a sideways wheel moves one column and the thumb follows
     let grid_area = h.app.hits.area_of(grid_id).expect("grid hit");
     h.mouse(MouseKind::WheelRight, grid_area.x + 8, grid_area.y + 3);
-    assert_eq!(h.wb_table().grid.hscroll.offset, 1);
+    assert_eq!(h.wb_table().grid.scroll.h.offset, 1);
     assert!(h_thumb_x(&h, bar.y).unwrap() > start);
 
     // dragging the thumb to the right end reaches the last column
@@ -711,7 +711,7 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
     h.mouse(MouseKind::Drag, bar.right() + 5, bar.y);
     h.mouse(MouseKind::Up, bar.right() + 5, bar.y);
     let grid = &h.wb_table().grid;
-    assert_eq!(grid.hscroll.offset, grid.hscroll.max_offset());
+    assert_eq!(grid.scroll.h.offset, grid.scroll.h.max_offset());
     assert!(h.text().contains("of 11"), "the column label stays exact");
     assert_eq!(grid.scroll.offset, 0, "a sideways drag never scrolls rows");
 }
