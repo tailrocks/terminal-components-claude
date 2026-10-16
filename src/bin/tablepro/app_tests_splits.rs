@@ -99,9 +99,10 @@ fn history_buttons_show_their_tooltip_after_a_rest() {
     assert!(!h.text().contains("Open the selected query"), "not at once");
     let rested = h
         .app
-        .epoch
+        .clock
+        .origin()
         .checked_sub(std::time::Duration::from_millis(700));
-    h.app.epoch = rested.expect("an epoch 700 ms back");
+    h.app.clock = junie_tui::clock::WallClock::with_origin(rested.expect("an origin 700 ms back"));
     h.draw();
     let text = h.text();
     assert!(

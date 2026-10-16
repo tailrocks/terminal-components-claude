@@ -551,7 +551,7 @@ impl DiskPage {
                     }
                 }
                 if let Some(f) = fs_node {
-                    v.push(Prop::new("Modified", crate::clock::Clock::stamp(f.mtime)));
+                    v.push(Prop::new("Modified", crate::scenario::CLOCK.stamp(f.mtime)));
                     if f.dataless {
                         v.push(
                             Prop::new(

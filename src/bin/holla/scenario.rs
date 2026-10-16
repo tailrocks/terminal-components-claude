@@ -1,6 +1,8 @@
 //! Deterministic scenario contract: which fixture world Holla opens in,
 //! how motion behaves, and which tick a paused capture shows.
 
+use junie_tui::clock::SimClock;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scenario {
     /// An empty scratch folder on a quiet laptop: the root must still be
@@ -180,6 +182,16 @@ impl Scenario {
         Self::ALL.into_iter().find(|sc| sc.name() == s)
     }
 }
+
+/// Fixed epoch for fixture timestamps: 2026-09-10 08:41:00 local (UTC+7).
+pub const EPOCH_SECS: i64 = 1_789_004_460;
+/// The fixture zone: UTC+7.
+pub const UTC_OFFSET_SECS: i64 = 7 * 3600;
+/// The fixture clock at its epoch, running. The preview never reads
+/// wall-clock time: every duration, timestamp and animation frame derives
+/// from virtual milliseconds that advance only with runtime ticks, so a
+/// given `--scenario … --frame N` renders the same picture every time.
+pub const CLOCK: SimClock = SimClock::new(EPOCH_SECS, UTC_OFFSET_SECS);
 
 /// Tick delivery (`--motion`): the library's [`Motion`].
 pub use junie_tui::motion::Motion;

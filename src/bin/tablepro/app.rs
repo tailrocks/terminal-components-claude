@@ -9,6 +9,7 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
+use junie_tui::clock::WallClock;
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
@@ -170,8 +171,8 @@ pub struct App {
     /// whether a right-click moves the cursor onto its row. Default
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key).
     pub context: ContextConfig,
-    /// Origin of the pointer clock.
-    pub(crate) epoch: Instant,
+    /// The pointer clock (press flash, hover delay, status expiry).
+    pub(crate) clock: WallClock,
     /// Open overlays, bottom to top; each restores the focus it covered.
     pub modals: ModalStack<Modal>,
     pub size: (u16, u16),
@@ -209,7 +210,7 @@ impl App {
             hits: HitRegistry::default(),
             pointer: PointerState::default(),
             context: ContextConfig::DEFAULT,
-            epoch: Instant::now(),
+            clock: WallClock::new(),
             modals: ModalStack::new(),
             size: (0, 0),
             tick: 0,
@@ -300,7 +301,7 @@ impl App {
 
     /// Milliseconds on the pointer clock.
     fn now_ms(&self) -> u64 {
-        self.epoch.elapsed().as_millis() as u64
+        self.clock.now_ms()
     }
 
     /// The clock a press flash is read against: frozen at the epoch under

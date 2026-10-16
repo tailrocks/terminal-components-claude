@@ -56,13 +56,13 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 5] = [
     ),
     (
         "src/bin/showcase/app.rs",
-        2,
-        "press-flash and status-message expiry; both only expire on a tick, which --motion paused stops",
+        1,
+        "status-message expiry; it only expires on a tick, which --motion paused stops",
     ),
     (
         "src/bin/tablepro/app.rs",
-        2,
-        "press-flash and status-message expiry; the flash clock is frozen under --motion paused",
+        1,
+        "status-message expiry; it only expires on a tick, which --motion paused stops",
     ),
 ];
 
