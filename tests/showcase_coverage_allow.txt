@@ -777,6 +777,7 @@ widgets::hintbar::HintLayer | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::align | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::badge | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::status | Chrome and Status & hints pages | SC4
+widgets::hintbar::HintLayer::status_parts | Chrome and Status & hints pages | SC4
 
 # widgets::icon_button
 widgets::icon_button::IconLook | Buttons page options and States grid | SC7

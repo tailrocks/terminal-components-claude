@@ -849,6 +849,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::hintbar::HintLayer::align"),
     Capability::builder("widgets::hintbar::HintLayer::badge"),
     Capability::builder("widgets::hintbar::HintLayer::status"),
+    Capability::builder("widgets::hintbar::HintLayer::status_parts"),
     Capability::ty("widgets::hintbar::HintBar"),
     // widgets::icon_button
     Capability::ty("widgets::icon_button::IconLook"),
