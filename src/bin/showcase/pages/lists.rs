@@ -1,20 +1,27 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
+use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("lists");
+const MENU: WidgetId = WidgetId::of("lists.menu");
 
 pub struct ListsPage {
     single: ListBox,
     multi: ListBox,
     empty: ListBox,
+    /// The row menu: which list (by id) and which row it is about.
+    menu: RowMenu<(WidgetId, usize)>,
 }
 
 impl ListsPage {
@@ -52,11 +59,76 @@ impl ListsPage {
             single,
             multi,
             empty,
+            menu: RowMenu::default(),
         }
     }
 
     fn lists(&mut self) -> [&mut ListBox; 3] {
         [&mut self.single, &mut self.multi, &mut self.empty]
+    }
+
+    fn list_mut(&mut self, id: WidgetId) -> Option<&mut ListBox> {
+        self.lists().into_iter().find(|l| l.id == id)
+    }
+
+    /// What a row of `l` offers: only what its keys already do.
+    fn row_items(l: &ListBox, row: usize) -> Vec<MenuItem> {
+        let item = &l.items[row];
+        match l.mode {
+            SelectMode::Single => {
+                let choose = MenuItem::new("Choose").shortcut("Enter");
+                vec![if item.disabled {
+                    choose.reason("Unavailable")
+                } else if l.chosen == Some(row) {
+                    choose.reason("Already chosen")
+                } else {
+                    choose
+                }]
+            }
+            SelectMode::Multi => {
+                let toggle = MenuItem::new(if l.checked[row] { "Exclude" } else { "Include" })
+                    .shortcut("Space");
+                let toggle = if item.disabled {
+                    toggle.reason(format!("{} file", item.meta.as_deref().unwrap_or("Locked")))
+                } else {
+                    toggle
+                };
+                let all = l
+                    .items
+                    .iter()
+                    .zip(&l.checked)
+                    .filter(|(it, _)| !it.disabled)
+                    .all(|(_, c)| *c);
+                vec![
+                    toggle.separator(),
+                    MenuItem::new(if all { "Select none" } else { "Select all" }).shortcut("a"),
+                ]
+            }
+        }
+    }
+
+    /// Open the row menu `req` asks for on list `id`.
+    fn open_menu(&mut self, id: WidgetId, req: ContextRequest<usize>) {
+        let Some(l) = self.list_mut(id) else {
+            return;
+        };
+        let title = l.items[req.target].label.clone();
+        let items = Self::row_items(l, req.target);
+        self.menu
+            .open(req.menu(MENU, items).title(title), (id, req.target));
+    }
+
+    /// Item `i` of the menu about `row` of list `id`: the same path the
+    /// item's key takes.
+    fn choose(&mut self, (id, row): (WidgetId, usize), i: usize) -> Outcome {
+        let Some(l) = self.list_mut(id) else {
+            return Outcome::Consumed;
+        };
+        l.cursor = row;
+        match i {
+            0 => l.activate(row),
+            _ => l.on_key(&plain(KeyCode::Char('a'))),
+        }
     }
 }
 
@@ -149,20 +221,47 @@ impl Page for ListsPage {
         let bg = panel.bg(t);
         let inner = panel.render(cols[2], buf, t);
         self.empty.render(inner, buf, ctx, bg);
+        self.menu.render(area, buf, ctx);
+    }
+
+    fn layer_open(&self) -> bool {
+        self.menu.hides_page_focus()
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some((out, chosen)) = self.menu.handle(ev) {
+            return match chosen {
+                Some((target, i)) => self.choose(target, i).or(out),
+                None => out,
+            };
+        }
         match ev {
             PageEvent::Key(key) => {
                 let Some(f) = cx.focus.current() else {
                     return Outcome::Ignored;
                 };
-                for l in self.lists() {
-                    if l.id == f {
-                        return l.on_key(key);
-                    }
+                let cfg = self.menu.config;
+                let Some(l) = self.list_mut(f) else {
+                    return Outcome::Ignored;
+                };
+                if let Some(req) = cfg.on_key(l, key) {
+                    self.open_menu(f, req);
+                    return Outcome::Changed;
                 }
-                Outcome::Ignored
+                l.on_key(key)
+            }
+            PageEvent::Secondary { id, pos } => {
+                let cfg = self.menu.config;
+                let hit = self
+                    .lists()
+                    .into_iter()
+                    .find_map(|l| cfg.on_secondary(l, *id, *pos).map(|req| (l.id, req)));
+                let Some((list, req)) = hit else {
+                    return Outcome::Ignored;
+                };
+                cx.focus.focus(list);
+                self.open_menu(list, req);
+                Outcome::Changed
             }
             PageEvent::Click { id, pos } => {
                 for l in self.lists() {
@@ -197,15 +296,23 @@ impl Page for ListsPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
-        if focus == Some(self.multi.id) {
+        if self.menu.is_open() {
+            MENU_HINTS.to_vec()
+        } else if focus == Some(self.multi.id) {
             vec![
                 ("↑↓", "Move"),
                 ("Space", "Toggle"),
                 ("a", "All / none"),
                 ("Shift+↓", "Range"),
+                OPEN_HINT,
             ]
         } else {
-            vec![("↑↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
+            vec![
+                ("↑↓", "Move"),
+                ("Enter", "Choose"),
+                ("g G", "Ends"),
+                OPEN_HINT,
+            ]
         }
     }
 }
