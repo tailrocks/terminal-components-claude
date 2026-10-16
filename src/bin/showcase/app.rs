@@ -983,12 +983,8 @@ impl App {
         for (label, id) in [(help, HEADER_HELP), (insp, HEADER_INSPECT)] {
             let w = junie_tui::ui::text::width(label) as u16;
             rx = rx.saturating_sub(w);
-            let hovered = ctx.interaction.hovered(id);
-            let style = if hovered {
-                t.primary().bg(t.surface)
-            } else {
-                t.muted()
-            };
+            // a header link: rest, hover and press from the shared ladder
+            let style = ctx.title_style(id, t.canvas);
             buf.set_string(rx, area.y, label, style);
             ctx.clickable(id, Rect::new(rx, area.y, w, 1));
             rx = rx.saturating_sub(1);
