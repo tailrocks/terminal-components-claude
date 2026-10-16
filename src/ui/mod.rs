@@ -5,6 +5,7 @@ pub mod context;
 pub mod ctx;
 pub mod fade;
 pub mod layout;
+pub mod leave;
 pub mod modal;
 pub mod popup;
 pub mod reveal;
