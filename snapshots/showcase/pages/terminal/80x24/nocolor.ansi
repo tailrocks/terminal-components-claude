@@ -2,19 +2,19 @@
                                                                                 [0m
  [0m[1mComponents[0m      54  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · … [0m
                                                                                 [0m
-    Overview         ╭─ Viewp… ─ 37 lines · following ─╮ │  Step rail   7 of 7  [0m
-  ▸ App shell        │  [0m[2m  #10 COPY rust-toolchain.to [0m┆ │ │                      [0m
-  ▸ Inputs & forms   │    #11 RUN cargo fetch --lock ┆ │ │   ✓ 01 Resolve wo…   [0m
-  ▸ Tables           │    #12 RUN cargo build --rele ┆ │ │   ✓ 02 Pull base …   [0m
-  ▸ Navigation       │    #13 RUN apt-get install -y ┆ │ │   ✓ 03 Build cont…   [0m
-  ▸ Overlays         │    #14 COPY rust-toolchain.to ┆ │ │     04 Mount sour…   [0m
-  ▸ Feedback         │  ✓ Build container            ┆ │ │   ✓ 05 Resolve cr…   [0m
-  ▸ Layout           │  [0m[1m▶ Resolve credentials[0m        ┆ │ │   ✓ 06 Start agent   [0m
-  ▾ Text & code      │    1Password  Engineering › A ┆ │ │   ✓ 07 Ready         [0m
-      Code editor    │  ✓ Resolve credentials        ┆ │ │                      [0m
-      Diff           │  [0m[1m▶ Start agent[0m                ┃ │ │                      [0m
- [0m[1m▎  › Terminal     [0m  │    claude --resume  pid 4188  ┃ │ │                      [0m
-      Text utilit…   │  ✓ Start agent                ┃ │ │                      [0m
+    Overview         [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▸ Tables           ╭─ Viewp… ─ 38 lines · following ─╮ │  Step rail   7 of 7  [0m
+  ▸ Navigation       │  [0m[2m  #13 RUN apt-get install -y [0m┆ │ │                      [0m
+  ▸ Overlays         │    #14 COPY rust-toolchain.to ┆ │ │   ✓ 01 Resolve wo…   [0m
+  ▸ Feedback         │  ✓ Build container            ┆ │ │   ✓ 02 Pull base …   [0m
+  ▸ Layout           │  [0m[1m▶ Resolve credentials[0m        ┆ │ │   ✓ 03 Build cont…   [0m
+  ▾ Text & code      │    1Password  Engineering › A ┆ │ │     04 Mount sour…   [0m
+      Code editor    │  ✓ Resolve credentials        ┆ │ │   ✓ 05 Resolve cr…   [0m
+      Diff           │  [0m[1m▶ Start agent[0m                ┆ │ │   ✓ 06 Start agent   [0m
+ [0m[1m▎  › Terminal     [0m  │    claude --resume  pid 4188  ┆ │ │   ✓ 07 Ready         [0m
+      Text utilit…   │  ✓ Start agent                ┆ │ │                      [0m
   ▸ Screens          │  [0m[1m▶ Ready[0m                      ┃ │ │                      [0m
                      │  ✓ Ready                      ┃ │ │                      [0m
                      │  [0m[1mpayments-platform ❯ [0m         ┃ │ │                      [0m
