@@ -134,6 +134,7 @@ pub const SITES: &[Site] = &[
     rows("jackin_preview/screens/settings.rs::open_preview", &["jackin/settings/save_preview"]),
     // ---------------------------------------------------------- showcase --
     rows("showcase/app.rs::open_help", &["showcase/flows/help/overlay"]),
+    rows("showcase/app.rs::open_quit", &["showcase/overlays/quit_confirm"]),
     rows("showcase/pages/chrome.rs::open_context", &["showcase/flows/chrome/context", "showcase/overlays/chrome_context_row"]),
     rows("showcase/pages/dialogs.rs::open", &["showcase/flows/dialogs/open", "showcase/flows/dialogs/prompt", "showcase/flows/dialogs/destructive"]),
     rows("showcase/pages/grid.rs::on_event", &["showcase/flows/datagrid/preview"]),

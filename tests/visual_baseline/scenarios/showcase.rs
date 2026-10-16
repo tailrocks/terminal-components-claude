@@ -144,6 +144,8 @@ pub const OVERLAYS: &[Root] = &[
     // Pending: overlays reached by pointer, with both dismissals.
     Root::new("showcase/overlays/chrome_context_row", Bin::Showcase, &["--page", "chrome"], BOOT).right_click("Codex (Primary)").pending().dismiss_pending(),
     Root::new("showcase/overlays/lists_context", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "shift-f10"]).pending().dismiss_pending(),
+    // mouse #40: the brand asks before quitting.
+    Root::new("showcase/overlays/quit_confirm", Bin::Showcase, &["--page", "overview"], BOOT).click("Junie").pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
