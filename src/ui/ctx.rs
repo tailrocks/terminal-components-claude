@@ -50,7 +50,7 @@ pub struct Interaction {
     /// How long the pointer has rested on [`Self::hover`], in ms
     /// ([`crate::core::pointer::PointerState::hover_ms`]). Delayed hover
     /// content (an expansion tooltip after [`crate::ui::reveal::Reveal::delay_ms`],
-    /// a tooltip) waits on it. `None` (the default,
+    /// a [`crate::ui::tooltip`]) waits on it. `None` (the default,
     /// and for a paused capture): the time is unknown and nothing waits.
     pub hover_ms: Option<u64>,
 }
@@ -146,6 +146,9 @@ pub struct RenderCtx<'a> {
     /// App-wide default for revealing truncated text; widgets may override
     /// it (see [`crate::ui::reveal`]).
     pub reveal: crate::ui::reveal::Reveal,
+    /// App-wide tooltip policy (see [`crate::ui::tooltip`]); a call may
+    /// override it.
+    pub tooltips: crate::ui::tooltip::Tooltips,
     /// App-wide default for content wider than its area (horizontal
     /// scrolling and its bar); widgets may override it.
     pub hscroll: crate::core::scroll::HScroll,
@@ -178,12 +181,14 @@ impl<'a> RenderCtx<'a> {
             inert: false,
             overlays: Vec::new(),
             reveal: crate::ui::reveal::Reveal::default(),
+            tooltips: crate::ui::tooltip::Tooltips::default(),
             hscroll: crate::core::scroll::HScroll::default(),
             track_click: crate::core::scroll::TrackClick::Jump,
             reveal_hint: None,
             reveal_slot: {
                 crate::ui::reveal::clear_cuts();
                 crate::ui::reveal::begin_frame();
+                crate::ui::tooltip::begin_frame();
                 crate::ui::reveal::Slot::default()
             },
         }
