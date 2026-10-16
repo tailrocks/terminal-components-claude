@@ -609,3 +609,138 @@ fn checks_states_grid_shows_all_three_widgets() {
         .to_vec();
     assert!(rows.contains(&junie_tui::ui::specimen::SpecimenState::Disabled));
 }
+
+// ----------------------------------------------------------------- SC10
+
+fn sort_select(h: &Harness) -> &junie_tui::widgets::select::Select {
+    h.app.pages[PageId::Chips.index()]
+        .as_any()
+        .and_then(|a| a.downcast_ref::<crate::pages::chips::ChipsPage>())
+        .expect("chips page")
+        .sort()
+}
+
+fn focus(h: &mut Harness, id: junie_tui::core::id::WidgetId) {
+    h.app.focus.focus(id);
+    h.draw();
+}
+
+const CHIPS: junie_tui::core::id::WidgetId = junie_tui::core::id::WidgetId::of("chips");
+
+#[test]
+fn chips_digits_switch_streams_only_when_the_bar_asks() {
+    for (value, switched) in [("on", true), ("off", false)] {
+        let mut h = Harness::new(120, 40, PageId::Chips);
+        h.opt(&format!("chipsselects.digit_toggles={value}"));
+        focus(&mut h, CHIPS.sub("streams"));
+        h.key(KeyCode::Char('2'));
+        assert_eq!(
+            h.text().contains("last action: stream worker off"),
+            switched,
+            "{value}"
+        );
+    }
+    // Space switches the cursor stream either way
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    focus(&mut h, CHIPS.sub("streams"));
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("last action: stream api off"));
+}
+
+#[test]
+fn chips_overflow_marker_and_menu_follow_the_options() {
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    h.opt("chipsselects.bar_width=40");
+    let (x, y) = h.at("+3");
+    h.click(x, y);
+    // the menu lists the hidden chips; choosing one activates it
+    let (mx, my) = h.at("country in (DE, FR)");
+    h.click(mx, my);
+    assert_eq!(h.status(), "Would open the editor for country in (DE, FR)");
+    h.opt("chipsselects.overflow_menu=off");
+    let (x, y) = h.at("+3");
+    h.click(x, y);
+    assert!(h.find("total > 100").is_none(), "no menu: {}", h.text());
+    h.opt("chipsselects.overflow_marker=off");
+    assert!(h.find("+3").is_none());
+}
+
+#[test]
+fn chips_custom_keymap_rebinds_remove_add_and_clear() {
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    h.opt("chipsselects.chip_keymap=custom");
+    focus(&mut h, CHIPS.sub("filters"));
+    h.key(KeyCode::Char('x'));
+    assert!(h.text().contains("last action: nothing yet"));
+    h.key(KeyCode::Delete);
+    assert!(h.text().contains("last action: removed status = 'pending'"));
+    h.key(KeyCode::Char('n'));
+    assert!(h.text().contains("last action: added created_at"));
+    h.key_mod(KeyCode::Delete, KeyModifiers::SHIFT);
+    assert!(h.text().contains("last action: cleared all filters"));
+}
+
+#[test]
+fn chips_select_arrows_step_or_open() {
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    focus(&mut h, CHIPS.sub("sort"));
+    h.key(KeyCode::Down);
+    assert!(!sort_select(&h).open);
+    assert_eq!(sort_select(&h).selected, 1);
+    h.opt("chipsselects.arrows=open");
+    h.key(KeyCode::Down);
+    assert!(sort_select(&h).open);
+    assert_eq!(
+        sort_select(&h).selected,
+        1,
+        "opening never changes the value"
+    );
+}
+
+#[test]
+fn chips_select_list_rows_placement_and_tab() {
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    h.opt("chipsselects.max_rows=4");
+    focus(&mut h, CHIPS.sub("sort"));
+    h.key(KeyCode::Enter);
+    let text = h.text();
+    assert!(text.contains("customer"), "{text}");
+    assert!(!text.contains("currency"), "4 rows only: {text}");
+    // Swallow keeps the list open on Tab
+    h.opt("chipsselects.tab_in_open=swallow");
+    focus(&mut h, CHIPS.sub("sort"));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Tab);
+    assert!(sort_select(&h).open);
+    // above the field
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    let (_, field) = h.at("created_at  ");
+    h.opt("chipsselects.placement=above");
+    focus(&mut h, CHIPS.sub("sort"));
+    h.key(KeyCode::Enter);
+    let (_, first) = h.at("total");
+    assert!(first < field, "the list opens above the field");
+}
+
+#[test]
+fn chips_select_dismiss_and_mixed_follow_the_options() {
+    // light: an outside click closes the list; escape-only (with the
+    // list kept open on blur) leaves it open, and Esc closes it
+    for (value, closes) in [("light", true), ("escape", false)] {
+        let mut h = Harness::new(120, 40, PageId::Chips);
+        h.opt(&format!("chipsselects.dismiss={value}"));
+        h.opt("chipsselects.close_on_blur=off");
+        focus(&mut h, CHIPS.sub("sort"));
+        h.key(KeyCode::Enter);
+        assert!(sort_select(&h).open);
+        let (x, y) = h.at("Filters");
+        h.click(x, y);
+        assert_eq!(!sort_select(&h).open, closes, "{value}");
+        focus(&mut h, CHIPS.sub("sort"));
+        h.key(KeyCode::Esc);
+        assert!(!sort_select(&h).open, "{value}: Esc closes");
+    }
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    h.opt("chipsselects.mixed=on");
+    assert!(h.text().contains("Mixed"));
+}

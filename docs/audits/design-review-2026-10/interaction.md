@@ -171,3 +171,19 @@ click, Ctrl+click on macOS, `Shift+F10`: Edit, Delete…). DataTable is the
 only widget with a toggle modifier: ListBox multi mode toggles on a plain
 click (`ClickAction::Activate`) and DataGrid takes no click modifiers, so
 neither changes.
+
+## SC10 finding: a select's outside-click policy and its blur overlap (recorded, 2026-10-16)
+
+Found while showing `Select::dismiss` on Chips & selects. Under
+`Dismiss::ESCAPE` a select registers no backdrop, so an outside click
+reaches the page beneath. A click on dead space then ends the field's
+edit (`PointerConfig::end_edit_on_dead_space`), the select gets a blur
+and `Select::on_blur` closes the list per `Select::close_on_blur` (default
+on), which ignores `Dismiss::focus_out`. So "only Esc closes" does not
+hold with the defaults: two knobs (`close_on_blur` and
+`Dismiss::focus_out`) decide the same thing. Not fixed in SC10: S5 owns
+popup dismissal and layers, and SC31 shows `Dismiss::focus_out`; the fix
+belongs there (one knob, `focus_out`, and a refused outside click that is
+consumed rather than passed to dead space). The showcase demonstrates the
+two policies with `close_on_blur` off, where they differ as documented
+(`app_tests_inputs_forms::chips_select_dismiss_and_mixed_follow_the_options`).

@@ -455,6 +455,175 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::specimen::StateGrid::focus_mark",
         Option("buttons", "buttons.focus_mark"),
     ),
+    // SC10 Chips & selects
+    (
+        "widgets::chips::ChipCmd",
+        Option("chipsselects", "chipsselects.chip_keymap"),
+    ),
+    (
+        "widgets::chips::ChipCmd::Remove",
+        Option("chipsselects", "chipsselects.chip_keymap=custom"),
+    ),
+    (
+        "widgets::chips::ChipCmd::Add",
+        Option("chipsselects", "chipsselects.chip_keymap=custom"),
+    ),
+    (
+        "widgets::chips::ChipCmd::ClearAll",
+        Option("chipsselects", "chipsselects.chip_keymap=custom"),
+    ),
+    (
+        "widgets::chips::ChipBar::close_target_w",
+        Option("chipsselects", "chipsselects.close_target"),
+    ),
+    (
+        "widgets::chips::ChipBar::close_button",
+        Option("chipsselects", "chipsselects.close_button"),
+    ),
+    (
+        "widgets::chips::ChipBar::overflow_menu",
+        Option("chipsselects", "chipsselects.overflow_menu"),
+    ),
+    (
+        "widgets::chips::ChipBar::more_button",
+        Option("chipsselects", "chipsselects.more_button"),
+    ),
+    (
+        "widgets::chips::ChipBar::nav",
+        Option("chipsselects", "chipsselects.chip_nav"),
+    ),
+    (
+        "widgets::chips::ChipBar::keymap",
+        Option("chipsselects", "chipsselects.chip_keymap"),
+    ),
+    (
+        "widgets::chips::ChipBar::overflow_marker",
+        Option("chipsselects", "chipsselects.overflow_marker"),
+    ),
+    (
+        "widgets::chips::ChipBar::digit_toggles",
+        Option("chipsselects", "chipsselects.digit_toggles"),
+    ),
+    (
+        "widgets::select::SelectArrows",
+        Option("chipsselects", "chipsselects.arrows"),
+    ),
+    (
+        "widgets::select::SelectArrows::Step",
+        Option("chipsselects", "chipsselects.arrows=step"),
+    ),
+    (
+        "widgets::select::SelectArrows::Open",
+        Option("chipsselects", "chipsselects.arrows=open"),
+    ),
+    (
+        "widgets::select::WheelMode",
+        Option("chipsselects", "chipsselects.wheel"),
+    ),
+    (
+        "widgets::select::WheelMode::Viewport",
+        Option("chipsselects", "chipsselects.wheel=viewport"),
+    ),
+    (
+        "widgets::select::WheelMode::Cursor",
+        Option("chipsselects", "chipsselects.wheel=cursor"),
+    ),
+    (
+        "widgets::select::TabInOpen",
+        Option("chipsselects", "chipsselects.tab_in_open"),
+    ),
+    (
+        "widgets::select::TabInOpen::Choose",
+        Option("chipsselects", "chipsselects.tab_in_open=choose"),
+    ),
+    (
+        "widgets::select::TabInOpen::Close",
+        Option("chipsselects", "chipsselects.tab_in_open=close"),
+    ),
+    (
+        "widgets::select::TabInOpen::Swallow",
+        Option("chipsselects", "chipsselects.tab_in_open=swallow"),
+    ),
+    (
+        "widgets::select::Select::wheel",
+        Option("chipsselects", "chipsselects.wheel"),
+    ),
+    (
+        "widgets::select::Select::hover_moves_cursor",
+        Option("chipsselects", "chipsselects.hover_moves_cursor"),
+    ),
+    (
+        "widgets::select::Select::press_drag",
+        Option("chipsselects", "chipsselects.press_drag"),
+    ),
+    (
+        "widgets::select::Select::label_hit",
+        Option("chipsselects", "chipsselects.label_hit"),
+    ),
+    (
+        "widgets::select::Select::track_click",
+        Option("chipsselects", "chipsselects.track_click"),
+    ),
+    (
+        "widgets::select::Select::nav",
+        Option("chipsselects", "chipsselects.select_nav"),
+    ),
+    (
+        "widgets::select::Select::dismiss",
+        Option("chipsselects", "chipsselects.dismiss"),
+    ),
+    (
+        "widgets::select::Select::max_rows",
+        Option("chipsselects", "chipsselects.max_rows"),
+    ),
+    (
+        "widgets::select::Select::placement",
+        Option("chipsselects", "chipsselects.placement"),
+    ),
+    (
+        "widgets::select::Select::popup_fit",
+        Option("chipsselects", "chipsselects.popup_fit"),
+    ),
+    (
+        "widgets::select::Select::popup_width",
+        Option("chipsselects", "chipsselects.popup_width"),
+    ),
+    (
+        "widgets::select::Select::cursor_style",
+        Option("chipsselects", "chipsselects.cursor_style"),
+    ),
+    (
+        "widgets::select::Select::mixed",
+        Option("chipsselects", "chipsselects.mixed"),
+    ),
+    (
+        "widgets::select::Select::wrap",
+        Option("chipsselects", "chipsselects.wrap"),
+    ),
+    (
+        "widgets::select::Select::type_ahead",
+        Option("chipsselects", "chipsselects.type_ahead"),
+    ),
+    (
+        "widgets::select::Select::arrows",
+        Option("chipsselects", "chipsselects.arrows"),
+    ),
+    (
+        "widgets::select::Select::close_on_blur",
+        Option("chipsselects", "chipsselects.close_on_blur"),
+    ),
+    (
+        "widgets::select::Select::tab_in_open",
+        Option("chipsselects", "chipsselects.tab_in_open"),
+    ),
+    (
+        "widgets::select::Select::help",
+        Demo("chipsselects", "Applies to the next query"),
+    ),
+    (
+        "widgets::select::Select::disabled",
+        Demo("chipsselects", "Fixed by the connection"),
+    ),
     // SC9 Checks & radios
     (
         "widgets::choice::CheckHit",

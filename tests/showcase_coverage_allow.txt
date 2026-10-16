@@ -406,24 +406,13 @@ widgets::breadcrumb::Breadcrumb::clickable | Breadcrumbs & rails page | SC5
 # widgets::button
 
 # widgets::chips
-widgets::chips::ChipCmd | Chips & selects page options | SC10
-widgets::chips::ChipCmd::Remove | Chips & selects page options | SC10
-widgets::chips::ChipCmd::Add | Chips & selects page options | SC10
-widgets::chips::ChipCmd::ClearAll | Chips & selects page options | SC10
-widgets::chips::ChipAction | Chips & selects page options | SC10
-widgets::chips::ChipAction::Activate | Chips & selects page options | SC10
-widgets::chips::ChipAction::Toggle | Chips & selects page options | SC10
-widgets::chips::ChipAction::Remove | Chips & selects page options | SC10
-widgets::chips::ChipAction::Add | Chips & selects page options | SC10
-widgets::chips::ChipAction::Lead | Chips & selects page options | SC10
-widgets::chips::ChipAction::ClearAll | Chips & selects page options | SC10
-widgets::chips::ChipBar::close_target_w | Chips & selects page options | SC10
-widgets::chips::ChipBar::close_button | Chips & selects page options | SC10
-widgets::chips::ChipBar::overflow_menu | Chips & selects page options | SC10
-widgets::chips::ChipBar::more_button | Chips & selects page options: a custom +N button | SC10
-widgets::chips::ChipBar::nav | Chips & selects page options | SC10
-widgets::chips::ChipBar::keymap | Chips & selects page options | SC10
-widgets::chips::ChipBar::overflow_marker | Chips & selects page options | SC10
+widgets::chips::ChipAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::chips::ChipAction::Activate | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::chips::ChipAction::Toggle | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::chips::ChipAction::Remove | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::chips::ChipAction::Add | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::chips::ChipAction::Lead | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::chips::ChipAction::ClearAll | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::choice
 
@@ -943,38 +932,8 @@ widgets::segments::Segment::priority | Chrome and Status & hints pages | SC4
 widgets::segments::Segment::lead | Chrome and Status & hints pages | SC4
 
 # widgets::select
-widgets::select::SelectArrows | Chips & selects page options | SC10
-widgets::select::SelectArrows::Step | Chips & selects page options | SC10
-widgets::select::SelectArrows::Open | Chips & selects page options | SC10
-widgets::select::WheelMode | Chips & selects page options | SC10
-widgets::select::WheelMode::Viewport | Chips & selects page options | SC10
-widgets::select::WheelMode::Cursor | Chips & selects page options | SC10
-widgets::select::SelectAction | Chips & selects page options | SC10
-widgets::select::SelectAction::Changed | Chips & selects page options | SC10
-widgets::select::Select::wheel | Chips & selects page options | SC10
-widgets::select::Select::hover_moves_cursor | Chips & selects page options | SC10
-widgets::select::Select::press_drag | Chips & selects page options | SC10
-widgets::select::Select::label_hit | Chips & selects page options | SC10
-widgets::select::Select::track_click | Chips & selects page options | SC10
-widgets::select::Select::nav | Chips & selects page options | SC10
-widgets::select::Select::dismiss | Chips & selects page options | SC10
-widgets::select::Select::max_rows | Chips & selects page options | SC10
-widgets::select::Select::placement | Chips & selects page options | SC10
-widgets::select::Select::popup_fit | Chips & selects page options | SC10
-widgets::select::Select::popup_width | Chips & selects page options | SC10
-widgets::select::Select::cursor_style | Chips & selects page options | SC10
-widgets::select::Select::help | Chips & selects page options | SC10
-widgets::select::Select::disabled | Chips & selects page options | SC10
-widgets::select::Select::mixed | Chips & selects page options | SC10
-widgets::select::Select::wrap | Chips & selects page options | SC10
-widgets::select::Select::type_ahead | Chips & selects page options | SC10
-widgets::select::Select::arrows | Chips & selects page options | SC10
-widgets::select::Select::close_on_blur | Chips & selects page options | SC10
-widgets::select::Select::tab_in_open | Chips & selects page options | SC10
-widgets::select::TabInOpen | Chips & selects page options | SC10
-widgets::select::TabInOpen::Choose | Chips & selects page options | SC10
-widgets::select::TabInOpen::Close | Chips & selects page options | SC10
-widgets::select::TabInOpen::Swallow | Chips & selects page options | SC10
+widgets::select::SelectAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::select::SelectAction::Changed | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::splitter
 widgets::splitter::SeamDoubleClick | Splits & stacks page | SC23
