@@ -1193,18 +1193,30 @@ impl App {
     }
 
     fn open_help(&mut self) {
-        let text = "Tab / Shift+Tab   move focus · 0 explorer · Esc back\n\
-                    Ctrl+O            Open Quickly (tables, schemas, tabs, queries)\n\
-                    Ctrl+T / Ctrl+W   new / close tab · [ ] switch · Ctrl+G tab list\n\
-                    Ctrl+R / F5       run statement at cursor · Alt+R run all\n\
-                    Ctrl+X / Alt+X    EXPLAIN / EXPLAIN ANALYZE\n\
-                    Esc / Ctrl+C      cancel a running query\n\
-                    Ctrl+D            Data / Structure · Ctrl+F filter (grid) or find (editor)\n\
-                    Alt+D             duplicate the current grid row\n\
-                    Ctrl+S            save pending row changes · p preview SQL\n\
-                    Ctrl+Y            query history · Ctrl+L Safe Mode · Ctrl+B explorer · z zoom\n\
-                    q                 quit";
-        let mut d = Dialog::confirm(HELP_DIALOG, "Keyboard", text, "Close");
+        // a key reference: wrapped descriptions hang under their column
+        let text = junie_tui::widgets::keyref::KeyReference::new()
+            .key("Tab / Shift+Tab", "move focus · 0 explorer · Esc back")
+            .key("Ctrl+O", "Open Quickly (tables, schemas, tabs, queries)")
+            .key(
+                "Ctrl+T / Ctrl+W",
+                "new / close tab · [ ] switch · Ctrl+G tab list",
+            )
+            .key("Ctrl+R / F5", "run statement at cursor · Alt+R run all")
+            .key("Ctrl+X / Alt+X", "EXPLAIN / EXPLAIN ANALYZE")
+            .key("Esc / Ctrl+C", "cancel a running query")
+            .key(
+                "Ctrl+D",
+                "Data / Structure · Ctrl+F filter (grid) or find (editor)",
+            )
+            .key("Alt+D", "duplicate the current grid row")
+            .key("Ctrl+S", "save pending row changes · p preview SQL")
+            .key(
+                "Ctrl+Y",
+                "query history · Ctrl+L Safe Mode · Ctrl+B explorer · z zoom",
+            )
+            .key("q", "quit")
+            .text();
+        let mut d = Dialog::confirm(HELP_DIALOG, "Keyboard", &text, "Close");
         d.actions.remove(0);
         d.cancel_index = Some(0);
         d.initial_focus = d.actions[0].id;
