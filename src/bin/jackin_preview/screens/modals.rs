@@ -5,7 +5,10 @@
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::hit::Axis;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent, scroll_input};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
 use junie_tui::ui::text::truncate;
@@ -16,10 +19,9 @@ use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem, PickerStatus};
 use junie_tui::widgets::progress::render_spinner;
-use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 
 use crate::domain::onepassword::OpReference;
 use crate::sim::onepassword::{FieldKind, OpError, SimOnePassword};
@@ -347,36 +349,37 @@ impl FileBrowser {
         }
     }
 
-    /// A press on `id` with the click count it starts: the path field
-    /// remembers it for the drag.
-    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-        if id == self.path.id {
-            return self.path.on_press_count(pos, count);
+    /// The path field takes its gestures (a press anchors a drag, a drag
+    /// selects, a click places the caret or selects a word); the wheel
+    /// anywhere scrolls the list and its bar pages and drags it; a click
+    /// picks an entry (again opens it) or presses a control.
+    pub fn pointer(&mut self, ev: &PointerEvent, focus: &mut Focus, w: &World) -> Outcome {
+        if let Some((axis, delta)) = ev.wheel() {
+            return match axis {
+                Axis::Vertical => self.list.wheel(axis, delta).outcome(),
+                Axis::Horizontal => Outcome::Consumed,
+            };
         }
-        Outcome::Ignored
-    }
-
-    /// A drag held since a press on `pressed`: the path field selects.
-    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if pressed == self.path.id {
-            return self.path.on_drag(pos);
+        if let Some(r) = self.path.route(ev) {
+            if ev.is(Phase::Click) {
+                focus.focus(self.path.id);
+            }
+            return r.outcome();
         }
-        Outcome::Ignored
-    }
-
-    pub fn on_click(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        clicks: u8,
-        focus: &mut Focus,
-        w: &World,
-    ) -> Outcome {
-        if id == self.path.id {
-            focus.focus(id);
-            return self.path.on_click_count(pos, clicks.max(1));
+        if ev.on(self.list.id)
+            && let Some(r) = scroll_input(&mut self.list, ev)
+        {
+            return r.outcome();
         }
-        if let Some(i) = self.list.locate(id) {
+        if !ev.is(Phase::Click) {
+            return Outcome::Ignored;
+        }
+        let id = ev.id;
+        if let Some(i) = ev
+            .on(self.list.id)
+            .then(|| ev.index_of(Part::ROW))
+            .flatten()
+        {
             focus.focus(self.list.id);
             let was = self.list.cursor == i;
             self.list.cursor = i;
@@ -385,9 +388,6 @@ impl FileBrowser {
                 return self.open_cursor(w);
             }
             return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(self.list.id) {
-            return self.list.on_scrollbar(pos);
         }
         if let Some(c) = self.readonly.as_mut()
             && c.id == id
@@ -412,10 +412,6 @@ impl FileBrowser {
             return self.choose(w);
         }
         Outcome::Consumed
-    }
-
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.list.on_wheel(delta)
     }
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
@@ -540,26 +536,8 @@ impl Layer<ModalResult, World> for FileBrowser {
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, World>) -> Outcome {
         FileBrowser::on_key(self, key, cx.focus, cx.ring, cx.app).or(Outcome::Consumed)
     }
-    fn on_click_count(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        count: u8,
-        cx: &mut LayerCx<'_, World>,
-    ) -> Outcome {
-        FileBrowser::on_click(self, id, pos, count, cx.focus, cx.app)
-    }
-    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, World>) -> Outcome {
-        FileBrowser::on_click(self, id, pos, 1, cx.focus, cx.app)
-    }
-    fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-        FileBrowser::on_press(self, id, pos, count)
-    }
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        FileBrowser::on_drag(self, pressed, pos)
-    }
-    fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        FileBrowser::on_wheel(self, delta)
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, World>) -> Outcome {
+        FileBrowser::pointer(self, ev, cx.focus, cx.app)
     }
     fn on_paste(&mut self, text: &str) -> Outcome {
         FileBrowser::on_paste(self, text)
@@ -973,21 +951,28 @@ impl OpFlow {
         }
     }
 
-    pub fn on_click(&mut self, id: WidgetId, now_ms: i64, op: &SimOnePassword) -> Outcome {
-        match self.picker.on_click(id) {
+    /// The picker takes its gestures (a click chooses a row, its bar
+    /// pages and drags, the wheel scrolls it); a click on its backdrop
+    /// cancels under the flow's own policy, as any outside click.
+    pub fn pointer(&mut self, ev: &PointerEvent, now_ms: i64, op: &SimOnePassword) -> Outcome {
+        let Some(r) = self.picker.route(ev) else {
+            return match ev.wheel() {
+                Some((Axis::Vertical, delta)) => self.picker.wheel(Axis::Vertical, delta).outcome(),
+                _ if ev.is(Phase::Click) => Outcome::Consumed,
+                _ => Outcome::Ignored,
+            };
+        };
+        let (o, act) = r.into_parts();
+        match act {
             Some(PickerAction::Chosen(i)) => self.choose(i, now_ms, op),
-            // a click outside lands on the picker's backdrop: the flow's
-            // own policy decides, as for any outside click
             Some(PickerAction::Cancelled) if self.dismiss.outside_click => {
                 self.dismissed = true;
                 Outcome::Changed
             }
-            _ => Outcome::Consumed,
+            Some(_) => Outcome::Consumed,
+            None if ev.is(Phase::Click) => o.or(Outcome::Consumed),
+            None => o,
         }
-    }
-
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        Scrollable::on_wheel(&mut self.picker, delta)
     }
 
     /// Footer hints for the current step (the shell's hint bar shows them).
@@ -1030,11 +1015,8 @@ impl Layer<ModalResult, World> for OpFlow {
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, World>) -> Outcome {
         OpFlow::on_key(self, key, cx.app.now_ms(), &cx.app.op).or(Outcome::Consumed)
     }
-    fn on_click(&mut self, id: WidgetId, _: Position, cx: &mut LayerCx<'_, World>) -> Outcome {
-        OpFlow::on_click(self, id, cx.app.now_ms(), &cx.app.op)
-    }
-    fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        OpFlow::on_wheel(self, delta)
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, World>) -> Outcome {
+        OpFlow::pointer(self, ev, cx.app.now_ms(), &cx.app.op)
     }
     fn on_tick(&mut self, w: &World) -> Outcome {
         self.tick(w.now_ms(), &w.op)

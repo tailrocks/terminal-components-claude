@@ -24,7 +24,7 @@ use junie_tui::widgets::keyhint::Hint;
 use junie_tui::widgets::picker::PickerItem;
 use junie_tui::widgets::segments::Segment;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
@@ -168,7 +168,7 @@ pub struct Cx<'a> {
     pub ring: &'a FocusRing,
     pub requests: Vec<Request>,
     /// Multi-click count of the click being delivered, or of the click a
-    /// press starts ([`junie_tui::core::pointer::PointerState`]); 1 for
+    /// press starts ([`junie_tui::core::pointer::PointerEvent::count`]); 1 for
     /// every other event.
     pub clicks: u8,
 }
@@ -216,86 +216,7 @@ pub trait Screen {
     /// axis (offered to each owner under the pointer, innermost first,
     /// until one takes it). Hand it to the owning widget
     /// ([`junie_tui::core::pointer::MouseTarget::route`]).
-    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
-        use junie_tui::core::hit::Axis;
-        use junie_tui::core::intent::Phase;
-        let (id, pos) = (ev.id, ev.pos());
-        if let Some((axis, delta)) = ev.wheel() {
-            return match axis {
-                Axis::Vertical => self.on_wheel(id, delta, pos, w),
-                Axis::Horizontal => self.on_wheel_h(id, delta, pos, w),
-            };
-        }
-        match ev.phase() {
-            Some(Phase::Press) => self.on_press(id, pos, w, cx),
-            Some(Phase::Drag) => self.on_drag(id, pos, w),
-            Some(Phase::DragEnd | Phase::Release) => self.on_release(id, pos, w, cx),
-            Some(Phase::Click) => {
-                let o = self.on_release(id, pos, w, cx);
-                if ev.count() >= 2 {
-                    let d = self.on_double_click(id, pos, w, cx);
-                    if d.consumed() {
-                        return d;
-                    }
-                }
-                o.or(self.on_click(id, pos, w, cx))
-            }
-            Some(Phase::Secondary) => self.on_secondary(id, pos, w, cx),
-            _ => Outcome::Ignored,
-        }
-    }
-    fn on_click(&mut self, _id: WidgetId, _pos: Position, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        let _ = (id, pos, w, cx);
-        Outcome::Ignored
-    }
-    fn on_drag(&mut self, _pressed: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
-        Outcome::Ignored
-    }
-    /// Secondary (right) mouse button on `id`: context menus.
-    fn on_secondary(
-        &mut self,
-        _id: WidgetId,
-        _pos: Position,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        Outcome::Ignored
-    }
-    /// Mouse button went down on `id`; a drag may follow before the click
-    /// completes on release. Screens that select text anchor here.
-    fn on_press(&mut self, _id: WidgetId, _pos: Position, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_release(
-        &mut self,
-        _pressed: WidgetId,
-        _pos: Position,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_wheel(&mut self, _id: WidgetId, _delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        Outcome::Ignored
-    }
-    /// Horizontal wheel (or Shift+wheel) over `id`: only content with a
-    /// horizontal axis reacts.
-    fn on_wheel_h(
-        &mut self,
-        _id: WidgetId,
-        _delta: i32,
-        _pos: Position,
-        _w: &mut World,
-    ) -> Outcome {
+    fn pointer(&mut self, _ev: &PointerEvent, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
     fn on_paste(&mut self, _text: &str, _w: &mut World) -> Outcome {
