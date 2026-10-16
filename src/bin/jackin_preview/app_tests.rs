@@ -612,6 +612,29 @@ fn editor_edits_count_once_preview_then_saves_and_returns() {
 }
 
 #[test]
+fn leaving_the_editor_name_field_by_click_runs_its_commit_hook() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    assert_eq!(h.app.route, Route::Editor);
+    let name = crate::screens::editor::NAME;
+    let a = h.app.hits.area_of(name).expect("the name field");
+    h.click(a.x + 3, a.y);
+    h.type_str("-x");
+    let dead = (2..40)
+        .flat_map(|y| (0..120).map(move |x| ratatui::layout::Position::new(x, y)))
+        .find(|p| h.app.hits.hit(*p).is_none())
+        .expect("some cell holds no control");
+    h.click(dead.x, dead.y);
+    assert_eq!(h.app.focus.current(), Some(name), "focus stays");
+    assert!(
+        h.text().contains("save to apply"),
+        "the editor's Committed hook ran: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn editor_env_plain_value_stays_masked_and_can_be_shown() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Down);

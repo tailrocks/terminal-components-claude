@@ -146,6 +146,18 @@ impl Screens {
     }
 }
 
+/// Every route that owns a screen, for broadcasting focus changes.
+const ROUTES: [Route; 8] = [
+    Route::Manager,
+    Route::Accounts,
+    Route::Usage,
+    Route::Settings,
+    Route::Editor,
+    Route::Prelude,
+    Route::Cockpit,
+    Route::Capsule,
+];
+
 pub struct App {
     pub theme: Theme,
     pub scenario: Scenario,
@@ -351,6 +363,56 @@ impl App {
     // ------------------------------------------------------------- input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        let out = self.handle_input(input);
+        out.or(self.forward_blur())
+    }
+
+    /// Hand every focus change the input caused to the modals and the
+    /// screens, so fields end their edits on the event path.
+    fn forward_blur(&mut self) -> Outcome {
+        let mut out = Outcome::Ignored;
+        for ch in self.focus.take_changes() {
+            let mut form_changed = false;
+            for entry in self.modals.iter_mut() {
+                out = out.or(match &mut entry.modal {
+                    Modal::Dialog(d) => d.on_blur(ch),
+                    Modal::Browser(b) => {
+                        junie_tui::core::focus::forward_blur(ch, &mut [&mut b.path])
+                    }
+                    Modal::Form(f) => {
+                        let o = f.on_blur(ch);
+                        form_changed |= !f.events.is_empty();
+                        o
+                    }
+                    _ => Outcome::Ignored,
+                });
+            }
+            if form_changed {
+                // the top form's queued Changed reaches its owner, as Enter's does
+                if let Some(top) = self.modals.top_mut()
+                    && let Modal::Form(f) = &mut top.modal
+                {
+                    f.events.clear();
+                }
+                self.form_changed();
+            }
+            for route in ROUTES {
+                let mut cx = Cx {
+                    focus: &mut self.focus,
+                    ring: &self.ring,
+                    requests: vec![],
+                };
+                if let Some(s) = self.screens.get_mut(route) {
+                    out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
+                }
+                let reqs = std::mem::take(&mut cx.requests);
+                self.apply_requests(reqs, route);
+            }
+        }
+        out
+    }
+
+    fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
             Input::Resize(w, h) => {
                 self.size = (w, h);
@@ -1678,6 +1740,7 @@ impl App {
             MouseKind::Down => {
                 let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
                     return if self.modals.is_empty() {
+                        self.pointer.dead_space(&mut self.focus);
                         Outcome::Ignored
                     } else {
                         Outcome::Consumed
