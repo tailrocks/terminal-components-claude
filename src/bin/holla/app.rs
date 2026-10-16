@@ -1367,7 +1367,7 @@ impl App {
     fn report_to_owner(&mut self, owner: usize, tag: &LayerTag, result: ModalResult) -> Outcome {
         let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
         let o = match self.tabs.get_mut(owner).and_then(|t| t.stack.last_mut()) {
-            Some(s) => s.on_modal(tag, result, &mut self.world, &mut cx),
+            Some(s) => s.on_layer_result(tag, result, &mut self.world, &mut cx),
             None => Outcome::Changed,
         };
         let reqs = cx.take();
@@ -1603,6 +1603,7 @@ impl App {
                 Request::Status(s, tone) => self.set_status(&s, tone),
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(g) => self.go(g),
+                Request::Back => self.go(Go::Pop),
                 Request::Copy(s) => self.copy(s),
                 // holla pages do not ask for these
                 Request::Close

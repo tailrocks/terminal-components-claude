@@ -49,6 +49,7 @@ use crate::screens::usage::UsageScreen;
 use crate::screens::{AppLayer, Cx, Go, LayerTag, ModalResult, Request, Screen};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
+use junie_tui::shell::Page as _;
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
@@ -511,10 +512,13 @@ impl App {
             return self.settle_layers(o);
         }
         let route = self.route;
-        match self.screens.get_mut(route) {
-            Some(s) => s.on_paste(text, &mut self.world),
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
+        let o = match self.screens.get_mut(route) {
+            Some(s) => s.on_paste(text, &mut self.world, &mut cx),
             None => Outcome::Consumed,
-        }
+        };
+        let reqs = cx.take();
+        o.or(self.apply_requests(reqs, route))
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
@@ -698,7 +702,7 @@ impl App {
                 let dirty = self
                     .screens
                     .get_mut(route)
-                    .is_some_and(|s| !s.leave_stakes(&self.world).is_clean());
+                    .is_some_and(|s| !s.stakes(&self.world).is_clean());
                 let kc = KeyContext {
                     text_focus: editing,
                     dirty,
@@ -745,7 +749,7 @@ impl App {
         let dirty = self
             .screens
             .get_mut(route)
-            .is_some_and(|s| !s.leave_stakes(&self.world).is_clean());
+            .is_some_and(|s| !s.stakes(&self.world).is_clean());
         if !dirty {
             self.world.arbiter.release_entry();
             self.shell.quit = true;
@@ -1417,7 +1421,7 @@ impl App {
     fn tell_owner(&mut self, owner: Route, tag: &LayerTag, r: ModalResult) -> Outcome {
         let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let o = match self.screens.get_mut(owner) {
-            Some(s) => s.on_modal(tag, r, &mut self.world, &mut cx),
+            Some(s) => s.on_layer_result(tag, r, &mut self.world, &mut cx),
             None => Outcome::Changed,
         };
         let reqs = cx.take();
@@ -1750,6 +1754,7 @@ impl App {
                 }
                 Request::Go(g) => self.go(g),
                 Request::Help => self.open_help(),
+                Request::Back => self.go(Go::Manager),
                 Request::Copy(s) => self.copy(s),
                 Request::Top(f) => {
                     if let Some(top) = self.layers.top_mut() {

@@ -3,12 +3,14 @@
 //! preview card that answers CONCEPT §7, and the scope readout. Typing-hot:
 //! every printable key edits the query.
 
+use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::{CursorStyle, Theme, Tone};
 use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -1164,7 +1166,7 @@ impl FinderPage {
     }
 }
 
-impl Screen for FinderPage {
+impl ShellPage<Holla> for FinderPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.dirty {
             self.rebuild(w);
@@ -1443,13 +1445,6 @@ impl Screen for FinderPage {
         }
     }
 
-    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if !cx.focus.is(FINDER) {
-            return Outcome::Ignored;
-        }
-        self.alternatives(cx)
-    }
-
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
         if w.tick == self.last_tick {
             return Outcome::Ignored;
@@ -1587,6 +1582,38 @@ impl Screen for FinderPage {
         }
     }
 
+    fn is_editing(&self) -> bool {
+        false
+    }
+
+    fn animating(&self, w: &World) -> bool {
+        w.discovering() || w.live_activities() > 0
+    }
+
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(FINDER)
+    }
+
+    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.group.is_some() {
+            cx.go(Go::Pop);
+            Outcome::Changed
+        } else {
+            // the root has nowhere to go back to; the shell decides whether
+            // Esc may quit (`QuitKeys::esc_quits`, off by default)
+            Outcome::Ignored
+        }
+    }
+}
+
+impl Screen for FinderPage {
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(FINDER) {
+            return Outcome::Ignored;
+        }
+        self.alternatives(cx)
+    }
+
     fn status(&self, w: &World) -> StatusBits {
         let mut bits = StatusBits::default();
         if w.discovering() {
@@ -1647,31 +1674,8 @@ impl Screen for FinderPage {
         true
     }
 
-    fn is_editing(&self) -> bool {
-        false
-    }
-
-    fn animating(&self, w: &World) -> bool {
-        w.discovering() || w.live_activities() > 0
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(FINDER)
-    }
-
     fn as_finder(&mut self) -> Option<&mut FinderPage> {
         Some(self)
-    }
-
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.group.is_some() {
-            cx.go(Go::Pop);
-            Outcome::Changed
-        } else {
-            // the root has nowhere to go back to; the shell decides whether
-            // Esc may quit (`QuitKeys::esc_quits`, off by default)
-            Outcome::Ignored
-        }
     }
 }
 

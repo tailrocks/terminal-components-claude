@@ -4,6 +4,8 @@
 //! folding, arbitrary multi-selection with parent dominance, the macOS Top
 //! files scope, and routes into the shared cleanup gates.
 
+use crate::screens::Holla;
+use junie_tui::shell::Page as ShellPage;
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
@@ -1145,7 +1147,7 @@ impl DiskPage {
     }
 }
 
-impl Screen for DiskPage {
+impl ShellPage<Holla> for DiskPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(DETAIL) {
             match key.code {
@@ -1462,24 +1464,7 @@ impl Screen for DiskPage {
         }
     }
 
-    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.view == View::Tree {
-            if !cx.focus.is(TREE) {
-                return Outcome::Ignored;
-            }
-            let Some(req) = self.tree.context_cursor() else {
-                return Outcome::Ignored;
-            };
-            return self.row_menu(req.target, req.anchor, w, cx);
-        }
-        if !cx.focus.is(LIST) {
-            return Outcome::Ignored;
-        }
-        let anchor = row_anchor(LIST, self.cursor, self.list_area, self.list_scroll.offset);
-        self.row_menu(self.cursor, anchor, w, cx)
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -1796,6 +1781,33 @@ impl Screen for DiskPage {
         }
     }
 
+    fn animating(&self, w: &World) -> bool {
+        self.view == View::Tree && w.scan.as_ref().is_some_and(|s| !s.done(w.tick))
+    }
+
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(if self.view == View::Tree { TREE } else { LIST })
+    }
+}
+
+impl Screen for DiskPage {
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.view == View::Tree {
+            if !cx.focus.is(TREE) {
+                return Outcome::Ignored;
+            }
+            let Some(req) = self.tree.context_cursor() else {
+                return Outcome::Ignored;
+            };
+            return self.row_menu(req.target, req.anchor, w, cx);
+        }
+        if !cx.focus.is(LIST) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(LIST, self.cursor, self.list_area, self.list_scroll.offset);
+        self.row_menu(self.cursor, anchor, w, cx)
+    }
+
     fn status(&self, w: &World) -> StatusBits {
         let (text, busy) = match (&self.view, &w.scan) {
             (View::Tree, Some(s)) if !s.done(w.tick) => (
@@ -1832,14 +1844,6 @@ impl Screen for DiskPage {
             center: Some(item),
             right: vec![],
         }
-    }
-
-    fn animating(&self, w: &World) -> bool {
-        self.view == View::Tree && w.scan.as_ref().is_some_and(|s| !s.done(w.tick))
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(if self.view == View::Tree { TREE } else { LIST })
     }
 
     #[cfg(test)]

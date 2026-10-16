@@ -2,8 +2,10 @@
 //! Nothing is persisted here; the last step hands a pending Workspace to
 //! the Editor. Every rewind reopens the previous modal with its last state.
 
+use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::shell::Page;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::width;
@@ -370,7 +372,7 @@ impl PreludeScreen {
     }
 }
 
-impl Screen for PreludeScreen {
+impl Page<Jackin> for PreludeScreen {
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.open(Step::Source, w, cx, None);
     }
@@ -384,14 +386,7 @@ impl Screen for PreludeScreen {
         Outcome::Changed
     }
 
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
-        if tag.kind != "prelude.workdir" {
-            return None;
-        }
-        Some(self.workdir_items(&self.workdir_rows.clone(), query, w))
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -536,5 +531,14 @@ impl Screen for PreludeScreen {
     fn on_esc_top(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
         self.rewind(w, cx);
         Outcome::Changed
+    }
+}
+
+impl Screen for PreludeScreen {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+        if tag.kind != "prelude.workdir" {
+            return None;
+        }
+        Some(self.workdir_items(&self.workdir_rows.clone(), query, w))
     }
 }

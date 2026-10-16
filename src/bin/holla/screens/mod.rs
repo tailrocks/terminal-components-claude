@@ -13,17 +13,12 @@ pub mod plan;
 pub mod review;
 pub mod snapshot;
 
-use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::PointerEvent;
+use junie_tui::core::event::Outcome;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
-use junie_tui::ui::context::ContextAnchor;
-use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::layer::{LayerEntry, LayerTag, ShellLayers};
+use junie_tui::ui::layer::{LayerEntry, ShellLayers};
 use junie_tui::ui::layers::LayerResult;
-use junie_tui::widgets::keyhint::Hint;
-use junie_tui::widgets::menu::{ContextMenu, MenuAction, MenuItem};
+use junie_tui::widgets::menu::MenuAction;
 use junie_tui::widgets::picker::PickerAction;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
@@ -197,78 +192,44 @@ pub struct StatusBits {
     pub right: Vec<StatusItem>,
 }
 
-/// Everything a page or tab screen can do. Default bodies keep small
-/// screens small.
-pub trait Screen {
-    fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome;
-    /// One pointer event the router resolved for this screen
-    /// ([`junie_tui::core::pointer::PointerRouter`]): a press (with the
-    /// click count it starts), a completed click (its count is
-    /// `ev.count()`), a drag of the held press, a release away from it,
-    /// a secondary or middle click, or a wheel notch on either axis
-    /// (offered to each owner under the pointer, innermost first, until
-    /// one takes it). Hand it to the owning widget
-    /// ([`junie_tui::core::pointer::MouseTarget::route`]).
-    fn pointer(&mut self, _ev: &PointerEvent, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
+/// The types a holla page works with ([`junie_tui::shell::Page`]).
+pub struct Holla;
+
+impl junie_tui::shell::PageTypes for Holla {
+    type State = World;
+    type Msg = Msg;
+    type Result = ModalResult;
+    type LayerState = ();
+    type Go = Go;
+}
+
+pub use junie_tui::shell::{open_context, rebuild_on_tick, row_anchor, row_choice};
+
+impl ModalResult {
+    /// The chosen item of a context menu ([`row_choice`]).
+    pub fn menu_chosen(&self) -> Option<usize> {
+        match *self {
+            Self::MenuChosen(k) => Some(k),
+            _ => None,
+        }
     }
+}
+
+/// What a holla page or tab screen adds to the library page
+/// ([`junie_tui::shell::Page`], whose Esc at the top goes back: a popped
+/// page). Default bodies keep small screens small.
+pub trait Screen: junie_tui::shell::Page<Holla> {
     /// The context key ([`Cx::context`]: Shift+F10 and the Menu key by
     /// default) on the focused control: open its menu below the cursor row.
     fn on_context_key(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
-    fn on_paste(&mut self, _text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    /// A control lost focus (or a click on dead space ended its edit):
-    /// the screen that owns `ch.from` ends the edit through the control's
-    /// `on_blur`.
-    fn on_blur(
-        &mut self,
-        _ch: junie_tui::core::focus::FocusChange,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_tick(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_msg(&mut self, _msg: &Msg, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_modal(
-        &mut self,
-        _tag: &LayerTag,
-        _result: ModalResult,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        Outcome::Ignored
-    }
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World);
-    fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint>;
-    /// Breadcrumb segment shown in the Here tab label (`Disk › Usage`).
-    fn crumb(&self, w: &World) -> String;
     fn status(&self, _w: &World) -> StatusBits {
         StatusBits::default()
     }
     /// Letters type into a query on this screen.
     fn typing_hot(&self) -> bool {
         false
-    }
-    fn is_editing(&self) -> bool {
-        false
-    }
-    fn animating(&self, _w: &World) -> bool {
-        false
-    }
-    fn enter(&mut self, _w: &mut World, _cx: &mut Cx) {}
-    fn primary_focus(&self) -> Option<WidgetId>;
-    /// Esc at the top of this screen's ladder.
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        cx.go(Go::Pop);
-        Outcome::Changed
     }
     /// The finder behind this screen, when it is one.
     fn as_finder(&mut self) -> Option<&mut finder::FinderPage> {
@@ -286,89 +247,6 @@ pub trait Screen {
     #[cfg(test)]
     fn as_disk(&mut self) -> Option<&mut disk::DiskPage> {
         None
-    }
-}
-
-/// Where the context menu of hand-drawn list row `i` opens for the
-/// keyboard: below the row as drawn this frame (`list.child(i)`), else
-/// below its slot in `area` scrolled by `offset`.
-pub fn row_anchor(list: WidgetId, i: usize, area: Rect, offset: usize) -> ContextAnchor {
-    let dy = i
-        .saturating_sub(offset)
-        .min(area.height.saturating_sub(1) as usize) as u16;
-    ContextAnchor::Control {
-        id: list.child(i),
-        fallback: Rect::new(area.x, area.y + dy, area.width.max(1), 1),
-    }
-}
-
-/// Open a row's context menu through the shell's layer stack: `items`
-/// titled `title` at `anchor`, answered to the owner as
-/// [`ModalResult::MenuChosen`] under `tag`.
-pub fn open_context(
-    cx: &mut Cx,
-    id: WidgetId,
-    anchor: ContextAnchor,
-    title: impl Into<String>,
-    items: Vec<MenuItem>,
-    tag: LayerTag,
-) -> Outcome {
-    let menu = anchor.apply(ContextMenu::new(id, items)).title(title);
-    cx.open(menu, tag);
-    Outcome::Changed
-}
-
-/// The key a context-menu item replays, from its character in the menu's
-/// tag: `'\n'` is Enter, `'←'`/`'→'` the arrows, `'\u{1b}'` Esc, any other
-/// character that plain key.
-pub fn replay_key(c: char) -> Key {
-    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-    let code = match c {
-        '\n' => KeyCode::Enter,
-        '←' => KeyCode::Left,
-        '→' => KeyCode::Right,
-        '\u{1b}' => KeyCode::Esc,
-        c => KeyCode::Char(c),
-    };
-    Key {
-        code,
-        mods: KeyModifiers::NONE,
-    }
-}
-
-/// A menu's chosen item `k` under `tag` of `kind` whose key is
-/// `row:keys`: the row it was opened for and the key item `k` replays.
-pub fn row_choice(
-    tag: &LayerTag,
-    kind: &str,
-    result: &ModalResult,
-) -> Option<(usize, Option<Key>, usize)> {
-    let ModalResult::MenuChosen(k) = *result else {
-        return None;
-    };
-    if tag.kind != kind {
-        return None;
-    }
-    let (row, keys) = tag.key.split_once(':')?;
-    let row = row.parse::<usize>().ok()?;
-    Some((row, keys.chars().nth(k).map(replay_key), k))
-}
-
-/// A tick's rebuild of a screen's view from the world: `Changed` only when
-/// what `view` reads differs afterwards. The simulated world advances every
-/// tick (reduced motion included); a screen whose rows did not change asks
-/// for no redraw, so an idle screen draws nothing.
-pub(crate) fn rebuild_on_tick<S, V: PartialEq>(
-    screen: &mut S,
-    view: impl Fn(&S) -> V,
-    rebuild: impl FnOnce(&mut S),
-) -> Outcome {
-    let before = view(screen);
-    rebuild(screen);
-    if view(screen) == before {
-        Outcome::Ignored
-    } else {
-        Outcome::Changed
     }
 }
 

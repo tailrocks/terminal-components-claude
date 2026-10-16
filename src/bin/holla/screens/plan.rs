@@ -3,12 +3,14 @@
 //! selected step's facts) and the executing plan tab (the same outline with
 //! live states, aggregate progress and per-step retained output).
 
+use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
@@ -610,7 +612,7 @@ impl PlanReviewPage {
     }
 }
 
-impl Screen for PlanReviewPage {
+impl ShellPage<Holla> for PlanReviewPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let Some(p) = w.plan_mut(&self.plan) else {
             return Outcome::Ignored;
@@ -831,15 +833,7 @@ impl Screen for PlanReviewPage {
         }
     }
 
-    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
-        if !cx.focus.is(OUTLINE) {
-            return Outcome::Ignored;
-        }
-        let anchor = row_anchor(OUTLINE, self.cursor, self.outline_area, self.scroll.offset);
-        self.step_menu(self.cursor, anchor, w, cx)
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -1071,6 +1065,20 @@ impl Screen for PlanReviewPage {
             .unwrap_or("Plan".into())
     }
 
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(OUTLINE)
+    }
+}
+
+impl Screen for PlanReviewPage {
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(OUTLINE) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(OUTLINE, self.cursor, self.outline_area, self.scroll.offset);
+        self.step_menu(self.cursor, anchor, w, cx)
+    }
+
     fn status(&self, w: &World) -> StatusBits {
         let mut bits = StatusBits::default();
         if let Some(p) = w.plan(&self.plan) {
@@ -1087,10 +1095,6 @@ impl Screen for PlanReviewPage {
             );
         }
         bits
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(OUTLINE)
     }
 }
 
@@ -1289,7 +1293,7 @@ impl PlanTab {
     }
 }
 
-impl Screen for PlanTab {
+impl ShellPage<Holla> for PlanTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         // follow-up buttons after the run
         for i in 0..self.follow_ups.len() {
@@ -1375,7 +1379,7 @@ impl Screen for PlanTab {
         }
     }
 
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -1493,14 +1497,6 @@ impl Screen for PlanTab {
             }
             _ => Outcome::Ignored,
         }
-    }
-
-    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
-        if !cx.focus.is(OUTLINE) {
-            return Outcome::Ignored;
-        }
-        let anchor = row_anchor(OUTLINE, self.cursor, self.outline_area, self.scroll.offset);
-        self.step_menu(self.cursor, anchor, w, cx)
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
@@ -1795,6 +1791,34 @@ impl Screen for PlanTab {
             .unwrap_or_default()
     }
 
+    fn animating(&self, w: &World) -> bool {
+        w.plan(&self.plan)
+            .is_some_and(|p| p.phase == PlanPhase::Running)
+    }
+
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(OUTLINE)
+    }
+
+    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.maximized {
+            self.maximized = false;
+            return Outcome::Changed;
+        }
+        cx.go(Go::Here);
+        Outcome::Changed
+    }
+}
+
+impl Screen for PlanTab {
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(OUTLINE) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(OUTLINE, self.cursor, self.outline_area, self.scroll.offset);
+        self.step_menu(self.cursor, anchor, w, cx)
+    }
+
     fn status(&self, w: &World) -> StatusBits {
         let mut bits = StatusBits::default();
         if let Some(p) = w.plan(&self.plan) {
@@ -1820,23 +1844,5 @@ impl Screen for PlanTab {
             });
         }
         bits
-    }
-
-    fn animating(&self, w: &World) -> bool {
-        w.plan(&self.plan)
-            .is_some_and(|p| p.phase == PlanPhase::Running)
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(OUTLINE)
-    }
-
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.maximized {
-            self.maximized = false;
-            return Outcome::Changed;
-        }
-        cx.go(Go::Here);
-        Outcome::Changed
     }
 }
