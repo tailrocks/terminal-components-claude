@@ -4,26 +4,30 @@
 
 Consumer-side status, kept by the Upstream PR loop
 (`docs/upstream/README.md`). Checked 2026-10-17 with `gh`. All items below
-are in one PR, [#11](https://github.com/tailrocks/tuiscotti/pull/11):
-open, mergeable, CI green (22 pass, 1 skipped), head `a0078a2`. The first
-review (at `907aa04`) is in §6, the re-review (at `b7d3df3`) in §7, the
-third review (at `7b832fc`) in §8 and the final check (at `a0078a2`) in §9.
-Verdict at `a0078a2`: ready to merge.
+were in one PR, [#11](https://github.com/tailrocks/tuiscotti/pull/11),
+**merged** on 2026-10-16 as `be860d1` (last reviewed head `a0078a2`; the
+reviews are §6 to §9). tuiscotti `main` then moved one CI-only commit
+(#12, velnor-actions 0.1.9) to `3382e57`, which is our pin. Adopted on
+`design/interaction-polish` on 2026-10-17; every follow-up below is done
+except the legacy-store migration, a separate step.
 
 | Item (§) | PR/issue | State | Last reviewed head | Last review link | Verdict | Our follow-up after merge |
 |---|---|---|---|---|---|---|
-| P1 lone `f` key | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK; `parse_chord` now also takes `-` joins, `backtab` and `+` (`"+"`, `"plus"`, `"ctrl++"`, `"ctrl-+"`), and all 1,157 previously valid chord strings out of 1,725 parse the same | delete the lone-`f` workaround in `Session::send_key` |
-| P2 exact pins: `unicode-width`, `insta`, `serde_json`, `sha2`, `ratatui`, `crossterm` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) (pins become `0.2`, `1.48`, `1.0`, `0.11`, `0.30`, `0.29`) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK (single ratatui 0.30.2, crossterm 0.29.0, unicode-width 0.2.0) | `cargo update` the held crates to latest, remove their rows from `docs/dependencies.md` |
-| P3 `.ansi`+cursor store and CLI accept | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK: the library `Store::accept` and `GroupedStore::{accept, accept_all, accept_matching}` refuse under `CI`, and `accept_all` goes through `accept_matching("**")` (stale runs refused all or nothing, matched skipped); `with_review_evidence(false)` still seals the candidate and verdict | delete `gate()`, `write_expected_evidence`, `ansi_cursor.rs` `encode`/`decode`, `cargo xtask visual render` and `cargo xtask visual accept` (library guards now verified); migrate the 5,975 legacy four-file scenarios to single `.ansi` (their `.html` embeds absolute tuisnap-era `argv[0]` paths)
-| P4 non-unique locators | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK; docs fixed (`LocateError::Usage`, `count_at_least` removal in MIGRATION) | switch boot waits off `Locator::resolve` + `wait_predicate` |
-| P5 last screen in `WaitError` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | none |
-| P6 render speed (and `compare_png`) | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK: pinned scores 0.999853 / 0.999940 / 0.999963 pass, and one-cell probe identical at `a47c9aa`, `b7d3df3`, `7b832fc` (render code unchanged at `a0078a2`) | add the recommended `[profile.dev.package.*]` opt-level overrides |
-| P7 no absolute paths | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK: the §8 UNC panic is fixed (`"\\\\é\\x"` → `x`; 0 panics over 79,608 fuzz strings, against 228 at `7b832fc`), and the drive-root and `name.ext` rules are documented in `MIGRATION.md` item 7 | none |
-| P8 clock, pointer, docs, example | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | none |
+| P1 lone `f` key | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | done: `Session::send_key` is `press(name)`; the lone-`f` workaround and our chord translation are deleted, and `scenario_tables` checks every key step parses (`refactor(visual): use tuiscotti's gate and store`) |
+| P2 exact pins | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | done: one `ratatui` 0.30.2 and `crossterm` 0.29.0 since the pin bump; `cargo update` moved `unicode-width` 0.2.0 → 0.2.2 (no width change in our text), `sha2` 0.11.0 → 0.11.1, `insta` 1.48.0 → 1.49.0, `serde_json` 1.0.151 → 1.0.154; the held rows left `docs/dependencies.md` (`build(deps): cargo update held crates`) |
+| P3 `.ansi`+cursor store and CLI accept | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | done: `gate()`, `write_expected_evidence`, the run stamps, `ansi_cursor.rs` and `cargo xtask visual accept`/`render` are deleted; the gate is `GroupedStore::check_with` in `ArtifactSet::AnsiCursor`, approval and viewing are `tuiscotti accept`/`render` (`docs/visual-testing/README.md`). Open, separate step: migrate the 5,975 legacy four-file scenarios (`docs/visual-testing/tuiscotti-migration.md`) |
+| P4 non-unique locators | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | done: boot needles, `wait:` steps and the no-needle first paint wait through `get_by(..).any().expect_visible_within` (`refactor(visual): boot waits via locators`) |
+| P5 last screen in `WaitError` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | done: our duplicate screen dump in `wait_failure` is dropped |
+| P6 render speed (and `compare_png`) | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | done: `[profile.dev.package."*"] opt-level = 3` (`build: dev opt-level overrides`; build and render numbers in `docs/visual-testing/tuiscotti-migration.md`) |
+| P7 no absolute paths | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | none (the legacy `.html` files with absolute paths go with the P3 migration) |
+| P8 clock, pointer, docs, example | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | merged | `a0078a2` | [review 5552466822](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5552466822) | verified OK | none |
 
-After merge, in every case: bump the `rev =` pin in `Cargo.toml` to the new
-`main`, re-run the visual gate and round-trips, and re-approve on purpose
-only where a change is intended.
+Adoption check (2026-10-17, pin `3382e57`): no API change reached our
+code; all 7,600 approved `.ansi` files decode, the 1,625 single-`.ansi`
+scenarios re-encode byte-identical through `ansi_dump_with_cursor` and the
+5,975 legacy ones to the original plus `ESC[?25l`; `cargo xtask visual
+check-touched` (all four apps, 6,200 captures) passes; no approved file
+changed.
 
 
 You are working on **tuiscotti** (<https://github.com/tailrocks/tuiscotti>).
@@ -646,3 +650,9 @@ with only the `rev =` pin changed.
 4. Switch boot waits off `Locator::resolve` + `wait_predicate`.
 5. Add the recommended `[profile.dev.package.*]` opt-level overrides.
 6. Migrate the 5,975 legacy four-file scenarios to single `.ansi`.
+
+Status 2026-10-17: items 1 to 5 are done on `design/interaction-polish`
+(pin `3382e57`, the head of `main` after PR 11 and the CI-only #12; see
+the Tracker). Item 6 is a separate step with its plan in
+`docs/visual-testing/tuiscotti-migration.md` ("Legacy four-file
+scenarios").
