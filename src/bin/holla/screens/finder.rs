@@ -6,7 +6,7 @@
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
-use junie_tui::theme::{Theme, Tone};
+use junie_tui::theme::{CursorStyle, Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width, wrap};
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -744,12 +744,18 @@ impl FinderPage {
         buf.set_string(
             area.x,
             area.y,
-            if focused { "▎" } else { " " },
-            if focused {
-                Style::new().fg(t.focus).bg(bg)
-            } else {
-                Style::new().fg(bg).bg(bg)
-            },
+            t.gutter_symbol(junie_tui::ui::ctx::VisualState {
+                focused,
+                ..Default::default()
+            }),
+            t.gutter(
+                junie_tui::ui::ctx::VisualState {
+                    focused,
+                    ..Default::default()
+                },
+                bg,
+                false,
+            ),
         );
         // scope readout on the right: ` scope ‹ here › `
         let readout = format!("scope ‹ {} ›", self.scope_word());
@@ -788,8 +794,9 @@ impl FinderPage {
             let st = if self.select_all {
                 fs.fg(t.canvas).bg(t.accent)
             } else if focused {
+                // neutral underline: the bar is the row's one green cue
                 fs.add_modifier(Modifier::UNDERLINED)
-                    .underline_color(t.accent)
+                    .underline_color(t.text_secondary)
             } else {
                 fs
             };
@@ -895,14 +902,12 @@ impl FinderPage {
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     let is_cursor = i == self.cursor;
-                    let st = t.row(s, bg);
+                    // the query row owns the finder's focus bar: the cursor
+                    // row is a fill, never a second bar
+                    let cr = t.cursor_row(s, bg, CursorStyle::Fill);
+                    let st = cr.style;
                     fill(buf, row, st);
-                    buf.set_string(
-                        row.x,
-                        y,
-                        t.gutter_symbol(s),
-                        t.gutter(s, st.bg.unwrap_or(bg), false),
-                    );
+                    buf.set_string(row.x, y, cr.gutter, cr.gutter_style);
                     let mut x = row.x + 3;
                     for (ci, idx) in cells.iter().enumerate() {
                         let it = &self.items[*idx];
@@ -920,16 +925,7 @@ impl FinderPage {
                         }
                         if chosen {
                             cs = cs.add_modifier(Modifier::BOLD);
-                            buf.set_string(
-                                x,
-                                y,
-                                "›",
-                                st.fg(if s.focused {
-                                    t.accent
-                                } else {
-                                    t.text_secondary
-                                }),
-                            );
+                            buf.set_string(x, y, "›", st.fg(t.row_ink(&cr, t.text_secondary)));
                         }
                         buf.set_string(x + 1, y, &it.label, cs);
                         ctx.clickable(cid, Rect::new(x, y, cw, 1));
@@ -944,17 +940,14 @@ impl FinderPage {
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     s.selected = i == self.cursor;
-                    let st = t.row(s, bg);
-                    fill(buf, row, st);
                     // the query row carries the finder's focus bar; the cursor
-                    // row is marked by `›` and the tint alone
+                    // row is marked by `›` and a non-green fill (green stays
+                    // the focus colour)
+                    let cr = t.cursor_row(s, bg, CursorStyle::Fill);
+                    let st = cr.style;
+                    fill(buf, row, st);
                     if s.selected {
-                        buf.set_string(
-                            row.x + 1,
-                            y,
-                            "›",
-                            st.fg(if focused { t.accent } else { t.text_secondary }),
-                        );
+                        buf.set_string(row.x + 1, y, "›", st.fg(t.row_ink(&cr, t.text_secondary)));
                     }
                     let mut x = row.x + 3;
                     // label with matched characters bold
@@ -968,7 +961,7 @@ impl FinderPage {
                             cs = cs.remove_modifier(Modifier::BOLD);
                         }
                         if it.hidden {
-                            cs = cs.fg(t.text_faint);
+                            cs = cs.fg(t.row_ink(&cr, t.text_faint));
                         }
                         let g = ch.to_string();
                         buf.set_string(lx, y, &g, cs);
@@ -980,7 +973,7 @@ impl FinderPage {
                         x,
                         y,
                         fit(it.kind.label(), type_w as usize),
-                        plain.fg(t.text_muted),
+                        plain.fg(t.row_ink(&cr, t.text_muted)),
                     );
                     x += type_w + 2;
                     let scope_tone = if it.scope.direction == Scope::Here {
@@ -992,7 +985,7 @@ impl FinderPage {
                         x,
                         y,
                         fit(&it.scope.word, scope_w as usize),
-                        plain.fg(scope_tone),
+                        plain.fg(t.row_ink(&cr, scope_tone)),
                     );
                     x += scope_w + 2;
                     if show_reason {
@@ -1002,11 +995,14 @@ impl FinderPage {
                         {
                             reason = format!("{tag} · {reason}");
                         }
-                        let rs = if rk.tag.is_some() {
-                            plain.fg(t.text_secondary)
-                        } else {
-                            plain.fg(t.text_muted)
-                        };
+                        let rs = plain.fg(t.row_ink(
+                            &cr,
+                            if rk.tag.is_some() {
+                                t.text_secondary
+                            } else {
+                                t.text_muted
+                            },
+                        ));
                         buf.set_string(x, y, truncate_sep(&reason, reason_w as usize), rs);
                     }
                     // only the safety classes take room in the row, as a
@@ -1014,7 +1010,7 @@ impl FinderPage {
                     if risk_w > 0 && matches!(it.risk, Risk::Destructive | Risk::Privileged) {
                         let r = it.risk.label();
                         let rx = row.right().saturating_sub(width(r) as u16 + 1);
-                        buf.set_string(rx, y, r, plain.fg(t.text_secondary));
+                        buf.set_string(rx, y, r, plain.fg(t.row_ink(&cr, t.text_secondary)));
                     }
                     ctx.clickable(rid, row);
                 }

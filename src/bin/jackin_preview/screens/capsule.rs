@@ -25,11 +25,11 @@ use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
-use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabEvent, TabItem, TabRule, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::Style;
 
 use super::modals::{ChoiceDialog, InfoDialog, InfoResult, modal_frame};
 use super::{CustomModal, Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
@@ -2726,39 +2726,26 @@ impl CustomModal for UsageDialog {
                 ));
             }
         }
-        self.tab_areas.clear();
-        let mut x = inner.x;
         let y = inner.y;
-        for xx in inner.left()..inner.right() {
-            buf.set_string(xx, y + 1, "─", Style::new().fg(t.border_subtle).bg(bg));
-        }
-        for (i, l) in labels.iter().enumerate() {
-            let lw = width(l) as u16 + 2;
-            if x + lw > inner.right() {
-                break;
-            }
-            let active = i == self.tab;
-            let mut st = Style::new().bg(bg).fg(if active {
-                t.text_primary
+        // the shared tab strip: it never draws a `▎`; the dialog's own
+        // tab-bar focus shows as the accent rule (one focus cue)
+        let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
+        let mut strip =
+            Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs).rule(if self.tabbar_focus {
+                TabRule::Accent
             } else {
-                t.text_secondary
+                TabRule::Neutral
             });
-            if active {
-                st = st.add_modifier(Modifier::BOLD);
-            }
-            if active && self.tabbar_focus {
-                buf.set_string(x, y, "▎", Style::new().fg(t.focus).bg(bg));
-            }
-            buf.set_string(x + 1, y, l, st);
-            if active {
-                for xx in x + 1..x + lw - 1 {
-                    buf.set_string(xx, y + 1, "━", Style::new().fg(t.border_strong).bg(bg));
-                }
-            }
-            let r = Rect::new(x, y, lw, 1);
-            ctx.clickable(WidgetId::of("capsule.usage.tab").child(i), r);
-            self.tab_areas.push(r);
-            x += lw + 1;
+        strip.set_active(self.tab);
+        // keys stay with the dialog: the strip is not a ring stop, only its
+        // tabs are click targets
+        let inert = std::mem::replace(&mut ctx.inert, true);
+        strip.render(Rect::new(inner.x, y, inner.width, 2), buf, ctx, bg);
+        ctx.inert = inert;
+        self.tab_areas.clear();
+        for (i, r) in strip.areas.iter().enumerate() {
+            ctx.clickable(strip.tab_id(i), *r);
+            self.tab_areas.push(*r);
         }
         let body = Rect::new(
             inner.x,

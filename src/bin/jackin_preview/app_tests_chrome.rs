@@ -279,3 +279,25 @@ fn the_new_tab_picker_is_the_only_layer_showing_focus() {
     // row, not on the page's active tab under the modal
     assert_eq!(focus_cues(&h), (1, 0), "{}", h.text());
 }
+
+#[test]
+fn the_usage_dialog_tab_strip_draws_no_focus_bar() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let (x, y) = h.find("View").unwrap();
+    h.click(x, y);
+    let (ux, uy) = h.find("Usage").unwrap();
+    h.click(ux, uy);
+    assert!(h.text().contains("Overview"), "usage dialog: {}", h.text());
+    let (bars, _) = focus_cues(&h);
+    assert_eq!(bars, 0, "tabs never carry the gutter: {}", h.text());
+    // the tab-bar focus is the accent rule under the active tab
+    let (ox, oy) = h.find("Overview").unwrap();
+    let t = h.app.theme;
+    let buf = h.term.backend().buffer();
+    let rule: Vec<_> = (ox..ox + 60)
+        .map(|x| &buf[(x, oy + 1)])
+        .filter(|c| c.symbol() == "━")
+        .collect();
+    assert!(!rule.is_empty(), "{}", h.text());
+    assert!(rule.iter().all(|c| c.fg == t.accent));
+}
