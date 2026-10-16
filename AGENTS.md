@@ -77,8 +77,14 @@ components work; they are not where behaviour lives.
 - Always use subagents for the work: parallel audits by category, and
   implementation agents in isolated worktrees on disjoint files. The main
   session coordinates, reviews and integrates.
-- Commit small and push often to the working branch; one finding or one
-  coherent group per commit.
+- Deliver in small portions: commit and push to the working branch after
+  every coherent step (one finding or one small group of related changes),
+  as soon as the full gate passes. Never keep work uncommitted or unpushed
+  for long; local-only state is a risk, not a convenience.
+- Before each push: `git fetch` and rebase onto the remote branch, re-run
+  the gate, then push. Never force-push shared branches.
+- Every finding raised in a review or audit is either fixed (by a subagent)
+  or recorded with a reason in docs/audits; none is silently dropped.
 
 ### Proof
 
