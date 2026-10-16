@@ -21,7 +21,7 @@ use crate::screens::manager::RowKey;
 use crate::sim::launch::LaunchPlan;
 
 fn status(h: &H) -> &str {
-    h.app.status.text().unwrap_or("")
+    h.app.shell.status.text().unwrap_or("")
 }
 
 /// A cell nothing claims, else one on a light-dismiss backdrop (an open
@@ -35,13 +35,14 @@ fn outside(h: &H) -> Position {
     };
     let backdrop = |id| {
         h.app
+            .shell
             .hits
             .part_of(id)
             .is_some_and(|x| x.part.part == Part::BACKDROP)
     };
     cells()
-        .find(|p| h.app.hits.hit(*p).is_none())
-        .or_else(|| cells().find(|p| h.app.hits.hit(*p).is_some_and(backdrop)))
+        .find(|p| h.app.shell.hits.hit(*p).is_none())
+        .or_else(|| cells().find(|p| h.app.shell.hits.hit(*p).is_some_and(backdrop)))
         .unwrap_or_else(|| {
             panic!(
                 "no outside hit-test coordinate in {}x{}",
@@ -124,22 +125,22 @@ fn startup_inventory_focus_and_resize_recovery_are_deterministic() {
         assert!(h.text().contains(marker), "{scenario:?}: {}", h.text());
         match route {
             Route::Manager => assert_eq!(
-                h.app.focus.current(),
+                h.app.shell.focus.current(),
                 Some(crate::screens::manager::TREE),
                 "{scenario:?}"
             ),
             Route::Accounts => assert_eq!(
-                h.app.focus.current(),
+                h.app.shell.focus.current(),
                 Some(crate::screens::accounts::TREE),
                 "{scenario:?}"
             ),
             Route::Cockpit => assert_eq!(
-                h.app.focus.current(),
+                h.app.shell.focus.current(),
                 Some(crate::screens::cockpit::RAIL),
                 "{scenario:?}"
             ),
             Route::Capsule => assert_eq!(
-                h.app.focus.current(),
+                h.app.shell.focus.current(),
                 Some(crate::screens::capsule::PANES),
                 "{scenario:?}"
             ),
@@ -158,10 +159,13 @@ fn startup_inventory_focus_and_resize_recovery_are_deterministic() {
         (80, 24, "Current directory"),
     ] {
         h.resize(width, height);
-        assert_eq!(h.app.size, (width, height));
+        assert_eq!(h.app.shell.size, (width, height));
         assert!(h.text().contains(marker), "{width}x{height}: {}", h.text());
     }
-    assert_eq!(h.app.focus.current(), Some(crate::screens::manager::TREE));
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(crate::screens::manager::TREE)
+    );
 }
 
 #[test]
@@ -172,11 +176,12 @@ fn manager_scrollbar_click_and_drag_change_the_rendered_tree() {
     let scrollbar = junie_tui::widgets::scrollbar::id_for(crate::screens::manager::TREE);
     let area = h
         .app
+        .shell
         .hits
         .area_of(scrollbar)
         .expect("hard manager tree must render a scrollbar");
     let bottom = Position::new(area.x, area.bottom().saturating_sub(1));
-    assert_eq!(h.app.hits.hit(bottom), Some(scrollbar));
+    assert_eq!(h.app.shell.hits.hit(bottom), Some(scrollbar));
     let before_click = h.text();
     h.click(bottom.x, bottom.y);
     assert_ne!(
@@ -190,15 +195,16 @@ fn manager_scrollbar_click_and_drag_change_the_rendered_tree() {
     drag.resize(72, 20);
     let drag_area = drag
         .app
+        .shell
         .hits
         .area_of(scrollbar)
         .expect("hard manager drag tree must render a scrollbar");
     let start_y = (drag_area.top()..drag_area.bottom())
-        .find(|y| drag.app.hits.hit(Position::new(drag_area.x, *y)) == Some(scrollbar))
+        .find(|y| drag.app.shell.hits.hit(Position::new(drag_area.x, *y)) == Some(scrollbar))
         .expect("scrollbar thumb must be hittable");
     let end_y = (drag_area.top()..drag_area.bottom())
         .rev()
-        .find(|y| drag.app.hits.hit(Position::new(drag_area.x, *y)) == Some(scrollbar))
+        .find(|y| drag.app.shell.hits.hit(Position::new(drag_area.x, *y)) == Some(scrollbar))
         .expect("scrollbar track must be hittable");
     assert!(start_y < end_y);
     let before_drag = drag.text();
@@ -220,12 +226,17 @@ fn manager_scrollbar_click_and_drag_change_the_rendered_tree() {
 fn a_click_on_the_picker_backdrop_cancels_it_and_restores_focus() {
     use junie_tui::core::id::Part;
     let mut c = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    let owner = c.app.focus.current();
+    let owner = c.app.shell.focus.current();
     c.ctrl('\\');
     assert!(c.text().contains("Command palette"), "{}", c.text());
     let p = Position::new(0, 2);
-    let hit = c.app.hits.hit(p).expect("the backdrop covers the page");
-    let part = c.app.hits.part_of(hit).expect("a part-tagged region");
+    let hit = c
+        .app
+        .shell
+        .hits
+        .hit(p)
+        .expect("the backdrop covers the page");
+    let part = c.app.shell.hits.part_of(hit).expect("a part-tagged region");
     assert_eq!(part.part.part, Part::BACKDROP, "{hit:?}");
     c.mouse(MouseKind::Down, p.x, p.y);
     c.mouse(MouseKind::Up, p.x, p.y);
@@ -233,18 +244,18 @@ fn a_click_on_the_picker_backdrop_cancels_it_and_restores_focus() {
         !c.text().contains("Command palette"),
         "the picker survived a click on its backdrop"
     );
-    assert_eq!(c.app.focus.current(), owner);
+    assert_eq!(c.app.shell.focus.current(), owner);
 }
 
 #[test]
 fn modal_outside_click_traps_focus_and_restores_the_owner() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    let owner = h.app.focus.current();
+    let owner = h.app.shell.focus.current();
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Keyboard shortcuts"), "{}", h.text());
-    assert_ne!(h.app.focus.current(), owner);
+    assert_ne!(h.app.shell.focus.current(), owner);
     h.key(KeyCode::Tab);
-    assert_ne!(h.app.focus.current(), owner);
+    assert_ne!(h.app.shell.focus.current(), owner);
     let p = outside(&h);
     h.mouse(MouseKind::Down, p.x, p.y);
     h.mouse(MouseKind::Up, p.x, p.y);
@@ -252,14 +263,14 @@ fn modal_outside_click_traps_focus_and_restores_the_owner() {
         !h.text().contains("Keyboard shortcuts"),
         "help survived outside click"
     );
-    assert_eq!(h.app.focus.current(), owner);
+    assert_eq!(h.app.shell.focus.current(), owner);
     assert!(h.text().contains("Current directory"), "{}", h.text());
 
     let mut c = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    let owner = c.app.focus.current();
+    let owner = c.app.shell.focus.current();
     c.ctrl('\\');
     assert!(c.text().contains("Command palette"), "{}", c.text());
-    assert_ne!(c.app.focus.current(), owner);
+    assert_ne!(c.app.shell.focus.current(), owner);
     let p = outside(&c);
     c.mouse(MouseKind::Down, p.x, p.y);
     c.mouse(MouseKind::Up, p.x, p.y);
@@ -267,7 +278,7 @@ fn modal_outside_click_traps_focus_and_restores_the_owner() {
         !c.text().contains("Command palette"),
         "picker survived outside click"
     );
-    assert_eq!(c.app.focus.current(), owner);
+    assert_eq!(c.app.shell.focus.current(), owner);
     assert_eq!(c.app.route, Route::Capsule);
 
     c.ctrl('q');
@@ -285,7 +296,7 @@ fn modal_outside_click_traps_focus_and_restores_the_owner() {
         c.text()
     );
     c.key(KeyCode::Esc);
-    assert_eq!(c.app.focus.current(), owner);
+    assert_eq!(c.app.shell.focus.current(), owner);
 }
 
 #[test]
@@ -495,7 +506,7 @@ fn cockpit_blocked_sidecar_abort_log_and_info_paths_are_screen_level() {
     h.ctrl('q');
     assert!(h.text().contains("Quit jackin"), "{}", h.text());
     h.key(KeyCode::Char('q'));
-    assert!(h.app.quit);
+    assert!(h.app.shell.quit);
 
     let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40);
     h.key(KeyCode::Char('b'));
@@ -1212,20 +1223,20 @@ fn unsaved_settings_survive_q_and_ctrl_c_asks_save_discard_cancel() {
     assert_eq!(h.app.route, Route::Settings, "q never leaves unsaved edits");
     assert!(h.text().contains("• 1 change"), "{}", h.text());
     h.ctrl('c');
-    assert!(!h.app.quit, "Ctrl+C never drops unsaved edits");
+    assert!(!h.app.shell.quit, "Ctrl+C never drops unsaved edits");
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     // Cancel stays, and a later route change does not quit
     h.key(KeyCode::Esc);
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     assert_eq!(h.app.route, Route::Settings);
     h.key(KeyCode::Char(' '));
-    assert!(!h.app.quit);
+    assert!(!h.app.shell.quit);
     // Discard (its mnemonic) quits
     h.key(KeyCode::Char(' '));
     h.ctrl('c');
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     h.key(KeyCode::Char('d'));
-    assert!(h.app.quit, "{}", h.text());
+    assert!(h.app.shell.quit, "{}", h.text());
 }
 
 /// Keyboard audit #21 and the standards review: Esc never quits, and a
@@ -1237,7 +1248,7 @@ fn esc_never_quits_the_manager_and_a_clean_ctrl_q_never_asks() {
     for _ in 0..4 {
         h.key(KeyCode::Esc);
     }
-    assert!(!h.app.quit, "Esc never quits");
+    assert!(!h.app.shell.quit, "Esc never quits");
     h.ctrl('q');
-    assert!(h.app.quit, "a clean quit never asks: {}", h.text());
+    assert!(h.app.shell.quit, "a clean quit never asks: {}", h.text());
 }
