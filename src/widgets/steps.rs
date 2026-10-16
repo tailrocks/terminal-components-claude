@@ -75,6 +75,11 @@ pub struct StepRail {
     pub area: Rect,
     /// Show the ordinal (`03`) before the label.
     pub numbered: bool,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`].
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 impl StepRail {
@@ -89,7 +94,16 @@ impl StepRail {
             area: Rect::ZERO,
             track: Rect::ZERO,
             numbered: true,
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
         }
+    }
+
+    /// Override the app-wide vertical track-click policy
+    /// (`TrackClick::Page` pages toward the pointer).
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
     }
 
     pub fn selectable(mut self, on: bool) -> Self {
@@ -191,9 +205,10 @@ impl StepRail {
     }
 
     /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
+    /// press on the thumb grabs it, a press on the track follows
+    /// [`Self::track_click`].
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
             Outcome::Changed
         } else {
             Outcome::Consumed
@@ -210,6 +225,7 @@ impl StepRail {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -397,5 +413,50 @@ mod tests {
             },
         );
         assert_eq!(rest, pressed);
+    }
+}
+
+#[cfg(test)]
+mod track_click_tests {
+    use super::*;
+    use crate::core::scroll::TrackClick;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
+        let names: Vec<String> = (0..50).map(|i| format!("step {i}")).collect();
+        let mut r = StepRail::new(
+            WidgetId::of("r"),
+            names.iter().map(|s| Step::new(s)).collect(),
+        );
+        r.track_click = click;
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 20, 10);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        ctx.track_click = app;
+        r.render(area, &mut buf, &mut ctx, theme.surface);
+        let bottom = Position::new(r.track().x, r.track().bottom() - 1);
+        assert_eq!(r.on_scrollbar(bottom), Outcome::Changed);
+        r.scroll.offset
+    }
+
+    /// The vertical bar follows the track-click policy (it always jumped).
+    #[test]
+    fn a_step_rail_track_click_can_page() {
+        let page = pressed_at_the_bottom(Some(TrackClick::Page), TrackClick::Jump);
+        assert!(page > 0 && page <= 10, "one page: {page}");
+        assert_eq!(
+            pressed_at_the_bottom(None, TrackClick::Page),
+            page,
+            "app-wide"
+        );
+        assert!(
+            pressed_at_the_bottom(None, TrackClick::Jump) > page,
+            "default jumps"
+        );
     }
 }
