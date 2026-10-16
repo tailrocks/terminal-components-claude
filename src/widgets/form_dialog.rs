@@ -11,7 +11,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::{Strings, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
@@ -177,7 +177,8 @@ pub struct FormDialog {
     pub save: Button,
     pub width: u16,
     pub error: Option<String>,
-    pub scroll: ScrollState,
+    /// The fields' scroll and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub area: Rect,
     pub events: Vec<FormAction>,
     pub dirty: bool,
@@ -222,7 +223,7 @@ impl FormDialog {
             save: Button::primary(id.sub("save"), Strings::DEFAULT.save),
             width: 66,
             error: None,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             area: Rect::ZERO,
             events: vec![],
             dirty: false,
@@ -532,6 +533,9 @@ impl FormDialog {
     /// A drag held since a press on `pressed`: an input selects its text,
     /// a select's cursor follows the pointer over its options.
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if scrollbar::is_bar_of(pressed, self.id) {
+            return self.on_bar_drag(pressed, pos);
+        }
         if let Some(s) = self.select_owning(pressed) {
             return s.on_drag(pressed, pos);
         }
@@ -580,6 +584,9 @@ impl FormDialog {
         count: u8,
         focus: &mut Focus,
     ) -> Outcome {
+        if scrollbar::is_bar_of(id, self.id) {
+            return self.on_scrollbar(pos);
+        }
         for f in self.fields.iter_mut() {
             let name = f.name.clone();
             match &mut f.kind {
@@ -689,11 +696,6 @@ impl FormDialog {
         Outcome::Consumed
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
-    }
-
     fn content_height(&self) -> u16 {
         let mut h = 0u16;
         for f in self.fields.iter().filter(|f| f.visible) {
@@ -709,6 +711,7 @@ impl FormDialog {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        self.scroll.begin(ctx.track_click);
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         Strings::follow(&mut self.cancel.label, old.cancel, s.cancel);
@@ -826,25 +829,15 @@ impl FormDialog {
             y += fh + 1;
         }
         if self.scroll.overflows() {
-            crate::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    area.x,
-                    body.y,
-                    (area.right() - 2).saturating_sub(area.x),
-                    body.height,
-                ),
-                &self.scroll,
+            // the bar sits in the padding just inside the frame
+            let rows = Rect::new(
+                area.x,
+                body.y,
+                (area.right() - 1).saturating_sub(area.x),
+                body.height,
             );
-            scrollbar::render_vertical(
-                Rect::new(area.right() - 2, body.y, 1, body.height),
-                buf,
-                ctx,
-                self.id,
-                &self.scroll,
-                true,
-            );
+            self.scroll
+                .draw_with_fade(rows, buf, ctx, self.id, true, &[]);
         }
         if let Some(e) = &self.error {
             let ey = inner.bottom().saturating_sub(2);
@@ -921,6 +914,12 @@ impl FormDialog {
                 y += f.height() as i32 + 1;
             }
         }
+    }
+}
+
+impl Scrollable for FormDialog {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
     }
 }
 
