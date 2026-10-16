@@ -822,6 +822,10 @@ widgets::input::TextInput::required_message | Inputs and Text areas page options
 widgets::input::TextInput::plain_label | Inputs and Text areas page options | SC8
 widgets::input::TextInput::wrap_label | Inputs and Text areas page options | SC8
 widgets::input::TextInput::blur_action | Inputs and Text areas page options | SC8
+widgets::input::TextInput::validate_on | Inputs and Text areas page options | SC8
+widgets::input::ValidateOn | Inputs and Text areas page options | SC8
+widgets::input::ValidateOn::Change | Inputs and Text areas page options | SC8
+widgets::input::ValidateOn::EveryCommit | Inputs and Text areas page options | SC8
 widgets::input::TextInput::edit_entry | Inputs and Text areas page options | SC8
 widgets::input::TextInput::type_to_edit | Inputs and Text areas page options | SC8
 widgets::input::TextInput::focus_select | Inputs and Text areas page options | SC8

@@ -445,6 +445,25 @@ fn a_click_on_dead_space_ends_a_form_field_edit_in_place() {
 }
 
 #[test]
+fn tabbing_past_the_untouched_name_flags_nothing_until_save() {
+    // focus starts the Name edit; Shift+Tab ends it unchanged. The empty
+    // required Name is not an error yet, so the Basic tab carries no `!`
+    let mut h = H::new(120, 40);
+    h.ctrl('n');
+    h.key(KeyCode::BackTab);
+    h.key(KeyCode::Right);
+    assert!(h.find("Advanced").is_some(), "{}", h.text());
+    assert!(
+        h.find("Basic !").is_none(),
+        "untouched Name flagged:\n{}",
+        h.text()
+    );
+    // saving validates: the error and the tab mark appear then
+    h.ctrl('s');
+    assert!(h.find("Basic !").is_some(), "{}", h.text());
+}
+
+#[test]
 fn connection_password_is_masked_in_rendered_form() {
     let mut h = H::new(120, 40);
     h.ctrl('n');
