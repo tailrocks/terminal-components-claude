@@ -206,6 +206,9 @@ pub struct PointerState {
     autoscroll_at: Option<u64>,
     last_click: Option<LastClick>,
     hover_refresh: Option<Position>,
+    /// The control hovered and since when (in the caller's clock), for
+    /// [`Self::hover_ms`]; marked lazily, so no event needs the time.
+    hover_mark: std::cell::Cell<Option<(WidgetId, u64)>>,
 }
 
 impl PointerState {
@@ -427,6 +430,25 @@ impl PointerState {
     }
 
     /// Forget the click chain (a modal opened, the content changed).
+    /// How long the pointer has rested on the hovered control, in ms of the
+    /// clock `now_ms` reads (0 when nothing is hovered or the target just
+    /// changed). Delayed hover content (an expansion tooltip, a
+    /// tooltip) waits on it through
+    /// [`crate::ui::ctx::Interaction::hover_ms`].
+    pub fn hover_ms(&self, now_ms: u64) -> u64 {
+        let Some(id) = self.hover.filter(|_| !self.hover_suppressed) else {
+            self.hover_mark.set(None);
+            return 0;
+        };
+        match self.hover_mark.get() {
+            Some((h, since)) if h == id => now_ms.saturating_sub(since),
+            _ => {
+                self.hover_mark.set(Some((id, now_ms)));
+                0
+            }
+        }
+    }
+
     pub fn reset_clicks(&mut self) {
         self.last_click = None;
     }

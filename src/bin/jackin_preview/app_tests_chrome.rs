@@ -242,9 +242,12 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
         "dialog still open: {}",
         h.text()
     );
-    // pointer: resting on a cut value shows its expansion tooltip
+    // pointer: resting on a cut value shows its expansion tooltip, once the
+    // pointer has rested (Reveal::delay_ms): a pass over it shows nothing
     let (vx, vy) = h.find("simulated").unwrap();
     h.mouse(MouseKind::Move, vx + 2, vy);
+    assert!(!h.text().contains(construct), "not at once: {}", h.text());
+    h.ticks(8);
     assert!(h.text().contains(construct), "{}", h.text());
     let (px, py) = h.find("Scenario").unwrap();
     h.mouse(MouseKind::Move, px, py);
