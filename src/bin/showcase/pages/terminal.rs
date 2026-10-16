@@ -316,6 +316,13 @@ impl Page for TerminalPage {
                 cx.focus.focus(self.term.id);
                 self.term.on_click(*pos)
             }
+            PageEvent::Press { id, pos } if *id == SEAM => {
+                self.seam.on_press(&self.split, self.container, 2, *pos);
+                Outcome::Consumed
+            }
+            PageEvent::Click { id, .. } if *id == SEAM => {
+                self.seam.on_click(&mut self.split, cx.clicks)
+            }
             PageEvent::Click { id, pos } => {
                 if *id == self.term.id {
                     cx.focus.focus(self.term.id);

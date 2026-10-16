@@ -7,12 +7,14 @@ use ratatui::layout::{Position, Rect};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
 use junie_tui::widgets::input::{InputEvent, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::table::SortDir;
 use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
 use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
@@ -72,6 +74,12 @@ pub struct Workbench {
     pub explorer: TreeView,
     pub explorer_filter: TextInput,
     pub explorer_visible: bool,
+    /// Explorer / main split: follows the default width until the seam is
+    /// dragged; a double-click on the seam returns to it.
+    pub explorer_split: Split,
+    pub explorer_sized: bool,
+    pub explorer_seam: Splitter,
+    explorer_split_area: Rect,
     pub maximized: bool,
     pub strip: Tabs,
     pub tabs: Vec<WorkTab>,
@@ -107,6 +115,10 @@ impl Workbench {
                 .placeholder("Filter objects")
                 .plain_label(),
             explorer_visible: true,
+            explorer_split: Split::new(25, 20, 40),
+            explorer_sized: false,
+            explorer_seam: Splitter::new(EXPLORER.sub("seam"), SplitDir::Horizontal),
+            explorer_split_area: Rect::ZERO,
             maximized: false,
             strip: Tabs::new(TABSTRIP, &[]),
             tabs: vec![],
@@ -986,6 +998,23 @@ impl Workbench {
 
     /// A press on hit `id` with the click count it starts.
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        if id == self.explorer_seam.id {
+            let area = self.explorer_split_area;
+            self.explorer_seam
+                .on_press(&self.explorer_split, area, 1, pos);
+            return Outcome::Consumed;
+        }
+        match self.tabs.get_mut(self.active) {
+            Some(WorkTab::Query(q)) if id == q.seam.id => {
+                q.seam.on_press(&q.split, q.split_area, 1, pos);
+                return Outcome::Consumed;
+            }
+            Some(WorkTab::History(h)) if id == h.seam.id => {
+                h.seam.on_press(&h.split, h.split_area, 2, pos);
+                return Outcome::Consumed;
+            }
+            _ => {}
+        }
         route_press(&mut self.pointer_fields(), id, pos, count).unwrap_or(Outcome::Ignored)
     }
 
@@ -1030,6 +1059,13 @@ impl Workbench {
         }
         if id == scrollbar::id_for(self.explorer.id) {
             return self.explorer.on_scrollbar(pos);
+        }
+        if id == self.explorer_seam.id {
+            if cx.clicks == 2 {
+                self.explorer_sized = false;
+                return Outcome::Changed;
+            }
+            return Outcome::Consumed;
         }
         if self.strip.owns(id) {
             cx.focus.focus(self.strip.id);
@@ -1121,6 +1157,9 @@ impl Workbench {
             }
             Some(WorkTab::Query(q)) => q.on_click(id, pos, cx, cat),
             Some(WorkTab::History(h)) => {
+                if id == h.seam.id {
+                    return h.seam.on_click(&mut h.split, cx.clicks);
+                }
                 if let Some(row) = h.list.locate(id) {
                     cx.focus.focus(h.list.id);
                     let o = h.list.on_click(row);
@@ -1168,6 +1207,13 @@ impl Workbench {
         if pressed == scrollbar::id_for(self.explorer.id) {
             return self.explorer.on_scrollbar_drag(pos);
         }
+        if pressed == self.explorer_seam.id {
+            self.explorer_sized = true;
+            let area = self.explorer_split_area;
+            return self
+                .explorer_seam
+                .on_drag(&mut self.explorer_split, area, 1, pos);
+        }
         match self.tabs.get_mut(self.active) {
             Some(WorkTab::Table(t)) => {
                 if t.grid.owns(pressed) {
@@ -1183,6 +1229,10 @@ impl Workbench {
             }
             Some(WorkTab::Query(q)) => q.on_drag(pressed, pos),
             Some(WorkTab::History(h)) => {
+                if pressed == h.seam.id {
+                    let area = h.split_area;
+                    return h.seam.on_drag(&mut h.split, area, 2, pos);
+                }
                 if pressed == scrollbar::id_for(h.list.id) {
                     return h.list.on_scrollbar_drag(pos);
                 }
@@ -1301,18 +1351,25 @@ impl Workbench {
         let show_explorer =
             self.explorer_visible && !self.maximized && (!narrow || explorer_focused);
         let explorer_w = (body.width / 4).clamp(28, 40);
+        if !self.explorer_sized {
+            // the default width until the seam is dragged (a double-click
+            // on the seam returns to it)
+            self.explorer_split.drag_to(
+                SplitDir::Horizontal,
+                body,
+                1,
+                Position::new(body.x + explorer_w, body.y),
+            );
+            self.explorer_split.default_percent = self.explorer_split.percent;
+        }
+        self.explorer_split_area = body;
         let (ex, main) = if show_explorer && narrow {
             (body, Rect::ZERO)
         } else if show_explorer {
-            (
-                Rect::new(body.x, body.y, explorer_w, body.height),
-                Rect::new(
-                    body.x + explorer_w + 1,
-                    body.y,
-                    body.width.saturating_sub(explorer_w + 1),
-                    body.height,
-                ),
-            )
+            let (ex, main) = self.explorer_split.horizontal(body, 1);
+            let handle = self.explorer_split.handle(SplitDir::Horizontal, body, 1);
+            self.explorer_seam.render(handle, buf, ctx, t.canvas);
+            (ex, main)
         } else {
             (Rect::ZERO, body)
         };
