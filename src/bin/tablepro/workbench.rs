@@ -1058,7 +1058,7 @@ impl Workbench {
                     }
                     return Outcome::Changed;
                 }
-                if id == scrollbar::id_for(t.ddl.id) {
+                if scrollbar::is_bar_of(id, t.ddl.id) {
                     return t.ddl.on_scrollbar(pos);
                 }
                 if t.chips.owns(id) {
@@ -1150,6 +1150,9 @@ impl Workbench {
                 if scrollbar::is_bar_of(pressed, t.structure.id) {
                     return t.structure.on_scrollbar_drag(pos);
                 }
+                if scrollbar::is_bar_of(pressed, t.ddl.id) {
+                    return t.ddl.on_scrollbar_drag(pos);
+                }
                 Outcome::Ignored
             }
             Some(WorkTab::Query(q)) => q.on_drag(pressed, pos),
@@ -1185,8 +1188,12 @@ impl Workbench {
                         t.structure.on_wheel(delta)
                     };
                 }
-                if id == t.ddl.id || id == scrollbar::id_for(t.ddl.id) {
-                    return t.ddl.on_wheel(delta);
+                if t.ddl.owns(id) {
+                    return if horizontal {
+                        t.ddl.on_wheel_h(delta)
+                    } else {
+                        t.ddl.on_wheel(delta)
+                    };
                 }
                 Outcome::Ignored
             }

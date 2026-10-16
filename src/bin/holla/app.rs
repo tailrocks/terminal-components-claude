@@ -1585,10 +1585,10 @@ impl App {
                 };
                 self.with_top(|s, w, cx| s.on_secondary(id, m.pos, w, cx))
             }
-            MouseKind::WheelUp
-            | MouseKind::WheelDown
-            | MouseKind::WheelLeft
-            | MouseKind::WheelRight => {
+            // nothing here scrolls sideways, and a sideways swipe must
+            // never scroll rows
+            MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Consumed,
+            MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = self.pointer.wheel_delta(m.kind);
                 // a horizontal swipe is its own axis: it never scrolls a
                 // vertical list
