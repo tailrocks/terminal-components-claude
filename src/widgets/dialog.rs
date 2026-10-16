@@ -14,6 +14,7 @@ use ratatui::layout::{Constraint, Margin, Position, Rect};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::theme::ButtonKind;
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
@@ -59,10 +60,14 @@ pub struct Dialog {
     /// Index of the action Esc maps to (usually a Cancel button).
     pub cancel_index: Option<usize>,
     pub width: u16,
-    /// Letter accelerators on a text dialog: `(yes, no)` press the primary
-    /// action and the cancel action. Default `Some(('y', 'n'))`; `None`
-    /// keeps letters inert, as macOS alerts do.
-    pub accelerators: Option<(char, char)>,
+    /// Action keys on a text dialog (default
+    /// [`DialogAction::default_keymap`]: `y` presses the primary action,
+    /// `n` the cancel action). An empty map keeps letters inert, as macOS
+    /// alerts do.
+    pub keymap: KeyMap<DialogAction>,
+    /// Which keys scroll a tall body (↑/↓, paging, Home/End) and move
+    /// between the actions (←/→). Default [`NavKeys::DEFAULT`].
+    pub nav: NavKeys,
     pub area: Rect,
     pub result: Option<DialogResult>,
     pub initial_focus: WidgetId,
@@ -126,6 +131,24 @@ pub struct Dialog {
     v_click: crate::core::scroll::TrackClick,
 }
 
+/// A [`Dialog`] action a key can be bound to (text dialogs only).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DialogAction {
+    /// Press the primary (or danger) action. Default `y`.
+    Confirm,
+    /// Press the cancel action. Default `n`.
+    Cancel,
+}
+
+impl Actions for DialogAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::char('y'), DialogAction::Confirm),
+            (KeyBinding::char('n'), DialogAction::Cancel),
+        ]
+    }
+}
+
 /// Default [`Dialog::outer_margin`].
 pub const OUTER_MARGIN: Margin = Margin {
     horizontal: 3,
@@ -140,9 +163,27 @@ impl Dialog {
     }
 
     /// Letter accelerators `(yes, no)` on a text dialog; `None` turns them
-    /// off.
+    /// off. A shortcut for [`Self::keymap`].
     pub fn accelerators(mut self, keys: Option<(char, char)>) -> Self {
-        self.accelerators = keys;
+        self.keymap = match keys {
+            Some((yes, no)) => vec![
+                (KeyBinding::char(yes), DialogAction::Confirm),
+                (KeyBinding::char(no), DialogAction::Cancel),
+            ],
+            None => vec![],
+        };
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<DialogAction>) -> Self {
+        self.keymap = keymap;
+        self
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
         self
     }
 
@@ -157,7 +198,8 @@ impl Dialog {
             actions: vec![cancel, ok],
             cancel_index: Some(0),
             width: 54,
-            accelerators: Some(('y', 'n')),
+            keymap: DialogAction::default_keymap(),
+            nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
             initial_focus: ok_id,
@@ -196,7 +238,8 @@ impl Dialog {
             actions: vec![cancel, del],
             cancel_index: Some(0),
             width: 54,
-            accelerators: Some(('y', 'n')),
+            keymap: DialogAction::default_keymap(),
+            nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
             initial_focus: cancel_id,
@@ -235,7 +278,8 @@ impl Dialog {
             actions: vec![cancel, ok],
             cancel_index: Some(0),
             width: 54,
-            accelerators: Some(('y', 'n')),
+            keymap: DialogAction::default_keymap(),
+            nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
             initial_focus: input_id,
@@ -289,7 +333,8 @@ impl Dialog {
             actions: vec![cancel, confirm],
             cancel_index: Some(0),
             width: 66,
-            accelerators: Some(('y', 'n')),
+            keymap: DialogAction::default_keymap(),
+            nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
             initial_focus: initial,
@@ -748,40 +793,66 @@ impl Dialog {
                 }
             }
         }
-        match key.code {
-            KeyCode::Esc if self.dismiss.escape => self.dismissed(),
-            KeyCode::Tab => {
+        if matches!(self.body, DialogBody::Text(_)) {
+            match lookup(&self.keymap, key) {
+                Some(DialogAction::Confirm) => {
+                    let primary = self.actions.iter().position(|b| {
+                        matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled
+                    });
+                    return match primary {
+                        Some(p) => self.finish(DialogResult::Action(p)),
+                        None => Outcome::Consumed,
+                    };
+                }
+                Some(DialogAction::Cancel) => {
+                    return match self.cancel_index {
+                        Some(ci) => self.finish(DialogResult::Action(ci)),
+                        None => Outcome::Consumed,
+                    };
+                }
+                None => {}
+            }
+        }
+        let overflows = self.scroll.overflows();
+        let arrow = !matches!(key.code, KeyCode::Char(_));
+        match (self.nav.action(key), key.code) {
+            (_, KeyCode::Esc) if self.dismiss.escape => self.dismissed(),
+            (_, KeyCode::Tab) => {
                 focus.next(ring);
                 Outcome::Changed
             }
-            KeyCode::BackTab => {
+            (_, KeyCode::BackTab) => {
                 focus.prev(ring);
                 Outcome::Changed
             }
             // a body taller than the dialog scrolls under the keyboard too
-            KeyCode::Up if self.scroll.overflows() => self.on_wheel(-1),
-            KeyCode::Down if self.scroll.overflows() => self.on_wheel(1),
-            KeyCode::PageUp if self.scroll.overflows() => {
+            (Some(Nav::Up), _) if overflows => self.on_wheel(-1),
+            (Some(Nav::Down), _) if overflows => self.on_wheel(1),
+            (Some(Nav::PageUp), _) if overflows => {
                 self.scroll.page_up();
                 Outcome::Changed
             }
-            KeyCode::PageDown if self.scroll.overflows() => {
+            (Some(Nav::PageDown), _) if overflows => {
                 self.scroll.page_down();
                 Outcome::Changed
             }
-            KeyCode::Home if self.scroll.overflows() => {
+            (Some(Nav::Home), _) if overflows => {
                 self.scroll.jump_start();
                 Outcome::Changed
             }
-            KeyCode::End if self.scroll.overflows() => {
+            (Some(Nav::End), _) if overflows => {
                 self.scroll.jump_end();
                 Outcome::Changed
             }
             // Shift+←/→ scroll a code preview wider than the dialog; the
             // plain arrows keep moving between the actions
-            KeyCode::Left if key.shift() && self.code_scroll.overflows() => self.scroll_code(-1),
-            KeyCode::Right if key.shift() && self.code_scroll.overflows() => self.scroll_code(1),
-            KeyCode::Left | KeyCode::Char('h') => {
+            (Some(Nav::Left), _) if arrow && key.shift() && self.code_scroll.overflows() => {
+                self.scroll_code(-1)
+            }
+            (Some(Nav::Right), _) if arrow && key.shift() && self.code_scroll.overflows() => {
+                self.scroll_code(1)
+            }
+            (Some(Nav::Left), _) => {
                 // move between actions
                 if let Some(i) = self.actions.iter().position(|b| Some(b.id) == cur) {
                     let prev = self.actions[..i].iter().rev().find(|b| !b.disabled);
@@ -791,7 +862,7 @@ impl Dialog {
                 }
                 Outcome::Changed
             }
-            KeyCode::Right | KeyCode::Char('l') => {
+            (Some(Nav::Right), _) => {
                 if let Some(i) = self.actions.iter().position(|b| Some(b.id) == cur) {
                     let next = self.actions[i + 1..].iter().find(|b| !b.disabled);
                     if let Some(n) = next {
@@ -799,27 +870,6 @@ impl Dialog {
                     }
                 }
                 Outcome::Changed
-            }
-            KeyCode::Char(c)
-                if self.accelerators.is_some_and(|(yes, _)| yes == c)
-                    && matches!(self.body, DialogBody::Text(_)) =>
-            {
-                let primary = self.actions.iter().position(|b| {
-                    matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled
-                });
-                match primary {
-                    Some(p) => self.finish(DialogResult::Action(p)),
-                    None => Outcome::Consumed,
-                }
-            }
-            KeyCode::Char(c)
-                if self.accelerators.is_some_and(|(_, no)| no == c)
-                    && matches!(self.body, DialogBody::Text(_)) =>
-            {
-                match self.cancel_index {
-                    Some(ci) => self.finish(DialogResult::Action(ci)),
-                    None => Outcome::Consumed,
-                }
             }
             _ => Outcome::Consumed,
         }

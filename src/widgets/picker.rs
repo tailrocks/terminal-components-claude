@@ -9,6 +9,7 @@ use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
@@ -141,6 +142,11 @@ pub struct Picker {
     /// forward. Default `true` (today's binding); off, Delete deletes the
     /// character after the caret like a search field.
     pub delete_is_secondary: bool,
+    /// Which keys move the list cursor (default [`NavKeys::DEFAULT`]). A
+    /// searchable picker types its letters and edits the query with
+    /// ←/→ and Home/End, so there only ↑/↓ and paging move; a plain list
+    /// takes the whole table.
+    pub nav: NavKeys,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -190,7 +196,14 @@ impl Picker {
             dismiss: crate::ui::popup::Dismiss::LIGHT,
             caret: None,
             delete_is_secondary: true,
+            nav: NavKeys::DEFAULT,
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
     }
 
     pub fn delete_is_secondary(mut self, on: bool) -> Self {
@@ -448,6 +461,29 @@ impl Picker {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerEvent>) {
+        // a searchable picker types its letters, and its Home/End and ←/→
+        // edit the query; the list keeps ↑/↓ and paging
+        let typing = self.searchable;
+        let nav = self.nav.action(key).filter(|n| {
+            !(typing
+                && (matches!(key.code, KeyCode::Char(_))
+                    || matches!(n, Nav::Home | Nav::End | Nav::Left | Nav::Right)))
+        });
+        let page = self.scroll.viewport_len.max(1) as isize;
+        let n = self.items.len() as isize;
+        match nav {
+            Some(Nav::Down) => self.step(1),
+            Some(Nav::Up) => self.step(-1),
+            Some(Nav::PageDown) => self.step(page),
+            Some(Nav::PageUp) => self.step(-page),
+            Some(Nav::Home) if key.plain() => self.step(-n),
+            Some(Nav::End) if key.plain() => self.step(n),
+            _ => return self.on_other_key(key),
+        }
+        (Outcome::Changed, None)
+    }
+
+    fn on_other_key(&mut self, key: &Key) -> (Outcome, Option<PickerEvent>) {
         match key.code {
             KeyCode::Esc => {
                 if self.searchable && !self.query.is_empty() {
@@ -473,28 +509,12 @@ impl Picker {
                 }
                 None => (Outcome::Consumed, None),
             },
-            KeyCode::Down => {
-                self.step(1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Up => {
-                self.step(-1);
-                (Outcome::Changed, None)
-            }
             KeyCode::Char('n') | KeyCode::Char('j') if key.ctrl() => {
                 self.step(1);
                 (Outcome::Changed, None)
             }
             KeyCode::Char('p') | KeyCode::Char('k') if key.ctrl() => {
                 self.step(-1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageDown => {
-                self.step(self.scroll.viewport_len.max(1) as isize);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageUp => {
-                self.step(-(self.scroll.viewport_len.max(1) as isize));
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
@@ -575,14 +595,6 @@ impl Picker {
                 self.query.insert(at, c);
                 self.set_caret(at + c.len_utf8());
                 (Outcome::Changed, Some(PickerEvent::QueryChanged))
-            }
-            KeyCode::Char('j') if !self.searchable => {
-                self.step(1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('k') if !self.searchable => {
-                self.step(-1);
-                (Outcome::Changed, None)
             }
             _ => (Outcome::Consumed, None),
         }
