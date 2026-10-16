@@ -871,6 +871,7 @@ impl Workbench {
             }
             GridEvent::LeaveForward => cx.focus_next(),
             GridEvent::LeaveBackward => cx.focus_prev(),
+            GridEvent::ReadOnly { reason } => cx.status(reason),
             GridEvent::CellChanged { .. }
             | GridEvent::RowInserted(_)
             | GridEvent::RowDeleted(_)
