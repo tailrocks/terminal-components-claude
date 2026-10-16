@@ -1,7 +1,7 @@
 //! Showcase pages. Each page owns its widgets and routes events to them.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
@@ -80,49 +80,6 @@ pub enum PageEvent {
     /// drag, release, middle or secondary click, or a wheel notch on
     /// either axis. Pages hand it to their widgets (`widget.route(ev)`).
     Pointer(PointerEvent),
-    /// Pointer down at its original position, before any drag motion.
-    Press {
-        id: WidgetId,
-        pos: Position,
-    },
-    /// Completed click (down and up on the same id).
-    Click {
-        id: WidgetId,
-        pos: Position,
-    },
-    /// Middle button on `id` (a tab strip closes the tab under it).
-    Middle {
-        id: WidgetId,
-    },
-    /// Secondary (right) button on `id`: a context action.
-    Secondary {
-        id: WidgetId,
-        pos: Position,
-    },
-    /// Pointer moved while the button is held; `pressed` is the id where
-    /// the press started.
-    Drag {
-        pressed: WidgetId,
-        pos: Position,
-    },
-    /// The button went up away from `pressed`, where the press started
-    /// (no click: the press and the release landed on different targets).
-    /// A select chooses the option a press-drag ended on.
-    Release {
-        pressed: WidgetId,
-        pos: Position,
-    },
-    /// Wheel over `id` (a scroll container).
-    Wheel {
-        id: WidgetId,
-        delta: i32,
-    },
-    /// Horizontal wheel over `id`: columns of a table or grid, the text of
-    /// an editor.
-    WheelH {
-        id: WidgetId,
-        delta: i32,
-    },
     Tick,
     /// A control lost focus (or a click on dead space ended its edit):
     /// the page that owns `from` ends the edit through the control's
@@ -135,29 +92,6 @@ pub enum PageEvent {
         /// Text entered in a prompt dialog, if any.
         value: Option<String>,
     },
-}
-
-/// The per-gesture event a page not yet on [`PageEvent::Pointer`]
-/// handles (S6 transition; removed once every page routes by owner).
-pub fn legacy_event(ev: &PointerEvent) -> Option<PageEvent> {
-    use junie_tui::core::hit::Axis;
-    use junie_tui::core::intent::Phase;
-    let (id, pos) = (ev.id, ev.pos());
-    if let Some((axis, delta)) = ev.wheel() {
-        return Some(match axis {
-            Axis::Vertical => PageEvent::Wheel { id, delta },
-            Axis::Horizontal => PageEvent::WheelH { id, delta },
-        });
-    }
-    Some(match ev.phase()? {
-        Phase::Press => PageEvent::Press { id, pos },
-        Phase::Click => PageEvent::Click { id, pos },
-        Phase::Drag => PageEvent::Drag { pressed: id, pos },
-        Phase::Release => PageEvent::Release { pressed: id, pos },
-        Phase::Middle => PageEvent::Middle { id },
-        Phase::Secondary => PageEvent::Secondary { id, pos },
-        _ => return None,
-    })
 }
 
 /// Things a page may ask the app to do.
@@ -179,13 +113,6 @@ pub struct PageCtx<'a> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
     pub requests: Vec<Request>,
-    /// Modifier keys held with the pointer event being delivered (Shift
-    /// extends a selection, Ctrl/Cmd toggles); empty for keys and ticks.
-    pub mods: ratatui::crossterm::event::KeyModifiers,
-    /// Multi-click count of the click being delivered (1 single, 2 double,
-    /// 3 triple; [`junie_tui::core::pointer::PointerState::count_click`]), or
-    /// of the click a press starts (`press_count`); 0 for every other event.
-    pub clicks: u8,
 }
 
 impl PageCtx<'_> {

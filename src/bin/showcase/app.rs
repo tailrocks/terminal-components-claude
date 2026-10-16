@@ -659,11 +659,6 @@ pub struct App {
     layout: ShellLayout,
     /// Focus to restore when the help dialog closes.
     saved_focus: Option<WidgetId>,
-    /// Modifiers held with the pointer event being handled; pages read
-    /// them from [`PageCtx::mods`].
-    pointer_mods: KeyModifiers,
-    /// Multi-click count of the click being delivered ([`PageCtx::clicks`]).
-    pointer_clicks: u8,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -803,8 +798,6 @@ impl App {
             nav_filter: None,
             layout: ShellLayout::default(),
             saved_focus: None,
-            pointer_mods: KeyModifiers::NONE,
-            pointer_clicks: 0,
         };
         app.sync_nav(None);
         // Paused fast-forward: page Tick handlers are pure functions of the
@@ -823,8 +816,6 @@ impl App {
                         focus: &mut app.focus,
                         ring: &app.ring,
                         requests: Vec::new(),
-                        mods: KeyModifiers::NONE,
-                        clicks: 0,
                     };
                     app.pages[i].handle(&PageEvent::Tick, &mut cx);
                 }
@@ -1041,8 +1032,6 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: Vec::new(),
-            mods: self.pointer_mods,
-            clicks: self.pointer_clicks,
         };
         let out = self.pages[i].handle(&ev, &mut cx);
         let requests = std::mem::take(&mut cx.requests);
@@ -1331,8 +1320,6 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: Vec::new(),
-            mods: self.pointer_mods,
-            clicks: self.pointer_clicks,
         };
         let (out, set) = self.insp.handle(&ev, &mut cx)?;
         if let Some(set) = set {
@@ -1698,19 +1685,6 @@ impl App {
         }
         // the overlay is a layer: the page beneath it takes nothing
         overlay.then_some(Outcome::Ignored)
-    }
-
-    /// Deliver a page pointer event; a page not yet on
-    /// [`PageEvent::Pointer`] gets the per-gesture event it handled before.
-    fn page_pointer(&mut self, ev: &PointerEvent) -> Outcome {
-        let out = self.dispatch(PageEvent::Pointer(*ev));
-        if out != Outcome::Ignored {
-            return out;
-        }
-        match crate::pages::legacy_event(ev) {
-            Some(legacy) => self.dispatch(legacy),
-            None => out,
-        }
     }
 
     /// A key while the sidebar filters (`/`): letters narrow the tree to
@@ -2311,27 +2285,16 @@ impl PointerHost for App {
     }
 
     fn deliver(&mut self, ev: &PointerEvent) -> Response<()> {
-        use junie_tui::core::intent::Phase;
-        // pages read the gesture's modifiers and click count from their
-        // context
-        self.pointer_mods = ev.mods();
-        self.pointer_clicks = if ev.is(Phase::Press) || ev.is(Phase::Click) {
-            ev.count()
-        } else {
-            0
-        };
         let out = match self.modal_pointer(ev) {
             Some(out) => out,
             None => match self.chrome_pointer(ev) {
                 Some(out) => out,
                 None => match self.inspector_pointer(ev) {
                     Some(out) => out,
-                    None => self.page_pointer(ev),
+                    None => self.dispatch(PageEvent::Pointer(*ev)),
                 },
             },
         };
-        self.pointer_mods = KeyModifiers::NONE;
-        self.pointer_clicks = 0;
         out.into()
     }
 
