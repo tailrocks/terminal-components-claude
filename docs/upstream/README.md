@@ -9,7 +9,7 @@ the upstream agents open (see [Upstream PR loop](#upstream-pr-loop)).
 
 | File | Upstream | Our pin today | Asks | Status |
 |---|---|---|---|---|
-| [`velnor-new-feedback.md`](velnor-new-feedback.md) | [tailrocks/velnor-new](https://github.com/tailrocks/velnor-new) | `v0.1.8` (`.velnor/release-manifest.json`) | visual-test suites: named nextest profile, real `--partition` shards, schedule/dispatch triggers, artifact upload, timeouts, required membership, preserved workflows; opt-in `.github/CLAUDE.md` symlink | forwarded; PR [#155](https://github.com/tailrocks/velnor-new/pull/155) open, §8 has no PR (see the tracker in the file) |
+| [`velnor-new-feedback.md`](velnor-new-feedback.md) | [tailrocks/velnor-new](https://github.com/tailrocks/velnor-new) | `v0.1.8` (`.velnor/release-manifest.json`) | visual-test suites: named nextest profile, real `--partition` shards, schedule/dispatch triggers, artifact upload, timeouts, required membership, preserved workflows; opt-in `.github/CLAUDE.md` symlink; repository Rust toolchain and tool overrides (§8) | PR [#155](https://github.com/tailrocks/velnor-new/pull/155) (§2–§5 and §8) merged to `main` as `e34cfb8` and verified 2026-10-16; adoption waits for the `v0.1.9` tag (see the tracker in the file) |
 | [`tuiscotti-feedback.md`](tuiscotti-feedback.md) | [tailrocks/tuiscotti](https://github.com/tailrocks/tuiscotti) | `rev = a47c9aaefb34e4c00026f99d8a8dd7ee5916b274` (`Cargo.toml`) | lone `f` key, exact dependency pins, `.ansi`+cursor artifact mode with CLI accept, non-unique locators, last screen in `WaitError`, render speed, no absolute paths, clock/pointer/docs | forwarded; PR [#11](https://github.com/tailrocks/tuiscotti/pull/11) open (see the tracker in the file) |
 
 When an upstream agent reports back:
