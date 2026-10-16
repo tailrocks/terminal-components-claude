@@ -188,7 +188,7 @@ impl KeyBinding {
         }
     }
 
-    /// How hints spell this chord: `x`, `Ctrl+S`, `Del`, `F2`, `Space`.
+    /// How hints spell this chord: `x`, `Ctrl+S`, `Delete`, `F2`, `Space`.
     pub fn label(&self) -> String {
         let mut out = String::new();
         if self.mods.contains(KeyModifiers::CONTROL) {
@@ -212,7 +212,7 @@ impl KeyBinding {
             KeyCode::Tab => out.push_str("Tab"),
             KeyCode::BackTab => out.push_str("Shift+Tab"),
             KeyCode::Backspace => out.push_str("Backspace"),
-            KeyCode::Delete => out.push_str("Del"),
+            KeyCode::Delete => out.push_str("Delete"),
             KeyCode::Insert => out.push_str("Ins"),
             KeyCode::Up => out.push('↑'),
             KeyCode::Down => out.push('↓'),
@@ -264,6 +264,26 @@ pub fn binding_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<K
 /// The hint label of the first key bound to `action`, if any.
 pub fn label_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<String> {
     binding_for(map, action).map(|b| b.label())
+}
+
+/// [`label_for`] as a `&'static str`, for [`crate::widgets::keyhint::Hint`]
+/// keys: each distinct chord's label is interned once, so a footer built
+/// every frame names the bound key (or drops the hint when the action is
+/// unbound) without allocating.
+pub fn hint_key<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<&'static str> {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+    static LABELS: OnceLock<Mutex<HashMap<KeyBinding, &'static str>>> = OnceLock::new();
+    let b = binding_for(map, action)?;
+    let mut labels = LABELS
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    Some(
+        labels
+            .entry(b)
+            .or_insert_with(|| Box::leak(b.label().into_boxed_str())),
+    )
 }
 
 #[cfg(test)]
@@ -388,7 +408,13 @@ mod tests {
         );
         assert_eq!(label_for(&map, Act::Remove).as_deref(), Some("x"));
         assert_eq!(KeyBinding::ctrl('s').label(), "Ctrl+S");
-        assert_eq!(KeyBinding::key(KeyCode::Delete).label(), "Del");
+        assert_eq!(KeyBinding::key(KeyCode::Delete).label(), "Delete");
+        assert_eq!(hint_key(&map, Act::Add), Some("+"));
+        assert_eq!(
+            hint_key(&map, Act::Add).map(str::as_ptr),
+            hint_key(&map, Act::Add).map(str::as_ptr),
+            "labels are interned once"
+        );
         assert_eq!(KeyBinding::char(' ').label(), "Space");
         let remapped: KeyMap<Act> = vec![(KeyBinding::char('d'), Act::Remove)];
         assert_eq!(lookup(&remapped, &key(KeyCode::Char('x'))), None);
