@@ -25,6 +25,7 @@ pub mod panels;
 pub mod pickers;
 pub mod progress;
 pub mod scrolling;
+pub mod selectable;
 pub mod settings;
 pub mod sidebars;
 pub mod tables;
@@ -92,6 +93,9 @@ pub struct PageCtx<'a> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
     pub requests: Vec<Request>,
+    /// Modifier keys held with the pointer event being delivered (Shift
+    /// extends a selection, Ctrl/Cmd toggles); empty for keys and ticks.
+    pub mods: ratatui::crossterm::event::KeyModifiers,
 }
 
 impl PageCtx<'_> {

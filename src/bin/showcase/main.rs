@@ -5,6 +5,8 @@ mod app;
 mod app_tests;
 #[cfg(test)]
 mod app_tests_coverage;
+#[cfg(test)]
+mod app_tests_selectable;
 mod data;
 mod pages;
 
