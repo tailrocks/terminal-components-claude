@@ -300,6 +300,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 | S0 | Done, 2026-10-16 | `a3e367e8f` (expand: core types), `9e9d5b248` (`XAction` → `XCmd`), `a6343ba8e` (`XEvent` → `XAction`) | See "S0 outcome" below. |
 | S1 | Done, 2026-10-16 | `cbcde8d64` (part-tagged hits; every library widget, showcase NavList, holla cleanup), `20f182ccd` (jackin roster rows keyed by instance) | See "S1 outcome" below. |
 | S2 | Done, 2026-10-16 | `a5b1a82cf` (expand: leaf pieces), `262b70d60` (CLI), `45968977b` (motion and clean-start drift), `8396c3d11` (clocks), `ae4d7eb41` (status line drift), "too-small screen, centred hints and text helpers" (leaf migrations) | See "S2 outcome" below. |
+| S4 | Done, 2026-10-16 | "Cursor, RowSource, NavProfile and the chord guard" (expand), "lists, trees, props, steps, completion and picker", "selects, menus, the cell popup and radio groups", "tabs, chips, dialog buttons, tables and grids" (migrations), "context_select through Cursor::select", "desktop keys and type-ahead by default" (K33, K34, SI12), "one table-driven nav test for every Navigable", "type-ahead pause is a per-widget knob" (SIg10) | See "S4 outcome" below. |
 | S1, S3–S22, T | Not started | — | — |
 
 **S0 outcome.** Conventions now in the library:
@@ -374,6 +375,43 @@ Each step's agent updates its row when the step lands: state, commits, and every
 - S3: `register_bar` registers `Part::TRACK` for the whole bar; split `TRACK`/`THUMB` when `ScrollPane` draws the thumb.
 - S6: the router resolves with `HitRegistry::resolve` and hands widgets `Intent::Pointer { part }`; then delete `PartMap`, `item_of` callers in `locate`/`owns`, and the adapters. `HitRegistry::part_of(id)` bridges ids still held by `PointerState` (pressed, hover).
 - S16: app screens still draw lists by hand and scan derived ids: holla disk, files, finder, plan, review; jackin manager tree (`row_id`, `toggle_id`, `detail_row_id`), accounts tree, capsule seams, config, editor, inspect, settings, usage; tablepro `app.rs` (one scan). They move onto the widgets (or `ctx.part` plus a `PartMap`) with their screens.
+
+**S4 outcome.** One cursor model for every collection:
+- `core::list`: `RowSource { len, enabled, label, key }` (with impls for `[&str]`, `[String]` and the `RowFn` closure adapter), `Cursor { index, wrap, axis, skip_disabled }` with `apply(Nav, src, page)`, `step`, `first`, `last`, `select` and `type_ahead`, all returning `Moved { Ignored, Stayed(i), To(i) }` (`index()`, `moved()`, `outcome()`); `KeyStep::of(key, nav, type_ahead)` (a letter types before it navigates); `NavProfile { Desktop, Vim }` with `install`/`current`; the `Navigable: RowSource { cursor() }` trait.
+- `core::keymap`: `NavKeys::{DESKTOP, VIM}` (`DEFAULT` = `DESKTOP`, `NO_VIM` kept as an alias) and `unassigned_chord(key, map)`. `core::typeahead`: `DEFAULT_TIMEOUT` (1 s), `with_timeout`, `char_of`, `feed_at`.
+- Navigable (each implements `RowSource` and `Navigable` and steps only through `Cursor`): `ListBox`, `TreeView` (notes disabled), `PropsList`, `StepRail`, `Completion`, `Picker`, `Select` (open and closed), `ContextMenu`, `MenuBar` (titles, horizontal), the table/grid `ChoiceEditor` popup (over its shown options), `RadioGroup`, `Tabs` and `ChipBar` (horizontal), `DataTable` (disabled rows reachable, `skip_disabled(false)`), `DataGrid` (rows; columns stay in the grid). The Dialog, ChoiceDialog and FormDialog button rows step through a horizontal `Cursor` over `[Button]`. `ContextSource::context_select` goes through `Cursor::select` for List, Tree, Table, Grid and Tabs.
+- Deleted: the hand-written step, page and Home/End arms of 21 `nav.action` match blocks (each is now one `Cursor` call), `ContextMenu::step`, `Picker::step`, `ChoiceEditor::{step, edge}` (its wheel keeps a three-line `Cursor` loop), the list's `enabled_near`, the menu bar's `step_index` calls, 7 type-ahead copies (list, tree, select, menu, option_editor, table, grid) and 10 chord guards. `rg 'TypeAhead::find' src/widgets` = 0; `rg 'nav::step_index' src/widgets` = 0.
+- Tests: `core::list` unit tables; `tests/navigable.rs` walks all 14 navigables with one key table (ends, wrap, disabled rows) and checks the vim letters under both profiles; per-widget regressions listed below.
+
+**S4 behaviour changes** (each with a test that fails on its parent):
+1. K33, K34, SI12: `NavKeys::default()` and every widget's default `nav` follow `NavProfile::current()`. `Desktop` (the default) is arrows, paging and Home/End only; List, Tree, Select, ContextMenu and MenuBar type-select by default. `NavProfile::Vim` restores `h j k l g G` and turns type-ahead off. Standards: APG listbox and tree ("type-ahead is recommended for all listboxes"), native lists on macOS, Windows and GNOME, WCAG 2.1.4. Override layers: profile, then `nav(..)`/`type_ahead(..)`, then the key map.
+2. A type-ahead miss is `Consumed` in List, Tree and Select (it was `Ignored`); menus, tables, grids and the cell popup already consumed it (§3).
+3. A Multi list's bound `a` (ToggleAll) runs before type-ahead.
+4. Tree arrows and Home/End step over notes ("muted, not selectable"); type-ahead already did.
+5. Picker Home/End/PageUp/PageDown never land on a disabled end row.
+6. The cell popup (`ChoiceEditor`) reads `EditorConfig::nav` instead of raw `KeyCode`s, so vim keys and remaps reach it.
+7. `TreeView::context_select` ignores an out-of-range target (it set any index).
+8. A closed `MenuBar` takes Home/End to its first and last title (APG menubar).
+9. SIg10: `type_ahead_timeout(Duration)` on List, Tree, Select, ContextMenu, MenuBar, DataTable, DataGrid and `EditorConfig::type_ahead_timeout`; default 1 s.
+
+**S4 deviations from the row above:**
+1. Widgets keep their `cursor: usize` field (and `wrap`); `Cursor` is built from them per key and the index written back. Moving the field into a `Cursor` would have rewritten about 115 app sites that read `.cursor`; `ListCore` (S13) takes the field. `Navigable` is therefore read-only (`cursor() -> Cursor`), not `&mut Cursor`.
+2. `KeyCx::unassigned_chord` is `keymap::unassigned_chord(key, map)`: there is no dispatcher before S8a. Every widget calls it first; S8a's `KeyRouter` should call it once before routing and the widget calls can then go.
+3. Type-ahead takes letters and digits only (`TypeAhead::char_of`). With type-ahead on by default, punctuation (`?` help, `/` find, `*` expand, Space) must still reach the app while a list has focus; tablepro's help test caught `?` being typed into the explorer tree. A label starting with punctuation (`.config`) cannot be typed to; record it if a screen needs it.
+4. With both vim letters and type-ahead on, a letter types (`KeyStep::of`). The tree and the open Select used to let `j`/`k` navigate first; the List typed. One rule now; the `Vim` profile turns type-ahead off, so the two never meet by default.
+5. The scroll-only `nav.action` blocks (CodeEditor, TextArea, ScrollPanel, TextViewport, HelpOverlay, InfoDialog and the Dialog body) are not cursors: they stay for `ScrollPane` (S3).
+6. Menu paging moves a viewport of rows and snaps to an enabled one (`Cursor::apply`), instead of counting enabled rows. Table rows keep `skip_disabled(false)`; ChoiceDialog and FormDialog keep wrapping over every button, as before.
+7. Drift fixes landed inside the per-group migration commits (each named with its test in the commit body), not one commit per fix.
+8. Visual: none. `check-touched` (showcase flows and pages) stayed green on every commit. The app groups still pending re-approval were not run; letters typed into a focused list in their scenarios would now type-select instead of moving.
+
+**Notes for later steps:**
+- S8b: hints must stop advertising `j/k` and `g/G` unless `NavProfile::current()` is `Vim` (or the widget's `nav.vim` is on), and should advertise type-ahead ("Type to jump") where `type_ahead` is on. `Completion::NAV` (no Home/End, no letters) and the searchable Picker (letters and Home/End edit the query) are the exceptions to read from the widget, not the profile.
+- S8a: call `keymap::unassigned_chord` in `KeyRouter` before the focused widget, then delete the per-widget guards. Decide where app letter shortcuts sit relative to a focused list: with type-ahead on and a miss consumed, a page letter shortcut no longer reaches the page while a list has focus (punctuation still does).
+- S9: `Cursor::select` is the pointer placement rule (in range, disabled allowed); the M10 selection rule (`RowSelection::apply`) goes on top in `context_select`. The List's Shift-extend still lives in `ListBox::move_cursor` and the Table's in `on_key_multi`; both take the `Cursor` target.
+- S10: `RowSource::enabled` is the "disabled/note" predicate `RowUi` should read for `StateFlags::DISABLED`.
+- S12: `OptionList` holds a `Cursor` field (it is new code, so it can); its rows are `Item`s, so implement `RowSource for [Item]` (enabled = `!disabled`) and drop the per-popup adapters (`Shown` in option_editor, the `[MenuItem]` and `[PickerItem]` impls).
+- S13: `ListCore { cursor: Cursor, .. }` replaces the `cursor: usize` + `wrap` + `skip_disabled` fields; `Navigable` then gains `cursor_mut`.
+- SC29: show `NavProfile`, `Cursor`'s knobs and the `type_ahead_timeout` builders as Options, then delete their allowlist lines.
 
 ## 5. Per-widget documentation (`docs/components/<widget>.md`)
 
