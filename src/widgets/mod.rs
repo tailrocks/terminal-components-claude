@@ -39,5 +39,6 @@ pub mod steps;
 pub mod table;
 pub mod tabs;
 pub mod textarea;
+pub mod too_small;
 pub mod tree;
 pub mod viewport;
