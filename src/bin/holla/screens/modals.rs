@@ -12,7 +12,7 @@ use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
+use ratatui::style::Style;
 
 /// One line of a text modal: an optional bold key column and a value.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -191,20 +191,7 @@ impl TextModal {
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let dim = Rect::new(
-            screen.x,
-            screen.y,
-            screen.width,
-            screen.height.saturating_sub(1),
-        );
-        for pos in dim.positions() {
-            if let Some(c) = buf.cell_mut(pos) {
-                let st = t.backdrop(c.style());
-                c.set_style(st);
-                c.modifier = Modifier::empty();
-            }
-        }
-        ctx.begin_modal();
+        ctx.modal_backdrop(buf, screen);
         let w = self.width.min(screen.width.saturating_sub(4)).max(30);
         let inner_w = w.saturating_sub(6);
         self.layout(inner_w);

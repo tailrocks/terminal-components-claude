@@ -847,6 +847,7 @@ impl App {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
             self.draw(area, buf, &mut ctx);
+            ctx.flush_overlays(buf);
             cursor = cursor.or(ctx.cursor);
         }
         self.hits = hits;

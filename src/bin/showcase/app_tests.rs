@@ -1073,3 +1073,97 @@ fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
         Err(error) if error.kind() == ErrorKind::DisplayHelp
     ));
 }
+
+#[test]
+fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
+    // a short terminal: the list opens over the panels drawn after the field
+    let mut h = Harness::new(120, 30, PageId::Chips);
+    let size = WidgetId::of("chips").sub("size");
+    let field = h.app.hits.area_of(size).expect("page size field");
+    h.click(field.x + 2, field.y);
+    let rows: Vec<_> = (0..4)
+        .map(|i| h.app.hits.area_of(size.child(i)).expect("option row"))
+        .collect();
+    let buf = h.term.backend().buffer().clone();
+    for (row, label) in rows.iter().zip(["25", "50", "100", "500"]) {
+        let text: String = (row.x..row.right())
+            .map(|x| buf[(x, row.y)].symbol())
+            .collect();
+        assert!(
+            text.contains(label),
+            "option {label} is painted on top: {text:?}"
+        );
+        assert!(row.bottom() <= 30, "inside the screen: {row:?}");
+    }
+    assert_eq!(
+        h.app.hits.hit(Position::new(rows[3].x + 3, rows[3].y)),
+        Some(size.child(3)),
+        "the last option is clickable, not shadowed by the page"
+    );
+
+    // a click outside closes the list, keeps the value and is consumed
+    let before = h.text();
+    let outside = Position::new(field.x + 2, 29 - 2);
+    assert!(!rows.iter().any(|r| r.contains(outside)));
+    h.click(outside.x, outside.y);
+    assert!(h.app.hits.area_of(size.child(0)).is_none(), "list closed");
+    assert!(before.contains("50"));
+    assert!(h.text().contains("Page size"));
+
+    // reopen and choose with the mouse: the click lands on the option
+    h.click(field.x + 2, field.y);
+    let last = h.app.hits.area_of(size.child(3)).unwrap();
+    h.click(last.x + 3, last.y);
+    assert!(h.app.hits.area_of(size.child(0)).is_none());
+    let row: String = (field.x..field.right())
+        .map(|x| h.term.backend().buffer()[(x, field.y)].symbol().to_owned())
+        .collect();
+    assert!(row.contains("500"), "{row:?}");
+}
+
+#[test]
+fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
+    let mut h = Harness::new(120, 40, PageId::Chrome);
+    let bar = WidgetId::of("chrome.menubar");
+    let title = |h: &Harness, i: usize| h.app.hits.area_of(bar.child(i)).expect("menu title");
+    let first_row = |i: usize| bar.child(i).sub("menu").child(0);
+    let open = |h: &Harness| -> Vec<usize> {
+        (0..3)
+            .filter(|&i| h.app.hits.area_of(first_row(i)).is_some())
+            .collect()
+    };
+
+    // File opens on a click
+    let file = title(&h, 0);
+    h.click(file.x + 1, file.y);
+    assert_eq!(open(&h), vec![0]);
+
+    // like macOS: pointing at View, then Help, swaps the open menu
+    let view = title(&h, 1);
+    h.mouse(MouseKind::Move, view.x + 1, view.y);
+    assert_eq!(open(&h), vec![1], "View replaced File");
+    let help = title(&h, 2);
+    h.mouse(MouseKind::Move, help.x + 1, help.y);
+    assert_eq!(open(&h), vec![2], "Help replaced View");
+    // moving into the open menu keeps it open
+    let row = h.app.hits.area_of(first_row(2)).unwrap();
+    h.mouse(MouseKind::Move, row.x + 2, row.y);
+    assert_eq!(open(&h), vec![2]);
+
+    // as on macOS the pointer reaching File already opened it, so the click
+    // lands on the open title and closes the menu
+    h.mouse(MouseKind::Down, file.x + 1, file.y);
+    assert_eq!(open(&h), vec![0], "pressing File swapped the menu");
+    h.mouse(MouseKind::Up, file.x + 1, file.y);
+    assert!(open(&h).is_empty());
+
+    // a click anywhere outside closes the menu without reaching the page
+    h.click(file.x + 1, file.y);
+    let status_before = h.text();
+    h.click(110, 30);
+    assert!(open(&h).is_empty(), "outside click closed the menu");
+    assert!(status_before.contains("File"));
+    // with no menu open, pointing at a title does not open one
+    h.mouse(MouseKind::Move, view.x + 1, view.y);
+    assert!(open(&h).is_empty());
+}

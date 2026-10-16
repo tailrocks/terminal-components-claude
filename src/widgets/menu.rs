@@ -11,6 +11,7 @@ use ratatui::style::{Color, Modifier, Style};
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::popup::{Dismiss, backdrop_id};
 use crate::ui::text::{truncate, width};
 use crate::widgets::brand::Lockup;
 use ratatui::crossterm::event::KeyCode;
@@ -237,18 +238,28 @@ impl ContextMenu {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let area = self.placed(screen).intersection(*buf.area());
-        self.area = area;
-        if area.is_empty() {
-            return;
-        }
-        // the pointer moves the cursor
+        self.prepare(screen.intersection(*buf.area()), ctx);
+        self.paint(buf, ctx);
+    }
+
+    /// Resolve the popover rectangle and let the pointer move the cursor.
+    /// State changes happen here, so [`ContextMenu::paint`] can run later
+    /// (as an overlay) on a copy.
+    fn prepare(&mut self, screen: Rect, ctx: &RenderCtx) {
+        self.area = self.placed(screen).intersection(screen);
         if let Some(h) = ctx.interaction.hover
             && let Some(i) = self.locate(h)
             && !self.items[i].disabled
         {
             self.cursor = i;
+        }
+    }
+
+    fn paint(&self, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let area = self.area.intersection(*buf.area());
+        if area.is_empty() {
+            return;
         }
         // the popover plane: the strongest neutral, so a menu reads as a
         // floating command list over the page
@@ -376,6 +387,14 @@ pub struct MenuBar {
     pub open: Option<ContextMenu>,
     pub areas: Vec<Rect>,
     pub brand_area: Rect,
+    /// How an open menu closes without a choice. A click outside lands on
+    /// the bar's backdrop ([`backdrop_id`]); the bar titles stay live above
+    /// it, so pointing at another title switches menus as on macOS.
+    pub dismiss: Dismiss,
+    /// With a menu open, pointing at another title opens that menu (the
+    /// macOS and Windows menu-bar convention). Off: only a click or the
+    /// arrow keys switch menus.
+    pub hover_switch: bool,
 }
 
 impl MenuBar {
@@ -389,7 +408,19 @@ impl MenuBar {
             open: None,
             areas: vec![],
             brand_area: Rect::ZERO,
+            dismiss: Dismiss::LIGHT,
+            hover_switch: true,
         }
+    }
+
+    pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
+        self.dismiss = dismiss;
+        self
+    }
+
+    pub fn hover_switch(mut self, on: bool) -> Self {
+        self.hover_switch = on;
+        self
     }
 
     pub fn brand(mut self, lockup: Lockup) -> Self {
@@ -418,6 +449,7 @@ impl MenuBar {
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id
             || id == self.brand_id()
+            || (self.open.is_some() && id == backdrop_id(self.id))
             || (0..self.labels.len()).any(|i| self.label_id(i) == id)
             || self.open.as_ref().is_some_and(|m| m.owns(id))
     }
@@ -464,6 +496,7 @@ impl MenuBar {
                     self.close();
                     (Outcome::Changed, Some(MenuBarEvent::Chosen(m, i)))
                 }
+                Some(MenuEvent::Dismissed) if !self.dismiss.escape => (Outcome::Consumed, None),
                 Some(MenuEvent::Dismissed) => {
                     self.close();
                     (Outcome::Changed, Some(MenuBarEvent::Closed))
@@ -490,8 +523,16 @@ impl MenuBar {
     }
 
     /// A completed click. Labels toggle their menu, rows choose, the brand
-    /// fires `Brand`, anything else while open closes the menu.
+    /// fires `Brand`, anything else while open closes the menu (when the
+    /// [`Dismiss`] policy allows; the click is consumed either way).
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarEvent>) {
+        if self.open.is_some() && id == backdrop_id(self.id) {
+            if !self.dismiss.outside_click {
+                return (Outcome::Consumed, None);
+            }
+            self.close();
+            return (Outcome::Changed, Some(MenuBarEvent::Closed));
+        }
         if id == self.brand_id() {
             self.close();
             return (Outcome::Changed, Some(MenuBarEvent::Brand));
@@ -511,6 +552,9 @@ impl MenuBar {
                     self.close();
                     (Outcome::Changed, Some(MenuBarEvent::Chosen(m, item)))
                 }
+                Some(MenuEvent::Dismissed) if !self.dismiss.outside_click => {
+                    (Outcome::Consumed, None)
+                }
                 Some(MenuEvent::Dismissed) => {
                     self.close();
                     (Outcome::Changed, Some(MenuBarEvent::Closed))
@@ -521,9 +565,10 @@ impl MenuBar {
         (Outcome::Ignored, None)
     }
 
-    /// Hovering another label while a menu is open switches to it.
+    /// Hovering another label while a menu is open switches to it. The bar
+    /// applies this itself on every render, so owners need not call it.
     pub fn on_hover(&mut self, id: Option<WidgetId>) -> Outcome {
-        if self.open.is_none() {
+        if self.open.is_none() || !self.hover_switch {
             return Outcome::Ignored;
         }
         if let Some(id) = id
@@ -536,13 +581,17 @@ impl MenuBar {
         Outcome::Ignored
     }
 
-    /// Draw the bar row. Call `render_open` after the body so the popover
-    /// sits on top.
+    /// Draw the bar row. An open menu is queued as an overlay
+    /// ([`RenderCtx::overlay`]), so it sits above whatever is drawn after
+    /// the bar with no extra call from the owner.
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
         }
+        // with a menu open, pointing at another title opens that one
+        // (unless `hover_switch` is off)
+        self.on_hover(ctx.interaction.hover);
         let t = ctx.theme;
         fill(buf, area, Style::new().bg(bg));
         ctx.control(self.id, area, false);
@@ -592,21 +641,37 @@ impl MenuBar {
             ctx.clickable(lid, r);
             x += w + 1;
         }
-        if let Some(m) = self.open.as_mut() {
-            // keep the popover under its (possibly re-laid-out) label
-            if let Some(i) = open
-                && let Some(r) = self.areas.get(i)
-            {
-                m.anchor = *r;
+        let Some(m) = self.open.as_mut() else {
+            return;
+        };
+        // keep the popover under its (possibly re-laid-out) label
+        if let Some(i) = open
+            && let Some(r) = self.areas.get(i)
+        {
+            m.anchor = *r;
+        }
+        m.prepare(*buf.area(), ctx);
+        let menu = m.clone();
+        let (id, dismiss) = (self.id, self.dismiss);
+        // the titles (and the brand) stay reachable above the backdrop: a
+        // click or a hover on one of them is a menu-bar gesture, not an
+        // outside click
+        let mut titles: Vec<(WidgetId, Rect)> = (0..self.labels.len())
+            .map(|i| (self.label_id(i), self.areas[i]))
+            .collect();
+        if self.brand.is_some() {
+            titles.push((self.brand_id(), self.brand_area));
+        }
+        ctx.overlay(move |buf, ctx| {
+            ctx.hits.push_barrier();
+            if dismiss.outside_click {
+                ctx.clickable(backdrop_id(id), *buf.area());
             }
-        }
-    }
-
-    /// Draw the open dropdown over `screen`.
-    pub fn render_open(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        if let Some(m) = self.open.as_mut() {
-            m.render(screen, buf, ctx);
-        }
+            for (tid, r) in titles {
+                ctx.clickable(tid, r);
+            }
+            menu.paint(buf, ctx);
+        });
     }
 }
 
@@ -741,7 +806,7 @@ mod tests {
         let (_, ev) = bar.on_click(bar.label_id(0));
         assert_eq!(ev, Some(MenuBarEvent::Opened(0)));
         bar.render(Rect::new(0, 0, 60, 1), &mut buf, &mut ctx, t.canvas);
-        bar.render_open(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
         let popover = bar.open.as_ref().unwrap().area;
         assert_eq!(popover.y, 1, "anchored beneath the label");
         assert_eq!(popover.x, bar.areas[0].x);
@@ -749,6 +814,13 @@ mod tests {
         assert_eq!(ev, Some(MenuBarEvent::Closed));
         let (_, ev) = bar.on_click(bar.brand_id());
         assert_eq!(ev, Some(MenuBarEvent::Brand));
+        // hover switching is on by default and can be turned off
+        bar.open_menu(0);
+        assert_eq!(bar.on_hover(Some(bar.label_id(1))), Outcome::Changed);
+        assert_eq!(bar.open_index(), Some(1));
+        bar.hover_switch = false;
+        assert_eq!(bar.on_hover(Some(bar.label_id(0))), Outcome::Ignored);
+        assert_eq!(bar.open_index(), Some(1));
         // Esc closes an open menu
         bar.open_menu(1);
         let (_, ev) = bar.on_key(&key(KeyCode::Esc));
