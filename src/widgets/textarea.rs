@@ -260,10 +260,8 @@ impl TextArea {
         if self.disabled {
             s.hovered = false;
         }
-        if !ctx.interaction.has_focus(self.id) && self.editing {
-            self.commit();
-            s.editing = false;
-        }
+        // An edit that lost focus is ended by `on_blur` on the event path,
+        // never here: render only draws (`s.editing` needs focus).
 
         // label
         let label_style = if self.disabled {
@@ -471,6 +469,25 @@ impl crate::core::focus::BlurTarget for TextArea {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rendering_without_focus_never_ends_the_edit() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        use crate::theme::Theme;
+        use crate::ui::ctx::Interaction;
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut a = TextArea::new(WidgetId::of("r"), "Notes", 3).value("v");
+        a.begin_edit();
+        let area = Rect::new(0, 0, 30, 5);
+        let mut buf = Buffer::empty(area);
+        a.render(area, &mut buf, &mut ctx, theme.canvas);
+        assert!(a.editing, "render is not a blur: on_blur ends the edit");
+        assert_eq!(ctx.cursor, None);
+        assert_eq!(a.on_blur(), Some(InputEvent::Committed));
+    }
 
     #[test]
     fn blur_ends_the_edit_per_blur_action_and_reports_it() {

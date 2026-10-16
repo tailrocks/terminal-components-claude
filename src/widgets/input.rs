@@ -387,11 +387,8 @@ impl TextInput {
         if self.disabled {
             s.hovered = false;
         }
-        if !ctx.interaction.has_focus(self.id) && self.editing {
-            // lost focus while editing (e.g. mouse click elsewhere): commit
-            self.commit();
-            s.editing = false;
-        }
+        // An edit that lost focus is ended by `on_blur` on the event path,
+        // never here: render only draws (`s.editing` needs focus).
 
         // a wrapped label takes as many rows as it needs, every one whole
         let wrapped = self.label_lines(area.width);
@@ -648,6 +645,23 @@ mod tests {
         assert_eq!(keep.on_blur(), None);
         assert!(keep.editing, "the edit stays open for when focus returns");
         assert_eq!(keep.text(), "");
+    }
+
+    #[test]
+    fn rendering_without_focus_never_ends_the_edit() {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut i = TextInput::new(WidgetId::of("r"), "Name").value("v");
+        i.begin_edit();
+        i.buffer.insert_str("w");
+        let area = Rect::new(0, 0, 30, 3);
+        let mut buf = Buffer::empty(area);
+        i.render(area, &mut buf, &mut ctx, theme.canvas);
+        assert!(i.editing, "render is not a blur: on_blur ends the edit");
+        assert_eq!(ctx.cursor, None, "an unfocused edit shows no caret");
+        assert_eq!(i.on_blur(), Some(InputEvent::Committed));
     }
 
     #[test]
