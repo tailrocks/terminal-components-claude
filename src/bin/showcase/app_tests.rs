@@ -247,10 +247,10 @@ fn hover_and_focus_render_differently() {
     let mut h = Harness::new(120, 40, PageId::Lists);
     let t = Theme::junie();
     let (x, y) = h.find("TypeScript").unwrap();
-    // hover: surface lift, no bold
+    // hover: the surface ladder's hover step, no bold
     h.mouse(MouseKind::Move, x, y);
     let cell = h.term.backend().buffer()[(x, y)].clone();
-    assert_eq!(cell.bg, t.surface_overlay);
+    assert_eq!(cell.bg, t.lift(t.surface));
     assert!(!cell.modifier.contains(ratatui::style::Modifier::BOLD));
     // focus via keyboard: bar + bold, hover suppressed
     h.key(tab());

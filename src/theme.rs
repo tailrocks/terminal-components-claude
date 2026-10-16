@@ -30,14 +30,246 @@ pub enum CursorStyle {
     Bar,
 }
 
-/// A resolved list row: its style and its gutter cell.
+/// A resolved interactive control: its body style and its gutter cell.
+/// Returned by [`Theme::interactive`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CursorRow {
+pub struct Interactive {
     pub style: Style,
     pub gutter: &'static str,
     pub gutter_style: Style,
-    /// The row carries the cursor fill (see [`Theme::row_ink`]).
+    /// The control sits on a coloured fill (a cursor row, a primary or a
+    /// destructive fill): secondary ink must use [`Theme::row_ink`].
     pub on_fill: bool,
+}
+
+/// A resolved list row (see [`Theme::cursor_row`]).
+pub type CursorRow = Interactive;
+
+/// The plane a control sits on. Every plane owns a rest → hover → pressed
+/// [`Ladder`]; see [`Theme::ladder`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Plane {
+    /// The page itself (`Theme::canvas`).
+    Canvas,
+    /// Chrome and panels (`Theme::surface`).
+    Surface,
+    /// Cards and dialogs (`Theme::surface_elevated`).
+    Card,
+    /// Text field bodies (`Theme::field`).
+    Field,
+    /// Raised controls: secondary buttons, chips, status chips
+    /// (`Theme::surface_overlay`).
+    Raised,
+    /// Menus and popovers (`Theme::popover`).
+    Popover,
+    /// The cursor row of a popup or menu list (`Theme::highlight`).
+    Highlight,
+    /// The cursor row of a destructive menu item.
+    HighlightDanger,
+    /// The accent fill of a primary control.
+    Accent,
+    /// A destructive fill.
+    Danger,
+}
+
+impl Plane {
+    pub const ALL: [Plane; 10] = [
+        Plane::Canvas,
+        Plane::Surface,
+        Plane::Card,
+        Plane::Field,
+        Plane::Raised,
+        Plane::Popover,
+        Plane::Highlight,
+        Plane::HighlightDanger,
+        Plane::Accent,
+        Plane::Danger,
+    ];
+
+    /// A coloured fill whose hue carries meaning (cursor, primary,
+    /// destructive): in monochrome it renders as reversed video.
+    pub fn is_fill(self) -> bool {
+        matches!(
+            self,
+            Plane::Highlight | Plane::HighlightDanger | Plane::Accent | Plane::Danger
+        )
+    }
+
+    /// The plane one step up: where an active tab, an open menu title or a
+    /// raised control sits relative to its container.
+    pub fn up(self) -> Plane {
+        match self {
+            Plane::Canvas | Plane::Surface | Plane::Card | Plane::Field => Plane::Raised,
+            Plane::Raised | Plane::Popover => Plane::Popover,
+            fill => fill,
+        }
+    }
+}
+
+/// What kind of interactive element is being resolved; selects its ink,
+/// its body plane and whether it carries a focus gutter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kind {
+    /// A row of a list, tree, table or form that is itself the focus stop.
+    Row,
+    /// A list row whose cursor is marked per [`CursorStyle`].
+    CursorRow(CursorStyle),
+    Button(ButtonKind),
+    /// A tab; `selected` is the active tab.
+    Tab,
+    /// A text-like clickable: menu-bar title, header link, overflow badge,
+    /// status item, `+`. `selected` is "open".
+    Title,
+    /// A chip: filter chip, status chip, segment. `selected` is "on".
+    Chip,
+    /// A close or remove glyph (`×`).
+    Close,
+    /// A text field body (input, textarea, select field).
+    Field,
+    /// A draggable thumb (scrollbar). Foreground only.
+    Handle,
+    /// A draggable seam (splitter). Foreground only.
+    Seam,
+}
+
+impl Kind {
+    /// Kinds that paint only a foreground glyph and keep the container's
+    /// background.
+    pub fn is_glyph(self) -> bool {
+        matches!(self, Kind::Handle | Kind::Seam)
+    }
+}
+
+/// Rest → hover → pressed colours of one plane (or one glyph ink).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Ladder {
+    pub rest: Color,
+    pub hover: Color,
+    pub pressed: Color,
+}
+
+impl Ladder {
+    pub const fn new(rest: Color, hover: Color, pressed: Color) -> Self {
+        Self {
+            rest,
+            hover,
+            pressed,
+        }
+    }
+
+    /// The step for a state: pressed wins over hover.
+    pub fn step(&self, hovered: bool, pressed: bool) -> Color {
+        if pressed {
+            self.pressed
+        } else if hovered {
+            self.hover
+        } else {
+            self.rest
+        }
+    }
+
+    fn contains(&self, c: Color) -> bool {
+        self.rest == c || self.hover == c || self.pressed == c
+    }
+}
+
+/// Every plane's ladder plus the glyph inks of handles and seams. All
+/// values are explicit per colour level (see [`Theme::for_level`]); never
+/// derived by nearest-match at render time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Ladders {
+    pub canvas: Ladder,
+    pub surface: Ladder,
+    pub card: Ladder,
+    pub field: Ladder,
+    pub raised: Ladder,
+    pub popover: Ladder,
+    pub highlight: Ladder,
+    pub highlight_danger: Ladder,
+    pub accent: Ladder,
+    pub danger: Ladder,
+    /// Scrollbar thumb ink.
+    pub handle: Ladder,
+    /// Splitter seam ink.
+    pub seam: Ladder,
+}
+
+/// Modifiers that carry state where colour cannot (16 colours, `NO_COLOR`).
+/// Per colour level; configurable through [`Theme::mods`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StateModifiers {
+    /// Added to every hovered control.
+    pub hover: Modifier,
+    /// Added on hover when the plane's hover colour equals its rest colour.
+    pub hover_flat: Modifier,
+    /// Added to every pressed control on a neutral plane.
+    pub pressed: Modifier,
+    /// Added to a coloured fill (cursor, primary, destructive) at rest.
+    pub fill: Modifier,
+    /// Pressed on a fill: [`Self::fill`] is removed and this is added.
+    pub pressed_fill: Modifier,
+    /// Added to a focused control (with the `▎` gutter where it has one).
+    pub focused: Modifier,
+    /// Added to a disabled control.
+    pub disabled: Modifier,
+}
+
+impl StateModifiers {
+    /// Truecolor and 256 colours: the planes carry state, weight marks
+    /// pressed and focus.
+    pub const COLOR: Self = Self {
+        hover: Modifier::empty(),
+        hover_flat: Modifier::UNDERLINED,
+        pressed: Modifier::BOLD,
+        fill: Modifier::empty(),
+        pressed_fill: Modifier::BOLD,
+        focused: Modifier::BOLD,
+        disabled: Modifier::empty(),
+    };
+    /// 16 colours: four greys cannot carry three steps, so pressed is
+    /// reversed video and hover on a grey plane underlines.
+    pub const ANSI16: Self = Self {
+        hover: Modifier::empty(),
+        hover_flat: Modifier::UNDERLINED,
+        pressed: Modifier::REVERSED.union(Modifier::BOLD),
+        fill: Modifier::empty(),
+        pressed_fill: Modifier::REVERSED.union(Modifier::BOLD),
+        focused: Modifier::BOLD,
+        disabled: Modifier::empty(),
+    };
+    /// `NO_COLOR`: only modifiers survive. Hover underlines, pressed is
+    /// reversed, fills are reversed and pressing one drops the reverse.
+    pub const MONO: Self = Self {
+        hover: Modifier::UNDERLINED,
+        hover_flat: Modifier::UNDERLINED,
+        pressed: Modifier::REVERSED.union(Modifier::BOLD),
+        fill: Modifier::REVERSED,
+        pressed_fill: Modifier::BOLD.union(Modifier::UNDERLINED),
+        focused: Modifier::BOLD,
+        disabled: Modifier::DIM,
+    };
+}
+
+/// Explicit per-level adjustments applied after the built-in token tables
+/// by [`Theme::for_level_with`]: pin a token or a ladder for one colour
+/// level instead of relying on the defaults.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LevelOverrides {
+    pub truecolor: Option<fn(&mut Theme)>,
+    pub ansi256: Option<fn(&mut Theme)>,
+    pub ansi16: Option<fn(&mut Theme)>,
+    pub mono: Option<fn(&mut Theme)>,
+}
+
+impl LevelOverrides {
+    fn get(&self, level: ColorLevel) -> Option<fn(&mut Theme)> {
+        match level {
+            ColorLevel::TrueColor => self.truecolor,
+            ColorLevel::Ansi256 => self.ansi256,
+            ColorLevel::Ansi16 => self.ansi16,
+            ColorLevel::Mono => self.mono,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +281,13 @@ pub enum ColorLevel {
 }
 
 impl ColorLevel {
+    pub const ALL: [ColorLevel; 4] = [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ];
+
     pub fn detect() -> Self {
         if std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty()) {
             return ColorLevel::Mono;
@@ -90,7 +329,7 @@ mod palette {
     pub const CHROME: Color = rgb(0x111111);
     pub const CARD: Color = rgb(0x18181b);
     pub const INPUT: Color = rgb(0x1e1e22);
-    pub const INPUT_HOVER: Color = rgb(0x232328);
+    pub const INPUT_HOVER: Color = rgb(0x2f2f34);
     pub const OVERLAY: Color = rgb(0x27272a);
     pub const POPOVER: Color = rgb(0x3f3f46);
     /// Menu selection: a cool blue that does not compete with the accent.
@@ -102,8 +341,7 @@ mod palette {
     pub const WHITE_15: Color = rgb(0x262626);
     pub const GREEN: Color = rgb(0x48e054);
     pub const GREEN_80: Color = rgb(0x3ab343);
-    pub const GREEN_60: Color = rgb(0x2b8632);
-    pub const GREEN_20: Color = rgb(0x0f2e13);
+    pub const GREEN_60: Color = rgb(0x2e9a38);
     pub const GREEN_10: Color = rgb(0x0a1c0c);
     pub const ON_GREEN: Color = rgb(0x19191c);
     pub const RED: Color = rgb(0xe44545);
@@ -114,6 +352,33 @@ mod palette {
     pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
     pub const PURPLE: Color = rgb(0x8787ff);
+
+    // Interactive ladders: rest → hover → pressed per plane. Adjacent steps
+    // are at least 1.2:1 apart so each state reads on its own.
+    pub const CANVAS_HOVER: Color = rgb(0x1c1c1f);
+    pub const CANVAS_PRESSED: Color = rgb(0x303036);
+    pub const CHROME_HOVER: Color = rgb(0x26262a);
+    pub const CHROME_PRESSED: Color = rgb(0x38383e);
+    pub const CARD_HOVER: Color = rgb(0x2a2a2f);
+    pub const CARD_PRESSED: Color = rgb(0x3c3c43);
+    pub const INPUT_PRESSED: Color = rgb(0x3a3a40);
+    pub const OVERLAY_HOVER: Color = rgb(0x37373d);
+    pub const OVERLAY_PRESSED: Color = rgb(0x4a4a52);
+    pub const POPOVER_HOVER: Color = rgb(0x4f4f58);
+    pub const POPOVER_PRESSED: Color = rgb(0x63636d);
+    pub const HIGHLIGHT_HOVER: Color = rgb(0x3a6bc4);
+    pub const HIGHLIGHT_PRESSED: Color = rgb(0x244a8c);
+    pub const RED_45_HOVER: Color = rgb(0x8c3030);
+    pub const RED_45_PRESSED: Color = rgb(0x5a1f1f);
+    /// Destructive fill: dark enough for white text (≥ 4.5:1) at every step.
+    pub const RED_FILL: Color = rgb(0xd93636);
+    pub const RED_FILL_HOVER: Color = rgb(0xc22e2e);
+    pub const RED_FILL_PRESSED: Color = rgb(0x9e2424);
+    /// A destructive label at full strength on a raised or popover plane.
+    pub const RED_LABEL: Color = rgb(0xff6b6b);
+    /// Focused-selected tint and its hover step.
+    pub const GREEN_25: Color = rgb(0x173f1c);
+    pub const GREEN_35: Color = rgb(0x1e5024);
 }
 
 /// Semantic tokens. Field names are the vocabulary used everywhere else.
@@ -161,6 +426,21 @@ pub struct Theme {
     pub warning: Color,
     pub success: Color,
     pub info: Color,
+
+    /// Hover step of the focused-selected tint ([`Self::accent_bg`]): hover
+    /// keeps the selection hue instead of replacing it.
+    pub accent_bg_hover: Color,
+    /// A destructive label at rest on a raised or popover plane (danger
+    /// buttons): full strength, readable at ≥ 4.5:1.
+    pub danger_label: Color,
+    /// Rest → hover → pressed per plane. See [`Theme::interactive`].
+    pub ladders: Ladders,
+    /// Modifiers that carry state at this colour level.
+    pub mods: StateModifiers,
+    /// Whether the focused-selected row carries the `accent_bg` tint. Off
+    /// at 16 colours and in monochrome, where the tint would collide with
+    /// a hover or pressed plane; the selection marker glyph carries it.
+    pub tint_selection: bool,
 }
 
 impl Theme {
@@ -189,7 +469,7 @@ impl Theme {
             accent: GREEN,
             accent_hover: GREEN_80,
             accent_pressed: GREEN_60,
-            accent_bg: GREEN_20,
+            accent_bg: GREEN_25,
             accent_bg_subtle: GREEN_10,
             focus: GREEN,
             disabled: WHITE_30,
@@ -198,18 +478,49 @@ impl Theme {
             warning: AMBER,
             success: GREEN,
             info: PURPLE,
+            accent_bg_hover: GREEN_35,
+            danger_label: RED_LABEL,
+            ladders: Ladders {
+                canvas: Ladder::new(BLACK, CANVAS_HOVER, CANVAS_PRESSED),
+                surface: Ladder::new(CHROME, CHROME_HOVER, CHROME_PRESSED),
+                card: Ladder::new(CARD, CARD_HOVER, CARD_PRESSED),
+                field: Ladder::new(INPUT, INPUT_HOVER, INPUT_PRESSED),
+                raised: Ladder::new(OVERLAY, OVERLAY_HOVER, OVERLAY_PRESSED),
+                popover: Ladder::new(POPOVER, POPOVER_HOVER, POPOVER_PRESSED),
+                highlight: Ladder::new(HIGHLIGHT, HIGHLIGHT_HOVER, HIGHLIGHT_PRESSED),
+                highlight_danger: Ladder::new(RED_45, RED_45_HOVER, RED_45_PRESSED),
+                accent: Ladder::new(GREEN, GREEN_80, GREEN_60),
+                danger: Ladder::new(RED_FILL, RED_FILL_HOVER, RED_FILL_PRESSED),
+                handle: Ladder::new(WHITE_50, WHITE_70, WHITE),
+                seam: Ladder::new(WHITE_30, WHITE_50, WHITE),
+            },
+            mods: StateModifiers::COLOR,
+            tint_selection: true,
         }
     }
 
     /// Junie theme resolved for the given colour capability.
     pub fn for_level(level: ColorLevel) -> Self {
+        Self::for_level_with(level, &LevelOverrides::default())
+    }
+
+    /// [`Self::for_level`] plus explicit per-level adjustments.
+    pub fn for_level_with(level: ColorLevel, overrides: &LevelOverrides) -> Self {
         let mut t = Self::junie();
         t.level = level;
-        if level == ColorLevel::TrueColor {
-            return t;
+        if level != ColorLevel::TrueColor {
+            t.downgrade_all(level);
         }
+        if let Some(apply) = overrides.get(level) {
+            apply(&mut t);
+        }
+        t
+    }
+
+    /// Nearest-match fallback for every token, ladder and modifier set.
+    fn downgrade_all(&mut self, level: ColorLevel) {
         macro_rules! map {
-            ($($f:ident),*) => { $( t.$f = downgrade(t.$f, level); )* };
+            ($($f:ident),*) => { $( self.$f = downgrade(self.$f, level); )* };
         }
         map!(
             canvas,
@@ -241,9 +552,47 @@ impl Theme {
             error_bg,
             warning,
             success,
-            info
+            info,
+            accent_bg_hover,
+            danger_label
         );
-        t
+        let l = &mut self.ladders;
+        for ladder in [
+            &mut l.canvas,
+            &mut l.surface,
+            &mut l.card,
+            &mut l.field,
+            &mut l.raised,
+            &mut l.popover,
+            &mut l.highlight,
+            &mut l.highlight_danger,
+            &mut l.accent,
+            &mut l.danger,
+            &mut l.handle,
+            &mut l.seam,
+        ] {
+            ladder.rest = downgrade(ladder.rest, level);
+            ladder.hover = downgrade(ladder.hover, level);
+            ladder.pressed = downgrade(ladder.pressed, level);
+        }
+        self.mods = match level {
+            ColorLevel::TrueColor | ColorLevel::Ansi256 => StateModifiers::COLOR,
+            ColorLevel::Ansi16 => StateModifiers::ANSI16,
+            ColorLevel::Mono => StateModifiers::MONO,
+        };
+        self.tint_selection = matches!(level, ColorLevel::TrueColor | ColorLevel::Ansi256);
+    }
+
+    /// Replace one plane's ladder.
+    pub fn with_ladder(mut self, plane: Plane, ladder: Ladder) -> Self {
+        *self.ladder_mut(plane) = ladder;
+        self
+    }
+
+    /// Replace the state modifiers.
+    pub fn with_state_modifiers(mut self, mods: StateModifiers) -> Self {
+        self.mods = mods;
+        self
     }
 
     // --- base styles -------------------------------------------------------
@@ -371,43 +720,305 @@ impl Theme {
         }
     }
 
-    /// Row-like control (nav item, list item, table row, tree node).
-    pub fn row(&self, s: VisualState, bg: Color) -> Style {
+    // --- interactive state model -----------------------------------------
+    //
+    // One resolver for every clickable: rest, hover and pressed walk the
+    // plane's ladder; focus is the `▎` gutter plus weight; selection is a
+    // marker glyph plus (on the focused list only) the accent tint;
+    // disabled ignores hover and press. Widgets never pick state colours.
+
+    /// The ladder of one plane.
+    pub fn ladder(&self, plane: Plane) -> Ladder {
+        let l = &self.ladders;
+        match plane {
+            Plane::Canvas => l.canvas,
+            Plane::Surface => l.surface,
+            Plane::Card => l.card,
+            Plane::Field => l.field,
+            Plane::Raised => l.raised,
+            Plane::Popover => l.popover,
+            Plane::Highlight => l.highlight,
+            Plane::HighlightDanger => l.highlight_danger,
+            Plane::Accent => l.accent,
+            Plane::Danger => l.danger,
+        }
+    }
+
+    fn ladder_mut(&mut self, plane: Plane) -> &mut Ladder {
+        let l = &mut self.ladders;
+        match plane {
+            Plane::Canvas => &mut l.canvas,
+            Plane::Surface => &mut l.surface,
+            Plane::Card => &mut l.card,
+            Plane::Field => &mut l.field,
+            Plane::Raised => &mut l.raised,
+            Plane::Popover => &mut l.popover,
+            Plane::Highlight => &mut l.highlight,
+            Plane::HighlightDanger => &mut l.highlight_danger,
+            Plane::Accent => &mut l.accent,
+            Plane::Danger => &mut l.danger,
+        }
+    }
+
+    /// The plane a container background belongs to. Accepts the plane
+    /// tokens and any step of their ladders (a control inside a hovered
+    /// row). A colour that is no plane is a caller bug.
+    pub fn plane_of(&self, bg: Color) -> Plane {
+        let tokens = [
+            (self.canvas, Plane::Canvas),
+            (self.surface, Plane::Surface),
+            (self.surface_elevated, Plane::Card),
+            (self.field, Plane::Field),
+            (self.surface_overlay, Plane::Raised),
+            (self.popover, Plane::Popover),
+            (self.field_hover, Plane::Field),
+            (self.highlight, Plane::Highlight),
+            (self.highlight_danger, Plane::HighlightDanger),
+            (self.accent, Plane::Accent),
+            (self.error, Plane::Danger),
+            // tinted rows: controls on them read as on the card
+            (self.accent_bg, Plane::Card),
+            (self.accent_bg_hover, Plane::Card),
+            (self.accent_bg_subtle, Plane::Card),
+            (self.error_bg, Plane::Card),
+        ];
+        if let Some(&(_, p)) = tokens.iter().find(|(c, _)| *c == bg) {
+            return p;
+        }
+        if let Some(&p) = Plane::ALL.iter().find(|&&p| self.ladder(p).contains(bg)) {
+            return p;
+        }
+        debug_assert!(
+            matches!(bg, Color::Reset),
+            "{bg:?} is not a theme plane; pass a plane token"
+        );
+        Plane::Canvas
+    }
+
+    /// Resolve an interactive element of `kind` in state `s` sitting on
+    /// `plane` (its container). States apply in a fixed order: disabled
+    /// (wins, ignores hover and press), pressed, hover, selected, focused.
+    pub fn interactive(&self, kind: Kind, s: VisualState, plane: Plane) -> Interactive {
+        let m = self.mods;
+        // the plane the control's own body paints
+        let body = match kind {
+            Kind::Button(ButtonKind::Primary) => Plane::Accent,
+            Kind::Button(ButtonKind::Subtle) => plane,
+            Kind::Button(_) | Kind::Chip => Plane::Raised,
+            Kind::CursorRow(CursorStyle::Fill) if s.focused && !s.disabled => {
+                if s.error {
+                    Plane::HighlightDanger
+                } else {
+                    Plane::Highlight
+                }
+            }
+            Kind::Tab | Kind::Title if s.selected => plane.up(),
+            Kind::Field => Plane::Field,
+            _ => plane,
+        };
+        let glyph = kind.is_glyph();
+
         if s.disabled {
-            return self.disabled_style().bg(bg);
+            // the kind's rest plane, never a fill: a disabled primary is a
+            // grey control, not a dim green one
+            let rest = if body.is_fill() {
+                match kind {
+                    Kind::Button(_) => self.ladder(Plane::Raised).rest,
+                    _ => self.ladder(plane).rest,
+                }
+            } else {
+                self.ladder(body).rest
+            };
+            let mut bg = rest;
+            let mut fg = self.disabled;
+            if fg == bg && !glyph {
+                // a grey plane at 16 colours: drop to the canvas
+                bg = self.canvas;
+            }
+            if fg == bg {
+                fg = self.text_muted;
+            }
+            let mut style = Style::new().fg(fg).add_modifier(m.disabled);
+            if glyph {
+                // a glyph keeps the container's plane; dim intensity tells
+                // it from a seam at rest
+                style = style.add_modifier(Modifier::DIM);
+            } else {
+                style = style.bg(bg);
+            }
+            return Interactive {
+                style,
+                gutter: " ",
+                gutter_style: Style::new().fg(bg).bg(bg),
+                on_fill: false,
+            };
         }
-        let mut st = Style::new().fg(self.text_primary).bg(bg);
-        // selection tint only where the keyboard is (focused row); elsewhere
-        // the marker glyph alone carries "selected"
-        if s.selected && s.focused {
-            st = st.bg(self.accent_bg);
+
+        if glyph {
+            let lad = match kind {
+                Kind::Handle => self.ladders.handle,
+                _ => self.ladders.seam,
+            };
+            // focus raises the ink one step and hover one more; pressed is
+            // the top step plus weight
+            let fg = if s.pressed {
+                lad.pressed
+            } else if s.hovered {
+                if s.focused { lad.pressed } else { lad.hover }
+            } else if s.focused {
+                lad.hover
+            } else {
+                lad.rest
+            };
+            let mut style = Style::new().fg(fg);
+            if s.pressed {
+                style = style.add_modifier(m.pressed);
+            } else if s.hovered {
+                style = style.add_modifier(m.hover | m.hover_flat);
+            }
+            return Interactive {
+                style,
+                gutter: " ",
+                gutter_style: Style::new(),
+                on_fill: false,
+            };
         }
-        // hover is always exactly one plane up, never a colour
-        if s.hovered {
-            st = st.bg(self.lift(bg));
+
+        let lad = self.ladder(body);
+        let fill = body.is_fill();
+        let mut mods = Modifier::empty();
+        if fill {
+            mods |= m.fill;
         }
-        if s.error {
-            st = st.fg(self.error);
-        }
-        if s.busy {
-            st = st.fg(self.text_secondary);
-        }
-        if s.focused {
-            st = st.add_modifier(Modifier::BOLD);
-        }
+        let row_like = matches!(kind, Kind::Row | Kind::CursorRow(CursorStyle::Bar));
+        let tinted = row_like && s.selected && s.focused && self.tint_selection;
+        let (rest, hover) = if tinted {
+            (self.accent_bg, self.accent_bg_hover)
+        } else {
+            (lad.rest, lad.hover)
+        };
+        // a destructive button presses into the danger fill
+        let danger_press = kind == Kind::Button(ButtonKind::Danger) && s.pressed;
+        let mut bg = rest;
         if s.pressed {
-            // pressed is the strongest neutral plane, never an inverted
-            // flood: widgets re-tint row text (values, markers, tones) after
-            // calling this, and on a white fill white text vanishes
-            st = st
-                .fg(self.text_primary)
-                .bg(self.popover)
-                .add_modifier(Modifier::BOLD);
-            if self.level == ColorLevel::Mono {
-                st = st.add_modifier(Modifier::REVERSED);
+            bg = if danger_press {
+                self.ladders.danger.pressed
+            } else {
+                lad.pressed
+            };
+            if fill {
+                mods.remove(m.fill);
+                mods |= m.pressed_fill;
+            } else {
+                mods |= m.pressed;
+            }
+        } else if s.hovered {
+            bg = hover;
+            mods |= m.hover;
+            if hover == rest {
+                mods |= m.hover_flat;
             }
         }
-        st
+
+        // ink
+        let lifted = s.hovered || s.pressed || s.focused;
+        let mut fg = match kind {
+            Kind::Row | Kind::CursorRow(_) | Kind::Field => {
+                if s.error && !fill {
+                    self.error
+                } else {
+                    self.text_primary
+                }
+            }
+            Kind::Button(ButtonKind::Primary) => self.text_on_accent,
+            Kind::Button(ButtonKind::Secondary | ButtonKind::Toggle) => self.text_primary,
+            Kind::Button(ButtonKind::Danger) => {
+                if danger_press {
+                    self.text_primary
+                } else {
+                    self.danger_label
+                }
+            }
+            Kind::Button(ButtonKind::Subtle)
+            | Kind::Tab
+            | Kind::Title
+            | Kind::Chip
+            | Kind::Close => {
+                if lifted || s.selected {
+                    self.text_primary
+                } else {
+                    self.text_secondary
+                }
+            }
+            Kind::Handle | Kind::Seam => unreachable!("glyph kinds resolve above"),
+        };
+        if s.busy {
+            fg = if fill {
+                self.text_on_accent
+            } else {
+                self.text_secondary
+            };
+        }
+        fg = self.legible(fg, bg);
+
+        // weight: focus, the always-bold fills and the active tab
+        let weighted = match kind {
+            Kind::Button(ButtonKind::Primary) => true,
+            Kind::CursorRow(CursorStyle::Fill) => fill,
+            Kind::Tab | Kind::Title => s.selected || s.focused,
+            Kind::Field | Kind::Close => false,
+            _ => s.focused,
+        };
+        if weighted && !s.busy {
+            mods |= m.focused;
+        }
+        let style = Style::new().fg(fg).bg(bg).add_modifier(mods);
+
+        let bar = s.focused
+            && !matches!(
+                kind,
+                Kind::CursorRow(CursorStyle::Fill) | Kind::Close | Kind::Field
+            );
+        let gutter_fg = if !bar {
+            bg
+        } else if fill || danger_press {
+            // on a fill the bar takes the fill's ink: the accent green on
+            // a green or red fill is unreadable
+            fg
+        } else {
+            self.focus
+        };
+        Interactive {
+            style,
+            gutter: if bar { "▎" } else { " " },
+            gutter_style: Style::new().fg(gutter_fg).bg(bg),
+            on_fill: fill,
+        }
+    }
+
+    /// `fg` if it reads on `bg` (≥ 4.5:1), otherwise the most legible of
+    /// the primary and on-accent inks. Colours the terminal resolves (named
+    /// and indexed) are measured against the xterm defaults.
+    pub fn legible(&self, fg: Color, bg: Color) -> Color {
+        let Some(c) = contrast_ratio(fg, bg) else {
+            return fg;
+        };
+        if c >= 4.5 {
+            return fg;
+        }
+        [self.text_primary, self.text_on_accent]
+            .into_iter()
+            .filter_map(|ink| contrast_ratio(ink, bg).map(|c| (ink, c)))
+            .fold(
+                (fg, c),
+                |best, cand| if cand.1 > best.1 { cand } else { best },
+            )
+            .0
+    }
+
+    /// Row-like control (nav item, list item, table row, tree node).
+    pub fn row(&self, s: VisualState, bg: Color) -> Style {
+        self.interactive(Kind::Row, s, self.plane_of(bg)).style
     }
 
     /// A row of a list whose keyboard focus belongs to something else (a
@@ -416,41 +1027,7 @@ impl Theme {
     /// carries no focus bar, so the owner's `▎` stays the only focus
     /// indicator on screen; [`CursorStyle::Bar`] is the in-page list look.
     pub fn cursor_row(&self, s: VisualState, bg: Color, cursor: CursorStyle) -> CursorRow {
-        match cursor {
-            CursorStyle::Bar => {
-                let style = self.row(s, bg);
-                CursorRow {
-                    style,
-                    gutter: self.gutter_symbol(s),
-                    gutter_style: self.gutter(s, style.bg.unwrap_or(bg), false),
-                    on_fill: false,
-                }
-            }
-            CursorStyle::Fill => {
-                let plain = VisualState {
-                    focused: false,
-                    selected: false,
-                    ..s
-                };
-                let mut style = self.row(plain, bg);
-                let on_fill = s.focused && !s.disabled && !s.pressed;
-                if on_fill {
-                    style = style
-                        .fg(self.text_primary)
-                        .bg(self.highlight)
-                        .add_modifier(Modifier::BOLD);
-                    if self.level == ColorLevel::Mono {
-                        style = style.add_modifier(Modifier::REVERSED);
-                    }
-                }
-                CursorRow {
-                    style,
-                    gutter: " ",
-                    gutter_style: style,
-                    on_fill,
-                }
-            }
-        }
+        self.interactive(Kind::CursorRow(cursor), s, self.plane_of(bg))
     }
 
     /// Secondary ink (details, groups, tags, kind glyphs) on a row from
@@ -461,17 +1038,11 @@ impl Theme {
         if row.on_fill { self.text_primary } else { ink }
     }
 
-    /// One step lighter than `bg`, used for hover.
+    /// One ladder step up from `bg`: rest lifts to hover, hover to pressed.
+    /// Prefer [`Self::interactive`], which picks the step from the state.
     pub fn lift(&self, bg: Color) -> Color {
-        if bg == self.canvas {
-            self.surface_elevated
-        } else if bg == self.surface || bg == self.surface_elevated {
-            self.surface_overlay
-        } else if bg == self.field {
-            self.field_hover
-        } else {
-            self.popover
-        }
+        let l = self.ladder(self.plane_of(bg));
+        if bg == l.hover { l.pressed } else { l.hover }
     }
 
     /// Focus gutter content, independent of terminal colour support.
@@ -485,12 +1056,13 @@ impl Theme {
     }
 
     /// Style for [`Self::gutter_symbol`]. `on_accent` is used when the control
-    /// itself is filled with the accent (primary button).
+    /// itself is filled with the accent (primary button): the bar then takes
+    /// the on-accent ink, never the accent on the accent.
     pub fn gutter(&self, s: VisualState, bg: Color, on_accent: bool) -> Style {
         let fg = if !s.focused || s.disabled {
             bg
         } else if on_accent {
-            self.text_primary
+            self.text_on_accent
         } else {
             self.focus
         };
@@ -498,80 +1070,19 @@ impl Theme {
     }
 
     pub fn button(&self, kind: ButtonKind, s: VisualState, bg: Color) -> Style {
-        if s.disabled {
-            return self.disabled_style().bg(if kind == ButtonKind::Subtle {
-                bg
-            } else {
-                self.lift(bg)
-            });
-        }
-        match kind {
-            ButtonKind::Primary => {
-                let b = if s.pressed {
-                    self.accent_pressed
-                } else if s.hovered {
-                    self.accent_hover
-                } else {
-                    self.accent
-                };
-                Style::new()
-                    .fg(self.text_on_accent)
-                    .bg(b)
-                    .add_modifier(Modifier::BOLD)
-            }
-            ButtonKind::Secondary | ButtonKind::Toggle => {
-                let mut st = Style::new().fg(self.text_primary).bg(self.surface_overlay);
-                if s.hovered {
-                    st = st.bg(self.popover);
-                }
-                if s.focused {
-                    st = st.add_modifier(Modifier::BOLD);
-                }
-                if s.pressed {
-                    st = Style::new().fg(self.canvas).bg(self.text_primary);
-                }
-                st
-            }
-            ButtonKind::Subtle => {
-                let mut st = Style::new().fg(self.text_secondary).bg(bg);
-                if s.hovered {
-                    st = st.fg(self.text_primary).bg(self.lift(bg));
-                }
-                if s.focused {
-                    st = st.fg(self.text_primary).add_modifier(Modifier::BOLD);
-                }
-                if s.pressed {
-                    st = Style::new().fg(self.canvas).bg(self.text_primary);
-                }
-                st
-            }
-            ButtonKind::Danger => {
-                let mut st = Style::new().fg(self.error).bg(self.surface_overlay);
-                if s.hovered {
-                    st = st.bg(self.popover);
-                }
-                if s.focused {
-                    st = st.add_modifier(Modifier::BOLD);
-                }
-                if s.pressed {
-                    st = Style::new().fg(self.text_primary).bg(self.error);
-                }
-                st
-            }
-        }
+        self.interactive(Kind::Button(kind), s, self.plane_of(bg))
+            .style
     }
 
-    /// Text field body (input, textarea, editable cell).
+    /// Text field body (input, textarea, editable cell). Editing suppresses
+    /// hover: the caret is the state.
     pub fn field_style(&self, s: VisualState) -> Style {
-        if s.disabled {
-            return self.disabled_style().bg(self.field);
-        }
-        let bg = if s.hovered && !s.editing {
-            self.field_hover
-        } else {
-            self.field
+        let s = VisualState {
+            hovered: s.hovered && !s.editing,
+            focused: false,
+            ..s
         };
-        Style::new().fg(self.text_primary).bg(bg)
+        self.interactive(Kind::Field, s, Plane::Field).style
     }
 
     pub fn placeholder(&self, s: VisualState) -> Style {
@@ -597,13 +1108,12 @@ impl Theme {
     }
 
     pub fn scrollbar_thumb(&self, focused: bool, hovered: bool) -> Style {
-        Style::new().fg(if focused {
-            self.text_primary
-        } else if hovered {
-            self.text_secondary
-        } else {
-            self.text_muted
-        })
+        let s = VisualState {
+            focused,
+            hovered,
+            ..Default::default()
+        };
+        self.interactive(Kind::Handle, s, Plane::Canvas).style
     }
 
     pub fn tone(&self, tone: Tone) -> Color {
@@ -686,6 +1196,79 @@ pub enum BadgeKind {
     Edit,
 }
 
+/// Approximate sRGB of a colour as a terminal renders it (xterm defaults
+/// for named and indexed colours). `None` for `Reset`.
+fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
+    const BASIC: [(u8, u8, u8); 16] = [
+        (0, 0, 0),
+        (205, 0, 0),
+        (0, 205, 0),
+        (205, 205, 0),
+        (0, 0, 238),
+        (205, 0, 205),
+        (0, 205, 205),
+        (229, 229, 229),
+        (127, 127, 127),
+        (255, 0, 0),
+        (0, 255, 0),
+        (255, 255, 0),
+        (92, 92, 255),
+        (255, 0, 255),
+        (0, 255, 255),
+        (255, 255, 255),
+    ];
+    Some(match c {
+        Color::Rgb(r, g, b) => (r, g, b),
+        Color::Indexed(i) if i < 16 => BASIC[i as usize],
+        Color::Indexed(i) if i < 232 => {
+            let i = i - 16;
+            let v = |n: u8| if n == 0 { 0 } else { 55 + n * 40 };
+            (v(i / 36), v((i / 6) % 6), v(i % 6))
+        }
+        Color::Indexed(i) => {
+            let g = 8 + (i - 232) * 10;
+            (g, g, g)
+        }
+        Color::Black => BASIC[0],
+        Color::Red => BASIC[1],
+        Color::Green => BASIC[2],
+        Color::Yellow => BASIC[3],
+        Color::Blue => BASIC[4],
+        Color::Magenta => BASIC[5],
+        Color::Cyan => BASIC[6],
+        Color::Gray => BASIC[7],
+        Color::DarkGray => BASIC[8],
+        Color::LightRed => BASIC[9],
+        Color::LightGreen => BASIC[10],
+        Color::LightYellow => BASIC[11],
+        Color::LightBlue => BASIC[12],
+        Color::LightMagenta => BASIC[13],
+        Color::LightCyan => BASIC[14],
+        Color::White => BASIC[15],
+        Color::Reset => return None,
+    })
+}
+
+/// WCAG relative luminance.
+fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
+    let ch = |v: u8| {
+        let v = v as f64 / 255.0;
+        if v <= 0.03928 {
+            v / 12.92
+        } else {
+            ((v + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+}
+
+/// WCAG contrast ratio of two colours as the terminal renders them; `None`
+/// when either is the terminal default.
+pub fn contrast_ratio(a: Color, b: Color) -> Option<f64> {
+    let (x, y) = (rel_luminance(approx_rgb(a)?), rel_luminance(approx_rgb(b)?));
+    Some((x.max(y) + 0.05) / (x.min(y) + 0.05))
+}
+
 fn downgrade(c: Color, level: ColorLevel) -> Color {
     let Color::Rgb(r, g, b) = c else { return c };
     match level {
@@ -711,7 +1294,10 @@ fn nearest_256(r: u8, g: u8, b: u8) -> u8 {
     let gi = ((avg - 8).max(0) / 10).min(23);
     let gv = 8 + gi * 10;
     let gray_err = (gv - r as i32).pow(2) + (gv - g as i32).pow(2) + (gv - b as i32).pow(2);
-    if gray_err < cube_err {
+    // a saturated colour keeps its hue: dark greens and reds must not snap
+    // to the grey that a neutral plane already uses
+    let chroma = r.max(g).max(b) as i32 - r.min(g).min(b) as i32;
+    if gray_err < cube_err && chroma <= 30 {
         232 + gi as u8
     } else {
         cube
@@ -866,5 +1452,185 @@ mod tests {
             t.button(ButtonKind::Primary, d, t.surface),
             t.button(ButtonKind::Primary, dh, t.surface)
         );
+    }
+
+    const KINDS: [Kind; 15] = [
+        Kind::Row,
+        Kind::CursorRow(CursorStyle::Fill),
+        Kind::CursorRow(CursorStyle::Bar),
+        Kind::Button(ButtonKind::Primary),
+        Kind::Button(ButtonKind::Secondary),
+        Kind::Button(ButtonKind::Subtle),
+        Kind::Button(ButtonKind::Danger),
+        Kind::Button(ButtonKind::Toggle),
+        Kind::Tab,
+        Kind::Title,
+        Kind::Chip,
+        Kind::Close,
+        Kind::Field,
+        Kind::Handle,
+        Kind::Seam,
+    ];
+
+    /// Two resolved controls look different on this level's terminal: in
+    /// monochrome only modifiers and the gutter glyph survive.
+    fn looks_distinct(t: &Theme, kind: Kind, a: &Interactive, b: &Interactive) -> bool {
+        let mods = a.style.add_modifier != b.style.add_modifier || a.gutter != b.gutter;
+        if t.level == ColorLevel::Mono {
+            return mods;
+        }
+        let ink = if kind.is_glyph() {
+            a.style.fg != b.style.fg
+        } else {
+            a.style.bg != b.style.bg
+        };
+        mods || ink
+    }
+
+    fn st(f: impl FnOnce(&mut VisualState)) -> VisualState {
+        let mut s = VisualState::default();
+        f(&mut s);
+        s
+    }
+
+    #[test]
+    fn every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart() {
+        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            let t = Theme::for_level(level);
+            for kind in KINDS {
+                for plane in Plane::ALL {
+                    if kind.is_glyph() && !glyph_plane(plane) {
+                        continue;
+                    }
+                    // the same ladder walk with and without focus, selection
+                    // and (for a fill list) the cursor on the row
+                    for base in [
+                        VisualState::default(),
+                        st(|s| s.focused = true),
+                        st(|s| s.selected = true),
+                        st(|s| {
+                            s.selected = true;
+                            s.focused = true
+                        }),
+                    ] {
+                        let r = |f: fn(&mut VisualState)| {
+                            let mut s = base;
+                            f(&mut s);
+                            t.interactive(kind, s, plane)
+                        };
+                        let rest = r(|_| {});
+                        let hover = r(|s| s.hovered = true);
+                        let pressed = r(|s| {
+                            s.hovered = true;
+                            s.pressed = true
+                        });
+                        let flash = r(|s| s.pressed = true);
+                        let ctx = format!("{level:?} {kind:?} on {plane:?} from {base:?}");
+                        assert!(
+                            looks_distinct(&t, kind, &rest, &hover),
+                            "rest = hover: {ctx}"
+                        );
+                        assert!(
+                            looks_distinct(&t, kind, &hover, &pressed),
+                            "hover = pressed: {ctx}"
+                        );
+                        assert!(
+                            looks_distinct(&t, kind, &rest, &pressed),
+                            "rest = pressed: {ctx}"
+                        );
+                        assert!(
+                            looks_distinct(&t, kind, &rest, &flash),
+                            "rest = flash: {ctx}"
+                        );
+
+                        // disabled ignores hover and press, and differs from rest
+                        let dis = |f: fn(&mut VisualState)| {
+                            let mut s = base;
+                            s.disabled = true;
+                            f(&mut s);
+                            t.interactive(kind, s, plane)
+                        };
+                        let d = dis(|_| {});
+                        assert_eq!(d, dis(|s| s.hovered = true), "disabled hover: {ctx}");
+                        assert_eq!(
+                            d,
+                            dis(|s| {
+                                s.hovered = true;
+                                s.pressed = true
+                            }),
+                            "disabled press: {ctx}"
+                        );
+
+                        for (name, it) in [
+                            ("rest", rest),
+                            ("hover", hover),
+                            ("pressed", pressed),
+                            ("disabled", d),
+                        ] {
+                            let fg = it.style.fg.unwrap();
+                            let bg = it.style.bg.unwrap_or_else(|| t.ladder(plane).rest);
+                            assert_ne!(fg, bg, "{name} ink = fill: {ctx}");
+                            if level == ColorLevel::TrueColor && name != "disabled" {
+                                // text ≥ 4.5:1; handles and seams are glyphs (≥ 3:1)
+                                // and their rest step is a quiet decoration
+                                let min = if kind.is_glyph() { 3.0 } else { 4.5 };
+                                if !(kind.is_glyph() && name == "rest") {
+                                    let c = contrast(fg, bg);
+                                    assert!(c >= min, "{name} {fg:?} on {bg:?} = {c:.2}: {ctx}");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Planes scrollbars and splitters live on.
+    fn glyph_plane(p: Plane) -> bool {
+        matches!(
+            p,
+            Plane::Canvas | Plane::Surface | Plane::Card | Plane::Field
+        )
+    }
+
+    #[test]
+    fn interactive_states_differ_from_focus_and_disabled_at_every_level() {
+        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            let t = Theme::for_level(level);
+            for kind in KINDS {
+                for plane in [Plane::Canvas, Plane::Card, Plane::Popover] {
+                    let i = |s: VisualState| t.interactive(kind, s, plane);
+                    let focused = i(st(|s| s.focused = true));
+                    let rest = i(VisualState::default());
+                    let disabled = i(st(|s| s.disabled = true));
+                    let ctx = format!("{level:?} {kind:?} on {plane:?}");
+                    for (name, other) in [
+                        ("hover", i(st(|s| s.hovered = true))),
+                        ("pressed", i(st(|s| s.pressed = true))),
+                    ] {
+                        assert!(
+                            looks_distinct(&t, kind, &other, &disabled),
+                            "{name} = disabled: {ctx}"
+                        );
+                        // a fill-list cursor is a plain row until the cursor
+                        // is on it; Close and Field carry no focus mark
+                        if !matches!(kind, Kind::CursorRow(_) | Kind::Close | Kind::Field) {
+                            assert!(
+                                looks_distinct(&t, kind, &other, &focused),
+                                "{name} = focused: {ctx}"
+                            );
+                        }
+                    }
+                    if !matches!(kind, Kind::Close) || level != ColorLevel::Mono {
+                        assert!(
+                            looks_distinct(&t, kind, &rest, &disabled)
+                                || rest.style.fg != disabled.style.fg,
+                            "rest = disabled: {ctx}"
+                        );
+                    }
+                }
+            }
+        }
     }
 }
