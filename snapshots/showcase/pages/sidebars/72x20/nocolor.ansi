@@ -10,9 +10,9 @@
       Lists                                     ┃    opens.             [0m
       Trees             Project                 ┃                       [0m
  [0m[1m▎  › Sidebars     [0m     M Members               ┃    ›  current item ·  [0m
-  ▸ Overlays            E Environment           │    persists when      [0m
-  ▸ Feedback         [0m[2m   $ Billing               [0m│    focus leaves       [0m
-  ▸ Layout           [0m[2m                           [0m│    ▎  keyboard        [0m
+  ▸ Overlays            E Environment           ┆    persists when      [0m
+  ▸ Feedback         [0m[2m   $ Billing               [0m┆    focus leaves       [0m
+  ▸ Layout           [0m[2m                           [0m┆    ▎  keyboard        [0m
   ▸ Text & code                                      cursor · only      [0m
   ▸ Screens            Collapse                      while focused   …  [0m
                                                                         [0m
