@@ -3,10 +3,13 @@ use ratatui::layout::{Position, Rect};
 
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
-use crate::ui::ctx::RenderCtx;
+use crate::theme::{Kind, Plane};
+use crate::ui::ctx::{RenderCtx, VisualState};
 
 pub const TRACK: &str = "│";
 pub const THUMB: &str = "┃";
+/// The thumb while dragged: a full block, so the grab reads without colour.
+pub const THUMB_HELD: &str = "█";
 
 /// Id used for a container's scrollbar hit region.
 pub fn id_for(container: WidgetId) -> WidgetId {
@@ -29,13 +32,21 @@ pub fn render_vertical(
     }
     let t = ctx.theme;
     let sb_id = id_for(container);
-    let hovered = ctx.interaction.hovered(sb_id) || ctx.interaction.pressed == Some(sb_id);
+    // a drag holds the thumb pressed while the pointer runs off the track
+    let s = VisualState {
+        focused,
+        hovered: ctx.interaction.hovered(sb_id),
+        pressed: ctx.interaction.pressed == Some(sb_id),
+        ..Default::default()
+    };
+    let thumb = t.interactive(Kind::Handle, s, Plane::Canvas).style;
+    let glyph = if s.pressed { THUMB_HELD } else { THUMB };
     let track_len = area.height as usize;
     let (start, len) = scroll.thumb(track_len);
     for i in 0..track_len {
         let y = area.y + i as u16;
         if i >= start && i < start + len {
-            buf.set_string(area.x, y, THUMB, t.scrollbar_thumb(focused, hovered));
+            buf.set_string(area.x, y, glyph, thumb);
         } else {
             buf.set_string(area.x, y, TRACK, t.scrollbar_track());
         }
