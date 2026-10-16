@@ -920,6 +920,14 @@ impl Screen for CockpitScreen {
         } else {
             t.secondary()
         };
+        // with a build log the activity line is a link to it
+        let act_style = if self.log.is_empty() {
+            act_style
+        } else {
+            let link = ctx.title_style(CHIP_ACTIVITY, t.canvas);
+            let ink = act_style.fg.unwrap_or(t.text_secondary);
+            link.fg(t.legible(ink, link.bg.unwrap_or(t.canvas)))
+        };
         let ax = area.x + 1;
         buf.set_string(
             ax,
@@ -942,7 +950,9 @@ impl Screen for CockpitScreen {
             let chip = format!(" {} ", self.run.run_id);
             let cw = width(&chip) as u16;
             rx = rx.saturating_sub(cw);
-            buf.set_string(rx, ay, &chip, Style::new().fg(t.warning));
+            let link = ctx.title_style(CHIP_RUN, t.canvas);
+            let st = link.fg(t.legible(t.warning, link.bg.unwrap_or(t.canvas)));
+            buf.set_string(rx, ay, &chip, st);
             ctx.clickable(CHIP_RUN, Rect::new(rx, ay, cw, 1));
             rx = rx.saturating_sub(2);
         }
@@ -951,17 +961,8 @@ impl Screen for CockpitScreen {
             let cw = width(&chip) as u16;
             if rx > cw + width(&activity) as u16 + 4 {
                 rx = rx.saturating_sub(cw);
-                let hovered = ctx.interaction.hovered(CHIP_CONTAINER);
-                buf.set_string(
-                    rx,
-                    ay,
-                    &chip,
-                    if hovered {
-                        t.primary().bg(t.surface_elevated)
-                    } else {
-                        t.secondary()
-                    },
-                );
+                let st = ctx.title_style(CHIP_CONTAINER, t.canvas);
+                buf.set_string(rx, ay, &chip, st);
                 ctx.clickable(CHIP_CONTAINER, Rect::new(rx, ay, cw, 1));
             }
         }
