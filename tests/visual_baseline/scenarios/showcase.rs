@@ -130,6 +130,16 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/datagrid-error-empty", Bin::Showcase, &["--page", "datagrid", "--opt", "datagrid.rows=error"], BOOT).sends(&["wait:Could not load customers"]).pending(),
     Root::new("showcase/flows/datagrid/save-review", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save changes"]).pending(),
     Root::new("showcase/flows/datagrid/filter-chip", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "f", "wait:plan = enterprise"]).pending(),
+    // SC13: Editable, Selection and Cell editors options and States, and a
+    // ChoiceEditor on its own.
+    Root::new("showcase/sections/editable-options", Bin::Showcase, &["--page", "editable"], BOOT).sends(&["tab", "2", "wait:Header menu labels"]).pending(),
+    Root::new("showcase/sections/editable-states", Bin::Showcase, &["--page", "editable"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/selection-options", Bin::Showcase, &["--page", "selection"], BOOT).sends(&["tab", "2", "wait:Checkbox column"]).pending(),
+    Root::new("showcase/sections/selection-states", Bin::Showcase, &["--page", "selection"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/celleditors-options", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "2", "wait:Popup placement"]).pending(),
+    Root::new("showcase/sections/celleditors-states", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/celleditors-affordance-always", Bin::Showcase, &["--page", "celleditors", "--opt", "celleditors.affordance=always"], BOOT).sends(&["wait:checkout-api"]).pending(),
+    Root::new("showcase/flows/celleditors/standalone-open", Bin::Showcase, &["--page", "celleditors", "--opt", "celleditors.placement=above"], BOOT).sends(&["tab", "tab", "tab", "enter", "wait:Search"]).pending(),
     Root::new("showcase/sections/basictable-multi", Bin::Showcase, &["--page", "basictable", "--opt", "basictable.selection=multi"], BOOT).sends(&["wait:[ ] #1040"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
@@ -167,14 +177,14 @@ pub const ELEMENTS: &[Root] = &[
     // Pending: each constrained cell editor open on the first row (the
     // table is the page's first stop; the cursor starts on Env), and the
     // ▾ affordance on a hovered cell.
-    Root::new("showcase/elements/celleditors/select-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "enter", "wait:Disaster recovery"]).pending(),
-    Root::new("showcase/elements/celleditors/combo-search", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "right", "right", "right", "enter", "type:ros", "wait:Sofia Rossi"]).pending(),
-    Root::new("showcase/elements/celleditors/segmented-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "right", "right", "enter", "wait:50 %"]).pending(),
-    Root::new("showcase/elements/celleditors/tags-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "right", "right", "right", "right", "right", "enter", "wait:Retired label"]).pending(),
-    Root::new("showcase/elements/celleditors/radio-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "right", "right", "right", "right", "right", "right", "enter", "wait:Page on-call now"]).pending(),
+    Root::new("showcase/elements/celleditors/select-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "tab", "enter", "wait:Disaster recovery"]).pending(),
+    Root::new("showcase/elements/celleditors/combo-search", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "type:ros", "wait:Sofia Rossi"]).pending(),
+    Root::new("showcase/elements/celleditors/segmented-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "tab", "right", "right", "enter", "wait:50 %"]).pending(),
+    Root::new("showcase/elements/celleditors/tags-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "tab", "right", "right", "right", "right", "right", "enter", "wait:Retired label"]).pending(),
+    Root::new("showcase/elements/celleditors/radio-open", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["tab", "tab", "right", "right", "right", "right", "right", "right", "enter", "wait:Page on-call now"]).pending(),
     Root::new("showcase/elements/celleditors/cell-hover", Bin::Showcase, &["--page", "celleditors"], BOOT).hover("Staging").pending(),
     Root::new("showcase/elements/nav/filter", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["/", "type:grid"]).pending(),
-    Root::new("showcase/elements/selectable/selected-hover", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected"]).hover("Ari Moreno").pending(),
+    Root::new("showcase/elements/selectable/selected-hover", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "down", "space", "wait:1 selected"]).hover("Ari Moreno").pending(),
     Root::new("showcase/elements/lists/selected-hover", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "space"]).hover("Python").pending(),
     // Pending: the States section's Compare levels toggle on (the grid at
     // truecolor, 256, 16 and no colour) and the toggle hovered.
@@ -210,7 +220,7 @@ pub const OVERLAYS: &[Root] = &[
     // datagrid_preview: `p` opens the Pending changes facts dialog with the
     // exact UPDATE statements.
     Root::new("showcase/flows/datagrid/preview", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "p", "wait:UPDATE customers SET seats = 600"]).dismiss_pending(),
-    Root::new("showcase/flows/selectable/delete_confirm", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]).dismiss_pending(),
+    Root::new("showcase/flows/selectable/delete_confirm", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]).dismiss_pending(),
     // Pending: overlays reached by pointer, with both dismissals.
     Root::new("showcase/overlays/chrome_context_row", Bin::Showcase, &["--page", "chrome"], BOOT).right_click("Codex (Primary)").pending().dismiss_pending(),
     Root::new("showcase/overlays/lists_context", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "shift-f10"]).pending().dismiss_pending(),
@@ -233,7 +243,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/trees/expanded", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "right"]),
     // the first Tab stop is the page's section strip (SC2 template)
     Root::new("showcase/flows/tables/selected", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "tab", "down", "down"]),
-    Root::new("showcase/flows/editable/editing", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "enter"]),
+    Root::new("showcase/flows/editable/editing", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "tab", "enter"]),
     Root::new("showcase/flows/datagrid/selected", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "down", "right"]),
     Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "space"]),
     // The same paused endpoint keeps the subsequent scroll actions deterministic.
@@ -243,7 +253,7 @@ pub const JOURNEYS: &[Root] = &[
     // steps): Tab focuses the table, the owner row is disabled, Space selects
     // Ari, Shift+Down extends over Cleo and Bo — two roles, so the editor bulk
     // edits with `— mixed —`; `d` on two selected rows asks `Delete 2 members?`.
-    Root::new("showcase/flows/selectable/bulk_mixed", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "shift-down", "wait:3 selected"]),
+    Root::new("showcase/flows/selectable/bulk_mixed", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "down", "space", "wait:1 selected", "shift-down", "shift-down", "wait:3 selected"]),
     // ------------------------------------------------------- new flows (§3.7) --
 
     // S3: required field filled, Ctrl+S, then wait out the 1.8 s wall-clock
@@ -260,7 +270,7 @@ pub const JOURNEYS: &[Root] = &[
     // current level, Enter sets it — the footer status confirms the choice.
     Root::new("showcase/flows/pickers/level", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "tab", "enter", "down", "enter", "wait:Chose Safe Mode (Full)"]),
     // S10: cell edit committed; the panel meta counts edits.
-    Root::new("showcase/flows/editable/committed", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "enter", "type:x", "enter", "wait:1 edits"]),
+    Root::new("showcase/flows/editable/committed", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "tab", "enter", "type:x", "enter", "wait:1 edits"]),
     // S11: fifth stop is the Auto-merge toggle; space twice round-trips it —
     // the value is back to off and the `· unsaved` title proves the toggles.
     Root::new("showcase/flows/settings/toggled_off", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "space", "wait:General · unsaved"]),

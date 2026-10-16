@@ -32,7 +32,9 @@ impl Harness {
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
-        // focus the first control on the page: the members table
+        // focus the members table: the first Tab stop is the page's
+        // section strip
+        h.key(KeyCode::Tab);
         h.key(KeyCode::Tab);
         h
     }
@@ -159,7 +161,7 @@ fn page_resolves_by_label_and_aliases() {
 
 #[test]
 fn nothing_selected_shows_an_empty_state_that_says_what_to_do() {
-    let h = Harness::new(120, 40);
+    let h = Harness::new(120, 43);
     assert!(h.has("No member selected"), "{}", h.text());
     assert!(h.has("Space selects"));
     assert!(h.has("[ ]"), "the header box is empty");
@@ -168,7 +170,7 @@ fn nothing_selected_shows_an_empty_state_that_says_what_to_do() {
 
 #[test]
 fn keyboard_selects_extends_and_clears_rows() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     // the owner row is first and disabled: Space does nothing there
     h.key(KeyCode::Char(' '));
     assert!(h.has("No member selected"));
@@ -200,7 +202,7 @@ fn keyboard_selects_extends_and_clears_rows() {
 
 #[test]
 fn mouse_selects_with_desktop_modifiers_and_checkboxes() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     assert!(h.has("1 selected"), "{}", h.text());
     assert!(h.has("cleo@northwind.dev"));
@@ -229,7 +231,7 @@ fn mouse_selects_with_desktop_modifiers_and_checkboxes() {
 #[test]
 fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     let mac = InputConfig::for_platform(ClientPlatform::MacOs);
-    let mut h = Harness::on(120, 40, ClientPlatform::MacOs);
+    let mut h = Harness::on(120, 43, ClientPlatform::MacOs);
     h.raw_click("Cleo Barnes", KeyModifiers::NONE, mac);
     assert!(h.has("1 selected"), "{}", h.text());
     // the footer names the macOS toggle click
@@ -273,7 +275,7 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
 #[test]
 fn other_platforms_toggle_with_ctrl_click_and_name_it() {
     let other = InputConfig::for_platform(ClientPlatform::Other);
-    let mut h = Harness::on(120, 40, ClientPlatform::Other);
+    let mut h = Harness::on(120, 43, ClientPlatform::Other);
     h.raw_click("Cleo Barnes", KeyModifiers::NONE, other);
     assert!(
         h.footer().contains("Ctrl+click Toggle row"),
@@ -290,7 +292,7 @@ fn other_platforms_toggle_with_ctrl_click_and_name_it() {
 
 #[test]
 fn row_menu_edits_or_deletes_the_row_it_opened_on() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     let (x, y) = h.find("June Park").unwrap();
     h.app.handle(Input::Mouse(Mouse::new(
         MouseKind::Secondary,
@@ -329,7 +331,7 @@ fn row_menu_edits_or_deletes_the_row_it_opened_on() {
 
 #[test]
 fn selection_survives_sorting() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("Hana Sato", KeyModifiers::NONE);
     h.click_text("Bo Lindqvist", KeyModifiers::CONTROL);
     // sort by name: the selected rows move, the selection follows them
@@ -342,7 +344,7 @@ fn selection_survives_sorting() {
 
 #[test]
 fn bulk_edit_applies_shared_fields_to_every_selected_member() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("Ari Moreno", KeyModifiers::NONE);
     h.click_text("Bo Lindqvist", KeyModifiers::SHIFT);
     assert!(h.has("Edit 3 members"));
@@ -367,7 +369,7 @@ fn bulk_edit_applies_shared_fields_to_every_selected_member() {
 
 #[test]
 fn single_edit_and_revert() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("June Park", KeyModifiers::NONE);
     // Enter from the table moves into the editor's first field
     let rename = |h: &mut Harness| {
@@ -406,7 +408,7 @@ fn single_edit_and_revert() {
 
 #[test]
 fn delete_asks_with_the_count_and_removes_the_rows() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("Gus Petrov", KeyModifiers::NONE);
     h.click_text("June Park", KeyModifiers::CONTROL);
     h.key(KeyCode::Char('d'));
@@ -470,7 +472,7 @@ fn selection_marks_stay_apart_from_the_single_focus_bar() {
 
 #[test]
 fn changing_the_selection_commits_valid_edits() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("June Park", KeyModifiers::NONE);
     h.key(KeyCode::Enter); // into the editor's name field
     h.key(KeyCode::Enter); // edit it
@@ -516,7 +518,7 @@ impl Harness {
 
 #[test]
 fn a_select_chooses_by_press_drag_release_and_its_label_focuses_it() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     let (_, ey) = h.find("Edit member").expect("the editor");
     let (lx, ly) = h.find_below("Role", ey, 120).expect("the Role field");
@@ -553,7 +555,7 @@ fn a_select_chooses_by_press_drag_release_and_its_label_focuses_it() {
 
 #[test]
 fn changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel() {
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("June Park", KeyModifiers::NONE);
     h.key(KeyCode::Enter); // into the editor's name field
     h.key(KeyCode::Enter); // edit it
@@ -590,7 +592,7 @@ fn changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel() {
 fn a_clicked_row_anchors_a_shift_arrow_range() {
     // terminals often keep Shift+click for their own text selection: the
     // range also grows from the clicked row with Shift+↑↓
-    let mut h = Harness::new(120, 40);
+    let mut h = Harness::new(120, 43);
     h.click_text("Ari Moreno", KeyModifiers::NONE);
     h.key_mod(KeyCode::Down, KeyModifiers::SHIFT);
     h.key_mod(KeyCode::Down, KeyModifiers::SHIFT);

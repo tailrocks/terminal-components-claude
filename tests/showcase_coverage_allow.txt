@@ -797,25 +797,6 @@ widgets::menu::MenuBar::wrap | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBar::hover_switch | Chrome and Status & hints pages | SC4
 widgets::menu::MenuBar::brand | Chrome and Status & hints pages | SC4
 
-# widgets::option_editor
-widgets::option_editor::OptionItem | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::OptionItem::label | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::OptionItem::tone | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::OptionItem::description | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::OptionItem::disabled | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::Options | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::ColumnEditor::Text | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::EditorConfig | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::Affordance | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::Affordance::Focused | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::Affordance::Always | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::Affordance::Never | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::ChoiceResult | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::ChoiceResult::Commit | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::ChoiceResult::Cancel | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::ChoiceResult::CommitAndTab | Editable, Selection and Cell editors page options | SC13
-widgets::option_editor::ChoiceEditor | Editable, Selection and Cell editors page options | SC13
-
 # widgets::panel
 widgets::panel::PanelFocus | Panels and Scrolling page options | SC22
 widgets::panel::PanelFocus::Title | Panels and Scrolling page options | SC22
@@ -974,47 +955,6 @@ widgets::steps::StepState::Blocked | Diff and Terminal page options | SC25
 widgets::steps::StepRail::nav | Diff and Terminal page options | SC25
 widgets::steps::StepRail::track_click | Diff and Terminal page options | SC25
 widgets::steps::StepRail::selectable | Diff and Terminal page options | SC25
-
-# widgets::table
-widgets::table::SortDir | Editable, Selection and Cell editors page options | SC13
-widgets::table::SortDir::Asc | Editable, Selection and Cell editors page options | SC13
-widgets::table::SortDir::Desc | Editable, Selection and Cell editors page options | SC13
-widgets::table::Align | Editable, Selection and Cell editors page options | SC13
-widgets::table::Align::Left | Editable, Selection and Cell editors page options | SC13
-widgets::table::Align::Right | Editable, Selection and Cell editors page options | SC13
-widgets::table::Column::editor | Editable, Selection and Cell editors page options | SC13
-widgets::table::Column::right | Editable, Selection and Cell editors page options | SC13
-widgets::table::Column::editable | Editable, Selection and Cell editors page options | SC13
-widgets::table::Cell | Editable, Selection and Cell editors page options | SC13
-widgets::table::Cell::tone | Editable, Selection and Cell editors page options | SC13
-widgets::table::ChoiceEdit | Editable, Selection and Cell editors page options | SC13
-widgets::table::EditState | Editable, Selection and Cell editors page options | SC13
-widgets::table::CellValidator | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableCmd | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableCmd::SortByColumn | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableCmd::SelectAll | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableAction | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableAction::Committed | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableAction::Cancelled | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableAction::Activated | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableAction::SelectionChanged | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableAction::LeaveForward | Editable, Selection and Cell editors page options | SC13
-widgets::table::TableAction::LeaveBackward | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::type_ahead | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::type_ahead_column | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::editor_config | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::nav | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::keymap | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::esc_clears | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::toggle_mods | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::disabled_rows | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::horizontal | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::overflow_marks | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::reveal | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::cell_nav | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::numeric | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::empty | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::track_click | Editable, Selection and Cell editors page options | SC13
 
 # widgets::tabs
 widgets::tabs::TabItem | Tabs page | SC14
