@@ -52,6 +52,7 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 
 use crate::core::event::ClientPlatform;
+use crate::core::keymap::NavKeys;
 
 use crate::theme::{BadgeKind, HintAlign, HintBarStyle, StatusKind, Theme, Tone};
 
@@ -61,6 +62,37 @@ pub const UP_DOWN: &str = "↑↓";
 pub const LEFT_RIGHT: &str = "←→";
 pub const ARROWS: &str = "↑↓←→";
 pub const DELETE: &str = "Delete";
+
+/// The keys that step one row under `nav`, for a hint: `↑↓`, plus `j k`
+/// when the vim letters navigate. `None` when nothing steps (arrows and
+/// vim letters both off). Hints read the widget's live [`NavKeys`] so they
+/// never advertise a key the widget does not take.
+pub fn step_keys(nav: &NavKeys) -> Option<&'static str> {
+    match (nav.arrows, nav.vim) {
+        (true, true) => Some("↑↓ j k"),
+        (true, false) => Some(UP_DOWN),
+        (false, true) => Some("j k"),
+        (false, false) => None,
+    }
+}
+
+/// The keys that page under `nav`: `PgUp PgDn`, or `None` when paging is
+/// off.
+pub fn page_keys(nav: &NavKeys) -> Option<&'static str> {
+    nav.page.then_some("PgUp PgDn")
+}
+
+/// The keys that reach the first and last row under `nav`: `Home End`,
+/// plus `g G` when the vim letters navigate (only then: under the desktop
+/// keys a letter types or reaches a shortcut). `None` when neither is on.
+pub fn ends_keys(nav: &NavKeys) -> Option<&'static str> {
+    match (nav.home_end, nav.vim) {
+        (true, true) => Some("Home End g G"),
+        (true, false) => Some("Home End"),
+        (false, true) => Some("g G"),
+        (false, false) => None,
+    }
+}
 
 /// A key range such as `1–6`.
 pub fn range(from: u32, to: u32) -> String {
@@ -553,6 +585,22 @@ fn render_right(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn navigation_hints_name_only_the_keys_the_nav_takes() {
+        let desktop = NavKeys::DESKTOP;
+        assert_eq!(step_keys(&desktop), Some("↑↓"));
+        assert_eq!(page_keys(&desktop), Some("PgUp PgDn"));
+        assert_eq!(ends_keys(&desktop), Some("Home End"), "no g G on desktop");
+        let vim = NavKeys::VIM;
+        assert_eq!(step_keys(&vim), Some("↑↓ j k"));
+        assert_eq!(ends_keys(&vim), Some("Home End g G"));
+        let bare = NavKeys::DESKTOP.page(false).home_end(false);
+        assert_eq!(page_keys(&bare), None);
+        assert_eq!(ends_keys(&bare), None);
+        assert_eq!(ends_keys(&NavKeys::VIM.home_end(false)), Some("g G"));
+        assert_eq!(step_keys(&NavKeys::DESKTOP.arrows(false)), None);
+    }
 
     #[test]
     fn modifier_click_names_the_platform_modifier() {

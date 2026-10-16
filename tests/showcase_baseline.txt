@@ -74,8 +74,12 @@
 120x40 TrueColor Empty & error · States f69c6f58d290d592
 120x40 TrueColor Meters a8cc472016fd1139
 120x40 TrueColor Notices c03d0fb09e19865f
-120x40 TrueColor Panels efb1d95b28626a38
-120x40 TrueColor Scrolling 54c07c5fbb4f8d00
+120x40 TrueColor Panels 792a6aad94f66d22
+120x40 TrueColor Panels · Options 0fd87fc052d0f268
+120x40 TrueColor Panels · States dfb774a5924a0a64
+120x40 TrueColor Scrolling d571f01627743bc2
+120x40 TrueColor Scrolling · Options c921908cbfb30d9c
+120x40 TrueColor Scrolling · States a3702c162b59289c
 120x40 TrueColor Splits & stacks 12df49c2243fe268
 120x40 TrueColor Splits & stacks · Options 67e51da7473a734e
 120x40 TrueColor Splits & stacks · States 0a6f08f1ea184cf5
@@ -178,8 +182,12 @@
 120x40 Ansi256 Empty & error · States 528a20238d62f8cc
 120x40 Ansi256 Meters ca9a66382920dabb
 120x40 Ansi256 Notices a95576cd362f9e02
-120x40 Ansi256 Panels 7ad910d5a61e3a8b
-120x40 Ansi256 Scrolling 43a872f55697a6ad
+120x40 Ansi256 Panels adfccb604f56e4a2
+120x40 Ansi256 Panels · Options 34f7d8c1ac385cb7
+120x40 Ansi256 Panels · States bec2f20a2fda7ac5
+120x40 Ansi256 Scrolling 6550a3b9aa1edba4
+120x40 Ansi256 Scrolling · Options 6e68b763816bba87
+120x40 Ansi256 Scrolling · States 7af1d89b735b1e0d
 120x40 Ansi256 Splits & stacks 147eb2ecf3eb9f59
 120x40 Ansi256 Splits & stacks · Options a94c801faa39dcf4
 120x40 Ansi256 Splits & stacks · States 6e0ed1bdaff15ab0
@@ -282,8 +290,12 @@
 120x40 Ansi16 Empty & error · States 085dfdf0a9d15af3
 120x40 Ansi16 Meters 7ba59b11b43589de
 120x40 Ansi16 Notices 340c4aa89fe8e66a
-120x40 Ansi16 Panels a23d0cb528f718c5
-120x40 Ansi16 Scrolling a2d3348549d30ad5
+120x40 Ansi16 Panels 2acff93189cafd68
+120x40 Ansi16 Panels · Options cd262840339f3ce4
+120x40 Ansi16 Panels · States cba853262191cc81
+120x40 Ansi16 Scrolling 688e2b93e2856b72
+120x40 Ansi16 Scrolling · Options 330a997cd63932ea
+120x40 Ansi16 Scrolling · States 7fbf8b1ab9383a73
 120x40 Ansi16 Splits & stacks 5f3a093791992fe5
 120x40 Ansi16 Splits & stacks · Options a31c4307cbc8171a
 120x40 Ansi16 Splits & stacks · States 52053e7324290e8a
@@ -386,8 +398,12 @@
 120x40 Mono Empty & error · States 6d9aa668f5a7852e
 120x40 Mono Meters 62268c568d879c7f
 120x40 Mono Notices 0c7ce39f18a15d59
-120x40 Mono Panels b33a07ea4615c82c
-120x40 Mono Scrolling 0ad7dd58c06d4f2c
+120x40 Mono Panels 1a5ebe9eb67fae7b
+120x40 Mono Panels · Options 3a22ed7049efc21b
+120x40 Mono Panels · States 8137280d098acfe2
+120x40 Mono Scrolling e39436eb44857b6b
+120x40 Mono Scrolling · Options 82f59a659b5affd3
+120x40 Mono Scrolling · States 507df304df82e3bb
 120x40 Mono Splits & stacks 92f42c998fa4050e
 120x40 Mono Splits & stacks · Options e61ffede910d67b3
 120x40 Mono Splits & stacks · States 39763aa8d3a0f707
@@ -490,8 +506,12 @@
 80x24 TrueColor Empty & error · States f1b8546829cec4a2
 80x24 TrueColor Meters fce19be7a2d57ab4
 80x24 TrueColor Notices b1a704c4c0fde300
-80x24 TrueColor Panels 315cb27cb953e523
-80x24 TrueColor Scrolling f236d5c854975efb
+80x24 TrueColor Panels 1912760bc1b923a6
+80x24 TrueColor Panels · Options 377a0588ee0b560d
+80x24 TrueColor Panels · States 1ea2624ee3d82742
+80x24 TrueColor Scrolling a479ee0273cb4c57
+80x24 TrueColor Scrolling · Options db76da561c77feee
+80x24 TrueColor Scrolling · States 7b07bd479302f03c
 80x24 TrueColor Splits & stacks df3c26d721647b5e
 80x24 TrueColor Splits & stacks · Options 4beb103654a1cced
 80x24 TrueColor Splits & stacks · States 6472d48823ab7455
@@ -594,8 +614,12 @@
 80x24 Ansi256 Empty & error · States 252462decdc46e35
 80x24 Ansi256 Meters 435ea811989911b4
 80x24 Ansi256 Notices 2d0e9c1112003331
-80x24 Ansi256 Panels edb55d647a8c380e
-80x24 Ansi256 Scrolling 4ba2a072fa4ce1ee
+80x24 Ansi256 Panels f8f7030a6390a68d
+80x24 Ansi256 Panels · Options 372f76936125af1d
+80x24 Ansi256 Panels · States 68493b366b96b4b9
+80x24 Ansi256 Scrolling c3fd5d7913cddee1
+80x24 Ansi256 Scrolling · Options 94607a8a3e8ff71e
+80x24 Ansi256 Scrolling · States 93fdf913af890e9c
 80x24 Ansi256 Splits & stacks e027504c5cfec71a
 80x24 Ansi256 Splits & stacks · Options 0b6ea3fb713df8d5
 80x24 Ansi256 Splits & stacks · States 283b2836ff679834
@@ -698,8 +722,12 @@
 80x24 Ansi16 Empty & error · States e6a75ce96b2c63c5
 80x24 Ansi16 Meters 4afc604b39af8c9d
 80x24 Ansi16 Notices 43d4e29cdeafdd0d
-80x24 Ansi16 Panels df072ac311694cf3
-80x24 Ansi16 Scrolling 8537513f60d70970
+80x24 Ansi16 Panels 101e70eb5a1d6d9d
+80x24 Ansi16 Panels · Options 3fa7d92ae648fad4
+80x24 Ansi16 Panels · States 39b62a1d93830c9c
+80x24 Ansi16 Scrolling a69ee74ca549823e
+80x24 Ansi16 Scrolling · Options aa523f066bc94f51
+80x24 Ansi16 Scrolling · States 6ec858800423ec4d
 80x24 Ansi16 Splits & stacks f8be536ed64f5b0b
 80x24 Ansi16 Splits & stacks · Options 3adceb6767a77369
 80x24 Ansi16 Splits & stacks · States 34edbe3012dbaf80
@@ -802,8 +830,12 @@
 80x24 Mono Empty & error · States ee3aefcc40d13a67
 80x24 Mono Meters 134dad2082b343d3
 80x24 Mono Notices 50cba9cda05b0a47
-80x24 Mono Panels 69d289ab1bc0971b
-80x24 Mono Scrolling 4681f40eefef9b63
+80x24 Mono Panels 9f399ab498ca14e5
+80x24 Mono Panels · Options c96524fe36fc3494
+80x24 Mono Panels · States 52e66fe882cebffa
+80x24 Mono Scrolling aada18bdf7e9b276
+80x24 Mono Scrolling · Options 20eede2eb3db4e9b
+80x24 Mono Scrolling · States 162d0051e20bfd88
 80x24 Mono Splits & stacks 865c59687b59c957
 80x24 Mono Splits & stacks · Options 0a942577c90e9e95
 80x24 Mono Splits & stacks · States 5cbba30b3ba029ee
@@ -906,8 +938,12 @@
 72x20 TrueColor Empty & error · States 840716f6af526942
 72x20 TrueColor Meters 388a7960dd66fcbc
 72x20 TrueColor Notices c649b192751f0748
-72x20 TrueColor Panels 7fb7dda93fc99b3f
-72x20 TrueColor Scrolling a3d487f32b2f1ca2
+72x20 TrueColor Panels 9b20f78c8da8a75a
+72x20 TrueColor Panels · Options a82f56fc296ac5b6
+72x20 TrueColor Panels · States 11eec5f4af02a54f
+72x20 TrueColor Scrolling 31d0c6f6c77bed9e
+72x20 TrueColor Scrolling · Options 65dc9c148e79db41
+72x20 TrueColor Scrolling · States e17c6fae643a9f8e
 72x20 TrueColor Splits & stacks eaf096f5b9efead1
 72x20 TrueColor Splits & stacks · Options b8422b4e672d62a5
 72x20 TrueColor Splits & stacks · States e6a0eac61f926dba
@@ -1010,8 +1046,12 @@
 72x20 Ansi256 Empty & error · States 50b6a0bf582edb03
 72x20 Ansi256 Meters b0c9c4288184e7b4
 72x20 Ansi256 Notices 72acfde6b381b1f1
-72x20 Ansi256 Panels 0fc84bbcfa8fde29
-72x20 Ansi256 Scrolling d6d9db8243ff2704
+72x20 Ansi256 Panels 4175337efe86e7e9
+72x20 Ansi256 Panels · Options d91c6e46c3cedd4a
+72x20 Ansi256 Panels · States 2098356b36e94da8
+72x20 Ansi256 Scrolling 96a3b4cb8ba5b494
+72x20 Ansi256 Scrolling · Options eb0b8a4bac426e25
+72x20 Ansi256 Scrolling · States ed5a364f5bb6ae0d
 72x20 Ansi256 Splits & stacks b4ba8f506ea474e2
 72x20 Ansi256 Splits & stacks · Options 91a8fa48a7239c26
 72x20 Ansi256 Splits & stacks · States 4c2717bc4d0a1c8b
@@ -1114,8 +1154,12 @@
 72x20 Ansi16 Empty & error · States 24e092e3f7a26915
 72x20 Ansi16 Meters e89e04b7c54bdab5
 72x20 Ansi16 Notices 742f84d891a7713d
-72x20 Ansi16 Panels fb0763ea3ff2456d
-72x20 Ansi16 Scrolling 751760f780892f39
+72x20 Ansi16 Panels 90883ff4f6c5665d
+72x20 Ansi16 Panels · Options d74070307f3c34d0
+72x20 Ansi16 Panels · States 72b0f93ed49b2a00
+72x20 Ansi16 Scrolling 45416ed3ed9ee25b
+72x20 Ansi16 Scrolling · Options 5352b43312d41f40
+72x20 Ansi16 Scrolling · States d08b3f7b5d90f815
 72x20 Ansi16 Splits & stacks e97b7c0173b53509
 72x20 Ansi16 Splits & stacks · Options 4ae44cd2e1abf8f6
 72x20 Ansi16 Splits & stacks · States 176fa5117e33fcc7
@@ -1218,8 +1262,12 @@
 72x20 Mono Empty & error · States e38dcff99a95779b
 72x20 Mono Meters ae337a4e18abe72b
 72x20 Mono Notices bc919eebae40da17
-72x20 Mono Panels 99a56c4948c42293
-72x20 Mono Scrolling ec8fdd220762485f
+72x20 Mono Panels 0503688b3ce4d09d
+72x20 Mono Panels · Options 8d86acf691515e08
+72x20 Mono Panels · States 173f4ea354d3f40a
+72x20 Mono Scrolling 8ce1c637aabe95cb
+72x20 Mono Scrolling · Options b5385dc2de0c8a6e
+72x20 Mono Scrolling · States 538a24bb2ecb8c6a
 72x20 Mono Splits & stacks edeb6fe9ef3ffcf9
 72x20 Mono Splits & stacks · Options df545d33308297a0
 72x20 Mono Splits & stacks · States c7714ec3a1c810ad
@@ -1322,8 +1370,12 @@
 100x30 TrueColor Empty & error · States 241bb6bc02230a59
 100x30 TrueColor Meters c0eafe78bb3c7da2
 100x30 TrueColor Notices dbea27a3d37f19ae
-100x30 TrueColor Panels a33aeb22b84ed881
-100x30 TrueColor Scrolling 679f8aae3ab9f88a
+100x30 TrueColor Panels 3ad849ac805401b4
+100x30 TrueColor Panels · Options 9ab276dfd0cf09ca
+100x30 TrueColor Panels · States c1b69c03ef103234
+100x30 TrueColor Scrolling 4a3323ea65a058a0
+100x30 TrueColor Scrolling · Options e570bf832940628b
+100x30 TrueColor Scrolling · States 5068588f89f72f12
 100x30 TrueColor Splits & stacks 093d1040d81ea91d
 100x30 TrueColor Splits & stacks · Options 6af7d32a5e4170b9
 100x30 TrueColor Splits & stacks · States 9b25f4c3a4851405
@@ -1426,8 +1478,12 @@
 100x30 Ansi256 Empty & error · States 4430cd7a27ced17d
 100x30 Ansi256 Meters 037ca85433a0c208
 100x30 Ansi256 Notices 271645a9421d274d
-100x30 Ansi256 Panels 765ce16a407bec8d
-100x30 Ansi256 Scrolling d8edcd49e30815d5
+100x30 Ansi256 Panels 92ac6f117292f4a4
+100x30 Ansi256 Panels · Options 0d274575be474eee
+100x30 Ansi256 Panels · States 6d7582b4d4ee44cc
+100x30 Ansi256 Scrolling 1ee379e37ce37a00
+100x30 Ansi256 Scrolling · Options c18fbfb0fc2329a5
+100x30 Ansi256 Scrolling · States 77bee671b52d97eb
 100x30 Ansi256 Splits & stacks 8a79b4303cfe86de
 100x30 Ansi256 Splits & stacks · Options 746e51bf96dfb228
 100x30 Ansi256 Splits & stacks · States 578b29f4e626b22f
@@ -1530,8 +1586,12 @@
 100x30 Ansi16 Empty & error · States 50f94cbb014233c8
 100x30 Ansi16 Meters 0f1eab2b337e2255
 100x30 Ansi16 Notices dc54f70506ab57b9
-100x30 Ansi16 Panels 306fabbc8f035873
-100x30 Ansi16 Scrolling 7c567604d15d88e8
+100x30 Ansi16 Panels 9baf15ddab99e017
+100x30 Ansi16 Panels · Options 903c272a3c892a63
+100x30 Ansi16 Panels · States d50326f20d60ae43
+100x30 Ansi16 Scrolling 022dce5e20fac57f
+100x30 Ansi16 Scrolling · Options 5ccd93e6c94b8898
+100x30 Ansi16 Scrolling · States 76de08b7ed46de6c
 100x30 Ansi16 Splits & stacks a54c1eaea130c973
 100x30 Ansi16 Splits & stacks · Options e1e6772160a33b1a
 100x30 Ansi16 Splits & stacks · States f54661ad52fd8d81
@@ -1634,8 +1694,12 @@
 100x30 Mono Empty & error · States 8993eef4687ad051
 100x30 Mono Meters 672834da2cc6a280
 100x30 Mono Notices dc3957d83f426986
-100x30 Mono Panels 6770f67934f885e9
-100x30 Mono Scrolling b392036191faa4a8
+100x30 Mono Panels 577e632d02a53fb5
+100x30 Mono Panels · Options f67e5b90d7bc8076
+100x30 Mono Panels · States bd2b2e4b70df703a
+100x30 Mono Scrolling 3c6d712f1b336620
+100x30 Mono Scrolling · Options 0333d2a54438299d
+100x30 Mono Scrolling · States 767f8cb3d78c9285
 100x30 Mono Splits & stacks eee2a658363f31c2
 100x30 Mono Splits & stacks · Options 3e4564cec59116ef
 100x30 Mono Splits & stacks · States 6e4634d9d0282cda
@@ -1738,8 +1802,12 @@
 160x50 TrueColor Empty & error · States 424cfa089eb4cf91
 160x50 TrueColor Meters a1d2bec7807d59aa
 160x50 TrueColor Notices a50bd7aa50effe5a
-160x50 TrueColor Panels e7e0dac041eaf66b
-160x50 TrueColor Scrolling 38fc9786dfd273c0
+160x50 TrueColor Panels 519065734d0defc3
+160x50 TrueColor Panels · Options 180368090e8cc869
+160x50 TrueColor Panels · States a81fdbedd7d93dfd
+160x50 TrueColor Scrolling b96ae88091933c05
+160x50 TrueColor Scrolling · Options eb867024bf3101df
+160x50 TrueColor Scrolling · States 385d5780988accd7
 160x50 TrueColor Splits & stacks 430dc9ca2554e7a2
 160x50 TrueColor Splits & stacks · Options 1a13aa71777353b8
 160x50 TrueColor Splits & stacks · States 3cfe4fe5a60e1e6f
@@ -1842,8 +1910,12 @@
 160x50 Ansi256 Empty & error · States 4f4d4093c7aa03b5
 160x50 Ansi256 Meters 9f14364c110d9a00
 160x50 Ansi256 Notices 9d9642c62162c849
-160x50 Ansi256 Panels e16fa19138259320
-160x50 Ansi256 Scrolling 84006e9ed83c4745
+160x50 Ansi256 Panels dd1924c06e4bb54e
+160x50 Ansi256 Panels · Options b74db72fd8d1f170
+160x50 Ansi256 Panels · States 9817f3120bc0bdd6
+160x50 Ansi256 Scrolling 3442d24d079cd87b
+160x50 Ansi256 Scrolling · Options 04da28b2aa5b7ee8
+160x50 Ansi256 Scrolling · States a8e85d3d4a97eb0c
 160x50 Ansi256 Splits & stacks 9990098a9227c4cc
 160x50 Ansi256 Splits & stacks · Options b636f2dea9047ebf
 160x50 Ansi256 Splits & stacks · States d6a30bf63207f33b
@@ -1946,8 +2018,12 @@
 160x50 Ansi16 Empty & error · States c0b351e3fd8e08b3
 160x50 Ansi16 Meters 4a55b8728ff3c0c9
 160x50 Ansi16 Notices 7de70169394a5c07
-160x50 Ansi16 Panels eaa8313ded91a8c2
-160x50 Ansi16 Scrolling 5c4eb0c135f90b68
+160x50 Ansi16 Panels 7a17786c5024a7d2
+160x50 Ansi16 Panels · Options c45c50e1437158d3
+160x50 Ansi16 Panels · States 2846c517e62fdf2a
+160x50 Ansi16 Scrolling 5dcc9f77c703313e
+160x50 Ansi16 Scrolling · Options 9c2fb466a68d643b
+160x50 Ansi16 Scrolling · States 52cdfb9267b36418
 160x50 Ansi16 Splits & stacks 111a8312a96a0469
 160x50 Ansi16 Splits & stacks · Options 9cd01eea10f0d1ba
 160x50 Ansi16 Splits & stacks · States 2d4de111dac9b456
@@ -2050,8 +2126,12 @@
 160x50 Mono Empty & error · States b4c73546630ce1de
 160x50 Mono Meters b3ba2e5c1d49184c
 160x50 Mono Notices f1d8475bb3a4bb90
-160x50 Mono Panels 7d3f3e725fdfb70b
-160x50 Mono Scrolling d8dd01b95b30ac35
+160x50 Mono Panels 48dd6125c73ceaed
+160x50 Mono Panels · Options b6a53774af157e02
+160x50 Mono Panels · States 8f77c4aaad9e2fc5
+160x50 Mono Scrolling 0def60066d002961
+160x50 Mono Scrolling · Options adc5dbcd871c2b84
+160x50 Mono Scrolling · States e18bfc396af7d6fc
 160x50 Mono Splits & stacks 8c5631460c60e4d4
 160x50 Mono Splits & stacks · Options 88cd8c0efb631431
 160x50 Mono Splits & stacks · States 20333fb906933e95
