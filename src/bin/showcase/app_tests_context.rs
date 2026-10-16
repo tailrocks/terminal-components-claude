@@ -108,10 +108,20 @@ impl Harness {
     fn menu(&self, id: WidgetId) -> Option<Rect> {
         self.app.hits.area_of(id)
     }
+
+    fn status(&self) -> String {
+        self.app
+            .status
+            .as_ref()
+            .map(|(s, _)| s.clone())
+            .unwrap_or_default()
+    }
 }
 
 const CHROME_MENU: WidgetId = WidgetId::of("chrome.context");
 const LISTS_MENU: WidgetId = WidgetId::of("lists.menu");
+const TREES_MENU: WidgetId = WidgetId::of("trees.menu");
+const TABLES_MENU: WidgetId = WidgetId::of("tables.menu");
 
 // ------------------------------------------------------------------ router
 
@@ -262,4 +272,83 @@ fn lists_shift_f10_opens_under_the_cursor_row_and_chooses() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Chosen: Python"));
     assert!(h.menu(LISTS_MENU).is_none());
+}
+
+// ------------------------------------------------------------------ trees
+
+#[test]
+fn trees_right_click_folds_a_folder_and_shift_f10_opens_a_file() {
+    let mut h = Harness::new(PageId::Trees);
+    let api = h.at("api");
+    let at = (api.0 + 1, api.1);
+    h.right_click(at);
+    let menu = h.menu(TREES_MENU).expect("the row menu");
+    assert_eq!((menu.x, menu.y), (at.0, at.1 + 1));
+    let shown = h.text_in(menu);
+    assert!(shown.contains("api") && shown.contains("Expand all"));
+    assert!(
+        shown.contains("Expand          →"),
+        "a folded folder\n{shown}"
+    );
+    assert!(!h.text().contains("auth.rs"));
+    h.key(KeyCode::Enter);
+    assert!(h.menu(TREES_MENU).is_none());
+    assert!(h.text().contains("auth.rs"), "the folder unfolded");
+    h.right_click(at);
+    assert!(h.text().contains("Collapse        ←"), "{}", h.text());
+    h.key(KeyCode::Esc);
+
+    h.click(h.at("auth.rs"));
+    h.key(KeyCode::Down);
+    let billing = h.at("billing.rs");
+    assert_eq!(h.shift_f10(), Outcome::Changed);
+    let menu = h.menu(TREES_MENU).expect("Shift+F10");
+    assert_eq!(menu.y, billing.1 + 1);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("src/api/billing.rs"), "{}", h.text());
+}
+
+// ------------------------------------------------------------------ tables
+
+#[test]
+fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {
+    let mut h = Harness::new(PageId::Tables);
+    let owner = h.at("jonas");
+    let at = (owner.0 + 1, owner.1);
+    h.right_click(at);
+    let menu = h.menu(TABLES_MENU).expect("the cell menu");
+    assert_eq!((menu.x, menu.y), (at.0, at.1 + 1));
+    let shown = h.text_in(menu);
+    assert!(
+        shown.contains("Migrate sessions"),
+        "titled by the task\n{shown}"
+    );
+    assert!(shown.contains("Sort by owner"));
+    assert!(shown.contains("Read-only"), "edit is unavailable here");
+
+    h.click(h.at("Sort by owner"));
+    assert!(h.text().contains("sorted by owner ▴"), "{}", h.text());
+
+    let owner = h.at("jonas");
+    h.right_click(owner);
+    h.click(h.at("Select  "));
+    assert_eq!(h.status(), "Selected Migrate sessions table to UUID keys");
+}
+
+#[test]
+fn tables_shift_f10_opens_under_the_cursor_row() {
+    let mut h = Harness::new(PageId::Tables);
+    h.click(h.at("jonas"));
+    h.key(KeyCode::Down);
+    let row = h
+        .app
+        .hits
+        .area_of(WidgetId::of("tables").sub("tasks").child(2));
+    assert_eq!(h.shift_f10(), Outcome::Changed);
+    let menu = h.menu(TABLES_MENU).expect("Shift+F10");
+    if let Some(row) = row {
+        assert_eq!(menu.y, row.y + 1, "under the cursor row");
+    }
+    h.key(KeyCode::Esc);
+    assert!(h.menu(TABLES_MENU).is_none(), "Esc dismisses");
 }
