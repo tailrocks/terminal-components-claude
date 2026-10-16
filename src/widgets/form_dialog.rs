@@ -475,13 +475,51 @@ impl FormDialog {
         }
     }
 
+    /// The form's text inputs, for pointer routing.
+    fn inputs(&mut self) -> impl Iterator<Item = &mut TextInput> {
+        self.fields.iter_mut().filter_map(|f| match &mut f.kind {
+            FormFieldKind::Input(i) => Some(i),
+            _ => None,
+        })
+    }
+
+    /// A press on `id` with the click count it starts: an input
+    /// remembers it for the drag (the second press of a double click
+    /// selects the word).
+    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        self.inputs()
+            .find(|i| i.id == id)
+            .map_or(Outcome::Ignored, |i| i.on_press_count(pos, count))
+    }
+
+    /// A drag held since a press on `pressed`: an input selects its text.
+    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        self.inputs()
+            .find(|i| i.id == pressed)
+            .map_or(Outcome::Ignored, |i| i.on_drag(pos))
+    }
+
+    /// A completed click. Same as [`Self::on_click_count`] with a count
+    /// of 1.
     pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus) -> Outcome {
+        self.on_click_count(id, pos, 1, focus)
+    }
+
+    /// A completed click with its multi-click `count`: in an input 2
+    /// selects the word and 3 the line.
+    pub fn on_click_count(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        count: u8,
+        focus: &mut Focus,
+    ) -> Outcome {
         for f in self.fields.iter_mut() {
             let name = f.name.clone();
             match &mut f.kind {
                 FormFieldKind::Input(i) if i.id == id => {
                     focus.focus(id);
-                    return i.on_click(pos);
+                    return i.on_click_count(pos, count.max(1));
                 }
                 FormFieldKind::Select(s) if s.owns(id) => {
                     focus.focus(s.id);

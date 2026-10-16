@@ -14,6 +14,8 @@ mod app_tests_context;
 mod app_tests_copy;
 #[cfg(test)]
 mod app_tests_coverage;
+#[cfg(test)]
+mod app_tests_fields;
 mod arbiter;
 mod clock;
 mod domain;

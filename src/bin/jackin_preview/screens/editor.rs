@@ -108,7 +108,7 @@ pub struct EditorScreen {
     pub cfg: ConfigTabs,
     tabs: Tabs,
     tab: EdTab,
-    name: TextInput,
+    pub(crate) name: TextInput,
     workdir_button: Button,
     keep_awake: Checkbox,
     git_pull: Checkbox,
@@ -1846,7 +1846,7 @@ impl Screen for EditorScreen {
             EdTab::General => {
                 if id == NAME {
                     cx.focus.focus(NAME);
-                    return self.name.on_click(pos);
+                    return self.name.on_click_count(pos, cx.clicks.max(1));
                 }
                 if id == WORKDIR {
                     cx.focus.focus(WORKDIR);
@@ -1941,7 +1941,17 @@ impl Screen for EditorScreen {
         }
     }
 
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if id == NAME && self.tab == EdTab::General {
+            return self.name.on_press_count(pos, cx.clicks.max(1));
+        }
+        Outcome::Ignored
+    }
+
     fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == NAME && self.tab == EdTab::General {
+            return self.name.on_drag(pos);
+        }
         if pressed == scrollbar::id_for(GENERAL) {
             self.general_stack.on_scrollbar_drag(pos);
             return Outcome::Changed;
