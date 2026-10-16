@@ -8,7 +8,7 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::core::keymap::{Nav, NavKeys};
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::ScrollState;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
@@ -271,9 +271,30 @@ pub struct PropsList {
     v_click: crate::core::scroll::TrackClick,
     /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
+    /// The list's action keys (default [`PropsAction::default_keymap`]).
+    pub keymap: KeyMap<PropsAction>,
+}
+
+/// A [`PropsList`] action a key can be bound to. Enter always activates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PropsAction {
+    /// Copy the cursor row's value when it is copyable. Default `y`.
+    Copy,
+}
+
+impl Actions for PropsAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![(KeyBinding::char('y'), PropsAction::Copy)]
+    }
 }
 
 impl PropsList {
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<PropsAction>) -> Self {
+        self.keymap = keymap;
+        self
+    }
+
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -295,6 +316,7 @@ impl PropsList {
             track_click: None,
             v_click: crate::core::scroll::TrackClick::Jump,
             nav: NavKeys::DEFAULT,
+            keymap: PropsAction::default_keymap(),
         }
     }
 
@@ -351,6 +373,12 @@ impl PropsList {
         if let Some(o) = self.reveal.on_key(key) {
             return (o, None);
         }
+        if let Some(PropsAction::Copy) = lookup(&self.keymap, key) {
+            if self.props[self.cursor].copyable {
+                return (Outcome::Changed, Some(PropsEvent::Copy(self.cursor)));
+            }
+            return (Outcome::Consumed, None);
+        }
         let page = self.scroll.viewport_len.max(1);
         match (self.nav.action(key), key.code) {
             (Some(Nav::Up), _) if key.plain() => self.set_cursor(self.cursor.saturating_sub(1)),
@@ -361,12 +389,6 @@ impl PropsList {
             (Some(Nav::End), _) => self.set_cursor(usize::MAX),
             (_, KeyCode::Enter) => {
                 return (Outcome::Changed, Some(PropsEvent::Activate(self.cursor)));
-            }
-            (_, KeyCode::Char('y')) if key.plain() => {
-                if self.props[self.cursor].copyable {
-                    return (Outcome::Changed, Some(PropsEvent::Copy(self.cursor)));
-                }
-                return (Outcome::Consumed, None);
             }
             _ => return (Outcome::Ignored, None),
         }
