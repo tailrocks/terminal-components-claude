@@ -689,6 +689,30 @@ fn short_pages_scroll_by_section_and_never_draw_past_their_area() {
     );
 }
 
+/// Layout audit #19: the navigation's divider was really its scrollbar, so
+/// it vanished whenever the list fitted (100x30) and the look flipped at
+/// each breakpoint. The divider column is now drawn at every size and the
+/// thumb is laid over it only when the list overflows; rows never run
+/// under it.
+#[test]
+fn the_navigation_divider_is_drawn_at_every_size() {
+    use junie_tui::widgets::scrollbar::{THUMB, TRACK};
+    for (w, hh) in [(72u16, 20u16), (80, 24), (100, 30), (120, 40), (160, 50)] {
+        let h = Harness::new(w, hh, PageId::Lists);
+        let nav = h.app.sidebar_area();
+        let x = nav.right() - 1;
+        let buf = h.term.backend().buffer();
+        for y in nav.top()..nav.bottom() {
+            let sym = buf[(x, y)].symbol();
+            assert!(
+                sym == TRACK || sym == THUMB,
+                "{w}x{hh}: row {y} of the divider is {sym:?}\n{}",
+                h.text()
+            );
+        }
+    }
+}
+
 /// Visual regression baseline: a stable digest of every cell (symbol, fg,
 /// bg, modifiers) for each showcase page from the minimum through wide
 /// terminals, in every supported palette, with focus on the first control.
