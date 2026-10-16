@@ -448,6 +448,8 @@ pub struct Theme {
     /// Footer hint bar layout: alignment, the status's share of the row,
     /// compact mode and which keys are never dropped.
     pub hintbar: HintBarStyle,
+    /// Gaps and container insets shared by every component.
+    pub spacing: Spacing,
 }
 
 impl Theme {
@@ -505,6 +507,7 @@ impl Theme {
             mods: StateModifiers::COLOR,
             tint_selection: true,
             hintbar: HintBarStyle::DEFAULT,
+            spacing: Spacing::DEFAULT,
         }
     }
 
@@ -1426,6 +1429,49 @@ pub enum HintAlign {
     Start,
     /// Centre the hints that fit in the row.
     Center,
+}
+
+/// Padding inside a container, in cells: `x` on the left and on the right,
+/// `y` above and below.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Insets {
+    pub x: u16,
+    pub y: u16,
+}
+
+impl Insets {
+    pub const fn new(x: u16, y: u16) -> Self {
+        Self { x, y }
+    }
+}
+
+/// Spacing tokens: one value per kind of gap, so dialogs, panels, popups
+/// and button rows agree instead of each picking its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Spacing {
+    /// Cells between buttons in a row. Default 2.
+    pub button_gap: u16,
+    /// Inside a dialog's border. Default 2 columns, 1 row.
+    pub dialog: Insets,
+    /// Inside a framed panel's border. Default 2 columns, 0 rows.
+    pub panel: Insets,
+    /// Inside a popup surface (menus, dropdowns). Default 1 column, 0 rows.
+    pub popup: Insets,
+}
+
+impl Spacing {
+    pub const DEFAULT: Self = Self {
+        button_gap: 2,
+        dialog: Insets::new(2, 1),
+        panel: Insets::new(2, 0),
+        popup: Insets::new(1, 0),
+    };
+}
+
+impl Default for Spacing {
+    fn default() -> Self {
+        Self::DEFAULT
+    }
 }
 
 /// How a footer hint bar lays out one row. Set once on the theme so every
