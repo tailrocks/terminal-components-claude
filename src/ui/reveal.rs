@@ -284,7 +284,11 @@ fn layout(screen: Rect, anchor: Rect, text: &str) -> (Rect, Vec<String>) {
     let w = lines.iter().map(|l| width(l)).max().unwrap_or(0) as u16 + 2;
     let h = lines.len() as u16;
     let at = Rect::new(anchor.x.saturating_sub(1), anchor.y, 0, 0);
-    (popup::place(screen, at, w, h, Placement::Below), lines)
+    // a tooltip covers the very cell it explains: no edge margin
+    (
+        popup::place_with(screen, at, w, h, Placement::Below, popup::Place::FLUSH),
+        lines,
+    )
 }
 
 fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {

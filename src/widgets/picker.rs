@@ -12,7 +12,7 @@ use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::popup::{Placement, place};
+use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::scrollbar;
 
@@ -91,6 +91,10 @@ pub struct Picker {
     pub scroll: ScrollState,
     pub width: u16,
     pub max_rows: u16,
+    /// Where the picker sits and how it keeps off the screen edges.
+    /// Default [`Place::DEFAULT`](crate::ui::popup::Place): centred like a
+    /// dialog, one free cell from every edge.
+    pub fit: crate::ui::popup::Place,
     /// Optional right-aligned scope label in the query row.
     pub scope: Option<String>,
     pub empty_text: String,
@@ -140,6 +144,7 @@ impl Picker {
             scroll: ScrollState::default(),
             width: 64,
             max_rows: 12,
+            fit: crate::ui::popup::Place::DEFAULT,
             scope: None,
             empty_text: "No matches".into(),
             area: Rect::ZERO,
@@ -410,7 +415,7 @@ impl Picker {
         let query_rows = if self.searchable { 2 } else { 0 };
         let h = (2 + 1 + query_rows + rows + 2).min(screen.height.saturating_sub(2));
         let w = self.width.min(screen.width.saturating_sub(4));
-        let area = place(screen, Rect::ZERO, w, h, Placement::Center);
+        let area = place_with(screen, Rect::ZERO, w, h, Placement::Center, self.fit);
         let _ = Constraint::Length(0);
         self.area = area;
         let bg = t.surface_elevated;

@@ -16,7 +16,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::popup::{Dismiss, Placement, backdrop_id, place, surface_for};
+use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for};
 
 #[derive(Debug, Clone)]
 pub struct Select {
@@ -39,6 +39,10 @@ pub struct Select {
     /// Width range of the open list, frame included; inside it the list
     /// takes the field's width.
     pub popup_width: (u16, u16),
+    /// How the open list keeps off the screen edges and where a centred
+    /// list sits. Default [`Place::DEFAULT`](crate::ui::popup::Place):
+    /// one free cell from every edge.
+    pub popup_fit: crate::ui::popup::Place,
     /// First option row shown in the open list.
     pub scroll: usize,
     /// How the open list marks its cursor row. Default
@@ -79,6 +83,7 @@ impl Select {
             max_rows: Self::MAX_ROWS,
             placement: Placement::Below,
             popup_width: Self::POPUP_WIDTH,
+            popup_fit: crate::ui::popup::Place::DEFAULT,
             scroll: 0,
             cursor_style: CursorStyle::default(),
             visible_rows: Self::MAX_ROWS as usize,
@@ -97,6 +102,12 @@ impl Select {
         self.placement = placement;
         self
     }
+    /// See [`Self::popup_fit`].
+    pub fn popup_fit(mut self, fit: crate::ui::popup::Place) -> Self {
+        self.popup_fit = fit;
+        self
+    }
+
     pub fn popup_width(mut self, min: u16, max: u16) -> Self {
         self.popup_width = (min.max(1), max.max(min.max(1)));
         self
@@ -353,7 +364,7 @@ impl Select {
         let rows = (self.options.len() as u16).clamp(1, self.max_rows);
         let (min_w, max_w) = self.popup_width;
         let w = field.width.clamp(min_w, max_w);
-        let pa = place(screen, field, w, rows + 2, self.placement);
+        let pa = place_with(screen, field, w, rows + 2, self.placement, self.popup_fit);
         let visible = pa.height.saturating_sub(2).max(1) as usize;
         self.visible_rows = visible;
         // keep the cursor inside the window
