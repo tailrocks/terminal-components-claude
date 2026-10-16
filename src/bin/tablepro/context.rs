@@ -14,6 +14,7 @@ use ratatui::layout::Position;
 
 use junie_tui::core::event::Key;
 use junie_tui::core::id::WidgetId;
+use junie_tui::ui::columns::HeaderAction;
 use junie_tui::ui::context::{ContextConfig, ContextRequest};
 use junie_tui::widgets::grid::DataGrid;
 use junie_tui::widgets::menu::{ContextMenu, MenuItem};
@@ -41,6 +42,8 @@ pub enum Target {
     History(usize),
     /// A row of the connections list (a group or a connection).
     Connection(usize),
+    /// A column header (or its resize seam) of the active tab's grid.
+    Header(usize),
 }
 
 /// An open context menu: the popover, what it is about, the widget its
@@ -50,6 +53,9 @@ pub struct CtxMenu {
     pub target: Target,
     pub owner: WidgetId,
     pub keys: Vec<Option<Key>>,
+    /// For a [`Target::Header`] menu: the command of each item (header
+    /// commands run on the grid, not as a replayed key).
+    pub header: Vec<HeaderAction>,
 }
 
 fn plain(code: KeyCode) -> Key {
@@ -104,6 +110,23 @@ pub fn on_secondary(
     }
     if let Some(req) = cfg.on_secondary(&mut w.strip, id, pos) {
         return Some(build(w, req.map(Target::Tab)));
+    }
+    if let Some(g) = w.active_grid_any_mut()
+        && let Some(col) = g.locate_header_menu(id)
+    {
+        let owner = g.id;
+        let (header, items): (Vec<HeaderAction>, Vec<MenuItem>) =
+            g.header_menu(col).into_iter().unzip();
+        let keys = vec![None; items.len()];
+        return Some(CtxMenu {
+            menu: ContextMenu::new(MENU, items)
+                .at(pos)
+                .title(g.columns[col].name.clone()),
+            target: Target::Header(col),
+            owner,
+            keys,
+            header,
+        });
     }
     let req = match w.active_tab_mut()? {
         WorkTab::Table(t) => cfg
@@ -172,7 +195,7 @@ pub fn select(w: &mut Workbench, target: Target) {
                 h.list.context_select(row);
             }
         }
-        Target::Connection(_) => {}
+        Target::Connection(_) | Target::Header(_) => {}
     }
 }
 
@@ -349,7 +372,7 @@ fn build(w: &Workbench, req: ContextRequest<Target>) -> CtxMenu {
             _ => (String::new(), w.explorer.id, vec![]),
         },
         Target::History(row) => history_items(w, row),
-        Target::Connection(_) => (String::new(), w.explorer.id, vec![]),
+        Target::Connection(_) | Target::Header(_) => (String::new(), w.explorer.id, vec![]),
     };
     finish(req, title, owner, items)
 }
@@ -366,6 +389,7 @@ fn finish(req: ContextRequest<Target>, title: String, owner: WidgetId, items: It
         target: req.target,
         owner,
         keys,
+        header: Vec::new(),
     }
 }
 
