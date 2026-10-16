@@ -685,7 +685,7 @@ impl Screen for ActivityTab {
                 if id == VIEW {
                     cx.focus.focus(VIEW);
                     // a double click selects the word under it
-                    if cx.clicks >= 2 {
+                    if ev.count() >= 2 {
                         return self.view.select_word_at(pos);
                     }
                 }

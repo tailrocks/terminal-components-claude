@@ -778,7 +778,7 @@ impl Screen for PlanReviewPage {
             }
             Some(Phase::Click) => {
                 // a double click on a step includes or excludes it
-                if cx.clicks >= 2
+                if ev.count() >= 2
                     && let Some(i) = step
                     && let Some(p) = w.plan_mut(&self.plan)
                 {
