@@ -10,6 +10,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
+use junie_tui::ui::leave::{KeyContext, Leave, LeaveGuard, Resolved, Stakes, letters_allowed};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
 use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
@@ -59,6 +60,21 @@ pub struct ConnectionsScreen {
     del_btn: Button,
     retry_btn: Button,
     form: Option<ConnForm>,
+    /// The guard every way out of a dirty form goes through: `e` (edit
+    /// another connection), Ctrl+N (a new one), Esc (close) and quitting
+    /// (keyboard audit #6).
+    pub leave: LeaveGuard<FormLeave>,
+}
+
+/// Where leaving the connection form goes ([`ConnectionsScreen::leave`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FormLeave {
+    /// Close the form.
+    Close,
+    /// Open the form on this connection (the `e` key).
+    Edit(usize),
+    /// Open an empty form (Ctrl+N).
+    New,
 }
 
 struct ConnForm {
@@ -88,6 +104,8 @@ struct ConnForm {
     save_connect_btn: Button,
     /// Scroll of the form's column stacks, per tab: `[tab][column]`.
     stacks: [[StackScroll; 2]; 2],
+    /// Every value as the form opened, to tell whether it was edited.
+    pristine: Vec<String>,
 }
 
 fn port_validator(s: &str) -> Option<String> {
@@ -213,7 +231,32 @@ impl ConnForm {
             save_btn: Button::secondary(f.sub("save"), "Save"),
             save_connect_btn: Button::primary(f.sub("saveconnect"), "Save & connect"),
             stacks: Default::default(),
+            pristine: vec![],
         }
+        .with_pristine()
+    }
+
+    fn with_pristine(mut self) -> Self {
+        self.pristine = self.values();
+        self
+    }
+
+    /// Every value the form edits, as text.
+    fn values(&self) -> Vec<String> {
+        let c = self.to_connection(None);
+        vec![
+            format!("{c:?}"),
+            self.password.text().to_owned(),
+            self.ssh_user.text().to_owned(),
+            self.startup.buffer.text().to_owned(),
+            self.prompt_pw.checked.to_string(),
+            self.local_only.on.to_string(),
+        ]
+    }
+
+    /// Whether any value differs from when the form opened.
+    fn dirty(&self) -> bool {
+        self.values() != self.pristine
     }
 
     fn to_connection(&self, base: Option<&Connection>) -> Connection {
@@ -281,6 +324,7 @@ impl ConnectionsScreen {
             del_btn: Button::danger(ID.sub("del"), "Delete…"),
             retry_btn: Button::secondary(ID.sub("retry"), "Retry"),
             form: None,
+            leave: LeaveGuard::new(ID.sub("leave")),
         };
         s.rebuild_tree();
         s
@@ -363,6 +407,89 @@ impl ConnectionsScreen {
 
     pub fn selected_connection(&self) -> Option<&Connection> {
         self.selected.and_then(|i| self.connections.get(i))
+    }
+
+    /// Whether the open form has edits that leaving would lose.
+    pub fn form_dirty(&self) -> bool {
+        self.form.as_ref().is_some_and(ConnForm::dirty)
+    }
+
+    /// What leaving the form would lose.
+    pub fn form_stakes(&self) -> Stakes {
+        if self.form_dirty() {
+            Stakes::Unsaved { changes: 0 }
+        } else {
+            Stakes::Clean
+        }
+    }
+
+    /// Leave the form for `to`: at once when nothing would be lost,
+    /// otherwise after Save / Discard / Cancel.
+    pub fn leave_form(&mut self, to: FormLeave, cx: &mut crate::app::Cx) -> Outcome {
+        let stakes = self.form_stakes();
+        match self
+            .leave
+            .request(Leave::To(to), &stakes, &junie_tui::theme::Strings::DEFAULT)
+        {
+            Ok(_) => self.go_to(to, cx),
+            Err(d) => cx.open(*d),
+        }
+        Outcome::Changed
+    }
+
+    fn go_to(&mut self, to: FormLeave, cx: &mut crate::app::Cx) {
+        match to {
+            FormLeave::Close => {
+                self.form = None;
+                self.state = ConnState::Idle;
+                cx.focus.focus(self.tree.id);
+            }
+            FormLeave::Edit(i) => {
+                self.open_form(Some(i));
+                if let Some(form) = self.form.as_ref() {
+                    cx.focus.focus(form.name.id);
+                }
+            }
+            FormLeave::New => {
+                self.open_new();
+                if let Some(form) = self.form.as_ref() {
+                    cx.focus.focus(form.name.id);
+                }
+            }
+        }
+    }
+
+    /// The leave guard's dialog closed. `true` when the app should quit
+    /// (a quit waited on it and the form was saved or discarded).
+    pub fn resolve_leave(
+        &mut self,
+        result: junie_tui::widgets::dialog::DialogResult,
+        cx: &mut crate::app::Cx,
+    ) -> bool {
+        let to = match self.leave.resolve(result) {
+            Resolved::Stay => return false,
+            Resolved::Discard(to) => to,
+            Resolved::Save(to) => {
+                self.submit(false, cx);
+                if self.form.is_some() {
+                    // the form did not validate: stay on it
+                    return false;
+                }
+                to
+            }
+        };
+        match to {
+            Leave::Quit => {
+                // discarded (or saved): the form is settled
+                self.form = None;
+                self.state = ConnState::Idle;
+                true
+            }
+            Leave::To(to) => {
+                self.go_to(to, cx);
+                false
+            }
+        }
     }
 
     pub fn is_editing(&self) -> bool {
@@ -468,17 +595,20 @@ impl ConnectionsScreen {
     pub fn on_key(&mut self, key: &Key, cx: &mut crate::app::Cx) -> (Outcome, Option<ConnEvent>) {
         // E edits the current selection from any non-editing focus; this keeps
         // the form reachable where the action row is responsively hidden.
+        // ... never over a focused text field (the letter is typing), and
+        // never wiping edits without asking (keyboard audit #6)
+        let text_focus = self.form_text_focus(cx.focus.current());
         if key.is_char('e')
             && !self.is_editing()
+            && letters_allowed(KeyContext {
+                text_focus,
+                ..KeyContext::default()
+            })
             && let Some(i) = self
                 .selected
                 .or_else(|| self.connections.iter().position(|c| c.name == "Production"))
         {
-            self.open_form(Some(i));
-            if let Some(form) = self.form.as_mut() {
-                cx.focus.focus(form.name.id);
-            }
-            return (Outcome::Changed, None);
+            return (self.leave_form(FormLeave::Edit(i), cx), None);
         }
         let Some(f) = cx.focus.current() else {
             return (Outcome::Ignored, None);
@@ -539,7 +669,13 @@ impl ConnectionsScreen {
             return (o, None);
         }
         if let Some(_form) = self.form.as_mut() {
-            return (self.on_form_key(key, f, cx), None);
+            let o = self.on_form_key(key, f, cx);
+            // Esc the controls did not take cancels the form, asking first
+            // when it was edited
+            if o == Outcome::Ignored && key.is(KeyCode::Esc) {
+                return (self.leave_form(FormLeave::Close, cx), None);
+            }
+            return (o, None);
         }
         let mut hit: Option<(Outcome, bool, usize)> = None;
         for (b, action) in [
@@ -624,6 +760,25 @@ impl ConnectionsScreen {
             return true;
         }
         false
+    }
+
+    /// Whether `focus` is one of the form's text fields.
+    fn form_text_focus(&self, focus: Option<WidgetId>) -> bool {
+        let (Some(form), Some(f)) = (self.form.as_ref(), focus) else {
+            return false;
+        };
+        [
+            form.name.id,
+            form.host.id,
+            form.port.id,
+            form.database.id,
+            form.user.id,
+            form.password.id,
+            form.ssh_host.id,
+            form.ssh_user.id,
+            form.startup.id,
+        ]
+        .contains(&f)
     }
 
     fn on_form_key(&mut self, key: &Key, f: WidgetId, cx: &mut crate::app::Cx) -> Outcome {

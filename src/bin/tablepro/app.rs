@@ -386,6 +386,16 @@ impl App {
     }
 
     fn request_quit(&mut self) -> Outcome {
+        // an edited connection form asks Save / Discard / Cancel first
+        let stakes = self.connections.form_stakes();
+        if let Err(d) = self
+            .connections
+            .leave
+            .request_quit(&stakes, &junie_tui::theme::Strings::DEFAULT)
+        {
+            self.open_dialog(*d);
+            return Outcome::Changed;
+        }
         let pending = self
             .workbench
             .as_ref()
@@ -637,10 +647,18 @@ impl App {
             Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
         };
         if key.ctrl_char('n') && self.screen == Screen::Connections && !editing {
-            self.connections.open_new();
-            self.focus
-                .focus(WidgetId::of("connections").sub("form").sub("name"));
-            return Outcome::Changed;
+            // a new form never replaces edits without asking
+            let mut cx = Cx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                requests: Vec::new(),
+                clicks: 1,
+            };
+            let o = self
+                .connections
+                .leave_form(crate::connections::FormLeave::New, &mut cx);
+            let reqs = std::mem::take(&mut cx.requests);
+            return o.or(self.apply_requests(reqs));
         }
         if self.screen == Screen::Workbench
             && !editing
@@ -721,7 +739,19 @@ impl App {
                 self.open_help();
                 Outcome::Changed
             }
-            KeyCode::Char('q') if key.plain() && !editing => self.request_quit(),
+            // `q` never fires over a field or a dirty form (keyboard audit #6)
+            KeyCode::Char('q')
+                if key.plain()
+                    && junie_tui::ui::leave::letters_allowed(
+                        junie_tui::ui::leave::KeyContext {
+                            text_focus: editing,
+                            dirty: self.connections.form_dirty(),
+                            selection: false,
+                        },
+                    ) =>
+            {
+                self.request_quit()
+            }
             KeyCode::Esc => self.esc_ladder(),
             KeyCode::Char('0') if key.plain() && self.screen == Screen::Workbench => {
                 if let Some(w) = self.workbench.as_mut() {
@@ -2000,6 +2030,22 @@ impl App {
         result: DialogResult,
         _value: Option<String>,
     ) -> Outcome {
+        if self.connections.leave.owns(id) {
+            let mut cx = Cx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                requests: Vec::new(),
+                clicks: 1,
+            };
+            let quit = self.connections.resolve_leave(result, &mut cx);
+            let reqs = std::mem::take(&mut cx.requests);
+            self.apply_requests(reqs);
+            if quit {
+                // the form is settled; anything else still asks
+                return self.request_quit().or(Outcome::Changed);
+            }
+            return Outcome::Changed;
+        }
         if self.connections.on_dialog_closed(id, result) {
             return Outcome::Changed;
         }
