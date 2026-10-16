@@ -168,11 +168,14 @@ so no tablepro capture gates these changes and none was re-approved.
 
 ### showcase
 
+All three are done; the regression tests are in
+`src/bin/showcase/app_tests_colour.rs`.
+
 | Element | Where | Change |
 |---|---|---|
-| Task runner states | `src/bin/showcase/pages/taskrunner.rs:464, 468, 474, 494` | `Theme::status`: `✓` success, queued muted, running label info, cancelled Skipped |
-| Progress page meters and failed bar | `src/bin/showcase/pages/progress.rs:52, 108-109, 142-151` | red fill only on the failed bar; meters take the library levels |
-| Editor sample `true` / `false` | `src/bin/showcase/pages/editor.rs:57, 119, 130-131` | classify as `SyntaxTone::Literal`, not keywords |
+| Task runner states | `src/bin/showcase/pages/taskrunner.rs:464, 468, 474, 494` | **Done.** Every row leads with its `Theme::status_at` glyph: queued `○` muted, running the accent spinner with the task name in info (`status_label`), done `✓` success, failed `✗` error bold, cancelled `–` (Skipped). The state word takes `tone_on(kind.tone())`, so "cancelled" (faint, 3.7:1 on the card) steps up to muted. Test `taskrunner_states_take_the_status_roles`. |
+| Progress page meters and failed bar | `src/bin/showcase/pages/progress.rs:52, 108-109, 142-151` | **Done.** The block visual (whose fill is the level hue as a background) is shown once, on a low meter, so red appears only as a run or a glyph (the failed bar, high, exhausted), never as a filled block. Meters take the library levels; the right column shows the options: owner thresholds (`MeterTone::Level { warn: 80, crit: 95 }` at 72% and 88%), `MeterTone::Fixed`, a stale domain warning (`Meter::stale`) and `StaleStyle::Faint`. The caption now says low is blue. Test `progress_page_shows_meter_levels_and_staleness_without_red_fills`. |
+| Editor sample `true` / `false` | `src/bin/showcase/pages/editor.rs:57, 119, 130-131` | **Done.** Booleans are `SyntaxTone::Literal`; the sample gains `.gzip(true)` so a literal is on screen. Test `editor_booleans_are_literals`. |
 
 ### holla
 
