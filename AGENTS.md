@@ -46,15 +46,26 @@ components work; they are not where behaviour lives.
   (`src/ui`, `src/core`, `src/widgets`), never screen by screen. A fix must
   reach every screen and every app that uses the component. If a page needs
   a workaround, the component is wrong.
-- Every functional behaviour is configurable. When a component gains or
-  changes behaviour, expose it as configuration (a field plus a builder
-  method, or a policy type) with a sensible default. Never hardcode a
-  behaviour another user of the component could reasonably want different.
+- Defaults must be good and follow established standards: platform HIGs
+  (Apple macOS first, then Windows or GNOME where macOS has no
+  convention), WAI-ARIA Authoring Practices for widget keyboard and mouse
+  patterns, and WCAG 2.2 AA (contrast, focus visibility, no keyboard trap,
+  character-key shortcuts, content on hover or focus). Where terminal
+  constraints differ from GUI conventions (keys or modifiers not delivered,
+  mouse modes, Esc latency), choose the closest standard behaviour and
+  document why.
+- Every behaviour remains overridable. Nothing an app or user could
+  reasonably want different is hardcoded, and a behaviour that is a
+  standard still keeps an override. Overrides are layered: app-wide policy
+  or profile (e.g. Desktop, Vim), then per-widget setting (a field plus a
+  builder method, or a policy type), then user key remapping (key maps).
   Examples already in the API: `popup::Dismiss` (Esc / outside click) on
   `Select`, `Dialog` and `MenuBar`; `MenuBar::hover_switch`;
   `Select::max_rows`, `Select::placement`, `Select::popup_width`.
-- Defaults follow desktop conventions (macOS first); configuration lets an
-  app opt out.
+- When a requested behaviour contradicts a standard, implement the standard
+  as the default, offer the request as an option, and record the decision
+  in docs/audits.
+- Hints never advertise keys the terminal cannot deliver.
 - Prefer one shared mechanism over copies. Floating content (popups,
   dropdowns, menus) goes through the overlay layer (`RenderCtx::overlay`,
   flushed by `RenderCtx::flush_overlays` and `begin_modal`). It must never
