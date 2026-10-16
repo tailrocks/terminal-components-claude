@@ -469,7 +469,7 @@ fn selection_marks_stay_apart_from_the_single_focus_bar() {
 }
 
 #[test]
-fn changing_the_selection_with_unsaved_edits_asks_to_discard_them() {
+fn changing_the_selection_commits_valid_edits() {
     let mut h = Harness::new(120, 40);
     h.click_text("June Park", KeyModifiers::NONE);
     h.key(KeyCode::Enter); // into the editor's name field
@@ -480,24 +480,62 @@ fn changing_the_selection_with_unsaved_edits_asks_to_discard_them() {
     }
     h.key(KeyCode::Enter);
     assert!(h.has("Unsaved changes"), "{}", h.text());
-    // another row: the question comes first and the selection stays
+    // another row: the edit is applied (as blur commits) and the new
+    // selection loads, no question asked
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
-    assert!(h.has("Discard unsaved changes?"), "{}", h.text());
-    assert!(h.has("Keep editing"));
-    // Keep editing (the default button): the edit and the selection stay
-    h.key(KeyCode::Enter);
-    assert!(!h.has("Discard unsaved changes?"));
-    assert!(h.has("June Park Lee"), "{}", h.text());
-    assert!(h.has("Unsaved changes"));
-    assert!(h.has("1 selected"), "{}", h.text());
-    assert!(!h.table_row("Cleo Barnes").contains("[✓]"), "{}", h.text());
-    // again, and Discard: the new selection loads
-    h.click_text("Cleo Barnes", KeyModifiers::NONE);
-    h.key(KeyCode::Tab);
-    h.key(KeyCode::Enter);
-    assert!(!h.has("Discard unsaved changes?"), "{}", h.text());
+    assert!(!h.has("Save changes?"), "{}", h.text());
+    assert!(
+        h.table_row("June Park Lee").contains("June Park Lee"),
+        "{}",
+        h.text()
+    );
     assert!(h.table_row("Cleo Barnes").contains("[✓]"), "{}", h.text());
     assert!(h.has("cleo@northwind.dev"));
-    assert!(!h.has("June Park Lee"));
     assert!(!h.has("Unsaved changes"));
+}
+
+#[test]
+fn changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel() {
+    let mut h = Harness::new(120, 40);
+    h.click_text("June Park", KeyModifiers::NONE);
+    h.key(KeyCode::Enter); // into the editor's name field
+    h.key(KeyCode::Enter); // edit it
+    h.key(KeyCode::End);
+    for _ in "June Park".chars() {
+        h.key(KeyCode::Backspace);
+    }
+    h.key(KeyCode::Enter);
+    assert!(h.has("Unsaved changes"), "{}", h.text());
+    // an empty name cannot be saved: the question comes first
+    h.click_text("Cleo Barnes", KeyModifiers::NONE);
+    assert!(h.has("Save changes?"), "{}", h.text());
+    assert!(h.has("Don't Save") && h.has("Cancel"), "{}", h.text());
+    // Cancel (Esc): the edit and the selection stay
+    h.key(KeyCode::Esc);
+    assert!(!h.has("Save changes?"));
+    assert!(h.has("Unsaved changes"));
+    assert!(!h.table_row("Cleo Barnes").contains("[✓]"), "{}", h.text());
+    // Save: the field still fails, the editor keeps the selection
+    h.click_text("Cleo Barnes", KeyModifiers::NONE);
+    h.key(KeyCode::Enter);
+    assert!(!h.table_row("Cleo Barnes").contains("[✓]"), "{}", h.text());
+    assert!(h.has("Unsaved changes"));
+    // Don't Save: the new selection loads, the edit is dropped
+    h.click_text("Cleo Barnes", KeyModifiers::NONE);
+    h.key(KeyCode::BackTab);
+    h.key(KeyCode::Enter);
+    assert!(h.table_row("Cleo Barnes").contains("[✓]"), "{}", h.text());
+    assert!(h.has("cleo@northwind.dev"));
+    assert!(!h.has("Unsaved changes"));
+}
+
+#[test]
+fn a_clicked_row_anchors_a_shift_arrow_range() {
+    // terminals often keep Shift+click for their own text selection: the
+    // range also grows from the clicked row with Shift+↑↓
+    let mut h = Harness::new(120, 40);
+    h.click_text("Ari Moreno", KeyModifiers::NONE);
+    h.key_mod(KeyCode::Down, KeyModifiers::SHIFT);
+    h.key_mod(KeyCode::Down, KeyModifiers::SHIFT);
+    assert!(h.has("3 selected"), "{}", h.text());
 }
