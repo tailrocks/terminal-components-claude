@@ -7,7 +7,9 @@ use ratatui::layout::Rect;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::Focus;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{DismissReason, Dismissed, LayerCx, LayerTag, ShellLayers, Taken};
 use junie_tui::ui::layers::LayerResult;
@@ -416,19 +418,20 @@ impl Page for PickersPage {
             };
             let out = match ev {
                 PageEvent::Key(key) => top.layer.on_key(key, &mut lcx).or(Outcome::Changed),
-                // a click outside the picker is a dismissal under its policy
-                PageEvent::Click { id, pos } if top.layer.owns(*id) => {
-                    top.layer.on_click(*id, *pos, &mut lcx)
-                }
-                PageEvent::Click { .. } => {
+                // a click on the picker's own light-dismiss backdrop is an
+                // outside click: a dismissal under its policy (a refused
+                // one flashes the frame)
+                PageEvent::Pointer(p) if p.is(Phase::Click) && p.part().part == Part::BACKDROP => {
+                    let dismiss = top.layer.spec().dismiss;
                     return match self.layers.dismiss(DismissReason::OutsideClick, cx.focus) {
-                        Dismissed::Refused => Outcome::Consumed,
+                        Dismissed::Refused => {
+                            cx.refuse_outside_click(dismiss);
+                            Outcome::Consumed
+                        }
                         _ => Outcome::Changed,
                     };
                 }
-                PageEvent::Wheel { id, delta } if top.layer.owns(*id) => top
-                    .layer
-                    .on_wheel(*delta, ratatui::layout::Position::default()),
+                PageEvent::Pointer(p) => top.layer.pointer(p, &mut lcx),
                 _ => return Outcome::Ignored,
             };
             self.drain(cx);
@@ -448,14 +451,17 @@ impl Page for PickersPage {
                 }
                 o
             }
-            PageEvent::Click { id, .. } => {
-                let Some(i) = self.buttons.iter().position(|b| b.id == *id) else {
+            PageEvent::Pointer(p) => {
+                let hit = (self.buttons.iter_mut().enumerate())
+                    .find_map(|(i, b)| b.route(p).map(|r| (i, r)));
+                let Some((i, r)) = hit else {
                     return Outcome::Ignored;
                 };
-                if self.buttons[i].on_click() {
+                if r.action().is_some() {
                     self.open(Kind::ALL[i], cx.focus);
+                    return Outcome::Changed;
                 }
-                Outcome::Changed
+                r.outcome()
             }
             _ => Outcome::Ignored,
         }
