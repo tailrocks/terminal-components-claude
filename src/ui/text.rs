@@ -265,9 +265,30 @@ pub fn crumb_fit(label: &str, max: usize) -> String {
     truncate_middle(label, max)
 }
 
-/// An elapsed time measured in milliseconds, at the precision a query
-/// timer shows: `<1 ms`, `12 ms`, `1.25 s`, `2m 3s`.
-pub fn duration_ms(ms: u64) -> String {
+/// How [`duration`] spells an elapsed time.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DurationStyle {
+    /// A timer's precision in tight units, for a measured run (a query
+    /// timer): `<1 ms`, `12 ms`, `1.25 s`, `2m 3s`.
+    Compact,
+    /// Spaced units, the two most significant only, whole seconds, for
+    /// prose and status text: `38 s`, `3 min 2 s`, `2 h 14 min`, `1 d 2 h`.
+    #[default]
+    Spoken,
+}
+
+/// An elapsed time as text, in `style`. The one duration formatter, so
+/// every app spells durations the same way for the same style.
+pub fn duration(elapsed: std::time::Duration, style: DurationStyle) -> String {
+    match style {
+        DurationStyle::Compact => {
+            duration_compact(elapsed.as_millis().min(u128::from(u64::MAX)) as u64)
+        }
+        DurationStyle::Spoken => duration_spoken(elapsed.as_secs()),
+    }
+}
+
+fn duration_compact(ms: u64) -> String {
     match ms {
         0 => "<1 ms".into(),
         ms if ms < 1000 => format!("{ms} ms"),
@@ -276,9 +297,7 @@ pub fn duration_ms(ms: u64) -> String {
     }
 }
 
-/// A human duration with spaced units, the two most significant only:
-/// `38 s`, `3 min 2 s`, `2 h 14 min`, `1 d 2 h`.
-pub fn duration_secs(secs: u64) -> String {
+fn duration_spoken(secs: u64) -> String {
     let d = secs / 86_400;
     let h = (secs % 86_400) / 3600;
     let m = (secs % 3600) / 60;
@@ -830,17 +849,25 @@ mod format_tests {
 
     #[test]
     fn durations_and_sizes() {
-        assert_eq!(duration_ms(0), "<1 ms");
-        assert_eq!(duration_ms(12), "12 ms");
-        assert_eq!(duration_ms(1_250), "1.25 s");
-        assert_eq!(duration_ms(123_000), "2m 3s");
-        assert_eq!(duration_secs(0), "0 s");
-        assert_eq!(duration_secs(38), "38 s");
-        assert_eq!(duration_secs(450), "7 min 30 s");
-        assert_eq!(duration_secs(8_040), "2 h 14 min");
-        assert_eq!(duration_secs(7_200), "2 h");
-        assert_eq!(duration_secs(97_200), "1 d 3 h");
-        assert_eq!(duration_secs(259_200), "3 d");
+        use std::time::Duration;
+        let compact = |ms| duration(Duration::from_millis(ms), DurationStyle::Compact);
+        assert_eq!(compact(0), "<1 ms");
+        assert_eq!(compact(12), "12 ms");
+        assert_eq!(compact(1_250), "1.25 s");
+        assert_eq!(compact(123_000), "2m 3s");
+        let spoken = |s| duration(Duration::from_secs(s), DurationStyle::Spoken);
+        assert_eq!(spoken(0), "0 s");
+        assert_eq!(spoken(38), "38 s");
+        assert_eq!(spoken(450), "7 min 30 s");
+        assert_eq!(spoken(8_040), "2 h 14 min");
+        assert_eq!(spoken(7_200), "2 h");
+        assert_eq!(spoken(97_200), "1 d 3 h");
+        assert_eq!(spoken(259_200), "3 d");
+        // the same elapsed time in both styles; Spoken drops the fraction
+        let d = Duration::from_millis(123_400);
+        assert_eq!(duration(d, DurationStyle::Compact), "2m 3s");
+        assert_eq!(duration(d, DurationStyle::Spoken), "2 min 3 s");
+        assert_eq!(DurationStyle::default(), DurationStyle::Spoken);
         assert_eq!(bytes(512), "512 B");
         assert_eq!(bytes(1536), "1.5 KiB");
         assert_eq!(bytes(3 * 1024 * 1024 * 1024), "3.0 GiB");
