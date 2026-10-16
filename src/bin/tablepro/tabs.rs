@@ -2379,9 +2379,16 @@ impl HistoryTab {
             scope_all: false,
             failed_only: false,
             filtered: vec![],
-            open_btn: Button::primary(id.sub("open"), "Open in new tab"),
-            rerun_btn: Button::secondary(id.sub("rerun"), "Run in new tab"),
-            copy_btn: Button::subtle(id.sub("copy"), "Copy"),
+            // the tooltips name the list keys that do the same
+            open_btn: Button::primary(id.sub("open"), "Open in new tab")
+                .tooltip("Open the selected query in a new tab")
+                .shortcut("Enter"),
+            rerun_btn: Button::secondary(id.sub("rerun"), "Run in new tab")
+                .tooltip("Run the selected query again in a new tab")
+                .shortcut("r"),
+            copy_btn: Button::subtle(id.sub("copy"), "Copy")
+                .tooltip("Copy the selected query")
+                .shortcut("y"),
             split: Split::new(50, 30, 30),
             seam: Splitter::new(id.sub("seam"), SplitDir::Horizontal),
             split_area: Rect::ZERO,

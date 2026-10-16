@@ -560,8 +560,11 @@ impl InputPump {
                 break;
             }
             // the wheel over a pointer-only reveal tooltip scrolls it; no
-            // widget owns that tooltip, so the app never sees the notch
+            // widget owns that tooltip, so the app never sees the notch.
+            // Esc over a shown tooltip dismisses it (WCAG 1.4.13) and goes
+            // no further.
             let changed = crate::ui::reveal::on_pointer_wheel(&input)
+                .or_else(|| crate::ui::tooltip::on_input(&input))
                 .unwrap_or_else(|| app.handle(input.clone()))
                 == Outcome::Changed;
             if app.should_quit() {
@@ -969,6 +972,90 @@ mod tests {
         draw(&mut app);
         send(&mut app, wheel(3, 1));
         assert_eq!(app.wheels, 3);
+    }
+
+    /// WCAG 1.4.13: Esc over a shown tooltip hides it and goes no further
+    /// (a dialog under it stays open); with no tooltip the app gets Esc.
+    #[test]
+    fn esc_dismisses_a_shown_tooltip_before_the_app_sees_it() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::core::id::WidgetId;
+        use crate::theme::Theme;
+        use crate::ui::ctx::{Interaction, RenderCtx};
+        use crate::ui::tooltip::{self, Tip};
+        use ratatui::backend::TestBackend;
+        use ratatui::layout::Rect;
+
+        const OWNER: WidgetId = WidgetId::of("tip owner");
+        #[derive(Default)]
+        struct TipApp {
+            escs: usize,
+            hovering: bool,
+        }
+        impl Application for TipApp {
+            fn handle(&mut self, input: Input) -> Outcome {
+                if matches!(input, Input::Key(k) if k.code == KeyCode::Esc) {
+                    self.escs += 1;
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            fn render(&mut self, frame: &mut Frame) {
+                let theme = Theme::junie();
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let hover = Interaction {
+                    hover: self.hovering.then_some(OWNER),
+                    hover_ms: Some(1_000),
+                    ..Default::default()
+                };
+                let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
+                tooltip::show(
+                    &mut ctx,
+                    OWNER,
+                    Rect::new(1, 1, 6, 1),
+                    &Tip::new("What it does"),
+                    None,
+                );
+                ctx.flush_overlays(frame.buffer_mut());
+            }
+            fn should_quit(&self) -> bool {
+                false
+            }
+            fn tick_interval(&self) -> Duration {
+                Duration::from_secs(1)
+            }
+        }
+        let mut app = TipApp {
+            hovering: true,
+            ..Default::default()
+        };
+        let mut terminal = ratatui::Terminal::new(TestBackend::new(30, 6)).unwrap();
+        let mut draw = |app: &mut TipApp| {
+            let buf = terminal.draw(|f| app.render(f)).unwrap().buffer.clone();
+            (0..6)
+                .map(|y| (0..30).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let esc = || {
+            Input::Key(crate::core::event::Key {
+                code: KeyCode::Esc,
+                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+            })
+        };
+        let mut pump = InputPump::new(Coalesce::default());
+        let mut send = |app: &mut TipApp, input: Input| {
+            let mut queue = std::collections::VecDeque::from([input]);
+            pump.drain(app, || Ok(queue.pop_front())).unwrap()
+        };
+        assert!(draw(&mut app).contains("What it does"));
+        assert!(send(&mut app, esc()), "a frame is due");
+        assert_eq!(app.escs, 0, "the tooltip took Esc");
+        assert!(!draw(&mut app).contains("What it does"), "dismissed");
+        assert!(send(&mut app, esc()));
+        assert_eq!(app.escs, 1, "nothing shown: the app gets Esc");
     }
 
     #[test]
