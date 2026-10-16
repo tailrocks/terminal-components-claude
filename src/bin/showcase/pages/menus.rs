@@ -137,8 +137,8 @@ impl Opts {
             .wrap(self.on("menus.wrap"))
             .type_ahead(self.on("menus.type_ahead"))
             .nav(match self.get("menus.nav") {
-                1 => NavKeys::NO_VIM,
-                _ => NavKeys::DEFAULT,
+                1 => NavKeys::VIM,
+                _ => NavKeys::DESKTOP,
             })
             .dismiss(match self.get("menus.dismiss") {
                 1 => Dismiss::ESCAPE,
