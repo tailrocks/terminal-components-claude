@@ -103,8 +103,8 @@ pub struct PageCtx<'a> {
     /// extends a selection, Ctrl/Cmd toggles); empty for keys and ticks.
     pub mods: ratatui::crossterm::event::KeyModifiers,
     /// Multi-click count of the click being delivered (1 single, 2 double,
-    /// 3 triple; [`junie_tui::core::pointer::PointerState::count_click`]);
-    /// 0 for every other event.
+    /// 3 triple; [`junie_tui::core::pointer::PointerState::count_click`]), or
+    /// of the click a press starts (`press_count`); 0 for every other event.
     pub clicks: u8,
 }
 
