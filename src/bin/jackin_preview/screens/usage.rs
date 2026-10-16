@@ -5,7 +5,7 @@
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
-use junie_tui::theme::Tone;
+use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, width};
@@ -14,6 +14,7 @@ use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::viewport::{Span, render_spans};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -25,6 +26,85 @@ use crate::domain::agent::UsageSurface;
 use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus};
 use crate::sim::provider;
 use crate::sim::world::{Msg, World};
+
+/// One line of the Usage overview.
+enum OvLine {
+    Text(Vec<Span>),
+    /// A provider: its name, enabled account count, the worst window
+    /// (label, used percent, meter tone) and the status cell.
+    Provider {
+        name: String,
+        accounts: usize,
+        window: Option<(String, u8, MeterTone)>,
+        status: (Option<StatusKind>, String),
+    },
+}
+
+/// A provider row of the overview table, in the header's columns
+/// (`{:<12} {:<9} {:<26} {}`): the name primary, the count secondary,
+/// the worst window as its label and a meter, and the status with its
+/// [`Theme::status`](junie_tui::theme::Theme::status) glyph.
+#[allow(clippy::too_many_arguments)]
+fn draw_provider_row(
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    body: Rect,
+    y: u16,
+    name: &str,
+    accounts: usize,
+    window: &Option<(String, u8, MeterTone)>,
+    status: &(Option<StatusKind>, String),
+    bg: ratatui::style::Color,
+) {
+    let t = ctx.theme;
+    let right = body.right();
+    let put = |buf: &mut Buffer, x: u16, w: u16, text: &str, st: Style| {
+        if x < right {
+            let w = w.min(right - x);
+            buf.set_string(
+                x,
+                y,
+                fit(&truncate(text, w as usize), w as usize),
+                st.bg(bg),
+            );
+        }
+    };
+    put(buf, body.x, 12, name, t.primary());
+    put(buf, body.x + 13, 9, &accounts.to_string(), t.secondary());
+    let wx = body.x + 23;
+    match window {
+        Some((label, pct, tone)) => {
+            put(buf, wx, 10, label, t.secondary());
+            if wx + 11 + 15 <= right {
+                Meter::new(Some(*pct))
+                    .value(format!("{pct:>3}%"))
+                    .tone(*tone)
+                    .visual(MeterVisual::Block)
+                    .render(Rect::new(wx + 11, y, 15, 1), buf, ctx, bg);
+            }
+        }
+        None => put(buf, wx, 26, "—", t.muted()),
+    }
+    let sx = body.x + 50;
+    if sx >= right {
+        return;
+    }
+    let (kind, word) = status;
+    match kind {
+        Some(kind) => {
+            let (glyph, gs) = t.status(*kind);
+            put(buf, sx, 2, glyph, gs);
+            put(
+                buf,
+                sx + 2,
+                right.saturating_sub(sx + 2),
+                word,
+                t.status_label(*kind),
+            );
+        }
+        None => put(buf, sx, right - sx, word, t.muted()),
+    }
+}
 
 pub const LIST: WidgetId = WidgetId::of("usage.list");
 pub const DETAIL: WidgetId = WidgetId::of("usage.detail");
@@ -252,15 +332,7 @@ impl UsageScreen {
         }
         for win in &a.usage.windows {
             if win.has_meter() {
-                let tone = match a.usage.freshness.phase {
-                    Freshness::Refreshing => MeterTone::Refreshing,
-                    Freshness::Stale | Freshness::Failed => MeterTone::Stale,
-                    Freshness::Current => match win.status {
-                        QuotaStatus::Exhausted => MeterTone::Exhausted,
-                        QuotaStatus::Warning => MeterTone::Warning,
-                        _ => MeterTone::Normal,
-                    },
-                };
+                let tone = super::accounts::meter_tone(win, a);
                 let mut text = format!("  {}", win.label);
                 let rest = super::accounts::meter_detail(win, w);
                 text.push('\u{1}');
@@ -307,19 +379,14 @@ impl UsageScreen {
         v
     }
 
-    fn overview_lines(w: &World) -> Vec<(String, Tone)> {
+    fn overview_lines(w: &World) -> Vec<OvLine> {
         let s = OverallSummary::compute(&w.accounts.accounts);
+        let text = |s: String, tone: Tone| OvLine::Text(vec![Span::new(s, tone)]);
+        let mut health = vec![Span::new("Health       ", Tone::Normal)];
+        health.extend(super::health_spans(&s));
         let mut v = vec![
-            (
-                format!("Health       {} · {}", s.health.label(), s.issues_line()),
-                match s.health {
-                    crate::domain::usage::HealthWord::Degraded
-                    | crate::domain::usage::HealthWord::Blocked => Tone::Error,
-                    crate::domain::usage::HealthWord::Attention => Tone::Warning,
-                    _ => Tone::Normal,
-                },
-            ),
-            (
+            OvLine::Text(health),
+            text(
                 format!(
                     "Freshness    {} of {} current · broker projection {}",
                     s.counts.enabled - s.counts.stale - s.counts.failed - s.counts.refreshing,
@@ -328,9 +395,9 @@ impl UsageScreen {
                 ),
                 Tone::Normal,
             ),
-            (format!("Registry     {}", s.counts_line()), Tone::Normal),
-            (String::new(), Tone::Normal),
-            (
+            text(format!("Registry     {}", s.counts_line()), Tone::Normal),
+            text(String::new(), Tone::Normal),
+            text(
                 format!(
                     "{:<12} {:<9} {:<26} {}",
                     "Provider", "Accounts", "Worst window", "Status"
@@ -346,7 +413,7 @@ impl UsageScreen {
                 .filter(|a| a.surface == surface && a.enabled)
                 .collect();
             if surface == UsageSurface::Unsupported {
-                v.push((
+                v.push(text(
                     format!(
                         "{:<12} {:<9} {:<26} {}",
                         "—", "—", "—", "unsupported sentinel"
@@ -356,7 +423,7 @@ impl UsageScreen {
                 continue;
             }
             if accounts.is_empty() {
-                v.push((
+                v.push(text(
                     format!(
                         "{:<12} {:<9} {:<26} {}",
                         surface.label(),
@@ -364,7 +431,7 @@ impl UsageScreen {
                         "—",
                         "not discovered"
                     ),
-                    Tone::Faint,
+                    Tone::Muted,
                 ));
                 continue;
             }
@@ -373,50 +440,48 @@ impl UsageScreen {
                 .flat_map(|a| a.usage.windows.iter().map(move |w| (a, w)))
                 .filter(|(_, w)| w.used_pct.is_some())
                 .max_by_key(|(_, w)| w.used_pct.unwrap_or(0));
-            let (win_text, status, tone) = match worst {
+            // one row, a tone per cell: the name primary, the worst window
+            // as a meter, and only the status cell in a status colour
+            let (window, status) = match worst {
                 Some((a, win)) => {
                     let st = match (win.status, a.usage.freshness.phase) {
-                        (QuotaStatus::Exhausted, _) => ("! exhausted".to_owned(), Tone::Error),
+                        (QuotaStatus::Exhausted, _) => {
+                            (Some(StatusKind::Fail), "exhausted".to_owned())
+                        }
                         (_, Freshness::Failed) => (
-                            format!(
-                                "! {}",
-                                a.issue
-                                    .as_ref()
-                                    .map(|i| i
-                                        .message
+                            Some(StatusKind::Fail),
+                            a.issue
+                                .as_ref()
+                                .map(|i| {
+                                    i.message
                                         .split(':')
                                         .next()
                                         .unwrap_or("error")
-                                        .to_lowercase())
-                                    .unwrap_or("error".into())
-                            ),
-                            Tone::Error,
+                                        .to_lowercase()
+                                })
+                                .unwrap_or("error".into()),
                         ),
-                        (QuotaStatus::Warning, _) => ("▲ warning".to_owned(), Tone::Warning),
-                        (_, Freshness::Stale) => ("▲ stale".to_owned(), Tone::Warning),
-                        _ => ("current".to_owned(), Tone::Normal),
+                        (QuotaStatus::Warning, _) => (Some(StatusKind::Warn), "warning".to_owned()),
+                        (_, Freshness::Stale) => (Some(StatusKind::Warn), "stale".to_owned()),
+                        _ => (Some(StatusKind::Ok), "current".to_owned()),
                     };
                     (
-                        format!("{} {}%", win.label, win.used_pct.unwrap_or(0)),
-                        st.0,
-                        st.1,
+                        Some((
+                            win.label.clone(),
+                            win.used_pct.unwrap_or(0),
+                            super::accounts::meter_tone(win, a),
+                        )),
+                        st,
                     )
                 }
-                None => {
-                    let a = accounts[0];
-                    ("—".to_owned(), a.status_word().to_owned(), Tone::Muted)
-                }
+                None => (None, (None, accounts[0].status_word().to_owned())),
             };
-            v.push((
-                format!(
-                    "{:<12} {:<9} {:<26} {}",
-                    surface.label(),
-                    accounts.len(),
-                    truncate(&win_text, 26),
-                    status
-                ),
-                tone,
-            ));
+            v.push(OvLine::Provider {
+                name: surface.label().to_owned(),
+                accounts: accounts.len(),
+                window,
+                status,
+            });
         }
         let unresolved: Vec<&Account> = w
             .accounts
@@ -425,9 +490,9 @@ impl UsageScreen {
             .filter(|a| a.enabled && a.identity.subject.is_none())
             .collect();
         if !unresolved.is_empty() {
-            v.push((String::new(), Tone::Normal));
+            v.push(text(String::new(), Tone::Normal));
             for a in unresolved {
-                v.push((
+                v.push(text(
                     format!(
                         "Unresolved   {} · {} ({}) — not an authenticated account",
                         a.surface.label(),
@@ -438,12 +503,12 @@ impl UsageScreen {
                 ));
             }
         }
-        v.push((String::new(), Tone::Normal));
-        v.push(("Rollups sum identical windows and units only; a provider with mixed windows shows its worst window.".into(), Tone::Faint));
+        v.push(text(String::new(), Tone::Normal));
+        v.push(text("Rollups sum identical windows and units only; a provider with mixed windows shows its worst window.".into(), Tone::Faint));
         if !s.comparable.is_empty() {
-            v.push((String::new(), Tone::Normal));
+            v.push(text(String::new(), Tone::Normal));
             for c in &s.comparable {
-                v.push((
+                v.push(text(
                     format!(
                         "Comparable   {} · {} · {} · {}–{}% remaining",
                         c.surface.label(),
@@ -476,7 +541,7 @@ impl UsageScreen {
             let rid = LIST.child(i);
             match &self.rows[i] {
                 Row::Heading(s) => {
-                    buf.set_string(area.x + 2, y, s.label(), t.faint().bg(bg));
+                    buf.set_string(area.x + 2, y, s.label(), t.muted().bg(bg));
                 }
                 Row::Overview | Row::Account(_) => {
                     let mut st8 = ctx.state(rid);
@@ -537,7 +602,7 @@ impl UsageScreen {
                                 r.x + 5,
                                 y,
                                 fit(&truncate(&label, lw), lw),
-                                if a.enabled { st } else { st.fg(t.text_faint) },
+                                if a.enabled { st } else { st.fg(t.text_muted) },
                             );
                             let mut rx = r.right().saturating_sub(1);
                             if !meta.is_empty() {
@@ -627,13 +692,20 @@ impl UsageScreen {
                 self.detail_scroll.set_content(lines.len());
                 self.detail_scroll.set_viewport(body.height as usize);
                 for (k, i) in self.detail_scroll.visible_range().enumerate() {
-                    let (text, tone) = &lines[i];
-                    buf.set_string(
-                        body.x,
-                        body.y + k as u16,
-                        truncate(text, body.width as usize),
-                        Style::new().fg(t.tone(*tone)).bg(bg),
-                    );
+                    let y = body.y + k as u16;
+                    match &lines[i] {
+                        OvLine::Text(spans) => {
+                            render_spans(buf, body.x, y, body.width, t, spans, bg);
+                        }
+                        OvLine::Provider {
+                            name,
+                            accounts,
+                            window,
+                            status,
+                        } => draw_provider_row(
+                            buf, ctx, body, y, name, *accounts, window, status, bg,
+                        ),
+                    }
                 }
             }
             Some(a) => {
