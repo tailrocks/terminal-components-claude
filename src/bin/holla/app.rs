@@ -1601,6 +1601,7 @@ impl App {
             out = Outcome::Changed;
             match r {
                 Request::Status(s, tone) => self.set_status(&s, tone),
+                Request::StatusAs(s, kind) => self.set_status(&s, kind.tone()),
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(g) => self.go(g),
                 Request::Back => self.go(Go::Pop),

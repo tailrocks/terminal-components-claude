@@ -9,7 +9,7 @@ use ratatui::layout::{Position, Rect};
 
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
+use junie_tui::core::focus::FocusChange;
 
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -62,11 +62,9 @@ const PREVIEW_DIALOG: WidgetId = WidgetId::of("dialog.preview");
 const VIEWER_DIALOG: WidgetId = WidgetId::of("dialog.viewer");
 const QUIT_DIALOG: WidgetId = WidgetId::of("dialog.quit");
 
-/// Things screens ask the app to do.
-pub enum Request {
-    OpenDialog(Box<Dialog>),
-    /// A footer status: neutral (`None`) or of a [`StatusKind`].
-    Status(String, Option<StatusKind>),
+/// What a tablepro page asks of the app beyond the library requests
+/// (its navigation and actions: [`junie_tui::shell::Request::Go`]).
+pub enum Act {
     EditFilter(Option<usize>),
     FilterOnCell(usize, CellValue),
     ConfirmDiscard,
@@ -78,33 +76,24 @@ pub enum Request {
     ConfirmCloseTab(usize),
 }
 
-pub struct Cx<'a> {
-    pub focus: &'a mut Focus,
-    pub ring: &'a FocusRing,
-    pub requests: Vec<Request>,
-    /// Multi-click count of the click being delivered
-    /// ([`PointerState::count_click`]); 1 for every other event.
-    pub clicks: u8,
+/// What a tablepro page asks of the shell (the library request).
+pub type Request = junie_tui::shell::Request<ModalResult, (), Act>;
+
+/// The event context a tablepro page handles input in (the library one).
+pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, (), Act>;
+
+/// Opening one of tablepro's dialogs from a page.
+pub trait OpenDialog {
+    /// Open `d` on top, placed on the whole screen a row clear of the
+    /// status strip and the footer on top of its own margin (where
+    /// `body_bounds(screen, 1, 1)` placed it).
+    fn open_dialog(&mut self, d: Dialog);
 }
 
-impl Cx<'_> {
-    pub fn focus_next(&mut self) {
-        self.focus.next(self.ring);
-    }
-    pub fn focus_prev(&mut self) {
-        self.focus.prev(self.ring);
-    }
-    /// A neutral footer status ("Copied 12 chars").
-    pub fn status(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Status(s.into(), None));
-    }
-    /// A footer status of `kind`: its glyph and tone from
-    /// [`Theme::status`] ("✓ Connection saved").
-    pub fn status_as(&mut self, kind: StatusKind, s: impl Into<String>) {
-        self.requests.push(Request::Status(s.into(), Some(kind)));
-    }
-    pub fn open(&mut self, d: Dialog) {
-        self.requests.push(Request::OpenDialog(Box::new(d)));
+impl OpenDialog for Cx<'_> {
+    fn open_dialog(&mut self, mut d: Dialog) {
+        d.outer_margin.vertical += 1;
+        self.open(d, LayerTag::new("dialog"));
     }
 }
 
@@ -373,16 +362,11 @@ impl App {
     /// Ctrl+N on the connection list: a new form, asking first when it
     /// would replace an edited one.
     fn new_connection(&mut self) -> Outcome {
-        let mut cx = Cx {
-            focus: &mut self.shell.focus,
-            ring: &self.shell.ring,
-            requests: Vec::new(),
-            clicks: 1,
-        };
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let o = self
             .connections
             .leave_form(crate::connections::FormLeave::New, &mut cx);
-        let reqs = std::mem::take(&mut cx.requests);
+        let reqs = cx.take();
         o.or(self.apply_requests(reqs))
     }
 
@@ -543,106 +527,122 @@ impl App {
         for r in requests {
             out = Outcome::Changed;
             match r {
-                Request::OpenDialog(d) => self.open_dialog(*d),
-                Request::Status(s, None) => self.set_status(s),
-                Request::Status(s, Some(kind)) => self.set_status_as(kind, s),
-                Request::EditFilter(i) => self.open_filter_editor(i, None),
-                Request::FilterOnCell(col, v) => {
-                    let val = match &v {
-                        CellValue::Null => (FilterOp::IsNull, String::new()),
-                        other => (FilterOp::Eq, other.text()),
-                    };
-                    self.open_filter_editor(None, Some((col, val.0, val.1)));
+                Request::Status(s, tone) => {
+                    let now = self.clock.now();
+                    self.shell.status.set_with_at(s, tone, None, now);
                 }
-                Request::ConfirmDiscard => {
-                    let n = self
-                        .workbench
-                        .as_ref()
-                        .map(|w| w.pending_total())
-                        .unwrap_or(0);
-                    let d = Dialog::destructive(
-                        DISCARD_DIALOG,
-                        "Discard unsaved changes?",
-                        &format!(
-                            "{n} pending change{} will be dropped. The rows are reloaded from the server.",
-                            if n == 1 { "" } else { "s" }
-                        ),
-                        "Discard",
-                    );
-                    self.open_dialog(d);
-                }
-                Request::CommitPending => self.begin_commit(),
-                Request::PreviewSql => self.open_preview(),
-                Request::OpenQuery(sql, run) => {
-                    if let Some(w) = self.workbench.as_mut() {
-                        let i = w.new_query(&sql);
-                        if let Some(pf) = w.primary_focus() {
-                            self.shell.focus.focus(pf);
-                        }
-                        if run {
-                            let _ = i;
-                            let o = self.run_active(false, None);
-                            out = out.or(o);
-                        }
-                    }
-                }
-                Request::OpenTableFiltered(table, col, value) => {
-                    if let Some(w) = self.workbench.as_mut() {
-                        let schema = w
-                            .catalog
-                            .find(None, &table)
-                            .map(|t| t.schema.clone())
-                            .unwrap_or("public".into());
-                        if let Some(i) = w.open_table(&schema, &table, false) {
-                            if let Some(WorkTab::Table(t)) = w.tabs.get_mut(i) {
-                                t.filters = vec![Filter {
-                                    column: col,
-                                    op: FilterOp::Eq,
-                                    value,
-                                    value2: String::new(),
-                                    enabled: true,
-                                }];
-                                let cat = w.catalog.clone();
-                                t.load(&cat);
-                            }
-                            if let Some(pf) = w.primary_focus() {
-                                self.shell.focus.focus(pf);
-                            }
-                        }
-                    }
-                }
-                Request::OpenViewer(name, v) => {
-                    let text = match &v {
-                        CellValue::Json(j) => pretty_json(j),
-                        other => other.text(),
-                    };
-                    let lines: Vec<String> = text.lines().map(str::to_owned).collect();
-                    let mut d = Dialog::facts(
-                        VIEWER_DIALOG,
-                        &name,
-                        vec![],
-                        lines,
-                        None,
-                        Button::secondary(VIEWER_DIALOG.sub("close"), "Close"),
-                    );
-                    d.actions.remove(0);
-                    d.cancel_index = Some(0);
-                    d.initial_focus = d.actions[0].id;
-                    d.width = 80;
-                    self.open_dialog(d);
-                }
-                Request::ConfirmCloseTab(i) => {
-                    let d = Dialog::destructive(
-                        CLOSE_DIALOG.child(i),
-                        "Close tab with unsaved work?",
-                        "Pending row edits and unsaved query text in this tab will be lost.",
-                        "Close anyway",
-                    );
-                    self.open_dialog(d);
-                }
+                Request::StatusAs(s, kind) => self.set_status_as(kind, s),
+                Request::Open(layer, tag) => self.open_layer(layer, tag),
+                Request::Go(a) => self.act(a),
+                // tablepro pages do not ask for these
+                Request::Close
+                | Request::Top(_)
+                | Request::Back
+                | Request::Copy(_)
+                | Request::Help
+                | Request::RefusedOutsideClick(_) => {}
             }
         }
         out
+    }
+
+    /// An action a page asked for ([`Act`]).
+    fn act(&mut self, a: Act) {
+        match a {
+            Act::EditFilter(i) => self.open_filter_editor(i, None),
+            Act::FilterOnCell(col, v) => {
+                let val = match &v {
+                    CellValue::Null => (FilterOp::IsNull, String::new()),
+                    other => (FilterOp::Eq, other.text()),
+                };
+                self.open_filter_editor(None, Some((col, val.0, val.1)));
+            }
+            Act::ConfirmDiscard => {
+                let n = self
+                    .workbench
+                    .as_ref()
+                    .map(|w| w.pending_total())
+                    .unwrap_or(0);
+                let d = Dialog::destructive(
+                    DISCARD_DIALOG,
+                    "Discard unsaved changes?",
+                    &format!(
+                        "{n} pending change{} will be dropped. The rows are reloaded from the server.",
+                        if n == 1 { "" } else { "s" }
+                    ),
+                    "Discard",
+                );
+                self.open_dialog(d);
+            }
+            Act::CommitPending => self.begin_commit(),
+            Act::PreviewSql => self.open_preview(),
+            Act::OpenQuery(sql, run) => {
+                if let Some(w) = self.workbench.as_mut() {
+                    let i = w.new_query(&sql);
+                    if let Some(pf) = w.primary_focus() {
+                        self.shell.focus.focus(pf);
+                    }
+                    if run {
+                        let _ = i;
+                        let _ = self.run_active(false, None);
+                    }
+                }
+            }
+            Act::OpenTableFiltered(table, col, value) => {
+                if let Some(w) = self.workbench.as_mut() {
+                    let schema = w
+                        .catalog
+                        .find(None, &table)
+                        .map(|t| t.schema.clone())
+                        .unwrap_or("public".into());
+                    if let Some(i) = w.open_table(&schema, &table, false) {
+                        if let Some(WorkTab::Table(t)) = w.tabs.get_mut(i) {
+                            t.filters = vec![Filter {
+                                column: col,
+                                op: FilterOp::Eq,
+                                value,
+                                value2: String::new(),
+                                enabled: true,
+                            }];
+                            let cat = w.catalog.clone();
+                            t.load(&cat);
+                        }
+                        if let Some(pf) = w.primary_focus() {
+                            self.shell.focus.focus(pf);
+                        }
+                    }
+                }
+            }
+            Act::OpenViewer(name, v) => {
+                let text = match &v {
+                    CellValue::Json(j) => pretty_json(j),
+                    other => other.text(),
+                };
+                let lines: Vec<String> = text.lines().map(str::to_owned).collect();
+                let mut d = Dialog::facts(
+                    VIEWER_DIALOG,
+                    &name,
+                    vec![],
+                    lines,
+                    None,
+                    Button::secondary(VIEWER_DIALOG.sub("close"), "Close"),
+                );
+                d.actions.remove(0);
+                d.cancel_index = Some(0);
+                d.initial_focus = d.actions[0].id;
+                d.width = 80;
+                self.open_dialog(d);
+            }
+            Act::ConfirmCloseTab(i) => {
+                let d = Dialog::destructive(
+                    CLOSE_DIALOG.child(i),
+                    "Close tab with unsaved work?",
+                    "Pending row edits and unsaved query text in this tab will be lost.",
+                    "Close anyway",
+                );
+                self.open_dialog(d);
+            }
+        }
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
@@ -691,14 +691,9 @@ impl App {
         // screen-level handling
         let out = match self.screen {
             Screen::Connections => {
-                let mut cx = Cx {
-                    focus: &mut self.shell.focus,
-                    ring: &self.shell.ring,
-                    requests: Vec::new(),
-                    clicks: 1,
-                };
+                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
                 let (o, _) = self.connections.on_key(&key, &mut cx);
-                let reqs = std::mem::take(&mut cx.requests);
+                let reqs = cx.take();
                 let o2 = self.apply_requests(reqs);
                 o.or(o2)
             }
@@ -706,14 +701,9 @@ impl App {
                 let Some(mut w) = self.workbench.take() else {
                     return Outcome::Ignored;
                 };
-                let mut cx = Cx {
-                    focus: &mut self.shell.focus,
-                    ring: &self.shell.ring,
-                    requests: Vec::new(),
-                    clicks: 1,
-                };
+                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
                 let o = w.on_key(&key, &mut cx, &mut self.history);
-                let reqs = std::mem::take(&mut cx.requests);
+                let reqs = cx.take();
                 self.workbench = Some(w);
                 let o2 = self.apply_requests(reqs);
                 o.or(o2)
@@ -814,7 +804,7 @@ impl App {
                 if let Some(w) = self.workbench.as_mut() {
                     let i = w.active;
                     if w.tabs.get(i).is_some_and(|t| t.dirty()) {
-                        self.apply_requests(vec![Request::ConfirmCloseTab(i)]);
+                        self.apply_requests(vec![Request::Go(Act::ConfirmCloseTab(i))]);
                     } else {
                         w.close_tab(i);
                         let pf = w.primary_focus().unwrap_or(crate::workbench::EXPLORER);
@@ -1405,19 +1395,22 @@ impl App {
 
     // ---- overlays ------------------------------------------------------
 
-    fn open_dialog(&mut self, mut d: Dialog) {
-        // the dialog is placed on the whole screen, kept a row clear of the
-        // status strip and of the footer on top of its own margin: where
-        // `body_bounds(screen, 1, 1)` placed it
-        d.outer_margin.vertical += 1;
-        self.layers.open(
-            Box::new(d),
-            LayerTag::new("dialog"),
-            (),
-            &mut self.shell.focus,
-        );
+    /// Open a layer a page asked for: it takes the pointer, so nothing
+    /// under it stays hovered or pressed.
+    fn open_layer(
+        &mut self,
+        layer: Box<dyn junie_tui::ui::layer::Layer<ModalResult>>,
+        tag: LayerTag,
+    ) {
+        self.layers.open(layer, tag, (), &mut self.shell.focus);
         self.shell.pointer.hover = None;
         self.shell.pointer.pressed = None;
+    }
+
+    /// Open one of the app's own dialogs (placed like a page's).
+    fn open_dialog(&mut self, mut d: Dialog) {
+        d.outer_margin.vertical += 1;
+        self.open_layer(Box::new(d), LayerTag::new("dialog"));
     }
 
     fn open_help(&mut self) {
@@ -1987,14 +1980,9 @@ impl App {
 
     fn dialog_closed(&mut self, id: WidgetId, result: DialogResult) -> Outcome {
         if self.connections.leave.is_dialog(id) {
-            let mut cx = Cx {
-                focus: &mut self.shell.focus,
-                ring: &self.shell.ring,
-                requests: Vec::new(),
-                clicks: 1,
-            };
+            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
             let quit = self.connections.resolve_leave(result, &mut cx);
-            let reqs = std::mem::take(&mut cx.requests);
+            let reqs = cx.take();
             self.apply_requests(reqs);
             if quit {
                 // the form is settled; anything else still asks
@@ -2081,13 +2069,7 @@ impl App {
         {
             return o;
         }
-        let clicks = ev.count();
-        let mut cx = Cx {
-            focus: &mut self.shell.focus,
-            ring: &self.shell.ring,
-            requests: Vec::new(),
-            clicks,
-        };
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let o = match self.screen {
             Screen::Connections => self.connections.pointer(ev, &mut cx).0,
             Screen::Workbench => match self.workbench.as_mut() {
@@ -2095,7 +2077,7 @@ impl App {
                 None => Outcome::Ignored,
             },
         };
-        let reqs = std::mem::take(&mut cx.requests);
+        let reqs = cx.take();
         let o2 = self.apply_requests(reqs);
         o.or(o2)
     }
@@ -2223,17 +2205,12 @@ impl App {
         // a header command runs on the grid itself
         if let (context::Target::Header(col), Some(action)) = (target, header) {
             self.shell.focus.focus(owner);
-            let mut cx = Cx {
-                focus: &mut self.shell.focus,
-                ring: &self.shell.ring,
-                requests: Vec::new(),
-                clicks: 1,
-            };
+            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
             let o = match self.workbench.as_mut() {
                 Some(w) => w.on_header_action(col, action, &mut cx, &mut self.history),
                 None => Outcome::Ignored,
             };
-            let reqs = std::mem::take(&mut cx.requests);
+            let reqs = cx.take();
             return self.apply_requests(reqs).or(o).or(Outcome::Changed);
         }
         if let context::Target::App = target {
