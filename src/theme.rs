@@ -445,6 +445,9 @@ pub struct Theme {
     /// at 16 colours and in monochrome, where the tint would collide with
     /// a hover or pressed plane; the selection marker glyph carries it.
     pub tint_selection: bool,
+    /// Footer hint bar layout: alignment, the status's share of the row,
+    /// compact mode and which keys are never dropped.
+    pub hintbar: HintBarStyle,
 }
 
 impl Theme {
@@ -501,6 +504,7 @@ impl Theme {
             },
             mods: StateModifiers::COLOR,
             tint_selection: true,
+            hintbar: HintBarStyle::DEFAULT,
         }
     }
 
@@ -1411,6 +1415,55 @@ pub enum ButtonKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BadgeKind {
     Edit,
+}
+
+/// Where the footer hints sit in their row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HintAlign {
+    /// Lead from the left edge (after the mode badge), like a desktop
+    /// status bar.
+    #[default]
+    Start,
+    /// Centre the hints that fit in the row.
+    Center,
+}
+
+/// How a footer hint bar lays out one row. Set once on the theme so every
+/// screen of an app agrees; a single layer may still override the
+/// alignment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HintBarStyle {
+    /// Default [`HintAlign::Start`].
+    pub align: HintAlign,
+    /// A status long enough to crowd out the pinned hints (Esc, help) is
+    /// cut to leave them room, but keeps at least this share of the row,
+    /// in percent. A status that leaves the pinned hints room is never
+    /// cut for them. Default 50.
+    pub status_min_share: u8,
+    /// When the full hints do not fit, show the normal ones as keys only
+    /// (pinned hints keep their action) before dropping any. Off by
+    /// default: a bare key without its verb rarely tells the user what it
+    /// does, so dropping from the right reads better. Default false.
+    pub compact: bool,
+    /// Keys whose hints are pinned by default: never dropped while
+    /// anything else can go, so the way out and the way to help stay
+    /// visible. Default `Esc`, `?`, `F1`.
+    pub pinned_keys: &'static [&'static str],
+}
+
+impl HintBarStyle {
+    pub const DEFAULT: Self = Self {
+        align: HintAlign::Start,
+        status_min_share: 50,
+        compact: false,
+        pinned_keys: &["Esc", "?", "F1"],
+    };
+}
+
+impl Default for HintBarStyle {
+    fn default() -> Self {
+        Self::DEFAULT
+    }
 }
 
 /// Approximate sRGB of a colour as a terminal renders it (xterm defaults
