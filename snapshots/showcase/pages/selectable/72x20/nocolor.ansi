@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Selectable tab i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Editable tabl… [0m│  [0m[1mSelectable table[0m  Select rows, edit one or many t… [0m
+   Panels         │                                                     [0m
+   Sidebars       │    Members                             1–3 of 12   ┃[0m
+   Dialogs        │                                                    ┃[0m
+   Progress       │       [ ] Name              Role    Status    …    ┃[0m
+   Scrolling      │       [0m[2m[ ][0m Dana Whitfield    Owner   Active     ┃   ┃[0m
+   Terminal       ┃       [ ] Ari Moreno        Admin   Active     │   ┃[0m
+   Code editor    ┃       [ ] Cleo Barnes       Editor  Active     │   ┃[0m
+   Diff           ┃           ━━━━━━━━━━━━━━━──────────────────────    ┃[0m
+   Data grid      ┃                                                    │[0m
+   Chips & selec… ┃                                                    │[0m
+   Pickers        ┃                                                    │[0m
+   Chrome         ┃                                                    │[0m
+   Settings       ┃                                                    │[0m
+   Task runner    ┃                                                    │[0m
+[0m[1m▎› Selectable ta… [0m┃                                                    │[0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                             [0m
+[?25l

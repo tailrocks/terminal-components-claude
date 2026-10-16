@@ -1,0 +1,41 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Selectable table                           no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations         │  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation          [0m
+   Overview            │                                                                                                [0m
+                       │    [0m[1mMembers[0m                                                            3 selected · 1–11 of 12  [0m
+   Components          │                                                                                                [0m
+   Buttons             │       [–] Name                   Role    Status     Region  On call  Email                 …   [0m
+   Inputs              │       [0m[2m[ ][0m Dana Whitfield         Owner   Active     EU      Yes      dana@northwind.dev     ┃  [0m
+   Text areas          │       [✓] Ari Moreno             Admin   Active     US      Yes      ari@northwind.dev      ┃  [0m
+   Forms               │       [✓] Cleo Barnes            Editor  Active     EU      —        cleo@northwind.dev     ┃  [0m
+   Lists               │    [0m[1m▎  [✓] Bo Lindqvist           Editor  Invited    EU      —        bo@northwind.dev       [0m┃  [0m
+   Trees               │       [ ] Eli Nakamura           Viewer  Active     APAC    —        eli@contractor.io      ┃  [0m
+   Tables              │       [ ] Fay Okafor             Editor  Active     US      Yes      fay@northwind.dev      ┃  [0m
+   Editable tables     │       [ ] Gus Petrov             Viewer  Suspended  EU      —        gus@northwind.dev      ┃  [0m
+   Panels              │       [ ] Hana Sato              Editor  Active     APAC    —        hana@northwind.dev     ┃  [0m
+   Sidebars            │       [ ] Ivo Brandt             Admin   Active     EU      Yes      ivo@northwind.dev      ┃  [0m
+   Dialogs             │       [ ] June Park              Viewer  Invited    US      —        june@northwind.dev     ┃  [0m
+   Progress            │    [0m[2m   [ ] Kai Mensah             Editor  Active     APAC    —        kai@northwind.dev      [0m│  [0m
+   Scrolling           │           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────   [0m
+   Terminal            │                                                                                                [0m
+   Code editor         │                                                                                                [0m
+   Diff                │    Edit 3 members                                                                              [0m
+   Data grid           │                                                                                                [0m
+   Chips & selects     │      Applies to all 3 · names and emails stay                                                  [0m
+   Pickers             │      Role                                          Status                                      [0m
+   Chrome              │      — mixed —                               ▾     — mixed —                               ▾   [0m
+                       │                                                                                                [0m
+   Screens             │      Region                                                                                    [0m
+   Settings            │      — mixed —                               ▾    [–] On call                                  [0m
+   Task runner         │                                                                                                [0m
+ › Selectable table    │      Notes                                                                                     [0m
+                       │      — mixed —                                                                                 [0m
+                       │                                                                                                [0m
+                       │                                                                                                [0m
+                       │                                                                                                [0m
+                       │                                                                                                [0m
+                       │     [0m[2mApply [0m   [0m[2mRevert [0m   Delete…                                                                 [0m
+                       │                                                                                                [0m
+                                                                                                                        [0m
+ [0m[1mSpace[0m Select  [0m[1mShift+↑↓[0m Extend  [0m[1mCtrl+A[0m Select all  [0m[1mEnter[0m Edit  [0m[1md[0m Delete…  [0m[1mEsc[0m Clear selection  [0m[1mTab[0m Next                 [0m
+[?25l
