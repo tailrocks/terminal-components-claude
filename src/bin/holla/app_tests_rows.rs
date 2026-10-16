@@ -690,6 +690,29 @@ fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
     );
 }
 
+#[test]
+fn a_click_on_dead_space_ends_an_argument_edit_in_place() {
+    let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
+    h.ticks(10);
+    open(&mut h, "Analyze a custom path");
+    let field = crate::screens::review::ARG.child(0);
+    let area = h.app.hits.area_of(field).expect("the path field");
+    h.click(area.x + 3, area.y);
+    h.type_str("X");
+    assert!(h.text().contains("EDIT"));
+    let dead = (2..40)
+        .flat_map(|y| (0..120).map(move |x| ratatui::layout::Position::new(x, y)))
+        .find(|p| h.app.hits.hit(*p).is_none())
+        .expect("some cell holds no control");
+    h.click(dead.x, dead.y);
+    assert!(h.app.focus.is(field), "focus stays on the field");
+    assert!(!h.text().contains("EDIT"), "the edit ended: {}", h.text());
+    assert!(
+        h.text().contains("/XUsers/alex/work/big"),
+        "and kept the value"
+    );
+}
+
 // ------------------------------------------------------------ scroll edges
 
 fn fg_grey(h: &H, x: u16, y: u16) -> u8 {

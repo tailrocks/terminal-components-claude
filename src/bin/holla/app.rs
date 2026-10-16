@@ -308,6 +308,39 @@ impl App {
     // ------------------------------------------------------------- input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        let out = self.handle_input(input);
+        out.or(self.forward_blur())
+    }
+
+    /// Hand every focus change the input caused to the modals and to the
+    /// top screen of every tab, so fields end their edits on the event path.
+    fn forward_blur(&mut self) -> Outcome {
+        let mut out = Outcome::Ignored;
+        for ch in self.focus.take_changes() {
+            for entry in self.modals.iter_mut() {
+                if let Modal::Dialog(d) = &mut entry.modal {
+                    out = out.or(d.on_blur(ch));
+                }
+            }
+            for ti in 0..self.tabs.len() {
+                let mut cx = Cx {
+                    focus: &mut self.focus,
+                    ring: &self.ring,
+                    requests: vec![],
+                };
+                if let Some(s) = self.tabs[ti].stack.last_mut() {
+                    out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
+                }
+                let reqs = std::mem::take(&mut cx.requests);
+                if ti == self.active {
+                    out = out.or(self.apply_requests(reqs, ti));
+                }
+            }
+        }
+        out
+    }
+
+    fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
             Input::Resize(w, h) => {
                 self.size = (w, h);
@@ -1554,6 +1587,7 @@ impl App {
             MouseKind::Down => {
                 let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
                     return if self.modals.is_empty() {
+                        self.pointer.dead_space(&mut self.focus);
                         Outcome::Ignored
                     } else {
                         Outcome::Consumed
