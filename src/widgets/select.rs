@@ -68,6 +68,11 @@ pub struct Select {
     /// [`SelectArrows::Step`] (the long-standing behaviour; `Open` is the macOS
     /// popup-button convention).
     pub arrows: SelectArrows,
+    /// Typing a prefix picks the matching option (closed) or moves the
+    /// list cursor (open), as macOS popup buttons do. Off by default:
+    /// plain letters stay with the page's own shortcuts.
+    pub type_ahead: bool,
+    typeahead: crate::core::typeahead::TypeAhead,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,6 +108,8 @@ impl Select {
             visible_rows: Self::MAX_ROWS as usize,
             reveal: None,
             arrows: SelectArrows::Step,
+            type_ahead: false,
+            typeahead: Default::default(),
         }
     }
     pub fn dismiss(mut self, d: Dismiss) -> Self {
@@ -175,6 +182,35 @@ impl Select {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
+        if let KeyCode::Char(c) = key.code
+            && self.type_ahead
+            && key.plain()
+            && !c.is_whitespace()
+            && !(self.open && matches!(c, 'j' | 'k'))
+        {
+            let prefix = self.typeahead.feed(c).to_owned();
+            let from = if self.open {
+                self.cursor
+            } else {
+                self.selected
+            };
+            let Some(i) = crate::core::typeahead::TypeAhead::find(
+                &prefix,
+                self.options.iter().map(String::as_str),
+                from,
+                |_| true,
+            ) else {
+                return (Outcome::Ignored, None);
+            };
+            if self.open {
+                self.cursor = i;
+                return (Outcome::Changed, None);
+            }
+            let changed = i != self.selected;
+            self.selected = i;
+            self.cursor = i;
+            return (Outcome::Changed, changed.then_some(SelectEvent::Changed(i)));
+        }
         if self.open {
             return match key.code {
                 KeyCode::Up | KeyCode::Char('k') => {
@@ -244,6 +280,11 @@ impl Select {
             }
             _ => (Outcome::Ignored, None),
         }
+    }
+
+    pub fn type_ahead(mut self, on: bool) -> Self {
+        self.type_ahead = on;
+        self
     }
 
     /// What arrows do while the list is closed.
@@ -482,6 +523,25 @@ mod tests {
     use super::*;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
+
+    #[test]
+    fn typing_picks_the_matching_option() {
+        let k = |c| Key {
+            code: KeyCode::Char(c),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut s =
+            Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta", "Gamma"], 0).type_ahead(true);
+        assert_eq!(s.on_key(&k('g')).1, Some(SelectEvent::Changed(2)));
+        assert_eq!(
+            s.on_key(&k('q')).0,
+            Outcome::Ignored,
+            "no match: the page keeps it"
+        );
+        let mut off = Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta"], 0);
+        assert_eq!(off.on_key(&k('b')).1, None);
+        assert_eq!(off.selected, 0);
+    }
 
     #[test]
     fn closed_arrows_step_or_open_per_config() {

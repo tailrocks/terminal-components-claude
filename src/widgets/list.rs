@@ -82,6 +82,10 @@ pub struct ListBox {
     pub skip_disabled: bool,
     /// What a single click on a row does. Default [`ClickAction::Activate`].
     pub click: ClickAction,
+    /// Typing a prefix jumps to the matching row (macOS lists). Off by
+    /// default: plain letters keep their vim and action bindings.
+    pub type_ahead: bool,
+    typeahead: crate::core::typeahead::TypeAhead,
 }
 
 impl ListBox {
@@ -103,7 +107,14 @@ impl ListBox {
             scrollbar_gap: scrollbar::GAP,
             skip_disabled: true,
             click: ClickAction::Activate,
+            type_ahead: false,
+            typeahead: Default::default(),
         }
+    }
+
+    pub fn type_ahead(mut self, on: bool) -> Self {
+        self.type_ahead = on;
+        self
     }
 
     pub fn skip_disabled(mut self, on: bool) -> Self {
@@ -249,6 +260,23 @@ impl ListBox {
         let shift = key.shift();
         if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
             // an unassigned modified chord never performs a plain action
+            return Outcome::Ignored;
+        }
+        if let KeyCode::Char(c) = key.code
+            && self.type_ahead
+            && !c.is_whitespace()
+        {
+            let prefix = self.typeahead.feed(c).to_owned();
+            let found = crate::core::typeahead::TypeAhead::find(
+                &prefix,
+                self.items.iter().map(|it| it.label.as_str()),
+                self.cursor,
+                |i| !self.items[i].disabled,
+            );
+            if let Some(i) = found {
+                self.move_cursor(i, false);
+                return Outcome::Changed;
+            }
             return Outcome::Ignored;
         }
         match key.code {
@@ -750,6 +778,20 @@ mod scroll_tests {
             code,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         });
+    }
+
+    #[test]
+    fn typing_a_prefix_jumps_to_the_row_when_type_ahead_is_on() {
+        let mut l = disabled_list().type_ahead(true);
+        l.cursor = 1;
+        press(&mut l, KeyCode::Char('d'));
+        assert_eq!(l.cursor, 3);
+        press(&mut l, KeyCode::Char('x'));
+        assert_eq!(l.cursor, 3, "no match leaves the cursor");
+        let mut vim = disabled_list();
+        vim.cursor = 1;
+        press(&mut vim, KeyCode::Char('j'));
+        assert_eq!(vim.cursor, 3, "off by default: j still moves down");
     }
 
     #[test]
