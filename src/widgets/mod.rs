@@ -9,6 +9,7 @@ pub mod chips;
 pub mod choice;
 pub mod choice_dialog;
 pub mod code;
+mod code_specimen;
 pub mod completion;
 pub mod dialog;
 pub mod diff;

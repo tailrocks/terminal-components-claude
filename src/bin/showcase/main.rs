@@ -10,6 +10,8 @@ mod app_tests_celleditors;
 #[cfg(test)]
 mod app_tests_chrome;
 #[cfg(test)]
+mod app_tests_code;
+#[cfg(test)]
 mod app_tests_colour;
 #[cfg(test)]
 mod app_tests_context;

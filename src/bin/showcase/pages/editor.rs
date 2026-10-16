@@ -1,5 +1,7 @@
-//! Code editor: block-aware editing, syntax tones, diagnostics, a running
-//! block, and the completion popup.
+//! Code editor (plan §7 SC24): block-aware editing, syntax tones,
+//! diagnostics, a running block, find, and the completion popup, with
+//! every `CodeEditor` and `Completion` knob as an option and the editor's
+//! States grid. Options: `crate::options::CODE_EDITOR`.
 
 use std::ops::Range;
 
@@ -8,15 +10,24 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::inputs::{custom_text_keymap, field_keys};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use junie_tui::core::edit::EditEntry;
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
-use junie_tui::theme::{SyntaxTone, Tone};
+use junie_tui::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys};
+use junie_tui::core::scroll::{HScroll, Scrollable, TrackClick};
+use junie_tui::theme::{CursorStyle, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::popup::{Dismiss, Place, Placement};
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::fuzzy;
-use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorAction, Severity};
-use junie_tui::widgets::completion::{Completion, CompletionAction, CompletionItem};
+use junie_tui::widgets::button::Button;
+use junie_tui::widgets::code::{CodeCmd, CodeEditor, Diagnostic, EditorAction, Severity};
+use junie_tui::widgets::completion::{Completion, CompletionAction, CompletionItem, TEXT_INSET};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
@@ -188,25 +199,138 @@ fn blocks(src: &str) -> Vec<Range<usize>> {
 }
 
 pub struct EditorPage {
+    template: Template,
+    opts: PageValues,
     editor: CodeEditor,
     completion: Completion,
+    find: Button,
+    run_button: Button,
     run_ticks: u8,
     runs: u32,
     last_ms: Option<u32>,
 }
 
+/// An app's own reading-mode keys: Ctrl+F finds, F3 steps through the
+/// matches, `[` and `]` jump between blocks; Enter still edits.
+fn custom_keymap() -> KeyMap<CodeCmd> {
+    vec![
+        (KeyBinding::key(KeyCode::Enter), CodeCmd::Edit),
+        (KeyBinding::char('A'), CodeCmd::Append),
+        (KeyBinding::char('['), CodeCmd::PrevBlock),
+        (KeyBinding::char(']'), CodeCmd::NextBlock),
+        (KeyBinding::ctrl('f'), CodeCmd::Find),
+        (KeyBinding::key(KeyCode::F(3)), CodeCmd::NextMatch),
+        (KeyBinding::char('N'), CodeCmd::PrevMatch),
+    ]
+}
+
 impl EditorPage {
     pub fn new() -> Self {
-        Self {
-            editor: CodeEditor::new(ID.sub("code"), SAMPLE)
-                .highlighter(highlight)
-                .segmenter(blocks)
-                .placeholder("Type code. i edits, Ctrl+R runs the block under the cursor."),
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::Editor)),
+            editor: CodeEditor::new(ID.sub("code"), SAMPLE),
             completion: Completion::new(ID.sub("complete")),
+            find: Button::secondary(ID.sub("find"), "Find").shortcut("/"),
+            run_button: Button::secondary(ID.sub("run"), "Run block").shortcut("Ctrl+R"),
             run_ticks: 0,
             runs: 0,
             last_ms: None,
+        };
+        page.rebuild();
+        page
+    }
+
+    /// The editor and the completion popup from the option values, through
+    /// their builders; the text and the cursor survive.
+    fn rebuild(&mut self) {
+        let o = &self.opts;
+        let text = if o.value("codeeditor.document") == "empty" {
+            String::new()
+        } else if self.editor.text().is_empty() {
+            SAMPLE.to_owned()
+        } else {
+            self.editor.text().to_owned()
+        };
+        let cursor = self.editor.cursor_offset().min(text.len());
+        let keys = field_keys(o, "codeeditor.field_keys");
+        let mut e = CodeEditor::new(ID.sub("code"), &text)
+            .placeholder("Type code. i edits, Ctrl+R runs the block under the cursor.")
+            .read_only(o.on("codeeditor.read_only"))
+            .tab_leaves(o.on("codeeditor.tab_leaves"))
+            .esc_reverts(o.on("codeeditor.esc_reverts"))
+            .nav(match o.value("codeeditor.nav") {
+                "vim" => NavKeys::VIM,
+                "no-page" => NavKeys::default().page(false),
+                _ => NavKeys::default(),
+            })
+            .keymap(match o.value("codeeditor.keymap") {
+                "custom" => custom_keymap(),
+                _ => CodeCmd::default_keymap(),
+            })
+            .scrollbar_gap(o.number("codeeditor.scrollbar_gap").unwrap_or(1))
+            .track_click(match o.value("codeeditor.track_click") {
+                "jump" => TrackClick::Jump,
+                _ => TrackClick::Page,
+            });
+        if o.on("codeeditor.highlighter") {
+            e = e.highlighter(highlight);
         }
+        if o.on("codeeditor.segmenter") {
+            e = e.segmenter(blocks);
+        }
+        match o.value("codeeditor.edit_entry") {
+            "immediate" => e = e.edit_entry(EditEntry::Immediate),
+            "type-to-edit" => e = e.edit_entry(EditEntry::TypeToEdit),
+            "explicit" => e = e.edit_entry(EditEntry::Explicit),
+            _ => {}
+        }
+        if let Some(k) = keys {
+            e = e.field_keys(k);
+        }
+        if o.value("codeeditor.text_keymap") == "custom" {
+            e = e.text_keymap(custom_text_keymap(keys.unwrap_or_default()));
+        }
+        match o.value("codeeditor.horizontal") {
+            "on" => e = e.horizontal(HScroll::default()),
+            "off" => e = e.horizontal(HScroll::off()),
+            _ => {}
+        }
+        e.indent = o.number("codeeditor.indent").unwrap_or(4) as usize;
+        e.jump_to(cursor);
+        e.diagnostics = std::mem::take(&mut self.editor.diagnostics);
+        self.editor = e;
+
+        let wide = o.value("codeeditor.completion_width") == "wide";
+        self.completion = Completion::new(ID.sub("complete"))
+            .max_rows(o.number("codeeditor.completion_rows").unwrap_or(8))
+            .popup_width(if wide { 40 } else { 24 }, if wide { 64 } else { 48 })
+            .placement(match o.value("codeeditor.completion_placement") {
+                "above" => Placement::Above,
+                _ => Placement::Below,
+            })
+            .fit(match o.value("codeeditor.completion_fit") {
+                "flush" => Place::FLUSH.text_inset(TEXT_INSET),
+                _ => Place::DEFAULT.text_inset(TEXT_INSET),
+            })
+            .cursor_style(match o.value("codeeditor.completion_cursor") {
+                "bar" => CursorStyle::Bar,
+                _ => CursorStyle::Fill,
+            })
+            .dismiss(match o.value("codeeditor.completion_dismiss") {
+                "escape" => Dismiss::ESCAPE,
+                _ => Dismiss::LIGHT.pass_through(true),
+            })
+            .nav(match o.value("codeeditor.completion_nav") {
+                "vim" => NavKeys::VIM,
+                _ => Completion::NAV,
+            });
+    }
+
+    /// The document, for tests.
+    #[cfg(test)]
+    pub fn text(&self) -> &str {
+        self.editor.text()
     }
 
     /// The identifier being typed, as (start offset, word).
@@ -258,16 +382,8 @@ impl EditorPage {
     }
 
     fn accept(&mut self, i: usize) {
-        let Some(item) = self.completion.items.get(i).cloned() else {
-            return;
-        };
-        let replace = self.completion.replace_len;
-        let cur = self.editor.cursor_offset();
-        self.editor.buffer.remove_range(cur - replace..cur);
-        self.editor.buffer.insert_str(&item.insert);
-        if item.insert.ends_with('(') {
-            self.editor.buffer.insert_char(')');
-            self.editor.buffer.move_left(false);
+        if let Some(item) = self.completion.items.get(i).cloned() {
+            item.apply(&mut self.editor.buffer, self.completion.replace_len);
         }
         self.completion.close();
     }
@@ -280,6 +396,12 @@ impl EditorPage {
         self.completion.close();
         self.editor.set_running(Some(block));
         self.run_ticks = 10;
+    }
+
+    fn open_find(&mut self, cx: &mut PageCtx) {
+        self.completion.close();
+        cx.focus.focus(self.editor.id);
+        self.editor.open_find();
     }
 
     fn finish_run(&mut self, cx: &mut PageCtx) {
@@ -306,28 +428,15 @@ impl EditorPage {
         self.last_ms = Some(ms);
         cx.status(format!("Block ran in {ms} ms"));
     }
-}
 
-impl Page for EditorPage {
-    fn title(&self) -> &'static str {
-        "Code editor"
-    }
-    fn blurb(&self) -> &'static str {
-        "Blocks, tones, diagnostics and completion; the gutter says where you are"
-    }
-    fn editing(&self) -> bool {
-        self.editor.editing
-    }
-    fn animating(&self) -> bool {
-        self.run_ticks > 0
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, (area.width * 62 / 100).max(40), 2);
         let focused = ctx.interaction.focused(self.editor.id);
         let meta = if self.run_ticks > 0 {
             "running".to_owned()
+        } else if self.editor.read_only {
+            "read-only".to_owned()
         } else {
             format!("{} blocks", self.editor.blocks().len())
         };
@@ -336,9 +445,17 @@ impl Page for EditorPage {
         let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(26)), buf, t);
         self.editor.render(inner, buf, ctx, bg);
 
+        // the toolbar over the State card: find and run, each with its
+        // key, after the editor in Tab order (left column first)
+        let widths = [self.find.width(), self.run_button.width()];
+        let rects =
+            junie_tui::widgets::button::row_layout(Rect::new(r.x, r.y, r.width, 1), &widths, 2);
+        self.find.render(rects[0], buf, ctx, t.canvas);
+        self.run_button.render(rects[1], buf, ctx, t.canvas);
+        let r = Rect::new(r.x, r.y + 2, r.width, r.height.saturating_sub(2));
         let panel = Panel::card(Some("State"));
         let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(11)), buf, t);
+        let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(12)), buf, t);
         let pos = self.editor.buffer.cursor_pos();
         let all = self.editor.blocks();
         let cur = self.editor.cursor_offset();
@@ -348,6 +465,12 @@ impl Page for EditorPage {
             .map(|i| format!("{} of {}", i + 1, all.len()))
             .unwrap_or_else(|| "between blocks".into());
         let diags = self.editor.diagnostics.len();
+        let find = match &self.editor.find {
+            None => "closed".to_owned(),
+            Some(f) if f.needle.is_empty() => "type to find".to_owned(),
+            Some(f) if f.matches.is_empty() => format!("“{}” · no matches", f.needle),
+            Some(f) => format!("“{}” · {} of {}", f.needle, f.current + 1, f.matches.len()),
+        };
         let props = vec![
             Prop::new(
                 "Mode",
@@ -387,10 +510,11 @@ impl Page for EditorPage {
                     "closed".into()
                 },
             ),
+            Prop::new("Find", find),
         ];
         props::render(inner, buf, t, &props, bg);
 
-        let y = r.y + 12;
+        let y = r.y + 13;
         if y + 4 < r.bottom() {
             let panel = Panel::card(Some("Diagnostics"));
             let bg = panel.bg(t);
@@ -440,20 +564,100 @@ impl Page for EditorPage {
             self.completion.render(screen, buf, ctx);
         }
     }
+}
+
+/// The States grid: the editor with tones and plain, and one carrying a
+/// warning, in rest, focus, editing, read-only, a running block, an
+/// error, no text and a long line.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let src = "let delay = 200;\nretry(delay);";
+    let mut warned = CodeEditor::new(id.child(2), src).highlighter(highlight);
+    warned.diagnostics.push(Diagnostic {
+        range: 4..9,
+        severity: Severity::Warning,
+        message: "unused variable".into(),
+    });
+    StateGrid::new(id)
+        .label_width(11)
+        .column_width(28)
+        .rows(&[
+            Rest, Focused, Editing, Disabled, Busy, Error, Empty, Overflow,
+        ])
+        .column(
+            "Tones",
+            CodeEditor::new(id.child(0), src)
+                .highlighter(highlight)
+                .placeholder("Type code"),
+        )
+        .column(
+            "Plain",
+            CodeEditor::new(id.child(1), src).placeholder("Type code"),
+        )
+        .column("Warning", warned.placeholder("Type code"))
+}
+
+impl Page for EditorPage {
+    fn title(&self) -> &'static str {
+        "Code editor"
+    }
+    fn blurb(&self) -> &'static str {
+        "Blocks, tones, diagnostics and completion; the gutter says where you are"
+    }
+    fn editing(&self) -> bool {
+        self.editor.editing
+    }
+    fn animating(&self) -> bool {
+        self.run_ticks > 0
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn layer_open(&self) -> bool {
+        self.completion.is_open()
+    }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
-        match ev {
-            PageEvent::Tick => {
-                if self.run_ticks == 0 {
-                    return Outcome::Ignored;
-                }
-                self.run_ticks -= 1;
-                if self.run_ticks == 0 {
-                    self.finish_run(cx);
-                }
-                Outcome::Changed
+        if let PageEvent::Tick = ev {
+            if self.run_ticks == 0 {
+                return Outcome::Ignored;
             }
+            self.run_ticks -= 1;
+            if self.run_ticks == 0 {
+                self.finish_run(cx);
+            }
+            return Outcome::Changed;
+        }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
+        match ev {
             PageEvent::Key(key) => {
+                if cx.focus.is(self.find.id) {
+                    let (o, act) = self.find.on_key(key);
+                    if act {
+                        self.open_find(cx);
+                    }
+                    return o;
+                }
+                if cx.focus.is(self.run_button.id) {
+                    let (o, act) = self.run_button.on_key(key);
+                    if act {
+                        self.run(cx);
+                    }
+                    return o;
+                }
                 if !cx.focus.is(self.editor.id) {
                     return Outcome::Ignored;
                 }
@@ -472,7 +676,7 @@ impl Page for EditorPage {
                         }
                     }
                 }
-                if key.ctrl_char(' ') || key.code == KeyCode::Null {
+                if !self.editor.read_only && (key.ctrl_char(' ') || key.code == KeyCode::Null) {
                     if !self.editor.editing {
                         self.editor.begin_edit();
                     }
@@ -517,6 +721,19 @@ impl Page for EditorPage {
                         self.completion.close();
                     }
                 }
+                if *id == self.find.id {
+                    if self.find.on_click() {
+                        self.open_find(cx);
+                    }
+                    return Outcome::Changed;
+                }
+                if *id == self.run_button.id {
+                    cx.focus.focus(*id);
+                    if self.run_button.on_click() {
+                        self.run(cx);
+                    }
+                    return Outcome::Changed;
+                }
                 if *id == self.editor.id {
                     cx.focus.focus(*id);
                     return self.editor.on_click(*pos);
@@ -547,34 +764,71 @@ impl Page for EditorPage {
             PageEvent::WheelH { id, delta } if self.editor.owns(*id) => {
                 self.editor.on_wheel_h(*delta)
             }
-            PageEvent::DialogClosed { .. }
-            | PageEvent::Secondary { .. }
-            | PageEvent::Middle { .. }
-            | PageEvent::WheelH { .. }
-            | PageEvent::Press { .. }
-            | PageEvent::Release { .. }
-            | PageEvent::Blur(_) => Outcome::Ignored,
+            _ => Outcome::Ignored,
         }
     }
 
-    fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        if focus == Some(self.find.id) || focus == Some(self.run_button.id) {
+            return vec![("Enter", "Activate"), ("Tab", "Next")];
+        }
         if self.completion.is_open() {
             vec![("↑↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
         } else if self.editor.editing {
-            // Tab indents while editing: Esc ends the edit, then Tab leaves
             vec![
                 ("Ctrl+Space", "Complete"),
                 ("Ctrl+R", "Run block"),
-                ("Tab", "Indent"),
-                ("Esc", "Done"),
+                if self.editor.tab_leaves {
+                    ("Tab", "Next field")
+                } else {
+                    ("Tab", "Indent")
+                },
+                (
+                    "Esc",
+                    if self.editor.esc_reverts {
+                        "Cancel"
+                    } else {
+                        "Done"
+                    },
+                ),
             ]
         } else {
-            vec![
-                ("i", "Edit"),
-                ("Ctrl+R", "Run block"),
-                ("{ }", "Blocks"),
-                ("/", "Find"),
-            ]
+            let find = if self.opts.value("codeeditor.keymap") == "custom" {
+                "Ctrl+F"
+            } else {
+                "/"
+            };
+            let mut h = vec![("↑↓", "Move"), (find, "Find")];
+            if !self.editor.read_only {
+                h.insert(0, ("i", "Edit"));
+                h.push(("Ctrl+R", "Run block"));
+            }
+            h
         }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
