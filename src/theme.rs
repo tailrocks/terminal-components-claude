@@ -379,6 +379,8 @@ mod palette {
     /// Focused-selected tint and its hover step.
     pub const GREEN_25: Color = rgb(0x173f1c);
     pub const GREEN_35: Color = rgb(0x1e5024);
+    /// Text selection and grid ranges.
+    pub const BLUE_20: Color = rgb(0x1f3460);
 }
 
 /// Semantic tokens. Field names are the vocabulary used everywhere else.
@@ -427,6 +429,8 @@ pub struct Theme {
     pub success: Color,
     pub info: Color,
 
+    /// Text selection and grid range tint (see [`Self::selection`]).
+    pub selection_bg: Color,
     /// Hover step of the focused-selected tint ([`Self::accent_bg`]): hover
     /// keeps the selection hue instead of replacing it.
     pub accent_bg_hover: Color,
@@ -479,6 +483,7 @@ impl Theme {
             success: GREEN,
             info: PURPLE,
             accent_bg_hover: GREEN_35,
+            selection_bg: BLUE_20,
             danger_label: RED_LABEL,
             ladders: Ladders {
                 canvas: Ladder::new(BLACK, CANVAS_HOVER, CANVAS_PRESSED),
@@ -555,7 +560,8 @@ impl Theme {
             success,
             info,
             accent_bg_hover,
-            danger_label
+            danger_label,
+            selection_bg
         );
         let l = &mut self.ladders;
         for ladder in [
@@ -621,6 +627,7 @@ impl Theme {
         self.accent_pressed = i(65);
         self.accent_bg = i(22);
         self.accent_bg_hover = i(28);
+        self.selection_bg = i(17);
         self.accent_bg_subtle = i(22);
         self.focus = i(78);
         self.success = i(78);
@@ -673,6 +680,7 @@ impl Theme {
         self.accent_pressed = Green;
         self.accent_bg = Black;
         self.accent_bg_hover = DarkGray;
+        self.selection_bg = Blue;
         self.accent_bg_subtle = Black;
         self.focus = LightGreen;
         self.success = LightGreen;
@@ -725,6 +733,7 @@ impl Theme {
         self.accent_pressed = White;
         self.accent_bg = Black;
         self.accent_bg_hover = Black;
+        self.selection_bg = DarkGray;
         self.accent_bg_subtle = Black;
         self.focus = White;
         self.success = White;
@@ -1285,9 +1294,25 @@ impl Theme {
         })
     }
 
-    /// Text selection remains visible when `NO_COLOR` suppresses colours.
+    /// The cursor cell of a table or data grid: the cursor fill on the cell
+    /// only (never the white flood a pressed control once used), the
+    /// destructive fill for a cell with an error.
+    pub fn cell_cursor(&self, error: bool, pressed: bool) -> Style {
+        let s = VisualState {
+            focused: true,
+            error,
+            pressed,
+            ..Default::default()
+        };
+        self.interactive(Kind::CursorRow(CursorStyle::Fill), s, Plane::Canvas)
+            .style
+    }
+
+    /// Text selection and a grid range: a cool tint of its own, apart
+    /// from the pressed planes and from the current find match (popover).
+    /// Stays visible when `NO_COLOR` suppresses colours.
     pub fn selection(&self) -> Style {
-        let style = Style::new().fg(self.text_primary).bg(self.popover);
+        let style = Style::new().fg(self.text_primary).bg(self.selection_bg);
         if self.level == ColorLevel::Mono {
             style.add_modifier(Modifier::REVERSED)
         } else {

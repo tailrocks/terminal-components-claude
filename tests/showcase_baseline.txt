@@ -6,7 +6,7 @@
 120x40 TrueColor Lists fb0a570b9aeb49a2
 120x40 TrueColor Trees 9a663a1d658a34ec
 120x40 TrueColor Tables 324b9c9e2674a0ff
-120x40 TrueColor Editable tables 78a906d3ea974604
+120x40 TrueColor Editable tables 1e0f7b53e18b4c65
 120x40 TrueColor Panels 69b063d002e0a20f
 120x40 TrueColor Sidebars 2bd5e61c70424685
 120x40 TrueColor Dialogs 9b4f01f92d6abf20
@@ -15,7 +15,7 @@
 120x40 TrueColor Terminal 9b62188d77f42236
 120x40 TrueColor Code editor b7b00a081376861b
 120x40 TrueColor Diff 353c2fa9cb836569
-120x40 TrueColor Data grid 2ae6a69edf18ed64
+120x40 TrueColor Data grid ac46bb21b9ab642d
 120x40 TrueColor Chips & selects 27705a26200c55c7
 120x40 TrueColor Pickers 26339d536d8791bd
 120x40 TrueColor Chrome 0531d092b1c017eb
@@ -29,7 +29,7 @@
 120x40 Ansi256 Lists c74ca4ccc28172d5
 120x40 Ansi256 Trees 6a6157f7ea1b88d0
 120x40 Ansi256 Tables ddd6031b9d994137
-120x40 Ansi256 Editable tables b01d92ee907d2c98
+120x40 Ansi256 Editable tables 1a776d9adfaf5e98
 120x40 Ansi256 Panels f5d3bcb3630af9e5
 120x40 Ansi256 Sidebars 2a9d77e06c397244
 120x40 Ansi256 Dialogs d6a8c5edc31de517
@@ -38,7 +38,7 @@
 120x40 Ansi256 Terminal b8773c0dff95fc00
 120x40 Ansi256 Code editor 258449bb5b371d74
 120x40 Ansi256 Diff 4cbf2efdb238d68a
-120x40 Ansi256 Data grid 3fafb6dafc066e96
+120x40 Ansi256 Data grid f8b6378542f6c70e
 120x40 Ansi256 Chips & selects 0db17c72693327fb
 120x40 Ansi256 Pickers 2c10bc8f9c0cd51d
 120x40 Ansi256 Chrome b0b832ce794c68bb
@@ -52,7 +52,7 @@
 120x40 Ansi16 Lists 5a742dc43e14af2a
 120x40 Ansi16 Trees 0f00d939afb94a71
 120x40 Ansi16 Tables 33d4c595a5fca512
-120x40 Ansi16 Editable tables c0029bb95c7f4378
+120x40 Ansi16 Editable tables 177e403ac8c1b4a5
 120x40 Ansi16 Panels fee150d342205ffd
 120x40 Ansi16 Sidebars 4c52127069cb32b7
 120x40 Ansi16 Dialogs 606b3dccd4b5971c
@@ -61,7 +61,7 @@
 120x40 Ansi16 Terminal bf5e4e61bbcc5784
 120x40 Ansi16 Code editor b9a20caa6b5f84bb
 120x40 Ansi16 Diff dcfca2cf9c451fa1
-120x40 Ansi16 Data grid d50488818e39b47a
+120x40 Ansi16 Data grid a7aa4ed40e9d229d
 120x40 Ansi16 Chips & selects 9810a0737d24ee9b
 120x40 Ansi16 Pickers 7d242d54b647913e
 120x40 Ansi16 Chrome 78bbfb404402ac01
@@ -75,7 +75,7 @@
 120x40 Mono Lists c30122867814cf63
 120x40 Mono Trees fcc5eb917da3feaa
 120x40 Mono Tables ea0a1caf38228c45
-120x40 Mono Editable tables f69c23e3f2de4258
+120x40 Mono Editable tables 216100cfb197d9c4
 120x40 Mono Panels 9ac62fe9f350237a
 120x40 Mono Sidebars ebae68cf3da72fdc
 120x40 Mono Dialogs 5e8d669434dbaccb
@@ -84,7 +84,7 @@
 120x40 Mono Terminal 33c34c382856822f
 120x40 Mono Code editor 29c9573f08b36e58
 120x40 Mono Diff 533586fbebe337b1
-120x40 Mono Data grid 2cce79c24d277215
+120x40 Mono Data grid 2ca5e8d45685fa79
 120x40 Mono Chips & selects fbeb69ee391bfb1b
 120x40 Mono Pickers ef5602a34c40520f
 120x40 Mono Chrome 077ee4a322041372
@@ -98,7 +98,7 @@
 80x24 TrueColor Lists 5bade19b182a7f69
 80x24 TrueColor Trees 2046a5d6fe024835
 80x24 TrueColor Tables c5e532f2fe3b2d5e
-80x24 TrueColor Editable tables c3ac32bb72912ebc
+80x24 TrueColor Editable tables d561958675e087f8
 80x24 TrueColor Panels 2edbe9d1934e5be0
 80x24 TrueColor Sidebars 24e53ae6ce39cb26
 80x24 TrueColor Dialogs 020d62808374ce36
@@ -107,7 +107,7 @@
 80x24 TrueColor Terminal b0acf57ee4a8e8f8
 80x24 TrueColor Code editor 85160819110fb8cf
 80x24 TrueColor Diff 6aa63aa8b26e209c
-80x24 TrueColor Data grid 5191c9eff3200855
+80x24 TrueColor Data grid 1bcb6bc16757026a
 80x24 TrueColor Chips & selects 1147ad90e582a379
 80x24 TrueColor Pickers 901c4c1e7fca578a
 80x24 TrueColor Chrome aba1023f87431730
@@ -121,7 +121,7 @@
 80x24 Ansi256 Lists de080ea039845a88
 80x24 Ansi256 Trees 9b7c8c32bc2574ad
 80x24 Ansi256 Tables 3811f19097001c7a
-80x24 Ansi256 Editable tables 2bd2b450dcef68b9
+80x24 Ansi256 Editable tables 2edec2079b225c2d
 80x24 Ansi256 Panels 9993756f96233ffa
 80x24 Ansi256 Sidebars 8ce62c3783786837
 80x24 Ansi256 Dialogs 89c470b4098e3117
@@ -130,7 +130,7 @@
 80x24 Ansi256 Terminal b75bc7ca98e8b5ed
 80x24 Ansi256 Code editor 8aa0389748c02264
 80x24 Ansi256 Diff ed296aacd51b9bd0
-80x24 Ansi256 Data grid 137327aeef7a2d99
+80x24 Ansi256 Data grid d9d41897bf7d7c29
 80x24 Ansi256 Chips & selects e9fa7c1976941e8b
 80x24 Ansi256 Pickers 7a419cd3d0231536
 80x24 Ansi256 Chrome 304e7588a57277f8
@@ -144,7 +144,7 @@
 80x24 Ansi16 Lists 12dbf7b66b76eb5b
 80x24 Ansi16 Trees 0bd209cfc900f318
 80x24 Ansi16 Tables 28bde4425850dc0e
-80x24 Ansi16 Editable tables 23a19c0342d3ac49
+80x24 Ansi16 Editable tables 4a6d7217ddaa6dbf
 80x24 Ansi16 Panels 05b39fdc40600123
 80x24 Ansi16 Sidebars 6b68e1bafe5fc826
 80x24 Ansi16 Dialogs c20cb2fde32c9f35
@@ -153,7 +153,7 @@
 80x24 Ansi16 Terminal f9d0d3bdc7990b8f
 80x24 Ansi16 Code editor 0f9bde367fcb7d2f
 80x24 Ansi16 Diff a95186ce9020f50c
-80x24 Ansi16 Data grid bd2c48c7c84388fe
+80x24 Ansi16 Data grid c7ca6d8d586bbacf
 80x24 Ansi16 Chips & selects 3492f52484ebc848
 80x24 Ansi16 Pickers 951ba69688a01506
 80x24 Ansi16 Chrome cf38c22a1964bf00
@@ -167,7 +167,7 @@
 80x24 Mono Lists 8133d58f6677de1b
 80x24 Mono Trees 6e899c3a8944c458
 80x24 Mono Tables 03a6a4c5d0de9942
-80x24 Mono Editable tables 72e8aaebc1c83073
+80x24 Mono Editable tables 7e19f5bab86228c3
 80x24 Mono Panels 6c50987920bfe10c
 80x24 Mono Sidebars 1adc01f3c408964c
 80x24 Mono Dialogs fffe38a361ef376b
@@ -176,7 +176,7 @@
 80x24 Mono Terminal aadd5521c5e98113
 80x24 Mono Code editor 47e1c1dc8c0ae3c3
 80x24 Mono Diff 8f23e1ec0fd421b5
-80x24 Mono Data grid 7529b944d6cf30c0
+80x24 Mono Data grid 9298a3caa7410fc0
 80x24 Mono Chips & selects cb35b73cf3d06248
 80x24 Mono Pickers 8e2926819c5874ee
 80x24 Mono Chrome a49b4455b2509ac2
@@ -190,7 +190,7 @@
 72x20 TrueColor Lists d1defd2a5c3c2777
 72x20 TrueColor Trees 68c83616b4239008
 72x20 TrueColor Tables b9baf4d88e795b27
-72x20 TrueColor Editable tables 9073d450d7ce433a
+72x20 TrueColor Editable tables ea99421e1ca4632a
 72x20 TrueColor Panels b447675c8442284a
 72x20 TrueColor Sidebars 8d3edc5822587033
 72x20 TrueColor Dialogs ec43bb40206c4c32
@@ -199,7 +199,7 @@
 72x20 TrueColor Terminal 5265af53410f2167
 72x20 TrueColor Code editor b2a49ecd7d9c3c1e
 72x20 TrueColor Diff 52b6941102f90fbd
-72x20 TrueColor Data grid 416911bbec26f0e5
+72x20 TrueColor Data grid b4bd05a425572eaa
 72x20 TrueColor Chips & selects 88c40e4bf95457ea
 72x20 TrueColor Pickers 3f0244b303e89a71
 72x20 TrueColor Chrome 86343de6a6e0e286
@@ -213,7 +213,7 @@
 72x20 Ansi256 Lists 5601878934fb436f
 72x20 Ansi256 Trees a8cd7463a9c339c5
 72x20 Ansi256 Tables b85effd7a56856c9
-72x20 Ansi256 Editable tables 727a760b25c47fa9
+72x20 Ansi256 Editable tables 86b7bc8726edfbdd
 72x20 Ansi256 Panels 9936471542f7fe59
 72x20 Ansi256 Sidebars 32bc54046c076e4d
 72x20 Ansi256 Dialogs a9ddc3d0ee7fdc7e
@@ -222,7 +222,7 @@
 72x20 Ansi256 Terminal ff9288e61908508d
 72x20 Ansi256 Code editor e3eb7cc69dad14bc
 72x20 Ansi256 Diff 96adfbb6fec5c021
-72x20 Ansi256 Data grid bae1cddc3503c278
+72x20 Ansi256 Data grid 3fe5379826a59fc8
 72x20 Ansi256 Chips & selects 09f8c2bc3e5013c8
 72x20 Ansi256 Pickers 577eb8ec3daaea5f
 72x20 Ansi256 Chrome 5874311a30e08b56
@@ -236,7 +236,7 @@
 72x20 Ansi16 Lists 122ab5d9578b037f
 72x20 Ansi16 Trees 7c20d034ba2f4c18
 72x20 Ansi16 Tables b9b9d8b4e83758bd
-72x20 Ansi16 Editable tables 29f669501869899f
+72x20 Ansi16 Editable tables bb5402bd258b2065
 72x20 Ansi16 Panels 4d9f2ea9371011dd
 72x20 Ansi16 Sidebars 2602d41ba898d64d
 72x20 Ansi16 Dialogs 457bacde1072ac37
@@ -245,7 +245,7 @@
 72x20 Ansi16 Terminal 183c2a272f1a4510
 72x20 Ansi16 Code editor 3711ee1338be7bc2
 72x20 Ansi16 Diff c286184feed88897
-72x20 Ansi16 Data grid 4ae9d8d933e70c4e
+72x20 Ansi16 Data grid f82a94174f3bbb3d
 72x20 Ansi16 Chips & selects 0ed2f3abddcf68f2
 72x20 Ansi16 Pickers c40780a43fe25b92
 72x20 Ansi16 Chrome 31ad73054daf4c80
@@ -259,7 +259,7 @@
 72x20 Mono Lists 7fe3fc8cebb1f8e7
 72x20 Mono Trees 9d211b202176b11e
 72x20 Mono Tables b20b6ca6e11f2051
-72x20 Mono Editable tables 14d1064346ef9897
+72x20 Mono Editable tables 8587c566b58728ab
 72x20 Mono Panels 057872ddda5a8277
 72x20 Mono Sidebars d3a48d43f8fe3379
 72x20 Mono Dialogs a866a7351269fab9
@@ -268,7 +268,7 @@
 72x20 Mono Terminal e23f62c3b8e72022
 72x20 Mono Code editor a9ebd92a2331f57a
 72x20 Mono Diff d0425af78e51a562
-72x20 Mono Data grid 5bb030dcf4e0cd58
+72x20 Mono Data grid bf91d03c63864204
 72x20 Mono Chips & selects e7c78454779fc9f8
 72x20 Mono Pickers 343e14e7db5de330
 72x20 Mono Chrome 987e412fe77a93c8
@@ -282,7 +282,7 @@
 100x30 TrueColor Lists 02666caef4b63f46
 100x30 TrueColor Trees 8974e952f6341dd0
 100x30 TrueColor Tables 90386f6513487620
-100x30 TrueColor Editable tables 2b190bfba01437a6
+100x30 TrueColor Editable tables 4a4802601ab5cba4
 100x30 TrueColor Panels 3baafc4a65d94fd8
 100x30 TrueColor Sidebars c03140ae88bd4529
 100x30 TrueColor Dialogs 5de70b788e705cc3
@@ -291,7 +291,7 @@
 100x30 TrueColor Terminal f5f973f200c695b1
 100x30 TrueColor Code editor 260a2c426cfc9ec1
 100x30 TrueColor Diff d5138ac15fd6b901
-100x30 TrueColor Data grid 80e461afe7831288
+100x30 TrueColor Data grid 6b21ad294c0227a7
 100x30 TrueColor Chips & selects 91cd5a92857396da
 100x30 TrueColor Pickers f583a856ec325279
 100x30 TrueColor Chrome f46c02a557132164
@@ -305,7 +305,7 @@
 100x30 Ansi256 Lists 722cf0fe34a6cc2e
 100x30 Ansi256 Trees 6d3380cef392a5f4
 100x30 Ansi256 Tables 070f42cee66944d8
-100x30 Ansi256 Editable tables 30905a0a249ec628
+100x30 Ansi256 Editable tables 5ee22e56e54665bc
 100x30 Ansi256 Panels cecba15592da2597
 100x30 Ansi256 Sidebars bdde91bea75ee414
 100x30 Ansi256 Dialogs 8febd84344a9768c
@@ -314,7 +314,7 @@
 100x30 Ansi256 Terminal 9380ee09b23ce0d4
 100x30 Ansi256 Code editor 873f56e810e863b5
 100x30 Ansi256 Diff 578e4a4dc4be679b
-100x30 Ansi256 Data grid 012e2e679080e198
+100x30 Ansi256 Data grid 9ce0853448d79b1c
 100x30 Ansi256 Chips & selects 8a885eeb70017e7d
 100x30 Ansi256 Pickers 8be97a3fb5c8993d
 100x30 Ansi256 Chrome d9564ef9b4f24950
@@ -328,7 +328,7 @@
 100x30 Ansi16 Lists 7ee8b114ade4286f
 100x30 Ansi16 Trees ab50524a343aa581
 100x30 Ansi16 Tables 05433b7c803ec026
-100x30 Ansi16 Editable tables 8007e1c813dca6c2
+100x30 Ansi16 Editable tables e532a48eb04b188e
 100x30 Ansi16 Panels 64e11e39d69abc82
 100x30 Ansi16 Sidebars 35fb1988e40b5947
 100x30 Ansi16 Dialogs c19e7b47219c936f
@@ -337,7 +337,7 @@
 100x30 Ansi16 Terminal 825bed7ecc20f1f1
 100x30 Ansi16 Code editor 159be0a14465f978
 100x30 Ansi16 Diff 09b1c91b1e5e57ce
-100x30 Ansi16 Data grid f2acee473ac9e69b
+100x30 Ansi16 Data grid d7e98961b088a676
 100x30 Ansi16 Chips & selects 3be2afc7969c4de0
 100x30 Ansi16 Pickers 257ccead5a68df51
 100x30 Ansi16 Chrome b07c55f420a5188c
@@ -351,7 +351,7 @@
 100x30 Mono Lists f5651e009da63b40
 100x30 Mono Trees e37f61f970cf3762
 100x30 Mono Tables 26ef927a970cf7d0
-100x30 Mono Editable tables 610c4ecb68eea05a
+100x30 Mono Editable tables e4b7d8e6e9314dae
 100x30 Mono Panels 198430a933a41834
 100x30 Mono Sidebars ed631aebf27982c2
 100x30 Mono Dialogs 29d22f0bca37540a
@@ -360,7 +360,7 @@
 100x30 Mono Terminal bce141e839190cae
 100x30 Mono Code editor fb56b930a02bb345
 100x30 Mono Diff 5bf923ee02c2f5e2
-100x30 Mono Data grid b9c115525704bed2
+100x30 Mono Data grid ef8b0bb110c7c31e
 100x30 Mono Chips & selects 76f98b4f6e136896
 100x30 Mono Pickers 43aa01779a037150
 100x30 Mono Chrome 61294cf7d9dcae33
@@ -374,7 +374,7 @@
 160x50 TrueColor Lists 7ef2548b07bf6f63
 160x50 TrueColor Trees aee5bd589516356f
 160x50 TrueColor Tables 3ad51a75e3011019
-160x50 TrueColor Editable tables 5efc9ca028ec479d
+160x50 TrueColor Editable tables 34473b61702e65a6
 160x50 TrueColor Panels 73a97537584e0322
 160x50 TrueColor Sidebars 6b5835d73297d534
 160x50 TrueColor Dialogs bb2229fc2cf52003
@@ -383,7 +383,7 @@
 160x50 TrueColor Terminal eb4c3e639f609b9f
 160x50 TrueColor Code editor 5c37c2cd32fcbd95
 160x50 TrueColor Diff 8e4e013284e62ad1
-160x50 TrueColor Data grid d37061be7d29feba
+160x50 TrueColor Data grid 8efe8a053195c9a1
 160x50 TrueColor Chips & selects 8b85dfdc88a7ec7d
 160x50 TrueColor Pickers 94436dd4567512c7
 160x50 TrueColor Chrome d08f931da18e87e2
@@ -397,7 +397,7 @@
 160x50 Ansi256 Lists da64ad53a0a1078b
 160x50 Ansi256 Trees 253c585b0789ba3d
 160x50 Ansi256 Tables 0e991aaccbac880c
-160x50 Ansi256 Editable tables 953e421594ac5a37
+160x50 Ansi256 Editable tables 3ba66f4bdba2f417
 160x50 Ansi256 Panels 052f3412ab70552c
 160x50 Ansi256 Sidebars 53cbde6f192200b7
 160x50 Ansi256 Dialogs d11e8b3bb3c049d6
@@ -406,7 +406,7 @@
 160x50 Ansi256 Terminal d81950ab47ba7fe5
 160x50 Ansi256 Code editor 30468923c2b1b323
 160x50 Ansi256 Diff bbf4bb77ad748bd9
-160x50 Ansi256 Data grid 38e7ec8b31755bf7
+160x50 Ansi256 Data grid 64738ecf3537ff5f
 160x50 Ansi256 Chips & selects 2205731dd049d668
 160x50 Ansi256 Pickers 348834d5c6a87ced
 160x50 Ansi256 Chrome 5d936af5533ecc04
@@ -420,7 +420,7 @@
 160x50 Ansi16 Lists d4149dd666abf12a
 160x50 Ansi16 Trees ccfe228441bd32dc
 160x50 Ansi16 Tables 6e8cc6100977c0f3
-160x50 Ansi16 Editable tables a3090a272e0f6cad
+160x50 Ansi16 Editable tables d757b5d12a1e52fe
 160x50 Ansi16 Panels 8567488f292fdf85
 160x50 Ansi16 Sidebars 5301fd1c630d0ab2
 160x50 Ansi16 Dialogs fc12a3bb4316867f
@@ -429,7 +429,7 @@
 160x50 Ansi16 Terminal e148075470911e43
 160x50 Ansi16 Code editor 68e87d100b81cee9
 160x50 Ansi16 Diff d7c7fffcf7bacb78
-160x50 Ansi16 Data grid ba6ecea9c0dcae1d
+160x50 Ansi16 Data grid 3d4be61be80ca748
 160x50 Ansi16 Chips & selects f14b50981e68f76a
 160x50 Ansi16 Pickers 9e4b1284273869fa
 160x50 Ansi16 Chrome 0f249ee56c6684c4
@@ -443,7 +443,7 @@
 160x50 Mono Lists 60862d5942780c89
 160x50 Mono Trees 7a684d835b549135
 160x50 Mono Tables a7558cc2e8a5d98e
-160x50 Mono Editable tables 31a9db9f81379351
+160x50 Mono Editable tables db1fcc8e7efd520d
 160x50 Mono Panels dd665cb1b2fad17e
 160x50 Mono Sidebars 8a3c573cdcef1741
 160x50 Mono Dialogs 241bf5259fa5bf42
@@ -452,7 +452,7 @@
 160x50 Mono Terminal 22ff853e082efd6c
 160x50 Mono Code editor c806e04e1c119e74
 160x50 Mono Diff 6f5deeb90d7484e4
-160x50 Mono Data grid 7728fe020c2e93a0
+160x50 Mono Data grid 18f1c331b102c47c
 160x50 Mono Chips & selects 32e732c535b3bd5c
 160x50 Mono Pickers d7d2089491863901
 160x50 Mono Chrome 7176c627e9a1803f
