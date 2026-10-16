@@ -28,7 +28,7 @@ use junie_tui::widgets::panel::{Panel, ScrollPanel};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir};
-use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabEvent, TabItem, TabRule, Tabs};
 use junie_tui::widgets::tree::{TreeNode, TreeView};
 
 use crate::app::Cx;
@@ -405,7 +405,7 @@ impl TableTab {
         let mut chips = ChipBar::new(id.sub("chips"));
         chips.lead = Some("match all ▾".into());
         let mut mode_tabs = Tabs::new(id.sub("mode"), &["Data", "Structure"]);
-        mode_tabs.quiet = true;
+        mode_tabs.rule = TabRule::Neutral;
         mode_tabs.active = 0;
         let mut structure_tabs = Tabs::new(
             id.sub("structure-tabs"),
@@ -418,7 +418,7 @@ impl TableTab {
                 "DDL",
             ],
         );
-        structure_tabs.quiet = true;
+        structure_tabs.rule = TabRule::Neutral;
         structure_tabs.active = 0;
         let mut t = Self {
             id,
