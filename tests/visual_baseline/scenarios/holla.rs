@@ -272,7 +272,8 @@ pub const ELEMENTS: &[Root] = &[
     Root::new("holla/elements/results/row-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("Open btm").pending(),
     Root::new("holla/elements/results/row-pressed", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").press("Open btm").pending(),
     Root::new("holla/elements/results/selected-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("› Show system resources").pending(),
-    Root::new("holla/elements/explore/tab-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("Disk").pending(),
+    // The Explore tabs sit below the fold at 72x20.
+    Root::new("holla/elements/explore/tab-hover", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").hover("Disk").min_size(80, 24).pending(),
 ];
 
 #[rustfmt::skip]
@@ -514,8 +515,10 @@ pub const JOURNEYS: &[Root] = &[
     // width-dependent cursor drift and Right opens the compact preview drawer.
     Root::new("holla/fade/browser_wheel", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "down", "down", "down", "wait:first 2000 lines"]).compact(100, &["type:Browse ~/work/site", "enter", "wait:16 entries", "home", "down", "down", "down", "right", "wait:first 2000 lines"]).live(interact::browser_wheel),
     Root::new("holla/fade/trust_body_wheel", Bin::Holla, &["--scenario", "parity-custom-actions", "--motion", "reduced"], "holla❯").sends(&["type:Deploy preview", "enter", "wait:Trust ~/work/team/.holla.toml?"]).live(interact::trust_body_wheel),
-    // The 18 insight categories overflow the list at 120x40.
-    Root::new("holla/fade/cleanup_list_wheel", Bin::Holla, &["--scenario", "parity-insights", "--motion", "reduced"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:18 categories"]).live(interact::cleanup_list_wheel),
+    // The 18 insight categories overflow the list at 120x40. Paused: under
+    // reduced motion the review screen redraws every tick, so it never
+    // settled.
+    Root::new("holla/fade/cleanup_list_wheel", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:18 categories"]).live(interact::cleanup_list_wheel),
     // 4500 lines in sixteen ticks; after the burst nothing animates.
     Root::new("holla/fade/executor_burst-end", Bin::Holla, &["--scenario", "parity-executor", "--motion", "reduced"], "holla❯").sends(&["type:Emit a burst", "enter", "wait:500 earlier lines dropped"]),
 ];

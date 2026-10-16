@@ -24,8 +24,10 @@
 //!   job (editor.rs:450) that never fires under paused motion; under reduced
 //!   the post-save Manager frame is wall-clock-nondeterministic (drawer
 //!   `ago()` labels). The deterministic boundary is the preview dialog.
+//!   Tab walks General → Name → Choose… → Keep awake: arrows no longer
+//!   leave the Name field, which takes focus already editing (1da20cc01).
 //! - `cockpit/{info,debug}`: the cockpit has no back/detach keys — `b` opens
-//!   the build log (empty at frame 40), `d` toggles the debug chip, `i` the
+//!   the build log (empty at frame 40), `t` toggles the debug chip (c3515f652), `i` the
 //!   container info dialog (cockpit.rs:604-640).
 
 use super::{Bin, Root, Variant, interact};
@@ -140,9 +142,9 @@ pub const SURFACES: &[Root] = &[
     // TABS → NAME → WORKDIR → KEEP_AWAKE: three downs, then space toggles the
     // checkbox (payments-platform ships keep_awake=true), Ctrl+S opens the save
     // preview (the terminal state reachable deterministically — see header).
-    Root::new("jackin/editor/save_preview", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "down", "down", "down", "space", "ctrl-s", "wait:Save workspace"]),
+    Root::new("jackin/editor/save_preview", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "tab", "tab", "tab", "space", "ctrl-s", "wait:Save workspace"]),
     // ---------------------------------------------------------------- cockpit --
-    Root::new("jackin/cockpit/debug", Bin::Jackin, LAUNCH, "jackin❯").sends(&["d", "wait:run-2026"]),
+    Root::new("jackin/cockpit/debug", Bin::Jackin, LAUNCH, "jackin❯").sends(&["t", "wait:run-2026"]),
     // ---------------------------------------------------------------- capsule --
     Root::new("jackin/capsule/new_tab", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "c", "wait:New tab"]),
     Root::new("jackin/capsule/split_vertical", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "\"", "wait:Split ↓ Below"]),
@@ -156,7 +158,7 @@ pub const SURFACES: &[Root] = &[
     // j_accounts_form_ref: empty required Display name — Enter starts edit,
     // Enter commits and TextInput::validate paints "Required".
     Root::new("jackin/accounts/add_form_required", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account", "enter", "enter", "wait:Required"]),
-    Root::new("jackin/accounts/filter", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["/", "enter", "type:work", "enter", "wait:Accounts · filt"]),
+    Root::new("jackin/accounts/filter", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["/", "type:work", "enter", "wait:Accounts · filt"]),
     Root::new("jackin/usage/detail", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["u", "down", "enter", "wait:Back to list"]),
     Root::new("jackin/settings/route", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global"]),
     // ------------------------------------------------------------------- intro --

@@ -81,20 +81,38 @@ tier, 890 scenarios captured twice, 2026-10-16) found no run-to-run
 difference. It found a harness bug: `ctrl-f` (any modifier + `f`) failed
 in tuiscotti's chord parser before reaching the app, which broke
 `tablepro/table/filter_editor` and its dismissals; `Session::send_key` now
-sends modified characters as `Key::Char`. Still broken on the current app
-(steps or needles out of date, pending re-approval anyway; fix with the
-group's re-approval):
+sends modified characters as `Key::Char`.
 
-| Scenario (smoke combos) | Stops at |
-|---|---|
-| `showcase/flows/chrome/focus` | `wait:← → Menu` never appears |
-| `showcase/flows/chips/select_open` (72x20) | `wait:500` never appears |
-| `tablepro/connections/duplicated` | `wait:(Copy)` never appears |
-| `tablepro/elements/connections/connect-{hover,pressed}` (72x20) | `Connect    Edit` not on screen |
-| `tablepro/overlays/explorer_context` (72x20) | `wait:S audit` never appears |
-| `jackin/cockpit/debug` | `wait:run-2026` never appears |
-| `holla/elements/explore/tab-hover` (72x20) | `Disk` not on screen |
-| `holla/fade/cleanup_list_wheel` | never settles |
+A second pass on 1e022b3a5 found 15 roots (42 smoke combos) that never
+reached their state. Their steps and needles now follow the current app
+(the app is unchanged); every combo of the full tier (950 captures, the
+roots plus the other `tablepro/query/*` and `ack/*` rows that shared the
+stale `i`) was captured twice byte-identical with `cargo xtask visual
+determinism`. They stay pending re-approval.
+
+| Root | Stopped at | Cause | Now |
+|---|---|---|---|
+| `showcase/flows/chrome/focus` | `wait:← → Menu` | hint reads `←→ Menu` | `wait:←→ Menu` |
+| `showcase/flows/chips/select_open` (72x20–100x30 variants) | `wait:500` | Tab Tab reaches Sort by at every size | variants dropped, `wait:customer` everywhere |
+| `showcase/flows/editor/completion` (+ dismissals) | `wait:Client` | focus starts the edit (1da20cc01): `i` was typed | `i` dropped |
+| `showcase/resize/overview_{shrunk,grown}` | `Foundations / Overview` | tree sidebar crumb | `Design system / Overview` |
+| `tablepro/connections/duplicated` | `wait:(Copy)` | Duplicate is Alt+D | `alt-d` |
+| `tablepro/query/{results,explain_analyze}` | `wait:25 rows`, `wait:EXPLAIN ANALYZE` | 1da20cc01: `i` typed into the SQL | `i` dropped (also in `query/{error,explain,completion,completion_columns,close_confirm}`, `ack/*`, `workbench/quit_confirm`, which captured the wrong SQL silently) |
+| `tablepro/ack/{gate,delete_gate}` (+ dismissals) | `wait:Type orders to confirm`, `wait:DELETE without WHERE` | same | same |
+| `tablepro/ack/{armed,executed}` | `wait:Execute` | the token field starts editing and Enter on a match runs (3ec122eb2) | `type:orders`, Tab, Right (armed), then Enter (executed) |
+| `tablepro/elements/connections/connect-{hover,pressed}` | `Connect    Edit` | the detail card needs an 80-column pane | `.min_size(100, 30)`: no 72x20 or 80x24 combos |
+| `tablepro/overlays/explorer_context` (72x20, + dismissals) | `wait:S audit` | below the fold at 72x20 | `wait:S public` (the cursor row) |
+| `jackin/editor/save_preview` | `wait:Save workspace` | arrows no longer leave the editing Name field; Space replaced it | Tab ×3 to Keep awake |
+| `jackin/cockpit/debug` | `wait:run-2026` | the debug chip is `t` (c3515f652) | `t` |
+| `jackin/accounts/filter` | `wait:Accounts · filt` | the prompt starts editing, so the first Enter applied an empty filter | `/`, `type:work`, Enter |
+| `holla/elements/explore/tab-hover` (72x20) | `Disk` | Explore tabs below the fold | `.min_size(80, 24)` |
+| `holla/fade/cleanup_list_wheel` | never settles | the review screen redraws every tick under reduced motion | `--motion paused --frame 40` |
+
+`Root::min_size` drops combos where the app does not render a pending
+row's target (`scenario_tables` rejects it on a stored row). The narrow
+tier (`40x12`, `60x18`, pending) still misses several of these targets
+(`jackin/cockpit/debug`, `jackin/accounts/filter` and others); it needs
+its own pass before it is approved.
 
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
 matrix and the OS that generates baselines (CI runs ubuntu-24.04) before
