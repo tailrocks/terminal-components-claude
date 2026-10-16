@@ -199,22 +199,29 @@ fn tables_and_grids_page_and_drag_both_bars() {
 fn tables_and_grids_step_one_column_per_sideways_notch() {
     let mut t = wide_table();
     frame(|a, b, c| t.render(a, b, c, Theme::junie().surface));
-    assert_eq!(t.on_wheel_h(3), Outcome::Changed);
+    assert_eq!(t.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
     assert_eq!(t.scroll.h.offset, 1);
-    assert_eq!(t.on_wheel_h(-3), Outcome::Changed);
+    assert_eq!(t.wheel(Axis::Horizontal, -3).outcome(), Outcome::Changed);
     assert_eq!(t.scroll.h.offset, 0);
-    assert_eq!(t.on_wheel_h(-1), Outcome::Consumed, "at the first column");
+    assert_eq!(
+        t.wheel(Axis::Horizontal, -1).outcome(),
+        Outcome::Consumed,
+        "at the first column"
+    );
 
     let mut g = wide_grid();
     frame(|a, b, c| g.render(a, b, c, Theme::junie().surface));
-    assert_eq!(g.on_wheel_h(3), Outcome::Changed);
+    assert_eq!(g.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
     assert_eq!(g.scroll.h.offset, 1);
 
     // every column fits: the notch is not the table's
     let cols = vec![Column::new("a", Constraint::Length(4))];
     let mut narrow = DataTable::new(WidgetId::of("n"), cols, vec![vec![Cell::new("x")]]);
     frame(|a, b, c| narrow.render(a, b, c, Theme::junie().surface));
-    assert_eq!(narrow.on_wheel_h(1), Outcome::Ignored);
+    assert_eq!(
+        narrow.wheel(Axis::Horizontal, 1).outcome(),
+        Outcome::Ignored
+    );
 }
 
 /// Draw one frame into a buffer and return its text, one line per row.
@@ -327,11 +334,11 @@ fn a_sideways_notch_after_a_move_is_not_undone() {
     screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
     t.on_key(&right());
     screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
-    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
+    assert_eq!(t.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
     screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
     assert_eq!(t.scroll.h.offset, 1);
     assert_eq!(t.cursor_col, 1);
-    assert_eq!(t.on_wheel_h(1), Outcome::Changed);
+    assert_eq!(t.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
     screen(|a, b, c| t.render(a, b, c, Theme::junie().surface));
     assert_eq!(t.scroll.h.offset, 2, "the cursor column may leave the view");
 }
@@ -501,18 +508,30 @@ fn a_click_on_a_modal_bar_pages_the_body_it_was_drawn_for() {
 fn a_boundary_notch_in_a_modal_body_is_consumed_without_a_repaint() {
     let mut w = help();
     frame(|a, b, c| w.render(a, b, c));
-    assert_eq!(w.on_wheel(-1), Outcome::Consumed, "HelpOverlay at the top");
-    assert_eq!(w.on_wheel(1), Outcome::Changed);
+    assert_eq!(
+        w.wheel(Axis::Vertical, -1).outcome(),
+        Outcome::Consumed,
+        "HelpOverlay at the top"
+    );
+    assert_eq!(w.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
 
     let mut w = info();
     frame(|a, b, c| w.render(a, b, c));
-    assert_eq!(w.on_wheel(-1), Outcome::Consumed, "InfoDialog at the top");
-    assert_eq!(w.on_wheel(1), Outcome::Changed);
+    assert_eq!(
+        w.wheel(Axis::Vertical, -1).outcome(),
+        Outcome::Consumed,
+        "InfoDialog at the top"
+    );
+    assert_eq!(w.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
 
     let mut w = form();
     frame(|a, b, c| w.render(a, b, c));
-    assert_eq!(w.on_wheel(-1), Outcome::Consumed, "FormDialog at the top");
-    assert_eq!(w.on_wheel(1), Outcome::Changed);
+    assert_eq!(
+        w.wheel(Axis::Vertical, -1).outcome(),
+        Outcome::Consumed,
+        "FormDialog at the top"
+    );
+    assert_eq!(w.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
 }
 
 /// The last row a pane shows, after drawing.

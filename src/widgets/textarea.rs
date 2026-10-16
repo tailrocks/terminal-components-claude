@@ -1094,7 +1094,7 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 7));
         ta.render(Rect::new(0, 0, 40, 7), &mut buf, &mut ctx, theme.canvas);
         assert!(ta.scroll.overflows());
-        assert_eq!(ta.on_wheel(-1), Outcome::Consumed);
+        assert_eq!(ta.wheel(Axis::Vertical, -1).outcome(), Outcome::Consumed);
         let end = Key {
             code: KeyCode::End,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
@@ -1210,7 +1210,7 @@ mod tests {
         let area = Rect::new(0, 0, 20, 5);
         let mut buf = Buffer::empty(area);
         render(&mut input, area, &mut buf, ColorLevel::TrueColor);
-        input.on_wheel(8);
+        input.wheel(Axis::Vertical, 8).outcome();
         assert!(render(&mut input, area, &mut buf, ColorLevel::TrueColor).is_none());
         assert_eq!(input.scroll.offset, 8);
         input.on_key(&key(KeyCode::Right));
@@ -1316,7 +1316,7 @@ mod tests {
         let area = Rect::new(0, 0, 12, 4);
         let (buf, _) = draw_hits(&mut input, area, false);
         assert!(row(&buf, 1).contains("abc"));
-        assert_eq!(input.on_wheel_h(1), Outcome::Changed);
+        assert_eq!(input.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         let (buf, _) = draw_hits(&mut input, area, false);
         assert!(
             !row(&buf, 1).contains("abc") && row(&buf, 1).contains("ef"),
@@ -1325,21 +1325,24 @@ mod tests {
         );
         // the far end stops the wheel
         for _ in 0..20 {
-            input.on_wheel_h(1);
+            input.wheel(Axis::Horizontal, 1).outcome();
         }
-        assert_eq!(input.on_wheel_h(1), Outcome::Consumed);
+        assert_eq!(
+            input.wheel(Axis::Horizontal, 1).outcome(),
+            Outcome::Consumed
+        );
         let (buf, _) = draw_hits(&mut input, area, false);
         assert!(row(&buf, 1).contains('9'));
         // short text: the notch is left to the container
         let mut short = TextArea::new(WidgetId::of("s"), "Notes", 2).value("ab");
         draw_hits(&mut short, area, false);
-        assert_eq!(short.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(short.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
         // switched off by policy
         let mut off = TextArea::new(WidgetId::of("o"), "Notes", 2)
             .value("abcdefghijklmnopqrstuvwxyz")
             .horizontal(HScroll::off());
         draw_hits(&mut off, area, false);
-        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
     }
 
     #[test]

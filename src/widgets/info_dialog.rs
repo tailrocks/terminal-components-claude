@@ -284,10 +284,10 @@ impl InfoDialog {
             return o;
         }
         if id == scrollbar::id_for(self.props.id) {
-            return self.props.on_scrollbar(pos);
+            return self.props.bar_press(pos).outcome().or(Outcome::Consumed);
         }
         if id == scrollbar::id_for(self.id) {
-            return self.on_scrollbar(pos);
+            return self.bar_press(pos).outcome().or(Outcome::Consumed);
         }
         for i in 0..self.actions.len() {
             if self.actions[i].id == id {
@@ -312,10 +312,16 @@ impl InfoDialog {
     /// the property sheet's.
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if scrollbar::is_bar_of(pressed, self.props.id) {
-            return self.props.on_bar_drag(pressed, pos);
+            return match self.props.pane().bar_of(pressed) {
+                Some(bar) => self.props.bar_input(&bar, pos, false).outcome(),
+                None => Outcome::Consumed,
+            };
         }
         if scrollbar::is_bar_of(pressed, self.id) {
-            return self.on_bar_drag(pressed, pos);
+            return match self.pane().bar_of(pressed) {
+                Some(bar) => self.bar_input(&bar, pos, false).outcome(),
+                None => Outcome::Consumed,
+            };
         }
         Outcome::Ignored
     }

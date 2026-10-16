@@ -215,7 +215,7 @@ fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {
     };
     narrow(&mut g);
     while g.scroll.h.offset < 2 {
-        assert_eq!(g.on_wheel_h(1), Outcome::Changed);
+        assert_eq!(g.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         narrow(&mut g);
     }
     g.on_key(&key(KeyCode::Enter));

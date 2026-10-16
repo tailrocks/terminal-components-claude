@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::FocusRing;
-use junie_tui::core::hit::HitRegistry;
+use junie_tui::core::hit::{Axis, HitRegistry};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::Scrollable;
 use junie_tui::theme::Theme;
@@ -139,7 +139,7 @@ impl Surface for DataGrid {
         self.on_key(key).0
     }
     fn wheel(&mut self, delta: i32) -> Outcome {
-        self.on_wheel(delta)
+        Scrollable::wheel(self, Axis::Vertical, delta).outcome()
     }
 }
 
@@ -155,7 +155,7 @@ impl Surface for DataTable {
         self.on_key(key).0
     }
     fn wheel(&mut self, delta: i32) -> Outcome {
-        self.on_wheel(delta)
+        Scrollable::wheel(self, Axis::Vertical, delta).outcome()
     }
 }
 
@@ -171,7 +171,7 @@ impl Surface for ListBox {
         self.on_key(key)
     }
     fn wheel(&mut self, delta: i32) -> Outcome {
-        self.on_wheel(delta)
+        Scrollable::wheel(self, Axis::Vertical, delta).outcome()
     }
 }
 
@@ -187,7 +187,7 @@ impl Surface for TreeView {
         self.on_key(key).0
     }
     fn wheel(&mut self, delta: i32) -> Outcome {
-        self.on_wheel(delta)
+        Scrollable::wheel(self, Axis::Vertical, delta).outcome()
     }
 }
 

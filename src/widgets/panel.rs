@@ -903,13 +903,18 @@ mod scroll_panel_tests {
         assert!(!row(&buf, 3).starts_with(scrollbar::H_THUMB));
 
         // the wheel and a drag on the bar reach the end
-        assert_eq!(p.on_wheel_h(1), Outcome::Changed);
+        assert_eq!(p.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         let (buf, _) = draw_panel(&mut p, area);
         let thumb = (0..20)
             .find(|&x| buf[(x, 3)].symbol() == scrollbar::H_THUMB)
             .unwrap();
-        assert_eq!(p.on_scrollbar(Position::new(thumb, 3)), Outcome::Consumed);
-        assert_eq!(p.on_scrollbar_drag(Position::new(40, 3)), Outcome::Changed);
+        assert_eq!(
+            p.bar_press(Position::new(thumb, 3))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Consumed
+        );
+        assert_eq!(p.bar_drag(Position::new(40, 3)).outcome(), Outcome::Changed);
         assert_eq!(p.scroll.h.offset, p.scroll.h.max_offset());
         assert_eq!(p.scroll.offset, 0, "rows did not move");
 
@@ -921,7 +926,7 @@ mod scroll_panel_tests {
         let mut off =
             ScrollPanel::new(WidgetId::of("o"), p.lines.clone()).horizontal(HScroll::off());
         draw_panel(&mut off, area);
-        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
+        assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
     }
 
     #[test]
@@ -1061,10 +1066,10 @@ mod scroll_panel_tests {
         drawn(&mut log, 20, 5);
         assert!(log.follow && log.scroll.at_end());
         // a wheel down at the tail moves nothing and keeps following
-        assert_eq!(log.on_wheel(3), Outcome::Consumed);
+        assert_eq!(log.wheel(Axis::Vertical, 3).outcome(), Outcome::Consumed);
         assert!(log.follow);
         // scrolling up pauses; the wheel back to the end resumes
-        assert_eq!(log.on_wheel(-3), Outcome::Changed);
+        assert_eq!(log.wheel(Axis::Vertical, -3).outcome(), Outcome::Changed);
         assert!(!log.follow);
         log.push("line 31".into());
         drawn(&mut log, 20, 5);
@@ -1072,7 +1077,7 @@ mod scroll_panel_tests {
             !row(&drawn(&mut log, 20, 5), 4).contains("line 31"),
             "paused: new lines stay below"
         );
-        assert_eq!(log.on_wheel(6), Outcome::Changed);
+        assert_eq!(log.wheel(Axis::Vertical, 6).outcome(), Outcome::Changed);
         assert!(log.follow, "the end resumes following");
         assert_eq!(
             log.on_key(&key(KeyCode::Down)),
@@ -1087,10 +1092,15 @@ mod scroll_panel_tests {
         // the scrollbar behaves the same: the thumb dragged to the end follows
         log.scroll.track_click = Some(crate::core::scroll::TrackClick::Jump);
         drawn(&mut log, 20, 5);
-        assert_eq!(log.on_scrollbar(Position::new(19, 0)), Outcome::Changed);
+        assert_eq!(
+            log.bar_press(Position::new(19, 0))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Changed
+        );
         assert!(!log.follow);
         assert_eq!(
-            log.on_scrollbar_drag(Position::new(19, 4)),
+            log.bar_drag(Position::new(19, 4)).outcome(),
             Outcome::Changed
         );
         assert!(log.follow);
@@ -1222,12 +1232,19 @@ mod track_click_tests {
         let lines: Vec<String> = (0..50).map(|i| format!("line {i}")).collect();
         let mut p = ScrollPanel::new(WidgetId::of("p"), lines.clone());
         draw(&mut p, TrackClick::Page);
-        assert_eq!(p.on_scrollbar(Position::new(19, 9)), Outcome::Changed);
+        assert_eq!(
+            p.bar_press(Position::new(19, 9))
+                .outcome()
+                .or(Outcome::Consumed),
+            Outcome::Changed
+        );
         assert_eq!(p.scroll.offset, 10, "one page, not a jump to the end");
         // the widget's own setting wins over the app default
         let mut p = ScrollPanel::new(WidgetId::of("p"), lines).track_click(TrackClick::Jump);
         draw(&mut p, TrackClick::Page);
-        p.on_scrollbar(Position::new(19, 9));
+        p.bar_press(Position::new(19, 9))
+            .outcome()
+            .or(Outcome::Consumed);
         assert_eq!(p.scroll.offset, 40);
     }
 }

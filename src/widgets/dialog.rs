@@ -764,7 +764,10 @@ impl Dialog {
             return inp.on_drag(pos);
         }
         if scrollbar::is_bar_of(pressed, self.id) {
-            return self.on_bar_drag(pressed, pos);
+            return match self.pane().bar_of(pressed) {
+                Some(bar) => self.bar_input(&bar, pos, false).outcome(),
+                None => Outcome::Consumed,
+            };
         }
         Outcome::Consumed
     }
@@ -1041,8 +1044,8 @@ impl Dialog {
                 Outcome::Changed
             }
             // a body taller than the dialog scrolls under the keyboard too
-            (Some(Nav::Up), _) if overflows => self.on_wheel(-1),
-            (Some(Nav::Down), _) if overflows => self.on_wheel(1),
+            (Some(Nav::Up), _) if overflows => self.wheel(Axis::Vertical, -1).outcome(),
+            (Some(Nav::Down), _) if overflows => self.wheel(Axis::Vertical, 1).outcome(),
             (Some(Nav::PageUp), _) if overflows => {
                 self.scroll.page_up();
                 Outcome::Changed
@@ -1142,7 +1145,7 @@ impl Dialog {
             return inp.on_click_count(pos, count.max(1));
         }
         if scrollbar::is_bar_of(id, self.id) {
-            let o = self.on_scrollbar(pos);
+            let o = self.bar_press(pos).outcome().or(Outcome::Consumed);
             if id == scrollbar::id_for(self.id) {
                 // a completed click: the vertical grab ends with it
                 self.scroll.v.release_track();
@@ -1638,7 +1641,7 @@ mod tests {
         );
 
         // the wheel and the bar reach the end
-        assert_eq!(d.on_wheel_h(1), Outcome::Changed);
+        assert_eq!(d.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         let (buf, _) = draw(&mut d);
         let grab = (bar.x..bar.right())
             .find(|&x| buf[(x, bar.y)].symbol() == scrollbar::H_THUMB)
@@ -2135,7 +2138,7 @@ mod tests {
         assert!(text.contains("line 30"), "{text}");
         assert!(!text.contains("more"), "{text}");
         // the wheel scrolls back up
-        d.on_wheel(-100);
+        d.wheel(Axis::Vertical, -100).outcome();
         let text = rows(&draw(&mut d, screen, screen)).join("\n");
         assert!(text.contains("line 01"), "{text}");
     }
