@@ -203,6 +203,12 @@ pub struct Stack {
     /// Columns between the content and the scrollbar when the stack
     /// scrolls. Default 1.
     pub scrollbar_gap: u16,
+    /// What a press on the bare scrollbar track does. Default
+    /// [`TrackClick::Jump`](crate::core::scroll::TrackClick::Jump), like the other vertical bars;
+    /// the stack lays out without a [`RenderCtx`](crate::ui::ctx::RenderCtx),
+    /// so an owner that follows the app-wide policy passes
+    /// `ctx.track_click` here.
+    pub track_click: crate::core::scroll::TrackClick,
 }
 
 impl Default for Stack {
@@ -212,6 +218,7 @@ impl Default for Stack {
             overflow: Overflow::Scroll,
             min_child_rows: 1,
             scrollbar_gap: 1,
+            track_click: crate::core::scroll::TrackClick::Jump,
         }
     }
 }
@@ -227,6 +234,8 @@ pub struct StackScroll {
     kept: Option<usize>,
     /// The scrollbar track as last laid out (empty when it fits).
     track: Rect,
+    /// The stack's track-click policy as last laid out.
+    click: crate::core::scroll::TrackClick,
 }
 
 impl StackScroll {
@@ -238,7 +247,7 @@ impl StackScroll {
     /// A press or click on the stack's scrollbar.
     pub fn on_scrollbar(&mut self, pos: Position) -> bool {
         !self.track.is_empty()
-            && crate::widgets::scrollbar::press(self.track, pos, &mut self.scroll)
+            && crate::widgets::scrollbar::press_with(self.track, pos, &mut self.scroll, self.click)
     }
     /// A drag along the stack's scrollbar after a press.
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> bool {
@@ -287,6 +296,10 @@ impl Stack {
     }
     pub fn scrollbar_gap(mut self, cols: u16) -> Self {
         self.scrollbar_gap = cols;
+        self
+    }
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = click;
         self
     }
 
@@ -377,6 +390,7 @@ impl Stack {
         state.scroll.viewport_len = n - max_first;
         state.scroll.offset = first;
         state.track = track.unwrap_or_default();
+        state.click = self.track_click;
 
         let mut slots = vec![None; n];
         let mut y = area.y as u32;
@@ -560,5 +574,32 @@ mod tests {
         s.nudge(SplitDir::Horizontal, area, 1, 5);
         let (a, _) = s.horizontal(area, 1);
         assert_eq!(a.width, 15);
+    }
+}
+
+#[cfg(test)]
+mod track_click_tests {
+    use super::*;
+    use crate::core::scroll::TrackClick;
+
+    fn pressed_at_the_bottom(click: TrackClick) -> usize {
+        let kids: Vec<StackChild> = (0..30).map(|_| StackChild::fixed(2)).collect();
+        let mut st = StackScroll::default();
+        let area = Rect::new(0, 0, 30, 10);
+        let l = Stack::default()
+            .track_click(click)
+            .layout(area, &kids, &mut st, None);
+        let track = l.track.expect("the stack scrolls");
+        assert!(st.on_scrollbar(Position::new(track.x, track.bottom() - 1)));
+        st.scroll.offset
+    }
+
+    /// The stack's bar follows its track-click policy (it always jumped).
+    #[test]
+    fn a_stack_track_click_can_page() {
+        let page = pressed_at_the_bottom(TrackClick::Page);
+        let jump = pressed_at_the_bottom(TrackClick::Jump);
+        assert!(page > 0 && page <= 5, "one page of children: {page}");
+        assert!(jump > page, "the default jumps: {jump}");
     }
 }
