@@ -12,7 +12,7 @@ use junie_tui::theme::{ButtonKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::text::{fit, truncate, width};
-use junie_tui::widgets::button::{Button, row_layout};
+use junie_tui::widgets::button::{Button, ButtonRow, RowOverflow};
 use junie_tui::widgets::choice::RadioGroup;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -1573,8 +1573,12 @@ impl AccountsScreen {
         };
         self.inspector_area = inner;
         let bg = if as_drawer { t.canvas } else { t.surface };
-        let body_h = inner.height.saturating_sub(2);
-        let body = Rect::new(inner.x, inner.y, inner.width, body_h);
+        // the actions wrap onto a second line rather than cut the last
+        // (destructive) one; the body gives up the rows they take
+        let action_row = ButtonRow::new().overflow(RowOverflow::Wrap);
+        let action_rows = action_row.rows(inner.width + 1, &self.actions, t);
+        let body_h = inner.height.saturating_sub(1 + action_rows);
+        let mut body = Rect::new(inner.x, inner.y, inner.width, body_h);
         // wrap-aware line count
         let label_w: u16 = lines
             .iter()
@@ -1587,27 +1591,38 @@ impl AccountsScreen {
             .unwrap_or(13)
             .clamp(13, 22)
             + 1;
-        let mut rendered: Vec<Line> = vec![];
-        for l in lines {
-            match l {
-                Line::Prop(k, v, tone) => {
-                    let vw = body.width.saturating_sub(label_w) as usize;
-                    let parts = junie_tui::ui::text::wrap(&v, vw.max(8));
-                    for (i, p) in parts.into_iter().enumerate() {
-                        rendered.push(Line::Prop(
-                            if i == 0 { k.clone() } else { String::new() },
-                            p,
-                            tone,
-                        ));
+        let wrap_lines = |body: Rect| {
+            let mut rendered: Vec<Line> = vec![];
+            for l in lines.iter().cloned() {
+                match l {
+                    Line::Prop(k, v, tone) => {
+                        let vw = body.width.saturating_sub(label_w) as usize;
+                        let parts = junie_tui::ui::text::wrap(&v, vw.max(8));
+                        for (i, p) in parts.into_iter().enumerate() {
+                            rendered.push(Line::Prop(
+                                if i == 0 { k.clone() } else { String::new() },
+                                p,
+                                tone,
+                            ));
+                        }
                     }
-                }
-                Line::Text(v, tone) => {
-                    for p in junie_tui::ui::text::wrap(&v, body.width as usize) {
-                        rendered.push(Line::Text(p, tone));
+                    Line::Text(v, tone) => {
+                        for p in junie_tui::ui::text::wrap(&v, body.width as usize) {
+                            rendered.push(Line::Text(p, tone));
+                        }
                     }
+                    other => rendered.push(other),
                 }
-                other => rendered.push(other),
             }
+            rendered
+        };
+        let mut rendered = wrap_lines(body);
+        // overflowing text keeps the shared gap clear of the scrollbar
+        if rendered.len() > body_h as usize {
+            body.width = inner
+                .width
+                .saturating_sub(scrollbar::reserve(scrollbar::GAP));
+            rendered = wrap_lines(body);
         }
         self.inspector_scroll.set_content(rendered.len());
         self.inspector_scroll.set_viewport(body_h as usize);
@@ -1703,12 +1718,15 @@ impl AccountsScreen {
                 ctx.interaction.focused(INSPECTOR),
             );
         }
-        let ay = inner.bottom().saturating_sub(1);
-        let widths: Vec<u16> = self.actions.iter().map(|b| b.width()).collect();
-        let rects = row_layout(Rect::new(inner.x - 1, ay, inner.width + 1, 1), &widths, 2);
-        for (b, r) in self.actions.iter_mut().zip(rects) {
-            b.render(r, buf, ctx, bg);
-        }
+        let ay = inner.bottom().saturating_sub(action_rows);
+        action_row.render(
+            INSPECTOR,
+            Rect::new(inner.x - 1, ay, inner.width + 1, action_rows),
+            &mut self.actions,
+            buf,
+            ctx,
+            bg,
+        );
     }
 
     fn draw_summary(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
@@ -1764,6 +1782,7 @@ impl AccountsScreen {
     }
 }
 
+#[derive(Clone)]
 enum Line {
     Prop(String, String, Tone),
     Text(String, Tone),

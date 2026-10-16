@@ -1357,3 +1357,22 @@ fn settings_footer_names_the_focused_button_and_the_tab_strip_action() {
     assert!(f.contains("Enter Cancel"), "{f}");
     assert!(!f.contains("Enter Run"), "{f}");
 }
+
+/// The account drawer's action row never cuts its last (destructive)
+/// button at narrow sizes: the row wraps instead (layout audit #15).
+#[test]
+fn the_account_drawer_keeps_every_action_whole_at_72_columns() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 0, 72, 20);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Refresh"), "the drawer is open:\n{t}");
+    for label in ["Refresh", "Validate", "Edit…", "Remove…"] {
+        assert!(t.contains(label), "{label} whole:\n{t}");
+    }
+    assert!(!t.contains("Remov… "), "{t}");
+    // the wrapped inspector text keeps the gap before its scrollbar (#14)
+    assert!(!t.contains("›│") && !t.contains("›┃"), "{t}");
+}

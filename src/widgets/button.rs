@@ -200,6 +200,254 @@ pub fn row_layout_right(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     )
 }
 
+/// Where a [`ButtonRow`] puts its buttons along the row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RowAlign {
+    /// Packed to the left (forms, toolbars).
+    #[default]
+    Start,
+    /// Packed to the right (dialog actions, the macOS convention).
+    End,
+}
+
+/// What a [`ButtonRow`] does with buttons that do not fit its width.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RowOverflow {
+    /// The buttons that do not fit fold into one `…` button at the end of
+    /// the row; the owner opens them as a menu when it is activated
+    /// ([`ButtonRow::more_id`], [`RowLayout::hidden`]).
+    #[default]
+    More,
+    /// The row continues on the next line; reserve
+    /// [`ButtonRow::rows`] lines for it.
+    Wrap,
+}
+
+/// A row of buttons laid out once for every app: a shared gap (the theme's
+/// `spacing.button_gap` unless set), and the primary action never cut.
+///
+/// Laying buttons out edge to edge used to cut the last one, usually the
+/// primary, to `Remov…` or to nothing. A row now keeps every button whole:
+/// the primary (the first [`ButtonKind::Primary`] or
+/// [`ButtonKind::Danger`] button, else the last) is placed first, and the
+/// others either fold into a `…` button ([`RowOverflow::More`], the
+/// default) or wrap onto the next line ([`RowOverflow::Wrap`]). Only a row
+/// too narrow for the primary alone cuts it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ButtonRow {
+    /// Default [`RowAlign::Start`].
+    pub align: RowAlign,
+    /// Cells between buttons; `None` takes the theme's
+    /// `spacing.button_gap` (2). Default `None`.
+    pub gap: Option<u16>,
+    /// Default [`RowOverflow::More`].
+    pub overflow: RowOverflow,
+}
+
+/// Where a [`ButtonRow`] put each button.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct RowLayout {
+    /// One entry per button: its area, or `None` when it folded into the
+    /// `…` button.
+    pub rects: Vec<Option<Rect>>,
+    /// The `…` button's area, when anything folded into it.
+    pub more: Option<Rect>,
+    /// Indices of the buttons behind the `…` button, in row order.
+    pub hidden: Vec<usize>,
+}
+
+/// Label of the overflow button.
+pub const MORE_LABEL: &str = "…";
+
+impl ButtonRow {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn align(mut self, align: RowAlign) -> Self {
+        self.align = align;
+        self
+    }
+    pub fn gap(mut self, gap: u16) -> Self {
+        self.gap = Some(gap);
+        self
+    }
+    pub fn overflow(mut self, overflow: RowOverflow) -> Self {
+        self.overflow = overflow;
+        self
+    }
+
+    /// The id of the `…` button for a row owned by `owner`.
+    pub fn more_id(owner: WidgetId) -> WidgetId {
+        owner.sub("more")
+    }
+
+    fn gap_for(&self, theme: &crate::theme::Theme) -> u16 {
+        self.gap.unwrap_or(theme.spacing.button_gap)
+    }
+
+    /// The button that is never folded away or cut first.
+    fn primary(buttons: &[Button]) -> Option<usize> {
+        buttons
+            .iter()
+            .position(|b| matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger))
+            .or_else(|| buttons.len().checked_sub(1))
+    }
+
+    /// The lines of buttons, each a list of indices, for `width` cells.
+    fn lines(&self, width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
+        let mut lines: Vec<Vec<usize>> = vec![vec![]];
+        let mut used = 0u16;
+        for (i, &w) in widths.iter().enumerate() {
+            let line = lines.last_mut().expect("one line");
+            let need = if line.is_empty() { w } else { used + gap + w };
+            if line.is_empty() || need <= width {
+                line.push(i);
+                used = need;
+            } else {
+                lines.push(vec![i]);
+                used = w;
+            }
+        }
+        lines
+    }
+
+    /// Lines the row takes at `width`: always 1 for [`RowOverflow::More`].
+    pub fn rows(&self, width: u16, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
+        match self.overflow {
+            RowOverflow::More => 1,
+            RowOverflow::Wrap => {
+                let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
+                self.lines(width, &widths, self.gap_for(theme)).len() as u16
+            }
+        }
+    }
+
+    /// Place `buttons` in `area` (one line, or [`ButtonRow::rows`] lines
+    /// when wrapping) without drawing anything.
+    pub fn layout(&self, area: Rect, buttons: &[Button], theme: &crate::theme::Theme) -> RowLayout {
+        let gap = self.gap_for(theme);
+        let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
+        let mut out = RowLayout {
+            rects: vec![None; buttons.len()],
+            ..Default::default()
+        };
+        if area.is_empty() || buttons.is_empty() {
+            return out;
+        }
+        let place = |line: &[(usize, u16)], y: u16, out: &mut RowLayout| -> Vec<Rect> {
+            let total = line.iter().map(|(_, w)| *w).sum::<u16>()
+                + gap * line.len().saturating_sub(1) as u16;
+            let x = match self.align {
+                RowAlign::Start => area.x,
+                RowAlign::End => area.right().saturating_sub(total).max(area.x),
+            };
+            let ws: Vec<u16> = line.iter().map(|(_, w)| *w).collect();
+            let rects = row_layout(Rect::new(x, y, area.right().saturating_sub(x), 1), &ws, gap);
+            for ((i, _), r) in line.iter().zip(&rects) {
+                if *i < out.rects.len() {
+                    out.rects[*i] = Some(*r);
+                }
+            }
+            rects
+        };
+        match self.overflow {
+            RowOverflow::Wrap => {
+                for (k, line) in self.lines(area.width, &widths, gap).iter().enumerate() {
+                    let y = area.y + k as u16;
+                    if y >= area.bottom() {
+                        break;
+                    }
+                    let line: Vec<(usize, u16)> = line.iter().map(|&i| (i, widths[i])).collect();
+                    place(&line, y, &mut out);
+                }
+            }
+            RowOverflow::More => {
+                let total = widths.iter().sum::<u16>() + gap * (widths.len() as u16 - 1);
+                if total <= area.width {
+                    let line: Vec<(usize, u16)> = widths.iter().copied().enumerate().collect();
+                    place(&line, area.y, &mut out);
+                    return out;
+                }
+                // keep the primary and as many others, in order, as fit
+                // beside it and the `…` button; the rest fold away
+                let primary = Self::primary(buttons).unwrap_or(0);
+                let more_w = (width(MORE_LABEL) + 2) as u16;
+                let mut budget = area.width.saturating_sub(widths[primary] + gap + more_w);
+                let mut keep = vec![false; buttons.len()];
+                keep[primary] = true;
+                for (i, &w) in widths.iter().enumerate() {
+                    if i == primary {
+                        continue;
+                    }
+                    if w + gap <= budget {
+                        budget -= w + gap;
+                        keep[i] = true;
+                    } else {
+                        // keep the order readable: nothing after a fold
+                        break;
+                    }
+                }
+                out.hidden = (0..buttons.len()).filter(|i| !keep[*i]).collect();
+                // the `…` button sits just before the primary when the
+                // primary ends the row, otherwise at the end
+                let mut line: Vec<(usize, u16)> = Vec::new();
+                for (i, &w) in widths.iter().enumerate() {
+                    if keep[i] && i != primary {
+                        line.push((i, w));
+                    }
+                }
+                const MORE: usize = usize::MAX;
+                if primary + 1 == buttons.len() {
+                    line.push((MORE, more_w));
+                    line.push((primary, widths[primary]));
+                } else {
+                    line.insert(
+                        line.iter()
+                            .position(|(i, _)| *i > primary)
+                            .unwrap_or(line.len()),
+                        (primary, widths[primary]),
+                    );
+                    line.push((MORE, more_w));
+                }
+                let rects = place(&line, area.y, &mut out);
+                out.more = line
+                    .iter()
+                    .zip(rects)
+                    .find(|((i, _), _)| *i == MORE)
+                    .map(|(_, r)| r)
+                    .filter(|r| !r.is_empty());
+            }
+        }
+        out
+    }
+
+    /// Lay out and draw `buttons`. Folded buttons get an empty area and are
+    /// not registered, so they are neither clickable nor focusable; the
+    /// `…` button is drawn with [`ButtonRow::more_id`]`(owner)`.
+    pub fn render(
+        &self,
+        owner: WidgetId,
+        area: Rect,
+        buttons: &mut [Button],
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) -> RowLayout {
+        let layout = self.layout(area, buttons, ctx.theme);
+        for (b, r) in buttons.iter_mut().zip(&layout.rects) {
+            match r {
+                Some(r) => b.render(*r, buf, ctx, bg),
+                None => b.area = Rect::ZERO,
+            }
+        }
+        if let Some(r) = layout.more {
+            let mut more = Button::subtle(Self::more_id(owner), MORE_LABEL);
+            more.render(r, buf, ctx, bg);
+        }
+        layout
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -207,6 +455,97 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+
+    fn drawer_actions() -> Vec<Button> {
+        let id = WidgetId::of("row");
+        vec![
+            Button::secondary(id.sub("a"), "Refresh"),
+            Button::secondary(id.sub("b"), "Validate"),
+            Button::secondary(id.sub("c"), "Edit…"),
+            Button::danger(id.sub("d"), "Remove…"),
+        ]
+    }
+
+    /// The last (primary or destructive) button is never cut to `Remov…`;
+    /// what does not fit folds into `…` (layout audit #15).
+    #[test]
+    fn a_narrow_row_folds_buttons_and_keeps_the_primary_whole() {
+        let t = Theme::junie();
+        let buttons = drawer_actions();
+        let area = Rect::new(0, 0, 30, 1);
+        let l = ButtonRow::new().layout(area, &buttons, &t);
+        let primary = l.rects[3].expect("the primary stays");
+        assert_eq!(primary.width, buttons[3].width(), "never cut");
+        assert!(primary.right() <= area.right());
+        assert_eq!(l.hidden, vec![1, 2]);
+        let more = l.more.expect("a … button");
+        assert!(more.right() <= primary.x, "… sits before the primary");
+        // everything that is drawn is inside the row and never overlaps
+        let mut drawn: Vec<Rect> = l.rects.iter().flatten().copied().collect();
+        drawn.push(more);
+        drawn.sort_by_key(|r| r.x);
+        for pair in drawn.windows(2) {
+            assert!(pair[0].right() + 2 <= pair[1].x, "{drawn:?}");
+        }
+        // the old layout cut the primary
+        let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
+        let old = row_layout(area, &widths, 2);
+        assert!(old[3].width < buttons[3].width());
+    }
+
+    #[test]
+    fn a_wrapping_row_continues_on_the_next_line() {
+        let t = Theme::junie();
+        let buttons = drawer_actions();
+        let row = ButtonRow::new().overflow(RowOverflow::Wrap);
+        assert_eq!(row.rows(30, &buttons, &t), 2);
+        let l = row.layout(Rect::new(0, 0, 30, 2), &buttons, &t);
+        assert!(l.hidden.is_empty() && l.more.is_none());
+        let ys: Vec<u16> = l.rects.iter().map(|r| r.unwrap().y).collect();
+        assert_eq!(ys, vec![0, 0, 0, 1]);
+        for (b, r) in buttons.iter().zip(&l.rects) {
+            assert_eq!(r.unwrap().width, b.width());
+        }
+    }
+
+    #[test]
+    fn a_row_that_fits_uses_the_theme_gap_and_alignment() {
+        let mut t = Theme::junie();
+        let buttons = drawer_actions();
+        let area = Rect::new(0, 0, 80, 1);
+        let l = ButtonRow::new()
+            .align(RowAlign::End)
+            .layout(area, &buttons, &t);
+        assert_eq!(l.rects[3].unwrap().right(), 80);
+        assert_eq!(l.rects[1].unwrap().x, l.rects[0].unwrap().right() + 2);
+        t.spacing.button_gap = 3;
+        let l = ButtonRow::new().layout(area, &buttons, &t);
+        assert_eq!(l.rects[1].unwrap().x, l.rects[0].unwrap().right() + 3);
+    }
+
+    #[test]
+    fn folded_buttons_are_neither_drawn_nor_clickable() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buttons = drawer_actions();
+        let area = Rect::new(0, 0, 30, 1);
+        let mut buf = Buffer::empty(area);
+        let owner = WidgetId::of("row");
+        let l = ButtonRow::new().render(owner, area, &mut buttons, &mut buf, &mut ctx, t.canvas);
+        assert_eq!(buttons[1].area, Rect::ZERO);
+        let text: String = (0..30).map(|x| buf[(x, 0)].symbol()).collect();
+        assert!(
+            text.contains("Remove…") && !text.contains("Validate"),
+            "{text}"
+        );
+        let more = l.more.unwrap();
+        assert_eq!(
+            hits.hit(ratatui::layout::Position::new(more.x + 1, 0)),
+            Some(ButtonRow::more_id(owner))
+        );
+    }
 
     #[test]
     fn a_busy_primary_button_keeps_its_label_and_spinner_visible() {
