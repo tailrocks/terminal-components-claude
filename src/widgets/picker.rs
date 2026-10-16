@@ -984,6 +984,46 @@ impl Scrollable for Picker {
     }
 }
 
+/// The picker's pointer gestures: a wheel or a bar press scrolls its
+/// list; a completed click on a row chooses it ([`Picker::on_click`]); a
+/// click outside it lands on its backdrop and cancels it when its
+/// [`Picker::dismiss`] policy allows ([`Picker::on_click_outside`]; a
+/// refused one is consumed); any other click on it is consumed.
+impl crate::core::pointer::MouseTarget for Picker {
+    type Action = PickerAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<PickerAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        // the wheel outside the picker (its backdrop) moves nothing
+        if ev.wheel().is_some() && ev.part().part == Part::BACKDROP {
+            return Response::ignored();
+        }
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r.lift();
+        }
+        if !ev.is(Phase::Click) {
+            return Response::ignored();
+        }
+        let chosen = if ev.part().part == Part::BACKDROP {
+            self.on_click_outside()
+        } else {
+            self.on_click(ev.id)
+        };
+        match chosen {
+            Some(a) => Response::emit(a),
+            None => Response::consumed(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

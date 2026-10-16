@@ -1474,6 +1474,47 @@ impl Scrollable for Dialog {
     }
 }
 
+impl Dialog {
+    /// One pointer event the router resolved to the dialog (its layer's
+    /// [`crate::ui::layer::Layer::pointer`]). The prompt's input takes its
+    /// own gestures ([`crate::core::pointer::MouseTarget::route`]; a click
+    /// focuses it); a wheel or a bar press on the dialog scrolls it, and a
+    /// wheel over anything else (nothing under a modal) moves nothing; a
+    /// press, a drag and a completed click reach the per-gesture handlers
+    /// ([`Self::on_press`], [`Self::on_drag`], [`Self::on_click_count`]).
+    pub fn pointer_in(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+        focus: &mut crate::core::focus::Focus,
+    ) -> Response<()> {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::MouseTarget;
+        if let Some(inp) = self.input_mut()
+            && let Some(r) = inp.route(ev)
+        {
+            if ev.is(Phase::Click) {
+                focus.focus(inp.id);
+            }
+            return r;
+        }
+        if ev.wheel().is_some() && !ev.on(self.id) {
+            return Response::ignored();
+        }
+        if ev.on(self.id)
+            && let Some(r) = crate::core::pointer::scroll_input(self, ev)
+        {
+            return r;
+        }
+        let (id, pos) = (ev.id, ev.pos());
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press(id, pos, ev.count()).into(),
+            Some(Phase::Drag) => self.on_drag(id, pos).into(),
+            Some(Phase::Click) => self.on_click_count(id, pos, ev.count(), focus).into(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
