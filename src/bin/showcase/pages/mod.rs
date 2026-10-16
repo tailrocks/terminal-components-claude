@@ -4,11 +4,14 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
+use junie_tui::core::focus::FocusChange;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layer::LayerTag;
+use junie_tui::ui::layers::LayerResult;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
+use junie_tui::widgets::help::HelpOverlay;
 
 pub mod accounts_usage;
 pub mod activity;
@@ -95,54 +98,71 @@ pub enum PageEvent {
     },
 }
 
-/// Things a page may ask the app to do.
+/// What a layer the shell holds reports to the page that opened it
+/// ([`junie_tui::shell::Page::on_layer_result`]).
+#[derive(Debug, Clone)]
+#[allow(dead_code)] // reported once the shell's layer stack holds the dialogs
+pub enum LayerRes {
+    /// A library layer's own result (a keyboard reference closed).
+    Lib(LayerResult),
+    /// A dialog the page opened closed: its id, how it closed and a
+    /// prompt's text. The shell reads them off the closed dialog.
+    Dialog {
+        id: WidgetId,
+        result: DialogResult,
+        value: Option<String>,
+    },
+}
+
+impl From<LayerResult> for LayerRes {
+    fn from(r: LayerResult) -> Self {
+        Self::Lib(r)
+    }
+}
+
+/// The showcase's own requests: the `Go` payload of the library
+/// [`Request`].
 #[derive(Debug)]
-pub enum Request {
-    OpenDialog(Box<Dialog>),
-    Status(String),
-    /// Set a live option ([`PageCtx::set_option`]).
+pub enum Go {
+    /// Set a live option ([`CxExt::set_option`]).
     SetOption(crate::options::OptSet),
-    /// Open a keyboard reference as the shell's modal
-    /// ([`PageCtx::open_help`]); the shell's `?` opens its own the same way.
-    OpenHelp(Box<junie_tui::widgets::help::HelpOverlay>),
-    /// A page layer refused an outside click under `Dismiss`: the shell
-    /// flashes the frame ([`junie_tui::ui::modal::refuse_outside_click`]).
-    RefusedOutsideClick(junie_tui::ui::popup::Dismiss),
 }
 
-pub struct PageCtx<'a> {
-    pub focus: &'a mut Focus,
-    pub ring: &'a FocusRing,
-    pub requests: Vec<Request>,
-}
+/// Things a page may ask the shell to do (the library's
+/// [`junie_tui::shell::Request`]).
+pub type Request = junie_tui::shell::Request<LayerRes, (), Go>;
 
-impl PageCtx<'_> {
-    pub fn focus_next(&mut self) {
-        self.focus.next(self.ring);
-    }
-    pub fn focus_prev(&mut self) {
-        self.focus.prev(self.ring);
-    }
-    pub fn status(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Status(s.into()));
-    }
-    pub fn open(&mut self, d: Dialog) {
-        self.requests.push(Request::OpenDialog(Box::new(d)));
-    }
-    /// Set a live option (a page's Options section): the shell applies it
-    /// through `App::apply_opt`, the path `--opt` and the Inspector take.
-    pub fn set_option(&mut self, set: crate::options::OptSet) {
-        self.requests.push(Request::SetOption(set));
-    }
+/// The context a page handles an event in (the library's
+/// [`junie_tui::shell::Cx`]).
+pub type Cx<'a> = junie_tui::shell::Cx<'a, LayerRes, (), Go>;
+
+/// The tag of a dialog a page opens on the shell's layer stack.
+pub const DIALOG_TAG: &str = "dialog";
+/// The tag of a keyboard reference on the shell's layer stack.
+pub const HELP_TAG: &str = "help";
+
+/// The showcase's requests, spelled as [`Cx`] methods.
+pub trait CxExt {
+    /// Open `d` as the shell's modal dialog; its result comes back as
+    /// [`PageEvent::DialogClosed`].
+    fn open_dialog(&mut self, d: Dialog);
     /// Open `help` as the shell's modal reference. The shell refuses it
     /// over another modal and gives focus back when it closes.
-    pub fn open_help(&mut self, help: junie_tui::widgets::help::HelpOverlay) {
-        self.requests.push(Request::OpenHelp(Box::new(help)));
+    fn open_help(&mut self, help: HelpOverlay);
+    /// Set a live option (a page's Options section): the shell applies it
+    /// through `App::apply_opt`, the path `--opt` and the Inspector take.
+    fn set_option(&mut self, set: crate::options::OptSet);
+}
+
+impl CxExt for Cx<'_> {
+    fn open_dialog(&mut self, d: Dialog) {
+        self.open(d, LayerTag::new(DIALOG_TAG));
     }
-    /// A page layer refused an outside click: flash its frame under the
-    /// policy's `refuse_feedback` (the shell owns the pointer clock).
-    pub fn refuse_outside_click(&mut self, dismiss: junie_tui::ui::popup::Dismiss) {
-        self.requests.push(Request::RefusedOutsideClick(dismiss));
+    fn open_help(&mut self, help: HelpOverlay) {
+        self.open(help, LayerTag::new(HELP_TAG));
+    }
+    fn set_option(&mut self, set: crate::options::OptSet) {
+        self.go(Go::SetOption(set));
     }
 }
 
@@ -152,7 +172,7 @@ pub trait Page {
     fn title(&self) -> &'static str;
     fn blurb(&self) -> &'static str;
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx);
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome;
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome;
     /// Contextual key hints for the footer given the focused widget.
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint>;
     /// True while a control on this page is in edit mode.

@@ -20,7 +20,7 @@ use ratatui::style::Color;
 
 use crate::app::{NAV_ENTRIES, PageId};
 use crate::options::{Group, OptSet, OptionsView, SHELL, page_options};
-use crate::pages::{Hint, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, PageEvent};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::MouseTarget;
@@ -191,11 +191,7 @@ impl Inspector {
     }
 
     /// Route `ev` to the pane; `None` when it is not the pane's.
-    pub fn handle(
-        &mut self,
-        ev: &PageEvent,
-        cx: &mut PageCtx,
-    ) -> Option<(Outcome, Option<OptSet>)> {
+    pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
         match ev {
             PageEvent::Key(key) if cx.focus.current() == Some(self.tabs.id) => {
                 return Some((self.tabs.on_key(key).0, None));

@@ -11,7 +11,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
@@ -247,7 +247,7 @@ impl ChipsPage {
         });
     }
 
-    fn on_chip(&mut self, ev: Option<ChipAction>, cx: &mut PageCtx) {
+    fn on_chip(&mut self, ev: Option<ChipAction>, cx: &mut Cx) {
         match ev {
             Some(ChipAction::Activate(i)) => {
                 self.last = format!("edit {}", self.filters.chips[i].label);
@@ -429,7 +429,7 @@ impl ChipsPage {
         }
     }
 
-    fn select_changed(sel: &Select, a: Option<SelectAction>, cx: &mut PageCtx) {
+    fn select_changed(sel: &Select, a: Option<SelectAction>, cx: &mut Cx) {
         if let Some(SelectAction::Changed(i)) = a {
             cx.status(format!("{} → {}", sel.label, sel.options[i]));
         }
@@ -482,7 +482,7 @@ impl Page for ChipsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

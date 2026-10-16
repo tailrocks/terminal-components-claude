@@ -6,7 +6,7 @@ use ratatui::layout::{Constraint, Rect};
 
 use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::BlurAction;
 use junie_tui::core::hit::Axis;
@@ -407,7 +407,7 @@ impl CellEditorsPage {
     }
 
     /// What the standalone chooser resolved to.
-    fn on_choice(&mut self, r: Option<ChoiceResult>, cx: &mut PageCtx) {
+    fn on_choice(&mut self, r: Option<ChoiceResult>, cx: &mut Cx) {
         let Some(r) = r else {
             return;
         };
@@ -561,7 +561,7 @@ impl CellEditorsPage {
         }
     }
 
-    fn on_event(&mut self, ev: Option<TableAction>, cx: &mut PageCtx) {
+    fn on_event(&mut self, ev: Option<TableAction>, cx: &mut Cx) {
         match ev {
             Some(TableAction::Committed { col, .. }) => {
                 self.edits += 1;
@@ -598,7 +598,7 @@ const LEGEND: &[(&str, &str, &str)] = &[
 
 impl CellEditorsPage {
     /// The standalone chooser's events: its button and its open list.
-    fn handle_chooser(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Option<Outcome> {
+    fn handle_chooser(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let cfg = self.table.editor_config.clone();
         match ev {
             PageEvent::Blur(ch) if ch.from == self.pick.id && self.chooser.is_some() => {
@@ -692,7 +692,7 @@ impl Page for CellEditorsPage {
         Some(&mut self.template)
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

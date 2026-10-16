@@ -12,7 +12,7 @@
 //!   have, drawn by the dialog.
 //!
 //! The page is wiring and demo data only: the shell owns the open dialog
-//! (`PageCtx::open`) and draws it; keys, pointer and dismissal are the
+//! (`Cx::open`) and draws it; keys, pointer and dismissal are the
 //! dialog's own.
 
 use ratatui::buffer::Buffer;
@@ -21,7 +21,7 @@ use ratatui::layout::{Margin, Rect};
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::edit::EditEntry;
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
@@ -339,9 +339,9 @@ impl DialogsPage {
         d
     }
 
-    fn open(&mut self, i: usize, cx: &mut PageCtx) {
+    fn open(&mut self, i: usize, cx: &mut Cx) {
         let anchor = self.buttons.get(i).map_or(Rect::ZERO, |b| b.area);
-        cx.open(self.style(self.variant(i), anchor));
+        cx.open_dialog(self.style(self.variant(i), anchor));
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -552,7 +552,7 @@ impl DialogsPage {
         ]
     }
 
-    fn result_line(&mut self, id: WidgetId, result: DialogResult, cx: &mut PageCtx) {
+    fn result_line(&mut self, id: WidgetId, result: DialogResult, cx: &mut Cx) {
         let (label, msg) = match (id, result) {
             (d, DialogResult::Action(1)) if d == CONFIRM => ("Run", "Task started".to_owned()),
             (d, DialogResult::Action(1)) if d == DELETE => {
@@ -631,7 +631,7 @@ impl Page for DialogsPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::DialogClosed { id, result, value } = ev {
             if *id == RENAME
                 && *result == DialogResult::Action(1)
@@ -643,7 +643,7 @@ impl Page for DialogsPage {
             // the first gate passed: the typed token is the second
             if *id == GATE1 && *result == DialogResult::Action(1) {
                 let anchor = self.buttons[5].area;
-                cx.open(self.style(self.gate2(), anchor));
+                cx.open_dialog(self.style(self.gate2(), anchor));
             }
             return Outcome::Changed;
         }
