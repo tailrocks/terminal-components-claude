@@ -115,6 +115,9 @@ pub struct RenderCtx<'a> {
     /// App-wide default for revealing truncated text; widgets may override
     /// it (see [`crate::ui::reveal`]).
     pub reveal: crate::ui::reveal::Reveal,
+    /// App-wide default for content wider than its area (horizontal
+    /// scrolling and its bar); widgets may override it.
+    pub hscroll: crate::core::scroll::HScroll,
     /// The frame's single truncated-text reveal, if any.
     pub(crate) reveal_slot: crate::ui::reveal::Slot,
 }
@@ -135,6 +138,7 @@ impl<'a> RenderCtx<'a> {
             inert: false,
             overlays: Vec::new(),
             reveal: crate::ui::reveal::Reveal::default(),
+            hscroll: crate::core::scroll::HScroll::default(),
             reveal_slot: crate::ui::reveal::Slot::default(),
         }
     }
