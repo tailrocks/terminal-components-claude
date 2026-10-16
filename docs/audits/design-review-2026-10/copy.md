@@ -104,7 +104,7 @@ fixed it. Where a proposal was not taken in full, the reason is given.
 | 16 | Fixed | 04647eb25 | Plain-language capsule and activity hints. The help sheet was updated to match in c3515f652. |
 | 17 | Fixed | 9f2711d7a | `keyhint::toggle_hint`. |
 | 18 | Fixed | 9f2711d7a | holla plan copy. |
-| 19 | Fixed | 00643499a | `MenuItem::reason` disables the item and shows the reason dimmed. |
+| 19 | Fixed | 28717da83 | `MenuItem::reason` disables the item and shows the reason dimmed. First landed in 00643499a, silently reverted by the docs commit 32a576251, restored in 28717da83. |
 | 20 | Fixed; Done kept | 9f2711d7a, f434e41a8 | Destination nouns became verbs: `Back to outline`, `Back to list`, `Back to results`, `Back to tree`, `Back to Here`. `tests/esc_vocabulary.rs` rejects any Esc label that does not start with a verb. Not taken: changing `Finish`/`Done` to `Close` in multiline editors. Esc there leaves the editor and keeps the text, so Cancel (which discards) and Close (which is for overlays) would both be wrong. They read `Done` / `Done editing`. |
 | 21 | Fixed | 66e5268fc | `Enter Edit fields`. |
 | 22 | Fixed | 04647eb25, d6797b63c | Hints match the menu (`x Close pane`, `& Close tab`, `Quit`). Every jackin quit confirmation is titled "Quit jackin❯?" and has a Quit button. |
