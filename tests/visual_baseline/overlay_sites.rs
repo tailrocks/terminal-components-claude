@@ -143,7 +143,7 @@ pub const SITES: &[Site] = &[
     rows("showcase/app.rs::request_quit", &["showcase/overlays/settings_quit_guard"]),
     rows("showcase/pages/chrome.rs::open_context", &["showcase/flows/chrome/context", "showcase/overlays/chrome_context_row"]),
     rows("showcase/pages/dialogs.rs::open", &["showcase/flows/dialogs/open", "showcase/flows/dialogs/prompt", "showcase/flows/dialogs/destructive"]),
-    rows("showcase/pages/grid.rs::on_event", &["showcase/flows/datagrid/preview"]),
+    rows("showcase/pages/grid.rs::changes_dialog", &["showcase/flows/datagrid/preview", "showcase/flows/datagrid/save-review"]),
     rows("showcase/pages/lists.rs::open_menu", &["showcase/overlays/lists_context"]),
     rows("showcase/pages/pickers.rs::open", &["showcase/flows/pickers/open"]),
     rows("showcase/pages/pickers.rs::render", &["showcase/flows/pickers/open"]),

@@ -170,7 +170,7 @@ fn build(k: &[usize; 12]) -> DataTable {
 /// The events each key asks the page for.
 const EVENTS: &[(&str, &str)] = &[
     ("Enter / F2 / click twice", "Edit · Enter again Committed"),
-    ("Esc", "Cancelled"),
+    ("Esc", "Cancel the edit · Cancelled"),
     (
         "Tab at the last cell",
         "LeaveForward · Shift+Tab LeaveBackward",

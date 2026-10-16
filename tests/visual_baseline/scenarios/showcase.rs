@@ -128,7 +128,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/datagrid-states", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     Root::new("showcase/sections/datagrid-read-only", Bin::Showcase, &["--page", "datagrid", "--opt", "datagrid.access=view"], BOOT).sends(&["tab", "tab", "enter", "wait:customer_summary is a view"]).pending(),
     Root::new("showcase/sections/datagrid-error-empty", Bin::Showcase, &["--page", "datagrid", "--opt", "datagrid.rows=error"], BOOT).sends(&["wait:Could not load customers"]).pending(),
-    Root::new("showcase/flows/datagrid/save-review", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save changes"]).pending(),
     Root::new("showcase/flows/datagrid/filter-chip", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "f", "wait:plan = enterprise"]).pending(),
     // SC13: Editable, Selection and Cell editors options and States, and a
     // ChoiceEditor on its own.
@@ -223,6 +222,9 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/editor/completion", Bin::Showcase, &["--page", "codeeditor"], BOOT).sends(&["tab", "type:cl", "wait:Client"]).dismiss_pending(),
     // datagrid_preview: `p` opens the Pending changes facts dialog with the
     // exact UPDATE statements.
+    // SC12: Ctrl+S opens the save review (typed token `customers`) before
+    // it saves; pending first approval, with both dismissals.
+    Root::new("showcase/flows/datagrid/save-review", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save changes"]).pending().dismiss_pending(),
     Root::new("showcase/flows/datagrid/preview", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "p", "wait:UPDATE customers SET seats = 600"]).dismiss_pending(),
     Root::new("showcase/flows/selectable/delete_confirm", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]).dismiss_pending(),
     // Pending: overlays reached by pointer, with both dismissals.

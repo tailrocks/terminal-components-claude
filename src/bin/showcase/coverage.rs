@@ -589,7 +589,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::table::TableAction",
-        Demo("editable", "Esc Cancelled"),
+        Demo("editable", "Cancel the edit · Cancelled"),
     ),
     (
         "widgets::table::TableAction::Committed",
@@ -597,7 +597,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::table::TableAction::Cancelled",
-        Demo("editable", "Esc Cancelled"),
+        Demo("editable", "Cancel the edit · Cancelled"),
     ),
     (
         "widgets::table::TableAction::Activated",
