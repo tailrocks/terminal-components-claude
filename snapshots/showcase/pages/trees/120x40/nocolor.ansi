@@ -2,34 +2,34 @@
                                                                                                                         [0m
  [0m[1mComponents[0m           54  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar never moves                                    [0m
                                                                                                                         [0m
-    Overview                Project                                   1–15 of 16      Selection                         [0m
-  ▸ App shell                                                                                                           [0m
-  ▸ Inputs & forms           ▾ src                                             ┃      Nothing selected                  [0m
-  ▸ Tables                     ▸ api                                           ┃      Enter on a file selects it        [0m
-  ▾ Navigation                 ▸ db                                            ┃                                        [0m
-      Lists                    ▸ workers                                       ┃      cursor  src                       [0m
- [0m[1m▎  › Trees             [0m         config.rs                              1.9 KB ┃      visible 16 rows                   [0m
-      Sidebars                   lib.rs                                  640 B ┃      open    5 folders                 [0m
-      Tabs                       main.rs                                1.2 KB ┃                                        [0m
-      Menus                  ▾ tests                                           ┃                                        [0m
-  ▸ Overlays                     checkout.rs                            5.3 KB ┃                                        [0m
-  ▸ Feedback                     auth_flow.rs                           3.0 KB ┃                                        [0m
-  ▸ Layout                     ▸ fixtures                                      ┃                                        [0m
-  ▸ Text & code              ▾ docs                                            ┃                                        [0m
-  ▸ Screens                      architecture.md                        7.7 KB ┃                                        [0m
-                                 webhooks.md                            2.2 KB ┃                                        [0m
-                            [0m[2m   Cargo.toml                               1.4 KB [0m┆                                        [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                  Project                                   1–15 of 16      Selection                         [0m
+  ▾ Navigation                                                                                                          [0m
+      Lists                  ▾ src                                             ┃      Nothing selected                  [0m
+ [0m[1m▎  › Trees             [0m       ▸ api                                           ┃      Enter on a file selects it        [0m
+      Sidebars                 ▸ db                                            ┃                                        [0m
+      Tabs                     ▸ workers                                       ┃      cursor  src                       [0m
+      Menus                      config.rs                              1.9 KB ┃      visible 16 rows                   [0m
+  ▸ Overlays                     lib.rs                                  640 B ┃      open    5 folders                 [0m
+  ▸ Feedback                     main.rs                                1.2 KB ┃                                        [0m
+  ▸ Layout                   ▾ tests                                           ┃                                        [0m
+  ▸ Text & code                  checkout.rs                            5.3 KB ┃                                        [0m
+  ▸ Screens                      auth_flow.rs                           3.0 KB ┃      Connections   → loads a database  [0m
+                               ▸ fixtures                                      ┃                                        [0m
+                             ▾ docs                                            ┃       ▾ ◆ production                ┃  [0m
+                                 architecture.md                        7.7 KB ┃         ▸ orders-db        postgres ┃  [0m
+                                 webhooks.md                            2.2 KB ┃         ▸ billing-db       postgres ┆  [0m
+                            [0m[2m   Cargo.toml                               1.4 KB [0m┆      [0m[2m     replica-eu      lag 4.2 s [0m┆  [0m
                                                                                                                         [0m
                                                                                                                         [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
+                          branch_activate Toggle · row_click_toggles true · indent 2 · divider false ·                  [0m
+                          alt_click_recursive true · reserve_right 0 · show_meta true                                   [0m
+                          nav default · wrap false · type-ahead on · track_click Page · selected_marker None · *        [0m
+                          TreeCmd::ExpandAll · - TreeCmd::CollapseAll                                                   [0m
+                          last TreeAction: —   (TreeAction::Expand on a lazy node · TreeAction::Activate on a leaf, or a[0m
+                                               branch per branch_activate)                                              [0m
                                                                                                                         [0m
                                                                                                                         [0m
                                                                                                                         [0m
