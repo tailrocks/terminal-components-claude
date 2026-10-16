@@ -247,3 +247,29 @@ mod breadcrumbs_rails {
         assert!(h.live_bars() <= 1);
     }
 }
+
+/// The header's trail is the library `Breadcrumb`: plain text, the page
+/// bold, collapsing before the header links go.
+#[test]
+fn the_header_crumb_is_the_library_trail() {
+    let h = Harness::new(120, 40, PageId::BreadcrumbsRails);
+    let row = h.row_of("Design system");
+    assert!(row.contains("App shell › Breadcrumbs & rails"), "{row}");
+    let (x, y) = h.find("Breadcrumbs & rails").unwrap();
+    let buf = h.term.backend().buffer();
+    assert!(
+        buf[(x, y)]
+            .modifier
+            .contains(ratatui::style::Modifier::BOLD),
+        "the current page reads as the title"
+    );
+    // nothing to click: a plain trail registers no link
+    let (gx, gy) = h.find("App shell ›").unwrap();
+    let mut h = h;
+    h.click(gx, gy);
+    assert_eq!(h.app.page, PageId::BreadcrumbsRails);
+    // narrow: the links stay, the trail gives way
+    let h = Harness::new(72, 20, PageId::BreadcrumbsRails);
+    let row = h.row_of("Design system");
+    assert!(row.contains("? Help"), "{row}");
+}
