@@ -8,10 +8,6 @@
 //! - [`StatusLine`]: the transient status message and its expiry rule.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
-//! - [`impl_application!`](crate::impl_application): the
-//!   [`Application`] adapter for an app struct with the conventional
-//!   `handle`/`render`/`tick_interval` methods and `quit`/`pointer`/`hits`
-//!   fields, until `Shell` implements [`Application`] itself (plan S7).
 
 mod app;
 mod status;
@@ -42,57 +38,4 @@ fn start_delay() -> Option<std::time::Duration> {
         .parse()
         .ok()
         .map(std::time::Duration::from_millis)
-}
-
-/// Implement [`Application`](crate::runtime::Application) for an app struct
-/// that has inherent `handle(&mut self, Input) -> Outcome`,
-/// `render(&mut self, &mut Frame)` and `tick_interval(&self) -> Duration`
-/// methods and `quit: bool`, `pointer: PointerState` and
-/// `hits: HitRegistry` fields. Pointer and caret shapes come from
-/// [`shapes_for`](crate::core::shape::shapes_for).
-///
-/// An adapter until the shell implements `Application` (plan S7).
-///
-/// `impl_application!(App, input)` also forwards inherent
-/// `input_config(&self) -> InputConfig` and
-/// `keyboard_protocol(&self) -> KeyboardProtocol` methods, for an app whose
-/// input normalisation or keyboard protocol is configurable.
-#[macro_export]
-macro_rules! impl_application {
-    ($app:ty) => {
-        $crate::impl_application!(@impl $app {});
-    };
-    ($app:ty, input) => {
-        $crate::impl_application!(@impl $app {
-            fn input_config(&self) -> $crate::core::event::InputConfig {
-                <$app>::input_config(self)
-            }
-            fn keyboard_protocol(&self) -> $crate::core::keyboard::KeyboardProtocol {
-                <$app>::keyboard_protocol(self)
-            }
-        });
-    };
-    (@impl $app:ty { $($extra:item)* }) => {
-        impl $crate::runtime::Application for $app {
-            fn handle(
-                &mut self,
-                input: $crate::core::event::Input,
-            ) -> $crate::core::event::Outcome {
-                <$app>::handle(self, input)
-            }
-            fn render(&mut self, frame: &mut ::ratatui::Frame) {
-                <$app>::render(self, frame)
-            }
-            fn should_quit(&self) -> bool {
-                self.quit
-            }
-            fn tick_interval(&self) -> ::std::time::Duration {
-                <$app>::tick_interval(self)
-            }
-            fn shapes(&self) -> $crate::core::shape::Shapes {
-                $crate::core::shape::shapes_for(&self.pointer, &self.hits)
-            }
-            $($extra)*
-        }
-    };
 }
