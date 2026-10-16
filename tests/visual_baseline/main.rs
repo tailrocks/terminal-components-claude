@@ -32,6 +32,7 @@
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 mod ansi_cursor;
+mod determinism;
 mod isolation;
 mod modes;
 mod scenarios;
@@ -65,6 +66,14 @@ fn main() {
             ansi_cursor::ansi_cursor_round_trips_cells_and_visible_cursor,
         ),
         check("isolation::env_isolation", isolation::env_isolation),
+        check(
+            "determinism::sources_are_deterministic",
+            determinism::sources_are_deterministic,
+        ),
+        check(
+            "determinism::scanner_ignores_strings_comments_and_tests",
+            determinism::scanner_ignores_strings_comments_and_tests,
+        ),
         check(
             "modes::showcase_boot_sets_terminal_modes",
             modes::showcase_boot_sets_terminal_modes,

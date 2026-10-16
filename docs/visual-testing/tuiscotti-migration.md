@@ -76,6 +76,26 @@ settled. It now runs at `--motion paused --frame 40`, waits for the prompt
 title, and has its `-dismissed-esc` / `-dismissed-outside` rows back
 (pending; two runs were byte-identical).
 
+The determinism audit (`cargo xtask visual determinism` over the smoke
+tier, 890 scenarios captured twice, 2026-10-16) found no run-to-run
+difference. It found a harness bug: `ctrl-f` (any modifier + `f`) failed
+in tuiscotti's chord parser before reaching the app, which broke
+`tablepro/table/filter_editor` and its dismissals; `Session::send_key` now
+sends modified characters as `Key::Char`. Still broken on the current app
+(steps or needles out of date, pending re-approval anyway; fix with the
+group's re-approval):
+
+| Scenario (smoke combos) | Stops at |
+|---|---|
+| `showcase/flows/chrome/focus` | `wait:← → Menu` never appears |
+| `showcase/flows/chips/select_open` (72x20) | `wait:500` never appears |
+| `tablepro/connections/duplicated` | `wait:(Copy)` never appears |
+| `tablepro/elements/connections/connect-{hover,pressed}` (72x20) | `Connect    Edit` not on screen |
+| `tablepro/overlays/explorer_context` (72x20) | `wait:S audit` never appears |
+| `jackin/cockpit/debug` | `wait:run-2026` never appears |
+| `holla/elements/explore/tab-hover` (72x20) | `Disk` not on screen |
+| `holla/fade/cleanup_list_wheel` | never settles |
+
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
 matrix and the OS that generates baselines (CI runs ubuntu-24.04) before
 the rest is re-approved. Re-approve one group at a time:

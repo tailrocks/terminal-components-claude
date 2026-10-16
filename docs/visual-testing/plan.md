@@ -13,7 +13,7 @@ is done by subagents (AGENTS.md, Way of working).
 | T3 | done: `VISUAL_BIN_DIR` binary resolution, `env_clear` pinning (`support::PINNED_ENV`; `SHELL` too, which the PTY layer filled in from the account), per-scenario `HOME` = cwd, and the `isolation::env_isolation` check in the default run |
 | T4 | partial: `cargo xtask visual {list, accept, render, import}`, `accept`/`import` refuse under `CI`; `ratchet` and `sync-oracle` remain (needed for T20/T21) |
 | T5 | open: the store is still `snapshots/`; `ORACLE.toml` and `baselines/oracle/` not started |
-| T6 | partial: tablepro `--motion full\|reduced\|paused` and `--frame N`; rendered-time audit and `JUNIE_NOW` remain |
+| T6 | done: tablepro `--motion`/`--frame`; audit below (§B3 "Determinism audit"): no rendered wall-clock value or random id anywhere, so no `JUNIE_NOW` seam; the default-run check `determinism::sources_are_deterministic` keeps it so; the smoke tier captured twice was byte-identical (869 of 869 captured; of the 21 that never reached their state, 6 were a harness `ctrl-f` bug, now fixed, and 15 are stale steps listed in `tuiscotti-migration.md`) |
 | T7, T8 | T7 done by velnor (`Required`); T8 blocked on velnor 0.1.8 (no schedule, dispatch, artifacts or real partitions). The smoke tier inside the required run is prepared and disabled (`.velnor/config.toml`, `docs/ci.md`) until T18 |
 | T11 | done: all 302 hand-written roots are table rows, names unchanged, every combo's case identical |
 | T12–T16 | rows added as pending (no approval, not gating): hover, held press, disabled, selected+hover in all four apps; open overlays moved to `OVERLAYS` with both dismissals; 4 resizes per app; narrow tier. Element inventories are first passes, not complete; the T15 grep check is open |
@@ -123,6 +123,22 @@ so the first re-capture is reviewable as a diff against old frames.
 | Motion | `--motion paused --frame N` wherever the binary has motion | Deterministic frames. |
 | **New: tablepro** | add `--motion full\|reduced\|paused` and `--frame N` | tablepro has no determinism flags today (T6). |
 | **New: clock** | `JUNIE_NOW=<RFC 3339>` read by a single `core::clock` seam, only if the audit (T6) finds a rendered wall-clock value | Removes settle races caused by time. |
+
+**Determinism audit** (T6, 2026-10-16). Sources of a rendered value that
+could change between runs, and where each one stands:
+
+| Source | Where | Verdict |
+|---|---|---|
+| Wall-clock dates and times | none in `src/`: holla and jackin render every timestamp, `ago` label and duration from a fixture clock (`clock.rs`: fixed epoch, virtual milliseconds advanced by ticks only); tablepro's history and connection ages are fixed demo values (`model.rs`, `db.rs`) | no `JUNIE_NOW` needed |
+| Random ids and data | none: tablepro rows and UUIDs come from a SplitMix64 stream seeded per table (`db.rs`); `HashMap`/`HashSet` are only looked up, never iterated into output | no seed flag needed |
+| `Instant::now` | runtime tick timer and input coalescing, type-ahead reset, showcase/tablepro press-flash and status expiry | decides *when* a frame is drawn, never its content; flash and status only expire on a tick, which `--motion paused` stops |
+| Spinners and animations | tick-driven in all four apps (`--motion paused --frame N` freezes them; jackin rain and holla spinners included) | captures settle on a quiet window; rows with live motion use paused or content-gated waits |
+| Parent environment | see the `HOME`/`SHELL` rows above | `isolation::env_isolation` |
+
+Guards: `determinism::sources_are_deterministic` (default run) fails on
+any wall-clock or random API in non-test `src/` code and on any new
+`Instant::now` until it is reviewed; `cargo xtask visual determinism
+<filterset>` captures a selection twice and fails on any byte difference.
 
 ### B4. Gate, artifacts, store
 

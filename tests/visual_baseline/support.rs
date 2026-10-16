@@ -215,6 +215,13 @@ pub fn visual_full() -> bool {
     std::env::var_os("VISUAL_FULL").is_some_and(|v| v == "1")
 }
 
+/// `VISUAL_REVIEW=0` skips the review PNG/HTML/diff on a mismatch (seconds
+/// per capture). The gate verdict and the actual `.ansi` are unchanged;
+/// `cargo xtask visual determinism` sets it.
+pub fn review_enabled() -> bool {
+    std::env::var_os("VISUAL_REVIEW").is_none_or(|v| v != "0")
+}
+
 pub fn manifest_path(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(rel)
 }
@@ -329,6 +336,13 @@ pub fn gate(name: &str, frame: &Frame) -> Result<(), String> {
     }
     if problems.is_empty() {
         return Ok(());
+    }
+    if !review_enabled() {
+        return Err(format!(
+            "baseline `{name}` failed: {} (VISUAL_REVIEW=0: no review files)\n  actual: {}",
+            problems.join("; "),
+            artifact_path(&actual, name, "ansi").display(),
+        ));
     }
     let (actual_png, _) = render(&mut rendered);
     let evidence = write_expected_evidence(name, &actual_png);
@@ -527,13 +541,29 @@ impl Session {
     }
 
     pub fn send_key(&mut self, name: &str) -> Result<(), tuiscotti::TuiError> {
-        // A bare character goes straight to `Key::Char`: tuiscotti's chord
-        // parser reads a lone `f`/`F` as a malformed function key.
+        // A character key, bare or with modifiers, goes straight to
+        // `Key::Char`: tuiscotti's chord parser reads a lone `f`/`F` as a
+        // malformed function key, so `ctrl+f` never reached the app.
         let mut chars = name.chars();
         if let (Some(c), None) = (chars.next(), chars.next()) {
             return self.inner.press_key(Key::Char(c), KeyMods::NONE);
         }
-        self.inner.press(&chord(name))
+        let chord = chord(name);
+        let (mods, key) = chord.rsplit_once('+').unwrap_or(("", &chord));
+        let mut chars = key.chars();
+        if let (Some(c), None) = (chars.next(), chars.next()) {
+            let mut km = KeyMods::NONE;
+            for m in mods.split('+').filter(|m| !m.is_empty()) {
+                match m {
+                    "ctrl" => km.ctrl = true,
+                    "alt" => km.alt = true,
+                    "shift" => km.shift = true,
+                    _ => return self.inner.press(&chord),
+                }
+            }
+            return self.inner.press_key(Key::Char(c), km);
+        }
+        self.inner.press(&chord)
     }
 
     pub fn type_text(&mut self, text: &str) -> Result<(), tuiscotti::TuiError> {
