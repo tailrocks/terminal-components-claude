@@ -214,6 +214,7 @@ core::response::StateFlags::with | State tab readout of the library dispatcher: 
 # core::scroll
 core::scroll::ScrollState | Panels and Scrolling page options | SC22
 core::scroll::ScrollState::with_follow_cursor | Panels and Scrolling page options | SC22
+core::scroll::ScrollState::with_context | Context rows option on the Scrolling page | SC29
 core::scroll::FollowCursor | Panels and Scrolling page options | SC22
 core::scroll::FollowCursor::OnMove | Panels and Scrolling page options | SC22
 core::scroll::FollowCursor::Always | Panels and Scrolling page options | SC22
