@@ -314,6 +314,18 @@ impl ButtonRow {
         }
     }
 
+    /// [`Self::rows`] with an explicit gap, for owners that measure
+    /// before they have a theme (a dialog's natural height).
+    pub fn rows_at_gap(&self, width: u16, buttons: &[Button], gap: u16) -> u16 {
+        match self.overflow {
+            RowOverflow::More => 1,
+            RowOverflow::Wrap => {
+                let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
+                self.lines(width, &widths, self.gap.unwrap_or(gap)).len() as u16
+            }
+        }
+    }
+
     /// Place `buttons` in `area` (one line, or [`ButtonRow::rows`] lines
     /// when wrapping) without drawing anything.
     pub fn layout(&self, area: Rect, buttons: &[Button], theme: &crate::theme::Theme) -> RowLayout {

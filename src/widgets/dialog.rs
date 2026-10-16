@@ -18,7 +18,7 @@ use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::theme::ButtonKind;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::Dismiss;
-use crate::widgets::button::{Button, row_layout_right};
+use crate::widgets::button::{Button, ButtonRow, RowAlign, RowOverflow};
 use crate::widgets::input::{InputEvent, TextInput};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::panel::Panel;
@@ -78,6 +78,13 @@ pub struct Dialog {
     /// placed in, so its frame never touches a panel border underneath.
     /// Default 3 columns, 1 row.
     pub outer_margin: Margin,
+    /// How the actions are laid out. Default: packed right, the theme's
+    /// button gap, and a row that wraps onto a second line rather than cut
+    /// or hide an action ([`RowOverflow::Wrap`]).
+    pub button_row: ButtonRow,
+    /// The theme's button gap, captured at render so the natural height
+    /// can be measured without a theme.
+    gap: u16,
     /// Body scroll position (Text and Facts bodies).
     pub scroll: ScrollState,
     /// The scrollbar track drawn last frame (empty when the body fits).
@@ -121,6 +128,10 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            button_row: ButtonRow::new()
+                .align(RowAlign::End)
+                .overflow(RowOverflow::Wrap),
+            gap: crate::theme::Spacing::DEFAULT.button_gap,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -149,6 +160,10 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            button_row: ButtonRow::new()
+                .align(RowAlign::End)
+                .overflow(RowOverflow::Wrap),
+            gap: crate::theme::Spacing::DEFAULT.button_gap,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -177,6 +192,10 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            button_row: ButtonRow::new()
+                .align(RowAlign::End)
+                .overflow(RowOverflow::Wrap),
+            gap: crate::theme::Spacing::DEFAULT.button_gap,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -224,6 +243,10 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            button_row: ButtonRow::new()
+                .align(RowAlign::End)
+                .overflow(RowOverflow::Wrap),
+            gap: crate::theme::Spacing::DEFAULT.button_gap,
             scroll: ScrollState::default(),
             horizontal: None,
             code_scroll: ScrollState::default(),
@@ -491,13 +514,30 @@ impl Dialog {
         }
     }
 
-    /// Rows around the body: border(2) + pad(1) + title(1) + gap(1) +
-    /// gap(1) + actions(1) + pad(1).
-    const CHROME_ROWS: u16 = 8;
+    /// Rows around the body and the actions: border(2) + pad(1) +
+    /// title(1) + gap(1) + gap(1) + pad(1).
+    const CHROME_ROWS: u16 = 7;
+
+    /// Lines the actions take at `width` (more than one only when they
+    /// wrap).
+    fn action_rows(&self, width: u16) -> u16 {
+        self.button_row
+            .rows_at_gap(Self::inner_width(width), &self.actions, self.gap)
+            .max(1)
+    }
 
     /// Natural height at `width`: every row of the body shown.
     pub fn height(&self, width: u16) -> u16 {
-        Self::CHROME_ROWS + self.scroll_rows(width) + self.fixed_rows(width)
+        Self::CHROME_ROWS
+            + self.action_rows(width)
+            + self.scroll_rows(width)
+            + self.fixed_rows(width)
+    }
+
+    /// See [`Self::button_row`].
+    pub fn button_row(mut self, row: ButtonRow) -> Self {
+        self.button_row = row;
+        self
     }
 
     /// See [`Self::body_scroll`].
@@ -756,6 +796,7 @@ impl Dialog {
     pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.gap = t.spacing.button_gap;
         // dim backdrop; the footer row stays live because its hints belong to the dialog
         ctx.modal_backdrop(buf, screen);
         let bounds = bounds.intersection(screen);
@@ -796,7 +837,8 @@ impl Dialog {
             t.title().bg(bg),
         );
         let body_y = inner.y + 2;
-        let actions_y = area.bottom().saturating_sub(3);
+        let action_rows = self.action_rows(width);
+        let actions_y = area.bottom().saturating_sub(2 + action_rows);
         // the scrolling part of the body ends above the parts anchored over
         // the actions; the row right below it is a blank separator, where
         // "↓ N more" goes while there is more below
@@ -924,12 +966,15 @@ impl Dialog {
                 b.disabled = !armed;
             }
         }
-        // actions, right aligned
-        let widths: Vec<u16> = self.actions.iter().map(|b| b.width()).collect();
-        let rects = row_layout_right(Rect::new(inner.x, actions_y, inner.width, 1), &widths, 1);
-        for (b, r) in self.actions.iter_mut().zip(rects) {
-            b.render(r, buf, ctx, bg);
-        }
+        // actions: the shared button row, packed right, never cut
+        self.button_row.render(
+            self.id,
+            Rect::new(inner.x, actions_y, inner.width, action_rows),
+            &mut self.actions,
+            buf,
+            ctx,
+            bg,
+        );
         // the dialog surface itself blocks clicks from falling through
         ctx.hits.register(self.id, area);
         // re-register the controls on top of the surface
@@ -1407,6 +1452,24 @@ mod tests {
         let mut d = gate(78).outer_margin(Margin::new(0, 0));
         draw(&mut d, screen, bounds);
         assert_eq!(d.area.width, 72);
+    }
+
+    #[test]
+    fn a_narrow_dialog_wraps_its_actions_and_never_cuts_the_primary() {
+        let screen = Rect::new(0, 0, 30, 20);
+        let mut d = Dialog::destructive(
+            WidgetId::of("del"),
+            "Delete?",
+            "Gone for good.",
+            "Delete all",
+        )
+        .cancel_label("Keep files");
+        let text = rows(&draw(&mut d, screen, screen)).join("\n");
+        assert!(text.contains("Delete all"), "{text}");
+        assert!(text.contains("Keep files"), "{text}");
+        let (keep, del) = (d.actions[0].area, d.actions[1].area);
+        assert_ne!(keep.y, del.y, "two lines: {keep:?} {del:?}");
+        assert!(del.bottom() < d.area.bottom(), "inside the frame");
     }
 
     #[test]
