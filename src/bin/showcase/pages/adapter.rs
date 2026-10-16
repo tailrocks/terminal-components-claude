@@ -1,0 +1,105 @@
+//! The `PageEvent` adapter: the one place the shell's page contract
+//! ([`junie_tui::shell::Page`]) turns into the showcase pages' own
+//! `handle(&PageEvent, ..)` calls. The app drives every page through the
+//! library trait (a key, the one pointer entry `PageEvent::Pointer`, a
+//! paste, a blur, a tick, a layer's result) and never builds a
+//! `PageEvent` for a page itself; the pages keep their single `handle`
+//! until they implement the library trait directly.
+
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+
+use super::{Cx, Go, LayerRes, Page, PageEvent};
+use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::focus::FocusChange;
+use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::PointerEvent;
+use junie_tui::shell::{self, PageTypes};
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layer::LayerTag;
+use junie_tui::ui::leave::Stakes;
+use junie_tui::widgets::keyhint::{Hint, hint};
+
+/// The types the showcase's pages work with: no app state (each page owns
+/// its widgets), no messages, [`LayerRes`] from the shell's layers and
+/// [`Go`] for the showcase's own requests.
+pub struct Showcase;
+
+impl PageTypes for Showcase {
+    type State = ();
+    type Msg = ();
+    type Result = LayerRes;
+    type LayerState = ();
+    type Go = Go;
+}
+
+impl shell::Page<Showcase> for dyn Page {
+    fn on_key(&mut self, key: &Key, _: &mut (), cx: &mut Cx) -> Outcome {
+        self.handle(&PageEvent::Key(*key), cx)
+    }
+
+    fn pointer(&mut self, ev: &PointerEvent, _: &mut (), cx: &mut Cx) -> Outcome {
+        self.handle(&PageEvent::Pointer(*ev), cx)
+    }
+
+    fn on_paste(&mut self, text: &str, _: &mut (), cx: &mut Cx) -> Outcome {
+        self.handle(&PageEvent::Paste(text.to_owned()), cx)
+    }
+
+    fn on_blur(&mut self, ch: FocusChange, _: &mut (), cx: &mut Cx) -> Outcome {
+        self.handle(&PageEvent::Blur(ch), cx)
+    }
+
+    fn on_tick(&mut self, _: &mut (), cx: &mut Cx) -> Outcome {
+        self.handle(&PageEvent::Tick, cx)
+    }
+
+    /// A dialog the page opened closed; any other layer's result (a
+    /// keyboard reference closing) is the shell's.
+    fn on_layer_result(
+        &mut self,
+        _tag: &LayerTag,
+        result: LayerRes,
+        _: &mut (),
+        cx: &mut Cx,
+    ) -> Outcome {
+        match result {
+            LayerRes::Dialog { id, result, value } => {
+                self.handle(&PageEvent::DialogClosed { id, result, value }, cx)
+            }
+            LayerRes::Lib(_) => Outcome::Ignored,
+        }
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &()) {
+        Page::render(self, area, buf, ctx);
+    }
+
+    fn hints(&self, focus: Option<WidgetId>, _: &()) -> Vec<Hint> {
+        Page::hints(self, focus)
+            .into_iter()
+            .map(|(key, action)| hint(key, action))
+            .collect()
+    }
+
+    fn crumb(&self, _: &()) -> String {
+        self.title().to_owned()
+    }
+
+    /// The shell's focus upkeep picks the first control of a new page.
+    fn primary_focus(&self) -> Option<WidgetId> {
+        None
+    }
+
+    fn is_editing(&self) -> bool {
+        self.editing()
+    }
+
+    fn animating(&self, _: &()) -> bool {
+        Page::animating(self)
+    }
+
+    fn stakes(&mut self, _: &()) -> Stakes {
+        self.leave_stakes()
+    }
+}
