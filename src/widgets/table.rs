@@ -14,6 +14,7 @@ use crate::core::selection::{RowSelection, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::field_common::{EditAction, edit_key};
+use crate::widgets::option_editor::{ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +36,9 @@ pub struct Column {
     pub align: Align,
     pub editable: bool,
     pub sortable: bool,
+    /// How an editable cell is edited: free text (default) or a value from
+    /// a fixed set ([`ColumnEditor`]).
+    pub editor: ColumnEditor,
 }
 
 impl Column {
@@ -45,7 +49,14 @@ impl Column {
             align: Align::Left,
             editable: false,
             sortable: true,
+            editor: ColumnEditor::Text,
         }
+    }
+    /// Edit the column with `editor` (and make it editable).
+    pub fn editor(mut self, editor: ColumnEditor) -> Self {
+        self.editable = true;
+        self.editor = editor;
+        self
     }
     pub fn right(mut self) -> Self {
         self.align = Align::Right;
@@ -85,6 +96,15 @@ impl Cell {
         self.tone = tone;
         self
     }
+}
+
+/// A constrained editor open on one cell ([`DataTable::choice`]).
+#[derive(Debug, Clone)]
+pub struct ChoiceEdit {
+    /// Source row index.
+    pub row: usize,
+    pub col: usize,
+    pub editor: ChoiceEditor,
 }
 
 #[derive(Debug, Clone)]
@@ -217,6 +237,11 @@ pub struct DataTable {
     /// column.
     pub type_ahead_column: Option<usize>,
     typeahead: crate::core::typeahead::TypeAhead,
+    /// The constrained editor open on a cell, if any.
+    pub choice: Option<ChoiceEdit>,
+    /// Behaviour of every constrained column editor
+    /// ([`EditorConfig::default`]: macOS popup conventions).
+    pub editor_config: EditorConfig,
 }
 
 /// A [`DataTable`] action a key can be bound to.
@@ -293,6 +318,8 @@ impl DataTable {
             type_ahead: false,
             type_ahead_column: None,
             typeahead: Default::default(),
+            choice: None,
+            editor_config: EditorConfig::default(),
         }
     }
 
@@ -306,6 +333,39 @@ impl DataTable {
     pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
         self.type_ahead_column = col;
         self
+    }
+
+    /// See [`Self::editor_config`].
+    pub fn editor_config(mut self, cfg: EditorConfig) -> Self {
+        self.editor_config = cfg;
+        self
+    }
+
+    /// The id of the popup a constrained editor opens.
+    pub fn choice_id(&self) -> WidgetId {
+        self.id.sub("choice")
+    }
+
+    /// The `▾` of a constrained cell (drawn on hover and on the cursor).
+    pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
+        self.cell_id(display, col).sub("open")
+    }
+
+    /// The cell at (source row, column) holds a value outside its column's
+    /// options (imported data).
+    pub fn out_of_set(&self, src: usize, col: usize) -> bool {
+        let (Some(row), Some(c)) = (self.rows.get(src), self.columns.get(col)) else {
+            return false;
+        };
+        c.editor.out_of_set(&row[col].text, &self.editor_config)
+    }
+
+    /// Every (source row, column) holding a value outside its options.
+    pub fn out_of_set_cells(&self) -> Vec<(usize, usize)> {
+        (0..self.rows.len())
+            .flat_map(|r| (0..self.columns.len()).map(move |c| (r, c)))
+            .filter(|&(r, c)| self.out_of_set(r, c))
+            .collect()
     }
 
     /// See [`Self::nav`].
@@ -636,7 +696,7 @@ impl DataTable {
         self.rows.is_empty()
     }
     pub fn is_editing(&self) -> bool {
-        self.edit.is_some()
+        self.edit.is_some() || self.choice.is_some()
     }
 
     /// Source index of the row at display position `i`.
@@ -658,6 +718,7 @@ impl DataTable {
     /// Keeps column configuration and sorting; clamps the navigation cursor.
     pub fn set_rows(&mut self, rows: Vec<Vec<Cell>>) {
         self.edit = None;
+        self.choice = None;
         self.selected = None;
         self.selection.clear();
         self.disabled.retain(|&r| r < rows.len());
@@ -740,22 +801,141 @@ impl DataTable {
     }
 
     pub fn begin_edit(&mut self) -> Outcome {
+        self.start_edit().0
+    }
+
+    /// Start editing the cursor cell: a text editor, a constrained
+    /// editor's popup, or (Toggle) the flipped value committed at once.
+    pub fn start_edit(&mut self) -> (Outcome, Option<TableEvent>) {
         if self.rows.is_empty() {
-            return Outcome::Consumed;
+            return (Outcome::Consumed, None);
         }
         let col = self.cursor_col;
         if !self.columns[col].editable {
-            return Outcome::Consumed;
+            return (Outcome::Consumed, None);
         }
         let src = self.order[self.cursor_row];
         let text = self.rows[src][col].text.clone();
+        let editor = &self.columns[col].editor;
+        if let Some(next) = editor.toggled(&text) {
+            return (Outcome::Changed, self.apply_value(src, col, next).ok());
+        }
+        if editor.is_constrained() {
+            let opened = ChoiceEditor::open(self.choice_id(), editor, &text, &self.editor_config);
+            self.choice = opened.map(|editor| ChoiceEdit {
+                row: src,
+                col,
+                editor,
+            });
+            return (Outcome::Changed, None);
+        }
         self.edit = Some(EditState {
             row: src,
             col,
             buffer: TextBuffer::single(text),
             error: None,
         });
-        Outcome::Changed
+        (Outcome::Changed, None)
+    }
+
+    /// Store a chosen value through the edit pipeline: the validator may
+    /// reject it (the message comes back), a sorted column re-sorts.
+    fn apply_value(&mut self, src: usize, col: usize, text: String) -> Result<TableEvent, String> {
+        if let Some(err) = self.validator.as_ref().and_then(|v| (v.0)(col, &text)) {
+            return Err(err);
+        }
+        self.rows[src][col].text = text;
+        self.rows[src][col].error = None;
+        if let Some((c, d)) = self.sort
+            && c == col
+        {
+            self.apply_sort(c, d);
+            if let Some(pos) = self.order.iter().position(|&r| r == src) {
+                self.cursor_row = pos;
+                self.scroll.ensure_visible(pos);
+            }
+        }
+        Ok(TableEvent::Committed { row: src, col })
+    }
+
+    /// Resolve what an open constrained editor reported.
+    fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<TableEvent> {
+        let (value, tab) = match r? {
+            ChoiceResult::Cancel => {
+                self.choice = None;
+                return Some(TableEvent::Cancelled);
+            }
+            ChoiceResult::Commit(v) => (v, None),
+            ChoiceResult::CommitAndTab { value, backward } => (value, Some(backward)),
+        };
+        let (src, col) = self.choice.as_ref().map(|c| (c.row, c.col))?;
+        match self.apply_value(src, col, value) {
+            Ok(ev) => {
+                self.choice = None;
+                match tab {
+                    Some(backward) => match self.tab_to_editable(backward) {
+                        Some(leave) => Some(leave),
+                        None => {
+                            self.start_edit();
+                            Some(ev)
+                        }
+                    },
+                    None => Some(ev),
+                }
+            }
+            Err(msg) => {
+                if let Some(c) = self.choice.as_mut() {
+                    c.editor.error = Some(msg);
+                }
+                None
+            }
+        }
+    }
+
+    /// Move the cell cursor to the next (previous) editable column of the
+    /// row; `Some(Leave…)` when there is none.
+    fn tab_to_editable(&mut self, backward: bool) -> Option<TableEvent> {
+        let n = self.columns.len();
+        let mut col = self.cursor_col;
+        loop {
+            if backward {
+                if col == 0 {
+                    return Some(TableEvent::LeaveBackward);
+                }
+                col -= 1;
+            } else {
+                col += 1;
+                if col >= n {
+                    return Some(TableEvent::LeaveForward);
+                }
+            }
+            if self.columns[col].editable {
+                break;
+            }
+        }
+        self.set_cursor(self.cursor_row, col);
+        None
+    }
+
+    /// A click on an open constrained editor (an option, the popup, the
+    /// backdrop) or on a cell's `▾`; `None` when `id` is neither, so the
+    /// owner routes it on.
+    pub fn on_click_editor(&mut self, id: WidgetId) -> Option<(Outcome, Option<TableEvent>)> {
+        if let Some(c) = self.choice.as_mut()
+            && c.editor.owns(id)
+        {
+            let (out, r) = c.editor.on_click(id, &self.editor_config);
+            return Some((out, self.on_choice(r)));
+        }
+        for di in self.scroll.visible_range() {
+            for ci in 0..self.columns.len() {
+                if self.open_id(di, ci) == id {
+                    self.set_cursor(di, ci);
+                    return Some(self.start_edit());
+                }
+            }
+        }
+        None
     }
 
     pub fn commit_edit(&mut self) -> Option<TableEvent> {
@@ -789,6 +969,9 @@ impl DataTable {
     }
 
     pub fn cancel_edit(&mut self) -> Option<TableEvent> {
+        if self.choice.take().is_some() {
+            return Some(TableEvent::Cancelled);
+        }
         self.edit.take().map(|_| TableEvent::Cancelled)
     }
 
@@ -797,6 +980,16 @@ impl DataTable {
     /// `Committed` or `Cancelled` like Enter or Esc (an invalid value stays
     /// open with its error and reports nothing).
     pub fn on_blur(&mut self) -> Option<TableEvent> {
+        if let Some(c) = &self.choice {
+            return match self.editor_config.blur {
+                BlurAction::Commit => match c.editor.blur_value(&self.editor_config) {
+                    Some(v) => self.on_choice(Some(ChoiceResult::Commit(v))),
+                    None => self.on_choice(Some(ChoiceResult::Cancel)),
+                },
+                BlurAction::Cancel => self.on_choice(Some(ChoiceResult::Cancel)),
+                BlurAction::Keep => None,
+            };
+        }
         self.edit.as_ref()?;
         match self.blur_action {
             BlurAction::Commit => self.commit_edit(),
@@ -806,6 +999,10 @@ impl DataTable {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TableEvent>) {
+        if let Some(c) = self.choice.as_mut() {
+            let (out, r) = c.editor.on_key(key, &self.editor_config);
+            return (out, self.on_choice(r));
+        }
         if let Some(e) = self.edit.as_mut() {
             return match edit_key(key, false) {
                 EditAction::Commit => match self.commit_edit() {
@@ -819,26 +1016,10 @@ impl DataTable {
                         return (Outcome::Changed, None);
                     }
                     // move to next editable cell
-                    let n = self.columns.len();
-                    let mut col = self.cursor_col;
-                    loop {
-                        if backward {
-                            if col == 0 {
-                                return (Outcome::Changed, Some(TableEvent::LeaveBackward));
-                            }
-                            col -= 1;
-                        } else {
-                            col += 1;
-                            if col >= n {
-                                return (Outcome::Changed, Some(TableEvent::LeaveForward));
-                            }
-                        }
-                        if self.columns[col].editable {
-                            break;
-                        }
+                    if let Some(leave) = self.tab_to_editable(backward) {
+                        return (Outcome::Changed, Some(leave));
                     }
-                    self.set_cursor(self.cursor_row, col);
-                    self.begin_edit();
+                    self.start_edit();
                     (Outcome::Changed, ev)
                 }
                 EditAction::Apply(f) => {
@@ -910,7 +1091,15 @@ impl DataTable {
         }
         match key.code {
             KeyCode::Enter | KeyCode::F(2) if self.cell_nav && self.columns[c].editable => {
-                (self.begin_edit(), None)
+                self.start_edit()
+            }
+            // Space opens a constrained cell (and flips a toggle)
+            KeyCode::Char(' ')
+                if self.cell_nav
+                    && self.columns[c].editable
+                    && self.columns[c].editor.is_constrained() =>
+            {
+                self.start_edit()
             }
             KeyCode::Enter | KeyCode::Char(' ') => {
                 let src = self.order[r];
@@ -973,6 +1162,9 @@ impl DataTable {
     }
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
+        if let Some(c) = self.choice.as_mut() {
+            return c.editor.on_paste(text);
+        }
         match self.edit.as_mut() {
             Some(e) => {
                 e.buffer.insert_str(text);
@@ -1015,6 +1207,8 @@ impl DataTable {
         if display >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
+        // a click elsewhere ends an open popup without a choice
+        self.choice = None;
         let col = col.min(self.columns.len().saturating_sub(1));
         if let Some(e) = &self.edit {
             if e.row == self.order[display] && e.col == col {
@@ -1061,7 +1255,7 @@ impl DataTable {
             );
         }
         if same && self.cell_nav && self.columns[col].editable {
-            return (self.begin_edit(), None);
+            return self.start_edit();
         }
         if !self.cell_nav {
             let src = self.order[display];
@@ -1091,6 +1285,10 @@ impl DataTable {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        if let Some(c) = self.choice.as_mut() {
+            // the open popup takes the wheel
+            return c.editor.on_wheel(delta);
+        }
         if self.scroll.scroll_by(delta as isize) {
             Outcome::Changed
         } else {
@@ -1201,6 +1399,9 @@ impl DataTable {
         let focused = ctx.interaction.focused(self.id);
         let editing = self.edit.is_some() && focused;
         // a cell edit that lost focus is ended by `on_blur`, never here
+        // where an open constrained editor's popup anchors this frame
+        let mut choice_anchor: Option<Rect> = None;
+        let mut open_marks: Vec<(WidgetId, Rect)> = Vec::new();
 
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
@@ -1345,8 +1546,10 @@ impl DataTable {
             let rid = self.row_id(di);
             let mut s = ctx.child_state(self.id, rid, di == self.cursor_row);
             // cell hover and press count as the row's
-            let hovered_cell =
-                (0..self.columns.len()).find(|&c| ctx.interaction.hovered(self.cell_id(di, c)));
+            let hovered_cell = (0..self.columns.len()).find(|&c| {
+                ctx.interaction.hovered(self.cell_id(di, c))
+                    || ctx.interaction.hovered(self.open_id(di, c))
+            });
             s.hovered |= hovered_cell.is_some();
             s.pressed |= ctx
                 .interaction
@@ -1416,7 +1619,29 @@ impl DataTable {
                         .map(|e| e.row == src && e.col == ci)
                         .unwrap_or(false);
                 let mut st = row_style;
-                st = match cell.tone {
+                let cfg = &self.editor_config;
+                let constrained = col.editor.is_constrained();
+                // a constrained cell shows its option's label and tone; a
+                // value outside the options is flagged like an error
+                let shown: std::borrow::Cow<str> = if constrained {
+                    col.editor.display(&cell.text, cfg).into()
+                } else {
+                    cell.text.as_str().into()
+                };
+                let flagged = cell.error.is_some()
+                    || (cfg.flag_out_of_set && col.editor.out_of_set(&cell.text, cfg));
+                let tone = match (cell.tone, col.editor.tone(&cell.text)) {
+                    (Tone::Normal, Some(tone)) => tone,
+                    (tone, _) => tone,
+                };
+                let is_choice_cell = self
+                    .choice
+                    .as_ref()
+                    .is_some_and(|c| c.row == src && c.col == ci);
+                if is_choice_cell {
+                    choice_anchor = Some(cell_rect);
+                }
+                st = match tone {
                     Tone::Normal => st,
                     _ if row_disabled => st,
                     other => st.fg(t.tone(other)),
@@ -1455,10 +1680,10 @@ impl DataTable {
                         );
                     }
                 } else {
-                    if is_cursor_cell {
+                    if is_cursor_cell || is_choice_cell {
                         // cell cursor: the cursor fill on the cell only
-                        st = t.cell_cursor(cell.error.is_some(), s.pressed);
-                    } else if cell.error.is_some() {
+                        st = t.cell_cursor(flagged, s.pressed);
+                    } else if flagged {
                         st = st.fg(t.error);
                     } else if col.editable && self.cell_nav && s.hovered && hovered_cell == Some(ci)
                     {
@@ -1466,19 +1691,42 @@ impl DataTable {
                             .add_modifier(Modifier::UNDERLINED)
                             .underline_color(t.border_strong);
                     }
+                    // editable popup cells advertise their `▾` on hover and
+                    // on the cursor cell; read-only cells never do
+                    let affordance = cfg.affordance
+                        && col.editable
+                        && col.editor.has_popup()
+                        && r.width > 3
+                        && (is_cursor_cell
+                            || is_choice_cell
+                            || (s.hovered && hovered_cell == Some(ci)));
+                    let text_w = if affordance { r.width - 2 } else { r.width } as usize;
                     let text = match col.align {
-                        Align::Left => crate::ui::text::fit(&cell.text, r.width as usize),
-                        Align::Right => crate::ui::text::fit_right(&cell.text, r.width as usize),
+                        Align::Left => crate::ui::text::fit(&shown, text_w),
+                        Align::Right => crate::ui::text::fit_right(&shown, text_w),
                     };
+                    if affordance {
+                        fill(buf, cell_rect, st);
+                    }
                     buf.set_string(r.x, y, &text, st);
                     crate::ui::reveal::truncated(
                         ctx,
                         self.reveal,
                         self.cell_id(di, ci),
-                        cell_rect,
-                        &cell.text,
+                        Rect::new(r.x, y, text_w as u16, 1),
+                        &shown,
                     );
-                    if cell.error.is_some() && !is_cursor_cell {
+                    if affordance {
+                        let mark = Rect::new(r.right() - 1, y, 1, 1);
+                        let ms = if is_cursor_cell || is_choice_cell {
+                            st
+                        } else {
+                            st.fg(t.text_secondary)
+                        };
+                        buf.set_string(mark.x, y, t.glyphs.disclosure_open, ms);
+                        open_marks.push((self.open_id(di, ci), mark));
+                    }
+                    if flagged && !is_cursor_cell && !is_choice_cell && !affordance {
                         buf.set_string(
                             r.right().saturating_sub(1),
                             y,
@@ -1500,6 +1748,13 @@ impl DataTable {
             if check_w > 0 && area.width > 3 + check_w && !row_disabled {
                 ctx.clickable(self.check_id(di), Rect::new(area.x + 3, y, 3, 1));
             }
+        }
+        // a cell's `▾` sits above the cell: a click on it opens the editor
+        for (id, rect) in open_marks {
+            ctx.clickable(id, rect);
+        }
+        if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
+            c.editor.render(anchor, buf, ctx, &self.editor_config);
         }
         // the scroll region also sits above the rows: a wheel burst handled
         // before the next frame (see `runtime::Coalesce`) then routes to the
@@ -1569,7 +1824,8 @@ impl DataTable {
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id
+        self.choice.as_ref().is_some_and(|c| c.editor.owns(id))
+            || id == self.id
             || scrollbar::is_bar_of(id, self.id)
             || self.locate(id).is_some()
             || self.locate_header(id).is_some()
@@ -1582,6 +1838,9 @@ impl DataTable {
     }
 
     pub fn edit_error(&self) -> Option<&str> {
+        if let Some(c) = &self.choice {
+            return c.editor.error.as_deref();
+        }
         self.edit.as_ref().and_then(|e| e.error.as_deref())
     }
 }
@@ -2360,3 +2619,7 @@ mod tests {
         assert_eq!(t.cursor_row, 5, "the cursor follows its row");
     }
 }
+
+#[cfg(test)]
+#[path = "table_choice_tests.rs"]
+mod choice_tests;
