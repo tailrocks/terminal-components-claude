@@ -2,19 +2,20 @@
                                                                         [0m
    Overview       ┃  [0m[1mTerminal[0m  Viewport with scrollback, selection and… [0m
    Buttons        ┃                                                     [0m
-   Inputs         ┃  ╭─ V… ─ 37 lines · followi… ─╮ │  Step ra… 7 of 7  [0m
-   Text areas     ┃  │  [0m[2m  #13 RUN apt-get instal[0m│ │ │                   [0m
-   Forms          ┃  │    #14 COPY rust-toolchai│ │ │   ✓ 01 Resolve…   [0m
-   Lists          ┃  │  ✓ Build container       │ │ │   ✓ 02 Pull ba…   [0m
-   Trees          ┃  │  [0m[1m▶ Resolve credentials[0m   │ │ │   ✓ 03 Build c…   [0m
-   Tables         ┃  │    1Password  Engineering│ │ │     04 Mount s…   [0m
-   Editable tabl… ┃  │  ✓ Resolve credentials   │ │ │   ✓ 05 Resolve…   [0m
-   Panels         ┃  │  [0m[1m▶ Start agent[0m           │ │ │   ✓ 06 Start a…   [0m
-   Sidebars       ┃  │    claude --resume  pid 4│ │ │   ✓ 07 Ready      [0m
-   Dialogs        │  │  ✓ Start agent           │ │ │                   [0m
-   Progress       │  │  [0m[1m▶ Ready[0m                 ┃ │ │                   [0m
-   Scrolling      │  │  ✓ Ready                 ┃ │ │                   [0m
-[0m[1m▎› Terminal       [0m│  │  [0m[1mpayments-platform ❯ [0m    ┃ │ │   [0m[1mRun [0m   Run w…   [0m
+   Inputs         ┃  ╭─ Viewport ────── 37 lines ─╮ │  Step rail   7/7  [0m
+   Text areas     ┃  │  [0m[2m  #14 COPY rust-toolcha [0m│ │ │                   [0m
+   Forms          ┃  │  ✓ Build container       │ │ │   ✓ 01 Resolve…   [0m
+   Lists          ┃  │  [0m[1m▶ Resolve credentials[0m   │ │ │   ✓ 02 Pull ba…   [0m
+   Trees          ┃  │    1Password  Engineerin │ │ │   ✓ 03 Build c…   [0m
+   Tables         ┃  │  ✓ Resolve credentials   │ │ │     04 Mount s…   [0m
+   Editable tabl… ┃  │  [0m[1m▶ Start agent[0m           │ │ │   ✓ 05 Resolve…   [0m
+   Panels         ┃  │    claude --resume  pid  │ │ │   ✓ 06 Start a…   [0m
+   Sidebars       │  │  ✓ Start agent           │ │ │   ✓ 07 Ready      [0m
+   Dialogs        │  │  [0m[1m▶ Ready[0m                 ┃ │ │                   [0m
+   Progress       │  │  ✓ Ready                 ┃ │ │                   [0m
+   Scrolling      │  │  [0m[1mpayments-platform ❯ [0m    ┃ │ │                   [0m
+[0m[1m▎› Terminal       [0m│  │  ━━━━━━━━━───────────────  │ │   [0m[1;7mRun [0m   Run w…   [0m
 [0m[2m   Code editor    [0m│  ╰────────────────────────────╯ │                   [0m
                                                                         [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                             [0m
+[?25l
