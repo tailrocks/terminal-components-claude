@@ -118,6 +118,14 @@ pub const OVERLAYS: &[Root] = &[
     // Pending: context menus (Shift+F10) with both dismissals.
     Root::new("tablepro/overlays/explorer_context", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["wait:S public", "shift-f10"]).pending().dismiss_pending(),
     Root::new("tablepro/overlays/connections_context", Bin::Tablepro, &[], "Production").sends(&["down", "shift-f10"]).pending().dismiss_pending(),
+    // Pending: the connection form's leave guard (Save / Discard / Cancel).
+    // Tab commits the typed name (Esc inside the field would revert it);
+    // then Esc closes, `e` edits another connection, Ctrl+N starts a new
+    // one, Ctrl+C quits. `q` never fires over a dirty form.
+    Root::new("tablepro/connections/form_leave_esc", Bin::Tablepro, &[], "Production").sends(&["ctrl-n", "type:Staging replica", "tab", "escape", "wait:Unsaved changes"]).pending().dismiss_pending(),
+    Root::new("tablepro/connections/form_leave_edit", Bin::Tablepro, &[], "Production").sends(&["ctrl-n", "type:Staging replica", "tab", "e", "wait:Unsaved changes"]).pending().dismiss_pending(),
+    Root::new("tablepro/connections/form_leave_new", Bin::Tablepro, &[], "Production").sends(&["ctrl-n", "type:Staging replica", "tab", "ctrl-n", "wait:Unsaved changes"]).pending().dismiss_pending(),
+    Root::new("tablepro/connections/form_quit_guard", Bin::Tablepro, &[], "Production").sends(&["ctrl-n", "type:Staging replica", "ctrl-c", "wait:Unsaved changes"]).pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
