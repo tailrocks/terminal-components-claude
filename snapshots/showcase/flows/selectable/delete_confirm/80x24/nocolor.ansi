@@ -5,7 +5,7 @@
  [0m[2m▸ Inputs & forms │    Members                        2 selected · 1–3 of 12   ┃[0m
  [0m[2m▾ Tables         │                                                            ┃[0m
  [0m[2m    Basic table  │       [–] Name              Role    Status     Region …    ┃[0m
- [0m[2m    Editable╭─────────[0m─[0m[2m──────────────────────────────────────────╮EU      ┃   ┃[0m
+ [0m[2m    Editable╭─────────[0m─[0m[2m────────────────────────────────────── × ─╮EU      ┃   ┃[0m
  [0m[2m    Data gri│         [0m [0m[2m                                          │US      │   ┃[0m
  [0m[2m  › Selectio│  [0m[1;2mDelete [0m[1m2[0m[1;2m members?[0m[2m                                 │EU      │   ┃[0m
  [0m[2m    Cell edi│                                                    │────────    ┃[0m

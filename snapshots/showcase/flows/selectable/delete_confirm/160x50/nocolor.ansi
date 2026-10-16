@@ -18,7 +18,7 @@
 [0m[2m                       │    [0m [0m[2m  [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
 [0m[2m                       │    [0m [0m[2m  [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
 [0m[2m                       │                                                                                              [0m [0m[2mApply   [0m [0m[2mRevert   [0m [0m[2mDelete…               [0m
-[0m[2m                       │                             ╭────────────────────────────────────────────────────╮                                                     [0m
+[0m[2m                       │                             ╭──────────────────────────────────────────────── × ─╮                                                     [0m
 [0m[2m                       │                             │                                                    │                                                     [0m
 [0m[2m                       │                             │  [0m[1;2mDelete 2 members?[0m[2m                                 │                                                     [0m
 [0m[2m                       │                             │                                                    │                                                     [0m
