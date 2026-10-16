@@ -191,9 +191,18 @@ pub struct FormDialog {
     /// Default [`NavKeys::NO_VIM`]: ←/→ only, so letters stay with the
     /// fields.
     pub nav: NavKeys,
+    /// How ←/→ move between the buttons ([`ButtonRow::step`]). Default
+    /// [`ButtonRow::new`]: disabled buttons are skipped, no wrap.
+    pub button_row: crate::widgets::button::ButtonRow,
 }
 
 impl FormDialog {
+    /// See [`Self::button_row`].
+    pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
+        self.button_row = row;
+        self
+    }
+
     /// See [`Self::close_button`].
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
@@ -220,6 +229,7 @@ impl FormDialog {
             pop_on_save: true,
             strings: Strings::DEFAULT,
             nav: NavKeys::NO_VIM,
+            button_row: crate::widgets::button::ButtonRow::new(),
         }
     }
 
@@ -481,20 +491,16 @@ impl FormDialog {
                 Outcome::Changed
             }
             _ if !editing && matches!(self.nav.action(key), Some(Nav::Left | Nav::Right)) => {
-                let ids: Vec<WidgetId> = self
+                // one button-row rule (K32): skips disabled buttons,
+                // stops at the ends unless the row wraps
+                let row = self
                     .actions
                     .iter()
-                    .map(|(_, b)| b.id)
-                    .chain([self.cancel.id, self.save.id])
-                    .collect();
-                if let Some(i) = ids.iter().position(|id| Some(*id) == cur) {
-                    let n = ids.len();
-                    let j = if self.nav.action(key) == Some(Nav::Left) {
-                        (i + n - 1) % n
-                    } else {
-                        (i + 1) % n
-                    };
-                    focus.focus(ids[j]);
+                    .map(|(_, b)| b)
+                    .chain([&self.cancel, &self.save]);
+                let forward = self.nav.action(key) == Some(Nav::Right);
+                if let Some(id) = self.button_row.step(row, cur, forward) {
+                    focus.focus(id);
                 }
                 Outcome::Changed
             }
@@ -959,5 +965,52 @@ mod tests {
                 .iter()
                 .any(|(n, v)| n == "ro" && *v == FieldValue::Bool(true))
         );
+    }
+
+    /// Keyboard audit #32: ←/→ between a form's buttons follow the one
+    /// button-row rule Dialog uses: disabled buttons are skipped and the
+    /// arrows stop at the ends (they wrapped and landed on disabled ones).
+    #[test]
+    fn arrows_between_form_buttons_skip_disabled_and_stop_at_the_ends() {
+        use crate::core::focus::{Focus, FocusRing};
+        let mut f = FormDialog::new(WidgetId::of("f"), "Form", vec![]);
+        f.actions.push((
+            "check".into(),
+            Button::new(
+                WidgetId::of("f.check"),
+                "Check",
+                crate::theme::ButtonKind::Secondary,
+            ),
+        ));
+        f.actions.push((
+            "off".into(),
+            Button::new(
+                WidgetId::of("f.off"),
+                "Off",
+                crate::theme::ButtonKind::Secondary,
+            )
+            .disabled(true),
+        ));
+        let mut focus = Focus::default();
+        let ring = FocusRing::default();
+        let key = |code| Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        focus.focus(WidgetId::of("f.check"));
+        f.on_key(&key(KeyCode::Right), &mut focus, &ring);
+        assert_eq!(focus.current(), Some(f.cancel.id), "skips the disabled one");
+        f.on_key(&key(KeyCode::Left), &mut focus, &ring);
+        assert_eq!(focus.current(), Some(WidgetId::of("f.check")));
+        f.on_key(&key(KeyCode::Left), &mut focus, &ring);
+        assert_eq!(focus.current(), Some(WidgetId::of("f.check")), "stops");
+        focus.focus(f.save.id);
+        f.on_key(&key(KeyCode::Right), &mut focus, &ring);
+        assert_eq!(focus.current(), Some(f.save.id), "no wrap by default");
+        let mut w = FormDialog::new(WidgetId::of("w"), "Form", vec![])
+            .button_row(crate::widgets::button::ButtonRow::new().wrap(true));
+        focus.focus(w.save.id);
+        w.on_key(&key(KeyCode::Right), &mut focus, &ring);
+        assert_eq!(focus.current(), Some(w.cancel.id), "wraps when asked");
     }
 }
