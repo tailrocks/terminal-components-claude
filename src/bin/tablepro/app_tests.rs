@@ -218,7 +218,7 @@ fn explorer_opens_table_and_grid_navigates() {
     };
     assert_eq!(g.cursor.0, 1);
     assert_eq!(g.cursor.1, g.columns.len() - 1);
-    assert!(g.hscroll.offset > 0, "wide table scrolled horizontally");
+    assert!(g.scroll.h.offset > 0, "wide table scrolled horizontally");
     assert!(h.text().contains("cols "));
 }
 

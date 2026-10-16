@@ -139,7 +139,7 @@ impl Surface for DataGrid {
         self.on_key(key).0
     }
     fn wheel(&mut self, delta: i32) -> Outcome {
-        self.on_wheel(delta, false)
+        self.on_wheel(delta)
     }
 }
 
@@ -323,7 +323,7 @@ fn measure_widgets() {
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 200, 55);
         let mut g = grid_with(200, blob);
-        g.hscroll.offset = 6;
+        g.scroll.h.offset = 6;
         frame(&mut g, area, &theme);
         let hovered = g.cell_id(3, 9);
         let mut hover = Duration::ZERO;
@@ -442,19 +442,19 @@ fn long_cut_values_cost_what_their_visible_part_costs() {
     };
     let (mut short, mut long) = (grid_with(60, 0), grid_with(60, 128 * 1024));
     // bring the long-value columns (8 and 9) on screen
-    short.hscroll.offset = 6;
-    long.hscroll.offset = 6;
+    short.scroll.h.offset = 6;
+    long.scroll.h.offset = 6;
     frame(&mut short, area, &theme);
     frame(&mut long, area, &theme);
-    assert!(long.hscroll.offset + long.hscroll.viewport_len > 9);
+    assert!(long.scroll.h.offset + long.scroll.h.viewport_len > 9);
     check(
         "DataGrid",
         best(&mut short, area, &theme),
         best(&mut long, area, &theme),
     );
     let (mut short, mut long) = (table_with(60, 0), table_with(60, 128 * 1024));
-    short.hscroll.offset = 6;
-    long.hscroll.offset = 6;
+    short.scroll.h.offset = 6;
+    long.scroll.h.offset = 6;
     check(
         "DataTable",
         best(&mut short, area, &theme),

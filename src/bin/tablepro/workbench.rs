@@ -1318,7 +1318,11 @@ impl Workbench {
         match self.tabs.get_mut(self.active) {
             Some(WorkTab::Table(t)) => {
                 if t.grid.owns(id) {
-                    return t.grid.on_wheel(delta, horizontal);
+                    return if horizontal {
+                        t.grid.on_wheel_h(delta)
+                    } else {
+                        t.grid.on_wheel(delta)
+                    };
                 }
                 if t.structure.owns(id) {
                     return if horizontal {
