@@ -144,7 +144,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/chrome-options", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "2", "wait:Press-drag-release"]).pending(),
     Root::new("showcase/sections/chrome-states", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Clickable segment"]).pending(),
     Root::new("showcase/sections/chrome-narrow-chevron", Bin::Showcase, &["--page", "chrome", "--opt", "chrome.bar=narrow", "--opt", "chrome.overflow=chevron", "--motion", "paused"], BOOT).sends(&["wait:overflow Chevron"]).pending(),
-    Root::new("showcase/sections/chrome-env-menu", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).click("production").pending().dismiss_pending(),
     Root::new("showcase/sections/chrome-status-tooltip", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).hover("PR #482").pending(),
     Root::new("showcase/sections/statushints-options", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "2", "wait:F5 priority"]).pending(),
     Root::new("showcase/sections/statushints-states", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "3", "wait:Pinned F5"]).pending(),
@@ -257,6 +256,8 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/selectable/delete_confirm", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "down", "space", "wait:1 selected", "shift-down", "wait:2 selected", "d", "wait:Delete 2 members?"]).dismiss_pending(),
     // Pending: overlays reached by pointer, with both dismissals.
     Root::new("showcase/overlays/chrome_context_row", Bin::Showcase, &["--page", "chrome"], BOOT).right_click("Codex (Primary)").pending().dismiss_pending(),
+    // the app menu the identity strip's environment segment opens (SC4)
+    Root::new("showcase/overlays/chrome_env_menu", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).click("production").pending().dismiss_pending(),
     Root::new("showcase/overlays/lists_context", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "shift-f10"]).pending().dismiss_pending(),
     // SC14 Tabs: the +N menu of hidden tabs, and closing the dirty tab
     // (x on orders.sql) asks Cancel / Discard / Save first.
