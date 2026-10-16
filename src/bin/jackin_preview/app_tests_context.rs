@@ -12,7 +12,9 @@ use junie_tui::core::id::WidgetId;
 use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
+use crate::screens::accounts::{MENU as ACCOUNTS_MENU, Sel};
 use crate::screens::manager::{MENU, RowKey};
+use junie_tui::widgets::menu::ContextMenu;
 
 fn shift_f10(h: &mut H) {
     h.app.handle(Input::Key(Key {
@@ -211,4 +213,107 @@ fn manager_right_click_outside_a_menu_reopens_on_the_new_row() {
     h.mouse(MouseKind::Secondary, cx, cy);
     assert!(!h.app.host_menu.is_open(), "the menu bar closed");
     assert_eq!(manager_menu(&h).y, cy + 1, "the row menu opened");
+}
+
+// ------------------------------------------------------------ accounts
+
+fn accounts() -> H {
+    let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Accounts, "{}", h.text());
+    h
+}
+
+fn accounts_menu(h: &H) -> &ContextMenu {
+    h.app
+        .screens
+        .accounts
+        .menu
+        .menu()
+        .expect("the accounts menu is open")
+}
+
+fn selected_account(h: &H) -> String {
+    match &h.app.screens.accounts.selected {
+        Sel::Account(id) => id.clone(),
+        s => panic!("not an account: {s:?}"),
+    }
+}
+
+#[test]
+fn accounts_row_menu_sets_the_default_and_explains_what_cannot_run() {
+    let mut h = accounts();
+    let (x, y) = find_left(&h, "Experiments", 40).unwrap();
+    h.mouse(MouseKind::Secondary, x, y);
+    let area = accounts_menu(&h).area;
+    assert_eq!((area.x, area.y), (x, y + 1), "at the pointer");
+    assert!(row(&h, area.y + 1).contains("Experiments"), "titled");
+    let labels: Vec<String> = accounts_menu(&h)
+        .items
+        .iter()
+        .map(|i| i.label.clone())
+        .collect();
+    assert_eq!(
+        labels,
+        [
+            "Refresh",
+            "Validate",
+            "Show usage",
+            "Edit…",
+            "Set default",
+            "Disable",
+            "Remove…"
+        ]
+    );
+    assert!(accounts_menu(&h).items[6].danger);
+    let id = selected_account(&h);
+    assert!(!h.app.world.accounts.get(&id).unwrap().default_for_provider);
+    // Set default: the Space key's path
+    choose(&mut h, ACCOUNTS_MENU, 4);
+    assert!(h.app.screens.accounts.menu.menu().is_none(), "closed");
+    assert!(
+        h.app.world.accounts.get(&id).unwrap().default_for_provider,
+        "{}",
+        h.text()
+    );
+
+    // the provider default cannot become the default again
+    let (px, py) = find_left(&h, "Personal", 40).unwrap();
+    h.mouse(MouseKind::Secondary, px, py);
+    let set_default = &accounts_menu(&h).items[4];
+    assert!(set_default.disabled, "{set_default:?}");
+    h.key(KeyCode::Esc);
+    // a discovered account is read-only: no edit, no remove
+    let (dx, dy) = find_left(&h, "discovered", 40).unwrap();
+    h.mouse(MouseKind::Secondary, dx, dy);
+    let m = accounts_menu(&h);
+    assert!(!m.items[0].disabled, "Refresh still runs");
+    assert!(m.items[3].disabled && m.items[6].disabled, "{:?}", m.items);
+}
+
+#[test]
+fn accounts_shift_f10_opens_under_the_cursor_row_and_folds() {
+    let mut h = accounts();
+    h.key(KeyCode::Down);
+    let (_, y) = find_left(&h, "Claude", 40).unwrap();
+    shift_f10(&mut h);
+    assert_eq!(accounts_menu(&h).area.y, y + 1, "under the cursor row");
+    assert!(h.text().contains("Refresh provider"), "{}", h.text());
+    // the last item collapses the provider
+    h.key(KeyCode::End);
+    h.key(KeyCode::Enter);
+    assert!(h.app.screens.accounts.menu.menu().is_none());
+    assert!(find_left(&h, "Personal", 40).is_none(), "{}", h.text());
+}
+
+#[test]
+fn accounts_right_click_outside_a_menu_reopens_on_the_new_row() {
+    let mut h = accounts();
+    let (x, y) = find_left(&h, "Experiments", 40).unwrap();
+    h.mouse(MouseKind::Secondary, x, y);
+    let (px, py) = find_left(&h, "Personal", 40).unwrap();
+    h.mouse(MouseKind::Secondary, px, py);
+    let area = accounts_menu(&h).area;
+    assert_eq!((area.x, area.y), (px, py + 1), "reopened at the new spot");
+    assert!(row(&h, area.y + 1).contains("Personal"));
+    assert_eq!(h.text().matches("Show usage").count(), 1, "one menu");
 }
