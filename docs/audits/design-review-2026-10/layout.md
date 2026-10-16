@@ -158,3 +158,75 @@ Ranked findings, most severe first. Snapshot paths are relative to `/Users/donbe
 - Fix: one shared chrome edge token (default 2).
 
 Scratch files (dumps of all snapshot text by size) are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/audit-layout/`.
+
+## Status
+
+Every finding is fixed in a shared component, or partly fixed with the
+remainder recorded here with its reason. Commits are on
+`design/interaction-polish`.
+
+| # | Status | Commits |
+|---|---|---|
+| 1 | Fixed: `ui::layout::Stack` (measures, scrolls by child; `overflow` Scroll/Clip), `RenderCtx::clip`, `RenderCtx::focus_stop`, `Panel::try_render -> Option<Rect>`; TablePro connection form, jackin editor General, showcase Task runner / Panels / Chips | b5a9b2992, 8f5e07e39, 8fe94cbf1, a1091ba6e |
+| 2 | Fixed: Dialog Text body scrolls (keys, wheel, scrollbar), "↓ N more", "↑↓ Scroll" hint; `body_scroll`, `max_height` | d2d6896b9 |
+| 3 | Fixed: Facts rows scroll; `TextInput::height()`/`height_for()` drop the empty help row; `TextInput::wrap_label` (on for typed acknowledgements) | d2d6896b9 |
+| 4 | Fixed: `Dialog::render_in(screen, bounds)` + `dialog::body_bounds`, `outer_margin`; Holla text modals and jackin's modal frame use the same bounds | d2d6896b9, e9a9c1941 |
+| 5 | Fixed: `popup::place_with` + `Place::margin` (1), `ContextMenu::edge_margin` (1), dialog margin 3 columns | 6612b4443, d2d6896b9 |
+| 6 | Fixed with two deviations (below) | f0cb83a02 |
+| 7 | Fixed: `Panel::title_min` (12), `meta_short`, automatic short position label | 4a4e30830 |
+| 8, 9, 21, 23 | Fixed earlier on this branch | — |
+| 10 | Fixed: `TreeView::reserve_right` | 46c86a96f |
+| 11 | Fixed: `WrapOpts::keep_indent`, `hang_at_gap`; `KeyReference` used by TablePro's help; partial (below) | f2c4e04cb |
+| 12 | Tokens added (`Theme::spacing`); dialogs adopt `spacing.dialog`; partial (below) | 2a3fe1d42, c394ed8a4 |
+| 13 | Fixed: `TextInput::GUTTER`; dialog fields render at `inner.x - GUTTER` | d2d6896b9 |
+| 14 | Fixed: `scrollbar::split` with gap 1 in ListBox, PropsList, CodeEditor, TextViewport/Diff; `props::Sheet::label_max_share` with stacked fallback; partial (below) | e5afa0423, 72dff1756 |
+| 15 | Fixed: `ButtonRow` (primary never cut; More/Wrap; theme gap 2) in jackin's account drawer and every Dialog; partial (below) | 72dff1756, 355227030 |
+| 16 | Fixed: `ui::columns` solver in the quick switcher, Holla results, jackin usage | d09f244c9 |
+| 17 | Fixed for the audited pages: showcase `Sections`, `Panel::mark_clipped`; partial (below) | 8fe94cbf1, 919cd85bb |
+| 18 | Fixed: `BarLayout::label_width`, `reserve_value` | 5b0c2fd42 |
+| 19 | Fixed: `scrollbar::render_divider`; partial (below) | 9a1672acc |
+| 20 | Fixed: `Place::v_align` (Center default, Third on request), `Place::text_inset`; completion text lines up with the typed word | 6612b4443 |
+| 22 | Fixed: `chips::overflow_run` "+N", `ChipBar::overflow_marker`, `Finder::explore_overflow_marker`; partial (below) | 55264ea76 |
+| 24 | Fixed: centring excludes the trailing gap; `Theme::hintbar.align` set once per app | f0cb83a02 |
+| 25 | Fixed: `Spacing::chrome_edge` (2) for menu bars and segment strips | 23ccf0a20 |
+
+### Not done, with reasons
+
+- **#1, `Panel::render` signature.** It still returns `Rect`. Changing it to
+  `Option<Rect>` touches 80+ call sites in four apps that other agents were
+  editing at the same time; `Panel::try_render` returns `Option<Rect>` and
+  call sites move to it as they are touched.
+- **#6, `status_max_share`.** Implemented as `HintBarStyle::status_min_share`
+  (default 50%) instead: a hard cap whenever hints wait cut error and
+  confirmation messages short (TablePro's read-only notice, Holla status
+  lines). The status now gives up room only to the pinned hints (Esc, ?,
+  F1), which is what was being lost.
+- **#6, compact mode.** Built (`HintBarStyle::compact`) but off by default:
+  on jackin's footer it produced a row of bare keys with no verbs, which
+  says less than dropping hints from the right.
+- **#11, Holla and jackin help.** Not moved to `KeyReference`: both already
+  indent wrapped lines correctly through their own key/value lines, and
+  moving them means rewriting their modal widgets for no visible change.
+- **#12, panels and popups.** Framed panels pad 2 left / 1 right and popup
+  surfaces 0; `spacing.panel` (2×0) and `spacing.popup` (1×0) exist but are
+  not wired in, because doing so moves every framed panel and popup by a
+  column. That is a deliberate visual change needing its own baseline
+  re-approval, not a side effect of this pass.
+- **#14, tables and grids.** Their scrollbars do not use `scrollbar::split`
+  yet; they already keep their own one-column gutter.
+- **#15, other button rows.** TablePro's connection form, the showcase task
+  runner and the Holla/jackin modals still lay buttons out with
+  `row_layout`. A `RowOverflow::More` row needs its owner to open a menu of
+  the hidden buttons, which each of those screens would have to add.
+- **#17, other showcase pages.** Only the pages the audit names use
+  `Sections`; the rest keep fixed `rows()` and convert one by one.
+- **#19, breakpoints.** The sidebar's switch between section headers and the
+  compact list at 120 columns is intended responsive behaviour and stays.
+  The divider no longer changes.
+- **#22, Holla Explore row.** Wired to the shared "+N" helper, but the row
+  never overflows at any supported size (72 columns minimum), so there is
+  no app-level test; `chips::overflow_run` and `ChipBar` have unit tests.
+- **#4, quick switcher.** `Picker` still centres in the whole screen (now
+  with the one-cell margin and true vertical centring from #5 and #20). It
+  draws its own hint line in the footer, so its placement was left with
+  the screen.
