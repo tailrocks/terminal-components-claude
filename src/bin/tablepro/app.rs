@@ -2031,6 +2031,9 @@ impl App {
                 let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
                     return Outcome::Ignored;
                 };
+                if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
+                    return d.on_drag(pressed, m.pos);
+                }
                 if !self.modals.is_empty() {
                     return Outcome::Consumed;
                 }
@@ -2079,11 +2082,20 @@ impl App {
             | MouseKind::WheelRight => {
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 let delta = self.pointer.wheel_delta(m.kind);
+                // a sideways wheel reaches only horizontal scrolling
                 if let Some(Modal::Picker(_, p, _)) = self.modals.top_mut() {
-                    return p.on_wheel(delta);
+                    return if horizontal {
+                        Outcome::Consumed
+                    } else {
+                        p.on_wheel(delta)
+                    };
                 }
                 if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
-                    return d.on_wheel(delta);
+                    return if horizontal {
+                        d.on_wheel_h(delta)
+                    } else {
+                        d.on_wheel(delta)
+                    };
                 }
                 if !self.modals.is_empty() {
                     return Outcome::Consumed;

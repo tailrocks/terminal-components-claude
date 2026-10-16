@@ -1585,9 +1585,16 @@ impl App {
                 };
                 self.with_top(|s, w, cx| s.on_secondary(id, m.pos, w, cx))
             }
-            // nothing here scrolls sideways, and a sideways swipe must
+            // only a dialog code preview scrolls sideways here; a sideways swipe must
             // never scroll rows
-            MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Consumed,
+            MouseKind::WheelLeft | MouseKind::WheelRight => match self.modals.last_mut() {
+                // a dialog's code preview scrolls sideways
+                Some(top) => match &mut top.modal {
+                    Modal::Dialog(d) => d.on_wheel_h(self.pointer.wheel_delta(m.kind)),
+                    _ => Outcome::Consumed,
+                },
+                None => Outcome::Consumed,
+            },
             MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = self.pointer.wheel_delta(m.kind);
                 // a horizontal swipe is its own axis: it never scrolls a
