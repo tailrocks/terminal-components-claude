@@ -7,7 +7,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::Tone;
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
@@ -542,6 +542,8 @@ impl SettingsScreen {
             if x + 22 + (width(&roles) as u16) < rect.right() {
                 buf.set_string(x + 21, y, &roles, st.fg(t.text_faint));
             }
+            // the cursor row is a fill: its details step up to stay readable
+            legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
         let ny = body.y + self.pending.trust.len() as u16 + 1;
@@ -680,6 +682,7 @@ impl SettingsScreen {
                 truncate(&detail, rect.right().saturating_sub(dx + 1) as usize),
                 st.fg(t.text_muted),
             );
+            legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
         let ny = body.y + Agent::ALL.len() as u16 + 1;
