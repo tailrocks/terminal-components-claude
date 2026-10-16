@@ -153,11 +153,11 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
     let mut h = Harness::new(120, 40, PageId::Overview);
     let brand = h.area_of(crate::app::HEADER_BRAND);
     h.click(brand.x, brand.y);
-    assert!(h.app.dialog.is_some(), "the quit confirmation is open");
+    assert!(h.app.dialog().is_some(), "the quit confirmation is open");
     let cancel = crate::app::QUIT_DIALOG.sub("cancel");
     let area = h.area_of(cancel);
     h.click(area.x + 1, area.y);
-    assert!(h.app.dialog.is_none(), "Cancel closed it");
+    assert!(h.app.dialog().is_none(), "Cancel closed it");
     assert_eq!(h.flashing(), Some(cancel), "the dialog button flashes");
 }
 
@@ -184,17 +184,17 @@ fn a_click_on_a_footer_hint_runs_its_key() {
 fn a_drag_on_the_keyboard_references_scrollbar_scrolls_it() {
     let mut h = Harness::new(72, 20, PageId::Overview);
     h.key(KeyCode::Char('?'));
-    let help = h.app.help.as_ref().expect("the reference is open");
+    let help = h.app.help().expect("the reference is open");
     let bar = scrollbar::id_for(help.id);
     let track = h.area_of(bar);
     assert_eq!(help.scroll.v.offset, 0);
     // grab the thumb at the top and drag it down the track
     h.mouse(MouseKind::Down, track.x, track.y);
     h.mouse(MouseKind::Drag, track.x, track.bottom() - 1);
-    let offset = h.app.help.as_ref().unwrap().scroll.v.offset;
+    let offset = h.app.help().unwrap().scroll.v.offset;
     assert!(offset > 0, "the drag scrolled the reference:\n{}", h.text());
     h.mouse(MouseKind::Up, track.x, track.bottom() - 1);
-    assert!(h.app.help.is_some(), "the drag is no outside click");
+    assert!(h.app.help().is_some(), "the drag is no outside click");
 }
 
 /// S5 deviation 5: a click outside an open picker (on its light-dismiss
