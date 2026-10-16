@@ -72,6 +72,10 @@ pub enum TabKind {
 pub struct TabEntry {
     pub kind: TabKind,
     pub stack: Vec<Box<dyn Screen>>,
+    /// Status and error messages a screen of this tab raised while the
+    /// tab was in the background (a field's blur hook): shown when the
+    /// tab is active again.
+    pub pending: Vec<Request>,
 }
 
 pub(crate) struct ModalEntry {
@@ -154,6 +158,7 @@ impl App {
             tabs: vec![TabEntry {
                 kind: TabKind::Here,
                 stack: vec![Box::new(FinderPage::new(None))],
+                pending: vec![],
             }],
             active: 0,
             modals: ModalStack::new(),
@@ -332,7 +337,17 @@ impl App {
 
     pub fn handle(&mut self, input: Input) -> Outcome {
         let out = self.handle_input(input);
-        out.or(self.forward_blur())
+        let out = out.or(self.forward_blur());
+        // messages a background tab raised show once it is active
+        let active = self.active;
+        match self
+            .tabs
+            .get_mut(active)
+            .map(|t| std::mem::take(&mut t.pending))
+        {
+            Some(pending) if !pending.is_empty() => out.or(self.apply_requests(pending, active)),
+            _ => out,
+        }
     }
 
     /// Hand every focus change the input caused to the modals and to the
@@ -359,6 +374,13 @@ impl App {
                 let reqs = std::mem::take(&mut cx.requests);
                 if ti == self.active {
                     out = out.or(self.apply_requests(reqs, ti));
+                } else {
+                    // a background tab's messages wait for the tab; what
+                    // would act on the screen (navigation, modals) does not
+                    self.tabs[ti].pending.extend(
+                        reqs.into_iter()
+                            .filter(|r| matches!(r, Request::Status(_) | Request::Error(_))),
+                    );
                 }
             }
         }
@@ -2041,6 +2063,7 @@ impl App {
         self.tabs.push(TabEntry {
             kind: TabKind::Activity(id.to_owned()),
             stack: vec![Box::new(ActivityTab::new(id))],
+            pending: vec![],
         });
         if activate {
             let n = self.tabs.len() - 1;
@@ -2060,6 +2083,7 @@ impl App {
         self.tabs.push(TabEntry {
             kind: TabKind::Plan(id.to_owned()),
             stack: vec![Box::new(PlanTab::new(id))],
+            pending: vec![],
         });
         let n = self.tabs.len() - 1;
         self.activate_tab(n);
