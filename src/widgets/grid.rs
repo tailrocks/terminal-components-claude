@@ -267,8 +267,32 @@ pub enum GridEvent {
 }
 
 /// Validate text typed into a cell for a column. The owner can replace
-/// this with engine-aware parsing.
-pub type Validator = fn(&ColumnSpec, &str) -> Result<CellValue, String>;
+/// this with engine-aware parsing ([`DataGrid::validator`]); a closure, so
+/// it can capture state (a schema, an enum list).
+#[derive(Clone)]
+pub struct Validator(pub std::rc::Rc<ValidateFn>);
+
+/// The function a [`Validator`] wraps.
+pub type ValidateFn = dyn Fn(&ColumnSpec, &str) -> Result<CellValue, String>;
+
+impl Validator {
+    pub fn new(f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static) -> Self {
+        Self(std::rc::Rc::new(f))
+    }
+}
+
+impl Default for Validator {
+    /// [`default_validator`].
+    fn default() -> Self {
+        Self::new(default_validator)
+    }
+}
+
+impl std::fmt::Debug for Validator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Validator")
+    }
+}
 
 pub fn default_validator(col: &ColumnSpec, text: &str) -> Result<CellValue, String> {
     let t = text.trim();
@@ -435,7 +459,7 @@ impl DataGrid {
             cell_errors: HashMap::new(),
             row_errors: HashMap::new(),
             empty: crate::widgets::empty::EmptyState::new("No rows"),
-            validator: default_validator,
+            validator: Validator::default(),
             row_numbers: true,
             area: Rect::ZERO,
             track: Rect::ZERO,
@@ -476,6 +500,15 @@ impl DataGrid {
     /// Show or hide the `‹n` / `n›` hidden-column badges.
     pub fn overflow_badges(mut self, on: bool) -> Self {
         self.overflow_badges = on;
+        self
+    }
+
+    /// Replace the cell validator (default [`default_validator`]).
+    pub fn validator(
+        mut self,
+        f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static,
+    ) -> Self {
+        self.validator = Validator::new(f);
         self
     }
 
@@ -701,7 +734,7 @@ impl DataGrid {
                 _ => Err("Empty: use Delete for NULL".to_owned()),
             }
         } else {
-            (self.validator)(spec, &text)
+            (self.validator.0)(spec, &text)
         };
         match parsed {
             Ok(v) => {
@@ -2719,6 +2752,23 @@ mod tests {
         g.begin_edit(); // bool cycles without an editor
         assert!(!g.is_editing());
         assert_eq!(g.value(0, 3), &CellValue::Bool(false));
+    }
+
+    #[test]
+    fn a_validator_can_capture_state() {
+        let allowed = ["red".to_owned(), "blue".to_owned()];
+        let mut g = grid().validator(move |_, text| {
+            if allowed.iter().any(|a| a == text) {
+                Ok(CellValue::Text(text.to_owned()))
+            } else {
+                Err(format!("One of {}", allowed.join(", ")))
+            }
+        });
+        g.cursor = (0, 2);
+        g.begin_edit();
+        g.edit.as_mut().unwrap().buffer.insert_str("green");
+        assert!(g.commit_edit().is_none());
+        assert_eq!(g.edit_error(), Some("One of red, blue"));
     }
 
     #[test]
