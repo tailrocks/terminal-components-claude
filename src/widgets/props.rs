@@ -223,7 +223,7 @@ pub fn render_with(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PropsEvent {
+pub enum PropsAction {
     Copy(usize),
     Activate(usize),
 }
@@ -366,7 +366,7 @@ impl PropsList {
         self.scroll.ensure_visible(self.cursor);
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PropsEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PropsAction>) {
         if self.props.is_empty() {
             return (Outcome::Ignored, None);
         }
@@ -375,7 +375,7 @@ impl PropsList {
         }
         if let Some(PropsCmd::Copy) = lookup(&self.keymap, key) {
             if self.props[self.cursor].copyable {
-                return (Outcome::Changed, Some(PropsEvent::Copy(self.cursor)));
+                return (Outcome::Changed, Some(PropsAction::Copy(self.cursor)));
             }
             return (Outcome::Consumed, None);
         }
@@ -388,19 +388,19 @@ impl PropsList {
             (Some(Nav::Home), _) if key.plain() => self.set_cursor(0),
             (Some(Nav::End), _) => self.set_cursor(usize::MAX),
             (_, KeyCode::Enter) => {
-                return (Outcome::Changed, Some(PropsEvent::Activate(self.cursor)));
+                return (Outcome::Changed, Some(PropsAction::Activate(self.cursor)));
             }
             _ => return (Outcome::Ignored, None),
         }
         (Outcome::Changed, None)
     }
 
-    pub fn on_click(&mut self, row: usize) -> (Outcome, Option<PropsEvent>) {
+    pub fn on_click(&mut self, row: usize) -> (Outcome, Option<PropsAction>) {
         if row >= self.props.len() {
             return (Outcome::Consumed, None);
         }
         self.set_cursor(row);
-        (Outcome::Changed, Some(PropsEvent::Activate(row)))
+        (Outcome::Changed, Some(PropsAction::Activate(row)))
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {

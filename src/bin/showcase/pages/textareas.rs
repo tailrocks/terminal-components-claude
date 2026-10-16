@@ -5,7 +5,7 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::widgets::input::InputEvent;
+use junie_tui::widgets::input::InputAction;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::textarea::TextArea;
@@ -83,7 +83,7 @@ impl Page for TextAreasPage {
                 return Outcome::Ignored;
             };
             return match self.areas[i].on_blur() {
-                Some(InputEvent::Committed) => {
+                Some(InputAction::Committed) => {
                     cx.status("Saved");
                     Outcome::Changed
                 }
@@ -101,9 +101,9 @@ impl Page for TextAreasPage {
                 };
                 let (out, iev) = self.areas[i].on_key(key);
                 match iev {
-                    Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
-                    Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
-                    Some(InputEvent::Committed) => cx.status("Saved"),
+                    Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
+                    Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
+                    Some(InputAction::Committed) => cx.status("Saved"),
                     _ => {}
                 }
                 out

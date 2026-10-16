@@ -109,7 +109,7 @@ pub struct Mark {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ViewportEvent {
+pub enum ViewportAction {
     /// `y` with a selection: the owner puts the text on its clipboard.
     Copy(String),
     SelectionChanged,
@@ -441,7 +441,7 @@ pub struct TextViewport {
 pub enum ViewportCmd {
     /// Toggle following the tail. Default `f`.
     ToggleFollow,
-    /// Copy the selection ([`ViewportEvent::Copy`]). Default Cmd+C where
+    /// Copy the selection ([`ViewportAction::Copy`]). Default Cmd+C where
     /// the terminal delivers Cmd, and `y` (a hint names the first
     /// deliverable).
     Copy,
@@ -1672,7 +1672,7 @@ impl TextViewport {
     /// is shown (Home/End stay vertical, as on `ScrollPanel`) ·
     /// Shift+arrows extend a keyboard selection (Ctrl/Alt by word,
     /// Ctrl+Shift+Home/End to the document ends) · Esc clears.
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportAction>) {
         if key.shift()
             && matches!(
                 key.code,
@@ -1686,25 +1686,25 @@ impl TextViewport {
         {
             let word = key.ctrl() || key.alt();
             let o = self.extend_selection(key.code, word);
-            return (o, Some(ViewportEvent::SelectionChanged));
+            return (o, Some(ViewportAction::SelectionChanged));
         }
         match lookup(&self.keymap, key) {
             Some(ViewportCmd::ToggleFollow) => {
                 self.set_follow(!self.follow);
                 return (
                     Outcome::Changed,
-                    Some(ViewportEvent::FollowChanged(self.follow)),
+                    Some(ViewportAction::FollowChanged(self.follow)),
                 );
             }
             Some(ViewportCmd::SelectAll) => {
                 return match self.select_all() {
-                    Outcome::Changed => (Outcome::Changed, Some(ViewportEvent::SelectionChanged)),
+                    Outcome::Changed => (Outcome::Changed, Some(ViewportAction::SelectionChanged)),
                     o => (o, None),
                 };
             }
             Some(ViewportCmd::Copy) => {
                 return match self.selected_text() {
-                    Some(t) => (Outcome::Changed, Some(ViewportEvent::Copy(t))),
+                    Some(t) => (Outcome::Changed, Some(ViewportAction::Copy(t))),
                     None => (Outcome::Consumed, None),
                 };
             }
@@ -1728,11 +1728,11 @@ impl TextViewport {
                 self.scroll.jump_end();
                 self.follow = true;
                 self.reading = None;
-                return (Outcome::Changed, Some(ViewportEvent::FollowChanged(true)));
+                return (Outcome::Changed, Some(ViewportAction::FollowChanged(true)));
             }
             (_, KeyCode::Esc) if key.plain() => {
                 return match self.clear_selection() {
-                    Outcome::Changed => (Outcome::Changed, Some(ViewportEvent::SelectionChanged)),
+                    Outcome::Changed => (Outcome::Changed, Some(ViewportAction::SelectionChanged)),
                     _ => (Outcome::Ignored, None),
                 };
             }
@@ -1744,7 +1744,7 @@ impl TextViewport {
         let was = self.follow;
         self.follow = self.is_at_tail();
         self.remember_reading();
-        let ev = (was != self.follow).then_some(ViewportEvent::FollowChanged(self.follow));
+        let ev = (was != self.follow).then_some(ViewportAction::FollowChanged(self.follow));
         (Outcome::Changed, ev)
     }
 
@@ -2027,7 +2027,7 @@ mod tests {
             Some("line 1 alpha beta\nline 2")
         );
         let (_, ev) = v.on_key(&key(KeyCode::Char('y'), KeyModifiers::NONE));
-        assert!(matches!(ev, Some(ViewportEvent::Copy(t)) if t.starts_with("line 1")));
+        assert!(matches!(ev, Some(ViewportAction::Copy(t)) if t.starts_with("line 1")));
         v.select_word_at(Position::new(8, 0));
         assert_eq!(v.selected_text().as_deref(), Some("alpha"));
     }
@@ -2814,7 +2814,7 @@ mod select_all_tests {
                 mods,
             });
             assert_eq!(out, Outcome::Changed);
-            assert_eq!(ev, Some(ViewportEvent::SelectionChanged));
+            assert_eq!(ev, Some(ViewportAction::SelectionChanged));
             let all = v.selected_text().unwrap();
             assert!(all.starts_with("line 0\nline 1\n"), "{all}");
             assert!(all.ends_with("line 29"), "{all}");
@@ -2822,7 +2822,7 @@ mod select_all_tests {
                 code: KeyCode::Char('y'),
                 mods: M::NONE,
             });
-            assert_eq!(ev, Some(ViewportEvent::Copy(all)));
+            assert_eq!(ev, Some(ViewportAction::Copy(all)));
             // again: nothing changes
             assert_eq!(
                 v.on_key(&Key {
@@ -2869,7 +2869,7 @@ mod cmd_copy_tests {
         assert_eq!(out, Outcome::Changed);
         assert_eq!(
             ev,
-            Some(ViewportEvent::Copy("line 0\nline 1\nline 2".into()))
+            Some(ViewportAction::Copy("line 0\nline 1\nline 2".into()))
         );
         assert_eq!(hint_key(&v.keymap, ViewportCmd::Copy), Some("y"));
         crate::core::keyboard::set_super_delivered(true);

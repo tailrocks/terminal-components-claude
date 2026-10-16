@@ -854,7 +854,7 @@ mod widget_tests {
 
     #[test]
     fn grid_nav_and_keymap() {
-        use crate::widgets::grid::{GridCmd, GridEvent};
+        use crate::widgets::grid::{GridAction, GridCmd};
         let mut g = grid();
         g.on_key(&c('j'));
         g.on_key(&c('l'));
@@ -870,7 +870,7 @@ mod widget_tests {
         assert_eq!(g.cursor, (1, 0));
 
         let mut g = grid();
-        assert!(matches!(g.on_key(&c('y')).1, Some(GridEvent::Copy(_))));
+        assert!(matches!(g.on_key(&c('y')).1, Some(GridAction::Copy(_))));
         let mut g = grid().keymap(vec![(KeyBinding::ctrl('c'), GridCmd::Copy)]);
         assert_eq!(
             g.on_key(&c('y')).0,
@@ -888,7 +888,7 @@ mod widget_tests {
                 mods: KeyModifiers::CONTROL,
             })
             .1,
-            Some(GridEvent::Copy(_))
+            Some(GridAction::Copy(_))
         ));
         // duplicate_keys rewrites only the DuplicateRow bindings
         let g = grid().duplicate_keys(&[]);
@@ -906,7 +906,7 @@ mod widget_tests {
 
     #[test]
     fn tabs_nav_and_keymap() {
-        use crate::widgets::tabs::{TabCmd, TabEvent, TabItem, Tabs};
+        use crate::widgets::tabs::{TabAction, TabCmd, TabItem, Tabs};
         let items = || {
             (0..3)
                 .map(|i| TabItem::new(&format!("t{i}")).closable())
@@ -915,16 +915,19 @@ mod widget_tests {
         let mut t = Tabs::with_items(WidgetId::of("t"), items());
         assert_eq!(
             t.on_key(&c('G')).1,
-            Some(TabEvent::Activated(2)),
+            Some(TabAction::Activated(2)),
             "G is End"
         );
         let mut t = Tabs::with_items(WidgetId::of("t"), items()).nav(NavKeys::NO_VIM);
         assert_eq!(t.on_key(&c('l')).0, Outcome::Ignored);
-        assert_eq!(t.on_key(&k(KeyCode::Right)).1, Some(TabEvent::Activated(1)));
+        assert_eq!(
+            t.on_key(&k(KeyCode::Right)).1,
+            Some(TabAction::Activated(1))
+        );
 
         let mut t = Tabs::with_items(WidgetId::of("t"), items());
-        assert_eq!(t.on_key(&c('x')).1, Some(TabEvent::Close(0)));
-        assert_eq!(t.on_key(&c('3')).1, Some(TabEvent::Activated(2)));
+        assert_eq!(t.on_key(&c('x')).1, Some(TabAction::Close(0)));
+        assert_eq!(t.on_key(&c('3')).1, Some(TabAction::Activated(2)));
         let mut t = Tabs::with_items(WidgetId::of("t"), items())
             .keymap(vec![(KeyBinding::ctrl('w'), TabCmd::Close)]);
         assert_eq!(
@@ -937,12 +940,12 @@ mod widget_tests {
             code: KeyCode::Char('w'),
             mods: KeyModifiers::CONTROL,
         };
-        assert_eq!(t.on_key(&ctrl_w).1, Some(TabEvent::Close(0)));
+        assert_eq!(t.on_key(&ctrl_w).1, Some(TabAction::Close(0)));
     }
 
     #[test]
     fn chips_nav_and_keymap() {
-        use crate::widgets::chips::{Chip, ChipBar, ChipCmd, ChipEvent};
+        use crate::widgets::chips::{Chip, ChipAction, ChipBar, ChipCmd};
         let bar = || {
             let mut b = ChipBar::new(WidgetId::of("c"));
             b.chips = vec![Chip::new("a"), Chip::new("b")];
@@ -957,7 +960,7 @@ mod widget_tests {
         assert_eq!(b.cursor, 2, "End reaches the add button");
 
         let mut b = bar();
-        assert_eq!(b.on_key(&c('x')).1, Some(ChipEvent::Remove(0)));
+        assert_eq!(b.on_key(&c('x')).1, Some(ChipAction::Remove(0)));
         let mut b = bar().keymap(vec![(KeyBinding::char('d'), ChipCmd::Remove)]);
         assert_eq!(
             b.on_key(&c('x')).0,
@@ -965,7 +968,7 @@ mod widget_tests {
             "the default is unbound"
         );
         assert_eq!(b.on_key(&c('+')).0, Outcome::Ignored, "so is add");
-        assert_eq!(b.on_key(&c('d')).1, Some(ChipEvent::Remove(0)));
+        assert_eq!(b.on_key(&c('d')).1, Some(ChipAction::Remove(0)));
     }
 
     #[test]

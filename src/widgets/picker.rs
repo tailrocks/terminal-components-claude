@@ -144,7 +144,7 @@ pub struct Picker {
     /// The query caret as a byte offset, or `None` at the end (where an
     /// owner that rewrites [`Self::query`] leaves it).
     caret: Option<usize>,
-    /// Delete on the query emits [`PickerEvent::Secondary`] for the
+    /// Delete on the query emits [`PickerAction::Secondary`] for the
     /// cursor row (close a tab, forget an entry) instead of deleting
     /// forward. Default `true` (today's binding); off, Delete deletes the
     /// character after the caret like a search field.
@@ -157,7 +157,7 @@ pub struct Picker {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PickerEvent {
+pub enum PickerAction {
     /// Query text changed; the owner re-supplies items.
     QueryChanged,
     Chosen(usize),
@@ -318,8 +318,10 @@ impl Picker {
 
     /// A click outside the picker: cancels it when its [`Self::dismiss`]
     /// policy allows.
-    pub fn on_click_outside(&mut self) -> Option<PickerEvent> {
-        self.dismiss.outside_click.then_some(PickerEvent::Cancelled)
+    pub fn on_click_outside(&mut self) -> Option<PickerAction> {
+        self.dismiss
+            .outside_click
+            .then_some(PickerAction::Cancelled)
     }
 
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
@@ -408,7 +410,7 @@ impl Picker {
 
     /// Pasted text enters the query as one edit: line breaks become spaces
     /// and exactly one `QueryChanged` is emitted.
-    pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerEvent>) {
+    pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerAction>) {
         if !self.searchable || self.status == PickerStatus::Loading(String::new()) {
             return (Outcome::Consumed, None);
         }
@@ -428,7 +430,7 @@ impl Picker {
         let c = self.caret();
         self.query.insert_str(c, &flat);
         self.set_caret(c + flat.len());
-        (Outcome::Changed, Some(PickerEvent::QueryChanged))
+        (Outcome::Changed, Some(PickerAction::QueryChanged))
     }
 
     /// Move the cursor and ask the next render to keep it in view.
@@ -468,7 +470,7 @@ impl Picker {
         self.scroll.ensure_visible(self.cursor);
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
         // a searchable picker types its letters, and its Home/End and ←/→
         // edit the query; the list keeps ↑/↓ and paging
         let typing = self.searchable;
@@ -491,29 +493,29 @@ impl Picker {
         (Outcome::Changed, None)
     }
 
-    fn on_other_key(&mut self, key: &Key) -> (Outcome, Option<PickerEvent>) {
+    fn on_other_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
         match key.code {
             KeyCode::Esc => {
                 if self.searchable && !self.query.is_empty() {
                     self.query.clear();
-                    return (Outcome::Changed, Some(PickerEvent::QueryChanged));
+                    return (Outcome::Changed, Some(PickerAction::QueryChanged));
                 }
                 if !self.dismiss.escape {
                     return (Outcome::Consumed, None);
                 }
-                (Outcome::Changed, Some(PickerEvent::Cancelled))
+                (Outcome::Changed, Some(PickerAction::Cancelled))
             }
             KeyCode::Enter => match self.eligible(self.cursor) {
                 Some(i) => {
                     let ev = if key.alt() {
-                        PickerEvent::ChosenAlt(i)
+                        PickerAction::ChosenAlt(i)
                     } else {
-                        PickerEvent::Chosen(i)
+                        PickerAction::Chosen(i)
                     };
                     (Outcome::Changed, Some(ev))
                 }
                 None if self.searchable && !self.query.trim().is_empty() => {
-                    (Outcome::Changed, Some(PickerEvent::Submit))
+                    (Outcome::Changed, Some(PickerAction::Submit))
                 }
                 None => (Outcome::Consumed, None),
             },
@@ -525,10 +527,10 @@ impl Picker {
                 self.step(-1);
                 (Outcome::Changed, None)
             }
-            KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
+            KeyCode::Tab => (Outcome::Changed, Some(PickerAction::NextScope)),
             KeyCode::Delete if self.searchable && !self.delete_is_secondary => {
                 if self.delete_forward() {
-                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                    (Outcome::Changed, Some(PickerAction::QueryChanged))
                 } else {
                     (Outcome::Consumed, None)
                 }
@@ -562,24 +564,24 @@ impl Picker {
                 (Outcome::Changed, None)
             }
             KeyCode::Delete => match self.eligible(self.cursor) {
-                Some(i) => (Outcome::Changed, Some(PickerEvent::Secondary(i))),
+                Some(i) => (Outcome::Changed, Some(PickerAction::Secondary(i))),
                 None => (Outcome::Consumed, None),
             },
             KeyCode::Backspace
                 if self.query.is_empty() || self.caret() == 0 && !self.searchable =>
             {
-                (Outcome::Changed, Some(PickerEvent::Back))
+                (Outcome::Changed, Some(PickerAction::Back))
             }
             KeyCode::Backspace if self.searchable && (key.ctrl() || key.alt()) => {
                 if self.delete_word() {
-                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                    (Outcome::Changed, Some(PickerAction::QueryChanged))
                 } else {
                     (Outcome::Consumed, None)
                 }
             }
             KeyCode::Backspace if self.searchable => {
                 if self.pop_grapheme() {
-                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                    (Outcome::Changed, Some(PickerAction::QueryChanged))
                 } else {
                     (Outcome::Consumed, None)
                 }
@@ -589,11 +591,11 @@ impl Picker {
                     return (Outcome::Consumed, None);
                 }
                 self.query.clear();
-                (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                (Outcome::Changed, Some(PickerAction::QueryChanged))
             }
             KeyCode::Char('w') if key.ctrl() && self.searchable => {
                 if self.delete_word() {
-                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                    (Outcome::Changed, Some(PickerAction::QueryChanged))
                 } else {
                     (Outcome::Consumed, None)
                 }
@@ -602,17 +604,17 @@ impl Picker {
                 let at = self.caret();
                 self.query.insert(at, c);
                 self.set_caret(at + c.len_utf8());
-                (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                (Outcome::Changed, Some(PickerAction::QueryChanged))
             }
             _ => (Outcome::Consumed, None),
         }
     }
 
-    pub fn on_click(&mut self, id: WidgetId) -> Option<PickerEvent> {
+    pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
         let i = self.eligible(self.locate(id)?)?;
         self.cursor = i;
         self.cursor_dirty = true;
-        Some(PickerEvent::Chosen(i))
+        Some(PickerAction::Chosen(i))
     }
 
     /// Wheel scrolls the viewport and keeps the selection where it is.
@@ -999,7 +1001,7 @@ mod tests {
         // Delete stays the secondary action by default
         assert!(matches!(
             p.on_key(&k(KeyCode::Delete, M::NONE)).1,
-            Some(PickerEvent::Secondary(_)) | None
+            Some(PickerAction::Secondary(_)) | None
         ));
         assert_eq!(p.query, "ordrs");
         let mut f = picker(3).delete_is_secondary(false);
@@ -1017,11 +1019,11 @@ mod tests {
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         };
         let mut p = picker(3);
-        assert_eq!(p.on_key(&esc).1, Some(PickerEvent::Cancelled));
-        assert_eq!(p.on_click_outside(), Some(PickerEvent::Cancelled));
+        assert_eq!(p.on_key(&esc).1, Some(PickerAction::Cancelled));
+        assert_eq!(p.on_click_outside(), Some(PickerAction::Cancelled));
         let mut form = picker(3).dismiss(Dismiss::ESCAPE);
         assert_eq!(form.on_click_outside(), None);
-        assert_eq!(form.on_key(&esc).1, Some(PickerEvent::Cancelled));
+        assert_eq!(form.on_key(&esc).1, Some(PickerAction::Cancelled));
         let mut never = picker(3).dismiss(Dismiss::NEVER);
         assert_eq!(never.on_key(&esc), (Outcome::Consumed, None));
     }
@@ -1095,7 +1097,7 @@ mod tests {
         p.status = PickerStatus::Ready;
         assert_eq!(
             p.on_key(&k(KeyCode::Delete, M::NONE)),
-            (Outcome::Changed, Some(PickerEvent::Secondary(1)))
+            (Outcome::Changed, Some(PickerAction::Secondary(1)))
         );
         assert_eq!(p.current_key(), Some("k1"));
     }
@@ -1132,20 +1134,26 @@ mod tests {
         }
         assert_eq!(p.query, "a👩\u{200d}💻");
         let (o, ev) = p.on_key(&k(KeyCode::Backspace, M::NONE));
-        assert_eq!((o, ev), (Outcome::Changed, Some(PickerEvent::QueryChanged)));
+        assert_eq!(
+            (o, ev),
+            (Outcome::Changed, Some(PickerAction::QueryChanged))
+        );
         assert_eq!(p.query, "a", "backspace removes the whole cluster");
         p.on_key(&k(KeyCode::Backspace, M::NONE));
         assert_eq!(
             p.on_key(&k(KeyCode::Backspace, M::NONE)),
-            (Outcome::Changed, Some(PickerEvent::Back))
+            (Outcome::Changed, Some(PickerAction::Back))
         );
         let (o, ev) = p.on_paste("gp\ndu\t");
-        assert_eq!((o, ev), (Outcome::Changed, Some(PickerEvent::QueryChanged)));
+        assert_eq!(
+            (o, ev),
+            (Outcome::Changed, Some(PickerAction::QueryChanged))
+        );
         assert_eq!(p.query, "gp du ");
         assert_eq!(p.on_paste(""), (Outcome::Consumed, None));
         assert_eq!(
             p.on_key(&k(KeyCode::Char('w'), M::CONTROL)),
-            (Outcome::Changed, Some(PickerEvent::QueryChanged))
+            (Outcome::Changed, Some(PickerAction::QueryChanged))
         );
         assert_eq!(p.query, "gp ");
         p.on_key(&k(KeyCode::Char('u'), M::CONTROL));

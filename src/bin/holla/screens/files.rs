@@ -17,7 +17,7 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::picker::{Picker, PickerItem, PickerStatus};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
-use junie_tui::widgets::viewport::{Mark, Span, TextViewport, ViewportEvent};
+use junie_tui::widgets::viewport::{Mark, Span, TextViewport, ViewportAction};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -1231,8 +1231,8 @@ impl Screen for FilesPage {
             }
             let (o, ev) = self.preview.on_key(key);
             match ev {
-                Some(ViewportEvent::Copy(t)) => cx.copy(t),
-                Some(ViewportEvent::FollowChanged(_)) => {}
+                Some(ViewportAction::Copy(t)) => cx.copy(t),
+                Some(ViewportAction::FollowChanged(_)) => {}
                 _ => {}
             }
             // an unhandled key (Tab, the shell chords) belongs to the shell:

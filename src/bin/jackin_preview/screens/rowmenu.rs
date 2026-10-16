@@ -9,7 +9,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::ui::context::{ContextAnchor, ContextConfig};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::menu::{ContextMenu, MenuEvent, MenuItem};
+use junie_tui::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -77,13 +77,13 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
         });
     }
 
-    fn resolve(&mut self, ev: Option<MenuEvent>) -> Option<(T, C)> {
+    fn resolve(&mut self, ev: Option<MenuAction>) -> Option<(T, C)> {
         match ev {
-            Some(MenuEvent::Chosen(i)) => {
+            Some(MenuAction::Chosen(i)) => {
                 let o = self.open.take()?;
                 o.commands.get(i).cloned().map(|c| (o.target, c))
             }
-            Some(MenuEvent::Dismissed) => {
+            Some(MenuAction::Dismissed) => {
                 self.open = None;
                 None
             }

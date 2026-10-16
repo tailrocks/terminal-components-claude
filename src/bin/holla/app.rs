@@ -23,14 +23,14 @@ use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{
-    ContextMenu, MenuBar, MenuBarEvent, MenuEvent, MenuItem, Placement,
+    ContextMenu, MenuAction, MenuBar, MenuBarAction, MenuItem, Placement,
 };
-use junie_tui::widgets::picker::{Picker, PickerEvent, PickerItem};
+use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
 use junie_tui::widgets::progress::MeterTone;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
-use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
+use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -101,7 +101,7 @@ impl junie_tui::ui::modal::Modal for ModalEntry {
 
 /// What an alternatives-menu row does.
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum MenuAction {
+enum AltCmd {
     Run,
     Copy,
     Insert,
@@ -140,7 +140,7 @@ pub struct App {
     /// The Here tab's page trail, drawn above a nested page (mouse #5).
     pub crumbs: Breadcrumb,
     menu_item: Option<String>,
-    menu_actions: Vec<MenuAction>,
+    menu_actions: Vec<AltCmd>,
     pending_gate: Option<GateTarget>,
     pending_confirm: Option<(String, Vec<(String, String)>)>,
     pub clipboard_gen: u32,
@@ -636,11 +636,11 @@ impl App {
         if self.menu.is_open() {
             let (o, ev) = self.menu.on_key(&key);
             return match ev {
-                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                Some(MenuBarAction::Chosen(mi, ii)) => {
                     let label = self.menu.menus[mi][ii].label.clone();
                     self.run_menu(&label)
                 }
-                Some(MenuBarEvent::Brand) => {
+                Some(MenuBarAction::Brand) => {
                     self.open_about();
                     Outcome::Changed
                 }
@@ -727,7 +727,7 @@ impl App {
         // the menu bar is a focus stop: ← → move the cursor, Enter opens
         if self.focus.is(MENU) {
             let (o, ev) = self.menu.on_key(&key);
-            if let Some(MenuBarEvent::Opened(_)) = ev {
+            if let Some(MenuBarAction::Opened(_)) = ev {
                 return Outcome::Changed;
             }
             if o.consumed() {
@@ -743,12 +743,12 @@ impl App {
         if self.focus.is(TABS) {
             let (o, ev) = self.strip.on_key(&key);
             match ev {
-                Some(TabEvent::Activated(i)) => {
+                Some(TabAction::Activated(i)) => {
                     self.activate_tab(i);
                     self.focus.focus(TABS);
                     return Outcome::Changed;
                 }
-                Some(TabEvent::Close(i)) => {
+                Some(TabAction::Close(i)) => {
                     self.active = i;
                     self.go(Go::CloseTab);
                     return Outcome::Changed;
@@ -1387,11 +1387,11 @@ impl App {
                     return self.files_jump_event(ev, o);
                 }
                 match ev {
-                    Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => {
+                    Some(PickerAction::Chosen(i)) | Some(PickerAction::ChosenAlt(i)) => {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::Picked(i))
                     }
-                    Some(PickerEvent::Cancelled) => {
+                    Some(PickerAction::Cancelled) => {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::Cancelled)
                     }
@@ -1401,11 +1401,11 @@ impl App {
             Modal::Menu(m) => {
                 let (o, ev) = m.on_key(&key);
                 match ev {
-                    Some(MenuEvent::Chosen(i)) => {
+                    Some(MenuAction::Chosen(i)) => {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::MenuChosen(i))
                     }
-                    Some(MenuEvent::Dismissed) => {
+                    Some(MenuAction::Dismissed) => {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::Cancelled)
                     }
@@ -1426,7 +1426,7 @@ impl App {
     /// The jump picker (HP04): the query re-supplies suggestions, Enter
     /// resolves an exact path over the selected suggestion, and a failed
     /// jump keeps the picker open with the error in its status row.
-    fn files_jump_event(&mut self, ev: Option<PickerEvent>, o: Outcome) -> Outcome {
+    fn files_jump_event(&mut self, ev: Option<PickerAction>, o: Outcome) -> Outcome {
         let active = self.active;
         let query = match self.modals.top() {
             Some(ModalEntry {
@@ -1436,7 +1436,7 @@ impl App {
             _ => return o.or(Outcome::Consumed),
         };
         match ev {
-            Some(PickerEvent::QueryChanged) | Some(PickerEvent::Back) => {
+            Some(PickerAction::QueryChanged) | Some(PickerAction::Back) => {
                 let rows = self
                     .tabs
                     .get_mut(active)
@@ -1457,12 +1457,12 @@ impl App {
                 }
                 Outcome::Changed
             }
-            Some(PickerEvent::Chosen(_))
-            | Some(PickerEvent::ChosenAlt(_))
-            | Some(PickerEvent::Submit) => {
+            Some(PickerAction::Chosen(_))
+            | Some(PickerAction::ChosenAlt(_))
+            | Some(PickerAction::Submit) => {
                 // Submit: a typed path with no suggestion resolves on its own
                 let selected = match (&ev, self.modals.top()) {
-                    (Some(PickerEvent::Submit), _) => None,
+                    (Some(PickerAction::Submit), _) => None,
                     (
                         _,
                         Some(ModalEntry {
@@ -1526,7 +1526,7 @@ impl App {
                 }
                 Outcome::Changed
             }
-            Some(PickerEvent::Cancelled) => {
+            Some(PickerAction::Cancelled) => {
                 self.pop_modal();
                 Outcome::Changed
             }
@@ -1560,18 +1560,18 @@ impl App {
                 if top.tag.kind == "files-jump" {
                     return self.files_jump_event(ev, Outcome::Changed);
                 }
-                if let Some(PickerEvent::Chosen(i)) = ev {
+                if let Some(PickerAction::Chosen(i)) = ev {
                     let entry = self.pop_modal().unwrap();
                     return self.deliver(entry, ModalResult::Picked(i));
                 }
                 Outcome::Changed
             }
             Modal::Menu(m) => match m.on_click(id) {
-                Some(MenuEvent::Chosen(i)) => {
+                Some(MenuAction::Chosen(i)) => {
                     let entry = self.pop_modal().unwrap();
                     self.deliver(entry, ModalResult::MenuChosen(i))
                 }
-                Some(MenuEvent::Dismissed) => {
+                Some(MenuAction::Dismissed) => {
                     let entry = self.pop_modal().unwrap();
                     self.deliver(entry, ModalResult::Cancelled)
                 }
@@ -1661,11 +1661,11 @@ impl App {
         if self.menu.owns(id) {
             let (o, ev) = self.menu.on_click(id);
             return match ev {
-                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                Some(MenuBarAction::Chosen(mi, ii)) => {
                     let label = self.menu.menus[mi][ii].label.clone();
                     self.run_menu(&label)
                 }
-                Some(MenuBarEvent::Brand) => {
+                Some(MenuBarAction::Brand) => {
                     self.open_about();
                     Outcome::Changed
                 }
@@ -1679,8 +1679,8 @@ impl App {
         if self.strip.owns(id) {
             let (_, ev) = self.strip.on_click(id);
             match ev {
-                Some(TabEvent::Activated(i)) => self.activate_tab(i),
-                Some(TabEvent::Close(i)) => {
+                Some(TabAction::Activated(i)) => self.activate_tab(i),
+                Some(TabAction::Close(i)) => {
                     self.active = i;
                     self.go(Go::CloseTab);
                 }
@@ -1821,7 +1821,7 @@ impl App {
                     return Outcome::Consumed;
                 }
                 match hit.and_then(|id| self.strip.on_middle_click(id)) {
-                    Some(TabEvent::Close(i)) => {
+                    Some(TabAction::Close(i)) => {
                         self.active = i;
                         self.go(Go::CloseTab);
                         Outcome::Changed
@@ -2993,16 +2993,16 @@ impl App {
             m = m.danger();
         }
         items.push(m);
-        actions.push(MenuAction::Run);
+        actions.push(AltCmd::Run);
         if !it.commands.is_empty() {
             items.push(MenuItem::new("Copy command").shortcut("y"));
-            actions.push(MenuAction::Copy);
+            actions.push(AltCmd::Copy);
             items.push(MenuItem::new("Insert into shell"));
-            actions.push(MenuAction::Insert);
+            actions.push(AltCmd::Insert);
         }
         if !it.args.is_empty() {
             items.push(MenuItem::new("Arguments…"));
-            actions.push(MenuAction::Args);
+            actions.push(AltCmd::Args);
         }
         if let Some(last) = items.last_mut() {
             last.separator_after = true;
@@ -3015,7 +3015,7 @@ impl App {
                 item = item.reason("Not in this preview");
             }
             items.push(item);
-            actions.push(MenuAction::Alternative(a.item.clone()));
+            actions.push(AltCmd::Alternative(a.item.clone()));
         }
         if !it.alternatives.is_empty()
             && let Some(last) = items.last_mut()
@@ -3027,22 +3027,22 @@ impl App {
         } else {
             "Pin here"
         }));
-        actions.push(MenuAction::Pin);
+        actions.push(AltCmd::Pin);
         items.push(MenuItem::new(match self.world.memory.alias_for(&it.id) {
             Some(a) => format!("Change alias ({a})…"),
             None => "Set alias…".into(),
         }));
-        actions.push(MenuAction::Alias);
+        actions.push(AltCmd::Alias);
         items.push(MenuItem::new(if it.hidden {
             "Restore here"
         } else {
             "Hide here"
         }));
-        actions.push(MenuAction::Hide);
+        actions.push(AltCmd::Hide);
         items.push(MenuItem::new("Reset ranking").separator());
-        actions.push(MenuAction::Reset);
+        actions.push(AltCmd::Reset);
         items.push(MenuItem::new("Why is this here?"));
-        actions.push(MenuAction::Why);
+        actions.push(AltCmd::Why);
         let menu = ContextMenu::new(WidgetId::of("alternatives"), items)
             .anchor(anchor, Placement::Below)
             .title(&it.label);
@@ -3128,24 +3128,24 @@ impl App {
             }
         }
         if alt.ends_with(".alias") {
-            self.menu_action(MenuAction::Alias, origin);
+            self.menu_action(AltCmd::Alias, origin);
         }
         // anything else is unreachable: [`App::open_alternatives`] offers an
         // alternative [`derived_supported`] rejects disabled, with a reason
     }
 
-    fn menu_action(&mut self, a: MenuAction, id: &str) {
+    fn menu_action(&mut self, a: AltCmd, id: &str) {
         let cwd = self.world.location.cwd.clone();
         match a {
-            MenuAction::Run => self.run_item(id, vec![]),
-            MenuAction::Copy => {
+            AltCmd::Run => self.run_item(id, vec![]),
+            AltCmd::Copy => {
                 let cmd = self
                     .find_item(id)
                     .map(|i| i.commands.join("\n"))
                     .unwrap_or_default();
                 self.copy(cmd);
             }
-            MenuAction::Insert => {
+            AltCmd::Insert => {
                 let cmd = self
                     .find_item(id)
                     .and_then(|i| i.commands.first().cloned())
@@ -3158,20 +3158,20 @@ impl App {
                     Tone::Secondary,
                 );
             }
-            MenuAction::Args => {
+            AltCmd::Args => {
                 self.activate_tab(0);
                 self.push_page(Page::Args {
                     item: id.to_owned(),
                 });
             }
-            MenuAction::Alternative(alt) => {
+            AltCmd::Alternative(alt) => {
                 if self.find_item(&alt).is_some() {
                     self.run_item(&alt, vec![]);
                 } else {
                     self.run_derived(&alt, id);
                 }
             }
-            MenuAction::Pin => {
+            AltCmd::Pin => {
                 let on = self.world.memory.toggle_pin(&cwd, id);
                 self.set_status(
                     if on {
@@ -3183,7 +3183,7 @@ impl App {
                 );
                 self.enter_top();
             }
-            MenuAction::Alias => {
+            AltCmd::Alias => {
                 let existing = self.world.memory.alias_for(id).unwrap_or("").to_owned();
                 let input = TextInput::new(WidgetId::of("alias").sub("field"), "Alias")
                     .value(&existing)
@@ -3192,7 +3192,7 @@ impl App {
                 let d = Dialog::prompt(WidgetId::of("alias"), "Set an alias", input, "Save");
                 self.push_modal(Modal::Dialog(d), ModalTag::new("alias").key(id.to_owned()));
             }
-            MenuAction::Hide => {
+            AltCmd::Hide => {
                 let hidden = self
                     .world
                     .memory
@@ -3211,7 +3211,7 @@ impl App {
                 }
                 self.enter_top();
             }
-            MenuAction::Reset => {
+            AltCmd::Reset => {
                 self.world.memory.reset(id);
                 self.set_status(
                     "Ranking reset for this row · pins and aliases kept",
@@ -3219,7 +3219,7 @@ impl App {
                 );
                 self.enter_top();
             }
-            MenuAction::Why => {
+            AltCmd::Why => {
                 if let Some(it) = self.find_item(id) {
                     let cwd_short = self.world.location.cwd_short();
                     let rows = crate::domain::ranking::explain(&it, &cwd_short);

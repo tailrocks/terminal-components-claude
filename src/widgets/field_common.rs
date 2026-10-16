@@ -888,7 +888,7 @@ mod cmd_edit_tests {
     #[test]
     fn text_input_paste_picks_the_edit_up() {
         use crate::core::edit::EditEntry;
-        use crate::widgets::input::{InputEvent, TextInput};
+        use crate::widgets::input::{InputAction, TextInput};
         clipboard::copy("abc");
         let mut i = TextInput::new(WidgetId::of("w"), "Name")
             .value("")
@@ -896,7 +896,7 @@ mod cmd_edit_tests {
         assert!(!i.editing);
         assert_eq!(
             i.on_key(&cmd('v')),
-            (Outcome::Changed, Some(InputEvent::Changed))
+            (Outcome::Changed, Some(InputAction::Changed))
         );
         assert!(i.editing);
         assert_eq!(i.text(), "abc");

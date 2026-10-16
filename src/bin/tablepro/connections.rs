@@ -14,13 +14,13 @@ use junie_tui::ui::leave::{KeyContext, Leave, LeaveGuard, Resolved, Stakes, lett
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
 use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::tabs::Tabs;
-use junie_tui::widgets::tree::{TreeEvent, TreeNode, TreeView};
+use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
 use crate::db::{ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
@@ -620,15 +620,15 @@ impl ConnectionsScreen {
         if f == self.filter.id {
             let (o, ev) = self.filter.on_key(key);
             match ev {
-                Some(InputEvent::Changed)
-                | Some(InputEvent::Committed)
-                | Some(InputEvent::Cancelled) => {
+                Some(InputAction::Changed)
+                | Some(InputAction::Committed)
+                | Some(InputAction::Cancelled) => {
                     let q = self.filter.text().to_owned();
                     self.tree
                         .set_filter(if q.is_empty() { None } else { Some(&q) });
                     self.sync_selected_from_cursor();
                 }
-                Some(InputEvent::CommittedTab { backward }) => {
+                Some(InputAction::CommittedTab { backward }) => {
                     if backward {
                         cx.focus_prev()
                     } else {
@@ -665,7 +665,7 @@ impl ConnectionsScreen {
             }
             let (o, ev) = self.tree.on_key(key);
             self.sync_selected_from_cursor();
-            if let Some(TreeEvent::Activate(path)) = ev
+            if let Some(TreeAction::Activate(path)) = ev
                 && let Some(i) = self.connection_at_path(&path)
             {
                 self.start_connect(i);
@@ -799,8 +799,8 @@ impl ConnectionsScreen {
             ($w:expr) => {{
                 let (o, ev) = $w.on_key(key);
                 match ev {
-                    Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
-                    Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
+                    Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
+                    Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
                     _ => {}
                 }
                 return o;
@@ -835,7 +835,7 @@ impl ConnectionsScreen {
         }
         if f == form.engine.id {
             let (o, ev) = form.engine.on_key(key);
-            if let Some(junie_tui::widgets::select::SelectEvent::Changed(i)) = ev {
+            if let Some(junie_tui::widgets::select::SelectAction::Changed(i)) = ev {
                 let port = match i {
                     0 => "5432",
                     1 => "3306",
@@ -1000,7 +1000,7 @@ impl ConnectionsScreen {
                 self.tree.on_click_row(row)
             };
             self.sync_selected_from_cursor();
-            if let Some(TreeEvent::Activate(path)) = ev {
+            if let Some(TreeAction::Activate(path)) = ev {
                 // single click selects; Enter/second click connects
                 if let Some(i) = self.connection_at_path(&path)
                     && self.selected == Some(i)

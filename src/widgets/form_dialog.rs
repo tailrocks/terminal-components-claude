@@ -4,7 +4,7 @@
 //! from jackin-preview so every app can use it; values are strings, bools
 //! and indices ([`FieldValue`]), never app types. An owner that needs a
 //! picker or a file browser for a "choose…" field opens its own modal on
-//! [`FormEvent::Choose`] and writes the result back with
+//! [`FormAction::Choose`] and writes the result back with
 //! [`FormDialog::set_chooser`].
 
 use crate::core::event::{Key, Outcome};
@@ -17,7 +17,7 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::choice::{Checkbox, RadioGroup};
-use crate::widgets::input::{InputEvent, TextInput};
+use crate::widgets::input::{InputAction, TextInput};
 use crate::widgets::scrollbar;
 use crate::widgets::select::Select;
 use ratatui::buffer::Buffer;
@@ -144,7 +144,7 @@ impl FormField {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FormEvent {
+pub enum FormAction {
     Changed(String),
     /// A chooser button fired.
     Choose(String),
@@ -169,7 +169,7 @@ pub struct FormDialog {
     pub error: Option<String>,
     pub scroll: ScrollState,
     pub area: Rect,
-    pub events: Vec<FormEvent>,
+    pub events: Vec<FormAction>,
     pub dirty: bool,
     /// When false, Save emits `Action("save")` and the owner closes the form
     /// once validation passes.
@@ -310,11 +310,11 @@ impl FormDialog {
             .any(|f| matches!(&f.kind, FormFieldKind::Input(i) if i.editing))
     }
 
-    fn save_event(&self) -> FormEvent {
+    fn save_event(&self) -> FormAction {
         if self.pop_on_save {
-            FormEvent::Save
+            FormAction::Save
         } else {
-            FormEvent::Action("save".into())
+            FormAction::Action("save".into())
         }
     }
 
@@ -331,7 +331,7 @@ impl FormDialog {
         if !editing && !open {
             match key.code {
                 KeyCode::Esc => {
-                    self.events.push(FormEvent::Cancel);
+                    self.events.push(FormAction::Cancel);
                     return Outcome::Changed;
                 }
                 KeyCode::Tab => {
@@ -354,22 +354,22 @@ impl FormDialog {
                 FormFieldKind::Input(i) if cur == Some(i.id) => {
                     let (o, ev) = i.on_key(key);
                     match ev {
-                        Some(InputEvent::CommittedTab { backward }) => {
+                        Some(InputAction::CommittedTab { backward }) => {
                             if backward {
                                 focus.prev(ring)
                             } else {
                                 focus.next(ring)
                             }
                             self.dirty = true;
-                            self.events.push(FormEvent::Changed(name));
+                            self.events.push(FormAction::Changed(name));
                             return Outcome::Changed;
                         }
-                        Some(InputEvent::Committed) => {
+                        Some(InputAction::Committed) => {
                             self.dirty = true;
-                            self.events.push(FormEvent::Changed(name));
+                            self.events.push(FormAction::Changed(name));
                             return Outcome::Changed;
                         }
-                        Some(InputEvent::Changed) => {
+                        Some(InputAction::Changed) => {
                             self.dirty = true;
                         }
                         _ => {}
@@ -382,7 +382,7 @@ impl FormDialog {
                     let (o, ev) = s.on_key(key);
                     if ev.is_some() {
                         self.dirty = true;
-                        self.events.push(FormEvent::Changed(name));
+                        self.events.push(FormAction::Changed(name));
                     }
                     if o.consumed() {
                         return o;
@@ -392,7 +392,7 @@ impl FormDialog {
                     let o = c.on_key(key);
                     if o == Outcome::Changed {
                         self.dirty = true;
-                        self.events.push(FormEvent::Changed(name));
+                        self.events.push(FormAction::Changed(name));
                     }
                     if o.consumed() {
                         return o;
@@ -403,7 +403,7 @@ impl FormDialog {
                     let o = r.on_key(key);
                     if r.selected != before {
                         self.dirty = true;
-                        self.events.push(FormEvent::Changed(name));
+                        self.events.push(FormAction::Changed(name));
                     }
                     if o.consumed() {
                         return o;
@@ -412,7 +412,7 @@ impl FormDialog {
                 FormFieldKind::Chooser { button, .. } if cur == Some(button.id) => {
                     let (o, fired) = button.on_key(key);
                     if fired {
-                        self.events.push(FormEvent::Choose(name));
+                        self.events.push(FormAction::Choose(name));
                         return Outcome::Changed;
                     }
                     if o.consumed() {
@@ -426,7 +426,7 @@ impl FormDialog {
             if cur == Some(b.id) {
                 let (o, fired) = b.on_key(key);
                 if fired {
-                    self.events.push(FormEvent::Action(name.clone()));
+                    self.events.push(FormAction::Action(name.clone()));
                     return Outcome::Changed;
                 }
                 if o.consumed() {
@@ -437,7 +437,7 @@ impl FormDialog {
         if cur == Some(self.cancel.id) {
             let (o, fired) = self.cancel.on_key(key);
             if fired {
-                self.events.push(FormEvent::Cancel);
+                self.events.push(FormAction::Cancel);
                 return Outcome::Changed;
             }
             if o.consumed() {
@@ -527,7 +527,7 @@ impl FormDialog {
                 let (o, ev) = s.on_release(pos);
                 if ev.is_some() {
                     self.dirty = true;
-                    self.events.push(FormEvent::Changed(f.name.clone()));
+                    self.events.push(FormAction::Changed(f.name.clone()));
                 }
                 return o;
             }
@@ -569,14 +569,14 @@ impl FormDialog {
                     let (o, ev) = s.on_click(id);
                     if ev.is_some() {
                         self.dirty = true;
-                        self.events.push(FormEvent::Changed(name));
+                        self.events.push(FormAction::Changed(name));
                     }
                     return o.or(Outcome::Changed);
                 }
                 FormFieldKind::Check(c) if c.id == id => {
                     focus.focus(id);
                     self.dirty = true;
-                    self.events.push(FormEvent::Changed(name));
+                    self.events.push(FormAction::Changed(name));
                     return c.on_click();
                 }
                 FormFieldKind::Radio(r) => {
@@ -585,7 +585,7 @@ impl FormDialog {
                             focus.focus(r.id);
                             let o = r.on_click(i);
                             self.dirty = true;
-                            self.events.push(FormEvent::Changed(name));
+                            self.events.push(FormAction::Changed(name));
                             return o;
                         }
                     }
@@ -593,7 +593,7 @@ impl FormDialog {
                 FormFieldKind::Chooser { button, .. } if button.id == id => {
                     focus.focus(id);
                     if button.on_click() {
-                        self.events.push(FormEvent::Choose(name));
+                        self.events.push(FormAction::Choose(name));
                     }
                     return Outcome::Changed;
                 }
@@ -604,7 +604,7 @@ impl FormDialog {
             if b.id == id {
                 focus.focus(id);
                 if b.on_click() {
-                    self.events.push(FormEvent::Action(name.clone()));
+                    self.events.push(FormAction::Action(name.clone()));
                 }
                 return Outcome::Changed;
             }
@@ -612,7 +612,7 @@ impl FormDialog {
         if id == self.cancel.id {
             focus.focus(id);
             if self.cancel.on_click() {
-                self.events.push(FormEvent::Cancel);
+                self.events.push(FormAction::Cancel);
             }
             return Outcome::Changed;
         }
@@ -639,9 +639,9 @@ impl FormDialog {
             match &mut f.kind {
                 FormFieldKind::Input(i) if i.id == ch.from => {
                     return match i.on_blur() {
-                        Some(InputEvent::Committed) => {
+                        Some(InputAction::Committed) => {
                             self.dirty = true;
-                            self.events.push(FormEvent::Changed(f.name.clone()));
+                            self.events.push(FormAction::Changed(f.name.clone()));
                             Outcome::Changed
                         }
                         Some(_) => Outcome::Changed,

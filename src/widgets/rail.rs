@@ -17,7 +17,7 @@ use crate::ui::ctx::RenderCtx;
 
 /// What a click on the sidebar's controls asks for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RailEvent {
+pub enum RailAction {
     /// The rail was clicked: open the sidebar.
     Expand,
     /// The collapse button was clicked: collapse the sidebar.
@@ -65,11 +65,11 @@ impl SidebarRail {
     }
 
     /// A completed click on `id`.
-    pub fn on_click(&self, id: WidgetId) -> Option<RailEvent> {
+    pub fn on_click(&self, id: WidgetId) -> Option<RailAction> {
         if id == self.id && self.collapsed_rail {
-            Some(RailEvent::Expand)
+            Some(RailAction::Expand)
         } else if id == self.collapse_id() {
-            Some(RailEvent::Collapse)
+            Some(RailAction::Collapse)
         } else {
             None
         }
@@ -152,10 +152,13 @@ mod tests {
         assert_eq!(rest[(0, 0)].symbol(), "›");
         assert_eq!(rest[(0, 2)].symbol(), "E");
         assert_eq!(hits.hit(Position::new(0, 5)), Some(rail.id));
-        assert_eq!(rail.on_click(rail.id), Some(RailEvent::Expand));
+        assert_eq!(rail.on_click(rail.id), Some(RailAction::Expand));
         let c = hits.area_of(rail.collapse_id()).expect("collapse button");
         assert_eq!(rest[(c.x + 1, 0)].symbol(), "‹");
-        assert_eq!(rail.on_click(rail.collapse_id()), Some(RailEvent::Collapse));
+        assert_eq!(
+            rail.on_click(rail.collapse_id()),
+            Some(RailAction::Collapse)
+        );
         let (hover, _) = draw(Some(rail.id));
         assert_ne!(rest[(0, 0)].style(), hover[(0, 0)].style());
         let off = rail.clone().collapsed_rail(false);

@@ -259,7 +259,7 @@ pub struct EditState {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum GridEvent {
+pub enum GridAction {
     CellChanged {
         row: usize,
         col: usize,
@@ -693,31 +693,36 @@ impl DataGrid {
 
     /// Store a chosen value through the grid's validator and pending
     /// queue.
-    fn apply_choice(&mut self, src: usize, col: usize, value: String) -> Result<GridEvent, String> {
+    fn apply_choice(
+        &mut self,
+        src: usize,
+        col: usize,
+        value: String,
+    ) -> Result<GridAction, String> {
         let parsed = if value.is_empty() {
             Ok(CellValue::Text(String::new()))
         } else {
             (self.validator.0)(&self.columns[col], &value)
         }?;
         self.record_cell(src, col, parsed);
-        Ok(GridEvent::CellChanged { row: src, col })
+        Ok(GridAction::CellChanged { row: src, col })
     }
 
     /// The next (previous) writable column of the cursor row, or the
     /// event that leaves the grid.
-    fn next_writable(&self, backward: bool) -> Result<usize, GridEvent> {
+    fn next_writable(&self, backward: bool) -> Result<usize, GridAction> {
         let n = self.columns.len();
         let mut col = self.cursor.1;
         loop {
             if backward {
                 if col == 0 {
-                    return Err(GridEvent::LeaveBackward);
+                    return Err(GridAction::LeaveBackward);
                 }
                 col -= 1;
             } else {
                 col += 1;
                 if col >= n {
-                    return Err(GridEvent::LeaveForward);
+                    return Err(GridAction::LeaveForward);
                 }
             }
             if !self.columns[col].read_only && !self.columns[col].primary {
@@ -727,7 +732,7 @@ impl DataGrid {
     }
 
     /// Resolve what an open constrained editor reported.
-    fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<GridEvent> {
+    fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<GridAction> {
         let (value, tab) = match r? {
             ChoiceResult::Cancel => {
                 self.choice = None;
@@ -928,7 +933,7 @@ impl DataGrid {
         &mut self,
         c: usize,
         action: HeaderAction,
-    ) -> (Outcome, Option<GridEvent>) {
+    ) -> (Outcome, Option<GridAction>) {
         match action {
             HeaderAction::SortAsc => self.request_sort(Some((c, SortDir::Asc))),
             HeaderAction::SortDesc => self.request_sort(Some((c, SortDir::Desc))),
@@ -1117,7 +1122,7 @@ impl DataGrid {
             && self.read_only_reason_at_cursor().is_none()
     }
 
-    pub fn begin_edit(&mut self) -> (Outcome, Option<GridEvent>) {
+    pub fn begin_edit(&mut self) -> (Outcome, Option<GridAction>) {
         let Some(src) = self.cursor_src() else {
             return (Outcome::Consumed, None);
         };
@@ -1126,7 +1131,7 @@ impl DataGrid {
         }
         let col = self.cursor.1;
         if let Some(reason) = self.read_only_reason_at_cursor() {
-            return (Outcome::Changed, Some(GridEvent::ReadOnly { reason }));
+            return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
         }
         let spec = &self.columns[col];
         let v = self.value(src, col).clone();
@@ -1158,13 +1163,13 @@ impl DataGrid {
                 self.record_cell(src, col, next);
                 return (
                     Outcome::Changed,
-                    Some(GridEvent::CellChanged { row: src, col }),
+                    Some(GridAction::CellChanged { row: src, col }),
                 );
             }
             CellKind::Json => {
                 return (
                     Outcome::Changed,
-                    Some(GridEvent::OpenViewer { row: src, col }),
+                    Some(GridAction::OpenViewer { row: src, col }),
                 );
             }
             CellKind::Text
@@ -1172,7 +1177,7 @@ impl DataGrid {
             {
                 return (
                     Outcome::Changed,
-                    Some(GridEvent::OpenViewer { row: src, col }),
+                    Some(GridAction::OpenViewer { row: src, col }),
                 );
             }
             _ => {}
@@ -1186,7 +1191,7 @@ impl DataGrid {
         (Outcome::Changed, None)
     }
 
-    pub fn commit_edit(&mut self) -> Option<GridEvent> {
+    pub fn commit_edit(&mut self) -> Option<GridAction> {
         let e = self.edit.take()?;
         let spec = &self.columns[e.col];
         let text = e.buffer.text().to_owned();
@@ -1204,7 +1209,7 @@ impl DataGrid {
         match parsed {
             Ok(v) => {
                 self.record_cell(e.row, e.col, v);
-                Some(GridEvent::CellChanged {
+                Some(GridAction::CellChanged {
                     row: e.row,
                     col: e.col,
                 })
@@ -1227,7 +1232,7 @@ impl DataGrid {
     /// A cell edit in progress ends per [`Self::blur_action`]: a commit
     /// reports `CellChanged` like Enter (an invalid value stays open with
     /// its error), a cancel drops the edit.
-    pub fn on_blur(&mut self) -> (Outcome, Option<GridEvent>) {
+    pub fn on_blur(&mut self) -> (Outcome, Option<GridAction>) {
         if let Some(c) = &self.choice {
             let r = match self.editor_config.blur {
                 BlurAction::Commit => match c.editor.blur_value(&self.editor_config) {
@@ -1274,14 +1279,14 @@ impl DataGrid {
         });
     }
 
-    pub fn toggle_delete(&mut self, src: usize) -> Option<GridEvent> {
+    pub fn toggle_delete(&mut self, src: usize) -> Option<GridAction> {
         if !self.editable {
             return None;
         }
         if self.pending.inserted.contains(&src) {
             // deleting an inserted row removes it entirely
             self.remove_inserted(src);
-            return Some(GridEvent::RowDeleted(src));
+            return Some(GridAction::RowDeleted(src));
         }
         let was = self.pending.deleted.contains(&src);
         if was {
@@ -1294,7 +1299,7 @@ impl DataGrid {
             row: src,
             was_deleted: was,
         });
-        Some(GridEvent::RowDeleted(src))
+        Some(GridAction::RowDeleted(src))
     }
 
     fn remove_inserted(&mut self, src: usize) {
@@ -1317,7 +1322,7 @@ impl DataGrid {
         self.cursor.0 = self.cursor.0.min(self.rows.len().saturating_sub(1));
     }
 
-    pub fn insert_row(&mut self) -> Option<GridEvent> {
+    pub fn insert_row(&mut self) -> Option<GridAction> {
         if !self.editable {
             return None;
         }
@@ -1346,12 +1351,12 @@ impl DataGrid {
             .position(|c| !c.primary && !c.read_only)
             .unwrap_or(0);
         self.set_cursor(disp, col, false);
-        Some(GridEvent::RowInserted(src))
+        Some(GridAction::RowInserted(src))
     }
 
     /// Duplicate the current row, resetting generated columns to defaults.
     /// [`Self::duplicate_keys`] invoke this; read-only grids refuse it.
-    pub fn duplicate_row(&mut self) -> Option<GridEvent> {
+    pub fn duplicate_row(&mut self) -> Option<GridAction> {
         let src = self.cursor_src()?;
         if !self.editable {
             return None;
@@ -1372,7 +1377,7 @@ impl DataGrid {
         self.scroll.set_content(self.content_rows());
         let disp = self.order.len() - 1;
         self.set_cursor(disp, self.cursor.1, false);
-        Some(GridEvent::RowInserted(new))
+        Some(GridAction::RowInserted(new))
     }
 
     pub fn undo(&mut self) -> bool {
@@ -1549,7 +1554,7 @@ impl DataGrid {
         out
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<GridEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<GridAction>) {
         if let Some(c) = self.choice.as_mut() {
             let (out, r) = c.editor.on_key(key, &self.editor_config);
             return (out, self.on_choice(r));
@@ -1586,13 +1591,13 @@ impl DataGrid {
                     loop {
                         if backward {
                             if col == 0 {
-                                return (Outcome::Changed, Some(GridEvent::LeaveBackward));
+                                return (Outcome::Changed, Some(GridAction::LeaveBackward));
                             }
                             col -= 1;
                         } else {
                             col += 1;
                             if col >= n {
-                                return (Outcome::Changed, Some(GridEvent::LeaveForward));
+                                return (Outcome::Changed, Some(GridAction::LeaveForward));
                             }
                         }
                         if !self.columns[col].read_only && !self.columns[col].primary {
@@ -1642,9 +1647,9 @@ impl DataGrid {
             // filter-on-cell key opens the filters instead)
             return match lookup(&self.keymap, key) {
                 Some(GridCmd::InsertRow) if self.editable => (Outcome::Changed, self.insert_row()),
-                Some(GridCmd::Refresh) => (Outcome::Changed, Some(GridEvent::Refresh)),
-                Some(GridCmd::FilterOnCell) => (Outcome::Changed, Some(GridEvent::OpenFilters)),
-                Some(GridCmd::ClearFilters) => (Outcome::Changed, Some(GridEvent::ClearFilters)),
+                Some(GridCmd::Refresh) => (Outcome::Changed, Some(GridAction::Refresh)),
+                Some(GridCmd::FilterOnCell) => (Outcome::Changed, Some(GridAction::OpenFilters)),
+                Some(GridCmd::ClearFilters) => (Outcome::Changed, Some(GridAction::ClearFilters)),
                 _ => (Outcome::Ignored, None),
             };
         }
@@ -1714,24 +1719,24 @@ impl DataGrid {
         match key.code {
             KeyCode::Enter | KeyCode::F(2) => {
                 if self.on_more_row() {
-                    return (Outcome::Changed, Some(GridEvent::FetchMore));
+                    return (Outcome::Changed, Some(GridAction::FetchMore));
                 }
                 if !self.editable {
                     // a grid that says why it is read-only says so on
                     // Enter; one without a reason is a list (activation)
                     if let Some(reason) = self.read_only_reason_at_cursor() {
-                        return (Outcome::Changed, Some(GridEvent::ReadOnly { reason }));
+                        return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
                     }
                     return (
                         Outcome::Changed,
-                        self.cursor_src().map(GridEvent::Activated),
+                        self.cursor_src().map(GridAction::Activated),
                     );
                 }
                 self.begin_edit()
             }
             KeyCode::Char(' ') => {
                 if self.on_more_row() {
-                    return (Outcome::Changed, Some(GridEvent::FetchMore));
+                    return (Outcome::Changed, Some(GridAction::FetchMore));
                 }
                 if let Some(src) = self.cursor_src()
                     && !self.selected_rows.remove(&src)
@@ -1753,7 +1758,7 @@ impl DataGrid {
         }
     }
 
-    fn on_action(&mut self, action: GridCmd) -> (Outcome, Option<GridEvent>) {
+    fn on_action(&mut self, action: GridCmd) -> (Outcome, Option<GridAction>) {
         let c = self.cursor.1;
         match action {
             GridCmd::ClearCell => {
@@ -1779,7 +1784,7 @@ impl DataGrid {
                     self.record_cell(src, c, CellValue::Null);
                     (
                         Outcome::Changed,
-                        Some(GridEvent::CellChanged { row: src, col: c }),
+                        Some(GridAction::CellChanged { row: src, col: c }),
                     )
                 } else {
                     self.cell_errors
@@ -1797,13 +1802,13 @@ impl DataGrid {
             GridCmd::DuplicateRow => (Outcome::Changed, self.duplicate_row()),
             GridCmd::Copy => (
                 Outcome::Changed,
-                Some(GridEvent::Copy(self.copy_text(false))),
+                Some(GridAction::Copy(self.copy_text(false))),
             ),
             GridCmd::CopyWithHeader => (
                 Outcome::Changed,
-                Some(GridEvent::Copy(self.copy_text(true))),
+                Some(GridAction::Copy(self.copy_text(true))),
             ),
-            GridCmd::Commit => (Outcome::Changed, Some(GridEvent::CommitRequested)),
+            GridCmd::Commit => (Outcome::Changed, Some(GridAction::CommitRequested)),
             GridCmd::Sort => {
                 if !self.columns[c].sortable {
                     return (Outcome::Consumed, None);
@@ -1823,17 +1828,17 @@ impl DataGrid {
                     .unwrap_or(CellValue::Null);
                 (
                     Outcome::Changed,
-                    Some(GridEvent::FilterOnCell { col: c, value }),
+                    Some(GridAction::FilterOnCell { col: c, value }),
                 )
             }
-            GridCmd::OpenFilters => (Outcome::Changed, Some(GridEvent::OpenFilters)),
-            GridCmd::ClearFilters => (Outcome::Changed, Some(GridEvent::ClearFilters)),
-            GridCmd::Refresh => (Outcome::Changed, Some(GridEvent::Refresh)),
+            GridCmd::OpenFilters => (Outcome::Changed, Some(GridAction::OpenFilters)),
+            GridCmd::ClearFilters => (Outcome::Changed, Some(GridAction::ClearFilters)),
+            GridCmd::Refresh => (Outcome::Changed, Some(GridAction::Refresh)),
             GridCmd::Undo => {
                 self.undo();
                 (Outcome::Changed, None)
             }
-            GridCmd::Discard => (Outcome::Changed, Some(GridEvent::DiscardRequested)),
+            GridCmd::Discard => (Outcome::Changed, Some(GridAction::DiscardRequested)),
             GridCmd::SelectAll => {
                 let before = self.selected_rows.len();
                 self.selected_rows.extend(self.order.iter().copied());
@@ -1843,14 +1848,14 @@ impl DataGrid {
                     (Outcome::Consumed, None)
                 }
             }
-            GridCmd::PreviewSql => (Outcome::Changed, Some(GridEvent::PreviewSql)),
+            GridCmd::PreviewSql => (Outcome::Changed, Some(GridAction::PreviewSql)),
             GridCmd::FollowReference => {
                 if self.columns[c].references.is_some()
                     && let Some(src) = self.cursor_src()
                 {
                     return (
                         Outcome::Changed,
-                        Some(GridEvent::FollowReference { row: src, col: c }),
+                        Some(GridAction::FollowReference { row: src, col: c }),
                     );
                 }
                 (Outcome::Consumed, None)
@@ -1858,7 +1863,7 @@ impl DataGrid {
         }
     }
 
-    fn request_sort(&mut self, next: Option<(usize, SortDir)>) -> (Outcome, Option<GridEvent>) {
+    fn request_sort(&mut self, next: Option<(usize, SortDir)>) -> (Outcome, Option<GridAction>) {
         self.sort = next;
         if self.local_sort {
             match next {
@@ -1867,7 +1872,7 @@ impl DataGrid {
             }
             (Outcome::Changed, None)
         } else {
-            (Outcome::Changed, Some(GridEvent::SortRequested(next)))
+            (Outcome::Changed, Some(GridAction::SortRequested(next)))
         }
     }
 
@@ -1961,7 +1966,7 @@ impl DataGrid {
         Outcome::Changed
     }
 
-    pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridEvent>) {
+    pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridAction>) {
         if self.locate_seam(id).is_some() {
             // the release of a seam press or drag: the resize is done
             self.sizing.release();
@@ -1980,17 +1985,17 @@ impl DataGrid {
             return self.begin_edit();
         }
         if id == self.bar[0].id && self.bar[0].on_click() {
-            return (Outcome::Changed, Some(GridEvent::PreviewSql));
+            return (Outcome::Changed, Some(GridAction::PreviewSql));
         }
         if id == self.bar[1].id && self.bar[1].on_click() {
-            return (Outcome::Changed, Some(GridEvent::DiscardRequested));
+            return (Outcome::Changed, Some(GridAction::DiscardRequested));
         }
         if id == self.bar[2].id && self.bar[2].on_click() {
-            return (Outcome::Changed, Some(GridEvent::CommitRequested));
+            return (Outcome::Changed, Some(GridAction::CommitRequested));
         }
         if id == self.more_id() {
             self.set_cursor(self.rows.len(), self.cursor.1, false);
-            return (Outcome::Changed, Some(GridEvent::FetchMore));
+            return (Outcome::Changed, Some(GridAction::FetchMore));
         }
         if id == self.left_id() {
             self.hscroll.scroll_by(-1);
@@ -2073,7 +2078,7 @@ impl DataGrid {
             {
                 return (
                     Outcome::Changed,
-                    Some(GridEvent::FollowReference { row: src, col: c }),
+                    Some(GridAction::FollowReference { row: src, col: c }),
                 );
             }
             self.set_cursor(d, c, false);
@@ -2083,7 +2088,7 @@ impl DataGrid {
             if same && !self.editable {
                 return (
                     Outcome::Changed,
-                    self.cursor_src().map(GridEvent::Activated),
+                    self.cursor_src().map(GridAction::Activated),
                 );
             }
             return (Outcome::Changed, None);
@@ -2989,15 +2994,15 @@ impl DataGrid {
     }
 
     /// Keyboard activation of a pending-bar button (they are focus stops).
-    pub fn on_bar_key(&mut self, id: WidgetId, key: &Key) -> (Outcome, Option<GridEvent>) {
+    pub fn on_bar_key(&mut self, id: WidgetId, key: &Key) -> (Outcome, Option<GridAction>) {
         for (i, b) in self.bar.iter_mut().enumerate() {
             if b.id == id {
                 let (o, act) = b.on_key(key);
                 if act {
                     let ev = match i {
-                        0 => GridEvent::PreviewSql,
-                        1 => GridEvent::DiscardRequested,
-                        _ => GridEvent::CommitRequested,
+                        0 => GridAction::PreviewSql,
+                        1 => GridAction::DiscardRequested,
+                        _ => GridAction::CommitRequested,
                     };
                     return (o, Some(ev));
                 }
@@ -3277,7 +3282,7 @@ mod tests {
             commit.on_blur(),
             (
                 Outcome::Changed,
-                Some(GridEvent::CellChanged { row: 0, col: 1 })
+                Some(GridAction::CellChanged { row: 0, col: 1 })
             )
         );
         assert!(!commit.is_editing());
@@ -3712,7 +3717,7 @@ mod tests {
         let mut g = grid().editable(true).duplicate_keys(&[alt_d]);
         assert_eq!(g.on_key(&ctrl_d).1, None);
         assert_eq!(g.rows().len(), 10);
-        assert_eq!(g.on_key(&alt_d).1, Some(GridEvent::RowInserted(10)));
+        assert_eq!(g.on_key(&alt_d).1, Some(GridAction::RowInserted(10)));
         // an empty list turns the shortcut off
         let mut g = grid().editable(true).duplicate_keys(&[]);
         assert_eq!(g.on_key(&alt_d).1, None);
@@ -3728,7 +3733,7 @@ mod tests {
         assert_eq!(o, Outcome::Changed);
         assert_eq!(
             ev,
-            Some(GridEvent::ReadOnly {
+            Some(GridAction::ReadOnly {
                 reason: "id is read-only".into()
             })
         );
@@ -3743,14 +3748,14 @@ mod tests {
         let (_, ev) = ro.on_key(&key(KeyCode::Enter));
         assert_eq!(
             ev,
-            Some(GridEvent::ReadOnly {
+            Some(GridAction::ReadOnly {
                 reason: "Views cannot be edited".into()
             })
         );
         // without a reason it stays a list: Enter activates the row
         ro.read_only_reason = None;
         let (_, ev) = ro.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(GridEvent::Activated(0)));
+        assert_eq!(ev, Some(GridAction::Activated(0)));
     }
 
     #[test]
@@ -3761,7 +3766,7 @@ mod tests {
                 code: KeyCode::Char('d'),
                 mods,
             };
-            assert_eq!(g.on_key(&duplicate).1, Some(GridEvent::RowInserted(10)));
+            assert_eq!(g.on_key(&duplicate).1, Some(GridAction::RowInserted(10)));
             assert_eq!(g.value(10, 0), &CellValue::Default);
             assert_eq!(g.value(10, 1), &CellValue::Text("row 0".into()));
             assert!(g.undo());
@@ -3782,11 +3787,14 @@ mod tests {
         g.on_key(&key(KeyCode::Char(' ')));
         assert!(g.selected_rows.contains(&1));
         let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
-        assert_eq!(ev, Some(GridEvent::SortRequested(Some((1, SortDir::Asc)))));
+        assert_eq!(ev, Some(GridAction::SortRequested(Some((1, SortDir::Asc)))));
         let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
-        assert_eq!(ev, Some(GridEvent::SortRequested(Some((1, SortDir::Desc)))));
+        assert_eq!(
+            ev,
+            Some(GridAction::SortRequested(Some((1, SortDir::Desc))))
+        );
         let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
-        assert_eq!(ev, Some(GridEvent::SortRequested(None)));
+        assert_eq!(ev, Some(GridAction::SortRequested(None)));
         g.local_sort = true;
         g.on_key(&key(KeyCode::Char('s')));
         g.on_key(&key(KeyCode::Char('s'))); // desc by name
@@ -3840,7 +3848,7 @@ mod tests {
         g.on_key(&key(KeyCode::Char('G')));
         assert!(g.on_more_row());
         let (_, ev) = g.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(GridEvent::FetchMore));
+        assert_eq!(ev, Some(GridAction::FetchMore));
     }
 
     #[test]
@@ -4176,7 +4184,7 @@ mod cmd_copy_tests {
         let (out, ev) = g.on_key(&cmd('c'));
         assert_eq!(out, Outcome::Changed);
         match ev {
-            Some(GridEvent::Copy(text)) => assert!(text.contains("a2"), "{text}"),
+            Some(GridAction::Copy(text)) => assert!(text.contains("a2"), "{text}"),
             other => panic!("Cmd+C copies: {other:?}"),
         }
         assert_eq!(hint_key(&g.keymap, GridCmd::Copy), Some("y"));

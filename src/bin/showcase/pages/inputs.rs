@@ -5,7 +5,7 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::{RenderCtx, VisualState, fill};
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("inputs");
@@ -214,11 +214,11 @@ impl Page for InputsPage {
                 return Outcome::Ignored;
             };
             return match self.fields[i].on_blur() {
-                Some(InputEvent::Committed) => {
+                Some(InputAction::Committed) => {
                     cx.status(format!("{} saved", self.fields[i].label));
                     Outcome::Changed
                 }
-                Some(InputEvent::Cancelled) => {
+                Some(InputAction::Cancelled) => {
                     cx.status("Reverted");
                     Outcome::Changed
                 }
@@ -232,12 +232,12 @@ impl Page for InputsPage {
                 };
                 let (out, iev) = self.fields[i].on_key(key);
                 match iev {
-                    Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
-                    Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
-                    Some(InputEvent::Committed) => {
+                    Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
+                    Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
+                    Some(InputAction::Committed) => {
                         cx.status(format!("{} saved", self.fields[i].label))
                     }
-                    Some(InputEvent::Cancelled) => cx.status("Reverted"),
+                    Some(InputAction::Cancelled) => cx.status("Reverted"),
                     _ => {}
                 }
                 out

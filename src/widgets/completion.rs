@@ -66,7 +66,7 @@ pub struct Completion {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CompletionEvent {
+pub enum CompletionAction {
     Accept(usize),
     Dismiss,
 }
@@ -169,7 +169,7 @@ impl Completion {
             || self.locate(id).is_some()
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<CompletionEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<CompletionAction>) {
         if !self.is_open() {
             return (Outcome::Ignored, None);
         }
@@ -194,28 +194,29 @@ impl Completion {
             return (Outcome::Changed, None);
         }
         match key.code {
-            KeyCode::Tab | KeyCode::Enter => {
-                (Outcome::Changed, Some(CompletionEvent::Accept(self.cursor)))
-            }
+            KeyCode::Tab | KeyCode::Enter => (
+                Outcome::Changed,
+                Some(CompletionAction::Accept(self.cursor)),
+            ),
             KeyCode::Esc if self.dismiss.escape => {
                 self.close();
-                (Outcome::Changed, Some(CompletionEvent::Dismiss))
+                (Outcome::Changed, Some(CompletionAction::Dismiss))
             }
             _ => (Outcome::Ignored, None),
         }
     }
 
-    pub fn on_click(&mut self, id: WidgetId) -> Option<CompletionEvent> {
+    pub fn on_click(&mut self, id: WidgetId) -> Option<CompletionAction> {
         if id == backdrop_id(self.id) {
             if !self.dismiss.outside_click {
                 return None;
             }
             self.close();
-            return Some(CompletionEvent::Dismiss);
+            return Some(CompletionAction::Dismiss);
         }
         let i = self.locate(id)?;
         self.cursor = i;
-        Some(CompletionEvent::Accept(i))
+        Some(CompletionAction::Accept(i))
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {

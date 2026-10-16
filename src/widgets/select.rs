@@ -151,7 +151,7 @@ pub struct Select {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SelectEvent {
+pub enum SelectAction {
     Changed(usize),
 }
 
@@ -292,11 +292,11 @@ impl Select {
 
     /// Choose option `i`, leaving the mixed state. Returns the change
     /// event when the shown value changed.
-    fn choose(&mut self, i: usize) -> Option<SelectEvent> {
+    fn choose(&mut self, i: usize) -> Option<SelectAction> {
         let changed = i != self.selected || self.mixed.is_some();
         self.selected = i;
         self.mixed = None;
-        changed.then_some(SelectEvent::Changed(i))
+        changed.then_some(SelectAction::Changed(i))
     }
 
     pub fn value(&self) -> &str {
@@ -331,7 +331,7 @@ impl Select {
         self.shown_cursor = None;
     }
 
-    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<SelectEvent>) {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<SelectAction>) {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
@@ -467,7 +467,7 @@ impl Select {
         self
     }
 
-    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<SelectEvent>) {
+    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<SelectAction>) {
         if self.disabled {
             return (Outcome::Consumed, None);
         }
@@ -619,7 +619,7 @@ impl Select {
     /// press and the release landed on different targets). Over an option
     /// it chooses that option; back on the field, or with no movement, the
     /// list stays open; anywhere else it closes unchanged.
-    pub fn on_release(&mut self, pos: Position) -> (Outcome, Option<SelectEvent>) {
+    pub fn on_release(&mut self, pos: Position) -> (Outcome, Option<SelectAction>) {
         self.bar.release_track();
         let Some(p) = self.press.take() else {
             return (Outcome::Ignored, None);
@@ -953,7 +953,7 @@ mod tests {
         };
         let mut s =
             Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta", "Gamma"], 0).type_ahead(true);
-        assert_eq!(s.on_key(&k('g')).1, Some(SelectEvent::Changed(2)));
+        assert_eq!(s.on_key(&k('g')).1, Some(SelectAction::Changed(2)));
         assert_eq!(
             s.on_key(&k('q')).0,
             Outcome::Ignored,
@@ -974,7 +974,7 @@ mod tests {
         let mut step = Select::new(WidgetId::of("s"), "S", &opts, 0);
         assert_eq!(
             step.on_key(&k(KeyCode::Down)).1,
-            Some(SelectEvent::Changed(1))
+            Some(SelectAction::Changed(1))
         );
         assert!(!step.open);
         let mut open = Select::new(WidgetId::of("s"), "S", &opts, 0).arrows(SelectArrows::Open);
@@ -1093,7 +1093,7 @@ mod tests {
             code: KeyCode::Enter,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         };
-        assert_eq!(sel.on_key(&key).1, Some(SelectEvent::Changed(0)));
+        assert_eq!(sel.on_key(&key).1, Some(SelectAction::Changed(0)));
         assert_eq!(sel.mixed, None);
         let buf = draw(&mut sel);
         assert!(row(&buf, 1).contains("Admin"));
@@ -1101,7 +1101,7 @@ mod tests {
         sel.set_mixed(Some("— mixed —"));
         assert_eq!(
             sel.on_click(sel.option_id(1)).1,
-            Some(SelectEvent::Changed(1))
+            Some(SelectAction::Changed(1))
         );
         assert_eq!(sel.mixed, None);
     }
@@ -1261,7 +1261,7 @@ mod tests {
         assert_eq!(sel.cursor, 2);
         assert_eq!(
             sel.on_release(third),
-            (Outcome::Changed, Some(SelectEvent::Changed(2)))
+            (Outcome::Changed, Some(SelectAction::Changed(2)))
         );
         assert!(!sel.open);
         assert_eq!(sel.selected, 2);

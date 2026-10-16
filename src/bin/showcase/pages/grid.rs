@@ -11,7 +11,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::grid::{
-    CellKind, CellValue, ColumnSpec, DataGrid, GridEvent, GridRows, RowTotal,
+    CellKind, CellValue, ColumnSpec, DataGrid, GridAction, GridRows, RowTotal,
 };
 use junie_tui::widgets::option_editor::{ColumnEditor, Options};
 use junie_tui::widgets::panel::Panel;
@@ -198,23 +198,23 @@ impl GridPage {
         out
     }
 
-    fn on_event(&mut self, ev: Option<GridEvent>, cx: &mut PageCtx) {
+    fn on_event(&mut self, ev: Option<GridAction>, cx: &mut PageCtx) {
         match ev {
-            Some(GridEvent::CellChanged { .. }) => {
+            Some(GridAction::CellChanged { .. }) => {
                 cx.status(format!("{} pending", self.grid.pending.total()))
             }
-            Some(GridEvent::RowInserted(_)) => cx.status("Row inserted · fill it in, then Save"),
-            Some(GridEvent::RowDeleted(_)) => cx.status("Row queued for deletion · u undoes"),
-            Some(GridEvent::FetchMore) => {
+            Some(GridAction::RowInserted(_)) => cx.status("Row inserted · fill it in, then Save"),
+            Some(GridAction::RowDeleted(_)) => cx.status("Row queued for deletion · u undoes"),
+            Some(GridAction::FetchMore) => {
                 let from = self.grid.len();
                 self.grid.append_rows(page(from));
                 cx.status(format!("Fetched rows {}–{}", from + 1, self.grid.len()));
             }
-            Some(GridEvent::Refresh) => {
+            Some(GridAction::Refresh) => {
                 self.grid.set_rows(page(0));
                 cx.status("Reloaded from the source");
             }
-            Some(GridEvent::CommitRequested) => {
+            Some(GridAction::CommitRequested) => {
                 if self.grid.pending.is_empty() {
                     cx.status("Nothing to save");
                 } else {
@@ -223,11 +223,11 @@ impl GridPage {
                     cx.status("Saving…");
                 }
             }
-            Some(GridEvent::DiscardRequested) => {
+            Some(GridAction::DiscardRequested) => {
                 self.grid.discard();
                 cx.status("Changes discarded");
             }
-            Some(GridEvent::PreviewSql) => {
+            Some(GridAction::PreviewSql) => {
                 let code = self.statements();
                 let (changed, inserted, deleted) = self.grid.pending.counts();
                 cx.open(Dialog::facts(
@@ -246,27 +246,27 @@ impl GridPage {
                     Button::primary(PREVIEW.sub("ok"), "Copy SQL"),
                 ));
             }
-            Some(GridEvent::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
-            Some(GridEvent::FollowReference { row, .. }) => {
+            Some(GridAction::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
+            Some(GridAction::FollowReference { row, .. }) => {
                 cx.status(format!("Would follow the reference on row {}", row + 1))
             }
-            Some(GridEvent::OpenViewer { row, col }) => cx.status(format!(
+            Some(GridAction::OpenViewer { row, col }) => cx.status(format!(
                 "Would open the viewer for {} on row {}",
                 self.grid.columns[col].name,
                 row + 1
             )),
-            Some(GridEvent::FilterOnCell { col, value }) => cx.status(format!(
+            Some(GridAction::FilterOnCell { col, value }) => cx.status(format!(
                 "Would filter {} = {}",
                 self.grid.columns[col].name,
                 value.text()
             )),
-            Some(GridEvent::OpenFilters) => cx.status("The filter editor belongs to the app"),
-            Some(GridEvent::ClearFilters) => cx.status("No filters to clear"),
-            Some(GridEvent::Activated(r)) => cx.status(format!("Row {} activated", r + 1)),
-            Some(GridEvent::LeaveForward) => cx.focus_next(),
-            Some(GridEvent::LeaveBackward) => cx.focus_prev(),
-            Some(GridEvent::ReadOnly { reason }) => cx.status(reason),
-            Some(GridEvent::SortRequested(_)) | None => {}
+            Some(GridAction::OpenFilters) => cx.status("The filter editor belongs to the app"),
+            Some(GridAction::ClearFilters) => cx.status("No filters to clear"),
+            Some(GridAction::Activated(r)) => cx.status(format!("Row {} activated", r + 1)),
+            Some(GridAction::LeaveForward) => cx.focus_next(),
+            Some(GridAction::LeaveBackward) => cx.focus_prev(),
+            Some(GridAction::ReadOnly { reason }) => cx.status(reason),
+            Some(GridAction::SortRequested(_)) | None => {}
         }
     }
 

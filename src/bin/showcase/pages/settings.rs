@@ -13,11 +13,11 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{RadioGroup, Toggle};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
-use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
+use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
 use junie_tui::widgets::tabs::Tabs;
 use junie_tui::widgets::textarea::TextArea;
 
@@ -299,9 +299,9 @@ impl Page for SettingsPage {
                     ($w:expr) => {{
                         let (o, iev) = $w.on_key(key);
                         match iev {
-                            Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
-                            Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
-                            Some(InputEvent::Changed) => *dirty = true,
+                            Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
+                            Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
+                            Some(InputAction::Changed) => *dirty = true,
                             _ => {}
                         }
                         return o;
@@ -345,9 +345,9 @@ impl Page for SettingsPage {
                 if f == self.members.id {
                     let (o, tev) = self.members.on_key(key);
                     match tev {
-                        Some(TableEvent::Committed { .. }) => cx.status("Member updated"),
-                        Some(TableEvent::LeaveForward) => cx.focus_next(),
-                        Some(TableEvent::LeaveBackward) => cx.focus_prev(),
+                        Some(TableAction::Committed { .. }) => cx.status("Member updated"),
+                        Some(TableAction::LeaveForward) => cx.focus_next(),
+                        Some(TableAction::LeaveBackward) => cx.focus_prev(),
                         _ => {}
                     }
                     return o;

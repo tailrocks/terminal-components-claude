@@ -14,8 +14,8 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::theme::{SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::fuzzy;
-use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorEvent, Severity};
-use junie_tui::widgets::completion::{Completion, CompletionEvent, CompletionItem};
+use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorAction, Severity};
+use junie_tui::widgets::completion::{Completion, CompletionAction, CompletionItem};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
@@ -454,11 +454,11 @@ impl Page for EditorPage {
                 if self.completion.is_open() {
                     let (o, ev) = self.completion.on_key(key);
                     match ev {
-                        Some(CompletionEvent::Accept(i)) => {
+                        Some(CompletionAction::Accept(i)) => {
                             self.accept(i);
                             return Outcome::Changed;
                         }
-                        Some(CompletionEvent::Dismiss) => return Outcome::Changed,
+                        Some(CompletionAction::Dismiss) => return Outcome::Changed,
                         None => {
                             if o.consumed() {
                                 return o;
@@ -479,17 +479,17 @@ impl Page for EditorPage {
                 }
                 let (o, ev) = self.editor.on_key(key);
                 match ev {
-                    Some(EditorEvent::Changed) => {
+                    Some(EditorAction::Changed) => {
                         self.editor.diagnostics.clear();
                         self.trigger(false);
                     }
-                    Some(EditorEvent::CursorMoved) => {
+                    Some(EditorAction::CursorMoved) => {
                         if self.completion.is_open() {
                             self.trigger(false);
                         }
                     }
-                    Some(EditorEvent::Committed) => self.completion.close(),
-                    Some(EditorEvent::Leave { backward }) => {
+                    Some(EditorAction::Committed) => self.completion.close(),
+                    Some(EditorAction::Leave { backward }) => {
                         if backward {
                             cx.focus_prev();
                         } else {
@@ -503,7 +503,7 @@ impl Page for EditorPage {
             PageEvent::Paste(text) => self.editor.on_paste(text),
             PageEvent::Click { id, pos } => {
                 if self.completion.is_open() {
-                    if let Some(CompletionEvent::Accept(i)) = self.completion.on_click(*id) {
+                    if let Some(CompletionAction::Accept(i)) = self.completion.on_click(*id) {
                         self.accept(i);
                         return Outcome::Changed;
                     }

@@ -108,13 +108,13 @@ fn a_select_cell_opens_chooses_and_commits_by_keyboard() {
     t.on_key(&key(KeyCode::Down));
     let (out, ev) = t.on_key(&key(KeyCode::Enter));
     assert_eq!(out, Outcome::Changed);
-    assert_eq!(ev, Some(TableEvent::Committed { row: 0, col: 1 }));
+    assert_eq!(ev, Some(TableAction::Committed { row: 0, col: 1 }));
     assert_eq!(t.rows[0][1].text, "prod");
     assert!(!t.is_editing());
     // Esc cancels and keeps the value
     t.on_key(&key(KeyCode::F(2)));
     t.on_key(&key(KeyCode::Up));
-    assert_eq!(t.on_key(&key(KeyCode::Esc)).1, Some(TableEvent::Cancelled));
+    assert_eq!(t.on_key(&key(KeyCode::Esc)).1, Some(TableAction::Cancelled));
     assert_eq!(t.rows[0][1].text, "prod");
 }
 
@@ -163,7 +163,7 @@ fn a_select_cell_opens_chooses_and_cancels_by_mouse() {
         t.on_click_editor(opt),
         Some((
             Outcome::Changed,
-            Some(TableEvent::Committed { row: 0, col: 1 })
+            Some(TableAction::Committed { row: 0, col: 1 })
         ))
     );
     assert_eq!(t.rows[0][1].text, "dev");
@@ -178,7 +178,7 @@ fn a_select_cell_opens_chooses_and_cancels_by_mouse() {
     let backdrop = backdrop_id(t.choice_id());
     assert_eq!(
         t.on_click_editor(backdrop),
-        Some((Outcome::Changed, Some(TableEvent::Cancelled)))
+        Some((Outcome::Changed, Some(TableAction::Cancelled)))
     );
     assert!(t.choice.is_none());
 }
@@ -217,7 +217,7 @@ fn a_toggle_flips_in_place_and_tags_commit_the_checked_set() {
     t.cursor_col = 2;
     assert_eq!(
         t.on_key(&key(KeyCode::Enter)).1,
-        Some(TableEvent::Committed { row: 0, col: 2 })
+        Some(TableAction::Committed { row: 0, col: 2 })
     );
     assert_eq!(t.rows[0][2].text, "off");
     assert!(t.choice.is_none(), "a toggle opens nothing");
@@ -228,7 +228,7 @@ fn a_toggle_flips_in_place_and_tags_commit_the_checked_set() {
     t.on_key(&key(KeyCode::Char(' ')));
     assert_eq!(
         t.on_key(&key(KeyCode::Enter)).1,
-        Some(TableEvent::Committed { row: 0, col: 3 })
+        Some(TableAction::Committed { row: 0, col: 3 })
     );
     assert_eq!(t.rows[0][3].text, "api, db");
 }
@@ -239,7 +239,7 @@ fn tab_commits_and_opens_the_next_editable_cell() {
     t.cursor_col = 3;
     t.on_key(&key(KeyCode::Enter));
     let (_, ev) = t.on_key(&key(KeyCode::Tab));
-    assert_eq!(ev, Some(TableEvent::Committed { row: 0, col: 3 }));
+    assert_eq!(ev, Some(TableAction::Committed { row: 0, col: 3 }));
     assert_eq!(t.cursor_col, 4);
     assert!(t.choice.is_some(), "the segmented cell opened");
     let (buf, _) = draw(&mut t, None);
@@ -247,7 +247,7 @@ fn tab_commits_and_opens_the_next_editable_cell() {
     t.on_key(&key(KeyCode::Right));
     assert_eq!(
         t.on_key(&key(KeyCode::Tab)).1,
-        Some(TableEvent::LeaveForward)
+        Some(TableAction::LeaveForward)
     );
     assert_eq!(t.rows[0][4].text, "L");
 }
@@ -261,7 +261,7 @@ fn the_validator_still_decides_and_blur_follows_the_config() {
     assert!(t.choice.is_some(), "a rejected choice keeps the popup open");
     assert_eq!(t.edit_error(), Some("No dev here"));
     // default blur: cancel
-    assert_eq!(t.on_blur(), Some(TableEvent::Cancelled));
+    assert_eq!(t.on_blur(), Some(TableAction::Cancelled));
     assert_eq!(t.rows[0][1].text, "stage");
     // configured: commit the highlighted option
     let mut t = table().editor_config(EditorConfig {
@@ -270,7 +270,7 @@ fn the_validator_still_decides_and_blur_follows_the_config() {
     });
     t.on_key(&key(KeyCode::Enter));
     t.on_key(&key(KeyCode::Down));
-    assert_eq!(t.on_blur(), Some(TableEvent::Committed { row: 0, col: 1 }));
+    assert_eq!(t.on_blur(), Some(TableAction::Committed { row: 0, col: 1 }));
     assert_eq!(t.rows[0][1].text, "prod");
 }
 
