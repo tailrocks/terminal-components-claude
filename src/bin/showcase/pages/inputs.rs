@@ -1,14 +1,28 @@
+//! Inputs (plan §7 SC8): `TextInput` fields, how they start, end and
+//! select (`EditEntry`, `FocusSelect`, `BlurAction`, `PointerSelect`), their
+//! keys (`FieldKeys`, a custom `TextCmd` key map and the bound-command
+//! list) and how undo groups typing. Every knob is an option of the page
+//! (`crate::options::INPUTS`).
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use junie_tui::core::edit::{EditEntry, FieldKeys, FocusSelect, TextCmd};
 use junie_tui::core::event::Outcome;
+use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::keymap::{KeyBinding, KeyMap};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::widgets::field_common::PointerSelect;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
 
 const ID: WidgetId = WidgetId::of("inputs");
 
@@ -22,26 +36,149 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
+/// The text commands in list order, with their names (demo data).
+pub const TEXT_COMMANDS: [(TextCmd, &str); 14] = [
+    (TextCmd::SelectAll, "Select all"),
+    (TextCmd::Copy, "Copy"),
+    (TextCmd::Cut, "Cut"),
+    (TextCmd::Paste, "Paste"),
+    (TextCmd::Undo, "Undo"),
+    (TextCmd::Redo, "Redo"),
+    (TextCmd::LineStart, "Line start"),
+    (TextCmd::LineEnd, "Line end"),
+    (TextCmd::DocStart, "Text start"),
+    (TextCmd::DocEnd, "Text end"),
+    (TextCmd::SelectToLineStart, "Select to line start"),
+    (TextCmd::SelectToLineEnd, "Select to line end"),
+    (TextCmd::SelectToDocStart, "Select to text start"),
+    (TextCmd::SelectToDocEnd, "Select to text end"),
+];
+
+/// The custom text key map the `text_keymap` option installs: the preset's
+/// bindings plus Alt+A for Select All.
+pub fn custom_text_keymap(keys: FieldKeys) -> KeyMap<TextCmd> {
+    let mut map = vec![(KeyBinding::alt('a'), TextCmd::SelectAll)];
+    map.extend(keys.text_keymap());
+    map
+}
+
+/// `cmd`'s keys in `map`, the Cmd chords left out (they depend on the
+/// terminal delivering Cmd, and are the same under both presets).
+fn keys_of(map: &KeyMap<TextCmd>, cmd: TextCmd) -> String {
+    let keys: Vec<String> = map
+        .iter()
+        .filter(|(b, c)| {
+            *c == cmd
+                && !b
+                    .mods
+                    .contains(ratatui::crossterm::event::KeyModifiers::SUPER)
+        })
+        .map(|(b, _)| b.label())
+        .fold(Vec::new(), |mut v, l| {
+            if !v.contains(&l) {
+                v.push(l);
+            }
+            v
+        });
+    if keys.is_empty() {
+        "Cmd chord".into()
+    } else {
+        keys.join(" · ")
+    }
+}
+
+/// The values an option turns into builder arguments.
+fn edit_entry(opts: &PageValues, key: &str) -> Option<EditEntry> {
+    match opts.value(key) {
+        "immediate" => Some(EditEntry::Immediate),
+        "type-to-edit" => Some(EditEntry::TypeToEdit),
+        "explicit" => Some(EditEntry::Explicit),
+        _ => None,
+    }
+}
+
+pub fn focus_select(opts: &PageValues, key: &str) -> FocusSelect {
+    match opts.value(key) {
+        "caret-end" => FocusSelect::CaretEnd,
+        "caret-start" => FocusSelect::CaretStart,
+        _ => FocusSelect::SelectAll,
+    }
+}
+
+pub fn field_keys(opts: &PageValues, key: &str) -> Option<FieldKeys> {
+    match opts.value(key) {
+        "emacs" => Some(FieldKeys::Emacs),
+        "desktop" => Some(FieldKeys::Desktop),
+        _ => None,
+    }
+}
+
+pub fn blur_action(opts: &PageValues, key: &str) -> BlurAction {
+    match opts.value(key) {
+        "cancel" => BlurAction::Cancel,
+        "keep" => BlurAction::Keep,
+        _ => BlurAction::Commit,
+    }
+}
+
+pub fn pointer_select(opts: &PageValues, key: &str) -> PointerSelect {
+    let d = PointerSelect::DEFAULT;
+    match opts.value(key) {
+        "no-drag" => d.drag(false),
+        "no-word" => d.word(false),
+        "no-line" => d.line(false),
+        "by-word" => d.drag_by_word(true),
+        "off" => PointerSelect::OFF,
+        _ => d,
+    }
+}
+
 pub struct InputsPage {
     template: Template,
+    opts: PageValues,
     fields: Vec<TextInput>,
+    sections: crate::pages::layout::Sections,
 }
 
 impl InputsPage {
     pub fn new() -> Self {
+        let opts = PageValues::new(page_options(PageId::Inputs));
+        let mut page = Self {
+            template: Template::new(ID, states_grid()).with_options(
+                ID,
+                "Inputs",
+                page_options(PageId::Inputs),
+            ),
+            opts,
+            fields: Vec::new(),
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        };
+        page.rebuild();
+        page
+    }
+
+    /// Build the fields from the option values through the builders an
+    /// application calls, keeping what was typed.
+    fn rebuild(&mut self) {
+        let o = &self.opts;
         let mut owner = TextInput::new(ID.child(2), "Owner email")
             .value("mira@example")
             .required(true)
             .validator(email);
         owner.validate();
-        let fields = vec![
-            TextInput::new(ID.child(0), "Project name")
-                .value("payments-gateway")
-                .required(true)
-                .help("Used as the working directory name"),
-            TextInput::new(ID.child(1), "Branch")
+        let mut project = TextInput::new(ID.child(0), "Project name")
+            .value("payments-gateway")
+            .required(true)
+            .help("Used as the working directory name");
+        if o.value("inputs.required_message") == "custom" {
+            project = project.required_message("Name the project to continue");
+        }
+        let mut fields = vec![
+            project,
+            TextInput::new(ID.child(1), "Branch to check out once the task is done")
                 .placeholder("feat/…")
-                .help("Leave empty to work on a detached checkout"),
+                .help("Leave empty to work on a detached checkout")
+                .wrap_label(o.on("inputs.wrap_label")),
             owner,
             TextInput::new(ID.child(3), "API token")
                 .value("jb_live_••••••••••••")
@@ -49,7 +186,7 @@ impl InputsPage {
                 .help("Managed by the organization"),
             TextInput::new(ID.child(4), "Search files")
                 .placeholder("Type a path or symbol…")
-                .edit_entry(junie_tui::core::edit::EditEntry::TypeToEdit)
+                .edit_entry(EditEntry::TypeToEdit)
                 .help("Selection: Shift+←→  ·  words: Ctrl+←→  ·  clear: Ctrl+U"),
             TextInput::new(ID.child(5), "API key")
                 .masked()
@@ -57,10 +194,43 @@ impl InputsPage {
                 .value("sk-live-0f3a91c2e7d4b6a8c1f2")
                 .help("Masked while typing; the last four characters show once committed"),
         ];
-        Self {
-            template: Template::new(ID, states_grid()),
-            fields,
+        let entry = edit_entry(o, "inputs.edit_entry");
+        let keys = field_keys(o, "inputs.field_keys");
+        for (i, f) in fields.iter_mut().enumerate() {
+            let mut g = f
+                .clone()
+                .focus_select(focus_select(o, "inputs.focus_select"))
+                .blur_action(blur_action(o, "inputs.blur_action"))
+                .pointer_select(pointer_select(o, "inputs.pointer_select"))
+                .label_hit(o.on("inputs.label_hit"));
+            if let Some(e) = entry {
+                g = g.edit_entry(e);
+            }
+            if let Some(k) = keys {
+                g = g.field_keys(k);
+            }
+            if o.value("inputs.text_keymap") == "custom" {
+                g = g.text_keymap(custom_text_keymap(keys.unwrap_or_default()));
+            }
+            if o.on("inputs.plain_label") {
+                g = g.plain_label();
+            }
+            // what was typed survives a rebuild
+            if let Some(old) = self.fields.get(i)
+                && !old.disabled
+            {
+                g = g.value(old.buffer.text());
+                g.error = old.error.clone();
+            }
+            *f = g;
         }
+        self.fields = fields;
+    }
+
+    /// Field `i` of the playground (tests read it).
+    #[allow(dead_code)]
+    pub fn field(&self, i: usize) -> &TextInput {
+        &self.fields[i]
     }
 
     fn focused_index(&self, cx: &PageCtx) -> Option<usize> {
@@ -69,26 +239,129 @@ impl InputsPage {
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let width = area.width.saturating_sub(4) / 2;
+        let rows: Vec<u16> = self
+            .fields
+            .chunks(2)
+            .map(|pair| {
+                pair.iter()
+                    .map(|f| f.height_for(width))
+                    .max()
+                    .unwrap_or(TextInput::HEIGHT)
+            })
+            .collect();
+        // the card's title, padding and border around the rows
+        let fields_h = rows.iter().sum::<u16>() + 5;
+        let focus = self
+            .fields
+            .iter()
+            .any(|f| ctx.interaction.has_focus(f.id))
+            .then_some(0);
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::fixed(fields_h),
+                StackChild::fixed(18),
+                StackChild::fixed(7),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
+        match l.slot(0) {
+            Some(r) => self.render_fields(r, &rows, buf, ctx),
+            None => self.fields.iter().for_each(|f| ctx.focus_stop(f.id)),
+        }
+        if let Some(r) = l.slot(1) {
+            self.render_commands(r, buf, ctx);
+        }
+        if let Some(r) = l.slot(2) {
+            render_undo(r, buf, ctx);
+        }
+    }
+
+    fn render_fields(&mut self, area: Rect, rows: &[u16], buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[17, 0]);
         let panel = Panel::card(Some("Playground"))
             .meta("Type to edit · Enter Apply · Esc Cancel · Tab Next");
         let bg = panel.bg(t);
-        let inner = panel.render(rows[0], buf, t);
-        let (l, r) = crate::pages::layout::columns(inner, inner.width / 2 - 2, 4);
-        let fh = TextInput::HEIGHT;
-        let slots = [
-            Rect::new(l.x, l.y, l.width, fh),
-            Rect::new(r.x, r.y, r.width, fh),
-            Rect::new(l.x, l.y + fh, l.width, fh),
-            Rect::new(r.x, r.y + fh, r.width, fh),
-            Rect::new(l.x, l.y + fh * 2, l.width, fh),
-            Rect::new(r.x, r.y + fh * 2, r.width, fh),
-        ];
-        for (f, slot) in self.fields.iter_mut().zip(slots) {
-            if slot.bottom() <= inner.bottom() {
-                f.render(slot, buf, ctx, bg);
+        let inner = panel.render(area, buf, t);
+        let (l, r) = crate::pages::layout::columns(inner, (inner.width / 2).saturating_sub(2), 4);
+        let mut y = 0;
+        for (k, pair) in self.fields.chunks_mut(2).enumerate() {
+            let h = rows[k];
+            for (f, col) in pair.iter_mut().zip([l, r]) {
+                let slot = Rect::new(col.x, col.y + y, col.width, h);
+                if slot.bottom() <= inner.bottom() {
+                    f.render(slot, buf, ctx, bg);
+                } else {
+                    ctx.focus_stop(f.id);
+                }
             }
+            y += h;
+        }
+    }
+
+    /// The text commands and their keys under each preset (the custom key
+    /// map adds its binding to both).
+    fn render_commands(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let custom = self.opts.value("inputs.text_keymap") == "custom";
+        let meta = if custom {
+            "custom key map: Alt+A selects all"
+        } else {
+            "the preset's key map"
+        };
+        let panel = Panel::card(Some("Text commands")).meta(meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        let (l, r) = crate::pages::layout::columns(inner, (inner.width / 2).saturating_sub(2), 4);
+        for (keys, name, col) in [
+            (FieldKeys::Desktop, "Desktop keys", l),
+            (FieldKeys::Emacs, "Emacs keys", r),
+        ] {
+            let map = if custom {
+                custom_text_keymap(keys)
+            } else {
+                keys.text_keymap()
+            };
+            let chosen = field_keys(&self.opts, "inputs.field_keys") == Some(keys);
+            let style = if chosen {
+                t.muted().fg(t.chosen(false))
+            } else {
+                t.muted()
+            };
+            buf.set_string(col.x, col.y, name, style.bg(bg));
+            let list: Vec<Prop> = TEXT_COMMANDS
+                .iter()
+                .map(|(cmd, label)| Prop::new(label, keys_of(&map, *cmd)))
+                .collect();
+            let body = Rect::new(col.x, col.y + 1, col.width, col.height.saturating_sub(1));
+            props::render(body, buf, t, &list, bg);
+        }
+    }
+}
+
+/// How undo groups edits (the `UndoStack` every text control keeps).
+fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    let t = ctx.theme;
+    let panel = Panel::card(Some("Undo history")).meta("Ctrl+Z · Ctrl+Shift+Z");
+    let bg = panel.bg(t);
+    let inner = panel.render(area, buf, t);
+    let lines = [
+        "A run of typed characters undoes as one step (Typing), and so does",
+        "a run of deletions (Deleting); a space, a paste or a cut (Other)",
+        "starts a new step. Type two words in Project name, then Ctrl+Z.",
+    ];
+    for (i, line) in lines.iter().enumerate() {
+        let y = inner.y + i as u16;
+        if y < inner.bottom() {
+            buf.set_string(
+                inner.x,
+                y,
+                junie_tui::ui::text::truncate(line, inner.width as usize),
+                t.secondary().bg(bg),
+            );
         }
     }
 }
@@ -132,13 +405,19 @@ impl Page for InputsPage {
         let body = self.template.render(area, buf, ctx);
         match self.template.section() {
             Section::Playground => self.render_playground(body, buf, ctx),
-            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::Options => {
+                self.template.sync_options(|k| self.opts.get(k));
+                self.template.render_options(body, buf, ctx);
+            }
             Section::States => self.template.render_states(body, buf, ctx),
         }
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
+            if let Some(set) = self.template.take_option() {
+                self.set_option(set.key, set.value);
+            }
             return o;
         }
         if let PageEvent::Blur(ch) = ev {
@@ -156,6 +435,11 @@ impl Page for InputsPage {
                 }
                 _ => Outcome::Ignored,
             };
+        }
+        if self.template.section() == Section::Playground
+            && let Some(o) = self.sections.handle(ev)
+        {
+            return o;
         }
         match ev {
             PageEvent::Key(key) => {
@@ -225,6 +509,20 @@ impl Page for InputsPage {
         } else {
             vec![("Enter", "Edit")]
         }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
     }
 
     fn template(&self) -> Option<&Template> {
