@@ -9,7 +9,7 @@ use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::inputs::{blur_action, custom_text_keymap, field_keys, pointer_select};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::edit::{EditEntry, FocusSelect};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
@@ -146,7 +146,7 @@ impl Page for TextAreasPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }
@@ -216,7 +216,7 @@ impl TextAreasPage {
         self.areas[3].render(r, buf, ctx, bg);
     }
 
-    fn handle_areas(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle_areas(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             let Some(i) = self.index_of(ch.from) else {
                 return Outcome::Ignored;

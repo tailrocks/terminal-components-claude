@@ -6,7 +6,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
@@ -42,7 +42,7 @@ impl Page for StubPage {
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
     }
 
-    fn handle(&mut self, _ev: &PageEvent, _cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, _ev: &PageEvent, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
 

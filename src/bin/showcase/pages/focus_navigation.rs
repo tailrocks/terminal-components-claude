@@ -24,7 +24,7 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::{ClientPlatform, InputConfig, Key, Outcome};
 use junie_tui::core::focus::cancel_focus_request;
 use junie_tui::core::id::{Part, WidgetId};
@@ -394,7 +394,7 @@ impl Page for FocusNavPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         // every focus change reaches every page: read it back
         if let PageEvent::Blur(ch) = ev {
             self.last_change = format!("{} → {}", self.name_of(Some(ch.from)), self.name_of(ch.to));

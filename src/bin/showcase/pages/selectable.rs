@@ -19,7 +19,7 @@ use ratatui::layout::{Constraint, Rect};
 
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::{ClientPlatform, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
@@ -505,7 +505,7 @@ impl SelectablePage {
     }
 
     /// Write the fields that changed to every loaded member.
-    fn do_apply(&mut self, cx: &mut PageCtx) {
+    fn do_apply(&mut self, cx: &mut Cx) {
         for input in [&mut self.name, &mut self.email, &mut self.notes] {
             if input.editing {
                 input.commit();
@@ -580,13 +580,13 @@ impl SelectablePage {
         self.feedback = Some(msg);
     }
 
-    fn do_revert(&mut self, cx: &mut PageCtx) {
+    fn do_revert(&mut self, cx: &mut Cx) {
         self.load();
         self.feedback = None;
         cx.status("Changes reverted");
     }
 
-    fn ask_delete(&mut self, cx: &mut PageCtx) {
+    fn ask_delete(&mut self, cx: &mut Cx) {
         let n = self.table.selected_rows().len();
         if n == 0 {
             return;
@@ -598,10 +598,10 @@ impl SelectablePage {
             "They lose access to the workspace right away. This can't be undone.",
             &format!("Delete {n} {noun}"),
         );
-        cx.open(d);
+        cx.open_dialog(d);
     }
 
-    fn do_delete(&mut self, cx: &mut PageCtx) {
+    fn do_delete(&mut self, cx: &mut Cx) {
         let rows = self.table.selected_rows();
         let n = rows.len();
         self.table.remove_rows(&rows);
@@ -620,7 +620,7 @@ impl SelectablePage {
     }
 
     /// Enter on a table row: make sure it is selected, then edit it.
-    fn edit_row(&mut self, src: usize, cx: &mut PageCtx) {
+    fn edit_row(&mut self, src: usize, cx: &mut Cx) {
         if !self.table.selection.contains(src) {
             let disabled = self.table.disabled.clone();
             self.table
@@ -660,7 +660,7 @@ impl SelectablePage {
     /// them and move on, or put the old selection back and ask.
     fn table_input(
         &mut self,
-        cx: &mut PageCtx,
+        cx: &mut Cx,
         f: impl FnOnce(&mut DataTable) -> (Outcome, Option<TableAction>),
     ) -> Outcome {
         let guard = (self.leave_edits != LeaveEdits::Discard && self.dirty())
@@ -692,14 +692,14 @@ impl SelectablePage {
                 Some(0),
             );
             d.initial_focus = DISCARD.sub("save");
-            cx.open(d);
+            cx.open_dialog(d);
             return Outcome::Changed;
         }
         self.on_table_event(tev, cx);
         out
     }
 
-    fn on_table_event(&mut self, ev: Option<TableAction>, cx: &mut PageCtx) {
+    fn on_table_event(&mut self, ev: Option<TableAction>, cx: &mut Cx) {
         match ev {
             Some(TableAction::SelectionChanged) => self.selection_changed(),
             Some(TableAction::Activated(src)) => self.edit_row(src, cx),
@@ -739,7 +739,7 @@ impl SelectablePage {
 
     /// Item `i` of the menu about `cell`: the same path Enter or `d` takes,
     /// on that row (selected first when it is not part of the selection).
-    fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut PageCtx) -> Outcome {
+    fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut Cx) -> Outcome {
         let Some(&(action, _)) = self.row_items(cell.0).get(i) else {
             return Outcome::Consumed;
         };
@@ -887,7 +887,7 @@ impl SelectablePage {
     /// click focuses it); a select opens on the press, follows the drag and
     /// chooses on the release (press-drag-release); the fields, the toggle
     /// and the buttons take their clicks.
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let cfg = self.menu.config;
             let Some(req) = cfg.on_secondary(&mut self.table, ev) else {
@@ -965,7 +965,7 @@ impl SelectablePage {
     fn route_input(
         input: &mut TextInput,
         key: &junie_tui::core::event::Key,
-        cx: &mut PageCtx,
+        cx: &mut Cx,
     ) -> Outcome {
         let (out, ev) = input.on_key(key);
         match ev {
@@ -1069,7 +1069,7 @@ impl Page for SelectablePage {
         self.menu.hides_page_focus()
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

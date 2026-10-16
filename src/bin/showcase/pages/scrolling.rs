@@ -29,7 +29,7 @@ use ratatui::layout::{Constraint, Rect};
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::{Part, WidgetId};
@@ -741,7 +741,7 @@ fn states_grid() -> StateGrid {
 }
 
 impl ScrollingPage {
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         if let Some(r) = self.region.route(ev) {
             if ev.id == self.region.id && (click || ev.is(Phase::Press)) {
@@ -835,7 +835,7 @@ impl Page for ScrollingPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }

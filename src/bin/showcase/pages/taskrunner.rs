@@ -3,7 +3,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
@@ -132,7 +132,7 @@ impl TaskRunnerPage {
         }
     }
 
-    fn start(&mut self, cx: &mut PageCtx) {
+    fn start(&mut self, cx: &mut Cx) {
         for t in &mut self.tasks {
             t.progress = 0.0;
             t.state = TaskState::Queued;
@@ -144,7 +144,7 @@ impl TaskRunnerPage {
         cx.status("Pipeline running");
     }
 
-    fn cancel_now(&mut self, cx: &mut PageCtx) {
+    fn cancel_now(&mut self, cx: &mut Cx) {
         self.running = false;
         for t in &mut self.tasks {
             if t.state == TaskState::Running || t.state == TaskState::Queued {
@@ -155,7 +155,7 @@ impl TaskRunnerPage {
         cx.status("Cancelled");
     }
 
-    fn step(&mut self, cx: &mut PageCtx) -> bool {
+    fn step(&mut self, cx: &mut Cx) -> bool {
         if !self.running {
             return false;
         }
@@ -314,7 +314,7 @@ impl Page for TaskRunnerPage {
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.sections.handle(ev) {
             return o;
         }
@@ -354,7 +354,7 @@ impl Page for TaskRunnerPage {
                 if f == self.cancel.id {
                     let (o, act) = self.cancel.on_key(key);
                     if act {
-                        cx.open(Dialog::destructive(
+                        cx.open_dialog(Dialog::destructive(
                             CANCEL_DLG,
                             "Cancel pipeline?",
                             "Running tasks stop immediately. Finished tasks keep their results.",
@@ -387,7 +387,7 @@ impl Page for TaskRunnerPage {
                     }
                     if let Some(r) = self.cancel.route(ev) {
                         if r.into_action().is_some() {
-                            cx.open(Dialog::destructive(
+                            cx.open_dialog(Dialog::destructive(
                                 CANCEL_DLG,
                                 "Cancel pipeline?",
                                 "Running tasks stop immediately. Finished tasks keep their results.",
