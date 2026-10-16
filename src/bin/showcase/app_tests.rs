@@ -332,6 +332,7 @@ fn header_click_sorts() {
 #[test]
 fn editable_table_commit_cancel_and_validation() {
     let mut h = Harness::new(120, 40, PageId::Editable);
+    h.key(tab()); // the section strip
     h.key(tab());
     assert!(!h.text().contains("EDIT"));
     h.key(KeyCode::Enter);

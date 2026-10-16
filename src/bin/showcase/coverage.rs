@@ -450,6 +450,231 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::table::DataTable::validator",
         Demo("editable", "fix/checkout flake !"),
     ),
+    // Editable, Selection and Cell editors (SC13)
+    (
+        "widgets::option_editor::OptionItem",
+        Demo("celleditors", "Priority P1 (Page on-call now)"),
+    ),
+    (
+        "widgets::option_editor::OptionItem::label",
+        Demo("celleditors", "Env Development · Staging · Production"),
+    ),
+    (
+        "widgets::option_editor::OptionItem::tone",
+        Demo("celleditors", "Rollout Off · Canary · 50 % · Full"),
+    ),
+    (
+        "widgets::option_editor::OptionItem::description",
+        Demo("celleditors", "P2 (Fix today)"),
+    ),
+    (
+        "widgets::option_editor::OptionItem::disabled",
+        Demo("celleditors", "P4 (off: Use P3 or close)"),
+    ),
+    (
+        "widgets::option_editor::Options",
+        Demo(
+            "celleditors",
+            "Labels api · web · worker · db · cache · edge",
+        ),
+    ),
+    (
+        "widgets::option_editor::ColumnEditor::Text",
+        Demo("editable", "Task left · editable · text"),
+    ),
+    (
+        "widgets::option_editor::EditorConfig",
+        Option("celleditors", "celleditors.max_rows"),
+    ),
+    (
+        "widgets::option_editor::Affordance",
+        Option("celleditors", "celleditors.affordance"),
+    ),
+    (
+        "widgets::option_editor::Affordance::Focused",
+        Option("celleditors", "celleditors.affordance=focused"),
+    ),
+    (
+        "widgets::option_editor::Affordance::Always",
+        Option("celleditors", "celleditors.affordance=always"),
+    ),
+    (
+        "widgets::option_editor::Affordance::Never",
+        Option("celleditors", "celleditors.affordance=never"),
+    ),
+    (
+        "widgets::option_editor::ChoiceResult",
+        Demo("celleditors", "Enter or a click: Commit"),
+    ),
+    (
+        "widgets::option_editor::ChoiceResult::Commit",
+        Demo("celleditors", "Enter or a click: Commit"),
+    ),
+    (
+        "widgets::option_editor::ChoiceResult::Cancel",
+        Demo("celleditors", "Esc or outside: Cancel"),
+    ),
+    (
+        "widgets::option_editor::ChoiceResult::CommitAndTab",
+        Demo("celleditors", "Tab: CommitAndTab"),
+    ),
+    (
+        "widgets::option_editor::ChoiceEditor",
+        Demo("celleditors", "Default region eu-west-1 ▾"),
+    ),
+    (
+        "widgets::table::SortDir",
+        Demo("editable", "Sort ▴ ascending, again ▾ descending"),
+    ),
+    (
+        "widgets::table::SortDir::Asc",
+        Demo("editable", "Sort ▴ ascending"),
+    ),
+    (
+        "widgets::table::SortDir::Desc",
+        Demo("editable", "again ▾ descending"),
+    ),
+    (
+        "widgets::table::Align",
+        Demo("editable", "Changes right · editable · text"),
+    ),
+    (
+        "widgets::table::Align::Left",
+        Demo("editable", "Branch left · editable · text"),
+    ),
+    (
+        "widgets::table::Align::Right",
+        Demo("editable", "Changes right · editable · text"),
+    ),
+    (
+        "widgets::table::Column::editor",
+        Demo("editable", "Owner left · editable · ▾ Select"),
+    ),
+    (
+        "widgets::table::Column::right",
+        Demo("editable", "Changes right · editable · text"),
+    ),
+    (
+        "widgets::table::Column::editable",
+        Demo("editable", "Task left · editable · text"),
+    ),
+    (
+        "widgets::table::Cell",
+        Demo("editable", "#1040 Add rate limiting to auth endpoints"),
+    ),
+    (
+        "widgets::table::Cell::tone",
+        Demo("editable", "Status left · read-only"),
+    ),
+    (
+        "widgets::table::ChoiceEdit",
+        Demo("celleditors", "▾ Select Env"),
+    ),
+    ("widgets::table::EditState", StateRow("editable", "editing")),
+    (
+        "widgets::table::CellValidator",
+        StateRow("editable", "error"),
+    ),
+    (
+        "widgets::table::TableCmd",
+        Option("editable", "editable.keymap"),
+    ),
+    (
+        "widgets::table::TableCmd::SortByColumn",
+        Option("editable", "editable.keymap"),
+    ),
+    (
+        "widgets::table::TableCmd::SelectAll",
+        Option("editable", "editable.keymap"),
+    ),
+    (
+        "widgets::table::TableAction",
+        Demo("editable", "Esc Cancelled"),
+    ),
+    (
+        "widgets::table::TableAction::Committed",
+        Demo("editable", "Edit · Enter again Committed"),
+    ),
+    (
+        "widgets::table::TableAction::Cancelled",
+        Demo("editable", "Esc Cancelled"),
+    ),
+    (
+        "widgets::table::TableAction::Activated",
+        Demo("editable", "Enter on a row (Basic table) Activated"),
+    ),
+    (
+        "widgets::table::TableAction::SelectionChanged",
+        Demo("editable", "Space (Selection) SelectionChanged"),
+    ),
+    (
+        "widgets::table::TableAction::LeaveForward",
+        Demo("editable", "LeaveForward · Shift+Tab LeaveBackward"),
+    ),
+    (
+        "widgets::table::TableAction::LeaveBackward",
+        Demo("editable", "LeaveForward · Shift+Tab LeaveBackward"),
+    ),
+    (
+        "widgets::table::DataTable::type_ahead",
+        Option("editable", "editable.type_ahead=any"),
+    ),
+    (
+        "widgets::table::DataTable::type_ahead_column",
+        Option("editable", "editable.type_ahead=task"),
+    ),
+    (
+        "widgets::table::DataTable::editor_config",
+        Option("editable", "editable.affordance"),
+    ),
+    (
+        "widgets::table::DataTable::nav",
+        Option("editable", "editable.nav"),
+    ),
+    (
+        "widgets::table::DataTable::keymap",
+        Option("editable", "editable.keymap"),
+    ),
+    (
+        "widgets::table::DataTable::esc_clears",
+        Option("selection", "selection.esc_clears"),
+    ),
+    (
+        "widgets::table::DataTable::toggle_mods",
+        Option("selection", "selection.toggle_mods"),
+    ),
+    (
+        "widgets::table::DataTable::disabled_rows",
+        Option("selection", "selection.disabled_rows"),
+    ),
+    (
+        "widgets::table::DataTable::horizontal",
+        Option("editable", "editable.horizontal"),
+    ),
+    (
+        "widgets::table::DataTable::overflow_marks",
+        Option("editable", "editable.overflow_marks"),
+    ),
+    (
+        "widgets::table::DataTable::reveal",
+        Option("editable", "editable.reveal"),
+    ),
+    (
+        "widgets::table::DataTable::cell_nav",
+        Demo("editable", "reversed cell cursor (navigation)"),
+    ),
+    (
+        "widgets::table::DataTable::numeric",
+        Option("editable", "editable.numeric"),
+    ),
+    (
+        "widgets::table::DataTable::empty",
+        Option("editable", "editable.rows"),
+    ),
+    (
+        "widgets::table::DataTable::track_click",
+        Option("editable", "editable.track_click"),
+    ),
     // Data grid (SC12)
     (
         "widgets::grid::CellValue",

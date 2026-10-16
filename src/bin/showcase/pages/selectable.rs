@@ -18,6 +18,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Rect};
 
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{ClientPlatform, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -26,6 +27,7 @@ use junie_tui::core::selection::SelectionMode;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
@@ -228,7 +230,81 @@ fn shared<T: PartialEq + Clone>(mut it: impl Iterator<Item = T>) -> Option<T> {
     it.all(|v| v == first).then_some(first)
 }
 
+/// `selection.*` option keys, in the order of `SelectablePage::knobs`.
+const KEYS: [&str; 4] = [
+    "selection.esc_clears",
+    "selection.toggle_mods",
+    "selection.disabled_rows",
+    "selection.check_column",
+];
+
+/// The members table as the options say, through `DataTable`'s builders.
+fn members_table(members: &[Member], k: &[usize; 4], platform: ClientPlatform) -> DataTable {
+    use ratatui::crossterm::event::KeyModifiers;
+    let [esc, mods, disabled, checks] = *k;
+    let toggle = match mods {
+        1 => KeyModifiers::CONTROL,
+        2 => KeyModifiers::ALT,
+        _ => DataTable::toggle_mods_for(platform),
+    };
+    DataTable::new(
+        ID.sub("members"),
+        columns(),
+        members.iter().map(cells).collect(),
+    )
+    .selection_mode(SelectionMode::Multi)
+    .selection_column(checks == 1)
+    // the workspace owner is listed but cannot be edited here
+    .disabled_rows(if disabled == 0 { &[0] } else { &[] })
+    .esc_clears(esc == 1)
+    .toggle_mods(toggle)
+    .empty_text("No members yet")
+}
+
+/// The States grid: the members table with and without its checkbox
+/// column, drawn by `DataTable` itself.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let sample = |k: usize, checks: bool| {
+        let cols = vec![
+            Column::new("Name", Constraint::Min(12)),
+            Column::new("Role", Constraint::Length(7)),
+        ];
+        let rows = members()
+            .iter()
+            .take(3)
+            .map(|m| {
+                let c = cells(m);
+                vec![c[0].clone(), c[1].clone()]
+            })
+            .collect();
+        DataTable::new(id.child(k), cols, rows)
+            .selection_mode(SelectionMode::Multi)
+            .selection_column(checks)
+    };
+    StateGrid::new(id)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Selected,
+            Disabled,
+            Empty,
+            Narrow,
+        ])
+        .column_width(36)
+        .narrow_width(24)
+        .column("Checkbox column", sample(0, true))
+        .column("Rows only", sample(1, false))
+}
+
 pub struct SelectablePage {
+    template: Template,
+    /// The `selection.*` option values, in [`KEYS`] order.
+    knobs: [usize; 4],
     pub members: Vec<Member>,
     pub table: DataTable,
     pub name: TextInput,
@@ -297,18 +373,11 @@ impl SelectablePage {
     /// The page with `platform`'s toggle click (and footer hint).
     pub fn for_platform(platform: ClientPlatform) -> Self {
         let members = members();
-        let table = DataTable::new(
-            ID.sub("members"),
-            columns(),
-            members.iter().map(cells).collect(),
-        )
-        .selection_mode(SelectionMode::Multi)
-        .selection_column(true)
-        // the workspace owner is listed but cannot be edited here
-        .disabled_rows(&[0])
-        .toggle_mods(DataTable::toggle_mods_for(platform))
-        .empty_text("No members yet");
+        let knobs = KEYS.map(|k| crate::options::find(k).map_or(0, |o| o.default));
+        let table = members_table(&members, &knobs, platform);
         let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            knobs,
             members,
             table,
             name: TextInput::new(ID.sub("name"), "Name")
@@ -827,15 +896,8 @@ impl SelectablePage {
     }
 }
 
-impl Page for SelectablePage {
-    fn title(&self) -> &'static str {
-        "Selectable table"
-    }
-    fn blurb(&self) -> &'static str {
-        "Select rows, edit one or many together, delete with a confirmation"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+impl SelectablePage {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         if area.width > 50 + EDITOR_W {
             // side by side: the table takes what the editor leaves
             let tw = area.width - EDITOR_W - 1;
@@ -877,12 +939,59 @@ impl Page for SelectablePage {
         }
         self.menu.render(area, buf, ctx);
     }
+}
+
+impl Page for SelectablePage {
+    fn title(&self) -> &'static str {
+        "Selectable table"
+    }
+    fn blurb(&self) -> &'static str {
+        "Select rows, edit one or many together, delete with a confirmation"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        KEYS.iter().position(|k| *k == key).map(|i| self.knobs[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let Some(i) = KEYS.iter().position(|k| *k == key) else {
+            return;
+        };
+        let n = crate::options::find(key).map_or(1, |o| o.values.len());
+        self.knobs[i] = value.min(n - 1);
+        self.table = members_table(&self.members, &self.knobs, self.platform);
+        self.load();
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
 
     fn layer_open(&self) -> bool {
         self.menu.hides_page_focus()
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
         if let Some((out, chosen)) = self.menu.handle(ev) {
             return match chosen {
                 Some((cell, i)) => self.choose(cell, i, cx).or(out),
@@ -1138,6 +1247,9 @@ impl Page for SelectablePage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         if self.editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next field")];
         }
@@ -1163,7 +1275,10 @@ impl Page for SelectablePage {
                     }
                     h.push(("Enter", "Edit"));
                     h.push(("d", "Delete…"));
-                    h.push(("Esc", "Clear selection"));
+                    // only when Esc clears it (`selection.esc_clears`)
+                    if self.table.esc_clears {
+                        h.push(("Esc", "Clear selection"));
+                    }
                 } else {
                     h.push(("↑↓", "Move"));
                     h.push(("s", "Sort column"));
