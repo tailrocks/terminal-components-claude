@@ -280,6 +280,21 @@ fn options_rebuild_the_editor_strip_through_its_builders() {
 }
 
 #[test]
+fn the_vim_nav_profile_adds_h_and_l_to_the_strip() {
+    let mut h = Harness::new(120, 40);
+    let strip = h.page().editor.id;
+    h.focus(strip);
+    h.key(KeyCode::Char('l'));
+    assert_eq!(h.page().editor.active, 0, "desktop keys: l is not a move");
+    assert!(!h.text().contains("h l move"));
+    h.opt("tabs.nav=vim");
+    h.focus(strip);
+    h.key(KeyCode::Char('l'));
+    assert_eq!(h.page().editor.active, 1, "vim: l moves right");
+    assert!(h.text().contains("←→ h l move"));
+}
+
+#[test]
 fn an_options_control_sets_the_page_option_through_the_app() {
     let mut h = Harness::new(120, 40);
     h.section(Section::Options);
