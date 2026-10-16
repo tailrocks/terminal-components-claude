@@ -404,9 +404,7 @@ impl InfoDialog {
         }
         ctx.hits.register(self.close.id, self.close.area);
         for i in self.props.scroll.visible_range() {
-            if let Some(a) = ctx.hits.area_of(self.props.row_id(i)) {
-                ctx.hits.register(self.props.row_id(i), a);
-            }
+            ctx.hits.raise(self.props.row_id(i));
         }
     }
 }

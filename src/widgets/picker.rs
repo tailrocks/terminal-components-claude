@@ -8,7 +8,8 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
@@ -87,6 +88,8 @@ pub enum PickerStatus {
 
 #[derive(Debug, Clone)]
 pub struct Picker {
+    /// The rows registered in the last render, by id.
+    parts: PartMap,
     pub id: WidgetId,
     pub status: PickerStatus,
     pub title: String,
@@ -197,6 +200,7 @@ impl Picker {
             strings: crate::theme::Strings::DEFAULT,
             empty: None,
             area: Rect::ZERO,
+            parts: PartMap::default(),
             searchable: true,
             cursor_style: CursorStyle::default(),
             cursor_dirty: true,
@@ -441,13 +445,17 @@ impl Picker {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::row_part(i))
+    }
+
+    fn row_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.scroll.visible_range().find(|&i| self.row_id(i) == id)
+        self.parts.index(id, Part::ROW)
     }
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
     fn step(&mut self, delta: isize) {
@@ -642,6 +650,7 @@ impl Picker {
     }
 
     fn paint(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
+        self.parts.clear();
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         use crate::theme::Strings;
@@ -936,7 +945,7 @@ impl Picker {
                 }
             }
             if !it.disabled {
-                ctx.clickable(rid, row);
+                ctx.part(&mut self.parts, self.id, Self::row_part(i), row);
             }
         }
         if has_sb {
