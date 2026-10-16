@@ -29,7 +29,7 @@ pub enum Shown {
     Demo(&'static str, &'static str),
 }
 
-use Shown::{Demo, StateRow};
+use Shown::{Demo, Option, StateRow};
 
 /// Every declared demonstration, keyed by capability id.
 pub static SHOWN: &[(&str, Shown)] = &[
@@ -606,5 +606,174 @@ pub static SHOWN: &[(&str, Shown)] = &[
     (
         "ui::specimen::StateGrid::column_width",
         Demo("inputs", "Text Masked"),
+    ),
+    // ---- shell-wide options (the Inspector's Options tab, `--opt`; SC1)
+    (
+        "theme::ColorLevel::Ansi256",
+        Option("overview", "shell.color=256"),
+    ),
+    (
+        "theme::ColorLevel::Ansi16",
+        Option("overview", "shell.color=16"),
+    ),
+    (
+        "theme::ColorLevel::Mono",
+        Option("overview", "shell.color=mono"),
+    ),
+    (
+        "theme::LevelOverrides",
+        Option("overview", "shell.overrides"),
+    ),
+    ("theme::Glyphs", Option("overview", "shell.glyphs")),
+    ("theme::Theme::glyphs", Option("overview", "shell.glyphs")),
+    (
+        "theme::Theme::with_glyphs",
+        Option("overview", "shell.glyphs"),
+    ),
+    ("theme::Strings", Option("overview", "shell.strings")),
+    ("theme::Theme::strings", Option("overview", "shell.strings")),
+    (
+        "theme::Theme::with_strings",
+        Option("overview", "shell.strings"),
+    ),
+    (
+        "theme::Theme::edit_entry",
+        Option("inputs", "shell.edit_entry"),
+    ),
+    (
+        "theme::Theme::with_edit_entry",
+        Option("inputs", "shell.edit_entry"),
+    ),
+    (
+        "theme::Theme::field_keys",
+        Option("inputs", "shell.field_keys"),
+    ),
+    (
+        "theme::Theme::with_field_keys",
+        Option("inputs", "shell.field_keys"),
+    ),
+    (
+        "core::event::ClientPlatform",
+        Option("inputs", "shell.platform"),
+    ),
+    (
+        "core::event::ClientPlatform::MacOs",
+        Option("inputs", "shell.platform=macos"),
+    ),
+    (
+        "core::event::ClientPlatform::Other",
+        Option("inputs", "shell.platform=other"),
+    ),
+    (
+        "core::pointer::PointerConfig",
+        Option("overview", "shell.wheel_lines"),
+    ),
+    (
+        "core::pointer::PointerConfig::focus_on",
+        Option("overview", "shell.focus_on"),
+    ),
+    (
+        "core::pointer::PointerConfig::double_click_ms",
+        Option("overview", "shell.double_click_ms"),
+    ),
+    (
+        "core::pointer::PointerConfig::double_click_slop",
+        Option("overview", "shell.double_click_slop"),
+    ),
+    (
+        "core::pointer::PointerConfig::wheel_lines",
+        Option("overview", "shell.wheel_lines"),
+    ),
+    (
+        "core::pointer::PointerConfig::hover_refresh_after_scroll",
+        Option("overview", "shell.hover_refresh_after_scroll"),
+    ),
+    (
+        "core::pointer::PointerConfig::flash_ms",
+        Option("overview", "shell.flash_ms"),
+    ),
+    (
+        "core::pointer::PointerConfig::secondary_outside",
+        Option("overview", "shell.secondary_outside"),
+    ),
+    (
+        "core::pointer::PointerConfig::pointer_shapes",
+        Option("overview", "shell.pointer_shapes"),
+    ),
+    (
+        "core::pointer::PointerConfig::caret_shape",
+        Option("overview", "shell.caret_shape"),
+    ),
+    (
+        "core::pointer::PointerConfig::end_edit_on_dead_space",
+        Option("overview", "shell.end_edit_on_dead_space"),
+    ),
+    (
+        "core::pointer::PointerConfig::click_skips_animation",
+        Option("overview", "shell.click_skips_animation"),
+    ),
+    (
+        "core::pointer::PointerConfig::autoscroll",
+        Option("overview", "shell.autoscroll"),
+    ),
+    (
+        "core::pointer::PointerConfig::autoscroll_ms",
+        Option("overview", "shell.autoscroll_ms"),
+    ),
+    (
+        "core::pointer::PointerConfig::track_repeat",
+        Option("overview", "shell.track_repeat"),
+    ),
+    (
+        "core::pointer::PointerConfig::track_repeat_ms",
+        Option("overview", "shell.track_repeat_ms"),
+    ),
+    (
+        "core::pointer::FocusOn",
+        Option("overview", "shell.focus_on"),
+    ),
+    (
+        "core::pointer::FocusOn::Press",
+        Option("overview", "shell.focus_on=press"),
+    ),
+    (
+        "core::pointer::FocusOn::Release",
+        Option("overview", "shell.focus_on=release"),
+    ),
+    (
+        "core::pointer::SecondaryOutside",
+        Option("overview", "shell.secondary_outside"),
+    ),
+    (
+        "core::pointer::SecondaryOutside::Reopen",
+        Option("overview", "shell.secondary_outside=reopen"),
+    ),
+    (
+        "core::pointer::SecondaryOutside::Close",
+        Option("overview", "shell.secondary_outside=close"),
+    ),
+    (
+        "core::pointer::SecondaryOutside::Ignore",
+        Option("overview", "shell.secondary_outside=ignore"),
+    ),
+    (
+        "core::shape::CaretShape",
+        Option("overview", "shell.caret_shape"),
+    ),
+    (
+        "core::shape::CaretShape::Bar",
+        Option("overview", "shell.caret_shape=bar"),
+    ),
+    (
+        "core::shape::CaretShape::Block",
+        Option("overview", "shell.caret_shape=block"),
+    ),
+    (
+        "core::shape::CaretShape::Underline",
+        Option("overview", "shell.caret_shape=underline"),
+    ),
+    (
+        "core::shape::CaretShape::Terminal",
+        Option("overview", "shell.caret_shape=terminal"),
     ),
 ];

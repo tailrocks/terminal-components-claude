@@ -72,12 +72,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/celleditors", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["wait:checkout-api"]).pending(),
     // ------------------------------------------- page template sections (SC2) --
     // A widget page is Playground | Options | States (plan §7, SCP2): Tab
-    // focuses the section strip, a digit opens a section. Options names the
-    // step that brings its controls (SC1); States is the page's StateGrid.
+    // focuses the section strip, a digit opens a section. Options shows the
+    // page's option table (none yet: it points at the Inspector); States is
+    // the page's StateGrid.
     // Pending first approval.
-    Root::new("showcase/sections/buttons-options", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab", "2", "wait:No live options yet"]).pending(),
+    Root::new("showcase/sections/buttons-options", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
     Root::new("showcase/sections/buttons-states", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
-    Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No live options yet"]).pending(),
+    Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
     Root::new("showcase/sections/inputs-states", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
@@ -137,6 +138,11 @@ pub const OVERLAYS: &[Root] = &[
     // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
     Root::new("showcase/flows/help/overlay", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["?"]).dismiss_pending(),
     Root::new("showcase/flows/inspector/open", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["i"]).dismiss_pending(),
+    // SC1: the Options tab (page table, then the shell-wide options); docked
+    // from 100 columns, an overlay below. Pending first approval.
+    Root::new("showcase/flows/inspector/options", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["i", "wait:Options"]).click("Options").pending(),
+    // SC1: a shell option set at launch through `--opt` (ASCII glyphs).
+    Root::new("showcase/flows/inspector/opt-glyphs", Bin::Showcase, &["--page", "buttons", "--opt", "shell.glyphs=ascii"], BOOT).pending(),
     Root::new("showcase/flows/dialogs/open", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "enter"]).dismiss_pending(),
     // S1: the prompt dialog (second button), input prefilled and validated.
     Root::new("showcase/flows/dialogs/prompt", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "enter", "wait:Shown in the task list"]).dismiss_pending(),
