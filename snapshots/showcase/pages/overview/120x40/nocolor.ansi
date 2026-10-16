@@ -4,29 +4,29 @@
                                                                                                                         [0m
  [0m[1m▎› Overview            [0m    Tokens                                          Principles                                  [0m
   ▸ App shell                                                                                                           [0m
-  ▸ Inputs & forms              ▏ canvas                      #000000       [0m[1mOne hue[0m                                     [0m
-  ▸ Tables                      ▏ surface                     #111111       Green means focus, primary action or        [0m
-  ▸ Navigation                  ▏ surface.elevated            #18181b       selection. Everything else is achromatic.   [0m
-  ▸ Overlays                    ▏ surface.overlay             #27272a                                                   [0m
-  ▸ Feedback                    ▏ field                       #1e1e22       [0m[1mAlpha ladder[0m                                [0m
-  ▸ Layout                      ▏ popover                     #3f3f46       Text and borders step down in white         [0m
-  ▸ Text & code                 ▏ border.subtle             white 15%       opacity, never in arbitrary grays.          [0m
-  ▸ Screens                     ▏ border.strong             white 30%                                                   [0m
-                                ▏ text.primary                #ffffff       [0m[1mState is geometry[0m                           [0m
-                                ▏ text.secondary            white 70%       Hover lifts the surface, focus adds a bar,  [0m
-                                ▏ text.muted                white 50%       selection adds a marker, editing shows the  [0m
-                                ▏ text.faint                white 30%       cursor.                                     [0m
-                                ▏ accent                      #48e054                                                   [0m
-                                ▏ accent.hover                #3ab343       [0m[1mThree planes[0m                                [0m
-                                ▏ accent.pressed              #2b8632       Canvas, surface, elevated. Depth comes      [0m
-                                ▏ accent.bg                 green 20%       from lightness, not borders.                [0m
-                                ▏ error                       #e44545                                                   [0m
-                                ▏ warning                     #f59e09       [0m[1mQuiet chrome[0m                                [0m
-                                ▏ info                        #8787ff       Bold is reserved for the focused control.   [0m
-                                                                            No box around a thing unless the box        [0m
-                                                                            carries meaning.                            [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
+  ▸ Inputs & forms              ▏ canvas                        Black       [0m[1mColour carries meaning[0m                      [0m
+  ▸ Tables                      ▏ surface                       Black       One accent hue for focus and primary        [0m
+  ▸ Navigation                  ▏ surface.elevated              Black       action; status hues only where they carry   [0m
+  ▸ Overlays                    ▏ surface.overlay            DarkGray       meaning; syntax hues only in code.          [0m
+  ▸ Feedback                    ▏ field                         Black                                                   [0m
+  ▸ Layout                      ▏ popover                    DarkGray       [0m[1mNever colour alone[0m                          [0m
+  ▸ Text & code                 ▏ border.subtle              DarkGray       Every status has its glyph: ✓ done, ✗       [0m
+  ▸ Screens                     ▏ border.strong                  Gray       failed, ▲ attention, • pending, i info.     [0m
+                                ▏ text.primary                  White                                                   [0m
+                                ▏ text.secondary                 Gray       [0m[1mAlpha ladder[0m                                [0m
+                                ▏ text.muted                     Gray       Text and borders step down in white         [0m
+                                ▏ text.faint                     Gray       opacity, never in arbitrary grays.          [0m
+                                ▏ accent                        White                                                   [0m
+                                ▏ accent.hover                  White       [0m[1mState is geometry[0m                           [0m
+                                ▏ accent.pressed                White       Hover lifts the surface, focus adds a bar,  [0m
+                                ▏ accent.bg                     Black       selection adds a marker, editing shows the  [0m
+                                ▏ highlight                  DarkGray       cursor.                                     [0m
+                                ▏ selection                  DarkGray                                                   [0m
+                                ▏ success                       White       [0m[1mThree planes[0m                                [0m
+                                ▏ info                           Gray       Canvas, surface, elevated. Depth comes      [0m
+                                ▏ warning                        Gray       from lightness, not borders.                [0m
+                                ▏ error                         White                                                   [0m
+                                ▏ danger                        White                                                   [0m
                                                                             State language                              [0m
                                                                                                                         [0m
                                                                             ▎  focus                                    [0m

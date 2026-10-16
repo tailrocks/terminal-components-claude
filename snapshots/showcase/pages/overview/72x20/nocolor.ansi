@@ -4,10 +4,10 @@
                                                                         [0m
  [0m[1m▎› Overview       [0m    Tokens                                           [0m
   ▸ App shell                                                           [0m
-  ▸ Inputs & forms         ▏ canvas               ▏ text.muted          [0m
-  ▸ Tables                 ▏ surface              ▏ text.faint          [0m
-  ▸ Navigation             ▏ surface.elevated     ▏ accent              [0m
-  ▸ Overlays               ▏ surface.overlay      ▏ accent.hover        [0m
+  ▸ Inputs & forms         ▏ canvas               ▏ accent              [0m
+  ▸ Tables                 ▏ surface              ▏ accent.hover        [0m
+  ▸ Navigation             ▏ surface.elevated     ▏ accent.pressed      [0m
+  ▸ Overlays               ▏ surface.overlay      ▏ accent.bg           [0m
   ▸ Feedback                                                            [0m
   ▸ Layout                                                              [0m
   ▸ Text & code        State language                                   [0m
