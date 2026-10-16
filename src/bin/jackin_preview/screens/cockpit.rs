@@ -971,8 +971,13 @@ impl Screen for CockpitScreen {
             let chip = format!(" {} ", self.run.run_id);
             let cw = width(&chip) as u16;
             rx = rx.saturating_sub(cw);
-            let link = ctx.title_style(CHIP_RUN, t.canvas);
-            let st = link.fg(t.legible(t.warning, link.bg.unwrap_or(t.canvas)));
+            // the run id is a link (it copies), not a warning: link ink,
+            // underlined while hovered or focused
+            let vs = ctx.state(CHIP_RUN);
+            let chrome = ctx.title_style(CHIP_RUN, t.canvas);
+            let st = chrome
+                .patch(t.link_style(vs.hovered || vs.focused))
+                .fg(t.legible(t.link, chrome.bg.unwrap_or(t.canvas)));
             buf.set_string(rx, ay, &chip, st);
             ctx.clickable(CHIP_RUN, Rect::new(rx, ay, cw, 1));
             rx = rx.saturating_sub(2);
