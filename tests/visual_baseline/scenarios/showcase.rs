@@ -70,6 +70,39 @@ pub const SURFACES: &[Root] = &[
     // Cell editors (pages/celleditors.rs, docs/showcase/tables.md): a table
     // of constrained columns; pending first approval.
     Root::new("showcase/pages/celleditors", Bin::Showcase, &["--page", "celleditors"], BOOT).sends(&["wait:checkout-api"]).pending(),
+    // ------------------------------------------------ planned pages (SC2) --
+    // Every page of plan §7.2 is registered up front with its `--page` slug
+    // and shows an EmptyState naming the step that fills it. Each step
+    // re-captures its page; pending first approval.
+    Root::new("showcase/planned/statushints", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["wait:arrives with SC4"]).pending(),
+    Root::new("showcase/planned/breadcrumbsrails", Bin::Showcase, &["--page", "breadcrumbsrails"], BOOT).sends(&["wait:arrives with SC5"]).pending(),
+    Root::new("showcase/planned/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
+    Root::new("showcase/planned/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
+    Root::new("showcase/planned/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
+    Root::new("showcase/planned/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:arrives with SC9"]).pending(),
+    Root::new("showcase/planned/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
+    Root::new("showcase/planned/columns", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["wait:arrives with SC11"]).pending(),
+    Root::new("showcase/planned/tabs", Bin::Showcase, &["--page", "tabs"], BOOT).sends(&["wait:arrives with SC14"]).pending(),
+    Root::new("showcase/planned/menus", Bin::Showcase, &["--page", "menus"], BOOT).sends(&["wait:arrives with SC16"]).pending(),
+    Root::new("showcase/planned/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:arrives with SC18"]).pending(),
+    Root::new("showcase/planned/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:arrives with SC19"]).pending(),
+    Root::new("showcase/planned/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:arrives with SC41"]).pending(),
+    Root::new("showcase/planned/emptyerror", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["wait:arrives with SC21"]).pending(),
+    Root::new("showcase/planned/meters", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
+    Root::new("showcase/planned/notices", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
+    Root::new("showcase/planned/splitsstacks", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["wait:arrives with SC23"]).pending(),
+    Root::new("showcase/planned/masterdetail", Bin::Showcase, &["--page", "masterdetail"], BOOT).sends(&["wait:arrives with SC38"]).pending(),
+    Root::new("showcase/planned/panetree", Bin::Showcase, &["--page", "panetree"], BOOT).sends(&["wait:arrives with SC45"]).pending(),
+    Root::new("showcase/planned/textutilities", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["wait:arrives with SC26"]).pending(),
+    Root::new("showcase/planned/queryworkbench", Bin::Showcase, &["--page", "queryworkbench"], BOOT).sends(&["wait:arrives with SC46"]).pending(),
+    Root::new("showcase/planned/connections", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:arrives with SC47"]).pending(),
+    Root::new("showcase/planned/finder", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:arrives with SC48"]).pending(),
+    Root::new("showcase/planned/diskcleanup", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:arrives with SC49"]).pending(),
+    Root::new("showcase/planned/activity", Bin::Showcase, &["--page", "activity"], BOOT).sends(&["wait:arrives with SC51"]).pending(),
+    Root::new("showcase/planned/workspaces", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:arrives with SC52"]).pending(),
+    Root::new("showcase/planned/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:arrives with SC53"]).pending(),
+    Root::new("showcase/planned/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:arrives with SC55"]).pending(),
+    Root::new("showcase/planned/readonlyreport", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["wait:arrives with SC56"]).pending(),
     // ------------------------------------------- page template sections (SC2) --
     // A widget page is Playground | Options | States (plan §7, SCP2): Tab
     // focuses the section strip, a digit opens a section. Options names the
