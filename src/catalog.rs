@@ -1139,6 +1139,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::segments::Segment::bold"),
     Capability::builder("widgets::segments::Segment::clickable"),
     Capability::builder("widgets::segments::Segment::priority"),
+    Capability::builder("widgets::segments::Segment::lead"),
     // widgets::select
     Capability::ty("widgets::select::SelectArrows"),
     Capability::variant("widgets::select::SelectArrows::Step"),
