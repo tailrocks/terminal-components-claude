@@ -711,7 +711,6 @@ impl Screen for ActivityTab {
         if self.is_editing() {
             return Outcome::Ignored;
         }
-        // the output has no cursor row: the menu opens at its top line
         let top = Rect::new(self.view.area.x, self.view.area.y, 1, 1);
         if cx.focus.is(CHIPS) {
             let i = self.chips.cursor;
@@ -722,7 +721,10 @@ impl Screen for ActivityTab {
             return self.chip_menu(i, anchor, w, cx);
         }
         if cx.focus.is(VIEW) {
-            return self.output_menu(ContextAnchor::Pointer(top.as_position()), w, cx);
+            // the output has no cursor row: the menu opens at the
+            // selection, the caret or the followed tail
+            let at = self.view.context_point();
+            return self.output_menu(ContextAnchor::Pointer(at), w, cx);
         }
         Outcome::Ignored
     }
@@ -1044,6 +1046,7 @@ impl Screen for ActivityTab {
         }
         v.push(hint("x", "Close"));
         v.push(hint("Esc", "Back to Here"));
+        v.push(junie_tui::widgets::keyhint::CONTEXT_MENU);
         v
     }
 
