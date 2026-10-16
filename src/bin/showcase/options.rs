@@ -212,6 +212,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Columns => COLUMNS,
         PageId::Tables => BASIC_TABLE,
         PageId::Overview => OVERVIEW,
+        PageId::Tabs => TABS,
         _ => &[],
     }
 }
@@ -290,6 +291,29 @@ static OVERVIEW: &[Opt] = &[
         "State modifiers",
         &["level", "color", "16", "mono"],
     ),
+];
+
+/// The Tabs page (SC14): the editor strip's builders.
+pub static TABS: &[Opt] = &[
+    Opt::new(
+        "tabs.rule",
+        "Active rule",
+        &["auto", "accent", "neutral", "focus-only"],
+    ),
+    Opt::new("tabs.close_reveal", "Show ×", &["always", "hover"]),
+    Opt::new("tabs.close_w", "× target width", &["1", "3", "5"]).default(1),
+    Opt::new("tabs.close_button", "× button", &["default", "danger"]),
+    Opt::new("tabs.allow_new", "New-tab +", OFF_ON).default(1),
+    Opt::new("tabs.new_key", "New-tab key", &["n", "t", "none"]),
+    Opt::new("tabs.close_keys", "Close keys", &["x-delete", "delete"]),
+    Opt::new("tabs.keymap", "Key map", &["default", "ctrl"]),
+    Opt::new("tabs.digit_jump", "Digits jump", OFF_ON).default(1),
+    Opt::new("tabs.nav", "Nav keys", &["default", "no-vim"]),
+    Opt::new("tabs.wrap", "Wrap", OFF_ON),
+    Opt::new("tabs.middle_click", "Middle-click closes", OFF_ON).default(1),
+    Opt::new("tabs.overflow_menu", "Overflow +N", OFF_ON).default(1),
+    Opt::new("tabs.more_button", "+N button", &["default", "tight"]),
+    Opt::new("tabs.count", "Tabs", &["few", "many"]).default(1),
 ];
 
 /// Every option `--opt` accepts: the shell-wide ones, then each page's.

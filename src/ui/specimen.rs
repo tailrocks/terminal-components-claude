@@ -782,6 +782,63 @@ impl Specimen for crate::widgets::input::TextInput {
     }
 }
 
+/// A tab strip: hover and press land on the tab after the active one
+/// (the strip's own id only takes focus), busy and error mark that tab,
+/// overflow adds tabs until the strip scrolls with its `‹ ›` counts and
+/// `+N` button.
+impl Specimen for crate::widgets::tabs::Tabs {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        match state {
+            Rest | Hover | Pressed | Focused | FocusedHover | Busy | Error | Overflow | Narrow => {
+                !self.items.is_empty()
+            }
+            Selected | Disabled | Editing | Empty | Loading => false,
+        }
+    }
+
+    /// The labels and the rule row.
+    fn specimen_height(&self, _state: SpecimenState) -> u16 {
+        2
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut t = self.clone();
+        let v = state.visual();
+        let target = (t.active + 1).min(t.items.len().saturating_sub(1));
+        if v.hovered {
+            ctx.interaction.hover = Some(t.tab_id(target));
+        }
+        if v.pressed {
+            ctx.interaction.pressed = Some(t.tab_id(target));
+        }
+        if v.focused {
+            t.cursor = if v.hovered { t.active } else { target };
+        }
+        if let Some(it) = t.items.get_mut(target) {
+            it.busy |= v.busy;
+            it.error |= v.error;
+        }
+        if state == SpecimenState::Overflow {
+            let mut items = t.items.clone();
+            items.extend((1..=6).map(|i| crate::widgets::tabs::TabItem::new(&format!("More {i}"))));
+            t.set_items(items);
+        }
+        t.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -842,6 +899,38 @@ mod tests {
         assert!(row_text(&buf, 5).contains(t.glyphs.dot_on));
         assert!(row_text(&buf, 5)[..30].contains('–'));
         assert!(hits.hit(Position::new(16, 1)).is_none(), "no hit regions");
+    }
+
+    #[test]
+    fn a_tab_strip_sample_hovers_a_tab_and_depicts_strip_focus() {
+        use crate::widgets::tabs::Tabs;
+        let t = Theme::junie();
+        let id = WidgetId::of("tabs-grid");
+        let mut g = StateGrid::new(id)
+            .rows(&[
+                SpecimenState::Rest,
+                SpecimenState::Hover,
+                SpecimenState::Focused,
+                SpecimenState::Error,
+                SpecimenState::Overflow,
+                SpecimenState::Disabled,
+            ])
+            .column_width(30)
+            .column("Plain", Tabs::new(id.child(0), &["Data", "Logs"]));
+        let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, 60, 14), false);
+        // two rows per state: the labels, then the rule
+        let logs = |y: u16| {
+            let x = (15..45)
+                .find(|&x| buf[(x, y)].symbol() == "L")
+                .expect("the Logs tab");
+            buf[(x, y)].style()
+        };
+        assert_ne!(logs(1), logs(3), "hover lands on a tab, not the strip");
+        assert!(row_text(&buf, 5).contains("▏Logs"), "focus is depicted");
+        assert!(!buf.content().iter().any(|c| c.symbol() == "▎"));
+        assert!(row_text(&buf, 7).contains("Logs !"), "error marks the tab");
+        assert!(row_text(&buf, 9).contains('›'), "overflow scrolls");
+        assert!(row_text(&buf, 11).contains('–'), "no disabled look");
     }
 
     #[test]

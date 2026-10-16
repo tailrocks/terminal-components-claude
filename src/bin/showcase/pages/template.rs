@@ -135,6 +135,12 @@ impl Template {
         self.options.as_ref()?.control_id(key)
     }
 
+    /// Whether an option's select has its list open in the Options
+    /// section: a layer over the page.
+    pub fn popup_open(&self) -> bool {
+        self.section() == Section::Options && self.options.as_ref().is_some_and(|v| v.popup_open())
+    }
+
     pub fn section(&self) -> Section {
         Section::ALL[self.tabs.active.min(Section::ALL.len() - 1)]
     }

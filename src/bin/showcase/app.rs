@@ -1711,7 +1711,18 @@ impl App {
                 }
                 None => Outcome::Ignored,
             },
-            MouseKind::Middle => Outcome::Ignored,
+            // a middle click goes to the page under the pointer (a tab
+            // strip closes the tab under it); a modal or the overlay
+            // Inspector swallows it
+            MouseKind::Middle => {
+                if self.dialog.is_some() || self.inspector_overlay() {
+                    return Outcome::Consumed;
+                }
+                match self.hits.hit(m.pos) {
+                    Some(id) => self.dispatch(PageEvent::Middle { id }),
+                    None => Outcome::Ignored,
+                }
+            }
             MouseKind::Secondary => {
                 let route = self.pointer.route_secondary(&self.hits, m.pos);
                 // a dialog registers no light-dismiss backdrop: a secondary
