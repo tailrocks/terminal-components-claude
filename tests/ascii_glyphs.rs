@@ -448,3 +448,16 @@ fn ascii_glyphs_keep_the_unicode_widths() {
     }
     assert!(a.spinner.iter().all(|f| f.is_ascii() && f.width() == 1));
 }
+
+#[test]
+fn help_overlays_draw_ascii() {
+    use junie_tui::widgets::help::HelpOverlay;
+    check("help", (60, 16), None, |buf, ctx| {
+        let mut h = HelpOverlay::new(
+            WidgetId::of("h"),
+            "App",
+            vec![("Move", vec![("↑↓", "Select"), ("1–6", "Jump")])],
+        );
+        h.render(Rect::new(0, 0, 60, 16), buf, ctx);
+    });
+}
