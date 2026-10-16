@@ -170,6 +170,43 @@ impl GitState {
         }
     }
 
+    /// The state after the branch name as status-bar parts, each in the
+    /// tone of what it says: the sync counts `↓3 ↑1` are information, the
+    /// dirty count `• 5` and an operation in progress need attention, and
+    /// conflicts are an error. Empty when clean and in sync.
+    pub fn state_parts(&self) -> Vec<(String, junie_tui::theme::Tone)> {
+        use junie_tui::theme::Tone;
+        let mut v = vec![];
+        let mut sync = vec![];
+        if self.behind > 0 {
+            sync.push(format!("↓{}", self.behind));
+        }
+        if self.ahead > 0 {
+            sync.push(format!("↑{}", self.ahead));
+        }
+        if !sync.is_empty() {
+            v.push((sync.join(" "), Tone::Info));
+        }
+        let dirty = self.changed() + self.untracked;
+        if dirty > 0 {
+            v.push((format!("• {dirty}"), Tone::Warning));
+        }
+        if self.conflicts > 0 {
+            v.push((
+                format!(
+                    "{} conflict{}",
+                    self.conflicts,
+                    if self.conflicts == 1 { "" } else { "s" }
+                ),
+                Tone::Error,
+            ));
+        }
+        if let Some(op) = &self.in_progress {
+            v.push((op.clone(), Tone::Warning));
+        }
+        v
+    }
+
     /// The state after the branch name: `↓3 ↑1 • 5 · rebase`, empty when
     /// clean and in sync. This is the part that earns the warning tone.
     pub fn state_summary(&self) -> String {
