@@ -43,6 +43,11 @@ pub struct TextInput {
     /// While not editing, show the last N graphemes in clear after the
     /// mask (`••••••••k7Qz`). Editing always masks everything.
     pub reveal_tail: u8,
+    /// Wrap a label longer than the field onto several rows instead of
+    /// cutting it with `…`. Off by default (form labels are short); a
+    /// typed-acknowledgement prompt turns it on, because its label is the
+    /// instruction and must be read whole. Measure with [`Self::height_for`].
+    pub wrap_label: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,6 +81,7 @@ impl TextInput {
             plain_label: false,
             masked: false,
             reveal_tail: 0,
+            wrap_label: false,
         }
     }
 
@@ -113,6 +119,11 @@ impl TextInput {
     }
     pub fn reveal_tail(mut self, n: u8) -> Self {
         self.reveal_tail = n;
+        self
+    }
+    /// See [`Self::wrap_label`].
+    pub fn wrap_label(mut self, on: bool) -> Self {
+        self.wrap_label = on;
         self
     }
 
@@ -185,8 +196,42 @@ impl TextInput {
         self.error.is_none()
     }
 
-    /// Height needed: label + field + (help|error) line.
+    /// Height of the tallest single-label field: label + field +
+    /// (help|error) line. Layouts that reserve a fixed slot use it; a
+    /// layout that measures uses [`Self::height`] or [`Self::height_for`].
     pub const HEIGHT: u16 = 3;
+
+    /// Columns the field's focus gutter takes left of the label and the
+    /// text. Render the field at `x - GUTTER` to line its label up with
+    /// text that starts at `x` (a dialog title, a paragraph).
+    pub const GUTTER: u16 = 2;
+
+    /// Rows this field draws: the label, the field, and the help or error
+    /// row only when there is something to show in it.
+    pub fn height(&self) -> u16 {
+        2 + self.message_rows()
+    }
+
+    /// [`Self::height`] for a field `width` columns wide, counting every
+    /// row of a wrapped label ([`Self::wrap_label`]).
+    pub fn height_for(&self, cols: u16) -> u16 {
+        self.label_lines(cols).len().max(1) as u16 + 1 + self.message_rows()
+    }
+
+    fn message_rows(&self) -> u16 {
+        u16::from(self.error.is_some() || !self.help.is_empty())
+    }
+
+    /// The label as drawn in a field `width` wide: one line, unless the
+    /// label wraps and is longer than the room beside the gutter.
+    fn label_lines(&self, cols: u16) -> Vec<String> {
+        let room = cols.saturating_sub(Self::GUTTER) as usize;
+        if self.wrap_label && room > 0 && width(&self.label) > room {
+            crate::ui::text::wrap(&self.label, room)
+        } else {
+            vec![self.label.clone()]
+        }
+    }
 
     /// Handle a key while focused. The caller decides what to do with the
     /// returned event (e.g. move focus on `CommittedTab`).
@@ -302,6 +347,27 @@ impl TextInput {
             s.editing = false;
         }
 
+        // a wrapped label takes as many rows as it needs, every one whole
+        let wrapped = self.label_lines(area.width);
+        let label_rows = wrapped.len().max(1) as u16;
+        let label_x = area.x + Self::GUTTER.min(area.width);
+        let label_style_for = |t: &crate::theme::Theme| {
+            if self.disabled {
+                t.faint().bg(bg)
+            } else {
+                t.label(s.focused).bg(bg)
+            }
+        };
+        if label_rows > 1 {
+            let st = label_style_for(t);
+            for (i, line) in wrapped.iter().enumerate() {
+                let y = area.y + i as u16;
+                if y >= area.bottom() {
+                    break;
+                }
+                buf.set_string(label_x, y, line, st);
+            }
+        }
         // label row
         let mut label = self.label.clone();
         let name_w = width(&self.label);
@@ -316,19 +382,18 @@ impl TextInput {
         } else if show_optional {
             label.push_str("  optional");
         }
-        let label_style = if self.disabled {
-            t.faint().bg(bg)
-        } else {
-            t.label(s.focused).bg(bg)
-        };
-        let label_x = area.x + 2.min(area.width);
-        buf.set_string(
-            label_x,
-            area.y,
-            crate::ui::text::fit(&label, area.width.saturating_sub(2) as usize),
-            label_style,
-        );
-        if self.required && !self.disabled && name_w + 4 <= area.width as usize {
+        let label_style = label_style_for(t);
+        if label_rows == 1 {
+            buf.set_string(
+                label_x,
+                area.y,
+                crate::ui::text::fit(&label, area.width.saturating_sub(2) as usize),
+                label_style,
+            );
+        }
+        if label_rows > 1 {
+            // the wrapped label carries no suffix marks
+        } else if self.required && !self.disabled && name_w + 4 <= area.width as usize {
             buf.set_string(
                 area.x + 2 + name_w as u16 + 1,
                 area.y,
@@ -345,10 +410,10 @@ impl TextInput {
         }
 
         // field row
-        if area.height < 2 {
+        if area.height < label_rows + 1 {
             return;
         }
-        let field = Rect::new(area.x, area.y + 1, area.width, 1);
+        let field = Rect::new(area.x, area.y + label_rows, area.width, 1);
         self.area = field;
         let fs = t.field_style(s);
         crate::ui::ctx::fill(buf, field, fs);
@@ -450,8 +515,8 @@ impl TextInput {
         ctx.control(self.id, field, self.disabled);
 
         // help / error row
-        if area.height >= 3 {
-            let msg_y = area.y + 2;
+        if area.height >= label_rows + 2 {
+            let msg_y = field.y + 1;
             if let Some(e) = &self.error {
                 buf.set_string(
                     label_x,
