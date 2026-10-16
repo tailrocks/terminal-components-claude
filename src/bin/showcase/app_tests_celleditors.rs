@@ -141,6 +141,28 @@ fn a_select_cell_is_edited_by_keyboard() {
     assert_eq!(h.status().as_deref(), Some("Edit cancelled"));
 }
 
+/// S6: the wheel over an open choice popup moves its cursor (the popup is
+/// the table's: `DataTable`'s MouseTarget hands it the notch first).
+#[test]
+fn the_wheel_over_an_open_choice_popup_moves_its_cursor() {
+    let mut h = Harness::new(140, 40);
+    h.key(KeyCode::Enter);
+    let editor = &h.table().choice.as_ref().expect("the popup is open").editor;
+    let before = editor.cursor;
+    let row = h
+        .app
+        .hits
+        .area_of(editor.option_id(2))
+        .expect("an option row");
+    h.app.handle(Input::Mouse(Mouse::new(
+        MouseKind::WheelDown,
+        Position::new(row.x + 2, row.y),
+    )));
+    h.draw();
+    let after = h.table().choice.as_ref().expect("still open").editor.cursor;
+    assert_ne!(after, before, "the notch moved the popup's cursor");
+}
+
 #[test]
 fn a_select_cell_is_edited_by_mouse() {
     let mut h = Harness::new(140, 40);
