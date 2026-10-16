@@ -12,7 +12,8 @@ use crate::app_tests_parity::open;
 use crate::domain::activity::ActivityState;
 use crate::domain::plan::{PlanPhase, StepState};
 use crate::scenario::{Motion, Scenario};
-use crate::screens::{activity, disk, plan};
+use crate::screens::{GateTarget, Go, Page};
+use crate::screens::{activity, cleanup, disk, plan, review, snapshot};
 
 fn until<F: Fn(&H) -> bool>(h: &mut H, max_ticks: usize, f: F) -> bool {
     for _ in 0..max_ticks {
@@ -250,17 +251,55 @@ fn an_activity_output_right_click_opens_its_menu_at_the_pointer_and_stops_it() {
     assert_eq!(h.app.focus.current(), Some(activity::VIEW));
 }
 
+/// The activity tab's output viewport.
+fn activity_view(h: &mut H) -> &junie_tui::widgets::viewport::TextViewport {
+    let i = h.app.active;
+    h.app.tabs[i]
+        .stack
+        .last_mut()
+        .and_then(|s| s.as_activity())
+        .map(|a| a.view())
+        .expect("an activity tab")
+}
+
 #[test]
-fn shift_f10_opens_the_activity_menu_at_the_top_of_the_output() {
+fn shift_f10_opens_the_activity_menu_at_the_followed_tail() {
     let mut h = activities();
     h.alt(KeyCode::Char('1'));
     let v = row(&h, activity::VIEW);
     assert_eq!(h.app.focus.current(), Some(activity::VIEW));
+    let drawn = activity_view(&mut h).scroll.visible_range().len() as u16;
+    assert!(drawn > 1, "output on screen\n{}", h.text());
     shift_f10(&mut h);
     assert_eq!(h.app.focus.current(), Some(activity::MENU), "{}", h.text());
-    assert_below_row(&h, activity::MENU, v.y);
+    // no cursor row: the last drawn line of the followed output stands in
+    let a = menu_area(&h, activity::MENU);
+    assert!(
+        a.y == v.y + drawn || a.bottom() < v.y + drawn,
+        "below the tail line {} (or flipped above it): {a:?}\n{}",
+        v.y + drawn - 1,
+        h.text()
+    );
+    assert_ne!(a.y, v.y + 1, "not at the top line");
     choose(&mut h, "Find…");
     assert!(h.text().contains("Close find"), "{}", h.text());
+}
+
+#[test]
+fn shift_f10_opens_the_activity_menu_at_the_selection() {
+    use junie_tui::core::event::MouseKind;
+    let mut h = activities();
+    h.alt(KeyCode::Char('1'));
+    let v = row(&h, activity::VIEW);
+    // select from the first line into the second
+    h.mouse(MouseKind::Down, v.x + 2, v.y);
+    h.mouse(MouseKind::Drag, v.x + 6, v.y + 1);
+    h.mouse(MouseKind::Up, v.x + 6, v.y + 1);
+    assert!(activity_view(&mut h).has_selection(), "{}", h.text());
+    shift_f10(&mut h);
+    assert_eq!(h.app.focus.current(), Some(activity::MENU), "{}", h.text());
+    assert_at_pointer(&h, activity::MENU, v.x + 6, v.y + 1);
+    assert!(!h.text().contains("Select text first"), "{}", h.text());
 }
 
 #[test]
@@ -293,4 +332,127 @@ fn a_stream_chip_menu_hides_the_stream_and_reopens_from_the_output() {
         h.app.world.activities[a].hidden_services
     );
     assert_eq!(h.app.focus.current(), Some(activity::CHIPS));
+}
+
+// --------------------------------------------------------------- cleanup
+
+fn cleanup_page() -> H {
+    let mut h = H::new(Scenario::ParityInsights, Motion::Paused, 40, 120, 40);
+    h.app.go(Go::Push(Page::Cleanup { category: None }));
+    h.draw();
+    h
+}
+
+#[test]
+fn a_cleanup_row_right_click_opens_its_menu_at_the_pointer_and_unselects() {
+    let mut h = cleanup_page();
+    assert!(h.text().contains("19 selected"), "{}", h.text());
+    // a selected category below the cursor row
+    let (x, y) = h.find("Xcode device support").expect("the category row");
+    right_click(&mut h, x + 2, y);
+    assert_eq!(
+        h.app.focus.current(),
+        Some(cleanup::ROW_MENU),
+        "{}",
+        h.text()
+    );
+    assert_at_pointer(&h, cleanup::ROW_MENU, x + 2, y);
+    let t = h.text();
+    assert!(t.contains("Review deletion…"), "{t}");
+    assert!(
+        !t.contains("Select at least one eligible candidate first"),
+        "items are selected\n{t}"
+    );
+    choose(&mut h, "Unselect category");
+    assert!(h.app.modals.is_empty());
+    assert!(!h.text().contains("19 selected"), "{}", h.text());
+    assert_eq!(h.app.focus.current(), Some(cleanup::LIST));
+}
+
+#[test]
+fn shift_f10_opens_the_cleanup_menu_below_the_cursor_row() {
+    let mut h = cleanup_page();
+    assert_eq!(h.app.focus.current(), Some(cleanup::LIST));
+    shift_f10(&mut h);
+    assert_eq!(
+        h.app.focus.current(),
+        Some(cleanup::ROW_MENU),
+        "{}",
+        h.text()
+    );
+    choose(&mut h, "Show details");
+    assert_eq!(h.app.focus.current(), Some(cleanup::DETAIL));
+}
+
+// ------------------------------------------------------------ snapshot
+
+#[test]
+fn a_snapshot_body_menu_runs_the_page_keys() {
+    let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
+    h.app.go(Go::Push(Page::Snapshot {
+        kind: "port".into(),
+    }));
+    h.draw();
+    let body = row(&h, snapshot::BODY);
+    let (x, y) = (body.x + 3, body.y + 1);
+    right_click(&mut h, x, y);
+    assert_eq!(h.app.focus.current(), Some(snapshot::MENU), "{}", h.text());
+    assert_at_pointer(&h, snapshot::MENU, x, y);
+    choose(&mut h, "Refresh");
+    assert!(h.text().contains("Refreshed · live"), "{}", h.text());
+    // the keyboard opens it at the body's top line
+    h.app.focus.focus(snapshot::BODY);
+    h.draw();
+    shift_f10(&mut h);
+    assert_below_row(&h, snapshot::MENU, body.y);
+}
+
+#[test]
+fn a_config_snapshot_menu_offers_revoking_trust() {
+    let mut h = H::new(Scenario::ParityCustomActions, Motion::Paused, 40, 120, 40);
+    h.app.go(Go::Push(Page::Config {
+        path: "/Users/alex/work/team/.holla.toml".into(),
+    }));
+    h.draw();
+    let body = row(&h, snapshot::BODY);
+    right_click(&mut h, body.x + 3, body.y + 1);
+    assert!(h.text().contains("Re-read configuration"), "{}", h.text());
+    choose(&mut h, "Revoke trust");
+    let t = h.text();
+    assert!(
+        t.contains("Trust revoked") || t.contains("Nothing to revoke"),
+        "{t}"
+    );
+}
+
+// ---------------------------------------------------------------- gate 1
+
+#[test]
+fn the_gate_sequence_menu_copies_or_cancels_but_never_continues() {
+    let mut h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 120, 40);
+    let plan = h.app.world.plans.first().expect("plan fixture").id.clone();
+    h.app.go(Go::Push(Page::Review(GateTarget::Plan(plan))));
+    h.draw();
+    assert!(h.text().contains("gate 1 of 2"));
+    let seq = row(&h, review::SEQUENCE);
+    h.app.focus.focus(review::SEQUENCE);
+    h.draw();
+    shift_f10(&mut h);
+    assert_eq!(
+        h.app.focus.current(),
+        Some(review::SEQUENCE_MENU),
+        "{}",
+        h.text()
+    );
+    assert_below_row(&h, review::SEQUENCE_MENU, seq.y);
+    let labels: Vec<String> = match h.app.modals.top().map(|m| &m.modal) {
+        Some(crate::screens::Modal::Menu(m)) => m.items.iter().map(|i| i.label.clone()).collect(),
+        _ => panic!("no menu"),
+    };
+    assert_eq!(labels, ["Copy sequence", "Cancel"], "never Continue");
+    // the second item: Cancel
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    assert!(h.app.modals.is_empty());
+    assert!(!h.text().contains("gate 1 of 2"), "{}", h.text());
 }

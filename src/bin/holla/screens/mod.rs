@@ -382,6 +382,42 @@ pub fn open_context(
     Outcome::Changed
 }
 
+/// The key a context-menu item replays, from its character in the menu's
+/// tag: `'\n'` is Enter, `'←'`/`'→'` the arrows, `'\u{1b}'` Esc, any other
+/// character that plain key.
+pub fn replay_key(c: char) -> Key {
+    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+    let code = match c {
+        '\n' => KeyCode::Enter,
+        '←' => KeyCode::Left,
+        '→' => KeyCode::Right,
+        '\u{1b}' => KeyCode::Esc,
+        c => KeyCode::Char(c),
+    };
+    Key {
+        code,
+        mods: KeyModifiers::NONE,
+    }
+}
+
+/// A menu's chosen item `k` under `tag` of `kind` whose key is
+/// `row:keys`: the row it was opened for and the key item `k` replays.
+pub fn row_choice(
+    tag: &ModalTag,
+    kind: &str,
+    result: &ModalResult,
+) -> Option<(usize, Option<Key>, usize)> {
+    let ModalResult::MenuChosen(k) = *result else {
+        return None;
+    };
+    if tag.kind != kind {
+        return None;
+    }
+    let (row, keys) = tag.key.split_once(':')?;
+    let row = row.parse::<usize>().ok()?;
+    Some((row, keys.chars().nth(k).map(replay_key), k))
+}
+
 pub fn plural(n: usize, one: &str, many: &str) -> String {
     if n == 1 {
         format!("{n} {one}")

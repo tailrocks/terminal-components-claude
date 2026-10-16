@@ -387,6 +387,9 @@ pub struct TextViewport {
     revision: u64,
     selection: Option<(Anchor, Anchor)>,
     drag_anchor: Option<Anchor>,
+    /// Where the last drag extended the selection: the release there (a
+    /// click on the same control) keeps it.
+    dragged: Option<Position>,
     /// Keyboard browse caret for selection extension.
     browse: Option<Anchor>,
     marks: Vec<Mark>,
@@ -480,6 +483,7 @@ impl TextViewport {
             revision: 0,
             selection: None,
             drag_anchor: None,
+            dragged: None,
             browse: None,
             marks: vec![],
             visual: vec![],
@@ -1326,6 +1330,11 @@ impl TextViewport {
 
     /// Mouse down: anchor a drag; no selection yet.
     pub fn on_click(&mut self, pos: Position) -> Outcome {
+        // the release that ends a drag keeps the dragged selection (apps
+        // deliver it as a click on the control the press started on)
+        if self.dragged.take() == Some(pos) && self.selection.is_some() {
+            return Outcome::Consumed;
+        }
         let had = self.selection.is_some();
         self.selection = None;
         self.browse = None;
@@ -1374,6 +1383,7 @@ impl TextViewport {
         };
         self.selection = Some((anchor, head));
         self.browse = Some(head);
+        self.dragged = Some(pos);
         Outcome::Changed
     }
 
@@ -1873,6 +1883,33 @@ impl TextViewport {
         let cx = self.area.x + (c.col.saturating_sub(base) as u16).min(text_w.saturating_sub(1));
         let cy = self.area.y + (vi - self.scroll.offset) as u16;
         Some(Position::new(cx, cy))
+    }
+
+    /// Where a keyboard context menu about the viewport opens (it opens
+    /// below this cell): the end of the selection when it is in view, else
+    /// the caret when it is shown, else the last drawn line while the view
+    /// follows its tail, else the top line. A viewport has no cursor row,
+    /// so this stands in for one.
+    pub fn context_point(&self) -> Position {
+        if let Some((_, end)) = self.selection()
+            && let Some(p) = self.screen_pos(end)
+        {
+            return p;
+        }
+        if self.caret_visible
+            && let Some(c) = self.caret
+            && let Some(p) = self.screen_pos(c)
+        {
+            return p;
+        }
+        let top = Position::new(self.area.x, self.area.y);
+        if self.follow || self.is_at_tail() {
+            let drawn = self.scroll.visible_range().len() as u16;
+            if drawn > 0 {
+                return Position::new(self.area.x, self.area.y + drawn.min(self.area.height) - 1);
+            }
+        }
+        top
     }
 
     /// The horizontal bar's track after the last layout (empty without
