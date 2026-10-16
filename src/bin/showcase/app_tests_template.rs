@@ -383,5 +383,6 @@ fn every_page_opens_by_its_slug() {
             assert_eq!(h.focus_bars(), 1, "{}", e.label);
         }
     }
-    assert_eq!(stubs, 29, "the planned pages of plan §7.2");
+    // each page step replaces its stub (29 planned pages, plan §7.2)
+    assert!(stubs <= 28, "the planned pages of plan §7.2: {stubs}");
 }

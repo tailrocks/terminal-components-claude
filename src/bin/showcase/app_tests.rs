@@ -281,7 +281,11 @@ fn hit_testing_prefers_rows_over_their_container() {
 
 #[test]
 fn table_sorts_both_directions_and_clears() {
-    let mut h = Harness::new(120, 40, PageId::Tables);
+    // tall enough for the task table to show 20 rows under the section
+    // strip and above the Reviewers and Checks cards
+    let mut h = Harness::new(120, 51, PageId::Tables);
+    // the section strip, then the table
+    h.key(tab());
     h.key(tab());
     let first_before = h.row(h.find_row("#10").unwrap());
     // sort on the current (ID) column
@@ -312,12 +316,12 @@ fn table_sorts_both_directions_and_clears() {
 
 #[test]
 fn header_click_sorts() {
-    let mut h = Harness::new(120, 40, PageId::Tables);
+    let mut h = Harness::new(120, 48, PageId::Tables);
     let (x, y) = h.find("Owner").unwrap();
     h.click(x, y);
     assert!(h.text().contains("Owner ▴"));
     let first = h.find_row("#10").unwrap();
-    assert!(h.row(first).contains("ana"));
+    assert!(h.row(first).contains("ana"), "{}", h.text());
     h.click(x, y);
     assert!(h.text().contains("Owner ▾"));
     let first = h.find_row("#10").unwrap();
@@ -1424,13 +1428,15 @@ fn the_editor_scrollbar_takes_the_wheel_and_the_grid_scrollbar_keeps_focus() {
 #[test]
 fn tables_take_the_horizontal_wheel_and_the_sidebar_nav_keeps_its_cursor_visible() {
     let mut h = Harness::new(80, 24, PageId::Tables);
-    let before = h.row(6);
-    h.mouse(MouseKind::WheelRight, 28, 8);
+    // the task table's header row, under the section strip
+    let header = h.find_row("Owner").expect("the task table's header");
+    let before = h.row(header);
+    h.mouse(MouseKind::WheelRight, 28, header + 2);
     assert_ne!(
-        h.row(6),
+        h.row(header),
         before,
         "the header shows the next columns: {}",
-        h.row(6)
+        h.row(header)
     );
 
     let mut s = Harness::new(72, 20, PageId::Sidebars);
