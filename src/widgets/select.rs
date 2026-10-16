@@ -131,9 +131,6 @@ pub struct Select {
     /// lands on the other end. Default off: it stops at the end.
     pub wrap: bool,
     typeahead: crate::core::typeahead::TypeAhead,
-    /// An open list closes (without changing the value) when the field
-    /// loses focus ([`Self::on_blur`]). Default `true`.
-    pub close_on_blur: bool,
     /// Which keys move the open list's cursor (default
     /// [`NavKeys::default`]). The closed field steps its value with the
     /// arrows only, so letters stay with the page's own shortcuts.
@@ -213,7 +210,6 @@ impl Select {
             type_ahead_precedence: None,
             wrap: false,
             typeahead: Default::default(),
-            close_on_blur: true,
             nav: NavKeys::default(),
             wheel: WheelMode::Viewport,
             hover_moves_cursor: true,
@@ -558,17 +554,20 @@ impl Select {
         }
     }
 
-    /// See [`Self::close_on_blur`].
+    /// Whether the open list closes (without changing the value) when the
+    /// field loses focus: sets [`Dismiss::focus_out`] on [`Self::dismiss`],
+    /// the one policy for every dismissal (on for [`Dismiss::LIGHT`]).
+    /// Set it after [`Self::dismiss`], which replaces the whole policy.
     pub fn close_on_blur(mut self, on: bool) -> Self {
-        self.close_on_blur = on;
+        self.dismiss.focus_out = on;
         self
     }
 
     /// Focus left the field (see [`crate::core::focus::Focus::take_changes`]):
-    /// an open list closes per [`Self::close_on_blur`], so the next key
-    /// never sees a stale `open`.
+    /// an open list closes when [`Dismiss::focus_out`] allows it, so the
+    /// next key never sees a stale `open`.
     pub fn on_blur(&mut self) -> Outcome {
-        if self.close_on_blur {
+        if self.dismiss.focus_out {
             self.close()
         } else {
             Outcome::Ignored
