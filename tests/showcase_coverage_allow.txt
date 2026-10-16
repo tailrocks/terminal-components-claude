@@ -229,17 +229,6 @@ core::scroll::HScroll::bar | Panels and Scrolling page options | SC22
 core::scroll::HScroll::step | Panels and Scrolling page options | SC22
 core::scroll::HScroll::track_click | Panels and Scrolling page options | SC22
 
-# core::selection
-core::selection::SelectionMode | Columns and Basic table pages | SC11
-core::selection::SelectionMode::None | Columns and Basic table pages | SC11
-core::selection::SelectionMode::Single | Columns and Basic table pages | SC11
-core::selection::SelectionMode::Multi | Columns and Basic table pages | SC11
-core::selection::TriState | Columns and Basic table pages | SC11
-core::selection::TriState::None | Columns and Basic table pages | SC11
-core::selection::TriState::Mixed | Columns and Basic table pages | SC11
-core::selection::TriState::All | Columns and Basic table pages | SC11
-core::selection::RowSelection | Columns and Basic table pages | SC11
-
 # core::shape
 core::shape::PointerShape | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::shape::PointerShape::Default | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -257,20 +246,6 @@ core::text::CursorPos | Text utilities page | SC26
 
 # core::typeahead
 core::typeahead::TypeAhead | Lists and Trees page options | SC15
-
-# ui::columns
-ui::columns::Col | Columns and Basic table pages | SC11
-ui::columns::Col::flex | Columns and Basic table pages | SC11
-ui::columns::Col::max | Columns and Basic table pages | SC11
-ui::columns::Col::droppable | Columns and Basic table pages | SC11
-ui::columns::ColumnSizing | Columns and Basic table pages | SC11
-ui::columns::HeaderAction | Columns and Basic table pages | SC11
-ui::columns::HeaderAction::SortAsc | Columns and Basic table pages | SC11
-ui::columns::HeaderAction::SortDesc | Columns and Basic table pages | SC11
-ui::columns::HeaderAction::ClearSort | Columns and Basic table pages | SC11
-ui::columns::HeaderAction::Autofit | Columns and Basic table pages | SC11
-ui::columns::HeaderAction::ResetWidths | Columns and Basic table pages | SC11
-ui::columns::HeaderLabels | Columns and Basic table pages | SC11
 
 # ui::context
 ui::context::ContextKeys | Menus page | SC16
@@ -1123,15 +1098,11 @@ widgets::table::DataTable::type_ahead_column | Editable, Selection and Cell edit
 widgets::table::DataTable::editor_config | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::nav | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::keymap | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::selection_mode | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::selection_column | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::esc_clears | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::toggle_mods | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::disabled_rows | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::horizontal | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::overflow_marks | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::resizable_columns | Editable, Selection and Cell editors page options | SC13
-widgets::table::DataTable::seam_hit_w | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::reveal | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::cell_nav | Editable, Selection and Cell editors page options | SC13
 widgets::table::DataTable::numeric | Editable, Selection and Cell editors page options | SC13

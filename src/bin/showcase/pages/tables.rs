@@ -3,12 +3,15 @@ use ratatui::layout::{Constraint, Rect};
 
 use crate::data::TaskStatus;
 use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::selection::{SelectionMode, TriState};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::menu::{ContextMenu, MenuItem};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
@@ -71,8 +74,70 @@ pub fn task_rows() -> Vec<Vec<Cell>> {
         .collect()
 }
 
+/// The `basictable.selection` values, in option order.
+const SELECTION_MODES: [SelectionMode; 3] = [
+    SelectionMode::None,
+    SelectionMode::Single,
+    SelectionMode::Multi,
+];
+
+/// The task table in selection `mode`: a multi-select table gets its
+/// checkbox column.
+fn tasks_table(mode: SelectionMode) -> DataTable {
+    DataTable::new(ID.sub("tasks"), task_columns(), task_rows())
+        .numeric(&[0, 5, 6])
+        .selection_mode(mode)
+        .selection_column(mode == SelectionMode::Multi)
+}
+
+/// The States grid: a short task table in each selection mode, drawn by
+/// `DataTable` itself.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let sample = |k: usize, mode: SelectionMode| {
+        let cols = vec![
+            Column::new("ID", Constraint::Length(5)),
+            Column::new("Task", Constraint::Min(10)),
+            Column::new("Status", Constraint::Length(9)),
+        ];
+        let rows = task_rows()
+            .into_iter()
+            .take(3)
+            .map(|r| vec![r[0].clone(), r[1].clone(), r[3].clone()])
+            .collect();
+        DataTable::new(id.child(k), cols, rows)
+            .numeric(&[0])
+            .selection_mode(mode)
+            .selection_column(mode == SelectionMode::Multi)
+    };
+    StateGrid::new(id)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Selected,
+            Disabled,
+            Empty,
+            Overflow,
+            Narrow,
+        ])
+        .column_width(38)
+        .narrow_width(26)
+        .column("Single selection", sample(0, SelectionMode::Single))
+        .column("No selection", sample(1, SelectionMode::None))
+        .column("Multi selection", sample(2, SelectionMode::Multi))
+}
+
 pub struct TablesPage {
-    table: DataTable,
+    template: Template,
+    /// The `basictable.selection` value index.
+    selection: usize,
+    pub table: DataTable,
+    /// A multi-select table with a mixed selection.
+    pub reviewers: DataTable,
     empty: DataTable,
     sections: crate::pages::layout::Sections,
     /// The task table's cell menu and the `(display row, column)` it is
@@ -166,8 +231,32 @@ impl TablesPage {
         }
     }
     pub fn new() -> Self {
-        let table =
-            DataTable::new(ID.sub("tasks"), task_columns(), task_rows()).numeric(&[0, 5, 6]);
+        let selection = 1;
+        let table = tasks_table(SELECTION_MODES[selection]);
+        // a multi-select list with some rows chosen: the header checkbox
+        // shows the mixed state
+        let mut reviewers = DataTable::new(
+            ID.sub("reviewers"),
+            vec![
+                Column::new("Reviewer", Constraint::Min(12)),
+                Column::new("Team", Constraint::Length(10)),
+                Column::new("Open reviews", Constraint::Length(12)).right(),
+            ],
+            [
+                ("mira", "platform", "3"),
+                ("jonas", "payments", "0"),
+                ("ana", "platform", "5"),
+                ("kai", "infra", "1"),
+            ]
+            .into_iter()
+            .map(|(a, b, c)| vec![Cell::new(a), Cell::new(b).tone(Tone::Muted), Cell::new(c)])
+            .collect(),
+        )
+        .numeric(&[2])
+        .selection_mode(SelectionMode::Multi)
+        .selection_column(true);
+        reviewers.toggle_row(0);
+        reviewers.toggle_row(2);
         let empty = DataTable::new(
             ID.sub("empty"),
             vec![
@@ -178,7 +267,10 @@ impl TablesPage {
         )
         .empty_text("No checks have run yet");
         Self {
+            template: Template::new(ID, states_grid()),
+            selection,
             table,
+            reviewers,
             empty,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
             menu: RowMenu::default(),
@@ -187,30 +279,56 @@ impl TablesPage {
     }
 }
 
-impl Page for TablesPage {
-    fn title(&self) -> &'static str {
-        "Tables"
+/// A click on one of `t`'s targets: the header checkbox, a row's checkbox,
+/// a header, a cell or the scrollbar. `None` when `id` is not `t`'s.
+fn click(
+    t: &mut DataTable,
+    id: WidgetId,
+    pos: ratatui::layout::Position,
+    cx: &mut PageCtx,
+) -> Option<(Outcome, Option<TableAction>)> {
+    if id == t.check_all_id() {
+        cx.focus.focus(t.id);
+        return Some(t.on_click_check_all());
     }
-    fn blurb(&self) -> &'static str {
-        "Sort by header, hover rows, select with Enter, overflow scrolls"
+    if let Some(d) = t.locate_check(id) {
+        cx.focus.focus(t.id);
+        return Some(t.on_click_check(d));
     }
+    if let Some(c) = t.locate_header(id) {
+        cx.focus.focus(t.id);
+        return Some((t.on_click_header(c), None));
+    }
+    if let Some((row, col)) = t.locate(id) {
+        cx.focus.focus(t.id);
+        return Some(t.on_click_cell_with(row, col.unwrap_or(0), pos, cx.mods));
+    }
+    if scrollbar::is_bar_of(id, t.id) {
+        return Some((t.on_scrollbar(pos), None));
+    }
+    None
+}
 
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+impl TablesPage {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         // the table keeps at least four rows; on a short terminal the page
         // scrolls to the checks instead of squeezing the table to one row
         let focus = if ctx.interaction.has_focus(self.table.id) {
             Some(0)
-        } else if ctx.interaction.has_focus(self.empty.id) {
+        } else if ctx.interaction.has_focus(self.reviewers.id) {
             Some(1)
+        } else if ctx.interaction.has_focus(self.empty.id) {
+            Some(2)
         } else {
             None
         };
         let l = self.sections.layout(
             area,
             &[
-                StackChild::flex(9, area.height.saturating_sub(9).max(9)),
+                StackChild::flex(9, area.height.saturating_sub(17).max(9)),
                 StackChild::fixed(8),
+                StackChild::fixed(6),
             ],
             focus,
             buf,
@@ -245,9 +363,27 @@ impl Page for TablesPage {
             None => ctx.focus_stop(self.table.id),
         }
 
-        let panel = Panel::card(Some("Checks"));
+        let panel =
+            Panel::card(Some("Reviewers")).focused(ctx.interaction.focused(self.reviewers.id));
         let bg = panel.bg(t);
         match l.slot(1) {
+            Some(r) => {
+                let inner = panel.render(r, buf, t);
+                self.reviewers.render(inner, buf, ctx, bg);
+                let state = match self.reviewers.selection_state() {
+                    TriState::None => "none",
+                    TriState::Mixed => "mixed",
+                    TriState::All => "all",
+                };
+                let meta = format!("{} · header {state}", self.reviewers.selection_label());
+                panel.draw_meta(r, buf, t, &meta);
+            }
+            None => ctx.focus_stop(self.reviewers.id),
+        }
+
+        let panel = Panel::card(Some("Checks"));
+        let bg = panel.bg(t);
+        match l.slot(2) {
             Some(r) => {
                 let inner = panel.render(r, buf, t);
                 self.empty.render(inner, buf, ctx, bg);
@@ -257,12 +393,56 @@ impl Page for TablesPage {
         self.menu.render(area, buf, ctx);
         self.header_menu.render(area, buf, ctx);
     }
+}
+
+impl Page for TablesPage {
+    fn title(&self) -> &'static str {
+        "Tables"
+    }
+    fn blurb(&self) -> &'static str {
+        "Sort by header, hover rows, select with Enter, overflow scrolls"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
 
     fn layer_open(&self) -> bool {
         self.menu.hides_page_focus() || self.header_menu.hides_page_focus()
     }
 
+    fn option_value(&self, key: &str) -> Option<usize> {
+        (key == "basictable.selection").then_some(self.selection)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if key == "basictable.selection" {
+            self.selection = value.min(SELECTION_MODES.len() - 1);
+            self.table = tasks_table(SELECTION_MODES[self.selection]);
+        }
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
+
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
         if let Some((out, chosen)) = self.header_menu.handle(ev) {
             return match chosen.and_then(|(c, i)| Some((c, self.table.header_menu(c).get(i)?.0))) {
                 Some((c, action)) => self.table.on_header_action(c, action).or(out),
@@ -292,6 +472,9 @@ impl Page for TablesPage {
                         cx.status(format!("Selected {}", self.table.rows[row][1].text));
                     }
                     return out;
+                }
+                if cx.focus.is(self.reviewers.id) {
+                    return self.reviewers.on_key(key).0;
                 }
                 if cx.focus.is(self.empty.id) {
                     return self.empty.on_key(key).0;
@@ -327,20 +510,14 @@ impl Page for TablesPage {
                 Outcome::Changed
             }
             PageEvent::Click { id, pos } => {
-                if let Some(c) = self.table.locate_header(*id) {
-                    cx.focus.focus(self.table.id);
-                    return self.table.on_click_header(c);
-                }
-                if let Some((row, col)) = self.table.locate(*id) {
-                    cx.focus.focus(self.table.id);
-                    let (out, tev) = self.table.on_click_cell(row, col.unwrap_or(0), *pos);
+                if let Some((out, tev)) = click(&mut self.table, *id, *pos, cx) {
                     if let Some(TableAction::Activated(r)) = tev {
                         cx.status(format!("Selected {}", self.table.rows[r][1].text));
                     }
                     return out;
                 }
-                if scrollbar::is_bar_of(*id, self.table.id) {
-                    return self.table.on_scrollbar(*pos);
+                if let Some((out, _)) = click(&mut self.reviewers, *id, *pos, cx) {
+                    return out;
                 }
                 Outcome::Ignored
             }
@@ -348,6 +525,9 @@ impl Page for TablesPage {
                 self.table.on_drag(*pressed, *pos)
             }
             PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),
+            PageEvent::Wheel { id, delta } if self.reviewers.owns(*id) => {
+                self.reviewers.on_wheel(*delta)
+            }
             PageEvent::Wheel { id, delta } if self.empty.owns(*id) => self.empty.on_wheel(*delta),
             PageEvent::WheelH { id, delta } if self.table.owns(*id) => {
                 self.table.on_wheel_h(*delta)
@@ -356,9 +536,21 @@ impl Page for TablesPage {
         }
     }
 
-    fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         if self.menu.is_open() {
             return MENU_HINTS.to_vec();
+        }
+        let multi = |t: &DataTable| t.selection_mode == SelectionMode::Multi;
+        if focus == Some(self.reviewers.id) || (focus == Some(self.table.id) && multi(&self.table))
+        {
+            return vec![
+                ("↑↓", "Move"),
+                ("Space", "Toggle row"),
+                ("Shift+↑↓", "Extend"),
+            ];
         }
         vec![
             ("↑↓", "Move"),
