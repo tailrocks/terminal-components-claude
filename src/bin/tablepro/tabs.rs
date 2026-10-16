@@ -745,7 +745,11 @@ impl TableTab {
             Some(f) if f == self.grid.id => {
                 // action keys come from the grid's keymap
                 let km = &self.grid.keymap;
-                let mut h = vec![hint("↑↓←→", "Cell"), hint("Enter", "Edit")];
+                let mut h = vec![hint("↑↓←→", "Cell")];
+                // Edit only where Enter edits (keyboard audit #25)
+                if self.grid.cell_editable() {
+                    h.push(hint("Enter", "Edit"));
+                }
                 if self.grid.editable
                     && let Some(k) = hint_key(km, GridAction::DuplicateRow)
                 {
@@ -1314,7 +1318,10 @@ impl QueryTab {
             }
             // action keys come from the grid's keymap
             let km = &g.keymap;
-            let mut hints = vec![hint("↑↓←→", "Cell"), hint("Enter", "Edit")];
+            let mut hints = vec![hint("↑↓←→", "Cell")];
+            if g.cell_editable() {
+                hints.push(hint("Enter", "Edit"));
+            }
             if g.editable
                 && let Some(k) = hint_key(km, GridAction::DuplicateRow)
             {
@@ -1430,6 +1437,7 @@ impl QueryTab {
                     Some(GridEvent::SortRequested(_)) => {}
                     Some(GridEvent::LeaveForward) => cx.focus_next(),
                     Some(GridEvent::LeaveBackward) => cx.focus_prev(),
+                    Some(GridEvent::ReadOnly { reason }) => cx.status(reason),
                     _ => {}
                 }
                 o
@@ -2114,11 +2122,15 @@ fn execute(
                     });
                 let mut grid =
                     DataGrid::new(WidgetId::of("result").child(n), specs).duplicate_keys(&[ALT_D]);
-                grid.editable = rs.editable;
-                if !rs.editable {
-                    grid.read_only_reason =
-                        Some("TablePro cannot tell which table these rows came from.".into());
-                }
+                // a result grid has no save path (its changes would be
+                // dropped), so it is editable only where one is wired: the
+                // table tab (keyboard audit #24)
+                grid.editable = false;
+                grid.read_only_reason = Some(if rs.editable {
+                    "Query results are read-only · open the table to edit its rows.".into()
+                } else {
+                    "TablePro cannot tell which table these rows came from.".into()
+                });
                 grid.local_sort = true;
                 grid.empty = EmptyState::new("No rows").hint("The query matched nothing");
                 let rows: Vec<Vec<CellValue>> = rs

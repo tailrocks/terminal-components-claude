@@ -729,3 +729,42 @@ fn open_quickly_query_edits_at_the_caret() {
         _ => panic!("Open Quickly closed\n{}", h.text()),
     }
 }
+
+/// Keyboard audit #24 and #25: a query result has no save path, so it is
+/// read-only, and Enter on it says why instead of starting an edit whose
+/// changes would be dropped; the footer offers no Edit.
+#[test]
+fn query_results_are_read_only_and_enter_says_why() {
+    let mut h = H::connected(120, 40);
+    set_safe_mode(&mut h, SafeMode::Silent);
+    set_query(&mut h, "SELECT * FROM orders LIMIT 3");
+    h.ctrl('r');
+    if h.app.modal().is_some() {
+        accept_dialog(&mut h);
+    }
+    h.ticks(32);
+    let gid = active_query(&h)
+        .results
+        .iter()
+        .find_map(|r| match &r.body {
+            ResultBody::Rows(g) => Some(g.id),
+            _ => None,
+        })
+        .expect("a result grid");
+    h.app.focus.focus(gid);
+    h.draw();
+    let footer = h.text().lines().last().unwrap_or_default().to_owned();
+    assert!(!footer.contains("Enter Edit"), "{footer}");
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    let editing = active_query(&h).results.iter().any(|r| match &r.body {
+        ResultBody::Rows(g) => g.is_editing(),
+        _ => false,
+    });
+    assert!(!editing, "Enter never opens an edit that cannot be saved");
+    assert!(
+        h.text().contains("Query results are read-only"),
+        "{}",
+        h.text()
+    );
+}
