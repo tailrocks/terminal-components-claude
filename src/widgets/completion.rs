@@ -11,7 +11,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::popup::{Placement, place, surface};
+use crate::ui::popup::{Dismiss, Placement, backdrop_id, place, surface_for};
 use crate::ui::text::{truncate, width};
 use crate::widgets::scrollbar;
 
@@ -37,6 +37,10 @@ pub struct Completion {
     pub replace_len: usize,
     pub max_rows: u16,
     pub area: Rect,
+    /// How the list closes without a choice. Default: Esc, or a click
+    /// outside that also lands where it was aimed (placing the caret in the
+    /// editor underneath).
+    pub dismiss: Dismiss,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,7 +60,13 @@ impl Completion {
             replace_len: 0,
             max_rows: 8,
             area: Rect::ZERO,
+            dismiss: Dismiss::LIGHT.pass_through(true),
         }
+    }
+
+    pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
+        self.dismiss = dismiss;
+        self
     }
 
     pub fn open(&mut self, items: Vec<CompletionItem>, anchor: Rect, replace_len: usize) {
@@ -88,7 +98,10 @@ impl Completion {
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+        id == self.id
+            || id == scrollbar::id_for(self.id)
+            || (self.is_open() && id == backdrop_id(self.id))
+            || self.locate(id).is_some()
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<CompletionEvent>) {
@@ -127,7 +140,7 @@ impl Completion {
             KeyCode::Tab | KeyCode::Enter => {
                 (Outcome::Changed, Some(CompletionEvent::Accept(self.cursor)))
             }
-            KeyCode::Esc => {
+            KeyCode::Esc if self.dismiss.escape => {
                 self.close();
                 (Outcome::Changed, Some(CompletionEvent::Dismiss))
             }
@@ -136,6 +149,13 @@ impl Completion {
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<CompletionEvent> {
+        if id == backdrop_id(self.id) {
+            if !self.dismiss.outside_click {
+                return None;
+            }
+            self.close();
+            return Some(CompletionEvent::Dismiss);
+        }
         let i = self.locate(id)?;
         self.cursor = i;
         Some(CompletionEvent::Accept(i))
@@ -153,7 +173,6 @@ impl Completion {
         if !self.is_open() {
             return;
         }
-        let t = ctx.theme;
         let label_w = self
             .items
             .iter()
@@ -171,9 +190,19 @@ impl Completion {
         let h = rows + 2;
         let area = place(screen, self.anchor, w, h, Placement::Below);
         self.area = area;
-        let inner = surface(area, buf, ctx, t);
+        let inner = area
+            .intersection(*buf.area())
+            .inner(ratatui::layout::Margin::new(1, 1));
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(inner.height as usize);
+        // drawn as an overlay: above whatever is rendered after the editor
+        let me = self.clone();
+        ctx.overlay(move |buf, ctx| me.paint(area, buf, ctx));
+    }
+
+    fn paint(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let inner = surface_for(area, buf, ctx, t, Some((self.id, self.dismiss)));
         // the key handlers pull the viewport to the cursor; a render never
         // does, so a wheel scroll survives the next frame
         let has_sb = self.scroll.overflows();
@@ -297,6 +326,7 @@ mod tests {
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         let mut buf = Buffer::empty(Rect::new(0, 0, 60, h));
         c.render(Rect::new(0, 0, 60, h), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
     }
 
     #[test]
