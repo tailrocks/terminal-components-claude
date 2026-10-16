@@ -1,7 +1,6 @@
 //! TablePro shell: screens (Connections, Workbench), overlays (dialogs,
 //! pickers, filter editor), identity strip, footer hints, routing.
 
-use junie_tui::core::focus::forward_blur;
 use std::time::Duration;
 
 use ratatui::Frame;
@@ -19,12 +18,13 @@ use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, StatusKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::layer::{
+    DismissReason, Dismissed, LayerCx, LayerEntry, LayerTag, ShellLayers, Taken,
+};
+use junie_tui::ui::layers::LayerResult;
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys};
-use junie_tui::ui::modal::{Dismissal, ModalStack};
-use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
-use junie_tui::widgets::field_common::{route_click, route_drag, route_press};
+use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::grid::CellValue;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{self, Hint, hint};
@@ -32,17 +32,16 @@ use junie_tui::widgets::menu::MenuAction;
 use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
-use junie_tui::widgets::select::Select;
 use junie_tui::widgets::too_small::TooSmall;
 
 use crate::connections::{ConnEvent, ConnectionsScreen};
 use crate::context::{self, CtxMenu};
 use crate::db::{Catalog, Environment, SafeMode};
+use crate::filter_editor::{FilterDone, FilterEditor};
 use crate::model::{History, SwitchTarget, SwitcherIndex};
 use crate::sql::{self, Decision};
 use crate::tabs::{Filter, FilterOp};
 use crate::workbench::{WorkTab, Workbench};
-use junie_tui::core::scroll::Scrollable;
 
 const STRIP_SAFE: WidgetId = WidgetId::of("strip.safe");
 const STRIP_SCOPE: WidgetId = WidgetId::of("strip.scope");
@@ -114,47 +113,30 @@ pub enum Screen {
     Workbench,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PickerKind {
-    Switcher,
-    TabList,
-    SafeMode,
+/// The tag kind of the Open Quickly picker.
+const SWITCHER: &str = "switcher";
+/// The tag kind of the open-tabs picker.
+const TAB_LIST: &str = "tablist";
+/// The tag kind of the Safe Mode picker.
+const SAFE_MODE: &str = "safemode";
+
+/// What a layer on tablepro's stack reports: a library modal's result, or
+/// the filter editor's.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModalResult {
+    Lib(LayerResult),
+    Filter(FilterDone),
 }
 
-pub struct FilterEditor {
-    pub index: Option<usize>,
-    pub column: Select,
-    pub op: Select,
-    pub value: TextInput,
-    pub value2: TextInput,
-    pub apply: Button,
-    pub cancel: Button,
-    pub area: Rect,
-    columns: Vec<(String, crate::db::ColType)>,
-    /// A form holds typed input: only Esc (or Cancel) discards it, a stray
-    /// click outside does not.
-    pub dismiss: Dismiss,
-}
-
-#[allow(clippy::large_enum_variant)] // overlays are few and short-lived
-pub enum Modal {
-    Dialog(Dialog),
-    Picker(PickerKind, Picker, Option<SwitcherIndex>),
-    Filter(FilterEditor),
-    /// A context menu on an explorer row, a tab or a grid cell.
-    Menu(Box<CtxMenu>),
-}
-
-impl junie_tui::ui::modal::Modal for Modal {
-    fn dismiss(&self) -> Dismiss {
-        match self {
-            Modal::Dialog(d) => d.dismiss,
-            Modal::Picker(_, p, _) => p.dismiss,
-            Modal::Filter(f) => f.dismiss,
-            Modal::Menu(m) => m.menu.dismiss,
-        }
+impl From<LayerResult> for ModalResult {
+    fn from(r: LayerResult) -> Self {
+        Self::Lib(r)
     }
 }
+
+/// The app's layer stack: dialogs, pickers, the filter editor and context
+/// menus, bottom to top.
+pub type Layers = ShellLayers<ModalResult>;
 
 pub struct App {
     pub theme: Theme,
@@ -174,7 +156,7 @@ pub struct App {
     /// The pointer clock (press flash, hover delay, status expiry).
     pub(crate) clock: WallClock,
     /// Open overlays, bottom to top; each restores the focus it covered.
-    pub modals: ModalStack<Modal>,
+    pub layers: Layers,
     pub size: (u16, u16),
     pub tick: u64,
     /// Tick delivery; see [`Motion`].
@@ -192,6 +174,8 @@ pub struct App {
     committing: Option<u32>,
     scope: usize,
     switcher_targets: Vec<SwitchTarget>,
+    /// What the open Open Quickly picker searches.
+    switcher_index: Option<SwitcherIndex>,
 }
 
 impl App {
@@ -211,7 +195,7 @@ impl App {
             pointer: PointerState::default(),
             context: ContextConfig::DEFAULT,
             clock: WallClock::new(),
-            modals: ModalStack::new(),
+            layers: Layers::new(),
             size: (0, 0),
             tick: 0,
             motion: Motion::Full,
@@ -222,6 +206,7 @@ impl App {
             committing: None,
             scope: 0,
             switcher_targets: vec![],
+            switcher_index: None,
         }
     }
 
@@ -347,19 +332,13 @@ impl App {
         out.or(self.forward_blur())
     }
 
-    /// Hand every focus change the input caused to the modals and the
+    /// Hand every focus change the input caused to every layer and the
     /// screens, so fields end their edits on the event path.
     fn forward_blur(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
         for ch in self.focus.settle(&self.ring) {
-            for m in self.modals.iter_mut() {
-                out = out.or(match m {
-                    Modal::Dialog(d) => d.on_blur(ch),
-                    Modal::Filter(f) => {
-                        forward_blur(ch, &mut [&mut f.column, &mut f.op, &mut f.value])
-                    }
-                    Modal::Picker(..) | Modal::Menu(_) => Outcome::Ignored,
-                });
+            for e in self.layers.iter_mut() {
+                out = out.or(e.layer.on_blur(ch));
             }
             out = out.or(self.connections.on_blur(ch));
             if let Some(w) = self.workbench.as_mut() {
@@ -377,17 +356,10 @@ impl App {
             }
             Input::Tick => self.on_tick(),
             Input::Paste(text) => {
-                if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
-                    return d.on_paste(&text);
-                }
-                if let Some(Modal::Filter(f)) = self.modals.top_mut() {
-                    if f.value.editing {
-                        return f.value.on_paste(&text);
-                    }
-                    return Outcome::Consumed;
-                }
-                if let Some(Modal::Menu(_)) = self.modals.top() {
-                    return Outcome::Consumed;
+                // the top layer takes the paste; nothing under it does
+                if let Some(top) = self.layers.top_mut() {
+                    let out = top.layer.on_paste(&text).or(Outcome::Consumed);
+                    return self.take_layer().or(out);
                 }
                 match self.screen {
                     Screen::Connections => self.connections.on_paste(&text),
@@ -735,8 +707,8 @@ impl App {
             }
             return Outcome::Consumed;
         }
-        if !self.modals.is_empty() {
-            return self.modal_key(key);
+        if !self.layers.is_empty() {
+            return self.layer_key(key);
         }
         // global chords that work everywhere (not while editing text)
         let editing = match self.screen {
@@ -1488,9 +1460,13 @@ impl App {
 
     // ---- overlays ------------------------------------------------------
 
-    fn open_dialog(&mut self, d: Dialog) {
-        let initial = Some(d.initial_focus);
-        self.modals.push(Modal::Dialog(d), &mut self.focus, initial);
+    fn open_dialog(&mut self, mut d: Dialog) {
+        // the dialog is placed on the whole screen, kept a row clear of the
+        // status strip and of the footer on top of its own margin: where
+        // `body_bounds(screen, 1, 1)` placed it
+        d.outer_margin.vertical += 1;
+        self.layers
+            .open(Box::new(d), LayerTag::new("dialog"), (), &mut self.focus);
         self.pointer.hover = None;
         self.pointer.pressed = None;
     }
@@ -1546,20 +1522,24 @@ impl App {
         let mut p = Picker::new(WidgetId::of("switcher"), "Open Quickly");
         p.placeholder = "Search tables, views, schemas, tabs, queries…".into();
         p.width = 88;
+        p.hints =
+            "↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close".to_owned();
         self.scope = 0;
         p.scope = Some("All · Tab scope".into());
-        let keep = self.focus.current();
-        self.modals.push(
-            Modal::Picker(PickerKind::Switcher, p, Some(index)),
-            &mut self.focus,
-            keep,
-        );
+        self.switcher_index = Some(index);
+        self.layers
+            .open(Box::new(p), LayerTag::new(SWITCHER), (), &mut self.focus);
         self.refresh_switcher();
     }
 
     fn refresh_switcher(&mut self) {
-        let Some(Modal::Picker(PickerKind::Switcher, p, Some(index))) = self.modals.top_mut()
-        else {
+        if self.top_kind() != Some(SWITCHER) {
+            return;
+        }
+        let (Some(p), Some(index)) = (
+            self.layers.top_as_mut::<Picker>(),
+            self.switcher_index.as_ref(),
+        ) else {
             return;
         };
         let scopes = ["All", "Tables", "Schemas", "Queries"];
@@ -1610,6 +1590,7 @@ impl App {
         };
         let mut p = Picker::new(WidgetId::of("tablist"), "Open tabs");
         p.placeholder = "Filter tabs…".into();
+        p.hints = "↑↓ Move · Enter Switch · Delete Close tab · Esc Close".to_owned();
         let items: Vec<PickerItem> = w
             .tabs
             .iter()
@@ -1658,12 +1639,8 @@ impl App {
             .collect();
         p.set_items(items);
         p.cursor = w.active;
-        let keep = self.focus.current();
-        self.modals.push(
-            Modal::Picker(PickerKind::TabList, p, None),
-            &mut self.focus,
-            keep,
-        );
+        self.layers
+            .open(Box::new(p), LayerTag::new(TAB_LIST), (), &mut self.focus);
     }
 
     fn open_safe_mode_picker(&mut self) {
@@ -1674,6 +1651,8 @@ impl App {
         let mut p = Picker::new(WidgetId::of("safemode"), "Safe Mode · this connection");
         p.searchable = false;
         p.width = 112;
+        p.hints =
+            "↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connection".to_owned();
         let items: Vec<PickerItem> = SafeMode::ALL
             .iter()
             .map(|s| PickerItem {
@@ -1693,12 +1672,8 @@ impl App {
             .position(|s| *s == current)
             .unwrap_or(0);
         p.empty_text = String::new();
-        let keep = self.focus.current();
-        self.modals.push(
-            Modal::Picker(PickerKind::SafeMode, p, None),
-            &mut self.focus,
-            keep,
-        );
+        self.layers
+            .open(Box::new(p), LayerTag::new(SAFE_MODE), (), &mut self.focus);
     }
 
     fn open_filter_editor(
@@ -1714,7 +1689,6 @@ impl App {
             return;
         };
         let columns = t.columns.clone();
-        let names: Vec<&str> = columns.iter().map(|c| c.0.as_str()).collect();
         let existing = index.and_then(|i| t.filters.get(i)).cloned();
         let (col_i, op, value, value2) = match (&existing, &prefill) {
             (Some(f), _) => (
@@ -1731,177 +1705,187 @@ impl App {
                 String::new(),
             ),
         };
-        let ops = FilterOp::ordered_for(columns[col_i].1);
-        let op_labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
-        let op_i = ops.iter().position(|o| *o == op).unwrap_or(0);
-        let f = WidgetId::of("filter-editor");
-        let editor = FilterEditor {
-            index,
-            column: Select::new(f.sub("col"), "Column", &names, col_i),
-            op: Select::new(f.sub("op"), "Operator", &op_labels, op_i)
-                .help("Operators that fit the column type come first"),
-            value: TextInput::new(f.sub("value"), "Value")
-                .value(&value)
-                .placeholder("value")
-                .plain_label(),
-            value2: TextInput::new(f.sub("value2"), "and")
-                .value(&value2)
-                .plain_label(),
-            apply: Button::primary(
-                f.sub("apply"),
-                if existing.is_some() {
-                    "Update filter"
-                } else {
-                    "Add filter"
-                },
-            ),
-            cancel: Button::subtle(f.sub("cancel"), "Cancel"),
-            area: Rect::ZERO,
-            columns,
-            dismiss: Dismiss::ESCAPE,
-        };
-        let initial = Some(if value.is_empty() {
-            editor.value.id
-        } else {
-            editor.apply.id
-        });
-        self.modals
-            .push(Modal::Filter(editor), &mut self.focus, initial);
-    }
-
-    fn close_modal(&mut self) {
-        self.modals.pop(&mut self.focus);
+        let update = existing.is_some();
+        let editor = FilterEditor::new(index, update, columns, col_i, op, &value, &value2);
+        self.layers.open(
+            Box::new(editor),
+            LayerTag::new("filter"),
+            (),
+            &mut self.focus,
+        );
     }
 
     /// The topmost overlay.
     #[cfg(test)]
-    pub fn modal(&self) -> Option<&Modal> {
-        self.modals.top()
+    pub fn modal(&self) -> Option<&LayerEntry<ModalResult>> {
+        self.layers.top()
     }
 
-    fn modal_key(&mut self, key: Key) -> Outcome {
-        let Some(modal) = self.modals.top_mut() else {
+    /// The topmost overlay as its concrete type, if it is an `L`.
+    #[cfg(test)]
+    pub fn top_as<L: junie_tui::ui::layer::Layer<ModalResult>>(&self) -> Option<&L> {
+        self.layers.top_as()
+    }
+
+    /// What the top layer is for (its tag's kind).
+    fn top_kind(&self) -> Option<&'static str> {
+        self.layers.top().map(|e| e.tag.kind)
+    }
+
+    /// A key while a layer is open: the top layer has it; Esc it leaves
+    /// alone is a dismissal under the layer's own policy.
+    fn layer_key(&mut self, key: Key) -> Outcome {
+        let Some(top) = self.layers.top_mut() else {
             return Outcome::Ignored;
         };
-        match modal {
-            Modal::Dialog(d) => {
-                let out = d.on_key(&key, &mut self.focus, &self.ring);
-                if let Some(result) = d.result {
-                    let id = d.id;
-                    let value = match &d.body {
-                        DialogBody::Input(i) => Some(i.text().to_owned()),
-                        _ => None,
-                    };
-                    self.close_modal();
-                    return self.dialog_closed(id, result, value).or(out);
-                }
-                out.or(Outcome::Consumed)
-            }
-            Modal::Picker(kind, p, _) => {
-                let kind = *kind;
-                let (o, ev) = p.on_key(&key);
-                match ev {
-                    Some(PickerAction::QueryChanged) => {
-                        if kind == PickerKind::Switcher {
-                            self.refresh_switcher();
-                        } else if kind == PickerKind::TabList {
-                            // simple substring filter
-                            let q = p.query.to_lowercase();
-                            let w = self.workbench.as_ref().unwrap();
-                            let items: Vec<PickerItem> = w
-                                .tabs
-                                .iter()
-                                .enumerate()
-                                .filter(|(_, t)| {
-                                    q.is_empty() || t.label().to_lowercase().contains(&q)
-                                })
-                                .map(|(i, t)| PickerItem {
-                                    label: t.label(),
-                                    detail: i.to_string(),
-                                    glyph: "≡",
-                                    group: "",
-                                    tag: if i == w.active { Some("active") } else { None },
-                                    matched: vec![],
-                                    disabled: false,
-                                    key: String::new(),
-                                })
-                                .collect();
-                            p.set_items(items);
-                        }
-                        Outcome::Changed
-                    }
-                    Some(PickerAction::NextScope) | Some(PickerAction::PrevScope) => {
-                        if kind == PickerKind::Switcher {
-                            let step = if ev == Some(PickerAction::PrevScope) {
-                                3
-                            } else {
-                                1
-                            };
-                            self.scope = (self.scope + step) % 4;
-                            self.refresh_switcher();
-                        }
-                        Outcome::Changed
-                    }
-                    Some(PickerAction::Chosen(i)) | Some(PickerAction::ChosenAlt(i)) => {
-                        let alt = matches!(ev, Some(PickerAction::ChosenAlt(_)));
-                        self.picker_chosen(kind, i, alt)
-                    }
-                    Some(PickerAction::Secondary(i)) => {
-                        if kind == PickerKind::TabList {
-                            if let Some(w) = self.workbench.as_mut() {
-                                let idx = p
-                                    .items
-                                    .get(i)
-                                    .and_then(|it| it.detail.parse::<usize>().ok())
-                                    .unwrap_or(i);
-                                w.close_tab(idx);
-                            }
-                            self.close_modal();
-                            self.open_tab_list();
-                        }
-                        Outcome::Changed
-                    }
-                    Some(PickerAction::Cancelled) => {
-                        self.close_modal();
-                        Outcome::Changed
-                    }
-                    // a query that matches nothing is not a command: the
-                    // picker stays open with it
-                    Some(PickerAction::Back) | Some(PickerAction::Submit) | None => {
-                        o.or(Outcome::Consumed)
-                    }
-                }
-            }
-            Modal::Menu(m) => {
-                let (o, ev) = m.menu.on_key(&key);
-                match ev {
-                    Some(MenuAction::Chosen(i)) => self.context_chosen(i),
-                    Some(MenuAction::Dismissed) => {
-                        self.close_modal();
-                        Outcome::Changed
-                    }
-                    None => o.or(Outcome::Consumed),
-                }
-            }
-            Modal::Filter(f) => {
-                let out = Self::filter_key(f, &key, &mut self.focus, &self.ring);
-                match out {
-                    FilterOutcome::Keep(o) => o,
-                    FilterOutcome::Apply => self.apply_filter(),
-                    FilterOutcome::Cancel => {
-                        self.close_modal();
-                        Outcome::Changed
-                    }
-                }
-            }
+        let mut cx = LayerCx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            app: &(),
+        };
+        let out = top.layer.on_key(&key, &mut cx);
+        if out == Outcome::Ignored && key.is(KeyCode::Esc) {
+            return self.dismiss_layer(DismissReason::Esc);
+        }
+        self.take_layer().or(out)
+    }
+
+    /// Deliver what the top layer reported: an event to its owner while it
+    /// stays open, a final result once it has closed.
+    fn take_layer(&mut self) -> Outcome {
+        match self.layers.take(&mut self.focus) {
+            None => Outcome::Ignored,
+            Some(Taken::Event(r)) => self.layer_event(r),
+            Some(Taken::Closed(entry, r)) => self.layer_closed(entry, r),
         }
     }
 
-    fn picker_chosen(&mut self, kind: PickerKind, i: usize, alt: bool) -> Outcome {
-        match kind {
-            PickerKind::Switcher => {
+    /// Dismiss the top layer for `reason` under its own policy. A refused
+    /// outside click flashes the frame when the policy asks for it.
+    fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
+        match self.layers.dismiss(reason, &mut self.focus) {
+            Dismissed::None => Outcome::Ignored,
+            Dismissed::Refused => {
+                if reason == DismissReason::OutsideClick
+                    && let Some(top) = self.layers.top()
+                {
+                    let dismiss = top.layer.spec().dismiss;
+                    let now = self.now_ms();
+                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+                    return Outcome::Changed;
+                }
+                Outcome::Consumed
+            }
+            Dismissed::Closed(entry, Some(r)) => self.layer_closed(entry, r).or(Outcome::Changed),
+            Dismissed::Closed(_, None) => Outcome::Changed,
+        }
+    }
+
+    /// An event from the open top layer (a picker's query or scope).
+    fn layer_event(&mut self, r: ModalResult) -> Outcome {
+        let ModalResult::Lib(LayerResult::Picker(ev)) = r else {
+            return Outcome::Ignored;
+        };
+        let kind = self.top_kind();
+        match ev {
+            PickerAction::QueryChanged => {
+                if kind == Some(SWITCHER) {
+                    self.refresh_switcher();
+                } else if kind == Some(TAB_LIST) {
+                    self.filter_tab_list();
+                }
+                Outcome::Changed
+            }
+            PickerAction::NextScope | PickerAction::PrevScope => {
+                if kind == Some(SWITCHER) {
+                    let step = if ev == PickerAction::PrevScope { 3 } else { 1 };
+                    self.scope = (self.scope + step) % 4;
+                    self.refresh_switcher();
+                }
+                Outcome::Changed
+            }
+            PickerAction::Secondary(i) => {
+                if kind == Some(TAB_LIST) {
+                    let idx = self
+                        .layers
+                        .top_as::<Picker>()
+                        .map_or(i, |p| tab_index(p, i));
+                    if let Some(w) = self.workbench.as_mut() {
+                        w.close_tab(idx);
+                    }
+                    self.layers.pop(&mut self.focus);
+                    self.open_tab_list();
+                }
+                Outcome::Changed
+            }
+            // a query that matches nothing is not a command: the picker
+            // stays open with it
+            _ => Outcome::Ignored,
+        }
+    }
+
+    /// The tab list's simple substring filter.
+    fn filter_tab_list(&mut self) {
+        let Some(w) = self.workbench.as_ref() else {
+            return;
+        };
+        let Some(p) = self.layers.top_as_mut::<Picker>() else {
+            return;
+        };
+        let q = p.query.to_lowercase();
+        let items: Vec<PickerItem> = w
+            .tabs
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| q.is_empty() || t.label().to_lowercase().contains(&q))
+            .map(|(i, t)| PickerItem {
+                label: t.label(),
+                detail: i.to_string(),
+                glyph: "≡",
+                group: "",
+                tag: if i == w.active { Some("active") } else { None },
+                matched: vec![],
+                disabled: false,
+                key: String::new(),
+            })
+            .collect();
+        p.set_items(items);
+    }
+
+    /// A layer closed with `r`; `entry` is what it was (its tag, and the
+    /// widget to read a chosen row's data from).
+    fn layer_closed(&mut self, entry: LayerEntry<ModalResult>, r: ModalResult) -> Outcome {
+        match r {
+            ModalResult::Lib(LayerResult::Dialog { action, .. }) => {
+                let result = action.map_or(DialogResult::Cancelled, DialogResult::Action);
+                match entry.get::<Dialog>() {
+                    Some(d) => self.dialog_closed(d.id, result),
+                    None => Outcome::Changed,
+                }
+            }
+            ModalResult::Lib(LayerResult::Picker(
+                ev @ (PickerAction::Chosen(i) | PickerAction::ChosenAlt(i)),
+            )) => {
+                let alt = matches!(ev, PickerAction::ChosenAlt(_));
+                self.picker_chosen(&entry, i, alt)
+            }
+            ModalResult::Lib(LayerResult::Menu(MenuAction::Chosen(i))) => {
+                match entry.get::<CtxMenu>() {
+                    Some(m) => self.context_chosen(m, i),
+                    None => Outcome::Changed,
+                }
+            }
+            ModalResult::Filter(Some((index, filter))) => self.apply_filter(index, filter),
+            _ => Outcome::Changed,
+        }
+    }
+
+    /// Row `i` of a closed picker was chosen (`alt`: Alt+Enter).
+    fn picker_chosen(&mut self, entry: &LayerEntry<ModalResult>, i: usize, alt: bool) -> Outcome {
+        match entry.tag.kind {
+            SWITCHER => {
+                self.switcher_index = None;
                 let target = self.switcher_targets.get(i).cloned();
-                self.close_modal();
                 let Some(target) = target else {
                     return Outcome::Changed;
                 };
@@ -1966,16 +1950,8 @@ impl App {
                 }
                 Outcome::Changed
             }
-            PickerKind::TabList => {
-                let idx = match self.modals.top() {
-                    Some(Modal::Picker(_, p, _)) => p
-                        .items
-                        .get(i)
-                        .and_then(|it| it.detail.parse::<usize>().ok())
-                        .unwrap_or(i),
-                    _ => i,
-                };
-                self.close_modal();
+            TAB_LIST => {
+                let idx = entry.get::<Picker>().map_or(i, |p| tab_index(p, i));
                 if let Some(w) = self.workbench.as_mut() {
                     w.set_active(idx);
                     if let Some(pf) = w.primary_focus() {
@@ -1984,8 +1960,7 @@ impl App {
                 }
                 Outcome::Changed
             }
-            PickerKind::SafeMode => {
-                self.close_modal();
+            SAFE_MODE => {
                 let level = SafeMode::ALL[i.min(5)];
                 if let Some(w) = self.workbench.as_mut() {
                     w.connection.safe_mode = level;
@@ -2008,128 +1983,12 @@ impl App {
                 );
                 Outcome::Changed
             }
+            _ => Outcome::Changed,
         }
     }
 
-    fn filter_key(
-        f: &mut FilterEditor,
-        key: &Key,
-        focus: &mut Focus,
-        ring: &FocusRing,
-    ) -> FilterOutcome {
-        use junie_tui::widgets::input::InputAction;
-        let cur = focus.current();
-        // Esc cancels unless it has an edit to revert first (a field that
-        // focus put in editing but holds no change lets it through)
-        if key.is(KeyCode::Esc)
-            && f.dismiss.escape
-            && !f.value.is_dirty()
-            && !f.value2.is_dirty()
-            && !f.column.open
-            && !f.op.open
-        {
-            return FilterOutcome::Cancel;
-        }
-        // focus traversal wins whenever no text field is editing
-        if !f.value.editing && !f.value2.editing && !f.column.open && !f.op.open {
-            match key.code {
-                KeyCode::Tab => {
-                    focus.next(ring);
-                    return FilterOutcome::Keep(Outcome::Changed);
-                }
-                KeyCode::BackTab => {
-                    focus.prev(ring);
-                    return FilterOutcome::Keep(Outcome::Changed);
-                }
-                _ => {}
-            }
-        }
-        if cur == Some(f.column.id) {
-            let (o, ev) = f.column.on_key(key);
-            if let Some(junie_tui::widgets::select::SelectAction::Changed(i)) = ev {
-                let ops = FilterOp::ordered_for(f.columns[i].1);
-                let labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
-                f.op = Select::new(f.op.id, "Operator", &labels, 0)
-                    .help("Operators that fit the column type come first");
-            }
-            return FilterOutcome::Keep(o.or(Outcome::Consumed));
-        }
-        if cur == Some(f.op.id) {
-            return FilterOutcome::Keep(f.op.on_key(key).0.or(Outcome::Consumed));
-        }
-        for inp in [&mut f.value, &mut f.value2] {
-            if cur == Some(inp.id) {
-                let (o, ev) = inp.on_key(key);
-                match ev {
-                    Some(InputAction::CommittedTab { backward }) => {
-                        if backward {
-                            focus.prev(ring)
-                        } else {
-                            focus.next(ring)
-                        }
-                    }
-                    Some(InputAction::Committed) => return FilterOutcome::Apply,
-                    _ => {}
-                }
-                if !o.consumed() && key.is(KeyCode::Enter) {
-                    return FilterOutcome::Apply;
-                }
-                return FilterOutcome::Keep(o.or(Outcome::Consumed));
-            }
-        }
-        if cur == Some(f.apply.id) {
-            let (o, act) = f.apply.on_key(key);
-            if act {
-                return FilterOutcome::Apply;
-            }
-            return FilterOutcome::Keep(o.or(Outcome::Consumed));
-        }
-        if cur == Some(f.cancel.id) {
-            let (o, act) = f.cancel.on_key(key);
-            if act {
-                return FilterOutcome::Cancel;
-            }
-            return FilterOutcome::Keep(o.or(Outcome::Consumed));
-        }
-        match key.code {
-            KeyCode::Tab => {
-                focus.next(ring);
-                FilterOutcome::Keep(Outcome::Changed)
-            }
-            KeyCode::BackTab => {
-                focus.prev(ring);
-                FilterOutcome::Keep(Outcome::Changed)
-            }
-            _ => FilterOutcome::Keep(Outcome::Consumed),
-        }
-    }
-
-    fn apply_filter(&mut self) -> Outcome {
-        let Some(Modal::Filter(f)) = self.modals.top_mut() else {
-            return Outcome::Ignored;
-        };
-        let ops = FilterOp::ordered_for(f.columns[f.column.selected].1);
-        let op = ops[f.op.selected.min(ops.len() - 1)];
-        if f.value.editing {
-            f.value.commit();
-        }
-        if f.value2.editing {
-            f.value2.commit();
-        }
-        if op.needs_value() && f.value.text().trim().is_empty() {
-            f.value.error = Some("A value is required for this operator".into());
-            self.focus.focus(f.value.id);
-            return Outcome::Changed;
-        }
-        let filter = Filter {
-            column: f.columns[f.column.selected].0.clone(),
-            op,
-            value: f.value.text().trim().to_owned(),
-            value2: f.value2.text().trim().to_owned(),
-            enabled: true,
-        };
-        let index = f.index;
-        self.close_modal();
+    /// The filter editor resolved to `filter` at `index` (`None`: append).
+    fn apply_filter(&mut self, index: Option<usize>, filter: Filter) -> Outcome {
         let mut applied = None;
         if let Some(w) = self.workbench.as_mut() {
             let cat = w.catalog.clone();
@@ -2154,12 +2013,7 @@ impl App {
         Outcome::Changed
     }
 
-    fn dialog_closed(
-        &mut self,
-        id: WidgetId,
-        result: DialogResult,
-        _value: Option<String>,
-    ) -> Outcome {
+    fn dialog_closed(&mut self, id: WidgetId, result: DialogResult) -> Outcome {
         if self.connections.leave.owns(id) {
             let mut cx = Cx {
                 focus: &mut self.focus,
@@ -2242,44 +2096,15 @@ impl App {
 
     /// A button release at `m.pos` over `hit`.
     fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
+        // the top layer hears the button come up on what it pressed
+        if let (Some(top), Some(pressed)) = (self.layers.top_mut(), self.pointer.pressed) {
+            let _ = top.layer.on_release(pressed, m.pos);
+        }
         let release = self.pointer.release(hit);
         let Release::Click(id) = release else {
-            // click outside a modal cancels it (dialogs decide themselves)
-            if let Some(modal) = self.modals.top_mut()
-                && release == Release::Outside
-            {
-                match modal {
-                    Modal::Dialog(d) => {
-                        let out = d.on_click_outside();
-                        if let Some(result) = d.result {
-                            let did = d.id;
-                            self.close_modal();
-                            return self.dialog_closed(did, result, None).or(out);
-                        }
-                        let dismiss = d.dismiss;
-                        let now = self.now_ms();
-                        junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
-                    }
-                    // everything else follows its own dismiss policy
-                    _ => {
-                        if self.modals.outside_click() == Dismissal::Close {
-                            self.close_modal();
-                        } else {
-                            let dismiss = self
-                                .modals
-                                .top()
-                                .map(junie_tui::ui::modal::Modal::dismiss)
-                                .unwrap_or_default();
-                            let now = self.now_ms();
-                            junie_tui::ui::modal::refuse_outside_click(
-                                &mut self.pointer,
-                                dismiss,
-                                now,
-                            );
-                        }
-                        return Outcome::Changed;
-                    }
-                }
+            // a click outside the top layer: its own policy decides
+            if !self.layers.is_empty() && release == Release::Outside {
+                return self.dismiss_layer(DismissReason::OutsideClick);
             }
             return Outcome::Changed;
         };
@@ -2288,48 +2113,21 @@ impl App {
         // multi-clicks count on the page and in modals, by control, cell
         // and time; fields select a word or a line with them
         let clicks = self.pointer.count_click(id, m.pos, now);
-        if let Some(modal) = self.modals.top_mut() {
-            return match modal {
-                Modal::Dialog(d) => {
-                    let out = d.on_click(id, m.pos, &mut self.focus);
-                    if let Some(result) = d.result {
-                        let did = d.id;
-                        let value = match &d.body {
-                            DialogBody::Input(i) => Some(i.text().to_owned()),
-                            _ => None,
-                        };
-                        self.close_modal();
-                        return self.dialog_closed(did, result, value).or(out);
-                    }
-                    out.or(Outcome::Changed)
-                }
-                Modal::Picker(kind, p, _) => {
-                    let kind = *kind;
-                    if let Some(PickerAction::Chosen(i)) = p.on_click(id) {
-                        return self.picker_chosen(kind, i, false);
-                    }
-                    Outcome::Changed
-                }
-                Modal::Menu(menu) => match menu.menu.on_click(id) {
-                    Some(MenuAction::Chosen(i)) => self.context_chosen(i),
-                    Some(MenuAction::Dismissed) => {
-                        self.close_modal();
-                        Outcome::Changed
-                    }
-                    None => Outcome::Changed,
-                },
-                Modal::Filter(f) => {
-                    let o = Self::filter_click(f, id, m.pos, clicks, &mut self.focus);
-                    match o {
-                        FilterOutcome::Keep(o) => o,
-                        FilterOutcome::Apply => self.apply_filter(),
-                        FilterOutcome::Cancel => {
-                            self.close_modal();
-                            Outcome::Changed
-                        }
-                    }
-                }
+        if !self.layers.is_empty() {
+            // the frame's `×` means what Esc means, under the same policy
+            if id == junie_tui::ui::modal::CLOSE {
+                return self.dismiss_layer(DismissReason::CloseButton);
+            }
+            let Some(top) = self.layers.top_mut() else {
+                return Outcome::Changed;
             };
+            let mut cx = LayerCx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                app: &(),
+            };
+            let out = top.layer.on_click_count(id, m.pos, clicks, &mut cx);
+            return self.take_layer().or(out).or(Outcome::Changed);
         }
         // the explorer's rail and collapse button (mouse #8)
         if let Some(ev) = self.workbench.as_ref().and_then(|w| w.rail.on_click(id)) {
@@ -2425,15 +2223,8 @@ impl App {
                 let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
                     return Outcome::Ignored;
                 };
-                if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
-                    return d.on_drag(pressed, m.pos);
-                }
-                if let Some(Modal::Filter(f)) = self.modals.top_mut() {
-                    return route_drag(&mut [&mut f.value, &mut f.value2], pressed, m.pos)
-                        .unwrap_or(Outcome::Consumed);
-                }
-                if !self.modals.is_empty() {
-                    return Outcome::Consumed;
+                if let Some(top) = self.layers.top_mut() {
+                    return top.layer.on_drag(pressed, m.pos).or(Outcome::Consumed);
                 }
                 match self.screen {
                     Screen::Workbench => self
@@ -2446,7 +2237,7 @@ impl App {
             }
             MouseKind::Down => {
                 let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
-                    return if !self.modals.is_empty() {
+                    return if !self.layers.is_empty() {
                         Outcome::Consumed
                     } else {
                         self.pointer.dead_space(&mut self.focus);
@@ -2455,14 +2246,12 @@ impl App {
                 };
                 // a press on a modal's own body is dead space inside it:
                 // it ends the focused field's edit in place
-                if !self.modals.is_empty() {
+                if !self.layers.is_empty() {
                     self.pointer.surface_press(&self.hits, id, &mut self.focus);
                 }
                 let count = self.pointer.press_count(id, m.pos, self.now_ms());
-                if let Some(Modal::Filter(f)) = self.modals.top_mut() {
-                    route_press(&mut [&mut f.value, &mut f.value2], id, m.pos, count);
-                }
-                if !self.modals.is_empty() {
+                if let Some(top) = self.layers.top_mut() {
+                    let _ = top.layer.on_press(id, m.pos, count);
                     return Outcome::Changed;
                 }
                 if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
@@ -2494,7 +2283,7 @@ impl App {
             }
             MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
                 SecondaryRoute::Nothing => {
-                    if self.modals.is_empty() {
+                    if self.layers.is_empty() {
                         Outcome::Ignored
                     } else {
                         Outcome::Consumed
@@ -2533,22 +2322,12 @@ impl App {
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 let delta = self.pointer.wheel_delta(m.kind);
                 // a sideways wheel reaches only horizontal scrolling
-                if let Some(Modal::Picker(_, p, _)) = self.modals.top_mut() {
+                if let Some(top) = self.layers.top_mut() {
                     return if horizontal {
-                        Outcome::Consumed
+                        top.layer.on_wheel_h(delta, m.pos)
                     } else {
-                        p.on_wheel(delta)
+                        top.layer.on_wheel(delta, m.pos)
                     };
-                }
-                if let Some(Modal::Dialog(d)) = self.modals.top_mut() {
-                    return if horizontal {
-                        d.on_wheel_h(delta)
-                    } else {
-                        d.on_wheel(delta)
-                    };
-                }
-                if !self.modals.is_empty() {
-                    return Outcome::Consumed;
                 }
                 // the notch goes to the innermost owner that takes it: a
                 // field (or its label) inside a scrolling form passes it on
@@ -2577,7 +2356,7 @@ impl App {
     /// A secondary click on `id`: the context menu of the row, cell or tab
     /// under it. Dialogs and the other overlays have none.
     fn on_secondary(&mut self, m: Mouse, id: WidgetId) -> Outcome {
-        if !self.modals.is_empty() {
+        if !self.layers.is_empty() {
             return Outcome::Consumed;
         }
         let cfg = self.context;
@@ -2605,23 +2384,18 @@ impl App {
     /// the focus the menu returns to.
     fn open_context(&mut self, menu: CtxMenu) -> Outcome {
         self.focus.focus(menu.owner);
-        let keep = self.focus.current();
-        self.modals
-            .push(Modal::Menu(Box::new(menu)), &mut self.focus, keep);
+        self.layers
+            .open(Box::new(menu), LayerTag::new("menu"), (), &mut self.focus);
         self.pointer.pressed = None;
         Outcome::Changed
     }
 
-    /// Item `i` of the open context menu: close it, then replay the key
-    /// the item stands for on the widget it is about.
-    fn context_chosen(&mut self, i: usize) -> Outcome {
-        let Some(Modal::Menu(m)) = self.modals.top() else {
-            return Outcome::Ignored;
-        };
+    /// Item `i` of the closed context menu `m`: replay the key the item
+    /// stands for on the widget it is about.
+    fn context_chosen(&mut self, m: &CtxMenu, i: usize) -> Outcome {
         let (key, target, owner) = (m.keys.get(i).copied().flatten(), m.target, m.owner);
         let header = m.header.get(i).copied();
         let app = m.app.clone();
-        self.close_modal();
         // a header command runs on the grid itself
         if let (context::Target::Header(col), Some(action)) = (target, header) {
             self.focus.focus(owner);
@@ -2664,41 +2438,6 @@ impl App {
         self.on_key(key).or(Outcome::Changed)
     }
 
-    fn filter_click(
-        f: &mut FilterEditor,
-        id: WidgetId,
-        pos: Position,
-        clicks: u8,
-        focus: &mut Focus,
-    ) -> FilterOutcome {
-        if f.column.owns(id) {
-            focus.focus(f.column.id);
-            let (o, ev) = f.column.on_click(id);
-            if let Some(junie_tui::widgets::select::SelectAction::Changed(i)) = ev {
-                let ops = FilterOp::ordered_for(f.columns[i].1);
-                let labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
-                f.op = Select::new(f.op.id, "Operator", &labels, 0)
-                    .help("Operators that fit the column type come first");
-            }
-            return FilterOutcome::Keep(o.or(Outcome::Changed));
-        }
-        if f.op.owns(id) {
-            focus.focus(f.op.id);
-            return FilterOutcome::Keep(f.op.on_click(id).0.or(Outcome::Changed));
-        }
-        if let Some(o) = route_click(&mut [&mut f.value, &mut f.value2], id, pos, clicks) {
-            focus.focus(id);
-            return FilterOutcome::Keep(o);
-        }
-        if f.apply.id == id && f.apply.on_click() {
-            return FilterOutcome::Apply;
-        }
-        if f.cancel.id == id && f.cancel.on_click() {
-            return FilterOutcome::Cancel;
-        }
-        FilterOutcome::Keep(Outcome::Changed)
-    }
-
     // --------------------------------------------------------------- render
 
     pub fn render(&mut self, frame: &mut Frame) {
@@ -2712,7 +2451,7 @@ impl App {
         {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            ctx.page_under_layer(!self.modals.is_empty());
+            ctx.page_under_layer(self.layers.hides_page_focus());
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
             cursor = ctx.cursor;
@@ -2720,7 +2459,7 @@ impl App {
         self.hits = hits;
         self.pointer.refresh_hover(&self.hits);
         self.ring = ring;
-        if self.modals.is_empty() {
+        if self.layers.is_empty() {
             if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
                 self.focus.set(self.ring.first());
             }
@@ -2759,36 +2498,12 @@ impl App {
             }
         }
         self.draw_footer(footer, buf, ctx);
-        // overlays
-        let mut modals = std::mem::take(&mut self.modals);
-        for modal in modals.iter_mut() {
-            match modal {
-                Modal::Dialog(d) => d.render_in(
-                    area,
-                    junie_tui::widgets::dialog::body_bounds(area, 1, 1),
-                    buf,
-                    ctx,
-                ),
-                Modal::Picker(kind, p, _) => {
-                    let hints = match kind {
-                        PickerKind::Switcher => {
-                            "↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close"
-                        }
-                        PickerKind::TabList => {
-                            "↑↓ Move · Enter Switch · Delete Close tab · Esc Close"
-                        }
-                        PickerKind::SafeMode => {
-                            "↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connection"
-                        }
-                    };
-                    p.hints = hints.to_owned();
-                    p.draw(area, buf, ctx);
-                }
-                Modal::Filter(f) => Self::draw_filter_editor(f, area, buf, ctx),
-                Modal::Menu(m) => m.menu.render(area, buf, ctx),
-            }
+        // overlays, bottom to top
+        let mut layers = std::mem::take(&mut self.layers);
+        for e in layers.iter_mut() {
+            e.layer.render(area, buf, ctx, &());
         }
-        self.modals = modals;
+        self.layers = layers;
     }
 
     fn draw_strip(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -2915,19 +2630,8 @@ impl App {
             Screen::Connections => self.connections.is_editing(),
             Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
         };
-        let hints: Vec<Hint> = match self.modals.top() {
-            Some(Modal::Dialog(d)) => d.hints(self.focus.current()),
-            Some(Modal::Picker(..)) => vec![],
-            Some(Modal::Filter(_)) => vec![
-                hint("Tab", "Next field"),
-                hint("Enter", "Apply"),
-                hint("Esc", "Cancel"),
-            ],
-            Some(Modal::Menu(_)) => vec![
-                hint("↑↓", "Move"),
-                hint("Enter", "Choose"),
-                hint("Esc", "Close"),
-            ],
+        let hints: Vec<Hint> = match self.layers.top() {
+            Some(e) => e.layer.hints(self.focus.current()),
             None => match self.screen {
                 Screen::Connections => self.connections.hints(self.focus.current()),
                 Screen::Workbench => self
@@ -2940,10 +2644,10 @@ impl App {
         let mut hints = hints;
         // the focused cursor row is cut: name the reveal key
         junie_tui::ui::reveal::advertise(&mut hints, ctx.reveal_hint, |h| h.key, hint);
-        if self.modals.is_empty() && !editing {
+        if self.layers.is_empty() && !editing {
             hints.push(hint("Tab", "Next"));
         }
-        let badge = if editing && self.modals.is_empty() {
+        let badge = if editing && self.layers.is_empty() {
             Some(("EDIT", BadgeKind::Edit))
         } else {
             None
@@ -2951,134 +2655,15 @@ impl App {
         let status = self.status.entry().map(|(text, _, kind)| (text, *kind));
         keyhint::render_status(area, buf, &t, &hints, badge, status);
     }
-
-    fn draw_filter_editor(
-        f: &mut FilterEditor,
-        screen: Rect,
-        buf: &mut Buffer,
-        ctx: &mut RenderCtx,
-    ) {
-        let t = ctx.theme;
-        // dim like a dialog, keep the footer
-        ctx.modal_backdrop(buf, screen);
-        let w = 64u16.min(screen.width.saturating_sub(4));
-        let h = 15u16.min(screen.height.saturating_sub(2));
-        let area = junie_tui::ui::popup::place(
-            screen,
-            Rect::ZERO,
-            w,
-            h,
-            junie_tui::ui::popup::Placement::Center,
-        );
-        f.area = area;
-        let bg = t.surface_elevated;
-        fill(buf, area, ratatui::style::Style::new().bg(bg));
-        let block = ratatui::widgets::Block::new()
-            .borders(ratatui::widgets::Borders::ALL)
-            .border_type(ratatui::widgets::BorderType::Rounded)
-            .border_style(t.border(true).bg(bg));
-        ratatui::widgets::Widget::render(block, area, buf);
-        // the editor's body: a press on it is dead space inside the modal
-        ctx.hits
-            .register_surface(WidgetId::of("filter-editor"), area);
-        let inner = area.inner(ratatui::layout::Margin::new(3, 1));
-        buf.set_string(
-            inner.x,
-            inner.y,
-            if f.index.is_some() {
-                "Edit filter"
-            } else {
-                "Add filter"
-            },
-            t.title().bg(bg),
-        );
-        let mut y = inner.y + 2;
-        let (l, r) = junie_tui::ui::layout::Split::new(50, 16, 16).horizontal(
-            Rect::new(
-                inner.x.saturating_sub(1),
-                y,
-                inner.width + 1,
-                Select::HEIGHT,
-            ),
-            2,
-        );
-        f.column.render(l, buf, ctx, bg);
-        f.op.render(r, buf, ctx, bg);
-        y += Select::HEIGHT;
-        let ops = FilterOp::ordered_for(f.columns[f.column.selected].1);
-        let op = ops[f.op.selected.min(ops.len() - 1)];
-        if op.needs_value() {
-            if op == FilterOp::Between {
-                let (l, r) = junie_tui::ui::layout::Split::new(50, 12, 12).horizontal(
-                    Rect::new(
-                        inner.x.saturating_sub(1),
-                        y,
-                        inner.width + 1,
-                        TextInput::HEIGHT,
-                    ),
-                    2,
-                );
-                f.value.render(l, buf, ctx, bg);
-                f.value2.render(r, buf, ctx, bg);
-            } else {
-                f.value.render(
-                    Rect::new(
-                        inner.x.saturating_sub(1),
-                        y,
-                        inner.width + 1,
-                        TextInput::HEIGHT,
-                    ),
-                    buf,
-                    ctx,
-                    bg,
-                );
-            }
-        } else {
-            buf.set_string(
-                inner.x + 1,
-                y + 1,
-                "No value needed for this operator",
-                t.muted().bg(bg),
-            );
-        }
-        y += TextInput::HEIGHT + 1;
-        let preview = Filter {
-            column: f.columns[f.column.selected].0.clone(),
-            op,
-            value: f.value.text().to_owned(),
-            value2: f.value2.text().to_owned(),
-            enabled: true,
-        }
-        .to_sql();
-        buf.set_string(
-            inner.x,
-            y,
-            junie_tui::ui::text::truncate(&format!("WHERE {preview}"), inner.width as usize),
-            t.secondary().bg(bg),
-        );
-        let ay = inner.bottom().saturating_sub(1);
-        let widths = [f.cancel.width(), f.apply.width()];
-        let rects = junie_tui::widgets::button::row_layout_right(
-            Rect::new(inner.x, ay, inner.width, 1),
-            &widths,
-            1,
-        );
-        f.cancel.render(rects[0], buf, ctx, bg);
-        f.apply.render(rects[1], buf, ctx, bg);
-        // controls on top of the surface
-        ctx.hits.register(f.column.id, f.column.area);
-        ctx.hits.register(f.op.id, f.op.area);
-        ctx.hits.register(f.value.id, f.value.area);
-        ctx.hits.register(f.value2.id, f.value2.area);
-        ctx.hits.register(f.cancel.id, f.cancel.area);
-        ctx.hits.register(f.apply.id, f.apply.area);
-    }
 }
 
-enum FilterOutcome {
-    Keep(Outcome),
-    Apply,
-    Cancel,
+/// The open tab a tab-list row stands for: a filtered row carries it in its
+/// detail.
+fn tab_index(p: &Picker, i: usize) -> usize {
+    p.items
+        .get(i)
+        .and_then(|it| it.detail.parse::<usize>().ok())
+        .unwrap_or(i)
 }
 
 fn pretty_json(j: &str) -> String {

@@ -9,17 +9,22 @@
 //! runs exactly the code the key runs; a command that cannot run here or
 //! now stays in the menu with a reason.
 
+use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::Position;
+use ratatui::layout::{Position, Rect};
 
-use junie_tui::core::event::Key;
+use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::columns::HeaderAction;
 use junie_tui::ui::context::{ContextConfig, ContextRequest};
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec, Overlay};
 use junie_tui::widgets::grid::DataGrid;
+use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{ContextMenu, MenuItem};
 use junie_tui::widgets::table::SortDir;
 
+use crate::app::ModalResult;
 use crate::connections::ConnectionsScreen;
 use crate::db::ObjectKind;
 use crate::workbench::{WorkTab, Workbench};
@@ -99,6 +104,46 @@ pub struct CtxMenu {
     pub header: Vec<HeaderAction>,
     /// For a [`Target::App`] menu: the command of each item.
     pub app: Vec<AppCommand>,
+}
+
+/// The menu on the app's layer stack: the library [`ContextMenu`] layer,
+/// carrying what its items act on so the owner reads them from the closed
+/// entry. Two differences from the plain menu: the keyboard stays on
+/// [`CtxMenu::owner`] while it is open (the row it acts on keeps its
+/// cursor, marked with a fill, and gets the focus back when it closes),
+/// and the footer names the menu's keys.
+impl Layer<ModalResult> for CtxMenu {
+    fn spec(&self) -> LayerSpec {
+        Overlay::spec(&self.menu).initial_focus(self.owner)
+    }
+    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, app: &()) {
+        Layer::<ModalResult>::render(&mut self.menu, screen, buf, ctx, app);
+    }
+    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_>) -> Outcome {
+        Layer::<ModalResult>::on_key(&mut self.menu, key, cx)
+    }
+    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_>) -> Outcome {
+        Layer::<ModalResult>::on_click(&mut self.menu, id, pos, cx)
+    }
+    fn on_wheel(&mut self, delta: i32, pos: Position) -> Outcome {
+        Layer::<ModalResult>::on_wheel(&mut self.menu, delta, pos)
+    }
+    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
+        vec![
+            hint("↑↓", "Move"),
+            hint("Enter", "Choose"),
+            hint("Esc", "Close"),
+        ]
+    }
+    fn on_dismiss(&mut self, reason: DismissReason) {
+        Layer::<ModalResult>::on_dismiss(&mut self.menu, reason);
+    }
+    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
+        Layer::<ModalResult>::take_result(&mut self.menu)
+    }
+    fn owns(&self, id: WidgetId) -> bool {
+        Layer::<ModalResult>::owns(&self.menu, id)
+    }
 }
 
 fn plain(code: KeyCode) -> Key {
