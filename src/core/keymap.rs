@@ -688,4 +688,75 @@ mod widget_tests {
         });
         assert!(e.find.is_some(), "the remapped key fires");
     }
+
+    fn grid() -> crate::widgets::grid::DataGrid {
+        use crate::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
+        let cols = vec![
+            ColumnSpec::new("id", CellKind::Id).primary(),
+            ColumnSpec::new("name", CellKind::Text),
+        ];
+        let mut g = DataGrid::new(WidgetId::of("g"), cols);
+        let rows = (0..10)
+            .map(|i| {
+                vec![
+                    CellValue::Text(format!("id-{i}")),
+                    CellValue::Text(format!("row {i}")),
+                ]
+            })
+            .collect();
+        g.set_rows(GridRows {
+            rows,
+            total: RowTotal::Exact(10),
+            more: false,
+        });
+        g.scroll.set_viewport(5);
+        g
+    }
+
+    #[test]
+    fn grid_nav_and_keymap() {
+        use crate::widgets::grid::{GridAction, GridEvent};
+        let mut g = grid();
+        g.on_key(&c('j'));
+        g.on_key(&c('l'));
+        assert_eq!(g.cursor, (1, 1));
+        g.on_key(&c('G'));
+        assert_eq!(g.cursor, (9, 1), "G is the last row");
+        g.on_key(&k(KeyCode::Home));
+        assert_eq!(g.cursor, (9, 0), "Home stays in the row");
+        let mut g = grid().nav(NavKeys::NO_VIM);
+        assert_eq!(g.on_key(&c('j')).0, Outcome::Ignored);
+        assert_eq!(g.cursor, (0, 0));
+        g.on_key(&k(KeyCode::Down));
+        assert_eq!(g.cursor, (1, 0));
+
+        let mut g = grid();
+        assert!(matches!(g.on_key(&c('y')).1, Some(GridEvent::Copy(_))));
+        let mut g = grid().keymap(vec![(KeyBinding::ctrl('c'), GridAction::Copy)]);
+        assert_eq!(
+            g.on_key(&c('y')).0,
+            Outcome::Ignored,
+            "the default is unbound"
+        );
+        assert_eq!(
+            g.on_key(&c('r')).0,
+            Outcome::Ignored,
+            "every other letter too"
+        );
+        assert!(matches!(
+            g.on_key(&Key {
+                code: KeyCode::Char('c'),
+                mods: KeyModifiers::CONTROL,
+            })
+            .1,
+            Some(GridEvent::Copy(_))
+        ));
+        // duplicate_keys rewrites only the DuplicateRow bindings
+        let g = grid().duplicate_keys(&[]);
+        assert_eq!(binding_for(&g.keymap, GridAction::DuplicateRow), None);
+        assert_eq!(
+            binding_for(&g.keymap, GridAction::Copy),
+            Some(KeyBinding::char('y'))
+        );
+    }
 }
