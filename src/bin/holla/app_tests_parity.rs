@@ -2190,9 +2190,25 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
         t.contains("Project artifacts") && t.contains("2.5 GiB"),
         "{t}"
     );
-    let (_, y) = h.find("Project artifacts").unwrap();
+    // the list row, not the detail pane's heading of the same name: End
+    // leaves one row of context below the cursor (ScrollState::context),
+    // so the detail heading no longer shares its line with a blank list row
     let list = h.app.hits.area_of(crate::screens::cleanup::LIST).unwrap();
+    let y = (list.y..list.bottom())
+        .find(|&y| {
+            h.row(y)
+                .chars()
+                .take(list.right() as usize)
+                .collect::<String>()
+                .contains("Project artifacts")
+        })
+        .expect("the Project artifacts row is in view");
     h.click(list.x + 2, y);
+    assert!(
+        h.text().contains("▾ Project artifacts"),
+        "the click opens the category: {}",
+        h.text()
+    );
     assert!(
         h.text().contains("Unreadable") && h.text().contains("locked"),
         "{}",
