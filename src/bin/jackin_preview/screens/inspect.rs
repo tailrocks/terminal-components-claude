@@ -486,19 +486,8 @@ impl InspectChanges {
             ctx.clickable(rid, rect);
         }
         if has_sb {
-            junie_tui::ui::fade::scroll_edges(
-                buf,
-                ctx,
-                Rect::new(
-                    list.x,
-                    list.y,
-                    (list.right() - 1).saturating_sub(list.x),
-                    list.height,
-                ),
-                &self.list_scroll,
-            );
-            scrollbar::render_vertical(
-                Rect::new(list.right() - 1, list.y, 1, list.height),
+            scrollbar::render_with_fade(
+                Rect::new(list.x, list.y, list.width, list.height),
                 buf,
                 ctx,
                 self.id,
