@@ -25,6 +25,7 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::leave::{
@@ -412,7 +413,7 @@ impl Page for QuitLeavePage {
             return forward_blur(*ch, &mut [&mut self.title]);
         }
         if let PageEvent::DialogClosed { id, result, .. } = ev
-            && self.guard.owns(*id)
+            && *id == self.guard.id
         {
             let r = self.guard.resolve(*result);
             self.resolve(r, cx);
@@ -448,21 +449,29 @@ impl Page for QuitLeavePage {
                 f
             }
             PageEvent::Paste(text) if cx.focus.is(TITLE) => return self.title.on_paste(text),
-            PageEvent::Click { id, pos } if *id == TITLE => {
-                cx.focus.focus(TITLE);
-                return self.title.on_click_count(*pos, cx.clicks);
-            }
-            PageEvent::Click { id, .. } => {
-                let b = match *id {
-                    LEAVE => &mut self.leave,
-                    QUIT => &mut self.quit,
-                    EXPORT => &mut self.export,
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.title.route(ev) {
+                    let o = r.outcome();
+                    if o != Outcome::Ignored {
+                        cx.focus.focus(TITLE);
+                    }
+                    return o;
+                }
+                let (id, b) = match ev.owner() {
+                    LEAVE => (LEAVE, &mut self.leave),
+                    QUIT => (QUIT, &mut self.quit),
+                    EXPORT => (EXPORT, &mut self.export),
                     _ => return Outcome::Ignored,
                 };
-                if !b.on_click() {
-                    return Outcome::Changed;
+                match b.route(ev) {
+                    Some(r) if r.outcome() != Outcome::Ignored => {
+                        if r.into_action().is_none() {
+                            return Outcome::Changed;
+                        }
+                        id
+                    }
+                    _ => return Outcome::Ignored,
                 }
-                *id
             }
             _ => return Outcome::Ignored,
         };
