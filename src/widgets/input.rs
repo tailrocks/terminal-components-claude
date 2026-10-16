@@ -1056,7 +1056,10 @@ mod tests {
             KeyCode::Char('c'),
             ratatui::crossterm::event::KeyModifiers::CONTROL,
         );
-        let mut input = TextInput::new(WidgetId::of("f"), "Name").value("draft");
+        // Desktop keys: Ctrl+C is Copy there
+        let mut input = TextInput::new(WidgetId::of("f"), "Name")
+            .value("draft")
+            .field_keys(FieldKeys::Desktop);
         input.begin_edit();
         input.buffer.clear_selection();
         assert_eq!(
