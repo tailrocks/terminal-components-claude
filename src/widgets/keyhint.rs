@@ -356,6 +356,25 @@ pub fn render_styled(
     right: Option<(&str, Tone)>,
     style: &HintBarStyle,
 ) -> usize {
+    render_parts(area, buf, t, hints, badge, right, &[], style)
+}
+
+/// [`render_styled`] with a status made of toned parts (a batch summary
+/// whose `ok` count is success and whose `failed` count is error). The
+/// status text is the parts joined; its tone still picks the `!` or `▲`
+/// mark. Each part is drawn in its own tone, so the severity a word
+/// carries stays on that word instead of colouring the whole message.
+#[allow(clippy::too_many_arguments)]
+pub fn render_parts(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Tone)>,
+    parts: &[(String, Tone)],
+    style: &HintBarStyle,
+) -> usize {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return 0;
@@ -407,6 +426,24 @@ pub fn render_styled(
                     mark,
                     st.add_modifier(ratatui::style::Modifier::BOLD),
                 );
+            }
+            // the parts keep their own tones over the message's, up to
+            // where the truncated text ends
+            let mut px = area.right() - w - 1;
+            if !mark.is_empty() {
+                px += crate::ui::text::width(mark) as u16 + 1;
+            }
+            let end = area.right() - 1;
+            for (part, tone) in parts {
+                let pw = crate::ui::text::width(part) as u16;
+                let to = px.saturating_add(pw).min(end);
+                if to > px {
+                    buf.set_style(
+                        Rect::new(px, area.y, to - px, 1),
+                        ratatui::style::Style::new().fg(t.tone(*tone)),
+                    );
+                }
+                px = px.saturating_add(pw);
             }
             right_w = w + 3;
         }
@@ -511,6 +548,36 @@ mod tests {
         let row = row_text(&plain, 60);
         assert!(row.contains("Saved"), "{row:?}");
         assert!(!row.contains('▲') && !row.contains('!'), "{row:?}");
+    }
+
+    #[test]
+    fn a_status_made_of_parts_keeps_each_part_in_its_tone() {
+        let t = Theme::junie();
+        let parts = vec![
+            ("deploy · ".to_owned(), Tone::Secondary),
+            ("2 ok".to_owned(), Tone::Success),
+            (" · ".to_owned(), Tone::Secondary),
+            ("1 failed".to_owned(), Tone::Error),
+        ];
+        let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 1));
+        render_parts(
+            Rect::new(0, 0, 60, 1),
+            &mut buf,
+            &t,
+            &[hint("Esc", "Back")],
+            None,
+            Some((&text, Tone::Error)),
+            &parts,
+            &t.hintbar,
+        );
+        let row = row_text(&buf, 60);
+        assert!(row.contains("! deploy · 2 ok · 1 failed"), "{row:?}");
+        let at = |needle: &str| row[..row.find(needle).unwrap()].chars().count() as u16;
+        assert_eq!(buf[(at("!"), 0)].fg, t.error);
+        assert_eq!(buf[(at("deploy"), 0)].fg, t.text_secondary);
+        assert_eq!(buf[(at("2 ok"), 0)].fg, t.success);
+        assert_eq!(buf[(at("1 failed") + 7, 0)].fg, t.error);
     }
 
     #[test]

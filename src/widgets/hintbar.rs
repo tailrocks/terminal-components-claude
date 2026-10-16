@@ -15,6 +15,9 @@ pub struct HintLayer {
     pub hints: Vec<Hint>,
     pub badge: Option<(&'static str, BadgeKind)>,
     pub status: Option<(String, Tone)>,
+    /// The status as parts in their own tones ([`Self::status_parts`]);
+    /// empty for a status in one tone.
+    pub status_parts: Vec<(String, Tone)>,
     /// Alignment for this layer only. `None` (the default) follows the
     /// theme's [`HintBarStyle::align`](crate::theme::HintBarStyle::align),
     /// which is where an app sets it once for every screen.
@@ -27,6 +30,7 @@ impl HintLayer {
             hints,
             badge: None,
             status: None,
+            status_parts: vec![],
             align: None,
         }
     }
@@ -41,6 +45,16 @@ impl HintLayer {
     }
     pub fn status(mut self, s: impl Into<String>, tone: Tone) -> Self {
         self.status = Some((s.into(), tone));
+        self.status_parts.clear();
+        self
+    }
+    /// A status made of parts in their own tones (`2 ok` in success,
+    /// `1 failed` in error). `tone` is the message's severity: it picks the
+    /// `!` or `▲` mark, as for [`Self::status`].
+    pub fn status_parts(mut self, parts: Vec<(String, Tone)>, tone: Tone) -> Self {
+        let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
+        self.status = Some((text, tone));
+        self.status_parts = parts;
         self
     }
 }
@@ -57,14 +71,19 @@ impl HintBar {
     /// Draws the layer on `area` (one row). Returns how many hints fit;
     /// dropped hints leave a `…` marker so the operator knows there is more.
     pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, layer: &HintLayer) -> usize {
-        keyhint::render_aligned(
+        let style = crate::theme::HintBarStyle {
+            align: layer.align.unwrap_or(t.hintbar.align),
+            ..t.hintbar
+        };
+        keyhint::render_parts(
             area,
             buf,
             t,
             &layer.hints,
             layer.badge,
             layer.status.as_ref().map(|(s, tone)| (s.as_str(), *tone)),
-            layer.align.unwrap_or(t.hintbar.align),
+            &layer.status_parts,
+            &style,
         )
     }
 }
