@@ -5,8 +5,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
-use junie_tui::ui::ctx::{RenderCtx, fill};
-use junie_tui::ui::popup::{Placement, place};
+use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width, wrap};
 use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
@@ -195,35 +194,24 @@ impl TextModal {
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        ctx.modal_backdrop(buf, screen);
-        // placed in the body, clear of the menu bar, the status bar and the
-        // footer, with the dialog's margin around it
-        let bounds = junie_tui::widgets::dialog::body_bounds(screen, 1, 2);
-        let m = junie_tui::widgets::dialog::OUTER_MARGIN;
-        let w = self
-            .width
-            .min(bounds.width.saturating_sub(2 * m.horizontal))
-            .max(30)
-            .min(bounds.width);
-        let inner_w = w.saturating_sub(6);
+        // the shared modal frame, placed in the body clear of the menu bar,
+        // the status bar and the footer, with the dialog's margin around it;
+        // the title is drawn inside, so the frame carries none
+        let width_ = self.width;
+        let frame = move |h: u16| {
+            junie_tui::ui::modal::Frame::new(width_, h)
+                .min_size(30, 8)
+                .chrome(1, 2)
+                .margin(ratatui::layout::Margin::new(3, 2))
+        };
+        let inner_w = frame(0).area(screen).width.saturating_sub(6);
         self.layout(inner_w);
         let content_h = self.wrapped.len() as u16;
-        let h = (content_h + 6)
-            .min(bounds.height.saturating_sub(2 * m.vertical))
-            .max(8)
-            .min(bounds.height);
-        let area = place(bounds, Rect::ZERO, w, h, Placement::Center);
+        let (area, inner) = frame(content_h + 6).render(screen, buf, ctx);
         self.area = area;
         let bg = t.surface_elevated;
-        fill(buf, area, Style::new().bg(bg));
-        let block = ratatui::widgets::Block::new()
-            .borders(ratatui::widgets::Borders::ALL)
-            .border_type(ratatui::widgets::BorderType::Rounded)
-            .border_style(t.border(true).bg(bg));
-        ratatui::widgets::Widget::render(block, area, buf);
         ctx.hits.register(self.id, area);
         ctx.ring.register(self.id);
-        let inner = area.inner(ratatui::layout::Margin::new(3, 2));
         if inner.is_empty() {
             return;
         }
@@ -310,5 +298,32 @@ impl TextModal {
                 true,
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use junie_tui::core::focus::FocusRing;
+    use junie_tui::core::hit::HitRegistry;
+    use junie_tui::theme::Theme;
+    use junie_tui::ui::ctx::Interaction;
+
+    #[test]
+    fn the_text_modal_sits_in_the_shared_frame_where_it_always_did() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let screen = Rect::new(0, 0, 100, 30);
+        let mut buf = Buffer::empty(screen);
+        let lines = (0..4)
+            .map(|i| TextLine::kv("k", &format!("line {i}")))
+            .collect();
+        let mut m = TextModal::new(WidgetId::of("about"), "About", lines);
+        m.render(screen, &mut buf, &mut ctx);
+        // the body is rows 1..28 (menu bar above, status and footer
+        // below): 72 wide, 4 lines + 6 rows of chrome, centred there
+        assert_eq!(m.area, Rect::new(14, 9, 72, 10));
     }
 }
