@@ -2,6 +2,7 @@
 //! app: its options rebuild the explorer and the States grid through the
 //! theme builders, and the Options section changes them like `--opt`.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -222,7 +223,7 @@ fn options_section_sets_an_option_like_opt() {
         .unwrap()
         .tabs
         .id;
-    h.app.focus.focus(strip);
+    h.app.shell.focus.focus(strip);
     h.draw();
     h.key(KeyCode::Tab);
     h.key(KeyCode::Down);

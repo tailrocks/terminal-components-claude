@@ -32,12 +32,12 @@ fn quitting_while_the_pipeline_runs_asks_first() {
     h.click(x + 1, y);
     // Ctrl+Q quits from anywhere (QuitKeys)
     h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
-    assert!(!h.app.quit, "a running pipeline holds the quit");
+    assert!(!h.app.shell.quit, "a running pipeline holds the quit");
     assert!(h.text().contains("Still running"), "{}", h.text());
     h.key(KeyCode::Esc);
-    assert!(!h.app.quit, "Esc stays");
+    assert!(!h.app.shell.quit, "Esc stays");
     h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
     let (x, y) = h.find("Stop and leave").expect("the stop button");
     h.click(x + 1, y);
-    assert!(h.app.quit, "Stop and leave quits");
+    assert!(h.app.shell.quit, "Stop and leave quits");
 }

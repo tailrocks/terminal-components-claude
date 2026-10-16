@@ -2,6 +2,7 @@
 //! editor strip's actions, its options through the Options section and
 //! `--opt`, the nested strips and the States grid.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -105,7 +106,7 @@ impl Harness {
     }
 
     pub fn focus(&mut self, id: WidgetId) {
-        self.app.focus.focus(id);
+        self.app.shell.focus.focus(id);
         self.draw();
     }
 

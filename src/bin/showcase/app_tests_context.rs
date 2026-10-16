@@ -5,6 +5,7 @@
 
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::runtime::Application;
 use junie_tui::theme::Theme;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -106,11 +107,12 @@ impl Harness {
 
     /// The open menu `id`'s rectangle this frame.
     fn menu(&self, id: WidgetId) -> Option<Rect> {
-        self.app.hits.area_of(id)
+        self.app.shell.hits.area_of(id)
     }
 
     fn status(&self) -> String {
         self.app
+            .shell
             .status
             .text()
             .map(str::to_owned)
@@ -400,14 +402,17 @@ fn tables_header_seam_resizes_and_the_header_menu_sorts_and_resets() {
             junie_tui::core::id::ItemKey::index(2),
         )),
     );
-    let before = h.app.hits.area_of(head).expect("the Owner title");
-    let s = h.app.hits.area_of(seam).expect("a seam after Owner");
+    let before = h.app.shell.hits.area_of(head).expect("the Owner title");
+    let s = h.app.shell.hits.area_of(seam).expect("a seam after Owner");
     assert_eq!(s.x, before.right());
     // drag the seam four cells right: the Owner column follows the pointer
     h.mouse(MouseKind::Down, (s.x, s.y));
     h.mouse(MouseKind::Drag, (s.x + 4, s.y));
     h.mouse(MouseKind::Up, (s.x + 4, s.y));
-    assert_eq!(h.app.hits.area_of(head).unwrap().width, before.width + 4);
+    assert_eq!(
+        h.app.shell.hits.area_of(head).unwrap().width,
+        before.width + 4
+    );
     // right-click the title: the header menu
     h.right_click((before.x + 1, before.y));
     let menu = h
@@ -419,7 +424,7 @@ fn tables_header_seam_resizes_and_the_header_menu_sorts_and_resets() {
     assert!(h.text().contains("sorted by owner ▾"), "{}", h.text());
     h.right_click((before.x + 1, before.y));
     h.click(h.at("Reset Column Widths"));
-    assert_eq!(h.app.hits.area_of(head).unwrap().width, before.width);
+    assert_eq!(h.app.shell.hits.area_of(head).unwrap().width, before.width);
 }
 
 #[test]
@@ -429,6 +434,7 @@ fn tables_shift_f10_opens_under_the_cursor_row() {
     h.key(KeyCode::Down);
     let row = h
         .app
+        .shell
         .hits
         .area_of(WidgetId::of("tables").sub("tasks").child(2));
     assert_eq!(h.shift_f10(), Outcome::Changed);
