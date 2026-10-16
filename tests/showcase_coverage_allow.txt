@@ -970,6 +970,7 @@ widgets::picker::PickerAction::Secondary | Pickers page options | SC20
 widgets::picker::PickerAction::NextScope | Pickers page options | SC20
 widgets::picker::PickerAction::Cancelled | Pickers page options | SC20
 widgets::picker::PickerAction::Back | Pickers page options | SC20
+widgets::picker::PickerAction::PrevScope | Pickers page options | SC20
 widgets::picker::Picker::nav | Pickers page options | SC20
 widgets::picker::Picker::delete_is_secondary | Pickers page options | SC20
 widgets::picker::Picker::width | Pickers page options | SC20
