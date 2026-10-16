@@ -111,8 +111,10 @@ fn list_focus_and_selection_have_distinct_symbols_without_colour() {
     }
 }
 
+/// Reverse video where colour cannot carry a selection: monochrome, and 16
+/// colours, whose only blue is the menu cursor fill.
 #[test]
-fn text_selection_uses_reverse_video_only_in_monochrome() {
+fn text_selection_uses_reverse_video_only_without_a_selection_hue() {
     let id = WidgetId::of("test.selection");
     for level in LEVELS {
         let theme = Theme::for_level(level);
@@ -136,7 +138,7 @@ fn text_selection_uses_reverse_video_only_in_monochrome() {
         for x in 2..8 {
             assert_eq!(
                 buf[(x, 1)].modifier.contains(Modifier::REVERSED),
-                level == ColorLevel::Mono
+                matches!(level, ColorLevel::Mono | ColorLevel::Ansi16)
             );
         }
         assert!(!buf[(8, 1)].modifier.contains(Modifier::REVERSED));
