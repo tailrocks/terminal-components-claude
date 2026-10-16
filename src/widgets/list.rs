@@ -6,7 +6,10 @@ use ratatui::style::Color;
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
-use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
+use crate::core::keymap::{
+    Actions, KeyBinding, KeyMap, NavKeys, lookup, select_all_bindings, unassigned_chord,
+};
+use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::ScrollState;
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -212,28 +215,11 @@ impl ListBox {
         self
     }
 
-    /// The enabled row nearest `to`, searching away from the cursor first
-    /// (the direction of travel), then back toward it.
-    fn enabled_near(&self, to: usize) -> usize {
-        let n = self.items.len();
-        if !self.skip_disabled || n == 0 || !self.items[to].disabled {
-            return to;
-        }
-        let forward = to >= self.cursor;
-        let ahead: Box<dyn Iterator<Item = usize>> = if forward {
-            Box::new(to..n)
-        } else {
-            Box::new((0..=to).rev())
-        };
-        let behind: Box<dyn Iterator<Item = usize>> = if forward {
-            Box::new((0..to).rev())
-        } else {
-            Box::new(to + 1..n)
-        };
-        ahead
-            .chain(behind)
-            .find(|&i| !self.items[i].disabled)
-            .unwrap_or(to)
+    /// The cursor with this list's rules.
+    fn nav_cursor(&self) -> Cursor {
+        Cursor::new(self.cursor)
+            .wrap(self.wrap)
+            .skip_disabled(self.skip_disabled)
     }
 
     /// Blank columns between the labels and the scrollbar.
@@ -313,7 +299,7 @@ impl ListBox {
     }
 
     fn move_cursor(&mut self, to: usize, extend: bool) {
-        let to = self.enabled_near(to.min(self.items.len().saturating_sub(1)));
+        let to = to.min(self.items.len().saturating_sub(1));
         if self.mode == SelectMode::Multi && extend {
             let anchor = *self.anchor.get_or_insert(self.cursor);
             let (a, b) = (anchor.min(to), anchor.max(to));
@@ -348,10 +334,7 @@ impl ListBox {
             return o;
         }
         let shift = key.shift();
-        if matches!(key.code, KeyCode::Char(_))
-            && key.chord()
-            && lookup(&self.keymap, key).is_none()
-        {
+        if unassigned_chord(key, &self.keymap) {
             // an unassigned modified chord never performs a plain action
             return Outcome::Ignored;
         }
@@ -360,23 +343,7 @@ impl ListBox {
             // nothing to select all of: the chord stays the app's
             return Outcome::Ignored;
         }
-        if let KeyCode::Char(c) = key.code
-            && self.type_ahead
-            && !c.is_whitespace()
-        {
-            let prefix = self.typeahead.feed(c).to_owned();
-            let found = crate::core::typeahead::TypeAhead::find(
-                &prefix,
-                self.items.iter().map(|it| it.label.as_str()),
-                self.cursor,
-                |i| !self.items[i].disabled,
-            );
-            if let Some(i) = found {
-                self.move_cursor(i, false);
-                return Outcome::Changed;
-            }
-            return Outcome::Ignored;
-        }
+        // a bound command wins over type-ahead (Multi `a` toggles all)
         if let Some(action) = lookup(&self.keymap, key)
             && self.mode == SelectMode::Multi
         {
@@ -411,22 +378,28 @@ impl ListBox {
                 }
             };
         }
-        if let Some(nav) = self.nav.action(key) {
-            let to = match nav {
-                Nav::Up => {
-                    crate::core::nav::step_index(self.cursor, self.items.len(), -1, self.wrap)
+        match KeyStep::of(key, &self.nav, self.type_ahead) {
+            Some(KeyStep::Type(c)) => {
+                let moved = self
+                    .nav_cursor()
+                    .type_ahead(c, &mut self.typeahead, &self.items[..]);
+                if let Moved::To(i) = moved {
+                    self.move_cursor(i, false);
                 }
-                Nav::Down => {
-                    crate::core::nav::step_index(self.cursor, self.items.len(), 1, self.wrap)
-                }
-                Nav::PageUp => self.cursor.saturating_sub(self.scroll.viewport_len.max(1)),
-                Nav::PageDown => self.cursor + self.scroll.viewport_len.max(1),
-                Nav::Home => 0,
-                Nav::End => usize::MAX,
-                Nav::Left | Nav::Right => return Outcome::Ignored,
-            };
-            self.move_cursor(to, shift);
-            return Outcome::Changed;
+                return moved.outcome();
+            }
+            Some(KeyStep::Nav(nav)) => {
+                let moved = self
+                    .nav_cursor()
+                    .apply(nav, &self.items[..], self.scroll.viewport_len);
+                // ←/→ are not list keys
+                let Some(to) = moved.index() else {
+                    return Outcome::Ignored;
+                };
+                self.move_cursor(to, shift);
+                return Outcome::Changed;
+            }
+            None => {}
         }
         match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => self.activate(self.cursor),
@@ -676,6 +649,36 @@ impl ListBox {
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
+    }
+}
+
+impl RowSource for [ListItem] {
+    fn len(&self) -> usize {
+        <[ListItem]>::len(self)
+    }
+    fn enabled(&self, i: usize) -> bool {
+        !self[i].disabled
+    }
+    fn label(&self, i: usize) -> &str {
+        &self[i].label
+    }
+}
+
+impl RowSource for ListBox {
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+    fn enabled(&self, i: usize) -> bool {
+        self.items[..].enabled(i)
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.items[i].label
+    }
+}
+
+impl Navigable for ListBox {
+    fn cursor(&self) -> Cursor {
+        self.nav_cursor()
     }
 }
 
@@ -944,6 +947,30 @@ mod scroll_tests {
         vim.cursor = 1;
         press(&mut vim, KeyCode::Char('j'));
         assert_eq!(vim.cursor, 3, "off by default: j still moves down");
+    }
+
+    #[test]
+    fn a_type_ahead_miss_is_consumed_and_a_bound_letter_still_runs() {
+        // plan §3: a miss never leaks a half-typed prefix to the page
+        let mut l = disabled_list().type_ahead(true);
+        l.cursor = 1;
+        let o = l.on_key(&Key {
+            code: KeyCode::Char('x'),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        });
+        assert_eq!(o, Outcome::Consumed);
+        assert_eq!(l.cursor, 1);
+        // a Multi list's `a` (ToggleAll) is a binding, not a prefix
+        let mut m = ListBox::new(
+            WidgetId::of("m"),
+            vec![ListItem::new("apple"), ListItem::new("bean")],
+            SelectMode::Multi,
+        )
+        .type_ahead(true);
+        m.cursor = 1;
+        press(&mut m, KeyCode::Char('a'));
+        assert_eq!(m.checked, vec![true, true], "a toggles all");
+        assert_eq!(m.cursor, 1);
     }
 
     #[test]
