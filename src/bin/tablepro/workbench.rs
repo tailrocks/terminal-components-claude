@@ -1110,7 +1110,10 @@ impl Workbench {
                 if id == scrollbar::id_for(h.list.id) {
                     return h.list.on_scrollbar(pos);
                 }
-                if id == h.detail.id || id == scrollbar::id_for(h.detail.id) {
+                if scrollbar::is_bar_of(id, h.detail.id) {
+                    return h.detail.on_scrollbar(pos);
+                }
+                if id == h.detail.id {
                     cx.focus.focus(h.detail.id);
                     return h.detail.on_click(pos);
                 }
@@ -1160,6 +1163,9 @@ impl Workbench {
                 if pressed == scrollbar::id_for(h.list.id) {
                     return h.list.on_scrollbar_drag(pos);
                 }
+                if scrollbar::is_bar_of(pressed, h.detail.id) {
+                    return h.detail.on_scrollbar_drag(pos);
+                }
                 Outcome::Ignored
             }
             None => Outcome::Ignored,
@@ -1206,7 +1212,7 @@ impl Workbench {
                         h.list.on_wheel(delta)
                     };
                 }
-                if id == h.detail.id || id == scrollbar::id_for(h.detail.id) {
+                if h.detail.owns(id) {
                     return h.detail.on_wheel(delta, horizontal);
                 }
                 Outcome::Ignored

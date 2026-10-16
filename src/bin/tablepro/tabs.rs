@@ -1461,7 +1461,7 @@ impl QueryTab {
             let _ = cat;
             return o;
         }
-        if id == scrollbar::id_for(self.editor.id) {
+        if scrollbar::is_bar_of(id, self.editor.id) {
             return self.editor.on_scrollbar(pos);
         }
         if self.result_tabs.owns(id) {
@@ -1508,7 +1508,7 @@ impl QueryTab {
         if pressed == self.editor.id {
             return self.editor.on_drag(pos);
         }
-        if pressed == scrollbar::id_for(self.editor.id) {
+        if scrollbar::is_bar_of(pressed, self.editor.id) {
             return self.editor.on_scrollbar_drag(pos);
         }
         if let Some(g) = self.active_grid_mut()
@@ -1534,7 +1534,7 @@ impl QueryTab {
                 self.completion.on_wheel(delta)
             };
         }
-        if id == self.editor.id || id == scrollbar::id_for(self.editor.id) {
+        if self.editor.owns(id) {
             return self.editor.on_wheel(delta, horizontal);
         }
         let Some(r) = self.results.get_mut(self.active_result) else {
