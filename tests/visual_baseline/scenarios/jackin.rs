@@ -238,7 +238,9 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("jackin/manager/quit_confirm", Bin::Jackin, RETURNING, "jackin❯").sends(&["ctrl-q", "wait:Quit jackin❯?"]).dismiss_pending(),
     Root::new("jackin/manager/launch_picker", Bin::Jackin, RETURNING, "jackin❯").sends(&["enter", "wait:Launch · choose Agent"]).dismiss_pending(),
     Root::new("jackin/cockpit/info", Bin::Jackin, LAUNCH, "jackin❯").sends(&["i", "wait:Debug info"]).dismiss_pending(),
-    Root::new("jackin/cockpit/cancel_confirm", Bin::Jackin, LAUNCH, "jackin❯").sends(&["c", "wait:Cancel the launch?"]).dismiss_pending(),
+    // `x` cancels the launch since c3515f652 (one meaning per letter; `c`
+    // stays Accounts' letter). The dialog copy is unchanged.
+    Root::new("jackin/cockpit/cancel_confirm",Bin::Jackin, LAUNCH, "jackin❯").sends(&["x", "wait:Cancel the launch?"]).dismiss_pending(),
     // tmux-style prefix: Ctrl+B arms it (frozen virtual clock never times it
     // out), the next key is the command.
     Root::new("jackin/capsule/menu", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "m", "wait:Change title…"]).dismiss_pending(),

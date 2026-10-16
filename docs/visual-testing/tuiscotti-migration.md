@@ -65,10 +65,14 @@ requires every non-pending scenario, and rejects files outside the tables.
 | new coverage rows (`.pending()`: 29 element, 7 overlay and 10 resize roots; 92 overlay dismissals) | 3,450 | no approval yet |
 | narrow tier (`40x12`, `60x18`) | 1,056 | no approval yet |
 
-Known breakage found while adding coverage: `jackin/cockpit/cancel_confirm`
-(stored, tuisnap files) no longer reaches its `wait:Cancel the launch?`
-needle on the current app, so it and its dismissal rows fail under
-`VISUAL_FULL=1` before any comparison.
+Breakage found while adding coverage, fixed in the tables (the app copy is
+unchanged): `jackin/cockpit/cancel_confirm` opens with `x` since
+c3515f652 (one meaning per letter), so its `c` step never reached `Cancel
+the launch?`; `holla/flows/trust/prompt` ran under reduced motion, where
+the screen behind the prompt kept animating and a dismissed frame never
+settled. It now runs at `--motion paused --frame 40`, waits for the prompt
+title, and has its `-dismissed-esc` / `-dismissed-outside` rows back
+(pending; two runs were byte-identical).
 
 The visual-test plan (`docs/visual-testing/plan.md`) decides the final
 matrix and the OS that generates baselines (CI runs ubuntu-24.04) before

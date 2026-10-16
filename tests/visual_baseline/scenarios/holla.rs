@@ -290,9 +290,10 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("holla/flows/git/batch_picker", Bin::Holla, &["--scenario", "parity-git-batch", "--motion", "reduced"], "holla❯").sends(&["type:Pull 4 sibling", "enter", "right", "enter", "wait:Fast-forward", "wait:2 ok · 2 failed", "ctrl-g", "wait:0 live"]).timeout(15_000).dismiss_pending(),
     Root::new("holla/flows/cargo/clean_confirm", Bin::Holla, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:cargo clean", "enter", "wait:Esc Cancel"]).dismiss_pending(),
     Root::new("holla/flows/upgrade/confirm", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "reduced"], "holla❯").sends(&["down", "down", "down", "down", "down", "space", "c"]).dismiss_pending(),
-    // No dismissal rows: under reduced motion the screen behind the prompt
-    // keeps animating, so a dismissed frame never settles.
-    Root::new("holla/flows/trust/prompt", Bin::Holla, &["--scenario", "monorepo-child", "--motion", "reduced"], "holla❯").sends(&["type:test", "enter"]),
+    // Paused at frame 40: under reduced motion the screen behind the prompt
+    // keeps animating, so a dismissed frame never settled. The prompt is
+    // gated on its title, not on a quiet window.
+    Root::new("holla/flows/trust/prompt", Bin::Holla, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:test", "enter", "wait:Trust ~/work/acme/apps/frontend/mise.toml?"]).dismiss_pending(),
     // Pending: pointer-opened menus, with both dismissals.
     Root::new("holla/overlays/file_menu_click", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").click("File").pending().dismiss_pending(),
     Root::new("holla/overlays/results_context", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").right_click("Open btm").pending().dismiss_pending(),
