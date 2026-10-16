@@ -38,6 +38,7 @@ pub mod splitter;
 pub mod statusbar;
 pub mod steps;
 pub mod table;
+mod code_specimen;
 mod table_specimen;
 pub mod tabs;
 pub mod textarea;
