@@ -1,0 +1,452 @@
+//! The filter editor: tablepro's own modal, a [`Layer`] on the app's
+//! layer stack (plan S5). It owns its input, rendering, hints and
+//! validation; the app only applies the filter it resolves to.
+
+use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::KeyCode;
+use ratatui::layout::{Position, Rect};
+
+use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::focus::{Focus, FocusChange, FocusRing, forward_blur};
+use junie_tui::core::id::WidgetId;
+use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
+use junie_tui::ui::popup::Dismiss;
+use junie_tui::widgets::button::Button;
+use junie_tui::widgets::field_common::{route_click, route_drag, route_press};
+use junie_tui::widgets::input::{InputAction, TextInput};
+use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::select::{Select, SelectAction};
+
+use crate::app::ModalResult;
+use crate::db::ColType;
+use crate::tabs::{Filter, FilterOp};
+
+/// The editor's surface: a press on it is dead space inside the modal.
+pub const ID: WidgetId = WidgetId::of("filter-editor");
+
+/// What the editor resolved to: the filter to put at `index` (`None`:
+/// append), or `None` when it was cancelled or dismissed.
+pub type FilterDone = Option<(Option<usize>, Filter)>;
+
+pub struct FilterEditor {
+    pub index: Option<usize>,
+    pub column: Select,
+    pub op: Select,
+    pub value: TextInput,
+    pub value2: TextInput,
+    pub apply: Button,
+    pub cancel: Button,
+    pub area: Rect,
+    columns: Vec<(String, ColType)>,
+    /// A form holds typed input: only Esc (or Cancel) discards it, a stray
+    /// click outside does not.
+    pub dismiss: Dismiss,
+    done: Option<FilterDone>,
+}
+
+/// What a key or click asked the editor to do.
+enum Step {
+    Keep(Outcome),
+    Apply,
+    Cancel,
+}
+
+impl FilterEditor {
+    /// An editor for the filter at `index` (`None`: a new one; `update`:
+    /// one exists there) over `columns`, starting on column `col_i`,
+    /// operator `op` and values.
+    pub fn new(
+        index: Option<usize>,
+        update: bool,
+        columns: Vec<(String, ColType)>,
+        col_i: usize,
+        op: FilterOp,
+        value: &str,
+        value2: &str,
+    ) -> Self {
+        let names: Vec<&str> = columns.iter().map(|c| c.0.as_str()).collect();
+        let ops = FilterOp::ordered_for(columns[col_i].1);
+        let op_labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
+        let op_i = ops.iter().position(|o| *o == op).unwrap_or(0);
+        Self {
+            index,
+            column: Select::new(ID.sub("col"), "Column", &names, col_i),
+            op: Select::new(ID.sub("op"), "Operator", &op_labels, op_i)
+                .help("Operators that fit the column type come first"),
+            value: TextInput::new(ID.sub("value"), "Value")
+                .value(value)
+                .placeholder("value")
+                .plain_label(),
+            value2: TextInput::new(ID.sub("value2"), "and")
+                .value(value2)
+                .plain_label(),
+            apply: Button::primary(
+                ID.sub("apply"),
+                if update {
+                    "Update filter"
+                } else {
+                    "Add filter"
+                },
+            ),
+            cancel: Button::subtle(ID.sub("cancel"), "Cancel"),
+            area: Rect::ZERO,
+            columns,
+            dismiss: Dismiss::ESCAPE,
+            done: None,
+        }
+    }
+
+    /// The operator list follows the chosen column's type.
+    fn column_changed(&mut self, i: usize) {
+        let ops = FilterOp::ordered_for(self.columns[i].1);
+        let labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
+        self.op = Select::new(self.op.id, "Operator", &labels, 0)
+            .help("Operators that fit the column type come first");
+    }
+
+    fn chosen_op(&self) -> FilterOp {
+        let ops = FilterOp::ordered_for(self.columns[self.column.selected].1);
+        ops[self.op.selected.min(ops.len() - 1)]
+    }
+
+    /// Apply: a missing value keeps the editor open on the value field
+    /// with the reason; otherwise it resolves to the filter.
+    fn submit(&mut self, focus: &mut Focus) -> Outcome {
+        let op = self.chosen_op();
+        if self.value.editing {
+            self.value.commit();
+        }
+        if self.value2.editing {
+            self.value2.commit();
+        }
+        if op.needs_value() && self.value.text().trim().is_empty() {
+            self.value.error = Some("A value is required for this operator".into());
+            focus.focus(self.value.id);
+            return Outcome::Changed;
+        }
+        let filter = Filter {
+            column: self.columns[self.column.selected].0.clone(),
+            op,
+            value: self.value.text().trim().to_owned(),
+            value2: self.value2.text().trim().to_owned(),
+            enabled: true,
+        };
+        self.done = Some(Some((self.index, filter)));
+        Outcome::Changed
+    }
+
+    fn step(&mut self, step: Step, focus: &mut Focus) -> Outcome {
+        match step {
+            Step::Keep(o) => o,
+            Step::Apply => self.submit(focus),
+            Step::Cancel => {
+                self.done = Some(None);
+                Outcome::Changed
+            }
+        }
+    }
+
+    fn key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing) -> Step {
+        let cur = focus.current();
+        // focus traversal wins whenever no text field is editing
+        if !self.value.editing && !self.value2.editing && !self.column.open && !self.op.open {
+            match key.code {
+                KeyCode::Tab => {
+                    focus.next(ring);
+                    return Step::Keep(Outcome::Changed);
+                }
+                KeyCode::BackTab => {
+                    focus.prev(ring);
+                    return Step::Keep(Outcome::Changed);
+                }
+                _ => {}
+            }
+        }
+        if cur == Some(self.column.id) {
+            let (o, ev) = self.column.on_key(key);
+            if let Some(SelectAction::Changed(i)) = ev {
+                self.column_changed(i);
+            }
+            return Step::Keep(o.or(Outcome::Consumed));
+        }
+        if cur == Some(self.op.id) {
+            return Step::Keep(self.op.on_key(key).0.or(Outcome::Consumed));
+        }
+        for inp in [&mut self.value, &mut self.value2] {
+            if cur == Some(inp.id) {
+                let (o, ev) = inp.on_key(key);
+                match ev {
+                    Some(InputAction::CommittedTab { backward }) => {
+                        if backward {
+                            focus.prev(ring)
+                        } else {
+                            focus.next(ring)
+                        }
+                    }
+                    Some(InputAction::Committed) => return Step::Apply,
+                    _ => {}
+                }
+                if !o.consumed() && key.is(KeyCode::Enter) {
+                    return Step::Apply;
+                }
+                return Step::Keep(o.or(Outcome::Consumed));
+            }
+        }
+        if cur == Some(self.apply.id) {
+            let (o, act) = self.apply.on_key(key);
+            if act {
+                return Step::Apply;
+            }
+            return Step::Keep(o.or(Outcome::Consumed));
+        }
+        if cur == Some(self.cancel.id) {
+            let (o, act) = self.cancel.on_key(key);
+            if act {
+                return Step::Cancel;
+            }
+            return Step::Keep(o.or(Outcome::Consumed));
+        }
+        match key.code {
+            KeyCode::Tab => {
+                focus.next(ring);
+                Step::Keep(Outcome::Changed)
+            }
+            KeyCode::BackTab => {
+                focus.prev(ring);
+                Step::Keep(Outcome::Changed)
+            }
+            _ => Step::Keep(Outcome::Consumed),
+        }
+    }
+
+    fn click(&mut self, id: WidgetId, pos: Position, clicks: u8, focus: &mut Focus) -> Step {
+        if self.column.owns(id) {
+            focus.focus(self.column.id);
+            let (o, ev) = self.column.on_click(id);
+            if let Some(SelectAction::Changed(i)) = ev {
+                self.column_changed(i);
+            }
+            return Step::Keep(o.or(Outcome::Changed));
+        }
+        if self.op.owns(id) {
+            focus.focus(self.op.id);
+            return Step::Keep(self.op.on_click(id).0.or(Outcome::Changed));
+        }
+        if let Some(o) = route_click(&mut [&mut self.value, &mut self.value2], id, pos, clicks) {
+            focus.focus(id);
+            return Step::Keep(o);
+        }
+        if self.apply.id == id && self.apply.on_click() {
+            return Step::Apply;
+        }
+        if self.cancel.id == id && self.cancel.on_click() {
+            return Step::Cancel;
+        }
+        Step::Keep(Outcome::Changed)
+    }
+
+    fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        // dim like a dialog, keep the footer
+        ctx.modal_backdrop(buf, screen);
+        let w = 64u16.min(screen.width.saturating_sub(4));
+        let h = 15u16.min(screen.height.saturating_sub(2));
+        let area = junie_tui::ui::popup::place(
+            screen,
+            Rect::ZERO,
+            w,
+            h,
+            junie_tui::ui::popup::Placement::Center,
+        );
+        self.area = area;
+        let bg = t.surface_elevated;
+        fill(buf, area, ratatui::style::Style::new().bg(bg));
+        let block = ratatui::widgets::Block::new()
+            .borders(ratatui::widgets::Borders::ALL)
+            .border_type(ratatui::widgets::BorderType::Rounded)
+            .border_style(t.border(true).bg(bg));
+        ratatui::widgets::Widget::render(block, area, buf);
+        // the editor's body: a press on it is dead space inside the modal
+        ctx.hits.register_surface(ID, area);
+        let inner = area.inner(ratatui::layout::Margin::new(3, 1));
+        buf.set_string(
+            inner.x,
+            inner.y,
+            if self.index.is_some() {
+                "Edit filter"
+            } else {
+                "Add filter"
+            },
+            t.title().bg(bg),
+        );
+        let mut y = inner.y + 2;
+        let (l, r) = junie_tui::ui::layout::Split::new(50, 16, 16).horizontal(
+            Rect::new(
+                inner.x.saturating_sub(1),
+                y,
+                inner.width + 1,
+                Select::HEIGHT,
+            ),
+            2,
+        );
+        self.column.render(l, buf, ctx, bg);
+        self.op.render(r, buf, ctx, bg);
+        y += Select::HEIGHT;
+        let op = self.chosen_op();
+        if op.needs_value() {
+            if op == FilterOp::Between {
+                let (l, r) = junie_tui::ui::layout::Split::new(50, 12, 12).horizontal(
+                    Rect::new(
+                        inner.x.saturating_sub(1),
+                        y,
+                        inner.width + 1,
+                        TextInput::HEIGHT,
+                    ),
+                    2,
+                );
+                self.value.render(l, buf, ctx, bg);
+                self.value2.render(r, buf, ctx, bg);
+            } else {
+                self.value.render(
+                    Rect::new(
+                        inner.x.saturating_sub(1),
+                        y,
+                        inner.width + 1,
+                        TextInput::HEIGHT,
+                    ),
+                    buf,
+                    ctx,
+                    bg,
+                );
+            }
+        } else {
+            buf.set_string(
+                inner.x + 1,
+                y + 1,
+                "No value needed for this operator",
+                t.muted().bg(bg),
+            );
+        }
+        y += TextInput::HEIGHT + 1;
+        let preview = Filter {
+            column: self.columns[self.column.selected].0.clone(),
+            op,
+            value: self.value.text().to_owned(),
+            value2: self.value2.text().to_owned(),
+            enabled: true,
+        }
+        .to_sql();
+        buf.set_string(
+            inner.x,
+            y,
+            junie_tui::ui::text::truncate(&format!("WHERE {preview}"), inner.width as usize),
+            t.secondary().bg(bg),
+        );
+        let ay = inner.bottom().saturating_sub(1);
+        let widths = [self.cancel.width(), self.apply.width()];
+        let rects = junie_tui::widgets::button::row_layout_right(
+            Rect::new(inner.x, ay, inner.width, 1),
+            &widths,
+            1,
+        );
+        self.cancel.render(rects[0], buf, ctx, bg);
+        self.apply.render(rects[1], buf, ctx, bg);
+        // controls on top of the surface
+        ctx.hits.register(self.column.id, self.column.area);
+        ctx.hits.register(self.op.id, self.op.area);
+        ctx.hits.register(self.value.id, self.value.area);
+        ctx.hits.register(self.value2.id, self.value2.area);
+        ctx.hits.register(self.cancel.id, self.cancel.area);
+        ctx.hits.register(self.apply.id, self.apply.area);
+    }
+}
+
+impl Layer<ModalResult> for FilterEditor {
+    /// A centred modal under [`Self::dismiss`] (Esc only), opening on the
+    /// value when it is empty and on Apply otherwise.
+    fn spec(&self) -> LayerSpec {
+        let initial = if self.value.text().is_empty() {
+            self.value.id
+        } else {
+            self.apply.id
+        };
+        LayerSpec::modal(self.dismiss).initial_focus(initial)
+    }
+
+    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &()) {
+        self.draw(screen, buf, ctx);
+    }
+
+    /// Esc reverts a field's edit first; with nothing to revert it is
+    /// left to the stack's dismissal (and so to [`Self::dismiss`]).
+    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_>) -> Outcome {
+        if key.is(KeyCode::Esc)
+            && !self.value.is_dirty()
+            && !self.value2.is_dirty()
+            && !self.column.open
+            && !self.op.open
+        {
+            return Outcome::Ignored;
+        }
+        let step = self.key(key, cx.focus, cx.ring);
+        self.step(step, cx.focus)
+    }
+
+    fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_>) -> Outcome {
+        self.on_click_count(id, pos, 1, cx)
+    }
+
+    fn on_click_count(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        count: u8,
+        cx: &mut LayerCx<'_>,
+    ) -> Outcome {
+        let step = self.click(id, pos, count, cx.focus);
+        self.step(step, cx.focus)
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        route_press(&mut [&mut self.value, &mut self.value2], id, pos, count);
+        Outcome::Changed
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        route_drag(&mut [&mut self.value, &mut self.value2], pressed, pos)
+            .unwrap_or(Outcome::Consumed)
+    }
+
+    fn on_paste(&mut self, text: &str) -> Outcome {
+        if self.value.editing {
+            return self.value.on_paste(text);
+        }
+        Outcome::Consumed
+    }
+
+    fn on_blur(&mut self, change: FocusChange) -> Outcome {
+        forward_blur(
+            change,
+            &mut [&mut self.column, &mut self.op, &mut self.value],
+        )
+    }
+
+    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
+        vec![
+            hint("Tab", "Next field"),
+            hint("Enter", "Apply"),
+            hint("Esc", "Cancel"),
+        ]
+    }
+
+    fn on_dismiss(&mut self, _: DismissReason) {
+        self.done = Some(None);
+    }
+
+    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
+        self.done
+            .take()
+            .map(|d| LayerOut::Close(ModalResult::Filter(d)))
+    }
+}
