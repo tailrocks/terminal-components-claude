@@ -68,6 +68,13 @@ pub struct Tabs {
     /// A middle click on a closable tab closes it (browsers, editors).
     /// Default `true`.
     pub middle_click_closes: bool,
+    /// Plain digits 1-9 jump to that tab. Default `true`.
+    pub digit_jump: bool,
+    /// Keys that close the cursor tab. Default `x` and Delete.
+    pub close_keys: &'static [KeyCode],
+    /// The plain letter that asks for a new tab (with
+    /// [`Self::allow_new`]). Default `Some('n')`.
+    pub new_key: Option<char>,
     /// Number of tabs that fit in the last render.
     fit: usize,
 }
@@ -85,6 +92,9 @@ pub enum TabRule {
     /// Always neutral (a secondary strip under a document strip).
     Neutral,
 }
+
+/// The keys that close the cursor tab by default.
+pub const DEFAULT_CLOSE_KEYS: &[KeyCode] = &[KeyCode::Char('x'), KeyCode::Delete];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TabEvent {
@@ -105,6 +115,9 @@ impl Tabs {
             allow_new: false,
             rule: TabRule::Auto,
             middle_click_closes: true,
+            digit_jump: true,
+            close_keys: DEFAULT_CLOSE_KEYS,
+            new_key: Some('n'),
             fit: 0,
         }
     }
@@ -120,12 +133,35 @@ impl Tabs {
             allow_new: false,
             rule: TabRule::Auto,
             middle_click_closes: true,
+            digit_jump: true,
+            close_keys: DEFAULT_CLOSE_KEYS,
+            new_key: Some('n'),
             fit: 0,
         }
     }
 
     pub fn rule(mut self, rule: TabRule) -> Self {
         self.rule = rule;
+        self
+    }
+
+    pub fn digit_jump(mut self, on: bool) -> Self {
+        self.digit_jump = on;
+        self
+    }
+
+    pub fn close_keys(mut self, keys: &'static [KeyCode]) -> Self {
+        self.close_keys = keys;
+        self
+    }
+
+    pub fn new_key(mut self, key: Option<char>) -> Self {
+        self.new_key = key;
+        self
+    }
+
+    pub fn allow_new(mut self, on: bool) -> Self {
+        self.allow_new = on;
         self
     }
 
@@ -220,7 +256,8 @@ impl Tabs {
         }
         if self.items.is_empty() {
             return match key.code {
-                KeyCode::Enter | KeyCode::Char('n') if self.allow_new => {
+                KeyCode::Enter if self.allow_new => (Outcome::Changed, Some(TabEvent::New)),
+                KeyCode::Char(c) if self.allow_new && self.new_key == Some(c) => {
                     (Outcome::Changed, Some(TabEvent::New))
                 }
                 _ => (Outcome::Ignored, None),
@@ -235,7 +272,17 @@ impl Tabs {
                 self.set_active((self.cursor + 1).min(self.items.len() - 1));
                 (Outcome::Changed, Some(TabEvent::Activated(self.active)))
             }
-            KeyCode::Char(c) if c.is_ascii_digit() && c != '0' && key.plain() => {
+            KeyCode::Home if key.plain() => {
+                self.set_active(0);
+                (Outcome::Changed, Some(TabEvent::Activated(self.active)))
+            }
+            KeyCode::End if key.plain() => {
+                self.set_active(self.items.len() - 1);
+                (Outcome::Changed, Some(TabEvent::Activated(self.active)))
+            }
+            KeyCode::Char(c)
+                if self.digit_jump && c.is_ascii_digit() && c != '0' && key.plain() =>
+            {
                 let i = c as usize - '1' as usize;
                 if i < self.items.len() {
                     self.set_active(i);
@@ -248,12 +295,13 @@ impl Tabs {
                 self.set_active(self.cursor);
                 (Outcome::Changed, Some(TabEvent::Activated(self.active)))
             }
-            KeyCode::Char('x') | KeyCode::Delete
-                if key.plain() && self.items[self.cursor].closable =>
+            code if self.close_keys.contains(&code)
+                && key.plain()
+                && self.items[self.cursor].closable =>
             {
                 (Outcome::Changed, Some(TabEvent::Close(self.cursor)))
             }
-            KeyCode::Char('n') if key.plain() && self.allow_new => {
+            KeyCode::Char(c) if key.plain() && self.allow_new && self.new_key == Some(c) => {
                 (Outcome::Changed, Some(TabEvent::New))
             }
             _ => (Outcome::Ignored, None),
@@ -500,6 +548,39 @@ impl Tabs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn home_end_and_configurable_keys() {
+        let k = |code| Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut t = Tabs::with_items(
+            WidgetId::of("t"),
+            vec![
+                TabItem::new("a").closable(),
+                TabItem::new("b").closable(),
+                TabItem::new("c").closable(),
+            ],
+        );
+        assert_eq!(t.on_key(&k(KeyCode::End)).1, Some(TabEvent::Activated(2)));
+        assert_eq!(t.on_key(&k(KeyCode::Home)).1, Some(TabEvent::Activated(0)));
+        assert_eq!(
+            t.on_key(&k(KeyCode::Char('2'))).1,
+            Some(TabEvent::Activated(1))
+        );
+        assert_eq!(t.on_key(&k(KeyCode::Char('x'))).1, Some(TabEvent::Close(1)));
+        let mut quiet = t
+            .clone()
+            .digit_jump(false)
+            .close_keys(&[KeyCode::Delete])
+            .allow_new(true)
+            .new_key(Some('+'));
+        assert_eq!(quiet.on_key(&k(KeyCode::Char('3'))).1, None);
+        assert_eq!(quiet.on_key(&k(KeyCode::Char('x'))).1, None);
+        assert_eq!(quiet.on_key(&k(KeyCode::Char('n'))).1, None);
+        assert_eq!(quiet.on_key(&k(KeyCode::Char('+'))).1, Some(TabEvent::New));
+    }
 
     #[test]
     fn middle_click_closes_closable_tabs_unless_configured_off() {
