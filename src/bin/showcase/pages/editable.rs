@@ -131,7 +131,7 @@ fn build(k: &[usize; 12]) -> DataTable {
             ..EditorConfig::default()
         })
         .overflow_marks(marks == 1)
-        .nav([NavKeys::DEFAULT, NavKeys::NO_VIM][nav])
+        .nav([NavKeys::DEFAULT, NavKeys::VIM][nav])
         .empty(EmptyState::new("No tasks yet").hint("Tasks you create show up here"));
     if keymap == 1 {
         table = table.keymap(custom_keymap());
