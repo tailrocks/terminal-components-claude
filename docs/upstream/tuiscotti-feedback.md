@@ -1,5 +1,29 @@
 # Feedback for tuiscotti: findings from a 7,550-scenario consumer
 
+## Tracker
+
+Consumer-side status, kept by the Upstream PR loop
+(`docs/upstream/README.md`). Checked 2026-10-16 with `gh`. All items below
+are in one PR, [#11](https://github.com/tailrocks/tuiscotti/pull/11):
+open, mergeable, CI green (22 pass, 1 skipped), head `907aa04`, unchanged
+since our review. The review verdict is in §6.
+
+| Item (§) | PR/issue | State | Last reviewed head | Last review link | Verdict | Our follow-up after merge |
+|---|---|---|---|---|---|---|
+| P1 lone `f` key | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | verified OK | delete the lone-`f` workaround in `Session::send_key` |
+| P2 exact pins: `unicode-width`, `insta`, `serde_json`, `sha2`, `ratatui`, `crossterm` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) (pins become `0.2`, `1.48`, `1.0`, `0.11`, `0.30`, `0.29`) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | verified OK (single ratatui 0.30.2, crossterm 0.29.0, unicode-width 0.2.2) | `cargo update` the held crates to latest, remove their rows from `docs/dependencies.md` |
+| P3 `.ansi`+cursor store and CLI accept | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | changes requested: blocker 1 (`accept` does not refuse under `CI=1`), blocker 2 (pattern accept: prefix match, `*` crosses `/`, orphan and stale actuals); library verified OK | delete `gate()`, `write_expected_evidence`, `ansi_cursor.rs` `encode`/`decode`, `cargo xtask visual render`; `cargo xtask visual accept` only once blockers 1 and 2 are verified fixed |
+| P4 non-unique locators | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | non-blocking: `count_at_least(n).click()` still needs a unique match | switch boot waits off `Locator::resolve` + `wait_predicate` |
+| P5 last screen in `WaitError` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | verified OK | none |
+| P6 render speed (and `compare_png`) | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | changes requested: blocker 3 (`compare_png` scores the downsampled image); timings improved (§6 table) | add the recommended `[profile.dev.package.*]` opt-level overrides |
+| P7 no absolute paths | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | non-blocking nits (`/` becomes `root`, `/api/v1` becomes `v1`) | none |
+| P8 clock, pointer, docs, example | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `907aa04` | [review 5548459040](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5548459040) | verified OK | none |
+
+After merge, in every case: bump the `rev =` pin in `Cargo.toml` to the new
+`main`, re-run the visual gate and round-trips, and re-approve on purpose
+only where a change is intended.
+
+
 You are working on **tuiscotti** (<https://github.com/tailrocks/tuiscotti>).
 A downstream consumer ported its whole visual suite to tuiscotti and hit the
 problems below. This prompt contains everything you need. You have no
