@@ -164,6 +164,71 @@ pub mod layout {
         out
     }
 
+    /// A page's sections as a measured [`Stack`]: on a short terminal the
+    /// page scrolls by whole sections (wheel, scrollbar, focus) instead of
+    /// squeezing every section to a row or two.
+    ///
+    /// [`Stack`]: junie_tui::ui::layout::Stack
+    pub struct Sections {
+        pub id: junie_tui::core::id::WidgetId,
+        pub stack: junie_tui::ui::layout::Stack,
+        pub state: junie_tui::ui::layout::StackScroll,
+    }
+
+    impl Sections {
+        /// One blank row between sections, like the fixed layouts had.
+        pub fn new(id: junie_tui::core::id::WidgetId) -> Self {
+            Self {
+                id,
+                stack: junie_tui::ui::layout::Stack::default().gap(1),
+                state: Default::default(),
+            }
+        }
+
+        /// Lay the sections out and draw the page scrollbar. `focus` is
+        /// the section holding keyboard focus.
+        pub fn layout(
+            &mut self,
+            area: Rect,
+            sections: &[junie_tui::ui::layout::StackChild],
+            focus: Option<usize>,
+            buf: &mut Buffer,
+            ctx: &mut junie_tui::ui::ctx::RenderCtx,
+        ) -> junie_tui::ui::layout::StackLayout {
+            let l = self.stack.layout(area, sections, &mut self.state, focus);
+            junie_tui::ui::layout::Stack::chrome(&l, area, buf, ctx, self.id, &self.state);
+            l
+        }
+
+        /// The page scroll's own events: the wheel over the page and the
+        /// scrollbar. `None` for anything else.
+        pub fn handle(&mut self, ev: &super::PageEvent) -> Option<junie_tui::core::event::Outcome> {
+            use junie_tui::core::event::Outcome;
+            use junie_tui::widgets::scrollbar::id_for;
+            let changed = |moved: bool| {
+                if moved {
+                    Outcome::Changed
+                } else {
+                    Outcome::Consumed
+                }
+            };
+            match ev {
+                super::PageEvent::Wheel { id, delta } if *id == self.id => {
+                    Some(changed(self.state.on_wheel(*delta)))
+                }
+                super::PageEvent::Press { id, pos } | super::PageEvent::Click { id, pos }
+                    if *id == id_for(self.id) =>
+                {
+                    Some(changed(self.state.on_scrollbar(*pos)))
+                }
+                super::PageEvent::Drag { pressed, pos } if *pressed == id_for(self.id) => {
+                    Some(changed(self.state.on_scrollbar_drag(*pos)))
+                }
+                _ => None,
+            }
+        }
+    }
+
     /// Two columns with a gap; if too narrow, stack vertically.
     pub fn columns(area: Rect, left_w: u16, gap: u16) -> (Rect, Rect) {
         if area.width < left_w + gap + 20 {
