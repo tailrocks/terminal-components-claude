@@ -8,9 +8,10 @@ use junie_tui::core::focus::FocusChange;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::layer::LayerTag;
+use junie_tui::ui::layer::{Layer, LayerTag};
 use junie_tui::ui::layers::LayerResult;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
+use junie_tui::widgets::form_dialog::{FieldValue, FormValues};
 use junie_tui::widgets::help::HelpOverlay;
 
 pub mod accounts_usage;
@@ -39,7 +40,6 @@ pub mod grid;
 pub mod help_keys;
 pub mod inputs;
 pub mod launch_cockpit;
-pub mod layer_host;
 pub mod lists;
 pub mod master_detail;
 pub mod menus;
@@ -112,6 +112,54 @@ pub enum LayerRes {
         result: DialogResult,
         value: Option<String>,
     },
+    /// Any other layer a page opened (a picker, a form) reported to it.
+    Page(Report),
+}
+
+/// What a layer a page opened reported: its result, what the page reads
+/// back from the layer, and whether it closed. The shell reads them off
+/// the layer, so the page never reaches into the layer stack.
+#[derive(Debug, Clone)]
+pub struct Report {
+    /// The result; `None` when the layer was dismissed without one.
+    pub result: Option<LayerResult>,
+    /// A form's values as they were when it reported.
+    pub values: Option<FormValues>,
+    /// The closed layer when the report closed it (a picker's rows);
+    /// `None` for an event (the layer stays open).
+    pub closed: Option<Closed>,
+}
+
+impl Report {
+    /// The text of form field `name` (empty when there is none).
+    pub fn text(&self, name: &str) -> String {
+        self.values
+            .iter()
+            .flatten()
+            .find_map(|(n, v)| match v {
+                FieldValue::Text(t) if n == name => Some(t.clone()),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
+}
+
+/// A layer the shell closed, handed to the page that opened it.
+#[derive(Clone)]
+pub struct Closed(pub std::rc::Rc<dyn Layer<LayerRes>>);
+
+impl Closed {
+    /// The closed layer as its concrete type, if it is an `L`.
+    pub fn get<L: Layer<LayerRes>>(&self) -> Option<&L> {
+        let any: &dyn std::any::Any = &*self.0;
+        any.downcast_ref()
+    }
+}
+
+impl std::fmt::Debug for Closed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Closed")
+    }
 }
 
 impl From<LayerResult> for LayerRes {
@@ -199,14 +247,16 @@ pub trait Page {
     fn layer_open(&self) -> bool {
         self.template().is_some_and(|t| t.popup_open())
     }
-    /// The footer hints of a layer the page has open (its
-    /// [`layer_host::LayerHost`]), built from the layer's state; `None`
-    /// while no layer is open.
-    fn layer_hints(
-        &self,
-        _focus: Option<WidgetId>,
-    ) -> Option<Vec<junie_tui::widgets::keyhint::Hint>> {
-        None
+    /// A key for the top layer this page opened, before the layer sees
+    /// it: the page's own key over its layer (a picker's retry). Default:
+    /// none, the layer takes every key.
+    fn on_layer_key(&mut self, _key: &Key, _cx: &mut Cx) -> Outcome {
+        Outcome::Ignored
+    }
+    /// A layer this page opened (not a dialog) reported `report` under
+    /// `tag` ([`LayerRes::Page`]).
+    fn on_layer(&mut self, _tag: &LayerTag, _report: Report, _cx: &mut Cx) -> Outcome {
+        Outcome::Ignored
     }
     /// The value index of the page option `key` (one of
     /// `crate::options::page_options` for this page), `None` for a key the
