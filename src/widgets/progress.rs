@@ -174,12 +174,18 @@ pub enum MeterLevel {
 
 impl MeterLevel {
     pub fn of(pct: u8) -> Self {
-        if pct <= METER_LOW_MAX {
-            MeterLevel::Low
-        } else if pct <= METER_MEDIUM_MAX {
+        Self::with_thresholds(pct, METER_LOW_MAX + 1, METER_MEDIUM_MAX + 1)
+    }
+
+    /// The level of `pct` against owner thresholds: at or above `warn` is
+    /// medium, at or above `crit` high.
+    pub fn with_thresholds(pct: u8, warn: u8, crit: u8) -> Self {
+        if pct >= crit {
+            MeterLevel::High
+        } else if pct >= warn {
             MeterLevel::Medium
         } else {
-            MeterLevel::High
+            MeterLevel::Low
         }
     }
 }
@@ -200,11 +206,16 @@ pub enum MeterVisual {
 /// a refresh in flight, a failed read).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MeterTone {
-    /// Healthy / attention / danger by the shared thresholds.
+    /// Healthy / attention / danger by the shared thresholds
+    /// ([`METER_LOW_MAX`], [`METER_MEDIUM_MAX`]).
     #[default]
     Normal,
-    /// An owner-chosen level (when the domain classifies differently).
-    Level(MeterLevel),
+    /// Healthy / attention / danger by the owner's thresholds: at or above
+    /// `warn` percent is attention, at or above `crit` danger (a disk at
+    /// 80 / 95 rather than a quota's 60 / 85).
+    Level { warn: u8, crit: u8 },
+    /// An owner-chosen level (when the domain classifies the value itself).
+    Fixed(MeterLevel),
     /// The domain says warning: warning run and `▲`.
     Warning,
     /// The domain says exhausted: error run, bold `!`.
@@ -224,7 +235,10 @@ impl MeterTone {
     pub fn level(self, used_pct: Option<u8>) -> Option<MeterLevel> {
         match self {
             MeterTone::Normal => used_pct.map(MeterLevel::of),
-            MeterTone::Level(l) => Some(l),
+            MeterTone::Level { warn, crit } => {
+                used_pct.map(|p| MeterLevel::with_thresholds(p, warn, crit))
+            }
+            MeterTone::Fixed(l) => Some(l),
             MeterTone::Warning => Some(MeterLevel::Medium),
             MeterTone::Exhausted => Some(MeterLevel::High),
             _ => None,
@@ -232,7 +246,9 @@ impl MeterTone {
     }
 }
 
-/// A capacity meter: value, semantic tone and visual mode. Green is never
+/// A capacity meter: value, semantic tone and visual mode. A healthy run is
+/// the information blue, attention the warning hue with `▲`, danger the
+/// error hue with `!` (the glyph is the cue without colour). Green is never
 /// used: a quota is not a completion.
 ///
 /// ```text
@@ -272,20 +288,20 @@ impl Meter {
     /// (run colour, text colour, two-cell suffix, whether a run is drawn)
     fn palette(&self, t: &crate::theme::Theme) -> (Color, Color, String, bool) {
         let level_color = |l: MeterLevel| match l {
-            MeterLevel::Low => t.text_secondary,
+            MeterLevel::Low => t.info,
             MeterLevel::Medium => t.warning,
             MeterLevel::High => t.error,
         };
         match self.tone {
-            MeterTone::Normal | MeterTone::Level(_) => {
+            MeterTone::Normal | MeterTone::Level { .. } | MeterTone::Fixed(_) => {
                 let l = self.tone.level(self.used_pct).unwrap_or(MeterLevel::Low);
                 let c = level_color(l);
-                let text = if l == MeterLevel::Low {
-                    t.text_primary
-                } else {
-                    c
+                let (text, suffix) = match l {
+                    MeterLevel::Low => (t.text_primary, "  ".into()),
+                    MeterLevel::Medium => (c, format!(" {}", t.glyphs.warning)),
+                    MeterLevel::High => (c, " !".into()),
                 };
-                (c, text, "  ".into(), self.used_pct.is_some())
+                (c, text, suffix, self.used_pct.is_some())
             }
             MeterTone::Warning => (
                 t.warning,
@@ -595,6 +611,33 @@ mod tests {
         assert_eq!(MeterLevel::of(100), MeterLevel::High);
         assert_eq!(MeterTone::Normal.level(Some(70)), Some(MeterLevel::Medium));
         assert_eq!(MeterTone::Stale.level(Some(70)), None);
+        // owner thresholds: a disk warns at 80 and is critical at 95
+        let disk = MeterTone::Level { warn: 80, crit: 95 };
+        assert_eq!(disk.level(Some(66)), Some(MeterLevel::Low));
+        assert_eq!(disk.level(Some(80)), Some(MeterLevel::Medium));
+        assert_eq!(disk.level(Some(95)), Some(MeterLevel::High));
+        assert_eq!(disk.level(None), None);
+        assert_eq!(
+            MeterTone::Fixed(MeterLevel::High).level(Some(1)),
+            Some(MeterLevel::High)
+        );
+    }
+
+    #[test]
+    fn owner_thresholds_colour_the_run_and_mark_it_with_a_glyph() {
+        let m = Meter::new(Some(66))
+            .value("66%")
+            .tone(MeterTone::Level { warn: 80, crit: 95 });
+        let (buf, t) = render(&m, 30);
+        assert_eq!(buf[(0, 0)].fg, t.info, "66% of a disk is healthy");
+        assert!(text(&buf).ends_with("66%  "));
+        let (buf, t) = render(&Meter::new(Some(70)).value("70%"), 30);
+        assert!(
+            text(&buf).ends_with(&format!("70% {}", t.glyphs.warning)),
+            "medium carries ▲ beside its hue"
+        );
+        let (buf, _) = render(&Meter::new(Some(95)).value("95%"), 30);
+        assert!(text(&buf).ends_with("95% !"), "high carries !");
     }
 
     #[test]
@@ -604,7 +647,7 @@ mod tests {
         assert!(s.contains("━"));
         assert!(s.contains("─"));
         assert!(s.ends_with("50%  "));
-        assert_eq!(buf[(0, 0)].fg, t.text_secondary, "low is the white ladder");
+        assert_eq!(buf[(0, 0)].fg, t.info, "low is the information blue");
         let (buf, t) = render(&Meter::new(Some(70)).value("70%"), 30);
         assert_eq!(buf[(0, 0)].fg, t.warning, "medium is the warning tone");
         let (buf, t) = render(&Meter::new(Some(95)).value("95%"), 30);
@@ -618,8 +661,8 @@ mod tests {
             .visual(MeterVisual::Block);
         let (buf, t) = render(&m, 22);
         // bar is 20 cells, half filled
-        assert_eq!(buf[(0, 0)].bg, t.text_secondary);
-        assert_eq!(buf[(9, 0)].bg, t.text_secondary);
+        assert_eq!(buf[(0, 0)].bg, t.info);
+        assert_eq!(buf[(9, 0)].bg, t.info);
         assert_eq!(buf[(10, 0)].bg, t.lift(t.canvas));
         assert_eq!(buf[(19, 0)].bg, t.lift(t.canvas));
         assert!(
