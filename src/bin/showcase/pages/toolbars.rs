@@ -20,7 +20,9 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::panel::Panel;
@@ -344,12 +346,18 @@ impl Page for ToolbarsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, .. } => {
+            PageEvent::Pointer(ev) => {
                 for k in 0..3 {
                     let bar = self.bar_mut(k);
-                    if bar.owns(*id) {
-                        let bid = bar.id;
-                        let (out, a) = bar.on_click(*id);
+                    let bid = bar.id;
+                    // the overflow menu is the bar's too (Toolbar's own
+                    // `route` only takes the strip's events)
+                    if ev.on(bid) || (bar.menu_open() && ev.on(bar.menu_id())) {
+                        let r = bar.pointer(ev);
+                        if !ev.is(Phase::Click) {
+                            return r.outcome();
+                        }
+                        let (out, a) = r.into_parts();
                         cx.focus.focus(bid);
                         if let Some(a) = a {
                             self.act(a, k, cx);

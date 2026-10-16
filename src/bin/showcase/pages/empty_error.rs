@@ -14,7 +14,8 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::popup::Placement;
@@ -341,36 +342,37 @@ impl Page for EmptyErrorPage {
                 }
                 o
             }
-            PageEvent::Click { id, pos } => {
-                if let Some(a) = self.state.on_click(*id) {
+            PageEvent::Pointer(ev) => {
+                if ev.is(Phase::Click)
+                    && let Some(a) = self.state.on_click(ev.id)
+                {
                     cx.focus.focus(a.id);
                     cx.status(format!("{} chosen", a.label));
                     return Outcome::Changed;
                 }
-                if *id == self.actions.id {
+                if let Some(r) = self.actions.route(ev) {
+                    if !ev.is(Phase::Click) {
+                        return r.outcome();
+                    }
                     cx.focus.focus(self.actions.id);
-                    if self.actions.on_click() {
+                    if r.into_action().is_some() {
                         self.open_menu();
                     }
                     return Outcome::Changed;
                 }
-                if self.grid.owns(*id) {
-                    if *id != scrollbar::id_for(self.grid.id) {
-                        cx.focus.focus(self.grid.id);
-                    }
-                    let (o, gev) = self.grid.on_click(*id, *pos);
+                if ev.is(Phase::Click)
+                    && ev.on(self.grid.id)
+                    && ev.id != scrollbar::id_for(self.grid.id)
+                {
+                    cx.focus.focus(self.grid.id);
+                }
+                if let Some(r) = self.grid.route(ev) {
+                    let (o, gev) = r.into_parts();
                     self.on_grid(gev, cx);
                     return o;
                 }
                 Outcome::Ignored
             }
-            PageEvent::Press { id, pos } if self.grid.locate_seam(*id).is_some() => {
-                self.grid.on_press(*id, *pos, cx.clicks)
-            }
-            PageEvent::Drag { pressed, pos } if self.grid.owns(*pressed) => {
-                self.grid.on_drag(*pressed, *pos)
-            }
-            PageEvent::Wheel { id, delta } if self.grid.owns(*id) => self.grid.on_wheel(*delta),
             _ => Outcome::Ignored,
         }
     }

@@ -27,9 +27,10 @@ use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::context::{ContextAnchor, ContextConfig, ContextKeys, ContextRequest};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::popup::{Dismiss, Place, Placement};
@@ -436,9 +437,9 @@ impl Page for MenusPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Secondary { id, pos } => {
+            PageEvent::Pointer(ev) if ev.is(Phase::Secondary) => {
                 let cfg = self.row_menu.config;
-                match cfg.on_secondary(&mut self.files, *id, *pos) {
+                match cfg.on_secondary(&mut self.files, ev.id, ev.pos()) {
                     Some(req) => {
                         cx.focus.focus(self.files.id);
                         self.open_row_menu(req);
@@ -447,21 +448,25 @@ impl Page for MenusPage {
                     None => Outcome::Ignored,
                 }
             }
-            PageEvent::Click { id, .. } => {
-                if *id == self.actions.id {
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.actions.route(ev) {
+                    if !ev.is(Phase::Click) {
+                        return r.outcome();
+                    }
                     cx.focus.focus(self.actions.id);
-                    if self.actions.on_click() {
+                    if r.into_action().is_some() {
                         self.open_actions();
                     }
                     return Outcome::Changed;
                 }
-                if let Some(row) = self.files.locate(*id) {
+                if ev.on(self.files.id) && ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                     cx.focus.focus(self.files.id);
-                    return self.files.on_click(row);
+                }
+                if let Some(r) = self.files.route(ev) {
+                    return r.outcome();
                 }
                 Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } if self.files.owns(*id) => self.files.on_wheel(*delta),
             _ => Outcome::Ignored,
         }
     }

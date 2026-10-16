@@ -27,10 +27,11 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{ClientPlatform, InputConfig, Key, Outcome};
 use junie_tui::core::focus::cancel_focus_request;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keyboard::{self, KeyboardProtocol, ProtocolState};
 use junie_tui::core::keymap::{KeyBinding, Nav, NavKeys, select_all_bindings};
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
@@ -456,23 +457,31 @@ impl Page for FocusNavPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, pos } => {
+            PageEvent::Pointer(ev) => {
                 for field in [&mut self.name, &mut self.email] {
-                    if field.id == *id {
-                        cx.focus.focus(*id);
-                        return field.on_click_count(*pos, cx.clicks.max(1));
+                    let fid = field.id;
+                    if let Some(r) = field.route(ev) {
+                        if ev.is(Phase::Click) {
+                            cx.focus.focus(fid);
+                        }
+                        return r.outcome();
                     }
                 }
-                if let Some(row) = self.list.locate(*id) {
+                if ev.on(self.list.id) && ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                     cx.focus.focus(self.list.id);
-                    return self.list.on_click(row);
+                }
+                if let Some(r) = self.list.route(ev) {
+                    return r.outcome();
                 }
                 for b in [&mut self.save, &mut self.cancel]
                     .into_iter()
                     .chain(self.tags.iter_mut())
                 {
-                    if b.id == *id {
-                        if b.on_click() {
+                    if let Some(r) = b.route(ev) {
+                        if !ev.is(Phase::Click) {
+                            return r.outcome();
+                        }
+                        if r.into_action().is_some() {
                             cx.status(format!("{} ✓", b.label));
                         }
                         return Outcome::Changed;
@@ -480,7 +489,6 @@ impl Page for FocusNavPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } if self.list.owns(*id) => self.list.on_wheel(*delta),
             _ => Outcome::Ignored,
         }
     }
