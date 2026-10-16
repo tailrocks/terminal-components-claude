@@ -1372,9 +1372,15 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
     ])
     .expect("valid CLI options");
     assert_eq!(cli.scenario, Scenario::CapsuleMulti);
-    assert!(matches!(cli.motion, Some(crate::MotionArg::Paused)));
-    assert!(matches!(cli.color, Some(crate::ColorArg::Ansi256)));
-    assert_eq!(cli.frame, 12);
+    assert!(matches!(
+        cli.common.motion,
+        Some(junie_tui::motion::Motion::Paused)
+    ));
+    assert!(matches!(
+        cli.common.color,
+        Some(junie_tui::cli::ColorArg::Ansi256)
+    ));
+    assert_eq!(cli.common.frame, 12);
 
     for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
         assert!(
@@ -1401,13 +1407,16 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
     ])
     .unwrap();
     assert_eq!(short.scenario, Scenario::CapsuleMulti);
-    assert_eq!(short.frame, 3);
+    assert_eq!(short.common.frame, 3);
 
     let default = crate::Cli::try_parse_from(["jackin-preview"]).unwrap();
     assert_eq!(default.scenario, Scenario::FirstUse);
-    assert!(default.motion.is_none());
+    assert!(default.common.motion.is_none());
     let full = crate::Cli::try_parse_from(["jackin-preview", "--motion", "full"]).unwrap();
-    assert!(matches!(full.motion, Some(crate::MotionArg::Full)));
+    assert!(matches!(
+        full.common.motion,
+        Some(junie_tui::motion::Motion::Full)
+    ));
 
     assert!(matches!(
         crate::Cli::try_parse_from(["jackin-preview", "--color", "invalid"]),
