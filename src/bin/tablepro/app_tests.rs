@@ -900,6 +900,26 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     assert!(h.text().contains("public › orders"));
 }
 
+/// K8: a control that vanishes on the same page hands focus to its nearest
+/// neighbour. Narrowing the window drops the Connections detail card; the
+/// focused Delete button's place goes to the tree before it, not to the
+/// first control (the filter), which the `First` fallback picked.
+#[test]
+fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
+    let mut h = H::new(120, 30);
+    let del = junie_tui::core::id::WidgetId::of("connections").sub("del");
+    h.tab_to(del);
+    assert_eq!(h.focus(), Some(del));
+    h.resize(76, 24);
+    h.draw();
+    assert_eq!(h.focus(), Some(crate::connections::TREE));
+    assert_ne!(
+        h.focus(),
+        h.app.shell.ring.first(),
+        "the First fallback lands on the ring's first control"
+    );
+}
+
 /// K27: on a narrow terminal the connection form covers the list, so the
 /// list's filter and tree are inert: Tab never reaches them while the form
 /// is open.
