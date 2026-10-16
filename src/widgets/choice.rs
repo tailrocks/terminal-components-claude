@@ -419,6 +419,102 @@ impl Toggle {
     }
 }
 
+/// Rest, hover, press, focus and disabled, drawn by the checkbox itself.
+impl crate::ui::specimen::Specimen for Checkbox {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(
+            state,
+            Rest | Hover | Pressed | Focused | FocusedHover | Disabled | Overflow
+        )
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut c = self.clone();
+        c.disabled |= state.visual().disabled;
+        if state == crate::ui::specimen::SpecimenState::Overflow {
+            c.label = format!("{} with a long label", c.label);
+        }
+        c.render(area, buf, ctx, bg);
+    }
+}
+
+/// Rest, hover, press, focus and disabled, drawn by the switch itself.
+impl crate::ui::specimen::Specimen for Toggle {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(
+            state,
+            Rest | Hover | Pressed | Focused | FocusedHover | Disabled | Overflow
+        )
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut t = self.clone();
+        t.disabled |= state.visual().disabled;
+        if state == crate::ui::specimen::SpecimenState::Overflow {
+            t.label = format!("{} with a long label", t.label);
+        }
+        t.render(area, buf, ctx, bg);
+    }
+}
+
+/// The group in rest, hover (over its cursor option), focus and disabled.
+impl crate::ui::specimen::Specimen for RadioGroup {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Hover | Focused | FocusedHover | Disabled)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        self.height()
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut g = self.clone();
+        let v = state.visual();
+        g.disabled |= v.disabled;
+        // the pointer rests on an option row, not on the group
+        if v.hovered {
+            ctx.interaction.hover = Some(g.option_id(g.cursor));
+        }
+        g.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
