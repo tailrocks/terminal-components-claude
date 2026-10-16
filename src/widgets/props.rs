@@ -292,7 +292,7 @@ impl PropsList {
             let y = area.y + k as u16;
             let p = &self.props[i];
             let rid = self.row_id(i);
-            let mut s = ctx.state(rid);
+            let mut s = ctx.child_state(self.id, rid, i == self.cursor);
             s.focused = focused && i == self.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
             let st = t.row(s, bg);
