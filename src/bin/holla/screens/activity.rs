@@ -180,11 +180,7 @@ impl ActivityTab {
                 .follow_ups
                 .iter()
                 .enumerate()
-                // a follow-up the preview cannot run is shown disabled up
-                // front instead of failing once pressed
-                .map(|(i, f)| {
-                    Button::subtle(FOLLOW_UP.child(i), f).disabled(!follow_up_supported(f))
-                })
+                .map(|(i, f)| Button::subtle(FOLLOW_UP.child(i), f))
                 .collect();
         }
     }
@@ -265,7 +261,6 @@ impl ActivityTab {
         }
     }
 
-    /// Runs a follow-up; [`follow_up_supported`] lists what it understands.
     fn follow_up(&self, label: &str, w: &World, cx: &mut Cx) {
         let l = label.to_lowercase();
         if l.starts_with("find the process on port") {
@@ -948,35 +943,5 @@ impl ActivityTab {
     /// The retained output viewport (work counters, marks, selection).
     pub fn view(&self) -> &TextViewport {
         &self.view
-    }
-}
-
-/// The follow-ups [`ActivityTab::follow_up`] can run, by label prefix.
-const FOLLOW_UPS: [&str; 8] = [
-    "find the process on port",
-    "retry",
-    "open the mise",
-    "run tests again",
-    "review",
-    "upgrade mise",
-    "mise upgrade",
-    "run ",
-];
-
-fn follow_up_supported(label: &str) -> bool {
-    let l = label.to_lowercase();
-    FOLLOW_UPS.iter().any(|p| l.starts_with(p))
-}
-
-#[cfg(test)]
-mod follow_up_tests {
-    use super::follow_up_supported;
-
-    #[test]
-    fn follow_ups_the_preview_cannot_run_are_known_up_front() {
-        assert!(follow_up_supported("Retry frontend dev"));
-        assert!(follow_up_supported("Find the process on port 5173"));
-        assert!(follow_up_supported("Review 4 modified files"));
-        assert!(!follow_up_supported("Open the failing test"));
     }
 }

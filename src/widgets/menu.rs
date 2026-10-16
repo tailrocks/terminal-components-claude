@@ -23,9 +23,6 @@ pub struct MenuItem {
     pub disabled: bool,
     pub danger: bool,
     pub separator_after: bool,
-    /// Why a disabled item is unavailable, shown dimmed in place of the
-    /// shortcut (e.g. "Not in this preview"). `None`: no reason shown.
-    pub reason: Option<String>,
 }
 
 impl MenuItem {
@@ -36,7 +33,6 @@ impl MenuItem {
             disabled: false,
             danger: false,
             separator_after: false,
-            reason: None,
         }
     }
     pub fn shortcut(mut self, s: &'static str) -> Self {
@@ -46,21 +42,6 @@ impl MenuItem {
     pub fn disabled(mut self, d: bool) -> Self {
         self.disabled = d;
         self
-    }
-    /// Disable the item and say why. An unavailable command is shown as
-    /// unavailable up front instead of failing after it is chosen.
-    pub fn reason(mut self, reason: impl Into<String>) -> Self {
-        self.reason = Some(reason.into());
-        self.disabled = true;
-        self
-    }
-    /// The text drawn in the right column: the reason while disabled,
-    /// otherwise the shortcut.
-    fn trailing(&self) -> Option<&str> {
-        match &self.reason {
-            Some(r) if self.disabled => Some(r.as_str()),
-            _ => self.shortcut,
-        }
     }
     pub fn danger(mut self) -> Self {
         self.danger = true;
@@ -175,9 +156,7 @@ impl ContextMenu {
         let label_w = self
             .items
             .iter()
-            .map(|i| {
-                width(&i.label) as u16 + i.trailing().map(|s| width(s) as u16 + 3).unwrap_or(0)
-            })
+            .map(|i| width(&i.label) as u16 + i.shortcut.map(|s| width(s) as u16 + 3).unwrap_or(0))
             .max()
             .unwrap_or(4);
         let title_w = self.title.as_ref().map(|t| width(t) as u16).unwrap_or(0);
@@ -406,7 +385,7 @@ impl ContextMenu {
                     &item.label,
                 );
             }
-            if let Some(sc) = item.trailing() {
+            if let Some(sc) = item.shortcut {
                 let sw = width(sc) as u16;
                 if sw + width(&item.label) as u16 + 5 <= inner.width {
                     let scs = if item.disabled {
@@ -955,34 +934,5 @@ mod tests {
             .find(|&(x, y)| buf[(x, y)].symbol() == "O")
             .unwrap();
         assert_ne!(buf[(x, y)].bg, t.popover);
-    }
-
-    #[test]
-    fn an_unavailable_item_is_disabled_and_says_why() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 10));
-        let mut m = ContextMenu::new(
-            WidgetId::of("m"),
-            vec![
-                MenuItem::new("Open"),
-                MenuItem::new("Stage image")
-                    .shortcut("Ctrl+I")
-                    .reason("Not in this preview"),
-            ],
-        )
-        .at(Position::new(1, 1));
-        assert!(m.items[1].disabled);
-        m.render(Rect::new(0, 0, 60, 10), &mut buf, &mut ctx);
-        ctx.flush_overlays(&mut buf);
-        let row: String = (0..60).map(|x| buf[(x, 4)].symbol()).collect();
-        assert!(row.contains("Stage image"), "{row}");
-        assert!(row.contains("Not in this preview"), "{row}");
-        assert!(!row.contains("Ctrl+I"), "{row}");
-        // the keyboard never lands on it
-        m.on_key(&key(KeyCode::Down));
-        assert_eq!(m.cursor, 0);
     }
 }
