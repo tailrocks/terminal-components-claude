@@ -504,6 +504,12 @@ impl FormDialog {
                 }
                 Outcome::Changed
             }
+            // a field that edits as soon as it has focus passes a clean Esc
+            // on: it cancels the form, as Esc on any other control does
+            KeyCode::Esc if self.dismiss.escape => {
+                self.events.push(FormAction::Cancel);
+                Outcome::Changed
+            }
             _ => Outcome::Consumed,
         }
     }
@@ -1012,5 +1018,50 @@ mod tests {
         focus.focus(w.save.id);
         w.on_key(&key(KeyCode::Right), &mut focus, &ring);
         assert_eq!(focus.current(), Some(w.cancel.id), "wraps when asked");
+    }
+
+    /// A field that edits as soon as it has focus passes a clean Esc on
+    /// (nothing to revert): the form cancels, as Esc on a button does. It
+    /// swallowed the key, so a form opened on such a field never closed
+    /// by Esc.
+    #[test]
+    fn a_clean_esc_in_an_immediate_edit_cancels_the_form() {
+        use crate::core::focus::{Focus, FocusRing};
+        let name = WidgetId::of("f.name");
+        let mut f = FormDialog::new(
+            WidgetId::of("f"),
+            "Form",
+            vec![FormField::input("name", TextInput::new(name, "Name"))],
+        );
+        let mut focus = Focus::default();
+        let ring = FocusRing::default();
+        focus.focus(name);
+        if let FormFieldKind::Input(i) = &mut f.fields[0].kind {
+            i.begin_edit();
+        }
+        assert!(f.is_editing());
+        let esc = Key {
+            code: KeyCode::Esc,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        f.on_key(&esc, &mut focus, &ring);
+        assert_eq!(f.events, vec![FormAction::Cancel]);
+
+        // a dirty field reverts first
+        let mut f = FormDialog::new(
+            WidgetId::of("f"),
+            "Form",
+            vec![FormField::input("name", TextInput::new(name, "Name"))],
+        );
+        if let FormFieldKind::Input(i) = &mut f.fields[0].kind {
+            i.begin_edit();
+        }
+        let x = Key {
+            code: KeyCode::Char('x'),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        f.on_key(&x, &mut focus, &ring);
+        f.on_key(&esc, &mut focus, &ring);
+        assert!(!f.events.contains(&FormAction::Cancel), "{:?}", f.events);
     }
 }
