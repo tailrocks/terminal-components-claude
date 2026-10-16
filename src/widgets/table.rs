@@ -332,6 +332,24 @@ impl DataTable {
         src < self.rows.len() && self.selection.toggle(src, |r| !disabled.contains(&r))
     }
 
+    /// Replace the cells of source row `src` (an edit made elsewhere, such
+    /// as an inspector form), keeping the selection, re-applying the sort
+    /// and keeping the cursor on the row it was on.
+    pub fn set_row(&mut self, src: usize, cells: Vec<Cell>) {
+        if src >= self.rows.len() {
+            return;
+        }
+        let cursor_src = self.order.get(self.cursor_row).copied();
+        self.rows[src] = cells;
+        if let Some((c, d)) = self.sort {
+            self.apply_sort(c, d);
+            if let Some(pos) = cursor_src.and_then(|s| self.order.iter().position(|&r| r == s)) {
+                self.cursor_row = pos;
+                self.scroll.ensure_visible(pos);
+            }
+        }
+    }
+
     /// Remove source rows from the dataset, keeping the selection, the
     /// disabled set, the sort and the cursor on the rows that remain.
     pub fn remove_rows(&mut self, srcs: &[usize]) {
@@ -2089,5 +2107,17 @@ mod tests {
         let (_, ev) = none.on_key(&k(KeyCode::Enter, KeyModifiers::NONE));
         assert_eq!(ev, Some(TableEvent::Activated(0)));
         assert!(none.selected_rows().is_empty());
+    }
+
+    #[test]
+    fn set_row_resorts_and_keeps_selection_and_cursor() {
+        let mut t = members();
+        t.sort_by(0); // Ari, Bo, Cleo, Dana, Eli, Fay
+        t.toggle_row(2); // Cleo
+        t.cursor_row = 2;
+        t.set_row(2, vec![Cell::new("Zed"), Cell::new("r2")]);
+        assert_eq!(t.selected_rows(), vec![2], "the selection keeps the row");
+        assert_eq!(t.source_row(5), 2, "re-sorted to the end");
+        assert_eq!(t.cursor_row, 5, "the cursor follows its row");
     }
 }

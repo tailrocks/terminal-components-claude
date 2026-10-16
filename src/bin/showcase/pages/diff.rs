@@ -241,6 +241,7 @@ mod tests {
             focus: &mut focus,
             ring: &ring,
             requests: vec![],
+            mods: KeyModifiers::NONE,
         };
         let enter = PageEvent::Key(junie_tui::core::event::Key {
             code: KeyCode::Enter,
