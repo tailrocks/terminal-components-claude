@@ -22,6 +22,7 @@ use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::splitter::Splitter;
+use junie_tui::widgets::viewport::Span;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -50,6 +51,42 @@ pub enum RowKey {
     Workspace(WorkspaceId),
     Instance(String),
     NewWorkspace,
+}
+
+/// The glyph of an instance's status: running `◉` in the accent (live
+/// state, [`Tone::Active`]), crashed or failed `!` in error, the rest `◌`
+/// muted.
+fn instance_mark(s: InstanceStatus) -> (&'static str, Tone) {
+    match s {
+        InstanceStatus::Crashed | InstanceStatus::FailedSetup => ("!", Tone::Error),
+        s if s.is_live() => ("◉", Tone::Active),
+        _ => ("◌", Tone::Muted),
+    }
+}
+
+/// The tone of an instance's status word: `running` in the accent, the
+/// rest in `otherwise`.
+fn status_word_tone(s: InstanceStatus, otherwise: Tone) -> Tone {
+    if s.is_live() { Tone::Active } else { otherwise }
+}
+
+/// An instance as one line: its status glyph, then id, role and agent in
+/// `tone`, then the status word ([`status_word_tone`]).
+fn instance_line(i: &crate::domain::instance::Instance, tone: Tone) -> Vec<Span> {
+    let (g, gt) = instance_mark(i.status);
+    vec![
+        Span::new(format!("{g} "), gt),
+        Span::new(
+            format!(
+                "{}  {} · {} · ",
+                i.id.trim_start_matches("jk-"),
+                i.role,
+                i.agent.label()
+            ),
+            tone,
+        ),
+        Span::new(i.status.label(), status_word_tone(i.status, tone)),
+    ]
 }
 
 #[derive(Debug, Clone)]
@@ -216,11 +253,7 @@ impl ManagerScreen {
             });
             if expanded {
                 for i in kids {
-                    let (glyph, gt) = match i.status {
-                        InstanceStatus::Running => ("◉", Tone::Normal),
-                        InstanceStatus::Crashed | InstanceStatus::FailedSetup => ("!", Tone::Error),
-                        _ => ("◌", Tone::Muted),
-                    };
+                    let (glyph, gt) = instance_mark(i.status);
                     let (meta, mt) = if let Some((_, what)) = self
                         .busy_rows
                         .iter()
@@ -239,7 +272,7 @@ impl ManagerScreen {
                                         (w.now_secs() - i.created_secs).max(0) as u64
                                     )
                                 ),
-                                Tone::Secondary,
+                                Tone::Active,
                             ),
                             InstanceStatus::CleanExited => (
                                 format!("exited clean · {}", w.clock.ago(i.last_seen_secs)),
@@ -1343,29 +1376,25 @@ impl ManagerScreen {
                             }
                             y += 1;
                             for i in kids {
-                                let line = format!(
-                                    "{} {}  {} · {} · {}",
-                                    match i.status {
-                                        InstanceStatus::Running => "◉",
-                                        InstanceStatus::Crashed | InstanceStatus::FailedSetup =>
-                                            "!",
-                                        _ => "◌",
-                                    },
-                                    i.id.trim_start_matches("jk-"),
-                                    i.role,
-                                    i.agent.label(),
-                                    i.status.label()
-                                );
-                                put(
-                                    buf,
-                                    y,
-                                    &line,
-                                    if i.status.is_live() {
-                                        t.primary()
-                                    } else {
-                                        t.secondary()
-                                    },
-                                );
+                                let tone = if i.status.is_live() {
+                                    Tone::Normal
+                                } else {
+                                    Tone::Secondary
+                                };
+                                let line = instance_line(i, tone);
+                                let text = junie_tui::widgets::viewport::line_text(&line);
+                                put(buf, y, &text, t.secondary());
+                                if y < inner.bottom() {
+                                    junie_tui::widgets::viewport::render_spans(
+                                        buf,
+                                        inner.x,
+                                        y,
+                                        inner.width,
+                                        t,
+                                        &line,
+                                        bg,
+                                    );
+                                }
                                 y += 1;
                             }
                         }
@@ -1660,6 +1689,16 @@ impl ManagerScreen {
                 truncate(&live, inner.width.saturating_sub(3) as usize),
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
+            // live state: the `◉` and the word `running` in the accent
+            let active = t.tone_on(Tone::Active, st.bg.unwrap_or(bg));
+            buf.set_style(Rect::new(inner.x, y, 1, 1), Style::new().fg(active));
+            let word = width("running") as u16;
+            if inner.width > word + 3 {
+                buf.set_style(
+                    Rect::new(inner.x + 3, y + 1, word, 1),
+                    Style::new().fg(active),
+                );
+            }
             buf.set_string(
                 inner.x + 3,
                 y + 2,
@@ -2800,10 +2839,11 @@ impl ManagerScreen {
         let inner = Panel::card(Some(&title))
             .meta("Tab details")
             .render(area, buf, t);
-        let lines: Vec<(String, Tone)> = match &self.selected {
+        let one = |s: String, tone: Tone| vec![Span::new(s, tone)];
+        let lines: Vec<Vec<Span>> = match &self.selected {
             RowKey::CurrentDir | RowKey::Workspace(_) => match self.selected_workspace(w) {
                 Some(ws) => vec![
-                    (
+                    one(
                         format!(
                             "{} · {} · {}",
                             ws.workdir,
@@ -2812,7 +2852,7 @@ impl ManagerScreen {
                         ),
                         Tone::Secondary,
                     ),
-                    (
+                    one(
                         format!(
                             "Roles {}{} · Auth {}",
                             ws.roles
@@ -2832,21 +2872,14 @@ impl ManagerScreen {
                     ),
                 ]
                 .into_iter()
-                .chain(w.instances_of(Some(ws.id)).iter().take(2).map(|i| {
-                    (
-                        format!(
-                            "{} {}  {} · {} · {}",
-                            if i.status.is_live() { "◉" } else { "◌" },
-                            i.id.trim_start_matches("jk-"),
-                            i.role,
-                            i.agent.label(),
-                            i.status.label()
-                        ),
-                        Tone::Secondary,
-                    )
-                }))
+                .chain(
+                    w.instances_of(Some(ws.id))
+                        .iter()
+                        .take(2)
+                        .map(|i| instance_line(i, Tone::Secondary)),
+                )
                 .collect(),
-                None => vec![(
+                None => vec![one(
                     format!(
                         "{} · not saved · Enter launches, n creates a workspace",
                         w.tilde(&w.cwd)
@@ -2856,17 +2889,18 @@ impl ManagerScreen {
             },
             RowKey::Instance(id) => match w.instance(id) {
                 Some(i) => vec![
-                    (
-                        format!(
-                            "{} · {} · {} · {}",
-                            i.role,
-                            i.agent.label(),
-                            i.status.label(),
-                            i.dirty_summary()
+                    vec![
+                        Span::new(
+                            format!("{} · {} · ", i.role, i.agent.label()),
+                            Tone::Secondary,
                         ),
-                        Tone::Secondary,
-                    ),
-                    (
+                        Span::new(
+                            i.status.label(),
+                            status_word_tone(i.status, Tone::Secondary),
+                        ),
+                        Span::new(format!(" · {}", i.dirty_summary()), Tone::Secondary),
+                    ],
+                    one(
                         match &i.daemon {
                             DaemonSnapshot::Tabs(tabs) => format!(
                                 "daemon · {} · {}",
@@ -2881,20 +2915,23 @@ impl ManagerScreen {
                 ],
                 None => vec![],
             },
-            RowKey::NewWorkspace => vec![(
+            RowKey::NewWorkspace => vec![one(
                 "Enter starts the five-step create chain".into(),
                 Tone::Muted,
             )],
         };
-        for (i, (l, tone)) in lines.iter().enumerate() {
+        for (i, l) in lines.iter().enumerate() {
             if inner.y + i as u16 >= inner.bottom() {
                 break;
             }
-            buf.set_string(
+            junie_tui::widgets::viewport::render_spans(
+                buf,
                 inner.x,
                 inner.y + i as u16,
-                truncate(l, inner.width as usize),
-                Style::new().fg(t.tone(*tone)).bg(bg),
+                inner.width,
+                t,
+                l,
+                bg,
             );
         }
         ctx.clickable(DETAIL, area);

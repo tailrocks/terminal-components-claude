@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
-use junie_tui::theme::{ButtonKind, Tone};
+use junie_tui::theme::{ButtonKind, StatusKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::text::{fit, truncate, width};
@@ -24,6 +24,7 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::splitter::Splitter;
+use junie_tui::widgets::viewport::{Span, render_spans};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -1384,7 +1385,7 @@ impl AccountsScreen {
             let hw: u16 = if row.health.is_some() { 2 } else { 0 };
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 } + hw);
             let label_style = if row.faint {
-                st.fg(t.text_faint)
+                st.fg(t.text_muted)
             } else if row.sel == Sel::Add {
                 st.fg(if s.focused {
                     t.text_primary
@@ -1407,7 +1408,7 @@ impl AccountsScreen {
             }
             if meta_w > 0 && meta_w + 4 < avail {
                 let ms = if row.faint {
-                    st.fg(t.text_faint)
+                    st.fg(t.text_muted)
                 } else {
                     st.fg(t.tone(row.meta_tone))
                 };
@@ -1454,11 +1455,7 @@ impl AccountsScreen {
         match &self.selected {
             Sel::Overview => {
                 let s = OverallSummary::compute(&w.accounts.accounts);
-                lines.push(Line::Prop("Health".into(), format!("{} · {}", s.health.label(), s.issues_line()), match s.health {
-                    crate::domain::usage::HealthWord::Blocked | crate::domain::usage::HealthWord::Degraded => Tone::Error,
-                    crate::domain::usage::HealthWord::Attention => Tone::Warning,
-                    _ => Tone::Normal,
-                }));
+                lines.push(Line::PropSpans("Health".into(), super::health_spans(&s)));
                 lines.push(Line::Prop("Registry".into(), s.counts_line(), Tone::Normal));
                 let registered = w.accounts.accounts.iter().filter(|a| a.origin == AccountOrigin::Registered).count();
                 lines.push(Line::Prop(
@@ -1507,11 +1504,19 @@ impl AccountsScreen {
                         match win.status {
                             QuotaStatus::Warning => {
                                 any = true;
-                                lines.push(Line::Text(format!("▲ {}   {} {}% used{}", a.title(), win.label, win.used_pct.unwrap_or(0), win.reset_secs.map(|r| format!(" · {}", w.clock.reset_label(r))).unwrap_or_default()), Tone::Warning));
+                                lines.push(Line::Status(StatusKind::Warn, vec![
+                                    Span::new(format!("{}   ", a.title()), Tone::Normal),
+                                    Span::new(format!("{} {}% used", win.label, win.used_pct.unwrap_or(0)), Tone::Warning),
+                                    Span::new(win.reset_secs.map(|r| format!(" · {}", w.clock.reset_label(r))).unwrap_or_default(), Tone::Muted),
+                                ]));
                             }
                             QuotaStatus::Exhausted => {
                                 any = true;
-                                lines.push(Line::Text(format!("! {}   {} exhausted{}", a.title(), win.label, win.reset_secs.map(|r| format!(" · {}", w.clock.reset_label(r))).unwrap_or_default()), Tone::Error));
+                                lines.push(Line::Status(StatusKind::Fail, vec![
+                                    Span::new(format!("{}   ", a.title()), Tone::Normal),
+                                    Span::new(format!("{} exhausted", win.label), Tone::Error),
+                                    Span::new(win.reset_secs.map(|r| format!(" · {}", w.clock.reset_label(r))).unwrap_or_default(), Tone::Muted),
+                                ]));
                             }
                             _ => {}
                         }
@@ -1521,10 +1526,17 @@ impl AccountsScreen {
                         && i.code != IssueCode::QuotaUnsupported
                     {
                         any = true;
-                        lines.push(Line::Text(format!("! {}   {}", a.title(), i.message), Tone::Error));
+                        lines.push(Line::Status(StatusKind::Fail, vec![
+                            Span::new(format!("{}   ", a.title()), Tone::Normal),
+                            Span::new(i.message.clone(), Tone::Error),
+                        ]));
                     } else if a.usage.freshness.phase == Freshness::Stale {
                         any = true;
-                        lines.push(Line::Text(format!("▲ {}   stale · last good {}", a.title(), a.usage.freshness.last_good_secs.map(|s| w.clock.ago(s)).unwrap_or("?".into())), Tone::Warning));
+                        lines.push(Line::Status(StatusKind::Warn, vec![
+                            Span::new(format!("{}   ", a.title()), Tone::Normal),
+                            Span::new("stale", Tone::Warning),
+                            Span::new(format!(" · last good {}", a.usage.freshness.last_good_secs.map(|s| w.clock.ago(s)).unwrap_or("?".into())), Tone::Muted),
+                        ]));
                     }
                 }
                 if !any {
@@ -1713,7 +1725,7 @@ impl AccountsScreen {
         let label_w: u16 = lines
             .iter()
             .map(|l| match l {
-                Line::Prop(k, _, _) => width(k) as u16,
+                Line::Prop(k, _, _) | Line::PropSpans(k, _) => width(k) as u16,
                 Line::Meter(k, _, _, _) => width(k) as u16,
                 _ => 0,
             })
@@ -1784,6 +1796,21 @@ impl AccountsScreen {
                         truncate(text, body.width as usize),
                         Style::new().fg(t.tone(*tone)).bg(bg),
                     );
+                }
+                Line::PropSpans(label, spans) => {
+                    buf.set_string(body.x, y, label, t.muted().bg(bg));
+                    render_spans(
+                        buf,
+                        body.x + label_w,
+                        y,
+                        body.width.saturating_sub(label_w),
+                        t,
+                        spans,
+                        bg,
+                    );
+                }
+                Line::Status(kind, spans) => {
+                    draw_status_line(buf, body.x, y, body.width, t, *kind, spans, bg);
                 }
                 Line::Heading(h, meta) => {
                     buf.set_string(
@@ -1902,6 +1929,30 @@ impl AccountsScreen {
                     );
                     y += 1;
                 }
+                Line::PropSpans(k, spans) => {
+                    let lead = format!("{k}  ");
+                    buf.set_string(
+                        inner.x,
+                        y,
+                        truncate(&lead, inner.width as usize),
+                        t.primary().bg(bg),
+                    );
+                    let lw = width(&lead) as u16;
+                    render_spans(
+                        buf,
+                        inner.x + lw,
+                        y,
+                        inner.width.saturating_sub(lw),
+                        t,
+                        spans,
+                        bg,
+                    );
+                    y += 1;
+                }
+                Line::Status(kind, spans) => {
+                    draw_status_line(buf, inner.x, y, inner.width, t, *kind, spans, bg);
+                    y += 1;
+                }
                 _ => {}
             }
             if y >= inner.bottom() {
@@ -1915,10 +1966,37 @@ impl AccountsScreen {
 #[derive(Clone)]
 enum Line {
     Prop(String, String, Tone),
+    /// A property whose value has a tone per part (the Health line).
+    PropSpans(String, Vec<Span>),
     Text(String, Tone),
+    /// A row led by a [`Theme::status`](junie_tui::theme::Theme::status)
+    /// glyph, then its parts (a warning: account, phrase, reset time).
+    Status(StatusKind, Vec<Span>),
     Heading(String, String),
     Meter(String, u8, String, MeterTone),
     Blank,
+}
+
+/// A [`Line::Status`] row: the status glyph in its style, a space, then
+/// the parts in their tones.
+#[allow(clippy::too_many_arguments)]
+fn draw_status_line(
+    buf: &mut Buffer,
+    x: u16,
+    y: u16,
+    w: u16,
+    t: &junie_tui::theme::Theme,
+    kind: StatusKind,
+    spans: &[Span],
+    bg: ratatui::style::Color,
+) {
+    let (glyph, gs) = t.status(kind);
+    let gw = width(glyph) as u16 + 1;
+    if w <= gw {
+        return;
+    }
+    buf.set_string(x, y, glyph, gs.bg(bg));
+    render_spans(buf, x + gw, y, w - gw, t, spans, bg);
 }
 
 /// Everything a meter row says besides the percentage the bar already shows.
@@ -1946,7 +2024,7 @@ pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
     parts.join(" · ")
 }
 
-fn meter_tone(win: &QuotaWindow, a: &Account) -> MeterTone {
+pub(super) fn meter_tone(win: &QuotaWindow, a: &Account) -> MeterTone {
     match a.usage.freshness.phase {
         Freshness::Refreshing => MeterTone::Refreshing,
         Freshness::Stale | Freshness::Failed => MeterTone::Stale,
