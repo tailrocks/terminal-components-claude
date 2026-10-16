@@ -22,6 +22,8 @@ mod app_tests_fields;
 mod app_tests_layers;
 #[cfg(test)]
 mod app_tests_mouse;
+#[cfg(test)]
+mod app_tests_pointer;
 mod arbiter;
 mod domain;
 mod rain;
