@@ -646,6 +646,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::chips::ChipBar::close_button"),
     Capability::builder("widgets::chips::ChipBar::overflow_menu"),
     Capability::builder("widgets::chips::ChipBar::more_button"),
+    Capability::builder("widgets::chips::ChipBar::digit_toggles"),
     Capability::builder("widgets::chips::ChipBar::nav"),
     Capability::builder("widgets::chips::ChipBar::keymap"),
     Capability::builder("widgets::chips::ChipBar::overflow_marker"),

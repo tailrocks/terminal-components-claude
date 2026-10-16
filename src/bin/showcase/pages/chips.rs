@@ -1,23 +1,34 @@
-//! Chips, selects, and the small read-only pieces: a segment strip that
-//! drops low-priority items when narrow, a property block, an empty state.
+//! Chips & selects (plan §7 SC10): filter chips (lead, enable toggle, an
+//! error chip, `+N` overflow), stream chips that cannot be removed and
+//! toggle with 1–9, popup selects with every knob, and the small read-only
+//! pieces (a segment strip that drops low-priority items when narrow, a
+//! property block, an empty state). Options: `crate::options::CHIPS`.
 
 use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
 use junie_tui::core::id::WidgetId;
-use junie_tui::theme::Tone;
+use junie_tui::core::keymap::{KeyBinding, NavKeys};
+use junie_tui::core::scroll::TrackClick;
+use junie_tui::theme::{CursorStyle, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
-use junie_tui::ui::popup::Dismiss;
-use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar};
+use junie_tui::ui::popup::{Dismiss, Place, Placement};
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar, ChipCmd};
 use junie_tui::widgets::empty::{self, EmptyState};
+use junie_tui::widgets::icon_button::IconButton;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::segments::{self, Segment};
-use junie_tui::widgets::select::{Select, SelectAction};
+use junie_tui::widgets::select::{Select, SelectAction, SelectArrows, TabInOpen, WheelMode};
 
 const ID: WidgetId = WidgetId::of("chips");
 
@@ -28,8 +39,26 @@ const CANDIDATES: &[&str] = &[
     "seats between 5 and 50",
 ];
 
+const SORT_COLUMNS: &[&str] = &[
+    "created_at",
+    "total",
+    "status",
+    "customer",
+    "country",
+    "currency",
+    "discount",
+    "id",
+    "notes",
+    "owner",
+    "seats",
+    "updated_at",
+];
+
 pub struct ChipsPage {
+    template: Template,
+    opts: PageValues,
     filters: ChipBar,
+    streams: ChipBar,
     match_all: bool,
     next_candidate: usize,
     sort: Select,
@@ -42,35 +71,170 @@ pub struct ChipsPage {
 impl ChipsPage {
     pub fn new() -> Self {
         let mut filters = ChipBar::new(ID.sub("filters"));
+        let mut bad = Chip::new("amount > 'abc'");
+        bad.error = true;
         filters.chips = vec![
             Chip::new("status = 'pending'"),
             Chip::new("total > 100"),
             Chip::new("country in (DE, FR)"),
+            bad,
         ];
         filters.chips[2].enabled = false;
-        filters.lead = Some("match all ▾".into());
-        filters.add_label = Some("+ Add filter".into());
-        Self {
+        let mut streams = ChipBar::new(ID.sub("streams"));
+        streams.chips = ["api", "worker", "db", "cron"]
+            .iter()
+            .map(|l| {
+                let mut c = Chip::new(l);
+                c.removable = false;
+                c
+            })
+            .collect();
+        streams.chips[3].enabled = false;
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::Chips)),
             filters,
+            streams,
             match_all: true,
             next_candidate: 0,
-            sort: Select::new(
-                ID.sub("sort"),
-                "Sort by",
-                &["created_at", "total", "status", "customer"],
-                0,
-            )
-            .help("Applies to the next query"),
-            // demonstrates the pass-through policy: a click outside the open
-            // list closes it and also reaches the control beneath
-            page_size: Select::new(ID.sub("size"), "Page size", &["25", "50", "100", "500"], 1)
-                .dismiss(Dismiss::LIGHT.pass_through(true)),
-            engine: Select::new(ID.sub("engine"), "Engine", &["PostgreSQL"], 0)
-                .disabled(true)
-                .help("Fixed by the connection"),
+            sort: Select::new(ID.sub("sort"), "Sort by", SORT_COLUMNS, 0),
+            page_size: Select::new(ID.sub("size"), "Page size", &["25", "50", "100", "500"], 1),
+            engine: Select::new(ID.sub("engine"), "Engine", &["PostgreSQL"], 0),
             last: "nothing yet".into(),
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        };
+        page.rebuild();
+        page
+    }
+
+    /// Build the bars and selects from the option values through their
+    /// builders, keeping their content and values.
+    fn rebuild(&mut self) {
+        let o = &self.opts;
+        let nav = match o.value("chipsselects.chip_nav") {
+            "no-vim" => NavKeys::NO_VIM,
+            "no-home-end" => NavKeys::DEFAULT.home_end(false),
+            _ => NavKeys::DEFAULT,
+        };
+        let keymap = match o.value("chipsselects.chip_keymap") {
+            // Delete only removes; `n` adds; Shift+Delete clears
+            "custom" => vec![
+                (KeyBinding::key(KeyCode::Delete), ChipCmd::Remove),
+                (KeyBinding::char('n'), ChipCmd::Add),
+                (KeyBinding::key(KeyCode::Delete).shift(), ChipCmd::ClearAll),
+            ],
+            _ => <ChipCmd as junie_tui::core::keymap::Actions>::default_keymap(),
+        };
+        let bar = |b: &ChipBar, id: WidgetId| {
+            let mut n = ChipBar::new(id)
+                .overflow_marker(o.on("chipsselects.overflow_marker"))
+                .overflow_menu(o.on("chipsselects.overflow_menu"))
+                .nav(nav)
+                .keymap(keymap.clone());
+            if o.value("chipsselects.close_button") == "danger" {
+                n = n.close_button(
+                    IconButton::close(WidgetId::of("chips.remove")).danger_hover(true),
+                );
+            }
+            if o.value("chipsselects.more_button") == "wide" {
+                n = n.more_button(IconButton::new(WidgetId::of("chips.more"), "+").pad(2));
+            }
+            if let Some(w) = o.number("chipsselects.close_target") {
+                n = n.close_target_w(w);
+            }
+            n.chips = b.chips.clone();
+            n.cursor = b.cursor;
+            n.lead = b.lead.clone();
+            n.add_label = b.add_label.clone();
+            n
+        };
+        self.filters = bar(&self.filters, ID.sub("filters"));
+        self.streams =
+            bar(&self.streams, ID.sub("streams")).digit_toggles(o.on("chipsselects.digit_toggles"));
+        self.streams.add_label = None;
+        self.streams.lead = Some("streams".into());
+
+        let select = |s: &Select| {
+            let (min, max) = match o.value("chipsselects.popup_width") {
+                "8-16" => (8, 16),
+                "30-60" => (30, 60),
+                _ => Select::POPUP_WIDTH,
+            };
+            let mut n = Select::new(
+                s.id,
+                &s.label,
+                &s.options.iter().map(String::as_str).collect::<Vec<_>>(),
+                s.selected,
+            )
+            .arrows(match o.value("chipsselects.arrows") {
+                "open" => SelectArrows::Open,
+                _ => SelectArrows::Step,
+            })
+            .wheel(match o.value("chipsselects.wheel") {
+                "cursor" => WheelMode::Cursor,
+                _ => WheelMode::Viewport,
+            })
+            .tab_in_open(match o.value("chipsselects.tab_in_open") {
+                "close" => TabInOpen::Close,
+                "swallow" => TabInOpen::Swallow,
+                _ => TabInOpen::Choose,
+            })
+            .max_rows(
+                o.number("chipsselects.max_rows")
+                    .unwrap_or(Select::MAX_ROWS),
+            )
+            .placement(match o.value("chipsselects.placement") {
+                "above" => Placement::Above,
+                _ => Placement::Below,
+            })
+            .popup_fit(match o.value("chipsselects.popup_fit") {
+                "flush" => Place::FLUSH,
+                "menu" => Place::MENU,
+                _ => Place::DEFAULT,
+            })
+            .popup_width(min, max)
+            .cursor_style(match o.value("chipsselects.cursor_style") {
+                "bar" => CursorStyle::Bar,
+                _ => CursorStyle::Fill,
+            })
+            .hover_moves_cursor(o.on("chipsselects.hover_moves_cursor"))
+            .press_drag(o.on("chipsselects.press_drag"))
+            .label_hit(o.on("chipsselects.label_hit"))
+            .wrap(o.on("chipsselects.wrap"))
+            .type_ahead(o.on("chipsselects.type_ahead"))
+            .close_on_blur(o.on("chipsselects.close_on_blur"))
+            .nav(match o.value("chipsselects.select_nav") {
+                "no-vim" => NavKeys::NO_VIM,
+                _ => NavKeys::DEFAULT,
+            });
+            match o.value("chipsselects.track_click") {
+                "jump" => n = n.track_click(TrackClick::Jump),
+                "page" => n = n.track_click(TrackClick::Page),
+                _ => {}
+            }
+            n
+        };
+        let mut sort = select(&self.sort).help("Applies to the next query");
+        if o.value("chipsselects.dismiss") == "escape" {
+            sort = sort.dismiss(Dismiss::ESCAPE);
         }
+        if o.on("chipsselects.mixed") {
+            sort = sort.mixed("Mixed");
+        }
+        self.sort = sort;
+        // demonstrates the pass-through policy: a click outside the open
+        // list closes it and also reaches the control beneath
+        self.page_size = select(&self.page_size).dismiss(Dismiss::LIGHT.pass_through(true));
+        self.engine = select(&self.engine)
+            .disabled(true)
+            .help("Fixed by the connection");
+        self.sync_lead();
+    }
+
+    /// The Sort by select (tests read it).
+    #[allow(dead_code)]
+    pub fn sort(&self) -> &Select {
+        &self.sort
     }
 
     fn sync_lead(&mut self) {
@@ -123,27 +287,39 @@ impl ChipsPage {
         }
     }
 
+    /// A stream chip: Enter, Space, a click or its digit switches it.
+    fn on_stream(&mut self, ev: Option<ChipAction>) {
+        if let Some(ChipAction::Toggle(i) | ChipAction::Activate(i)) = ev {
+            let c = &mut self.streams.chips[i];
+            c.enabled = !c.enabled;
+            self.last = format!(
+                "stream {} {}",
+                c.label,
+                if c.enabled { "on" } else { "off" }
+            );
+        }
+    }
+
     fn selects(&mut self) -> [&mut Select; 3] {
         [&mut self.sort, &mut self.page_size, &mut self.engine]
     }
-}
 
-impl Page for ChipsPage {
-    fn title(&self) -> &'static str {
-        "Chips & selects"
-    }
-    fn blurb(&self) -> &'static str {
-        "Removable chips, a popup select, and strips that drop what does not fit"
+    fn bar_width(&self, room: u16) -> u16 {
+        self.opts
+            .number("chipsselects.bar_width")
+            .map_or(room, |w| w.min(room))
     }
 
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         // whole sections scroll on a short terminal; nothing is drawn
         // past the page into the row above the footer
         let has = |id| ctx.interaction.has_focus(id);
         let focus = if has(self.filters.id) {
             Some(0)
-        } else if has(self.sort.id) || has(self.page_size.id) || has(self.engine.id) {
+        } else if has(self.streams.id) {
             Some(1)
+        } else if has(self.sort.id) || has(self.page_size.id) || has(self.engine.id) {
+            Some(2)
         } else {
             None
         };
@@ -151,6 +327,7 @@ impl Page for ChipsPage {
             area,
             &[
                 StackChild::fixed(6),
+                StackChild::fixed(5),
                 StackChild::fixed(8),
                 StackChild::fixed(7),
                 StackChild::flex(3, 11),
@@ -164,6 +341,10 @@ impl Page for ChipsPage {
             None => ctx.focus_stop(self.filters.id),
         }
         match rows.slot(1) {
+            Some(r) => self.render_streams(r, buf, ctx),
+            None => ctx.focus_stop(self.streams.id),
+        }
+        match rows.slot(2) {
             Some(r) => self.render_selects(r, buf, ctx),
             None => {
                 for sel in self.selects() {
@@ -171,114 +352,25 @@ impl Page for ChipsPage {
                 }
             }
         }
-        if let Some(r) = rows.slot(2) {
+        if let Some(r) = rows.slot(3) {
             render_strip(r, buf, ctx);
         }
-        if let Some(r) = rows.slot(3) {
+        if let Some(r) = rows.slot(4) {
             render_below(r, buf, ctx);
         }
     }
 
-    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
-        if let PageEvent::Blur(ch) = ev {
-            return forward_blur(
-                *ch,
-                &mut [&mut self.sort, &mut self.page_size, &mut self.engine],
-            );
-        }
-        if let Some(o) = self.sections.handle(ev) {
-            return o;
-        }
-        match ev {
-            PageEvent::Key(key) => {
-                let Some(f) = cx.focus.current() else {
-                    return Outcome::Ignored;
-                };
-                if f == self.filters.id {
-                    let (o, ev) = self.filters.on_key(key);
-                    self.on_chip(ev, cx);
-                    return o;
-                }
-                for sel in self.selects() {
-                    if sel.id == f {
-                        let (o, ev) = sel.on_key(key);
-                        if let Some(SelectAction::Changed(i)) = ev {
-                            let msg = format!("{} → {}", sel.label, sel.options[i]);
-                            cx.status(msg);
-                        }
-                        return o;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Click { id, .. } => {
-                if self.filters.owns(*id) {
-                    cx.focus.focus(self.filters.id);
-                    let (o, ev) = self.filters.on_click(*id);
-                    self.on_chip(ev, cx);
-                    return o;
-                }
-                // a click outside an open list lands on its backdrop, which
-                // the select owns: it closes itself per its dismiss policy
-                for sel in self.selects() {
-                    if sel.owns(*id) {
-                        if *id == sel.id {
-                            cx.focus.focus(sel.id);
-                        }
-                        let (o, ev) = sel.on_click(*id);
-                        if let Some(SelectAction::Changed(i)) = ev {
-                            let msg = format!("{} → {}", sel.label, sel.options[i]);
-                            cx.status(msg);
-                        }
-                        return o;
-                    }
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                for sel in self.selects() {
-                    if sel.open && sel.owns(*id) {
-                        return sel.on_wheel(*delta);
-                    }
-                }
-                Outcome::Ignored
-            }
-            _ => Outcome::Ignored,
-        }
-    }
-
-    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
-        if focus == Some(self.filters.id) {
-            vec![
-                ("←→", "Move"),
-                ("Space", "Toggle"),
-                ("Enter", "Edit / add"),
-                ("x", "Remove"),
-                ("X", "Clear all"),
-            ]
-        } else if focus
-            .is_some_and(|f| [self.sort.id, self.page_size.id, self.engine.id].contains(&f))
-        {
-            vec![("Enter", "Open"), ("↑↓", "Choose"), ("Esc", "Close")]
-        } else {
-            vec![("Tab", "Next")]
-        }
-    }
-}
-
-impl ChipsPage {
     fn render_filters(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-
-        // filters
         let focused = ctx.interaction.focused(self.filters.id);
         let active = self.filters.chips.iter().filter(|c| c.enabled).count();
         let meta = format!("{active} active");
         let panel = Panel::card(Some("Filters")).focused(focused).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
+        let w = self.bar_width(inner.width);
         self.filters
-            .render(Rect::new(inner.x, inner.y, inner.width, 1), buf, ctx, bg);
+            .render(Rect::new(inner.x, inner.y, w, 1), buf, ctx, bg);
         if inner.y + 2 < inner.bottom() {
             buf.set_string(
                 inner.x,
@@ -290,6 +382,22 @@ impl ChipsPage {
                 t.muted().bg(bg),
             );
         }
+    }
+
+    fn render_streams(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let focused = ctx.interaction.focused(self.streams.id);
+        let meta = if self.streams.digit_toggles {
+            "not removable · 1–9 switch a stream"
+        } else {
+            "not removable · Space switches a stream"
+        };
+        let panel = Panel::card(Some("Streams")).focused(focused).meta(meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        let w = self.bar_width(inner.width);
+        self.streams
+            .render(Rect::new(inner.x, inner.y, w, 1), buf, ctx, bg);
     }
 
     fn render_selects(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -317,6 +425,216 @@ impl ChipsPage {
         for (sel, cell) in self.selects().into_iter().zip(cells) {
             sel.render(cell, buf, ctx, bg);
         }
+    }
+
+    fn select_changed(sel: &Select, a: Option<SelectAction>, cx: &mut PageCtx) {
+        if let Some(SelectAction::Changed(i)) = a {
+            cx.status(format!("{} → {}", sel.label, sel.options[i]));
+        }
+    }
+}
+
+/// The States grid: a filter bar and a select in every state they have,
+/// each drawn by the widget itself.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let mut bar = ChipBar::new(id.child(0));
+    bar.chips = vec![Chip::new("status = 'ok'"), Chip::new("total > 9")];
+    bar.add_label = None;
+    StateGrid::new(id)
+        .column_width(40)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Disabled,
+            Error,
+            Empty,
+            Overflow,
+            Narrow,
+        ])
+        .column("Chip bar", bar)
+        .column(
+            "Select",
+            Select::new(id.child(1), "Sort by", &["created_at", "total"], 0),
+        )
+}
+
+impl Page for ChipsPage {
+    fn title(&self) -> &'static str {
+        "Chips & selects"
+    }
+    fn blurb(&self) -> &'static str {
+        "Removable chips, a popup select, and strips that drop what does not fit"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if let PageEvent::Blur(ch) = ev {
+            return forward_blur(
+                *ch,
+                &mut [&mut self.sort, &mut self.page_size, &mut self.engine],
+            );
+        }
+        if self.template.section() == Section::Playground
+            && let Some(o) = self.sections.handle(ev)
+        {
+            return o;
+        }
+        match ev {
+            PageEvent::Key(key) => {
+                let Some(f) = cx.focus.current() else {
+                    return Outcome::Ignored;
+                };
+                if f == self.filters.id {
+                    let (o, ev) = self.filters.on_key(key);
+                    self.on_chip(ev, cx);
+                    return o;
+                }
+                if f == self.streams.id {
+                    let (o, ev) = self.streams.on_key(key);
+                    self.on_stream(ev);
+                    return o;
+                }
+                for sel in self.selects() {
+                    if sel.id == f {
+                        let (o, a) = sel.on_key(key);
+                        Self::select_changed(sel, a, cx);
+                        return o;
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Click { id, .. } => {
+                if self.filters.owns(*id) {
+                    cx.focus.focus(self.filters.id);
+                    let (o, ev) = self.filters.on_click(*id);
+                    self.on_chip(ev, cx);
+                    return o;
+                }
+                if self.streams.owns(*id) {
+                    cx.focus.focus(self.streams.id);
+                    let (o, ev) = self.streams.on_click(*id);
+                    self.on_stream(ev);
+                    return o;
+                }
+                // a click outside an open list lands on its backdrop, which
+                // the select owns: it closes itself per its dismiss policy
+                for sel in self.selects() {
+                    if sel.owns(*id) {
+                        if *id == sel.id {
+                            cx.focus.focus(sel.id);
+                        }
+                        let (o, a) = sel.on_click(*id);
+                        Self::select_changed(sel, a, cx);
+                        return o;
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Press { id, pos } => {
+                for sel in self.selects() {
+                    if sel.owns(*id) {
+                        // a press opens the list, so it takes focus with it
+                        if *id == sel.id {
+                            cx.focus.focus(sel.id);
+                        }
+                        return sel.on_press(*id, *pos);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Drag { pressed, pos } => {
+                for sel in self.selects() {
+                    if sel.owns(*pressed) {
+                        return sel.on_drag(*pressed, *pos);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Release { pressed, pos } => {
+                for sel in self.selects() {
+                    if sel.owns(*pressed) {
+                        let (o, a) = sel.on_release(*pos);
+                        Self::select_changed(sel, a, cx);
+                        return o;
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Wheel { id, delta } => {
+                for sel in self.selects() {
+                    if sel.open && sel.owns(*id) {
+                        return sel.on_wheel(*delta);
+                    }
+                }
+                Outcome::Ignored
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        if focus == Some(self.filters.id) {
+            vec![
+                ("←→", "Move"),
+                ("Space", "Toggle"),
+                ("Enter", "Edit / add"),
+                ("x", "Remove"),
+                ("X", "Clear all"),
+            ]
+        } else if focus == Some(self.streams.id) {
+            if self.streams.digit_toggles {
+                vec![("←→", "Move"), ("Space", "Switch"), ("1–9", "Switch")]
+            } else {
+                vec![("←→", "Move"), ("Space", "Switch")]
+            }
+        } else if focus
+            .is_some_and(|f| [self.sort.id, self.page_size.id, self.engine.id].contains(&f))
+        {
+            vec![("Enter", "Open"), ("↑↓", "Choose"), ("Esc", "Close")]
+        } else {
+            vec![("Tab", "Next")]
+        }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
 

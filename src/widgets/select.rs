@@ -951,6 +951,52 @@ impl Navigable for Select {
     }
 }
 
+/// The closed field in every state it has: rest, hover, press, focus,
+/// disabled, mixed values (empty), a long value (overflow) and narrow.
+impl crate::ui::specimen::Specimen for Select {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        match state {
+            Rest | Hover | Pressed | Focused | FocusedHover | Disabled | Empty | Overflow
+            | Narrow => true,
+            Selected | Busy | Error | Editing | Loading => false,
+        }
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        2
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState;
+        let mut s = self.clone();
+        s.open = false;
+        s.help.clear();
+        s.disabled |= state.visual().disabled;
+        match state {
+            SpecimenState::Empty => s.set_mixed(Some("Mixed")),
+            SpecimenState::Overflow => {
+                if let Some(o) = s.options.get_mut(s.selected) {
+                    *o = format!("{o} and a value longer than the field");
+                }
+            }
+            _ => {}
+        }
+        s.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
