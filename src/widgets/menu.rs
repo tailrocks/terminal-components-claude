@@ -118,7 +118,8 @@ pub struct ContextMenu {
     /// Default [`Place::MENU`]: one free column from the left and right
     /// edges (given up when the menu would not fit otherwise), none above
     /// or below, and full height kept when neither side of the anchor has
-    /// room, because a menu does not scroll.
+    /// room (a menu only scrolls when it is taller than the screen or
+    /// [`Self::max_rows`]).
     ///
     /// [`popup::place_with`]: crate::ui::popup::place_with
     pub fit: Place,
@@ -132,9 +133,52 @@ pub struct ContextMenu {
     /// registered (a keyboard-opened context menu follows its cursor row);
     /// `anchor` is the fallback. See [`ContextMenu::anchor_control`].
     pub anchor_to: Option<WidgetId>,
+    /// Most rows (items and separators) shown before the menu scrolls.
+    /// Default `u16::MAX`: as tall as its items, up to the screen. A menu
+    /// taller than its room always scrolls, so every item stays reachable.
+    pub max_rows: u16,
+    /// First row shown (items and separators count one each).
+    pub offset: usize,
+    /// The cursor moved since the last render: the next render scrolls it
+    /// into view. The wheel leaves it alone.
+    cursor_dirty: bool,
 }
 
 impl ContextMenu {
+    /// See [`Self::max_rows`].
+    pub fn max_rows(mut self, rows: u16) -> Self {
+        self.max_rows = rows;
+        self
+    }
+
+    /// Row of item `i` among the menu's rows (separators take a row).
+    fn line_of(&self, i: usize) -> usize {
+        i + self.items[..i.min(self.items.len())]
+            .iter()
+            .filter(|it| it.separator_after)
+            .count()
+    }
+
+    fn lines(&self) -> usize {
+        self.line_of(self.items.len())
+    }
+
+    /// Rows of items the last render had room for.
+    fn viewport(&self) -> usize {
+        let title = usize::from(self.title.is_some());
+        (self.area.height as usize).saturating_sub(2 + title)
+    }
+
+    /// Scroll by `delta` rows (the wheel). The cursor stays where it is.
+    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        let max = self.lines().saturating_sub(self.viewport().max(1));
+        let to = (self.offset as i64 + delta as i64).clamp(0, max as i64) as usize;
+        if to == self.offset {
+            return Outcome::Consumed;
+        }
+        self.offset = to;
+        Outcome::Changed
+    }
     /// Narrowest label column in cells. Default 8.
     pub fn min_width(mut self, cols: u16) -> Self {
         self.min_width = cols;
@@ -158,6 +202,9 @@ impl ContextMenu {
             min_width: 8,
             wrap: true,
             anchor_to: None,
+            max_rows: u16::MAX,
+            offset: 0,
+            cursor_dirty: true,
         }
     }
 
@@ -245,9 +292,9 @@ impl ContextMenu {
         let title_w = self.title.as_ref().map(|t| width(t) as u16).unwrap_or(0);
         // gutter + marker gap + label + 2 inset + frame
         let w = label_w.max(title_w).max(self.min_width) + 6;
-        let seps = self.items.iter().filter(|i| i.separator_after).count() as u16;
+        let rows = (self.lines() as u16).min(self.max_rows.max(1));
         let title_rows = if self.title.is_some() { 1 } else { 0 };
-        let h = self.items.len() as u16 + seps + title_rows + 2;
+        let h = rows + title_rows + 2;
         (w, h)
     }
 
@@ -261,6 +308,7 @@ impl ContextMenu {
         if n == 0 {
             return;
         }
+        self.cursor_dirty = true;
         let mut i = self.cursor;
         for _ in 0..n {
             let next = crate::core::nav::step_index(i, n, delta, self.wrap);
@@ -292,10 +340,12 @@ impl ContextMenu {
             }
             KeyCode::Home | KeyCode::Char('g') => {
                 self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
+                self.cursor_dirty = true;
                 (Outcome::Changed, None)
             }
             KeyCode::End | KeyCode::Char('G') => {
                 self.cursor = self.items.iter().rposition(|i| !i.disabled).unwrap_or(0);
+                self.cursor_dirty = true;
                 (Outcome::Changed, None)
             }
             KeyCode::Enter | KeyCode::Char(' ') => {
@@ -349,6 +399,19 @@ impl ContextMenu {
             self.anchor = r;
         }
         self.area = self.placed(screen).intersection(screen);
+        // a menu taller than its room scrolls: keep the cursor in view
+        // after a key moved it, and the window inside the rows
+        let view = self.viewport().max(1);
+        if self.cursor_dirty && !self.items.is_empty() {
+            let line = self.line_of(self.cursor.min(self.items.len() - 1));
+            if line < self.offset {
+                self.offset = line;
+            } else if line >= self.offset + view {
+                self.offset = line + 1 - view;
+            }
+            self.cursor_dirty = false;
+        }
+        self.offset = self.offset.min(self.lines().saturating_sub(view));
         if let Some(h) = ctx.interaction.live_hover()
             && let Some(i) = self.locate(h)
             && !self.items[i].disabled
@@ -392,12 +455,41 @@ impl ContextMenu {
             );
             y += 1;
         }
+        let first = self.offset;
+        if first > 0 {
+            buf.set_string(
+                area.right().saturating_sub(3),
+                area.y,
+                "▴",
+                t.muted().bg(bg),
+            );
+        }
         // an open menu is always the active control: its cursor row carries
         // the selection tint whoever holds keyboard focus
+        let mut line = 0usize;
         for (i, item) in self.items.iter().enumerate() {
             if y >= inner.bottom() {
+                buf.set_string(
+                    area.right().saturating_sub(3),
+                    area.bottom().saturating_sub(1),
+                    "▾",
+                    t.muted().bg(bg),
+                );
                 break;
             }
+            if line < first {
+                // scrolled off the top
+                line += 1 + usize::from(item.separator_after);
+                if item.separator_after && line > first {
+                    // its separator is the first row shown
+                    for x in inner.x + 1..inner.right().saturating_sub(1) {
+                        buf.set_string(x, y, "─", Style::new().fg(t.rule_on(bg)).bg(bg));
+                    }
+                    y += 1;
+                }
+                continue;
+            }
+            line += 1 + usize::from(item.separator_after);
             let rid = self.row_id(i);
             let mut s = ctx.child_state(self.id, rid, i == self.cursor);
             s.focused = i == self.cursor;
@@ -1045,6 +1137,38 @@ mod tests {
         m.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
         ctx.flush_overlays(&mut buf);
         buf
+    }
+
+    fn shows(buf: &Buffer, text: &str) -> bool {
+        (0..buf.area.height).any(|y| {
+            (0..buf.area.width)
+                .map(|x| buf[(x, y)].symbol())
+                .collect::<String>()
+                .contains(text)
+        })
+    }
+
+    #[test]
+    fn a_menu_taller_than_its_room_scrolls_so_every_item_is_reachable() {
+        let t = Theme::junie();
+        let items: Vec<MenuItem> = (0..30)
+            .map(|i| MenuItem::new(format!("item {i:02}")))
+            .collect();
+        let mut m = ContextMenu::new(WidgetId::of("m"), items.clone()).at(Position::new(2, 2));
+        let buf = paint_menu(&mut m, &t, Interaction::default());
+        assert!(shows(&buf, "item 00") && !shows(&buf, "item 29"));
+        m.on_key(&key(KeyCode::End));
+        let buf = paint_menu(&mut m, &t, Interaction::default());
+        assert!(shows(&buf, "item 29"), "the last item scrolled into view");
+        assert!(!shows(&buf, "item 00"));
+        // the wheel scrolls without moving the cursor
+        assert_eq!(m.on_wheel(-3), Outcome::Changed);
+        assert_eq!(m.cursor, 29);
+        // max_rows caps a long menu on a tall screen too
+        let mut capped = ContextMenu::new(WidgetId::of("m"), items).max_rows(5);
+        assert_eq!(capped.size().1, 5 + 2);
+        let buf = paint_menu(&mut capped, &t, Interaction::default());
+        assert!(shows(&buf, "item 04") && !shows(&buf, "item 05"));
     }
 
     fn row_y(buf: &Buffer, text: &str) -> (u16, u16) {
