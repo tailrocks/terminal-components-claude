@@ -119,8 +119,9 @@ pub struct Select {
     /// option clears it. Default `None`.
     pub mixed: Option<String>,
     /// Typing a prefix picks the matching option (closed) or moves the
-    /// list cursor (open), as macOS popup buttons do. Off by default:
-    /// plain letters stay with the page's own shortcuts.
+    /// list cursor (open), as macOS popup buttons do. Default from the
+    /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
+    /// `Vim`.
     pub type_ahead: bool,
     /// Stepping past either end (open list ↑/↓, closed field arrows)
     /// lands on the other end. Default off: it stops at the end.
@@ -130,7 +131,7 @@ pub struct Select {
     /// loses focus ([`Self::on_blur`]). Default `true`.
     pub close_on_blur: bool,
     /// Which keys move the open list's cursor (default
-    /// [`NavKeys::DEFAULT`]). The closed field steps its value with the
+    /// [`NavKeys::default`]). The closed field steps its value with the
     /// arrows only, so letters stay with the page's own shortcuts.
     pub nav: NavKeys,
     /// What the wheel does over the open list. Default
@@ -204,11 +205,11 @@ impl Select {
             arrows: SelectArrows::Step,
             tab_in_open: TabInOpen::Choose,
             mixed: None,
-            type_ahead: false,
+            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
             wrap: false,
             typeahead: Default::default(),
             close_on_blur: true,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             wheel: WheelMode::Viewport,
             hover_moves_cursor: true,
             press_drag: true,
@@ -993,7 +994,13 @@ mod tests {
             "no match: consumed, never half-typed to the page (plan §3)"
         );
         assert_eq!(s.selected, 2);
-        let mut off = Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta"], 0);
+        let mut on = Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta"], 0);
+        assert_eq!(
+            on.on_key(&k('b')).1,
+            Some(SelectAction::Changed(1)),
+            "on by default (Desktop profile, K34)"
+        );
+        let mut off = Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta"], 0).type_ahead(false);
         assert_eq!(off.on_key(&k('b')).1, None);
         assert_eq!(off.selected, 0);
     }

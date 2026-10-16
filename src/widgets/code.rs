@@ -109,7 +109,7 @@ pub struct CodeEditor {
     /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
     pub horizontal: Option<HScroll>,
     /// Which keys move the cursor while reading (default
-    /// [`NavKeys::DEFAULT`]; ←/→ scroll sideways). Editing keys are the
+    /// [`NavKeys::default`]; ←/→ scroll sideways). Editing keys are the
     /// text buffer's own.
     pub nav: NavKeys,
     /// The reading-mode action keys (default
@@ -209,7 +209,7 @@ impl CodeEditor {
             rendered_state: None,
             scrollbar_gap: scrollbar::GAP,
             horizontal: None,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: CodeCmd::default_keymap(),
             edit_entry: None,
             entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,

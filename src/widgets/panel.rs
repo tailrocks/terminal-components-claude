@@ -397,7 +397,7 @@ pub struct ScrollPanel {
     wrapped_cache: (u16, Vec<String>),
     /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
     pub horizontal: Option<HScroll>,
-    /// Which keys scroll (default [`NavKeys::DEFAULT`]; ←/→ scroll
+    /// Which keys scroll (default [`NavKeys::default`]; ←/→ scroll
     /// sideways, since the panel has no caret).
     pub nav: NavKeys,
     /// The panel's own action keys (default [`PanelCmd::default_keymap`]).
@@ -442,7 +442,7 @@ impl ScrollPanel {
             area: Rect::ZERO,
             wrapped_cache: (0, vec![]),
             horizontal: None,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: PanelCmd::default_keymap(),
         }
     }
