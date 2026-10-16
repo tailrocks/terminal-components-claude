@@ -68,6 +68,10 @@ pub struct Select {
     /// [`SelectArrows::Step`] (the long-standing behaviour; `Open` is the macOS
     /// popup-button convention).
     pub arrows: SelectArrows,
+    /// A placeholder shown instead of the value while the field stands for
+    /// several differing values (a bulk edit: `— mixed —`). Choosing any
+    /// option clears it. Default `None`.
+    pub mixed: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,6 +107,7 @@ impl Select {
             visible_rows: Self::MAX_ROWS as usize,
             reveal: None,
             arrows: SelectArrows::Step,
+            mixed: None,
         }
     }
     pub fn dismiss(mut self, d: Dismiss) -> Self {
@@ -139,6 +144,26 @@ impl Select {
         self.disabled = d;
         self
     }
+    /// Show `placeholder` instead of the value (see [`Self::mixed`]).
+    pub fn mixed(mut self, placeholder: &str) -> Self {
+        self.mixed = Some(placeholder.to_owned());
+        self
+    }
+
+    /// Set or clear the mixed-values placeholder.
+    pub fn set_mixed(&mut self, placeholder: Option<&str>) {
+        self.mixed = placeholder.map(str::to_owned);
+    }
+
+    /// Choose option `i`, leaving the mixed state. Returns the change
+    /// event when the shown value changed.
+    fn choose(&mut self, i: usize) -> Option<SelectEvent> {
+        let changed = i != self.selected || self.mixed.is_some();
+        self.selected = i;
+        self.mixed = None;
+        changed.then_some(SelectEvent::Changed(i))
+    }
+
     pub fn value(&self) -> &str {
         self.options
             .get(self.selected)
@@ -203,12 +228,7 @@ impl Select {
                 }
                 KeyCode::Enter | KeyCode::Char(' ') => {
                     self.open = false;
-                    let changed = self.cursor != self.selected;
-                    self.selected = self.cursor;
-                    (
-                        Outcome::Changed,
-                        changed.then_some(SelectEvent::Changed(self.selected)),
-                    )
+                    (Outcome::Changed, self.choose(self.cursor))
                 }
                 KeyCode::Esc if self.dismiss.escape => {
                     self.open = false;
@@ -232,15 +252,11 @@ impl Select {
             }
             KeyCode::Up | KeyCode::Left if key.plain() => {
                 let n = self.selected.saturating_sub(1);
-                let changed = n != self.selected;
-                self.selected = n;
-                (Outcome::Changed, changed.then_some(SelectEvent::Changed(n)))
+                (Outcome::Changed, self.choose(n))
             }
             KeyCode::Down | KeyCode::Right if key.plain() => {
                 let n = (self.selected + 1).min(self.options.len().saturating_sub(1));
-                let changed = n != self.selected;
-                self.selected = n;
-                (Outcome::Changed, changed.then_some(SelectEvent::Changed(n)))
+                (Outcome::Changed, self.choose(n))
             }
             _ => (Outcome::Ignored, None),
         }
@@ -270,9 +286,7 @@ impl Select {
         }
         if let Some(i) = self.locate(id) {
             self.open = false;
-            let changed = i != self.selected;
-            self.selected = i;
-            return (Outcome::Changed, changed.then_some(SelectEvent::Changed(i)));
+            return (Outcome::Changed, self.choose(i));
         }
         (Outcome::Ignored, None)
     }
@@ -354,9 +368,16 @@ impl Select {
             t.gutter_symbol(s),
             t.gutter(s, fs.bg.unwrap_or(bg), false),
         );
-        let value = crate::ui::text::truncate(self.value(), field.width.saturating_sub(5) as usize);
-        buf.set_string(field.x + 2, field.y, &value, fs);
-        if !self.disabled && !self.open {
+        let shown = self.mixed.as_deref().unwrap_or(self.value());
+        let value = crate::ui::text::truncate(shown, field.width.saturating_sub(5) as usize);
+        let vs = if self.mixed.is_some() {
+            // a placeholder, not a value: the text field's placeholder ink
+            fs.patch(t.placeholder(s))
+        } else {
+            fs
+        };
+        buf.set_string(field.x + 2, field.y, &value, vs);
+        if !self.disabled && !self.open && self.mixed.is_none() {
             let cut = Rect::new(field.x + 2, field.y, field.width.saturating_sub(5), 1);
             crate::ui::reveal::truncated(ctx, self.reveal, self.id, cut, self.value());
         }
@@ -405,7 +426,12 @@ impl Select {
         let (id, cursor, selected, scroll, dismiss, cursor_style, reveal) = (
             self.id,
             self.cursor,
-            self.selected,
+            // mixed values: no option is the current one
+            if self.mixed.is_some() {
+                usize::MAX
+            } else {
+                self.selected
+            },
             self.scroll,
             self.dismiss,
             self.cursor_style,
@@ -591,5 +617,37 @@ mod tests {
         let opt = sel.option_id(0);
         let all = wide(&hovered(&mut sel, opt));
         assert!(all.contains(long), "the option: {all}");
+    }
+
+    #[test]
+    fn a_mixed_field_shows_its_placeholder_until_an_option_is_chosen() {
+        let t = Theme::junie();
+        let row = |buf: &Buffer, y: u16| (0..30).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let mut sel =
+            Select::new(WidgetId::of("s"), "Role", &["Admin", "Editor"], 0).mixed("— mixed —");
+        let buf = draw(&mut sel);
+        assert!(row(&buf, 1).contains("— mixed —"), "{}", row(&buf, 1));
+        assert!(!row(&buf, 1).contains("Admin"));
+        assert_ne!(buf[(2, 1)].fg, t.text_primary, "a placeholder is muted");
+        // the open list marks no option as the current one
+        sel.open = true;
+        let buf = draw(&mut sel);
+        assert!(!buf.content().iter().any(|c| c.symbol() == "›"));
+        // choosing the option already under the cursor still changes
+        let key = Key {
+            code: KeyCode::Enter,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        assert_eq!(sel.on_key(&key).1, Some(SelectEvent::Changed(0)));
+        assert_eq!(sel.mixed, None);
+        let buf = draw(&mut sel);
+        assert!(row(&buf, 1).contains("Admin"));
+        // a click on an option clears it as well
+        sel.set_mixed(Some("— mixed —"));
+        assert_eq!(
+            sel.on_click(sel.option_id(1)).1,
+            Some(SelectEvent::Changed(1))
+        );
+        assert_eq!(sel.mixed, None);
     }
 }
