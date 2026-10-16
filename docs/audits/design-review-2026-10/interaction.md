@@ -145,3 +145,20 @@ modifier stays `DataTable::TOGGLE_CTRL_CMD` (Ctrl or Cmd) by default;
 Ctrl+click is a secondary click (`InputConfig::ctrl_click_secondary`)
 and many terminals do not report Cmd. Which one ships as the default
 is the product owner's decision; it is not decided yet.
+
+**Decided (product owner):** on macOS the toggle click is Option+click.
+`DataTable::toggle_mods` now defaults to `DataTable::toggle_mods_for(
+Platform::current())`: `DataTable::TOGGLE_OPTION_CMD` (Option or Cmd) on
+macOS, `DataTable::TOGGLE_CTRL_CMD` (Ctrl or Cmd) elsewhere. `Platform`
+(`core::event`) is the one place the build target is read; `InputConfig::
+for_platform` derives `ctrl_click_secondary` from it the same way, so on
+macOS Ctrl+click stays the secondary click and opens the row menu. Apps
+keep the knob (`DataTable::toggle_mods(...)`, any modifier set, or
+`toggle_mods_for(Platform::Other)` to keep Ctrl+click on a Mac). The
+showcase Selectable table names the platform's click in its footer once
+rows are selected (`keyhint::modifier_click`: `Option+click Toggle row` on
+macOS, `Ctrl+click Toggle row` elsewhere), and gains a row menu (right
+click, Ctrl+click on macOS, `Shift+F10`: Edit, Delete…). DataTable is the
+only widget with a toggle modifier: ListBox multi mode toggles on a plain
+click (`ClickAction::Activate`) and DataGrid takes no click modifiers, so
+neither changes.
