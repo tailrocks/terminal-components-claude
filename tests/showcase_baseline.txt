@@ -16,12 +16,16 @@
 120x40 TrueColor Forms b640c16a53da835a
 120x40 TrueColor Checks & radios 8d5aa09b38811737
 120x40 TrueColor Toolbars af0a53d72a008daf
-120x40 TrueColor Basic table 2c82bf3a702ffcc8
+120x40 TrueColor Basic table 004448b0fb30f505
+120x40 TrueColor Basic table · Options 9f5c1d31bdef509e
+120x40 TrueColor Basic table · States 16f37f3c06daa466
 120x40 TrueColor Editable 14a38a280772586a
 120x40 TrueColor Data grid 546bba4070fabd3c
 120x40 TrueColor Selection 44053638cb30e46e
 120x40 TrueColor Cell editors 32301785728d17ed
-120x40 TrueColor Columns 580c7abd261128ab
+120x40 TrueColor Columns 2394032c77825a3b
+120x40 TrueColor Columns · Options d3560e3e8d37c4d7
+120x40 TrueColor Columns · States 2261442dc7795f08
 120x40 TrueColor Lists 993e38d9a859cea4
 120x40 TrueColor Trees f5f5255a286138eb
 120x40 TrueColor Sidebars 54a3b3e5ef0dd7e2
@@ -76,12 +80,16 @@
 120x40 Ansi256 Forms 6fefae920f31c035
 120x40 Ansi256 Checks & radios 80f93cdff0cb3003
 120x40 Ansi256 Toolbars 67a0c73039ffeacc
-120x40 Ansi256 Basic table 35027569a8a2eaf7
+120x40 Ansi256 Basic table b3f193f4f2e06018
+120x40 Ansi256 Basic table · Options 0d20e1b70391ee88
+120x40 Ansi256 Basic table · States c0646eb0d9b50c65
 120x40 Ansi256 Editable 52585cead536525f
 120x40 Ansi256 Data grid cd93a06c653a3844
 120x40 Ansi256 Selection 0fe4a38a2035d862
 120x40 Ansi256 Cell editors 2f2fba822014f5b2
-120x40 Ansi256 Columns 40a4db564ca3ffc0
+120x40 Ansi256 Columns bdfe30590ed8022e
+120x40 Ansi256 Columns · Options 53ae8a380659c65d
+120x40 Ansi256 Columns · States 1e22373e61bf4f5c
 120x40 Ansi256 Lists 13e23e7ccbe540ae
 120x40 Ansi256 Trees 6dade70743a6d83d
 120x40 Ansi256 Sidebars c90c801cf9538f5d
@@ -136,12 +144,16 @@
 120x40 Ansi16 Forms b531108dd1b14423
 120x40 Ansi16 Checks & radios 24afe77ae5761ccf
 120x40 Ansi16 Toolbars f1bf2afa48a328b7
-120x40 Ansi16 Basic table 7a1a47022b8878bd
+120x40 Ansi16 Basic table 0b482d5fe4fd17b8
+120x40 Ansi16 Basic table · Options 622640114d97a2c9
+120x40 Ansi16 Basic table · States 53ce0662da40c3e9
 120x40 Ansi16 Editable 57b7b4d05e142644
 120x40 Ansi16 Data grid 2262d5e9f79e832e
 120x40 Ansi16 Selection f466baa18e9bd51a
 120x40 Ansi16 Cell editors 127eec5b40bdc2c5
-120x40 Ansi16 Columns b112b9266df1e41f
+120x40 Ansi16 Columns a03a5c09b3890b6e
+120x40 Ansi16 Columns · Options 5cdfc02815420406
+120x40 Ansi16 Columns · States 861953aa0fae5548
 120x40 Ansi16 Lists 247eae728924fd72
 120x40 Ansi16 Trees 697e0dc412c43ebf
 120x40 Ansi16 Sidebars 1979a350e0530f8a
@@ -196,12 +208,16 @@
 120x40 Mono Forms a211baf222fe802e
 120x40 Mono Checks & radios dd841db1b64f0b70
 120x40 Mono Toolbars 742e46ae68cb6fca
-120x40 Mono Basic table de535da90fdbb9c4
+120x40 Mono Basic table 0c5769ded0e84144
+120x40 Mono Basic table · Options 4d26638b6039e06a
+120x40 Mono Basic table · States 33f699d194f179e0
 120x40 Mono Editable 1cf0dabc139ffc5e
 120x40 Mono Data grid e7ae18f2cdbd715c
 120x40 Mono Selection 412307d489873206
 120x40 Mono Cell editors 3fd25543b551d506
-120x40 Mono Columns fe9dbd9c0f8dc2dc
+120x40 Mono Columns bee531d594bbb01f
+120x40 Mono Columns · Options f3787e3f8e55df1f
+120x40 Mono Columns · States 403131a7fa4117b3
 120x40 Mono Lists 8ccc7de19927636f
 120x40 Mono Trees d93439cbf82dcba6
 120x40 Mono Sidebars e1c2cbe6af9038d5
@@ -256,12 +272,16 @@
 80x24 TrueColor Forms 9b870d8287a6ea5f
 80x24 TrueColor Checks & radios 8fdd617df41ada76
 80x24 TrueColor Toolbars a890c65025189fa0
-80x24 TrueColor Basic table 3ee06f9de5bb3f17
+80x24 TrueColor Basic table 8411a09605beb984
+80x24 TrueColor Basic table · Options 39ddbee6c6959efb
+80x24 TrueColor Basic table · States c962fdca3f94c616
 80x24 TrueColor Editable 7884e8417640dd47
 80x24 TrueColor Data grid cc70368abd6d9aa4
 80x24 TrueColor Selection ed4ead50ab84873f
 80x24 TrueColor Cell editors 6f6518a82d45cb5b
-80x24 TrueColor Columns 64e6f0d69a944b44
+80x24 TrueColor Columns 32ddc64e3507554b
+80x24 TrueColor Columns · Options e46ef0a04e86cd26
+80x24 TrueColor Columns · States 36cecb2d6e9e9b6f
 80x24 TrueColor Lists 7d44fa9ea4abf05f
 80x24 TrueColor Trees 9d37da5a80fbca0a
 80x24 TrueColor Sidebars 83f1a9852f55e031
@@ -316,12 +336,16 @@
 80x24 Ansi256 Forms d044c5646ff5f78d
 80x24 Ansi256 Checks & radios bfcbf567acafba4b
 80x24 Ansi256 Toolbars 1ffc1cc528120887
-80x24 Ansi256 Basic table aaadab9d6a023bf8
+80x24 Ansi256 Basic table ab06c8472921e1ce
+80x24 Ansi256 Basic table · Options 8796b86f6006014f
+80x24 Ansi256 Basic table · States 6001ef2031f5fa78
 80x24 Ansi256 Editable a7222f22d4e6c583
 80x24 Ansi256 Data grid b20bf09d338b44c1
 80x24 Ansi256 Selection 6f8ed3f20b45fc6b
 80x24 Ansi256 Cell editors 78d36159824bc2a5
-80x24 Ansi256 Columns 6ed2d90f0fed0952
+80x24 Ansi256 Columns 97b8c9a7ac286603
+80x24 Ansi256 Columns · Options bba48c9e6f6efaf5
+80x24 Ansi256 Columns · States e5bde140e3f7625f
 80x24 Ansi256 Lists 932347c47155886c
 80x24 Ansi256 Trees 18e4943c4cc3e50a
 80x24 Ansi256 Sidebars b6687fc15f42a0b8
@@ -376,12 +400,16 @@
 80x24 Ansi16 Forms 42458e84e328fd2f
 80x24 Ansi16 Checks & radios 5f59927412100a78
 80x24 Ansi16 Toolbars c05ef770e7488dc8
-80x24 Ansi16 Basic table 562edfb0895dbede
+80x24 Ansi16 Basic table 93f2cb520871c36a
+80x24 Ansi16 Basic table · Options 58698821727436c0
+80x24 Ansi16 Basic table · States 8498e9d1a730352c
 80x24 Ansi16 Editable 2cc11bca74ee727f
 80x24 Ansi16 Data grid c7af5e32b5974337
 80x24 Ansi16 Selection 31ee36146d9bf803
 80x24 Ansi16 Cell editors eb4063102bba3f83
-80x24 Ansi16 Columns 35609ff346850faa
+80x24 Ansi16 Columns 365cb882aa188992
+80x24 Ansi16 Columns · Options 89b77b73a8f4b958
+80x24 Ansi16 Columns · States 6f2e557d45e5b6b3
 80x24 Ansi16 Lists 718c19bfff487520
 80x24 Ansi16 Trees 81b87a472b156ba2
 80x24 Ansi16 Sidebars c37f0ee35bea0a96
@@ -436,12 +464,16 @@
 80x24 Mono Forms 53c534dd59781617
 80x24 Mono Checks & radios 287b84594379e19a
 80x24 Mono Toolbars 6a74d2c9ed4d16d2
-80x24 Mono Basic table 151fd7525800a7c8
+80x24 Mono Basic table 8c608d0b73230ace
+80x24 Mono Basic table · Options 44b65fa63e78b794
+80x24 Mono Basic table · States 5c8c09e5f0675306
 80x24 Mono Editable f689d6a353b2cc3f
 80x24 Mono Data grid 9302d2fdf91ee216
 80x24 Mono Selection 0eff2c6254bef20b
 80x24 Mono Cell editors ce67c814012bfcf7
-80x24 Mono Columns ce8f3ed17449f2b0
+80x24 Mono Columns 58e6d69393b764a6
+80x24 Mono Columns · Options 25c09efbd8f6700e
+80x24 Mono Columns · States 7fb98294aea213c7
 80x24 Mono Lists aeadaa4d8384d3a8
 80x24 Mono Trees e343175cd86d6a60
 80x24 Mono Sidebars a6490d30a4ab9d8c
@@ -496,12 +528,16 @@
 72x20 TrueColor Forms 11435d827f5ded49
 72x20 TrueColor Checks & radios d777a80894e05cc6
 72x20 TrueColor Toolbars b80c7a587d1e8ae1
-72x20 TrueColor Basic table 550a1da48080989a
+72x20 TrueColor Basic table abca18a4963a34eb
+72x20 TrueColor Basic table · Options 9c409f93ae9fb84b
+72x20 TrueColor Basic table · States 9e28c94db6afb8df
 72x20 TrueColor Editable 3f17b28647ae182b
 72x20 TrueColor Data grid 9b9cc046854b0e6b
 72x20 TrueColor Selection e4f9a9b3b7ed4863
 72x20 TrueColor Cell editors 4b7d203b73f0b63a
-72x20 TrueColor Columns 08ac8c50667b2357
+72x20 TrueColor Columns be62c42d690d790c
+72x20 TrueColor Columns · Options 9cfbdc1533920da2
+72x20 TrueColor Columns · States 1b485acb15ec0a4c
 72x20 TrueColor Lists 407155f67aafb49e
 72x20 TrueColor Trees 8a6768667557184d
 72x20 TrueColor Sidebars 51ecb6e259bb3c7d
@@ -556,12 +592,16 @@
 72x20 Ansi256 Forms bcaf53b07e23f39d
 72x20 Ansi256 Checks & radios ca7aef583e404da3
 72x20 Ansi256 Toolbars d06a05b9a6365aad
-72x20 Ansi256 Basic table b23e1a2a7d6eb206
+72x20 Ansi256 Basic table 673c9bfbfc67735d
+72x20 Ansi256 Basic table · Options 4e68722545cd9977
+72x20 Ansi256 Basic table · States 4ac794fea6272466
 72x20 Ansi256 Editable ed4e8199bc193017
 72x20 Ansi256 Data grid d99f2a17289429e7
 72x20 Ansi256 Selection 9b173b269cc558fc
 72x20 Ansi256 Cell editors 618af0c8bece7b51
-72x20 Ansi256 Columns b12dfe760c226613
+72x20 Ansi256 Columns 03613b2adf283145
+72x20 Ansi256 Columns · Options 58c9806f9325eb4d
+72x20 Ansi256 Columns · States 4a35771cd062f8a2
 72x20 Ansi256 Lists 7588aceab52b9406
 72x20 Ansi256 Trees c86db96cb6ba1c8f
 72x20 Ansi256 Sidebars 24958beaa07133be
@@ -616,12 +656,16 @@
 72x20 Ansi16 Forms 251b2ad661559803
 72x20 Ansi16 Checks & radios 2364f33be063baf4
 72x20 Ansi16 Toolbars 73bdfe59563f5af1
-72x20 Ansi16 Basic table c2fb9ea131c0aee1
+72x20 Ansi16 Basic table 505e81840bab78b0
+72x20 Ansi16 Basic table · Options 74f88c32316a6488
+72x20 Ansi16 Basic table · States 6f2f3a569af5c162
 72x20 Ansi16 Editable cd713326650adaf5
 72x20 Ansi16 Data grid df6ec9c2ebb1496e
 72x20 Ansi16 Selection 04694996cc958fa5
 72x20 Ansi16 Cell editors 49b3ea4277b0ff0e
-72x20 Ansi16 Columns 77ee7a42af4cb74f
+72x20 Ansi16 Columns 2270299cf6c2d193
+72x20 Ansi16 Columns · Options b90ec43e9e59e9b8
+72x20 Ansi16 Columns · States cff16379c77de0f9
 72x20 Ansi16 Lists 87825b079d2478f6
 72x20 Ansi16 Trees 0c2b5f0a458821ff
 72x20 Ansi16 Sidebars 8b4e752d59df21e5
@@ -676,12 +720,16 @@
 72x20 Mono Forms 3e3b0aa99c53ada1
 72x20 Mono Checks & radios 926731c42bf4c616
 72x20 Mono Toolbars 600bdd0621675c27
-72x20 Mono Basic table 8fe02e1af19091c7
+72x20 Mono Basic table c6d94dfadde631f4
+72x20 Mono Basic table · Options d03718c8b052d95c
+72x20 Mono Basic table · States ce7fc9ef1e97d1fc
 72x20 Mono Editable decea2ae81344595
 72x20 Mono Data grid 08022a5af30e2a49
 72x20 Mono Selection 3b74826e471eec69
 72x20 Mono Cell editors e50069e1dc1f0100
-72x20 Mono Columns 2ff8a6f2efe8f601
+72x20 Mono Columns 997e628d739abacf
+72x20 Mono Columns · Options d1a6b4e47e628bae
+72x20 Mono Columns · States d0dee25afa9d48b3
 72x20 Mono Lists 917b3c4d07e16cf6
 72x20 Mono Trees 9fdba03cda1a099b
 72x20 Mono Sidebars b1bc6fcfaff58f95
@@ -736,12 +784,16 @@
 100x30 TrueColor Forms f55a3c059081e429
 100x30 TrueColor Checks & radios 685d2c514b62bea6
 100x30 TrueColor Toolbars 606a8b3c89f1cad2
-100x30 TrueColor Basic table 015d755b10209264
+100x30 TrueColor Basic table d274b9864f3f8924
+100x30 TrueColor Basic table · Options c08b994067466923
+100x30 TrueColor Basic table · States 1380ab0c7735b794
 100x30 TrueColor Editable f79279dcf8689dae
 100x30 TrueColor Data grid 25f1367cfb8f12bb
 100x30 TrueColor Selection 69b51d71af1dbda6
 100x30 TrueColor Cell editors 06571c86004220cf
-100x30 TrueColor Columns 8eaf83e1c97a33cf
+100x30 TrueColor Columns cec4ff67ee927cf4
+100x30 TrueColor Columns · Options 7db4c655d47f54df
+100x30 TrueColor Columns · States af56a6f0170c12d6
 100x30 TrueColor Lists cc6a80f53ca847ac
 100x30 TrueColor Trees 361086ad3da99885
 100x30 TrueColor Sidebars c1f19447415c781f
@@ -796,12 +848,16 @@
 100x30 Ansi256 Forms 70d96e4ae2651bc0
 100x30 Ansi256 Checks & radios 680b1843d8230e51
 100x30 Ansi256 Toolbars e48004695aea6023
-100x30 Ansi256 Basic table 5ef84a4cc145a73e
+100x30 Ansi256 Basic table 06fd22e2d960756c
+100x30 Ansi256 Basic table · Options 9ce72a0509d9f50c
+100x30 Ansi256 Basic table · States 6aa19d63c8908e16
 100x30 Ansi256 Editable f6986baeebcf9d24
 100x30 Ansi256 Data grid 5f6f9fc164d06c22
 100x30 Ansi256 Selection 4af90294be8b8ecb
 100x30 Ansi256 Cell editors a10b6d2ff5b22549
-100x30 Ansi256 Columns c155c354d2a9a08f
+100x30 Ansi256 Columns 31b3256714b13749
+100x30 Ansi256 Columns · Options 717b13f2092f609f
+100x30 Ansi256 Columns · States 2d9ed7a3129e2fb2
 100x30 Ansi256 Lists cd55c95daf3a2f3f
 100x30 Ansi256 Trees b523c2c30746ec63
 100x30 Ansi256 Sidebars 771d2db93de0908d
@@ -856,12 +912,16 @@
 100x30 Ansi16 Forms ca5a0a4b380cd97a
 100x30 Ansi16 Checks & radios f7079e5d9d2c8baa
 100x30 Ansi16 Toolbars 4522779135657418
-100x30 Ansi16 Basic table 09fdd708cddd37b0
+100x30 Ansi16 Basic table 5d733badc3fd0d0b
+100x30 Ansi16 Basic table · Options a9bf16bb0a447252
+100x30 Ansi16 Basic table · States 90e43c8c34fcf0b3
 100x30 Ansi16 Editable 902d8594bd0fe49a
 100x30 Ansi16 Data grid 54a8512da54875fe
 100x30 Ansi16 Selection f16143061fef8927
 100x30 Ansi16 Cell editors 8c40386cc31b671f
-100x30 Ansi16 Columns 7caae478b0cb0b0f
+100x30 Ansi16 Columns 6f78f631daaa54b7
+100x30 Ansi16 Columns · Options 813fe894bb8d4d03
+100x30 Ansi16 Columns · States 040bbf99eddfb10e
 100x30 Ansi16 Lists 394b875565131559
 100x30 Ansi16 Trees 82529978943a9b85
 100x30 Ansi16 Sidebars 4bf1fdaf7e54b644
@@ -916,12 +976,16 @@
 100x30 Mono Forms c30b87f358ebf40d
 100x30 Mono Checks & radios 22d99a17de83b608
 100x30 Mono Toolbars 1a3da658ae22b511
-100x30 Mono Basic table 4b2be36682cf1680
+100x30 Mono Basic table 8cef18a1dbe1d34e
+100x30 Mono Basic table · Options 15e6189df9fc2ec1
+100x30 Mono Basic table · States 0e2fc7cc31db62e2
 100x30 Mono Editable 184a9b0309843dfd
 100x30 Mono Data grid 67efc57b4f1e5df8
 100x30 Mono Selection 54955d3b95ee64cc
 100x30 Mono Cell editors 4d6321f0a8d4d5f4
-100x30 Mono Columns f63aa60c508ca86e
+100x30 Mono Columns 5324296e37cf7498
+100x30 Mono Columns · Options da818410011ad6d2
+100x30 Mono Columns · States 5af46b25c6a50621
 100x30 Mono Lists 3c866ee995a9167e
 100x30 Mono Trees a560d1cae8c62f3c
 100x30 Mono Sidebars 390f04a8df0999d7
@@ -976,12 +1040,16 @@
 160x50 TrueColor Forms 115c2ae308f6d325
 160x50 TrueColor Checks & radios 567b1257a3fd0a39
 160x50 TrueColor Toolbars 886805a276b4f65a
-160x50 TrueColor Basic table f5bd62203670688b
+160x50 TrueColor Basic table 58220db5dd80c0e3
+160x50 TrueColor Basic table · Options 6db1b17b71542a2d
+160x50 TrueColor Basic table · States 6a7602846e14bf85
 160x50 TrueColor Editable 7dcf640cff6e21f8
 160x50 TrueColor Data grid 26d1bf7c98839618
 160x50 TrueColor Selection dfe494e481eee311
 160x50 TrueColor Cell editors b06c0c3ed5ea8f41
-160x50 TrueColor Columns 90616b5040f839ec
+160x50 TrueColor Columns b4394725fd6a7f1f
+160x50 TrueColor Columns · Options 1ac486002474694a
+160x50 TrueColor Columns · States cbf8c656dd00b7ff
 160x50 TrueColor Lists bdac0bc53bc4630d
 160x50 TrueColor Trees 9a941af0193a9b98
 160x50 TrueColor Sidebars 9b90d7abcce78ee9
@@ -1036,12 +1104,16 @@
 160x50 Ansi256 Forms 4c006f007e585b38
 160x50 Ansi256 Checks & radios 6436c4a5f06a7240
 160x50 Ansi256 Toolbars 4922a3176aa6b3ef
-160x50 Ansi256 Basic table 8154c2154276d92f
+160x50 Ansi256 Basic table e3dd13dec38012eb
+160x50 Ansi256 Basic table · Options f079fad5065b07d7
+160x50 Ansi256 Basic table · States 4fce6622889b84ea
 160x50 Ansi256 Editable c4a909ee11e49cb0
 160x50 Ansi256 Data grid 46d9bd1e54fe588b
 160x50 Ansi256 Selection 941d71d08135ae04
 160x50 Ansi256 Cell editors 159926ad7d15d6f1
-160x50 Ansi256 Columns 389c6ae24808eb53
+160x50 Ansi256 Columns dcfb9ff500ad8cb2
+160x50 Ansi256 Columns · Options eb788c5758978f9c
+160x50 Ansi256 Columns · States 4faebbef8e5f20d7
 160x50 Ansi256 Lists cadc02035c159b00
 160x50 Ansi256 Trees 779e402653d11088
 160x50 Ansi256 Sidebars 9202f7ed55c74952
@@ -1096,12 +1168,16 @@
 160x50 Ansi16 Forms 1d788724a3f1f738
 160x50 Ansi16 Checks & radios da33dbfd3974c1f1
 160x50 Ansi16 Toolbars 0247b30502265010
-160x50 Ansi16 Basic table 56dd430b2a1ee30f
+160x50 Ansi16 Basic table d8a002cb9f63b2c7
+160x50 Ansi16 Basic table · Options 453893abeff7de9c
+160x50 Ansi16 Basic table · States 40415aee86fe59f9
 160x50 Ansi16 Editable 5203a6e1c81e0ef9
 160x50 Ansi16 Data grid 0811c3b0a126c6d1
 160x50 Ansi16 Selection 7cb2c4c077da25a4
 160x50 Ansi16 Cell editors cc50f2c1a62a6c8f
-160x50 Ansi16 Columns a80315fe6b03c4d6
+160x50 Ansi16 Columns 6b7125807745b71b
+160x50 Ansi16 Columns · Options e4a2c2c3292aec4b
+160x50 Ansi16 Columns · States 44a5b63d7286d215
 160x50 Ansi16 Lists bae26342fdccedf0
 160x50 Ansi16 Trees 9381c277199d0bec
 160x50 Ansi16 Sidebars a6876b10a23dba4f
@@ -1156,12 +1232,16 @@
 160x50 Mono Forms d5e1c3c99dd69b35
 160x50 Mono Checks & radios 9e9534dcc931b1f4
 160x50 Mono Toolbars a3f3642716431361
-160x50 Mono Basic table cfdb1512f9c129da
+160x50 Mono Basic table b62463ffd6009b6a
+160x50 Mono Basic table · Options c14057a22c05cbf9
+160x50 Mono Basic table · States ea04f3508781d428
 160x50 Mono Editable 3e824e94b82880ce
 160x50 Mono Data grid 1f9be20abaf4d31b
 160x50 Mono Selection 5fe5e54f5a6fa6ae
 160x50 Mono Cell editors cdb1b24528826acd
-160x50 Mono Columns 8b31742e2490f7f1
+160x50 Mono Columns cd4f9e5d5f1fb129
+160x50 Mono Columns · Options 2653924608e01040
+160x50 Mono Columns · States d0f10d39a5cd8a7a
 160x50 Mono Lists 15d81120a4e04eeb
 160x50 Mono Trees 5fb69b6cb001361f
 160x50 Mono Sidebars 19ed689fab02d2d2
