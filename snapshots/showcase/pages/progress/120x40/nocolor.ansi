@@ -26,15 +26,15 @@
                             Narrow bars keep the percentage and drop the label:                                         [0m
                             ━━━────  42%                                                                                [0m
                                                                                                                         [0m
-                            Capacity meters are never green: low ≤ 59 % white, medium ≤ 84 % warning, high error. Line a[0m
-                            Low        ━━━━━━━━━────────────── 38% used        [0m[1m 38% used   [0m                             [0m
-                            Medium     ━━━━━━━━━━━━━━━━━────── 72% used ▲      [0m[1m 72% used              [0m          ▲       [0m
-                            High       ━━━━━━━━━━━━━━━━━━━━━── 91% used !      [0m[1m 91% used                    [0m    !       [0m
-                            Warning    ━━━━━━━━━━━━━━━━━━━──── 82% used ▲      [0m[1m 82% used                 [0m       ▲       [0m
-                            Exhausted  ━━━━━━━━━━━━━━━━━━━━━━ 100% used[0m[1m ![0m      [0m[1m 100% used                       ![0m       [0m
-                            Stale      ╍╍╍╍╍╍╍╍╍╍╍╍─────────── [0m[3m54% used[0m        [0m[1;3m 54% used        [0m[3m               [0m         [0m
-                            Refreshing ━━━━━━━━━━───────── ⠋ refreshing        [0m[1m ⠋ refreshing    [0m                        [0m
-                            Error      quota read failed !                     quota read failed !                      [0m
+                            Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !. …  [0m
+                            Low        ━━━━━━━━━────────────── 38% used        [0m[1m 38% used · [0mblock                        [0m
+                            Medium     ━━━━━━━━━━━━━━━━━────── 72% used ▲      ━━━━━━━─── 72% disk, warns at 80         [0m
+                            High       ━━━━━━━━━━━━━━━━━━━━━── 91% used !      ━━━━━━─ 88% disk, critical at 95 ▲       [0m
+                            Warning    ━━━━━━━━━━━━━━━━━━━──── 82% used ▲      ━━━━━────────── 30% · fixed high !       [0m
+                            Exhausted  ━━━━━━━━━━━━━━━━━━━━━━ 100% used[0m[1m ![0m      ╍╍╍╍╍╍╍╍╍╍── [0m[3m82% · stale warning[0m ▲       [0m
+                            Stale      ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍────── [0m[3m76% used[0m ▲      ━━━━━━── 76% · faint stale style         [0m
+                            Refreshing ━━━━━━━━━━───────── ⠋ refreshing                                                 [0m
+                            Error      quota read failed !                                                              [0m
                                                                                                                         [0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
