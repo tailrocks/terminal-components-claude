@@ -113,6 +113,10 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/buttons-states", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
     Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
     Root::new("showcase/sections/inputs-states", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    // Overview (SC3): the theme explorer's options and every Kind on a plane.
+    Root::new("showcase/sections/overview-options", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "2", "wait:State modifiers"]).pending(),
+    Root::new("showcase/sections/overview-states", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "3", "wait:Cursor fill"]).pending(),
+    Root::new("showcase/sections/overview-mono-modifiers", Bin::Showcase, &["--page", "overview", "--opt", "overview.mods=mono", "--opt", "overview.kind=primary"], BOOT).sends(&["wait:modifiers MONO"]).pending(),
     // ------------------------------------------------------------------ audit --
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),

@@ -208,9 +208,63 @@ pub static SHELL: &[Opt] = &[
 /// arm with keys `<slug>.<name>`, and the page implements
 /// `Page::option_value` and `Page::set_option` for them.
 pub fn page_options(page: PageId) -> &'static [Opt] {
-    let _ = page;
-    &[]
+    match page {
+        PageId::Overview => OVERVIEW,
+        _ => &[],
+    }
 }
+
+/// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through
+/// `Theme::interactive`; the States grid draws every kind on the plane.
+static OVERVIEW: &[Opt] = &[
+    Opt::new(
+        "overview.plane",
+        "Plane",
+        &[
+            "canvas",
+            "surface",
+            "card",
+            "field",
+            "raised",
+            "popover",
+            "highlight",
+            "highlight-danger",
+            "accent",
+            "danger",
+        ],
+    )
+    .default(2),
+    Opt::new(
+        "overview.kind",
+        "Kind",
+        &[
+            "row",
+            "cursor-fill",
+            "cursor-bar",
+            "primary",
+            "secondary",
+            "subtle",
+            "danger",
+            "toggle",
+            "tab",
+            "title",
+            "chip",
+            "close",
+            "field",
+            "handle",
+            "seam",
+        ],
+    )
+    .default(4),
+    // `Theme::with_ladder` on the chosen plane
+    Opt::new("overview.ladder", "Ladder", &["theme", "custom"]),
+    // `Theme::with_state_modifiers`
+    Opt::new(
+        "overview.mods",
+        "State modifiers",
+        &["level", "color", "16", "mono"],
+    ),
+];
 
 /// Every option `--opt` accepts: the shell-wide ones, then each page's.
 pub fn all() -> impl Iterator<Item = &'static Opt> {
