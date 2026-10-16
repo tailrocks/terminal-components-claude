@@ -58,6 +58,9 @@ pub struct HitRegistry {
     barriers: Vec<usize>,
     /// Scrollbars registered this frame.
     bars: Vec<Bar>,
+    /// Edge-autoscroll areas registered this frame, each with the layer
+    /// (barrier count) it was registered in, so barriers apply to it too.
+    autoscroll: Vec<(usize, Rect)>,
 }
 
 impl HitRegion {
@@ -169,6 +172,27 @@ impl HitRegistry {
             backdrop: false,
             surface: false,
         });
+    }
+
+    /// Register the scrolling body of a widget whose pointer drag selects
+    /// (a grid's cells, a text field's text): while a press that started
+    /// inside it is held with the pointer past its edges, the pointer
+    /// state autoscrolls (see
+    /// [`PointerState::autoscroll_due`](super::pointer::PointerState::autoscroll_due)).
+    pub fn register_autoscroll(&mut self, area: Rect) {
+        if !area.is_empty() {
+            self.autoscroll.push((self.barriers.len(), area));
+        }
+    }
+
+    /// The topmost reachable autoscroll area under `pos`.
+    pub fn autoscroll_at(&self, pos: Position) -> Option<Rect> {
+        let layer = self.barriers.len();
+        self.autoscroll
+            .iter()
+            .rev()
+            .find(|(at, area)| *at == layer && area.contains(pos))
+            .map(|(_, area)| *area)
     }
 
     /// Everything registered before this call is unreachable by the mouse.
