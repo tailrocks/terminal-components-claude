@@ -4,4 +4,5 @@ pub mod ctx;
 pub mod fade;
 pub mod layout;
 pub mod popup;
+pub mod reveal;
 pub mod text;
