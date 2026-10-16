@@ -579,6 +579,24 @@ mod tests {
     use super::*;
     use ratatui::layout::Rect;
 
+    /// Standards review (5): a backdrop click dismisses a dialog only when
+    /// both the press and the release land on the backdrop; a drag out of
+    /// the dialog (or into it) is no dismissal.
+    #[test]
+    fn a_backdrop_click_needs_press_and_release_on_the_backdrop() {
+        let mut hits = HitRegistry::default();
+        hits.register_surface(WidgetId::of("dlg"), Rect::new(10, 5, 20, 6));
+        let inside = Position::new(12, 6);
+        let outside = Position::new(1, 1);
+        let mut p = PointerState::default();
+        p.on_down(&hits, inside);
+        assert_eq!(p.release(hits.hit(outside)), Release::Cancelled);
+        p.on_down(&hits, outside);
+        assert_eq!(p.release(hits.hit(inside)), Release::Cancelled);
+        p.on_down(&hits, outside);
+        assert_eq!(p.release(hits.hit(Position::new(2, 2))), Release::Outside);
+    }
+
     fn hits() -> (HitRegistry, WidgetId, WidgetId) {
         let mut h = HitRegistry::default();
         let a = WidgetId::of("a");
