@@ -312,8 +312,9 @@ impl StateGrid {
         (w, h)
     }
 
-    /// The glyph that depicts a focus bar under `t`.
-    fn mark(&self, t: &Theme) -> &'static str {
+    /// The glyph that depicts a focus bar under `t`: [`Self::focus_mark`],
+    /// or its default. A legend that explains the mark draws this one.
+    pub fn mark(&self, t: &Theme) -> &'static str {
         self.focus_mark.unwrap_or(if t.glyphs.focus_bar.is_ascii() {
             ":"
         } else {

@@ -124,8 +124,8 @@ fn the_strip_switches_sections_by_key_and_click() {
     h.focus_strip();
     h.key(KeyCode::Right);
     assert_eq!(h.section(), Section::Options);
-    assert!(h.text().contains("No page options yet"));
-    assert!(h.text().contains("i, then Options"));
+    // the page's option controls (SC7)
+    assert!(h.text().contains("Focus ring"));
     assert!(!h.text().contains("Run task"), "one section at a time");
     h.key(KeyCode::Char('3'));
     assert_eq!(h.section(), Section::States);

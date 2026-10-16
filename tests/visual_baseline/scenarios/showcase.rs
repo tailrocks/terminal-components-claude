@@ -111,7 +111,11 @@ pub const SURFACES: &[Root] = &[
     // page's option table (none yet: it points at the Inspector); States is
     // the page's StateGrid.
     // Pending first approval.
-    Root::new("showcase/sections/buttons-options", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
+    Root::new("showcase/sections/buttons-options", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab", "2", "wait:Focus ring"]).pending(),
+    // SC7: the button row folded and wrapped, a toolbar tool hovered
+    Root::new("showcase/flows/buttons/row-folded", Bin::Showcase, &["--page", "buttons", "--opt", "buttons.row_width=30"], BOOT).pending(),
+    Root::new("showcase/flows/buttons/row-wrapped", Bin::Showcase, &["--page", "buttons", "--opt", "buttons.row_width=30", "--opt", "buttons.row_overflow=wrap"], BOOT).pending(),
+    Root::new("showcase/elements/buttons/tool-hover", Bin::Showcase, &["--page", "buttons"], BOOT).hover("Format").pending(),
     Root::new("showcase/sections/buttons-states", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
     Root::new("showcase/sections/inputs-options", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "2", "wait:No page options yet"]).pending(),
     Root::new("showcase/sections/inputs-states", Bin::Showcase, &["--page", "inputs"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
