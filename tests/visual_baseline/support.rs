@@ -32,7 +32,8 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::ansi_cursor;
 use tuiscotti::diff;
@@ -265,6 +266,83 @@ fn write_file(path: &Path, bytes: &[u8]) {
     std::fs::write(path, bytes).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
 }
 
+/// Everything a capture writes under [`actual_root`] for one scenario.
+const ACTUAL_EXTS: [&str; 5] = ["ansi", "run", "frame.json", "png", "html"];
+
+/// Remove what an earlier run left under [`actual_root`] for `name`, so a
+/// run that skips the scenario or fails before its capture leaves no actual
+/// behind for `cargo xtask visual accept` to pick up.
+pub fn clear_actual(name: &str) {
+    for ext in ACTUAL_EXTS {
+        let path = artifact_path(&actual_root(), name, ext);
+        if let Err(e) = std::fs::remove_file(&path)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            panic!("remove {}: {e}", path.display());
+        }
+    }
+}
+
+/// The run this process captures for: nextest's `NEXTEST_RUN_ID` (one id
+/// per `cargo nextest run`), else one id per test-binary process.
+pub fn run_id() -> &'static str {
+    static ID: OnceLock<String> = OnceLock::new();
+    ID.get_or_init(|| match std::env::var("NEXTEST_RUN_ID") {
+        Ok(id) if !id.is_empty() => format!("nextest-{id}"),
+        _ => {
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map_or(0, |d| d.as_nanos());
+            format!("local-{}-{nanos}", std::process::id())
+        }
+    })
+}
+
+/// FNV-1a (64 bit) of the actual `.ansi`, recorded in its run stamp so
+/// `accept` copies only the exact bytes that run captured.
+pub fn fnv1a64(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
+        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+    })
+}
+
+/// The `<name>.run` stamp written next to every actual `.ansi`:
+/// `run=<run id>` and `fnv1a64=<hash of the .ansi>`. `cargo xtask visual
+/// accept` refuses actuals whose stamp is missing, does not match, or names
+/// an older run than the newest one in its selection.
+pub fn run_stamp(ansi: &[u8]) -> String {
+    format!("run={}\nfnv1a64={:016x}\n", run_id(), fnv1a64(ansi))
+}
+
+/// Default-run check: the stamp names this run and hashes the bytes the way
+/// `cargo xtask visual accept` verifies them (xtask's `stamps_bind_run_and_bytes`
+/// reads the same format), and [`clear_actual`] leaves nothing behind.
+pub fn run_stamp_names_run_and_bytes() {
+    assert_eq!(fnv1a64(b""), 0xcbf2_9ce4_8422_2325);
+    assert_eq!(fnv1a64(b"a"), 0xaf63_dc4c_8601_ec8c);
+    let stamp = run_stamp(b"a");
+    assert_eq!(
+        stamp,
+        format!("run={}\nfnv1a64=af63dc4c8601ec8c\n", run_id())
+    );
+    match std::env::var("NEXTEST_RUN_ID") {
+        Ok(id) if !id.is_empty() => assert_eq!(run_id(), format!("nextest-{id}")),
+        _ => assert!(run_id().starts_with("local-")),
+    }
+    let name = format!("probe/stamp-check-{}/1x1/truecolor", std::process::id());
+    for ext in ACTUAL_EXTS {
+        write_file(&artifact_path(&actual_root(), &name, ext), b"stale");
+    }
+    clear_actual(&name);
+    clear_actual(&name); // nothing left is not an error
+    for ext in ACTUAL_EXTS {
+        let path = artifact_path(&actual_root(), &name, ext);
+        assert!(!path.exists(), "{} survived clear_actual", path.display());
+    }
+    let probe = actual_root().join(format!("probe/stamp-check-{}", std::process::id()));
+    std::fs::remove_dir_all(&probe).unwrap_or_else(|e| panic!("remove {}: {e}", probe.display()));
+}
+
 thread_local! {
     /// One renderer per test thread: font faces parsed once, glyph rasters
     /// cached across every render on the thread (no locks).
@@ -305,6 +383,10 @@ pub fn gate(name: &str, frame: &Frame) -> Result<(), String> {
     let approved = approved_root();
     let ansi = ansi_cursor::encode(frame);
     write_file(&artifact_path(&actual, name, "ansi"), ansi.as_bytes());
+    write_file(
+        &artifact_path(&actual, name, "run"),
+        run_stamp(ansi.as_bytes()).as_bytes(),
+    );
     write_file(
         &artifact_path(&actual, name, "frame.json"),
         frame.to_json().as_bytes(),

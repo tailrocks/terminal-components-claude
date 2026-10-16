@@ -104,7 +104,13 @@ run when `CI` is set.
    tuiscotti) and look at `target/tuiscotti/{actual,expected,diff}`.
 2. `cargo xtask visual accept '<nextest filterset>'` copies the actual
    `.ansi` of every matching scenario into `snapshots/` and drops tuisnap's
-   `.txt/.png/.html` for it.
+   `.txt/.png/.html` for it. It copies only the current run: every
+   capture writes a `<name>.run` stamp (nextest run id and a hash of the
+   `.ansi`), and `accept` refuses, writing nothing, when a selected actual
+   is unstamped, changed since, or older than the newest run in the
+   selection (for example a pending row captured by an earlier
+   `VISUAL_FULL=1` run). Each scenario test also deletes its previous
+   actual before running, so a skip or an early failure leaves none.
 3. `cargo nextest run --all-targets` (`store_integrity` must stay green).
 4. Commit the `snapshots/` change on its own, with a message that names the
    visual change, why, and the scenarios touched. AGENTS.md requires
