@@ -25,7 +25,8 @@ use crate::widgets::hintbar::HintKeys;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::too_small::TooSmall;
 
-use super::StatusLine;
+use super::{Cx, Request, StatusLine};
+use crate::ui::context::ContextConfig;
 
 /// Which page of an app is mounted, for focus upkeep: when it changes,
 /// focus that lost its control goes to the new page's
@@ -77,6 +78,9 @@ pub struct Shell<P = ()> {
     pub focus_fallback: FocusFallback,
     /// The keys of the footer hints drawn last frame: a click replays one.
     pub footer_keys: HintKeys,
+    /// Which keys open a context menu, handed to every page's [`Cx`]
+    /// ([`ContextConfig::DEFAULT`] unless the app sets one).
+    pub context: ContextConfig,
     footer: Option<FooterDrawn>,
     page: Option<PageKey>,
 }
@@ -101,6 +105,7 @@ impl<P> Shell<P> {
             motion: Motion::Full,
             focus_fallback: FocusFallback::Nearest,
             footer_keys: HintKeys::default(),
+            context: ContextConfig::DEFAULT,
             footer: None,
             page: None,
         }
@@ -113,6 +118,32 @@ impl<P> Shell<P> {
             hits: &self.hits,
             focus: &mut self.focus,
             ring: &self.ring,
+        }
+    }
+
+    /// A fresh event context over this shell's focus and ring, with its
+    /// context-menu keys.
+    pub fn cx<R, W: ?Sized, G>(&mut self) -> Cx<'_, R, W, G> {
+        Cx::new(&mut self.focus, &self.ring).context(self.context)
+    }
+
+    /// Hand an event to a page: run `f` in a fresh [`Cx`] and return its
+    /// outcome with what the page asked for. A page that is not `shown`
+    /// (a background tab, another route) keeps only its statuses (the
+    /// background-request policy, [`super::background`]). The app applies
+    /// the requests.
+    pub fn deliver<R, W: ?Sized, G>(
+        &mut self,
+        shown: bool,
+        f: impl FnOnce(&mut Cx<'_, R, W, G>) -> Outcome,
+    ) -> (Outcome, Vec<Request<R, W, G>>) {
+        let mut cx = self.cx();
+        let o = f(&mut cx);
+        let reqs = cx.take();
+        if shown {
+            (o, reqs)
+        } else {
+            (o, super::background(reqs).collect())
         }
     }
 

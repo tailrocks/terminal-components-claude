@@ -359,11 +359,10 @@ impl App {
     /// Ctrl+N on the connection list: a new form, asking first when it
     /// would replace an edited one.
     fn new_connection(&mut self) -> Outcome {
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let o = self
-            .connections
-            .leave_form(crate::connections::FormLeave::New, &mut cx);
-        let reqs = cx.take();
+        let (o, reqs) = self.shell.deliver(true, |cx| {
+            self.connections
+                .leave_form(crate::connections::FormLeave::New, cx)
+        });
         o.or(self.apply_requests(reqs))
     }
 
@@ -466,9 +465,10 @@ impl App {
         if self.shell.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let o = Page::on_tick(&mut self.connections, &mut self.history, &mut cx);
-        let reqs = cx.take();
+        // a connect finishes on the Connections page, which is shown
+        let (o, reqs) = self.shell.deliver(true, |cx| {
+            Page::on_tick(&mut self.connections, &mut self.history, cx)
+        });
         out = out.or(o).or(self.apply_requests(reqs));
         if let Some(left) = self.committing.as_mut() {
             *left = left.saturating_sub(1);
@@ -543,19 +543,19 @@ impl App {
         &mut self,
         f: impl FnOnce(&mut dyn Page<Tablepro>, &mut History, &mut Cx) -> Outcome,
     ) -> Outcome {
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
-            Screen::Connections => Some(&mut self.connections),
-            Screen::Workbench => self
-                .workbench
-                .as_mut()
-                .map(|w| w as &mut dyn Page<Tablepro>),
-        };
-        let o = match page {
-            Some(p) => f(p, &mut self.history, &mut cx),
-            None => Outcome::Ignored,
-        };
-        let reqs = cx.take();
+        let (o, reqs) = self.shell.deliver(true, |cx| {
+            let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
+                Screen::Connections => Some(&mut self.connections),
+                Screen::Workbench => self
+                    .workbench
+                    .as_mut()
+                    .map(|w| w as &mut dyn Page<Tablepro>),
+            };
+            match page {
+                Some(p) => f(p, &mut self.history, cx),
+                None => Outcome::Ignored,
+            }
+        });
         o.or(self.apply_requests(reqs))
     }
 
@@ -1999,9 +1999,11 @@ impl App {
 
     fn dialog_closed(&mut self, id: WidgetId, result: DialogResult) -> Outcome {
         if self.connections.leave.is_dialog(id) {
-            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-            let quit = self.connections.resolve_leave(result, &mut cx);
-            let reqs = cx.take();
+            let mut quit = false;
+            let (_, reqs) = self.shell.deliver(true, |cx| {
+                quit = self.connections.resolve_leave(result, cx);
+                Outcome::Ignored
+            });
             self.apply_requests(reqs);
             if quit {
                 // the form is settled; anything else still asks
@@ -2214,12 +2216,12 @@ impl App {
         // a header command runs on the grid itself
         if let (context::Target::Header(col), Some(action)) = (target, header) {
             self.shell.focus.focus(owner);
-            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-            let o = match self.workbench.as_mut() {
-                Some(w) => w.on_header_action(col, action, &mut cx, &mut self.history),
-                None => Outcome::Ignored,
-            };
-            let reqs = cx.take();
+            let (o, reqs) = self
+                .shell
+                .deliver(true, |cx| match self.workbench.as_mut() {
+                    Some(w) => w.on_header_action(col, action, cx, &mut self.history),
+                    None => Outcome::Ignored,
+                });
             return self.apply_requests(reqs).or(o).or(Outcome::Changed);
         }
         if let context::Target::App = target {
@@ -2463,18 +2465,20 @@ impl shell::App for App {
     /// end their edits on the event path.
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.layers.on_blur(ch);
-        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        out = out.or(Page::on_blur(
-            &mut self.connections,
-            ch,
-            &mut self.history,
-            &mut cx,
-        ));
-        if let Some(w) = self.workbench.as_mut() {
-            out = out.or(Page::on_blur(w, ch, &mut self.history, &mut cx));
-        }
-        let reqs = cx.take();
-        out.or(self.apply_requests(reqs))
+        // the hidden page keeps only its statuses (`Shell::deliver`)
+        let connections = self.screen == Screen::Connections;
+        let (o, front) = self.shell.deliver(connections, |cx| {
+            Page::on_blur(&mut self.connections, ch, &mut self.history, cx)
+        });
+        out = out.or(o);
+        let (o, back) = self
+            .shell
+            .deliver(!connections, |cx| match self.workbench.as_mut() {
+                Some(w) => Page::on_blur(w, ch, &mut self.history, cx),
+                None => Outcome::Ignored,
+            });
+        out = out.or(o).or(self.apply_requests(front));
+        out.or(self.apply_requests(back))
     }
     fn layer_open(&self) -> bool {
         !self.layers.is_empty()
