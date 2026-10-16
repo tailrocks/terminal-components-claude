@@ -1586,6 +1586,36 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
     );
 }
 
+/// SC14 finding (showcase-pages-navigation.md): the `+N` overflow menu
+/// opened by pointer only. ↓ on the focused strip (the menu-button key)
+/// opens it with its first row highlighted; Enter activates that tab. With
+/// nothing hidden ↓ does what it did.
+#[test]
+fn down_on_the_strip_opens_the_overflow_menu() {
+    let mut h = H::connected(80, 24);
+    h.app.focus.focus(crate::workbench::TABSTRIP);
+    h.draw();
+    h.key(KeyCode::Down);
+    assert!(!h.wb().strip.menu_open(), "nothing hidden: no menu");
+    {
+        let wb = h.app.workbench.as_mut().unwrap();
+        for _ in 0..12 {
+            wb.new_query("");
+        }
+        wb.set_active(0);
+    }
+    h.app.focus.focus(crate::workbench::TABSTRIP);
+    h.draw();
+    let hidden = h.wb().strip.hidden().1;
+    assert!(hidden > 0, "{}", h.text());
+    h.key(KeyCode::Down);
+    assert!(h.wb().strip.menu_open(), "{}", h.text());
+    let first_hidden = h.wb().tabs.len() - hidden;
+    h.key(KeyCode::Enter);
+    assert!(!h.wb().strip.menu_open());
+    assert_eq!(h.wb().active, first_hidden, "{}", h.text());
+}
+
 /// Type-ahead and single-letter shortcuts (keyboard.md decision log): the
 /// connection tree type-selects (S4), but `q` (Quit) is a shortcut in that
 /// context, so it quits instead of being typed; an unbound letter still

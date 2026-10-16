@@ -342,6 +342,7 @@ widgets::chips::ChipAction::Remove | widget actions: the Inspector State log of 
 widgets::chips::ChipAction::Add | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipAction::Lead | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipAction::ClearAll | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::chips::ChipCmd::ShowHidden | Chips & selects page options | SC10
 
 # widgets::choice
 
@@ -769,3 +770,4 @@ widgets::table::DataTable::type_ahead_precedence | type-ahead precedence on the 
 widgets::table::DataTable::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
 widgets::tree::TreeView::type_ahead_precedence | type-ahead precedence on the Scrolling page options | SC29
 widgets::tree::TreeView::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
+widgets::tabs::TabCmd::ShowHidden | Tabs page | SC14
