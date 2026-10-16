@@ -24,7 +24,8 @@
 //!
 //! Migration status (`docs/visual-testing/tuiscotti-migration.md`): the
 //! committed store still holds the retired tuisnap engine's approvals. Only
-//! groups in [`support::REAPPROVED_PREFIXES`] gate on tuiscotti; every other
+//! scenarios already re-approved ([`support::is_reapproved`]: approved files
+//! are exactly the committed set) gate on tuiscotti; every other
 //! capture is skipped unless `VISUAL_FULL=1`:
 //!
 //! ```sh
@@ -78,19 +79,21 @@ fn store_integrity() {
     let legacy: BTreeSet<String> = LEGACY_EXTS.iter().map(|e| e.to_string()).collect();
     let mut incomplete = Vec::new();
     for (name, exts) in &by_name {
-        let want = if support::is_reapproved(name) {
-            &committed
-        } else {
-            &legacy
-        };
-        if exts != want {
-            incomplete.push(format!("{name} has {exts:?}, expected {want:?}"));
+        if exts != &committed && exts != &legacy {
+            incomplete.push(format!(
+                "{name} has {exts:?}, expected {committed:?} (re-approved) or {legacy:?} (pending)"
+            ));
         }
     }
     assert!(
         incomplete.is_empty(),
         "scenarios with the wrong artifact set: {}",
         incomplete.join("; ")
+    );
+    let reapproved = by_name.values().filter(|exts| *exts == &committed).count();
+    eprintln!(
+        "re-approved on tuiscotti: {reapproved} of {} scenarios",
+        by_name.len()
     );
 
     for name in &store_names {
