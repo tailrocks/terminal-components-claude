@@ -51,7 +51,7 @@ pub struct ChoiceDialog {
     /// reading them follows a change ([`Strings::follow`]).
     strings: Strings,
     /// Which keys move between the buttons (←/→, and `h`/`l` with vim on).
-    /// Default [`NavKeys::DEFAULT`].
+    /// Default [`NavKeys::default`].
     pub nav: NavKeys,
     /// How ←/→ move between the buttons ([`ButtonRow::step`](crate::widgets::button::ButtonRow::step)).
     /// Default [`crate::widgets::button::ButtonRow::new`]: disabled
@@ -91,7 +91,7 @@ impl ChoiceDialog {
             area: Rect::ZERO,
             option_tones: vec![],
             strings: Strings::DEFAULT,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             button_row: crate::widgets::button::ButtonRow::new(),
         }
     }

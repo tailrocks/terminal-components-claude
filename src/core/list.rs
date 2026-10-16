@@ -568,6 +568,12 @@ mod tests {
         let down = key(KeyCode::Down, KeyModifiers::NONE);
         let ctrl_j = key(KeyCode::Char('j'), KeyModifiers::CONTROL);
         let space = key(KeyCode::Char(' '), KeyModifiers::NONE);
+        let question = key(KeyCode::Char('?'), KeyModifiers::NONE);
+        assert_eq!(
+            KeyStep::of(&question, &NavKeys::DESKTOP, true),
+            None,
+            "punctuation stays the app's (`?` help, `/` find)"
+        );
         assert_eq!(
             KeyStep::of(&j, &NavKeys::VIM, true),
             Some(KeyStep::Type('j'))

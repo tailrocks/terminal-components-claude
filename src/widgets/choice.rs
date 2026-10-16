@@ -169,7 +169,7 @@ pub struct RadioGroup {
     pub cursor: usize,
     pub disabled: bool,
     pub areas: Vec<Rect>,
-    /// Which keys move the choice (default [`NavKeys::DEFAULT`]: ↑/↓, `k`/`j`,
+    /// Which keys move the choice (default [`NavKeys::default`]: ↑/↓, `k`/`j`,
     /// Home/End and `g`/`G`).
     pub nav: NavKeys,
 }
@@ -190,7 +190,7 @@ impl RadioGroup {
             cursor: selected,
             disabled: false,
             areas: vec![],
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
         }
     }
 

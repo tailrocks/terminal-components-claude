@@ -87,7 +87,7 @@ pub struct Tabs {
     pub middle_click_closes: bool,
     /// ←/→ past the last tab lands on the first and back. Default off.
     pub wrap: bool,
-    /// Which keys move between tabs (default [`NavKeys::DEFAULT`]: ←/→,
+    /// Which keys move between tabs (default [`NavKeys::default`]: ←/→,
     /// `h`/`l`, Home/End, `g`/`G`).
     pub nav: NavKeys,
     /// The strip's action keys (default [`TabCmd::default_keymap`]:
@@ -220,7 +220,7 @@ impl Tabs {
             rule: TabRule::Auto,
             middle_click_closes: true,
             wrap: false,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: TabCmd::default_keymap(),
             close_button: IconButton::close(WidgetId::of("tabs.close")),
             close_reveal: CloseReveal::Always,
@@ -246,7 +246,7 @@ impl Tabs {
             rule: TabRule::Auto,
             middle_click_closes: true,
             wrap: false,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: TabCmd::default_keymap(),
             close_button: IconButton::close(WidgetId::of("tabs.close")),
             close_reveal: CloseReveal::Always,

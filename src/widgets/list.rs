@@ -106,13 +106,14 @@ pub struct ListBox {
     pub skip_disabled: bool,
     /// What a single click on a row does. Default [`ClickAction::Activate`].
     pub click: ClickAction,
-    /// Typing a prefix jumps to the matching row (macOS lists). Off by
-    /// default: plain letters keep their vim and action bindings.
+    /// Typing a prefix jumps to the matching row (macOS lists, APG
+    /// listbox). Default from the [`crate::core::list::NavProfile`]: on
+    /// under `Desktop`, off under `Vim`. A bound key (Multi `a`) wins.
     pub type_ahead: bool,
     /// ↑ on the first row lands on the last and ↓ on the last on the
     /// first. Default off: it stops at the end.
     pub wrap: bool,
-    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]: arrows,
+    /// Which keys move the cursor (default [`NavKeys::default`]: arrows,
     /// vim letters, paging, Home/End).
     pub nav: NavKeys,
     /// The list's own action keys (default [`ListCmd::default_keymap`]).
@@ -162,9 +163,9 @@ impl ListBox {
             scrollbar_gap: scrollbar::GAP,
             skip_disabled: true,
             click: ClickAction::Activate,
-            type_ahead: false,
+            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
             wrap: false,
-            nav: NavKeys::DEFAULT,
+            nav: NavKeys::default(),
             keymap: ListCmd::default_keymap(),
             typeahead: Default::default(),
         }
@@ -906,10 +907,16 @@ mod scroll_tests {
         assert_eq!(l.cursor, 3);
         press(&mut l, KeyCode::Char('x'));
         assert_eq!(l.cursor, 3, "no match leaves the cursor");
-        let mut vim = disabled_list();
+        let mut desk = disabled_list();
+        desk.cursor = 1;
+        press(&mut desk, KeyCode::Char('d'));
+        assert_eq!(desk.cursor, 3, "on by default (Desktop profile, K34)");
+        let mut vim = disabled_list()
+            .nav(crate::core::keymap::NavKeys::VIM)
+            .type_ahead(false);
         vim.cursor = 1;
         press(&mut vim, KeyCode::Char('j'));
-        assert_eq!(vim.cursor, 3, "off by default: j still moves down");
+        assert_eq!(vim.cursor, 3, "off with vim keys: j moves down");
     }
 
     #[test]
