@@ -317,11 +317,6 @@ impl CodeEditor {
         self
     }
 
-    /// The editor itself or one of its scrollbars.
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || scrollbar::is_bar_of(id, self.id)
-    }
-
     /// The horizontal scroll position: what the bar shows.
     pub fn hbar(&self) -> &ScrollState {
         &self.scroll.h
@@ -1631,7 +1626,6 @@ mod tests {
             hits.hit(Position::new(editor.scroll.h_track().x + 1, y)),
             Some(scrollbar::h_id_for(editor.id))
         );
-        assert!(editor.owns(scrollbar::h_id_for(editor.id)));
         let start = thumb(&buf).unwrap();
 
         assert_eq!(

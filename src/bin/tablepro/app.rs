@@ -2024,7 +2024,7 @@ impl App {
     }
 
     fn dialog_closed(&mut self, id: WidgetId, result: DialogResult) -> Outcome {
-        if self.connections.leave.owns(id) {
+        if self.connections.leave.is_dialog(id) {
             let mut cx = Cx {
                 focus: &mut self.focus,
                 ring: &self.ring,
@@ -2112,7 +2112,7 @@ impl App {
             return self.layer_pointer(ev);
         }
         if ev.is(Phase::Secondary) {
-            return self.on_secondary(ev.pos(), ev.id);
+            return self.on_secondary(ev);
         }
         if ev.is(Phase::Click)
             && let Some(o) = self.chrome_click(ev)
@@ -2207,16 +2207,16 @@ impl App {
         None
     }
 
-    /// A secondary click on `id`: the context menu of the row, cell or tab
+    /// A secondary click `ev`: the context menu of the row, cell or tab
     /// under it. Dialogs and the other overlays have none.
-    fn on_secondary(&mut self, pos: Position, id: WidgetId) -> Outcome {
+    fn on_secondary(&mut self, ev: &PointerEvent) -> Outcome {
         if !self.layers.is_empty() {
             return Outcome::Consumed;
         }
         let cfg = self.context;
         let menu = match (self.screen, self.workbench.as_mut()) {
             (Screen::Workbench, Some(w)) => {
-                let menu = context::on_secondary(w, &cfg, id, pos);
+                let menu = context::on_secondary(w, &cfg, ev);
                 // the detail pane follows the row the menu is about
                 if let Some(WorkTab::History(h)) = w.active_tab_mut() {
                     h.sync_detail_public(&self.history);
@@ -2224,7 +2224,7 @@ impl App {
                 menu
             }
             (Screen::Connections, _) => {
-                context::on_secondary_connections(&mut self.connections, &cfg, id, pos)
+                context::on_secondary_connections(&mut self.connections, &cfg, ev)
             }
             _ => None,
         };

@@ -469,7 +469,7 @@ impl Page for ListsPage {
                 let hit = self
                     .lists()
                     .into_iter()
-                    .find_map(|l| cfg.on_secondary(l, ev.id, ev.pos()).map(|req| (l.id, req)));
+                    .find_map(|l| cfg.on_secondary(l, ev).map(|req| (l.id, req)));
                 let Some((list, req)) = hit else {
                     return Outcome::Ignored;
                 };

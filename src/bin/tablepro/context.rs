@@ -15,6 +15,7 @@ use ratatui::layout::{Position, Rect};
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::columns::HeaderAction;
 use junie_tui::ui::context::{ContextConfig, ContextRequest};
 use junie_tui::ui::ctx::RenderCtx;
@@ -142,9 +143,6 @@ impl Layer<ModalResult> for CtxMenu {
     fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
         Layer::<ModalResult>::take_result(&mut self.menu)
     }
-    fn owns(&self, id: WidgetId) -> bool {
-        Layer::<ModalResult>::owns(&self.menu, id)
-    }
 }
 
 fn plain(code: KeyCode) -> Key {
@@ -186,22 +184,17 @@ fn group(items: &mut Items) {
     }
 }
 
-/// The menu for a secondary click on hit `id` at `pos`, moving the
-/// widget's cursor there per `cfg`.
-pub fn on_secondary(
-    w: &mut Workbench,
-    cfg: &ContextConfig,
-    id: WidgetId,
-    pos: Position,
-) -> Option<CtxMenu> {
-    if let Some(req) = cfg.on_secondary(&mut w.explorer, id, pos) {
+/// The menu for a secondary click `ev`, moving the widget's cursor there
+/// per `cfg`.
+pub fn on_secondary(w: &mut Workbench, cfg: &ContextConfig, ev: &PointerEvent) -> Option<CtxMenu> {
+    if let Some(req) = cfg.on_secondary(&mut w.explorer, ev) {
         return Some(build(w, req.map(Target::Explorer)));
     }
-    if let Some(req) = cfg.on_secondary(&mut w.strip, id, pos) {
+    if let Some(req) = cfg.on_secondary(&mut w.strip, ev) {
         return Some(build(w, req.map(Target::Tab)));
     }
     if let Some(g) = w.active_grid_any_mut()
-        && let Some(col) = g.locate_header_menu(id)
+        && let Some(col) = g.header_menu_at(ev)
     {
         let owner = g.id;
         let (header, items): (Vec<HeaderAction>, Vec<MenuItem>) =
@@ -209,7 +202,7 @@ pub fn on_secondary(
         let keys = vec![None; items.len()];
         return Some(CtxMenu {
             menu: ContextMenu::new(MENU, items)
-                .at(pos)
+                .at(ev.pos())
                 .title(g.columns[col].name.clone()),
             target: Target::Header(col),
             owner,
@@ -220,12 +213,12 @@ pub fn on_secondary(
     }
     let req = match w.active_tab_mut()? {
         WorkTab::Table(t) => cfg
-            .on_secondary(&mut t.grid, id, pos)?
+            .on_secondary(&mut t.grid, ev)?
             .map(|(r, c)| Target::Grid(r, c)),
         WorkTab::Query(q) => cfg
-            .on_secondary(q.active_grid_mut()?, id, pos)?
+            .on_secondary(q.active_grid_mut()?, ev)?
             .map(|(r, c)| Target::Results(r, c)),
-        WorkTab::History(h) => cfg.on_secondary(&mut h.list, id, pos)?.map(Target::History),
+        WorkTab::History(h) => cfg.on_secondary(&mut h.list, ev)?.map(Target::History),
     };
     Some(build(w, req))
 }
@@ -289,15 +282,14 @@ pub fn select(w: &mut Workbench, target: Target) {
     }
 }
 
-/// The connections list's menu for a secondary click on hit `id` at
-/// `pos`, moving its cursor (and the selected connection) there per `cfg`.
+/// The connections list's menu for a secondary click `ev`, moving its
+/// cursor (and the selected connection) there per `cfg`.
 pub fn on_secondary_connections(
     c: &mut ConnectionsScreen,
     cfg: &ContextConfig,
-    id: WidgetId,
-    pos: Position,
+    ev: &PointerEvent,
 ) -> Option<CtxMenu> {
-    let req = cfg.on_secondary(c.tree_mut(), id, pos)?;
+    let req = cfg.on_secondary(c.tree_mut(), ev)?;
     c.select_row(req.target);
     Some(build_connection(c, req.map(Target::Connection)))
 }

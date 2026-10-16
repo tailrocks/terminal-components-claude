@@ -18,7 +18,6 @@ use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
-use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PickerItem {
@@ -474,12 +473,6 @@ impl Picker {
     fn row_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
-    }
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
-    }
 
     /// A keyboard move: the next render keeps the cursor in view.
     fn move_to(&mut self, i: usize) {
@@ -636,12 +629,18 @@ impl Picker {
         }
     }
 
+    /// The drawn row `id` is (the inverse [`Self::on_click`] needs until
+    /// S15 hands it the routed part).
+    fn row_of(&self, id: WidgetId) -> Option<usize> {
+        self.parts.index(id, Part::ROW)
+    }
+
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
         // a click outside lands on the picker's backdrop
         if id == crate::ui::popup::backdrop_id(self.id) {
             return self.on_click_outside();
         }
-        let i = self.eligible(self.locate(id)?)?;
+        let i = self.eligible(self.row_of(id)?)?;
         self.cursor = i;
         self.cursor_dirty = true;
         self.scroll.pointer_move();

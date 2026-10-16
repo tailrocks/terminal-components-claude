@@ -275,7 +275,7 @@ impl InfoDialog {
     }
 
     pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus) -> Outcome {
-        if let Some(i) = self.props.locate(id) {
+        if let Some(i) = self.props.row_of(id) {
             focus.focus(self.props.id);
             let (o, _) = self.props.on_click(i);
             if let Some(Some(v)) = self.copy_values.get(i) {

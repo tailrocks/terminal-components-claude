@@ -348,7 +348,7 @@ impl ChipBar {
 
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ChipAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
-            && menu.owns(id)
+            && menu.contains_id(id)
         {
             let ev = menu.on_click(id);
             return (Outcome::Changed, self.menu_event(ev));
@@ -378,22 +378,6 @@ impl ChipBar {
             }
         }
         (Outcome::Ignored, None)
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id
-            || id == self.add_id()
-            || id == self.lead_id()
-            || id == self.more_id()
-            || self.menu.as_ref().is_some_and(|(m, _)| m.owns(id))
-            || self
-                .id
-                .item_of(id, Part::ROW, 0..self.chips.len())
-                .is_some()
-            || self
-                .id
-                .item_of(id, Part::CLOSE, 0..self.chips.len())
-                .is_some()
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -869,12 +853,12 @@ mod overflow_tests {
             .expect("the +N marker is a target");
         // a padded plate (docs/design/close-button.md): one cell either
         // side of `+N`, the gap cells, so nothing moves at rest
-        let (buf, _) = render_hits(&mut bar, 24);
+        let (buf, hits) = render_hits(&mut bar, 24);
         let plate: String = (more.left()..more.right())
             .map(|x| buf[(x, 0)].symbol().to_owned())
             .collect();
         assert!(plate.starts_with(" +") && plate.ends_with(' '), "{plate:?}");
-        assert!(bar.owns(bar.more_id()));
+        assert_eq!(hits.part_of(bar.more_id()).map(|h| h.owner), Some(bar.id));
         assert_eq!(bar.on_click(bar.more_id()).1, None);
         assert!(bar.menu_open());
         let (buf, hits) = render_hits(&mut bar, 24);
@@ -883,7 +867,7 @@ mod overflow_tests {
         let hidden = bar.chips.len() - bar.shown;
         let last = bar.menu.as_ref().unwrap().0.row_id(hidden - 1);
         assert!(hits.area_of(last).is_some());
-        assert!(bar.owns(last));
+        assert_eq!(hits.part_of(last).map(|h| h.owner), Some(bar.menu_id()));
         assert_eq!(bar.on_click(last).1, Some(ChipAction::Activate(3)));
         assert_eq!(bar.cursor, 3);
         assert!(!bar.menu_open());
@@ -900,7 +884,7 @@ mod overflow_tests {
         let outside = hits
             .hit(ratatui::layout::Position::new(more.x, 11))
             .expect("the menu's backdrop");
-        assert!(bar.owns(outside));
+        assert_eq!(hits.part_of(outside).map(|h| h.owner), Some(bar.menu_id()));
         bar.on_click(outside);
         assert!(!bar.menu_open());
         // off: the marker is plain text

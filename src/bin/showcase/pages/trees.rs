@@ -538,7 +538,7 @@ impl Page for TreesPage {
             }
             PageEvent::Pointer(ev) if ev.is(Phase::Secondary) => {
                 let cfg = self.menu.config;
-                let Some(req) = cfg.on_secondary(&mut self.tree, ev.id, ev.pos()) else {
+                let Some(req) = cfg.on_secondary(&mut self.tree, ev) else {
                     return Outcome::Ignored;
                 };
                 cx.focus.focus(self.tree.id);

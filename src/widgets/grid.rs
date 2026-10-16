@@ -1902,13 +1902,18 @@ impl DataGrid {
     pub fn seam_id(&self, c: usize) -> WidgetId {
         self.id.part(crate::ui::columns::seam_part(c))
     }
-    pub fn locate_seam(&self, id: WidgetId) -> Option<usize> {
+    /// The column whose seam `id` is.
+    fn seam_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
-    /// The column whose header menu a secondary click on `id` opens (its
+    /// The column whose header menu the secondary click `ev` opens (its
     /// header or its seam).
-    pub fn locate_header_menu(&self, id: WidgetId) -> Option<usize> {
-        self.locate_header(id).or_else(|| self.locate_seam(id))
+    pub fn header_menu_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
+        if !ev.on(self.id) {
+            return None;
+        }
+        ev.index_of(Part::HEADER)
+            .or_else(|| ev.index_of(Part::SEAM))
     }
     pub fn rownum_id(&self, display: usize) -> WidgetId {
         self.id.part(Self::rownum_part(display))
@@ -1927,29 +1932,19 @@ impl DataGrid {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-    pub fn owns(&self, id: WidgetId) -> bool {
-        self.choice.as_ref().is_some_and(|c| c.editor.owns(id))
-            || self.locate_open(id).is_some()
-            || id == self.id
-            || scrollbar::is_bar_of(id, self.id)
-            || id == self.more_id()
-            || id == self.left_id()
-            || id == self.right_id()
-            || self.locate(id).is_some()
-            || self.locate_header(id).is_some()
-            || self.locate_seam(id).is_some()
-            || self.locate_rownum(id).is_some()
-            || self.bar.iter().any(|b| b.id == id)
-            || matches!(self.drag, Some(GridDrag::Cells(d) | GridDrag::Rows { id: d, .. }) if d == id)
-    }
+    // The inverses the id-taking methods (`on_press`, `on_click`,
+    // `on_drag`) need until S15 hands them the routed part.
 
-    pub fn locate(&self, id: WidgetId) -> Option<(usize, usize)> {
+    /// The (display row, column) of the cell `id`.
+    fn cell_of(&self, id: WidgetId) -> Option<(usize, usize)> {
         self.parts.cell(id, Part::CELL)
     }
-    pub fn locate_header(&self, id: WidgetId) -> Option<usize> {
+    /// The column whose header `id` is.
+    fn header_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::HEADER, 0..self.columns.len())
     }
-    pub fn locate_rownum(&self, id: WidgetId) -> Option<usize> {
+    /// The display row whose number `id` is.
+    fn rownum_of(&self, id: WidgetId) -> Option<usize> {
         self.parts.index(id, Part::ROW_NUMBER)
     }
 
@@ -1957,7 +1952,7 @@ impl DataGrid {
     /// header seam starts a resize (keeping the grab offset); the second
     /// press of a double click autofits the column.
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-        let Some(c) = self.locate_seam(id) else {
+        let Some(c) = self.seam_of(id) else {
             return Outcome::Ignored;
         };
         if !self.sizing.resizable {
@@ -1974,13 +1969,13 @@ impl DataGrid {
     }
 
     pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridAction>) {
-        if self.locate_seam(id).is_some() {
+        if self.seam_of(id).is_some() {
             // the release of a seam press or drag: the resize is done
             self.sizing.release();
             return (Outcome::Consumed, None);
         }
         if let Some(c) = self.choice.as_mut() {
-            if c.editor.owns(id) {
+            if c.editor.contains_id(id) {
                 let (out, r) = c.editor.on_click(id, &self.editor_config);
                 return (out, self.on_choice(r));
             }
@@ -2015,7 +2010,7 @@ impl DataGrid {
         if scrollbar::is_bar_of(id, self.id) {
             return (self.bar_press(pos).outcome().or(Outcome::Consumed), None);
         }
-        if let Some(c) = self.locate_header(id) {
+        if let Some(c) = self.header_of(id) {
             if self.edit.is_some() {
                 self.commit_edit();
                 if self.edit.is_some() {
@@ -2032,7 +2027,7 @@ impl DataGrid {
             };
             return self.request_sort(next);
         }
-        if let Some(d) = self.locate_rownum(id) {
+        if let Some(d) = self.rownum_of(id) {
             // the release that ends a mark-painting drag back on its
             // origin keeps the painted marks
             if let Some(GridDrag::Rows { id: from_id, .. }) = self.drag.take()
@@ -2048,7 +2043,7 @@ impl DataGrid {
             }
             return (Outcome::Changed, None);
         }
-        if let Some((d, c)) = self.locate(id) {
+        if let Some((d, c)) = self.cell_of(id) {
             if let Some(e) = &self.edit {
                 if self.order.get(d) == Some(&e.row) && e.col == c {
                     // click inside the editor places the cursor
@@ -2101,7 +2096,7 @@ impl DataGrid {
     }
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if self.locate_seam(pressed).is_some() {
+        if self.seam_of(pressed).is_some() {
             return match self.sizing.drag_to(pos.x) {
                 Some(_) => Outcome::Changed,
                 None => Outcome::Consumed,
@@ -2116,7 +2111,7 @@ impl DataGrid {
         // a drag from a row number paints the rows' marks
         let row_origin = match self.drag {
             Some(GridDrag::Rows { id, .. }) if id == pressed => None,
-            _ => self.locate_rownum(pressed),
+            _ => self.rownum_of(pressed),
         };
         if row_origin.is_some()
             || matches!(self.drag, Some(GridDrag::Rows { id, .. }) if id == pressed)
@@ -2127,7 +2122,7 @@ impl DataGrid {
         // an edge the row or column beyond it (as many as the pointer is
         // past the edge), so a held drag autoscrolls
         let from_cell = matches!(self.drag, Some(GridDrag::Cells(id)) if id == pressed)
-            || self.locate(pressed).is_some();
+            || self.cell_of(pressed).is_some();
         if !from_cell || self.body.height == 0 {
             return Outcome::Ignored;
         }
@@ -2145,6 +2140,15 @@ impl DataGrid {
     fn drag_row(&self, y: u16) -> usize {
         let d = self.scroll.offset as isize + (y as isize - self.body.y as isize);
         (d.max(0) as usize).min(self.content_rows().saturating_sub(1))
+    }
+
+    /// The column drawn under screen column `x` this frame (a cell's
+    /// column: the router resolves a cell to its row only).
+    pub(crate) fn column_at(&self, x: u16) -> Option<usize> {
+        self.col_rects
+            .iter()
+            .position(|r| x >= r.x && x < r.right())
+            .map(|k| self.scroll.h.offset + k)
     }
 
     /// The column a drag at `x` names: left of the cells the one before
@@ -3352,13 +3356,13 @@ mod tests {
                 part: PartRef::item(Part::CELL, ItemKey::index(1))
             })
         );
-        assert_eq!(g.locate(g.cell_id(1, 2)), Some((1, 2)));
+        assert_eq!(g.cell_of(g.cell_id(1, 2)), Some((1, 2)));
         let num = hits.area_of(g.rownum_id(1)).expect("row numbers are drawn");
         assert_eq!(
             hits.resolve(Position::new(num.x, num.y)).map(|h| h.part),
             Some(PartRef::item(Part::ROW_NUMBER, ItemKey::index(1)))
         );
-        assert_eq!(g.locate_rownum(g.rownum_id(1)), Some(1));
+        assert_eq!(g.rownum_of(g.rownum_id(1)), Some(1));
         for r in hits.regions().iter().filter(|r| !r.scroll_only) {
             assert_eq!(r.owner, g.id, "{r:?} belongs to the grid");
         }
@@ -3639,8 +3643,19 @@ mod tests {
         assert!(g.sizing.is_default());
         g.on_header_action(1, HeaderAction::SortDesc);
         assert_eq!(g.sort, Some((1, SortDir::Desc)));
-        assert_eq!(g.locate_header_menu(g.header_id(1)), Some(1));
-        assert_eq!(g.locate_header_menu(sid), Some(1));
+        let (_, hits) = render_at(&mut g, area, Interaction::default());
+        let secondary = |id| {
+            crate::core::pointer::PointerEvent::new(
+                &hits,
+                crate::core::intent::Phase::Secondary,
+                id,
+                Position::new(0, 0),
+                1,
+                ratatui::crossterm::event::KeyModifiers::NONE,
+            )
+        };
+        assert_eq!(g.header_menu_at(&secondary(g.header_id(1))), Some(1));
+        assert_eq!(g.header_menu_at(&secondary(sid)), Some(1));
     }
 
     #[test]
@@ -3765,7 +3780,6 @@ mod tests {
             hits.hit(Position::new(g.scroll.h_track().x + 1, y)),
             Some(scrollbar::h_id_for(g.id))
         );
-        assert!(g.owns(scrollbar::h_id_for(g.id)));
         assert!(
             !row_text(&buf, 1).contains(scrollbar::H_THUMB),
             "rows are not drawn over"

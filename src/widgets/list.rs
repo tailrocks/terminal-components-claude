@@ -445,16 +445,6 @@ impl ListBox {
         }
     }
 
-    /// Which drawn row a widget id refers to.
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
-    }
-
-    /// True if `id` is the list or any of its parts.
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
-    }
-
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {

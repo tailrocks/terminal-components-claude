@@ -301,7 +301,7 @@ pub fn route_table(
 impl TablesPage {
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
         if ev.is(Phase::Secondary) {
-            if let Some(c) = self.table.locate_header_menu(ev.id) {
+            if let Some(c) = self.table.header_menu_at(ev) {
                 cx.focus.focus(self.table.id);
                 let items = self
                     .table
@@ -317,7 +317,7 @@ impl TablesPage {
                 return Outcome::Changed;
             }
             let cfg = self.menu.config;
-            let Some(req) = cfg.on_secondary(&mut self.table, ev.id, ev.pos()) else {
+            let Some(req) = cfg.on_secondary(&mut self.table, ev) else {
                 return Outcome::Ignored;
             };
             cx.focus.focus(self.table.id);

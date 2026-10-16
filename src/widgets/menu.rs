@@ -395,16 +395,24 @@ impl ContextMenu {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
+    /// The row `id` is: the inverse the id-taking methods
+    /// ([`Self::on_click`] and the hover in [`Self::render`]) need until S15
+    /// hands them the routed part.
+    fn row_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
-    pub fn owns(&self, id: WidgetId) -> bool {
+    /// Whether `id` is the menu, its backdrop, a page marker or a row: how
+    /// a container's id-taking methods (S15) tell its open menu's clicks
+    /// from its own. Routed events use [`PointerEvent::on`] instead.
+    ///
+    /// [`PointerEvent::on`]: crate::core::pointer::PointerEvent::on
+    pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id
             || id == backdrop_id(self.id)
             || id == self.more_above_id()
             || id == self.more_below_id()
-            || self.locate(id).is_some()
+            || self.row_of(id).is_some()
     }
 
     /// Frame-inclusive size.
@@ -519,7 +527,7 @@ impl ContextMenu {
         if self.page_marker(id) {
             return None;
         }
-        match self.locate(id) {
+        match self.row_of(id) {
             Some(i) if !self.items[i].disabled => {
                 self.cursor = i;
                 self.cursor_hidden = false;
@@ -585,7 +593,7 @@ impl ContextMenu {
             self.scrolled_tick = Some(tick);
             self.on_wheel(step);
         }
-        match hover.and_then(|h| self.locate(h)) {
+        match hover.and_then(|h| self.row_of(h)) {
             Some(i) if !self.items[i].disabled => {
                 self.cursor = i;
                 self.hovering = true;
@@ -1078,18 +1086,6 @@ impl MenuBar {
             return Some(self.labels.len());
         }
         (0..self.labels.len()).find(|i| m.id == self.label_id(*i).sub("menu"))
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id
-            || id == self.brand_id()
-            || (self.chevron() && id == self.more_id())
-            || (self.open.is_some() && id == backdrop_id(self.id))
-            || self
-                .id
-                .item_of(id, Part::TAB, 0..self.labels.len())
-                .is_some()
-            || self.open.as_ref().is_some_and(|m| m.owns(id))
     }
 
     pub fn open_menu(&mut self, i: usize) {
@@ -2040,7 +2036,7 @@ mod tests {
         let r = hits.area_of(below).expect("the down marker is a target");
         assert_eq!(hits.hit(Position::new(r.x + 1, r.y)), Some(below));
         assert!(hits.area_of(m.more_above_id()).is_none(), "nothing above");
-        assert!(m.owns(below));
+        assert!(m.contains_id(below));
         assert_eq!(m.on_click(below), None);
         assert_eq!(m.offset, 5, "a click pages down");
         // resting on the up marker scrolls one row per tick

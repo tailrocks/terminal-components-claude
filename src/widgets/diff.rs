@@ -300,10 +300,6 @@ impl DiffView {
         self.dirty = false;
     }
 
-    pub fn owns(&self, id: WidgetId) -> bool {
-        self.term.owns(id)
-    }
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportAction>) {
         self.term.on_key(key)
     }

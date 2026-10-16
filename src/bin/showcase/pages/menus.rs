@@ -439,7 +439,7 @@ impl Page for MenusPage {
             }
             PageEvent::Pointer(ev) if ev.is(Phase::Secondary) => {
                 let cfg = self.row_menu.config;
-                match cfg.on_secondary(&mut self.files, ev.id, ev.pos()) {
+                match cfg.on_secondary(&mut self.files, ev) {
                     Some(req) => {
                         cx.focus.focus(self.files.id);
                         self.open_row_menu(req);

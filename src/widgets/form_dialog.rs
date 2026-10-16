@@ -558,7 +558,7 @@ impl FormDialog {
     pub fn on_release(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         for f in self.fields.iter_mut() {
             if let FormFieldKind::Select(s) = &mut f.kind
-                && s.owns(pressed)
+                && s.contains_id(pressed)
             {
                 let (o, ev) = s.on_release(pos);
                 if ev.is_some() {
@@ -573,7 +573,7 @@ impl FormDialog {
 
     fn select_owning(&mut self, id: WidgetId) -> Option<&mut Select> {
         self.fields.iter_mut().find_map(|f| match &mut f.kind {
-            FormFieldKind::Select(s) if s.owns(id) => Some(s),
+            FormFieldKind::Select(s) if s.contains_id(id) => Some(s),
             _ => None,
         })
     }
@@ -603,7 +603,7 @@ impl FormDialog {
                     focus.focus(id);
                     return i.on_click_count(pos, count.max(1));
                 }
-                FormFieldKind::Select(s) if s.owns(id) => {
+                FormFieldKind::Select(s) if s.contains_id(id) => {
                     focus.focus(s.id);
                     let (o, ev) = s.on_click(id);
                     if ev.is_some() {

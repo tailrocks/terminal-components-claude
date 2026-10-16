@@ -1446,11 +1446,6 @@ impl TextViewport {
         Outcome::Changed
     }
 
-    /// The viewport itself or one of its scrollbars.
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || scrollbar::is_bar_of(id, self.id)
-    }
-
     // ------------------------------------------------- keyboard selection
 
     /// The browse caret: the selection head, else the last cell of the last
@@ -2766,7 +2761,6 @@ mod tests {
         render(&mut v, 30, 6);
         // the bar stops short of the vertical bar's corner, which stays blank
         assert_eq!(v.scroll.h_track(), Rect::new(0, 5, 29, 1));
-        assert!(v.owns(scrollbar::h_id_for(v.id)));
         assert_eq!(
             v.bar_press(Position::new(28, 5))
                 .outcome()
