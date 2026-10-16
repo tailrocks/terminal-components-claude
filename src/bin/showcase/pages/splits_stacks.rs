@@ -13,6 +13,8 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::TrackClick;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{
@@ -21,7 +23,6 @@ use junie_tui::ui::layout::{
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::{SeamDoubleClick, Splitter};
 
 const ID: WidgetId = WidgetId::of("splitsstacks");
@@ -292,6 +293,42 @@ impl SplitsStacksPage {
     }
 
     /// The seam a press, drag or click is on, with its split and area.
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.scroll.pointer(STACK, ev) {
+            return o;
+        }
+        let (id, pos) = (ev.id, ev.pos());
+        match ev.phase() {
+            Some(Phase::Press) => {
+                if let Some((seam, split, area)) = self.seam(id) {
+                    seam.on_press(split, area, 1, pos);
+                    return Outcome::Consumed;
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Drag) => {
+                if let Some((seam, split, area)) = self.seam(id) {
+                    return seam.on_drag(split, area, 1, pos);
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Click) => {
+                if let Some((seam, split, _)) = self.seam(id) {
+                    return seam.on_click(split, ev.count());
+                }
+                if let Some(i) = self.zoom.iter().position(|b| b.id == id) {
+                    cx.focus.focus(id);
+                    if self.zoom[i].on_click() {
+                        return self.zoom_clicked(i);
+                    }
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
     fn seam(&mut self, id: WidgetId) -> Option<(&mut Splitter, &mut Split, Rect)> {
         if id == OUTER {
             Some((&mut self.outer_seam, &mut self.outer, self.outer_area))
@@ -372,47 +409,8 @@ impl Page for SplitsStacksPage {
         if let Some(o) = self.sections.handle(ev) {
             return o;
         }
-        let clicks = cx.clicks;
         match ev {
-            PageEvent::Press { id, pos } => {
-                if let Some((seam, split, area)) = self.seam(*id) {
-                    seam.on_press(split, area, 1, *pos);
-                    return Outcome::Consumed;
-                }
-                if *id == scrollbar::id_for(STACK) && self.scroll.on_scrollbar(*pos) {
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                if let Some((seam, split, area)) = self.seam(*pressed) {
-                    return seam.on_drag(split, area, 1, *pos);
-                }
-                if *pressed == scrollbar::id_for(STACK) && self.scroll.on_scrollbar_drag(*pos) {
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Click { id, .. } => {
-                if let Some((seam, split, _)) = self.seam(*id) {
-                    return seam.on_click(split, clicks);
-                }
-                if let Some(i) = self.zoom.iter().position(|b| b.id == *id) {
-                    cx.focus.focus(*id);
-                    if self.zoom[i].on_click() {
-                        return self.zoom_clicked(i);
-                    }
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } if *id == STACK => {
-                if self.scroll.on_wheel(*delta) {
-                    Outcome::Changed
-                } else {
-                    Outcome::Consumed
-                }
-            }
+            PageEvent::Pointer(ev) => self.pointer(ev, cx),
             PageEvent::Key(key) => {
                 let Some(f) = cx.focus.current() else {
                     return Outcome::Ignored;
