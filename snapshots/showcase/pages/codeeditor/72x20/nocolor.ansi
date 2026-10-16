@@ -2,19 +2,19 @@
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mCode editor[0m  Blocks, tones, diagnostics and compl… [0m
                                                                         [0m
-    Overview      ┃    retry.rs                               3 blocks  [0m
-  ▸ App shell     ┃                                                     [0m
-  ▸ Inputs & for… ┃     ›  1 [0m[3m// Retry a request with exponential ba…[0m ┃  [0m
-  ▸ Tables        ┃        2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Resul… ┆  [0m
-  ▸ Navigation    ┃          ━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    [0m
-  ▸ Overlays      ┃                                         1–2 of 26   [0m
-  ▸ Feedback      ┃                                                     [0m
-  ▸ Layout        ┃    State                                            [0m
-  ▾ Text & code   ┃                                                     [0m
- [0m[1m▎  › Code editor [0m┃    Mode         navigating                          [0m
-      Diff        ┃    Cursor       ln 1 · col 1                        [0m
-      Terminal    ┃    Block        1 of 3                              [0m
- [0m[2m     Text utili… [0m┆    Runs         0                                   [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃    retry.rs                               3 blocks  [0m
+  ▸ Navigation    ┃                                                     [0m
+  ▸ Overlays      ┃     ›  1 [0m[3m// Retry a request with exponential ba…[0m ┃  [0m
+  ▸ Feedback      ┃                                         1–1 of 26   [0m
+  ▸ Layout        ┃                                                     [0m
+  ▾ Text & code   ┃   Find    Run block                                 [0m
+ [0m[1m▎  › Code editor [0m┃                                                     [0m
+      Diff        ┃    State                                            [0m
+      Terminal    ┃                                                     [0m
+ [0m[2m     Text utili… [0m┆    Mode         navigating                          [0m
                                                                         [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
