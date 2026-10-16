@@ -568,6 +568,7 @@ widgets::dialog::Dialog::body_scroll | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::max_height | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::outer_margin | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::backdrop | Dialogs page variants and options | SC17
+widgets::dialog::Dialog::chrome | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::placement | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::anchor | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::confirm_index | Dialogs page variants and options | SC17
