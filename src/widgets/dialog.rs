@@ -119,6 +119,11 @@ pub struct Dialog {
     h_cfg: HScroll,
     /// The code preview's horizontal track drawn last frame.
     htrack: Rect,
+    /// What a press on the bare vertical track of a scrolling body does;
+    /// `None` follows [`RenderCtx::track_click`].
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 /// Default [`Dialog::outer_margin`].
@@ -173,6 +178,8 @@ impl Dialog {
             horizontal: None,
             code_scroll: ScrollState::default(),
             h_cfg: HScroll::default(),
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
         }
@@ -210,6 +217,8 @@ impl Dialog {
             horizontal: None,
             code_scroll: ScrollState::default(),
             h_cfg: HScroll::default(),
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
         }
@@ -247,6 +256,8 @@ impl Dialog {
             horizontal: None,
             code_scroll: ScrollState::default(),
             h_cfg: HScroll::default(),
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
         }
@@ -303,6 +314,8 @@ impl Dialog {
             horizontal: None,
             code_scroll: ScrollState::default(),
             h_cfg: HScroll::default(),
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             htrack: Rect::ZERO,
             track: Rect::ZERO,
         }
@@ -847,7 +860,7 @@ impl Dialog {
             };
         }
         if id == scrollbar::id_for(self.id) {
-            let moved = scrollbar::press(self.track, pos, &mut self.scroll);
+            let moved = scrollbar::press_with(self.track, pos, &mut self.scroll, self.v_click);
             self.scroll.release_track();
             return if moved {
                 Outcome::Changed
@@ -890,6 +903,7 @@ impl Dialog {
     pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         self.gap = t.spacing.button_gap;
         // at least one column of padding: the scrollbar lives there
         self.pad = crate::theme::Insets::new(t.spacing.dialog.x.max(1), t.spacing.dialog.y);
@@ -1651,5 +1665,54 @@ mod tests {
                 .unwrap()
         };
         assert_eq!(col("Rename task"), col("Task name"));
+    }
+}
+
+#[cfg(test)]
+mod track_click_tests {
+    use super::*;
+    use crate::core::focus::{Focus, FocusRing};
+    use crate::core::hit::HitRegistry;
+    use crate::core::scroll::TrackClick;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
+        let text: Vec<String> = (1..=40).map(|i| format!("line {i:02}")).collect();
+        let mut d = Dialog::confirm(WidgetId::of("help"), "Keys", &text.join("\n"), "Close");
+        d.track_click = click;
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let screen = Rect::new(0, 0, 72, 20);
+        let mut buf = Buffer::empty(screen);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        ctx.track_click = app;
+        d.render_in(screen, screen, &mut buf, &mut ctx);
+        assert!(!d.track.is_empty(), "the body scrolls");
+        let bottom = Position::new(d.track.x, d.track.bottom() - 1);
+        let mut focus = Focus::default();
+        assert_eq!(
+            d.on_click(scrollbar::id_for(d.id), bottom, &mut focus),
+            Outcome::Changed
+        );
+        d.scroll.offset
+    }
+
+    /// The body's vertical bar follows the track-click policy (it always
+    /// jumped).
+    #[test]
+    fn a_dialog_body_track_click_can_page() {
+        let page = pressed_at_the_bottom(Some(TrackClick::Page), TrackClick::Jump);
+        assert!(page > 0, "one page down");
+        assert_eq!(
+            pressed_at_the_bottom(None, TrackClick::Page),
+            page,
+            "app-wide"
+        );
+        assert!(
+            pressed_at_the_bottom(None, TrackClick::Jump) > page,
+            "default jumps"
+        );
     }
 }
