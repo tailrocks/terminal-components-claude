@@ -419,6 +419,69 @@ fn explain_opens_plan_tree() {
 }
 
 #[test]
+fn explain_labels_end_before_the_metric_columns_and_shares_sit_under_their_header() {
+    for (w, hgt) in [(100u16, 30u16), (72, 30)] {
+        let mut h = H::connected(w, hgt);
+        h.key(KeyCode::Tab);
+        h.key(KeyCode::Char('i'));
+        h.type_str("SELECT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10");
+        h.key(KeyCode::Esc);
+        h.alt('x');
+        h.ticks(10);
+        let text = h.text();
+        let lines: Vec<Vec<char>> = text.lines().map(|l| l.chars().collect()).collect();
+        let (hy, header) = lines
+            .iter()
+            .enumerate()
+            .find(|(_, l)| {
+                let s: String = l.iter().collect();
+                s.contains("Operation") && s.contains("actual")
+            })
+            .expect("plan header");
+        let pct = header.iter().position(|c| *c == '%').expect("% header");
+        // "cost" is right-aligned in 13 cells: the strip starts 9 cells before it
+        let cost_x = (0..header.len())
+            .find(|&x| header[x..].starts_with(&['c', 'o', 's', 't']))
+            .unwrap();
+        let strip = cost_x - 9;
+        let mut plan_rows = 0;
+        let mut cut = 0;
+        for l in &lines[hy + 1..] {
+            let s: String = l.iter().collect();
+            if !s.contains("..") {
+                continue;
+            }
+            plan_rows += 1;
+            assert!(
+                l[pct].is_ascii_digit(),
+                "{w}x{hgt}: the share's last digit sits under %: {s:?}\n{text}"
+            );
+            assert_eq!(
+                l[strip - 1],
+                ' ',
+                "{w}x{hgt}: a gap before the metrics: {s:?}"
+            );
+            let label: String = l[..strip].iter().collect();
+            if label.trim_end().ends_with('…') {
+                cut += 1;
+            }
+        }
+        assert!(plan_rows >= 3, "{w}x{hgt}: plan rows shown\n{text}");
+        if w < 100 {
+            assert!(
+                cut >= 1,
+                "{w}x{hgt}: long labels are cut with … before the metrics\n{text}"
+            );
+        } else {
+            assert!(
+                text.contains("Parallel Seq Scan on public.orders "),
+                "{w}x{hgt}: a label that fits is never painted over\n{text}"
+            );
+        }
+    }
+}
+
+#[test]
 fn safety_gate_intercepts_dangerous_statement_on_production() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
