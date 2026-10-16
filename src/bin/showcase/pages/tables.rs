@@ -2,16 +2,21 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
 use crate::data::TaskStatus;
+use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
+use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir, TableEvent, Tone};
+use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("tables");
+const MENU: WidgetId = WidgetId::of("tables.menu");
 
 pub fn task_columns() -> Vec<Column> {
     vec![
@@ -69,9 +74,93 @@ pub struct TablesPage {
     table: DataTable,
     empty: DataTable,
     sections: crate::pages::layout::Sections,
+    /// The task table's cell menu and the `(display row, column)` it is
+    /// about.
+    menu: RowMenu<(usize, usize)>,
+}
+
+/// What the cell menu's items do.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CellAction {
+    Select,
+    Sort,
+    Edit,
 }
 
 impl TablesPage {
+    /// What cell `(row, col)` of the task table offers: only what the
+    /// table's keys and header clicks already do.
+    fn cell_items(&self, (row, col): (usize, usize)) -> Vec<(CellAction, MenuItem)> {
+        let t = &self.table;
+        let src = t.source_row(row);
+        let select = MenuItem::new("Select").shortcut("Enter");
+        let select = if t.is_disabled(src) {
+            select.reason("Unavailable")
+        } else if t.selected == Some(src) {
+            select.reason("Already selected")
+        } else {
+            select
+        };
+        let column = &t.columns[col];
+        let name = column.title.to_lowercase();
+        let sort = match t.sort {
+            Some((c, SortDir::Asc)) if c == col => MenuItem::new(format!("Sort {name} descending")),
+            Some((c, SortDir::Desc)) if c == col => MenuItem::new("Clear sort"),
+            _ => MenuItem::new(format!("Sort by {name}")),
+        };
+        // `s` sorts the cursor column; a header click any column
+        let sort = if !column.sortable {
+            sort.reason("Not sortable")
+        } else if col == t.cursor_col {
+            sort.shortcut("s")
+        } else {
+            sort
+        };
+        let edit = MenuItem::new("Edit cell");
+        // F2 edits the cursor cell of a cell-navigating table
+        let edit = if column.editable && t.cell_nav && col == t.cursor_col {
+            edit.shortcut("F2")
+        } else {
+            edit.reason("Read-only")
+        };
+        vec![
+            (CellAction::Select, select.separator()),
+            (CellAction::Sort, sort.separator()),
+            (CellAction::Edit, edit),
+        ]
+    }
+
+    fn open_menu(&mut self, req: ContextRequest<(usize, usize)>) {
+        let src = self.table.source_row(req.target.0);
+        let title = self.table.rows[src][1].text.clone();
+        let items = self
+            .cell_items(req.target)
+            .into_iter()
+            .map(|(_, m)| m)
+            .collect();
+        self.menu
+            .open(req.menu(MENU, items).title(title), req.target);
+    }
+
+    /// Item `i` of the menu about `cell`: the same path the item's key or
+    /// header click takes.
+    fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut PageCtx) -> Outcome {
+        let Some(&(action, _)) = self.cell_items(cell).get(i) else {
+            return Outcome::Consumed;
+        };
+        match action {
+            CellAction::Select => {
+                self.table.cursor_row = cell.0;
+                let (out, tev) = self.table.on_key(&plain(KeyCode::Enter));
+                if let Some(TableEvent::Activated(row)) = tev {
+                    cx.status(format!("Selected {}", self.table.rows[row][1].text));
+                }
+                out
+            }
+            CellAction::Sort => self.table.on_click_header(cell.1),
+            CellAction::Edit => self.table.begin_edit(),
+        }
+    }
     pub fn new() -> Self {
         let table =
             DataTable::new(ID.sub("tasks"), task_columns(), task_rows()).numeric(&[0, 5, 6]);
@@ -88,6 +177,7 @@ impl TablesPage {
             table,
             empty,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
+            menu: RowMenu::default(),
         }
     }
 }
@@ -159,15 +249,32 @@ impl Page for TablesPage {
             }
             None => ctx.focus_stop(self.empty.id),
         }
+        self.menu.render(area, buf, ctx);
+    }
+
+    fn layer_open(&self) -> bool {
+        self.menu.hides_page_focus()
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some((out, chosen)) = self.menu.handle(ev) {
+            return match chosen {
+                Some((cell, i)) => self.choose(cell, i, cx).or(out),
+                None => out,
+            };
+        }
         if let Some(o) = self.sections.handle(ev) {
             return o;
         }
         match ev {
             PageEvent::Key(key) => {
                 if cx.focus.is(self.table.id) {
+                    if !self.table.is_editing()
+                        && let Some(req) = self.menu.config.on_key(&self.table, key)
+                    {
+                        self.open_menu(req);
+                        return Outcome::Changed;
+                    }
                     let (out, tev) = self.table.on_key(key);
                     if let Some(TableEvent::Activated(row)) = tev {
                         cx.status(format!("Selected {}", self.table.rows[row][1].text));
@@ -178,6 +285,15 @@ impl Page for TablesPage {
                     return self.empty.on_key(key).0;
                 }
                 Outcome::Ignored
+            }
+            PageEvent::Secondary { id, pos } => {
+                let cfg = self.menu.config;
+                let Some(req) = cfg.on_secondary(&mut self.table, *id, *pos) else {
+                    return Outcome::Ignored;
+                };
+                cx.focus.focus(self.table.id);
+                self.open_menu(req);
+                Outcome::Changed
             }
             PageEvent::Click { id, pos } => {
                 if let Some(c) = self.table.locate_header(*id) {
@@ -210,11 +326,15 @@ impl Page for TablesPage {
     }
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
+        if self.menu.is_open() {
+            return MENU_HINTS.to_vec();
+        }
         vec![
             ("↑↓", "Move"),
             ("←→", "Columns"),
             ("s", "Sort column"),
             ("Enter", "Select"),
+            OPEN_HINT,
         ]
     }
 }
