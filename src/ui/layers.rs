@@ -14,6 +14,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::focus::FocusChange;
 use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
+use crate::core::pointer::{MouseTarget, PointerEvent};
 use crate::core::scroll::Scrollable;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec, Overlay};
@@ -74,6 +75,9 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog
     }
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
         Dialog::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
+    }
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
+        Dialog::pointer_in(self, ev, cx.focus).outcome()
     }
     fn on_click_count(
         &mut self,
@@ -146,6 +150,14 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
         picker_event(self, ev);
         o.or(Outcome::Consumed)
     }
+    /// The picker's own gestures ([`MouseTarget`]), its backdrop's click
+    /// included: an outside click cancels it under its dismiss policy.
+    fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
+        let mut r = MouseTarget::pointer(self, ev);
+        let ev = r.take_action();
+        picker_event(self, ev);
+        r.outcome()
+    }
     fn on_click(&mut self, id: WidgetId, _: Position, _: &mut LayerCx<'_, W>) -> Outcome {
         let ev = Picker::on_click(self, id);
         picker_event(self, ev);
@@ -192,6 +204,13 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
         }
         o.or(Outcome::Consumed)
     }
+    fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
+        let mut r = MouseTarget::pointer(self, ev);
+        if let Some(ev) = r.take_action() {
+            self.pending = Some(ev);
+        }
+        r.outcome()
+    }
     fn on_click(&mut self, id: WidgetId, _: Position, _: &mut LayerCx<'_, W>) -> Outcome {
         if let Some(ev) = ContextMenu::on_click(self, id) {
             self.pending = Some(ev);
@@ -225,6 +244,11 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
     }
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
         FormDialog::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
+    }
+    /// Routed by the event's owner: a wheel over an open select scrolls
+    /// its list, not the form behind it (M18).
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
+        FormDialog::pointer_in(self, ev, cx.focus).outcome()
     }
     fn on_click_count(
         &mut self,
@@ -281,6 +305,9 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Choice
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
         ChoiceDialog::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
     }
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
+        ChoiceDialog::pointer_in(self, ev, cx.focus).outcome()
+    }
     fn on_click(&mut self, id: WidgetId, _: Position, cx: &mut LayerCx<'_, W>) -> Outcome {
         ChoiceDialog::on_click(self, id, cx.focus)
     }
@@ -305,6 +332,9 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
     }
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
         InfoDialog::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
+    }
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
+        InfoDialog::pointer_in(self, ev, cx.focus).outcome()
     }
     fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, W>) -> Outcome {
         InfoDialog::on_click(self, id, pos, cx.focus)
@@ -347,6 +377,9 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOv
     }
     fn on_key(&mut self, key: &Key, _: &mut LayerCx<'_, W>) -> Outcome {
         HelpOverlay::on_key(self, key).or(Outcome::Consumed)
+    }
+    fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
+        MouseTarget::pointer(self, ev).outcome()
     }
     fn on_click(&mut self, id: WidgetId, _: Position, _: &mut LayerCx<'_, W>) -> Outcome {
         HelpOverlay::on_click(self, id)
