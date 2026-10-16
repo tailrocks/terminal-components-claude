@@ -168,10 +168,7 @@ fn shift_f10_opens_the_grid_menu_under_the_cursor_cell() {
     h.key(KeyCode::Enter);
     assert!(h.app.modal().is_none());
     assert!(
-        h.app
-            .status
-            .as_ref()
-            .is_some_and(|s| s.0.starts_with("Copied")),
+        h.app.status.text().is_some_and(|s| s.starts_with("Copied")),
         "the grid's y ran"
     );
     // the knob turns the key off

@@ -82,7 +82,7 @@ impl Harness {
     }
 
     fn status(&self) -> Option<String> {
-        self.app.status.as_ref().map(|(s, _)| s.clone())
+        self.app.status.text().map(str::to_owned)
     }
 }
 

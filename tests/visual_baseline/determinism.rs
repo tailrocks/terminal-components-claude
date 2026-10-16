@@ -38,7 +38,7 @@ const FORBIDDEN: [&str; 13] = [
 
 /// Reviewed `Instant::now` uses per file, with why they cannot change a
 /// frame's content.
-const INSTANT_ALLOWED: [(&str, usize, &str); 5] = [
+const INSTANT_ALLOWED: [(&str, usize, &str); 3] = [
     (
         "src/runtime.rs",
         4,
@@ -53,16 +53,6 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 5] = [
         "src/clock.rs",
         1,
         "WallClock origin: apps read it for press-flash and status expiry, which only happen on a tick (stopped by --motion paused); SimClock never reads it",
-    ),
-    (
-        "src/bin/showcase/app.rs",
-        1,
-        "status-message expiry; it only expires on a tick, which --motion paused stops",
-    ),
-    (
-        "src/bin/tablepro/app.rs",
-        1,
-        "status-message expiry; it only expires on a tick, which --motion paused stops",
     ),
 ];
 

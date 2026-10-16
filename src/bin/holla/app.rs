@@ -4,11 +4,13 @@
 //! here too: trust, arguments and the confirmation gates are resolved by
 //! the shell before anything executes.
 
+use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
+use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
@@ -130,10 +132,10 @@ pub struct App {
     /// and whether a secondary click moves the cursor. Default
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key; moves).
     pub context: ContextConfig,
-    pub status: Option<(String, Tone, i64)>,
-    /// The status as toned parts (a batch summary); empty for a status in
-    /// one tone.
-    pub status_parts: Vec<(String, Tone)>,
+    /// The footer status ([`StatusLine`]: 5 s on the world clock; an
+    /// error stays until the next action), with its toned parts (a batch
+    /// summary; empty for a status in one tone).
+    pub status: StatusLine<Vec<(String, Tone)>>,
     pub size: (u16, u16),
     pub quit: bool,
     too_small: bool,
@@ -178,8 +180,7 @@ impl App {
             hits: HitRegistry::default(),
             pointer: PointerState::default(),
             context: ContextConfig::DEFAULT,
-            status: None,
-            status_parts: vec![],
+            status: StatusLine::new(),
             size: (0, 0),
             quit: false,
             too_small: false,
@@ -248,16 +249,15 @@ impl App {
     }
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
-        self.status = Some((s.to_owned(), tone, self.world.now_ms() + 5_000));
-        self.status_parts.clear();
+        self.status.set_at(s, tone, self.world.clock.now());
     }
 
     /// A status made of parts in their own tones; `tone` is the message's
     /// severity (the hint bar's `!` mark).
     pub fn set_status_parts(&mut self, parts: Vec<(String, Tone)>, tone: Tone) {
         let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
-        self.set_status(&text, tone);
-        self.status_parts = parts;
+        self.status
+            .set_with_at(text, tone, parts, self.world.clock.now());
     }
 
     fn top(&self) -> Option<&dyn Screen> {
@@ -363,7 +363,10 @@ impl App {
     // ------------------------------------------------------------- input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        // an error status has been seen once the user acts again
+        let seen = self.status.on_input(&input);
         let out = self.handle_input(input);
+        let out = if seen { out.or(Outcome::Changed) } else { out };
         let out = out.or(self.forward_blur());
         // messages a background tab raised show once it is active
         let active = self.active;
@@ -467,10 +470,7 @@ impl App {
         if let Some(pos) = self.pointer.track_repeat_due(self.now_ms()) {
             out = out.or(self.on_mouse(Mouse::new(MouseKind::Down, pos)));
         }
-        if let Some((_, _, until)) = &self.status
-            && self.world.now_ms() >= *until
-        {
-            self.status = None;
+        if self.status.expire(self.world.clock.now()) {
             out = Outcome::Changed;
         }
         if self
@@ -3667,13 +3667,9 @@ impl App {
         // an error status carries a `! ` prefix: leave room for it
         let status = self
             .status
-            .as_ref()
-            .map(|(s, tone, _)| (truncate(s, area.width.saturating_sub(8) as usize), *tone));
-        let status_parts = if status.is_some() {
-            self.status_parts.clone()
-        } else {
-            vec![]
-        };
+            .get()
+            .map(|(s, tone)| (truncate(s, area.width.saturating_sub(8) as usize), tone));
+        let status_parts = self.status.payload().cloned().unwrap_or_default();
         let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
         let menu_layer = (!modal && self.menu.is_open()).then(|| {
             HintLayer::new(vec![
