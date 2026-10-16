@@ -8,6 +8,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::empty::EmptyState;
+use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
 use junie_tui::widgets::input::{InputEvent, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
@@ -967,6 +968,21 @@ impl Workbench {
         Outcome::Changed
     }
 
+    /// The text fields the pointer selects in: the explorer filter and
+    /// the active History tab's search.
+    fn pointer_fields(&mut self) -> Vec<&mut dyn PointerField> {
+        let mut v: Vec<&mut dyn PointerField> = vec![&mut self.explorer_filter];
+        if let Some(WorkTab::History(h)) = self.tabs.get_mut(self.active) {
+            v.push(&mut h.search);
+        }
+        v
+    }
+
+    /// A press on hit `id` with the click count it starts.
+    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        route_press(&mut self.pointer_fields(), id, pos, count).unwrap_or(Outcome::Ignored)
+    }
+
     pub fn on_click(
         &mut self,
         id: WidgetId,
@@ -974,9 +990,9 @@ impl Workbench {
         cx: &mut Cx,
         history: &mut History,
     ) -> Outcome {
-        if id == self.explorer_filter.id {
+        if let Some(o) = route_click(&mut self.pointer_fields(), id, pos, cx.clicks) {
             cx.focus.focus(id);
-            return self.explorer_filter.on_click(pos);
+            return o;
         }
         if let Some((row, toggle)) = self.explorer.locate(id) {
             cx.focus.focus(self.explorer.id);
@@ -1099,10 +1115,6 @@ impl Workbench {
             }
             Some(WorkTab::Query(q)) => q.on_click(id, pos, cx, cat),
             Some(WorkTab::History(h)) => {
-                if id == h.search.id {
-                    cx.focus.focus(id);
-                    return h.search.on_click(pos);
-                }
                 if let Some(row) = h.list.locate(id) {
                     cx.focus.focus(h.list.id);
                     let o = h.list.on_click(row);
@@ -1144,6 +1156,9 @@ impl Workbench {
     }
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if let Some(o) = route_drag(&mut self.pointer_fields(), pressed, pos) {
+            return o;
+        }
         if pressed == scrollbar::id_for(self.explorer.id) {
             return self.explorer.on_scrollbar_drag(pos);
         }

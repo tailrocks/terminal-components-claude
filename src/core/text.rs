@@ -254,7 +254,7 @@ impl TextBuffer {
         self.select_range(start, end);
     }
 
-    #[cfg(test)]
+    /// The selected text, `None` without a selection.
     pub fn selected_text(&self) -> Option<&str> {
         self.selection().map(|r| &self.text[r])
     }
