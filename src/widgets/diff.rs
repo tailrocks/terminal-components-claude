@@ -226,6 +226,7 @@ impl DiffView {
             self.file = file;
             self.dirty = true;
             self.term.scroll.jump_start();
+            self.term.hscroll.jump_start();
             self.term.set_follow(false);
         }
     }
@@ -305,6 +306,17 @@ impl DiffView {
 
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
         self.term.on_scrollbar_drag(pos)
+    }
+
+    /// A drag holding either scrollbar id (vertical or horizontal).
+    pub fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        self.term.on_bar_drag(pressed, pos)
+    }
+
+    /// Horizontal wheel (or Shift+wheel): unified lines wider than the
+    /// view scroll sideways.
+    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
+        self.term.on_wheel_h(delta)
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
