@@ -66,11 +66,23 @@ components work; they are not where behaviour lives.
   as the default, offer the request as an option, and record the decision
   in docs/audits.
 - Hints never advertise keys the terminal cannot deliver.
-- Prefer one shared mechanism over copies. Floating content (popups,
+- Behaviour comes only from shared library code. Two places must never
+  implement the same interaction, routing or state logic separately. If
+  apps or widgets need the same behaviour, it lives once in `src/core`,
+  `src/ui` or `src/widgets` and both use it. Duplicated logic found in
+  review is a defect to fix, not a style issue. Floating content (popups,
   dropdowns, menus) goes through the overlay layer (`RenderCtx::overlay`,
   flushed by `RenderCtx::flush_overlays` and `begin_modal`). It must never
   depend on draw order inside a page. Modals dim through
   `RenderCtx::modal_backdrop`.
+- Interfaces are shared and composable. Widgets implement the same core
+  traits (rendering, focus, keyboard, mouse, scrolling, selection, hints,
+  context menus), so containers and apps compose them without glue code.
+  Every widget's API follows the same conventions: builders, events,
+  outcomes.
+- Apps are thin consumers. An app provides routes, pages and
+  configuration. Input routing, focus, modals, hints, help, quit guards
+  and similar shell behaviour belong to the library.
 - Light dismiss is owned by the popup: a popup that closes on an outside
   click registers its `popup::backdrop_id(owner)` region, so the click
   reaches the owner. Apps and pages must not reimplement "click elsewhere
