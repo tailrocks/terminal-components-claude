@@ -5,6 +5,12 @@
 //! drains unchanged input while rendering state changes before the next queued
 //! event, and animation ticks on demand.
 //!
+//! Bursts of the same continuous input (wheel notches, pointer moves, a
+//! held navigation key) are coalesced: every event is handled, but the
+//! frame is drawn once for the burst instead of once per event (see
+//! [`Coalesce`]). Any other input still waits for the frame of the change
+//! before it, so an activation always sees the controls it activates.
+//!
 //! Job control is part of the session's lifecycle, not only of its start and
 //! end: an external `SIGTSTP` is recorded by a handler that touches nothing
 //! but an atomic flag, and the event loop then leaves every owned mode,
@@ -32,7 +38,9 @@ use ratatui::crossterm::terminal::{
 };
 use ratatui::style::Color;
 
-use crate::core::event::{Input, Outcome};
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+
+use crate::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 
 pub trait Application {
     fn handle(&mut self, input: Input) -> Outcome;
@@ -40,6 +48,98 @@ pub trait Application {
     fn should_quit(&self) -> bool;
     /// How often to deliver `Input::Tick`.
     fn tick_interval(&self) -> Duration;
+    /// Which queued input bursts draw one frame instead of one per event.
+    /// Default [`Coalesce::default`]; [`Coalesce::OFF`] draws every change.
+    fn coalesce(&self) -> Coalesce {
+        Coalesce::default()
+    }
+}
+
+/// Input coalescing policy of the event loop.
+///
+/// A terminal delivers a wheel gesture as many notches, a pointer sweep as
+/// one move per cell and a held key as auto-repeat, all queued faster than
+/// a frame can be drawn and written. Drawing after each of them makes the
+/// screen trail the input (it keeps scrolling after the wheel stops). With
+/// coalescing, consecutive events of one enabled kind are all handled and
+/// then drawn once. Every other input, and a different kind, still waits
+/// for the frame of the change before it.
+///
+/// Wheel notches in a burst are routed with the hit regions of the frame
+/// the burst started on, so the burst stays with the container under the
+/// pointer when it began (scroll latching, as on macOS).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Coalesce {
+    /// Wheel notches with the same modifiers, on either axis. Default on.
+    pub wheel: bool,
+    /// Pointer moves (hover). The burst's last move is handled again after
+    /// its frame, against the new hit regions, so hover always settles on
+    /// what is drawn. Default on.
+    pub pointer_moves: bool,
+    /// Repeats of one navigation key with the same modifiers: arrows,
+    /// PageUp/PageDown and Home/End, plain or with Shift/Ctrl. Default on.
+    /// Other keys (Enter, Tab, characters) are never coalesced.
+    pub key_repeat: bool,
+    /// Most events folded into one frame; a longer burst draws an
+    /// intermediate frame every this many events. Default 64.
+    pub max_batch: usize,
+    /// Longest time spent handling one burst before a frame is drawn, so a
+    /// flood never freezes the screen. Default 16 ms (one 60 Hz frame).
+    pub max_latency: Duration,
+}
+
+impl Coalesce {
+    /// Draw after every state change (the behaviour before coalescing).
+    pub const OFF: Self = Self {
+        wheel: false,
+        pointer_moves: false,
+        key_repeat: false,
+        max_batch: 1,
+        max_latency: Duration::ZERO,
+    };
+
+    /// Whether `next` continues a burst whose last event was `last`.
+    pub fn folds(&self, last: &Input, next: &Input) -> bool {
+        match (last, next) {
+            (Input::Mouse(a), Input::Mouse(b)) => {
+                (self.wheel && a.wheel().is_some() && b.wheel().is_some() && a.mods == b.mods)
+                    || (self.pointer_moves
+                        && a.kind == MouseKind::Move
+                        && b.kind == MouseKind::Move)
+            }
+            (Input::Key(a), Input::Key(b)) => self.key_repeat && a == b && is_navigation(a),
+            _ => false,
+        }
+    }
+}
+
+impl Default for Coalesce {
+    fn default() -> Self {
+        Self {
+            wheel: true,
+            pointer_moves: true,
+            key_repeat: true,
+            max_batch: 64,
+            max_latency: Duration::from_millis(16),
+        }
+    }
+}
+
+fn is_navigation(key: &Key) -> bool {
+    matches!(
+        key.code,
+        KeyCode::Up
+            | KeyCode::Down
+            | KeyCode::Left
+            | KeyCode::Right
+            | KeyCode::PageUp
+            | KeyCode::PageDown
+            | KeyCode::Home
+            | KeyCode::End
+    ) && key
+        .mods
+        .difference(KeyModifiers::SHIFT | KeyModifiers::CONTROL)
+        .is_empty()
 }
 
 /// Owns every piece of terminal state the application changes and puts it
@@ -273,6 +373,7 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut dirty = true;
     let mut last_tick = Instant::now();
+    let mut pump = InputPump::new(app.coalesce());
     loop {
         #[cfg(unix)]
         if job_control::take_request() {
@@ -292,8 +393,10 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         }
         let interval = app.tick_interval();
         let wait = interval.saturating_sub(last_tick.elapsed());
-        if poll_uninterrupted(wait)? {
-            let changed = drain_ready_inputs(app, next_ready_input)?;
+        // an input held back for the previous frame is ready without polling
+        if pump.has_pending() || poll_uninterrupted(wait)? {
+            pump.set_policy(app.coalesce());
+            let changed = pump.drain(app, next_ready_input)?;
             if app.should_quit() {
                 return Ok(());
             }
@@ -301,6 +404,9 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 // Rendering also rebuilds hit regions and reconciles focus.
                 // The next queued key must see the newly active controls.
                 terminal.draw(|f| render_frame(app, f, suppress_colors))?;
+                if pump.settle(app) {
+                    terminal.draw(|f| render_frame(app, f, suppress_colors))?;
+                }
             }
         }
         if last_tick.elapsed() >= interval {
@@ -337,28 +443,136 @@ pub const DRAIN_BUDGET: usize = 256;
 
 /// Dispatch queued input until one event changes state, the application
 /// asks to quit, the queue is empty, or `DRAIN_BUDGET` unchanged events have
-/// been handled. Returns whether state changed. Public so an application's
-/// own tests can pump the same batched-versus-separated sequences the
-/// runtime does.
+/// been handled; no coalescing ([`Coalesce::OFF`]: the input after a change
+/// is not read, so nothing is held back). Returns whether state changed.
+/// The runtime itself uses [`InputPump`].
 ///
 /// # Errors
 /// Propagates the input source's error.
 pub fn drain_ready_inputs(
     app: &mut impl Application,
-    mut next: impl FnMut() -> std::io::Result<Option<Input>>,
+    next: impl FnMut() -> std::io::Result<Option<Input>>,
 ) -> std::io::Result<bool> {
-    let mut unchanged = 0;
-    while let Some(input) = next()? {
-        let changed = app.handle(input) == Outcome::Changed;
-        if changed || app.should_quit() {
-            return Ok(changed);
-        }
-        unchanged += 1;
-        if unchanged >= DRAIN_BUDGET {
-            return Ok(false);
+    InputPump::new(Coalesce::OFF).drain(app, next)
+}
+
+/// The event loop's input dispatcher: drains queued input, folds bursts per
+/// its [`Coalesce`] policy, and holds back the first input that must wait
+/// for a frame. Public so an application's own tests can pump the same
+/// batched-versus-separated sequences the runtime does: call
+/// [`Self::drain`], draw when it returns `true`, then [`Self::settle`] (and
+/// draw again when that returns `true`).
+#[derive(Debug, Clone, Default)]
+pub struct InputPump {
+    policy: Coalesce,
+    /// Read from the queue but due only after the next frame.
+    pending: Option<Input>,
+    /// The last pointer move of a coalesced burst, handled again after the
+    /// burst's frame so hover resolves against what was drawn.
+    settle: Option<Mouse>,
+}
+
+impl InputPump {
+    pub fn new(policy: Coalesce) -> Self {
+        Self {
+            policy,
+            pending: None,
+            settle: None,
         }
     }
-    Ok(false)
+
+    /// Change the policy for the next drain (an app may switch it at
+    /// runtime); a held-back input stays queued.
+    pub fn set_policy(&mut self, policy: Coalesce) {
+        self.policy = policy;
+    }
+
+    /// An input was held back for the next frame.
+    pub fn has_pending(&self) -> bool {
+        self.pending.is_some()
+    }
+
+    /// Dispatch queued input until a state change is complete, the
+    /// application asks to quit, the queue is empty, or `DRAIN_BUDGET`
+    /// unchanged events have been handled. A change is complete when the
+    /// next input does not continue its burst (that input is held back
+    /// until after the frame), or when the burst reaches `max_batch` events
+    /// or `max_latency`. Returns whether state changed, that is whether a
+    /// frame is due.
+    ///
+    /// # Errors
+    /// Propagates the input source's error.
+    pub fn drain(
+        &mut self,
+        app: &mut impl Application,
+        mut next: impl FnMut() -> std::io::Result<Option<Input>>,
+    ) -> std::io::Result<bool> {
+        let started = Instant::now();
+        let mut unchanged = 0;
+        // the burst in progress: its last input and how many it folded
+        let mut burst: Option<(Input, usize)> = None;
+        self.settle = None;
+        loop {
+            // a burst that cannot grow ends before the next input is read,
+            // so nothing is held back without need
+            if let Some((last, folded)) = &burst
+                && (!self.policy.folds(last, last)
+                    || *folded >= self.policy.max_batch
+                    || started.elapsed() >= self.policy.max_latency)
+            {
+                break;
+            }
+            let input = match self.pending.take() {
+                Some(input) => input,
+                None => match next()? {
+                    Some(input) => input,
+                    None => break,
+                },
+            };
+            if let Some((last, _)) = &burst
+                && !self.policy.folds(last, &input)
+            {
+                self.pending = Some(input);
+                break;
+            }
+            let changed = app.handle(input.clone()) == Outcome::Changed;
+            if app.should_quit() {
+                return Ok(changed || burst.is_some());
+            }
+            match &mut burst {
+                // inside a burst an unchanged event (a notch past the end)
+                // still belongs to it
+                Some((last, folded)) => {
+                    *last = input;
+                    *folded += 1;
+                }
+                None if changed => burst = Some((input, 1)),
+                None => {
+                    unchanged += 1;
+                    if unchanged >= DRAIN_BUDGET {
+                        return Ok(false);
+                    }
+                }
+            }
+        }
+        if let Some((Input::Mouse(m), folded)) = &burst
+            && m.kind == MouseKind::Move
+            && *folded > 1
+        {
+            self.settle = Some(*m);
+        }
+        Ok(burst.is_some())
+    }
+
+    /// After the frame of a coalesced pointer-move burst: handle its last
+    /// move again so hover resolves against the regions just drawn. Returns
+    /// whether that changed state (another frame is due).
+    pub fn settle(&mut self, app: &mut impl Application) -> bool {
+        match self.settle.take() {
+            Some(m) => app.handle(Input::Mouse(m)) == Outcome::Changed,
+            None => false,
+        }
+    }
 }
 
 fn render_frame(app: &mut impl Application, frame: &mut Frame, suppress_colors: bool) {
@@ -554,6 +768,199 @@ mod tests {
         }
     }
 
+    /// Records every handled input; wheel, arrows, Enter and pointer moves
+    /// to a new cell change state.
+    #[derive(Default)]
+    struct Recorder {
+        handled: Vec<Input>,
+        hover: Option<ratatui::layout::Position>,
+        quit_on: Option<usize>,
+    }
+
+    impl Application for Recorder {
+        fn handle(&mut self, input: Input) -> Outcome {
+            self.handled.push(input.clone());
+            match input {
+                Input::Mouse(m) if m.kind == MouseKind::Move => {
+                    if self.hover.replace(m.pos) == Some(m.pos) {
+                        Outcome::Consumed
+                    } else {
+                        Outcome::Changed
+                    }
+                }
+                Input::Mouse(_) | Input::Key(_) => Outcome::Changed,
+                _ => Outcome::Ignored,
+            }
+        }
+        fn render(&mut self, _: &mut Frame) {}
+        fn should_quit(&self) -> bool {
+            self.quit_on.is_some_and(|n| self.handled.len() >= n)
+        }
+        fn tick_interval(&self) -> Duration {
+            Duration::from_secs(1)
+        }
+    }
+
+    fn wheel_at(x: u16) -> Input {
+        Input::Mouse(Mouse::new(
+            MouseKind::WheelDown,
+            ratatui::layout::Position::new(x, 5),
+        ))
+    }
+
+    fn move_to(x: u16) -> Input {
+        Input::Mouse(Mouse::new(
+            MouseKind::Move,
+            ratatui::layout::Position::new(x, 5),
+        ))
+    }
+
+    fn press(code: KeyCode) -> Input {
+        Input::Key(Key {
+            code,
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    /// Run `queue` through the pump the way the event loop does; returns
+    /// the number of frames drawn.
+    fn frames(app: &mut Recorder, policy: Coalesce, queue: Vec<Input>) -> usize {
+        let mut queue = std::collections::VecDeque::from(queue);
+        let mut pump = InputPump::new(policy);
+        let mut frames = 0;
+        while pump.has_pending() || !queue.is_empty() {
+            if pump.drain(app, || Ok(queue.pop_front())).unwrap() {
+                frames += 1;
+                if pump.settle(app) {
+                    frames += 1;
+                }
+            }
+            if app.should_quit() {
+                break;
+            }
+        }
+        frames
+    }
+
+    /// A policy whose latency bound never ends a burst, so counts are
+    /// deterministic on a slow machine.
+    fn unbounded() -> Coalesce {
+        Coalesce {
+            max_latency: Duration::MAX,
+            ..Coalesce::default()
+        }
+    }
+
+    #[test]
+    fn a_wheel_burst_draws_one_frame_and_handles_every_notch() {
+        let mut app = Recorder::default();
+        let n = frames(&mut app, unbounded(), vec![wheel_at(3); 60]);
+        assert_eq!(n, 1, "60 notches, one frame");
+        assert_eq!(app.handled.len(), 60, "no notch is dropped");
+        // the policy is the knob: off draws every change
+        let mut app = Recorder::default();
+        assert_eq!(frames(&mut app, Coalesce::OFF, vec![wheel_at(3); 60]), 60);
+    }
+
+    #[test]
+    fn a_held_key_draws_once_per_batch() {
+        let mut app = Recorder::default();
+        let n = frames(&mut app, unbounded(), vec![press(KeyCode::Down); 120]);
+        assert_eq!(n, 2, "max_batch 64 splits 120 repeats into two frames");
+        assert_eq!(app.handled.len(), 120);
+        let policy = Coalesce {
+            key_repeat: false,
+            ..unbounded()
+        };
+        let mut app = Recorder::default();
+        assert_eq!(frames(&mut app, policy, vec![press(KeyCode::Down); 10]), 10);
+    }
+
+    #[test]
+    fn a_different_input_waits_for_the_frame_of_the_burst() {
+        let mut app = Recorder::default();
+        let mut queue = std::collections::VecDeque::from(vec![
+            press(KeyCode::Down),
+            press(KeyCode::Down),
+            press(KeyCode::Enter),
+            press(KeyCode::Enter),
+            wheel_at(1),
+            wheel_at(2),
+        ]);
+        let mut pump = InputPump::new(unbounded());
+        assert!(pump.drain(&mut app, || Ok(queue.pop_front())).unwrap());
+        assert_eq!(app.handled.len(), 2, "both Downs, then the frame");
+        assert!(pump.has_pending(), "Enter is held for the next frame");
+        assert!(pump.drain(&mut app, || Ok(queue.pop_front())).unwrap());
+        assert_eq!(
+            app.handled.len(),
+            3,
+            "Enter never folds, not even into Enter"
+        );
+        assert!(pump.drain(&mut app, || Ok(queue.pop_front())).unwrap());
+        assert_eq!(app.handled.len(), 4);
+        assert!(pump.drain(&mut app, || Ok(queue.pop_front())).unwrap());
+        assert_eq!(app.handled.len(), 6, "the wheel burst folds");
+        assert!(!pump.has_pending() && queue.is_empty());
+    }
+
+    #[test]
+    fn wheel_bursts_split_on_modifiers_and_keys_on_chords() {
+        let c = Coalesce::default();
+        let shifted = Input::Mouse(
+            Mouse::new(MouseKind::WheelDown, ratatui::layout::Position::new(0, 0))
+                .with_mods(KeyModifiers::SHIFT),
+        );
+        assert!(c.folds(&wheel_at(0), &wheel_at(9)), "position may move");
+        assert!(
+            !c.folds(&wheel_at(0), &shifted),
+            "Shift+wheel is another axis"
+        );
+        let up = Input::Mouse(Mouse::new(
+            MouseKind::WheelUp,
+            ratatui::layout::Position::new(0, 0),
+        ));
+        assert!(c.folds(&wheel_at(0), &up), "a reversal stays one gesture");
+        assert!(!c.folds(&press(KeyCode::Down), &press(KeyCode::Up)));
+        assert!(!c.folds(&press(KeyCode::Char('j')), &press(KeyCode::Char('j'))));
+        let alt_down = Input::Key(Key {
+            code: KeyCode::Down,
+            mods: KeyModifiers::ALT,
+        });
+        assert!(!c.folds(&alt_down, &alt_down), "Alt chords are commands");
+        assert!(!c.folds(&wheel_at(0), &move_to(0)));
+    }
+
+    #[test]
+    fn a_pointer_sweep_draws_once_then_settles_hover_on_the_new_frame() {
+        let mut app = Recorder::default();
+        let sweep: Vec<Input> = (0..40).map(move_to).collect();
+        let n = frames(&mut app, unbounded(), sweep);
+        assert_eq!(n, 1, "settling on the same cell changes nothing");
+        assert_eq!(app.handled.len(), 41, "the last move is handled again");
+        assert_eq!(app.handled.last(), Some(&move_to(39)));
+    }
+
+    #[test]
+    fn quitting_inside_a_burst_stops_the_drain() {
+        let mut app = Recorder {
+            quit_on: Some(5),
+            ..Default::default()
+        };
+        let mut queue = std::collections::VecDeque::from(vec![wheel_at(0); 30]);
+        let mut pump = InputPump::new(unbounded());
+        assert!(pump.drain(&mut app, || Ok(queue.pop_front())).unwrap());
+        assert_eq!(app.handled.len(), 5);
+    }
+
+    #[test]
+    fn the_uncoalesced_drain_never_reads_past_a_change() {
+        let mut app = Recorder::default();
+        let mut queue = std::collections::VecDeque::from(vec![wheel_at(0); 3]);
+        assert!(drain_ready_inputs(&mut app, || Ok(queue.pop_front())).unwrap());
+        assert_eq!(queue.len(), 2, "the next notch stays queued, not dropped");
+    }
+
     #[test]
     fn queued_activation_waits_for_new_controls_to_render() {
         use crate::core::event::Key;
@@ -617,11 +1024,13 @@ mod tests {
             key(KeyCode::Char(']')),
             key(KeyCode::Enter),
         ]);
-        assert!(drain_ready_inputs(&mut app, || Ok(queued.pop_front())).unwrap());
+        // the runtime's own pump, with its default coalescing
+        let mut pump = InputPump::new(Coalesce::default());
+        assert!(pump.drain(&mut app, || Ok(queued.pop_front())).unwrap());
         assert_eq!(app.handled, 3, "unchanged events remain batched");
         assert!(app.activated.is_none(), "activation must wait for render");
         terminal.draw(|frame| app.render(frame)).unwrap();
-        assert!(drain_ready_inputs(&mut app, || Ok(queued.pop_front())).unwrap());
+        assert!(pump.drain(&mut app, || Ok(queued.pop_front())).unwrap());
         assert_eq!(app.activated, Some(WidgetId::of("new page control")));
         assert!(queued.is_empty());
     }
