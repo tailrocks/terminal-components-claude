@@ -6,7 +6,7 @@
    Text areas     ┃                                                             [0m
    Forms          ┃    Building    ────────────────────────────────────   0%    [0m
    Lists          ┃                                                             [0m
-   Trees          ┃    Resolving   ───────────────────────────────────────────  [0m
+   Trees          ┃    Resolving   ────────────────────────────────────         [0m
    Tables         ┃                                                             [0m
    Editable tabl… ┃    ⠋ Waiting for the test runner                            [0m
    Panels         ┃    ⠋ 3 of 12 files                                          [0m
@@ -16,9 +16,10 @@
    Scrolling      ┃                                                             [0m
    Terminal       ┃                                                             [0m
    Code editor    ┃    States                                           static  [0m
-   Diff           ┃                                                             [0m
+   Diff           │                                                             [0m
    Data grid      │    Queued      ────────────────────────────────────   0%    [0m
    Chips & selec… │    Halfway     ━━━━━━━━━━━━━━━━━━──────────────────  50%    [0m
 [0m[2m   Pickers        [0m│                                                             [0m
                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
+[?25l

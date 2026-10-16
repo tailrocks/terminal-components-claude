@@ -16,9 +16,10 @@
    Scrolling      ┃         auth_flow.rs      3.0 KB ┃                          [0m
    Terminal       ┃       ▸ fixtures                 ┃                          [0m
    Code editor    ┃     ▾ docs                       ┃                          [0m
-   Diff           ┃         architecture.md   7.7 KB ┃                          [0m
+   Diff           │         architecture.md   7.7 KB ┃                          [0m
    Data grid      │         webhooks.md       2.2 KB ┃                          [0m
    Chips & selec… │    [0m[2m   Cargo.toml          1.4 KB [0m│                          [0m
 [0m[2m   Pickers        [0m│                                                             [0m
                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
+[?25l
