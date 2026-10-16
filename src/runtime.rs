@@ -53,6 +53,13 @@ pub trait Application {
     fn coalesce(&self) -> Coalesce {
         Coalesce::default()
     }
+    /// The pointer and caret shapes to show after the last frame (see
+    /// [`crate::core::shape`]; [`crate::core::shape::shapes_for`] reads
+    /// them off an app's pointer state and hit regions). Default: none,
+    /// the terminal's own.
+    fn shapes(&self) -> crate::core::shape::Shapes {
+        crate::core::shape::Shapes::default()
+    }
 }
 
 /// Input coalescing policy of the event loop.
@@ -346,6 +353,8 @@ pub mod job_control {
 
 fn restore_terminal() {
     let mut out = stdout();
+    // the arrow pointer and the terminal's own caret, if they were set
+    let _ = out.write_all(crate::core::shape::reset_sequence().as_bytes());
     let _ = execute!(out, DisableBracketedPaste, DisableMouseCapture, Show);
     let _ = out.write_all(ENABLE_WRAP.as_bytes());
     let _ = execute!(out, LeaveAlternateScreen);
@@ -382,11 +391,15 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
     let mut pump = InputPump::new(app.coalesce());
     // hover content held back by a frame (a delayed reveal or tooltip):
     // that frame and when it may show
+    let mut shapes =
+        crate::core::shape::ShapeSync::new(crate::core::shape::ShapeSupport::current());
     let mut hover_due: Option<(u64, Instant)> = None;
     loop {
         #[cfg(unix)]
         if job_control::take_request() {
             let (w, h) = session.suspend()?;
+            // the shapes were reset on the way out: send them again
+            shapes.forget();
             // geometry may have changed while stopped: rebuild, then a full draw
             app.handle(Input::Resize(w, h));
             dirty = true;
@@ -395,6 +408,10 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         if dirty {
             terminal.draw(|f| render_frame(app, f, suppress_colors))?;
             dirty = false;
+        }
+        // the pointer and caret shapes of what the last frame drew
+        if shapes.apply(app.shapes(), terminal.backend_mut())? {
+            terminal.backend_mut().flush()?;
         }
         // a tick-driven transition may have asked to quit without any input
         if app.should_quit() {
