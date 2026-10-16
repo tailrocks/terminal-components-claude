@@ -7,6 +7,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
 use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
@@ -39,6 +40,8 @@ use crate::sim::world::{Msg, World};
 pub const TABS: WidgetId = WidgetId::of("editor.tabs");
 pub const NAME: WidgetId = WidgetId::of("editor.name");
 pub const WORKDIR: WidgetId = WidgetId::of("editor.workdir");
+/// The General tab's field stack (its wheel region and scrollbar).
+const GENERAL: WidgetId = WidgetId::of("editor.general");
 pub const KEEP_AWAKE: WidgetId = WidgetId::of("editor.keep_awake");
 pub const GIT_PULL: WidgetId = WidgetId::of("editor.git_pull");
 pub const DIRTY_POLICY: WidgetId = WidgetId::of("editor.dirty_policy");
@@ -114,6 +117,7 @@ pub struct EditorScreen {
     role_cursor: usize,
     role_area: Rect,
     role_scroll: ScrollState,
+    general_stack: StackScroll,
     role_filter: Option<String>,
     acct: AcctState,
     cancel: Button,
@@ -194,6 +198,7 @@ impl EditorScreen {
             role_cursor: 0,
             role_area: Rect::ZERO,
             role_scroll: ScrollState::default(),
+            general_stack: StackScroll::default(),
             role_filter: None,
             acct: AcctState::default(),
             cancel: Button::subtle(CANCEL, "Cancel"),
@@ -526,49 +531,103 @@ impl EditorScreen {
     fn render_general(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let bg = t.canvas;
-        let x = area.x + 2;
-        let mut y = area.y;
         let fw = area.width.saturating_sub(4).min(72);
-        self.name.render(Rect::new(x, y, fw, 3), buf, ctx, bg);
-        y += 4;
-        buf.set_string(
-            x,
-            y,
-            "Working directory *",
-            t.secondary().bg(bg).add_modifier(Modifier::BOLD),
-        );
-        y += 1;
-        let wd_focused = ctx.interaction.focused(WORKDIR);
-        buf.set_string(
-            x,
-            y,
-            fit(
-                &truncate(&self.pending.workdir, fw.saturating_sub(14) as usize),
-                fw.saturating_sub(14) as usize,
-            ),
-            if wd_focused {
-                t.primary().bg(bg)
-            } else {
-                t.secondary().bg(bg)
-            },
-        );
-        self.workdir_button
-            .render(Rect::new(x + fw.saturating_sub(11), y, 11, 1), buf, ctx, bg);
-        y += 1;
-        let hint = if self.pending.workdir != self.original.workdir {
-            format!("Inside the Construct · was {}", self.original.workdir)
-        } else {
-            "Inside the Construct".into()
-        };
-        buf.set_string(x, y, truncate(&hint, fw as usize), t.faint().bg(bg));
-        y += 2;
-        self.keep_awake.render(Rect::new(x, y, 30, 1), buf, ctx, bg);
-        buf.set_string(x + 30, y, "macOS only", t.faint().bg(bg));
-        y += 1;
-        self.git_pull.render(Rect::new(x, y, 30, 1), buf, ctx, bg);
-        y += 2;
-        self.dirty_policy
-            .render(Rect::new(x, y, fw.min(48), 3), buf, ctx, bg);
+        // a measured stack: on a short terminal the fields scroll (and Tab
+        // brings each into view) instead of running into Cancel and Save
+        let kids = [
+            StackChild::fixed(3),
+            StackChild::fixed(1),
+            StackChild::fixed(3),
+            StackChild::fixed(1),
+            StackChild::fixed(1),
+            StackChild::fixed(1),
+            StackChild::fixed(1),
+            StackChild::fixed(3),
+        ];
+        let focus = ctx.interaction.focus;
+        let at = [
+            &[NAME][..],
+            &[],
+            &[WORKDIR, self.workdir_button.id],
+            &[],
+            &[self.keep_awake.id],
+            &[self.git_pull.id],
+            &[],
+            &[self.dirty_policy.id],
+        ]
+        .iter()
+        .position(|ids| focus.is_some_and(|f| ids.contains(&f)));
+        let l = Stack::default().layout(area, &kids, &mut self.general_stack, at);
+        Stack::chrome(&l, area, buf, ctx, GENERAL, &self.general_stack);
+        let col = |r: Rect| Rect::new(r.x + 2, r.y, fw.min(r.width.saturating_sub(2)), r.height);
+        match l.slot(0) {
+            Some(r) => self.name.render(col(r), buf, ctx, bg),
+            None => ctx.focus_stop(NAME),
+        }
+        match l.slot(2) {
+            Some(r) => {
+                let r = col(r);
+                let (x, y, fw) = (r.x, r.y, r.width);
+                buf.set_string(
+                    x,
+                    y,
+                    "Working directory *",
+                    t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+                );
+                let wd_focused = ctx.interaction.focused(WORKDIR);
+                buf.set_string(
+                    x,
+                    y + 1,
+                    fit(
+                        &truncate(&self.pending.workdir, fw.saturating_sub(14) as usize),
+                        fw.saturating_sub(14) as usize,
+                    ),
+                    if wd_focused {
+                        t.primary().bg(bg)
+                    } else {
+                        t.secondary().bg(bg)
+                    },
+                );
+                self.workdir_button.render(
+                    Rect::new(x + fw.saturating_sub(11), y + 1, 11, 1),
+                    buf,
+                    ctx,
+                    bg,
+                );
+                let hint = if self.pending.workdir != self.original.workdir {
+                    format!("Inside the Construct · was {}", self.original.workdir)
+                } else {
+                    "Inside the Construct".into()
+                };
+                buf.set_string(x, y + 2, truncate(&hint, fw as usize), t.faint().bg(bg));
+            }
+            None => ctx.focus_stop(self.workdir_button.id),
+        }
+        match l.slot(4) {
+            Some(r) => {
+                let r = col(r);
+                self.keep_awake
+                    .render(Rect::new(r.x, r.y, 30, 1), buf, ctx, bg);
+                buf.set_string(r.x + 30, r.y, "macOS only", t.faint().bg(bg));
+            }
+            None => ctx.focus_stop(self.keep_awake.id),
+        }
+        match l.slot(5) {
+            Some(r) => {
+                let r = col(r);
+                self.git_pull
+                    .render(Rect::new(r.x, r.y, 30, 1), buf, ctx, bg);
+            }
+            None => ctx.focus_stop(self.git_pull.id),
+        }
+        match l.slot(7) {
+            Some(r) => {
+                let r = col(r);
+                self.dirty_policy
+                    .render(Rect::new(r.x, r.y, r.width.min(48), 3), buf, ctx, bg);
+            }
+            None => ctx.focus_stop(self.dirty_policy.id),
+        }
         let _ = w;
     }
 
@@ -1747,6 +1806,10 @@ impl Screen for EditorScreen {
         if self.saving {
             return Outcome::Consumed;
         }
+        if id == scrollbar::id_for(GENERAL) {
+            self.general_stack.on_scrollbar(pos);
+            return Outcome::Changed;
+        }
         if self.tabs.owns(id) {
             let (o, ev) = self.tabs.on_click(id);
             if let Some(TabEvent::Activated(i)) = ev {
@@ -1868,7 +1931,19 @@ impl Screen for EditorScreen {
         }
     }
 
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(GENERAL) {
+            self.general_stack.on_scrollbar_drag(pos);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
+        if id == GENERAL || id == scrollbar::id_for(GENERAL) {
+            self.general_stack.on_wheel(delta);
+            return Outcome::Changed;
+        }
         if id == ROLES || id == scrollbar::id_for(ROLES) {
             self.role_scroll.scroll_by(delta as isize);
             return Outcome::Changed;
