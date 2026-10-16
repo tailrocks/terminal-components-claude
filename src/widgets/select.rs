@@ -14,7 +14,9 @@ use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
+use crate::core::keymap::unassigned_chord;
 use crate::core::keymap::{Nav, NavKeys};
+use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::{ScrollState, TrackClick};
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -338,75 +340,36 @@ impl Select {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
-        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
+        if unassigned_chord::<()>(key, &[]) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
-        if let KeyCode::Char(c) = key.code
-            && self.type_ahead
-            && key.plain()
-            && !c.is_whitespace()
-            && !(self.open && self.nav.action(key).is_some())
-        {
-            let prefix = self.typeahead.feed(c).to_owned();
-            let from = if self.open {
-                self.cursor
-            } else {
-                self.selected
-            };
-            let Some(i) = crate::core::typeahead::TypeAhead::find(
-                &prefix,
-                self.options.iter().map(String::as_str),
-                from,
-                |_| true,
-            ) else {
-                return (Outcome::Ignored, None);
-            };
-            if self.open {
+        let step = KeyStep::of(key, &self.nav, self.type_ahead);
+        if let Some(KeyStep::Type(c)) = step {
+            // open: the popup's cursor; closed: the value itself
+            let moved = self
+                .cursor()
+                .type_ahead(c, &mut self.typeahead, &self.options[..]);
+            if let Moved::To(i) = moved {
                 self.cursor = i;
-                return (Outcome::Changed, None);
+                if !self.open {
+                    return (Outcome::Changed, self.choose(i));
+                }
             }
-            self.cursor = i;
-            return (Outcome::Changed, self.choose(i));
+            return (moved.outcome(), None);
         }
         if self.open {
-            if let Some(nav) = self.nav.action(key) {
-                return match nav {
-                    Nav::Up => {
-                        self.cursor = crate::core::nav::step_index(
-                            self.cursor,
-                            self.last() + 1,
-                            -1,
-                            self.wrap,
-                        );
+            if let Some(KeyStep::Nav(nav)) = step {
+                let moved = self
+                    .cursor()
+                    .apply(nav, &self.options[..], self.visible_rows);
+                return match moved.index() {
+                    Some(i) => {
+                        self.cursor = i;
                         (Outcome::Changed, None)
                     }
-                    Nav::Down => {
-                        self.cursor = crate::core::nav::step_index(
-                            self.cursor,
-                            self.last() + 1,
-                            1,
-                            self.wrap,
-                        );
-                        (Outcome::Changed, None)
-                    }
-                    Nav::PageUp => {
-                        self.cursor = self.cursor.saturating_sub(self.visible_rows.max(1));
-                        (Outcome::Changed, None)
-                    }
-                    Nav::PageDown => {
-                        self.cursor = (self.cursor + self.visible_rows.max(1)).min(self.last());
-                        (Outcome::Changed, None)
-                    }
-                    Nav::Home => {
-                        self.cursor = 0;
-                        (Outcome::Changed, None)
-                    }
-                    Nav::End => {
-                        self.cursor = self.last();
-                        (Outcome::Changed, None)
-                    }
-                    Nav::Left | Nav::Right => (Outcome::Consumed, None),
+                    // ←/→ in the open list do nothing
+                    None => (Outcome::Consumed, None),
                 };
             }
             return match key.code {
@@ -439,15 +402,16 @@ impl Select {
             Some(Nav::Left | Nav::Right) if self.arrows == SelectArrows::Open => {
                 (Outcome::Ignored, None)
             }
-            Some(Nav::Up | Nav::Left) if key.plain() => {
-                let n =
-                    crate::core::nav::step_index(self.selected, self.options.len(), -1, self.wrap);
-                (Outcome::Changed, self.choose(n))
-            }
-            Some(Nav::Down | Nav::Right) if key.plain() => {
-                let n =
-                    crate::core::nav::step_index(self.selected, self.options.len(), 1, self.wrap);
-                (Outcome::Changed, self.choose(n))
+            Some(nav @ (Nav::Up | Nav::Left | Nav::Down | Nav::Right)) if key.plain() => {
+                let delta = if matches!(nav, Nav::Up | Nav::Left) {
+                    -1
+                } else {
+                    1
+                };
+                match self.cursor().step(delta, &self.options[..]).index() {
+                    Some(n) => (Outcome::Changed, self.choose(n)),
+                    None => (Outcome::Ignored, None),
+                }
             }
             _ => (Outcome::Ignored, None),
         }
@@ -912,6 +876,27 @@ impl crate::core::focus::BlurTarget for Select {
     }
 }
 
+impl RowSource for Select {
+    fn len(&self) -> usize {
+        self.options.len()
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.options[i]
+    }
+}
+
+impl Navigable for Select {
+    /// The open popup's cursor, or the closed field's value.
+    fn cursor(&self) -> Cursor {
+        let at = if self.open {
+            self.cursor
+        } else {
+            self.selected
+        };
+        Cursor::new(at).wrap(self.wrap)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -959,9 +944,10 @@ mod tests {
         assert_eq!(s.on_key(&k('g')).1, Some(SelectAction::Changed(2)));
         assert_eq!(
             s.on_key(&k('q')).0,
-            Outcome::Ignored,
-            "no match: the page keeps it"
+            Outcome::Consumed,
+            "no match: consumed, never half-typed to the page (plan §3)"
         );
+        assert_eq!(s.selected, 2);
         let mut off = Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta"], 0);
         assert_eq!(off.on_key(&k('b')).1, None);
         assert_eq!(off.selected, 0);
