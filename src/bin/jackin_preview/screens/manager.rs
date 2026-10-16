@@ -1179,7 +1179,21 @@ impl ManagerScreen {
         }
     }
 
+    /// The detail card. It draws its action row before its header stop,
+    /// so Tab follows the card's visual order instead
+    /// ([`RenderCtx::visual_order`], K30).
     fn draw_detail(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        w: &World,
+        as_drawer: bool,
+    ) {
+        ctx.visual_order(|ctx| self.draw_detail_card(area, buf, ctx, w, as_drawer));
+    }
+
+    fn draw_detail_card(
         &mut self,
         area: Rect,
         buf: &mut Buffer,
