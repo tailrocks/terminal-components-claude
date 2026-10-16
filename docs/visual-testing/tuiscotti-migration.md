@@ -232,7 +232,28 @@ Re-run them, narrow the filterset, or delete them.
 | per scenario, average | `.ansi` 9.6 KB, `.txt` 2.0 KB, `.png` 390 KB, `.html` 1.46 MB | 9.8 KB |
 | scratch per mismatch (not committed) | | `.frame.json` 913 KB, `.html` 1.46 MB, `.png` 390 KB |
 
+## Dev opt-level overrides
+
+`Cargo.toml` sets `[profile.dev.package."*"] opt-level = 3` (tuiscotti's
+recommendation, feedback P6): dependencies build optimized in dev and test
+profiles, our own crates do not. Measured 2026-10-17 on the same machine,
+separate target directories, no build cache:
+
+| | Without | With |
+|---|---|---|
+| Clean `cargo build --workspace --all-targets` | 18.4 s (135 s CPU) | 38.3 s (434 s CPU) |
+| Rebuild after touching `src/lib.rs` | 2.4 s | 2.5 s |
+| Mismatching capture with review PNG/HTML, `holla/audit/rust` truecolor 72x20 / 120x40 / 160x50 | 2.7 / 6.2 / 9.1 s | 1.1 / 1.1 / 1.1 s |
+
+A clean build costs 20 s more once; edits of our own code rebuild as fast
+as before, and every mismatch (a re-approval run, a `VISUAL_FULL=1` pass
+over the legacy store) saves seconds per capture.
+
 ## Known tuiscotti main issues (at `a47c9aa`)
+
+All of these are fixed upstream by tuiscotti PR 11 (merged as `be860d1`,
+adopted at `3382e57`); the workarounds named here are deleted. Kept as
+history.
 
 - A lone `f`/`F` key fails as a malformed function key:
   `crates/tuiscotti-runtime/src/tui/input_types.rs:165` strips the `F`
