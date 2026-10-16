@@ -149,6 +149,15 @@ components work; they are not where behaviour lives.
 - Always use subagents for the work: parallel audits by category, and
   implementation agents in isolated worktrees on disjoint files. The main
   session coordinates, reviews and integrates.
+- Never run more than 5 subagents at once. Each subagent commits and
+  pushes its work in small portions as soon as each coherent step passes
+  the gate, so no work is lost if it is stopped.
+- Subagents never sit idle waiting: long commands run in the background
+  while the agent keeps working, and an agent with nothing left but
+  waiting ends its run and reports where to resume, rather than polling.
+- No single command runs longer than 4 minutes: set an explicit timeout
+  and split long jobs (nextest partitions, visual groups) into parts that
+  fit.
 - Deliver in small portions: commit and push to the working branch after
   every coherent step (one finding or one small group of related changes),
   as soon as the full gate passes. Never keep work uncommitted or unpushed
