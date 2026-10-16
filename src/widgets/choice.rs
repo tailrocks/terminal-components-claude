@@ -33,6 +33,10 @@ pub struct Checkbox {
     pub label: String,
     pub checked: bool,
     pub disabled: bool,
+    /// Indeterminate: the box stands for several differing values (a bulk
+    /// edit) and shows `[–]`. Toggling it checks the box, as on macOS.
+    /// Default `false`.
+    pub mixed: bool,
     pub area: Rect,
 }
 
@@ -43,8 +47,20 @@ impl Checkbox {
             label: label.to_owned(),
             checked,
             disabled: false,
+            mixed: false,
             area: Rect::ZERO,
         }
+    }
+
+    /// Start indeterminate (see [`Self::mixed`]).
+    pub fn mixed(mut self, mixed: bool) -> Self {
+        self.mixed = mixed;
+        self
+    }
+
+    fn toggle(&mut self) {
+        self.checked = self.mixed || !self.checked;
+        self.mixed = false;
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
@@ -52,7 +68,7 @@ impl Checkbox {
             return Outcome::Ignored;
         }
         if key.is_char(' ') || key.is(KeyCode::Enter) {
-            self.checked = !self.checked;
+            self.toggle();
             Outcome::Changed
         } else {
             Outcome::Ignored
@@ -63,7 +79,7 @@ impl Checkbox {
         if self.disabled {
             return Outcome::Consumed;
         }
-        self.checked = !self.checked;
+        self.toggle();
         Outcome::Changed
     }
 
@@ -89,15 +105,17 @@ impl Checkbox {
             t.gutter_symbol(s),
             t.gutter(s, st.bg.unwrap_or(bg), false),
         );
-        let mark = match (area.width < 4, self.checked) {
-            (true, true) => "✓",
-            (true, false) => "□",
-            (false, true) => "[✓]",
-            (false, false) => "[ ]",
+        let mark = match (area.width < 4, self.checked, self.mixed) {
+            (true, _, true) => "–",
+            (false, _, true) => "[–]",
+            (true, true, _) => "✓",
+            (true, false, _) => "□",
+            (false, true, _) => "[✓]",
+            (false, false, _) => "[ ]",
         };
         let mark_style = if self.disabled {
             st
-        } else if self.checked {
+        } else if self.checked || self.mixed {
             // a checked value is a fact; it takes the accent only while the
             // control has focus, so green stays the focus colour
             st.fg(t.chosen(s.focused))
@@ -353,5 +371,41 @@ impl Toggle {
             );
         }
         ctx.control(self.id, area, self.disabled);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn mark(cb: &mut Checkbox) -> String {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
+        cb.render(Rect::new(0, 0, 20, 1), &mut buf, &mut ctx, t.canvas);
+        (1..4).map(|x| buf[(x, 0)].symbol()).collect()
+    }
+
+    #[test]
+    fn a_mixed_checkbox_shows_a_dash_and_toggles_to_checked() {
+        let mut cb = Checkbox::new(WidgetId::of("c"), "On call", false).mixed(true);
+        assert_eq!(mark(&mut cb), "[–]");
+        assert_eq!(cb.on_click(), Outcome::Changed);
+        assert!(cb.checked && !cb.mixed, "mixed → checked, as on macOS");
+        assert_eq!(mark(&mut cb), "[✓]");
+        let mut cb = Checkbox::new(WidgetId::of("c"), "On call", true).mixed(true);
+        let space = Key {
+            code: KeyCode::Char(' '),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        cb.on_key(&space);
+        assert!(cb.checked && !cb.mixed);
+        cb.on_key(&space);
+        assert!(!cb.checked);
     }
 }
