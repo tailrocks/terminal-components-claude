@@ -900,6 +900,29 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     assert!(h.text().contains("public › orders"));
 }
 
+/// K27: on a narrow terminal the connection form covers the list, so the
+/// list's filter and tree are inert: Tab never reaches them while the form
+/// is open.
+#[test]
+fn a_form_covering_the_narrow_connection_list_keeps_tab_inside_it() {
+    let mut h = H::new(76, 24);
+    h.ctrl('n');
+    h.draw();
+    let list = [
+        crate::connections::TREE,
+        junie_tui::core::id::WidgetId::of("connections").sub("filter"),
+    ];
+    let mut seen = vec![];
+    for _ in 0..40 {
+        h.key(KeyCode::Tab);
+        seen.push(h.focus());
+    }
+    assert!(
+        seen.iter().all(|f| f.is_some_and(|f| !list.contains(&f))),
+        "Tab reached the covered list: {seen:?}"
+    );
+}
+
 /// The end-to-end flow from GOAL2, keyboard only.
 #[test]
 fn acceptance_flow_keyboard_only() {
