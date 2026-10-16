@@ -8,10 +8,10 @@ use junie_tui::core::keymap::{KeyBinding, NavKeys};
 use junie_tui::widgets::choice_dialog::ChoiceDialog;
 use junie_tui::widgets::form_dialog::FormDialog;
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
-use junie_tui::widgets::help::{HelpAction, HelpOverlay};
-use junie_tui::widgets::info_dialog::{InfoAction, InfoDialog, InfoResult};
+use junie_tui::widgets::help::{HelpCmd, HelpOverlay};
+use junie_tui::widgets::info_dialog::{InfoCmd, InfoDialog, InfoResult};
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarEvent, MenuItem};
-use junie_tui::widgets::props::{Prop, PropsAction, PropsEvent, PropsList};
+use junie_tui::widgets::props::{Prop, PropsCmd, PropsEvent, PropsList};
 use junie_tui::widgets::table::{Cell, Column, DataTable};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Constraint;
@@ -79,7 +79,7 @@ fn info_dialog_keys_are_a_keymap_and_nav_keys() {
     d.on_key(&ch('q'), &mut focus, &ring);
     assert_eq!(d.result, Some(InfoResult::Closed));
     let mut d = InfoDialog::new(WidgetId::of("i"), "Info", props)
-        .keymap(vec![(KeyBinding::char('x'), InfoAction::Close)])
+        .keymap(vec![(KeyBinding::char('x'), InfoCmd::Close)])
         .nav(NavKeys::NO_VIM);
     assert_eq!(d.on_key(&ch('q'), &mut focus, &ring), Outcome::Consumed);
     assert_eq!(d.result, None, "q is unbound");
@@ -94,7 +94,7 @@ fn props_copy_and_help_close_are_keymaps() {
     let mut p = PropsList::new(WidgetId::of("p"), props());
     assert_eq!(p.on_key(&ch('y')).1, Some(PropsEvent::Copy(0)));
     let mut p = PropsList::new(WidgetId::of("p"), props())
-        .keymap(vec![(KeyBinding::char('c'), PropsAction::Copy)]);
+        .keymap(vec![(KeyBinding::char('c'), PropsCmd::Copy)]);
     assert_eq!(p.on_key(&ch('y')).1, None);
     assert_eq!(p.on_key(&ch('c')).1, Some(PropsEvent::Copy(0)));
 
@@ -105,7 +105,7 @@ fn props_copy_and_help_close_are_keymaps() {
     let mut h = help();
     h.on_key(&ch('q'));
     assert!(h.closed);
-    let mut h = help().keymap(vec![(KeyBinding::char('x'), HelpAction::Close)]);
+    let mut h = help().keymap(vec![(KeyBinding::char('x'), HelpCmd::Close)]);
     h.on_key(&ch('q'));
     assert!(!h.closed, "q unbound");
     h.on_key(&key(KeyCode::Enter));

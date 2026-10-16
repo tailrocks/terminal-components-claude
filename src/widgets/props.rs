@@ -271,26 +271,26 @@ pub struct PropsList {
     v_click: crate::core::scroll::TrackClick,
     /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
-    /// The list's action keys (default [`PropsAction::default_keymap`]).
-    pub keymap: KeyMap<PropsAction>,
+    /// The list's action keys (default [`PropsCmd::default_keymap`]).
+    pub keymap: KeyMap<PropsCmd>,
 }
 
 /// A [`PropsList`] action a key can be bound to. Enter always activates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PropsAction {
+pub enum PropsCmd {
     /// Copy the cursor row's value when it is copyable. Default `y`.
     Copy,
 }
 
-impl Actions for PropsAction {
+impl Actions for PropsCmd {
     fn default_keymap() -> KeyMap<Self> {
-        vec![(KeyBinding::char('y'), PropsAction::Copy)]
+        vec![(KeyBinding::char('y'), PropsCmd::Copy)]
     }
 }
 
 impl PropsList {
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<PropsAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<PropsCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -316,7 +316,7 @@ impl PropsList {
             track_click: None,
             v_click: crate::core::scroll::TrackClick::Page,
             nav: NavKeys::DEFAULT,
-            keymap: PropsAction::default_keymap(),
+            keymap: PropsCmd::default_keymap(),
         }
     }
 
@@ -373,7 +373,7 @@ impl PropsList {
         if let Some(o) = self.reveal.on_key(key) {
             return (o, None);
         }
-        if let Some(PropsAction::Copy) = lookup(&self.keymap, key) {
+        if let Some(PropsCmd::Copy) = lookup(&self.keymap, key) {
             if self.props[self.cursor].copyable {
                 return (Outcome::Changed, Some(PropsEvent::Copy(self.cursor)));
             }

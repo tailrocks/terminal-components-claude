@@ -469,8 +469,8 @@ pub struct DataGrid {
     /// go to the first/last row, Home/End to the row's first/last cell,
     /// Ctrl+Home/End to the first/last row; Ctrl+←/→ page sideways.
     pub nav: NavKeys,
-    /// The grid's action keys (default [`GridAction::default_keymap`]).
-    pub keymap: KeyMap<GridAction>,
+    /// The grid's action keys (default [`GridCmd::default_keymap`]).
+    pub keymap: KeyMap<GridCmd>,
     /// Typing a prefix jumps to the first row whose cell in
     /// [`Self::type_ahead_column`] starts with it (macOS table type-select).
     /// Off by default: plain letters keep their vim and action bindings.
@@ -508,7 +508,7 @@ pub struct GridChoice {
 /// A [`DataGrid`] action a key can be bound to. Enter/F2 (edit or
 /// activate), Space (mark the row) and Esc (clear the selection) are fixed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GridAction {
+pub enum GridCmd {
     /// Set the cell to NULL, or mark the selected rows deleted. Default Del
     /// and Backspace.
     ClearCell,
@@ -552,32 +552,32 @@ pub enum GridAction {
     SelectAll,
 }
 
-impl Actions for GridAction {
+impl Actions for GridCmd {
     fn default_keymap() -> KeyMap<Self> {
         vec![
-            (KeyBinding::key(KeyCode::Delete), GridAction::ClearCell),
-            (KeyBinding::key(KeyCode::Backspace), GridAction::ClearCell),
-            (KeyBinding::char('-'), GridAction::ToggleDelete),
-            (KeyBinding::char('+'), GridAction::InsertRow),
-            (KeyBinding::ctrl('d'), GridAction::DuplicateRow),
-            (KeyBinding::alt('d'), GridAction::DuplicateRow),
-            (KeyBinding::cmd('c'), GridAction::Copy),
-            (KeyBinding::char('y'), GridAction::Copy),
-            (KeyBinding::char('Y'), GridAction::CopyWithHeader),
-            (KeyBinding::ctrl('s'), GridAction::Commit),
-            (KeyBinding::char('s'), GridAction::Sort),
-            (KeyBinding::char('S'), GridAction::ClearSort),
-            (KeyBinding::char('f'), GridAction::FilterOnCell),
-            (KeyBinding::char('/'), GridAction::OpenFilters),
-            (KeyBinding::char('F'), GridAction::ClearFilters),
-            (KeyBinding::char('r'), GridAction::Refresh),
-            (KeyBinding::key(KeyCode::F(5)), GridAction::Refresh),
-            (KeyBinding::char('u'), GridAction::Undo),
-            (KeyBinding::char('U'), GridAction::Discard),
-            (KeyBinding::char('p'), GridAction::PreviewSql),
-            (KeyBinding::ctrl(']'), GridAction::FollowReference),
-            (crate::core::keymap::SELECT_ALL[0], GridAction::SelectAll),
-            (crate::core::keymap::SELECT_ALL[1], GridAction::SelectAll),
+            (KeyBinding::key(KeyCode::Delete), GridCmd::ClearCell),
+            (KeyBinding::key(KeyCode::Backspace), GridCmd::ClearCell),
+            (KeyBinding::char('-'), GridCmd::ToggleDelete),
+            (KeyBinding::char('+'), GridCmd::InsertRow),
+            (KeyBinding::ctrl('d'), GridCmd::DuplicateRow),
+            (KeyBinding::alt('d'), GridCmd::DuplicateRow),
+            (KeyBinding::cmd('c'), GridCmd::Copy),
+            (KeyBinding::char('y'), GridCmd::Copy),
+            (KeyBinding::char('Y'), GridCmd::CopyWithHeader),
+            (KeyBinding::ctrl('s'), GridCmd::Commit),
+            (KeyBinding::char('s'), GridCmd::Sort),
+            (KeyBinding::char('S'), GridCmd::ClearSort),
+            (KeyBinding::char('f'), GridCmd::FilterOnCell),
+            (KeyBinding::char('/'), GridCmd::OpenFilters),
+            (KeyBinding::char('F'), GridCmd::ClearFilters),
+            (KeyBinding::char('r'), GridCmd::Refresh),
+            (KeyBinding::key(KeyCode::F(5)), GridCmd::Refresh),
+            (KeyBinding::char('u'), GridCmd::Undo),
+            (KeyBinding::char('U'), GridCmd::Discard),
+            (KeyBinding::char('p'), GridCmd::PreviewSql),
+            (KeyBinding::ctrl(']'), GridCmd::FollowReference),
+            (crate::core::keymap::SELECT_ALL[0], GridCmd::SelectAll),
+            (crate::core::keymap::SELECT_ALL[1], GridCmd::SelectAll),
         ]
     }
 }
@@ -643,7 +643,7 @@ impl DataGrid {
             htrack: Rect::ZERO,
             width_sample_rows: DEFAULT_WIDTH_SAMPLE_ROWS,
             nav: NavKeys::DEFAULT,
-            keymap: GridAction::default_keymap(),
+            keymap: GridCmd::default_keymap(),
             type_ahead: false,
             type_ahead_column: None,
             typeahead: Default::default(),
@@ -833,14 +833,14 @@ impl DataGrid {
     }
 
     /// The keys that duplicate the cursor row (default Ctrl+D and Alt+D):
-    /// replaces the [`GridAction::DuplicateRow`] bindings in
+    /// replaces the [`GridCmd::DuplicateRow`] bindings in
     /// [`Self::keymap`]. An empty list turns the shortcut off;
     /// [`Self::duplicate_row`] stays.
     pub fn duplicate_keys(mut self, keys: &[Key]) -> Self {
-        self.keymap.retain(|(_, a)| *a != GridAction::DuplicateRow);
+        self.keymap.retain(|(_, a)| *a != GridCmd::DuplicateRow);
         self.keymap.extend(
             keys.iter()
-                .map(|k| (KeyBinding::new(k.code, k.mods), GridAction::DuplicateRow)),
+                .map(|k| (KeyBinding::new(k.code, k.mods), GridCmd::DuplicateRow)),
         );
         self
     }
@@ -852,7 +852,7 @@ impl DataGrid {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<GridAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<GridCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -1641,12 +1641,10 @@ impl DataGrid {
             // an empty grid: only the actions that do not need a row (the
             // filter-on-cell key opens the filters instead)
             return match lookup(&self.keymap, key) {
-                Some(GridAction::InsertRow) if self.editable => {
-                    (Outcome::Changed, self.insert_row())
-                }
-                Some(GridAction::Refresh) => (Outcome::Changed, Some(GridEvent::Refresh)),
-                Some(GridAction::FilterOnCell) => (Outcome::Changed, Some(GridEvent::OpenFilters)),
-                Some(GridAction::ClearFilters) => (Outcome::Changed, Some(GridEvent::ClearFilters)),
+                Some(GridCmd::InsertRow) if self.editable => (Outcome::Changed, self.insert_row()),
+                Some(GridCmd::Refresh) => (Outcome::Changed, Some(GridEvent::Refresh)),
+                Some(GridCmd::FilterOnCell) => (Outcome::Changed, Some(GridEvent::OpenFilters)),
+                Some(GridCmd::ClearFilters) => (Outcome::Changed, Some(GridEvent::ClearFilters)),
                 _ => (Outcome::Ignored, None),
             };
         }
@@ -1755,10 +1753,10 @@ impl DataGrid {
         }
     }
 
-    fn on_action(&mut self, action: GridAction) -> (Outcome, Option<GridEvent>) {
+    fn on_action(&mut self, action: GridCmd) -> (Outcome, Option<GridEvent>) {
         let c = self.cursor.1;
         match action {
-            GridAction::ClearCell => {
+            GridCmd::ClearCell => {
                 if !self.editable {
                     return (Outcome::Consumed, None);
                 }
@@ -1789,24 +1787,24 @@ impl DataGrid {
                     (Outcome::Changed, None)
                 }
             }
-            GridAction::ToggleDelete => {
+            GridCmd::ToggleDelete => {
                 let Some(src) = self.cursor_src() else {
                     return (Outcome::Consumed, None);
                 };
                 (Outcome::Changed, self.toggle_delete(src))
             }
-            GridAction::InsertRow => (Outcome::Changed, self.insert_row()),
-            GridAction::DuplicateRow => (Outcome::Changed, self.duplicate_row()),
-            GridAction::Copy => (
+            GridCmd::InsertRow => (Outcome::Changed, self.insert_row()),
+            GridCmd::DuplicateRow => (Outcome::Changed, self.duplicate_row()),
+            GridCmd::Copy => (
                 Outcome::Changed,
                 Some(GridEvent::Copy(self.copy_text(false))),
             ),
-            GridAction::CopyWithHeader => (
+            GridCmd::CopyWithHeader => (
                 Outcome::Changed,
                 Some(GridEvent::Copy(self.copy_text(true))),
             ),
-            GridAction::Commit => (Outcome::Changed, Some(GridEvent::CommitRequested)),
-            GridAction::Sort => {
+            GridCmd::Commit => (Outcome::Changed, Some(GridEvent::CommitRequested)),
+            GridCmd::Sort => {
                 if !self.columns[c].sortable {
                     return (Outcome::Consumed, None);
                 }
@@ -1817,8 +1815,8 @@ impl DataGrid {
                 };
                 self.request_sort(next)
             }
-            GridAction::ClearSort => self.request_sort(None),
-            GridAction::FilterOnCell => {
+            GridCmd::ClearSort => self.request_sort(None),
+            GridCmd::FilterOnCell => {
                 let value = self
                     .cursor_src()
                     .map(|src| self.value(src, c).clone())
@@ -1828,15 +1826,15 @@ impl DataGrid {
                     Some(GridEvent::FilterOnCell { col: c, value }),
                 )
             }
-            GridAction::OpenFilters => (Outcome::Changed, Some(GridEvent::OpenFilters)),
-            GridAction::ClearFilters => (Outcome::Changed, Some(GridEvent::ClearFilters)),
-            GridAction::Refresh => (Outcome::Changed, Some(GridEvent::Refresh)),
-            GridAction::Undo => {
+            GridCmd::OpenFilters => (Outcome::Changed, Some(GridEvent::OpenFilters)),
+            GridCmd::ClearFilters => (Outcome::Changed, Some(GridEvent::ClearFilters)),
+            GridCmd::Refresh => (Outcome::Changed, Some(GridEvent::Refresh)),
+            GridCmd::Undo => {
                 self.undo();
                 (Outcome::Changed, None)
             }
-            GridAction::Discard => (Outcome::Changed, Some(GridEvent::DiscardRequested)),
-            GridAction::SelectAll => {
+            GridCmd::Discard => (Outcome::Changed, Some(GridEvent::DiscardRequested)),
+            GridCmd::SelectAll => {
                 let before = self.selected_rows.len();
                 self.selected_rows.extend(self.order.iter().copied());
                 if self.selected_rows.len() != before {
@@ -1845,8 +1843,8 @@ impl DataGrid {
                     (Outcome::Consumed, None)
                 }
             }
-            GridAction::PreviewSql => (Outcome::Changed, Some(GridEvent::PreviewSql)),
-            GridAction::FollowReference => {
+            GridCmd::PreviewSql => (Outcome::Changed, Some(GridEvent::PreviewSql)),
+            GridCmd::FollowReference => {
                 if self.columns[c].references.is_some()
                     && let Some(src) = self.cursor_src()
                 {
@@ -4181,9 +4179,9 @@ mod cmd_copy_tests {
             Some(GridEvent::Copy(text)) => assert!(text.contains("a2"), "{text}"),
             other => panic!("Cmd+C copies: {other:?}"),
         }
-        assert_eq!(hint_key(&g.keymap, GridAction::Copy), Some("y"));
+        assert_eq!(hint_key(&g.keymap, GridCmd::Copy), Some("y"));
         crate::core::keyboard::set_super_delivered(true);
         let label = KeyBinding::cmd('c').label();
-        assert_eq!(hint_key(&g.keymap, GridAction::Copy), Some(label.as_str()));
+        assert_eq!(hint_key(&g.keymap, GridCmd::Copy), Some(label.as_str()));
     }
 }
