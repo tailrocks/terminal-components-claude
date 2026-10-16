@@ -14,6 +14,7 @@ use junie_tui::core::keymap::hint_key;
 use junie_tui::theme::{StatusKind, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
+use junie_tui::ui::text::duration_ms;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipCmd};
 use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorAction, Severity};
@@ -357,13 +358,9 @@ pub fn segment_sql(src: &str) -> Vec<Range<usize>> {
         .collect()
 }
 
+/// A query timer's elapsed time ([`duration_ms`]).
 pub fn duration_label(ms: u32) -> String {
-    match ms {
-        0 => "<1 ms".into(),
-        ms if ms < 1000 => format!("{ms} ms"),
-        ms if ms < 60_000 => format!("{:.2} s", ms as f64 / 1000.0),
-        ms => format!("{}m {}s", ms / 60_000, (ms % 60_000) / 1000),
-    }
+    duration_ms(u64::from(ms))
 }
 
 // ------------------------------------------------------------- table tab

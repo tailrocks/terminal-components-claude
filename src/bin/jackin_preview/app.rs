@@ -13,12 +13,13 @@ use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, letters_allowed};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
-use junie_tui::ui::text::{truncate, width};
+use junie_tui::ui::text::truncate;
 use junie_tui::widgets::dialog::{DialogBody, DialogResult};
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::picker::PickerAction;
 use junie_tui::widgets::segments::{self, Segment};
+use junie_tui::widgets::too_small::TooSmall;
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -42,9 +43,6 @@ use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
-
-pub const MIN_WIDTH: u16 = 72;
-pub const MIN_HEIGHT: u16 = 20;
 
 /// The canonical product mark; every brand lockup renders exactly this.
 pub const BRAND_MARK: &str = "jackin❯";
@@ -209,7 +207,7 @@ impl App {
         let mut world = crate::domain::fixtures::world_for(scenario);
         world.clock.running = motion != Motion::Paused;
         let mut app = Self {
-            theme: centred_hints(theme),
+            theme: theme.centred_hints(),
             scenario,
             motion,
             world,
@@ -2620,32 +2618,12 @@ impl App {
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         fill(buf, area, t.base());
-        self.too_small = area.width < MIN_WIDTH || area.height < MIN_HEIGHT;
+        let brand = format!(" {BRAND_MARK} ");
+        let too_small =
+            TooSmall::new(&brand).brand_style(junie_tui::widgets::brand::Lockup::style(&t));
+        self.too_small = too_small.applies(area);
         if self.too_small {
-            let lines = [
-                (
-                    &*format!(" {BRAND_MARK} "),
-                    junie_tui::widgets::brand::Lockup::style(&t),
-                ),
-                ("Terminal too small", t.secondary()),
-                (
-                    &*format!(
-                        "Need {MIN_WIDTH}×{MIN_HEIGHT}, have {}×{}",
-                        area.width, area.height
-                    ),
-                    t.muted(),
-                ),
-                ("q Quit", t.faint()),
-            ];
-            let y0 = area.y + area.height.saturating_sub(5) / 2;
-            for (i, (text, style)) in lines.iter().enumerate() {
-                let w = width(text) as u16;
-                let x = area.x + area.width.saturating_sub(w) / 2;
-                let y = y0 + i as u16 + if i == 3 { 1 } else { 0 };
-                if y < area.bottom() {
-                    buf.set_string(x, y, text, if i == 0 { *style } else { style.bg(t.canvas) });
-                }
-            }
+            too_small.render(area, buf, &t);
             return;
         }
         match self.route {
@@ -3003,11 +2981,4 @@ fn form_values(modals: &ModalStack<ModalEntry>) -> crate::screens::modals::FormV
         Some(Modal::Form(f)) => f.values(),
         _ => vec![],
     }
-}
-
-/// This app centres its footer hints on every screen: set once on the
-/// theme rather than per hint layer.
-fn centred_hints(mut theme: Theme) -> Theme {
-    theme.hintbar.align = junie_tui::theme::HintAlign::Center;
-    theme
 }

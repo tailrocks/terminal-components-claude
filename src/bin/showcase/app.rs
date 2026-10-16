@@ -21,10 +21,11 @@ use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::too_small::TooSmall;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
-pub const MIN_WIDTH: u16 = 72;
-pub const MIN_HEIGHT: u16 = 20;
+/// The brand line of the too-small screen.
+const BRAND: &str = "Junie Design system";
 
 const NAV: WidgetId = WidgetId::of("app.nav");
 const HEADER_HELP: WidgetId = WidgetId::of("app.header.help");
@@ -1368,7 +1369,7 @@ impl App {
     }
 
     fn compute_layout(&self, area: Rect) -> ShellLayout {
-        if area.width < MIN_WIDTH || area.height < MIN_HEIGHT {
+        if TooSmall::new(BRAND).applies(area) {
             return ShellLayout {
                 too_small: true,
                 ..Default::default()
@@ -1419,7 +1420,7 @@ impl App {
         let layout = self.compute_layout(area);
         self.layout = layout;
         if layout.too_small {
-            self.draw_too_small(area, buf);
+            TooSmall::new(BRAND).render(area, buf, &t);
             return;
         }
         self.draw_header(layout.header, buf, ctx);
@@ -1436,31 +1437,6 @@ impl App {
                 buf,
                 ctx,
             );
-        }
-    }
-
-    fn draw_too_small(&self, area: Rect, buf: &mut Buffer) {
-        let t = self.theme;
-        let lines = [
-            ("Junie Design system", t.title()),
-            ("Terminal too small", t.secondary()),
-            (
-                &*format!(
-                    "Need {MIN_WIDTH}×{MIN_HEIGHT}, have {}×{}",
-                    area.width, area.height
-                ),
-                t.muted(),
-            ),
-            ("q Quit", t.faint()),
-        ];
-        let y0 = area.y + area.height.saturating_sub(5) / 2;
-        for (i, (text, style)) in lines.iter().enumerate() {
-            let w = junie_tui::ui::text::width(text) as u16;
-            let x = area.x + area.width.saturating_sub(w) / 2;
-            let y = y0 + i as u16 + if i == 3 { 1 } else { 0 };
-            if y < area.bottom() {
-                buf.set_string(x, y, text, style.bg(t.canvas));
-            }
         }
     }
 
