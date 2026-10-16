@@ -3,9 +3,15 @@
 //!
 //! Keys arrive without a timestamp, so the buffer keeps its own clock
 //! (`std::time::Instant`); a pause longer than [`TypeAhead::timeout`]
-//! starts a new prefix.
+//! starts a new prefix. The default, 1 s, sits in the 500–1000 ms range
+//! APG recommends; widgets take another through their
+//! `type_ahead_timeout(..)` builders. The cursor side (what a match moves
+//! to, what a miss does) is [`crate::core::list::Cursor::type_ahead`].
 
 use std::time::{Duration, Instant};
+
+use crate::core::event::Key;
+use ratatui::crossterm::event::KeyCode;
 
 /// A typed prefix that resets after a pause.
 #[derive(Debug, Clone)]
@@ -21,15 +27,39 @@ impl Default for TypeAhead {
         Self {
             buf: String::new(),
             last: None,
-            timeout: Duration::from_millis(1000),
+            timeout: Self::DEFAULT_TIMEOUT,
         }
     }
 }
 
 impl TypeAhead {
+    /// The pause that starts a new prefix unless a widget sets another.
+    pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(1000);
+
+    /// A buffer that starts a new prefix after `timeout`.
+    pub fn with_timeout(timeout: Duration) -> Self {
+        Self {
+            timeout,
+            ..Self::default()
+        }
+    }
+
+    /// The character `key` types into a prefix: a printable, non-space
+    /// character with no Ctrl, Alt or Cmd (Shift is part of the letter).
+    pub fn char_of(key: &Key) -> Option<char> {
+        match key.code {
+            KeyCode::Char(c) if !key.chord() && !c.is_whitespace() => Some(c),
+            _ => None,
+        }
+    }
+
     /// Add `c` to the prefix (starting over after a pause) and return it.
     pub fn feed(&mut self, c: char) -> &str {
-        let now = Instant::now();
+        self.feed_at(c, Instant::now())
+    }
+
+    /// [`Self::feed`] at `now` (tests drive the clock).
+    pub fn feed_at(&mut self, c: char, now: Instant) -> &str {
         if self
             .last
             .is_none_or(|t| now.duration_since(t) > self.timeout)
@@ -100,5 +130,20 @@ mod tests {
         t.timeout = Duration::ZERO;
         std::thread::sleep(Duration::from_millis(2));
         assert_eq!(t.feed('c'), "c", "a pause starts over");
+    }
+
+    #[test]
+    fn the_prefix_resets_after_the_timeout_and_not_before() {
+        let t0 = Instant::now();
+        let mut t = TypeAhead::with_timeout(Duration::from_millis(500));
+        t.feed_at('b', t0);
+        assert_eq!(t.feed_at('r', t0 + Duration::from_millis(400)), "br");
+        assert_eq!(
+            t.feed_at('a', t0 + Duration::from_millis(800)),
+            "bra",
+            "the pause is measured from the last key"
+        );
+        assert_eq!(t.feed_at('c', t0 + Duration::from_millis(1400)), "c");
+        assert_eq!(TypeAhead::default().timeout, TypeAhead::DEFAULT_TIMEOUT);
     }
 }
