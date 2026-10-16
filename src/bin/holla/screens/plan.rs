@@ -957,9 +957,9 @@ impl Screen for PlanReviewPage {
             hint("↑↓", "Step"),
             hint("Space", "Toggle"),
             hint("u", "Undo"),
-            hint("c", "Confirm"),
-            hint("p", "Facts"),
-            hint("Esc", "Discard"),
+            hint("c", "Review & run…"),
+            hint("p", "Details"),
+            hint("Esc", "Discard plan"),
         ]
     }
 
@@ -1551,13 +1551,13 @@ impl Screen for PlanTab {
         if focus == Some(OUTPUT) {
             let mut v = vec![hint("↑↓", "Scroll"), hint("f", "Follow"), hint("y", "Copy")];
             v.push(if self.maximized {
-                hint("Esc", "Un-maximise")
+                hint("Esc", "Restore layout")
             } else {
                 hint("Esc", "Steps")
             });
             return v;
         }
-        let mut v = vec![hint("↑↓", "Step"), hint("Enter", "Maximise output")];
+        let mut v = vec![hint("↑↓", "Step"), hint("Enter", "Expand output")];
         if failed_here {
             v.push(hint("r", "Retry"));
             v.push(hint("k", "Skip"));
@@ -1566,7 +1566,7 @@ impl Screen for PlanTab {
             v.push(hint("Ctrl+C", "Cancel remaining"));
         }
         v.push(hint("x", "Close"));
-        v.push(hint("Esc", "Here"));
+        v.push(hint("Esc", "Back to Here"));
         v
     }
 

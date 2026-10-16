@@ -375,7 +375,7 @@ impl Page for FormsPage {
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.description.editing {
-            return vec![("Esc", "Finish"), ("Tab", "Next field")];
+            return vec![("Esc", "Done"), ("Tab", "Next field")];
         }
         if self.editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next field")];
@@ -454,7 +454,7 @@ mod tests {
         page.description.editing = true;
         assert!(
             page.hints(Some(page.description.id))
-                .contains(&("Esc", "Finish"))
+                .contains(&("Esc", "Done"))
         );
         assert!(
             !page

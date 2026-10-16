@@ -2459,7 +2459,7 @@ impl Screen for ManagerScreen {
                 if live {
                     v.push(hint("Enter", "Reconnect"));
                     v.push(hint("a", "New session"));
-                    v.push(hint("x", "Shell"));
+                    v.push(hint("x", "Open shell"));
                     v.push(hint("t", "Stop"));
                 } else if restorable {
                     v.push(hint("Enter", "Restore"));

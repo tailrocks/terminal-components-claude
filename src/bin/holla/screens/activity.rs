@@ -874,7 +874,7 @@ impl Screen for ActivityTab {
             v.push(hint("r", "Restart"));
         }
         v.push(hint("x", "Close"));
-        v.push(hint("Esc", "Here"));
+        v.push(hint("Esc", "Back to Here"));
         v
     }
 

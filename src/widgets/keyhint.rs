@@ -1,5 +1,25 @@
 //! Contextual key hints for a footer line: `key Action` pairs, dropping the
 //! least important from the right when the line is narrow.
+//!
+//! # Hint vocabulary
+//!
+//! Key labels: `↑↓`, `←→`, `↑↓←→` (no spaces), ranges with an en dash
+//! (`1–6`), `Delete` in full. [`normalize_key`] enforces this at render.
+//!
+//! Actions start with a verb, and an action that opens a dialog or a
+//! further step ends with `…`. Toggles name the switch, not the state
+//! ([`toggle_hint`]). A focused button names itself (`Button::hint`), and a
+//! dialog builds its own row (`Dialog::hints`).
+//!
+//! Esc: `Esc Cancel` leaves an edit or a modal without saving, `Esc Close`
+//! closes an overlay or menu, `Esc Back` returns to the previous page.
+//! Field edits use [`EDIT_FIELD`]: `Enter Apply · Esc Cancel · Tab Next
+//! field`.
+//!
+//! Within one app a letter keeps one meaning across screens: `d` deletes or
+//! removes, `x` closes, `c` opens Accounts (jackin), `Ctrl+S` saves or
+//! submits what the screen is about, `Ctrl+D` switches Data / Structure
+//! (TablePro).
 
 use std::borrow::Cow;
 
@@ -57,6 +77,20 @@ pub fn normalize_key(key: &str) -> Cow<'_, str> {
     } else {
         Cow::Borrowed(key)
     }
+}
+
+/// The hint for a two-state toggle. A toggle hint starts with a verb and
+/// names what pressing the key does from the current state, so it never
+/// reads like the state itself: `Ctrl+H Show hidden` while hidden files
+/// are hidden, `Ctrl+H Hide hidden` while they are shown.
+/// `when_on` is the action offered while `on` is true.
+pub const fn toggle_hint(
+    key: &'static str,
+    on: bool,
+    when_on: &'static str,
+    when_off: &'static str,
+) -> Hint {
+    hint(key, if on { when_on } else { when_off })
 }
 
 /// The hints for an inline field being edited, in every app: Enter
@@ -361,5 +395,13 @@ mod tests {
         let row = row_text(&buf, 40);
         assert!(row.contains("↑↓ Move"), "{row}");
         assert!(row.contains("1–6 Jump"), "{row}");
+    }
+
+    #[test]
+    fn a_toggle_hint_offers_the_switch_not_the_state() {
+        let shown = toggle_hint("Ctrl+H", true, "Hide hidden", "Show hidden");
+        assert_eq!(shown.action, "Hide hidden");
+        let hidden = toggle_hint("Ctrl+H", false, "Hide hidden", "Show hidden");
+        assert_eq!(hidden.action, "Show hidden");
     }
 }

@@ -1546,7 +1546,7 @@ impl Screen for FinderPage {
         v.push(if !self.query.is_empty() {
             hint("Esc", "Clear")
         } else if self.scope != Scope::Here {
-            hint("Esc", "Here")
+            hint("Esc", "Back to Here")
         } else if self.group.is_some() {
             hint("Esc", "Back")
         } else {
