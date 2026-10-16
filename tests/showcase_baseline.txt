@@ -1,8 +1,8 @@
-120x40 TrueColor Overview 0eedfbe7825a99a4
+120x40 TrueColor Overview 33a80cf13ee122fc
 120x40 TrueColor Buttons 07f7e5aba114b41a
 120x40 TrueColor Inputs 17075991f4ccf496
 120x40 TrueColor Text areas d312ae22c5d0e218
-120x40 TrueColor Forms 2b0591ef99d7a7e2
+120x40 TrueColor Forms e107d9e4c7c261c2
 120x40 TrueColor Lists fb0a570b9aeb49a2
 120x40 TrueColor Trees 9a663a1d658a34ec
 120x40 TrueColor Tables 324b9c9e2674a0ff
@@ -13,19 +13,19 @@
 120x40 TrueColor Progress 337a80c2ba048f38
 120x40 TrueColor Scrolling 4a31b971ec86f9a7
 120x40 TrueColor Terminal 9b62188d77f42236
-120x40 TrueColor Code editor c9f68b4ed241a10a
+120x40 TrueColor Code editor b7b00a081376861b
 120x40 TrueColor Diff 353c2fa9cb836569
 120x40 TrueColor Data grid 2ae6a69edf18ed64
 120x40 TrueColor Chips & selects 27705a26200c55c7
 120x40 TrueColor Pickers 26339d536d8791bd
 120x40 TrueColor Chrome 0531d092b1c017eb
-120x40 TrueColor Settings f5ea82bfaef42f70
+120x40 TrueColor Settings cf331a10f7963072
 120x40 TrueColor Task runner d9eb95cf044573d5
-120x40 Ansi256 Overview 6e42986b6db1a772
+120x40 Ansi256 Overview af4de8c89c86ac02
 120x40 Ansi256 Buttons db45938281cdf915
 120x40 Ansi256 Inputs b5837c3634cee131
 120x40 Ansi256 Text areas 8b730e7906356df9
-120x40 Ansi256 Forms be1d059134170b3b
+120x40 Ansi256 Forms 95d644d30490206d
 120x40 Ansi256 Lists c74ca4ccc28172d5
 120x40 Ansi256 Trees 6a6157f7ea1b88d0
 120x40 Ansi256 Tables ddd6031b9d994137
@@ -36,19 +36,19 @@
 120x40 Ansi256 Progress 6bd366a16d059484
 120x40 Ansi256 Scrolling 326bfb8938737e98
 120x40 Ansi256 Terminal b8773c0dff95fc00
-120x40 Ansi256 Code editor 2db6f500e8303e51
+120x40 Ansi256 Code editor 258449bb5b371d74
 120x40 Ansi256 Diff 4cbf2efdb238d68a
 120x40 Ansi256 Data grid 3fafb6dafc066e96
 120x40 Ansi256 Chips & selects 0db17c72693327fb
 120x40 Ansi256 Pickers 2c10bc8f9c0cd51d
 120x40 Ansi256 Chrome b0b832ce794c68bb
-120x40 Ansi256 Settings 32bf20073c409f6c
+120x40 Ansi256 Settings dd4888cd24b74f80
 120x40 Ansi256 Task runner ae753169cfca196a
-120x40 Ansi16 Overview bb9b61232707224a
+120x40 Ansi16 Overview b6bc22118a35da8c
 120x40 Ansi16 Buttons 69e97981fb7ac619
 120x40 Ansi16 Inputs 752b32eff3632ed0
 120x40 Ansi16 Text areas 8d8e4d52d75bf154
-120x40 Ansi16 Forms 9295934081048496
+120x40 Ansi16 Forms 3553084237cf0f98
 120x40 Ansi16 Lists 5a742dc43e14af2a
 120x40 Ansi16 Trees 0f00d939afb94a71
 120x40 Ansi16 Tables 33d4c595a5fca512
@@ -59,13 +59,13 @@
 120x40 Ansi16 Progress 25464e904f1da06b
 120x40 Ansi16 Scrolling d8d05075fc4a02d1
 120x40 Ansi16 Terminal bf5e4e61bbcc5784
-120x40 Ansi16 Code editor db51984bbfc4b5fb
+120x40 Ansi16 Code editor b9a20caa6b5f84bb
 120x40 Ansi16 Diff dcfca2cf9c451fa1
 120x40 Ansi16 Data grid d50488818e39b47a
 120x40 Ansi16 Chips & selects 9810a0737d24ee9b
 120x40 Ansi16 Pickers 7d242d54b647913e
 120x40 Ansi16 Chrome 78bbfb404402ac01
-120x40 Ansi16 Settings 7cda9d189206d889
+120x40 Ansi16 Settings 8955adaa018b6f0d
 120x40 Ansi16 Task runner 56b3186a300d4fb8
 120x40 Mono Overview 79beec419b568f4b
 120x40 Mono Buttons 7a3a23d06a5ccd1c
@@ -90,11 +90,11 @@
 120x40 Mono Chrome 077ee4a322041372
 120x40 Mono Settings 949c415c991648d8
 120x40 Mono Task runner 912f4a4a0083d783
-80x24 TrueColor Overview 36595bae2b21cfbb
+80x24 TrueColor Overview 26da0febd217a92f
 80x24 TrueColor Buttons f96389b71cb830fb
 80x24 TrueColor Inputs c11189be488970d5
 80x24 TrueColor Text areas 3bad56408bf23b93
-80x24 TrueColor Forms 3522d4094b163ba5
+80x24 TrueColor Forms 4147bfd41fa42977
 80x24 TrueColor Lists 5bade19b182a7f69
 80x24 TrueColor Trees 2046a5d6fe024835
 80x24 TrueColor Tables c5e532f2fe3b2d5e
@@ -105,19 +105,19 @@
 80x24 TrueColor Progress 86731e114655dad9
 80x24 TrueColor Scrolling a3165816470a43b2
 80x24 TrueColor Terminal b0acf57ee4a8e8f8
-80x24 TrueColor Code editor 1eb629bb6dc492b2
+80x24 TrueColor Code editor 85160819110fb8cf
 80x24 TrueColor Diff 6aa63aa8b26e209c
 80x24 TrueColor Data grid 5191c9eff3200855
 80x24 TrueColor Chips & selects 1147ad90e582a379
 80x24 TrueColor Pickers 901c4c1e7fca578a
 80x24 TrueColor Chrome aba1023f87431730
-80x24 TrueColor Settings 35a3120c0f11131a
+80x24 TrueColor Settings de3687998cd569cc
 80x24 TrueColor Task runner 73a8cf88485d570e
-80x24 Ansi256 Overview b48440c19e6b9a59
+80x24 Ansi256 Overview c88561a1a2c6a6bb
 80x24 Ansi256 Buttons cf269607f40e0219
 80x24 Ansi256 Inputs 67e4fdb22e58d620
 80x24 Ansi256 Text areas be0f5ee6935fbe0a
-80x24 Ansi256 Forms 45e2a1e4c498398f
+80x24 Ansi256 Forms 6ffd5211771f1b01
 80x24 Ansi256 Lists de080ea039845a88
 80x24 Ansi256 Trees 9b7c8c32bc2574ad
 80x24 Ansi256 Tables 3811f19097001c7a
@@ -128,19 +128,19 @@
 80x24 Ansi256 Progress e3a635665d76adbf
 80x24 Ansi256 Scrolling 5d229b59f3e1ccd1
 80x24 Ansi256 Terminal b75bc7ca98e8b5ed
-80x24 Ansi256 Code editor c4093efc1f8eb7b1
+80x24 Ansi256 Code editor 8aa0389748c02264
 80x24 Ansi256 Diff ed296aacd51b9bd0
 80x24 Ansi256 Data grid 137327aeef7a2d99
 80x24 Ansi256 Chips & selects e9fa7c1976941e8b
 80x24 Ansi256 Pickers 7a419cd3d0231536
 80x24 Ansi256 Chrome 304e7588a57277f8
-80x24 Ansi256 Settings 35ffe57d15e3994a
+80x24 Ansi256 Settings 35fee99355447ab2
 80x24 Ansi256 Task runner 7eb46214b3d458dd
-80x24 Ansi16 Overview 153b6f861b2def15
+80x24 Ansi16 Overview bfd635e008cbea29
 80x24 Ansi16 Buttons a851f688cc9823c6
 80x24 Ansi16 Inputs d827af18a3588d18
 80x24 Ansi16 Text areas bb8d90880f9f77a0
-80x24 Ansi16 Forms da319b559194cb3e
+80x24 Ansi16 Forms 9aa001becaf68ebe
 80x24 Ansi16 Lists 12dbf7b66b76eb5b
 80x24 Ansi16 Trees 0bd209cfc900f318
 80x24 Ansi16 Tables 28bde4425850dc0e
@@ -151,13 +151,13 @@
 80x24 Ansi16 Progress e44203effb40f157
 80x24 Ansi16 Scrolling 951e84c22fb48820
 80x24 Ansi16 Terminal f9d0d3bdc7990b8f
-80x24 Ansi16 Code editor a789d3cb95223867
+80x24 Ansi16 Code editor 0f9bde367fcb7d2f
 80x24 Ansi16 Diff a95186ce9020f50c
 80x24 Ansi16 Data grid bd2c48c7c84388fe
 80x24 Ansi16 Chips & selects 3492f52484ebc848
 80x24 Ansi16 Pickers 951ba69688a01506
 80x24 Ansi16 Chrome cf38c22a1964bf00
-80x24 Ansi16 Settings 60291aafcddc8f44
+80x24 Ansi16 Settings 55130c378d186d5e
 80x24 Ansi16 Task runner a770cf60ccd31b0a
 80x24 Mono Overview 340f182892ae07f7
 80x24 Mono Buttons dd79f478061a72ac
@@ -182,11 +182,11 @@
 80x24 Mono Chrome a49b4455b2509ac2
 80x24 Mono Settings 95bd23ff4b2badd2
 80x24 Mono Task runner 33f2c28c3e648668
-72x20 TrueColor Overview ca7bebaf06451475
+72x20 TrueColor Overview bd67d5f3b2c601c4
 72x20 TrueColor Buttons 5ff561b8c1b02db9
 72x20 TrueColor Inputs a3177a82fb8872b9
 72x20 TrueColor Text areas 29f29438723b90f3
-72x20 TrueColor Forms 998d088899a484bf
+72x20 TrueColor Forms 889ca1b7545b86b9
 72x20 TrueColor Lists d1defd2a5c3c2777
 72x20 TrueColor Trees 68c83616b4239008
 72x20 TrueColor Tables b9baf4d88e795b27
@@ -197,19 +197,19 @@
 72x20 TrueColor Progress e3ee992c75b7db2a
 72x20 TrueColor Scrolling 0e383aa834ebcd5b
 72x20 TrueColor Terminal 5265af53410f2167
-72x20 TrueColor Code editor c2019cf80103d8e3
+72x20 TrueColor Code editor b2a49ecd7d9c3c1e
 72x20 TrueColor Diff 52b6941102f90fbd
 72x20 TrueColor Data grid 416911bbec26f0e5
 72x20 TrueColor Chips & selects 88c40e4bf95457ea
 72x20 TrueColor Pickers 3f0244b303e89a71
 72x20 TrueColor Chrome 86343de6a6e0e286
-72x20 TrueColor Settings e7bebc6ef15f6b55
+72x20 TrueColor Settings ec06c3a1706f962f
 72x20 TrueColor Task runner 4ae32cbb86b70e08
-72x20 Ansi256 Overview 0001de987571b371
+72x20 Ansi256 Overview 83575be167709c52
 72x20 Ansi256 Buttons 50487d79e418ab05
 72x20 Ansi256 Inputs 4e941ec00ed05086
 72x20 Ansi256 Text areas 67686aa33f921bce
-72x20 Ansi256 Forms df6bc2d65d9d6773
+72x20 Ansi256 Forms f4fe276fe4783ea5
 72x20 Ansi256 Lists 5601878934fb436f
 72x20 Ansi256 Trees a8cd7463a9c339c5
 72x20 Ansi256 Tables b85effd7a56856c9
@@ -220,19 +220,19 @@
 72x20 Ansi256 Progress e6f4f47df17aa694
 72x20 Ansi256 Scrolling 7527739c1388f1ba
 72x20 Ansi256 Terminal ff9288e61908508d
-72x20 Ansi256 Code editor d94772f8f9940e51
+72x20 Ansi256 Code editor e3eb7cc69dad14bc
 72x20 Ansi256 Diff 96adfbb6fec5c021
 72x20 Ansi256 Data grid bae1cddc3503c278
 72x20 Ansi256 Chips & selects 09f8c2bc3e5013c8
 72x20 Ansi256 Pickers 577eb8ec3daaea5f
 72x20 Ansi256 Chrome 5874311a30e08b56
-72x20 Ansi256 Settings 84c24c42df001923
+72x20 Ansi256 Settings c2a73cdb868fe3d3
 72x20 Ansi256 Task runner 214b21dcb4e1f029
-72x20 Ansi16 Overview 8d890ee8fe4df77c
+72x20 Ansi16 Overview 465ebc7481e96096
 72x20 Ansi16 Buttons f0a93cb471c1faa6
 72x20 Ansi16 Inputs dc12d611da3bed8f
 72x20 Ansi16 Text areas de90ec11e28f3ad8
-72x20 Ansi16 Forms 69cb58bfe29848c8
+72x20 Ansi16 Forms c8af4ef5520385d8
 72x20 Ansi16 Lists 122ab5d9578b037f
 72x20 Ansi16 Trees 7c20d034ba2f4c18
 72x20 Ansi16 Tables b9b9d8b4e83758bd
@@ -243,13 +243,13 @@
 72x20 Ansi16 Progress 4a6fc460f1d99ae8
 72x20 Ansi16 Scrolling 2f6e77cb8f13f96a
 72x20 Ansi16 Terminal 183c2a272f1a4510
-72x20 Ansi16 Code editor dc4147b7513b54da
+72x20 Ansi16 Code editor 3711ee1338be7bc2
 72x20 Ansi16 Diff c286184feed88897
 72x20 Ansi16 Data grid 4ae9d8d933e70c4e
 72x20 Ansi16 Chips & selects 0ed2f3abddcf68f2
 72x20 Ansi16 Pickers c40780a43fe25b92
 72x20 Ansi16 Chrome 31ad73054daf4c80
-72x20 Ansi16 Settings 7767a6caac82198d
+72x20 Ansi16 Settings 4c906cb5b2beeeb7
 72x20 Ansi16 Task runner 6a056cde895a781a
 72x20 Mono Overview 1276933f1f8b17b4
 72x20 Mono Buttons 5b829ccbb18bd0fa
@@ -274,11 +274,11 @@
 72x20 Mono Chrome 987e412fe77a93c8
 72x20 Mono Settings b7f853437adeb63b
 72x20 Mono Task runner 4ede2108d80755be
-100x30 TrueColor Overview 9e0635fa8cab9002
+100x30 TrueColor Overview 1b7214507e260114
 100x30 TrueColor Buttons a05aac3a3c80a95f
 100x30 TrueColor Inputs 77cd58dd2d3f05b4
 100x30 TrueColor Text areas 5e12fd6871764145
-100x30 TrueColor Forms e558e593c7b2eca5
+100x30 TrueColor Forms 6c9d2e02fc8ff52d
 100x30 TrueColor Lists 02666caef4b63f46
 100x30 TrueColor Trees 8974e952f6341dd0
 100x30 TrueColor Tables 90386f6513487620
@@ -289,19 +289,19 @@
 100x30 TrueColor Progress 7c69fa34290d2810
 100x30 TrueColor Scrolling fd4355ff59f4c88e
 100x30 TrueColor Terminal f5f973f200c695b1
-100x30 TrueColor Code editor 04eeba727991e738
+100x30 TrueColor Code editor 260a2c426cfc9ec1
 100x30 TrueColor Diff d5138ac15fd6b901
 100x30 TrueColor Data grid 80e461afe7831288
 100x30 TrueColor Chips & selects 91cd5a92857396da
 100x30 TrueColor Pickers f583a856ec325279
 100x30 TrueColor Chrome f46c02a557132164
-100x30 TrueColor Settings 9fe61d49b63df99e
+100x30 TrueColor Settings d3bd3819c21a858c
 100x30 TrueColor Task runner 326f9e2112a68ee3
-100x30 Ansi256 Overview 22e1c8eb00e60e4e
+100x30 Ansi256 Overview 048cfd2da449e1a6
 100x30 Ansi256 Buttons 5ad328dcc3f9523b
 100x30 Ansi256 Inputs d7b74baac0bbedec
 100x30 Ansi256 Text areas f7d293227a21207a
-100x30 Ansi256 Forms 90da1be6783d5afe
+100x30 Ansi256 Forms 881f8dd591d922c2
 100x30 Ansi256 Lists 722cf0fe34a6cc2e
 100x30 Ansi256 Trees 6d3380cef392a5f4
 100x30 Ansi256 Tables 070f42cee66944d8
@@ -312,19 +312,19 @@
 100x30 Ansi256 Progress 764cb0206fbf08b6
 100x30 Ansi256 Scrolling 0cce8c4a599a9058
 100x30 Ansi256 Terminal 9380ee09b23ce0d4
-100x30 Ansi256 Code editor 4f8a76e2b2ef5a00
+100x30 Ansi256 Code editor 873f56e810e863b5
 100x30 Ansi256 Diff 578e4a4dc4be679b
 100x30 Ansi256 Data grid 012e2e679080e198
 100x30 Ansi256 Chips & selects 8a885eeb70017e7d
 100x30 Ansi256 Pickers 8be97a3fb5c8993d
 100x30 Ansi256 Chrome d9564ef9b4f24950
-100x30 Ansi256 Settings d791dab14bc0cca6
+100x30 Ansi256 Settings 12410be14245a310
 100x30 Ansi256 Task runner e449e568ef43bdae
-100x30 Ansi16 Overview 446130f9a0c59eae
+100x30 Ansi16 Overview 1525468eb47d8afe
 100x30 Ansi16 Buttons 53b68fa824cb92d0
 100x30 Ansi16 Inputs 3162ee53d727f238
 100x30 Ansi16 Text areas 6358107eac887ba7
-100x30 Ansi16 Forms 95b7e862d54b08a7
+100x30 Ansi16 Forms ce2484aaf35f32cf
 100x30 Ansi16 Lists 7ee8b114ade4286f
 100x30 Ansi16 Trees ab50524a343aa581
 100x30 Ansi16 Tables 05433b7c803ec026
@@ -335,13 +335,13 @@
 100x30 Ansi16 Progress cce5bffafaca2619
 100x30 Ansi16 Scrolling 9868e7803e396ea1
 100x30 Ansi16 Terminal 825bed7ecc20f1f1
-100x30 Ansi16 Code editor 191108a5af58c788
+100x30 Ansi16 Code editor 159be0a14465f978
 100x30 Ansi16 Diff 09b1c91b1e5e57ce
 100x30 Ansi16 Data grid f2acee473ac9e69b
 100x30 Ansi16 Chips & selects 3be2afc7969c4de0
 100x30 Ansi16 Pickers 257ccead5a68df51
 100x30 Ansi16 Chrome b07c55f420a5188c
-100x30 Ansi16 Settings 3a7781982f038e48
+100x30 Ansi16 Settings 121f98486677dbb2
 100x30 Ansi16 Task runner b5ea5fe8cdd96905
 100x30 Mono Overview 173bc6b54e4036df
 100x30 Mono Buttons 8c7c5f8113a386b9
@@ -366,11 +366,11 @@
 100x30 Mono Chrome 61294cf7d9dcae33
 100x30 Mono Settings f236fc474c9c1561
 100x30 Mono Task runner e2bdc02f93806caa
-160x50 TrueColor Overview a820e5d8546e5ae0
+160x50 TrueColor Overview 37e2ea7d2b698610
 160x50 TrueColor Buttons fc6df41a8f6fed2f
 160x50 TrueColor Inputs 6e894c0a1082581a
 160x50 TrueColor Text areas da3ec65ab41fc82d
-160x50 TrueColor Forms 0249747806a41aab
+160x50 TrueColor Forms 25c160778f32472b
 160x50 TrueColor Lists 7ef2548b07bf6f63
 160x50 TrueColor Trees aee5bd589516356f
 160x50 TrueColor Tables 3ad51a75e3011019
@@ -381,19 +381,19 @@
 160x50 TrueColor Progress dc8f44d13cc8f43a
 160x50 TrueColor Scrolling 3658793ac272e106
 160x50 TrueColor Terminal eb4c3e639f609b9f
-160x50 TrueColor Code editor 7a66c49f29261de0
+160x50 TrueColor Code editor 5c37c2cd32fcbd95
 160x50 TrueColor Diff 8e4e013284e62ad1
 160x50 TrueColor Data grid d37061be7d29feba
 160x50 TrueColor Chips & selects 8b85dfdc88a7ec7d
 160x50 TrueColor Pickers 94436dd4567512c7
 160x50 TrueColor Chrome d08f931da18e87e2
-160x50 TrueColor Settings c66a29686601606f
+160x50 TrueColor Settings 8984909b16652975
 160x50 TrueColor Task runner 0a8845f06cfcbb4c
-160x50 Ansi256 Overview 89e3281c0741bd74
+160x50 Ansi256 Overview 10c4cd1dcd7cf3ac
 160x50 Ansi256 Buttons 31e0dda4bd97e42e
 160x50 Ansi256 Inputs 470b7e6d9d2f1c03
 160x50 Ansi256 Text areas 1a39046ce773e9ac
-160x50 Ansi256 Forms a5dc2842325c0cd0
+160x50 Ansi256 Forms 6f7938f772f8dabe
 160x50 Ansi256 Lists da64ad53a0a1078b
 160x50 Ansi256 Trees 253c585b0789ba3d
 160x50 Ansi256 Tables 0e991aaccbac880c
@@ -404,19 +404,19 @@
 160x50 Ansi256 Progress 3b63e96f09b58c0a
 160x50 Ansi256 Scrolling e42c6dce2e5cdbe8
 160x50 Ansi256 Terminal d81950ab47ba7fe5
-160x50 Ansi256 Code editor a915dff6fae87ece
+160x50 Ansi256 Code editor 30468923c2b1b323
 160x50 Ansi256 Diff bbf4bb77ad748bd9
 160x50 Ansi256 Data grid 38e7ec8b31755bf7
 160x50 Ansi256 Chips & selects 2205731dd049d668
 160x50 Ansi256 Pickers 348834d5c6a87ced
 160x50 Ansi256 Chrome 5d936af5533ecc04
-160x50 Ansi256 Settings 5ab93477e69533c1
+160x50 Ansi256 Settings 7c01722eada327e9
 160x50 Ansi256 Task runner 8e93009101f977ad
-160x50 Ansi16 Overview 4723d6be33cdf3c6
+160x50 Ansi16 Overview 8de4f065ec1b9a08
 160x50 Ansi16 Buttons 4bff004662044ad6
 160x50 Ansi16 Inputs ddfa21164e732d12
 160x50 Ansi16 Text areas 86dc6258cede9750
-160x50 Ansi16 Forms 2dc32fabe85fd219
+160x50 Ansi16 Forms a0d4f579ac4d4997
 160x50 Ansi16 Lists d4149dd666abf12a
 160x50 Ansi16 Trees ccfe228441bd32dc
 160x50 Ansi16 Tables 6e8cc6100977c0f3
@@ -427,13 +427,13 @@
 160x50 Ansi16 Progress 3e7a73c04602a652
 160x50 Ansi16 Scrolling b2dcb279f15bb54d
 160x50 Ansi16 Terminal e148075470911e43
-160x50 Ansi16 Code editor c0898b31164d54cb
+160x50 Ansi16 Code editor 68e87d100b81cee9
 160x50 Ansi16 Diff d7c7fffcf7bacb78
 160x50 Ansi16 Data grid ba6ecea9c0dcae1d
 160x50 Ansi16 Chips & selects f14b50981e68f76a
 160x50 Ansi16 Pickers 9e4b1284273869fa
 160x50 Ansi16 Chrome 0f249ee56c6684c4
-160x50 Ansi16 Settings 6d6c12f5544422e5
+160x50 Ansi16 Settings e085e9f8a6841713
 160x50 Ansi16 Task runner b14ee9f702236505
 160x50 Mono Overview b32758a69fccbfd1
 160x50 Mono Buttons 0d5d3ec27a085cef

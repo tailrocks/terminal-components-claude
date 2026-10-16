@@ -1218,6 +1218,18 @@ impl Theme {
         if row.on_fill { self.text_primary } else { ink }
     }
 
+    /// Ink for a chosen-value mark (a checked box, the on radio, a selected
+    /// node): the accent only while its control has keyboard focus, primary
+    /// text otherwise, so an active-but-unfocused value never competes
+    /// with the one focus indicator.
+    pub fn chosen(&self, focused: bool) -> Color {
+        if focused {
+            self.accent
+        } else {
+            self.text_primary
+        }
+    }
+
     /// One ladder step up from `bg`: rest lifts to hover, hover to pressed.
     /// Prefer [`Self::interactive`], which picks the step from the state.
     pub fn lift(&self, bg: Color) -> Color {

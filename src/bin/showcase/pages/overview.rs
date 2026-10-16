@@ -163,8 +163,8 @@ impl Page for OverviewPage {
         let legend: [(&str, &str, ratatui::style::Style); 7] = [
             ("▎", "focus", t.accent_fg()),
             ("░", "hover lifts the surface", t.secondary()),
-            ("›", "current / chosen", t.accent_fg()),
-            ("✓", "checked", t.accent_fg()),
+            ("›", "current / chosen", t.primary()),
+            ("✓", "checked", t.primary()),
             ("!", "error", t.error_fg()),
             ("▁", "editing: cursor + underline", t.primary()),
             ("○", "disabled: faint, no hover", t.faint()),

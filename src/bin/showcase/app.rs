@@ -1069,7 +1069,9 @@ impl App {
                 t.gutter(s, st.bg.unwrap_or(t.canvas), false),
             );
             if current {
-                let ms = st.fg(t.accent);
+                // the current page is a fact: accent only while the nav
+                // holds focus
+                let ms = st.fg(t.chosen(focused));
                 buf.set_string(row.x + 1, y, "›", ms);
             }
             let label_style = if current || s.focused || s.hovered {
