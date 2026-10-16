@@ -14,11 +14,11 @@
   ▸ Feedback              Java      ┃         docs/webho…      No results for…  [0m
   ▸ Layout                Swift     ┃         src/worker…                       [0m
   ▸ Text & code           C#        ┃         src/config…                       [0m
-  ▸ Screens               Ruby      │         README.md                         [0m
-                          Scala     │         src/main.rs                       [0m
-                          Elixir    │         tests/auth…                       [0m
-                          Haskell   │         src/db/poo…                       [0m
-                       [0m[2m   Zig       [0m│                                           [0m
+  ▸ Screens               Ruby      ┆         README.md                         [0m
+                          Scala     ┆         src/main.rs                       [0m
+                          Elixir    ┆         tests/auth…                       [0m
+                          Haskell   ┆         src/db/poo…                       [0m
+                       [0m[2m   Zig       [0m┆                                           [0m
                                                                                 [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
