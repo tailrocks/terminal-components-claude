@@ -13,7 +13,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::{FocusOn, PointerState, Release};
+use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
@@ -2117,7 +2117,30 @@ impl App {
                     None => out,
                 }
             }
-            MouseKind::Secondary | MouseKind::Middle => Outcome::Ignored,
+            MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
+                SecondaryRoute::Nothing => {
+                    if self.modals.is_empty() {
+                        Outcome::Ignored
+                    } else {
+                        Outcome::Consumed
+                    }
+                }
+                SecondaryRoute::Swallowed => Outcome::Consumed,
+                SecondaryRoute::Target(id) => self.on_secondary(m, id),
+                // a right-click outside an open popup: the click on its
+                // backdrop closes it (through its own Dismiss policy, as a
+                // primary click would), then the control beneath gets the
+                // secondary click at the same spot
+                SecondaryRoute::Outside { backdrop, reopen } => {
+                    self.pointer.press(backdrop);
+                    let out = self.on_release(m, Some(backdrop));
+                    match reopen {
+                        Some(id) => out.or(self.on_secondary(m, id)),
+                        None => out,
+                    }
+                }
+            },
+            MouseKind::Middle => Outcome::Ignored,
             MouseKind::WheelUp
             | MouseKind::WheelDown
             | MouseKind::WheelLeft
@@ -2158,6 +2181,16 @@ impl App {
                 self.pointer.scrolled(m.pos, out);
                 out
             }
+        }
+    }
+
+    /// A secondary click on `id`: the context menu of the row, cell or tab
+    /// under it. Dialogs and the other overlays have none.
+    fn on_secondary(&mut self, _m: Mouse, _id: WidgetId) -> Outcome {
+        if self.modals.is_empty() {
+            Outcome::Ignored
+        } else {
+            Outcome::Consumed
         }
     }
 
