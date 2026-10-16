@@ -137,6 +137,11 @@ pub trait Page {
     fn editing(&self) -> bool {
         false
     }
+    /// What quitting would lose on this page (keyboard audit #21): the
+    /// shell's quit keys ask first when any page is not clean.
+    fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
+        junie_tui::ui::leave::Stakes::Clean
+    }
     /// True when the page needs periodic ticks (spinners, progress).
     fn animating(&self) -> bool {
         false
