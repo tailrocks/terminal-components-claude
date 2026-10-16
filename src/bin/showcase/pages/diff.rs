@@ -119,7 +119,7 @@ impl Page for DiffPage {
                     let (outcome, event) = self.view.on_key(key);
                     if let Some(ViewportEvent::Copy(text)) = event {
                         self.copied = Some(text);
-                        cx.status("Selection copied in demo");
+                        cx.status("Selection copied");
                     }
                     return outcome;
                 }

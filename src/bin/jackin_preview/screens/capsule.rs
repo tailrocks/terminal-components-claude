@@ -1323,7 +1323,9 @@ impl CapsuleScreen {
                 }
             }
             KeyCode::Esc => {}
-            KeyCode::Char(c) => cx.status(format!("Not a prefix command: {c}")),
+            KeyCode::Char(c) => cx.status(format!(
+                "Ctrl+B {c} does nothing · Ctrl+B Space lists commands"
+            )),
             _ => {}
         }
         Outcome::Changed
