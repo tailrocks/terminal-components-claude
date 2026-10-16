@@ -17,7 +17,6 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::Position;
 
 use super::{PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
@@ -121,18 +120,8 @@ impl LayerHost {
                     out
                 }
             }
-            PageEvent::Press { id, pos } => top.layer.on_press(*id, *pos, cx.clicks),
-            PageEvent::Click { id, pos } => {
-                top.layer
-                    .on_click_count(*id, *pos, cx.clicks.max(1), &mut lcx)
-            }
-            PageEvent::Drag { pressed, pos } => top.layer.on_drag(*pressed, *pos),
-            PageEvent::Release { pressed, pos } => top.layer.on_release(*pressed, *pos),
-            PageEvent::Wheel { delta, .. } => top.layer.on_wheel(*delta, Position::default()),
-            PageEvent::WheelH { delta, .. } => top.layer.on_wheel_h(*delta, Position::default()),
             PageEvent::Blur(change) => top.layer.on_blur(*change),
             PageEvent::Tick => top.layer.on_tick(&()),
-            PageEvent::Middle { .. } | PageEvent::Secondary { .. } => Outcome::Consumed,
             PageEvent::DialogClosed { .. } => return None,
         };
         self.drain(cx.focus, &mut reports);
