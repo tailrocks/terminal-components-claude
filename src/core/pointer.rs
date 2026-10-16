@@ -104,6 +104,13 @@ pub struct PointerConfig {
     pub track_repeat_delay_ms: u64,
     /// How often a held track press repeats once it does.
     pub track_repeat_ms: u64,
+    /// The pointer takes the shape of what is under it (an I-beam over
+    /// text, a resize arrow over a seam) where the terminal supports OSC 22
+    /// ([`super::shape`]; detection-gated, so on by default).
+    pub pointer_shapes: bool,
+    /// The text caret's shape (DECSCUSR, where supported). Default
+    /// [`super::shape::CaretShape::Bar`], the macOS caret.
+    pub caret_shape: super::shape::CaretShape,
 }
 
 impl PointerConfig {
@@ -122,6 +129,8 @@ impl PointerConfig {
         track_repeat: true,
         track_repeat_delay_ms: 300,
         track_repeat_ms: 50,
+        pointer_shapes: true,
+        caret_shape: super::shape::CaretShape::Bar,
     };
 
     pub const fn focus_on(mut self, focus_on: FocusOn) -> Self {
@@ -152,6 +161,16 @@ impl PointerConfig {
         self.secondary_outside = policy;
         self
     }
+    pub const fn pointer_shapes(mut self, on: bool) -> Self {
+        self.pointer_shapes = on;
+        self
+    }
+
+    pub const fn caret_shape(mut self, shape: super::shape::CaretShape) -> Self {
+        self.caret_shape = shape;
+        self
+    }
+
     pub const fn end_edit_on_dead_space(mut self, on: bool) -> Self {
         self.end_edit_on_dead_space = on;
         self

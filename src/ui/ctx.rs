@@ -222,6 +222,13 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// The pointer shape over `id` ([`crate::core::shape`]).
+    pub fn pointer_shape(&mut self, id: WidgetId, shape: crate::core::shape::PointerShape) {
+        if !self.inert {
+            self.hits.set_shape(id, shape);
+        }
+    }
+
     /// [`Self::clickable`] beneath every region of the current layer: it
     /// only takes cells no other control claims (a splitter's padding).
     pub fn clickable_under(&mut self, id: WidgetId, area: Rect) {

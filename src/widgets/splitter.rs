@@ -139,6 +139,13 @@ impl Splitter {
         let hit = self.hit_area(*buf.area());
         ctx.clickable_under(self.id, hit);
         ctx.clickable(self.id, area);
+        ctx.pointer_shape(
+            self.id,
+            match self.dir {
+                SplitDir::Horizontal => crate::core::shape::PointerShape::ColResize,
+                SplitDir::Vertical => crate::core::shape::PointerShape::RowResize,
+            },
+        );
     }
 
     fn grab_at(&self, split: &Split, container: Rect, gap: u16, pos: Position) -> i32 {
