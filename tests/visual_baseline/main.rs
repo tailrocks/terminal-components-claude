@@ -38,6 +38,7 @@ mod modes;
 mod oracle;
 mod overlay_sites;
 mod scenarios;
+mod startup_resize;
 mod support;
 mod tool;
 
@@ -109,6 +110,14 @@ fn main() {
         check(
             "modes::jackin_boot_sets_terminal_modes",
             modes::jackin_boot_sets_terminal_modes,
+        ),
+        check(
+            "startup_resize::a_resize_right_after_the_first_frame_repaints",
+            startup_resize::a_resize_right_after_the_first_frame_repaints,
+        ),
+        check(
+            "startup_resize::a_resize_queued_with_a_key_still_reaches_the_app",
+            startup_resize::a_resize_queued_with_a_key_still_reaches_the_app,
         ),
     ];
     for scenario in scenarios::all() {
