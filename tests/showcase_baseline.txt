@@ -19,7 +19,7 @@
 120x40 TrueColor Chips & selects 9e324211ce67f5c6
 120x40 TrueColor Pickers e8c00c374254cf99
 120x40 TrueColor Chrome af8507d060125f2a
-120x40 TrueColor Settings a80af6b3596ae142
+120x40 TrueColor Settings b3ff6d07ec3b2b16
 120x40 TrueColor Task runner e3fa6a64ebb0bd90
 120x40 Ansi256 Overview af4de8c89c86ac02
 120x40 Ansi256 Buttons db45938281cdf915
@@ -42,7 +42,7 @@
 120x40 Ansi256 Chips & selects d87f849ada266701
 120x40 Ansi256 Pickers 2c10bc8f9c0cd51d
 120x40 Ansi256 Chrome b0b832ce794c68bb
-120x40 Ansi256 Settings dd4888cd24b74f80
+120x40 Ansi256 Settings 4db55155a3514e6e
 120x40 Ansi256 Task runner ae753169cfca196a
 120x40 Ansi16 Overview b6bc22118a35da8c
 120x40 Ansi16 Buttons e3253cb86ce2a341
@@ -65,7 +65,7 @@
 120x40 Ansi16 Chips & selects a3387d00a2854f09
 120x40 Ansi16 Pickers 7d242d54b647913e
 120x40 Ansi16 Chrome cdbbd43b54e347e3
-120x40 Ansi16 Settings 8955adaa018b6f0d
+120x40 Ansi16 Settings fb89b4851b4fe3c5
 120x40 Ansi16 Task runner 63d3d698527c5ce8
 120x40 Mono Overview 79beec419b568f4b
 120x40 Mono Buttons a9dc52a4a9f06220
@@ -88,7 +88,7 @@
 120x40 Mono Chips & selects f7638c4725286f8b
 120x40 Mono Pickers ef5602a34c40520f
 120x40 Mono Chrome c5c6242623584dd2
-120x40 Mono Settings 949c415c991648d8
+120x40 Mono Settings 8344caf5f21dbc72
 120x40 Mono Task runner 9f4f7527c08c087d
 80x24 TrueColor Overview 5a39a038749aa0cb
 80x24 TrueColor Buttons 0136cb8979ec8d39
@@ -111,7 +111,7 @@
 80x24 TrueColor Chips & selects 5c1277720a1a4d77
 80x24 TrueColor Pickers 901c4c1e7fca578a
 80x24 TrueColor Chrome d5d93edeae218aa1
-80x24 TrueColor Settings aa0b5afefc08d312
+80x24 TrueColor Settings 171762d306e4536e
 80x24 TrueColor Task runner a8fd76406d16c3cc
 80x24 Ansi256 Overview c88561a1a2c6a6bb
 80x24 Ansi256 Buttons cf269607f40e0219
@@ -134,7 +134,7 @@
 80x24 Ansi256 Chips & selects 481934979a9a2665
 80x24 Ansi256 Pickers 7a419cd3d0231536
 80x24 Ansi256 Chrome 304e7588a57277f8
-80x24 Ansi256 Settings 35fee99355447ab2
+80x24 Ansi256 Settings e34a1189da46f370
 80x24 Ansi256 Task runner 74be4acae13c1ef2
 80x24 Ansi16 Overview bfd635e008cbea29
 80x24 Ansi16 Buttons c077e5b953bcb22e
@@ -157,7 +157,7 @@
 80x24 Ansi16 Chips & selects 41e35950a9fb6ae4
 80x24 Ansi16 Pickers 951ba69688a01506
 80x24 Ansi16 Chrome cf38c22a1964bf00
-80x24 Ansi16 Settings 55130c378d186d5e
+80x24 Ansi16 Settings ae2948a7e50e1286
 80x24 Ansi16 Task runner b94748d3ee6fcf96
 80x24 Mono Overview 340f182892ae07f7
 80x24 Mono Buttons 47c2ca07dead32d2
@@ -180,7 +180,7 @@
 80x24 Mono Chips & selects 2d91292d93b32cd4
 80x24 Mono Pickers 8e2926819c5874ee
 80x24 Mono Chrome 2769af583a0e7ba4
-80x24 Mono Settings 95bd23ff4b2badd2
+80x24 Mono Settings 94fb5b73198b0694
 80x24 Mono Task runner dba518e09d9c1190
 72x20 TrueColor Overview fc1f1fcd3e27199e
 72x20 TrueColor Buttons cafde2b8ac64ccb2
@@ -203,7 +203,7 @@
 72x20 TrueColor Chips & selects 354f190598be0141
 72x20 TrueColor Pickers 3f0244b303e89a71
 72x20 TrueColor Chrome 86f0944dac89b5f1
-72x20 TrueColor Settings 3875bbce32706fb9
+72x20 TrueColor Settings 5de8690f436b34fd
 72x20 TrueColor Task runner 0a22ea8a7c9c7c1b
 72x20 Ansi256 Overview 83575be167709c52
 72x20 Ansi256 Buttons 50487d79e418ab05
@@ -226,7 +226,7 @@
 72x20 Ansi256 Chips & selects 54ad92507349f5a0
 72x20 Ansi256 Pickers 577eb8ec3daaea5f
 72x20 Ansi256 Chrome 5874311a30e08b56
-72x20 Ansi256 Settings c2a73cdb868fe3d3
+72x20 Ansi256 Settings 3fb6eaffeeff2a19
 72x20 Ansi256 Task runner 2f79534b07a34b92
 72x20 Ansi16 Overview 465ebc7481e96096
 72x20 Ansi16 Buttons d6976279990d3e16
@@ -249,7 +249,7 @@
 72x20 Ansi16 Chips & selects bbcc575f9e52ed68
 72x20 Ansi16 Pickers c40780a43fe25b92
 72x20 Ansi16 Chrome 31ad73054daf4c80
-72x20 Ansi16 Settings 4c906cb5b2beeeb7
+72x20 Ansi16 Settings fceb51b5678c3fef
 72x20 Ansi16 Task runner 54552732784b91b1
 72x20 Mono Overview 1276933f1f8b17b4
 72x20 Mono Buttons 5909e7b00dc26a60
@@ -272,7 +272,7 @@
 72x20 Mono Chips & selects 16dd5162ae25795c
 72x20 Mono Pickers 343e14e7db5de330
 72x20 Mono Chrome 125cba233cbda982
-72x20 Mono Settings b7f853437adeb63b
+72x20 Mono Settings 9ddaa1374ef7b235
 72x20 Mono Task runner 4b9f2483ba70a201
 100x30 TrueColor Overview 3fa4b78bae537f6d
 100x30 TrueColor Buttons 1a1644dbd7f72f81
@@ -295,7 +295,7 @@
 100x30 TrueColor Chips & selects 3e01f0db4e109a5a
 100x30 TrueColor Pickers c1fe7d2d38187a55
 100x30 TrueColor Chrome 34a763f5d3d427f7
-100x30 TrueColor Settings 7e272f3e3fcb557e
+100x30 TrueColor Settings a4ac32725ffc3992
 100x30 TrueColor Task runner 8de73cc9526e94c1
 100x30 Ansi256 Overview 048cfd2da449e1a6
 100x30 Ansi256 Buttons 5ad328dcc3f9523b
@@ -318,7 +318,7 @@
 100x30 Ansi256 Chips & selects 443f7256791ce4a2
 100x30 Ansi256 Pickers 8be97a3fb5c8993d
 100x30 Ansi256 Chrome d9564ef9b4f24950
-100x30 Ansi256 Settings 12410be14245a310
+100x30 Ansi256 Settings 20adeb9babaf7732
 100x30 Ansi256 Task runner 5093567d059b3643
 100x30 Ansi16 Overview 1525468eb47d8afe
 100x30 Ansi16 Buttons ce92ded81c979d38
@@ -341,7 +341,7 @@
 100x30 Ansi16 Chips & selects d0c8d6dcb87065ee
 100x30 Ansi16 Pickers 257ccead5a68df51
 100x30 Ansi16 Chrome 9525abd42f022d7e
-100x30 Ansi16 Settings 121f98486677dbb2
+100x30 Ansi16 Settings 5e7e0fea81d2f97a
 100x30 Ansi16 Task runner ddacf660e997c99f
 100x30 Mono Overview 173bc6b54e4036df
 100x30 Mono Buttons 9b5710b485e02683
@@ -364,7 +364,7 @@
 100x30 Mono Chips & selects ee6ce02b2ac50f90
 100x30 Mono Pickers 43aa01779a037150
 100x30 Mono Chrome 8a65658ec5abd8b7
-100x30 Mono Settings f236fc474c9c1561
+100x30 Mono Settings 17ce6a98900f9f7f
 100x30 Mono Task runner 413aecde98a2ce30
 160x50 TrueColor Overview b9b00ddd9f9dd4bc
 160x50 TrueColor Buttons d7ee8d7d979e9e8f
@@ -387,7 +387,7 @@
 160x50 TrueColor Chips & selects 69f157829f4eefd3
 160x50 TrueColor Pickers 5b1861ae692e3993
 160x50 TrueColor Chrome b0ce438ccc327477
-160x50 TrueColor Settings fbd582c92abdcfa1
+160x50 TrueColor Settings 6e95b759dc651e55
 160x50 TrueColor Task runner dd1d2bc15fd67ef3
 160x50 Ansi256 Overview 10c4cd1dcd7cf3ac
 160x50 Ansi256 Buttons 31e0dda4bd97e42e
@@ -410,7 +410,7 @@
 160x50 Ansi256 Chips & selects 0f84d8b45e66338a
 160x50 Ansi256 Pickers 348834d5c6a87ced
 160x50 Ansi256 Chrome 0ea917a845225ad2
-160x50 Ansi256 Settings 7c01722eada327e9
+160x50 Ansi256 Settings aa5f9918e86fa457
 160x50 Ansi256 Task runner 8e93009101f977ad
 160x50 Ansi16 Overview 8de4f065ec1b9a08
 160x50 Ansi16 Buttons 1f1d7f2406baf982
@@ -433,7 +433,7 @@
 160x50 Ansi16 Chips & selects e6ce291511eb7aca
 160x50 Ansi16 Pickers 9e4b1284273869fa
 160x50 Ansi16 Chrome a6fe39183c595058
-160x50 Ansi16 Settings e085e9f8a6841713
+160x50 Ansi16 Settings a35da8e7404039bb
 160x50 Ansi16 Task runner 016a70ecad995539
 160x50 Mono Overview b32758a69fccbfd1
 160x50 Mono Buttons 7a6ee0a9dbdb9605
@@ -456,5 +456,5 @@
 160x50 Mono Chips & selects 8e13bf20971bb6c6
 160x50 Mono Pickers d7d2089491863901
 160x50 Mono Chrome 4dd0d4d4f74f2449
-160x50 Mono Settings 21bd3e3e752d3a06
+160x50 Mono Settings 251af0fa18af44d4
 160x50 Mono Task runner 1f44c2fef5241b5a

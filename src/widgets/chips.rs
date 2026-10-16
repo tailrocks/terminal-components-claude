@@ -4,12 +4,12 @@
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::theme::{ButtonKind, Kind, Theme};
-use crate::ui::ctx::{RenderCtx, VisualState, fill};
+use crate::theme::{ButtonKind, Kind};
+use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -193,7 +193,7 @@ impl ChipBar {
             buf.set_string(x + 1, y, truncate(&chip.label, label_w as usize), st);
             if chip.removable {
                 let xid = self.close_id(i);
-                let xs = close_style(t, ctx.state(xid), st);
+                let xs = t.close_glyph(ctx.state(xid), st);
                 buf.set_string(x + 2 + label_w, y, "×", xs);
                 ctx.clickable(cid, r);
                 ctx.clickable(xid, Rect::new(x + 2 + label_w, y, 1, 1));
@@ -223,28 +223,11 @@ impl ChipBar {
     }
 }
 
-/// A close glyph (`×`) inside a control styled `host`: at rest it takes
-/// the host's plane, hovered or pressed it walks the close ladder of the
-/// plane it sits on, so its hover never reads as the host's hover.
-pub fn close_style(t: &Theme, s: VisualState, host: Style) -> Style {
-    let bg = host.bg.unwrap_or(t.canvas);
-    let s = VisualState {
-        focused: false,
-        ..s
-    };
-    if s.hovered || s.pressed {
-        t.interactive(Kind::Close, s, t.plane_of(bg)).style
-    } else {
-        host.fg(t.legible(t.text_secondary, bg))
-            .remove_modifier(ratatui::style::Modifier::BOLD)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::{ColorLevel, Plane};
+    use crate::theme::{ColorLevel, Plane, Theme};
     use crate::ui::ctx::Interaction;
 
     fn draw(bar: &mut ChipBar, t: &Theme, interaction: Interaction) -> Buffer {
