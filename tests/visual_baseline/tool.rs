@@ -15,6 +15,8 @@
 //!   the real scenario. Used by the `env_isolation` check.
 //! - `env-probe`: spawns `/bin/sh` through the capture spawn path and prints
 //!   the environment the child sees (`env | sort`).
+//! - `harness-hash`: prints the oracle `harness_sha256` of `VISUAL_DIR`
+//!   (default `tests/visual_baseline/`), for `seal` and `sync-oracle`.
 
 use crate::scenarios;
 use crate::support;
@@ -40,8 +42,18 @@ pub fn run(tool: &str) -> Result<(), String> {
             env_probe();
             Ok(())
         }
+        "harness-hash" => {
+            let dir = std::env::var_os("VISUAL_DIR")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(crate::oracle::harness_dir);
+            if !dir.is_dir() {
+                return Err(format!("{} is not a directory", dir.display()));
+            }
+            println!("{}", crate::oracle::harness_sha256(&dir));
+            Ok(())
+        }
         other => Err(format!(
-            "unknown VISUAL_TOOL `{other}` (list, render, capture, env-probe)"
+            "unknown VISUAL_TOOL `{other}` (list, render, capture, env-probe, harness-hash)"
         )),
     }
 }
