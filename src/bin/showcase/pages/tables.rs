@@ -198,7 +198,7 @@ impl Page for TablesPage {
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } if scrollbar::is_bar_of(*pressed, self.table.id) => {
-                self.table.on_scrollbar_drag(*pos)
+                self.table.on_bar_drag(*pressed, *pos)
             }
             PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),
             PageEvent::Wheel { id, delta } if self.empty.owns(*id) => self.empty.on_wheel(*delta),

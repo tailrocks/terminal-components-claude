@@ -472,7 +472,7 @@ impl Page for SettingsPage {
             }
             PageEvent::Drag { pressed, pos } => {
                 if scrollbar::is_bar_of(*pressed, self.members.id) {
-                    return self.members.on_scrollbar_drag(*pos);
+                    return self.members.on_bar_drag(*pressed, *pos);
                 }
                 if *pressed == scrollbar::id_for(self.env.id) {
                     return self.env.on_scrollbar_drag(*pos);

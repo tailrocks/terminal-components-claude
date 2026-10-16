@@ -1151,10 +1151,10 @@ impl Workbench {
                     return t.grid.on_drag(pressed, pos);
                 }
                 if scrollbar::is_bar_of(pressed, t.structure.id) {
-                    return t.structure.on_scrollbar_drag(pos);
+                    return t.structure.on_bar_drag(pressed, pos);
                 }
                 if scrollbar::is_bar_of(pressed, t.ddl.id) {
-                    return t.ddl.on_scrollbar_drag(pos);
+                    return t.ddl.on_bar_drag(pressed, pos);
                 }
                 Outcome::Ignored
             }
@@ -1164,7 +1164,7 @@ impl Workbench {
                     return h.list.on_scrollbar_drag(pos);
                 }
                 if scrollbar::is_bar_of(pressed, h.detail.id) {
-                    return h.detail.on_scrollbar_drag(pos);
+                    return h.detail.on_bar_drag(pressed, pos);
                 }
                 Outcome::Ignored
             }
