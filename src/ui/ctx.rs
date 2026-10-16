@@ -204,6 +204,18 @@ impl<'a> RenderCtx<'a> {
         s
     }
 
+    /// Style of a clickable text link on `bg` (a header link, an overflow
+    /// badge, a `+`, an app's own clickable label): the title ladder for
+    /// this id's hover and press. Callers keep their own tone with
+    /// [`Theme::legible`].
+    pub fn title_style(&self, id: WidgetId, bg: ratatui::style::Color) -> ratatui::style::Style {
+        let t = self.theme;
+        let mut s = self.state(id);
+        s.focused = false;
+        t.interactive(crate::theme::Kind::Title, s, t.plane_of(bg))
+            .style
+    }
+
     pub fn set_cursor(&mut self, pos: Position) {
         if !self.inert {
             self.cursor = Some(pos);
