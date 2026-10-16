@@ -178,11 +178,155 @@ impl ScrollState {
     pub fn release_track(&mut self) {
         self.grab = None;
     }
+
+    /// A press on the track under `click`. Off the thumb, `Jump` moves the
+    /// thumb under the pointer and `Page` moves one viewport toward the
+    /// pointer; on the thumb this only grabs it. Returns whether the offset
+    /// changed.
+    pub fn press_track_with(&mut self, pos: usize, track_len: usize, click: TrackClick) -> bool {
+        if click == TrackClick::Jump || !self.overflows() || track_len == 0 {
+            return self.press_track(pos, track_len);
+        }
+        let (start, len) = self.thumb(track_len);
+        if (start..start + len).contains(&pos) {
+            self.grab = Some(pos - start);
+            return false;
+        }
+        // paging never grabs: a drag that follows starts a fresh grab
+        self.grab = None;
+        if pos < start {
+            self.page_up()
+        } else {
+            self.page_down()
+        }
+    }
+}
+
+/// When a scrollbar is drawn.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum ScrollbarVisibility {
+    /// Only while the content overflows (the macOS default).
+    #[default]
+    Auto,
+    /// Always, with a full-length thumb when the content fits; the bar's
+    /// row or column is reserved either way.
+    Always,
+    /// Never; the content still scrolls by wheel and keyboard.
+    Never,
+}
+
+impl ScrollbarVisibility {
+    /// Whether a bar for `scroll` is drawn under this policy.
+    pub fn shows(self, scroll: &ScrollState) -> bool {
+        match self {
+            ScrollbarVisibility::Auto => scroll.overflows(),
+            ScrollbarVisibility::Always => scroll.viewport_len > 0,
+            ScrollbarVisibility::Never => false,
+        }
+    }
+}
+
+/// What a press on the bare scrollbar track (off the thumb) does.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum TrackClick {
+    /// The thumb jumps under the pointer (what the library's vertical bars
+    /// do, so both axes agree by default).
+    #[default]
+    Jump,
+    /// The view moves one page toward the pointer (macOS "Jump to the
+    /// next page").
+    Page,
+}
+
+/// Horizontal scrolling policy for a widget whose content can be wider
+/// than its area. [`RenderCtx::hscroll`](crate::ui::ctx::RenderCtx::hscroll)
+/// holds the app-wide default; a widget's `horizontal` field overrides it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HScroll {
+    /// Content wider than the area scrolls sideways. Off, the widget keeps
+    /// its cut-off behaviour (truncation marks only) and draws no bar.
+    pub enabled: bool,
+    /// When the horizontal scrollbar is drawn.
+    pub bar: ScrollbarVisibility,
+    /// Cells per wheel notch or arrow press for free text. Column-based
+    /// widgets (grids, tables) always move one column.
+    pub step: usize,
+    /// What a press on the bare track does.
+    pub track_click: TrackClick,
+}
+
+impl Default for HScroll {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            bar: ScrollbarVisibility::Auto,
+            step: 4,
+            track_click: TrackClick::Jump,
+        }
+    }
+}
+
+impl HScroll {
+    /// Horizontal scrolling switched off: cut-off text only, no bar.
+    pub fn off() -> Self {
+        Self {
+            enabled: false,
+            bar: ScrollbarVisibility::Never,
+            ..Self::default()
+        }
+    }
+
+    pub fn bar(mut self, bar: ScrollbarVisibility) -> Self {
+        self.bar = bar;
+        self
+    }
+
+    pub fn step(mut self, step: usize) -> Self {
+        self.step = step.max(1);
+        self
+    }
+
+    pub fn track_click(mut self, click: TrackClick) -> Self {
+        self.track_click = click;
+        self
+    }
+
+    /// Whether the bar shows for `scroll` (never while disabled).
+    pub fn shows_bar(&self, scroll: &ScrollState) -> bool {
+        self.enabled && self.bar.shows(scroll)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn visibility_policy_decides_when_a_bar_draws() {
+        let mut s = ScrollState::new(10);
+        s.set_viewport(20);
+        assert!(!ScrollbarVisibility::Auto.shows(&s), "fits: auto hides");
+        assert!(ScrollbarVisibility::Always.shows(&s));
+        s.set_viewport(4);
+        assert!(ScrollbarVisibility::Auto.shows(&s));
+        assert!(!ScrollbarVisibility::Never.shows(&s));
+        assert!(!HScroll::off().shows_bar(&s), "disabled never draws");
+        assert!(HScroll::default().shows_bar(&s));
+    }
+
+    #[test]
+    fn a_paging_track_press_moves_one_viewport_toward_the_pointer() {
+        let mut s = ScrollState::new(100);
+        s.set_viewport(10);
+        // the thumb is the first cell of a 10-cell track
+        assert!(s.press_track_with(9, 10, TrackClick::Page));
+        assert_eq!(s.offset, 10, "one page right, not a jump to the end");
+        assert!(s.press_track_with(0, 10, TrackClick::Page));
+        assert_eq!(s.offset, 0);
+        let (start, _) = s.thumb(10);
+        assert!(!s.press_track_with(start, 10, TrackClick::Page));
+        assert_eq!(s.grab, Some(0), "the thumb is grabbed, not paged");
+    }
 
     #[test]
     fn movement_reports_whether_the_offset_changed() {

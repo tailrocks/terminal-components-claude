@@ -95,8 +95,42 @@ pub struct Mouse {
     pub pos: Position,
 }
 
+/// How raw terminal events are normalised into [`Input`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InputConfig {
+    /// Shift+wheel scrolls sideways (most terminals report it as a
+    /// vertical wheel with Shift held), as on macOS and every desktop.
+    pub shift_wheel_horizontal: bool,
+}
+
+impl Default for InputConfig {
+    fn default() -> Self {
+        Self {
+            shift_wheel_horizontal: true,
+        }
+    }
+}
+
 impl Input {
     pub fn from_crossterm(ev: Event) -> Option<Self> {
+        Self::from_crossterm_with(ev, InputConfig::default())
+    }
+
+    /// [`from_crossterm`](Self::from_crossterm) under `config`.
+    pub fn from_crossterm_with(ev: Event, config: InputConfig) -> Option<Self> {
+        let ev = match ev {
+            Event::Mouse(mut m)
+                if config.shift_wheel_horizontal && m.modifiers.contains(KeyModifiers::SHIFT) =>
+            {
+                m.kind = match m.kind {
+                    MouseEventKind::ScrollUp => MouseEventKind::ScrollLeft,
+                    MouseEventKind::ScrollDown => MouseEventKind::ScrollRight,
+                    k => k,
+                };
+                Event::Mouse(m)
+            }
+            ev => ev,
+        };
         match ev {
             Event::Key(KeyEvent {
                 code,
@@ -137,6 +171,54 @@ impl Input {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shift_wheel_scrolls_sideways_unless_configured_off() {
+        let wheel = |kind, modifiers| {
+            Event::Mouse(MouseEvent {
+                kind,
+                column: 3,
+                row: 4,
+                modifiers,
+            })
+        };
+        let kind = |i: Option<Input>| match i {
+            Some(Input::Mouse(m)) => m.kind,
+            other => panic!("{other:?}"),
+        };
+        let shift = KeyModifiers::SHIFT;
+        assert_eq!(
+            kind(Input::from_crossterm(wheel(
+                MouseEventKind::ScrollDown,
+                shift
+            ))),
+            MouseKind::WheelRight
+        );
+        assert_eq!(
+            kind(Input::from_crossterm(wheel(
+                MouseEventKind::ScrollUp,
+                shift
+            ))),
+            MouseKind::WheelLeft
+        );
+        assert_eq!(
+            kind(Input::from_crossterm(wheel(
+                MouseEventKind::ScrollDown,
+                KeyModifiers::NONE
+            ))),
+            MouseKind::WheelDown
+        );
+        let off = InputConfig {
+            shift_wheel_horizontal: false,
+        };
+        assert_eq!(
+            kind(Input::from_crossterm_with(
+                wheel(MouseEventKind::ScrollDown, shift),
+                off
+            )),
+            MouseKind::WheelDown
+        );
+    }
 
     #[test]
     fn outcome_combines_with_changed_dominating() {
