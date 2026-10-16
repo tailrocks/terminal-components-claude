@@ -149,27 +149,6 @@ core::response::StateFlags::union | State tab readout of the library dispatcher:
 core::response::StateFlags::with | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::scroll
-core::scroll::ScrollState | Panels and Scrolling page options | SC22
-core::scroll::ScrollState::with_follow_cursor | Panels and Scrolling page options | SC22
-core::scroll::ScrollState::with_context | Context rows option on the Scrolling page | SC29
-core::scroll::FollowCursor | Panels and Scrolling page options | SC22
-core::scroll::FollowCursor::OnMove | Panels and Scrolling page options | SC22
-core::scroll::FollowCursor::Always | Panels and Scrolling page options | SC22
-core::scroll::ScrollbarVisibility | Panels and Scrolling page options | SC22
-core::scroll::ScrollbarVisibility::Auto | Panels and Scrolling page options | SC22
-core::scroll::ScrollbarVisibility::Always | Panels and Scrolling page options | SC22
-core::scroll::ScrollbarVisibility::Never | Panels and Scrolling page options | SC22
-core::scroll::TrackClick | Panels and Scrolling page options | SC22
-core::scroll::TrackClick::Jump | Panels and Scrolling page options | SC22
-core::scroll::TrackClick::Page | Panels and Scrolling page options | SC22
-core::scroll::HScroll | Panels and Scrolling page options | SC22
-core::scroll::HScroll::bar | Panels and Scrolling page options | SC22
-core::scroll::HScroll::step | Panels and Scrolling page options | SC22
-core::scroll::HScroll::track_click | Panels and Scrolling page options | SC22
-core::scroll::ScrollPane | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
-core::scroll::ScrollPane::horizontal | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
-core::scroll::ScrollPane::track_click | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
-core::scroll::ScrollPane::columns | ScrollPane on the Scrolling page (bars on popups, render_with_fade, TrackClick::Page default) | SC29
 
 # core::shape
 core::shape::PointerShape | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -611,23 +590,6 @@ widgets::list::ListBox::track_click | Lists and Trees page options | SC15
 # widgets::menu
 
 # widgets::panel
-widgets::panel::PanelFocus | Panels and Scrolling page options | SC22
-widgets::panel::PanelFocus::Title | Panels and Scrolling page options | SC22
-widgets::panel::PanelFocus::Bar | Panels and Scrolling page options | SC22
-widgets::panel::Panel::focused | Panels and Scrolling page options | SC22
-widgets::panel::Panel::focus_mark | Panels and Scrolling page options | SC22
-widgets::panel::Panel::meta | Panels and Scrolling page options | SC22
-widgets::panel::Panel::meta_short | Panels and Scrolling page options | SC22
-widgets::panel::Panel::pad_x | Panels and Scrolling page options | SC22
-widgets::panel::Panel::title_min | Panels and Scrolling page options | SC22
-widgets::panel::PanelCmd | Panels and Scrolling page options | SC22
-widgets::panel::PanelCmd::Follow | Panels and Scrolling page options | SC22
-widgets::panel::ScrollPanel::nav | Panels and Scrolling page options | SC22
-widgets::panel::ScrollPanel::keymap | Panels and Scrolling page options | SC22
-widgets::panel::ScrollPanel::horizontal | Panels and Scrolling page options | SC22
-widgets::panel::ScrollPanel::wrap | Panels and Scrolling page options | SC22
-widgets::panel::ScrollPanel::tail | Panels and Scrolling page options | SC22
-widgets::panel::ScrollPanel::track_click | Panels and Scrolling page options | SC22
 
 # widgets::picker
 widgets::picker::PickerItem | Pickers page options | SC20
@@ -680,8 +642,6 @@ widgets::rail::SidebarRail | Breadcrumbs & rails page | SC5
 widgets::rail::SidebarRail::collapsed_rail | Breadcrumbs & rails page | SC5
 
 # widgets::scrollbar
-widgets::scrollbar::Bars | Panels and Scrolling page options | SC22
-widgets::scrollbar::VSplit | Panels and Scrolling page options | SC22
 
 # widgets::segments
 
@@ -783,33 +743,5 @@ widgets::too_small::TooSmall::min | TooSmall demo on Status & hints | SC30
 widgets::too_small::TooSmall::quit_hint | TooSmall demo on Status & hints | SC30
 
 # core::list
-core::list::Cursor | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::Cursor::wrap | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::Cursor::axis | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::Cursor::skip_disabled | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::Moved | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::Moved::Ignored | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::Moved::Stayed | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::Moved::To | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::RowFn | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::KeyStep | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::KeyStep::Nav | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::KeyStep::Type | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::NavProfile | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::NavProfile::Desktop | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::NavProfile::Vim | Cursor/RowSource defaults on the Scrolling page options | SC29
-core::list::TypeAheadPrecedence | type-ahead precedence on the Scrolling page options | SC29
-core::list::TypeAheadPrecedence::Shortcuts | type-ahead precedence on the Scrolling page options | SC29
-core::list::TypeAheadPrecedence::TypeAhead | type-ahead precedence on the Scrolling page options | SC29
-widgets::grid::DataGrid::type_ahead_precedence | type-ahead precedence on the Scrolling page options | SC29
-widgets::grid::DataGrid::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
-widgets::list::ListBox::type_ahead_precedence | type-ahead precedence on the Scrolling page options | SC29
-widgets::list::ListBox::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
-widgets::menu::ContextMenu::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
-widgets::menu::MenuBar::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
-widgets::select::Select::type_ahead_precedence | type-ahead precedence on the Scrolling page options | SC29
-widgets::select::Select::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
-widgets::table::DataTable::type_ahead_precedence | type-ahead precedence on the Scrolling page options | SC29
-widgets::table::DataTable::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
-widgets::tree::TreeView::type_ahead_precedence | type-ahead precedence on the Scrolling page options | SC29
-widgets::tree::TreeView::type_ahead_timeout | Cursor/RowSource defaults on the Scrolling page options | SC29
+widgets::menu::ContextMenu::type_ahead_timeout | a menu's type-ahead pause belongs on the Menus page, which opens the menus; its next step (SC41) adds the option | SC41
+widgets::menu::MenuBar::type_ahead_timeout | the menu bar's type-ahead pause belongs on Chrome, which shows the bar; its next step (SC34) adds the option | SC34
