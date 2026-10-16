@@ -1721,6 +1721,21 @@ mod tests {
             (Outcome::Changed, Some(MenuBarAction::Chosen(0, 0)))
         );
         b.on_key(&key(KeyCode::Enter));
+        // with type-ahead on (the Desktop default) a letter is a prefix: a
+        // miss is consumed and the menu stays open, as in macOS menus
+        assert_eq!(
+            b.on_key(&key(KeyCode::Char('z'))),
+            (Outcome::Consumed, None)
+        );
+        assert!(b.is_open());
+        // a key that is neither a shortcut nor a prefix closes and passes
+        assert_eq!(
+            b.on_key(&key(KeyCode::Char('?'))),
+            (Outcome::Ignored, Some(MenuBarAction::Closed))
+        );
+        assert!(!b.is_open());
+        let mut b = bar().type_ahead(false);
+        b.on_key(&key(KeyCode::Enter));
         assert_eq!(
             b.on_key(&key(KeyCode::Char('z'))),
             (Outcome::Ignored, Some(MenuBarAction::Closed))

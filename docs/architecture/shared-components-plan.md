@@ -402,7 +402,8 @@ Each step's agent updates its row when the step lands: state, commits, and every
 5. The scroll-only `nav.action` blocks (CodeEditor, TextArea, ScrollPanel, TextViewport, HelpOverlay, InfoDialog and the Dialog body) are not cursors: they stay for `ScrollPane` (S3).
 6. Menu paging moves a viewport of rows and snaps to an enabled one (`Cursor::apply`), instead of counting enabled rows. Table rows keep `skip_disabled(false)`, as before.
 7. Drift fixes landed inside the per-group migration commits (each named with its test in the commit body), not one commit per fix.
-8. Visual: none. `check-touched` (showcase flows and pages) stayed green on every commit. The app groups still pending re-approval were not run; letters typed into a focused list in their scenarios would now type-select instead of moving.
+8. Menus (K14, landed in parallel): with type-ahead on by default, a letter in an open menu that is not a shortcut is a type-ahead prefix; a miss is consumed and the menu stays open (macOS menus). Only keys that are neither shortcuts nor type-ahead (punctuation, F-keys) close the menu and pass on; with `type_ahead(false)` letters pass on as K14 wrote it.
+9. Visual: none. `check-touched` (showcase flows and pages) stayed green on every commit. The app groups still pending re-approval were not run; letters typed into a focused list in their scenarios would now type-select instead of moving.
 
 **Notes for later steps:**
 - S8b: hints must stop advertising `j/k` and `g/G` unless `NavProfile::current()` is `Vim` (or the widget's `nav.vim` is on), and should advertise type-ahead ("Type to jump") where `type_ahead` is on. `Completion::NAV` (no Home/End, no letters) and the searchable Picker (letters and Home/End edit the query) are the exceptions to read from the widget, not the profile.
