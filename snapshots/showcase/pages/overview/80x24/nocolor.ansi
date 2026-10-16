@@ -2,24 +2,24 @@
                                                                                 [0m
  [0m[1mComponents[0m      54  [0m[1mOverview[0m  Tokens and principles behind every component     [0m
                                                                                 [0m
- [0m[1m▎› Overview       [0m    Tokens                                                   [0m
-  ▸ App shell                                                                   [0m
-  ▸ Inputs & forms         ▏ canvas                   ▏ accent                  [0m
-  ▸ Tables                 ▏ surface                  ▏ accent.hover            [0m
-  ▸ Navigation             ▏ surface.elevated         ▏ accent.pressed          [0m
-  ▸ Overlays               ▏ surface.overlay          ▏ accent.bg               [0m
-  ▸ Feedback               ▏ field                    ▏ highlight               [0m
-  ▸ Layout                 ▏ popover                  ▏ selection               [0m
-  ▸ Text & code                                                                 [0m
-  ▸ Screens                                                                     [0m
-                       State language                                           [0m
-                                                                                [0m
-                       ▎  focus                                                 [0m
-                       ░  hover lifts the surface                               [0m
-                       ›  current / chosen                                      [0m
-                       ✓  checked                                               [0m
-                       !  error                                                 [0m
-                                                                                [0m
+ [0m[1m▎› Overview       [0m  [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▸ Tables             Tokens · planes and text                                ┃[0m
+  ▸ Navigation                                                                 ┆[0m
+  ▸ Overlays               ▏ canvas                                    Black   ┆[0m
+  ▸ Feedback               ▏ surface                                   Black   ┆[0m
+  ▸ Layout                 ▏ surface.elevated                          Black   ┆[0m
+  ▸ Text & code            ▏ surface.overlay                        DarkGray   ┆[0m
+  ▸ Screens                ▏ field                                     Black   ┆[0m
+                           ▏ field.hover                               Black   ┆[0m
+                           ▏ popover                                DarkGray   ┆[0m
+                           ▏ highlight                              DarkGray   ┆[0m
+                           ▏ highlight.danger                       DarkGray   ┆[0m
+                           ▏ selection                              DarkGray   ┆[0m
+                           ▏ border.subtle                          DarkGray   ┆[0m
+                           ▏ border.strong                              Gray   ┆[0m
+                                                                               ┆[0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l
