@@ -29,6 +29,7 @@ mod filter_editor;
 mod model;
 #[cfg(test)]
 mod motion_tests;
+mod pages;
 #[cfg(test)]
 mod perf_tests;
 mod sql;
