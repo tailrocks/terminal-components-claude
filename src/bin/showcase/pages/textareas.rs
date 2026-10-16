@@ -13,9 +13,10 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::edit::{EditEntry, FocusSelect};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::HScroll;
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::input::InputAction;
@@ -252,55 +253,17 @@ impl TextAreasPage {
                 };
                 self.areas[i].on_paste(text)
             }
-            PageEvent::Click { id, pos } => {
-                let Some(i) = self.index_of(*id) else {
-                    return Outcome::Ignored;
-                };
-                if *id == scrollbar::id_for(self.areas[i].id) {
-                    let a = &mut self.areas[i];
-                    let track =
-                        Rect::new(a.area.right().saturating_sub(1), a.area.y, 1, a.area.height);
-                    a.scroll
-                        .scroll_to(scrollbar::offset_for_click(track, *pos, &a.scroll));
-                    return Outcome::Changed;
-                }
-                cx.focus.focus(*id);
-                self.areas[i].on_click_count(*pos, cx.clicks.max(1))
-            }
-            PageEvent::Press { id, pos } => {
-                let Some(i) = self.index_of(*id) else {
-                    return Outcome::Ignored;
-                };
-                if *id != self.areas[i].id {
-                    return Outcome::Ignored;
-                }
-                self.areas[i].on_press_count(*pos, cx.clicks.max(1))
-            }
-            PageEvent::Drag { pressed, pos } => {
-                let Some(i) = self.index_of(*pressed) else {
-                    return Outcome::Ignored;
-                };
-                if *pressed == scrollbar::id_for(self.areas[i].id) {
-                    let a = &mut self.areas[i];
-                    let track =
-                        Rect::new(a.area.right().saturating_sub(1), a.area.y, 1, a.area.height);
-                    a.scroll
-                        .scroll_to(scrollbar::offset_for_click(track, *pos, &a.scroll));
-                    return Outcome::Changed;
-                }
-                if *pressed == self.areas[i].id {
-                    return self.areas[i].on_drag(*pos);
+            PageEvent::Pointer(ev) => {
+                for a in &mut self.areas {
+                    if let Some(r) = a.route(ev) {
+                        if ev.is(Phase::Click) && ev.bar.is_none() {
+                            cx.focus.focus(a.id);
+                        }
+                        return r.outcome();
+                    }
                 }
                 Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } => match self.index_of(*id) {
-                Some(i) => self.areas[i].on_wheel(*delta),
-                None => Outcome::Ignored,
-            },
-            PageEvent::WheelH { id, delta } => match self.index_of(*id) {
-                Some(i) => self.areas[i].on_wheel_h(*delta),
-                None => Outcome::Ignored,
-            },
             _ => Outcome::Ignored,
         }
     }
