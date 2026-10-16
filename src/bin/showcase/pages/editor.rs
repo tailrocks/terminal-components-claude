@@ -524,7 +524,7 @@ impl Page for EditorPage {
                 if *pressed == self.editor.id {
                     self.editor.on_drag(*pos)
                 } else if scrollbar::is_bar_of(*pressed, self.editor.id) {
-                    self.editor.on_scrollbar_drag(*pos)
+                    self.editor.on_bar_drag(*pressed, *pos)
                 } else {
                     Outcome::Ignored
                 }

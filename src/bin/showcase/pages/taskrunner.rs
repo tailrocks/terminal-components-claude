@@ -385,7 +385,7 @@ impl Page for TaskRunnerPage {
             }
             PageEvent::Drag { pressed, pos } => {
                 if scrollbar::is_bar_of(*pressed, self.log.id) {
-                    return self.log.on_scrollbar_drag(*pos);
+                    return self.log.on_bar_drag(*pressed, *pos);
                 }
                 if *pressed == scrollbar::id_for(self.tree.id) {
                     return self.tree.on_scrollbar_drag(*pos);

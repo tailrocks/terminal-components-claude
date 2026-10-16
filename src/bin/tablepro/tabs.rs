@@ -1509,7 +1509,7 @@ impl QueryTab {
             return self.editor.on_drag(pos);
         }
         if scrollbar::is_bar_of(pressed, self.editor.id) {
-            return self.editor.on_scrollbar_drag(pos);
+            return self.editor.on_bar_drag(pressed, pos);
         }
         if let Some(g) = self.active_grid_mut()
             && g.owns(pressed)
@@ -1520,7 +1520,7 @@ impl QueryTab {
             && let ResultBody::Plan { raw, .. } = &mut r.body
             && scrollbar::is_bar_of(pressed, raw.id)
         {
-            return raw.on_scrollbar_drag(pos);
+            return raw.on_bar_drag(pressed, pos);
         }
         Outcome::Ignored
     }
