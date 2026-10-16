@@ -387,6 +387,11 @@ pub struct DataGrid {
     /// min/max). Default [`DEFAULT_WIDTH_SAMPLE_ROWS`]; widths are measured
     /// once per dataset, never per frame.
     pub width_sample_rows: usize,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 /// Rows sampled for column widths by default (see
@@ -400,6 +405,8 @@ impl DataGrid {
     pub fn new(id: WidgetId, columns: Vec<ColumnSpec>) -> Self {
         let widths = columns.iter().map(|c| c.min_width).collect();
         Self {
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             id,
             columns,
             rows: vec![],
@@ -1493,7 +1500,7 @@ impl DataGrid {
     /// The pointer went down on the scrollbar (or a completed click): a
     /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
             Outcome::Changed
         } else {
             Outcome::Consumed
@@ -1667,7 +1674,15 @@ impl DataGrid {
         }
     }
 
+    /// Override the app-wide vertical track-click policy
+    /// (`TrackClick::Page` pages toward the pointer).
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         self.fit_header_marks();
         let area = area.intersection(*buf.area());
         if area.is_empty() || area.height < 2 {
