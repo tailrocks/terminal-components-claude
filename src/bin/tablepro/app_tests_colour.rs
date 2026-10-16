@@ -365,8 +365,39 @@ fn page_text_under_a_modal_dims_but_never_disappears_at_16_colours() {
     h.app.theme = Theme::for_level(junie_tui::theme::ColorLevel::Ansi16);
     h.draw();
     h.ctrl('o');
-    assert!(h.app.top_as::<junie_tui::widgets::picker::Picker>().is_some());
+    assert!(
+        h.app
+            .top_as::<junie_tui::widgets::picker::Picker>()
+            .is_some()
+    );
     assert_reads(&h, "Query 1", "selected tab under the picker");
+}
+
+#[test]
+fn the_pane_under_a_picker_shows_no_focus() {
+    // the picker takes focus; the tab pane read the raw focus ("not the
+    // explorer, not the strip") and drew itself focused under the modal
+    for level in [
+        junie_tui::theme::ColorLevel::TrueColor,
+        junie_tui::theme::ColorLevel::Ansi256,
+    ] {
+        let mut h = H::connected(120, 40);
+        h.app.theme = Theme::for_level(level);
+        h.draw();
+        h.ctrl('o');
+        assert!(
+            h.app
+                .top_as::<junie_tui::widgets::picker::Picker>()
+                .is_some()
+        );
+        let pane = at(&h, "╭─ Query 1", 3);
+        let explorer = at(&h, "╭─ Explorer", 3);
+        assert_eq!(
+            (pane.fg, pane.modifier),
+            (explorer.fg, explorer.modifier),
+            "{level:?}: the Query pane title under the picker reads as focused"
+        );
+    }
 }
 
 #[test]
