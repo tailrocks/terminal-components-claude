@@ -164,9 +164,10 @@ Library additions for these rows: `StatusKind::tone`, `EnvKind::tone`,
 `TreeNode::glyph_tone` / `label_tone`, `ListItem::meta_tone`, each with
 a unit test beside it. Defaults draw exactly as before.
 
-Visual: the tablepro captures are all still pending tuiscotti
-re-approval (legacy tuisnap approvals, skipped unless `VISUAL_FULL=1`),
-so no tablepro capture gates these changes and none was re-approved.
+Visual: when these rows landed the tablepro captures were legacy
+tuisnap approvals. They are now re-approved against `visual-baseline`
+with these changes attributed ([`visual-reapproval.md`](visual-reapproval.md)),
+so tablepro gates them.
 
 ### showcase
 
