@@ -64,6 +64,9 @@ pub struct Tabs {
     /// How the active tab's underline is coloured. Default
     /// [`TabRule::Auto`]: accent only while the strip has keyboard focus.
     pub rule: TabRule,
+    /// A middle click on a closable tab closes it (browsers, editors).
+    /// Default `true`.
+    pub middle_click_closes: bool,
     /// Number of tabs that fit in the last render.
     fit: usize,
 }
@@ -100,6 +103,7 @@ impl Tabs {
             areas: vec![],
             allow_new: false,
             rule: TabRule::Auto,
+            middle_click_closes: true,
             fit: 0,
         }
     }
@@ -114,6 +118,7 @@ impl Tabs {
             areas: vec![],
             allow_new: false,
             rule: TabRule::Auto,
+            middle_click_closes: true,
             fit: 0,
         }
     }
@@ -121,6 +126,23 @@ impl Tabs {
     pub fn rule(mut self, rule: TabRule) -> Self {
         self.rule = rule;
         self
+    }
+
+    pub fn middle_click_closes(mut self, on: bool) -> Self {
+        self.middle_click_closes = on;
+        self
+    }
+
+    /// A middle click on `id`: closes the closable tab under it (or whose
+    /// × it is) when [`Self::middle_click_closes`] is on.
+    pub fn on_middle_click(&self, id: WidgetId) -> Option<TabEvent> {
+        if !self.middle_click_closes {
+            return None;
+        }
+        let i = self
+            .locate(id)
+            .or_else(|| (0..self.items.len()).find(|&i| self.close_id(i) == id))?;
+        self.items[i].closable.then_some(TabEvent::Close(i))
     }
 
     pub fn tab_id(&self, i: usize) -> WidgetId {
@@ -519,6 +541,20 @@ impl Tabs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn middle_click_closes_closable_tabs_unless_configured_off() {
+        let id = WidgetId::of("strip");
+        let mut t = Tabs::with_items(
+            id,
+            vec![TabItem::new("Here"), TabItem::new("Logs").closable()],
+        );
+        assert_eq!(t.on_middle_click(t.tab_id(1)), Some(TabEvent::Close(1)));
+        assert_eq!(t.on_middle_click(t.close_id(1)), Some(TabEvent::Close(1)));
+        assert_eq!(t.on_middle_click(t.tab_id(0)), None, "not closable");
+        t = t.middle_click_closes(false);
+        assert_eq!(t.on_middle_click(t.tab_id(1)), None);
+    }
     use crate::core::focus::FocusRing;
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;

@@ -1691,6 +1691,7 @@ impl App {
                     None => out,
                 }
             }
+            MouseKind::Middle => Outcome::Ignored,
             MouseKind::Secondary => {
                 let hit = self.pointer.on_secondary(&self.hits, m.pos);
                 if !self.modals.is_empty() {
@@ -1717,7 +1718,13 @@ impl App {
             | MouseKind::WheelLeft
             | MouseKind::WheelRight => {
                 let delta = self.pointer.wheel_delta(m.kind);
+                // a horizontal swipe is its own axis: it never scrolls a
+                // vertical list
+                let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 if let Some(top) = self.modals.last_mut() {
+                    if horizontal {
+                        return Outcome::Consumed;
+                    }
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),
                         Modal::Browser(b) => b.on_wheel(delta),
@@ -1735,6 +1742,7 @@ impl App {
                 };
                 let route = self.route;
                 let out = match self.screens.get_mut(route) {
+                    Some(s) if horizontal => s.on_wheel_h(id, delta, m.pos, &mut self.world),
                     Some(s) => s.on_wheel(id, delta, m.pos, &mut self.world),
                     None => Outcome::Ignored,
                 };
