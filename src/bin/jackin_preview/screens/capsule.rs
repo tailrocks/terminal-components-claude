@@ -21,7 +21,7 @@ use junie_tui::widgets::menu::{
     ContextMenu, MenuAction, MenuBar, MenuBarAction, MenuItem, Placement,
 };
 use junie_tui::widgets::picker::{Picker, PickerItem};
-use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
+use junie_tui::widgets::progress::{Meter, MeterVisual, spinner_frame};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
@@ -38,7 +38,7 @@ use super::{CustomModal, Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
 use crate::domain::instance::AgentState;
-use crate::domain::usage::{Freshness, QuotaStatus};
+use crate::domain::usage::Freshness;
 use crate::sim::pty::{
     Daemon, Direction, MAX_LABEL, MIN_PANE_COLS, MIN_PANE_ROWS, PaneId, PaneNode, Seam, nearest,
 };
@@ -1826,19 +1826,12 @@ impl CapsuleScreen {
                     .take(2)
                     .enumerate()
                 {
-                    let tone = match fresh {
-                        Freshness::Refreshing => MeterTone::Refreshing,
-                        Freshness::Stale | Freshness::Failed => MeterTone::Stale,
-                        Freshness::Current => match win.status {
-                            QuotaStatus::Exhausted => MeterTone::Exhausted,
-                            QuotaStatus::Warning => MeterTone::Warning,
-                            _ => MeterTone::Normal,
-                        },
-                    };
+                    let tone = super::accounts::quota_tone(win, fresh);
                     let label = win.label.split(' ').next().unwrap_or("Usage").to_owned();
                     bar.right.push(
                         StatusItem::new(label, Tone::Muted)
-                            .meter(win.used_pct, tone)
+                            .meter(win.used_pct, tone.tone)
+                            .meter_stale(tone.stale)
                             .clickable(USAGE_CHIP)
                             .priority(if k == 0 { 9 } else { 7 }),
                     );
@@ -2728,17 +2721,6 @@ impl UsageDialog {
             tab_areas: vec![],
         }
     }
-
-    fn meter_tone(win: &crate::domain::usage::QuotaWindow, fresh: Freshness) -> MeterTone {
-        if fresh != Freshness::Current {
-            return MeterTone::Stale;
-        }
-        match win.status {
-            QuotaStatus::Exhausted => MeterTone::Exhausted,
-            QuotaStatus::Warning => MeterTone::Warning,
-            _ => MeterTone::Normal,
-        }
-    }
 }
 
 impl CustomModal for UsageDialog {
@@ -2905,7 +2887,7 @@ impl CustomModal for UsageDialog {
         // build body lines
         enum Line {
             Text(String, Tone),
-            Meter(String, u8, String, MeterTone),
+            Meter(String, u8, String, super::accounts::QuotaTone),
         }
         let mut lines: Vec<Line> = vec![];
         let refreshing = self.refreshing_until.is_some();
@@ -2927,7 +2909,7 @@ impl CustomModal for UsageDialog {
                             name,
                             win.used_pct.unwrap_or(0),
                             format!("{} · {}", win.label, state),
-                            Self::meter_tone(
+                            super::accounts::quota_tone(
                                 win,
                                 if refreshing {
                                     Freshness::Refreshing
@@ -2986,7 +2968,7 @@ impl CustomModal for UsageDialog {
                         win.label.clone(),
                         win.used_pct.unwrap_or(0),
                         format!("{} · {reset}", win.value_label()),
-                        Self::meter_tone(
+                        super::accounts::quota_tone(
                             win,
                             if refreshing {
                                 Freshness::Refreshing
@@ -3056,9 +3038,8 @@ impl CustomModal for UsageDialog {
                     buf.set_string(body.x, yy, truncate(label, lw as usize), t.primary().bg(bg));
                     let mx = body.x + lw + 1;
                     if body.width > lw + 12 {
-                        Meter::new(Some(*pct))
+                        tone.on(Meter::new(Some(*pct)))
                             .value(format!("{pct}%"))
-                            .tone(*tone)
                             .visual(MeterVisual::Block)
                             .render(
                                 Rect::new(mx, yy, body.right().saturating_sub(mx), 1),

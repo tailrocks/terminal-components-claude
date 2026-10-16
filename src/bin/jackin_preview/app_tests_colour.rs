@@ -195,3 +195,57 @@ fn a_finished_capsule_tab_is_done() {
     let x = col(&h, 2, 0, glyph);
     assert_eq!(Some(cell(&h, x, 2).fg), style.fg, "{r}");
 }
+
+/// Put the stale Work account's session window at 90 %: the domain says
+/// warning (75 to 99 %), the shared thresholds would say danger (85 % up).
+fn stale_work_at_90(h: &mut H) {
+    let a = h.app.world.accounts.get_mut("acct-claude-work").unwrap();
+    assert_eq!(
+        a.usage.freshness.phase,
+        crate::domain::usage::Freshness::Stale
+    );
+    let win = a
+        .usage
+        .windows
+        .iter_mut()
+        .find(|w| w.label.starts_with("Session"))
+        .unwrap();
+    win.used_pct = Some(90);
+    win.status = crate::domain::usage::QuotaStatus::Warning;
+    h.draw();
+}
+
+/// The first dashed run cell on row `y`, and the row.
+fn stale_run(h: &H, y: u16, t: &Theme) -> (Cell, String) {
+    let r = row(h, y);
+    let x = col(h, y, 0, t.glyphs.bar_stale);
+    (cell(h, x, y), r)
+}
+
+#[test]
+fn a_stale_quota_warning_keeps_its_warning_level() {
+    let t = theme();
+    // the account detail's block meter: a block cannot be dashed, so the
+    // fill keeps the warning hue, the value goes italic, the marker is `▲`
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 140, 40);
+    h.app.screens.accounts.selected =
+        crate::screens::accounts::Sel::Account("acct-claude-work".into());
+    stale_work_at_90(&mut h);
+    let (x, y) = find(&h, "Session · 5-hour   ");
+    let r = row(&h, y);
+    let v = col(&h, y, x, "90%");
+    let c = cell(&h, v, y);
+    assert_eq!(c.bg, t.warning, "{r}");
+    assert!(c.modifier.contains(Modifier::ITALIC), "{r}");
+    let m = col(&h, y, v, t.glyphs.warning);
+    assert_eq!(cell(&h, m, y).fg, t.warning, "{r}");
+
+    // the capsule status bar's session meter
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    stale_work_at_90(&mut h);
+    let y = 38;
+    // the status bar's line meter: the run dashed (`╍`) in warning
+    let (c, r) = stale_run(&h, y, &t);
+    assert_eq!(c.fg, t.warning, "{r}");
+    assert!(r.contains(&format!("90% {}", t.glyphs.warning)), "{r}");
+}
