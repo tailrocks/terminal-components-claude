@@ -1666,9 +1666,11 @@ impl DataGrid {
         );
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.h_cfg = h_cfg;
-        self.scroll.set_content(self.content_rows());
-        self.scroll.set_viewport(body.height as usize);
-        let mut has_sb = self.scroll.overflows();
+        // the viewport is settled once both bars are known: setting a
+        // provisional taller one first would clamp the offset and drop
+        // the cursor row off the bottom
+        let rows_len = self.content_rows();
+        let mut has_sb = body.height > 0 && rows_len > body.height as usize;
         // gutter: bar(1) marker(1) change(1) rownum(w) space(1)
         let num_w = if self.row_numbers {
             (self.rows.len().max(1).to_string().len() as u16).max(2)
@@ -1694,13 +1696,14 @@ impl DataGrid {
         let has_hb = has_rows && body.height > 1 && h_cfg.shows_bar(&self.hscroll);
         if has_hb {
             body.height -= 1;
-            self.scroll.set_viewport(body.height as usize);
-            if !has_sb && self.scroll.overflows() {
+            if !has_sb && rows_len > body.height as usize {
                 has_sb = true;
                 self.layout_columns(cols_for(true));
             }
         }
         let cols_area = cols_for(has_sb);
+        self.scroll.set_content(rows_len);
+        self.scroll.set_viewport(body.height as usize);
         self.body = body;
 
         // header
