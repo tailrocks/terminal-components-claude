@@ -241,7 +241,6 @@ impl Page for ChromePage {
         );
         HintBar::render(hint_row, buf, t, &layer);
         // popovers last so they sit on top
-        self.bar.render_open(area, buf, ctx);
         if let Some(m) = self.context.as_mut() {
             m.render(area, buf, ctx);
         }

@@ -2450,13 +2450,11 @@ impl Screen for CapsuleScreen {
             area.height.saturating_sub(5),
         );
         self.body = body;
-        self.menubar.on_hover(ctx.interaction.hover);
         self.menubar.render(menu, buf, ctx, t.canvas);
         self.draw_identity(menu, buf, ctx, w);
         self.draw_strip(strip, buf, ctx, w);
         self.draw_panes(body, buf, ctx, w);
         self.draw_status(status, buf, ctx, w);
-        self.menubar.render_open(area, buf, ctx);
         if let Some((_, m)) = self.tab_menu.as_mut() {
             m.render(area, buf, ctx);
         }
