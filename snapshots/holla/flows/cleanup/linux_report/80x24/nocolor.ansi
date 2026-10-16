@@ -1,5 +1,5 @@
- [0m[1m holla❯ [0m   File   Go   Help                         no project  [0m[1mdevbox · local[0m [0m
-                                                                                [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                        no project  [0m[1mdevbox · local[0m  [0m
+  Here › [0m[1mCleanup report[0m                                                         [0m
  [0m[1m Here › Cleanup report  [0m                                                       [0m
  ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────── [0m
   [0m[1mCleanup report[0m                                       devbox · live · 1 s ago  [0m
@@ -21,4 +21,5 @@
   Next   Cleanup history                                                        [0m
                                                                                 [0m
  [0m[1m~/work/box[0m                snapshot · read-only                no color · 80×24 [0m
-                [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mTab[0m Next actions  [0m[1mEsc[0m Back        [0m[1m![0m 1 failed [0m
+      [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mTab[0m Next actions  [0m[1mEsc[0m Back  [0m[1mShift+F10[0m Menu  [0m[1m![0m 1 failed [0m
+[?25l

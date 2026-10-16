@@ -1,24 +1,25 @@
-  holla❯    File   Go   Help                   no project  devbox · development [0m
-  ╭──────────────────────────────────────────────────────────────────────────╮  [0m
-  │                                                                          │  [0m
- ━│  [0m[1mStart upgrade everything?[0m                                               │─ [0m
-  │                                                                          │  [0m
-  │  Plan       Upgrade everything · upgrade Debian packages and global      │  [0m
-  │             mise tools on devbox                                         │  [0m
-  │  Host       devbox                                                       │  [0m
-  │  Steps      7 included · 1 excluded · ~16 s                              │  [0m
-  │  Privilege  sudo · cached for this session                               │  [0m
-  │  Debian     14 upgradable · 2 security                                   │  [0m
-  │  mise       4 outdated global tools · go excluded                        │  [0m
-  │                                                                          │  [0m
-  │  cat /etc/os-release                                                     │  [0m
-  │  sudo -n true                                                            │  [0m
-  │  fuser /var/lib/dpkg/lock-frontend                                       │  [0m
-  │  df -h /                                                                 │  [0m
-  │  test -f /var/run/reboot-required                                        │  [0m
-  │  sudo apt-get update … 8 more                                            │  [0m
-  │                                                                          │  [0m
-  │                                                   ▎[0m[1mCancel [0m  [0m[1mStart plan [0m  │  [0m
-  │                                                                          │  [0m
- ~╰──────────────────────────────────────────────────────────────────────────╯4 [0m
-     [0m[1m  [0m   [0m[1m← →[0m [0m[1mChoos[0me  [0m[1mEnter[0m [0m[1mC[0monfirm [0m[1m Esc[0m Cancel    06 excluded · 08 now blocked [0m
+[0m[2m  holla❯    File   Go   Help                  no project  devbox · development  [0m
+[0m[2m  Here › Upgrade everything                                                     [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                        │── [0m
+[0m[2m  U│  [0m[1;2mStart upgrade everything?[0m[2m                                             │s  [0m
+[0m[2m  u│                                                                        │   [0m
+[0m[2m   │  [0mPlan       Upgrade everything · upgrade Debian packages and global  [0m[2m ┃│   [0m
+[0m[2m   │  [0m           mise tools on devbox                                     [0m[2m ┃│   [0m
+[0m[2m [0m [0m[2m[│  [0mHost       devbox                                                   [0m[2m ┆│   [0m
+[0m[2m [0m [0m[2m[│  [0mSteps      7 included · 1 excluded · ~16 s                          [0m[2m ┆│   [0m
+[0m[2m [0m [0m[2m[│  ↓ 4 more                                                              │   [0m
+[0m[2m [0m [0m[2m[│  cat /etc/os-release                                                   │   [0m
+[0m[2m [0m [0m[2m[│  sudo -n true                                                          │   [0m
+[0m[2m [0m [0m[2m[│  fuser /var/lib/dpkg/lock-frontend                                     │   [0m
+[0m[2m [0m [0m[2m[│  df -h /                                                               │   [0m
+[0m[2m [0m [0m[2m[│  test -f /var/run/reboot-required                                      │…  [0m
+[0m[2m   │  sudo apt-get update … 8 more                                          │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │                                                ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mtart plan [0m[2m  │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   ╰──────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m───────────╯   [0m
+[0m[2m                                                                                [0m
+[0m[2m ~           review · 7 steps · 2 branches parallel            no color · 80×24 [0m
+   [0m[1m←→[0m C[0m[1mho[0mose  [0m[1mEnter C[0mancel  [0m[1m↑↓ Sc[0mroll  [0m[1mEsc[0m Cancel  06 excluded · 08 now blocked [0m
+[?25l

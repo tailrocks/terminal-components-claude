@@ -1,26 +1,30 @@
- [0m[1m holla❯ [0m   File   Go   Help                                                                                                            no project  [0m[1mmbp · local[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                                                                                           no project  [0m[1mmbp · local[0m  [0m
                                                                                                                                                                 [0m
  [0m[1m Here  [0m                                                                                                                                                        [0m
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
                                                                                                                                                                 [0m
-    Suggested here                                                                                               Show system resources          system · host   [0m
-    Analyze disk usage     disk     here  / is 91% full                                                                                                         [0m
-    Open btm               system   host  sustained pressure · continuous view fits                              Does       CPU, load, memory, swap,            [0m
- [0m[1m › Show system resources  [0msystem [0m[1m  [0mhost[0m[1m  [0mCPU 78% for 4 min[0m[1m                                                  [0m               pressure, disk and network          [0m
-                                                                                                                            snapshot; then hand off to btm      [0m
-    Recent here                                                                                                             for continuous monitoring           [0m
-    nothing used here yet                                                                                        Runs       'holla snapshot system'             [0m
-                                                                                                                 In         mbp · host-wide                     [0m
-    Explore                                                                                                      Host       mbp · local                         [0m
-     Tasks   Git   Files   Disk   Services   System                                                              Scope      host                                [0m
-    System · mbp           explore  host  available on this host                                                 Why        CPU 78% for 4 min                   [0m
+    Suggested here                                                                                               Analyze disk usage               disk · here   [0m
+ [0m[1;7m › Analyze disk usage     [0m[7mdisk   [0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m/ is 91% full[0m[1;7m                                                      [0m                                                   [0m
+    Open btm               system   host  sustained pressure · continuous view fits                              Does       largest-first tree of this          [0m
+    Show system resources  system   host  CPU 78% for 4 min                                                                 folder that deepens as the scan     [0m
+                                                                                                                            streams; select any entry or        [0m
+    Recent here                                                                                                             rebuildable artifacts for           [0m
+    nothing used here yet                                                                                                   cleanup                             [0m
+                                                                                                                 Runs       'holla disk analyze'                [0m
+    Explore                                                                                                      In         ~/scratch                           [0m
+     Tasks   Git   Files   Disk   Services   System                                                              Host       mbp · local                         [0m
+    System · mbp           explore  host  available on this host                                                 Scope      here                                [0m
+                                                                                                                 Why        / is 91% full                       [0m
                                                                                                                  Changes    none · read-only                    [0m
                                                                                                                  Risk       read-only                           [0m
                                                                                                                  Data       live · 2 s ago                      [0m
-                                                                                                                 Gate       runs directly                       [0m
-                                                                                                                 Alt+Enter  Open btm · Show process tree ·      [0m
-                                                                                                                            Pin · Alias · Why here?             [0m
+                                                                                                                 Gate       opens a review · the deletion is    [0m
+                                                                                                                            gated there (typed phrase)          [0m
+                                                                                                                 Alt+Enter  Disk overview (home folders) ·      [0m
+                                                                                                                            Analyze a custom path… · Top        [0m
+                                                                                                                            files on this Mac · Pin · Alias     [0m
+                                                                                                                            · Why here?                         [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
@@ -42,9 +46,6 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
- [0m[1m~/scratch[0m                                                                                                              / ━━━━━━━━━━─ 91%     no color · 160×50 [0m
-                               [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m
+ [0m[1m~/scratch[0m                                                                                                              / ━━━━━━━━━━─ 91% ▲   no color · 160×50 [0m
+                            [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                            [0m
+[?25h[5;4H[6 q
