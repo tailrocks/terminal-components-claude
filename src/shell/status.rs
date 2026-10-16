@@ -3,44 +3,46 @@
 //!
 //! - An information message expires [`StatusLine::DEFAULT_TTL_MS`] (5 s)
 //!   after it is set, measured on the shell's [`Clock`](crate::clock::Clock)
-//!   (so a paused capture never ages it out).
+//!   (so a paused capture, whose clock does not move, never ages it out).
 //! - An error ([`Tone::Error`]) never times out (SC 2.2.1, Timing
 //!   Adjustable): it stays until the user's next action
-//!   ([`StatusLine::on_input`]) or until another message replaces it.
-//! - Priority: while an error is showing, a non-error message from the
-//!   same action does not hide it.
+//!   ([`StatusLine::on_input`]) or until a newer message replaces it
+//!   (standards-visual review, item 11).
 //!
 //! The application draws [`StatusLine::get`] in its footer; the line holds
-//! state only.
+//! state only. A message can carry a presentation payload `P` (toned parts,
+//! a status kind) that comes and goes with it.
 
 use crate::clock::Moment;
 use crate::core::event::{Input, MouseKind};
 use crate::theme::Tone;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Message {
+struct Message<P> {
     text: String,
     tone: Tone,
     at: Moment,
+    payload: P,
 }
 
-/// One transient status message with its expiry rule.
+/// One transient status message with its expiry rule, and an optional
+/// presentation payload `P` per message.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StatusLine {
-    message: Option<Message>,
+pub struct StatusLine<P = ()> {
+    message: Option<Message<P>>,
     ttl_ms: u64,
-    /// The last time the shell's clock was read ([`StatusLine::observe`],
+    /// The latest clock reading ([`StatusLine::observe`],
     /// [`StatusLine::expire`]); a message set now starts here.
     now: Moment,
 }
 
-impl Default for StatusLine {
+impl<P> Default for StatusLine<P> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl StatusLine {
+impl<P> StatusLine<P> {
     /// How long an information message stays: 5 s.
     pub const DEFAULT_TTL_MS: u64 = 5_000;
 
@@ -65,32 +67,25 @@ impl StatusLine {
         self.now = self.now.max(now);
     }
 
-    /// Show `text` in `tone`. An error stays until the next action; any
-    /// other tone expires after the TTL. A non-error message does not
-    /// replace an error that is still showing.
-    pub fn set(&mut self, text: impl Into<String>, tone: Tone) {
-        if tone != Tone::Error && self.is_error() {
-            return;
-        }
+    /// Show `text` in `tone` with `payload`, replacing any message. An
+    /// error stays until the next action; any other tone expires after the
+    /// TTL.
+    pub fn set_with(&mut self, text: impl Into<String>, tone: Tone, payload: P) {
         self.message = Some(Message {
             text: text.into(),
             tone,
             at: self.now,
+            payload,
         });
     }
 
-    /// [`set`](Self::set) after [`observe`](Self::observe)`(now)`.
-    pub fn set_at(&mut self, text: impl Into<String>, tone: Tone, now: Moment) {
+    /// [`set_with`](Self::set_with) after [`observe`](Self::observe)`(now)`.
+    pub fn set_with_at(&mut self, text: impl Into<String>, tone: Tone, payload: P, now: Moment) {
         self.observe(now);
-        self.set(text, tone);
+        self.set_with(text, tone, payload)
     }
 
-    /// Show an error ([`Tone::Error`]).
-    pub fn error(&mut self, text: impl Into<String>) {
-        self.set(text, Tone::Error);
-    }
-
-    /// Remove the message.
+    /// Remove the message. Returns whether one was showing.
     pub fn clear(&mut self) -> bool {
         self.message.take().is_some()
     }
@@ -98,6 +93,18 @@ impl StatusLine {
     /// The message and its tone, if one is showing.
     pub fn get(&self) -> Option<(&str, Tone)> {
         self.message.as_ref().map(|m| (m.text.as_str(), m.tone))
+    }
+
+    /// The message, its tone and its payload, if one is showing.
+    pub fn entry(&self) -> Option<(&str, Tone, &P)> {
+        self.message
+            .as_ref()
+            .map(|m| (m.text.as_str(), m.tone, &m.payload))
+    }
+
+    /// The payload of the message showing.
+    pub fn payload(&self) -> Option<&P> {
+        self.message.as_ref().map(|m| &m.payload)
     }
 
     /// The message text, if one is showing.
@@ -134,7 +141,7 @@ impl StatusLine {
 
     /// The user acted: an error has been seen and goes. A key, a paste or a
     /// button press counts; pointer moves, wheel, ticks and resizes do not.
-    /// Call before the input is handled, so a new message the action sets
+    /// Call before the input is handled, so a message the action sets
     /// stays. Returns whether the line changed.
     pub fn on_input(&mut self, input: &Input) -> bool {
         let acts = match input {
@@ -153,6 +160,24 @@ impl StatusLine {
     }
 }
 
+impl<P: Default> StatusLine<P> {
+    /// Show `text` in `tone` (see [`set_with`](Self::set_with)).
+    pub fn set(&mut self, text: impl Into<String>, tone: Tone) {
+        self.set_with(text, tone, P::default())
+    }
+
+    /// [`set`](Self::set) after [`observe`](Self::observe)`(now)`.
+    pub fn set_at(&mut self, text: impl Into<String>, tone: Tone, now: Moment) {
+        self.observe(now);
+        self.set(text, tone)
+    }
+
+    /// Show an error ([`Tone::Error`]).
+    pub fn error(&mut self, text: impl Into<String>) {
+        self.set(text, Tone::Error)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,7 +191,7 @@ mod tests {
 
     #[test]
     fn information_expires_after_five_seconds_on_the_clock() {
-        let mut s = StatusLine::new();
+        let mut s = StatusLine::<()>::new();
         s.observe(ms(1_000));
         s.set("Saved", Tone::Secondary);
         assert!(!s.expire(ms(5_999)));
@@ -177,7 +202,7 @@ mod tests {
 
     #[test]
     fn a_clock_that_does_not_move_never_ages_a_message() {
-        let mut s = StatusLine::new();
+        let mut s = StatusLine::<()>::new();
         s.set_at("Paused capture", Tone::Normal, ms(80));
         for _ in 0..100 {
             assert!(!s.expire(ms(80)));
@@ -187,7 +212,7 @@ mod tests {
 
     #[test]
     fn errors_persist_until_the_next_action() {
-        let mut s = StatusLine::new();
+        let mut s = StatusLine::<()>::new();
         s.error("Connection refused");
         assert!(!s.expire(ms(60_000)));
         assert!(s.is_error());
@@ -199,9 +224,6 @@ mod tests {
             Position::new(1, 1)
         ))));
         assert!(s.is_error());
-        // an information message from the same action does not hide it
-        s.set("Retrying", Tone::Secondary);
-        assert_eq!(s.text(), Some("Connection refused"));
         // a key press is the next action
         let key = Key {
             code: KeyCode::Char('x'),
@@ -209,18 +231,43 @@ mod tests {
         };
         assert!(s.on_input(&Input::Key(key)));
         assert!(s.is_none());
-        s.set("Retrying", Tone::Secondary);
-        assert_eq!(s.text(), Some("Retrying"));
+        assert!(!s.on_input(&Input::Key(key)), "nothing left to clear");
+    }
+
+    #[test]
+    fn a_newer_message_replaces_an_error() {
+        let mut s = StatusLine::<()>::new();
+        s.error("Refresh failed");
+        s.set_at("Purged", Tone::Secondary, ms(100));
+        assert_eq!(s.get(), Some(("Purged", Tone::Secondary)));
+        assert!(s.expire(ms(5_100)));
     }
 
     #[test]
     fn a_new_error_replaces_an_error_and_the_ttl_is_configurable() {
-        let mut s = StatusLine::new().ttl_ms(1_000);
+        let mut s = StatusLine::<()>::new().ttl_ms(1_000);
         s.error("first");
         s.error("second");
         assert_eq!(s.text(), Some("second"));
         assert!(s.clear());
         s.set_at("info", Tone::Normal, ms(10));
         assert!(s.expire(ms(1_010)));
+    }
+
+    #[test]
+    fn the_payload_comes_and_goes_with_its_message() {
+        let mut s = StatusLine::<Vec<&str>>::new();
+        s.set_with(
+            "2 passed, 1 failed",
+            Tone::Error,
+            vec!["2 passed", "1 failed"],
+        );
+        assert_eq!(s.payload().map(Vec::len), Some(2));
+        assert_eq!(s.entry().map(|(_, tone, _)| tone), Some(Tone::Error));
+        let mouse = Mouse::new(MouseKind::Down, Position::new(0, 0));
+        assert!(s.on_input(&Input::Mouse(mouse)));
+        assert_eq!(s.payload(), None);
+        s.set("plain", Tone::Secondary);
+        assert_eq!(s.payload(), Some(&vec![]));
     }
 }
