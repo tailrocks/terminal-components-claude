@@ -172,6 +172,7 @@ impl<'a> RenderCtx<'a> {
             reveal_hint: None,
             reveal_slot: {
                 crate::ui::reveal::clear_cuts();
+                crate::ui::reveal::begin_frame();
                 crate::ui::reveal::Slot::default()
             },
         }
