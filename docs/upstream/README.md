@@ -9,7 +9,7 @@ the upstream agents open (see [Upstream PR loop](#upstream-pr-loop)).
 
 | File | Upstream | Our pin today | Asks | Status |
 |---|---|---|---|---|
-| [`velnor-new-feedback.md`](velnor-new-feedback.md) | [tailrocks/velnor-new](https://github.com/tailrocks/velnor-new) | `v0.1.8` (`.velnor/release-manifest.json`) | visual-test suites: named nextest profile, real `--partition` shards, schedule/dispatch triggers, artifact upload, timeouts, required membership, preserved workflows; opt-in `.github/CLAUDE.md` symlink; repository Rust toolchain and tool overrides (§8) | PR [#155](https://github.com/tailrocks/velnor-new/pull/155) (§2–§5 and §8) merged to `main` as `e34cfb8` and verified 2026-10-16; adoption waits for the `v0.1.9` tag (see the tracker in the file) |
+| [`velnor-new-feedback.md`](velnor-new-feedback.md) | [tailrocks/velnor-new](https://github.com/tailrocks/velnor-new) | `v0.1.9` (`.velnor/release-manifest.json`, 2026-10-17) | visual-test suites: named nextest profile, real `--partition` shards, schedule/dispatch triggers, artifact upload, timeouts, required membership, preserved workflows; opt-in `.github/CLAUDE.md` symlink; repository Rust toolchain and tool overrides (§8) | §2–§5 and §8 done: PR [#155](https://github.com/tailrocks/velnor-new/pull/155) released in v0.1.9 and adopted 2026-10-17. Open: §9 Problem D (`Publish baseline`, no PR yet) and two non-blocking §8 follow-ups (default Rust/zizmor catalog, `[tools]` versions only shape-checked); see the tracker in the file |
 | [`tuiscotti-feedback.md`](tuiscotti-feedback.md) | [tailrocks/tuiscotti](https://github.com/tailrocks/tuiscotti) | `rev = 3382e57dd03283001d9d1bc4f1186b424c52797c` (`Cargo.toml`, 2026-10-17) | lone `f` key, exact dependency pins, `.ansi`+cursor artifact mode with CLI accept, non-unique locators, last screen in `WaitError`, render speed, no absolute paths, clock/pointer/docs | done: PR [#11](https://github.com/tailrocks/tuiscotti/pull/11) merged as `be860d1` (2026-10-16) and adopted 2026-10-17, workarounds deleted; open on our side only the legacy four-file store migration (see the tracker in the file) |
 
 When an upstream agent reports back:
@@ -17,7 +17,7 @@ When an upstream agent reports back:
 1. Record the new version or rev and the date in the table.
 2. Apply the consumer changes it lists. velnor: replace the manifest,
    edit `.velnor/config.toml`, run `velnor-actions generate`, update
-   `docs/ci.md` and the `AGENTS.md` `.github/CLAUDE.md` exception.
+   `docs/ci.md`.
    tuiscotti: bump the `rev`, delete the local gate and `ansi_cursor.rs`
    where upstream replaces them, and re-run the visual gate.
 3. Mark the row done, or write a follow-up prompt here for anything it
