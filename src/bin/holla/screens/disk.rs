@@ -1423,7 +1423,7 @@ impl Screen for DiskPage {
             }
             Some(Phase::Click) => {
                 // a double click on an overview row opens it
-                if cx.clicks >= 2
+                if ev.count() >= 2
                     && self.view == View::Overview
                     && let Some(i) = self
                         .list_scroll

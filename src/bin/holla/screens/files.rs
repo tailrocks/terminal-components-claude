@@ -1475,7 +1475,7 @@ impl Screen for FilesPage {
                 if let Some(i) = row {
                     self.cursor = i;
                     // a double click opens the row
-                    if cx.clicks >= 2 {
+                    if ev.count() >= 2 {
                         return match self.mode {
                             Mode::Browse => self.open_current(w, cx),
                             Mode::Find => self.open_actions(cx),
