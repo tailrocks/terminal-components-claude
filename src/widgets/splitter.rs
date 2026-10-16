@@ -126,9 +126,9 @@ impl Splitter {
         };
         let style = t.interactive(Kind::Seam, s, t.plane_of(bg)).style.bg(bg);
         let glyph = match (self.dir, hovered || pressed) {
-            (SplitDir::Horizontal, false) => t.glyphs.scroll_track,
+            (SplitDir::Horizontal, false) => t.glyphs.divider,
             (SplitDir::Horizontal, true) => t.glyphs.scroll_thumb,
-            (SplitDir::Vertical, false) => t.glyphs.scroll_h_track,
+            (SplitDir::Vertical, false) => t.glyphs.h_divider,
             (SplitDir::Vertical, true) => t.glyphs.scroll_h_thumb,
         };
         for pos in area.positions() {
