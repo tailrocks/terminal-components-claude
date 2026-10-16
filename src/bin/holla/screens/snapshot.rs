@@ -23,10 +23,10 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
 use crate::screens::{
-    Cx, Go, ModalResult, ModalTag, Screen, StatusBits, open_context, row_choice, scroll_drag,
-    scroll_press,
+    Cx, Go, ModalResult, Screen, StatusBits, open_context, row_choice, scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
+use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
 pub const BODY: WidgetId = WidgetId::of("snapshot.body");
@@ -1281,7 +1281,7 @@ impl SnapshotPage {
             anchor,
             self.title.clone(),
             items,
-            ModalTag::new("snapshot-body").key(format!("0:{keys}")),
+            LayerTag::new("snapshot-body").key(format!("0:{keys}")),
         )
     }
 }
@@ -1560,7 +1560,7 @@ impl Screen for SnapshotPage {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,

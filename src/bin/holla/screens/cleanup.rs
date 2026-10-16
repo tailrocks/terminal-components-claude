@@ -28,10 +28,11 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::catalog::{InsightCategory, insight_candidates, observe_process};
 use crate::domain::cleanup::{self, DeleteItem, DeletePlan, Eligibility, Mode, ProcessObservation};
 use crate::screens::{
-    Cx, Go, ModalResult, ModalTag, Page, Screen, StatusBits, heading, open_context, row_anchor,
-    row_choice, scroll_drag, scroll_press,
+    Cx, Go, ModalResult, Page, Screen, StatusBits, heading, open_context, row_anchor, row_choice,
+    scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
+use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
 pub const LIST: WidgetId = WidgetId::of("cleanup.list");
@@ -986,7 +987,7 @@ impl CleanupPage {
             anchor,
             title,
             items,
-            ModalTag::new("cleanup-row").key(format!("{row}:{keys}")),
+            LayerTag::new("cleanup-row").key(format!("{row}:{keys}")),
         )
     }
 }
@@ -1361,7 +1362,7 @@ impl Screen for CleanupPage {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
