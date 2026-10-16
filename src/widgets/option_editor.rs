@@ -269,6 +269,9 @@ pub struct EditorConfig {
     /// Typing jumps to the option whose label starts with the typed
     /// prefix (Select, Radio, Tags, Segmented). Default on.
     pub type_ahead: bool,
+    /// The pause after which the next letter starts a new type-ahead
+    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`].
+    pub type_ahead_timeout: std::time::Duration,
     /// Which keys move the popup's cursor (default [`NavKeys::default`],
     /// the installed [`crate::core::list::NavProfile`]'s). A Combo types
     /// its letters, so only named keys navigate it.
@@ -295,6 +298,7 @@ impl Default for EditorConfig {
             popup_width: (14, 48),
             cursor_style: CursorStyle::Fill,
             type_ahead: true,
+            type_ahead_timeout: crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT,
             nav: NavKeys::default(),
             affordance: Affordance::Focused,
             flag_out_of_set: true,
@@ -405,7 +409,7 @@ impl ChoiceEditor {
             error: None,
             scroll: 0,
             visible_rows: cfg.max_rows as usize,
-            typeahead: Default::default(),
+            typeahead: crate::core::typeahead::TypeAhead::with_timeout(cfg.type_ahead_timeout),
         })
     }
 
