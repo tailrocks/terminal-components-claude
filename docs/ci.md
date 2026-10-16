@@ -118,3 +118,103 @@ an upstream velnor-new change.
 Also generated, against the repo rule: velnor writes `.github/CLAUDE.md` as
 a regular file containing `@AGENTS.md`, not a symlink. Replacing it with a
 symlink would fail the drift check, so it stays until upstream changes.
+
+## Prepared: velnor 0.1.9
+
+velnor-new [#155](https://github.com/tailrocks/velnor-new/pull/155) is
+merged to velnor `main` (`e34cfb8`). It covers every gap above and
+`docs/upstream/velnor-new-feedback.md` §8: named nextest suites with real
+`--partition` matrices, `schedule` and `workflow_dispatch` triggers with
+inputs, artifact uploads, `Required` membership, `[agents] claude_md =
+"symlink"`, and CI that honours `rust-toolchain.toml`. We verified it with a
+build from `main` (see the tracker in the feedback file). It is **not
+adopted yet**, because no release is tagged. A release binary checks its own
+SHA-256 against `.velnor/release-manifest.json`
+(`release_manifest_binary_mismatch`), and the generated CI downloads the
+binary from the manifest's release URLs, so an untagged commit cannot be
+pinned. When `v0.1.9` is tagged:
+
+1. Replace `.velnor/release-manifest.json` with the release's manifest and
+   install that binary (`docs/dependencies.md`).
+2. In `.velnor/config.toml`: delete the commented `[test_sharding]` block
+   and the "VISUAL SMOKE TOGGLE" comment (both superseded by suites), add
+   `[agents] claude_md = "symlink"`, and append the suites below.
+3. In `.config/nextest.toml`: delete the commented `[profile.ci]` smoke
+   toggle. The `capture` profile already exists.
+4. Run `velnor-actions generate`. New outputs: `.github/workflows/suites.yml`,
+   `.github/velnor/task-execution-manifest-v1.json` and
+   `.github/actions/declared-task-0/` (the last two come from velnor #153/#154).
+   Remove the `.github/CLAUDE.md` exception from `AGENTS.md` and from this file.
+5. CI now runs Rust 1.99.1 from `rust-toolchain.toml`. Raise `rust-version` to
+   `1.99` in `Cargo.toml` and `xtask/Cargo.toml`. Delete the
+   `RUSTUP_TOOLCHAIN=1.98.1` clippy instruction here and in
+   `docs/dependencies.md`.
+
+Suites to append. This config generates cleanly with the `e34cfb8` build,
+and actionlint and zizmor (pedantic) report no findings on `suites.yml`:
+
+```toml
+[workflow.dispatch.inputs.tier]
+type = "choice"
+description = "Visual tier (docs/visual-testing/plan.md C1)"
+default = "smoke"
+options = ["smoke", "full", "narrow", "capture"]
+
+[workflow.dispatch.inputs.filter]
+type = "string"
+description = "Optional nextest filterset, for example test(/^holla::/)"
+
+[[stacks.rust.suites]]
+id = "visual-smoke"
+profile = "smoke"
+run_ignored = "only"
+partitions = 2
+build = "archive"
+timeout_minutes = 30
+test_threads = 4
+triggers = ["workflow_dispatch"]
+dispatch_inputs = { tier = ["smoke"] }
+filter_input = "filter"
+artifacts = [{ name = "visual-smoke-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
+
+# visual-full: as visual-smoke with profile = "full", partitions = 12,
+# timeout_minutes = 60, tier = ["full"], artifact "visual-full-{shard}".
+# visual-narrow: profile = "narrow", partitions = 2, timeout_minutes = 60,
+# tier = ["narrow"], artifact "visual-narrow-{shard}".
+
+[[stacks.rust.suites]]
+id = "visual-capture"
+profile = "capture"
+run_ignored = "only"
+partitions = 12
+build = "archive"
+timeout_minutes = 60
+test_threads = 4
+triggers = ["workflow_dispatch"]
+allow_failure = true
+env = { VISUAL_FULL = "1" }
+dispatch_inputs = { tier = ["capture"] }
+filter_input = "filter"
+artifacts = [{ name = "visual-capture-{shard}", paths = ["target/tuiscotti/actual"], when = "always", retention_days = 14 }]
+```
+
+How this differs from the configuration velnor suggested:
+
+- **Every tier is manual until oracle v0 (plan T18).** velnor suggested
+  `visual-smoke` as required on PR and push, and `visual-full` and
+  `visual-narrow` nightly. Before T18 most scenarios skip, and the
+  re-approved pilot drifts with every UI change. A required smoke check would
+  then go red on unrelated work, and a nightly run would be red every night.
+  After T18: give `visual-smoke` `triggers = ["pull_request", "push",
+  "workflow_dispatch"]` and `required = true` (it joins `Required`, so branch
+  protection still requires only `Required`). Give `visual-full` and
+  `visual-narrow` `"schedule"` with `schedule = ["0 2 * * *"]`.
+- **`capture` is its own nextest profile** (full plus narrow, see
+  `.config/nextest.toml`) with `VISUAL_FULL=1`, so it also captures scenarios
+  that are still pending. It uploads the whole `actual/` tree on every run
+  (plan §D, E2: the oracle-candidate input to `cargo xtask visual import`).
+- **No `report` path.** tuiscotti writes `actual/`, `expected/` and `diff/`
+  under `target/tuiscotti/`. `test_threads = 4` matches the 4-vCPU runner
+  (plan §C3).
+- `[test_sharding]` stays unset. The required `Rust / junie-tui` run is small
+  and does not need partitions.
