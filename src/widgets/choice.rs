@@ -12,6 +12,7 @@ use ratatui::style::{Color, Style};
 use crate::core::event::{Key, Outcome};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
+use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::ui::ctx::RenderCtx;
 
 // Buffer string writes clip to the whole buffer, not the widget rectangle.
@@ -201,12 +202,10 @@ impl RadioGroup {
         if self.disabled {
             return Outcome::Ignored;
         }
-        let last = self.options.len().saturating_sub(1);
         let to = match self.nav.action(key) {
-            Some(Nav::Up) if key.plain() => Some(self.cursor.saturating_sub(1)),
-            Some(Nav::Down) if key.plain() => Some((self.cursor + 1).min(last)),
-            Some(Nav::Home) if key.plain() => Some(0),
-            Some(Nav::End) if key.plain() => Some(last),
+            Some(nav @ (Nav::Up | Nav::Down | Nav::Home | Nav::End)) if key.plain() => {
+                self.cursor().apply(nav, self, 1).index()
+            }
             _ => None,
         };
         if let Some(to) = to {
@@ -416,6 +415,21 @@ impl Toggle {
             );
         }
         ctx.control(self.id, area, self.disabled);
+    }
+}
+
+impl RowSource for RadioGroup {
+    fn len(&self) -> usize {
+        self.options.len()
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.options[i]
+    }
+}
+
+impl Navigable for RadioGroup {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor)
     }
 }
 
