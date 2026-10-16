@@ -79,7 +79,8 @@ text ladder (muted to secondary). The tests
 - Added for the app follow-ups: `HintLayer::status_parts` (a hint-bar
   status whose parts keep their own tones; the message tone still picks
   the `!` / `▲` mark) and `viewport::render_spans` (one line of `Span`s
-  outside a viewport, each tone legible on its plane, cut with `…`).
+  outside a viewport, each tone legible on its plane, cut with `…`),
+  and `Segment::lead` (a glyph in its own tone before a segment's text).
 
 ### Decisions where the reviews differed
 
@@ -171,15 +172,17 @@ All done; the regression tests are in `src/bin/holla/app_tests_colour.rs`.
 
 ### jackin
 
-| Element | Where | Change |
-|---|---|---|
-| Usage provider rows (whole row in one tone) | `src/bin/jackin_preview/screens/usage.rs:395-419` | a table with per-cell tone: name primary, window as a `Meter`, only the status cell in error / warning with its glyph, "current" `Theme::status(Ok)` |
-| Usage Health line | `src/bin/jackin_preview/screens/usage.rs:314-319` | per-segment tones: degraded error bold, warnings and stale warning, refreshing info, counts primary |
-| Accounts Health line | `src/bin/jackin_preview/screens/accounts.rs:1457-1459` | as the usage Health line |
-| Accounts warnings rows | `src/bin/jackin_preview/screens/accounts.rs:1520-1531` | glyph and status phrase coloured; account primary, reset time muted |
-| Provider group labels | `src/bin/jackin_preview/screens/accounts.rs:1386-1387, 1409-1410` (and the usage tree) | `text_muted` instead of `text_faint` |
-| Running instance `◉` and "running" | `src/bin/jackin_preview/screens/manager.rs:220` (also `1349, 1636, 2839`), meta `1177, 1194` | `Tone::Active` on the glyph and the word |
-| "N running" counts | `src/bin/jackin_preview/app.rs:1046, 2788` | count secondary with an `Active` dot |
-| Run-id chip in warning | `src/bin/jackin_preview/screens/cockpit.rs:971-976` | `Theme::link_style` / info |
-| Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | see Deferred (library) |
-| Capsule tab suffixes | `src/bin/jackin_preview/screens/capsule.rs:1512-1528` | finished agents use `TabItem::done` (today `○` for Done) |
+Done except the stale session meter (deferred, see Deferred (library)); the regression tests are in `src/bin/jackin_preview/app_tests_colour.rs`.
+
+| Element | Where | Change | Status |
+|---|---|---|---|
+| Usage provider rows (whole row in one tone) | `src/bin/jackin_preview/screens/usage.rs:395-419` | a table with per-cell tone: name primary, window as a `Meter`, only the status cell in error / warning with its glyph, "current" `Theme::status(Ok)` | Done: the overview's provider rows are a table (`OvLine::Provider`): name primary, count secondary, the worst window as its label and a block `Meter` (`accounts::meter_tone`, now shared with the account detail), the status cell from `Theme::status` (`✗` exhausted or failed, `▲` warning or stale, `✓ current`) (`usage_provider_rows_tone_only_the_status_cell`) |
+| Usage Health line | `src/bin/jackin_preview/screens/usage.rs:314-319` | per-segment tones: degraded error bold, warnings and stale warning, refreshing info, counts primary | Done: `OverallSummary::issue_parts` and `screens::health_spans`, drawn with `viewport::render_spans`; exhausted and failed also error, the plain counts primary (`the_usage_health_line_tones_each_part`) |
+| Accounts Health line | `src/bin/jackin_preview/screens/accounts.rs:1457-1459` | as the usage Health line | Done: the same `health_spans` (`Line::PropSpans`) (`the_accounts_health_line_and_warnings_tone_each_part`) |
+| Accounts warnings rows | `src/bin/jackin_preview/screens/accounts.rs:1520-1531` | glyph and status phrase coloured; account primary, reset time muted | Done: `Line::Status` rows with the `Theme::status` glyph (`▲` / `✗`), the phrase in warning or error, the reset time muted (`the_accounts_health_line_and_warnings_tone_each_part`) |
+| Provider group labels | `src/bin/jackin_preview/screens/accounts.rs:1386-1387, 1409-1410` (and the usage tree) | `text_muted` instead of `text_faint` | Done: accounts tree faint rows (sentinel, not discovered, disabled) and the usage tree headings and disabled labels; the usage overview's not-discovered row too (`provider_group_labels_are_muted_not_faint`) |
+| Running instance `◉` and "running" | `src/bin/jackin_preview/screens/manager.rs:220` (also `1349, 1636, 2839`), meta `1177, 1194` | `Tone::Active` on the glyph and the word | Done: one `instance_mark` / `instance_line` for the tree, detail list, roster card and summary; `running` in `Tone::Active`. The panel metas at `1177, 1194` stay one faint string: `Panel::meta` has no per-part tone, and the instance rows below them already carry the live state (`a_running_instance_shows_live_state_in_the_accent`) |
+| "N running" counts | `src/bin/jackin_preview/app.rs:1046, 2788` | count secondary with an `Active` dot | Done: `Segment::lead` (new) puts `Glyphs::dot_on` in `Tone::Active` before the secondary count, in both the capsule menu bar and the strip (`the_running_count_is_secondary_behind_a_live_dot`) |
+| Run-id chip in warning | `src/bin/jackin_preview/screens/cockpit.rs:971-976` | `Theme::link_style` / info | Done: `Theme::link_style` (underlined on hover or focus) over the chip's title ladder (`the_debug_run_id_chip_is_a_link_not_a_warning`) |
+| Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | see Deferred (library) | Deferred with the library meter item above (the capsule status bar keeps its `stale` chip) |
+| Capsule tab suffixes | `src/bin/jackin_preview/screens/capsule.rs:1512-1528` | finished agents use `TabItem::done` (today `○` for Done) | Done: `AgentState::Done` sets `TabItem::done` (`a_finished_capsule_tab_is_done`) |
