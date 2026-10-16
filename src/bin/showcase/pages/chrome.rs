@@ -9,7 +9,7 @@ use crate::pages::row_menu::RowMenu;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::theme::{BadgeKind, Tone};
+use junie_tui::theme::{BadgeKind, StatusKind, Tone};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::brand::Lockup;
@@ -19,6 +19,7 @@ use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
+use junie_tui::widgets::viewport::{Span, render_spans};
 use ratatui::crossterm::event::KeyCode;
 
 const BAR: WidgetId = WidgetId::of("chrome.menubar");
@@ -161,7 +162,14 @@ impl ChromePage {
                 hint("right-click", "Context menu"),
                 hint("Tab", "Next"),
             ])
-            .status(format!("last: {}", self.last), Tone::Secondary)
+            // a status made of parts in their own tones
+            .status_parts(
+                vec![
+                    ("last: ".to_owned(), Tone::Muted),
+                    (self.last.clone(), Tone::Secondary),
+                ],
+                Tone::Secondary,
+            )
         });
         let mut l = HintBar::resolve(&[menu, context, screen]);
         if self.zoomed {
@@ -228,6 +236,29 @@ impl Page for ChromePage {
                     t.muted().bg(bg),
                 );
             }
+        }
+        // toned lines drawn by the library: spans with their own tones,
+        // and a footer status led by its `StatusKind` glyph
+        let sy = inner.y + notes.len() as u16 + 1;
+        if nx + 8 < inner.right() && sy + 1 < inner.bottom() {
+            let max = inner.right().saturating_sub(nx);
+            let line = [
+                Span::muted("checks "),
+                Span::new("2 ok", Tone::Success),
+                Span::muted(" · "),
+                Span::new("1 failed", Tone::Error).bold(),
+                Span::muted(" · "),
+                Span::new("1 cancelled", Tone::Muted),
+            ];
+            render_spans(buf, nx, sy, max, t, &line, bg);
+            junie_tui::widgets::keyhint::render_status(
+                Rect::new(nx, sy + 1, max.min(44), 1),
+                buf,
+                t,
+                &[hint("Ctrl+S", "Save")],
+                None,
+                Some(("Saved", Some(StatusKind::Ok))),
+            );
         }
         // status bar row above the page footer
         let status_row = Rect::new(area.x, area.bottom().saturating_sub(3), area.width, 1);

@@ -216,3 +216,132 @@ fn editor_booleans_are_literals() {
     assert!(cell.modifier.contains(Modifier::ITALIC));
     assert!(!cell.modifier.contains(Modifier::BOLD), "not a keyword");
 }
+
+/// The Overview's Roles card draws every status kind, environment, tone,
+/// syntax class and a link through the library, each readable on the
+/// card.
+#[test]
+fn overview_roles_draw_statuses_environments_tones_code_and_link() {
+    let t = Theme::junie();
+    let h = Harness::new(160, 50, PageId::Overview);
+    // the Roles card is in the left column; the Principles text on the
+    // right also names some glyphs
+    let (roles_x, roles_y) = h.find("Roles");
+    let at = |needle: &str| {
+        let (x, y) = h
+            .find_all(needle)
+            .into_iter()
+            .find(|&(x, y)| x < roles_x + 46 && y > roles_y)
+            .unwrap_or_else(|| panic!("{needle:?} in Roles"));
+        h.cell(x, y).clone()
+    };
+    assert_eq!(at("✓ ok").fg, t.success);
+    let fail = at("✗ failed");
+    assert_eq!(fail.fg, t.error);
+    assert!(fail.modifier.contains(Modifier::BOLD));
+    assert_eq!(at("▲ warn").fg, t.warning);
+    assert_eq!(at("⠋ running").fg, t.accent, "the spinner is active");
+    let (x, y) = h.find("⠋ running");
+    assert_eq!(h.cell(x + 2, y).fg, t.info, "running label is info");
+    let (x, y) = h.find("– skipped");
+    assert!(reads(h.cell(x + 2, y)) >= 4.5, "skipped label steps up");
+    let prod = at("◆ production");
+    assert_eq!(prod.fg, t.danger_label);
+    assert!(prod.modifier.contains(Modifier::BOLD));
+    assert_eq!(at("◇ staging").fg, t.warning);
+    assert_eq!(at("· development").fg, t.info);
+    let (x, y) = h.find("faint active");
+    assert!(reads(h.cell(x, y)) >= 4.5, "faint steps up on the card");
+    assert_eq!(h.cell(x + 6, y).fg, t.accent, "active is the accent");
+    assert_eq!(at("danger").fg, t.danger_label);
+    let link = at("docs/colour.md");
+    assert_eq!(link.fg, t.link);
+    let (x, y) = h.find("let ok = true");
+    assert_eq!(h.cell(x, y).fg, t.syntax_keyword);
+    let lit = h.cell(x + 9, y);
+    assert_eq!(lit.symbol(), "t");
+    assert_eq!(lit.fg, t.syntax_literal);
+    assert!(lit.modifier.contains(Modifier::ITALIC));
+}
+
+/// The destructive dialog leads its title with the warning status glyph
+/// (`Dialog::title_status`).
+#[test]
+fn destructive_dialog_title_leads_with_a_warning_status() {
+    let t = Theme::junie();
+    let mut h = Harness::new(120, 40, PageId::Dialogs);
+    h.key(KeyCode::Char('d'));
+    let (x, y) = h.find("Delete branch?");
+    let glyph = h.cell(x - 2, y);
+    assert_eq!(glyph.symbol(), t.glyphs.warning);
+    assert_eq!(glyph.fg, t.legible(t.warning, glyph.bg));
+}
+
+/// List metadata takes its tone (`ListItem::meta_tone`): a new file in
+/// success, a modified one in warning, both readable on the card.
+#[test]
+fn list_metadata_takes_its_change_tone() {
+    let t = Theme::junie();
+    let h = Harness::new(160, 50, PageId::Lists);
+    let (x, y) = h.find("tests/checkout.rs");
+    let row = h.row(y);
+    let at = row[..]
+        .find(" new")
+        .map(|b| junie_tui::ui::text::width(&row[..b]) as u16 + 1);
+    let cell = h.cell(at.expect("new meta"), y);
+    assert_eq!(cell.fg, t.tone_on(junie_tui::theme::Tone::Success, cell.bg));
+    let _ = x;
+    let (_, y) = h.find("src/config.rs");
+    let row = h.row(y);
+    let b = row.find("modified").expect("modified meta");
+    let cell = h.cell(junie_tui::ui::text::width(&row[..b]) as u16, y);
+    assert_eq!(cell.fg, t.tone_on(junie_tui::theme::Tone::Warning, cell.bg));
+    assert!(reads(cell) >= 4.5);
+}
+
+/// The task runner's deploy targets carry their environment: glyph and
+/// tone from the library (`TreeNode::glyph_tone`), production's label in
+/// the danger tone (`TreeNode::label_tone`).
+#[test]
+fn taskrunner_deploy_targets_carry_their_environment() {
+    let t = Theme::junie();
+    let h = Harness::new(140, 45, PageId::TaskRunner);
+    let (x, y) = h.find("◆ production");
+    let glyph = h.cell(x, y);
+    assert_eq!(
+        glyph.fg,
+        t.tone_on(junie_tui::theme::Tone::Danger, glyph.bg)
+    );
+    let label = h.cell(x + 2, y);
+    assert_eq!(
+        label.fg,
+        t.tone_on(junie_tui::theme::Tone::Danger, label.bg)
+    );
+    let (x, y) = h.find("◇ staging");
+    assert_eq!(h.cell(x, y).fg, t.warning);
+}
+
+/// Toned lines on the Chrome page: hint bar status parts, a span line and
+/// a footer status led by its `StatusKind` glyph.
+#[test]
+fn chrome_shows_toned_status_parts_spans_and_a_footer_status() {
+    let t = Theme::junie();
+    let h = Harness::new(120, 40, PageId::Chrome);
+    let (x, y) = h.find("last: nothing yet");
+    assert_ne!(
+        h.cell(x, y).fg,
+        h.cell(x + 6, y).fg,
+        "the parts keep their own tones"
+    );
+    let (x, y) = h.find("1 failed");
+    let cell = h.cell(x, y);
+    assert_eq!(cell.fg, t.tone_on(junie_tui::theme::Tone::Error, cell.bg));
+    assert!(cell.modifier.contains(Modifier::BOLD));
+    let (x, y) = h.find("2 ok");
+    assert_eq!(
+        h.cell(x, y).fg,
+        t.tone_on(junie_tui::theme::Tone::Success, h.cell(x, y).bg)
+    );
+    let (x, y) = h.find("✓ Saved");
+    assert_eq!(h.cell(x, y).fg, t.success);
+}

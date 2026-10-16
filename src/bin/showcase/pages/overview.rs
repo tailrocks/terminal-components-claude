@@ -5,7 +5,7 @@ use ratatui::style::{Color, Modifier};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::theme::Theme;
+use junie_tui::theme::{EnvKind, StatusKind, SyntaxTone, Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::widgets::panel::Panel;
 
@@ -100,6 +100,7 @@ impl Page for OverviewPage {
         let panel = Panel::card(Some("Tokens"));
         let bg = panel.bg(t);
         let all = swatches(t);
+        let column = left;
         let left = Rect::new(
             left.x,
             left.y,
@@ -140,6 +141,14 @@ impl Page for OverviewPage {
                 buf.set_string(x + col_w.saturating_sub(nw + 1), y, &note, t.muted().bg(bg));
             }
         }
+
+        let below = Rect::new(
+            column.x,
+            left.bottom() + 1,
+            column.width,
+            column.bottom().saturating_sub(left.bottom() + 1),
+        );
+        render_roles(below, buf, t);
 
         // principles + state legend
         let inner_w = right.width.saturating_sub(4) as usize;
@@ -206,4 +215,174 @@ impl Page for OverviewPage {
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
         vec![("[ ]", "Pages"), ("i", "Inspector")]
     }
+}
+
+/// The colour roles, each drawn by the library: status kinds
+/// ([`Theme::status`], label in [`Theme::status_label`]), environments
+/// ([`Theme::env`]), tones ([`Theme::tone_on`]), syntax
+/// ([`Theme::syntax`]) and a link ([`Theme::link_style`]). Every text is
+/// stepped up through [`Theme::legible`] where its hue would not read on
+/// the card (skipped and faint).
+fn render_roles(area: Rect, buf: &mut Buffer, t: &Theme) {
+    if area.height < 4 {
+        return;
+    }
+    let panel = Panel::card(Some("Roles"));
+    let bg = panel.bg(t);
+    let inner = panel.render(
+        Rect::new(area.x, area.y, area.width, area.height.min(12)),
+        buf,
+        t,
+    );
+    let mut y = inner.y;
+    let line =
+        |buf: &mut Buffer, y: u16, label: &str, parts: &[(String, ratatui::style::Style)]| {
+            if y >= inner.bottom() {
+                return;
+            }
+            buf.set_string(inner.x, y, label, t.muted().bg(bg));
+            let mut x = inner.x + 7;
+            for (text, style) in parts {
+                let w = junie_tui::ui::text::width(text) as u16;
+                if x + w > inner.right() {
+                    break;
+                }
+                buf.set_string(x, y, text, style.bg(bg));
+                x += w;
+            }
+        };
+    let gap = || (" ".to_owned(), t.primary());
+    let status = |kinds: &[(StatusKind, &str)]| {
+        let mut parts = Vec::new();
+        for (kind, word) in kinds {
+            let (glyph, style) = t.status(*kind);
+            let label = t.status_label(*kind);
+            let ink = t.legible(label.fg.unwrap_or(t.text_primary), bg);
+            parts.push((glyph.to_owned(), style));
+            parts.push((format!(" {word}"), label.fg(ink)));
+            parts.push(gap());
+        }
+        parts
+    };
+    line(
+        buf,
+        y,
+        "Status",
+        &status(&[
+            (StatusKind::Ok, "ok"),
+            (StatusKind::Fail, "failed"),
+            (StatusKind::Warn, "warn"),
+            (StatusKind::Pending, "pending"),
+        ]),
+    );
+    y += 1;
+    line(
+        buf,
+        y,
+        "",
+        &status(&[
+            (StatusKind::Running, "running"),
+            (StatusKind::Queued, "queued"),
+            (StatusKind::Info, "info"),
+            (StatusKind::Skipped, "skipped"),
+        ]),
+    );
+    y += 1;
+    let env = |kinds: &[(EnvKind, &str)]| {
+        let mut parts = Vec::new();
+        for (kind, word) in kinds {
+            let (_, style) = t.env(*kind);
+            let glyph = t.glyphs.env(*kind);
+            let text = if glyph.is_empty() {
+                word.to_string()
+            } else {
+                format!("{glyph} {word}")
+            };
+            parts.push((text, style.fg(t.tone_on(kind.tone(), bg))));
+            parts.push(gap());
+        }
+        parts
+    };
+    line(
+        buf,
+        y,
+        "Env",
+        &env(&[
+            (EnvKind::Production, "production"),
+            (EnvKind::Staging, "staging"),
+        ]),
+    );
+    y += 1;
+    line(
+        buf,
+        y,
+        "",
+        &env(&[
+            (EnvKind::Development, "development"),
+            (EnvKind::Local, "local"),
+        ]),
+    );
+    y += 1;
+    let tones = |list: &[(Tone, &str)]| {
+        let mut parts = Vec::new();
+        for (tone, word) in list {
+            let fg = t.tone_on(*tone, bg);
+            parts.push((word.to_string(), ratatui::style::Style::new().fg(fg)));
+            parts.push(gap());
+        }
+        parts
+    };
+    line(
+        buf,
+        y,
+        "Tone",
+        &tones(&[
+            (Tone::Normal, "normal"),
+            (Tone::Secondary, "secondary"),
+            (Tone::Muted, "muted"),
+            (Tone::Faint, "faint"),
+            (Tone::Active, "active"),
+        ]),
+    );
+    y += 1;
+    line(
+        buf,
+        y,
+        "",
+        &tones(&[
+            (Tone::Info, "info"),
+            (Tone::Success, "success"),
+            (Tone::Warning, "warning"),
+            (Tone::Error, "error"),
+            (Tone::Danger, "danger"),
+        ]),
+    );
+    y += 1;
+    let code: Vec<(String, ratatui::style::Style)> = [
+        ("let", SyntaxTone::Keyword),
+        (" ", SyntaxTone::Plain),
+        ("ok", SyntaxTone::Ident),
+        (" = ", SyntaxTone::Operator),
+        ("true", SyntaxTone::Literal),
+        (", ", SyntaxTone::Punct),
+        ("42", SyntaxTone::Number),
+        (", ", SyntaxTone::Punct),
+        ("\"text\"", SyntaxTone::Str),
+        ("; ", SyntaxTone::Punct),
+        ("// note", SyntaxTone::Comment),
+    ]
+    .into_iter()
+    .map(|(text, tone)| (text.to_owned(), t.syntax(tone)))
+    .collect();
+    line(buf, y, "Code", &code);
+    y += 1;
+    line(
+        buf,
+        y,
+        "Link",
+        &[
+            ("docs/colour.md".to_owned(), t.link_style(false)),
+            ("  underlined on hover or focus".to_owned(), t.muted()),
+        ],
+    );
 }

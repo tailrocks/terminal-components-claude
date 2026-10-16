@@ -6,7 +6,7 @@ use ratatui::layout::Rect;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::theme::StatusKind;
+use junie_tui::theme::{EnvKind, Glyphs, StatusKind, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::button::{Button, row_layout};
@@ -71,7 +71,10 @@ fn targets() -> Vec<TreeNode> {
                 ),
                 TreeNode::dir(
                     "deploy",
-                    vec![TreeNode::leaf("staging"), TreeNode::leaf("production")],
+                    vec![
+                        env("staging", EnvKind::Staging),
+                        env("production", EnvKind::Production),
+                    ],
                 ),
             ],
         ),
@@ -80,6 +83,20 @@ fn targets() -> Vec<TreeNode> {
             vec![TreeNode::leaf("compile"), TreeNode::leaf("publish")],
         ),
     ]
+}
+
+/// A deploy target: its environment's glyph and tone from the library
+/// ([`Glyphs::env`], [`EnvKind::tone`]); production's label takes the
+/// danger tone, so the riskiest target reads first.
+fn env(name: &str, kind: EnvKind) -> TreeNode {
+    let node = TreeNode::leaf(name)
+        .glyph(Glyphs::default().env(kind))
+        .glyph_tone(kind.tone());
+    if kind == EnvKind::Production {
+        node.label_tone(Tone::Danger)
+    } else {
+        node
+    }
 }
 
 impl TaskRunnerPage {
