@@ -12,7 +12,9 @@ use ratatui::layout::{Position, Rect};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::FocusChange;
+use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
+use crate::core::scroll::Scrollable;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec, Overlay};
 use crate::widgets::choice_dialog::ChoiceDialog;
@@ -92,10 +94,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog
         Dialog::on_drag(self, pressed, pos)
     }
     fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        Dialog::on_wheel(self, delta)
+        Scrollable::wheel(self, Axis::Vertical, delta).outcome()
     }
     fn on_wheel_h(&mut self, delta: i32, _: Position) -> Outcome {
-        Dialog::on_wheel_h(self, delta)
+        Scrollable::wheel(self, Axis::Horizontal, delta).outcome()
     }
     fn on_paste(&mut self, text: &str) -> Outcome {
         Dialog::on_paste(self, text)
