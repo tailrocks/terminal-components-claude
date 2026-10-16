@@ -1167,3 +1167,49 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     h.click(bar.right() - 1, bar.y);
     assert!(offset(&h) > panned, "the track press panned\n{}", h.text());
 }
+
+/// Keyboard audit #4: a stray `q` never leaves unsaved settings, and
+/// Ctrl+C asks Save / Discard / Cancel instead of throwing them away.
+#[test]
+fn unsaved_settings_survive_q_and_ctrl_c_asks_save_discard_cancel() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app.route, Route::Settings);
+    h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("• 1 change"), "{}", h.text());
+    h.key(KeyCode::Char('q'));
+    assert_eq!(h.app.route, Route::Settings, "q never leaves unsaved edits");
+    assert!(h.text().contains("• 1 change"), "{}", h.text());
+    h.ctrl('c');
+    assert!(!h.app.quit, "Ctrl+C never drops unsaved edits");
+    assert!(h.text().contains("Unsaved changes"), "{}", h.text());
+    // Cancel stays, and a later route change does not quit
+    h.key(KeyCode::Esc);
+    assert!(!h.app.quit);
+    assert_eq!(h.app.route, Route::Settings);
+    h.key(KeyCode::Char(' '));
+    assert!(!h.app.quit);
+    // Discard (its mnemonic) quits
+    h.key(KeyCode::Char(' '));
+    h.ctrl('c');
+    assert!(h.text().contains("Unsaved changes"), "{}", h.text());
+    h.key(KeyCode::Char('d'));
+    assert!(h.app.quit, "{}", h.text());
+}
+
+/// Keyboard audit #21 and the standards review: Esc never quits, and a
+/// clean quit never asks.
+#[test]
+fn esc_never_quits_the_manager_and_a_clean_ctrl_q_never_asks() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    for _ in 0..4 {
+        h.key(KeyCode::Esc);
+    }
+    assert!(!h.app.quit, "Esc never quits");
+    h.ctrl('q');
+    assert!(h.app.quit, "a clean quit never asks: {}", h.text());
+}

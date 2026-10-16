@@ -132,8 +132,11 @@ fn jackin_letters_keep_one_meaning_across_screens() {
 /// says Quit too: title, body and buttons.
 #[test]
 fn every_quit_confirmation_says_quit() {
+    // the manager quits without a question when nothing would be lost
+    let mut clean = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    clean.ctrl('q');
+    assert!(clean.app.quit);
     let cases = [
-        H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40),
         H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40),
         H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40),
     ];
