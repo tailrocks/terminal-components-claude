@@ -371,15 +371,23 @@ impl ButtonRow {
         cur: Option<WidgetId>,
         forward: bool,
     ) -> Option<WidgetId> {
+        use crate::core::list::{Cursor, Moved, RowFn};
         let row: Vec<&Button> = buttons.into_iter().collect();
         let i = row.iter().position(|b| Some(b.id) == cur)?;
-        let n = row.len();
-        (1..n)
-            .map(|k| if forward { i + k } else { i + n - k })
-            .take_while(|&j| self.wrap || (j < n && forward) || (j >= n && !forward))
-            .map(|j| row[j % n])
-            .find(|b| !b.disabled)
-            .map(|b| b.id)
+        let enabled = |j: usize| !row[j].disabled;
+        let label = |j: usize| row[j].label.as_str();
+        let src = RowFn {
+            len: row.len(),
+            enabled: &enabled,
+            label: &label,
+        };
+        let mut c = Cursor::new(i)
+            .axis(crate::core::hit::Axis::Horizontal)
+            .wrap(self.wrap);
+        match c.step(if forward { 1 } else { -1 }, &src) {
+            Moved::To(j) => Some(row[j].id),
+            _ => None,
+        }
     }
 
     /// The id of the `…` button for a row owned by `owner`.
@@ -563,20 +571,6 @@ impl ButtonRow {
             more.render(r, buf, ctx, bg);
         }
         layout
-    }
-}
-
-/// A row of buttons, as a horizontal cursor sees it: a disabled button is
-/// not a stop.
-impl crate::core::list::RowSource for [Button] {
-    fn len(&self) -> usize {
-        <[Button]>::len(self)
-    }
-    fn enabled(&self, i: usize) -> bool {
-        !self[i].disabled
-    }
-    fn label(&self, i: usize) -> &str {
-        &self[i].label
     }
 }
 
