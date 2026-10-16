@@ -966,7 +966,8 @@ impl App {
             Input::Key(key) => {
                 self.last_key = Some(describe_key(&key));
                 self.pointer.suppress_hover();
-                self.on_key(key)
+                // shortcuts first, then type-ahead (one rule, in the library)
+                junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
             Input::Mouse(m) => self.on_mouse(m),
         }
@@ -1125,9 +1126,9 @@ impl App {
             return out;
         }
         // the sidebar tree owns its navigation keys while focused; a typed
-        // letter is type-ahead only when neither the page's shortcuts nor
-        // the shell's own letters claim it (below)
-        let mut type_ahead = false;
+        // letter reaches its type-ahead only when neither the page's
+        // shortcuts nor the shell's own letters claim it
+        // (`core::list::route_key`, around this whole path)
         if self.focus.is(NAV) && self.nav_filter.is_some() {
             return self.on_filter_key(&key);
         }
@@ -1137,10 +1138,6 @@ impl App {
         }
         if self.focus.is(NAV) {
             self.nav_reveal = true;
-            type_ahead = matches!(key.code, KeyCode::Char(c) if !c.is_whitespace())
-                && !key.chord()
-                && self.nav.nav.action(&key).is_none()
-                && junie_tui::core::keymap::lookup(&self.nav.keymap, &key).is_none();
             let leaf = self.nav.cursor_path().and_then(PageId::from_nav_path);
             if let Some(target) = leaf
                 && matches!(key.code, KeyCode::Right | KeyCode::Char('l'))
@@ -1155,11 +1152,9 @@ impl App {
                 }
                 return Outcome::Changed;
             }
-            if !type_ahead {
-                let out = self.nav_event(|nav| nav.on_key(&key));
-                if out.consumed() {
-                    return out;
-                }
+            let out = self.nav_event(|nav| nav.on_key(&key));
+            if out.consumed() {
+                return out;
             }
         }
         // page first (editing widgets capture everything)
@@ -1189,13 +1184,6 @@ impl App {
         if key.is_char('q') && kc.dirty {
             self.set_status("Unsaved changes · Ctrl+Q asks before quitting".into());
             return Outcome::Changed;
-        }
-        let shell_letter = matches!(key.code, KeyCode::Char('q' | 'i' | '?' | '[' | ']' | '0'));
-        if type_ahead && !shell_letter {
-            let out = self.nav_event(|nav| nav.on_key(&key));
-            if out.consumed() {
-                return out;
-            }
         }
         // global keys
         match key.code {
