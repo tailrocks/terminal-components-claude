@@ -196,6 +196,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/quitleave-options", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["tab", "2", "wait:Quit letter"]).pending(),
     Root::new("showcase/sections/quitleave-states", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["tab", "3", "wait:Discard"]).pending(),
     Root::new("showcase/sections/quitleave-running", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=running"], BOOT).sends(&["wait:Stop export"]).pending(),
+    Root::new("showcase/sections/lists-options", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "2", "wait:Skip disabled"]).pending(),
+    Root::new("showcase/sections/lists-states", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/lists-empty-state", Bin::Showcase, &["--page", "lists", "--opt", "lists.empty=state"], BOOT).sends(&["wait:Try a shorter word"]).pending(),
+    Root::new("showcase/sections/trees-options", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "2", "wait:Selected marker"]).pending(),
+    Root::new("showcase/sections/trees-states", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/sections/trees-lazy-loading", Bin::Showcase, &["--page", "trees", "--motion", "paused"], BOOT).click("orders-db").pending(),
+    Root::new("showcase/elements/trees/connection-hover", Bin::Showcase, &["--page", "trees"], BOOT).hover("replica-eu").pending(),
     Root::new("showcase/overlays/helpkeys_overlay", Bin::Showcase, &["--page", "helpkeys"], BOOT).click("Open help overlay").pending().dismiss_pending(),
     Root::new("showcase/overlays/helpkeys_overlay_small", Bin::Showcase, &["--page", "helpkeys", "--opt", "helpkeys.max_percent=60", "--opt", "helpkeys.title=custom"], BOOT).click("Open help overlay").pending().dismiss_pending(),
     Root::new("showcase/overlays/quitleave_unsaved", Bin::Showcase, &["--page", "quitleave", "--opt", "quitleave.stakes=unsaved"], BOOT).click("Leave for Overview").pending().dismiss_pending(),
@@ -273,7 +280,7 @@ pub const ELEMENTS: &[Root] = &[
     Root::new("showcase/elements/celleditors/cell-hover", Bin::Showcase, &["--page", "celleditors"], BOOT).hover("Staging").pending(),
     Root::new("showcase/elements/nav/filter", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["/", "type:grid"]).pending(),
     Root::new("showcase/elements/selectable/selected-hover", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "down", "space", "wait:1 selected"]).hover("Ari Moreno").pending(),
-    Root::new("showcase/elements/lists/selected-hover", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "space"]).hover("Python").pending(),
+    Root::new("showcase/elements/lists/selected-hover", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "tab", "space"]).hover("Python").pending(),
     // Pending: the States section's Compare levels toggle on (the grid at
     // truecolor, 256, 16 and no colour) and the toggle hovered.
     Root::new("showcase/elements/states/compare-levels", Bin::Showcase, &["--page", "buttons", "--motion", "paused"], BOOT).sends(&["tab", "3", "tab", "enter", "wait:256 colors"]).pending(),
@@ -322,7 +329,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/chrome_context_row", Bin::Showcase, &["--page", "chrome"], BOOT).right_click("Codex (Primary)").pending().dismiss_pending(),
     // the app menu the identity strip's environment segment opens (SC4)
     Root::new("showcase/overlays/chrome_env_menu", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT).click("production").pending().dismiss_pending(),
-    Root::new("showcase/overlays/lists_context", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "shift-f10"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/lists_context", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "tab", "shift-f10"]).pending().dismiss_pending(),
     // SC14 Tabs: the +N menu of hidden tabs, and closing the dirty tab
     // (x on orders.sql) asks Cancel / Discard / Save first.
     Root::new("showcase/overlays/tabs_overflow_menu", Bin::Showcase, &["--page", "tabs", "--motion", "paused"], BOOT).click("+").pending().dismiss_pending(),
@@ -349,8 +356,8 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/diff/review", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "enter", "wait:● Review"]),
     Root::new("showcase/flows/diff/empty", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "enter", "tab", "enter", "wait:No file selected"]),
     Root::new("showcase/flows/buttons/focus", Bin::Showcase, &["--page", "buttons"], BOOT).sends(&["tab"]),
-    Root::new("showcase/flows/lists/moved", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "down", "down"]),
-    Root::new("showcase/flows/trees/expanded", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "right"]),
+    Root::new("showcase/flows/lists/moved", Bin::Showcase, &["--page", "lists"], BOOT).sends(&["tab", "tab", "down", "down"]),
+    Root::new("showcase/flows/trees/expanded", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "tab", "right"]),
     // the first Tab stop is the page's section strip (SC2 template)
     Root::new("showcase/flows/tables/selected", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "tab", "down", "down"]),
     Root::new("showcase/flows/editable/editing", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "tab", "enter"]),

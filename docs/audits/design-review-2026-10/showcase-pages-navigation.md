@@ -117,3 +117,29 @@ fix, with the reason.
    keeps the current page (Windows Explorer's address bar does the same);
    its tests pin that rule. The current page itself is now cut in the
    middle when it is too wide (library fix, regression test).
+
+## SC6 Help & keys, Quit & leave
+
+1. **The help sections are hand-listed.** The shell's `?` reference lists
+   the shell's keys by hand until S8b generates them from the key maps
+   (`HelpOverlay::from_keymaps`, SC33).
+2. **The quit-key options drive the page's table, not the shell.**
+   `quitleave.letter`, `esc_quits`, `ctrl_c` and `ctrl_q` rebuild the
+   `QuitKeys` the classify table reads. The showcase's own quit keys stay
+   `QuitKeys::DEFAULT` on every page; making them a page option would
+   change how the showcase quits from one page only.
+
+## SC15 Lists & trees
+
+1. **Fixed: hints advertised keys that did nothing.** Lists hinted
+   `g G Ends`; under the default desktop keys (S4) `g` and `G` type-select
+   instead. `NavKeys::{move_hint, page_hint, ends_hint}` now name only the
+   keys a widget's `nav` and `type_ahead` deliver, and Lists and Trees
+   build their hints from them.
+2. **Open: Panels and Scrolling still hint `g G Ends` by hand**
+   (`pages/panels.rs`, `pages/scrolling.rs`). Those pages belong to SC22;
+   it should take the hint from `NavKeys::ends_hint` the same way.
+3. **Type-ahead precedence and timeout are left for SC29.**
+   `TypeAheadPrecedence` and the `type_ahead_timeout` builders are
+   allowlisted to SC29, which shows the Cursor/RowSource defaults together
+   on the Scrolling page.

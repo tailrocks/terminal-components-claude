@@ -3357,4 +3357,168 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::leave::LeaveGuard::save",
         Option("quitleave", "quitleave.save"),
     ),
+    // ---- Lists & trees (SC15)
+    ("core::typeahead::TypeAhead", Demo("lists", "(TypeAhead,")),
+    (
+        "widgets::list::ListItem",
+        Demo("lists", "tests/checkout.rs"),
+    ),
+    ("widgets::list::ListItem::meta", Demo("lists", "generated")),
+    (
+        "widgets::list::ListItem::disabled",
+        StateRow("lists", "disabled"),
+    ),
+    ("widgets::list::ClickAction", Option("lists", "lists.click")),
+    (
+        "widgets::list::ClickAction::Activate",
+        Option("lists", "lists.click=activate"),
+    ),
+    (
+        "widgets::list::ClickAction::Select",
+        Option("lists", "lists.click=select"),
+    ),
+    (
+        "widgets::list::ListCmd",
+        Demo("lists", "ListCmd::ToggleAll"),
+    ),
+    (
+        "widgets::list::ListCmd::ToggleAll",
+        Demo("lists", "a ListCmd::ToggleAll"),
+    ),
+    (
+        "widgets::list::ListCmd::SelectAll",
+        Demo("lists", "Ctrl+A ListCmd::SelectAll"),
+    ),
+    ("widgets::list::ListBox::nav", Option("lists", "lists.nav")),
+    (
+        "widgets::list::ListBox::keymap",
+        Option("lists", "lists.keymap"),
+    ),
+    (
+        "widgets::list::ListBox::wrap",
+        Option("lists", "lists.wrap"),
+    ),
+    (
+        "widgets::list::ListBox::type_ahead",
+        Option("lists", "lists.type_ahead"),
+    ),
+    (
+        "widgets::list::ListBox::skip_disabled",
+        Option("lists", "lists.skip_disabled"),
+    ),
+    (
+        "widgets::list::ListBox::click",
+        Option("lists", "lists.click"),
+    ),
+    (
+        "widgets::list::ListBox::scrollbar_gap",
+        Option("lists", "lists.scrollbar_gap"),
+    ),
+    (
+        "widgets::list::ListBox::reveal",
+        Option("lists", "lists.reveal"),
+    ),
+    (
+        "widgets::list::ListBox::empty",
+        Option("lists", "lists.empty"),
+    ),
+    (
+        "widgets::list::ListBox::track_click",
+        Option("lists", "lists.track_click"),
+    ),
+    (
+        "widgets::tree::TreeNode::glyph",
+        Demo("trees", "◆ production"),
+    ),
+    ("widgets::tree::TreeNode::meta", Demo("trees", "lag 4.2 s")),
+    ("widgets::tree::FlatRow", Demo("trees", "visible")),
+    (
+        "widgets::tree::TreeAction",
+        Demo("trees", "last TreeAction:"),
+    ),
+    (
+        "widgets::tree::TreeAction::Expand",
+        Demo("trees", "TreeAction::Expand on a lazy node"),
+    ),
+    (
+        "widgets::tree::TreeAction::Activate",
+        Demo("trees", "TreeAction::Activate on a leaf"),
+    ),
+    (
+        "widgets::tree::BranchAction",
+        Option("trees", "trees.branch"),
+    ),
+    (
+        "widgets::tree::BranchAction::Toggle",
+        Option("trees", "trees.branch=toggle"),
+    ),
+    (
+        "widgets::tree::BranchAction::Activate",
+        Option("trees", "trees.branch=activate"),
+    ),
+    (
+        "widgets::tree::BranchAction::Both",
+        Option("trees", "trees.branch=both"),
+    ),
+    (
+        "widgets::tree::TreeCmd",
+        Demo("trees", "TreeCmd::ExpandAll"),
+    ),
+    (
+        "widgets::tree::TreeCmd::ExpandAll",
+        Demo("trees", "* TreeCmd::ExpandAll"),
+    ),
+    (
+        "widgets::tree::TreeCmd::CollapseAll",
+        Demo("trees", "- TreeCmd::CollapseAll"),
+    ),
+    (
+        "widgets::tree::TreeView::branch_activate",
+        Option("trees", "trees.branch"),
+    ),
+    (
+        "widgets::tree::TreeView::row_click_toggles",
+        Option("trees", "trees.row_click"),
+    ),
+    (
+        "widgets::tree::TreeView::wrap",
+        Option("trees", "trees.wrap"),
+    ),
+    ("widgets::tree::TreeView::nav", Option("trees", "trees.nav")),
+    (
+        "widgets::tree::TreeView::keymap",
+        Option("trees", "trees.keymap"),
+    ),
+    (
+        "widgets::tree::TreeView::indent",
+        Option("trees", "trees.indent"),
+    ),
+    (
+        "widgets::tree::TreeView::type_ahead",
+        Option("trees", "trees.type_ahead"),
+    ),
+    (
+        "widgets::tree::TreeView::divider",
+        Option("trees", "trees.divider"),
+    ),
+    (
+        "widgets::tree::TreeView::selected_marker",
+        Option("trees", "trees.marker"),
+    ),
+    (
+        "widgets::tree::TreeView::alt_click_recursive",
+        Option("trees", "trees.alt_click"),
+    ),
+    (
+        "widgets::tree::TreeView::reserve_right",
+        Option("trees", "trees.reserve_right"),
+    ),
+    (
+        "widgets::tree::TreeView::show_meta",
+        Option("trees", "trees.show_meta"),
+    ),
+    (
+        "widgets::tree::TreeView::track_click",
+        Option("trees", "trees.track_click"),
+    ),
 ];
