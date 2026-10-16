@@ -1,0 +1,40 @@
+# Velnor Actions input for this repository. Everything under
+# .github/workflows/ (plus .github/actions/, .github/scripts/,
+# .github/actionlint.yaml, .github/AGENTS.md) is generated from this file by
+# `velnor-actions generate`; never hand-edit those outputs. See docs/ci.md.
+schema = 1
+
+[workflow]
+policy = "consumer-v1"
+# The working branch; pushes here run CI, pull requests run CI regardless.
+default_branch = "design/interaction-polish"
+# docs/visual-testing/plan.md §C3: CI runs on ubuntu-24.04.
+runner_label = "ubuntu-24.04"
+
+# Test partitioning for the native nextest step. Visual smoke (plan §D) needs
+# 2 partitions once it joins the required suite: set
+#   [resources] test_process_budget = 2
+#   [test_sharding] default_shards = 2
+# Keep 1 until the tuiscotti visual gate is in the default nextest run.
+# [resources]
+# compiler_process_budget = 2
+# test_process_budget = 2
+# [test_sharding]
+# default_shards = 1
+
+[stacks.rust]
+# Plain Cargo; matches the documented gate in AGENTS.md.
+compile_driver = "cargo"
+# Nextest only (AGENTS.md: never `cargo test`). Velnor selects the `ci`
+# profile from .config/nextest.toml. Doctests are disabled in Cargo.toml
+# (`[lib] doctest = false`) so no `cargo test --doc` step is generated;
+# formatting is a native step because rustfmt.toml exists.
+test_runner = "cargo_nextest"
+# Ignored tests stay ignored: the PTY visual captures are `#[ignore]` and run
+# explicitly (docs/visual-testing). Switch to "all" (or "only" in a separate
+# lane) to fold the visual smoke tier into CI once it is green on Linux.
+run_ignored = "default"
+
+[discovery]
+# Archived evidence workspaces under docs/ are records, not CI units.
+exclude = ["docs/**"]
