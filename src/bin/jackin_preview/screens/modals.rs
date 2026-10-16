@@ -8,8 +8,7 @@ use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{ButtonKind, Theme, Tone};
-use junie_tui::ui::ctx::{RenderCtx, fill};
-use junie_tui::ui::popup::{Placement, place};
+use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup};
@@ -43,53 +42,17 @@ pub fn modal_frame(
     meta: Option<&str>,
     center: bool,
 ) -> (Rect, Rect) {
-    let t = ctx.theme;
-    ctx.modal_backdrop(buf, screen);
     // placed in the body, clear of the header and the footer, with the
     // dialog's margin around it
-    let bounds = junie_tui::widgets::dialog::body_bounds(screen, 1, 1);
-    let m = junie_tui::widgets::dialog::OUTER_MARGIN;
-    let w = width_
-        .min(bounds.width.saturating_sub(2 * m.horizontal))
-        .max(20)
-        .min(bounds.width);
-    let h = height
-        .min(bounds.height.saturating_sub(2 * m.vertical))
-        .max(5)
-        .min(bounds.height);
-    let area = if center {
-        Rect::new(
-            bounds.x + (bounds.width - w) / 2,
-            bounds.y + (bounds.height - h) / 2,
-            w,
-            h,
-        )
-    } else {
-        place(bounds, Rect::ZERO, w, h, Placement::Center)
-    };
-    let bg = t.surface_elevated;
-    fill(buf, area, Style::new().bg(bg));
-    let block = ratatui::widgets::Block::new()
-        .borders(ratatui::widgets::Borders::ALL)
-        .border_type(ratatui::widgets::BorderType::Rounded)
-        .border_style(t.border(true).bg(bg));
-    ratatui::widgets::Widget::render(block, area, buf);
-    if area.width > 6 {
-        let tt = format!(
-            " {} ",
-            truncate(title, area.width.saturating_sub(6) as usize)
-        );
-        buf.set_string(area.x + 2, area.y, &tt, t.title().bg(bg));
-        if let Some(m) = meta {
-            let mt = format!(" {m} ");
-            let mw = width(&mt) as u16;
-            if area.width > width(&tt) as u16 + mw + 4 {
-                buf.set_string(area.right() - 2 - mw, area.y, &mt, t.faint().bg(bg));
-            }
-        }
-    }
-    ctx.hits.register(WidgetId::of("modal.surface"), area);
-    (area, area.inner(ratatui::layout::Margin::new(3, 1)))
+    junie_tui::ui::modal::Frame::new(width_, height)
+        .title(title)
+        .meta(meta)
+        .placement(if center {
+            junie_tui::ui::modal::FramePlacement::Middle
+        } else {
+            junie_tui::ui::modal::FramePlacement::Upper
+        })
+        .render(screen, buf, ctx)
 }
 
 fn hint_row(buf: &mut Buffer, inner: Rect, t: &Theme, text: &str) {
@@ -112,6 +75,8 @@ pub enum BrowserResult {
 }
 
 pub struct FileBrowser {
+    /// Which dismissals close it. Default `Dismiss::ESCAPE`.
+    pub dismiss: junie_tui::ui::popup::Dismiss,
     pub title: String,
     pub cwd: String,
     pub path: TextInput,
@@ -140,6 +105,7 @@ impl FileBrowser {
         w: &World,
     ) -> Self {
         let mut b = Self {
+            dismiss: junie_tui::ui::popup::Dismiss::ESCAPE,
             title: title.to_owned(),
             cwd: cwd.to_owned(),
             path: TextInput::new(id.sub("path"), "Path").plain_label(),
@@ -563,6 +529,8 @@ impl FileBrowser {
 /// A question with radio options and buttons (mount destination choice,
 /// dirty-exit branches, split direction…).
 pub struct ChoiceDialog {
+    /// Which dismissals close it. Default `Dismiss::ESCAPE`.
+    pub dismiss: junie_tui::ui::popup::Dismiss,
     pub title: String,
     pub lines: Vec<(String, Tone)>,
     pub radio: RadioGroup,
@@ -582,6 +550,7 @@ pub struct ChoiceDialog {
 impl ChoiceDialog {
     pub fn new(id: WidgetId, title: &str, label: &str, options: &[&str], selected: usize) -> Self {
         Self {
+            dismiss: junie_tui::ui::popup::Dismiss::ESCAPE,
             title: title.to_owned(),
             lines: vec![],
             radio: RadioGroup::new(id.sub("radio"), label, options, selected),
@@ -910,6 +879,8 @@ pub enum FormEvent {
 }
 
 pub struct FormDialog {
+    /// Which dismissals close it. Default `Dismiss::ESCAPE`.
+    pub dismiss: junie_tui::ui::popup::Dismiss,
     pub id: WidgetId,
     pub title: String,
     pub meta: Option<String>,
@@ -932,6 +903,7 @@ pub struct FormDialog {
 impl FormDialog {
     pub fn new(id: WidgetId, title: &str, fields: Vec<FormField>) -> Self {
         Self {
+            dismiss: junie_tui::ui::popup::Dismiss::ESCAPE,
             id,
             title: title.to_owned(),
             meta: None,
@@ -1559,6 +1531,8 @@ pub enum OpStep {
 /// Account → vault → item → field, each stage a searchable picker fed by
 /// the simulated service; only reference metadata leaves the flow.
 pub struct OpFlow {
+    /// Which dismissals close it. Default `Dismiss::LIGHT`.
+    pub dismiss: junie_tui::ui::popup::Dismiss,
     pub step: OpStep,
     pub account: Option<String>,
     pub vault: Option<(String, String)>,
@@ -1574,6 +1548,7 @@ pub struct OpFlow {
 impl OpFlow {
     pub fn new(id: WidgetId, op: &SimOnePassword, now_ms: i64) -> Self {
         let mut f = Self {
+            dismiss: junie_tui::ui::popup::Dismiss::LIGHT,
             step: OpStep::Account,
             account: None,
             vault: None,
@@ -1964,6 +1939,8 @@ pub enum InfoResult {
 
 /// Read-only facts with copyable rows and explicit actions.
 pub struct InfoDialog {
+    /// Which dismissals close it. Default `Dismiss::LIGHT`.
+    pub dismiss: junie_tui::ui::popup::Dismiss,
     pub id: WidgetId,
     pub title: String,
     pub meta: Option<String>,
@@ -1988,6 +1965,7 @@ impl InfoDialog {
             .map(|p| p.copyable.then(|| p.value.clone()))
             .collect();
         Self {
+            dismiss: junie_tui::ui::popup::Dismiss::LIGHT,
             id,
             title: title.to_owned(),
             meta: None,
@@ -2298,6 +2276,8 @@ impl InfoDialog {
 // ------------------------------------------------------------------ help
 
 pub struct HelpOverlay {
+    /// Which dismissals close it. Default `Dismiss::LIGHT`.
+    pub dismiss: junie_tui::ui::popup::Dismiss,
     pub id: WidgetId,
     pub scope: String,
     pub sections: Vec<(String, Vec<(String, String)>)>,
@@ -2309,6 +2289,7 @@ pub struct HelpOverlay {
 impl HelpOverlay {
     pub fn new(id: WidgetId, scope: &str, sections: Vec<(&str, Vec<(&str, &str)>)>) -> Self {
         Self {
+            dismiss: junie_tui::ui::popup::Dismiss::LIGHT,
             id,
             scope: scope.to_owned(),
             sections: sections

@@ -62,6 +62,9 @@ pub struct TextModal {
     pub width: u16,
     pub closed: bool,
     pub area: Rect,
+    /// Which dismissals close the viewer. Default [`Dismiss::LIGHT`]: it
+    /// holds nothing to lose.
+    pub dismiss: junie_tui::ui::popup::Dismiss,
     scroll_area: Rect,
     wrapped: Vec<(String, String, Tone, bool)>,
     wrapped_for: u16,
@@ -78,6 +81,7 @@ impl TextModal {
             width: 72,
             closed: false,
             area: Rect::ZERO,
+            dismiss: junie_tui::ui::popup::Dismiss::LIGHT,
             scroll_area: Rect::ZERO,
             wrapped: vec![],
             wrapped_for: 0,

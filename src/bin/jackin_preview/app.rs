@@ -9,6 +9,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
@@ -85,7 +86,22 @@ struct ModalEntry {
     modal: Modal,
     tag: ModalTag,
     owner: Route,
-    saved_focus: Option<WidgetId>,
+}
+
+impl junie_tui::ui::modal::Modal for ModalEntry {
+    fn dismiss(&self) -> junie_tui::ui::popup::Dismiss {
+        match &self.modal {
+            Modal::Dialog(d) => d.dismiss,
+            Modal::Picker(p) => p.dismiss,
+            Modal::Browser(b) => b.dismiss,
+            Modal::Choice(c) => c.dismiss,
+            Modal::Form(f) => f.dismiss,
+            Modal::Op(o) => o.dismiss,
+            Modal::Info(i) => i.dismiss,
+            Modal::Help(h) => h.dismiss,
+            Modal::Custom(c) => c.dismiss(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -140,7 +156,7 @@ pub struct App {
     pub outro: Option<OutroState>,
     pub handoff: Option<u64>,
     pub screens: Screens,
-    modals: Vec<ModalEntry>,
+    modals: ModalStack<ModalEntry>,
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
@@ -173,7 +189,7 @@ impl App {
             outro: None,
             handoff: None,
             screens: Screens::default(),
-            modals: vec![],
+            modals: ModalStack::new(),
             focus: Focus::default(),
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
@@ -299,7 +315,7 @@ impl App {
                 .screens
                 .get(self.route)
                 .is_some_and(|s| s.animating(&self.world))
-            || self.modals.last().is_some_and(|m| {
+            || self.modals.top().is_some_and(|m| {
                 matches!(m.modal, Modal::Op(_) | Modal::Custom(_) | Modal::Browser(_))
             })
             || !self.world.jobs.is_empty()
@@ -407,7 +423,7 @@ impl App {
             _ => {}
         }
         // modal ticks
-        if let Some(top) = self.modals.last_mut() {
+        if let Some(top) = self.modals.top_mut() {
             let o = match &mut top.modal {
                 Modal::Op(f) => f.tick(self.world.now_ms(), &self.world.op),
                 Modal::Browser(b) => b.tick(self.world.now_ms()),
@@ -480,7 +496,7 @@ impl App {
     }
 
     fn on_paste(&mut self, text: &str) -> Outcome {
-        if let Some(top) = self.modals.last_mut() {
+        if let Some(top) = self.modals.top_mut() {
             return match &mut top.modal {
                 Modal::Dialog(d) => d.on_paste(text),
                 Modal::Browser(b) => b.on_paste(text),
@@ -1231,13 +1247,8 @@ impl App {
             Modal::Help(h) => Some(h.id),
             Modal::Custom(c) => Some(c.initial_focus()),
         };
-        self.modals.push(ModalEntry {
-            modal,
-            tag,
-            owner,
-            saved_focus: self.focus.current(),
-        });
-        self.focus.set(initial);
+        let entry = ModalEntry { modal, tag, owner };
+        self.modals.push(entry, &mut self.focus, initial);
         self.pointer.hover = None;
         self.pointer.pressed = None;
         if let Some(c) = self.screens.capsule.as_mut() {
@@ -1246,10 +1257,7 @@ impl App {
     }
 
     fn pop_modal(&mut self) -> Option<ModalEntry> {
-        let e = self.modals.pop();
-        if let Some(e) = &e {
-            self.focus.set(e.saved_focus);
-        }
+        let e = self.modals.pop(&mut self.focus);
         if self.modals.is_empty()
             && let Some(c) = self.screens.capsule.as_mut()
         {
@@ -1274,7 +1282,7 @@ impl App {
     }
 
     fn refresh_picker(&mut self) {
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return;
         };
         let Modal::Picker(p) = &mut top.modal else {
@@ -1288,7 +1296,7 @@ impl App {
             .get_mut(owner)
             .and_then(|s| s.picker_items(&tag, &query, &self.world));
         if let Some(items) = items
-            && let Some(top) = self.modals.last_mut()
+            && let Some(top) = self.modals.top_mut()
             && let Modal::Picker(p) = &mut top.modal
         {
             let n = items.len();
@@ -1300,7 +1308,7 @@ impl App {
     }
 
     fn form_changed(&mut self) {
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return;
         };
         let tag = top.tag.clone();
@@ -1316,7 +1324,7 @@ impl App {
         if let Some(s) = self.screens.get_mut(owner) {
             s.form_changed(&tag, &mut form, &self.world);
         }
-        if let Some(top) = self.modals.last_mut()
+        if let Some(top) = self.modals.top_mut()
             && let Modal::Form(f) = &mut top.modal
         {
             *f = form;
@@ -1324,7 +1332,7 @@ impl App {
     }
 
     fn modal_key(&mut self, key: Key) -> Outcome {
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         // help has top priority and never coexists; Ctrl+Q inside a Capsule dialog dismisses
@@ -1631,7 +1639,7 @@ impl App {
                 let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
                     return Outcome::Ignored;
                 };
-                if let Some(top) = self.modals.last_mut() {
+                if let Some(top) = self.modals.top_mut() {
                     return match &mut top.modal {
                         Modal::Info(i)
                             if pressed == junie_tui::widgets::scrollbar::id_for(i.id) =>
@@ -1721,7 +1729,7 @@ impl App {
                 // a horizontal swipe is its own axis: it never scrolls a
                 // vertical list
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
-                if let Some(top) = self.modals.last_mut() {
+                if let Some(top) = self.modals.top_mut() {
                     if horizontal {
                         return Outcome::Consumed;
                     }
@@ -1754,7 +1762,7 @@ impl App {
     }
 
     fn modal_outside_click(&mut self) -> Outcome {
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match &mut top.modal {
@@ -1775,32 +1783,32 @@ impl App {
                 }
                 out
             }
-            Modal::Picker(_) | Modal::Op(_) => {
-                let entry = self.pop_modal().unwrap();
-                self.deliver(entry, ModalResult::Cancelled)
-            }
-            Modal::Help(_) => {
-                self.pop_modal();
-                Outcome::Changed
-            }
-            Modal::Info(_) => {
-                let entry = self.pop_modal().unwrap();
-                self.deliver(entry, ModalResult::Info(InfoResult::Closed))
-            }
-            Modal::Custom(c) => {
-                if c.cancel_on_outside_click() {
-                    let entry = self.pop_modal().unwrap();
-                    return self.deliver(entry, ModalResult::Custom("close".into()));
+            // everything else follows its own dismiss policy and closes
+            // with the result its Esc would give
+            _ => {
+                if self.modals.outside_click() != Dismissal::Close {
+                    return Outcome::Consumed;
                 }
-                Outcome::Consumed
+                let entry = self.pop_modal().unwrap();
+                let result = match &entry.modal {
+                    Modal::Help(_) => return Outcome::Changed,
+                    Modal::Info(_) => ModalResult::Info(InfoResult::Closed),
+                    Modal::Custom(_) => ModalResult::Custom("close".into()),
+                    Modal::Browser(_) => {
+                        ModalResult::Browser(crate::screens::modals::BrowserResult::Cancelled)
+                    }
+                    Modal::Choice(_) => ModalResult::Choice(None),
+                    Modal::Form(_) => ModalResult::Form(None),
+                    _ => ModalResult::Cancelled,
+                };
+                self.deliver(entry, result)
             }
-            Modal::Browser(_) | Modal::Choice(_) | Modal::Form(_) => Outcome::Consumed,
         }
     }
 
     fn modal_click(&mut self, id: WidgetId, pos: Position) -> Outcome {
         let now = self.world.now_ms();
-        let Some(top) = self.modals.last_mut() else {
+        let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match &mut top.modal {
@@ -1966,7 +1974,7 @@ impl App {
                     self.set_status("Copied to the preview clipboard", Tone::Secondary);
                 }
                 Request::WithForm(f) => {
-                    if let Some(top) = self.modals.last_mut()
+                    if let Some(top) = self.modals.top_mut()
                         && let Modal::Form(form) = &mut top.modal
                     {
                         f(form);
@@ -2180,7 +2188,7 @@ impl App {
             ExitDecision::Outro { elapsed_secs } => {
                 self.outro = Some(OutroState::new(self.motion, elapsed_secs, 0));
                 self.route = Route::Outro;
-                self.modals.clear();
+                self.modals.clear(&mut self.focus);
             }
             ExitDecision::StillInside { remaining } => {
                 self.route = Route::Manager;
@@ -2351,7 +2359,8 @@ impl App {
             r => {
                 self.draw_frame(area, buf, ctx, r);
                 // modals
-                if let Some(mut entry) = self.modals.pop() {
+                let mut modals = std::mem::take(&mut self.modals);
+                if let Some(entry) = modals.top_mut() {
                     let hints = self.modal_hints(&entry.modal);
                     match &mut entry.modal {
                         Modal::Dialog(d) => d.render_in(
@@ -2372,7 +2381,10 @@ impl App {
                         Modal::Help(h) => h.render(area, buf, ctx),
                         Modal::Custom(c) => c.render(area, buf, ctx, &self.world),
                     }
-                    self.modals.push(entry);
+                }
+                let open = !modals.is_empty();
+                self.modals = modals;
+                if open {
                     // footer hints for the modal
                     let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
                     self.draw_footer(footer, buf, true, ctx.reveal_hint);
@@ -2533,7 +2545,7 @@ impl App {
         let t = self.theme;
         fill(buf, area, t.base());
         let hints: Vec<Hint> = if modal {
-            match self.modals.last().map(|m| &m.modal) {
+            match self.modals.top().map(|m| &m.modal) {
                 Some(Modal::Picker(p)) => {
                     let mut v = vec![];
                     if p.searchable {
@@ -2597,7 +2609,7 @@ impl App {
         let mut hints = hints;
         junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
         let editing = self.screens.get(self.route).is_some_and(|s| s.is_editing())
-            || self.modals.last().is_some_and(|m| match &m.modal {
+            || self.modals.top().is_some_and(|m| match &m.modal {
                 Modal::Dialog(d) => d.is_editing(),
                 Modal::Form(f) => f.is_editing(),
                 Modal::Browser(b) => b.is_editing(),
@@ -2642,19 +2654,19 @@ impl App {
     }
 }
 
-fn top_tag(modals: &[ModalEntry]) -> ModalTag {
+fn top_tag(modals: &ModalStack<ModalEntry>) -> ModalTag {
     modals
-        .last()
+        .top()
         .map(|m| m.tag.clone())
         .unwrap_or(ModalTag::new(""))
 }
 
-fn top_owner(modals: &[ModalEntry]) -> Route {
-    modals.last().map(|m| m.owner).unwrap_or(Route::Manager)
+fn top_owner(modals: &ModalStack<ModalEntry>) -> Route {
+    modals.top().map(|m| m.owner).unwrap_or(Route::Manager)
 }
 
-fn form_values(modals: &[ModalEntry]) -> crate::screens::modals::FormValues {
-    match modals.last().map(|m| &m.modal) {
+fn form_values(modals: &ModalStack<ModalEntry>) -> crate::screens::modals::FormValues {
+    match modals.top().map(|m| &m.modal) {
         Some(Modal::Form(f)) => f.values(),
         _ => vec![],
     }
