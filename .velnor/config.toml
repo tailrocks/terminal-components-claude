@@ -11,11 +11,10 @@ default_branch = "design/interaction-polish"
 # docs/visual-testing/plan.md §C3: CI runs on ubuntu-24.04.
 runner_label = "ubuntu-24.04"
 
-# Test partitioning for the native nextest step. Visual smoke (plan §D) needs
-# 2 partitions once it joins the required suite: set
-#   [resources] test_process_budget = 2
-#   [test_sharding] default_shards = 2
-# Keep 1 until the tuiscotti visual gate is in the default nextest run.
+# Test partitioning for the native nextest step. Keep 1 shard: velnor 0.1.8
+# emits `default_shards = N` as N steps in the same job that all run the
+# identical `cargo nextest run --profile ci …` command (no `--partition`), so
+# more shards only repeat the run. Re-check after a velnor upgrade.
 # [resources]
 # compiler_process_budget = 2
 # test_process_budget = 2
@@ -30,9 +29,18 @@ compile_driver = "cargo"
 # (`[lib] doctest = false`) so no `cargo test --doc` step is generated;
 # formatting is a native step because rustfmt.toml exists.
 test_runner = "cargo_nextest"
-# Ignored tests stay ignored: the PTY visual captures are `#[ignore]` and run
-# explicitly (docs/visual-testing). Switch to "all" (or "only" in a separate
-# lane) to fold the visual smoke tier into CI once it is green on Linux.
+# Ignored tests stay ignored: the PTY visual captures are ignored and run
+# explicitly (docs/visual-testing).
+#
+# VISUAL SMOKE TOGGLE (prepared, disabled). The smoke tier (120x40/truecolor
+# + 72x20/nocolor of every scenario, 890 tests) can run inside the required
+# `Rust / junie-tui` job: set `run_ignored = "all"` here, uncomment the
+# `[profile.ci]` default-filter and pty override in .config/nextest.toml,
+# then `velnor-actions generate`. Enable it only after oracle v0 (plan T18):
+# every scenario re-approved on tuiscotti from an ubuntu-24.04 capture.
+# Today 7,100 scenarios still hold tuisnap approvals (they skip), and the
+# re-approved pilot drifts with every UI change on this branch, so the
+# required check would go red on unrelated work.
 run_ignored = "default"
 
 [discovery]

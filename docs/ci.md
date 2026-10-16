@@ -82,11 +82,26 @@ fails on them.
 
 Until upstream supports these, run the visual tiers locally
 (`docs/visual-testing/`). The smallest step that velnor already supports is
-folding the smoke tier into the required run: in `.velnor/config.toml` set
-`run_ignored = "all"`, `[resources] test_process_budget = 2` and
-`[test_sharding] default_shards = 2`, then regenerate. Do that only once the
-tuiscotti visual gate is green on Linux. Nightly, manual capture and
-artifacts need an upstream velnor-new change.
+folding the smoke tier into the required run. The change is prepared and
+disabled, with the toggle documented in place:
+
+1. `.velnor/config.toml`: `run_ignored = "all"`.
+2. `.config/nextest.toml`: uncomment the `[profile.ci]` `default-filter`
+   (every non-ignored test plus the smoke tier; the perf measurements, the
+   full and narrow tiers stay out) and the 4-slot `pty-ci` override.
+3. `velnor-actions generate`, commit config and regenerated files together.
+
+Enable it only after oracle v0 (plan T18): until every scenario is
+re-approved on tuiscotti from an ubuntu-24.04 capture, the required check
+would either skip most scenarios or go red on unrelated UI work.
+
+Keep `[test_sharding] default_shards = 1`. velnor 0.1.8 renders `N` shards
+as `N` steps in the same job, each running the identical `cargo nextest run
+--profile ci …` command without `--partition`, so extra shards repeat the
+run instead of splitting it (checked with `velnor-actions generate
+--output-dir`). Real partitions (`--partition hash:k/n`, see
+`docs/visual-testing/README.md`), nightly, manual capture and artifacts need
+an upstream velnor-new change.
 
 Also generated, against the repo rule: velnor writes `.github/CLAUDE.md` as
 a regular file containing `@AGENTS.md`, not a symlink. Replacing it with a
