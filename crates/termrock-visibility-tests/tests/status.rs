@@ -5340,6 +5340,75 @@ fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
 
 #[test]
 #[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
+fn attempt_history_counts_started_and_unstarted_incomplete_tests() {
+    for (started, child_state, wrapper_state, expected_counts) in [
+        (
+            1,
+            "FAIL",
+            "INCOMPLETE",
+            "1/4 selected; 1 started; 0 passed; 0 failed; 3 filtered; 1 incomplete",
+        ),
+        (
+            0,
+            "NOT_RUN",
+            "FAIL",
+            "1/4 selected; 0 started; 0 passed; 0 failed; 3 filtered; 1 incomplete",
+        ),
+    ] {
+        let fixture = StatusFixture::new();
+        let mut attempt = paired_attempt_fixture(&fixture);
+        attempt["counts"] = serde_json::json!({
+            "inventory": 4,
+            "selected": 1,
+            "started": started,
+            "passed": 0,
+            "failed": 0,
+            "filtered": 3,
+            "incomplete": 1,
+        });
+        attempt["states"]["test"] = serde_json::json!("INCOMPLETE");
+        attempt["states"]["child"] = serde_json::json!(child_state);
+        attempt["states"]["wrapper"] = serde_json::json!(wrapper_state);
+
+        let result_record = write_attempt_json(
+            &fixture,
+            if started == 1 {
+                "started-incomplete-result.json"
+            } else {
+                "unstarted-incomplete-result.json"
+            },
+            &serde_json::json!({
+                "schema": "termrock-status-attempt-result/v1",
+                "attempt_id": attempt["attempt_id"].clone(),
+                "lane": attempt["lane"].clone(),
+                "source_binding": attempt["source_binding"].clone(),
+                "counts": attempt["counts"].clone(),
+                "states": attempt["states"].clone(),
+            }),
+        );
+        attempt["evidence"]["result_record"] = result_record;
+
+        let mut facts: serde_json::Value =
+            serde_json::from_str(&base_facts()).expect("parse base source facts");
+        facts["execution_attempt_history"] = serde_json::json!({
+            "schema": "termrock-status-execution-attempt-history/v1",
+            "attempts": [attempt],
+        });
+        write_json_facts(&fixture, &facts);
+
+        let output = fixture.run(&[]);
+        assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+        let report = output_text(&output);
+        assert!(report.contains(expected_counts), "{report}");
+        assert!(
+            report.contains(&format!("| INCOMPLETE | {child_state} | {wrapper_state} |")),
+            "{report}"
+        );
+    }
+}
+
+#[test]
+#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
     let fixture = StatusFixture::new();
     let run = serde_json::json!({

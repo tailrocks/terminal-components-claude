@@ -248,11 +248,15 @@ record must say `diagnostic.status=NOT_EXPOSED` and `http_status=NOT_CAPTURED`;
 the reporter does not infer a provider cause or HTTP code.
 
 Counts reconcile inventory, selection, filtered cases, started tests, terminal
-results, and incomplete tests. Test, child process, wrapper, collector,
-postflight, cleanup, capture, qualification, and admission outcomes render in
-separate columns. Attempt history is informational: it cannot qualify a
-product result, admit data, or change readiness. It also does not replace the
-existing paired product observations.
+results, and incomplete tests. `started` counts selected tests with a recorded
+start event and may include incomplete tests. `incomplete` counts selected
+tests without a pass or fail terminal result, including selected tests that
+never started. Thus `passed + failed <= started <= selected`, and
+`incomplete = selected - passed - failed`. Test, child process, wrapper,
+collector, postflight, cleanup, capture, qualification, and admission outcomes
+render in separate columns. Attempt history is informational: it cannot
+qualify a product result, admit data, or change readiness. It also does not
+replace the existing paired product observations.
 
 ## Historical product phases
 
