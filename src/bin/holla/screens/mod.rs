@@ -18,6 +18,7 @@ use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
+use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::Hint;
@@ -199,6 +200,8 @@ pub enum Request {
 pub struct Cx<'a> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
+    /// Context-menu keys and cursor policy ([`crate::app::App::context`]).
+    pub context: ContextConfig,
     pub requests: Vec<Request>,
 }
 
@@ -251,6 +254,11 @@ pub trait Screen {
         _w: &mut World,
         _cx: &mut Cx,
     ) -> Outcome {
+        Outcome::Ignored
+    }
+    /// The context key ([`Cx::context`]: Shift+F10 and the Menu key by
+    /// default) on the focused control: open its menu below the cursor row.
+    fn on_context_key(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
     fn on_press(&mut self, _id: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
