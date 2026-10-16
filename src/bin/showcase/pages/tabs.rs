@@ -24,7 +24,9 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, hint_key, label_for};
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Strings;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
@@ -325,13 +327,14 @@ impl TabsPage {
         buf.set_string(r[4].x, r[4].y, crumb, t.muted().bg(nbg));
     }
 
-    /// Which strip owns `id`.
+    /// The strip whose id is `id` (the focused one); the sub strip only
+    /// while it is shown.
     fn strip_mut(&mut self, id: WidgetId) -> Option<&mut Tabs> {
-        if self.editor.owns(id) {
+        if id == self.editor.id {
             Some(&mut self.editor)
-        } else if self.outer.owns(id) {
+        } else if id == self.outer.id {
             Some(&mut self.outer)
-        } else if self.outer.active == 1 && self.sub.owns(id) {
+        } else if self.outer.active == 1 && id == self.sub.id {
             Some(&mut self.sub)
         } else {
             None
@@ -460,40 +463,37 @@ impl Page for TabsPage {
                     None => Outcome::Ignored,
                 }
             }
-            PageEvent::Click { id, .. } => {
-                if self.editor.owns(*id) {
-                    cx.focus.focus(self.editor.id);
-                    let (out, a) = self.editor.on_click(*id);
+            // every strip takes its own events: a click activates, a
+            // middle click closes a closable tab, the wheel scrolls it
+            PageEvent::Pointer(ev) => {
+                let click = ev.is(Phase::Click);
+                if let Some(r) = self.editor.route(ev) {
+                    if click {
+                        cx.focus.focus(self.editor.id);
+                    }
+                    let (out, a) = r.into_parts();
                     if let Some(a) = a {
                         self.act(a, cx);
                     }
-                    return out.or(Outcome::Changed);
+                    return if click { out.or(Outcome::Changed) } else { out };
                 }
-                match self.strip_mut(*id) {
-                    Some(s) => {
-                        let sid = s.id;
-                        let out = s.on_click(*id).0;
-                        cx.focus.focus(sid);
-                        out.or(Outcome::Changed)
+                let sub_shown = self.outer.active == 1;
+                for s in [&mut self.outer]
+                    .into_iter()
+                    .chain(sub_shown.then_some(&mut self.sub))
+                {
+                    let sid = s.id;
+                    if let Some(r) = s.route(ev) {
+                        let out = r.outcome();
+                        if click {
+                            cx.focus.focus(sid);
+                            return out.or(Outcome::Changed);
+                        }
+                        return out;
                     }
-                    None => Outcome::Ignored,
                 }
+                Outcome::Ignored
             }
-            PageEvent::Middle { id, .. } => match self.editor.on_middle_click(*id) {
-                Some(a) => {
-                    self.act(a, cx);
-                    Outcome::Changed
-                }
-                None => Outcome::Ignored,
-            },
-            PageEvent::Wheel { id, delta } => match self.strip_mut(*id) {
-                Some(s) => s.on_wheel(0, *delta),
-                None => Outcome::Ignored,
-            },
-            PageEvent::WheelH { id, delta } => match self.strip_mut(*id) {
-                Some(s) => s.on_wheel(*delta, 0),
-                None => Outcome::Ignored,
-            },
             PageEvent::DialogClosed { id, result, .. } if *id == CLOSE_DLG => {
                 let Some(i) = self.closing.take() else {
                     return Outcome::Ignored;
