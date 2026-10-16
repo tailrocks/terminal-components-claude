@@ -189,3 +189,150 @@ fn code_states_grid_shows_every_editor_state() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
+
+// -------------------------------------------------------------------- Diff
+
+#[test]
+fn diff_follows_the_changes_list_cursor() {
+    let mut h = Harness::new(140, 45, PageId::Diff);
+    assert!(h.text().contains("- attempts = 3"));
+    h.focus(WidgetId::of("diff").sub("files"));
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("+ # Retries"), "{}", h.text());
+    let (x, y) = h.at("D src/legacy");
+    h.click(x + 2, y);
+    assert!(h.text().contains("- pub fn linear"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert!(
+        h.text().contains("+ use super::exponential;"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn diff_options_switch_mode_file_and_width() {
+    let mut h = Harness::new(140, 45, PageId::Diff);
+    assert!(!h.text().contains("● Review"));
+    h.opt("diff.mode=review");
+    assert!(h.text().contains("● Review"), "{}", h.text());
+    h.opt("diff.file=none");
+    assert!(h.text().contains("No file selected"));
+    h.opt("diff.file=changes");
+    let (cx, cy) = h.at("─ Changes");
+    let (dx, dy) = h.at("─ Diff");
+    assert!(dx > cx && dy == cy, "side by side");
+    h.opt("diff.width=narrow");
+    let (cx, cy) = h.at("─ Changes");
+    let (dx, dy) = h.at("─ Diff");
+    assert!(dy > cy && dx == cx, "stacked when narrow: {}", h.text());
+}
+
+#[test]
+fn diff_states_grid_shows_unified_and_review() {
+    let mut h = Harness::new(140, 45, PageId::Diff);
+    h.section(Section::States);
+    let text = h.text();
+    for label in [
+        "Unified",
+        "Review",
+        "rest",
+        "focused",
+        "empty",
+        "narrow",
+        "No file selected",
+    ] {
+        assert!(text.contains(label), "{label}: {text}");
+    }
+}
+
+// ---------------------------------------------------------------- Terminal
+
+fn term_id() -> WidgetId {
+    WidgetId::of("terminal").sub("term")
+}
+
+#[test]
+fn terminal_spans_carry_their_styles() {
+    use ratatui::style::Modifier;
+    let h = Harness::new(140, 45, PageId::Terminal);
+    let has = |needle: &str, m: Modifier| {
+        let (x, y) = h.at(needle);
+        h.cell(x, y).modifier.contains(m)
+    };
+    assert!(has("payments-platform ❯", Modifier::BOLD));
+    assert!(has("dev ·", Modifier::ITALIC));
+    assert!(has("jackin.toml", Modifier::UNDERLINED));
+    // reversed: canvas ink on the primary text colour, a cursor block
+    let (x, y) = h.at("LIVE");
+    let t = Theme::junie();
+    assert_eq!(
+        (h.cell(x, y).fg, h.cell(x, y).bg),
+        (t.canvas, t.text_primary)
+    );
+}
+
+#[test]
+fn terminal_retention_keeps_the_last_lines() {
+    let mut h = Harness::new(140, 45, PageId::Terminal);
+    h.opt("terminal.max_lines=20");
+    for _ in 0..200 {
+        h.tick();
+    }
+    assert!(h.text().contains("last 20 kept"), "{}", h.text());
+    assert!(!h.text().contains("payments-platform ❯ jackin launch"));
+}
+
+#[test]
+fn terminal_find_marks_highlight_the_match() {
+    let mut h = Harness::new(140, 45, PageId::Terminal);
+    let (x, y) = h.at("jackin launch");
+    let plain = h.cell(x, y).bg;
+    h.opt("terminal.mark=on");
+    assert_ne!(h.cell(x, y).bg, plain, "the mark fills the match");
+}
+
+#[test]
+fn terminal_custom_keymap_moves_follow_to_shift_f() {
+    let mut h = Harness::new(140, 45, PageId::Terminal);
+    h.focus(term_id());
+    h.key(KeyCode::Char('f'));
+    assert_eq!(h.status(), "Paused at the scrollback position");
+    let mut h = Harness::new(140, 45, PageId::Terminal);
+    h.opt("terminal.keymap=custom");
+    h.focus(term_id());
+    h.key(KeyCode::Char('f'));
+    assert_eq!(h.status(), "");
+    h.key(KeyCode::Char('F'));
+    assert_eq!(h.status(), "Paused at the scrollback position");
+}
+
+#[test]
+fn terminal_rail_numbering_follows_the_option() {
+    let mut h = Harness::new(140, 45, PageId::Terminal);
+    assert!(h.text().contains("01 Resolve workspace"));
+    h.opt("terminal.numbered=off");
+    assert!(!h.text().contains("01 Resolve workspace"));
+    assert!(h.text().contains("Resolve workspace"));
+}
+
+#[test]
+fn terminal_states_grid_shows_viewports_and_the_rail() {
+    let mut h = Harness::new(140, 45, PageId::Terminal);
+    h.section(Section::States);
+    let text = h.text();
+    for label in [
+        "Viewport",
+        "Wrapped",
+        "Step rail",
+        "rest",
+        "selected",
+        "empty",
+        "overflow",
+        "narrow",
+        "skipped",
+        "blocked",
+    ] {
+        assert!(text.contains(label), "{label}: {text}");
+    }
+}

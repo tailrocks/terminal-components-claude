@@ -407,19 +407,6 @@ widgets::dialog::Dialog::anchor | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::confirm_index | Dialogs page variants and options | SC17
 
 # widgets::diff
-widgets::diff::DiffLineKind | Diff and Terminal page options | SC25
-widgets::diff::DiffLineKind::Context | Diff and Terminal page options | SC25
-widgets::diff::DiffLineKind::Add | Diff and Terminal page options | SC25
-widgets::diff::DiffLineKind::Remove | Diff and Terminal page options | SC25
-widgets::diff::DiffLine | Diff and Terminal page options | SC25
-widgets::diff::DiffHunk | Diff and Terminal page options | SC25
-widgets::diff::DiffStatus | Diff and Terminal page options | SC25
-widgets::diff::DiffStatus::Added | Diff and Terminal page options | SC25
-widgets::diff::DiffStatus::Modified | Diff and Terminal page options | SC25
-widgets::diff::DiffStatus::Deleted | Diff and Terminal page options | SC25
-widgets::diff::DiffStatus::Renamed | Diff and Terminal page options | SC25
-widgets::diff::DiffFile | Diff and Terminal page options | SC25
-widgets::diff::DiffMode::toggled | Diff and Terminal page options | SC25
 
 # widgets::empty
 
@@ -619,13 +606,6 @@ widgets::select::SelectAction::Changed | widget actions: the Inspector State log
 widgets::statusbar::StatusItem::tooltip | shown only while the pointer rests on a status item; Chrome wires one on PR #482, the hover capture is a tooltip scenario | SC19
 
 # widgets::steps
-widgets::steps::StepState::Done | Diff and Terminal page options | SC25
-widgets::steps::StepState::Skipped | Diff and Terminal page options | SC25
-widgets::steps::StepState::Failed | Diff and Terminal page options | SC25
-widgets::steps::StepState::Blocked | Diff and Terminal page options | SC25
-widgets::steps::StepRail::nav | Diff and Terminal page options | SC25
-widgets::steps::StepRail::track_click | Diff and Terminal page options | SC25
-widgets::steps::StepRail::selectable | Diff and Terminal page options | SC25
 
 
 # widgets::textarea
@@ -659,29 +639,10 @@ widgets::tree::TreeView::show_meta | Lists and Trees page options | SC15
 widgets::tree::TreeView::track_click | Lists and Trees page options | SC15
 
 # widgets::viewport
-widgets::viewport::Span | Diff and Terminal page options | SC25
-widgets::viewport::Span::bold | Diff and Terminal page options | SC25
-widgets::viewport::Span::italic | Diff and Terminal page options | SC25
-widgets::viewport::Span::underline | Diff and Terminal page options | SC25
-widgets::viewport::Span::reversed | Diff and Terminal page options | SC25
-widgets::viewport::CellPos | Diff and Terminal page options | SC25
-widgets::viewport::Mark | Diff and Terminal page options | SC25
-widgets::viewport::ViewportAction | Diff and Terminal page options | SC25
-widgets::viewport::ViewportAction::Copy | Diff and Terminal page options | SC25
-widgets::viewport::ViewportAction::SelectionChanged | Diff and Terminal page options | SC25
-widgets::viewport::ViewportAction::FollowChanged | Diff and Terminal page options | SC25
-widgets::viewport::WorkCounters | Diff and Terminal page options | SC25
-widgets::viewport::ViewportCmd | Diff and Terminal page options | SC25
-widgets::viewport::ViewportCmd::ToggleFollow | Diff and Terminal page options | SC25
-widgets::viewport::ViewportCmd::Copy | Diff and Terminal page options | SC25
-widgets::viewport::ViewportCmd::SelectAll | Diff and Terminal page options | SC25
-widgets::viewport::TextViewport::nav | Diff and Terminal page options | SC25
-widgets::viewport::TextViewport::keymap | Diff and Terminal page options | SC25
-widgets::viewport::TextViewport::horizontal | Diff and Terminal page options | SC25
-widgets::viewport::TextViewport::track_click | Diff and Terminal page options | SC25
-widgets::viewport::TextViewport::scrollbar_gap | Diff and Terminal page options | SC25
-widgets::viewport::TextViewport::wrap | Diff and Terminal page options | SC25
-widgets::viewport::TextViewport::max_lines | Diff and Terminal page options | SC25
+widgets::viewport::ViewportAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::viewport::ViewportAction::Copy | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::viewport::ViewportAction::SelectionChanged | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::viewport::ViewportAction::FollowChanged | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # theme
 theme::Theme::centred_hints | Status & hints page: centred footer preset (holla, jackin use it) | SC30
