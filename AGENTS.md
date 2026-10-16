@@ -125,6 +125,8 @@ components work; they are not where behaviour lives.
   Keyboard focus is still only the single `▎` indicator, never the
   selection colour. Other chosen values (the current page in a list, a
   chosen option) follow `Theme::chosen`.
+- A focused tab strip or segmented control shows the `▎` gutter like any
+  focusable element; the selected item's accent is selection, not focus.
 - A scrollbar thumb keeps one glyph in every state: rest is a neutral
   grey, hover a lighter grey, pressed (held or dragged) the accent. Where
   colour cannot carry state (`NO_COLOR`), a modifier does.
