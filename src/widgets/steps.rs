@@ -196,6 +196,7 @@ impl StepRail {
         if !self.selectable || row >= self.steps.len() {
             return Outcome::Consumed;
         }
+        self.scroll.pointer_move();
         self.set_cursor(row);
         Outcome::Changed
     }

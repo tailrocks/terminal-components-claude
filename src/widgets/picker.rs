@@ -626,6 +626,7 @@ impl Picker {
         let i = self.eligible(self.locate(id)?)?;
         self.cursor = i;
         self.cursor_dirty = true;
+        self.scroll.pointer_move();
         Some(PickerAction::Chosen(i))
     }
 

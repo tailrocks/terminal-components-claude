@@ -422,6 +422,7 @@ impl ListBox {
         }
         self.cursor = row;
         self.anchor = None;
+        self.scroll.pointer_move();
         self.scroll.ensure_visible(row);
         match self.click {
             ClickAction::Activate => self.activate(row),
