@@ -744,3 +744,24 @@ fn chips_select_dismiss_and_mixed_follow_the_options() {
     h.opt("chipsselects.mixed=on");
     assert!(h.text().contains("Mixed"));
 }
+
+/// SC10 finding (interaction.md): under `Dismiss::ESCAPE` with the default
+/// blur option, a click on empty page space still closed a select's list:
+/// the refused click fell through to dead space, ended the field's edit,
+/// and `close_on_blur` closed it behind the policy's back. The policy is
+/// the one source: the refused click is consumed and `focus_out` decides
+/// blur, so only Esc closes it.
+#[test]
+fn an_escape_only_select_stays_open_on_a_click_outside() {
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    h.opt("chipsselects.dismiss=escape");
+    focus(&mut h, CHIPS.sub("sort"));
+    h.key(KeyCode::Enter);
+    assert!(sort_select(&h).open);
+    let (x, y) = h.at("Filters");
+    h.click(x, y);
+    assert!(sort_select(&h).open, "a refused click leaves it open");
+    assert_eq!(h.app.focus.current(), Some(CHIPS.sub("sort")));
+    h.key(KeyCode::Esc);
+    assert!(!sort_select(&h).open, "Esc closes it");
+}

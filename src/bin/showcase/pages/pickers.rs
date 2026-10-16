@@ -8,7 +8,6 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{DismissReason, Dismissed, LayerCx, LayerTag, ShellLayers, Taken};
 use junie_tui::ui::layers::LayerResult;
