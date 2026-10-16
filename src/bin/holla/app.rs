@@ -294,12 +294,22 @@ impl App {
         &mut self,
         f: F,
     ) -> Outcome {
+        self.with_top_clicks(1, f)
+    }
+
+    /// [`Self::with_top`] delivering a click with its multi-click count.
+    fn with_top_clicks<F: FnOnce(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome>(
+        &mut self,
+        clicks: u8,
+        f: F,
+    ) -> Outcome {
         let active = self.active;
         let mut cx = Cx {
             focus: &mut self.focus,
             ring: &self.ring,
             context: self.context,
             requests: vec![],
+            clicks,
         };
         let o = match self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
             Some(s) => f(s, &mut self.world, &mut cx),
@@ -341,6 +351,7 @@ impl App {
                     ring: &self.ring,
                     context: self.context,
                     requests: vec![],
+                    clicks: 1,
                 };
                 if let Some(s) = self.tabs[ti].stack.last_mut() {
                     out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
@@ -445,6 +456,7 @@ impl App {
                 ring: &self.ring,
                 context: self.context,
                 requests: vec![],
+                clicks: 1,
             };
             let mut o = Outcome::Ignored;
             if let Some(s) = self.tabs[ti].stack.last_mut() {
@@ -525,6 +537,7 @@ impl App {
                 ring: &self.ring,
                 context: self.context,
                 requests: vec![],
+                clicks: 1,
             };
             if let Some(s) = self.tabs[ti].stack.last_mut() {
                 s.on_msg(&m, &mut self.world, &mut cx);
@@ -1237,6 +1250,7 @@ impl App {
             ring: &self.ring,
             context: self.context,
             requests: vec![],
+            clicks: 1,
         };
         let o = match self.tabs.get_mut(owner).and_then(|t| t.stack.last_mut()) {
             Some(s) => s.on_modal(&tag, result, &mut self.world, &mut cx),
@@ -1363,6 +1377,7 @@ impl App {
                     ring: &self.ring,
                     context: self.context,
                     requests: vec![],
+                    clicks: 1,
                 };
                 let outcome = self
                     .tabs
@@ -1419,13 +1434,13 @@ impl App {
         }
     }
 
-    fn modal_click(&mut self, id: WidgetId, pos: Position) -> Outcome {
+    fn modal_click(&mut self, id: WidgetId, pos: Position, clicks: u8) -> Outcome {
         let Some(top) = self.modals.top_mut() else {
             return Outcome::Ignored;
         };
         match &mut top.modal {
             Modal::Dialog(d) => {
-                let out = d.on_click(id, pos, &mut self.focus);
+                let out = d.on_click_count(id, pos, clicks, &mut self.focus);
                 if let Some(result) = d.result {
                     let text = match &d.body {
                         DialogBody::Input(i) => Some(i.text().to_owned()),
@@ -1518,11 +1533,13 @@ impl App {
         };
         let now = self.now_ms();
         self.pointer.flash(id, now);
+        // multi-clicks count by control, cell and time; a field in a
+        // dialog selects a word or a line with them too
+        let clicks = self.pointer.count_click(id, m.pos, now);
         if !self.modals.is_empty() {
-            return self.modal_click(id, m.pos);
+            return self.modal_click(id, m.pos, clicks);
         }
-        // multi-clicks count on the page only, by control, cell and time
-        let double = self.pointer.count_click(id, m.pos, now) >= 2;
+        let double = clicks >= 2;
         if self.menu.owns(id) {
             let (o, ev) = self.menu.on_click(id);
             return match ev {
@@ -1569,7 +1586,7 @@ impl App {
             });
             return Outcome::Changed;
         }
-        let o = self.with_top(|s, w, cx| {
+        let o = self.with_top_clicks(clicks, |s, w, cx| {
             if double {
                 let d = s.on_double_click(id, m.pos, w, cx);
                 if d.consumed() {
@@ -1611,10 +1628,15 @@ impl App {
                     return Outcome::Ignored;
                 };
                 if !self.modals.is_empty() {
-                    if let Some(Modal::Text(t)) = self.modals.top_mut().map(|m| &mut m.modal)
-                        && pressed == junie_tui::widgets::scrollbar::id_for(t.id)
-                    {
-                        return t.on_scrollbar_drag(m.pos);
+                    match self.modals.top_mut().map(|m| &mut m.modal) {
+                        Some(Modal::Text(t))
+                            if pressed == junie_tui::widgets::scrollbar::id_for(t.id) =>
+                        {
+                            return t.on_scrollbar_drag(m.pos);
+                        }
+                        // a drag from a press on a dialog's field selects
+                        Some(Modal::Dialog(d)) => return d.on_drag(pressed, m.pos),
+                        _ => {}
                     }
                     return Outcome::Consumed;
                 }
@@ -1635,8 +1657,14 @@ impl App {
                 {
                     self.focus.focus(id);
                 }
+                // the click count this press starts: the second press of a
+                // double click selects a word in a field
+                let count = self.pointer.press_count(id, m.pos, self.now_ms());
+                if let Some(Modal::Dialog(d)) = self.modals.top_mut().map(|m| &mut m.modal) {
+                    d.on_press(id, m.pos, count);
+                }
                 if self.modals.is_empty() {
-                    self.with_top(|s, w, _| s.on_press(id, m.pos, w));
+                    self.with_top(|s, w, _| s.on_press_count(id, m.pos, count, w));
                 }
                 Outcome::Changed
             }
