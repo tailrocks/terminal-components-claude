@@ -1597,7 +1597,7 @@ impl App {
             }
             // only a dialog code preview scrolls sideways here; a sideways swipe must
             // never scroll rows
-            MouseKind::WheelLeft | MouseKind::WheelRight => match self.modals.last_mut() {
+            MouseKind::WheelLeft | MouseKind::WheelRight => match self.modals.top_mut() {
                 // a dialog's code preview scrolls sideways
                 Some(top) => match &mut top.modal {
                     Modal::Dialog(d) => d.on_wheel_h(self.pointer.wheel_delta(m.kind)),
