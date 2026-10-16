@@ -1396,3 +1396,21 @@ fn a_focused_tab_strip_takes_home_and_end() {
         "End left the Members tab"
     );
 }
+
+#[test]
+fn header_links_show_rest_hover_and_press() {
+    let mut h = Harness::new(120, 40, PageId::Buttons);
+    let (x, y) = h.find("? Help").unwrap();
+    let cell = |h: &Harness| {
+        let c = &h.term.backend().buffer()[(x + 2, y)];
+        (c.bg, c.modifier)
+    };
+    let rest = cell(&h);
+    h.mouse(MouseKind::Move, x + 2, y);
+    let hover = cell(&h);
+    h.mouse(MouseKind::Down, x + 2, y);
+    let pressed = cell(&h);
+    assert_ne!(rest, hover, "the Help link hovers");
+    assert_ne!(hover, pressed, "the Help link presses");
+    assert_ne!(rest, pressed);
+}
