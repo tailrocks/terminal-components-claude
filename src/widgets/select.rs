@@ -420,9 +420,7 @@ impl Select {
             s.hovered = false;
             self.open = false;
         }
-        if !ctx.interaction.has_focus(self.id) {
-            self.open = false;
-        }
+        // an open list that lost focus is closed by `on_blur`, never here
         let label_style = if self.disabled {
             t.faint().bg(bg)
         } else {
@@ -591,6 +589,21 @@ mod tests {
     use super::*;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
+
+    #[test]
+    fn rendering_without_focus_never_closes_the_list() {
+        use crate::ui::ctx::Interaction;
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut s = Select::new(WidgetId::of("r"), "S", &["a", "b"], 0);
+        s.open_list();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 10));
+        s.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, theme.canvas);
+        assert!(s.open, "render is not a blur: on_blur closes it");
+        assert_eq!(s.on_blur(), Outcome::Changed);
+    }
 
     #[test]
     fn blur_closes_an_open_list_unless_configured_not_to() {
