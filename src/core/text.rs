@@ -183,6 +183,77 @@ impl TextBuffer {
         self.anchor = None;
     }
 
+    /// Extend the selection to `offset` (a drag): the anchor stays where
+    /// the selection started (the cursor, when there was none).
+    pub fn select_to(&mut self, offset: usize) {
+        if self.anchor.is_none() {
+            self.anchor = Some(self.cursor);
+        }
+        self.cursor = Self::floor_boundary(&self.text, offset);
+    }
+
+    /// The word around `offset` (a double click): a run of word
+    /// characters, a run of whitespace, or a single other grapheme, never
+    /// crossing a line break.
+    pub fn word_range_at(&self, offset: usize) -> std::ops::Range<usize> {
+        let offset = Self::floor_boundary(&self.text, offset);
+        let (start, end) = (self.line_start(offset), self.line_end(offset));
+        let line = &self.text[start..end];
+        let gs: Vec<(usize, &str)> = line
+            .grapheme_indices(true)
+            .map(|(i, g)| (start + i, g))
+            .collect();
+        let Some(at) = gs
+            .iter()
+            .position(|&(i, g)| offset < i + g.len())
+            .or_else(|| gs.len().checked_sub(1))
+        else {
+            return offset..offset;
+        };
+        #[derive(PartialEq)]
+        enum Class {
+            Word,
+            Space,
+            Other,
+        }
+        let class = |g: &str| {
+            if g.chars().any(char::is_alphanumeric) || g == "_" {
+                Class::Word
+            } else if g.chars().all(char::is_whitespace) {
+                Class::Space
+            } else {
+                Class::Other
+            }
+        };
+        let c = class(gs[at].1);
+        if c == Class::Other {
+            return gs[at].0..gs[at].0 + gs[at].1.len();
+        }
+        let mut lo = at;
+        while lo > 0 && class(gs[lo - 1].1) == c {
+            lo -= 1;
+        }
+        let mut hi = at;
+        while hi + 1 < gs.len() && class(gs[hi + 1].1) == c {
+            hi += 1;
+        }
+        gs[lo].0..gs[hi].0 + gs[hi].1.len()
+    }
+
+    /// Select the word around `offset`, cursor at its end.
+    pub fn select_word_at(&mut self, offset: usize) {
+        let r = self.word_range_at(offset);
+        self.select_range(r.start, r.end);
+    }
+
+    /// Select the line around `offset` (a triple click), without its line
+    /// break; the whole text in a single-line buffer.
+    pub fn select_line_at(&mut self, offset: usize) {
+        let offset = Self::floor_boundary(&self.text, offset);
+        let (start, end) = (self.line_start(offset), self.line_end(offset));
+        self.select_range(start, end);
+    }
+
     #[cfg(test)]
     pub fn selected_text(&self) -> Option<&str> {
         self.selection().map(|r| &self.text[r])
@@ -538,6 +609,49 @@ mod tests {
         b.move_end(false);
         b.backspace();
         assert_eq!(b.text(), "élXl");
+    }
+
+    #[test]
+    fn word_and_line_selection_for_multi_clicks() {
+        let mut b = TextBuffer::multi("let foo_bar = 42;\nnext  line");
+        b.select_word_at(5);
+        assert_eq!(b.selected_text(), Some("foo_bar"));
+        b.select_word_at(12);
+        assert_eq!(b.selected_text(), Some("="), "punctuation is its own word");
+        b.select_word_at(11);
+        assert_eq!(b.selected_text(), Some(" "));
+        b.select_word_at(23);
+        assert_eq!(b.selected_text(), Some("  "), "a whitespace run");
+        b.select_word_at(17);
+        assert_eq!(
+            b.selected_text(),
+            Some(";"),
+            "the line end picks the last grapheme"
+        );
+        b.select_line_at(20);
+        assert_eq!(b.selected_text(), Some("next  line"));
+        b.select_line_at(3);
+        assert_eq!(
+            b.selected_text(),
+            Some("let foo_bar = 42;"),
+            "no line break"
+        );
+        let mut u = TextBuffer::single("café👩‍💻 ok");
+        u.select_word_at(1);
+        assert_eq!(u.selected_text(), Some("café"));
+        u.select_line_at(0);
+        assert_eq!(u.selected_text(), Some("café👩‍💻 ok"));
+    }
+
+    #[test]
+    fn select_to_extends_from_the_anchor() {
+        let mut b = TextBuffer::single("hello world");
+        b.select_range(6, 6);
+        b.clear_selection();
+        b.select_to(11);
+        assert_eq!(b.selected_text(), Some("world"));
+        b.select_to(2);
+        assert_eq!(b.selected_text(), Some("llo "), "the anchor stays put");
     }
 
     #[test]
