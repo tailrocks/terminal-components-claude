@@ -116,7 +116,10 @@ pub struct ColumnSpec {
     pub sortable: bool,
     pub min_width: u16,
     pub max_width: u16,
-    /// Muted type label shown under the name when `type_row` is on.
+    /// The column's type as the database names it (`numeric(10,2)`,
+    /// `jsonb`): the header's tooltip says it after the name when the
+    /// pointer rests on the header. Empty shows no tooltip. The header
+    /// stays one row, so the type is not drawn at rest.
     pub type_label: String,
     /// How the column's cells are edited: typed text (default) or a value
     /// from a fixed set ([`ColumnEditor`]).
@@ -2489,11 +2492,21 @@ impl DataGrid {
                     PartRef::item(Part::HEADER, ItemKey::index(ci)),
                     head,
                 );
-            } else if cut && !ctx.inert {
-                // a cut title reveals on hover even when it does not sort
+            } else if (cut || !col.type_label.is_empty()) && !ctx.inert {
+                // a cut title or a typed column answers hover even when it
+                // does not sort
                 ctx.hits.register_hover(hid, head);
             }
-            if cut {
+            if !col.type_label.is_empty() {
+                // the column's type is its header's tooltip (as macOS's
+                // header tool tip, DataGrip and Sequel Ace show it); the tip
+                // names the whole title too, so a cut one needs no reveal
+                let tip = crate::ui::tooltip::Tip::new(&format!(
+                    "{}{}{}",
+                    col.name, t.glyphs.separator, col.type_label
+                ));
+                crate::ui::tooltip::show(ctx, hid, head, &tip, None);
+            } else if cut {
                 crate::ui::reveal::truncated(ctx, self.reveal, hid, head, &col.name);
             }
             if self.sizing.resizable {
@@ -3605,6 +3618,61 @@ mod tests {
         ctx.flush_overlays(&mut buf);
         let all: String = (0..area.height).map(|y| row_text(&buf, y)).collect();
         assert!(all.contains(long), "{all}");
+    }
+
+    /// `ColumnSpec::type_label` is the header's tooltip: not drawn at
+    /// rest, named after the title once the pointer rests on the header
+    /// (finding T2: it was documented as drawn and never was).
+    #[test]
+    fn a_column_type_label_is_its_header_tooltip() {
+        let long = "customer_lifetime_value_in_reporting_currency";
+        let cols = vec![
+            ColumnSpec::new("price", CellKind::Number).type_label("numeric(10,2)"),
+            ColumnSpec::new(long, CellKind::Number).type_label("bigint"),
+        ];
+        let mut g = DataGrid::new(WidgetId::of("typed"), cols);
+        g.set_rows(GridRows {
+            rows: vec![vec![CellValue::Int(1), CellValue::Int(2)]],
+            total: RowTotal::Exact(1),
+            more: false,
+        });
+        let area = Rect::new(0, 0, 80, 8);
+        let screen = |g: &mut DataGrid, hover: Option<WidgetId>| {
+            let theme = Theme::junie();
+            let mut buf = Buffer::empty(area);
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let inter = Interaction {
+                hover,
+                hover_ms: Some(5_000),
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+            g.render(area, &mut buf, &mut ctx, theme.surface);
+            ctx.flush_overlays(&mut buf);
+            (0..area.height)
+                .map(|y| row_text(&buf, y))
+                .collect::<Vec<_>>()
+                .join(
+                    "
+",
+                )
+        };
+        let rest = screen(&mut g, None);
+        assert!(
+            !rest.contains("numeric"),
+            "not drawn at rest:
+{rest}"
+        );
+        let (h0, h1) = (g.header_id(0), g.header_id(1));
+        let on_price = screen(&mut g, Some(h0));
+        assert!(on_price.contains("price · numeric(10,2)"), "{on_price}");
+        // a cut title: the tooltip names it whole, with its type
+        let on_long = screen(&mut g, Some(h1));
+        assert!(
+            on_long.contains(&format!("{long} ·")) && on_long.contains("bigint"),
+            "{on_long}"
+        );
     }
 
     #[test]
