@@ -1342,10 +1342,16 @@ fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
         "7",
     ])
     .expect("valid CLI options");
-    assert!(matches!(cli.color, Some(crate::ColorArg::Mono)));
+    assert!(matches!(
+        cli.common.color,
+        Some(junie_tui::cli::ColorArg::Mono)
+    ));
     assert_eq!(cli.page, Some(PageId::Chips));
-    assert!(matches!(cli.motion, Some(crate::MotionArg::Reduced)));
-    assert_eq!(cli.frame, 7);
+    assert!(matches!(
+        cli.common.motion,
+        Some(junie_tui::motion::Motion::Reduced)
+    ));
+    assert_eq!(cli.common.frame, 7);
 
     for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
         assert!(
@@ -1364,7 +1370,7 @@ fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
     ])
     .unwrap();
     assert_eq!(short.page, Some(PageId::Buttons));
-    assert_eq!(short.frame, 3);
+    assert_eq!(short.common.frame, 3);
 
     assert!(matches!(
         crate::Cli::try_parse_from(["showcase", "--page", "no-such-page"]),

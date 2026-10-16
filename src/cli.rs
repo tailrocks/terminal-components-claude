@@ -53,7 +53,7 @@ pub struct CommonArgs {
     /// Colour level (default: detected from the terminal; NO_COLOR selects none)
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     pub color: Option<ColorArg>,
-    /// Motion: full, reduced (decorative motion stays still) or paused (ticks never advance)
+    /// How much moves (default: full, or reduced when the app's NO_MOTION variable is set)
     #[arg(short = 'm', long, value_enum, value_name = "MOTION")]
     pub motion: Option<Motion>,
     /// With --motion paused, the tick to render
