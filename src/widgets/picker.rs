@@ -10,6 +10,7 @@ use ratatui::style::{Modifier, Style};
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
+use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Placement, place};
 use crate::ui::text::{truncate, width};
@@ -96,6 +97,9 @@ pub struct Picker {
     pub area: Rect,
     /// Show the query field (false for fixed-choice pickers).
     pub searchable: bool,
+    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
+    /// query field that owns the list keeps the only focus bar.
+    pub cursor_style: CursorStyle,
     /// The cursor moved since the last render: the next render pulls it
     /// into view. Wheel scrolling leaves it alone so the viewport and the
     /// selection never fight.
@@ -137,8 +141,14 @@ impl Picker {
             empty_text: "No matches".into(),
             area: Rect::ZERO,
             searchable: true,
+            cursor_style: CursorStyle::default(),
             cursor_dirty: true,
         }
+    }
+
+    pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
+        self.cursor_style = cursor_style;
+        self
     }
 
     /// Replace the rows for a new query: the cursor deliberately returns to
@@ -435,17 +445,18 @@ impl Picker {
         y += 1;
         if self.searchable {
             let field = Rect::new(inner.x, y, inner.width, 1);
-            let fs = t.field_style(crate::ui::ctx::VisualState {
+            let fstate = crate::ui::ctx::VisualState {
                 focused: true,
                 editing: true,
                 ..Default::default()
-            });
+            };
+            let fs = t.field_style(fstate);
             fill(buf, field, fs);
             buf.set_string(
                 field.x,
                 y,
-                "▎",
-                Style::new().fg(t.focus).bg(fs.bg.unwrap_or(bg)),
+                t.gutter_symbol(fstate),
+                t.gutter(fstate, fs.bg.unwrap_or(bg), false),
             );
             if self.query.is_empty() {
                 buf.set_string(
@@ -459,8 +470,9 @@ impl Picker {
                     field.x + 2,
                     y,
                     truncate(&self.query, field.width.saturating_sub(3) as usize),
+                    // a neutral underline: the field's bar is the one green cue
                     fs.add_modifier(Modifier::UNDERLINED)
-                        .underline_color(t.accent),
+                        .underline_color(t.text_secondary),
                 );
             }
             ctx.set_cursor(ratatui::layout::Position::new(
@@ -566,15 +578,11 @@ impl Picker {
             let mut s = ctx.state(rid);
             s.focused = i == self.cursor;
             s.disabled = it.disabled;
-            let st = t.row(s, bg);
+            let cr = t.cursor_row(s, bg, self.cursor_style);
+            let st = cr.style;
             let row = Rect::new(list.x, ry, list.width.saturating_sub(u16::from(has_sb)), 1);
             fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                ry,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            buf.set_string(row.x, ry, cr.gutter, cr.gutter_style);
             // group label inline (first row of a group shows it right-aligned muted)
             let show_group = it.group != last_group && !it.group.is_empty();
             last_group = it.group;
@@ -585,7 +593,7 @@ impl Picker {
                 st.fg(if s.focused {
                     t.text_primary
                 } else {
-                    t.text_muted
+                    t.row_ink(&cr, t.text_muted)
                 })
                 .remove_modifier(Modifier::BOLD),
             );
@@ -611,7 +619,8 @@ impl Picker {
                         rx,
                         ry,
                         it.group,
-                        st.fg(t.text_faint).remove_modifier(Modifier::BOLD),
+                        st.fg(t.row_ink(&cr, t.text_faint))
+                            .remove_modifier(Modifier::BOLD),
                     );
                 }
             }
@@ -622,7 +631,8 @@ impl Picker {
                         rx,
                         ry,
                         tag,
-                        st.fg(t.text_secondary).remove_modifier(Modifier::BOLD),
+                        st.fg(t.row_ink(&cr, t.text_secondary))
+                            .remove_modifier(Modifier::BOLD),
                     );
                 }
             }
@@ -634,7 +644,8 @@ impl Picker {
                         dx,
                         ry,
                         truncate(&it.detail, room),
-                        st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                        st.fg(t.row_ink(&cr, t.text_muted))
+                            .remove_modifier(Modifier::BOLD),
                     );
                 }
             }
@@ -884,6 +895,38 @@ mod tests {
             out.push('\n');
         }
         out
+    }
+
+    #[test]
+    fn only_the_query_field_carries_a_focus_bar_and_the_cursor_row_is_a_fill() {
+        let t = Theme::junie();
+        let mut p = picker(4);
+        p.query = "it".into();
+        let out = render(&mut p);
+        assert_eq!(
+            out.matches('▎').count(),
+            1,
+            "the query field owns the list: one focus bar\n{out}"
+        );
+        let field = out.lines().position(|l| l.contains('▎')).unwrap();
+        let row = out.lines().position(|l| l.contains("Item 00")).unwrap();
+        assert!(field < row, "the bar sits on the field, not the cursor row");
+        // the cursor row is the highlight fill, never green
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
+        p.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx, "");
+        let x = out.lines().nth(row).unwrap().find("Item 00").unwrap();
+        let x = out.lines().nth(row).unwrap()[..x].chars().count() as u16;
+        assert_eq!(buf[(x, row as u16)].style().bg, Some(t.highlight));
+        // the query underline is neutral: one green cue per row
+        let q = out.lines().nth(field).unwrap();
+        let qx = q[..q.find("it").unwrap()].chars().count() as u16;
+        assert_eq!(buf[(qx, field as u16)].underline_color, t.text_secondary);
+        // the bar look stays available as configuration
+        let mut barred = picker(4).cursor_style(CursorStyle::Bar);
+        assert_eq!(render(&mut barred).matches('▎').count(), 2);
     }
 
     #[test]
