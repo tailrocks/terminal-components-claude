@@ -62,6 +62,9 @@ pub struct ListBox {
     anchor: Option<usize>,
     /// Revealing cut labels; `reveal.config` overrides the global default.
     pub reveal: RevealState,
+    /// Blank columns between the labels and the scrollbar (default
+    /// [`scrollbar::GAP`]).
+    pub scrollbar_gap: u16,
 }
 
 impl ListBox {
@@ -80,7 +83,14 @@ impl ListBox {
             empty_text: "Nothing here yet".to_owned(),
             anchor: None,
             reveal: RevealState::default(),
+            scrollbar_gap: scrollbar::GAP,
         }
+    }
+
+    /// Blank columns between the labels and the scrollbar.
+    pub fn scrollbar_gap(mut self, gap: u16) -> Self {
+        self.scrollbar_gap = gap;
+        self
     }
 
     /// How cut labels are revealed (default: [`RenderCtx::reveal`]).
@@ -275,16 +285,13 @@ impl ListBox {
             return;
         }
         let has_sb = self.scroll.overflows();
-        let text_w = area.width.saturating_sub(if has_sb { 2 } else { 1 }) as usize;
+        let sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
+        // labels stop at the content edge, the gap clear of the bar
+        let text_w = sp.content.width.saturating_sub(1) as usize;
         for (i, li) in self.scroll.visible_range().enumerate() {
             let y = area.y + i as u16;
             let item = &self.items[li];
-            let row = Rect::new(
-                area.x,
-                y,
-                area.width.saturating_sub(if has_sb { 1 } else { 0 }),
-                1,
-            );
+            let row = Rect::new(area.x, y, sp.body.width, 1);
             let rid = self.row_id(li);
             let mut s = ctx.child_state(self.id, rid, li == self.cursor);
             s.focused = focused && li == self.cursor;
@@ -338,7 +345,11 @@ impl ListBox {
                 && meta_w > 0
                 && meta_w + 4 < label_w
             {
-                let mx = row.right().saturating_sub(meta_w as u16 + 1);
+                let mx = sp
+                    .content
+                    .right()
+                    .min(row.right().saturating_sub(1))
+                    .saturating_sub(meta_w as u16);
                 let ms = if item.disabled {
                     st
                 } else {
@@ -349,16 +360,11 @@ impl ListBox {
             ctx.clickable(rid, row);
         }
         self.track = Rect::ZERO;
-        if has_sb {
+        if let Some(sb) = sp.track {
             crate::ui::fade::scroll_edges_except(
                 buf,
                 ctx,
-                Rect::new(
-                    area.x,
-                    area.y,
-                    (area.right() - 1).saturating_sub(area.x),
-                    area.height,
-                ),
+                sp.body,
                 &self.scroll,
                 &self
                     .scroll
@@ -368,7 +374,6 @@ impl ListBox {
                     .into_iter()
                     .collect::<Vec<_>>(),
             );
-            let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
@@ -410,6 +415,30 @@ mod reveal_tests {
             vec![ListItem::new("short"), ListItem::new(LONG)],
             SelectMode::Single,
         )
+    }
+
+    /// Cut labels stop one blank column short of the scrollbar, never
+    /// touching it (`TypeScript┃`, layout audit #14).
+    #[test]
+    fn a_cut_label_keeps_the_gap_before_the_scrollbar() {
+        let items = (0..8)
+            .map(|i| ListItem::new(&format!("{i} {LONG}")))
+            .collect();
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
+        let text = render(&mut l, Interaction::default());
+        let row: Vec<char> = text.lines().next().unwrap().chars().take(20).collect();
+        assert!(
+            matches!(row[19], '│' | '┃'),
+            "bar in the last column: {row:?}"
+        );
+        assert_eq!(row[18], ' ', "one blank column before the bar: {row:?}");
+        assert_eq!(row[17], '…', "the label ends with its ellipsis: {row:?}");
+        // the gap is the caller's to change
+        let mut tight =
+            ListBox::new(WidgetId::of("l"), l.items.clone(), SelectMode::Single).scrollbar_gap(0);
+        let text = render(&mut tight, Interaction::default());
+        let row: Vec<char> = text.lines().next().unwrap().chars().take(20).collect();
+        assert_eq!(row[18], '…', "{row:?}");
     }
 
     #[test]

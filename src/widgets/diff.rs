@@ -317,7 +317,12 @@ impl DiffView {
             self.layout(area.width);
             self.term.set_area(area);
             if self.term.scroll.overflows() {
-                self.layout(area.width.saturating_sub(1));
+                self.layout(
+                    area.width
+                        .saturating_sub(crate::widgets::scrollbar::reserve(
+                            self.term.scrollbar_gap,
+                        )),
+                );
             }
             // Cache the final scrollbar-aware layout, avoiding a rebuild at
             // full width and then reduced width on every idle frame.
@@ -715,8 +720,8 @@ mod tests {
         }));
         view.set_mode(DiffMode::Review);
         for (width, height, mode) in [
-            (43, 3, DiffMode::Unified),
-            (44, 3, DiffMode::Review),
+            (44, 3, DiffMode::Unified),
+            (45, 3, DiffMode::Review),
             (43, 10, DiffMode::Review),
         ] {
             let area = Rect::new(0, 0, width, height);

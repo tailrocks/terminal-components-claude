@@ -142,6 +142,50 @@ impl Bars {
     }
 }
 
+/// Blank columns between scrolled content and its vertical bar, the
+/// default for every widget's `scrollbar_gap`. One cell keeps text from
+/// touching the track (`TypeScript┃`) without costing a narrow pane much.
+pub const GAP: u16 = 1;
+
+/// Columns a vertical bar takes from its content: the track and the gap.
+pub const fn reserve(gap: u16) -> u16 {
+    1 + gap
+}
+
+/// A region with a vertical bar on its right, split once so every widget
+/// keeps the same distance between its text and the bar.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VSplit {
+    /// Everything left of the track: row fills and cursor highlights
+    /// reach up to the bar.
+    pub body: Rect,
+    /// Where text goes: the body less the gap. Equal to `body` when there
+    /// is no bar.
+    pub content: Rect,
+    /// The bar's column, when the content overflows.
+    pub track: Option<Rect>,
+}
+
+/// Split `area` for a vertical bar when `overflows`, leaving `gap` blank
+/// columns between the content and the track. Too narrow to spare the gap,
+/// the gap goes first and the track last.
+pub fn split(area: Rect, overflows: bool, gap: u16) -> VSplit {
+    if !overflows || area.width < 2 {
+        return VSplit {
+            body: area,
+            content: area,
+            track: None,
+        };
+    }
+    let body = Rect::new(area.x, area.y, area.width - 1, area.height);
+    let gap = gap.min(body.width.saturating_sub(1));
+    VSplit {
+        body,
+        content: Rect::new(area.x, area.y, body.width - gap, area.height),
+        track: Some(Rect::new(area.right() - 1, area.y, 1, area.height)),
+    }
+}
+
 /// Map a pointer position on a vertical track to a scroll offset.
 pub fn offset_for_click(track: Rect, pos: Position, scroll: &ScrollState) -> usize {
     let rel = pos.y.saturating_sub(track.y) as usize;
