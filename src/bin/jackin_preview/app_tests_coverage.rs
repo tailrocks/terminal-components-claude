@@ -1101,7 +1101,8 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
             .pane(pid)
             .unwrap()
             .term
-            .hscroll
+            .scroll
+            .h
             .offset
     };
     let rect = h

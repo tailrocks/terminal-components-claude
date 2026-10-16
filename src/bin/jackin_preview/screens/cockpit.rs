@@ -30,6 +30,7 @@ use crate::domain::workspace::WorkspaceId;
 use crate::scenario::Motion;
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::world::World;
+use junie_tui::core::scroll::Scrollable;
 
 pub const RAIL: WidgetId = WidgetId::of("cockpit.rail");
 pub const LOG: WidgetId = WidgetId::of("cockpit.log");

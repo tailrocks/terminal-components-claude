@@ -32,6 +32,7 @@ use crate::screens::{
 };
 use crate::sim::world::World;
 use junie_tui::ui::text::{plural, truncate_sep};
+use junie_tui::core::scroll::Scrollable;
 
 pub const OUTLINE: WidgetId = WidgetId::of("plan.outline");
 pub const DETAIL: WidgetId = WidgetId::of("plan.detail");

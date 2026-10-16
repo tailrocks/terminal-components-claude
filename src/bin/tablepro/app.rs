@@ -42,6 +42,7 @@ use crate::model::{History, SwitchTarget, SwitcherIndex};
 use crate::sql::{self, Decision};
 use crate::tabs::{Filter, FilterOp};
 use crate::workbench::{WorkTab, Workbench};
+use junie_tui::core::scroll::Scrollable;
 
 const STRIP_SAFE: WidgetId = WidgetId::of("strip.safe");
 const STRIP_SCOPE: WidgetId = WidgetId::of("strip.scope");

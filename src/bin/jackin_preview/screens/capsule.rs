@@ -44,6 +44,7 @@ use crate::sim::pty::{
 };
 use crate::sim::world::{Msg, World};
 use junie_tui::ui::text::plural;
+use junie_tui::core::scroll::Scrollable;
 
 pub const STRIP: WidgetId = WidgetId::of("capsule.strip");
 pub const MENUBAR: WidgetId = WidgetId::of("capsule.menubar");
