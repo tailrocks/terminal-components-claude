@@ -186,12 +186,19 @@ pub enum Overflow {
     Slide,
 }
 
-/// Register `owner`'s light-dismiss backdrop over `screen` per `dismiss`.
-/// Call it right after pushing the popup's hit barrier.
+/// Register `owner`'s backdrop over `screen`. Call it right after pushing
+/// the popup's hit barrier. Every click outside the popup reaches the
+/// owner, which applies `dismiss`: an allowed one closes it (and, under
+/// `pass_through`, also reaches what is beneath); a refused one is
+/// consumed, so it never lands on dead space beneath and ends an edit or
+/// blurs the owner behind the policy's back (SC10 finding).
 pub fn backdrop(ctx: &mut RenderCtx, owner: WidgetId, dismiss: Dismiss, screen: Rect) {
-    if dismiss.outside_click && !ctx.inert {
-        ctx.hits
-            .register_backdrop(backdrop_id(owner), screen, dismiss.pass_through);
+    if !ctx.inert {
+        ctx.hits.register_backdrop(
+            backdrop_id(owner),
+            screen,
+            dismiss.outside_click && dismiss.pass_through,
+        );
     }
 }
 
@@ -433,9 +440,10 @@ pub fn surface(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, t: &Theme) -> 
     surface_for(area, buf, ctx, t, None)
 }
 
-/// [`surface`] for a popup owned by `owner` under `dismiss`: with
-/// `outside_click`, every cell outside the popup becomes the owner's
-/// [`backdrop_id`] region, so a click outside reaches the owner.
+/// [`surface`] for a popup owned by `owner` under `dismiss`: every cell
+/// outside the popup becomes the owner's [`backdrop_id`] region, so a
+/// click outside reaches the owner, which closes or refuses per
+/// `dismiss` ([`backdrop`]).
 pub fn surface_for(
     area: Rect,
     buf: &mut Buffer,
@@ -456,9 +464,7 @@ pub fn surface_for(
     // everything registered before the popup is unreachable by the mouse;
     // keyboard focus is left to the owner
     ctx.hits.push_barrier();
-    if let Some((owner, dismiss)) = owner
-        && dismiss.outside_click
-    {
+    if let Some((owner, dismiss)) = owner {
         backdrop(ctx, owner, dismiss, *buf.area());
     }
     ctx.hits.register(WidgetId::of("popup.surface"), area);
