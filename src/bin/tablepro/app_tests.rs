@@ -751,7 +751,7 @@ fn mouse_opens_table_and_switches_tabs() {
     let (cx, cy) = h.find("customers").unwrap();
     h.mouse(MouseKind::Move, cx + 30, cy); // somewhere harmless
     h.mouse(MouseKind::Move, cx, cy);
-    assert!(h.app.hover.is_some());
+    assert!(h.app.pointer.hover.is_some());
 }
 
 #[test]
@@ -1125,4 +1125,23 @@ fn cell_edit_footer_says_apply_not_commit() {
     assert!(f.contains("Enter Apply"), "{f}");
     assert!(f.contains("Esc Cancel"), "{f}");
     assert!(!f.contains("Commit"), "{f}");
+}
+
+#[test]
+fn hover_follows_the_rows_that_scroll_under_a_still_pointer() {
+    // interaction #22: after a wheel scroll the hovered row is the one now
+    // under the pointer, not the one that scrolled away
+    let mut h = H::connected(120, 20);
+    let (x, y) = h
+        .find("customers")
+        .unwrap_or_else(|| panic!("{}", h.text()));
+    h.mouse(MouseKind::Move, x, y);
+    let before = h.app.pointer.hover;
+    assert!(before.is_some());
+    for _ in 0..4 {
+        h.mouse(MouseKind::WheelDown, x, y);
+    }
+    let now = h.app.hits.hit(Position::new(x, y));
+    assert_ne!(now, before, "the tree did not scroll\n{}", h.text());
+    assert_eq!(h.app.pointer.hover, now);
 }
