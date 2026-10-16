@@ -8,7 +8,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::focus::{BlurAction, request_focus_next};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{HScroll, ScrollState};
 use crate::core::text::{CursorPos, TextBuffer};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
@@ -76,6 +76,19 @@ pub struct TextArea {
     keys: FieldKeys,
     undo: UndoStack,
     focus_seen: bool,
+    /// Horizontal scrolling of long lines. `None` (default) follows
+    /// [`RenderCtx::hscroll`]; the wheel moves [`HScroll::step`] cells
+    /// per notch ([`Self::on_wheel_h`]).
+    pub horizontal: Option<HScroll>,
+    h_cfg: HScroll,
+    /// Widest line in the last frame, in cells.
+    content_cols: usize,
+    /// The area was editing in the last frame: an edit that ends returns
+    /// the view to the first column.
+    was_editing: bool,
+    /// A click on the label focuses the area (the HTML `<label>`
+    /// convention, macOS form labels). Default `true`.
+    pub label_hit: bool,
 }
 
 impl TextArea {
@@ -109,6 +122,11 @@ impl TextArea {
             keys: FieldKeys::default(),
             undo: UndoStack::new(),
             focus_seen: false,
+            horizontal: None,
+            h_cfg: HScroll::default(),
+            content_cols: 0,
+            was_editing: false,
+            label_hit: true,
         }
     }
 
@@ -342,6 +360,11 @@ impl TextArea {
         Outcome::Changed
     }
 
+    /// `pos` is on the label row above the body ([`Self::label_hit`]).
+    fn on_label(&self, pos: Position) -> bool {
+        self.label_hit && pos.y < self.area.y
+    }
+
     /// Byte offset under `pos`, clamped to the text.
     fn offset_at(&self, pos: Position) -> usize {
         // a pointer above or left of the text names the line or column
@@ -366,6 +389,15 @@ impl TextArea {
     pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
+        }
+        if self.on_label(pos) {
+            // a label click edits without moving the caret
+            if !self.editing {
+                self.begin_edit();
+                self.focus_select.apply(&mut self.buffer);
+            }
+            self.follow_cursor = true;
+            return Outcome::Changed;
         }
         self.begin_edit();
         let offset = self.offset_at(pos);
@@ -392,7 +424,7 @@ impl TextArea {
     /// double click selects the word, and a drag from it extends by words
     /// ([`PointerSelect::drag_by_word`]).
     pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
-        if self.disabled {
+        if self.disabled || self.on_label(pos) {
             return Outcome::Consumed;
         }
         let offset = self.offset_at(pos);
@@ -434,9 +466,46 @@ impl TextArea {
         }
     }
 
+    /// Horizontal wheel (or Shift+wheel): long lines scroll sideways by
+    /// [`HScroll::step`] cells per notch, under the [`Self::horizontal`]
+    /// policy (default [`RenderCtx::hscroll`]). Nothing wider than the
+    /// area, or horizontal scrolling off: ignored, so the notch can go to
+    /// the container.
+    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
+        let width = self.text_area.width as usize;
+        if !self.h_cfg.enabled || delta == 0 || self.content_cols <= width {
+            return Outcome::Ignored;
+        }
+        let max = self.content_cols - width;
+        let step = self.h_cfg.step.max(1) * delta.unsigned_abs() as usize;
+        let to = if delta < 0 {
+            self.hscroll.saturating_sub(step)
+        } else {
+            (self.hscroll + step).min(max)
+        };
+        if to == self.hscroll {
+            return Outcome::Consumed;
+        }
+        self.hscroll = to;
+        Outcome::Changed
+    }
+
+    /// See [`Self::horizontal`].
+    pub fn horizontal(mut self, h: HScroll) -> Self {
+        self.horizontal = Some(h);
+        self
+    }
+
+    /// See [`Self::label_hit`].
+    pub fn label_hit(mut self, on: bool) -> Self {
+        self.label_hit = on;
+        self
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
         self.keys = self.field_keys.unwrap_or(ctx.theme.field_keys);
+        self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         // focus newly gained starts an immediate edit: the caret shows the
         // moment Tab lands here
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
@@ -486,6 +555,12 @@ impl TextArea {
         let body = Rect::new(area.x, area.y + 1, area.width, rows);
         let resized = body.width != self.area.width || body.height != self.area.height;
         self.area = body;
+        if self.label_hit && !self.label.is_empty() {
+            // the label row is the area's own target: a click there focuses
+            // and edits it like a click in the body
+            let lw = width(&self.label).min(area.width.saturating_sub(2) as usize) as u16;
+            ctx.control(self.id, Rect::new(area.x, area.y, lw + 2, 1), self.disabled);
+        }
         ctx.control(self.id, body, self.disabled);
         ctx.scrollable(self.id, body);
         let fs = t.field_style(s);
@@ -504,6 +579,7 @@ impl TextArea {
 
         let text = self.buffer.text();
         let lines: Vec<&str> = text.split('\n').collect();
+        self.content_cols = lines.iter().map(|l| width(l)).max().unwrap_or(0);
         self.scroll.set_content(lines.len());
         self.scroll.set_viewport(rows as usize);
         let cur = self.buffer.cursor_pos();
@@ -515,8 +591,15 @@ impl TextArea {
             } else if width > 0 && cur.col >= self.hscroll.saturating_add(width) {
                 self.hscroll = cur.col + 1 - width;
             }
-        } else if !s.editing {
+        } else if !s.editing && self.was_editing {
+            // the edit ended: back to the first column; a wheel scroll
+            // outside an edit stays where the user left it
             self.hscroll = 0;
+        }
+        self.was_editing = s.editing;
+        if !s.editing {
+            let max = self.content_cols.saturating_sub(inner.width as usize);
+            self.hscroll = self.hscroll.min(max);
         }
         self.last_cursor = Some(cur);
         self.follow_cursor = false;
@@ -951,5 +1034,92 @@ mod tests {
                 }
             }
         }
+    }
+
+    fn draw_hits(input: &mut TextArea, area: Rect, focused: bool) -> (Buffer, HitRegistry) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(area);
+        {
+            let mut ctx = RenderCtx::new(
+                &theme,
+                Interaction {
+                    focus: focused.then_some(input.id),
+                    ..Default::default()
+                },
+                &mut hits,
+                &mut ring,
+            );
+            input.render(area, &mut buf, &mut ctx, theme.surface);
+        }
+        (buf, hits)
+    }
+
+    fn row(buf: &Buffer, y: u16) -> String {
+        (buf.area.x..buf.area.right())
+            .map(|x| buf[(x, y)].symbol())
+            .collect()
+    }
+
+    #[test]
+    fn the_horizontal_wheel_scrolls_long_lines_outside_an_edit() {
+        let mut input = TextArea::new(WidgetId::of("h"), "Notes", 2)
+            .value("abcdefghijklmnopqrstuvwxyz0123456789");
+        let area = Rect::new(0, 0, 12, 4);
+        let (buf, _) = draw_hits(&mut input, area, false);
+        assert!(row(&buf, 1).contains("abc"));
+        assert_eq!(input.on_wheel_h(1), Outcome::Changed);
+        let (buf, _) = draw_hits(&mut input, area, false);
+        assert!(
+            !row(&buf, 1).contains("abc") && row(&buf, 1).contains("ef"),
+            "one notch moves HScroll::step cells: {:?}",
+            row(&buf, 1)
+        );
+        // the far end stops the wheel
+        for _ in 0..20 {
+            input.on_wheel_h(1);
+        }
+        assert_eq!(input.on_wheel_h(1), Outcome::Consumed);
+        let (buf, _) = draw_hits(&mut input, area, false);
+        assert!(row(&buf, 1).contains('9'));
+        // short text: the notch is left to the container
+        let mut short = TextArea::new(WidgetId::of("s"), "Notes", 2).value("ab");
+        draw_hits(&mut short, area, false);
+        assert_eq!(short.on_wheel_h(1), Outcome::Ignored);
+        // switched off by policy
+        let mut off = TextArea::new(WidgetId::of("o"), "Notes", 2)
+            .value("abcdefghijklmnopqrstuvwxyz")
+            .horizontal(HScroll::off());
+        draw_hits(&mut off, area, false);
+        assert_eq!(off.on_wheel_h(1), Outcome::Ignored);
+    }
+
+    #[test]
+    fn clicking_the_label_focuses_and_edits_the_area() {
+        let mut input = TextArea::new(WidgetId::of("l"), "Notes", 2).value("one\ntwo");
+        let area = Rect::new(0, 0, 20, 4);
+        let (_, hits) = draw_hits(&mut input, area, false);
+        assert_eq!(
+            hits.hit(Position::new(3, 0)),
+            Some(input.id),
+            "the label is a target"
+        );
+        assert_eq!(
+            hits.hit(Position::new(15, 0)),
+            None,
+            "blank space after it is not"
+        );
+        input.on_press(Position::new(3, 0));
+        input.on_click(Position::new(3, 0));
+        assert!(input.editing);
+        assert_eq!(
+            input.buffer.cursor_offset(),
+            input.buffer.text().len(),
+            "the caret goes where focus puts it, not under the label"
+        );
+        let mut off = TextArea::new(WidgetId::of("n"), "Notes", 2).label_hit(false);
+        let (_, hits) = draw_hits(&mut off, area, false);
+        assert_eq!(hits.hit(Position::new(3, 0)), None);
     }
 }
