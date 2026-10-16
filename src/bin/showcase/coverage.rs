@@ -95,6 +95,107 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
+    // SC23: Splits & stacks
+    (
+        "ui::layout::SplitDir",
+        Option("splitsstacks", "splitsstacks.dir"),
+    ),
+    (
+        "ui::layout::SplitDir::Horizontal",
+        Option("splitsstacks", "splitsstacks.dir=horizontal"),
+    ),
+    (
+        "ui::layout::SplitDir::Vertical",
+        Option("splitsstacks", "splitsstacks.dir=vertical"),
+    ),
+    (
+        "ui::layout::Maximized",
+        Option("splitsstacks", "splitsstacks.maximized"),
+    ),
+    (
+        "ui::layout::Maximized::None",
+        Option("splitsstacks", "splitsstacks.maximized=none"),
+    ),
+    (
+        "ui::layout::Maximized::First",
+        Option("splitsstacks", "splitsstacks.maximized=first"),
+    ),
+    (
+        "ui::layout::Maximized::Second",
+        Option("splitsstacks", "splitsstacks.maximized=second"),
+    ),
+    (
+        "ui::layout::Split",
+        Option("splitsstacks", "splitsstacks.percent"),
+    ),
+    (
+        "ui::layout::Overflow",
+        Option("splitsstacks", "splitsstacks.overflow"),
+    ),
+    (
+        "ui::layout::Overflow::Scroll",
+        Option("splitsstacks", "splitsstacks.overflow=scroll"),
+    ),
+    (
+        "ui::layout::Overflow::Clip",
+        Option("splitsstacks", "splitsstacks.overflow=clip"),
+    ),
+    (
+        "ui::layout::StackChild",
+        Demo("splitsstacks", "15 rows wanted, 8 given"),
+    ),
+    (
+        "ui::layout::Stack",
+        Demo("splitsstacks", "▸ Connection · 3 rows"),
+    ),
+    (
+        "ui::layout::StackScroll",
+        Option("splitsstacks", "splitsstacks.min_child_rows=3"),
+    ),
+    (
+        "ui::layout::StackLayout",
+        Demo("splitsstacks", "▸ Danger zone · 1 row"),
+    ),
+    (
+        "ui::layout::Stack::gap",
+        Option("splitsstacks", "splitsstacks.gap"),
+    ),
+    (
+        "ui::layout::Stack::overflow",
+        Option("splitsstacks", "splitsstacks.overflow"),
+    ),
+    (
+        "ui::layout::Stack::min_child_rows",
+        Option("splitsstacks", "splitsstacks.min_child_rows"),
+    ),
+    (
+        "ui::layout::Stack::scrollbar_gap",
+        Option("splitsstacks", "splitsstacks.scrollbar_gap"),
+    ),
+    (
+        "ui::layout::Stack::track_click",
+        Option("splitsstacks", "splitsstacks.track_click"),
+    ),
+    (
+        "widgets::splitter::SeamDoubleClick",
+        Option("splitsstacks", "splitsstacks.double_click"),
+    ),
+    (
+        "widgets::splitter::SeamDoubleClick::Reset",
+        Option("splitsstacks", "splitsstacks.double_click=reset"),
+    ),
+    (
+        "widgets::splitter::SeamDoubleClick::Ignore",
+        Option("splitsstacks", "splitsstacks.double_click=ignore"),
+    ),
+    (
+        "widgets::splitter::Splitter::hit_pad",
+        Option("splitsstacks", "splitsstacks.hit_pad"),
+    ),
+    (
+        "widgets::splitter::Splitter::double_click",
+        Option("splitsstacks", "splitsstacks.double_click"),
+    ),
     // SC21: Progress, Empty & error
     (
         "widgets::progress::BarLayout",
