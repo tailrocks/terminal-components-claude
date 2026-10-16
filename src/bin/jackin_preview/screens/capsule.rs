@@ -4,7 +4,10 @@
 //! palette and every Capsule dialog, detach, takeover and dirty exit.
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::hit::{Axis, Bar};
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -27,6 +30,7 @@ use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
 use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
+use junie_tui::widgets::viewport::TextViewport;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -1418,11 +1422,11 @@ impl CapsuleScreen {
         if !pane.term.follow {
             match key.code {
                 KeyCode::Up => {
-                    pane.term.on_wheel(-1);
+                    let _ = pane.term.wheel(Axis::Vertical, -1);
                     return Outcome::Changed;
                 }
                 KeyCode::Down => {
-                    pane.term.on_wheel(1);
+                    let _ = pane.term.wheel(Axis::Vertical, 1);
                     return Outcome::Changed;
                 }
                 KeyCode::PageUp => {
@@ -1439,8 +1443,12 @@ impl CapsuleScreen {
                     return Outcome::Changed;
                 }
                 // scrolled back there is no caret: the arrows pan
-                KeyCode::Left if key.plain() => return pane.term.on_wheel_h(-1),
-                KeyCode::Right if key.plain() => return pane.term.on_wheel_h(1),
+                KeyCode::Left if key.plain() => {
+                    return pane.term.wheel(Axis::Horizontal, -1).outcome();
+                }
+                KeyCode::Right if key.plain() => {
+                    return pane.term.wheel(Axis::Horizontal, 1).outcome();
+                }
                 KeyCode::End | KeyCode::Esc => {
                     pane.term.set_follow(true);
                     return Outcome::Changed;
@@ -2046,257 +2054,42 @@ impl Screen for CapsuleScreen {
         out
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.takeover.is_some() {
-            // the takeover notice's buttons (mouse #6)
-            if id == TAKEOVER_RECONNECT {
-                self.reconnect(w, cx);
-                return Outcome::Changed;
+    /// The Capsule's chrome and panes: the menu bar (a title opens on the
+    /// press) and the session strip (a click activates a tab, the wheel
+    /// moves its window, a secondary click opens its menu, a double click
+    /// renames it) through their widgets; a press in a pane focuses it and
+    /// anchors a selection (or grabs its horizontal bar), a drag extends
+    /// the selection or moves a seam or the bar, its end copies the
+    /// selection; the wheel scrolls the pane under the pointer.
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            if let Some(r) = self.menubar.route(ev) {
+                return r.outcome();
             }
-            if id == TAKEOVER_LEAVE {
-                self.leave_takeover(cx);
-                return Outcome::Changed;
+            if let Some(r) = self.tabs.route(ev) {
+                return r.outcome();
             }
-            return Outcome::Consumed;
+            return self.wheel(axis, delta, pos, w);
         }
-        self.prefix_until = None;
-        // anchored menus take the click first
-        if let Some((tab, mut m)) = self.tab_menu.take() {
-            match m.on_click(id) {
-                Some(MenuAction::Chosen(i)) => {
-                    let label = m.items[i].label.clone();
-                    let t = if tab == usize::MAX { None } else { Some(tab) };
-                    self.run_menu(&label, t, w, cx);
+        match ev.phase() {
+            Some(Phase::Press) => self.press(ev, w, cx),
+            Some(Phase::Drag) => self.drag(id, pos, w),
+            Some(Phase::DragEnd | Phase::Release) => self.drag_end(w, cx),
+            Some(Phase::Click) => {
+                // a press held on a pane's bar ends with its click
+                let o = self.drag_end(w, cx);
+                if ev.count() >= 2 {
+                    let d = self.double_click(ev, w, cx);
+                    if d.consumed() {
+                        return d;
+                    }
                 }
-                Some(MenuAction::Dismissed) | None => {}
+                o.or(self.click(ev, w, cx))
             }
-            return Outcome::Changed;
+            Some(Phase::Secondary) => self.secondary(ev, w),
+            _ => Outcome::Ignored,
         }
-        if self.menubar.owns(id) {
-            let (o, ev) = self.menubar.on_click(id);
-            match ev {
-                Some(MenuBarAction::Chosen(mi, ii)) => {
-                    let label = self.menubar.menus[mi][ii].label.clone();
-                    self.run_menu(&label, None, w, cx);
-                }
-                Some(MenuBarAction::Brand) => self.open_brand_menu(),
-                _ => {}
-            }
-            return o.or(Outcome::Changed);
-        }
-        if self.menubar.is_open() {
-            self.menubar.close();
-            return Outcome::Changed;
-        }
-        if id == USAGE_CHIP {
-            self.open_usage(w, cx);
-            return Outcome::Changed;
-        }
-        if id == CONTAINER_CHIP {
-            self.open_container_info(w, cx);
-            return Outcome::Changed;
-        }
-        if id == CONTEXT {
-            self.open_github(w, cx);
-            return Outcome::Changed;
-        }
-        if self.tabs.owns(id) {
-            let (o, ev) = self.tabs.on_click(id);
-            if let Some(TabAction::Activated(i)) = ev
-                && let Some(d) = self.daemon_mut(w)
-            {
-                d.active = i;
-            }
-            cx.focus.focus(PANES);
-            return o.or(Outcome::Changed);
-        }
-        if let Some(pid) = self.pane_at(pos) {
-            cx.focus.focus(PANES);
-            if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) {
-                t.focused = pid;
-            }
-            self.prime(pid, w);
-            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
-                && !pane.term.hbar().contains(pos)
-            {
-                pane.term.on_click(pos);
-            }
-            return Outcome::Changed;
-        }
-        Outcome::Consumed
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        // a menu-bar title opens on the press (MenuBar::open_on)
-        if self.menubar.owns(id) && self.menubar.on_press(id).0 != Outcome::Ignored {
-            return Outcome::Changed;
-        }
-        // anchor a text selection on the press so the drag that follows can
-        // extend it; the release completes the click
-        if let Some(pid) = self.pane_at(pos) {
-            cx.focus.focus(PANES);
-            if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) {
-                t.focused = pid;
-            }
-            self.prime(pid, w);
-            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
-                // a press on the horizontal bar scrolls sideways and holds
-                // the bar for the drag that follows
-                if pane.term.hbar().contains(pos) {
-                    self.hbar_held = Some(pid);
-                    return pane.term.on_scrollbar(pos).or(Outcome::Changed);
-                }
-                pane.term.on_click(pos);
-            }
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        if self.takeover.is_some() {
-            return Outcome::Consumed;
-        }
-        if let Some(i) = self.tabs.locate(id) {
-            if let Some(d) = self.daemon_mut(w) {
-                d.active = i;
-            }
-            self.open_tab_menu(i, w);
-            return Outcome::Changed;
-        }
-        if let Some(pid) = self.pane_at(pos) {
-            // the pane's own context at the pointer; its commands act on
-            // the pane under the pointer, which takes focus (per
-            // ContextConfig::moves_cursor)
-            if self.context.moves_cursor
-                && let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut())
-            {
-                t.focused = pid;
-            }
-            self.open_pane_menu(pos, w);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if let Some(i) = self.tabs.locate(id) {
-            self.open_rename(i, w, cx);
-            return Outcome::Changed;
-        }
-        if let Some(pid) = self.pane_at(pos) {
-            self.prime(pid, w);
-        }
-        if let Some(pid) = self.pane_at(pos)
-            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
-        {
-            let o = pane.term.select_word_at(pos);
-            if let Some(text) = pane.term.selected_text() {
-                w.clipboard = Some(text);
-                cx.status("Selection copied");
-            }
-            return o;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, w: &mut World) -> Outcome {
-        // seam drag
-        for i in 0..self.seams.len() {
-            if PANES.sub("seam").child(i) == pressed {
-                let s = self.seams[i].clone();
-                self.drag = Some((s.path.clone(), s.container));
-                if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut())
-                    && let Some(PaneNode::Split { split, dir, .. }) = t.root.node_at_mut(&s.path)
-                {
-                    split.drag_to(*dir, s.container, 1, pos);
-                }
-                return Outcome::Changed;
-            }
-        }
-        // the horizontal bar of a pane follows the pointer
-        if let Some(pid) = self.hbar_held {
-            self.prime(pid, w);
-            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
-                let bar = scrollbar::h_id_for(pane.term.id);
-                return pane.term.on_bar_drag(bar, pos);
-            }
-        }
-        // text selection drag within a pane
-        if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed) {
-            self.prime(pid, w);
-        }
-        if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed)
-            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
-        {
-            self.selecting = Some(pid);
-            return pane.term.on_drag(pos);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_release(
-        &mut self,
-        _pressed: WidgetId,
-        _pos: Position,
-        w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if self.hbar_held.take().is_some() {
-            return Outcome::Changed;
-        }
-        if self.drag.take().is_some() {
-            cx.status("Split resized");
-            return Outcome::Changed;
-        }
-        if let Some(pid) = self.selecting.take() {
-            if let Some(pane) = self.daemon(w).and_then(|d| d.pane(pid))
-                && let Some(text) = pane.term.selected_text()
-                && !text.trim().is_empty()
-            {
-                w.clipboard = Some(text);
-                cx.status("Selection copied");
-            }
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, pos: Position, w: &mut World) -> Outcome {
-        let _ = id;
-        if let Some(pid) = self.pane_at(pos) {
-            self.prime(pid, w);
-        }
-        if let Some(pid) = self.pane_at(pos)
-            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
-        {
-            return pane.term.on_wheel(delta);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel_h(&mut self, _id: WidgetId, delta: i32, pos: Position, w: &mut World) -> Outcome {
-        if let Some(pid) = self.pane_at(pos) {
-            self.prime(pid, w);
-        }
-        if let Some(pid) = self.pane_at(pos)
-            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
-        {
-            return pane.term.on_wheel_h(delta);
-        }
-        Outcome::Ignored
     }
 
     fn on_paste(&mut self, text: &str, w: &mut World) -> Outcome {
@@ -3069,5 +2862,261 @@ impl Layer<ModalResult, World> for UsageDialog {
             t.faint().bg(bg),
         );
         let _ = props::render;
+    }
+}
+
+// ------------------------------------------------------------ pointer
+
+/// The Capsule's pointer gestures by phase ([`Screen::pointer`]). The
+/// panes and seams keep their derived ids (the pane's viewport is a copy
+/// in the world, primed with the last frame's geometry).
+impl CapsuleScreen {
+    /// The horizontal bar of `pane`'s viewport as the layout recorded it
+    /// ([`TextViewport::hbar`]): the pane's own region owns the pointer,
+    /// so the bar is reached by position.
+    fn hbar_of(term: &TextViewport) -> Bar {
+        Bar {
+            id: scrollbar::h_id_for(term.id),
+            owner: term.id,
+            axis: Axis::Horizontal,
+            track: term.hbar(),
+        }
+    }
+
+    fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if self.takeover.is_some() {
+            // the takeover notice's buttons (mouse #6)
+            if id == TAKEOVER_RECONNECT {
+                self.reconnect(w, cx);
+                return Outcome::Changed;
+            }
+            if id == TAKEOVER_LEAVE {
+                self.leave_takeover(cx);
+                return Outcome::Changed;
+            }
+            return Outcome::Consumed;
+        }
+        self.prefix_until = None;
+        // anchored menus take the click first
+        if let Some((tab, mut m)) = self.tab_menu.take() {
+            match m.on_click(id) {
+                Some(MenuAction::Chosen(i)) => {
+                    let label = m.items[i].label.clone();
+                    let t = if tab == usize::MAX { None } else { Some(tab) };
+                    self.run_menu(&label, t, w, cx);
+                }
+                Some(MenuAction::Dismissed) | None => {}
+            }
+            return Outcome::Changed;
+        }
+        if let Some(r) = self.menubar.route(ev) {
+            let (o, act) = r.into_parts();
+            match act {
+                Some(MenuBarAction::Chosen(mi, ii)) => {
+                    let label = self.menubar.menus[mi][ii].label.clone();
+                    self.run_menu(&label, None, w, cx);
+                }
+                Some(MenuBarAction::Brand) => self.open_brand_menu(),
+                _ => {}
+            }
+            return o.or(Outcome::Changed);
+        }
+        if self.menubar.is_open() {
+            self.menubar.close();
+            return Outcome::Changed;
+        }
+        if id == USAGE_CHIP {
+            self.open_usage(w, cx);
+            return Outcome::Changed;
+        }
+        if id == CONTAINER_CHIP {
+            self.open_container_info(w, cx);
+            return Outcome::Changed;
+        }
+        if id == CONTEXT {
+            self.open_github(w, cx);
+            return Outcome::Changed;
+        }
+        if let Some(r) = self.tabs.route(ev) {
+            let (o, act) = r.into_parts();
+            if let Some(TabAction::Activated(i)) = act
+                && let Some(d) = self.daemon_mut(w)
+            {
+                d.active = i;
+            }
+            cx.focus.focus(PANES);
+            return o.or(Outcome::Changed);
+        }
+        if let Some(pid) = self.pane_at(pos) {
+            cx.focus.focus(PANES);
+            if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) {
+                t.focused = pid;
+            }
+            self.prime(pid, w);
+            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
+                && !pane.term.hbar().contains(pos)
+            {
+                pane.term.on_click(pos);
+            }
+            return Outcome::Changed;
+        }
+        Outcome::Consumed
+    }
+
+    fn press(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        // a menu-bar title opens on the press (MenuBar::open_on)
+        if let Some(r) = self.menubar.route(ev)
+            && r.outcome() != Outcome::Ignored
+        {
+            return Outcome::Changed;
+        }
+        let pos = ev.pos();
+        // anchor a text selection on the press so the drag that follows can
+        // extend it; the release completes the click
+        if let Some(pid) = self.pane_at(pos) {
+            cx.focus.focus(PANES);
+            if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) {
+                t.focused = pid;
+            }
+            self.prime(pid, w);
+            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
+                // a press on the horizontal bar scrolls sideways and holds
+                // the bar for the drag that follows
+                if pane.term.hbar().contains(pos) {
+                    self.hbar_held = Some(pid);
+                    let bar = Self::hbar_of(&pane.term);
+                    return pane
+                        .term
+                        .bar_input(&bar, pos, true)
+                        .outcome()
+                        .or(Outcome::Changed);
+                }
+                pane.term.on_click(pos);
+            }
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn secondary(&mut self, ev: &PointerEvent, w: &mut World) -> Outcome {
+        if self.takeover.is_some() {
+            return Outcome::Consumed;
+        }
+        if let Some(i) = ev.on(STRIP).then(|| ev.index_of(Part::TAB)).flatten() {
+            if let Some(d) = self.daemon_mut(w) {
+                d.active = i;
+            }
+            self.open_tab_menu(i, w);
+            return Outcome::Changed;
+        }
+        let pos = ev.pos();
+        if let Some(pid) = self.pane_at(pos) {
+            // the pane's own context at the pointer; its commands act on
+            // the pane under the pointer, which takes focus (per
+            // ContextConfig::moves_cursor)
+            if self.context.moves_cursor
+                && let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut())
+            {
+                t.focused = pid;
+            }
+            self.open_pane_menu(pos, w);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn double_click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        if let Some(i) = ev.on(STRIP).then(|| ev.index_of(Part::TAB)).flatten() {
+            self.open_rename(i, w, cx);
+            return Outcome::Changed;
+        }
+        let pos = ev.pos();
+        if let Some(pid) = self.pane_at(pos) {
+            self.prime(pid, w);
+        }
+        if let Some(pid) = self.pane_at(pos)
+            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
+        {
+            let o = pane.term.select_word_at(pos);
+            if let Some(text) = pane.term.selected_text() {
+                w.clipboard = Some(text);
+                cx.status("Selection copied");
+            }
+            return o;
+        }
+        Outcome::Ignored
+    }
+
+    fn drag(&mut self, pressed: WidgetId, pos: Position, w: &mut World) -> Outcome {
+        // seam drag
+        for i in 0..self.seams.len() {
+            if PANES.sub("seam").child(i) == pressed {
+                let s = self.seams[i].clone();
+                self.drag = Some((s.path.clone(), s.container));
+                if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut())
+                    && let Some(PaneNode::Split { split, dir, .. }) = t.root.node_at_mut(&s.path)
+                {
+                    split.drag_to(*dir, s.container, 1, pos);
+                }
+                return Outcome::Changed;
+            }
+        }
+        // the horizontal bar of a pane follows the pointer
+        if let Some(pid) = self.hbar_held {
+            self.prime(pid, w);
+            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
+                let bar = Self::hbar_of(&pane.term);
+                return pane.term.bar_input(&bar, pos, false).outcome();
+            }
+        }
+        // text selection drag within a pane
+        if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed) {
+            self.prime(pid, w);
+        }
+        if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed)
+            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
+        {
+            self.selecting = Some(pid);
+            return pane.term.on_drag(pos);
+        }
+        Outcome::Ignored
+    }
+
+    /// The end of a held press ([`Phase::DragEnd`], a release away from
+    /// it, or its click): the bar lets go, a seam drag reports, a
+    /// selection is copied.
+    fn drag_end(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.hbar_held.take().is_some() {
+            return Outcome::Changed;
+        }
+        if self.drag.take().is_some() {
+            cx.status("Split resized");
+            return Outcome::Changed;
+        }
+        if let Some(pid) = self.selecting.take() {
+            if let Some(pane) = self.daemon(w).and_then(|d| d.pane(pid))
+                && let Some(text) = pane.term.selected_text()
+                && !text.trim().is_empty()
+            {
+                w.clipboard = Some(text);
+                cx.status("Selection copied");
+            }
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    /// The wheel scrolls the pane under the pointer on its axis.
+    fn wheel(&mut self, axis: Axis, delta: i32, pos: Position, w: &mut World) -> Outcome {
+        if let Some(pid) = self.pane_at(pos) {
+            self.prime(pid, w);
+        }
+        if let Some(pid) = self.pane_at(pos)
+            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
+        {
+            return pane.term.wheel(axis, delta).outcome();
+        }
+        Outcome::Ignored
     }
 }

@@ -3,7 +3,10 @@
 //! preview and an asynchronous save that returns to the manager.
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -23,7 +26,7 @@ use junie_tui::widgets::select::Select;
 use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 
 use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab};
@@ -1786,189 +1789,73 @@ impl Screen for EditorScreen {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.saving {
+    /// The General tab's stack takes its bar and the wheel; a click on
+    /// the tab strip switches the tab (the wheel moves its window); the
+    /// name field and the dirty-exit select take their own gestures; a
+    /// click on a control or a row acts on it; the wheel scrolls the list
+    /// under the pointer; the configuration tabs take their own events.
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let click = ev.is(Phase::Click);
+        if self.saving && (click || ev.is(Phase::Secondary)) {
             return Outcome::Consumed;
         }
-        if self.cfg.menu_open() {
-            let o = self.cfg.menu_click(id, w, cx);
+        if click && self.cfg.menu_open() {
+            let o = self.cfg.menu_click(ev.id, w, cx);
             self.sync_pending();
             return o;
         }
-        if id == scrollbar::id_for(GENERAL) {
-            self.general_stack.on_scrollbar(pos);
-            return Outcome::Changed;
+        if let Some(o) = self.general_stack.pointer(GENERAL, ev) {
+            return o;
         }
-        if self.tabs.owns(id) {
-            let (o, ev) = self.tabs.on_click(id);
-            if let Some(TabAction::Activated(i)) = ev {
+        if let Some(r) = self.tabs.route(ev) {
+            let (o, act) = r.into_parts();
+            if let Some(TabAction::Activated(i)) = act {
                 self.tab = EdTab::ALL[i.min(4)];
+            }
+            if !click {
+                return o;
             }
             cx.focus.focus(TABS);
             return o.or(Outcome::Changed);
         }
-        if id == CANCEL {
-            cx.focus.focus(CANCEL);
-            if self.cancel.on_click() {
-                self.leave(cx);
-            }
-            return Outcome::Changed;
-        }
-        if id == SAVE {
-            cx.focus.focus(SAVE);
-            if self.save.on_click() {
-                self.open_preview(w, cx);
-            }
-            return Outcome::Changed;
-        }
-        match self.tab {
-            EdTab::General => {
-                if id == NAME {
+        if self.tab == EdTab::General {
+            if let Some(r) = self.name.route(ev) {
+                if click {
                     cx.focus.focus(NAME);
-                    return self.name.on_click_count(pos, cx.clicks.max(1));
                 }
-                if id == WORKDIR {
-                    cx.focus.focus(WORKDIR);
-                    if self.workdir_button.on_click() {
-                        self.open_workdir_picker(w, cx);
-                    }
-                    return Outcome::Changed;
-                }
-                if id == KEEP_AWAKE {
-                    cx.focus.focus(KEEP_AWAKE);
-                    let o = self.keep_awake.on_click();
-                    self.sync_pending();
-                    return o;
-                }
-                if id == GIT_PULL {
-                    cx.focus.focus(GIT_PULL);
-                    let o = self.git_pull.on_click();
-                    self.sync_pending();
-                    return o;
-                }
-                if self.dirty_policy.owns(id) {
+                return r.outcome();
+            }
+            if let Some(r) = self.dirty_policy.route(ev) {
+                if click {
                     cx.focus.focus(DIRTY_POLICY);
-                    let (o, _) = self.dirty_policy.on_click(id);
-                    self.sync_pending();
-                    return o;
                 }
-                Outcome::Ignored
-            }
-            EdTab::Accounts => {
-                for i in 0..self.acct.rows.len() {
-                    if ACCOUNTS.child(i) == id {
-                        let same = self.acct.cursor == i;
-                        self.acct.cursor = i;
-                        cx.focus.focus(ACCOUNTS);
-                        if same {
-                            let k = Key {
-                                code: KeyCode::Char(' '),
-                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
-                            };
-                            return self.accounts_key(&k, w, cx);
-                        }
-                        return Outcome::Changed;
-                    }
-                }
-                if id == scrollbar::id_for(ACCOUNTS) {
-                    let a = self.acct.area;
-                    let track = Rect::new(a.right() - 1, a.y, 1, a.height);
-                    self.acct.scroll.scroll_to(scrollbar::offset_for_click(
-                        track,
-                        pos,
-                        &self.acct.scroll,
-                    ));
-                    return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            EdTab::Roles => {
-                if id == scrollbar::id_for(ROLES) {
-                    let a = self.role_area;
-                    let track = Rect::new(a.right() - 1, a.y, 1, a.height);
-                    self.role_scroll.scroll_to(scrollbar::offset_for_click(
-                        track,
-                        pos,
-                        &self.role_scroll,
-                    ));
-                    return Outcome::Changed;
-                }
-                for i in 0..self.role_rows.len() {
-                    if ROLES.child(i) == id {
-                        let same = self.role_cursor == i;
-                        self.role_cursor = i;
-                        cx.focus.focus(ROLES);
-                        if same {
-                            let k = Key {
-                                code: KeyCode::Char(' '),
-                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
-                            };
-                            return self.roles_key(&k, w, cx);
-                        }
-                        return Outcome::Changed;
-                    }
-                }
-                Outcome::Ignored
-            }
-            t => {
-                let o = self.cfg.on_click(t.cfg().unwrap(), id, pos, w, cx);
-                if o.consumed() {
-                    self.sync_pending();
-                }
-                o
+                let o = r.outcome();
+                self.sync_pending();
+                return o;
             }
         }
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == NAME && self.tab == EdTab::General {
-            return self.name.on_press_count(pos, cx.clicks.max(1));
+        if click {
+            return self.click(ev, w, cx);
         }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == NAME && self.tab == EdTab::General {
-            return self.name.on_drag(pos);
-        }
-        if pressed == scrollbar::id_for(GENERAL) {
-            self.general_stack.on_scrollbar_drag(pos);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.saving {
-            return Outcome::Consumed;
+        if let Some((Axis::Vertical, delta)) = ev.wheel() {
+            let id = ev.id;
+            if id == ROLES || id == scrollbar::id_for(ROLES) {
+                self.role_scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
+            if id == ACCOUNTS || id == scrollbar::id_for(ACCOUNTS) {
+                self.acct.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
         }
         match self.tab.cfg() {
-            Some(t) => self.cfg.on_secondary(t, id, pos, w, cx),
+            Some(t) => self.cfg.pointer(t, ev, w, cx),
             None => Outcome::Ignored,
         }
     }
 
     fn layer_open(&self) -> bool {
         self.cfg.menu_hides_focus()
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == GENERAL || id == scrollbar::id_for(GENERAL) {
-            self.general_stack.on_wheel(delta);
-            return Outcome::Changed;
-        }
-        if id == ROLES || id == scrollbar::id_for(ROLES) {
-            self.role_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == ACCOUNTS || id == scrollbar::id_for(ACCOUNTS) {
-            self.acct.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        match self.tab.cfg() {
-            Some(t) => self.cfg.on_wheel(t, id, delta),
-            None => Outcome::Ignored,
-        }
     }
 
     fn on_blur(
@@ -2367,5 +2254,113 @@ impl Screen for EditorScreen {
             cx.focus.focus(TABS);
         }
         Outcome::Changed
+    }
+}
+
+impl EditorScreen {
+    /// A completed click on a control or a row of the current tab.
+    fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if id == CANCEL {
+            cx.focus.focus(CANCEL);
+            if self.cancel.on_click() {
+                self.leave(cx);
+            }
+            return Outcome::Changed;
+        }
+        if id == SAVE {
+            cx.focus.focus(SAVE);
+            if self.save.on_click() {
+                self.open_preview(w, cx);
+            }
+            return Outcome::Changed;
+        }
+        match self.tab {
+            EdTab::General => {
+                if id == WORKDIR {
+                    cx.focus.focus(WORKDIR);
+                    if self.workdir_button.on_click() {
+                        self.open_workdir_picker(w, cx);
+                    }
+                    return Outcome::Changed;
+                }
+                if id == KEEP_AWAKE {
+                    cx.focus.focus(KEEP_AWAKE);
+                    let o = self.keep_awake.on_click();
+                    self.sync_pending();
+                    return o;
+                }
+                if id == GIT_PULL {
+                    cx.focus.focus(GIT_PULL);
+                    let o = self.git_pull.on_click();
+                    self.sync_pending();
+                    return o;
+                }
+                Outcome::Ignored
+            }
+            EdTab::Accounts => {
+                for i in 0..self.acct.rows.len() {
+                    if ACCOUNTS.child(i) == id {
+                        let same = self.acct.cursor == i;
+                        self.acct.cursor = i;
+                        cx.focus.focus(ACCOUNTS);
+                        if same {
+                            let k = Key {
+                                code: KeyCode::Char(' '),
+                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+                            };
+                            return self.accounts_key(&k, w, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                if id == scrollbar::id_for(ACCOUNTS) {
+                    let a = self.acct.area;
+                    let track = Rect::new(a.right() - 1, a.y, 1, a.height);
+                    self.acct.scroll.scroll_to(scrollbar::offset_for_click(
+                        track,
+                        pos,
+                        &self.acct.scroll,
+                    ));
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            EdTab::Roles => {
+                if id == scrollbar::id_for(ROLES) {
+                    let a = self.role_area;
+                    let track = Rect::new(a.right() - 1, a.y, 1, a.height);
+                    self.role_scroll.scroll_to(scrollbar::offset_for_click(
+                        track,
+                        pos,
+                        &self.role_scroll,
+                    ));
+                    return Outcome::Changed;
+                }
+                for i in 0..self.role_rows.len() {
+                    if ROLES.child(i) == id {
+                        let same = self.role_cursor == i;
+                        self.role_cursor = i;
+                        cx.focus.focus(ROLES);
+                        if same {
+                            let k = Key {
+                                code: KeyCode::Char(' '),
+                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+                            };
+                            return self.roles_key(&k, w, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                Outcome::Ignored
+            }
+            t => {
+                let o = self.cfg.pointer(t.cfg().unwrap(), ev, w, cx);
+                if o.consumed() {
+                    self.sync_pending();
+                }
+                o
+            }
+        }
     }
 }
