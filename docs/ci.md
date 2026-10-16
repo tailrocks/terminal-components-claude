@@ -62,7 +62,7 @@ Rust.
 | `Actionlint` | actionlint 1.7.12 + shellcheck on the workflows |
 | `Plan` | drift check, affected-work plan for the PR |
 | `Rust / junie-tui` | `cargo fmt --check`; `cargo clippy --all-targets -- -D warnings`; `cargo nextest list` (build); `cargo nextest run --profile ci`; `cargo doc --no-deps` |
-| `Publish baseline` | push only: stores the plan result reused by later PRs |
+| `Publish baseline` | push only: stores the plan result reused by later PRs. Red on every push on 0.1.8: it checks the GitHub default branch (`main`), not the configured one (`docs/upstream/velnor-new-feedback.md` §9); not part of `Required` |
 | `Required` | aggregates `Plan`, `Rust / junie-tui` and `Actionlint` |
 
 No job runs `cargo test`: `[lib] doctest = false` in `Cargo.toml` removes the
