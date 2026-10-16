@@ -106,10 +106,17 @@ components work; they are not where behaviour lives.
 - App-specific UI patterns must be extracted to the library and
   demonstrated in the showcase before apps use them. An app never ships a
   pattern the showcase does not show.
+  Exception: jackin's intro and outro animations are brand-specific and
+  stay in jackin.
 - The showcase is a thin consumer too: its pages add wiring, demo data and
   option tables, never drawing, interaction or state logic of their own.
   See the showcase coverage track in
   `docs/architecture/shared-components-plan.md` (§7).
+- The coverage gate is `src/bin/showcase/app_tests_catalog.rs`. New
+  public API gets its line in `src/catalog.rs` (the failing test prints
+  it), then a declaration in `src/bin/showcase/coverage.rs` or an
+  `id | reason | SCn` allowlist line. A step deletes the lines of what
+  it now shows.
 
 ### Visual states
 
