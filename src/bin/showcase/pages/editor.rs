@@ -515,7 +515,7 @@ impl Page for EditorPage {
                     cx.focus.focus(*id);
                     return self.editor.on_click(*pos);
                 }
-                if *id == scrollbar::id_for(self.editor.id) {
+                if scrollbar::is_bar_of(*id, self.editor.id) {
                     return self.editor.on_scrollbar(*pos);
                 }
                 Outcome::Ignored
@@ -523,7 +523,7 @@ impl Page for EditorPage {
             PageEvent::Drag { pressed, pos } => {
                 if *pressed == self.editor.id {
                     self.editor.on_drag(*pos)
-                } else if *pressed == scrollbar::id_for(self.editor.id) {
+                } else if scrollbar::is_bar_of(*pressed, self.editor.id) {
                     self.editor.on_scrollbar_drag(*pos)
                 } else {
                     Outcome::Ignored
@@ -532,15 +532,13 @@ impl Page for EditorPage {
             PageEvent::Wheel { id, delta } => {
                 if self.completion.owns(*id) {
                     self.completion.on_wheel(*delta)
-                } else if *id == self.editor.id || *id == scrollbar::id_for(self.editor.id) {
+                } else if self.editor.owns(*id) {
                     self.editor.on_wheel(*delta, false)
                 } else {
                     Outcome::Ignored
                 }
             }
-            PageEvent::WheelH { id, delta }
-                if *id == self.editor.id || *id == scrollbar::id_for(self.editor.id) =>
-            {
+            PageEvent::WheelH { id, delta } if self.editor.owns(*id) => {
                 self.editor.on_wheel(*delta, true)
             }
             PageEvent::DialogClosed { .. }
