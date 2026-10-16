@@ -124,7 +124,7 @@ fn chrome_rows_keep_a_tall_dialog_clear_of_the_header_and_footer() {
     // the shell honours the dialog's own chrome: 3 rows above, 2 below,
     // then the outer margin
     assert_eq!(d.y, 3 + 1, "{d:?}");
-    assert!(d.bottom() <= 30 - 2 - 1, "{d:?}");
+    assert!(d.bottom() < 30 - 2, "{d:?}");
     assert!(d.height < base.height, "{d:?} vs {base:?}");
 }
 
