@@ -1193,16 +1193,20 @@ impl Screen for CleanupPage {
             hint("Enter", "Open"),
         ];
         v.push(hint("a", "All"));
-        v.push(hint(
+        v.push(junie_tui::widgets::keyhint::toggle_hint(
             "m",
-            match self.mode {
-                Mode::Trash => "Permanent",
-                Mode::Permanent => "Trash",
-            },
+            self.mode == Mode::Permanent,
+            "Use Trash",
+            "Use permanent delete",
         ));
-        v.push(hint("n", if self.dry_run { "Live" } else { "Dry run" }));
+        v.push(junie_tui::widgets::keyhint::toggle_hint(
+            "n",
+            self.dry_run,
+            "Switch to live run",
+            "Switch to dry run",
+        ));
         v.push(hint("d", "Review deletion"));
-        v.push(hint("p", "Facts"));
+        v.push(hint("p", "Details"));
         v.push(hint("Esc", "Back"));
         v
     }
