@@ -241,7 +241,12 @@ fn the_hand_drawn_table_follows_the_list_and_scrolls_by_column() {
     // row 119 is retired: End lands on 118, host logs-12's neighbour
     assert!(h.text().contains("jobs-12"), "the table followed the list");
     let hand = WidgetId::of("scrolling").sub("hand");
-    let area = h.app.hits.area_of(hand).expect("the table takes the wheel");
+    let area = h
+        .app
+        .shell
+        .hits
+        .area_of(hand)
+        .expect("the table takes the wheel");
     let before = scrolling(&h).hand.v.offset;
     h.mouse(MouseKind::WheelUp, area.x + 2, area.y + 1);
     assert!(
@@ -259,9 +264,9 @@ fn the_hand_drawn_table_follows_the_list_and_scrolls_by_column() {
     assert_eq!(scrolling(&h).hand.h.offset, 4);
     // the sideways bar: never drawn, always drawn
     let hbar = scrollbar::h_id_for(hand);
-    assert!(h.app.hits.area_of(hbar).is_some());
+    assert!(h.app.shell.hits.area_of(hbar).is_some());
     h.opt("scrolling.hbar=never");
-    assert!(h.app.hits.area_of(hbar).is_none());
+    assert!(h.app.shell.hits.area_of(hbar).is_none());
 }
 
 #[test]
@@ -270,7 +275,7 @@ fn track_click_pages_or_jumps_the_list() {
         let mut h = big();
         h.opt(&format!("scrolling.track_click={click}"));
         let bar = scrollbar::id_for(scrolling(&h).list.id);
-        let t = h.app.hits.area_of(bar).unwrap();
+        let t = h.app.shell.hits.area_of(bar).unwrap();
         h.click(t.x, t.bottom() - 1);
         let l = &scrolling(&h).list;
         assert_eq!(l.scroll.at_end(), jumps, "{click}");
@@ -282,8 +287,8 @@ fn a_divider_is_solid_while_its_content_fits_and_a_scrollbar_once_it_overflows()
     let h = big();
     let fits = WidgetId::of("scrolling").sub("fits");
     let over = WidgetId::of("scrolling").sub("over");
-    assert!(h.app.hits.area_of(scrollbar::id_for(fits)).is_none());
-    let bar = h.app.hits.area_of(scrollbar::id_for(over)).unwrap();
+    assert!(h.app.shell.hits.area_of(scrollbar::id_for(fits)).is_none());
+    let bar = h.app.shell.hits.area_of(scrollbar::id_for(over)).unwrap();
     let col = |x: u16| -> Vec<String> {
         let buf = h.term.backend().buffer();
         (bar.y..bar.bottom())
@@ -353,10 +358,10 @@ fn panel_options_rebuild_the_scrolling_panels() {
     assert!(!panels(&h).log.follow, "t pauses following");
     // sideways policy: off draws no bar and ignores the notch
     let hbar = scrollbar::h_id_for(log);
-    assert!(h.app.hits.area_of(hbar).is_some());
+    assert!(h.app.shell.hits.area_of(hbar).is_some());
     h.opt("panels.hscroll=off");
-    assert!(h.app.hits.area_of(hbar).is_none());
-    let area = h.app.hits.area_of(log).unwrap();
+    assert!(h.app.shell.hits.area_of(hbar).is_none());
+    let area = h.app.shell.hits.area_of(log).unwrap();
     h.mouse(MouseKind::WheelRight, area.x + 2, area.y + 1);
     assert_eq!(panels(&h).log.scroll.h.offset, 0);
     h.opt("panels.hscroll=step-1");

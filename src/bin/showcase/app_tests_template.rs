@@ -1,6 +1,7 @@
 //! The widget-page template (Playground | Options | States) and the
 //! States grid, driven through the real app (plan §7, SC2).
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -94,7 +95,7 @@ impl Harness {
     fn focus_strip(&mut self) {
         self.key(KeyCode::Tab);
         assert_eq!(
-            self.app.focus.current(),
+            self.app.shell.focus.current(),
             Some(self.strip_id()),
             "the strip is the page's first stop"
         );
@@ -133,7 +134,7 @@ fn the_strip_switches_sections_by_key_and_click() {
     let (x, y) = h.find("Playground").unwrap();
     h.click(x + 1, y);
     assert_eq!(h.section(), Section::Playground);
-    assert_eq!(h.app.focus.current(), Some(h.strip_id()));
+    assert_eq!(h.app.shell.focus.current(), Some(h.strip_id()));
     assert!(h.text().contains("Run task"));
 }
 
@@ -228,7 +229,7 @@ fn compare_levels_shows_every_colour_level() {
         .unwrap()
         .compare
         .id;
-    assert_eq!(h.app.focus.current(), Some(compare));
+    assert_eq!(h.app.shell.focus.current(), Some(compare));
     h.key(KeyCode::Enter);
     let text = h.text();
     for level in ["truecolor", "256 colors", "16 colors", "no color"] {

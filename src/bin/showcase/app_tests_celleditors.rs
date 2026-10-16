@@ -2,6 +2,7 @@
 //! columns edited by keyboard and mouse, the Tags checklist, the Combo
 //! search, flagged imported values, and the page's place in the sidebar.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -83,7 +84,7 @@ impl Harness {
     }
 
     fn status(&self) -> Option<String> {
-        self.app.status.text().map(str::to_owned)
+        self.app.shell.status.text().map(str::to_owned)
     }
 }
 
@@ -151,6 +152,7 @@ fn the_wheel_over_an_open_choice_popup_moves_its_cursor() {
     let before = editor.cursor;
     let row = h
         .app
+        .shell
         .hits
         .area_of(editor.option_id(2))
         .expect("an option row");
@@ -166,18 +168,28 @@ fn the_wheel_over_an_open_choice_popup_moves_its_cursor() {
 #[test]
 fn a_select_cell_is_edited_by_mouse() {
     let mut h = Harness::new(140, 40);
-    let cell = h.app.hits.area_of(h.table().cell_id(1, ENV)).unwrap();
+    let cell = h.app.shell.hits.area_of(h.table().cell_id(1, ENV)).unwrap();
     // first click moves the cursor, second click opens (select, then edit)
     h.click(cell.x, cell.y);
     assert!(h.table().choice.is_none());
     h.click(cell.x, cell.y);
     assert!(h.table().choice.is_some(), "{}", h.text());
     let opt = h.table().choice.as_ref().unwrap().editor.option_id(5);
-    let at = h.app.hits.area_of(opt).expect("Performance is clickable");
+    let at = h
+        .app
+        .shell
+        .hits
+        .area_of(opt)
+        .expect("Performance is clickable");
     h.click(at.x + 2, at.y);
     assert_eq!(h.cell(1, ENV), "perf");
     // the ▾ on the focused cell opens in one click; a click outside cancels
-    let mark = h.app.hits.area_of(h.table().open_id(1, ENV)).expect("▾");
+    let mark = h
+        .app
+        .shell
+        .hits
+        .area_of(h.table().open_id(1, ENV))
+        .expect("▾");
     h.click(mark.x, mark.y);
     assert!(h.table().choice.is_some());
     h.click(1, 1);

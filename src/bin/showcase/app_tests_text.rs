@@ -2,6 +2,7 @@
 //! helpers follow the width and style options, the property list is
 //! rebuilt through its builders and reports its actions.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -182,7 +183,7 @@ fn the_list_activates_and_copies_through_its_keymap() {
     let mut h = Harness::new(220, 80, PageId::TextUtilities);
     let (x, y) = h.find("Port  ").expect("the list");
     h.click(x, y);
-    assert!(h.app.focus.is(WidgetId::of("textutilities.props")));
+    assert!(h.app.shell.focus.is(WidgetId::of("textutilities.props")));
     assert!(h.text().contains("last PropsAction: Activate(Port)"));
     h.key(KeyCode::Char('y'));
     assert!(h.text().contains("last PropsAction: Copy(Port)"));

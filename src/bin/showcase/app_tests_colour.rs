@@ -4,6 +4,7 @@
 //! app (colour follow-ups, `docs/audits/design-review-2026-10`).
 
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
+use junie_tui::runtime::Application;
 use junie_tui::theme::{Theme, contrast_ratio};
 use ratatui::{
     Terminal,
