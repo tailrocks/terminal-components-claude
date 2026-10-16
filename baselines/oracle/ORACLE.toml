@@ -1,5 +1,5 @@
 # Visual oracle manifest (docs/visual-testing/plan.md §B4, §E).
-# Written by `cargo xtask visual import --oracle | accept | seal`;
+# Written by `cargo xtask visual import --oracle | seal`;
 # checked by the default-run test `oracle_integrity`.
 #
 # Pending: no capture imported yet, so the gate still reads snapshots/.
