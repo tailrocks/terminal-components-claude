@@ -295,7 +295,18 @@ fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     if area.is_empty() {
         return;
     }
-    let mut st = Style::new().fg(t.text_primary).bg(t.popover);
+    // the popover plane, the strongest neutral; over content already on
+    // that plane (a menu) it steps down a plane, so the tooltip always
+    // reads as its own layer
+    let on_popover = area
+        .positions()
+        .any(|p| buf.cell(p).is_some_and(|c| c.bg == t.popover));
+    let plane = if on_popover {
+        t.surface_overlay
+    } else {
+        t.popover
+    };
+    let mut st = Style::new().fg(t.text_primary).bg(plane);
     if t.level == ColorLevel::Mono {
         st = st.add_modifier(Modifier::REVERSED);
     }
