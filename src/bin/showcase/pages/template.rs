@@ -18,6 +18,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use super::{Hint, PageCtx, PageEvent};
+use crate::options::{Group, Opt, OptionsView};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::ColorLevel;
@@ -80,6 +81,10 @@ pub struct Template {
     states: super::layout::Sections,
     /// Rows the States grid drew whole in the last frame.
     shown: Vec<SpecimenState>,
+    /// The page's option table (`crate::options::page_options`) as live
+    /// controls, built on the first [`Self::sync_options`].
+    options: Option<OptionsView>,
+    owner: WidgetId,
 }
 
 impl Template {
@@ -96,7 +101,38 @@ impl Template {
                 s
             },
             shown: Vec::new(),
+            options: None,
+            owner,
         }
+    }
+
+    /// Load the page's option values before a frame: `opts` is the page's
+    /// table, `value` its current value index per option. The controls
+    /// are the same declarations the Inspector's Options tab and `--opt`
+    /// read; a change goes back to the shell as [`super::Request::SetOption`], so
+    /// all three take one path (`App::apply_opt`).
+    pub fn sync_options(&mut self, opts: &'static [Opt], value: impl Fn(&Opt) -> usize) {
+        if opts.is_empty() {
+            return;
+        }
+        let owner = self.owner;
+        let view = self.options.get_or_insert_with(|| {
+            OptionsView::new(
+                owner.sub("options"),
+                &[Group {
+                    heading: "Page options",
+                    opts,
+                    empty: "",
+                }],
+            )
+        });
+        view.sync(value);
+    }
+
+    /// The control of option `key` in the Options section.
+    #[allow(dead_code)] // tests reach controls by key
+    pub fn option_control(&self, key: &str) -> Option<WidgetId> {
+        self.options.as_ref()?.control_id(key)
     }
 
     pub fn section(&self) -> Section {
@@ -140,6 +176,10 @@ impl Template {
     /// options are in the Inspector meanwhile.
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
+        if let Some(view) = &mut self.options {
+            view.render(area, buf, ctx, t.canvas);
+            return;
+        }
         let e = EmptyState::new("No page options yet")
             .hint("Shell-wide options: i, then Options · or --opt shell.<key>=<value>");
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
@@ -232,6 +272,21 @@ impl Template {
         if states && let Some(o) = self.states.handle(ev) {
             return Some(o);
         }
+        if let Some(view) = &mut self.options {
+            if let PageEvent::Blur(ch) = ev
+                && view.has_control(ch.from)
+            {
+                return Some(view.on_blur(Some(ch.from)));
+            }
+            if self.tabs.active == 1
+                && let Some((o, set)) = view.handle(ev, cx)
+            {
+                if let Some(set) = set {
+                    cx.set_option(set);
+                }
+                return Some(o);
+            }
+        }
         match ev {
             PageEvent::Key(key) => {
                 let f = cx.focus.current()?;
@@ -268,6 +323,9 @@ impl Template {
         let f = focus?;
         if f == self.tabs.id {
             return Some(vec![("←→", "Section"), ("1–3", "Jump")]);
+        }
+        if let Some(h) = self.options.as_ref().and_then(|v| v.hints(focus)) {
+            return Some(h);
         }
         (f == self.compare.id).then(|| vec![("Enter / Space", "Compare levels")])
     }
