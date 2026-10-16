@@ -326,8 +326,8 @@
 80x24 TrueColor Accounts & usage be5148ca7c0efa84
 80x24 TrueColor Launch cockpit d53fea3e9b77afba
 80x24 TrueColor Read-only report 2f2e70a8980c1f73
-80x24 TrueColor Inspector · State a6ef72f26e3daeb9
-80x24 TrueColor Inspector · Options 222ea8ed49e5930c
+80x24 TrueColor Inspector · State a353955c02f56d97
+80x24 TrueColor Inspector · Options 60b5e2e004f96c6c
 80x24 Ansi256 Overview 20e7e185c88cc002
 80x24 Ansi256 Overview · Options b1f51d028f291db3
 80x24 Ansi256 Overview · States d86166108b860bc7
@@ -392,8 +392,8 @@
 80x24 Ansi256 Accounts & usage 2e28f5e285b54e82
 80x24 Ansi256 Launch cockpit d65ffff4d0ee5658
 80x24 Ansi256 Read-only report 28b3a3627e8cb3b7
-80x24 Ansi256 Inspector · State 5f925320f77db8f1
-80x24 Ansi256 Inspector · Options 1a5ac5a84d2cb7d3
+80x24 Ansi256 Inspector · State ca1154bc4413a8f7
+80x24 Ansi256 Inspector · Options a3f0ab9f479aa297
 80x24 Ansi16 Overview e60adb310c3abde5
 80x24 Ansi16 Overview · Options cafe64de33ea7f79
 80x24 Ansi16 Overview · States 35b5c42574ce26f1
@@ -458,8 +458,8 @@
 80x24 Ansi16 Accounts & usage 9e6793e106a958f2
 80x24 Ansi16 Launch cockpit c1ae6763a1864aa8
 80x24 Ansi16 Read-only report 19d48b0e23a9c431
-80x24 Ansi16 Inspector · State a7cc30dbae0c71ad
-80x24 Ansi16 Inspector · Options c9966de4bfc9f625
+80x24 Ansi16 Inspector · State c4ef7f33dd61402d
+80x24 Ansi16 Inspector · Options e7041d4fb04b68f5
 80x24 Mono Overview 88e27245868503c1
 80x24 Mono Overview · Options d23e029ca13c4768
 80x24 Mono Overview · States 9d8388852eb1b202
@@ -590,8 +590,8 @@
 72x20 TrueColor Accounts & usage 32ff92ae2454f1d9
 72x20 TrueColor Launch cockpit ec89c1eb79741253
 72x20 TrueColor Read-only report 20c959eec71bb953
-72x20 TrueColor Inspector · State 3a9461b07c2595b3
-72x20 TrueColor Inspector · Options fc54d4aefce70190
+72x20 TrueColor Inspector · State e49e46362c6482e7
+72x20 TrueColor Inspector · Options 2e6f7a4973f90c44
 72x20 Ansi256 Overview 9770b8f18aefbd8e
 72x20 Ansi256 Overview · Options d983a581f8221fcd
 72x20 Ansi256 Overview · States 32ad1d2bfa466f89
@@ -656,8 +656,8 @@
 72x20 Ansi256 Accounts & usage f6e03a6fd69e9ab5
 72x20 Ansi256 Launch cockpit c81fd986cba251c3
 72x20 Ansi256 Read-only report 773abe574f489221
-72x20 Ansi256 Inspector · State fdf67b11b1f53b84
-72x20 Ansi256 Inspector · Options bed3333267231a38
+72x20 Ansi256 Inspector · State 75ff02163a6776ca
+72x20 Ansi256 Inspector · Options 0da020ba06eae579
 72x20 Ansi16 Overview 9d1bc774564e0be4
 72x20 Ansi16 Overview · Options 7c63718eeb166e93
 72x20 Ansi16 Overview · States cf17b16e680669c7
@@ -722,8 +722,8 @@
 72x20 Ansi16 Accounts & usage 2f41ca5f14ba76b9
 72x20 Ansi16 Launch cockpit 270d9a6d80b2ad85
 72x20 Ansi16 Read-only report e906a4c4feb5d2a9
-72x20 Ansi16 Inspector · State 769fe79560f6297e
-72x20 Ansi16 Inspector · Options 99d1393ab4db754d
+72x20 Ansi16 Inspector · State 90020573b940ad5e
+72x20 Ansi16 Inspector · Options 87483aa7138dd67d
 72x20 Mono Overview ffaa501f315a6fb1
 72x20 Mono Overview · Options 1608561f089c18ed
 72x20 Mono Overview · States a7bd5497cbcf66eb
