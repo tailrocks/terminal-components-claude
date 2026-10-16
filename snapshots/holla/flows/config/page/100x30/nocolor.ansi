@@ -1,5 +1,5 @@
- [0m[1m holla❯ [0m   File   Go   Help                                      probe · Rust project  [0m[1mmbp · local[0m [0m
-                                                                                                    [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                     probe · Rust project  [0m[1mmbp · local[0m  [0m
+  Here › [0m[1mCustom actions[0m                                                                             [0m
  [0m[1m Here › Custom actions  [0m                                                                           [0m
  ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────── [0m
   [0m[1mCustom actions[0m                                         ~/work/probe/.holla.toml · live · 1 s ago  [0m
@@ -19,12 +19,13 @@
  │  label = "Collides"                                                                          ┃ │ [0m
  │  command = ["true"]                                                                          ┃ │ [0m
  │  danger = "safe"                                                                             ┃ │ [0m
- │                                                                                              │ │ [0m
- │  [[action]]                                                                                  │ │ [0m
- │  id = "deploy"                                                                               │ │ [0m
- │  label = "Deploy"                                                                            │ │ [0m
- │  [0m[2mcommand = ["tools/deploy.sh"]                                                               [0m│ │ [0m
+ │                                                                                              ┆ │ [0m
+ │  [[action]]                                                                                  ┆ │ [0m
+ │  id = "deploy"                                                                               ┆ │ [0m
+ │  label = "Deploy"                                                                            ┆ │ [0m
+ │  [0m[2mcommand = ["tools/deploy.sh"]                                                               [0m┆ │ [0m
  ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                                     [0m
  [0m[1m~/work/probe[0m   main   ↓1                  snapshot · read-only                   no color · 100×30 [0m
-                                   [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mEsc[0m Back                                      [0m
+                            [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mEsc[0m Back  [0m[1mShift+F10[0m Menu                             [0m
+[?25l
