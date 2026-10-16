@@ -1457,10 +1457,7 @@ impl TextViewport {
                     .find(|m| m.range.start < c.src.end && c.src.start < m.range.end)
                 {
                     st = if m.current {
-                        Style::new()
-                            .fg(t.canvas)
-                            .bg(t.accent)
-                            .add_modifier(Modifier::BOLD | Modifier::REVERSED)
+                        t.match_current()
                     } else {
                         st.add_modifier(Modifier::UNDERLINED).bg(t.lift(bg))
                     };
@@ -2090,7 +2087,12 @@ mod tests {
             },
         ]);
         let buf = render(&mut v, 10, 3);
-        assert!(buf[(0, 1)].modifier.contains(Modifier::REVERSED));
+        // the current match is the accent fill, not reversed back to accent
+        // ink on black (weaker than the other matches)
+        let t = crate::theme::Theme::junie();
+        assert_eq!(buf[(0, 1)].bg, t.accent);
+        assert_eq!(buf[(0, 1)].fg, t.text_on_accent);
+        assert!(!buf[(0, 1)].modifier.contains(Modifier::REVERSED));
         assert!(buf[(1, 2)].modifier.contains(Modifier::UNDERLINED));
         v.push(vec![Span::plain("delta")]);
         assert_eq!(v.marks().len(), 2);

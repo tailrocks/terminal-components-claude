@@ -641,16 +641,8 @@ impl DataTable {
                 continue;
             }
             let hid = self.header_id(ci);
-            let hovered = ctx.interaction.hovered(hid);
             let sorted = self.sort.map(|(c, _)| c == ci).unwrap_or(false);
-            let mut st = if sorted {
-                t.primary().bg(header_bg)
-            } else {
-                t.muted().bg(header_bg)
-            };
-            if hovered && col.sortable {
-                st = st.fg(t.text_primary).add_modifier(Modifier::UNDERLINED);
-            }
+            let st = crate::widgets::grid::header_style(ctx, hid, header_bg, col.sortable, sorted);
             let ind = match self.sort {
                 Some((c, SortDir::Asc)) if c == ci => " ▴",
                 Some((c, SortDir::Desc)) if c == ci => " ▾",
