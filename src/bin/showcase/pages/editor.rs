@@ -18,8 +18,10 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::edit::EditEntry;
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys};
-use junie_tui::core::scroll::{HScroll, Scrollable, TrackClick};
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::core::scroll::{HScroll, TrackClick};
 use junie_tui::theme::{CursorStyle, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::popup::{Dismiss, Place, Placement};
@@ -31,7 +33,6 @@ use junie_tui::widgets::completion::{Completion, CompletionAction, CompletionIte
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
-use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("editor");
 
@@ -711,58 +712,45 @@ impl Page for EditorPage {
                 o
             }
             PageEvent::Paste(text) => self.editor.on_paste(text),
-            PageEvent::Click { id, pos } => {
-                if self.completion.is_open() {
-                    if let Some(CompletionAction::Accept(i)) = self.completion.on_click(*id) {
-                        self.accept(i);
-                        return Outcome::Changed;
-                    }
-                    if !self.completion.owns(*id) {
+            PageEvent::Pointer(ev) => {
+                if ev.wheel().is_some()
+                    && let Some(r) = self.completion.route(ev)
+                {
+                    return r.outcome();
+                }
+                if ev.is(Phase::Click) && self.completion.is_open() {
+                    if ev.on(self.completion.id) {
+                        if let Some(CompletionAction::Accept(i)) =
+                            self.completion.route(ev).and_then(|r| r.into_action())
+                        {
+                            self.accept(i);
+                            return Outcome::Changed;
+                        }
+                    } else {
                         self.completion.close();
                     }
                 }
-                if *id == self.find.id {
-                    if self.find.on_click() {
-                        self.open_find(cx);
+                if ev.is(Phase::Click) {
+                    if let Some(r) = self.find.route(ev) {
+                        if r.into_action().is_some() {
+                            self.open_find(cx);
+                        }
+                        return Outcome::Changed;
                     }
-                    return Outcome::Changed;
-                }
-                if *id == self.run_button.id {
-                    cx.focus.focus(*id);
-                    if self.run_button.on_click() {
-                        self.run(cx);
+                    if let Some(r) = self.run_button.route(ev) {
+                        cx.focus.focus(self.run_button.id);
+                        if r.into_action().is_some() {
+                            self.run(cx);
+                        }
+                        return Outcome::Changed;
                     }
-                    return Outcome::Changed;
+                    if ev.on(self.editor.id) && ev.bar.is_none() {
+                        cx.focus.focus(self.editor.id);
+                    }
                 }
-                if *id == self.editor.id {
-                    cx.focus.focus(*id);
-                    return self.editor.on_click(*pos);
-                }
-                if scrollbar::is_bar_of(*id, self.editor.id) {
-                    return self.editor.on_scrollbar(*pos);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } => {
-                if *pressed == self.editor.id {
-                    self.editor.on_drag(*pos)
-                } else if scrollbar::is_bar_of(*pressed, self.editor.id) {
-                    self.editor.on_bar_drag(*pressed, *pos)
-                } else {
-                    Outcome::Ignored
-                }
-            }
-            PageEvent::Wheel { id, delta } => {
-                if self.completion.owns(*id) {
-                    self.completion.on_wheel(*delta)
-                } else if self.editor.owns(*id) {
-                    self.editor.on_wheel(*delta)
-                } else {
-                    Outcome::Ignored
-                }
-            }
-            PageEvent::WheelH { id, delta } if self.editor.owns(*id) => {
-                self.editor.on_wheel_h(*delta)
+                self.editor
+                    .route(ev)
+                    .map_or(Outcome::Ignored, |r| r.outcome())
             }
             _ => Outcome::Ignored,
         }
