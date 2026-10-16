@@ -242,4 +242,15 @@ remainder recorded here with its reason. Commits are on
 - **#4, quick switcher.** `Picker` still centres in the whole screen (now
   with the one-cell margin and true vertical centring from #5 and #20). It
   draws its own hint line in the footer, so its placement was left with
-  the screen.
+  the screen.- **SC22 finding (2026-10-17): a framed title can lose to its meta below
+  `title_min`.** In `Panel::title_row` the room check for the meta counts
+  the frame's padding once (`w - pad - (title_min + 1)`), but a framed
+  title and a framed meta each take two padding cells, so a meta that
+  passes the check leaves the title fewer than `title_min` cells: on the
+  Panels States grid a 24-column framed `Preview` with `1–9 of 24` draws
+  `Prev…` although the doc promises a title shorter than `title_min`
+  keeps its whole width. The fix (count the title's own padding,
+  `title_min + pad + 1`) makes such metas take their short form instead
+  (`1–9/24`) and moves framed title rows in all four apps, so it is left
+  for a step that re-approves those captures on purpose; cards (no
+  padding) are unaffected.

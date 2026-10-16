@@ -236,6 +236,16 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:Query toolbar"]).pending(),
     Root::new("showcase/sections/toolbars-options", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["tab", "2", "wait:Skip disabled"]).pending(),
     Root::new("showcase/sections/toolbars-states", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["tab", "3", "wait:Toggles"]).pending(),
+    // SC22, SC29: Panels and Scrolling on the template. The strip is the
+    // first stop; the log is the panels page's fourth (strip, the nested
+    // list, the prose, the log); the long list the scrolling page's third.
+    Root::new("showcase/sections/panels-options", Bin::Showcase, &["--page", "panels"], BOOT).sends(&["tab", "2", "wait:Follow key"]).pending(),
+    Root::new("showcase/sections/panels-states", Bin::Showcase, &["--page", "panels"], BOOT).sends(&["tab", "3", "wait:Card · bar mark"]).pending(),
+    Root::new("showcase/flows/panels/focus-bar", Bin::Showcase, &["--page", "panels", "--opt", "panels.focus_mark=bar", "--opt", "panels.tail=on"], BOOT).sends(&["tab", "tab", "tab", "tab", "wait:Follow tail"]).pending(),
+    Root::new("showcase/sections/scrolling-options", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "2", "wait:Skip disabled"]).pending(),
+    Root::new("showcase/sections/scrolling-states", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "3", "wait:Log tail"]).pending(),
+    Root::new("showcase/flows/scrolling/vim-keys", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600", "--opt", "scrolling.profile=vim"], BOOT).sends(&["wait:739.63s", "tab", "tab", "tab", "G", "wait:Home End g G"]).pending(),
+    Root::new("showcase/flows/scrolling/flag", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "tab", "tab", "down", "f", "wait:flagged"]).pending(),
     Root::new("showcase/elements/toolbars/focused", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["tab", "tab", "right", "right"]).pending(),
     Root::new("showcase/elements/toolbars/item-hover", Bin::Showcase, &["--page", "toolbars"], BOOT).hover("Format").pending(),
     // ------------------------------------------------------------------ audit --
@@ -370,7 +380,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/datagrid/selected", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "down", "right"]),
     Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "space"]),
     // The same paused endpoint keeps the subsequent scroll actions deterministic.
-    Root::new("showcase/flows/scrolling/scrolled", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "down", "down", "down"]),
+    Root::new("showcase/flows/scrolling/scrolled", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "tab", "down", "down", "down"]),
     Root::new("showcase/flows/settings/toggled", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "space"]),
     // Selectable table journeys (keyboard only, so every size runs the same
     // steps): Tab focuses the table, the owner row is disabled, Space selects
@@ -462,7 +472,7 @@ pub const JOURNEYS: &[Root] = &[
     // the wheel moves the follow-tail log off the tail.
     Root::new("showcase/fade/scrolling/wheel-fade", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).live(interact::scrolling_wheel_up),
     // Paged scroll through the wrapped prose; the frame seek keeps boot instant.
-    Root::new("showcase/fade/scroll/page", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["tab", "pagedown"]).live(interact::none),
+    Root::new("showcase/fade/scroll/page", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["tab", "tab", "pagedown"]).live(interact::none),
     // Minimum-size reflow: the nav list overflows its 12-row viewport.
     Root::new("showcase/fade/sidebars/wheel", Bin::Showcase, &["--page", "sidebars"], BOOT).live(interact::sidebars_wheel),
     // Frame-seeked mid-run terminal (60 ticks), wheel up into the scrollback.

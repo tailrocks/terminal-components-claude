@@ -661,6 +661,114 @@ impl Scrollable for ScrollPanel {
     }
 }
 
+/// A panel drawn in a forced state for a States grid
+/// ([`crate::ui::specimen`]): its chrome (title row, meta, the card fill
+/// or the frame) over one content row. Focused shows how focus-within
+/// reads under its [`PanelFocus`] (the title, or the title with the bar,
+/// which the grid depicts); overflow gives it a meta far longer than its
+/// title row, which gives way to the title.
+impl crate::ui::specimen::Specimen for Panel<'static> {
+    fn specimen_id(&self) -> WidgetId {
+        WidgetId::of("panel-specimen")
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Focused | Overflow | Narrow)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        4
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        _bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let t = ctx.theme;
+        let panel = Panel {
+            title: self.title,
+            kind: self.kind,
+            focused: state == Focused,
+            meta: if state == Overflow {
+                Some("a meta far longer than the title row")
+            } else {
+                self.meta
+            },
+            badge: self.badge,
+            bg_override: self.bg_override,
+            focus_mark: self.focus_mark,
+            title_min: self.title_min,
+            meta_short: self.meta_short,
+            pad_x: self.pad_x,
+        };
+        let inner = panel.render(area, buf, t);
+        if !inner.is_empty() {
+            let text = crate::ui::text::truncate("content", inner.width as usize);
+            buf.set_string(inner.x, inner.y, text, t.secondary().bg(panel.bg(t)));
+        }
+    }
+}
+
+/// A scrolling panel drawn in a forced state for a States grid
+/// ([`crate::ui::specimen`]), four rows tall in the secondary ink. The
+/// pointer states are its scrollbar's: hover lights the thumb, a press
+/// holds it in the accent (the one-glyph thumb rule). Overflow has more
+/// lines than rows (the faded edge and the bar), empty has none, and the
+/// narrow slot cuts its lines.
+impl crate::ui::specimen::Specimen for ScrollPanel {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Hover | Pressed | Empty | Overflow | Narrow)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        4
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut panel = self.clone();
+        match state {
+            Empty => panel.lines.clear(),
+            // the bar's states need a bar: content longer than the rows
+            Hover | Pressed | Overflow => {
+                let n = panel.lines.len();
+                panel
+                    .lines
+                    .extend((n + 1..=12.max(n)).map(|i| format!("line {i}")));
+            }
+            _ => {}
+        }
+        let bar = scrollbar::id_for(panel.id);
+        match state {
+            Hover => ctx.interaction.hover = Some(bar),
+            Pressed => {
+                ctx.interaction.hover = Some(bar);
+                ctx.interaction.pressed = Some(bar);
+            }
+            _ => {}
+        }
+        panel.render(area, buf, ctx, bg, |t, _| t.secondary());
+    }
+}
+
 #[cfg(test)]
 mod scroll_panel_tests {
     use super::*;
@@ -681,6 +789,59 @@ mod scroll_panel_tests {
         (0..buf.area.width)
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect::<String>()
+    }
+
+    /// Draw `sample` in `state` on a 20×4 inert frame.
+    fn sample(
+        sample: &dyn crate::ui::specimen::Specimen,
+        state: crate::ui::specimen::SpecimenState,
+    ) -> Buffer {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, 20, 4);
+        let mut buf = Buffer::empty(area);
+        sample.specimen(state, area, &mut buf, &mut ctx, theme.canvas);
+        buf
+    }
+
+    #[test]
+    fn a_scroll_panel_sample_lights_and_holds_its_thumb() {
+        use crate::ui::specimen::SpecimenState::*;
+        let theme = Theme::junie();
+        let p = ScrollPanel::new(WidgetId::of("s"), vec!["one".into()]);
+        // the thumb sits at the top of the bar column (offset 0)
+        let thumb = |state| sample(&p, state)[(19, 0)].clone();
+        let (rest, hover, held) = (thumb(Overflow), thumb(Hover), thumb(Pressed));
+        for c in [&rest, &hover, &held] {
+            assert_eq!(c.symbol(), scrollbar::THUMB, "one glyph in every state");
+        }
+        assert_ne!(rest.fg, hover.fg, "hover lights the thumb");
+        assert_eq!(held.fg, theme.accent, "a held thumb is the accent");
+        assert_eq!(row(&sample(&p, Empty), 0).trim(), "", "empty draws nothing");
+        assert_ne!(
+            sample(&p, Rest)[(19, 0)].symbol(),
+            scrollbar::THUMB,
+            "fits: no bar"
+        );
+    }
+
+    #[test]
+    fn a_panel_sample_shows_focus_within_by_its_mark() {
+        use crate::ui::specimen::SpecimenState::*;
+        let card = Panel::card(Some("Log")).meta("live");
+        let bar = Panel::card(Some("Log"))
+            .meta("live")
+            .focus_mark(PanelFocus::Bar);
+        assert!(!row(&sample(&card, Focused), 0).contains('▎'));
+        assert!(row(&sample(&bar, Focused), 0).contains('▎'));
+        assert!(!row(&sample(&bar, Rest), 0).contains('▎'));
+        assert!(row(&sample(&card, Rest), 2).contains("content"));
+        assert!(
+            !row(&sample(&card, Overflow), 0).contains("live"),
+            "the long meta gives way"
+        );
     }
 
     fn draw_panel(p: &mut ScrollPanel, area: Rect) -> (Buffer, HitRegistry) {
