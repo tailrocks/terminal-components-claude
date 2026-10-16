@@ -947,12 +947,11 @@ impl Screen for PlanReviewPage {
         if focus == Some(DETAIL) {
             return vec![hint("↑↓", "Scroll"), hint("Esc", "Outline")];
         }
-        if focus == Some(CANCEL) || focus == Some(CONFIRM) {
-            return vec![
-                hint("←→", "Choose"),
-                hint("Enter", "Activate"),
-                hint("Esc", "Discard plan"),
-            ];
+        if let Some(b) = [&self.cancel, &self.confirm]
+            .into_iter()
+            .find(|b| Some(b.id) == focus)
+        {
+            return vec![hint("←→", "Choose"), b.hint(), hint("Esc", "Discard plan")];
         }
         vec![
             hint("↑↓", "Step"),
