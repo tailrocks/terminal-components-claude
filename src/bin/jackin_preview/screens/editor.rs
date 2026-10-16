@@ -1958,6 +1958,34 @@ impl Screen for EditorScreen {
         }
     }
 
+    fn on_blur(
+        &mut self,
+        ch: junie_tui::core::focus::FocusChange,
+        _w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        if ch.from == self.dirty_policy.id {
+            return self.dirty_policy.on_blur();
+        }
+        if ch.from != self.name.id {
+            return Outcome::Ignored;
+        }
+        match self.name.on_blur() {
+            Some(InputEvent::Committed) => {
+                self.name.error = None;
+                self.name.validate();
+                self.sync_pending();
+                cx.status(format!("Name {} · save to apply", self.pending.name));
+                Outcome::Changed
+            }
+            Some(InputEvent::Cancelled) => {
+                cx.status("Reverted");
+                Outcome::Changed
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
     fn on_paste(&mut self, text: &str, _w: &mut World) -> Outcome {
         if self.name.editing {
             let out = self.name.on_paste(text);
