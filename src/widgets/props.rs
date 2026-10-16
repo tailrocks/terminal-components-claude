@@ -314,7 +314,7 @@ impl PropsList {
             scrollbar_gap: scrollbar::GAP,
             sheet: Sheet::default(),
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             nav: NavKeys::DEFAULT,
             keymap: PropsAction::default_keymap(),
         }

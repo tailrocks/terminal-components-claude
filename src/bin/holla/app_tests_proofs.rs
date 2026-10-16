@@ -801,6 +801,10 @@ fn output_scrollbar_press_and_drag_redraw_and_find_index_resets_on_a_new_query()
     h.mouse(MouseKind::Down, area.x, area.y + 2);
     let pressed = h.text();
     assert_ne!(before, pressed, "a press on the scrollbar moves the view");
+    h.mouse(MouseKind::Up, area.x, area.y + 2);
+    // the press paged (TrackClick::Page); the thumb drags
+    let thumb = crate::app_tests_coverage::thumb_row(&h, area);
+    h.mouse(MouseKind::Down, area.x, thumb);
     h.mouse(MouseKind::Drag, area.x, area.y + area.height / 2);
     let dragged = h.text();
     assert_ne!(pressed, dragged, "a drag moves it again");

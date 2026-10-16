@@ -418,7 +418,7 @@ impl ScrollPanel {
     pub fn new(id: WidgetId, lines: Vec<String>) -> Self {
         Self {
             track_click: None,
-            v_click: crate::core::scroll::TrackClick::Jump,
+            v_click: crate::core::scroll::TrackClick::Page,
             id,
             lines,
             scroll: ScrollState::default(),
@@ -984,6 +984,7 @@ mod scroll_panel_tests {
         assert_eq!(log.on_key(&key(KeyCode::Char('f'))), Outcome::Changed);
         assert!(log.follow && log.scroll.at_end());
         // the scrollbar behaves the same: the thumb dragged to the end follows
+        log.track_click = Some(crate::core::scroll::TrackClick::Jump);
         drawn(&mut log, 20, 5);
         assert_eq!(log.on_scrollbar(Position::new(19, 0)), Outcome::Changed);
         assert!(!log.follow);
