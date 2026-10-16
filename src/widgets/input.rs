@@ -57,6 +57,9 @@ pub struct TextInput {
     pub editing: bool,
     /// Value before editing began, for Esc.
     snapshot: String,
+    /// Validation state before editing began: Esc restores it with the
+    /// value.
+    snapshot_error: Option<String>,
     /// Horizontal scroll (display columns).
     scroll: usize,
     pub area: Rect,
@@ -112,6 +115,27 @@ pub struct TextInput {
     /// A click on the label focuses the field and starts its edit (the
     /// HTML `<label>` convention, macOS form labels). Default `true`.
     pub label_hit: bool,
+    /// Which ended edits run validation. Default [`ValidateOn::Change`].
+    pub validate_on: ValidateOn,
+}
+
+/// Which ended edits (Enter, Tab, Esc, blur) validate the value.
+///
+/// Focus starts an edit ([`EditEntry::Immediate`]), so Tab through a form
+/// commits every field it passes. Flagging an untouched empty required
+/// field as an error before the user typed anything or submitted is
+/// premature validation (WAI-ARIA APG and the W3C forms tutorial validate
+/// after input or on submit; macOS forms do the same). Owners still
+/// validate on submit ([`TextInput::validate`]).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ValidateOn {
+    /// Validate when the edit changed the value, or when the field already
+    /// shows an error (so a corrected value clears it). An untouched value
+    /// keeps its state.
+    #[default]
+    Change,
+    /// Validate on every ended edit, changed or not.
+    EveryCommit,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -140,6 +164,7 @@ impl TextInput {
             error: None,
             editing: false,
             snapshot: String::new(),
+            snapshot_error: None,
             scroll: 0,
             area: Rect::ZERO,
             text_area: Rect::ZERO,
@@ -161,6 +186,7 @@ impl TextInput {
             pointer_select: PointerSelect::DEFAULT,
             press: PressState::default(),
             label_hit: true,
+            validate_on: ValidateOn::Change,
         }
     }
 
@@ -214,6 +240,11 @@ impl TextInput {
     /// See [`Self::blur_action`].
     pub fn blur_action(mut self, action: BlurAction) -> Self {
         self.blur_action = action;
+        self
+    }
+    /// See [`Self::validate_on`].
+    pub fn validate_on(mut self, on: ValidateOn) -> Self {
+        self.validate_on = on;
         self
     }
     /// See [`Self::edit_entry`].
@@ -333,6 +364,7 @@ impl TextInput {
     pub fn clear(&mut self) {
         self.buffer.set_text("");
         self.snapshot.clear();
+        self.snapshot_error = None;
         self.error = None;
         self.undo.clear();
     }
@@ -372,13 +404,15 @@ impl TextInput {
         self.editing = true;
         self.focus_edit = false;
         self.snapshot = self.buffer.text().to_owned();
+        self.snapshot_error = self.error.clone();
         self.buffer.clear_selection();
     }
 
     pub fn commit(&mut self) {
         self.editing = false;
         self.buffer.clear_selection();
-        self.validate();
+        let changed = self.buffer.text() != self.snapshot;
+        self.validate_ended_edit(changed);
     }
 
     pub fn cancel(&mut self) {
@@ -389,7 +423,17 @@ impl TextInput {
         }
         let snap = self.snapshot.clone();
         self.buffer.set_text(snap);
-        self.validate();
+        // the value is the one the edit started from: it validates again
+        // only if it was marked before or during the edit
+        let marked = self.snapshot_error.is_some() || self.error.is_some();
+        self.validate_ended_edit(marked);
+    }
+
+    /// Validation after an ended edit, per [`Self::validate_on`].
+    fn validate_ended_edit(&mut self, changed: bool) {
+        if changed || self.error.is_some() || self.validate_on == ValidateOn::EveryCommit {
+            self.validate();
+        }
     }
 
     /// Start the edit focus gained ([`EditEntry::Immediate`]): the value
@@ -1551,6 +1595,47 @@ mod tests {
         let mut buf = Buffer::empty(area);
         render(&mut input, area, &mut buf);
         assert_eq!(buf[(2 + 4 + 1, 0)].fg, theme.error);
+    }
+
+    #[test]
+    fn passing_through_an_untouched_required_field_marks_no_error() {
+        let mut input = TextInput::new(WidgetId::of("required"), "Name").required(true);
+        // focus starts the edit, Tab or blur ends it without a change
+        input.begin_edit();
+        input.commit();
+        assert!(
+            input.error.is_none(),
+            "an untouched field is not invalid yet"
+        );
+        input.begin_edit();
+        input.cancel();
+        assert!(input.error.is_none());
+        // a changed value validates
+        input.begin_edit();
+        input.on_paste("x");
+        input.commit();
+        assert!(input.error.is_none());
+        input.begin_edit();
+        input.buffer.select_all();
+        input.buffer.backspace();
+        input.commit();
+        assert!(input.error.is_some(), "an edit that empties it is");
+        // a marked field validates on every ended edit, so a fix clears it
+        input.begin_edit();
+        input.on_paste("ok");
+        input.cancel();
+        assert!(input.error.is_some(), "Esc brings the invalid value back");
+        input.begin_edit();
+        input.on_paste("ok");
+        input.commit();
+        assert!(input.error.is_none());
+        // the override validates untouched values too
+        let mut input = TextInput::new(WidgetId::of("required"), "Name")
+            .required(true)
+            .validate_on(ValidateOn::EveryCommit);
+        input.begin_edit();
+        input.commit();
+        assert!(input.error.is_some());
     }
 
     #[test]
