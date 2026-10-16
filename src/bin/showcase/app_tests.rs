@@ -203,8 +203,10 @@ fn tab_traversal_is_deterministic_and_wraps() {
         start,
         "focus ring wraps back to start"
     );
-    // nav + the section strip + 7 enabled buttons (2 disabled are skipped)
-    assert_eq!(seen.len(), 9, "{seen:?}");
+    // nav + the section strip + 7 enabled buttons (2 disabled are
+    // skipped) + the 5 of the button row + the 2 enabled "Next" buttons;
+    // the toolbar is not in the Tab order
+    assert_eq!(seen.len(), 16, "{seen:?}");
     // Shift+Tab walks the same ring backwards
     let mut back = vec![];
     for _ in 0..seen.len() {
