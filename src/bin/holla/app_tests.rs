@@ -184,9 +184,15 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
     ])
     .expect("valid CLI options");
     assert_eq!(cli.scenario, Scenario::ParityBrowser);
-    assert!(matches!(cli.motion, Some(crate::MotionArg::Full)));
-    assert!(matches!(cli.color, Some(crate::ColorArg::Ansi16)));
-    assert_eq!(cli.frame, 9);
+    assert!(matches!(
+        cli.common.motion,
+        Some(junie_tui::motion::Motion::Full)
+    ));
+    assert!(matches!(
+        cli.common.color,
+        Some(junie_tui::cli::ColorArg::Ansi16)
+    ));
+    assert_eq!(cli.common.frame, 9);
 
     for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
         assert!(
@@ -213,13 +219,16 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
     ])
     .unwrap();
     assert_eq!(short.scenario, Scenario::ParityBrowser);
-    assert_eq!(short.frame, 3);
+    assert_eq!(short.common.frame, 3);
 
     let default = crate::Cli::try_parse_from(["holla"]).unwrap();
     assert_eq!(default.scenario, Scenario::FirstUse);
-    assert!(default.motion.is_none());
+    assert!(default.common.motion.is_none());
     let paused = crate::Cli::try_parse_from(["holla", "--motion", "paused"]).unwrap();
-    assert!(matches!(paused.motion, Some(crate::MotionArg::Paused)));
+    assert!(matches!(
+        paused.common.motion,
+        Some(junie_tui::motion::Motion::Paused)
+    ));
 
     assert!(matches!(
         crate::Cli::try_parse_from(["holla", "--color", "invalid"]),

@@ -33,14 +33,8 @@ pub const HEADER_BRAND: WidgetId = WidgetId::of("app.header.brand");
 /// The quit confirmation the brand opens.
 pub const QUIT_DIALOG: WidgetId = WidgetId::of("app.quit");
 
-/// Tick delivery mode: `Paused` pins every tick-derived glyph at
-/// `--frame N` (the pages are fast-forwarded synchronously at startup) so
-/// animated surfaces are capturable; the default is unchanged live ticks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Motion {
-    Full,
-    Paused,
-}
+/// Tick delivery (`--motion`): the library's [`Motion`].
+pub use junie_tui::motion::Motion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PageId {
