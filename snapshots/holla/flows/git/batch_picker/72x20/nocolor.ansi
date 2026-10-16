@@ -1,20 +1,21 @@
-  holla❯    File   Go   Help      repos · project …lection  mbp · local [0m
-                                                                        [0m
-  Here    pull alpha ✓ ×                                                [0m
- ─╭──────────────────────────────────────────────────────────────────╮─ [0m
-  │ [0m[1mActivities[0m                                                0 live │  [0m
-  │ [0m[1m▎[0m✓[0m[1m pull alpha  [0msucceeded · child · 0 s[0m[1m               [0mactivities[0m[1m [0m │  [0m
-  │  ✓ pull beta   succeeded · child · 0 s                           │  [0m
- ╭│  ! pull delta  failed · child · 0 s                              │╮ [0m
- ││  ! pull gamma  failed · child · 0 s                              ││ [0m
- ││                                                                  ││ [0m
- ││                                                                  ││ [0m
- │╰──────────────────────────────────────────────────────────────────╯│ [0m
- │  Fast-forward                                                      │ [0m
- │   6 files changed, 39 insertions(+)                                │ [0m
- │                                                                    │ [0m
- │                                                                    │ [0m
- ╰────────────────────────────────────────────────────────────────────╯ [0m
-                                                                        [0m
- ~/work/repos             succeeded · 0 s              no color · 72×20 [0m
-      …   [0m[1m![0m Pull 4 sibling repositories · 2 ok · 2 failed · 0 cancelled [0m
+[0m[2m  holla❯    File   Go   Help     repos · project …lection  mbp · local  [0m
+[0m[2m                                                                        [0m
+[0m[2m  Here    pull alpha ✓ ×                                                [0m
+[0m[2m ────────━━━━━━━━━━━━━━━━━───────────────────────────────────────────── [0m
+[0m[2m  pull alpha · succeeded · 0 s · exit 0                                 [0m
+[0m[2m  ╭──────────────────────────────────────────────────────────────────╮  [0m
+[0m[2m  │ [0m[1;2mActivities[0m[2m                                                0 live │  [0m
+[0m[2m ╭│ [0m[1;2;7m [0m[2;7m✓[0m[1;2;7m pull alpha  [0m[2;7msucceeded · child · 0 s[0m[1;2;7m               [0m[2;7mactivities[0m[1;2;7m [0m[2m │╮ [0m
+[0m[2m ││  ✓ pull beta   succeeded · child · 0 s                           ││ [0m
+[0m[2m ││  ! pull delta  failed · child · 0 s                              ││ [0m
+[0m[2m ││  ! pull gamma  failed · child · 0 s                              ││ [0m
+[0m[2m ││                                                                  ││ [0m
+[0m[2m ││                                                                  ││ [0m
+[0m[2m │╰──────────────────────────────────────────────────────────────────╯│ [0m
+[0m[2m │                                                                    │ [0m
+[0m[2m │                                                                    │ [0m
+[0m[2m ╰────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                        [0m
+[0m[2m ~/work/repos             succeeded · 0 s              no color · 72×20 [0m
+  [0m[1m  [0m         [0m[1m [0m     [0m[1m↑↓[0m M[0m[1mo[0mve  [0m[1mEnter[0m Switc[0m[1mh[0m  [0m[1mEsc[0m Canc[0m[1mel [0m                   [0m
+[?25l

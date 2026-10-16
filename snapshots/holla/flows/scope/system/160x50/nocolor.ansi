@@ -1,11 +1,11 @@
- [0m[1m holla❯ [0m   File   Go   Help                                                                                                  acme · mise monorepo  [0m[1mmbp · local[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                                                                                 acme · mise monorepo  [0m[1mmbp · local[0m  [0m
                                                                                                                                                                 [0m
  [0m[1m Here  [0m                                                                                                                                                        [0m
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
  ▎ Search actions and resources…                                                                                                              scope ‹ system ›  [0m
                                                                                                                                                                 [0m
     System · mbp · 45 entries                                                                               ┃    Review cleanup candidates     cleanup · host   [0m
- [0m[1m › Review cleanup candidates          [0mcleanup[0m[1m  [0mhost[0m[1m  [0m10.6 GiB across 4 categories[0m[1m                          [0m┃                                                   [0m
+ [0m[1;7m › Review cleanup candidates          [0m[7mcleanup[0m[1;7m  [0m[7mhost[0m[1;7m  [0m[7m10.6 GiB across 4 categories[0m[1;7m                          [0m┃                                                   [0m
     Clean Docker completely            plan     host  7.1 GB reclaimable on mbp                 destructive ┃    Does       4 detected categories · 10.6 GiB    [0m
     List containers                    docker   host  5 running                                             ┃               · rebuilt-on-demand and             [0m
     Prune builder cache                docker   host  2.9 GB of build cache                     destructive ┃               safe-if-old candidates start        [0m
@@ -41,10 +41,11 @@
     Restart pgadmin                    docker   host  container action                                      ┃                                                   [0m
     Show process tree                  system   host  3 noted processes                                     ┃                                                   [0m
     Stop a process…                    system   host  reviewed before sending                   destructive ┃                                                   [0m
-    Stop acme-api-1                    docker   host  container action                                      │                                                   [0m
-    Stop acme-db-1                     docker   host  container action                                      │                                                   [0m
-    Stop acme-redis-1                  docker   host  container action                                      │                                                   [0m
- [0m[2m   Stop acme-scheduler-1              docker   host  container action                                      [0m│                                                   [0m
+    Stop acme-api-1                    docker   host  container action                                      ┆                                                   [0m
+    Stop acme-db-1                     docker   host  container action                                      ┆                                                   [0m
+    Stop acme-redis-1                  docker   host  container action                                      ┆                                                   [0m
+ [0m[2m   Stop acme-scheduler-1              docker   host  container action                                      [0m┆                                                   [0m
                                                                                                                                                                 [0m
  [0m[1m~/work/acme[0m   main   ↑1                                                  scope system · mbp                                                  no color · 160×50 [0m
-                                    [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Here                    Scope system · mbp [0m
+                             [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Back to Here          Scope system · mbp [0m
+[?25h[5;4H[6 q

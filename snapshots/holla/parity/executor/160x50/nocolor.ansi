@@ -1,4 +1,4 @@
- [0m[1m holla❯ [0m   File   Go   Help                                                                                            batch · project collection  [0m[1mmbp · local[0m [0m
+ [0m[1;7m holla❯ [0m   File   Go   Help                                                                                           batch · project collection  [0m[1mmbp · local[0m  [0m
                                                                                                                                                                 [0m
  [0m[1m Here  [0m                                                                                                                                                        [0m
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
@@ -6,7 +6,7 @@
                                                                                                                                                                 [0m
     Suggested here                                                                                               Emit a burst                   custom · here   [0m
     Status across 3 child projects  git      child  0 dirty · 1 behind                                                                                          [0m
- [0m[1m › Emit a burst                    [0mcustom [0m[1m  [0mhere [0m[1m  [0mCurrent folder · trusted[0m[1m                                 [0m    Does       4500 lines in sixteen ticks         [0m
+ [0m[1;7m › Emit a burst                    [0m[7mcustom [0m[1;7m  [0m[7mhere [0m[1;7m  [0m[7mCurrent folder · trusted[0m[1;7m                                 [0m    Does       4500 lines in sixteen ticks         [0m
     Emit a mixed stream             custom   here   Current folder · trusted                                     Runs       ./emit-burst                        [0m
                                                                                                                  In         ~/work/batch                        [0m
     Recent here                                                                                                  Host       mbp · local                         [0m
@@ -47,4 +47,5 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
  [0m[1m~/work/batch[0m                                                                                                                                 no color · 160×50 [0m
-                                [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m
+                            [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                             [0m
+[?25h[5;4H[6 q
