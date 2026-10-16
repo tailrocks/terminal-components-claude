@@ -11,6 +11,9 @@ default-run = "showcase"
 [lib]
 name = "junie_tui"
 path = "src/lib.rs"
+# Doctests need `cargo test --doc`, which this repo never runs (nextest
+# only). Examples in docs are mirrored by unit tests instead.
+doctest = false
 
 [[bin]]
 name = "showcase"
