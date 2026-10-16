@@ -1114,6 +1114,24 @@ impl MenuBar {
             };
         }
         match nav {
+            Some(nav @ (Nav::Home | Nav::End)) if n > 0 => {
+                // APG menubar: Home/End go to the first and the last title
+                // (the chevron when titles are hidden behind it)
+                self.cursor = if chevron {
+                    let ring = self.ring();
+                    if nav == Nav::Home {
+                        ring[0]
+                    } else {
+                        ring[ring.len() - 1]
+                    }
+                } else {
+                    self.title_cursor(self.cursor)
+                        .apply(nav, &self.labels[..], 1)
+                        .index()
+                        .unwrap_or(self.cursor)
+                };
+                return (Outcome::Changed, None);
+            }
             Some(Nav::Left) if chevron => {
                 self.cursor = self.step(-1);
                 return (Outcome::Changed, None);
