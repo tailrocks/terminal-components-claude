@@ -851,17 +851,8 @@ impl App {
                 return Some(Outcome::Changed);
             }
             KeyCode::Char('b') if ctrl => {
-                if let Some(w) = self.workbench.as_mut() {
-                    w.explorer_visible = !w.explorer_visible;
-                    if w.explorer_visible {
-                        self.focus.focus(crate::workbench::EXPLORER);
-                    } else if self.focus.is(crate::workbench::EXPLORER)
-                        && let Some(pf) = w.primary_focus()
-                    {
-                        self.focus.focus(pf);
-                    }
-                }
-                return Some(Outcome::Changed);
+                let shown = self.workbench.as_ref().is_some_and(|w| w.explorer_visible);
+                return Some(self.set_explorer(!shown));
             }
             KeyCode::Char('l') if ctrl && !editing => {
                 self.open_safe_mode_picker();
@@ -1013,6 +1004,23 @@ impl App {
 
     /// Run the current statement / all / explain in the active query tab,
     /// passing through the Safe Mode gate.
+    /// Show (and focus) or hide the explorer: Ctrl+B, its rail and its
+    /// collapse button.
+    fn set_explorer(&mut self, show: bool) -> Outcome {
+        if let Some(w) = self.workbench.as_mut() {
+            w.explorer_visible = show;
+            if show {
+                self.focus.focus(crate::workbench::EXPLORER);
+            } else if (self.focus.is(crate::workbench::EXPLORER)
+                || self.focus.is(w.explorer_filter.id))
+                && let Some(pf) = w.primary_focus()
+            {
+                self.focus.focus(pf);
+            }
+        }
+        Outcome::Changed
+    }
+
     /// Cancel the running query, as Esc does while one runs.
     fn cancel_running(&mut self) -> Outcome {
         if let Some(w) = self.workbench.as_mut() {
@@ -2231,6 +2239,10 @@ impl App {
                     }
                 }
             };
+        }
+        // the explorer's rail and collapse button (mouse #8)
+        if let Some(ev) = self.workbench.as_ref().and_then(|w| w.rail.on_click(id)) {
+            return self.set_explorer(ev == junie_tui::widgets::rail::RailEvent::Expand);
         }
         // the query toolbar (mouse #7)
         if let Some(action) = crate::tabs::toolbar_action(id) {

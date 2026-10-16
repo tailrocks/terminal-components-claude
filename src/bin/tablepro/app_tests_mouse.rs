@@ -59,3 +59,58 @@ fn the_query_toolbar_runs_explains_and_cancels_by_mouse() {
     h.ticks(10);
     assert!(h.text().contains("Planning"), "{}", h.text());
 }
+
+// mouse #8: a hidden explorer leaves a rail that brings it back, and the
+// open explorer collapses by its button
+#[test]
+fn the_explorer_collapses_and_comes_back_by_mouse() {
+    use crate::workbench::{EXPLORER, EXPLORER_RAIL};
+    let mut h = H::connected(120, 40);
+    assert!(h.text().contains("Explorer"));
+    assert!(
+        h.app.hits.area_of(EXPLORER_RAIL).is_none(),
+        "no rail while open"
+    );
+    let collapse = h
+        .app
+        .hits
+        .area_of(EXPLORER_RAIL.sub("collapse"))
+        .expect("the explorer has a collapse button");
+    h.click(collapse.x + 1, collapse.y);
+    assert!(!h.wb().explorer_visible, "{}", h.text());
+    let rail = h
+        .app
+        .hits
+        .area_of(EXPLORER_RAIL)
+        .expect("a collapsed explorer leaves a rail");
+    h.click(rail.x, rail.y + 3);
+    assert!(h.wb().explorer_visible, "{}", h.text());
+    assert_eq!(h.focus(), Some(EXPLORER));
+    // Ctrl+B hides it too, and the rail still brings it back
+    h.ctrl('b');
+    assert!(!h.wb().explorer_visible);
+    let rail = h
+        .app
+        .hits
+        .area_of(EXPLORER_RAIL)
+        .expect("rail after Ctrl+B");
+    h.click(rail.x, rail.y);
+    assert!(h.wb().explorer_visible);
+}
+
+// mouse #8: below 100 columns the unfocused explorer drawer keeps a rail
+#[test]
+fn a_narrow_workbench_opens_the_explorer_drawer_from_its_rail() {
+    use crate::workbench::{EXPLORER, EXPLORER_RAIL};
+    let mut h = H::connected(90, 30);
+    h.key(ratatui::crossterm::event::KeyCode::Tab);
+    assert_ne!(h.focus(), Some(EXPLORER));
+    let rail = h
+        .app
+        .hits
+        .area_of(EXPLORER_RAIL)
+        .expect("the closed drawer leaves a rail");
+    h.click(rail.x, rail.y + 1);
+    assert_eq!(h.focus(), Some(EXPLORER), "{}", h.text());
+    assert!(h.text().contains("Explorer"));
+}

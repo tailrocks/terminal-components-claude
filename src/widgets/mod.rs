@@ -29,6 +29,7 @@ pub mod panel;
 pub mod picker;
 pub mod progress;
 pub mod props;
+pub mod rail;
 pub mod scrollbar;
 pub mod segments;
 pub mod select;

@@ -26,6 +26,8 @@ use crate::tabs::{HistoryTab, QueryTab, TableTab};
 
 const ID: WidgetId = WidgetId::of("workbench");
 pub const EXPLORER: WidgetId = ID.sub("explorer");
+/// The collapsed explorer's rail (mouse #8).
+pub const EXPLORER_RAIL: WidgetId = ID.sub("explorer.rail");
 pub const TABSTRIP: WidgetId = ID.sub("tabstrip");
 
 #[allow(clippy::large_enum_variant)] // a handful of tabs; boxing buys nothing
@@ -74,6 +76,9 @@ pub struct Workbench {
     pub explorer: TreeView,
     pub explorer_filter: TextInput,
     pub explorer_visible: bool,
+    /// The rail a hidden (or, below 100 columns, unfocused) explorer
+    /// leaves, and its collapse button.
+    pub rail: junie_tui::widgets::rail::SidebarRail,
     /// Explorer / main split: follows the default width until the seam is
     /// dragged; a double-click on the seam returns to it.
     pub explorer_split: Split,
@@ -115,6 +120,7 @@ impl Workbench {
                 .placeholder("Filter objects")
                 .plain_label(),
             explorer_visible: true,
+            rail: junie_tui::widgets::rail::SidebarRail::new(EXPLORER_RAIL, "Explorer"),
             explorer_split: Split::new(25, 20, 40),
             explorer_sized: false,
             explorer_seam: Splitter::new(EXPLORER.sub("seam"), SplitDir::Horizontal),
@@ -1394,6 +1400,14 @@ impl Workbench {
             || ctx.interaction.focused(self.explorer_filter.id);
         let show_explorer =
             self.explorer_visible && !self.maximized && (!narrow || explorer_focused);
+        // a collapsed explorer leaves its rail: the way back by pointer
+        let body = if !show_explorer && !self.maximized && self.rail.width() > 0 {
+            self.rail.render_rail(body, buf, ctx, t.canvas);
+            let w = self.rail.width().min(body.width);
+            Rect::new(body.x + w, body.y, body.width - w, body.height)
+        } else {
+            body
+        };
         let explorer_w = (body.width / 4).clamp(28, 40);
         if !self.explorer_sized {
             // the default width until the seam is dragged (a double-click
@@ -1420,11 +1434,12 @@ impl Workbench {
         if !ex.is_empty() {
             let ef = ctx.interaction.focused(self.explorer.id)
                 || ctx.interaction.focused(self.explorer_filter.id);
-            let panel = Panel::framed(Some("Explorer"))
-                .focused(ef)
-                .meta(&self.schema);
+            // the meta keeps room for the collapse button after it
+            let meta = format!("{}    ", self.schema);
+            let panel = Panel::framed(Some("Explorer")).focused(ef).meta(&meta);
             let bg = panel.bg(t);
             let inner = panel.render(ex, buf, t);
+            self.rail.render_collapse(ex, buf, ctx, t.canvas);
             self.explorer_filter.render(
                 Rect::new(inner.x.saturating_sub(1), inner.y, inner.width + 1, 2),
                 buf,
