@@ -40,7 +40,7 @@
                             Events                                                                                                                              [0m
                                                                                                                                                                 [0m
                             Enter / F2 / click twice      Edit · Enter again Committed                                                                          [0m
-                            Esc                           Cancelled                                                                                             [0m
+                            Esc                           Cancel the edit · Cancelled                                                                           [0m
                             Tab at the last cell          LeaveForward · Shift+Tab LeaveBackward                                                                [0m
                             Enter on a row (Basic table)  Activated                                                                                             [0m
                             Space (Selection)             SelectionChanged                                                                                      [0m
