@@ -210,9 +210,28 @@ pub static SHELL: &[Opt] = &[
 pub fn page_options(page: PageId) -> &'static [Opt] {
     match page {
         PageId::Overview => OVERVIEW,
+        PageId::Chrome => CHROME,
         _ => &[],
     }
 }
+
+/// Chrome (SC4): the menu bar's builders. The readout under the bar reads
+/// the built widget back, so every knob shows in the frame.
+static CHROME: &[Opt] = &[
+    // narrow enough that the titles overflow (`chrome.overflow`)
+    Opt::new("chrome.bar", "Bar width", &["full", "narrow"]),
+    Opt::new("chrome.open_on", "Open on", &["press", "release"]),
+    Opt::new("chrome.overflow", "Overflow", &["hide", "chevron"])
+        .needs(&[("chrome.bar", "narrow")]),
+    Opt::new("chrome.hover_switch", "Hover switches menus", OFF_ON).default(1),
+    Opt::new("chrome.press_drag", "Press-drag-release", OFF_ON).default(1),
+    Opt::new("chrome.hide_owner_focus", "Hide page focus", OFF_ON).default(1),
+    Opt::new("chrome.wrap", "Wrap ←/→", OFF_ON).default(1),
+    Opt::new("chrome.type_ahead", "Type-ahead", OFF_ON),
+    Opt::new("chrome.nav", "Nav keys", &["default", "no-vim"]),
+    Opt::new("chrome.dismiss", "Dismiss", &["light", "escape"]),
+    Opt::new("chrome.brand", "Brand", &["lockup", "compact", "none"]),
+];
 
 /// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through
 /// `Theme::interactive`; the States grid draws every kind on the plane.
