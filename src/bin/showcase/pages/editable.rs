@@ -11,13 +11,14 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
+use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::keymap::{KeyBinding, KeyMap, NavKeys, hint_key};
-use junie_tui::core::scroll::{HScroll, Scrollable, ScrollbarVisibility, TrackClick};
+use junie_tui::core::scroll::{HScroll, ScrollbarVisibility, TrackClick};
 use junie_tui::ui::columns::HeaderLabels;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
@@ -401,37 +402,14 @@ impl Page for EditablePage {
                 out
             }
             PageEvent::Paste(text) => self.table.on_paste(text),
-            PageEvent::Click { id, pos } => {
-                if let Some((out, tev)) = self.table.on_click_editor(*id) {
-                    cx.focus.focus(self.table.id);
-                    self.on_event(tev, cx);
-                    return out;
-                }
-                if let Some(c) = self.table.locate_header(*id) {
-                    cx.focus.focus(self.table.id);
-                    return self.table.on_click_header(c);
-                }
-                if let Some((row, col)) = self.table.locate(*id) {
-                    cx.focus.focus(self.table.id);
-                    let (out, tev) =
-                        self.table
-                            .on_click_cell(row, col.unwrap_or(self.table.cursor_col), *pos);
-                    if let Some(TableAction::Committed { .. }) = tev {
-                        self.edits += 1;
-                    }
-                    return out;
-                }
-                if scrollbar::is_bar_of(*id, self.table.id) {
-                    return self.table.on_scrollbar(*pos);
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Drag { pressed, pos } if scrollbar::is_bar_of(*pressed, self.table.id) => {
-                self.table.on_bar_drag(*pressed, *pos)
-            }
-            PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),
-            PageEvent::WheelH { id, delta } if self.table.owns(*id) => {
-                self.table.on_wheel_h(*delta)
+            PageEvent::Pointer(p) => {
+                // the editor's popup, a header, a cell, a seam, the bar or
+                // the wheel; a click focuses the table
+                let Some((out, tev)) = route_table(&mut self.table, p, cx) else {
+                    return Outcome::Ignored;
+                };
+                self.on_event(tev, cx);
+                out
             }
             _ => Outcome::Ignored,
         }
