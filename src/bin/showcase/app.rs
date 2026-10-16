@@ -790,7 +790,7 @@ impl App {
             reveal: junie_tui::ui::reveal::Reveal::default(),
             input: junie_tui::core::event::InputConfig::default(),
             keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol::current(),
-            focus_fallback: junie_tui::core::focus::FocusFallback::First,
+            focus_fallback: junie_tui::core::focus::FocusFallback::Nearest,
             inspector_focus: None,
             size: (0, 0),
             tick: frame,
