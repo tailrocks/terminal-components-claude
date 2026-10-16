@@ -79,7 +79,11 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/helpkeys", Bin::Showcase, &["--page", "helpkeys"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     Root::new("showcase/planned/quitleave", Bin::Showcase, &["--page", "quitleave"], BOOT).sends(&["wait:arrives with SC6"]).pending(),
     Root::new("showcase/planned/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
-    Root::new("showcase/planned/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:arrives with SC9"]).pending(),
+    // SC9 filled Checks & radios: the page and its sections
+    Root::new("showcase/pages/checksradios", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["wait:Select all rows"]).pending(),
+    Root::new("showcase/sections/checksradios-options", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "2", "wait:Checkbox click target"]).pending(),
+    Root::new("showcase/sections/checksradios-states", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/elements/checks/row-hover", Bin::Showcase, &["--page", "checksradios", "--opt", "checksradios.hit=row"], BOOT).hover("Include archived projects").pending(),
     Root::new("showcase/planned/toolbars", Bin::Showcase, &["--page", "toolbars"], BOOT).sends(&["wait:arrives with SC28"]).pending(),
     Root::new("showcase/planned/columns", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["wait:arrives with SC11"]).pending(),
     Root::new("showcase/planned/tabs", Bin::Showcase, &["--page", "tabs"], BOOT).sends(&["wait:arrives with SC14"]).pending(),

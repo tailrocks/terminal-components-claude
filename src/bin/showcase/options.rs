@@ -212,6 +212,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Buttons => BUTTONS,
         PageId::Inputs => INPUTS,
         PageId::TextAreas => TEXTAREAS,
+        PageId::ChecksRadios => CHECKS,
         _ => &[],
     }
 }
@@ -326,6 +327,22 @@ pub static TEXTAREAS: &[Opt] = &[
         &["theme", "on", "off"],
     ),
     Opt::new("textareas.label_hit", "Label click focuses", OFF_ON).default(1),
+];
+
+/// Checks & radios (SC9): `Checkbox`, `RadioGroup` and `Toggle`.
+pub static CHECKS: &[Opt] = &[
+    Opt::new(
+        "checksradios.hit",
+        "Checkbox click target",
+        &["label", "row"],
+    ),
+    Opt::new("checksradios.mixed", "\"Select all\" starts mixed", OFF_ON).default(1),
+    Opt::new(
+        "checksradios.radio_nav",
+        "Radio keys",
+        &["default", "no-vim", "no-home-end"],
+    ),
+    Opt::new("checksradios.disabled", "Disable every control", OFF_ON),
 ];
 
 /// A page's option values: an index into each option's values, in the
