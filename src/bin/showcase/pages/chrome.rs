@@ -5,18 +5,18 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::pages::row_menu::RowMenu;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::{BadgeKind, Tone};
+use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::hint;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
-use junie_tui::widgets::menu::{
-    ContextMenu, MenuBar, MenuBarEvent, MenuEvent, MenuItem, Placement,
-};
+use junie_tui::widgets::menu::{MenuBar, MenuBarEvent, MenuItem};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
 use ratatui::crossterm::event::KeyCode;
@@ -30,7 +30,7 @@ const PR: WidgetId = WidgetId::of("chrome.status.pr");
 pub struct ChromePage {
     bar: MenuBar,
     sessions: ListBox,
-    context: Option<ContextMenu>,
+    context: RowMenu<usize>,
     last: String,
     zoomed: bool,
     hint_area: Rect,
@@ -75,7 +75,7 @@ impl ChromePage {
         Self {
             bar,
             sessions: ListBox::new(SESSIONS, items, SelectMode::Single),
-            context: None,
+            context: RowMenu::default(),
             last: "nothing yet".into(),
             zoomed: false,
             hint_area: Rect::ZERO,
@@ -112,24 +112,24 @@ impl ChromePage {
         b
     }
 
-    fn open_context(&mut self, anchor: Rect, placement: Placement) {
-        let row = self.sessions.cursor;
+    /// Open the tab menu about session `row`, as `req` places it.
+    fn open_context(&mut self, req: ContextRequest<usize>) {
+        let row = req.target;
         let label = self.sessions.items[row].label.clone();
-        self.context = Some(
-            ContextMenu::new(
-                CONTEXT,
-                vec![
-                    MenuItem::new("Change title…").shortcut("r"),
-                    MenuItem::new("Move left").disabled(row == 0),
-                    MenuItem::new("Move right")
-                        .disabled(row + 1 == self.sessions.items.len())
-                        .separator(),
-                    MenuItem::new("Close").shortcut("x").danger(),
-                ],
-            )
-            .title(label)
-            .anchor(anchor, placement),
-        );
+        self.context
+            .open(req.menu(CONTEXT, self.context_items(row)).title(label), row);
+    }
+
+    /// The tab menu's items for session `row`.
+    fn context_items(&self, row: usize) -> Vec<MenuItem> {
+        vec![
+            MenuItem::new("Change title…").shortcut("r"),
+            MenuItem::new("Move left").disabled(row == 0),
+            MenuItem::new("Move right")
+                .disabled(row + 1 == self.sessions.items.len())
+                .separator(),
+            MenuItem::new("Close").shortcut("x").danger(),
+        ]
     }
 
     fn layer(&self, focus: Option<WidgetId>) -> HintLayer {
@@ -141,7 +141,7 @@ impl ChromePage {
                 hint("Esc", "Close"),
             ])
         });
-        let context = self.context.as_ref().map(|_| {
+        let context = self.context.is_open().then(|| {
             HintLayer::new(vec![
                 hint("↑↓", "Move"),
                 hint("Enter", "Choose"),
@@ -157,7 +157,7 @@ impl ChromePage {
         } else {
             HintLayer::new(vec![
                 hint("↑↓", "Move"),
-                hint("m", "Context menu"),
+                hint("Shift+F10", "Context menu"),
                 hint("right-click", "Context menu"),
                 hint("Tab", "Next"),
             ])
@@ -182,7 +182,7 @@ impl ChromePage {
 
 impl Page for ChromePage {
     fn layer_open(&self) -> bool {
-        self.bar.hides_page_focus() || self.context.as_ref().is_some_and(|m| m.hides_page_focus())
+        self.bar.hides_page_focus() || self.context.hides_page_focus()
     }
     fn title(&self) -> &'static str {
         "Chrome"
@@ -204,7 +204,7 @@ impl Page for ChromePage {
             area.height.saturating_sub(6),
         );
         let panel = Panel::card(Some("Sessions"))
-            .meta("right-click or m for the tab menu")
+            .meta("right-click or Shift+F10 for the tab menu")
             .focused(ctx.interaction.focused(SESSIONS));
         let bg = panel.bg(t);
         let inner = panel.render(body, buf, t);
@@ -244,28 +244,20 @@ impl Page for ChromePage {
         );
         HintBar::render(hint_row, buf, t, &layer);
         // popovers last so they sit on top
-        if let Some(m) = self.context.as_mut() {
-            m.render(area, buf, ctx);
-        }
+        self.context.render(area, buf, ctx);
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some((o, chosen)) = self.context.handle(ev) {
+            if let Some((row, i)) = chosen {
+                let label = self.context_items(row)[i].label.clone();
+                self.last = format!("tab › {label}");
+                cx.status(label);
+            }
+            return o;
+        }
         match ev {
             PageEvent::Key(key) => {
-                if let Some(menu) = self.context.as_mut() {
-                    let (o, ev) = menu.on_key(key);
-                    match ev {
-                        Some(MenuEvent::Chosen(i)) => {
-                            let label = menu.items[i].label.clone();
-                            self.context = None;
-                            self.last = format!("tab › {label}");
-                            cx.status(label);
-                        }
-                        Some(MenuEvent::Dismissed) => self.context = None,
-                        None => {}
-                    }
-                    return o;
-                }
                 if self.bar.is_open() || cx.focus.is(BAR) {
                     let (o, ev) = self.bar.on_key(key);
                     if let Some(MenuBarEvent::Chosen(m, i)) = ev {
@@ -276,17 +268,11 @@ impl Page for ChromePage {
                     }
                 }
                 if cx.focus.is(SESSIONS) {
-                    if key.is_char('m') {
-                        let row = self.sessions.cursor;
-                        let y = self.sessions.area.y
-                            + row.saturating_sub(self.sessions.scroll.offset) as u16;
-                        self.open_context(
-                            Rect::new(self.sessions.area.x + 2, y, 1, 1),
-                            Placement::Below,
-                        );
+                    if let Some(req) = self.context.config.on_key(&self.sessions, key) {
+                        self.open_context(req);
                         return Outcome::Changed;
                     }
-                    if key.code == KeyCode::F(10) {
+                    if key.code == KeyCode::F(10) && key.plain() {
                         cx.focus.focus(BAR);
                         self.bar.open_menu(0);
                         return Outcome::Changed;
@@ -296,28 +282,18 @@ impl Page for ChromePage {
                 Outcome::Ignored
             }
             PageEvent::Secondary { id, pos } => {
-                if let Some(row) = self.sessions.locate(*id) {
-                    self.sessions.cursor = row;
+                if let Some(req) = self
+                    .context
+                    .config
+                    .on_secondary(&mut self.sessions, *id, *pos)
+                {
                     cx.focus.focus(SESSIONS);
-                    self.open_context(Rect::new(pos.x, pos.y, 1, 1), Placement::Below);
+                    self.open_context(req);
                     return Outcome::Changed;
                 }
                 Outcome::Ignored
             }
             PageEvent::Click { id, .. } => {
-                if let Some(menu) = self.context.as_mut() {
-                    match menu.on_click(*id) {
-                        Some(MenuEvent::Chosen(i)) => {
-                            let label = menu.items[i].label.clone();
-                            self.context = None;
-                            self.last = format!("tab › {label}");
-                            cx.status(label);
-                        }
-                        Some(MenuEvent::Dismissed) => self.context = None,
-                        None => {}
-                    }
-                    return Outcome::Changed;
-                }
                 if self.bar.owns(*id) || self.bar.is_open() {
                     let (o, ev) = self.bar.on_click(*id);
                     match ev {
