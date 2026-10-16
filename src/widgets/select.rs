@@ -424,6 +424,14 @@ impl Select {
         self
     }
 
+    /// The pause after which the next letter starts a new type-ahead
+    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
+    /// (1 s; APG suggests 500–1000 ms).
+    pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.typeahead.timeout = timeout;
+        self
+    }
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
