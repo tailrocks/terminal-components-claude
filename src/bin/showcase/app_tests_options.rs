@@ -1,6 +1,7 @@
 //! The Inspector's State | Options pane and `--opt`, driven through the
 //! real app (plan §7, SC1).
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -105,7 +106,7 @@ impl Harness {
     /// The area of option `key`'s control.
     fn control(&self, key: &str) -> Rect {
         let id = self.app.insp.options.control_id(key).expect("an option");
-        self.app.hits.area_of(id).expect("drawn")
+        self.app.shell.hits.area_of(id).expect("drawn")
     }
 }
 
@@ -124,7 +125,7 @@ fn the_options_tab_toggles_a_knob_and_the_playground_changes() {
     h.click(field.x + 2, field.y);
     assert!(h.app.insp.options.popup_open(), "the list opens");
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         h.app.insp.options.control_id("shell.glyphs"),
         "the click focuses the select"
     );
@@ -143,9 +144,9 @@ fn the_options_tab_toggles_a_knob_and_the_playground_changes() {
     // a toggle: Space flips it, through the PointerConfig builder
     let tog = h.control("shell.autoscroll");
     h.click(tog.x + 2, tog.y);
-    assert!(!h.app.pointer.config.autoscroll);
+    assert!(!h.app.shell.pointer.config.autoscroll);
     h.key(KeyCode::Char(' '));
-    assert!(h.app.pointer.config.autoscroll);
+    assert!(h.app.shell.pointer.config.autoscroll);
 }
 
 #[test]
@@ -181,7 +182,7 @@ fn every_shell_option_flips_through_the_pane_and_through_opt() {
             let mut by_pane = Harness::new(160, 60, PageId::Overview);
             by_pane.open_options();
             let id = by_pane.app.insp.options.control_id(o.key).unwrap();
-            by_pane.app.focus.set(Some(id));
+            by_pane.app.shell.focus.set(Some(id));
             by_pane.draw();
             let area = by_pane.control(o.key);
             if o.is_toggle() {
@@ -213,11 +214,11 @@ fn every_shell_option_flips_through_the_pane_and_through_opt() {
 #[test]
 fn below_100_columns_the_inspector_is_an_overlay() {
     let mut h = Harness::new(80, 24, PageId::Buttons);
-    let before_focus = h.app.focus.current();
+    let before_focus = h.app.shell.focus.current();
     h.key(KeyCode::Char('i'));
     assert!(h.app.inspector_overlay());
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(h.app.insp.tabs.id),
         "the overlay takes focus"
     );
@@ -227,12 +228,12 @@ fn below_100_columns_the_inspector_is_an_overlay() {
     // Tab stays inside the overlay
     for _ in 0..6 {
         h.key(KeyCode::Tab);
-        assert!(h.app.insp.has_focus(h.app.focus.current()));
+        assert!(h.app.insp.has_focus(h.app.shell.focus.current()));
     }
     // Esc closes and gives focus back
     h.key(KeyCode::Esc);
     assert!(!h.app.inspector);
-    assert_eq!(h.app.focus.current(), before_focus);
+    assert_eq!(h.app.shell.focus.current(), before_focus);
     assert!(h.find("Inspector ").is_none() || !h.text().contains("│ State"));
     // a click outside closes it too (light dismiss)
     h.key(KeyCode::Char('i'));
@@ -253,7 +254,7 @@ fn the_overlay_options_work_at_80_by_24() {
     for _ in 0..=page {
         h.key(KeyCode::Tab);
     }
-    assert_eq!(h.app.focus.current(), Some(first));
+    assert_eq!(h.app.shell.focus.current(), Some(first));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
@@ -274,21 +275,21 @@ fn docked_pane_focus_and_escape() {
     let mut reached = false;
     for _ in 0..60 {
         h.key(KeyCode::Tab);
-        if h.app.focus.current() == Some(h.app.insp.tabs.id) {
+        if h.app.shell.focus.current() == Some(h.app.insp.tabs.id) {
             reached = true;
             break;
         }
     }
     assert!(reached, "Tab reaches the Inspector");
     assert_eq!(h.focus_bars(), marks, "one real focus mark: {}", h.text());
-    let tabs = h.app.hits.area_of(h.app.insp.tabs.id).unwrap();
+    let tabs = h.app.shell.hits.area_of(h.app.insp.tabs.id).unwrap();
     assert!(h.row(tabs.y).contains('▎'), "it is on the Inspector's tabs");
     h.key(KeyCode::Right);
     assert_eq!(h.app.insp.tab(), Tab::Options);
     // Esc leaves for navigation, the pane stays open
     h.key(KeyCode::Esc);
     assert!(h.app.inspector);
-    assert!(!h.app.insp.has_focus(h.app.focus.current()));
+    assert!(!h.app.insp.has_focus(h.app.shell.focus.current()));
     // `i` closes it
     h.key(KeyCode::Char('i'));
     assert!(!h.app.inspector);

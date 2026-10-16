@@ -2,6 +2,7 @@
 //! mouse selection (with modifiers), the editor it drives, bulk edits, the
 //! delete confirmation and the empty state.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};

@@ -12,6 +12,7 @@
 //! SC step are printed by `remaining_gaps_per_step` (run it with
 //! `--no-capture`).
 
+use junie_tui::runtime::Application;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 

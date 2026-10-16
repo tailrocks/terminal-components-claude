@@ -29,7 +29,7 @@ fn a_toolbar_is_one_tab_stop_and_arrows_move_inside_it() {
     h.focus(query);
     h.key(KeyCode::Tab);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(narrow),
         "Tab leaves the toolbar"
     );
@@ -61,7 +61,7 @@ fn enter_runs_a_command_and_the_run_state_enables_stop() {
     let (x, y) = h.find("Bold").unwrap();
     h.click(x, y);
     assert_eq!(page(&h).last, "Toggled(0, true) · Bold");
-    assert_eq!(h.app.focus.current(), Some(page(&h).format.id));
+    assert_eq!(h.app.shell.focus.current(), Some(page(&h).format.id));
 }
 
 #[test]
@@ -104,7 +104,7 @@ fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
     h.key(KeyCode::End);
     assert!(page(&h).narrow.on_more(), "» is the last stop");
     assert_eq!(h.bars(), 1);
-    let more = h.app.hits.area_of(page(&h).narrow.more_id()).unwrap();
+    let more = h.app.shell.hits.area_of(page(&h).narrow.more_id()).unwrap();
     assert_eq!(
         h.row(more.y).chars().nth(more.x as usize),
         Some('▎'),
@@ -121,7 +121,7 @@ fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
     assert_eq!(page(&h).last, "Activated(3) · Format");
     assert!(page(&h).narrow.on_more(), "focus returns to »");
     // by mouse: the button opens it, a row runs its item
-    let more = h.app.hits.area_of(page(&h).narrow.more_id()).unwrap();
+    let more = h.app.shell.hits.area_of(page(&h).narrow.more_id()).unwrap();
     h.click(more.x + 1, more.y);
     assert!(page(&h).narrow.menu_open());
     // Wrap is the menu's fourth row (Stop, Format, Explain, Wrap, ...)
@@ -129,7 +129,7 @@ fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
         .narrow
         .menu_id()
         .part(PartRef::item(Part::ROW, ItemKey::index(3)));
-    let r = h.app.hits.area_of(row).expect("the Wrap row");
+    let r = h.app.shell.hits.area_of(row).expect("the Wrap row");
     h.click(r.x + 2, r.y);
     assert_eq!(page(&h).last, "Toggled(5, true) · Wrap");
     // a click outside closes it without running anything
@@ -145,10 +145,16 @@ fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
 fn the_overflow_option_swaps_the_glyph_or_turns_the_button_off() {
     let mut h = harness();
     h.opt("toolbars.overflow=…");
-    let more = h.app.hits.area_of(page(&h).narrow.more_id()).unwrap();
+    let more = h.app.shell.hits.area_of(page(&h).narrow.more_id()).unwrap();
     assert_eq!(h.row(more.y).chars().nth(more.x as usize + 1), Some('…'));
     h.opt("toolbars.overflow=off");
-    assert!(h.app.hits.area_of(page(&h).narrow.more_id()).is_none());
+    assert!(
+        h.app
+            .shell
+            .hits
+            .area_of(page(&h).narrow.more_id())
+            .is_none()
+    );
     assert!(page(&h).narrow.hidden().is_empty());
     assert!(h.text().contains("everything fits: no » button"));
 }
