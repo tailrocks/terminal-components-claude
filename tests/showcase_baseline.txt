@@ -7,7 +7,7 @@
 120x40 TrueColor Forms 53f4fcc4c5ea4e12
 120x40 TrueColor Basic table 20ac63cfbac3b09d
 120x40 TrueColor Editable 6a299361cc7f0355
-120x40 TrueColor Data grid fca0e9a68276020c
+120x40 TrueColor Data grid 74c34c2082c2c5d3
 120x40 TrueColor Selection cd14370cb06ed680
 120x40 TrueColor Cell editors e6045ae179af3d48
 120x40 TrueColor Lists 418194742cd65674
@@ -32,7 +32,7 @@
 120x40 Ansi256 Forms b42b1157d068663b
 120x40 Ansi256 Basic table ea8ebb0f1ac7a582
 120x40 Ansi256 Editable 94078e8b1da21c82
-120x40 Ansi256 Data grid bbc2add1b91e3812
+120x40 Ansi256 Data grid 75561c8e7746e20d
 120x40 Ansi256 Selection 4d8ecea65baffd61
 120x40 Ansi256 Cell editors dbb220981836053e
 120x40 Ansi256 Lists bdbbd890ef83aadf
@@ -57,7 +57,7 @@
 120x40 Ansi16 Forms 5e99a5f1890dfafe
 120x40 Ansi16 Basic table a8e99a19a6126ae1
 120x40 Ansi16 Editable 27e1664233f9a1cc
-120x40 Ansi16 Data grid b784f84c204b9fe9
+120x40 Ansi16 Data grid 9ba9ec85b4a78e04
 120x40 Ansi16 Selection 263523df1b9416b8
 120x40 Ansi16 Cell editors fb81e8f016d804e7
 120x40 Ansi16 Lists 2f47e89d243e3c5e
@@ -82,7 +82,7 @@
 120x40 Mono Forms 00c919496761cfc9
 120x40 Mono Basic table eed57c0288bd555c
 120x40 Mono Editable d682eaac21dc9a0a
-120x40 Mono Data grid 44144f2bfd92869f
+120x40 Mono Data grid 51ada8dedd61b8e6
 120x40 Mono Selection c2d7ac69442ed1c0
 120x40 Mono Cell editors e0b733b12e25b5d6
 120x40 Mono Lists 8534ab68c8de175f
@@ -107,7 +107,7 @@
 80x24 TrueColor Forms fb71ed91e1af7d6e
 80x24 TrueColor Basic table 5899412486f3c6e3
 80x24 TrueColor Editable 3f90db771d56497e
-80x24 TrueColor Data grid 2bf96d1f5553106f
+80x24 TrueColor Data grid 56dca7b3a9b5b8f8
 80x24 TrueColor Selection 1bdfd58e45692385
 80x24 TrueColor Cell editors fe606c967247151c
 80x24 TrueColor Lists d6c791e4a8175312
@@ -132,7 +132,7 @@
 80x24 Ansi256 Forms 8399b03a4fd9024f
 80x24 Ansi256 Basic table 0beab8032d585dbb
 80x24 Ansi256 Editable dbecaed3a85adee0
-80x24 Ansi256 Data grid 2ef0d14ed37fca5e
+80x24 Ansi256 Data grid f2b10a7f67c6edbe
 80x24 Ansi256 Selection 624862e676d61c18
 80x24 Ansi256 Cell editors 38d3943146c75d7f
 80x24 Ansi256 Lists 5c6c7755d67eaac3
@@ -157,7 +157,7 @@
 80x24 Ansi16 Forms 979e9579cf933898
 80x24 Ansi16 Basic table 8c57e70ffd5433da
 80x24 Ansi16 Editable 0a6319a3fed84455
-80x24 Ansi16 Data grid f79ed08dcdf19fa5
+80x24 Ansi16 Data grid 7ced89750fc60171
 80x24 Ansi16 Selection a7dd72b5142e5f9f
 80x24 Ansi16 Cell editors bdfd42bd46e8b5ed
 80x24 Ansi16 Lists 93431e02a4cfe86c
@@ -182,7 +182,7 @@
 80x24 Mono Forms 5c3456d2bd492b1a
 80x24 Mono Basic table cc237b6ed862e87c
 80x24 Mono Editable b7c09e301157ddad
-80x24 Mono Data grid 19aafcb42db9c2da
+80x24 Mono Data grid a644e1c000b82cb4
 80x24 Mono Selection 0c23185a142631e7
 80x24 Mono Cell editors 05581f6fc65ad1cb
 80x24 Mono Lists 6bf7db81a7b75aa0
@@ -207,7 +207,7 @@
 72x20 TrueColor Forms 36dbb0eace5309f4
 72x20 TrueColor Basic table fb13468337509773
 72x20 TrueColor Editable fd943b4d9e804368
-72x20 TrueColor Data grid e5ebc7e0a05efa52
+72x20 TrueColor Data grid e064c8a359502802
 72x20 TrueColor Selection 60a7e618b68b6a46
 72x20 TrueColor Cell editors b228dedc2f347a5b
 72x20 TrueColor Lists 451e8fd5d7c82144
@@ -232,7 +232,7 @@
 72x20 Ansi256 Forms 56e58a848d8bc54f
 72x20 Ansi256 Basic table 06a596a47b0c1f26
 72x20 Ansi256 Editable cd51636e421d6290
-72x20 Ansi256 Data grid 2fb5b87d45e85bfb
+72x20 Ansi256 Data grid 9366fa320b4ffbfb
 72x20 Ansi256 Selection d2f41d9dcc19cd65
 72x20 Ansi256 Cell editors 7a43e882b66fc3c8
 72x20 Ansi256 Lists 25425b0ba2d3c502
@@ -257,7 +257,7 @@
 72x20 Ansi16 Forms daee80e00ba4f0f6
 72x20 Ansi16 Basic table 6e21f5030ad0b537
 72x20 Ansi16 Editable 7a4c6c770e130355
-72x20 Ansi16 Data grid 39594e696ea3a4fb
+72x20 Ansi16 Data grid b349fadf69f499fc
 72x20 Ansi16 Selection 6b3608c1708a67b3
 72x20 Ansi16 Cell editors 4ec20809c47acbe8
 72x20 Ansi16 Lists f270b4e73d867968
@@ -282,7 +282,7 @@
 72x20 Mono Forms ec903cdccb6d8356
 72x20 Mono Basic table 225e815bb5f9a625
 72x20 Mono Editable ca2cfeef4408fc1d
-72x20 Mono Data grid 036ded1cc51ce732
+72x20 Mono Data grid 968dea96d8fd42cb
 72x20 Mono Selection e6a1be178d4df63f
 72x20 Mono Cell editors 079a20dd8e538b3e
 72x20 Mono Lists d1b12a8b95695818
@@ -307,7 +307,7 @@
 100x30 TrueColor Forms 9bc91de07335ef6f
 100x30 TrueColor Basic table 71a21c7f43831427
 100x30 TrueColor Editable b67c03de9e3a2832
-100x30 TrueColor Data grid f5cb2572dcaca1c0
+100x30 TrueColor Data grid 9a79ee3a967aff27
 100x30 TrueColor Selection 9bd6c41be4de5d48
 100x30 TrueColor Cell editors 5912983cdb511178
 100x30 TrueColor Lists e6d97e8931dfb052
@@ -332,7 +332,7 @@
 100x30 Ansi256 Forms fc28a44dc1320554
 100x30 Ansi256 Basic table ce1ba8cd2dfff2ce
 100x30 Ansi256 Editable 88fb619425c5d566
-100x30 Ansi256 Data grid a8c78e5d35b1d582
+100x30 Ansi256 Data grid e809dd2d9ed1827d
 100x30 Ansi256 Selection ece3beba8ab7aa02
 100x30 Ansi256 Cell editors a95eced048d9feec
 100x30 Ansi256 Lists d048f0e929facc9c
@@ -357,7 +357,7 @@
 100x30 Ansi16 Forms 5021a35ee704fa01
 100x30 Ansi16 Basic table dd98118b39a5b594
 100x30 Ansi16 Editable 3fa79bd5dd04d156
-100x30 Ansi16 Data grid 871b883f5d5e1169
+100x30 Ansi16 Data grid 117cf31bbf8a4464
 100x30 Ansi16 Selection bcf46280557a4361
 100x30 Ansi16 Cell editors 39439ac1e3f7bceb
 100x30 Ansi16 Lists ad5c9545c5ba1387
@@ -382,7 +382,7 @@
 100x30 Mono Forms 682ca54d4b5d9f0a
 100x30 Mono Basic table 27b19e0eebb77996
 100x30 Mono Editable 9b9271a5e3ed7765
-100x30 Mono Data grid 703d0eb7ab4af7d3
+100x30 Mono Data grid b4257d19e54a62aa
 100x30 Mono Selection 1a9ca4dfd139acbe
 100x30 Mono Cell editors 29d4c2288a7cbed2
 100x30 Mono Lists fd6b5bf927c8dda4
@@ -407,7 +407,7 @@
 160x50 TrueColor Forms 815b1310b980c7eb
 160x50 TrueColor Basic table 3e1d12bc8716004c
 160x50 TrueColor Editable 8b91d3d383fc3dfb
-160x50 TrueColor Data grid 232129e327ac6a9b
+160x50 TrueColor Data grid 2b59a8189950c800
 160x50 TrueColor Selection 808889c78725d7cd
 160x50 TrueColor Cell editors c7724e82314ac8a9
 160x50 TrueColor Lists 8d7bf4a3593360ed
@@ -432,7 +432,7 @@
 160x50 Ansi256 Forms 70f70bbbbdcaab44
 160x50 Ansi256 Basic table 5ef116b28f9c12f3
 160x50 Ansi256 Editable 5204975566f4fcbf
-160x50 Ansi256 Data grid e5e0ee922400d905
+160x50 Ansi256 Data grid 2bff441e7dcd990e
 160x50 Ansi256 Selection 4a9520799f4c5560
 160x50 Ansi256 Cell editors cb7f1d5e244136f1
 160x50 Ansi256 Lists 79ddc9dea4893399
@@ -457,7 +457,7 @@
 160x50 Ansi16 Forms 55a9858908661335
 160x50 Ansi16 Basic table f484f60378e24461
 160x50 Ansi16 Editable c9dcfe326e2222ab
-160x50 Ansi16 Data grid 030ac9c6f87f5042
+160x50 Ansi16 Data grid 84b5b69b4773aec7
 160x50 Ansi16 Selection cf95d9e0934ea5e6
 160x50 Ansi16 Cell editors f895ca133d3cb3d5
 160x50 Ansi16 Lists cefb377eb655af9e
@@ -482,7 +482,7 @@
 160x50 Mono Forms e4afeacbd000aec0
 160x50 Mono Basic table bc524aac8c457778
 160x50 Mono Editable d21106bb7a6dea64
-160x50 Mono Data grid bc9ed7362bb7ca04
+160x50 Mono Data grid 350171412564206d
 160x50 Mono Selection e259296bc9e135bc
 160x50 Mono Cell editors 4a5296d78d155647
 160x50 Mono Lists d40f11c5fc1aaa7d

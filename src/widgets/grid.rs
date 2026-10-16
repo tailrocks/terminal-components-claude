@@ -259,7 +259,10 @@ pub struct EditState {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GridEvent {
-    CellChanged { row: usize, col: usize },
+    CellChanged {
+        row: usize,
+        col: usize,
+    },
     RowInserted(usize),
     RowDeleted(usize),
     SortRequested(Option<(usize, SortDir)>),
@@ -269,14 +272,30 @@ pub enum GridEvent {
     DiscardRequested,
     PreviewSql,
     Copy(String),
-    FollowReference { row: usize, col: usize },
-    OpenViewer { row: usize, col: usize },
-    FilterOnCell { col: usize, value: CellValue },
+    FollowReference {
+        row: usize,
+        col: usize,
+    },
+    OpenViewer {
+        row: usize,
+        col: usize,
+    },
+    FilterOnCell {
+        col: usize,
+        value: CellValue,
+    },
     OpenFilters,
     ClearFilters,
     Activated(usize),
     LeaveForward,
     LeaveBackward,
+    /// Enter (or F2) on a cell that cannot be edited: a read-only column,
+    /// a row marked for deletion, or a grid that is not editable and says
+    /// why ([`DataGrid::read_only_reason`]). The owner shows `reason`
+    /// (a status line), so the key is never silently dropped.
+    ReadOnly {
+        reason: String,
+    },
 }
 
 /// Validate text typed into a cell for a column. The owner can replace
@@ -974,6 +993,35 @@ impl DataGrid {
         self.order.get(self.cursor.0).copied()
     }
 
+    /// Why the cursor cell cannot be edited, or `None` when it can (or
+    /// when the grid is not editable and gives no reason).
+    pub fn read_only_reason_at_cursor(&self) -> Option<String> {
+        let src = self.cursor_src()?;
+        if !self.editable {
+            return self.read_only_reason.clone();
+        }
+        let spec = self.columns.get(self.cursor.1)?;
+        if self.pending.deleted.contains(&src) {
+            Some(self.strings.grid_row_deleted.to_owned())
+        } else if spec.read_only {
+            Some(crate::theme::Strings::fill(
+                self.strings.grid_read_only,
+                &[&spec.name],
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Whether Enter would edit the cursor cell: hints offer "Edit" only
+    /// then.
+    pub fn cell_editable(&self) -> bool {
+        self.editable
+            && !self.on_more_row()
+            && self.cursor_src().is_some()
+            && self.read_only_reason_at_cursor().is_none()
+    }
+
     pub fn begin_edit(&mut self) -> (Outcome, Option<GridEvent>) {
         let Some(src) = self.cursor_src() else {
             return (Outcome::Consumed, None);
@@ -982,10 +1030,10 @@ impl DataGrid {
             return (Outcome::Consumed, None);
         }
         let col = self.cursor.1;
-        let spec = &self.columns[col];
-        if spec.read_only || self.pending.deleted.contains(&src) {
-            return (Outcome::Consumed, None);
+        if let Some(reason) = self.read_only_reason_at_cursor() {
+            return (Outcome::Changed, Some(GridEvent::ReadOnly { reason }));
         }
+        let spec = &self.columns[col];
         let v = self.value(src, col).clone();
         // a constrained column: a checkbox flips, the others open a popup
         if spec.editor.is_constrained() {
@@ -1576,6 +1624,11 @@ impl DataGrid {
                     return (Outcome::Changed, Some(GridEvent::FetchMore));
                 }
                 if !self.editable {
+                    // a grid that says why it is read-only says so on
+                    // Enter; one without a reason is a list (activation)
+                    if let Some(reason) = self.read_only_reason_at_cursor() {
+                        return (Outcome::Changed, Some(GridEvent::ReadOnly { reason }));
+                    }
                     return (
                         Outcome::Changed,
                         self.cursor_src().map(GridEvent::Activated),
@@ -3382,6 +3435,40 @@ mod tests {
         let mut g = grid().editable(true).duplicate_keys(&[]);
         assert_eq!(g.on_key(&alt_d).1, None);
         assert_eq!(g.rows().len(), 10);
+    }
+
+    #[test]
+    fn enter_on_a_read_only_cell_says_why_and_hints_drop_edit() {
+        let mut g = grid().editable(true);
+        g.columns[0].read_only = true;
+        assert!(!g.cell_editable(), "the cursor starts on the read-only id");
+        let (o, ev) = g.on_key(&key(KeyCode::Enter));
+        assert_eq!(o, Outcome::Changed);
+        assert_eq!(
+            ev,
+            Some(GridEvent::ReadOnly {
+                reason: "id is read-only".into()
+            })
+        );
+        assert!(!g.is_editing());
+        g.on_key(&key(KeyCode::Right));
+        assert!(g.cell_editable());
+        // a grid that is not editable and says why reports that reason
+        let mut ro = grid();
+        ro.editable = false;
+        ro.read_only_reason = Some("Views cannot be edited".into());
+        assert!(!ro.cell_editable());
+        let (_, ev) = ro.on_key(&key(KeyCode::Enter));
+        assert_eq!(
+            ev,
+            Some(GridEvent::ReadOnly {
+                reason: "Views cannot be edited".into()
+            })
+        );
+        // without a reason it stays a list: Enter activates the row
+        ro.read_only_reason = None;
+        let (_, ev) = ro.on_key(&key(KeyCode::Enter));
+        assert_eq!(ev, Some(GridEvent::Activated(0)));
     }
 
     #[test]

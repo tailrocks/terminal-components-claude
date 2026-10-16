@@ -1871,6 +1871,12 @@ pub struct Strings {
     /// The error under a typed acknowledgement when Enter is pressed and
     /// the text does not match the token. `Does not match`.
     pub ack_mismatch: &'static str,
+    /// Enter on a read-only grid column; `{}` is the column.
+    /// `{} is read-only`.
+    pub grid_read_only: &'static str,
+    /// Enter on a grid row marked for deletion.
+    /// `This row is marked for deletion`.
+    pub grid_row_deleted: &'static str,
     /// The leave guard's unsaved-changes dialog title. `Unsaved changes`.
     pub leave_unsaved_title: &'static str,
     /// Its body; `{}` is what would be lost.
@@ -1971,6 +1977,8 @@ impl Strings {
         type_to_confirm: "Type {} to confirm",
         type_to_confirm_hint: "\"{}\" to confirm",
         ack_mismatch: "Does not match",
+        grid_read_only: "{} is read-only",
+        grid_row_deleted: "This row is marked for deletion",
         leave_unsaved_title: "Unsaved changes",
         leave_unsaved_body: "Save before leaving? {} would be lost.",
         leave_unsaved_some: "Unsaved changes",
