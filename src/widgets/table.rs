@@ -606,7 +606,7 @@ impl DataTable {
         if display >= self.rows.len() || !self.multi() {
             return (Outcome::Consumed, None);
         }
-        self.set_cursor(display, self.cursor_col);
+        self.point_cursor(display, self.cursor_col);
         let src = self.order[display];
         if self.toggle_row(src) {
             (Outcome::Changed, Some(TableAction::SelectionChanged))
@@ -963,6 +963,13 @@ impl DataTable {
         self.ensure_col_visible();
     }
 
+    /// [`Self::set_cursor`] for a row the pointer placed: the row comes in
+    /// without context ([`crate::core::scroll::ScrollState::pointer_move`]).
+    fn point_cursor(&mut self, row: usize, col: usize) {
+        self.scroll.pointer_move();
+        self.set_cursor(row, col);
+    }
+
     fn ensure_col_visible(&mut self) {
         // horizontal scroll is in columns
         let n = self.columns.len();
@@ -1109,7 +1116,7 @@ impl DataTable {
             return Some((out, self.on_choice(r)));
         }
         let (di, ci) = self.parts.cell(id, Part::ACTIONS)?;
-        self.set_cursor(di, ci);
+        self.point_cursor(di, ci);
         Some(self.start_edit())
     }
 
@@ -1408,7 +1415,7 @@ impl DataTable {
         }
         let same = self.cursor_row == display && (!self.cell_nav || self.cursor_col == col);
         let from = self.cursor_row;
-        self.set_cursor(display, if self.cell_nav { col } else { self.cursor_col });
+        self.point_cursor(display, if self.cell_nav { col } else { self.cursor_col });
         if self.multi() && !self.cell_nav {
             let src = self.order[display];
             let disabled = &self.disabled;

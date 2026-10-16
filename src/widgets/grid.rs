@@ -1464,6 +1464,13 @@ impl DataGrid {
         self.ensure_col_visible();
     }
 
+    /// [`Self::set_cursor`] for a row the pointer placed: the row comes in
+    /// without context ([`crate::core::scroll::ScrollState::pointer_move`]).
+    fn point_cursor(&mut self, row: usize, col: usize, extend: bool) {
+        self.scroll.pointer_move();
+        self.set_cursor(row, col, extend);
+    }
+
     fn ensure_col_visible(&mut self) {
         let n = self.columns.len();
         if self.scroll.h.viewport_len == 0 {
@@ -1966,7 +1973,7 @@ impl DataGrid {
             self.choice = None;
         }
         if let Some((d, c)) = self.locate_open(id) {
-            self.set_cursor(d, c, false);
+            self.point_cursor(d, c, false);
             return self.begin_edit();
         }
         if id == self.bar[0].id && self.bar[0].on_click() {
@@ -2019,7 +2026,7 @@ impl DataGrid {
                 return (Outcome::Changed, None);
             }
             if let Some(&src) = self.order.get(d) {
-                self.set_cursor(d, self.cursor.1, false);
+                self.point_cursor(d, self.cursor.1, false);
                 if !self.selected_rows.remove(&src) {
                     self.selected_rows.insert(src);
                 }
@@ -2063,7 +2070,7 @@ impl DataGrid {
                     Some(GridAction::FollowReference { row: src, col: c }),
                 );
             }
-            self.set_cursor(d, c, false);
+            self.point_cursor(d, c, false);
             if same && self.editable {
                 return self.begin_edit();
             }
@@ -2109,7 +2116,7 @@ impl DataGrid {
         self.drag = Some(GridDrag::Cells(pressed));
         let (d, c) = (self.drag_row(pos.y), self.drag_col(pos.x));
         if (d, c) != self.cursor {
-            self.set_cursor(d, c, true);
+            self.point_cursor(d, c, true);
             return Outcome::Changed;
         }
         Outcome::Ignored
@@ -2172,7 +2179,7 @@ impl DataGrid {
                 }
             }
         }
-        self.set_cursor(d, self.cursor.1, false);
+        self.point_cursor(d, self.cursor.1, false);
         Outcome::Changed
     }
 
