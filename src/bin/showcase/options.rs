@@ -20,6 +20,8 @@ use crate::pages::layout::Sections;
 use crate::pages::{Hint, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::choice::Toggle;
@@ -109,9 +111,8 @@ pub static SHELL: &[Opt] = &[
     Opt::new("shell.strings", "Strings", &["default", "ascii"]).behaviour(),
     Opt::new("shell.motion", "Motion", &["full", "reduced", "paused"]).behaviour(),
     // pointer
-    Opt::new("shell.focus_on", "Focus on", &["press", "release"])
-        .default(1)
-        .behaviour(),
+    // the library default (plan §3): a press focuses, as on macOS
+    Opt::new("shell.focus_on", "Focus on", &["press", "release"]).behaviour(),
     Opt::new(
         "shell.double_click_ms",
         "Double-click ms",
@@ -1581,12 +1582,6 @@ impl Control {
             Self::Select(_) => 2,
         }
     }
-    fn owns(&self, id: WidgetId) -> bool {
-        match self {
-            Self::Toggle(t) => t.id == id,
-            Self::Select(s) => s.owns(id),
-        }
-    }
 }
 
 /// One row of an [`OptionsView`]: a group heading or an option's control.
@@ -1682,14 +1677,6 @@ impl OptionsView {
         }
     }
 
-    /// Whether `id` is one of the view's targets (a control, a select's
-    /// option or backdrop, the scroll body or its bar).
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.sections.id
-            || id == junie_tui::widgets::scrollbar::id_for(self.sections.id)
-            || self.controls().any(|(_, c)| c.owns(id))
-    }
-
     /// Whether `id` is one of the view's option controls.
     pub fn has_control(&self, id: WidgetId) -> bool {
         self.controls().any(|(_, c)| c.id() == id)
@@ -1776,9 +1763,12 @@ impl OptionsView {
                     let set = (o == Outcome::Changed).then(|| changed(opt, usize::from(t.on)));
                     return Some((o, set.flatten()));
                 }
-                (Control::Toggle(t), PageEvent::Click { id, .. }) if *id == t.id => {
-                    cx.focus.focus(t.id);
-                    let o = t.on_click();
+                (Control::Toggle(t), PageEvent::Pointer(p)) => {
+                    let Some(r) = t.route(p) else { continue };
+                    if p.is(Phase::Click) {
+                        cx.focus.focus(t.id);
+                    }
+                    let o = r.outcome();
                     let set = (o == Outcome::Changed).then(|| changed(opt, usize::from(t.on)));
                     return Some((o, set.flatten()));
                 }
@@ -1787,31 +1777,15 @@ impl OptionsView {
                     let set = a.and_then(|SelectAction::Changed(i)| changed(opt, i));
                     return Some((o, set));
                 }
-                (Control::Select(s), PageEvent::Click { id, .. }) if s.owns(*id) => {
-                    if *id == s.id {
-                        cx.focus.focus(s.id);
-                    }
-                    let (o, a) = s.on_click(*id);
-                    let set = a.and_then(|SelectAction::Changed(i)| changed(opt, i));
-                    return Some((o, set));
-                }
-                (Control::Select(s), PageEvent::Press { id, pos }) if s.owns(*id) => {
+                (Control::Select(s), PageEvent::Pointer(p)) => {
+                    let Some(r) = s.route(p) else { continue };
                     // a press opens the list, so it takes focus with it
-                    if *id == s.id {
+                    if p.id == s.id && (p.is(Phase::Press) || p.is(Phase::Click)) {
                         cx.focus.focus(s.id);
                     }
-                    return Some((s.on_press(*id, *pos), None));
-                }
-                (Control::Select(s), PageEvent::Drag { pressed, pos }) if s.owns(*pressed) => {
-                    return Some((s.on_drag(*pressed, *pos), None));
-                }
-                (Control::Select(s), PageEvent::Release { pressed, pos }) if s.owns(*pressed) => {
-                    let (o, a) = s.on_release(*pos);
+                    let (o, a) = r.into_parts();
                     let set = a.and_then(|SelectAction::Changed(i)| changed(opt, i));
                     return Some((o, set));
-                }
-                (Control::Select(s), PageEvent::Wheel { id, delta }) if s.open && s.owns(*id) => {
-                    return Some((s.on_wheel(*delta), None));
                 }
                 _ => {}
             }
