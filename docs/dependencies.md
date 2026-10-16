@@ -28,7 +28,7 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 
 | Item | Before | After | Latest | Blocker |
 |---|---|---|---|---|
-| Rust toolchain (`rust-toolchain.toml`) | 1.98.1 | 1.99.1 | 1.99.1 | none locally; CI runs 1.98.1, see below |
+| Rust toolchain (`rust-toolchain.toml`) | 1.98.1 | 1.99.1 | 1.99.1 | none locally; CI runs 1.98.1, see below and `docs/upstream/velnor-new-feedback.md` §8 |
 | `rust-version` (root, xtask) | 1.98 | 1.98 | 1.99 | kept at the CI toolchain, see below |
 | `ratatui` (`0.30`, `crossterm_0_29`) | 0.30.2 | 0.30.2 | 0.30.2 | none |
 | `crossterm` (through ratatui) | 0.29.0 | 0.29.0 | 0.29.0 | none |
@@ -39,8 +39,8 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 | `sha2` (dev) | `0.10` / 0.10.9 | `0.11` / 0.11.0 | 0.11.1 | tuiscotti `Cargo.toml:30` `=0.11.0` |
 | `tuiscotti` (dev, git `rev`) | `a47c9aae` | `a47c9aae` | `a47c9aae` (`main`) | none |
 | velnor-actions | 0.1.8 | 0.1.8 | 0.1.8 | none |
-| cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 | pinned by velnor |
-| actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | n/a | pinned by velnor |
+| cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 | pinned by velnor (`docs/upstream/velnor-new-feedback.md` §8) |
+| actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | n/a | pinned by velnor (`docs/upstream/velnor-new-feedback.md` §8) |
 
 `xtask` has no dependencies. `cargo update` moved 42 transitive packages
 (semver-compatible). Transitive crates still behind latest, and why:
@@ -72,6 +72,8 @@ the lockfile buildable on 1.98, and clippy's `incompatible_msrv` flags std
 APIs newer than CI. Mirror CI before pushing with
 `RUSTUP_TOOLCHAIN=1.98.1 cargo clippy --workspace --all-targets -- -D warnings`.
 Raise `rust-version` when a velnor release pins a newer Rust.
+The upstream request (honour `rust-toolchain.toml`, make tool versions
+overridable) is Problem C in `docs/upstream/velnor-new-feedback.md` §8.
 
 ## Visual impact
 
