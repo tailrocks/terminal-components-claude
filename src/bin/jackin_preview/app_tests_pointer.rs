@@ -78,3 +78,31 @@ fn a_press_on_the_help_overlay_scrollbar_pages_it() {
     assert!(offset(&h) > before, "the press paged help\n{}", h.text());
     h.mouse(MouseKind::Up, bar.x, bar.bottom() - 1);
 }
+
+/// M14: the wheel over the Capsule's session strip moves its window one
+/// tab per notch (Tabs' MouseTarget); jackin's router sent the wheel only
+/// to the pane under the pointer.
+#[test]
+fn the_wheel_over_the_session_strip_moves_its_window() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 72, 24);
+    assert_eq!(h.app.route, Route::Capsule, "{}", h.text());
+    // more sessions than the strip shows
+    for d in h.app.world.daemons.values_mut() {
+        if let Some(t) = d.tabs.last().cloned() {
+            d.tabs.extend(std::iter::repeat_n(t, 6));
+        }
+    }
+    h.draw();
+    let tab = part_area(&h, crate::screens::capsule::STRIP, Part::TAB)
+        .unwrap_or_else(|| panic!("the session strip shows its tabs\n{}", h.text()));
+    let row = |h: &H| {
+        h.text()
+            .lines()
+            .nth(tab.y as usize)
+            .unwrap_or_default()
+            .to_owned()
+    };
+    let before = row(&h);
+    h.mouse(MouseKind::WheelDown, tab.x, tab.y);
+    assert_ne!(row(&h), before, "the wheel moved the strip\n{}", h.text());
+}

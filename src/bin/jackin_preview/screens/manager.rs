@@ -5,7 +5,10 @@
 use std::collections::HashSet;
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{ButtonKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -2303,221 +2306,36 @@ impl Screen for ManagerScreen {
         Outcome::Ignored
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == SEAM {
-            return self.seam.on_click(&mut self.split, cx.clicks);
-        }
-        self.build_rows(w);
-        if self.menu.is_open() {
-            let (o, chosen) = self.menu.on_click(id);
-            return match chosen {
-                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
-                None => o,
+    /// A click picks a row (a double click activates it), runs an action
+    /// or chooses from the open row menu; a secondary click opens a row's
+    /// menu; a drag moves the seam or the tree's bar; the wheel scrolls
+    /// the pane under the pointer.
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            return match axis {
+                Axis::Vertical => self.wheel(id, delta),
+                Axis::Horizontal => Outcome::Ignored,
             };
         }
-        for i in self.scroll.visible_range() {
-            if Self::toggle_id(i) == id {
-                if let RowKey::Workspace(ws) = self.rows[i].key.clone() {
-                    self.selected = RowKey::Workspace(ws);
-                    self.toggle_expand(ws);
-                    self.build_rows(w);
-                }
-                cx.focus.focus(TREE);
-                return Outcome::Changed;
-            }
-            if Self::row_id(i) == id {
-                let same = self.selected == self.rows[i].key;
-                self.selected = self.rows[i].key.clone();
-                self.detail_cursor = 0;
-                cx.focus.focus(TREE);
-                self.drawer_open = false;
-                if same {
-                    return self.activate(w, cx);
-                }
-                return Outcome::Changed;
-            }
-        }
-        if id == scrollbar::id_for(TREE) {
-            let track = Rect::new(
-                self.tree_area.right() - 1,
-                self.tree_area.y,
-                1,
-                self.tree_area.height,
-            );
-            self.scroll
-                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            let track = Rect::new(
-                self.detail_area.right() - 1,
-                self.detail_area.y,
-                1,
-                self.detail_area.height,
-            );
-            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
-                track,
-                pos,
-                &self.detail_scroll,
-            ));
-            return Outcome::Changed;
-        }
-        if id == DETAIL {
-            cx.focus.focus(DETAIL);
-            self.drawer_open = true;
-            return Outcome::Changed;
-        }
-        for i in 0..self.detail_rows.len() {
-            if Self::detail_row_id(i) == id {
-                // a pane row is not an input box: the first click selects,
-                // the second attaches
-                let was = self.detail_cursor == i && cx.focus.is(DETAIL);
-                self.detail_cursor = i;
-                cx.focus.focus(DETAIL);
-                if was
-                    && let (RowKey::Instance(iid), Some(DetailRow::Pane { pane, .. })) =
-                        (self.selected.clone(), self.detail_rows.get(i))
-                {
-                    let pane = *pane;
-                    cx.go(Go::Attach {
-                        instance: iid,
-                        pane: Some(pane),
-                    });
-                }
-                return Outcome::Changed;
-            }
-        }
-        for i in 0..self.actions.len() {
-            if self.actions[i].id == id {
-                cx.focus.focus(id);
-                if self.actions[i].on_click() {
-                    let names = [
-                        "reconnect",
-                        "session",
-                        "shell",
-                        "inspect",
-                        "stop",
-                        "purge",
-                        "launch",
-                        "edit",
-                        "prewarm",
-                        "delete",
-                        "new",
-                    ];
-                    for n in names {
-                        if DETAIL.sub(n) == id {
-                            return self.fire_action(n, w, cx);
-                        }
+        match ev.phase() {
+            Some(Phase::Click) => {
+                if ev.count() >= 2 {
+                    let d = self.double_click(id, w, cx);
+                    if d.consumed() {
+                        return d;
                     }
                 }
-                return Outcome::Changed;
+                self.click(id, pos, w, cx)
             }
+            Some(Phase::Secondary) => self.secondary(id, pos, w, cx),
+            Some(Phase::Drag) => self.drag(id, pos),
+            _ => Outcome::Ignored,
         }
-        if id == ROSTER {
-            cx.focus.focus(ROSTER);
-            return Outcome::Changed;
-        }
-        // a roster row names its instance: select that one
-        if let Some(inst) = w
-            .running()
-            .into_iter()
-            .find(|i| ROSTER.part(roster_row(&i.id)) == id)
-        {
-            let inst = inst.id.clone();
-            self.select_instance(&inst, w);
-            cx.focus.focus(TREE);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        self.build_rows(w);
-        // the detail pane (or drawer), its rows and its action buttons are
-        // about the selected row: its menu at the pointer
-        let in_detail = id == DETAIL
-            || (0..self.detail_rows.len()).any(|k| Self::detail_row_id(k) == id)
-            || self.actions.iter().any(|b| b.id == id);
-        if in_detail && let Some(i) = self.cursor() {
-            if self.actions.iter().any(|b| b.id == id) {
-                cx.focus.focus(id);
-            } else {
-                cx.focus.focus(DETAIL);
-            }
-            self.open_menu(i, ContextAnchor::Pointer(pos), w);
-            return Outcome::Changed;
-        }
-        let Some(i) = self
-            .scroll
-            .visible_range()
-            .find(|&i| Self::row_id(i) == id || Self::toggle_id(i) == id)
-        else {
-            return Outcome::Ignored;
-        };
-        if self.menu.config.moves_cursor && self.selected != self.rows[i].key {
-            self.selected = self.rows[i].key.clone();
-            self.detail_cursor = 0;
-            self.detail_scroll.jump_start();
-        }
-        cx.focus.focus(TREE);
-        self.drawer_open = false;
-        self.open_menu(i, ContextAnchor::Pointer(pos), w);
-        Outcome::Changed
     }
 
     fn layer_open(&self) -> bool {
         self.menu.hides_page_focus()
-    }
-
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        _pos: Position,
-        w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if self.menu.is_open() {
-            // the menu takes the click (on_click)
-            return Outcome::Ignored;
-        }
-        for i in self.scroll.visible_range() {
-            if Self::row_id(i) == id {
-                self.selected = self.rows[i].key.clone();
-                return self.activate(w, cx);
-            }
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == SEAM {
-            let container = self.seam_container;
-            return self.seam.on_drag(&mut self.split, container, 2, pos);
-        }
-        if pressed == scrollbar::id_for(TREE) {
-            let track = Rect::new(
-                self.tree_area.right() - 1,
-                self.tree_area.y,
-                1,
-                self.tree_area.height,
-            );
-            self.scroll
-                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == TREE || id == scrollbar::id_for(TREE) {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == DETAIL || id == scrollbar::id_for(DETAIL) {
-            self.detail_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn on_modal(
@@ -2930,5 +2748,218 @@ impl ManagerScreen {
             );
         }
         ctx.clickable(DETAIL, area);
+    }
+}
+
+// ------------------------------------------------------------ pointer
+
+/// The screen's pointer gestures by phase (its hand-drawn rows keep
+/// their derived ids until S16 moves them onto widgets).
+impl ManagerScreen {
+    fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if id == SEAM {
+            return self.seam.on_click(&mut self.split, cx.clicks);
+        }
+        self.build_rows(w);
+        if self.menu.is_open() {
+            let (o, chosen) = self.menu.on_click(id);
+            return match chosen {
+                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
+                None => o,
+            };
+        }
+        for i in self.scroll.visible_range() {
+            if Self::toggle_id(i) == id {
+                if let RowKey::Workspace(ws) = self.rows[i].key.clone() {
+                    self.selected = RowKey::Workspace(ws);
+                    self.toggle_expand(ws);
+                    self.build_rows(w);
+                }
+                cx.focus.focus(TREE);
+                return Outcome::Changed;
+            }
+            if Self::row_id(i) == id {
+                let same = self.selected == self.rows[i].key;
+                self.selected = self.rows[i].key.clone();
+                self.detail_cursor = 0;
+                cx.focus.focus(TREE);
+                self.drawer_open = false;
+                if same {
+                    return self.activate(w, cx);
+                }
+                return Outcome::Changed;
+            }
+        }
+        if id == scrollbar::id_for(TREE) {
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            let track = Rect::new(
+                self.detail_area.right() - 1,
+                self.detail_area.y,
+                1,
+                self.detail_area.height,
+            );
+            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
+                track,
+                pos,
+                &self.detail_scroll,
+            ));
+            return Outcome::Changed;
+        }
+        if id == DETAIL {
+            cx.focus.focus(DETAIL);
+            self.drawer_open = true;
+            return Outcome::Changed;
+        }
+        for i in 0..self.detail_rows.len() {
+            if Self::detail_row_id(i) == id {
+                // a pane row is not an input box: the first click selects,
+                // the second attaches
+                let was = self.detail_cursor == i && cx.focus.is(DETAIL);
+                self.detail_cursor = i;
+                cx.focus.focus(DETAIL);
+                if was
+                    && let (RowKey::Instance(iid), Some(DetailRow::Pane { pane, .. })) =
+                        (self.selected.clone(), self.detail_rows.get(i))
+                {
+                    let pane = *pane;
+                    cx.go(Go::Attach {
+                        instance: iid,
+                        pane: Some(pane),
+                    });
+                }
+                return Outcome::Changed;
+            }
+        }
+        for i in 0..self.actions.len() {
+            if self.actions[i].id == id {
+                cx.focus.focus(id);
+                if self.actions[i].on_click() {
+                    let names = [
+                        "reconnect",
+                        "session",
+                        "shell",
+                        "inspect",
+                        "stop",
+                        "purge",
+                        "launch",
+                        "edit",
+                        "prewarm",
+                        "delete",
+                        "new",
+                    ];
+                    for n in names {
+                        if DETAIL.sub(n) == id {
+                            return self.fire_action(n, w, cx);
+                        }
+                    }
+                }
+                return Outcome::Changed;
+            }
+        }
+        if id == ROSTER {
+            cx.focus.focus(ROSTER);
+            return Outcome::Changed;
+        }
+        // a roster row names its instance: select that one
+        if let Some(inst) = w
+            .running()
+            .into_iter()
+            .find(|i| ROSTER.part(roster_row(&i.id)) == id)
+        {
+            let inst = inst.id.clone();
+            self.select_instance(&inst, w);
+            cx.focus.focus(TREE);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        self.build_rows(w);
+        // the detail pane (or drawer), its rows and its action buttons are
+        // about the selected row: its menu at the pointer
+        let in_detail = id == DETAIL
+            || (0..self.detail_rows.len()).any(|k| Self::detail_row_id(k) == id)
+            || self.actions.iter().any(|b| b.id == id);
+        if in_detail && let Some(i) = self.cursor() {
+            if self.actions.iter().any(|b| b.id == id) {
+                cx.focus.focus(id);
+            } else {
+                cx.focus.focus(DETAIL);
+            }
+            self.open_menu(i, ContextAnchor::Pointer(pos), w);
+            return Outcome::Changed;
+        }
+        let Some(i) = self
+            .scroll
+            .visible_range()
+            .find(|&i| Self::row_id(i) == id || Self::toggle_id(i) == id)
+        else {
+            return Outcome::Ignored;
+        };
+        if self.menu.config.moves_cursor && self.selected != self.rows[i].key {
+            self.selected = self.rows[i].key.clone();
+            self.detail_cursor = 0;
+            self.detail_scroll.jump_start();
+        }
+        cx.focus.focus(TREE);
+        self.drawer_open = false;
+        self.open_menu(i, ContextAnchor::Pointer(pos), w);
+        Outcome::Changed
+    }
+
+    fn double_click(&mut self, id: WidgetId, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.menu.is_open() {
+            // the menu takes the click (on_click)
+            return Outcome::Ignored;
+        }
+        for i in self.scroll.visible_range() {
+            if Self::row_id(i) == id {
+                self.selected = self.rows[i].key.clone();
+                return self.activate(w, cx);
+            }
+        }
+        Outcome::Ignored
+    }
+
+    fn drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if pressed == SEAM {
+            let container = self.seam_container;
+            return self.seam.on_drag(&mut self.split, container, 2, pos);
+        }
+        if pressed == scrollbar::id_for(TREE) {
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn wheel(&mut self, id: WidgetId, delta: i32) -> Outcome {
+        if id == TREE || id == scrollbar::id_for(TREE) {
+            self.scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        if id == DETAIL || id == scrollbar::id_for(DETAIL) {
+            self.detail_scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
     }
 }

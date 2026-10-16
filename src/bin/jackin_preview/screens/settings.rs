@@ -4,6 +4,8 @@
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, width};
@@ -18,7 +20,7 @@ use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 
 use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab, mode_label};
@@ -974,118 +976,41 @@ impl Screen for SettingsScreen {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.saving {
+    /// A click on the tab strip switches the tab (the wheel moves its
+    /// window); a click on a control or a row acts on it; the
+    /// configuration tabs take their own events (rows, menus, wheel).
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let click = ev.is(Phase::Click);
+        if self.saving && (click || ev.is(Phase::Secondary)) {
             return Outcome::Consumed;
         }
-        if self.cfg.menu_open() {
-            let o = self.cfg.menu_click(id, w, cx);
+        if click && self.cfg.menu_open() {
+            let o = self.cfg.menu_click(ev.id, w, cx);
             self.sync_pending();
             return o;
         }
-        if self.tabs.owns(id) {
-            let (o, ev) = self.tabs.on_click(id);
-            if let Some(TabAction::Activated(i)) = ev {
+        if let Some(r) = self.tabs.route(ev) {
+            let (o, act) = r.into_parts();
+            if let Some(TabAction::Activated(i)) = act {
                 self.tab = StTab::ALL[i.min(4)];
+            }
+            if !click {
+                return o;
             }
             cx.focus.focus(TABS);
             return o.or(Outcome::Changed);
         }
-        if id == CANCEL {
-            cx.focus.focus(CANCEL);
-            if self.cancel.on_click() {
-                self.leave(cx);
-            }
-            return Outcome::Changed;
-        }
-        if id == SAVE {
-            cx.focus.focus(SAVE);
-            if self.save.on_click() {
-                self.open_preview(w, cx);
-            }
-            return Outcome::Changed;
-        }
-        match self.tab {
-            StTab::General => {
-                if id == COAUTHOR {
-                    cx.focus.focus(COAUTHOR);
-                    let o = self.coauthor.on_click();
-                    self.sync_pending();
-                    return o;
-                }
-                if id == DCO {
-                    cx.focus.focus(DCO);
-                    let o = self.dco.on_click();
-                    self.sync_pending();
-                    return o;
-                }
-                Outcome::Ignored
-            }
-            StTab::Agents => {
-                for i in 0..Agent::ALL.len() {
-                    if AGENTS.child(i) == id {
-                        let same = self.agents_cursor == i;
-                        self.agents_cursor = i;
-                        cx.focus.focus(AGENTS);
-                        if same {
-                            let k = Key {
-                                code: KeyCode::Char(' '),
-                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
-                            };
-                            return self.agents_key(&k, w, cx);
-                        }
-                        return Outcome::Changed;
-                    }
-                }
-                Outcome::Ignored
-            }
-            StTab::Trust => {
-                for i in 0..self.pending.trust.len() {
-                    if TRUST.child(i) == id {
-                        let same = self.trust_cursor == i;
-                        self.trust_cursor = i;
-                        cx.focus.focus(TRUST);
-                        if same {
-                            let k = Key {
-                                code: KeyCode::Char(' '),
-                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
-                            };
-                            return self.trust_key(&k, cx);
-                        }
-                        return Outcome::Changed;
-                    }
-                }
-                Outcome::Ignored
-            }
-            t => {
-                let o = self.cfg.on_click(t.cfg().unwrap(), id, pos, w, cx);
-                if o.consumed() {
-                    self.sync_pending();
-                }
-                o
-            }
-        }
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.saving {
-            return Outcome::Consumed;
+        if click {
+            return self.click(ev, w, cx);
         }
         match self.tab.cfg() {
-            Some(t) => self.cfg.on_secondary(t, id, pos, w, cx),
+            Some(t) => self.cfg.pointer(t, ev, w, cx),
             None => Outcome::Ignored,
         }
     }
 
     fn layer_open(&self) -> bool {
         self.cfg.menu_hides_focus()
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        match self.tab.cfg() {
-            Some(t) => self.cfg.on_wheel(t, id, delta),
-            None => Outcome::Ignored,
-        }
     }
 
     fn picker_items(&mut self, tag: &LayerTag, query: &str, _w: &World) -> Option<Vec<PickerItem>> {
@@ -1330,5 +1255,86 @@ impl Screen for SettingsScreen {
             cx.focus.focus(TABS);
         }
         Outcome::Changed
+    }
+}
+
+impl SettingsScreen {
+    /// A completed click on a control or a row of the current tab.
+    fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let id = ev.id;
+        if id == CANCEL {
+            cx.focus.focus(CANCEL);
+            if self.cancel.on_click() {
+                self.leave(cx);
+            }
+            return Outcome::Changed;
+        }
+        if id == SAVE {
+            cx.focus.focus(SAVE);
+            if self.save.on_click() {
+                self.open_preview(w, cx);
+            }
+            return Outcome::Changed;
+        }
+        match self.tab {
+            StTab::General => {
+                if id == COAUTHOR {
+                    cx.focus.focus(COAUTHOR);
+                    let o = self.coauthor.on_click();
+                    self.sync_pending();
+                    return o;
+                }
+                if id == DCO {
+                    cx.focus.focus(DCO);
+                    let o = self.dco.on_click();
+                    self.sync_pending();
+                    return o;
+                }
+                Outcome::Ignored
+            }
+            StTab::Agents => {
+                for i in 0..Agent::ALL.len() {
+                    if AGENTS.child(i) == id {
+                        let same = self.agents_cursor == i;
+                        self.agents_cursor = i;
+                        cx.focus.focus(AGENTS);
+                        if same {
+                            let k = Key {
+                                code: KeyCode::Char(' '),
+                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+                            };
+                            return self.agents_key(&k, w, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                Outcome::Ignored
+            }
+            StTab::Trust => {
+                for i in 0..self.pending.trust.len() {
+                    if TRUST.child(i) == id {
+                        let same = self.trust_cursor == i;
+                        self.trust_cursor = i;
+                        cx.focus.focus(TRUST);
+                        if same {
+                            let k = Key {
+                                code: KeyCode::Char(' '),
+                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+                            };
+                            return self.trust_key(&k, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                Outcome::Ignored
+            }
+            t => {
+                let o = self.cfg.pointer(t.cfg().unwrap(), ev, w, cx);
+                if o.consumed() {
+                    self.sync_pending();
+                }
+                o
+            }
+        }
     }
 }
