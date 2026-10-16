@@ -62,7 +62,7 @@ impl Page for TextAreasPage {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let rows = crate::pages::layout::rows(area, &[13, 1, 10]);
-        let panel = Panel::card(Some("Playground")).meta("Enter Edit · Esc Done · Tab Next");
+        let panel = Panel::card(Some("Playground")).meta("Type to edit · Esc Done · Tab Next");
         let bg = panel.bg(t);
         let inner = panel.render(rows[0], buf, t);
         let (l, r) = crate::pages::layout::columns(inner, inner.width / 2 - 2, 4);

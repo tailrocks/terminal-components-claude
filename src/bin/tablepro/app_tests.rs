@@ -97,6 +97,15 @@ impl H {
             if self.focus() == Some(id) {
                 return;
             }
+            // the SQL editor indents on Tab while editing (focus starts the
+            // edit): Esc ends the edit, then Tab leaves
+            let in_editor = matches!(
+                self.app.workbench.as_ref().and_then(|w| w.active_tab()),
+                Some(WorkTab::Query(q)) if Some(q.editor.id) == self.focus() && q.editor.editing
+            );
+            if in_editor {
+                self.key(KeyCode::Esc);
+            }
             self.key(KeyCode::Tab);
         }
         panic!("focus never reached {id:?}, current={:?}", self.focus());
@@ -268,8 +277,8 @@ fn sort_and_filter_on_table_tab() {
     // go back to the value field and replace it with pending
     h.key(KeyCode::BackTab);
     h.key(KeyCode::BackTab);
-    h.key(KeyCode::Enter);
-    h.ctrl('l');
+    // focus starts the edit with the value selected: typing replaces it
+    assert!(h.term.backend().cursor_visible());
     h.type_str("pending");
     h.key(KeyCode::Enter); // commit field → applies
     let t = match h.wb().active_tab() {
@@ -357,7 +366,6 @@ fn editor_completion_and_execution() {
         _ => unreachable!(),
     };
     assert_eq!(h.focus(), Some(q.editor.id));
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT * FROM ord");
     assert!(
         h.wb_query().completion.is_open(),
@@ -396,7 +404,6 @@ fn editor_completion_and_execution() {
 fn execution_error_marks_editor_and_result() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT nope FROM orders");
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
@@ -411,7 +418,6 @@ fn execution_error_marks_editor_and_result() {
 fn cancel_running_query() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT * FROM events");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -429,7 +435,6 @@ fn cancel_running_query() {
 fn explain_opens_plan_tree() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10");
     h.key(KeyCode::Esc);
     h.alt('x');
@@ -454,7 +459,6 @@ fn explain_labels_end_before_the_metric_columns_and_shares_sit_under_their_heade
     for (w, hgt) in [(100u16, 30u16), (72, 30)] {
         let mut h = H::connected(w, hgt);
         h.key(KeyCode::Tab);
-        h.key(KeyCode::Char('i'));
         h.type_str("SELECT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10");
         h.key(KeyCode::Esc);
         h.alt('x');
@@ -516,7 +520,6 @@ fn explain_labels_end_before_the_metric_columns_and_shares_sit_under_their_heade
 fn safety_gate_intercepts_dangerous_statement_on_production() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("DELETE FROM orders");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -549,13 +552,13 @@ fn safety_gate_intercepts_dangerous_statement_on_production() {
 fn safety_gate_typed_token_executes() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
     h.key(KeyCode::Esc);
     h.ctrl('r');
     // Safe Mode level on Production requires the deliberate acknowledgement
     assert!(h.text().contains("Type orders to confirm"));
-    h.key(KeyCode::Enter); // start editing the ack field
+    // the ack field opens editing, caret shown: type the token at once
+    assert!(h.term.backend().cursor_visible());
     h.type_str("orders");
     h.key(KeyCode::Enter); // moves focus to the buttons
     h.key(KeyCode::Right); // Execute
@@ -575,7 +578,6 @@ fn safety_gate_typed_token_executes() {
 fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -614,7 +616,6 @@ fn read_only_connection_refuses_writes() {
     let mut h = H::connected(120, 40);
     h.app.workbench.as_mut().unwrap().connection.safe_mode = crate::db::SafeMode::ReadOnly;
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("DELETE FROM orders WHERE id = 'x'");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -628,7 +629,6 @@ fn silent_level_runs_scoped_writes_but_confirms_destructive() {
     let mut h = H::connected(120, 40);
     h.app.workbench.as_mut().unwrap().connection.safe_mode = crate::db::SafeMode::Silent;
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("UPDATE orders SET status = 'paid'");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -762,8 +762,8 @@ fn pending_edits_preview_and_save() {
     h.key(KeyCode::Esc);
     h.ctrl('s');
     assert!(h.text().contains("Save changes?"));
-    // Production is Safe Mode: token required
-    h.key(KeyCode::Enter);
+    // Production is Safe Mode: token required, typed straight into the
+    // field the dialog opens editing
     h.type_str("orders");
     h.key(KeyCode::Enter);
     h.key(KeyCode::Right);
@@ -828,7 +828,6 @@ fn every_screen_renders_at_representative_sizes() {
         }
         h.ctrl('d');
         h.ctrl('t');
-        h.key(KeyCode::Char('i'));
         h.type_str("SELECT * FROM orders LIMIT 5");
         h.key(KeyCode::Esc);
         h.ctrl('r');
@@ -871,7 +870,6 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     h.key(KeyCode::Tab);
     assert!(!h.text().contains("Filter objects"));
     assert_eq!(h.focus(), Some(h.wb_query().editor.id));
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT 1");
     assert!(h.wb_query().editor.text().contains("SELECT 1"));
     h.key(KeyCode::Esc);
@@ -920,8 +918,8 @@ fn acceptance_flow_keyboard_only() {
     assert!(matches!(h.app.modal(), Some(Modal::Filter(_))));
     h.key(KeyCode::BackTab);
     h.key(KeyCode::BackTab);
-    h.key(KeyCode::Enter);
-    h.ctrl('l');
+    // focus starts the edit with the value selected: typing replaces it
+    assert!(h.term.backend().cursor_visible());
     h.type_str("pending");
     h.key(KeyCode::Enter);
     assert!(h.app.modal().is_none());
@@ -939,7 +937,6 @@ fn acceptance_flow_keyboard_only() {
         Some(h.wb_query().editor.id),
         "new query focuses its editor"
     );
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT * FROM ord");
     assert!(h.wb_query().completion.is_open());
     h.key(KeyCode::Enter);
@@ -977,7 +974,6 @@ fn acceptance_flow_keyboard_only() {
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "customers"));
     // a dangerous query is intercepted and cancelled
     h.ctrl('t');
-    h.key(KeyCode::Char('i'));
     h.type_str("DELETE FROM orders");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -1090,7 +1086,6 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
 fn clicking_the_editor_closes_completion_and_places_the_caret() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab); // editor
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT * FROM ord");
     assert!(h.wb_query().completion.is_open());
     let before = h.wb_query().editor.cursor_offset();
@@ -1132,7 +1127,6 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     // a typed acknowledgement says what to type, not "Enter Confirm"
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
     h.key(KeyCode::Esc);
     h.ctrl('r');
@@ -1406,4 +1400,75 @@ fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
     h.key(KeyCode::Esc);
     assert!(!h.wb().strip.menu_open());
     assert_eq!(h.wb().active, last);
+}
+
+/// Keyboard audit #5, #17 and #20: Tab into the query editor shows the
+/// caret at once and typed letters go into the SQL (not `z` zoom, `[`/`]`
+/// tabs or `q` quit); Tab indents while editing, Esc ends the edit and then
+/// Tab leaves; the find bar counts as editing, so its typed letters never
+/// fire the workbench shortcuts either.
+#[test]
+fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
+    let mut h = H::connected(120, 40);
+    h.key(KeyCode::Tab);
+    let editor = h.wb_query().editor.id;
+    assert_eq!(h.focus(), Some(editor));
+    assert!(h.term.backend().cursor_visible(), "caret on arrival");
+    let active = h.wb().active;
+    h.type_str("z[]q");
+    assert!(!h.app.quit, "q was typed, not quit");
+    assert!(!h.wb().maximized, "z was typed, not zoom");
+    assert_eq!(
+        h.wb().active,
+        active,
+        "[ and ] were typed, not tab switches"
+    );
+    assert_eq!(h.wb_query().editor.text(), "z[]q");
+    assert!(
+        h.text().contains("Tab Indent"),
+        "the footer says Tab indents"
+    );
+    h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(editor), "Tab indents while editing");
+    h.key(KeyCode::Esc);
+    assert!(!h.wb_query().editor.editing, "Esc is Done");
+    assert!(h.text().contains("Enter Edit"), "{}", h.text());
+    // find: `/` opens it; its query takes every letter
+    h.key(KeyCode::Char('/'));
+    h.type_str("z]");
+    assert!(!h.wb().maximized, "z went to the find query");
+    assert_eq!(h.wb().active, active, "] went to the find query");
+    assert_eq!(
+        h.wb_query().editor.find.as_ref().map(|f| f.needle.as_str()),
+        Some("z]")
+    );
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Tab);
+    assert_ne!(h.focus(), Some(editor), "after Esc, Tab leaves the editor");
+}
+
+/// Keyboard audit #1: every text stop of the connection form shows its
+/// caret the moment Tab lands there.
+#[test]
+fn tab_walk_shows_a_caret_at_every_connection_form_field() {
+    let mut h = H::new(120, 40);
+    h.ctrl('n');
+    let mut carets = 0;
+    let mut stops = Vec::new();
+    for _ in 0..30 {
+        h.key(KeyCode::Tab);
+        let f = h.focus();
+        if stops.contains(&f) {
+            continue;
+        }
+        stops.push(f);
+        if h.app.connections.is_editing() {
+            assert!(h.term.backend().cursor_visible(), "{f:?}\n{}", h.text());
+            carets += 1;
+        }
+    }
+    assert!(
+        carets >= 4,
+        "the form's text fields edit on focus: {carets}"
+    );
 }

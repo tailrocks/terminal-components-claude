@@ -1894,10 +1894,12 @@ impl App {
     ) -> FilterOutcome {
         use junie_tui::widgets::input::InputEvent;
         let cur = focus.current();
+        // Esc cancels unless it has an edit to revert first (a field that
+        // focus put in editing but holds no change lets it through)
         if key.is(KeyCode::Esc)
             && f.dismiss.escape
-            && !f.value.editing
-            && !f.value2.editing
+            && !f.value.is_dirty()
+            && !f.value2.is_dirty()
             && !f.column.open
             && !f.op.open
         {
