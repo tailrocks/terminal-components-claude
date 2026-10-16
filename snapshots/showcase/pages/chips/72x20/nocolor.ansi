@@ -2,14 +2,14 @@
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mChips & selects[0m  Removable chips, a popup select,… [0m
                                                                         [0m
-    Overview      ┃    Filters                              2 active   ┃[0m
-  ▸ App shell     ┃                                                    ┃[0m
-  ▾ Inputs & for… ┃     match all ▾  [0m[1m status = 'pending' [0m×[0m[1m  [0m +2        ┃[0m
-      Buttons     ┃                                                    ┆[0m
-      Inputs      ┃    last action: nothing yet                        ┆[0m
-      Text areas  ┃                                                    ┆[0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▾ Inputs & for… ┃                                                     [0m
+      Buttons     ┃    Filters                              3 active   ┃[0m
+      Inputs      ┃                                                    ┃[0m
+      Text areas  ┃     match all ▾  [0m[1m status = 'pending' [0m×[0m[1m  [0m +3        ┆[0m
  [0m[1m▎  › Chips & se… [0m┃                                                    ┆[0m
-      Forms       ┃                                                    ┆[0m
+      Forms       ┃    last action: nothing yet                        ┆[0m
       Checks & r… ┃                                                    ┆[0m
       Toolbars    ┆                                                    ┆[0m
   ▸ Tables        ┆                                                    ┆[0m
