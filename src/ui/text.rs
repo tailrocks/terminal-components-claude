@@ -199,6 +199,124 @@ pub fn fit_right(s: &str, w: usize) -> String {
     format!("{}{t}", " ".repeat(pad))
 }
 
+/// The column that centres `text` in `area` (by display width, so wide
+/// characters centre correctly); `area.x` when it does not fit.
+pub fn center_x(area: ratatui::layout::Rect, text: &str) -> u16 {
+    let w = width_capped(text, usize::from(u16::MAX)) as u16;
+    area.x + area.width.saturating_sub(w) / 2
+}
+
+/// `1 file`, `3 files`, `0 files`: the count with the singular or plural
+/// noun.
+pub fn plural(n: usize, one: &str, many: &str) -> String {
+    if n == 1 {
+        format!("{n} {one}")
+    } else {
+        format!("{n} {many}")
+    }
+}
+
+/// Truncate a ` · `-joined phrase at the last separator that fits, so a
+/// cell never ends mid-word; falls back to a plain cut ([`truncate`]) when
+/// no separator leaves at least a third of the room.
+pub fn truncate_sep(s: &str, max: usize) -> String {
+    if width(s) <= max {
+        return s.to_owned();
+    }
+    if max < 4 {
+        return truncate(s, max);
+    }
+    let mut best: Option<usize> = None;
+    let mut pos = 0;
+    while let Some(i) = s[pos..].find(" · ") {
+        let at = pos + i;
+        let w = width(&s[..at]);
+        if w < max && w * 3 >= max {
+            best = Some(at);
+        }
+        if w + 1 > max {
+            break;
+        }
+        pos = at + 3;
+    }
+    match best {
+        Some(at) => format!("{}…", &s[..at]),
+        None => truncate(s, max),
+    }
+}
+
+/// Fit a ` › ` breadcrumb into `max` cells by dropping middle crumbs first
+/// (`Here › … › Review`), then truncating the last crumb in the middle.
+pub fn crumb_fit(label: &str, max: usize) -> String {
+    if width(label) <= max {
+        return label.to_owned();
+    }
+    let parts: Vec<&str> = label.split(" › ").collect();
+    if parts.len() >= 3 {
+        let first = parts[0];
+        let last = parts[parts.len() - 1];
+        let short = format!("{first} › … › {last}");
+        if width(&short) <= max {
+            return short;
+        }
+        let room = max.saturating_sub(width(first) + 8);
+        return format!("{first} › … › {}", truncate_middle(last, room.max(6)));
+    }
+    truncate_middle(label, max)
+}
+
+/// An elapsed time measured in milliseconds, at the precision a query
+/// timer shows: `<1 ms`, `12 ms`, `1.25 s`, `2m 3s`.
+pub fn duration_ms(ms: u64) -> String {
+    match ms {
+        0 => "<1 ms".into(),
+        ms if ms < 1000 => format!("{ms} ms"),
+        ms if ms < 60_000 => format!("{:.2} s", ms as f64 / 1000.0),
+        ms => format!("{}m {}s", ms / 60_000, (ms % 60_000) / 1000),
+    }
+}
+
+/// A human duration with spaced units, the two most significant only:
+/// `38 s`, `3 min 2 s`, `2 h 14 min`, `1 d 2 h`.
+pub fn duration_secs(secs: u64) -> String {
+    let d = secs / 86_400;
+    let h = (secs % 86_400) / 3600;
+    let m = (secs % 3600) / 60;
+    let s = secs % 60;
+    let pair = |big: u64, big_unit: &str, small: u64, small_unit: &str| {
+        if small > 0 {
+            format!("{big} {big_unit} {small} {small_unit}")
+        } else {
+            format!("{big} {big_unit}")
+        }
+    };
+    if d > 0 {
+        pair(d, "d", h, "h")
+    } else if h > 0 {
+        pair(h, "h", m, "min")
+    } else if m > 0 {
+        pair(m, "min", s, "s")
+    } else {
+        format!("{s} s")
+    }
+}
+
+/// A byte size in binary units: `512 B`, `1.5 KiB`, `3.2 GiB`.
+pub fn bytes(n: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
+    let mut v = n as f64;
+    let mut u = 0;
+    while v >= 1024.0 && u < UNITS.len() - 1 {
+        v /= 1024.0;
+        u += 1;
+    }
+    if u == 0 {
+        format!("{n} B")
+    } else {
+        format!("{v:.1} {}", UNITS[u])
+    }
+}
+
 /// How [`wrap_with`] lays out indented paragraphs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WrapOpts {
@@ -676,5 +794,63 @@ mod tests {
         assert_eq!(fuzzy("a_beta", "be"), Some((10, vec![2, 3])));
         assert_eq!(fuzzy("alpha", "ph"), Some((30, vec![2, 3])));
         assert_eq!(fuzzy("alpha", "aa"), Some((64, vec![0, 4])));
+    }
+}
+
+#[cfg(test)]
+mod format_tests {
+    use super::*;
+    use ratatui::layout::Rect;
+
+    #[test]
+    fn plural_picks_the_noun() {
+        assert_eq!(plural(1, "file", "files"), "1 file");
+        assert_eq!(plural(0, "file", "files"), "0 files");
+        assert_eq!(plural(3, "entry", "entries"), "3 entries");
+    }
+
+    #[test]
+    fn truncate_sep_cuts_at_a_separator() {
+        assert_eq!(truncate_sep("short", 10), "short");
+        assert_eq!(truncate_sep("alpha · beta · gamma", 16), "alpha · beta…");
+        assert_eq!(truncate_sep("abcdefghij", 3), "ab…");
+    }
+
+    #[test]
+    fn crumb_fit_drops_middle_crumbs_first() {
+        assert_eq!(crumb_fit("Here › Review", 40), "Here › Review");
+        assert_eq!(
+            crumb_fit("Here › Plan › Step › Review", 20),
+            "Here › … › Review"
+        );
+        let tight = crumb_fit("Here › Plan › A very long review title", 22);
+        assert!(tight.starts_with("Here › … › "), "{tight}");
+        assert!(width(&tight) <= 22, "{tight}");
+    }
+
+    #[test]
+    fn durations_and_sizes() {
+        assert_eq!(duration_ms(0), "<1 ms");
+        assert_eq!(duration_ms(12), "12 ms");
+        assert_eq!(duration_ms(1_250), "1.25 s");
+        assert_eq!(duration_ms(123_000), "2m 3s");
+        assert_eq!(duration_secs(0), "0 s");
+        assert_eq!(duration_secs(38), "38 s");
+        assert_eq!(duration_secs(450), "7 min 30 s");
+        assert_eq!(duration_secs(8_040), "2 h 14 min");
+        assert_eq!(duration_secs(7_200), "2 h");
+        assert_eq!(duration_secs(97_200), "1 d 3 h");
+        assert_eq!(duration_secs(259_200), "3 d");
+        assert_eq!(bytes(512), "512 B");
+        assert_eq!(bytes(1536), "1.5 KiB");
+        assert_eq!(bytes(3 * 1024 * 1024 * 1024), "3.0 GiB");
+    }
+
+    #[test]
+    fn center_x_uses_display_width() {
+        let area = Rect::new(2, 0, 10, 1);
+        assert_eq!(center_x(area, "ab"), 6);
+        assert_eq!(center_x(area, "日本"), 5);
+        assert_eq!(center_x(area, "far too long for it"), 2);
     }
 }
