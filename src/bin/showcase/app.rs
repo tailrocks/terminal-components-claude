@@ -345,8 +345,8 @@ pub fn nav_roots() -> Vec<NavRoot> {
 }
 
 /// The sidebar tree: top-level pages, then [`NAV_GROUPS`] as branches with
-/// their pages as leaves. Type-ahead on, a divider edge, `›` on the
-/// current page.
+/// their pages as leaves. Type-ahead on, `›` on the current page; the
+/// card it sits in is its edge, so it keeps no divider column.
 fn nav_tree() -> TreeView {
     let nodes = nav_roots()
         .into_iter()
@@ -368,7 +368,6 @@ fn nav_tree() -> TreeView {
     );
     TreeView::new(NAV, nodes)
         .type_ahead(true)
-        .divider(true)
         .selected_marker(Some("›"))
 }
 
@@ -1360,7 +1359,10 @@ impl App {
         } else {
             0
         };
-        let sidebar = Rect::new(body.x, body.y, sidebar_w, body.height);
+        // the sidebar card takes one column of the two-column gutter: its
+        // own blank padding keeps the second, so its rows and the page
+        // still sit two columns apart
+        let sidebar = Rect::new(body.x, body.y, sidebar_w + 1, body.height);
         let main_x = body.x + sidebar_w + 2;
         let main_w = body
             .width
@@ -1473,20 +1475,29 @@ impl App {
         }
     }
 
-    fn draw_sidebar(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn draw_sidebar(&mut self, card: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        // the cursor row comes into view after navigation and on resize
-        // (the wheel scrolls freely in between)
-        let resized = self.nav.scroll.viewport_len != area.height as usize;
-        self.nav.scroll.set_viewport(area.height as usize);
-        if self.nav_reveal || resized {
-            self.nav.scroll.ensure_visible(self.nav.cursor);
-            self.nav_reveal = false;
-        }
+        // the tree sits in a card like every other pane: its title carries
+        // focus-within (the only `▎` stays on the cursor row), one column
+        // of padding keeps the labels readable at the narrow width and
+        // keeps the scrollbar off the card's edge
+        let count = NAV_ENTRIES.len().to_string();
+        let panel = junie_tui::widgets::panel::Panel::card(Some("Components"))
+            .pad_x(1)
+            .focused(ctx.interaction.focused(NAV))
+            .meta(&count);
+        let bg = panel.bg(&t);
+        // the card's padding and title belong to the tree: a click there
+        // focuses it and the wheel scrolls it (registered beneath the rows)
+        ctx.clickable_under(NAV, card);
+        ctx.scrollable(NAV, card);
+        let Some(area) = panel.try_render(card, buf, &t) else {
+            return;
+        };
         // type-to-filter: the query takes the first row
         let area = match &self.nav_filter {
             Some(q) if area.height > 2 => {
-                let row = Rect::new(area.x, area.y, area.width.saturating_sub(1), 1);
+                let row = Rect::new(area.x, area.y, area.width, 1);
                 let fs = t.field_style(junie_tui::ui::ctx::VisualState {
                     editing: true,
                     ..Default::default()
@@ -1505,9 +1516,17 @@ impl App {
             }
             _ => area,
         };
-        // one focus stop; the divider column carries the scrollbar thumb
-        // when the tree overflows (layout audit #19)
-        self.nav.render(area, buf, ctx, t.canvas);
+        // the cursor row comes into view after navigation and on resize
+        // (the wheel scrolls freely in between)
+        let resized = self.nav.scroll.viewport_len != area.height as usize;
+        self.nav.scroll.set_viewport(area.height as usize);
+        if self.nav_reveal || resized {
+            self.nav.scroll.ensure_visible(self.nav.cursor);
+            self.nav_reveal = false;
+        }
+        // one focus stop; the scrollbar takes the last content column when
+        // the tree overflows (layout audit #19), clear of the card's edge
+        self.nav.render(area, buf, ctx, bg);
     }
 
     fn draw_main(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

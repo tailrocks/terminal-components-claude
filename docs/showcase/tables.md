@@ -65,9 +65,16 @@ Rules:
   (or the first match), Esc clears.
 - **Mouse.** The sidebar is navigation, so one click on a page opens it
   (data views select on one click instead, see below). A click on a
-  disclosure or a group row folds the group; the wheel scrolls; the divider
-  column carries the scrollbar thumb when the tree overflows
-  (`TreeView::divider`).
+  disclosure or a group row folds the group; the wheel scrolls; the
+  scrollbar takes the last column inside the card when the tree overflows.
+- **Panel.** The tree sits in a "Components" card (`Panel::card`, the
+  page count as meta) like every other pane: one column of padding on each
+  side (`Panel::pad_x(1)`, so labels keep their room at the narrow width
+  and the scrollbar never touches the card's edge), the `/` query row
+  inside it, focus-within on the title (`PanelFocus::Title`) and the `▎`
+  only on the cursor row. A click on the card's padding or title focuses
+  the tree and the wheel there scrolls it. The card's edge is the constant
+  divider at every size, so the tree keeps no divider column of its own.
 - **States.** One focus indicator: the `▎` gutter on the cursor row while
   the sidebar has focus, none otherwise. The current page is a fact: a `›`
   marker in its disclosure slot (`TreeView::selected_marker`), so it never
