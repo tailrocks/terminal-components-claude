@@ -4,7 +4,7 @@
    Inputs         ┃                                                             [0m
    Text areas     ┃   [0m[1;7m app❯ [0m   File   View   Help                               [0m
    Forms          ┃                                                             [0m
-   Lists          ┃    Sessions              right-click or m for the tab menu  [0m
+   Lists          ┃    Sessions      right-click or Shift+F10 for the tab menu  [0m
    Trees          ┃                                                             [0m
    Tables         ┃       1 Claude Code (Work)                 working     Th…  [0m
    Editable tabl… ┃       2 Codex (Primary)                       idle     se…  [0m
@@ -19,7 +19,7 @@
    Data grid      ┃                                                             [0m
    Chips & selec… │   [0m[1mpayments-platform[0m   PR #482 · settlement backoff          [0m
    Pickers        │   hint bar · topmost layer wins:                            [0m
-[0m[1;2m▎› Chrome         [0m│   [0m[1m↑↓[0m Move  [0m[1mm[0m Context menu  …              last: nothing yet [0m
+[0m[1;2m▎› Chrome         [0m│   [0m[1m↑↓[0m Move  [0m[1mShift+F10[0m Context menu  …      last: nothing yet [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
 [?25l
