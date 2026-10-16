@@ -26,6 +26,7 @@ use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
 
 const ID: WidgetId = WidgetId::of("selectable");
 const DELETE: WidgetId = WidgetId::of("selectable.delete_dialog");
+const DISCARD: WidgetId = WidgetId::of("selectable.discard_dialog");
 /// The placeholder a bulk edit shows where the selected members differ.
 pub const MIXED: &str = "— mixed —";
 /// Width of the editor beside the table on a wide page.
@@ -234,6 +235,16 @@ pub struct SelectablePage {
     notes_mixed: bool,
     /// The last apply or delete, shown beside the actions.
     pub feedback: Option<String>,
+    /// Changing the selection while the editor has unsaved edits asks
+    /// "Discard unsaved changes?" (Keep editing / Discard) first. Default
+    /// on; off, the new selection loads and the edits are dropped. (The
+    /// table's toggle-click modifiers are `table.toggle_mods`: Ctrl or Cmd
+    /// by default, `DataTable::TOGGLE_WITH_ALT` adds Option+click for
+    /// macOS, where Ctrl+click is a secondary click.)
+    pub confirm_discard: bool,
+    /// The selection (and cursor row) a change asked for while the
+    /// discard question is open: Discard applies it.
+    pending: Option<(junie_tui::core::selection::RowSelection, usize)>,
     sections: crate::pages::layout::Sections,
 }
 
@@ -271,6 +282,8 @@ impl SelectablePage {
             base: FormValues::default(),
             notes_mixed: false,
             feedback: None,
+            confirm_discard: true,
+            pending: None,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
         };
         page.load();
@@ -507,6 +520,35 @@ impl SelectablePage {
         cx.focus.focus(first);
     }
 
+    /// Run `f` on the table; when it changes the selection while the
+    /// editor holds unsaved edits (and [`Self::confirm_discard`] is on),
+    /// put the old selection back and ask first.
+    fn table_input(
+        &mut self,
+        cx: &mut PageCtx,
+        f: impl FnOnce(&mut DataTable) -> (Outcome, Option<TableEvent>),
+    ) -> Outcome {
+        let guard = (self.confirm_discard && self.dirty())
+            .then(|| (self.table.selection.clone(), self.table.cursor_row));
+        let (out, tev) = f(&mut self.table);
+        if let (Some((before, cursor)), Some(TableEvent::SelectionChanged)) = (guard, &tev) {
+            let after = std::mem::replace(&mut self.table.selection, before);
+            let to = std::mem::replace(&mut self.table.cursor_row, cursor);
+            self.pending = Some((after, to));
+            let d = Dialog::destructive(
+                DISCARD,
+                "Discard unsaved changes?",
+                "The editor has changes that were not applied. Changing the selection drops them.",
+                "Discard",
+            )
+            .cancel_label("Keep editing");
+            cx.open(d);
+            return Outcome::Changed;
+        }
+        self.on_table_event(tev, cx);
+        out
+    }
+
     fn on_table_event(&mut self, ev: Option<TableEvent>, cx: &mut PageCtx) {
         match ev {
             Some(TableEvent::SelectionChanged) => self.selection_changed(),
@@ -714,9 +756,7 @@ impl Page for SelectablePage {
                         self.ask_delete(cx);
                         return Outcome::Changed;
                     }
-                    let (out, tev) = self.table.on_key(key);
-                    self.on_table_event(tev, cx);
-                    return out;
+                    return self.table_input(cx, |t| t.on_key(key));
                 }
                 if f == self.name.id {
                     return Self::route_input(&mut self.name, key, cx);
@@ -770,15 +810,11 @@ impl Page for SelectablePage {
                 let id = *id;
                 if id == self.table.check_all_id() {
                     cx.focus.focus(self.table.id);
-                    let (out, tev) = self.table.on_click_check_all();
-                    self.on_table_event(tev, cx);
-                    return out;
+                    return self.table_input(cx, |t| t.on_click_check_all());
                 }
                 if let Some(d) = self.table.locate_check(id) {
                     cx.focus.focus(self.table.id);
-                    let (out, tev) = self.table.on_click_check(d);
-                    self.on_table_event(tev, cx);
-                    return out;
+                    return self.table_input(cx, |t| t.on_click_check(d));
                 }
                 if let Some(c) = self.table.locate_header(id) {
                     cx.focus.focus(self.table.id);
@@ -786,11 +822,10 @@ impl Page for SelectablePage {
                 }
                 if let Some((row, col)) = self.table.locate(id) {
                     cx.focus.focus(self.table.id);
-                    let (out, tev) =
-                        self.table
-                            .on_click_cell_with(row, col.unwrap_or(0), *pos, cx.mods);
-                    self.on_table_event(tev, cx);
-                    return out;
+                    let (pos, mods) = (*pos, cx.mods);
+                    return self.table_input(cx, |t| {
+                        t.on_click_cell_with(row, col.unwrap_or(0), pos, mods)
+                    });
                 }
                 if scrollbar::is_bar_of(id, self.table.id) {
                     return self.table.on_scrollbar(*pos);
@@ -851,6 +886,17 @@ impl Page for SelectablePage {
             }
             PageEvent::WheelH { id, delta } if self.table.owns(*id) => {
                 self.table.on_wheel_h(*delta)
+            }
+            PageEvent::DialogClosed { id, result, .. } if *id == DISCARD => {
+                if let Some((sel, cursor)) = self.pending.take()
+                    && *result == DialogResult::Action(1)
+                {
+                    self.table.selection = sel;
+                    self.table.cursor_row = cursor;
+                    self.selection_changed();
+                    cx.status("Changes discarded");
+                }
+                Outcome::Changed
             }
             PageEvent::DialogClosed { id, result, .. } if *id == DELETE => {
                 if *result == DialogResult::Action(1) {
