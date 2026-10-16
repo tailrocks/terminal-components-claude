@@ -78,9 +78,9 @@ impl ChecksRadiosPage {
         self.checks = checks;
 
         let nav = match o.value("checksradios.radio_nav") {
-            "no-vim" => NavKeys::NO_VIM,
-            "no-home-end" => NavKeys::DEFAULT.home_end(false),
-            _ => NavKeys::DEFAULT,
+            "vim" => NavKeys::VIM,
+            "no-home-end" => NavKeys::default().home_end(false),
+            _ => NavKeys::default(),
         };
         let rid = ID.sub("radios");
         let mut radios = vec![

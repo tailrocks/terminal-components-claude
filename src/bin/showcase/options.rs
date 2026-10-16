@@ -315,7 +315,7 @@ pub static TEXTAREAS: &[Opt] = &[
     Opt::new(
         "textareas.nav",
         "Scroll keys",
-        &["default", "no-vim", "no-page"],
+        &["default", "vim", "no-page"],
     ),
     Opt::new(
         "textareas.pointer_select",
@@ -346,7 +346,7 @@ pub static CHECKS: &[Opt] = &[
     Opt::new(
         "checksradios.radio_nav",
         "Radio keys",
-        &["default", "no-vim", "no-home-end"],
+        &["default", "vim", "no-home-end"],
     ),
     Opt::new("checksradios.disabled", "Disable every control", OFF_ON),
 ];
@@ -379,7 +379,7 @@ pub static CHIPS: &[Opt] = &[
     Opt::new(
         "chipsselects.chip_nav",
         "Chip keys",
-        &["default", "no-vim", "no-home-end"],
+        &["default", "vim", "no-home-end"],
     ),
     Opt::new(
         "chipsselects.chip_keymap",
@@ -436,7 +436,7 @@ pub static CHIPS: &[Opt] = &[
     Opt::new(
         "chipsselects.select_nav",
         "Select keys",
-        &["default", "no-vim"],
+        &["default", "vim"],
     ),
     Opt::new("chipsselects.mixed", "Sort shows mixed", OFF_ON),
 ];
