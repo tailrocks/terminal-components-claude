@@ -79,13 +79,14 @@ fn cli_after_help() -> String {
     format!(
         "Scenarios: {concept}\n\
          Parity:    {parity}\n\
-         Motion:    explicit --motion wins; otherwise {NO_MOTION_ENV}=1 selects reduced motion\n\
+         {motion}\n\
          Frame:     with --motion paused, the exact fixture tick to render\n\n\
          Keys: type to search · ↑↓ move · Enter run · Alt+Enter alternatives · Tab preview · Ctrl+↑↓ scope · Ctrl+G activities · F1 key reference · Ctrl+Q quit\n\
          Preview: every scenario is captured under snapshots/holla/; src/bin/holla/README.md lists what each scenario shows.\n\
          Everything is simulated in memory; no stack command is ever executed.",
         concept = scenario_names(&Scenario::CONCEPT),
         parity = scenario_names(&Scenario::PARITY),
+        motion = junie_tui::cli::motion_help(NO_MOTION_ENV),
     )
 }
 
