@@ -103,6 +103,20 @@ pub enum TreeEvent {
     Activate(Path),
 }
 
+/// What Enter/Space (and a row click, see [`TreeView::row_click_toggles`])
+/// do on a branch row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BranchAction {
+    /// Expand or collapse it (the long-standing behaviour).
+    #[default]
+    Toggle,
+    /// Activate it like a leaf ([`TreeEvent::Activate`]); ←/→ and the
+    /// disclosure still expand and collapse.
+    Activate,
+    /// Toggle it and activate it.
+    Both,
+}
+
 #[derive(Debug, Clone)]
 pub struct TreeView {
     /// The scrollbar track as last drawn: presses and drags map through it.
@@ -130,6 +144,16 @@ pub struct TreeView {
     /// `height` span the rows), or `Rect::ZERO` when nothing is reserved or
     /// the strip does not fit. Owners align their headers and cells to it.
     trailing: Rect,
+    /// What Enter/Space do on a branch row. Default
+    /// [`BranchAction::Toggle`].
+    pub branch_activate: BranchAction,
+    /// A click on a branch row (not its disclosure) runs
+    /// [`Self::branch_activate`]. Off: only the disclosure toggles, as in
+    /// macOS outline views, and the click just moves the cursor. Default
+    /// `true` (today's behaviour).
+    pub row_click_toggles: bool,
+    /// Columns of indentation per depth level. Default 2.
+    pub indent: u16,
 }
 
 impl TreeView {
@@ -148,6 +172,9 @@ impl TreeView {
             reserve_right: 0,
             show_meta: true,
             trailing: Rect::ZERO,
+            branch_activate: BranchAction::Toggle,
+            row_click_toggles: true,
+            indent: 2,
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -155,6 +182,41 @@ impl TreeView {
         }
         tv.flatten();
         tv
+    }
+
+    pub fn branch_activate(mut self, action: BranchAction) -> Self {
+        self.branch_activate = action;
+        self
+    }
+
+    pub fn row_click_toggles(mut self, on: bool) -> Self {
+        self.row_click_toggles = on;
+        self
+    }
+
+    pub fn indent(mut self, cols: u16) -> Self {
+        self.indent = cols;
+        self
+    }
+
+    /// Run [`Self::branch_activate`] on branch row `i`.
+    fn branch(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
+        let path = self.rows[i].path.clone();
+        match self.branch_activate {
+            BranchAction::Toggle => self.toggle(i),
+            BranchAction::Activate => {
+                self.selected = Some(path.clone());
+                (Outcome::Changed, Some(TreeEvent::Activate(path)))
+            }
+            BranchAction::Both => {
+                let (o, ev) = self.toggle(i);
+                self.selected = Some(path.clone());
+                (
+                    o.or(Outcome::Changed),
+                    ev.or(Some(TreeEvent::Activate(path))),
+                )
+            }
+        }
     }
 
     pub fn rows(&self) -> &[FlatRow] {
@@ -462,7 +524,7 @@ impl TreeView {
                 if row.note {
                     Outcome::Consumed
                 } else if row.has_children {
-                    return self.toggle(self.cursor);
+                    return self.branch(self.cursor);
                 } else {
                     self.selected = Some(row.path.clone());
                     return (
@@ -492,7 +554,11 @@ impl TreeView {
         if self.rows[i].note {
             (Outcome::Consumed, None)
         } else if self.rows[i].has_children {
-            self.toggle(i)
+            if self.row_click_toggles {
+                self.branch(i)
+            } else {
+                (Outcome::Changed, None)
+            }
         } else {
             self.selected = Some(self.rows[i].path.clone());
             (
@@ -596,7 +662,7 @@ impl TreeView {
                 let row = &self.rows[ri];
                 let Some(m) = &row.meta else { return true };
                 let need = 1
-                    + (row.depth * 2) as u16
+                    + (row.depth as u16) * self.indent
                     + 2
                     + if row.glyph.is_some() { 2 } else { 0 }
                     + crate::ui::text::width(&row.label) as u16
@@ -627,7 +693,7 @@ impl TreeView {
                 t.gutter_symbol(s),
                 t.gutter(s, st.bg.unwrap_or(bg), false),
             );
-            let indent = (row.depth * 2) as u16;
+            let indent = (row.depth as u16) * self.indent;
             let mut x = rect.x + 1 + indent;
             if x + 2 >= rect.right() {
                 continue;
@@ -741,6 +807,27 @@ impl TreeView {
 #[cfg(test)]
 mod identity_tests {
     use super::*;
+
+    #[test]
+    fn branch_rows_toggle_or_activate_per_config() {
+        let nodes = vec![TreeNode::dir("src", vec![TreeNode::leaf("lib.rs")])];
+        let enter = Key {
+            code: KeyCode::Enter,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut t = TreeView::new(WidgetId::of("t"), nodes.clone());
+        assert_eq!(t.rows().len(), 2);
+        t.on_key(&enter);
+        assert_eq!(t.rows().len(), 1, "Enter collapses by default");
+        let mut a =
+            TreeView::new(WidgetId::of("t"), nodes.clone()).branch_activate(BranchAction::Activate);
+        let (_, ev) = a.on_key(&enter);
+        assert_eq!(ev, Some(TreeEvent::Activate(vec![0])));
+        assert_eq!(a.rows().len(), 2, "activating does not collapse");
+        let mut quiet = TreeView::new(WidgetId::of("t"), nodes).row_click_toggles(false);
+        quiet.on_click_row(0);
+        assert_eq!(quiet.rows().len(), 2, "a row click only moves the cursor");
+    }
     use ratatui::crossterm::event::KeyModifiers;
 
     fn key(code: KeyCode) -> Key {
