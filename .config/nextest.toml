@@ -6,8 +6,8 @@
 # `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`):
 #   `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`
 #   (groups pending tuiscotti re-approval also need `VISUAL_FULL=1`)
-# Approve reviewed actuals (local only):
-#   `VISUAL_ACCEPT=<prefix> cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'`
+# Approve reviewed actuals (local only, refuses under CI):
+#   `cargo xtask visual accept '<filterset>'` (docs/visual-testing/README.md)
 
 [test-groups]
 # Real TUI binaries in PTYs; cap concurrency so boot does not starve.
@@ -16,8 +16,6 @@ pty = { max-threads = 8 }
 [profile.default]
 fail-fast = false
 slow-timeout = { period = "60s" }
-# Approval writes snapshots/; it never runs as part of a gate.
-default-filter = "not test(=accept_actuals)"
 
 [[profile.default.overrides]]
 filter = "binary(visual_baseline)"
@@ -44,10 +42,9 @@ slow-timeout = { period = "60s", terminate-after = 10 }
 # velnor `run_ignored = "all"` CI runs `cargo nextest run --profile ci
 # --run-ignored all`; this filter then keeps every non-ignored test plus the
 # smoke tier, and drops the other ignored tests (perf measurements, the
-# legacy approval test, the full and narrow tiers).
+# full and narrow tiers).
 # default-filter = '''
-#   not test(=accept_actuals)
-#   & not test(=measure_widgets)
+#   not test(=measure_widgets)
 #   & not test(=perf_tests::measure_table_surfaces)
 #   & (
 #     not binary(visual_baseline)
