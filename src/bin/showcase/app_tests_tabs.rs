@@ -152,9 +152,9 @@ fn the_editor_strip_closes_opens_and_asks_before_closing_a_dirty_tab() {
     // the dirty tab asks first; Esc keeps it
     h.key(KeyCode::Right);
     h.key(KeyCode::Char('x'));
-    assert!(h.app.dialog.is_some(), "closing a dirty tab asks first");
+    assert!(h.app.dialog().is_some(), "closing a dirty tab asks first");
     h.key(KeyCode::Esc);
-    assert!(h.app.dialog.is_none());
+    assert!(h.app.dialog().is_none());
     assert_eq!(labels(&h).len(), n, "Esc keeps the tab");
     assert!(h.page().last.contains("Kept orders.sql open"));
     // asked again, Discard closes it
@@ -255,7 +255,7 @@ fn options_rebuild_the_editor_strip_through_its_builders() {
     h.key(KeyCode::Right);
     let n = labels(&h).len();
     h.key(KeyCode::Char('x'));
-    assert!(h.app.dialog.is_none(), "x no longer closes");
+    assert!(h.app.dialog().is_none(), "x no longer closes");
     h.key_mod(KeyCode::Char('t'), KeyModifiers::CONTROL);
     assert_eq!(labels(&h).len(), n + 1, "Ctrl+T opens a tab");
     h.opt("tabs.keymap=default");

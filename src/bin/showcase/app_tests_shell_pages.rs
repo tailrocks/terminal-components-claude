@@ -297,7 +297,7 @@ mod help_keys {
         let mut h = Harness::new(120, 40, PageId::Overview);
         let before = h.app.shell.focus.current();
         h.key(KeyCode::Char('?'));
-        let help = h.app.help.as_ref().expect("the reference opened");
+        let help = h.app.help().expect("the reference opened");
         assert_eq!(help.title, "Keyboard & mouse");
         let text = h.text();
         for s in ["Focus", "Pages", "Sidebar", "Mouse"] {
@@ -313,13 +313,13 @@ mod help_keys {
         assert_eq!(h.live_bars(), 1);
         assert!(h.row_of("▎").contains("Done"), "{text}");
         h.key(KeyCode::Esc);
-        assert!(h.app.help.is_none());
+        assert!(h.app.help().is_none());
         assert_eq!(h.app.shell.focus.current(), before);
         // `?` closes it too (HelpCmd::Close)
         h.key(KeyCode::Char('?'));
-        assert!(h.app.help.is_some());
+        assert!(h.app.help().is_some());
         h.key(KeyCode::Char('?'));
-        assert!(h.app.help.is_none());
+        assert!(h.app.help().is_none());
     }
 
     /// One modal at a time: the reference refuses to open over a dialog.
@@ -331,35 +331,39 @@ mod help_keys {
             "x",
             vec![],
         ));
-        assert!(h.app.help.is_some());
+        assert!(h.app.help().is_some());
         h.key(KeyCode::Esc);
-        h.app.dialog = Some(junie_tui::widgets::dialog::Dialog::confirm(
-            junie_tui::core::id::WidgetId::of("t.dialog"),
-            "Title",
-            "Body",
-            "OK",
-        ));
+        h.app
+            .open_dialog(junie_tui::widgets::dialog::Dialog::confirm(
+                junie_tui::core::id::WidgetId::of("t.dialog"),
+                "Title",
+                "Body",
+                "OK",
+            ));
         h.app.show_help(junie_tui::widgets::help::HelpOverlay::new(
             HELP,
             "x",
             vec![],
         ));
-        assert!(h.app.help.is_none());
+        assert!(h.app.help().is_none());
     }
 
     #[test]
     fn a_click_outside_closes_it_under_light_dismiss_only() {
         let mut h = page();
         open(&mut h);
-        assert_eq!(h.app.help.as_ref().map(|h| h.id), Some(HELP));
+        assert_eq!(h.app.help().map(|h| h.id), Some(HELP));
         h.click(1, 20);
-        assert!(h.app.help.is_none(), "light dismiss");
+        assert!(h.app.help().is_none(), "light dismiss");
         h.opt("helpkeys.dismiss=escape");
         open(&mut h);
         h.click(1, 20);
-        assert!(h.app.help.is_some(), "Esc only: an outside click keeps it");
+        assert!(
+            h.app.help().is_some(),
+            "Esc only: an outside click keeps it"
+        );
         h.key(KeyCode::Esc);
-        assert!(h.app.help.is_none());
+        assert!(h.app.help().is_none());
         assert!(h.app.shell.focus.is(OPEN), "focus back on the button");
     }
 
@@ -373,9 +377,9 @@ mod help_keys {
         open(&mut h);
         assert!(h.text().contains("Editor keys"));
         h.key(KeyCode::Char('?'));
-        assert!(h.app.help.is_some(), "? is not bound any more");
+        assert!(h.app.help().is_some(), "? is not bound any more");
         h.key(KeyCode::F(1));
-        assert!(h.app.help.is_none(), "F1 closes");
+        assert!(h.app.help().is_none(), "F1 closes");
         // vim keys scroll the reference only with the vim map
         open(&mut h);
         let top = h.text();
@@ -433,7 +437,7 @@ mod quit_leave {
     fn a_clean_page_leaves_at_once() {
         let mut h = page();
         press(&mut h, QUIT);
-        assert!(h.app.dialog.is_none());
+        assert!(h.app.dialog().is_none());
         assert!(h.row_of("Last request").contains("Ok(Leave::Quit)"));
         assert!(!h.app.shell.quit, "the demo never quits the showcase");
     }
@@ -448,7 +452,7 @@ mod quit_leave {
         assert!(h.app.shell.focus.is(TITLE));
         assert!(h.row_of("Edits").contains("Unsaved"), "{}", h.text());
         press(&mut h, LEAVE);
-        let d = h.app.dialog.as_ref().expect("the unsaved-changes dialog");
+        let d = h.app.dialog().expect("the unsaved-changes dialog");
         assert_eq!(d.actions.len(), 3, "Cancel / Discard / Save");
         // Enter presses the focused Save
         h.key(KeyCode::Enter);
@@ -463,7 +467,7 @@ mod quit_leave {
         h.opt("quitleave.save=off");
         h.opt("quitleave.stakes=unsaved");
         press(&mut h, LEAVE);
-        assert_eq!(h.app.dialog.as_ref().unwrap().actions.len(), 2);
+        assert_eq!(h.app.dialog().unwrap().actions.len(), 2);
         h.key(KeyCode::Esc);
         assert!(h.row_of("Last answer").contains("Resolved::Stay"));
     }
@@ -488,9 +492,9 @@ mod quit_leave {
         h.app.shell.focus.focus(LEAVE);
         h.key(KeyCode::Char('q'));
         assert!(!h.app.shell.quit);
-        assert!(h.app.dialog.is_none());
+        assert!(h.app.dialog().is_none());
         h.key_mods(KeyCode::Char('q'), KeyModifiers::CONTROL);
-        assert!(h.app.dialog.is_some(), "Ctrl+Q asks first");
+        assert!(h.app.dialog().is_some(), "Ctrl+Q asks first");
         assert!(!h.app.shell.quit);
     }
 
