@@ -993,6 +993,37 @@ impl Page for SelectablePage {
             PageEvent::Drag { pressed, pos } if scrollbar::is_bar_of(*pressed, self.table.id) => {
                 self.table.on_bar_drag(*pressed, *pos)
             }
+            // a select opens on the press, follows the drag and chooses
+            // on the release (press-drag-release)
+            PageEvent::Press { id, pos } => {
+                for sel in self.selects() {
+                    if sel.owns(*id) {
+                        // the press that opens the list focuses the field
+                        // (the release that would focus it is no click)
+                        if *id == sel.id {
+                            cx.focus.focus(sel.id);
+                        }
+                        return sel.on_press(*id, *pos);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Drag { pressed, pos } => {
+                for sel in self.selects() {
+                    if sel.owns(*pressed) {
+                        return sel.on_drag(*pressed, *pos);
+                    }
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Release { pressed, pos } => {
+                for sel in self.selects() {
+                    if sel.owns(*pressed) {
+                        return sel.on_release(*pos).0;
+                    }
+                }
+                Outcome::Ignored
+            }
             PageEvent::Wheel { id, delta } => {
                 for sel in self.selects() {
                     if sel.open && sel.owns(*id) {
