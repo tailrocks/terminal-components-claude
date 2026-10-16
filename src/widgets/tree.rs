@@ -783,6 +783,7 @@ impl TreeView {
         if i >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
+        self.scroll.pointer_move();
         self.set_cursor(i);
         if self.rows[i].note {
             (Outcome::Consumed, None)
@@ -802,6 +803,7 @@ impl TreeView {
     }
 
     pub fn on_click_toggle(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
+        self.scroll.pointer_move();
         self.set_cursor(i);
         self.toggle(i)
     }
