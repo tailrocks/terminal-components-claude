@@ -1475,7 +1475,7 @@ impl SizeCache {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::clock::EPOCH_SECS;
+    use crate::scenario::EPOCH_SECS;
     use crate::sim::fs::BLOCK;
 
     #[test]

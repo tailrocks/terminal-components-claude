@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::clock::EPOCH_SECS;
+use crate::scenario::EPOCH_SECS;
 
 pub const BLOCK: u64 = 4096;
 /// Preview bounds (I-P01).

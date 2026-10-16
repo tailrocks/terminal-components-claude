@@ -235,7 +235,7 @@ impl ManagerScreen {
                             InstanceStatus::Running => (
                                 format!(
                                     "running {}",
-                                    crate::clock::format_duration(
+                                    junie_tui::ui::text::duration_secs(
                                         (w.now_secs() - i.created_secs).max(0) as u64
                                     )
                                 ),
@@ -1645,13 +1645,17 @@ impl ManagerScreen {
             let live = match &i.daemon {
                 DaemonSnapshot::Tabs(tabs) => format!(
                     "running {} · {} · {}",
-                    crate::clock::format_duration((w.now_secs() - i.created_secs).max(0) as u64),
+                    junie_tui::ui::text::duration_secs(
+                        (w.now_secs() - i.created_secs).max(0) as u64
+                    ),
                     plural(tabs.len(), "tab", "tabs"),
                     plural(tabs.iter().map(|t| t.panes.len()).sum(), "pane", "panes")
                 ),
                 _ => format!(
                     "running {} · daemon unavailable",
-                    crate::clock::format_duration((w.now_secs() - i.created_secs).max(0) as u64)
+                    junie_tui::ui::text::duration_secs(
+                        (w.now_secs() - i.created_secs).max(0) as u64
+                    )
                 ),
             };
             buf.set_string(

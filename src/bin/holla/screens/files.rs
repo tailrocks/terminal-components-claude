@@ -767,7 +767,7 @@ impl FilesPage {
                 buf.set_string(
                     x,
                     y,
-                    crate::clock::Clock::stamp(e.mtime),
+                    crate::scenario::CLOCK.stamp(e.mtime),
                     plain.fg(t.text_muted),
                 );
             }
@@ -966,7 +966,7 @@ impl FilesPage {
             }
             if let Some(n) = node {
                 lines.push((
-                    format!("modified {}", crate::clock::Clock::stamp(n.mtime)),
+                    format!("modified {}", crate::scenario::CLOCK.stamp(n.mtime)),
                     Tone::Muted,
                 ));
             }
