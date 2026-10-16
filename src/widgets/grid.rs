@@ -25,6 +25,9 @@ use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::text::{fit, fit_right, truncate, truncate_middle, wider_than, width, width_capped};
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::field_common::{EditAction, edit_key};
+use crate::widgets::option_editor::{
+    Affordance, ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig,
+};
 use crate::widgets::scrollbar;
 use crate::widgets::table::SortDir;
 
@@ -110,6 +113,9 @@ pub struct ColumnSpec {
     pub max_width: u16,
     /// Muted type label shown under the name when `type_row` is on.
     pub type_label: String,
+    /// How the column's cells are edited: typed text (default) or a value
+    /// from a fixed set ([`ColumnEditor`]).
+    pub editor: ColumnEditor,
 }
 
 impl ColumnSpec {
@@ -127,7 +133,13 @@ impl ColumnSpec {
             min_width,
             max_width,
             type_label: String::new(),
+            editor: ColumnEditor::Text,
         }
+    }
+    /// Edit the column with a constrained `editor`.
+    pub fn editor(mut self, editor: ColumnEditor) -> Self {
+        self.editor = editor;
+        self
     }
     pub fn primary(mut self) -> Self {
         self.primary = true;
@@ -436,6 +448,20 @@ pub struct DataGrid {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+    /// The constrained editor open on a cell, if any.
+    pub choice: Option<GridChoice>,
+    /// Behaviour of every constrained column editor
+    /// ([`EditorConfig::default`]).
+    pub editor_config: EditorConfig,
+}
+
+/// A constrained editor open on one grid cell ([`DataGrid::choice`]).
+#[derive(Debug, Clone)]
+pub struct GridChoice {
+    /// Source row.
+    pub row: usize,
+    pub col: usize,
+    pub editor: ChoiceEditor,
 }
 
 /// A [`DataGrid`] action a key can be bound to. Enter/F2 (edit or
@@ -569,6 +595,116 @@ impl DataGrid {
             type_ahead: false,
             type_ahead_column: None,
             typeahead: Default::default(),
+            choice: None,
+            editor_config: EditorConfig::default(),
+        }
+    }
+
+    /// See [`Self::editor_config`].
+    pub fn editor_config(mut self, cfg: EditorConfig) -> Self {
+        self.editor_config = cfg;
+        self
+    }
+
+    /// The id of the popup a constrained editor opens.
+    pub fn choice_id(&self) -> WidgetId {
+        self.id.sub("choice")
+    }
+
+    /// The `▾` of a constrained cell (on the cursor cell and on hover).
+    pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
+        self.cell_id(display, col).sub("open")
+    }
+
+    fn locate_open(&self, id: WidgetId) -> Option<(usize, usize)> {
+        for d in self.scroll.visible_range() {
+            for c in 0..self.columns.len() {
+                if self.open_id(d, c) == id {
+                    return Some((d, c));
+                }
+            }
+        }
+        None
+    }
+
+    /// The cell at (source row, column) holds text outside its column's
+    /// options (imported data).
+    pub fn out_of_set(&self, src: usize, col: usize) -> bool {
+        let Some(spec) = self.columns.get(col) else {
+            return false;
+        };
+        match self.value(src, col) {
+            CellValue::Text(t) => spec.editor.out_of_set(t, &self.editor_config),
+            _ => false,
+        }
+    }
+
+    /// Store a chosen value through the grid's validator and pending
+    /// queue.
+    fn apply_choice(&mut self, src: usize, col: usize, value: String) -> Result<GridEvent, String> {
+        let parsed = if value.is_empty() {
+            Ok(CellValue::Text(String::new()))
+        } else {
+            (self.validator.0)(&self.columns[col], &value)
+        }?;
+        self.record_cell(src, col, parsed);
+        Ok(GridEvent::CellChanged { row: src, col })
+    }
+
+    /// The next (previous) writable column of the cursor row, or the
+    /// event that leaves the grid.
+    fn next_writable(&self, backward: bool) -> Result<usize, GridEvent> {
+        let n = self.columns.len();
+        let mut col = self.cursor.1;
+        loop {
+            if backward {
+                if col == 0 {
+                    return Err(GridEvent::LeaveBackward);
+                }
+                col -= 1;
+            } else {
+                col += 1;
+                if col >= n {
+                    return Err(GridEvent::LeaveForward);
+                }
+            }
+            if !self.columns[col].read_only && !self.columns[col].primary {
+                return Ok(col);
+            }
+        }
+    }
+
+    /// Resolve what an open constrained editor reported.
+    fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<GridEvent> {
+        let (value, tab) = match r? {
+            ChoiceResult::Cancel => {
+                self.choice = None;
+                return None;
+            }
+            ChoiceResult::Commit(v) => (v, None),
+            ChoiceResult::CommitAndTab { value, backward } => (value, Some(backward)),
+        };
+        let (src, col) = self.choice.as_ref().map(|c| (c.row, c.col))?;
+        match self.apply_choice(src, col, value) {
+            Ok(ev) => {
+                self.choice = None;
+                if let Some(backward) = tab {
+                    match self.next_writable(backward) {
+                        Ok(c) => {
+                            self.set_cursor(self.cursor.0, c, false);
+                            let _ = self.begin_edit();
+                        }
+                        Err(leave) => return Some(leave),
+                    }
+                }
+                Some(ev)
+            }
+            Err(msg) => {
+                if let Some(c) = self.choice.as_mut() {
+                    c.editor.error = Some(msg);
+                }
+                None
+            }
         }
     }
 
@@ -805,9 +941,15 @@ impl DataGrid {
     // ---- editing ----------------------------------------------------
 
     pub fn is_editing(&self) -> bool {
+        if self.choice.is_some() {
+            return true;
+        }
         self.edit.is_some()
     }
     pub fn edit_error(&self) -> Option<&str> {
+        if let Some(c) = &self.choice {
+            return c.editor.error.as_deref();
+        }
         self.edit.as_ref().and_then(|e| e.error.as_deref())
     }
 
@@ -828,6 +970,24 @@ impl DataGrid {
             return (Outcome::Consumed, None);
         }
         let v = self.value(src, col).clone();
+        // a constrained column: a checkbox flips, the others open a popup
+        if spec.editor.is_constrained() {
+            let raw = v.edit_text();
+            if let Some(next) = spec.editor.toggled(&raw) {
+                return match self.apply_choice(src, col, next) {
+                    Ok(ev) => (Outcome::Changed, Some(ev)),
+                    Err(_) => (Outcome::Consumed, None),
+                };
+            }
+            let opened =
+                ChoiceEditor::open(self.choice_id(), &spec.editor, &raw, &self.editor_config);
+            self.choice = opened.map(|editor| GridChoice {
+                row: src,
+                col,
+                editor,
+            });
+            return (Outcome::Changed, None);
+        }
         match spec.kind {
             CellKind::Bool => {
                 let next = match v {
@@ -908,6 +1068,17 @@ impl DataGrid {
     /// reports `CellChanged` like Enter (an invalid value stays open with
     /// its error), a cancel drops the edit.
     pub fn on_blur(&mut self) -> (Outcome, Option<GridEvent>) {
+        if let Some(c) = &self.choice {
+            let r = match self.editor_config.blur {
+                BlurAction::Commit => match c.editor.blur_value(&self.editor_config) {
+                    Some(v) => ChoiceResult::Commit(v),
+                    None => ChoiceResult::Cancel,
+                },
+                BlurAction::Cancel => ChoiceResult::Cancel,
+                BlurAction::Keep => return (Outcome::Ignored, None),
+            };
+            return (Outcome::Changed, self.on_choice(Some(r)));
+        }
         if self.edit.is_none() {
             return (Outcome::Ignored, None);
         }
@@ -1219,6 +1390,21 @@ impl DataGrid {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<GridEvent>) {
+        if let Some(c) = self.choice.as_mut() {
+            let (out, r) = c.editor.on_key(key, &self.editor_config);
+            return (out, self.on_choice(r));
+        }
+        // Alt+↓ opens a constrained cell's popup (plain ↓ moves)
+        if key.code == KeyCode::Down
+            && key.alt()
+            && self.editable
+            && self
+                .columns
+                .get(self.cursor.1)
+                .is_some_and(|c| c.editor.has_popup())
+        {
+            return self.begin_edit();
+        }
         if let Some(e) = self.edit.as_mut() {
             return match edit_key(key, false) {
                 EditAction::Commit => match self.commit_edit() {
@@ -1519,7 +1705,9 @@ impl DataGrid {
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id
+        self.choice.as_ref().is_some_and(|c| c.editor.owns(id))
+            || self.locate_open(id).is_some()
+            || id == self.id
             || scrollbar::is_bar_of(id, self.id)
             || id == self.more_id()
             || id == self.left_id()
@@ -1552,6 +1740,18 @@ impl DataGrid {
     }
 
     pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridEvent>) {
+        if let Some(c) = self.choice.as_mut() {
+            if c.editor.owns(id) {
+                let (out, r) = c.editor.on_click(id, &self.editor_config);
+                return (out, self.on_choice(r));
+            }
+            // a click anywhere else ends the popup without a choice
+            self.choice = None;
+        }
+        if let Some((d, c)) = self.locate_open(id) {
+            self.set_cursor(d, c, false);
+            return self.begin_edit();
+        }
         if id == self.bar[0].id && self.bar[0].on_click() {
             return (Outcome::Changed, Some(GridEvent::PreviewSql));
         }
@@ -1684,6 +1884,11 @@ impl DataGrid {
     }
 
     pub fn on_wheel(&mut self, delta: i32, horizontal: bool) -> Outcome {
+        if let Some(c) = self.choice.as_mut()
+            && !horizontal
+        {
+            return c.editor.on_wheel(delta);
+        }
         if horizontal && !self.h_cfg.enabled {
             return Outcome::Ignored;
         }
@@ -1757,6 +1962,9 @@ impl DataGrid {
     }
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
+        if let Some(c) = self.choice.as_mut() {
+            return c.editor.on_paste(text);
+        }
         match self.edit.as_mut() {
             Some(e) => {
                 e.buffer.insert_str(text);
@@ -2076,6 +2284,11 @@ impl DataGrid {
             .as_ref()
             .filter(|_| focused)
             .map(|e| (e.row, e.col));
+        let choice_here = self.choice.as_ref().map(|c| (c.row, c.col));
+        let mut choice_anchor: Option<Rect> = None;
+        let mut open_marks: Vec<(WidgetId, Rect)> = Vec::new();
+        // stands in for a cell error on a value outside its options
+        let flagged_msg = String::new();
         for (i, d) in self.scroll.visible_range().enumerate() {
             let y = body.y + i as u16;
             let row_rect = Rect::new(
@@ -2223,9 +2436,39 @@ impl DataGrid {
                 } else {
                     let v = self.value(src, ci);
                     let dirty = self.pending.is_dirty(src, ci) && state != RowState::Inserted;
+                    let cfg = &self.editor_config;
+                    let in_choice = choice_here == Some((src, ci));
+                    if in_choice {
+                        choice_anchor = Some(cell_rect);
+                    }
+                    let is_cursor = is_cursor || in_choice;
+                    // a constrained cell shows its option label; a value
+                    // outside the options is flagged like an error
+                    let flagged = cfg.flag_out_of_set && self.out_of_set(src, ci);
                     let err = self.cell_errors.get(&(src, ci));
+                    let err = err.or(flagged.then_some(&flagged_msg));
                     let mut st = row_style;
-                    let text = cell_text_with(v, col.kind, rect.width as usize, &t.glyphs);
+                    let affordance = self.editable
+                        && !col.read_only
+                        && col.editor.has_popup()
+                        && state != RowState::Deleted
+                        && rect.width > 3
+                        && match cfg.affordance {
+                            Affordance::Never => false,
+                            Affordance::Always => true,
+                            Affordance::Focused => is_cursor || hovered_cell == Some(ci),
+                        };
+                    let text_w = if affordance {
+                        rect.width - 2
+                    } else {
+                        rect.width
+                    } as usize;
+                    let text = match v {
+                        CellValue::Text(raw) if col.editor.is_constrained() => {
+                            truncate(&col.editor.display(raw, cfg), text_w)
+                        }
+                        _ => cell_text_with(v, col.kind, text_w, &t.glyphs),
+                    };
                     // tone
                     match v {
                         CellValue::Null | CellValue::Default => {
@@ -2262,11 +2505,24 @@ impl DataGrid {
                             .underline_color(t.border_strong);
                     }
                     let shown = if col.kind.right_aligned() {
-                        fit_right(&text, rect.width as usize)
+                        fit_right(&text, text_w)
                     } else {
-                        fit(&text, rect.width as usize)
+                        fit(&text, text_w)
                     };
+                    if affordance {
+                        fill(buf, cell_rect, st);
+                    }
                     buf.set_string(rect.x, y, &shown, st);
+                    if affordance {
+                        let mark = Rect::new(rect.right() - 1, y, 1, 1);
+                        let ms = if is_cursor {
+                            st
+                        } else {
+                            st.fg(t.text_secondary)
+                        };
+                        buf.set_string(mark.x, y, t.glyphs.disclosure_open, ms);
+                        open_marks.push((self.open_id(d, ci), mark));
+                    }
                     // a cut value (long text, JSON) shows in full on hover,
                     // with its real line breaks
                     let full = v.text_ref();
@@ -2290,7 +2546,7 @@ impl DataGrid {
                             st.fg(if is_cursor { t.canvas } else { t.text_muted }),
                         );
                     }
-                    if err.is_some() && !is_cursor {
+                    if err.is_some() && !is_cursor && !affordance {
                         buf.set_string(
                             rect.right().saturating_sub(1),
                             y,
@@ -2301,6 +2557,13 @@ impl DataGrid {
                 }
                 ctx.clickable(self.cell_id(d, ci), cell_rect);
             }
+        }
+        // a cell's `▾` sits above the cell: a click on it opens the editor
+        for (id, rect) in open_marks {
+            ctx.clickable(id, rect);
+        }
+        if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
+            c.editor.render(anchor, buf, ctx, &self.editor_config);
         }
         // the scroll region also sits above the rows: a wheel burst handled
         // before the next frame (see `runtime::Coalesce`) then routes to the
@@ -3281,3 +3544,7 @@ mod tests {
         assert!(!draw(Some(grid().cell_id(1, 1))).contains(long));
     }
 }
+
+#[cfg(test)]
+#[path = "grid_choice_tests.rs"]
+mod choice_tests;
