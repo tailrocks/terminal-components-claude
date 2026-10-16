@@ -38,6 +38,7 @@ mod modes;
 mod oracle;
 mod overlay_sites;
 mod scenarios;
+mod startup_input;
 mod startup_resize;
 mod support;
 mod tool;
@@ -118,6 +119,14 @@ fn main() {
         check(
             "startup_resize::a_resize_queued_with_a_key_still_reaches_the_app",
             startup_resize::a_resize_queued_with_a_key_still_reaches_the_app,
+        ),
+        check(
+            "startup_input::showcase_discards_keys_typed_before_start",
+            startup_input::showcase_discards_keys_typed_before_start,
+        ),
+        check(
+            "startup_input::tablepro_discards_keys_typed_before_start",
+            startup_input::tablepro_discards_keys_typed_before_start,
         ),
     ];
     for scenario in scenarios::all() {
