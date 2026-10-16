@@ -93,58 +93,6 @@ pub fn line_text(line: &[Span]) -> String {
     line.iter().map(|s| s.text.as_str()).collect()
 }
 
-/// Draw one line of spans at `(x, y)` in at most `max` cells, outside a
-/// viewport (a summary row, a health line, a table cell). Each span takes
-/// its tone made readable on `bg` ([`Theme::tone_on`](crate::theme::Theme::tone_on))
-/// and its own modifiers, so a line can carry `2 ok` in success beside
-/// `1 failed` in error. A line wider than `max` is cut with `…`. The
-/// cells' background is left as it is. Returns the cells drawn.
-pub fn render_spans(
-    buf: &mut ratatui::buffer::Buffer,
-    x: u16,
-    y: u16,
-    max: u16,
-    t: &crate::theme::Theme,
-    line: &[Span],
-    bg: Color,
-) -> u16 {
-    let full = line_text(line);
-    let shown = crate::ui::text::truncate(&full, max as usize);
-    let w = width(&shown) as u16;
-    if w == 0 {
-        return 0;
-    }
-    buf.set_string(x, y, &shown, Style::new());
-    let all = Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED | Modifier::REVERSED;
-    let mut at = x;
-    for s in line {
-        let sw = width(&s.text) as u16;
-        let to = at.saturating_add(sw).min(x + w);
-        if to > at {
-            let mut m = Modifier::empty();
-            if s.bold {
-                m |= Modifier::BOLD;
-            }
-            if s.italic {
-                m |= Modifier::ITALIC;
-            }
-            if s.underline {
-                m |= Modifier::UNDERLINED;
-            }
-            if s.reversed {
-                m |= Modifier::REVERSED;
-            }
-            let st = Style::new()
-                .fg(t.tone_on(s.tone, bg))
-                .add_modifier(m)
-                .remove_modifier(all - m);
-            buf.set_style(ratatui::layout::Rect::new(at, y, to - at, 1), st);
-        }
-        at = at.saturating_add(sw);
-    }
-    w
-}
-
 /// Logical position: line index and display column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CellPos {
@@ -2052,32 +2000,6 @@ mod tests {
 
     fn key(code: KeyCode, mods: KeyModifiers) -> Key {
         Key { code, mods }
-    }
-
-    #[test]
-    fn a_line_of_spans_keeps_each_tone_and_cuts_with_an_ellipsis() {
-        let t = Theme::junie();
-        let line = vec![
-            Span::new("degraded", Tone::Error).bold(),
-            Span::new(" · ", Tone::Normal),
-            Span::new("1 stale", Tone::Warning),
-        ];
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
-        assert_eq!(render_spans(&mut buf, 0, 0, 30, &t, &line, t.canvas), 18);
-        assert_eq!(row(&buf, 0), "degraded · 1 stale");
-        assert_eq!(buf[(0, 0)].fg, t.error);
-        assert!(buf[(0, 0)].modifier.contains(Modifier::BOLD));
-        assert_eq!(buf[(9, 0)].fg, t.text_primary);
-        assert!(!buf[(9, 0)].modifier.contains(Modifier::BOLD));
-        assert_eq!(buf[(11, 0)].fg, t.warning);
-        // on the popover the error steps up to its strong ink
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
-        render_spans(&mut buf, 0, 0, 30, &t, &line, t.popover);
-        assert_eq!(buf[(0, 0)].fg, t.legible(t.error, t.popover));
-        // narrow: cut with `…`, never past `max`
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
-        assert_eq!(render_spans(&mut buf, 0, 0, 10, &t, &line, t.canvas), 10);
-        assert_eq!(row(&buf, 0), "degraded …");
     }
 
     #[test]

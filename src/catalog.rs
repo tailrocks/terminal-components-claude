@@ -193,10 +193,14 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::ty("core::hit::ReleaseFrom"),
     Capability::variant("core::hit::ReleaseFrom::Press"),
     Capability::variant("core::hit::ReleaseFrom::Secondary"),
+    Capability::ty("core::hit::Hit"),
+    Capability::ty("core::hit::PartEntry"),
+    Capability::ty("core::hit::PartMap"),
     // core::id
     Capability::ty("core::id::WidgetId"),
     Capability::builder("core::id::WidgetId::child"),
     Capability::builder("core::id::WidgetId::sub"),
+    Capability::builder("core::id::WidgetId::part"),
     Capability::ty("core::id::ItemKey"),
     Capability::variant("core::id::ItemKey::Index"),
     Capability::variant("core::id::ItemKey::Num"),
@@ -849,7 +853,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::hintbar::HintLayer::align"),
     Capability::builder("widgets::hintbar::HintLayer::badge"),
     Capability::builder("widgets::hintbar::HintLayer::status"),
-    Capability::builder("widgets::hintbar::HintLayer::status_parts"),
     Capability::ty("widgets::hintbar::HintBar"),
     // widgets::icon_button
     Capability::ty("widgets::icon_button::IconLook"),

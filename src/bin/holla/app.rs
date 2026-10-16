@@ -26,6 +26,7 @@ use junie_tui::widgets::menu::{
     ContextMenu, MenuAction, MenuBar, MenuBarAction, MenuItem, Placement,
 };
 use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
+use junie_tui::widgets::progress::MeterTone;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
@@ -131,9 +132,6 @@ pub struct App {
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key; moves).
     pub context: ContextConfig,
     pub status: Option<(String, Tone, i64)>,
-    /// The status as toned parts (a batch summary); empty for a status in
-    /// one tone.
-    pub status_parts: Vec<(String, Tone)>,
     pub size: (u16, u16),
     pub quit: bool,
     too_small: bool,
@@ -179,7 +177,6 @@ impl App {
             pointer: PointerState::default(),
             context: ContextConfig::DEFAULT,
             status: None,
-            status_parts: vec![],
             size: (0, 0),
             quit: false,
             too_small: false,
@@ -249,15 +246,6 @@ impl App {
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
         self.status = Some((s.to_owned(), tone, self.world.now_ms() + 5_000));
-        self.status_parts.clear();
-    }
-
-    /// A status made of parts in their own tones; `tone` is the message's
-    /// severity (the hint bar's `!` mark).
-    pub fn set_status_parts(&mut self, parts: Vec<(String, Tone)>, tone: Tone) {
-        let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
-        self.set_status(&text, tone);
-        self.status_parts = parts;
     }
 
     fn top(&self) -> Option<&dyn Screen> {
@@ -493,7 +481,7 @@ impl App {
                     job.exec.completed(),
                     job.exec.total()
                 );
-                self.set_status(&text, Tone::Secondary);
+                self.status = Some((text, Tone::Secondary, self.world.now_ms() + 5_000));
             } else if live == 0 {
                 self.quit = true;
             } else {
@@ -502,7 +490,7 @@ impl App {
                     crate::screens::plural(live, "activity", "activities"),
                     self.world.cancelling()
                 );
-                self.set_status(&text, Tone::Secondary);
+                self.status = Some((text, Tone::Secondary, self.world.now_ms() + 5_000));
             }
             out = Outcome::Changed;
         }
@@ -549,34 +537,20 @@ impl App {
                 out = Outcome::Changed;
             }
             Msg::BatchDone { id, ok } => {
-                // each count in its own tone: ok success, failed error,
-                // cancelled muted; an all-ok batch reads as success
-                let parts = self
+                let label = self
                     .world
                     .batches
                     .iter()
                     .find(|b| &b.id == id)
                     .map(|b| {
                         let (okn, failed, cancelled, _) = b.tally(&self.world);
-                        let sep = || (" · ".to_owned(), Tone::Secondary);
-                        vec![
-                            (b.label.clone(), Tone::Secondary),
-                            sep(),
-                            (
-                                format!("{okn} ok"),
-                                if okn > 0 { Tone::Success } else { Tone::Muted },
-                            ),
-                            sep(),
-                            (
-                                format!("{failed} failed"),
-                                if failed > 0 { Tone::Error } else { Tone::Muted },
-                            ),
-                            sep(),
-                            (format!("{cancelled} cancelled"), Tone::Muted),
-                        ]
+                        format!(
+                            "{} · {okn} ok · {failed} failed · {cancelled} cancelled",
+                            b.label
+                        )
                     })
                     .unwrap_or_default();
-                self.set_status_parts(parts, if *ok { Tone::Success } else { Tone::Error });
+                self.set_status(&label, if *ok { Tone::Secondary } else { Tone::Error });
                 out = Outcome::Changed;
             }
             Msg::PlanDone { plan } => {
@@ -3422,7 +3396,7 @@ impl App {
                             ActivityState::Running | ActivityState::Cancelling => item.busy = true,
                             ActivityState::Queued => item = item.suffix("…"),
                             ActivityState::Failed => item.error = true,
-                            ActivityState::Succeeded => item = item.done(true),
+                            ActivityState::Succeeded => item = item.suffix("✓"),
                             ActivityState::Stopped | ActivityState::Detached => {
                                 item = item.suffix("○")
                             }
@@ -3438,7 +3412,7 @@ impl App {
                                 if p.outcome().1 > 0 {
                                     item.error = true;
                                 } else {
-                                    item = item.done(true);
+                                    item = item.suffix("✓");
                                 }
                             }
                             PlanPhase::Review => {}
@@ -3538,17 +3512,15 @@ impl App {
         if let Some(g) = w.git_here() {
             // the branch is an identity, the state after it is the fact that
             // earns the warning tone; the state survives the branch name
-            // each part in its own tone: sync counts information, dirty
-            // attention, conflicts error
-            let state = g.state_parts();
+            let state = g.state_summary();
             bar.left.push(
                 StatusItem::new(truncate_middle(&g.head_label(), 24), Tone::Muted)
                     .clickable(STATUS_GIT)
                     .priority(if state.is_empty() { 5 } else { 4 }),
             );
-            for (text, tone) in state {
+            if !state.is_empty() {
                 bar.left.push(
-                    StatusItem::new(text, tone)
+                    StatusItem::new(state, Tone::Warning)
                         .clickable(STATUS_GIT)
                         .priority(5),
                 );
@@ -3586,7 +3558,7 @@ impl App {
         {
             bar.right.push(
                 StatusItem::new(fs.mount.clone(), Tone::Muted)
-                    .meter(Some(fs.pct()), crate::screens::disk::FS_METER)
+                    .meter(Some(fs.pct()), MeterTone::Normal)
                     .priority(4),
             );
         }
@@ -3669,11 +3641,6 @@ impl App {
             .status
             .as_ref()
             .map(|(s, tone, _)| (truncate(s, area.width.saturating_sub(8) as usize), *tone));
-        let status_parts = if status.is_some() {
-            self.status_parts.clone()
-        } else {
-            vec![]
-        };
         let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
         let menu_layer = (!modal && self.menu.is_open()).then(|| {
             HintLayer::new(vec![
@@ -3688,7 +3655,6 @@ impl App {
         let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
         layer.badge = badge;
         layer.status = status;
-        layer.status_parts = status_parts;
         HintBar::render(area, buf, &t, &layer);
     }
 }

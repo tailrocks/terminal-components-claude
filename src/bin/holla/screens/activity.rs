@@ -85,19 +85,19 @@ impl ActivityTab {
         if let Some(s) = svc {
             line.push(Span::new(format!("{:<w$}  ", s, w = svc_w), Tone::Secondary).bold());
         }
-        // failure output reads as text: the body stays primary and a bold
-        // `!` gutter in the error tone marks the line (the cue survives
-        // without colour); red is kept for the status chip
-        if *tone == LineTone::Error {
-            line.push(Span::new("! ", Tone::Error).bold());
-        }
+        let raw = *tone;
         let tone = match tone {
-            LineTone::Normal | LineTone::Error => Tone::Normal,
+            LineTone::Normal => Tone::Normal,
             LineTone::Muted => Tone::Muted,
             LineTone::Warning => Tone::Warning,
-            LineTone::Success => Tone::Success,
+            LineTone::Error => Tone::Error,
+            LineTone::Success => Tone::Secondary,
         };
-        line.push(Span::new(text.clone(), tone));
+        let mut span = Span::new(text.clone(), tone);
+        if raw == LineTone::Error {
+            span = span.bold();
+        }
+        line.push(span);
         line
     }
 

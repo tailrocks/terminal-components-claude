@@ -191,37 +191,23 @@ fn step_props(p: &Plan, i: usize, w: &World) -> Vec<Prop> {
 }
 
 /// The final line of a run: only the non-zero classes, in outcome order.
-/// `succeeded` reads in success and `failed` in error; the rest stays
-/// secondary.
-fn outcome_line(
-    ok: usize,
-    failed: usize,
-    excluded: usize,
-    skipped: usize,
-    never: usize,
-) -> Vec<Span> {
-    let parts: Vec<Span> = [
-        (ok, "succeeded", Tone::Success),
-        (failed, "failed", Tone::Error),
-        (skipped, "skipped", Tone::Secondary),
-        (never, "never started", Tone::Secondary),
-        (excluded, "excluded", Tone::Secondary),
+fn outcome_line(ok: usize, failed: usize, excluded: usize, skipped: usize, never: usize) -> String {
+    let parts: Vec<String> = [
+        (ok, "succeeded"),
+        (failed, "failed"),
+        (skipped, "skipped"),
+        (never, "never started"),
+        (excluded, "excluded"),
     ]
     .into_iter()
-    .filter(|(n, _, _)| *n > 0)
-    .map(|(n, w, tone)| Span::new(format!("{n} {w}"), tone))
+    .filter(|(n, _)| *n > 0)
+    .map(|(n, w)| format!("{n} {w}"))
     .collect();
     if parts.is_empty() {
-        return vec![Span::new("nothing ran", Tone::Secondary)];
+        "nothing ran".into()
+    } else {
+        parts.join(" · ")
     }
-    let mut line = vec![];
-    for (i, p) in parts.into_iter().enumerate() {
-        if i > 0 {
-            line.push(Span::new(" · ", Tone::Secondary));
-        }
-        line.push(p);
-    }
-    line
 }
 
 /// The consequence line under an outline: which steps are blocked and why.
@@ -378,11 +364,9 @@ fn render_outline(
             } else if s.optional {
                 "optional".to_owned()
             } else if !s.privilege.is_empty() {
-                // the faint marker is the required step's lock; the word
-                // says why it cannot be toggled
-                format!("required · {}", s.privilege)
+                s.privilege.clone()
             } else {
-                "required".to_owned()
+                String::new()
             }
         } else {
             match s.state {
@@ -1748,14 +1732,11 @@ impl Screen for PlanTab {
         if summary_h > 0 {
             let y = area.bottom().saturating_sub(summary_h - 1);
             let line = outcome_line(ok, failed, excluded, skipped, never);
-            junie_tui::widgets::viewport::render_spans(
-                buf,
+            buf.set_string(
                 area.x + 1,
                 y,
-                area.width.saturating_sub(2),
-                t,
-                &line,
-                t.canvas,
+                truncate(&line, area.width.saturating_sub(2) as usize),
+                t.secondary(),
             );
             if has_follow {
                 let y = area.bottom().saturating_sub(1);

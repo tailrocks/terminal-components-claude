@@ -102,11 +102,15 @@ core::hit::HitRegistry | Inspector pane: app-wide option or State tab readout | 
 core::hit::ReleaseFrom | Inspector pane: app-wide option or State tab readout | SC1
 core::hit::ReleaseFrom::Press | Inspector pane: app-wide option or State tab readout | SC1
 core::hit::ReleaseFrom::Secondary | Inspector pane: app-wide option or State tab readout | SC1
+core::hit::Hit | Inspector pane: app-wide option or State tab readout | SC1
+core::hit::PartEntry | Inspector pane: app-wide option or State tab readout | SC1
+core::hit::PartMap | Inspector pane: app-wide option or State tab readout | SC1
 
 # core::id
 core::id::WidgetId | Inspector pane: app-wide option or State tab readout | SC1
 core::id::WidgetId::child | Inspector pane: app-wide option or State tab readout | SC1
 core::id::WidgetId::sub | Inspector pane: app-wide option or State tab readout | SC1
+core::id::WidgetId::part | Inspector pane: app-wide option or State tab readout | SC1
 core::id::ItemKey | Inspector pane: app-wide option or State tab readout | SC1
 core::id::ItemKey::Index | Inspector pane: app-wide option or State tab readout | SC1
 core::id::ItemKey::Num | Inspector pane: app-wide option or State tab readout | SC1
@@ -777,7 +781,6 @@ widgets::hintbar::HintLayer | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::align | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::badge | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::status | Chrome and Status & hints pages | SC4
-widgets::hintbar::HintLayer::status_parts | Chrome and Status & hints pages | SC4
 
 # widgets::icon_button
 widgets::icon_button::IconLook | Buttons page options and States grid | SC7

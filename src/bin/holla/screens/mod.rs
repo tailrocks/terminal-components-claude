@@ -470,8 +470,7 @@ pub fn risk_tone(risk: crate::domain::action::Risk) -> Tone {
     }
 }
 
-/// A one-row section heading: text-muted (faint is 4.4:1 on the canvas),
-/// sentence case (DESIGN hierarchy).
+/// A one-row section heading: text-faint, sentence case (DESIGN hierarchy).
 pub fn heading(
     buf: &mut Buffer,
     x: u16,
@@ -488,9 +487,7 @@ pub fn heading(
         x,
         y,
         junie_tui::ui::text::truncate(text, w as usize),
-        ratatui::style::Style::new()
-            .fg(t.tone_on(junie_tui::theme::Tone::Muted, bg))
-            .bg(bg),
+        t.faint().bg(bg),
     );
 }
 

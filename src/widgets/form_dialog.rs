@@ -860,7 +860,8 @@ impl FormDialog {
                 FormFieldKind::Check(c) => ctx.hits.register(c.id, c.area),
                 FormFieldKind::Radio(r) => {
                     for (i, a) in r.areas.iter().enumerate() {
-                        ctx.hits.register(r.option_id(i), *a);
+                        let part = RadioGroup::option_part(i);
+                        ctx.hits.register_part_as(r.option_id(i), r.id, part, *a);
                     }
                 }
                 FormFieldKind::Chooser { button, .. } => ctx.hits.register(button.id, button.area),
@@ -891,9 +892,7 @@ impl FormDialog {
                     s.render(r, buf, ctx, bg);
                     ctx.hits.register(s.id, s.area);
                     for k in 0..s.options.len() {
-                        if let Some(a) = ctx.hits.area_of(s.option_id(k)) {
-                            ctx.hits.register(s.option_id(k), a);
-                        }
+                        ctx.hits.raise(s.option_id(k));
                     }
                 }
                 y += f.height() as i32 + 1;
