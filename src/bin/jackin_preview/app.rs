@@ -166,7 +166,7 @@ impl App {
         let mut world = crate::domain::fixtures::world_for(scenario);
         world.clock.running = motion != Motion::Paused;
         let mut app = Self {
-            theme,
+            theme: centred_hints(theme),
             scenario,
             motion,
             world,
@@ -2639,7 +2639,6 @@ impl App {
         let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
         layer.badge = badge;
         layer.status = status;
-        layer.centered = true;
         HintBar::render(area, buf, &t, &layer);
     }
 }
@@ -2660,4 +2659,11 @@ fn form_values(modals: &[ModalEntry]) -> crate::screens::modals::FormValues {
         Some(Modal::Form(f)) => f.values(),
         _ => vec![],
     }
+}
+
+/// This app centres its footer hints on every screen: set once on the
+/// theme rather than per hint layer.
+fn centred_hints(mut theme: Theme) -> Theme {
+    theme.hintbar.align = junie_tui::theme::HintAlign::Center;
+    theme
 }

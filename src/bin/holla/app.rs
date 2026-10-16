@@ -133,7 +133,7 @@ impl App {
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let world = crate::domain::fixtures::world_for(scenario, motion);
         let mut app = Self {
-            theme,
+            theme: centred_hints(theme),
             scenario,
             motion,
             world,
@@ -3326,7 +3326,6 @@ impl App {
         let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
         layer.badge = badge;
         layer.status = status;
-        layer.centered = true;
         HintBar::render(area, buf, &t, &layer);
     }
 }
@@ -3350,4 +3349,11 @@ fn crumb_fit(label: &str, max: usize) -> String {
         return format!("{first} › … › {}", truncate_middle(last, room.max(6)));
     }
     truncate_middle(label, max)
+}
+
+/// This app centres its footer hints on every screen: set once on the
+/// theme rather than per hint layer.
+fn centred_hints(mut theme: Theme) -> Theme {
+    theme.hintbar.align = junie_tui::theme::HintAlign::Center;
+    theme
 }
