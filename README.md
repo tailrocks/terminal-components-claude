@@ -84,7 +84,7 @@ under `snapshots/holla/<sub_group>/`; run one scenario at a time with
 `cargo run --release --bin holla -- --scenario <name>` (the table in
 `src/bin/holla/README.md` says what each scenario shows and which keys to
 press); or regenerate the matrix with `VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`,
-review `target/tuiscotti/` and approve with the `accept_actuals` test
+review `target/tuiscotti/` and approve with `cargo xtask visual accept`
 (see [Visual review tooling](#visual-review-tooling)).
 `holla --help` prints the flags and scenarios.
 
@@ -391,15 +391,17 @@ groups not yet re-approved run only with `VISUAL_FULL=1`.
 ```sh
 cargo nextest run                                                  # unit/lib tests + store_integrity
 cargo nextest run --run-ignored only -E 'binary(visual_baseline)'  # gate re-approved groups
-VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
-VISUAL_ACCEPT=showcase/pages cargo nextest run --run-ignored only --ignore-default-filter -E 'test(=accept_actuals)'  # approve after review
+cargo nextest run --profile smoke --run-ignored only              # PR tier: 120x40/truecolor + 72x20/nocolor
+VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'test(/^holla::/)'
+cargo xtask visual accept 'test(/^showcase::pages::/)'            # approve after review (local only)
 ```
 
 Every check writes `target/tuiscotti/actual/<name>.ansi` and `.frame.json`.
 A mismatch also writes actual and expected PNG/HTML (the expected pair is
 rebuilt from the approved `.ansi`) and a diff PNG under `target/tuiscotti/`;
-review those, approve deliberately with `accept_actuals` (local only, never
-in CI), then re-verify.
+review those, approve deliberately with `cargo xtask visual accept` (local
+only, never in CI), then re-verify. Commands and tiers:
+[docs/visual-testing/README.md](docs/visual-testing/README.md).
 
 The showcase also carries a visual baseline (`tests/showcase_baseline.txt`):
 a digest of every page at 72×20, 80×24, 100×30, 120×40 and 160×50 in all
