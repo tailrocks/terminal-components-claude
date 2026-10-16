@@ -24,6 +24,11 @@ components work; they are not where behaviour lives.
 - The `visual-baseline` tag is the reference for look and feel. Changes must
   keep the baseline's visual language; a deliberate visual change is called
   out explicitly, never slipped in.
+- Visual and PTY testing uses only tuiscotti
+  (<https://github.com/tailrocks/tuiscotti>), pinned in `Cargo.toml` to an
+  exact `rev =` of its latest `main`. When `main` moves, bump the pin to the
+  newest `main` revision (port, re-run the gate, re-approve on purpose). No
+  other snapshot or PTY-capture tool, and never its predecessor `tuisnap`.
 - `CLAUDE.md` must always be a symlink to the corresponding `AGENTS.md` in
   the same directory. Do not write a separate `CLAUDE.md` body; edit
   `AGENTS.md` and both stay identical.
