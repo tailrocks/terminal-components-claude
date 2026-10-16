@@ -16,6 +16,7 @@ use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, Stakes};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::text::{truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
+use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
@@ -59,6 +60,8 @@ pub const BRAND_MARK: &str = "holla❯";
 
 pub const MENU: WidgetId = WidgetId::of("shell.menu");
 pub const TABS: WidgetId = WidgetId::of("shell.tabs");
+/// The Here tab's breadcrumb trail.
+pub const CRUMBS: WidgetId = WidgetId::of("shell.crumbs");
 const STATUS_PATH: WidgetId = WidgetId::of("shell.status.path");
 const STATUS_RUNNING: WidgetId = WidgetId::of("shell.status.running");
 const STATUS_GIT: WidgetId = WidgetId::of("shell.status.git");
@@ -134,6 +137,8 @@ pub struct App {
     too_small: bool,
     menu: MenuBar,
     strip: Tabs,
+    /// The Here tab's page trail, drawn above a nested page (mouse #5).
+    pub crumbs: Breadcrumb,
     menu_item: Option<String>,
     menu_actions: Vec<MenuAction>,
     pending_gate: Option<GateTarget>,
@@ -177,6 +182,7 @@ impl App {
             too_small: false,
             menu: Self::build_menu(),
             strip: Tabs::with_items(TABS, vec![]),
+            crumbs: Breadcrumb::new(CRUMBS, vec![]),
             menu_item: None,
             menu_actions: vec![],
             pending_gate: None,
@@ -1648,6 +1654,10 @@ impl App {
             return self.modal_click(id, m.pos, clicks);
         }
         let double = clicks >= 2;
+        if let Some(level) = self.crumbs.on_click(id) {
+            self.pop_to(level + 1);
+            return Outcome::Changed;
+        }
         if self.menu.owns(id) {
             let (o, ev) = self.menu.on_click(id);
             return match ev {
@@ -2122,6 +2132,17 @@ impl App {
         self.tabs[0].stack.push(screen);
         self.active = 0;
         self.enter_top();
+    }
+
+    /// Go back to the Here tab's page at `depth` (1 is the root finder),
+    /// as a click on a breadcrumb level does.
+    fn pop_to(&mut self, depth: usize) {
+        self.activate_tab(0);
+        let depth = depth.max(1);
+        if self.tabs[0].stack.len() > depth {
+            self.tabs[0].stack.truncate(depth);
+            self.enter_top();
+        }
     }
 
     fn pop_page(&mut self) {
@@ -3314,6 +3335,11 @@ impl App {
     }
 
     fn crumb(&self) -> String {
+        self.crumb_parts().join(" › ")
+    }
+
+    /// The Here tab's trail, one part per page on its stack.
+    fn crumb_parts(&self) -> Vec<String> {
         let here = &self.tabs[0];
         // a page nested inside its own family (the tree's Top files under
         // Disk › Usage) repeats the family name; the trail keeps it once
@@ -3332,7 +3358,7 @@ impl App {
                 _ => parts.push(crumb),
             }
         }
-        parts.join(" › ")
+        parts
     }
 
     fn tab_label(&self, i: usize) -> String {
@@ -3418,6 +3444,16 @@ impl App {
         self.strip.set_items(items);
         self.strip.set_active(self.active);
         self.strip.render(strip, buf, ctx, t.canvas);
+        // a nested page shows its trail in the row above the tab strip:
+        // every level back is a link (the page keeps its rows)
+        if self.active == 0 && self.tabs[0].stack.len() > 1 {
+            self.crumbs.segments = self.crumb_parts();
+            let row = Rect::new(strip.x + 1, area.y + 1, strip.width.saturating_sub(2), 1);
+            self.crumbs.render(row, buf, ctx, t.canvas);
+        } else {
+            self.crumbs.segments.clear();
+            self.crumbs.areas.clear();
+        }
         // body
         let active = self.active;
         if let Some(s) = self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
