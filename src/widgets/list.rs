@@ -82,12 +82,19 @@ pub struct ListBox {
     pub skip_disabled: bool,
     /// What a single click on a row does. Default [`ClickAction::Activate`].
     pub click: ClickAction,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 impl ListBox {
     pub fn new(id: WidgetId, items: Vec<ListItem>, mode: SelectMode) -> Self {
         let n = items.len();
         Self {
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             id,
             items,
             cursor: 0,
@@ -357,7 +364,7 @@ impl ListBox {
     /// The pointer went down on the scrollbar (or a completed click): a
     /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
             Outcome::Changed
         } else {
             Outcome::Consumed
@@ -373,7 +380,15 @@ impl ListBox {
         }
     }
 
+    /// Override the app-wide vertical track-click policy
+    /// (`TrackClick::Page` pages toward the pointer).
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -921,5 +936,32 @@ mod scroll_tests {
         let pressed = theme.ladder(crate::theme::Plane::Canvas).pressed;
         assert_eq!(buf[(4, 0)].bg, pressed, "cursor row shows the press");
         assert_eq!(buf[(4, 1)].bg, theme.canvas, "other rows stay at rest");
+    }
+}
+
+#[cfg(test)]
+mod track_click_tests {
+    use super::*;
+    use crate::core::scroll::TrackClick;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    #[test]
+    fn a_list_track_click_can_page() {
+        let items: Vec<ListItem> = (0..50)
+            .map(|i| ListItem::new(&format!("item {i}")))
+            .collect();
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single)
+            .track_click(TrackClick::Page);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 20, 10);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        l.render(area, &mut buf, &mut ctx, theme.surface);
+        assert_eq!(l.on_scrollbar(Position::new(19, 9)), Outcome::Changed);
+        assert_eq!(l.scroll.offset, 10, "one page, not a jump to the end");
     }
 }
