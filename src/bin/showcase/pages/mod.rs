@@ -34,6 +34,7 @@ pub mod grid;
 pub mod help_keys;
 pub mod inputs;
 pub mod launch_cockpit;
+pub mod layer_host;
 pub mod lists;
 pub mod master_detail;
 pub mod menus;
@@ -213,6 +214,15 @@ pub trait Page {
     /// with no focus indicator ([`RenderCtx::page_under_layer`]).
     fn layer_open(&self) -> bool {
         self.template().is_some_and(|t| t.popup_open())
+    }
+    /// The footer hints of a layer the page has open (its
+    /// [`layer_host::LayerHost`]), built from the layer's state; `None`
+    /// while no layer is open.
+    fn layer_hints(
+        &self,
+        _focus: Option<WidgetId>,
+    ) -> Option<Vec<junie_tui::widgets::keyhint::Hint>> {
+        None
     }
     /// The value index of the page option `key` (one of
     /// `crate::options::page_options` for this page), `None` for a key the

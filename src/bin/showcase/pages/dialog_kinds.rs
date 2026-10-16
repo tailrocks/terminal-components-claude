@@ -1,14 +1,709 @@
-//! Dialog kinds (Overlays): a planned page (plan §7.2), registered with its
-//! `--page` slug so parallel steps do not collide. SC18 replaces this
-//! stub with the page.
+//! Dialog kinds (Overlays, plan §7.5 SC18): the library's purpose-built
+//! modals, `FormDialog`, `InfoDialog`, `ChoiceDialog` and `HelpOverlay`,
+//! opened on the page's layer stack ([`super::layer_host::LayerHost`]).
+//!
+//! - **Playground**: an "Add connection" form with every field kind (an
+//!   input, a masked password showing its last four characters, a select,
+//!   radios, a chooser that stacks a picker over the form, a live preview
+//!   note, a check that discloses a hidden field), a Test action and Save;
+//!   a server info dialog with copyable rows, an intro, a detail block and
+//!   an action; a release-channel choice with toned options, a line and a
+//!   stepper; a keyboard reference. A card reads the options back from the
+//!   built dialogs, another shows what they returned.
+//! - **Options**: one control per builder (`dialogkinds.<key>`).
+//! - **States**: a choice dialog in every state it has, drawn by it.
+//!
+//! The page is wiring and demo data only: keys, pointer, focus and
+//! dismissal are the dialogs' own.
 
-use crate::pages::Page;
-use crate::pages::stub::StubPage;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::layer_host::{LayerHost, Report};
+use crate::pages::template::{Section, Template};
+use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use junie_tui::core::event::Outcome;
+use junie_tui::core::focus::Focus;
+use junie_tui::core::id::WidgetId;
+use junie_tui::core::keymap::{KeyBinding, NavKeys};
+use junie_tui::theme::Tone;
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layer::LayerTag;
+use junie_tui::ui::layers::LayerResult;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::widgets::button::{Button, ButtonRow, row_layout};
+use junie_tui::widgets::choice::{Checkbox, RadioGroup};
+use junie_tui::widgets::choice_dialog::ChoiceDialog;
+use junie_tui::widgets::form_dialog::{FieldValue, FormAction, FormDialog, FormField};
+use junie_tui::widgets::help::HelpOverlay;
+use junie_tui::widgets::icon_button::IconButton;
+use junie_tui::widgets::info_dialog::{InfoCmd, InfoDialog, InfoResult};
+use junie_tui::widgets::input::TextInput;
+use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
+use junie_tui::widgets::props::{self, Prop};
+use junie_tui::widgets::select::Select;
+
+const ID: WidgetId = WidgetId::of("dialogkinds");
+const FORM: WidgetId = ID.sub("form");
+const INFO: WidgetId = ID.sub("info");
+const CHOICE: WidgetId = ID.sub("choice");
+const HELP: WidgetId = ID.sub("help");
+const KEYS: WidgetId = ID.sub("keys");
+
+const DRIVERS: &[&str] = &["PostgreSQL", "MySQL", "SQLite"];
+const SSL: &[&str] = &["Disable", "Require", "Verify full"];
+const CHANNELS: &[&str] = &["Stable", "Beta", "Nightly (may break)"];
+const KEY_FILES: &[&str] = &["~/.ssh/id_ed25519", "~/.ssh/prod_rsa", "~/keys/staging.pem"];
+
+/// The buttons: label and what the dialog shows.
+const OPENERS: &[(&str, &str)] = &[
+    ("Add connection…", "every field kind"),
+    ("Server info", "copy rows with y"),
+    ("Release channel…", "toned radios"),
+    ("Keyboard help", "keys by section"),
+];
+
+pub struct DialogKindsPage {
+    template: Template,
+    opts: PageValues,
+    pub buttons: Vec<Button>,
+    pub host: LayerHost,
+    /// What the dialogs returned, newest last.
+    pub log: Vec<String>,
+    channel: usize,
+}
+
+impl DialogKindsPage {
+    pub fn new() -> Self {
+        let buttons = OPENERS
+            .iter()
+            .enumerate()
+            .map(|(i, (label, _))| {
+                if i == 0 {
+                    Button::primary(ID.child(i), label)
+                } else {
+                    Button::secondary(ID.child(i), label)
+                }
+            })
+            .collect();
+        Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::DialogKinds)),
+            buttons,
+            host: LayerHost::default(),
+            log: vec![],
+            channel: 0,
+        }
+    }
+
+    fn width(&self, default: u16) -> u16 {
+        match self.opts.value("dialogkinds.width") {
+            "48" => 48,
+            "72" => 72,
+            _ => default,
+        }
+    }
+
+    fn nav(&self) -> NavKeys {
+        match self.opts.value("dialogkinds.nav") {
+            "vim" => NavKeys::VIM,
+            _ => NavKeys::default(),
+        }
+    }
+
+    fn close_button(&self) -> IconButton {
+        let b = IconButton::close(junie_tui::ui::modal::CLOSE);
+        if self.opts.value("dialogkinds.close_button") == "danger" {
+            b.with_glyph("✕").danger_hover(true)
+        } else {
+            b
+        }
+    }
+
+    fn button_row(&self) -> ButtonRow {
+        ButtonRow::new().wrap(self.opts.on("dialogkinds.button_wrap"))
+    }
+
+    /// The connection form, as an app builds it.
+    pub fn form(&self) -> FormDialog {
+        let mut f = FormDialog::new(
+            FORM,
+            "Add connection",
+            vec![
+                FormField::input(
+                    "name",
+                    TextInput::new(FORM.sub("name"), "Name").value("orders-prod"),
+                ),
+                FormField::select(
+                    "driver",
+                    Select::new(FORM.sub("driver"), "Driver", DRIVERS, 0),
+                ),
+                FormField::input(
+                    "host",
+                    TextInput::new(FORM.sub("host"), "Host").value("db.eu-west-1.internal"),
+                ),
+                FormField::input(
+                    "password",
+                    TextInput::new(FORM.sub("password"), "Password")
+                        .value("hunter2-prod-7731")
+                        .masked()
+                        .reveal_tail(4),
+                ),
+                FormField::radio("ssl", RadioGroup::new(FORM.sub("ssl"), "SSL mode", SSL, 2)),
+                FormField::check(
+                    "tunnel",
+                    Checkbox::new(FORM.sub("tunnel"), "Connect through an SSH tunnel", false),
+                ),
+                FormField::chooser("key", FORM.sub("key"), "SSH key", KEY_FILES[0], "Choose…")
+                    .hidden(),
+                FormField::note(
+                    "preview",
+                    preview_lines("orders-prod", "db.eu-west-1.internal", 0),
+                ),
+                FormField::note("result", vec![]),
+            ],
+        )
+        .action(
+            "test",
+            Button::secondary(FORM.sub("test"), "Test connection"),
+        )
+        .width(self.width(62))
+        .nav(self.nav())
+        .close_button(self.close_button())
+        .button_row(self.button_row());
+        if self.opts.on("dialogkinds.form_meta") {
+            f = f.meta("production");
+        }
+        if self.opts.on("dialogkinds.keep_open") {
+            f = f.keep_open_on_save();
+        }
+        f
+    }
+
+    pub fn info(&self) -> InfoDialog {
+        let mut d = InfoDialog::new(
+            INFO,
+            "Server info",
+            vec![
+                Prop::new("Host", "db.eu-west-1.internal").copyable(),
+                Prop::new("Version", "PostgreSQL 16.4").copyable(),
+                Prop::new("Uptime", "41 days"),
+                Prop::new("Role", "read-only replica").tone(Tone::Warning),
+            ],
+        )
+        .intro(vec![(
+            "Rows marked ⧉ copy with y or a click.".into(),
+            Tone::Muted,
+        )])
+        .detail(vec![
+            "replication lag 120 ms".into(),
+            "wal_level = logical".into(),
+            "max_connections = 400".into(),
+        ])
+        .action(Button::secondary(INFO.sub("logs"), "Open logs"))
+        .meta("read-only")
+        .width(self.width(66))
+        .nav(self.nav())
+        .close_button(self.close_button());
+        if self.opts.on("dialogkinds.info_error") {
+            d = d.error();
+        }
+        if self.opts.value("dialogkinds.info_keymap") == "ctrl" {
+            d = d.keymap(vec![
+                (KeyBinding::ctrl('w'), InfoCmd::Close),
+                (KeyBinding::ctrl('y'), InfoCmd::Copy),
+            ]);
+        }
+        d
+    }
+
+    pub fn choice(&self) -> ChoiceDialog {
+        let mut d = ChoiceDialog::new(
+            CHOICE,
+            "Release channel",
+            "Updates come from",
+            CHANNELS,
+            self.channel,
+        )
+        .line("Switching applies at the next restart.", Tone::Secondary)
+        .width(self.width(54))
+        .nav(self.nav())
+        .close_button(self.close_button())
+        .button_row(self.button_row());
+        if self.opts.on("dialogkinds.choice_tones") {
+            d = d.option_tones(vec![Tone::Normal, Tone::Normal, Tone::Warning]);
+        }
+        if self.opts.on("dialogkinds.choice_stepper") {
+            d = d.stepper("Step 2 of 3 · Updates");
+        }
+        if self.opts.value("dialogkinds.choice_buttons") == "three" {
+            d = d.buttons(
+                vec![
+                    Button::subtle(CHOICE.sub("cancel"), "Cancel"),
+                    Button::secondary(CHOICE.sub("skip"), "Skip"),
+                    Button::primary(CHOICE.sub("ok"), "Switch"),
+                ],
+                0,
+            );
+        }
+        d
+    }
+
+    pub fn help(&self) -> HelpOverlay {
+        HelpOverlay::new(
+            HELP,
+            "Dialog kinds",
+            vec![
+                (
+                    "Forms",
+                    vec![("Tab", "Next field"), ("Enter", "Save"), ("Esc", "Cancel")],
+                ),
+                ("Info", vec![("y", "Copy"), ("q", "Close")]),
+                ("Choices", vec![("↑↓", "Option"), ("←→", "Button")]),
+            ],
+        )
+        .close_button(self.close_button())
+    }
+
+    fn open(&mut self, i: usize, focus: &mut Focus) {
+        let (layer, kind): (Box<dyn junie_tui::ui::layer::Layer<LayerResult>>, &str) = match i {
+            0 => (Box::new(self.form()), "form"),
+            1 => (Box::new(self.info()), "info"),
+            2 => (Box::new(self.choice()), "choice"),
+            _ => (Box::new(self.help()), "help"),
+        };
+        self.host.open(layer, LayerTag::new(kind), focus);
+    }
+
+    /// Stack the key picker over the open form (its chooser fired).
+    fn open_key_picker(&mut self, focus: &mut Focus) {
+        let mut p = Picker::new(KEYS, "SSH key");
+        p.searchable = false;
+        p.width = 48;
+        p.set_items(
+            KEY_FILES
+                .iter()
+                .map(|k| PickerItem::new(*k).glyph("⚿"))
+                .collect(),
+        );
+        self.host.open(Box::new(p), LayerTag::new("keys"), focus);
+    }
+
+    fn on_report(&mut self, r: Report, cx: &mut PageCtx) {
+        let kind = r.tag.kind;
+        match r.result {
+            LayerResult::Form(FormAction::Changed(field)) => {
+                if let Some(f) = self.host.layers.top_as_mut::<FormDialog>() {
+                    if field == "tunnel" {
+                        let on = matches!(
+                            f.field("tunnel").map(|x| x.value()),
+                            Some(FieldValue::Bool(true))
+                        );
+                        f.set_visible("key", on);
+                    }
+                    let lines = preview_lines(&f.text("name"), &f.text("host"), f.choice("driver"));
+                    f.set_note("preview", lines);
+                }
+                self.log.push(format!("Form · Changed({field:?})"));
+            }
+            LayerResult::Form(FormAction::Choose(field)) => {
+                self.log.push(format!(
+                    "Form · Choose({field:?}) · a picker stacks over it"
+                ));
+                self.open_key_picker(cx.focus);
+            }
+            LayerResult::Form(FormAction::Action(name)) => {
+                if name == "test"
+                    && let Some(f) = self.host.layers.top_as_mut::<FormDialog>()
+                {
+                    let ok = !f.text("host").trim().is_empty();
+                    f.set_note(
+                        "result",
+                        vec![if ok {
+                            ("✓ Connected in 42 ms".into(), Tone::Success)
+                        } else {
+                            ("✗ Host is required".into(), Tone::Error)
+                        }],
+                    );
+                }
+                self.log.push(format!("Form · Action({name:?})"));
+                // keep-open: the owner closes the form once it validates
+                if name == "save" {
+                    let ok = self
+                        .host
+                        .layers
+                        .top_as::<FormDialog>()
+                        .is_some_and(|f| !f.text("name").trim().is_empty());
+                    if ok {
+                        self.host.layers.pop(cx.focus);
+                        self.log.push("Form · saved, closed by the page".into());
+                    }
+                }
+            }
+            LayerResult::Form(FormAction::Save) => {
+                let name = r
+                    .closed
+                    .as_ref()
+                    .and_then(|e| e.get::<FormDialog>())
+                    .map(|f| f.text("name"))
+                    .unwrap_or_default();
+                self.log.push(format!("Form · Save · {name}"));
+                cx.status(format!("Saved connection {name}"));
+            }
+            LayerResult::Form(FormAction::Cancel) => self.log.push("Form · Cancel".into()),
+            LayerResult::Picker(PickerAction::Chosen(i)) if kind == "keys" => {
+                if let Some(f) = self.host.layers.top_as_mut::<FormDialog>() {
+                    f.set_chooser("key", KEY_FILES[i.min(KEY_FILES.len() - 1)], None);
+                }
+                self.log
+                    .push(format!("Picker · Chosen({i}) · back on the form"));
+            }
+            LayerResult::Picker(ev) => self.log.push(format!("Picker · {ev:?}")),
+            LayerResult::Info(InfoResult::Copy(v)) => {
+                self.log.push(format!("Info · Copy({v:?})"));
+                cx.status(format!("Copied {v}"));
+            }
+            LayerResult::Info(ev) => self.log.push(format!("Info · {ev:?}")),
+            LayerResult::Choice(c) => {
+                if let Some(i) = c {
+                    self.channel = i;
+                }
+                self.log.push(format!("Choice · {c:?}"));
+            }
+            LayerResult::Help => self.log.push("Help · closed".into()),
+            other => self.log.push(format!("{other:?}")),
+        }
+    }
+
+    /// What the options built, read back from the dialogs.
+    fn readout(&self) -> Vec<Prop> {
+        let f = self.form();
+        let i = self.info();
+        let c = self.choice();
+        let kinds: Vec<&str> = f
+            .fields
+            .iter()
+            .map(|x| {
+                use junie_tui::widgets::form_dialog::FormFieldKind as K;
+                match &x.kind {
+                    K::Input(_) => "Input",
+                    K::Select(_) => "Select",
+                    K::Check(_) => "Check",
+                    K::Radio(_) => "Radio",
+                    K::Chooser { .. } => "Chooser",
+                    K::Note(_) => "Note",
+                }
+            })
+            .collect();
+        let hidden: Vec<&str> = f
+            .fields
+            .iter()
+            .filter(|x| !x.visible)
+            .map(|x| x.name.as_str())
+            .collect();
+        let on = |b: bool| if b { "on" } else { "off" };
+        let mut values: Vec<&str> = Vec::new();
+        for (_, v) in f.values() {
+            let name = match v {
+                FieldValue::Text(_) => "Text",
+                FieldValue::Choice(_) => "Choice",
+                FieldValue::Bool(_) => "Bool",
+            };
+            if !values.contains(&name) {
+                values.push(name);
+            }
+        }
+        vec![
+            Prop::new(
+                "Form fields",
+                format!("{} · values {}", kinds.join(" · "), values.join(" · ")),
+            ),
+            Prop::new(
+                "Form",
+                format!(
+                    "width {} · meta {} · hidden {} · actions {} · Save {}",
+                    f.width,
+                    f.meta.clone().unwrap_or_else(|| "none".into()),
+                    hidden.join(","),
+                    f.actions
+                        .iter()
+                        .map(|(n, _)| n.as_str())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                    if f.pop_on_save {
+                        "closes"
+                    } else {
+                        "keeps it open"
+                    }
+                ),
+            ),
+            Prop::new(
+                "Info",
+                format!(
+                    "width {} · meta {} · intro · detail {} rows · actions {} · error title {}",
+                    i.width,
+                    i.meta.clone().unwrap_or_default(),
+                    i.detail.len(),
+                    i.actions.len(),
+                    on(i.error_title)
+                ),
+            ),
+            Prop::new(
+                "Info keys",
+                i.keymap
+                    .iter()
+                    .map(|(k, c)| format!("{} {c:?}", k.label()))
+                    .collect::<Vec<_>>()
+                    .join(" · "),
+            ),
+            Prop::new(
+                "Choice",
+                format!(
+                    "width {} · line · stepper {} · tones {} · buttons {}",
+                    c.width,
+                    on(c.stepper.is_some()),
+                    on(!c.option_tones.is_empty()),
+                    c.buttons
+                        .iter()
+                        .map(|b| b.label.as_str())
+                        .collect::<Vec<_>>()
+                        .join("/")
+                ),
+            ),
+            Prop::new(
+                "All",
+                format!(
+                    "nav {} · × {} · button row wrap {}",
+                    if self.opts.value("dialogkinds.nav") == "vim" {
+                        "vim"
+                    } else {
+                        "desktop"
+                    },
+                    self.opts.value("dialogkinds.close_button"),
+                    on(f.button_row.wrap)
+                ),
+            ),
+        ]
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        // as many buttons per row as fit; four in a row carry a note each
+        let per = (area.width.saturating_sub(2) / 22).clamp(1, 4) as usize;
+        let notes = per == 4;
+        let lines = self.buttons.len().div_ceil(per) as u16 + u16::from(notes);
+        let rows = crate::pages::layout::rows(area, &[lines + 3, 1, 10, 1, 0]);
+        let panel = Panel::card(Some("Open a dialog")).meta("Enter · click");
+        let bg = panel.bg(t);
+        let inner = panel.render(rows[0], buf, t);
+        for (r, chunk) in self.buttons.chunks_mut(per).enumerate() {
+            let y = inner.y + r as u16;
+            if y >= inner.bottom() {
+                break;
+            }
+            let widths: Vec<u16> = chunk.iter().map(|b| b.width().max(20)).collect();
+            let rects = row_layout(Rect::new(inner.x, y, inner.width, 1), &widths, 2);
+            for (k, (b, rect)) in chunk.iter_mut().zip(rects).enumerate() {
+                let w = b.width().min(rect.width);
+                b.render(Rect::new(rect.x, rect.y, w, 1), buf, ctx, bg);
+                if notes && y + 1 < inner.bottom() {
+                    buf.set_string(
+                        rect.x,
+                        y + 1,
+                        junie_tui::ui::text::truncate(OPENERS[r * per + k].1, rect.width as usize),
+                        t.faint().bg(bg),
+                    );
+                }
+            }
+        }
+
+        let panel = Panel::card(Some("Applied")).meta("read back from the built dialogs");
+        let bg = panel.bg(t);
+        let inner = panel.render(rows[2], buf, t);
+        props::render(inner, buf, t, &self.readout(), bg);
+
+        let panel = Panel::card(Some("Returned")).meta("LayerResult");
+        let bg = panel.bg(t);
+        let inner = panel.render(rows[4], buf, t);
+        if self.log.is_empty() {
+            buf.set_string(
+                inner.x,
+                inner.y,
+                "Nothing yet · Form(Save | Cancel | Changed | Choose | Action) · Info(Closed | Copy | Action) · Choice(Some(i) | None)",
+                t.muted().bg(bg),
+            );
+        }
+        for (k, line) in self
+            .log
+            .iter()
+            .rev()
+            .take(inner.height as usize)
+            .enumerate()
+        {
+            let st = if k == 0 { t.primary() } else { t.muted() };
+            buf.set_string(
+                inner.x,
+                inner.y + k as u16,
+                junie_tui::ui::text::truncate(line, inner.width as usize),
+                st.bg(bg),
+            );
+        }
+    }
+}
+
+/// The live preview under the form's fields: the URL it would connect to.
+fn preview_lines(name: &str, host: &str, driver: usize) -> Vec<(String, Tone)> {
+    let scheme = ["postgres", "mysql", "sqlite"][driver.min(2)];
+    vec![(format!("Preview  {scheme}://{host}/{name}"), Tone::Muted)]
+}
+
+/// The States grid: a choice dialog, plain and with a stepper and tones.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    StateGrid::new(id)
+        .rows(&[Rest, Hover, Focused, Selected, Disabled])
+        .column_width(50)
+        .column(
+            "Choice",
+            ChoiceDialog::new(id.child(0), "Split", "Direction", &["Right", "Down"], 0).width(42),
+        )
+        .column(
+            "Toned",
+            ChoiceDialog::new(
+                id.child(1),
+                "Release channel",
+                "Updates come from",
+                &["Stable", "Nightly"],
+                0,
+            )
+            .option_tones(vec![Tone::Normal, Tone::Warning])
+            .width(42),
+        )
+}
+
+impl Page for DialogKindsPage {
+    fn title(&self) -> &'static str {
+        "Dialog kinds"
+    }
+    fn blurb(&self) -> &'static str {
+        "Forms, info, choices and help: the purpose-built modals on one layer stack"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+        self.host.render(buf, ctx);
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some((out, reports)) = self.host.handle(ev, cx) {
+            for r in reports {
+                self.on_report(r, cx);
+            }
+            return out;
+        }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
+        match ev {
+            PageEvent::Key(key) => {
+                let Some(f) = cx.focus.current() else {
+                    return Outcome::Ignored;
+                };
+                let Some(i) = self.buttons.iter().position(|b| b.id == f) else {
+                    return Outcome::Ignored;
+                };
+                let (o, act) = self.buttons[i].on_key(key);
+                if act {
+                    self.open(i, cx.focus);
+                }
+                o
+            }
+            PageEvent::Click { id, .. } => {
+                let Some(i) = self.buttons.iter().position(|b| b.id == *id) else {
+                    return Outcome::Ignored;
+                };
+                cx.focus.focus(*id);
+                if self.buttons[i].on_click() {
+                    self.open(i, cx.focus);
+                }
+                Outcome::Changed
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        // the form, info, choice and help layers have no hints of their
+        // own yet (plan S5 deviation 3, S8b): their keys, by kind
+        if let Some(tag) = self.host.top_tag() {
+            return match tag.kind {
+                "form" => vec![("Tab", "Next field"), ("Enter", "Save"), ("Esc", "Cancel")],
+                "info" if self.opts.value("dialogkinds.info_keymap") == "ctrl" => {
+                    vec![("Ctrl+Y", "Copy"), ("Ctrl+W", "Close")]
+                }
+                "info" => vec![("y", "Copy"), ("q / Esc", "Close")],
+                "choice" => vec![("↑↓", "Option"), ("Enter", "Choose"), ("Esc", "Cancel")],
+                "keys" => vec![("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Back")],
+                _ => vec![("↑↓", "Scroll"), ("Esc", "Close")],
+            };
+        }
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        vec![("Enter", "Open")]
+    }
+
+    fn layer_hints(
+        &self,
+        focus: Option<WidgetId>,
+    ) -> Option<Vec<junie_tui::widgets::keyhint::Hint>> {
+        self.host.hints(focus)
+    }
+
+    fn editing(&self) -> bool {
+        self.host
+            .layers
+            .top_as::<FormDialog>()
+            .is_some_and(|f| f.is_editing())
+    }
+
+    fn layer_open(&self) -> bool {
+        self.host.hides_page_focus() || self.template.popup_open()
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        self.opts.set(key, value);
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
+}
 
 pub fn page() -> Box<dyn Page> {
-    Box::new(StubPage::new(
-        "Dialog kinds",
-        "SC18",
-        "FormDialog with every field kind, InfoDialog and ChoiceDialog",
-    ))
+    Box::new(DialogKindsPage::new())
 }
