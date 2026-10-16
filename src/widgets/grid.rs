@@ -545,6 +545,10 @@ pub enum GridAction {
     PreviewSql,
     /// Follow the cell's foreign key. Default Ctrl+].
     FollowReference,
+    /// Mark every row (Select All), as Space marks one. Default Cmd+A
+    /// where the terminal delivers Cmd, and Ctrl+A
+    /// ([`crate::core::keymap::SELECT_ALL`]).
+    SelectAll,
 }
 
 impl Actions for GridAction {
@@ -570,6 +574,8 @@ impl Actions for GridAction {
             (KeyBinding::char('U'), GridAction::Discard),
             (KeyBinding::char('p'), GridAction::PreviewSql),
             (KeyBinding::ctrl(']'), GridAction::FollowReference),
+            (crate::core::keymap::SELECT_ALL[0], GridAction::SelectAll),
+            (crate::core::keymap::SELECT_ALL[1], GridAction::SelectAll),
         ]
     }
 }
@@ -1603,7 +1609,8 @@ impl DataGrid {
                 | EditAction::Redo
                 | EditAction::Copy
                 | EditAction::Cut
-                | EditAction::Paste) => {
+                | EditAction::Paste
+                | EditAction::SelectAll) => {
                     // a cell edit is short-lived: clipboard keys work, its
                     // undo is Esc
                     crate::widgets::field_common::apply_edit(
@@ -1644,8 +1651,7 @@ impl DataGrid {
         if let KeyCode::Char(ch) = key.code
             && self.type_ahead
             && !ch.is_whitespace()
-            && !ctrl
-            && !key.alt()
+            && !key.chord()
         {
             let col = self.type_ahead_column.unwrap_or(c);
             let prefix = self.typeahead.feed(ch).to_owned();
@@ -1828,6 +1834,15 @@ impl DataGrid {
                 (Outcome::Changed, None)
             }
             GridAction::Discard => (Outcome::Changed, Some(GridEvent::DiscardRequested)),
+            GridAction::SelectAll => {
+                let before = self.selected_rows.len();
+                self.selected_rows.extend(self.order.iter().copied());
+                if self.selected_rows.len() != before {
+                    (Outcome::Changed, None)
+                } else {
+                    (Outcome::Consumed, None)
+                }
+            }
             GridAction::PreviewSql => (Outcome::Changed, Some(GridEvent::PreviewSql)),
             GridAction::FollowReference => {
                 if self.columns[c].references.is_some()
@@ -4099,3 +4114,35 @@ mod tests {
 #[cfg(test)]
 #[path = "grid_choice_tests.rs"]
 mod choice_tests;
+
+/// Select All marks every row of a grid, as Space marks one.
+#[cfg(test)]
+mod select_all_tests {
+    use super::*;
+
+    #[test]
+    fn cmd_or_ctrl_a_marks_every_row() {
+        use ratatui::crossterm::event::KeyModifiers;
+        for mods in [KeyModifiers::SUPER, KeyModifiers::CONTROL] {
+            let mut g = DataGrid::new(
+                WidgetId::of("g"),
+                vec![ColumnSpec::new("name", CellKind::Text)],
+            )
+            .type_ahead(true);
+            g.set_rows(GridRows {
+                rows: (0..4)
+                    .map(|i| vec![CellValue::Text(format!("a{i}"))])
+                    .collect(),
+                total: RowTotal::Exact(4),
+                more: false,
+            });
+            let (out, _) = g.on_key(&Key {
+                code: KeyCode::Char('a'),
+                mods,
+            });
+            assert_eq!(out, Outcome::Changed);
+            assert_eq!(g.selected_rows.len(), 4);
+            assert_eq!(g.cursor.0, 0, "never a type-ahead `a`");
+        }
+    }
+}

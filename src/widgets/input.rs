@@ -90,10 +90,13 @@ pub struct TextInput {
     /// Default [`FocusSelect::SelectAll`].
     pub focus_select: FocusSelect,
     /// The control-key preset. `None` (default) follows the theme's
-    /// [`crate::theme::Theme::field_keys`] ([`FieldKeys::Emacs`]).
+    /// [`crate::theme::Theme::field_keys`] (the client platform's preset).
     pub field_keys: Option<FieldKeys>,
     /// The key preset resolved at the last render.
     keys: FieldKeys,
+    /// The text commands' keys (Select All). `None` (default) uses the
+    /// preset's ([`FieldKeys::text_keymap`]: Cmd+A, plus Ctrl+A or Ctrl+L).
+    pub text_keymap: Option<crate::core::keymap::KeyMap<crate::core::edit::TextCmd>>,
     /// Undo history of the value (Ctrl+Z, Ctrl+Shift+Z).
     undo: UndoStack,
     /// The field held focus at its last render, so a newly gained focus
@@ -151,6 +154,7 @@ impl TextInput {
             focus_select: FocusSelect::default(),
             field_keys: None,
             keys: FieldKeys::default(),
+            text_keymap: None,
             undo: UndoStack::new(),
             focus_seen: false,
             focus_edit: false,
@@ -236,6 +240,21 @@ impl TextInput {
     pub fn focus_select(mut self, select: FocusSelect) -> Self {
         self.focus_select = select;
         self
+    }
+    /// See [`Self::text_keymap`].
+    pub fn text_keymap(
+        mut self,
+        keymap: crate::core::keymap::KeyMap<crate::core::edit::TextCmd>,
+    ) -> Self {
+        self.text_keymap = Some(keymap);
+        self
+    }
+    /// The edit action `key` means under the resolved preset and text keys.
+    fn edit_action(&self, key: &Key) -> EditAction {
+        match &self.text_keymap {
+            Some(map) => crate::widgets::field_common::edit_key_in(key, false, self.keys, map),
+            None => edit_key_with(key, false, self.keys),
+        }
     }
     /// See [`Self::field_keys`].
     pub fn field_keys(mut self, keys: FieldKeys) -> Self {
@@ -472,10 +491,16 @@ impl TextInput {
                         self.begin_edit();
                         return (Outcome::Changed, None);
                     }
+                    // Select All on a focused field starts the edit with
+                    // the whole value selected, as in any desktop field
+                    if matches!(self.edit_action(key), EditAction::SelectAll) {
+                        self.begin_edit();
+                        self.buffer.select_all();
+                        return (Outcome::Changed, None);
+                    }
                     if entry == EditEntry::TypeToEdit
                         && let KeyCode::Char(c) = key.code
-                        && !key.ctrl()
-                        && !key.alt()
+                        && !key.chord()
                     {
                         self.begin_edit();
                         self.buffer.move_doc_end(false);
@@ -488,7 +513,7 @@ impl TextInput {
                 }
             }
         }
-        let action = edit_key_with(key, false, self.keys);
+        let action = self.edit_action(key);
         match action {
             EditAction::Commit => {
                 self.commit();
@@ -691,7 +716,7 @@ impl TextInput {
             }
         }
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
-        self.keys = self.field_keys.unwrap_or(ctx.theme.field_keys);
+        self.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
         // focus newly gained starts an immediate edit, so the caret shows
         // the moment Tab lands here
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
@@ -1219,7 +1244,8 @@ mod tests {
         use ratatui::crossterm::event::KeyModifiers as M;
         let mut i = TextInput::new(WidgetId::of("u"), "Name")
             .edit_entry(EditEntry::Immediate)
-            .focus_select(FocusSelect::CaretEnd);
+            .focus_select(FocusSelect::CaretEnd)
+            .field_keys(FieldKeys::Emacs);
         for c in "ab cd".chars() {
             i.on_key(&plain(c));
         }
@@ -1228,7 +1254,7 @@ mod tests {
         assert_eq!(i.text(), "ab ", "one undo takes back the last word");
         i.on_key(&key(KeyCode::Char('z'), M::CONTROL | M::SHIFT));
         assert_eq!(i.text(), "ab cd", "Ctrl+Shift+Z redoes it");
-        // Emacs (default): Ctrl+A is line start, Ctrl+L selects all,
+        // Emacs (macOS): Ctrl+A is line start, Ctrl+L selects all,
         // Alt+W copies, Ctrl+W cuts, Ctrl+Y yanks
         i.on_key(&key(KeyCode::Char('a'), M::CONTROL));
         assert_eq!(i.buffer.cursor_offset(), 0);

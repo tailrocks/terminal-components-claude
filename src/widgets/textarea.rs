@@ -74,6 +74,9 @@ pub struct TextArea {
     /// [`crate::theme::Theme::field_keys`].
     pub field_keys: Option<FieldKeys>,
     keys: FieldKeys,
+    /// The text commands' keys (Select All). `None` (default) uses the
+    /// preset's ([`FieldKeys::text_keymap`]: Cmd+A, plus Ctrl+A or Ctrl+L).
+    pub text_keymap: Option<crate::core::keymap::KeyMap<crate::core::edit::TextCmd>>,
     undo: UndoStack,
     focus_seen: bool,
     /// Horizontal scrolling of long lines. `None` (default) follows
@@ -123,6 +126,7 @@ impl TextArea {
             esc_reverts: false,
             field_keys: None,
             keys: FieldKeys::default(),
+            text_keymap: None,
             undo: UndoStack::new(),
             focus_seen: false,
             horizontal: None,
@@ -149,6 +153,21 @@ impl TextArea {
     pub fn esc_reverts(mut self, on: bool) -> Self {
         self.esc_reverts = on;
         self
+    }
+    /// See [`Self::text_keymap`].
+    pub fn text_keymap(
+        mut self,
+        keymap: crate::core::keymap::KeyMap<crate::core::edit::TextCmd>,
+    ) -> Self {
+        self.text_keymap = Some(keymap);
+        self
+    }
+    /// The edit action `key` means under the resolved preset and text keys.
+    fn edit_action(&self, key: &Key) -> EditAction {
+        match &self.text_keymap {
+            Some(map) => crate::widgets::field_common::edit_key_in(key, true, self.keys, map),
+            None => edit_key_with(key, true, self.keys),
+        }
     }
     /// See [`Self::field_keys`].
     pub fn field_keys(mut self, keys: FieldKeys) -> Self {
@@ -292,10 +311,14 @@ impl TextArea {
             } else if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
                 self.begin_edit();
                 return (Outcome::Changed, None);
+            } else if matches!(self.edit_action(key), EditAction::SelectAll) {
+                // Select All picks the edit up with the whole text selected
+                self.begin_edit();
+                self.buffer.select_all();
+                return (Outcome::Changed, None);
             } else if entry != EditEntry::Explicit
                 && let KeyCode::Char(c) = key.code
-                && !key.ctrl()
-                && !key.alt()
+                && !key.chord()
             {
                 // typing after Esc ("Done") picks the edit up again
                 self.begin_edit();
@@ -316,7 +339,7 @@ impl TextArea {
             }
         }
         self.follow_cursor = true;
-        match edit_key_with(key, true, self.keys) {
+        match self.edit_action(key) {
             EditAction::Cancel if entry != EditEntry::Explicit && self.esc_reverts => {
                 let dirty = self.is_dirty();
                 self.revert();
@@ -532,7 +555,7 @@ impl TextArea {
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
-        self.keys = self.field_keys.unwrap_or(ctx.theme.field_keys);
+        self.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
         self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         // focus newly gained starts an immediate edit: the caret shows the
         // moment Tab lands here

@@ -340,13 +340,13 @@ fn dialogs_cover_choice_destructive_and_prompt_validation() {
 
     // the prompt opens editing (EditEntry::Immediate): no Enter first
     h.click_label("Rename task");
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str(&"x".repeat(41));
     h.key(KeyCode::Enter);
     assert!(h.app.dialog.is_some());
     assert!(h.text().contains("Keep it under 40"));
 
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str("Ship it");
     h.key(KeyCode::Enter);
     h.assert_status("Renamed to “Ship it”");
@@ -386,7 +386,7 @@ fn forms_reset_controls_and_reviewer_paste_validation() {
 
     let reviewer = forms.sub("reviewer");
     h.click_id(reviewer);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.paste("bad");
     h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
@@ -394,7 +394,7 @@ fn forms_reset_controls_and_reviewer_paste_validation() {
     assert_eq!(h.app.focus.current(), Some(reviewer));
 
     h.click_id(reviewer);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.paste("reviewer@example.com");
     h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
@@ -417,13 +417,13 @@ fn inputs_paste_validation_and_disabled_field() {
     let api_token = inputs.child(3);
 
     h.click_id(owner);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.paste("bad");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Enter a valid email address"));
 
     h.click_id(branch);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.paste("feat/payments");
     h.key(KeyCode::Enter);
     h.assert_status("Branch saved");
@@ -472,7 +472,7 @@ fn grid_pending_save_and_discard_lifecycle() {
     h.key(KeyCode::Right);
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str("12");
     h.key(KeyCode::Enter);
     h.assert_status("1 pending");
@@ -873,7 +873,7 @@ fn grid_validates_copies_filters_previews_and_reports_server_errors() {
     h.key(KeyCode::Right);
 
     h.key(KeyCode::Enter);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str("not-a-number");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("EDIT"));
@@ -894,7 +894,7 @@ fn grid_validates_copies_filters_previews_and_reports_server_errors() {
     h.assert_status("No filters to clear");
 
     h.key(KeyCode::Enter);
-    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str("600");
     h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
