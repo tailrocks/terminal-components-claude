@@ -69,14 +69,40 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("Change title…"));
 
-    // Shift+F10 opens the active tab's menu, not the menu bar
+    // Shift+F10 opens the focused pane's menu, not the menu bar
     shift_f10(&mut h);
+    let t = h.text();
+    assert!(t.contains("Copy selection"), "{t}");
+    assert!(t.contains("Select text first"), "nothing is selected\n{t}");
+    assert!(!t.contains("Change title…"), "{t}");
+    assert!(!t.contains("Key reference"), "not the menu bar\n{t}");
+    h.key(KeyCode::Esc);
+    // the tab's own menu stays on the prefix: Ctrl+B m
+    h.ctrl('b');
+    h.key(KeyCode::Char('m'));
     assert!(h.text().contains("Change title…"), "{}", h.text());
-    assert!(!h.text().contains("Split below"), "{}", h.text());
     h.key(KeyCode::Esc);
     // plain F10 still opens the menu bar
     h.key(KeyCode::F(10));
     assert!(h.text().contains("Split below"), "{}", h.text());
+}
+
+#[test]
+fn capsule_pane_right_click_opens_the_pane_menu_at_the_pointer() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let (sx, sy) = h.find("Shell").expect("the Shell tab");
+    // a cell inside the pane area, a few rows below the strip
+    let (x, y) = (sx + 10, sy + 6);
+    h.mouse(MouseKind::Secondary, x, y);
+    let (mx, my) = h.find("Copy selection").expect("the pane menu");
+    // the menu's frame opens right below the pointer, its first item
+    // under the frame
+    assert_eq!(my, y + 2, "below the pointer\n{}", h.text());
+    assert!(
+        mx >= x.saturating_sub(2) && mx <= x + 3,
+        "at the pointer: {mx}"
+    );
+    assert!(h.text().contains("Close pane"));
 }
 
 // ------------------------------------------------------------- manager
@@ -187,6 +213,44 @@ fn manager_shift_f10_opens_under_the_cursor_row() {
     assert_eq!(h.app.route, Route::Manager, "Esc closes only the menu");
     // the Menu key opens it too; Enter runs Launch…
     h.key(KeyCode::Menu);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
+}
+
+#[test]
+fn manager_action_buttons_and_detail_open_the_selected_rows_menu() {
+    use crate::screens::manager::DETAIL;
+    let mut h = manager();
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    let (_, row_y) = tree_row(&h, "release-automation");
+    // Shift+F10 on a focused action button: the row's menu under it
+    let prewarm = DETAIL.sub("prewarm");
+    h.app.focus.focus(prewarm);
+    h.draw();
+    let b = h.app.hits.area_of(prewarm).expect("the Prewarm button");
+    shift_f10(&mut h);
+    let area = manager_menu(&h);
+    // below the button, or flipped above it near the bottom edge
+    assert!(
+        area.y == b.y + 1 || area.bottom() == b.y,
+        "at the focused button {b:?}: {area:?}\n{}",
+        h.text()
+    );
+    assert_ne!(area.y, row_y + 1, "not under the tree row");
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.focus.current(), Some(prewarm), "focus returns");
+    // a right-click on a button opens it at the pointer
+    h.mouse(MouseKind::Secondary, b.x + 1, b.y);
+    let area = manager_menu(&h);
+    assert_eq!(area.x, b.x + 1, "at the pointer");
+    assert!(
+        area.y == b.y + 1 || area.bottom() == b.y,
+        "at the pointer row: {area:?}"
+    );
+    assert!(h.text().contains("Prewarm"), "{}", h.text());
+    // Enter runs the first item (Launch…) on the selected row
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
 }
