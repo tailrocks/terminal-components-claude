@@ -3,21 +3,22 @@
 ## Tracker
 
 Consumer-side status, kept by the Upstream PR loop
-(`docs/upstream/README.md`). Checked 2026-10-16 with `gh`. All items below
+(`docs/upstream/README.md`). Checked 2026-10-17 with `gh`. All items below
 are in one PR, [#11](https://github.com/tailrocks/tuiscotti/pull/11):
-open, mergeable, CI green (22 pass, 1 skipped), head `b7d3df3`. The first
-review (at `907aa04`) is in §6 and the re-review (at `b7d3df3`) in §7.
+open, mergeable, CI green (22 pass, 1 skipped), head `7b832fc`. The first
+review (at `907aa04`) is in §6, the re-review (at `b7d3df3`) in §7 and the
+third review (at `7b832fc`) in §8.
 
 | Item (§) | PR/issue | State | Last reviewed head | Last review link | Verdict | Our follow-up after merge |
 |---|---|---|---|---|---|---|
-| P1 lone `f` key | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | verified OK | delete the lone-`f` workaround in `Session::send_key` |
-| P2 exact pins: `unicode-width`, `insta`, `serde_json`, `sha2`, `ratatui`, `crossterm` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) (pins become `0.2`, `1.48`, `1.0`, `0.11`, `0.30`, `0.29`) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | verified OK (single ratatui 0.30.2, crossterm 0.29.0, unicode-width 0.2.0) | `cargo update` the held crates to latest, remove their rows from `docs/dependencies.md` |
-| P3 `.ansi`+cursor store and CLI accept | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | changes requested: the CLI refuses under `CI`; segment and glob matching, sealed candidates, stale runs and skipping matched verified fixed. Open: the library `Store::accept` and `GroupedStore::{accept, accept_all}` do not refuse under `CI` (docs say they do), and `accept_all` skips the `run_id` guard (§7 items 1 and 2) | delete `gate()`, `write_expected_evidence`, `ansi_cursor.rs` `encode`/`decode`, `cargo xtask visual render`; `cargo xtask visual accept` only once §7 items 1 and 2 are verified fixed |
-| P4 non-unique locators | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | verified OK (`count_at_least(n).click()` returns `LocateError::Usage`); docs nits (API.md, MIGRATION.md) | switch boot waits off `Locator::resolve` + `wait_predicate` |
-| P5 last screen in `WaitError` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | verified OK | none |
-| P6 render speed (and `compare_png`) | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | verified OK: `compare_png` scores identical to `a47c9aa` (0.999853 / 0.999940 / 0.999963); timings in §7 | add the recommended `[profile.dev.package.*]` opt-level overrides |
-| P7 no absolute paths | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | changes requested: regression, host paths that end in a separator or have an unlisted root stay absolute (§7 item 3); `/`, `/api/v1`, `/foo/` kept as asked | none |
-| P8 clock, pointer, docs, example | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `b7d3df3` | [review 5550024345](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5550024345) | verified OK | none |
+| P1 lone `f` key | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | verified OK; `parse_chord` now also takes `-` joins and `backtab`, and all 453 previously valid chord strings parse the same | delete the lone-`f` workaround in `Session::send_key` |
+| P2 exact pins: `unicode-width`, `insta`, `serde_json`, `sha2`, `ratatui`, `crossterm` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) (pins become `0.2`, `1.48`, `1.0`, `0.11`, `0.30`, `0.29`) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | verified OK (single ratatui 0.30.2, crossterm 0.29.0, unicode-width 0.2.0) | `cargo update` the held crates to latest, remove their rows from `docs/dependencies.md` |
+| P3 `.ansi`+cursor store and CLI accept | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | verified OK: the library `Store::accept` and `GroupedStore::{accept, accept_all, accept_matching}` refuse under `CI`, and `accept_all` goes through `accept_matching("**")` (stale runs refused all or nothing, matched skipped); `with_review_evidence(false)` still seals the candidate and verdict | delete `gate()`, `write_expected_evidence`, `ansi_cursor.rs` `encode`/`decode`, `cargo xtask visual render` and `cargo xtask visual accept` (library guards now verified); migrate the 7,075 legacy four-file scenarios to single `.ansi` (their `.html` embeds absolute tuisnap-era `argv[0]` paths)
+| P4 non-unique locators | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | verified OK; docs fixed (`LocateError::Usage`, `count_at_least` removal in MIGRATION) | switch boot waits off `Locator::resolve` + `wait_predicate` |
+| P5 last screen in `WaitError` | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | verified OK | none |
+| P6 render speed (and `compare_png`) | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | verified OK: pinned scores 0.999853 / 0.999940 / 0.999963 pass, and one-cell probe identical at `a47c9aa`, `b7d3df3`, `7b832fc` | add the recommended `[profile.dev.package.*]` opt-level overrides |
+| P7 no absolute paths | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | changes requested: §7 item 3 fixed, but a new panic in `looks_like_host_path` on a UNC value with a multi-byte character at byte 3 (§8 blocker); nits: `C:\proj` kept verbatim, `/api/v1/users.json` reduced, both undocumented | none |
+| P8 clock, pointer, docs, example | [#11](https://github.com/tailrocks/tuiscotti/pull/11) | open | `7b832fc` | [review 5551090928](https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928) | verified OK | none |
 
 After merge, in every case: bump the `rev =` pin in `Cargo.toml` to the new
 `main`, re-run the visual gate and round-trips, and re-approve on purpose
@@ -468,3 +469,107 @@ The list is the same as in §6:
 - `cargo xtask visual accept`, but only after items 1 and 2 are verified
   fixed. Our accept goes through the library, so the CLI fix alone is
   not enough.
+
+## 8. Third review of tuiscotti PR #11
+
+Review:
+<https://github.com/tailrocks/tuiscotti/pull/11#pullrequestreview-5551090928>
+at PR head `7b832fc` (with `e8e8651`). It was posted as a `COMMENT` review
+for the same reason as §6. Verdict: **changes requested**, because this
+head adds one small blocker. All three §7 items and the docs nits were
+reproduced as fixed. Our replies are in the review threads, and CI is
+green (22 pass, 1 skipped).
+
+### Blocker
+
+1. **`Provenance::sanitized` panics on some UNC values.**
+   `looks_like_host_path` slices `trimmed[3..]` for every Windows-looking
+   value. For a `\\server…` UNC path, byte 3 belongs to the server name,
+   so `Provenance::now("p", "\\\\é\\x", vec![])` panics with "start byte
+   index 3 is not a char boundary". `Frame::from_json`, `to_json` and
+   `to_json_pretty` panic the same way through `sanitized()`.
+   `b7d3df3` returned `x`. The fix is
+   `trimmed.get(3..).is_some_and(..)` plus a test case.
+
+### Non-blocking
+
+- `C:\proj` and `C:\config.toml` are now kept verbatim (`b7d3df3`
+  reduced them to a basename). This matches the Unix rule for `/foo`,
+  but `MIGRATION.md` does not say so.
+- `last_segment_looks_like_file` reduces any absolute value with three or
+  more segments that ends in `name.ext`, so `/api/v1/users.json` becomes
+  `users.json`. This is not documented.
+- The `+` key still cannot be expressed in `parse_chord`. `"+"` and
+  `"ctrl++"` fail with a misleading "empty modifier" error.
+- The PR body says accept cleans up `.frame.json`. It does not, and it
+  does not need to.
+
+### Verified fixed
+
+All results are at `7b832fc`. They come from a standalone program and
+from a scratch copy of our repository with the dependency pointed at that
+head.
+
+- **§7 item 1:** with `CI=1` and with `CI=true`, `Store::accept`,
+  `GroupedStore::accept`, `accept_all` and `accept_matching` refuse on
+  `All` and `AnsiCursor` stores. No approved byte changes. The CLI still
+  exits 3 on classic, `ansi-cursor` and `all` stores.
+- **§7 item 2:** `accept_all` with `run-1` and `run-2` candidates refuses
+  all or nothing, by the newest run or by a pinned `with_run_id`. On a
+  single run it accepts the candidates and skips a matched scenario.
+- **§7 item 3:** reduced to a basename: trailing-separator paths,
+  `--out=`, `C:\…\`, `source`, `/srv`, `/workspace(s)`, `/builds`,
+  `/github`, `/app`, `/work`, `/runner`, `\\server\share\…`, paths with
+  spaces, and values under unlisted `HOME`, `TMPDIR`, `CARGO_TARGET_DIR`,
+  `GITHUB_WORKSPACE` and cwd roots. Kept verbatim: siblings and parents
+  of those roots, `/`, `/foo/`, `/api/v1`, `--route=/api/v1`, relative
+  paths and URLs. `HOME=/` and a relative `HOME` are ignored.
+- **Docs nits:** `MIGRATION.md` items 4 and 9, and `LocateError::Usage`
+  in `API.md` and `DECISIONS.md`. The PR description no longer lists
+  `--all`.
+- **No regressions:**
+  - Segment prefix: `suite/a` does not touch `suite/ab`.
+  - Ghost actuals are refused.
+  - `compare_png`: the pinned test passes (0.999853 / 0.999940 /
+    0.999963), and a one-cell probe scores the same at `a47c9aa`,
+    `b7d3df3` and `7b832fc`.
+  - Phantom cursor: none (`cell_diffs = [(3,0)]`).
+  - Stale evidence: removed on a pass.
+  - Graphemes, store-mode fallback and `count_at_least`: the code is
+    unchanged since `b7d3df3`.
+- **New ergonomics:**
+  - `parse_chord`: over 611 chord strings, all 453 that `b7d3df3`
+    accepted parse to the same `(Key, KeyMods)`. Only the new `-`-joined
+    and `backtab` forms were added; a literal `-` and `alt+-` are
+    unchanged.
+  - `with_review_evidence(false)` and `TUISCOTTI_REVIEW_EVIDENCE=0` still
+    write the sealed `.ansi`, `.frame.json`, `.manifest.json` and
+    `.verdict.json`, with full `cell_diffs`, so `accept_matching` works.
+    Earlier PNG, HTML and diff evidence is still removed.
+  - On an `AnsiCursor` accept, a stale approved `.png.fidelity.json` is
+    removed.
+
+### Our store and gate at `7b832fc`
+
+- 7,600 approved `.ansi` files; the count is unchanged. The 525
+  single-`.ansi` files re-encode byte-identical. The 7,075 legacy files
+  decode and re-encode to the original plus `\x1b[?25l`.
+- We commit no `.frame.json`. Running the gate changed no committed file.
+  The 7,075 legacy `.html` files still embed tuisnap-era provenance with
+  an absolute `argv[0]` (`/Users/…/target/debug/<app>`). That is our
+  debt, not tuiscotti's: it goes away when those scenarios move to single
+  `.ansi`.
+- Lockfile: one ratatui (0.30.2), one crossterm (0.29.0), one
+  unicode-width (0.2.0).
+- `cargo xtask visual check-touched`: 3,013/3,013 pass.
+- Pilot `test(/^showcase::pages/)`: 754/754 pass.
+- Smoke tier: 1,193/1,193 pass.
+
+### What we can delete once it merges
+
+- `gate()` and `write_expected_evidence`.
+- `ansi_cursor.rs` `encode`/`decode`.
+- The lone-`f` workaround.
+- `cargo xtask visual render`.
+- `cargo xtask visual accept`. The library guards are now verified, so
+  this no longer waits on anything.
