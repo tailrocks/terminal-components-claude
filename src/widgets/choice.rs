@@ -28,6 +28,17 @@ fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) 
     }
 }
 
+/// Which part of a [`Checkbox`] row takes clicks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CheckHit {
+    /// The box and its label (macOS, Windows): blank space to the right of
+    /// a short label does not toggle.
+    #[default]
+    Label,
+    /// The whole row the checkbox is given.
+    Row,
+}
+
 #[derive(Debug, Clone)]
 pub struct Checkbox {
     pub id: WidgetId,
@@ -38,6 +49,8 @@ pub struct Checkbox {
     /// edit) and shows `[–]`. Toggling it checks the box, as on macOS.
     /// Default `false`.
     pub mixed: bool,
+    /// Which part of the row takes clicks. Default [`CheckHit::Label`].
+    pub hit: CheckHit,
     pub area: Rect,
 }
 
@@ -49,8 +62,15 @@ impl Checkbox {
             checked,
             disabled: false,
             mixed: false,
+            hit: CheckHit::Label,
             area: Rect::ZERO,
         }
+    }
+
+    /// See [`Self::hit`].
+    pub fn hit(mut self, hit: CheckHit) -> Self {
+        self.hit = hit;
+        self
     }
 
     /// Start indeterminate (see [`Self::mixed`]).
@@ -125,14 +145,17 @@ impl Checkbox {
             st.fg(t.text_muted)
         };
         row_part(buf, area, 1, mark, mark_style);
-        row_part(
-            buf,
-            area,
-            5,
-            &crate::ui::text::truncate(&self.label, area.width.saturating_sub(6) as usize),
-            st,
-        );
-        ctx.control(self.id, area, self.disabled);
+        let label = crate::ui::text::truncate(&self.label, area.width.saturating_sub(6) as usize);
+        row_part(buf, area, 5, &label, st);
+        // the target: the gutter, box and label plus one cell of padding
+        let target = match self.hit {
+            CheckHit::Row => area,
+            CheckHit::Label => {
+                let w = 6 + crate::ui::text::width(&label) as u16;
+                Rect::new(area.x, area.y, w.min(area.width), area.height)
+            }
+        };
+        ctx.control(self.id, target, self.disabled);
     }
 }
 
@@ -424,5 +447,29 @@ mod tests {
         assert!(cb.checked && !cb.mixed);
         cb.on_key(&space);
         assert!(!cb.checked);
+    }
+
+    /// Mouse audit #34: blank space far right of a checkbox's label toggled
+    /// it. The target is the box and label by default.
+    #[test]
+    fn only_the_box_and_label_take_clicks_by_default() {
+        let t = Theme::junie();
+        let hit_at = |cb: &mut Checkbox, x: u16| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
+            cb.render(Rect::new(0, 0, 40, 1), &mut buf, &mut ctx, t.canvas);
+            drop(ctx);
+            hits.hit(ratatui::layout::Position::new(x, 0))
+        };
+        let id = WidgetId::of("c");
+        let mut cb = Checkbox::new(id, "On call", false);
+        assert_eq!(hit_at(&mut cb, 2), Some(id), "the box");
+        assert_eq!(hit_at(&mut cb, 6), Some(id), "the label");
+        assert_eq!(hit_at(&mut cb, 12), Some(id), "the padding cell");
+        assert_eq!(hit_at(&mut cb, 30), None, "blank space");
+        let mut row = cb.clone().hit(CheckHit::Row);
+        assert_eq!(hit_at(&mut row, 30), Some(id), "the whole row on request");
     }
 }
