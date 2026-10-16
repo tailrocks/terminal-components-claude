@@ -1217,10 +1217,13 @@ impl Screen for SettingsScreen {
         if focus == Some(TABS) {
             v.push(hint("←→", "Tab"));
             v.push(hint("1–5", "Jump"));
-            v.push(hint("Enter", "Body"));
-        } else if matches!(focus, Some(CANCEL) | Some(SAVE)) {
+            v.push(hint("Enter", "Edit fields"));
+        } else if let Some(b) = [&self.cancel, &self.save]
+            .into_iter()
+            .find(|b| Some(b.id) == focus)
+        {
             v.push(hint("←→", "Choose"));
-            v.push(hint("Enter", "Run"));
+            v.push(b.hint());
         } else {
             match self.tab {
                 StTab::General => {

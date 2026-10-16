@@ -2545,12 +2545,8 @@ impl Screen for AccountsScreen {
                 hint("Esc", "Back"),
             ];
         }
-        if self.actions.iter().any(|b| Some(b.id) == focus) {
-            return vec![
-                hint("←→", "Choose"),
-                hint("Enter", "Run"),
-                hint("Esc", "Back"),
-            ];
+        if let Some(b) = self.actions.iter().find(|b| Some(b.id) == focus) {
+            return vec![hint("←→", "Choose"), b.hint(), hint("Esc", "Back")];
         }
         let mut v = vec![];
         match &self.selected {

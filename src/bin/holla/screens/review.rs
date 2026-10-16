@@ -529,9 +529,14 @@ impl Screen for GatePage {
                 hint("Esc", "Cancel"),
             ];
         }
+        let enter = [&self.cancel, &self.cont]
+            .into_iter()
+            .find(|b| Some(b.id) == focus)
+            .map(|b| b.hint())
+            .unwrap_or_else(|| hint("Enter", "Activate"));
         vec![
             hint("←→", "Choose"),
-            hint("Enter", "Activate"),
+            enter,
             hint("Tab", "Next"),
             hint("y", "Copy sequence"),
             hint("Esc", "Cancel"),
@@ -908,10 +913,15 @@ impl Screen for TrustPage {
         self.ok.render(rects[1], buf, ctx, t.canvas);
     }
 
-    fn hints(&self, _focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
+    fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
+        let enter = [&self.cancel, &self.ok]
+            .into_iter()
+            .find(|b| Some(b.id) == focus)
+            .map(|b| b.hint())
+            .unwrap_or_else(|| hint("Enter", "Activate"));
         vec![
             hint("←→", "Choose"),
-            hint("Enter", "Activate"),
+            enter,
             hint("Tab", "Next"),
             hint("Esc", "Cancel"),
         ]
