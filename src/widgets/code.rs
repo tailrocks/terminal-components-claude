@@ -955,6 +955,7 @@ impl CodeEditor {
         let focused = s.focused;
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
+        ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
 
         let fs = if self.read_only {
             Style::new().fg(t.text_primary).bg(bg)
