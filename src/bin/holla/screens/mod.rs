@@ -446,13 +446,7 @@ pub(crate) fn rebuild_on_tick<S, V: PartialEq>(
     }
 }
 
-pub fn plural(n: usize, one: &str, many: &str) -> String {
-    if n == 1 {
-        format!("{n} {one}")
-    } else {
-        format!("{n} {many}")
-    }
-}
+pub use junie_tui::ui::text::plural;
 
 /// `2 min 14 s` from ticks.
 pub fn ticks_label(ticks: u64) -> String {
@@ -494,35 +488,7 @@ pub fn heading(
     );
 }
 
-/// Truncate a ` · `-joined phrase at the last separator that fits, so a
-/// cell never ends mid-word; falls back to a plain cut when no separator
-/// leaves at least a third of the room.
-pub fn truncate_sep(s: &str, max: usize) -> String {
-    use junie_tui::ui::text::{truncate, width};
-    if width(s) <= max {
-        return s.to_owned();
-    }
-    if max < 4 {
-        return truncate(s, max);
-    }
-    let mut best: Option<usize> = None;
-    let mut pos = 0;
-    while let Some(i) = s[pos..].find(" · ") {
-        let at = pos + i;
-        let w = width(&s[..at]);
-        if w < max && w * 3 >= max {
-            best = Some(at);
-        }
-        if w + 1 > max {
-            break;
-        }
-        pos = at + 3;
-    }
-    match best {
-        Some(at) => format!("{}…", &s[..at]),
-        None => truncate(s, max),
-    }
-}
+pub use junie_tui::ui::text::truncate_sep;
 
 /// Route a pointer press to a raw `ScrollState` scrollbar. Widget-owned
 /// scroll models expose this directly; Holla's simple screens keep the model

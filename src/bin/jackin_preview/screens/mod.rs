@@ -410,10 +410,4 @@ pub fn health_spans(
     v
 }
 
-pub fn plural(n: usize, one: &str, many: &str) -> String {
-    if n == 1 {
-        format!("{n} {one}")
-    } else {
-        format!("{n} {many}")
-    }
-}
+pub use junie_tui::ui::text::plural;

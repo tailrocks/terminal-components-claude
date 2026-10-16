@@ -16,7 +16,7 @@ use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, Stakes};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
-use junie_tui::ui::text::{truncate, truncate_middle, width};
+use junie_tui::ui::text::{crumb_fit, truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::button::Button;
@@ -32,6 +32,7 @@ use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
 use junie_tui::widgets::tabs::{TabAction, TabItem, Tabs};
+use junie_tui::widgets::too_small::TooSmall;
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -54,8 +55,6 @@ use crate::screens::snapshot::SnapshotPage;
 use crate::screens::{Cx, GateTarget, Go, Modal, ModalResult, ModalTag, Page, Request, Screen};
 use crate::sim::world::{Msg, World};
 
-pub const MIN_WIDTH: u16 = 72;
-pub const MIN_HEIGHT: u16 = 20;
 /// The canonical product mark; every brand lockup renders exactly this.
 pub const BRAND_MARK: &str = "holla❯";
 
@@ -164,7 +163,7 @@ impl App {
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let world = crate::domain::fixtures::world_for(scenario, motion);
         let mut app = Self {
-            theme: centred_hints(theme),
+            theme: theme.centred_hints(),
             scenario,
             motion,
             world,
@@ -3308,29 +3307,11 @@ impl App {
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         fill(buf, area, t.base());
-        self.too_small = area.width < MIN_WIDTH || area.height < MIN_HEIGHT;
+        let brand = format!(" {BRAND_MARK} ");
+        let too_small = TooSmall::new(&brand).brand_style(Lockup::style(&t));
+        self.too_small = too_small.applies(area);
         if self.too_small {
-            let lines = [
-                (&*format!(" {BRAND_MARK} "), Lockup::style(&t)),
-                ("Terminal too small", t.secondary()),
-                (
-                    &*format!(
-                        "Need {MIN_WIDTH}×{MIN_HEIGHT}, have {}×{}",
-                        area.width, area.height
-                    ),
-                    t.muted(),
-                ),
-                ("q Quit", t.faint()),
-            ];
-            let y0 = area.y + area.height.saturating_sub(5) / 2;
-            for (i, (text, style)) in lines.iter().enumerate() {
-                let w = width(text) as u16;
-                let x = area.x + area.width.saturating_sub(w) / 2;
-                let y = y0 + i as u16 + if i == 3 { 1 } else { 0 };
-                if y < area.bottom() {
-                    buf.set_string(x, y, text, if i == 0 { *style } else { style.bg(t.canvas) });
-                }
-            }
+            too_small.render(area, buf, &t);
             return;
         }
         self.draw_frame(area, buf, ctx);
@@ -3687,34 +3668,6 @@ impl App {
         layer.status_parts = status_parts;
         HintBar::render(area, buf, &t, &layer);
     }
-}
-
-/// Fit a ` › ` breadcrumb into `max` cells by dropping middle crumbs first
-/// (`Here › … › Review`), then truncating the last crumb in the middle.
-fn crumb_fit(label: &str, max: usize) -> String {
-    use junie_tui::ui::text::width;
-    if width(label) <= max {
-        return label.to_owned();
-    }
-    let parts: Vec<&str> = label.split(" › ").collect();
-    if parts.len() >= 3 {
-        let first = parts[0];
-        let last = parts[parts.len() - 1];
-        let short = format!("{first} › … › {last}");
-        if width(&short) <= max {
-            return short;
-        }
-        let room = max.saturating_sub(width(first) + 8);
-        return format!("{first} › … › {}", truncate_middle(last, room.max(6)));
-    }
-    truncate_middle(label, max)
-}
-
-/// This app centres its footer hints on every screen: set once on the
-/// theme rather than per hint layer.
-fn centred_hints(mut theme: Theme) -> Theme {
-    theme.hintbar.align = junie_tui::theme::HintAlign::Center;
-    theme
 }
 
 /// The derived alternatives [`App::run_derived`] runs, by id shape.
