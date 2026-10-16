@@ -1,0 +1,83 @@
+# Every `--page` name of the showcase: `name | page label`. Plan §7, SCP7:
+# this list only grows. A renamed or moved page keeps its old name as an
+# alias (`PAGE_ALIASES` in src/bin/showcase/app.rs); the tree-rules test
+# (src/bin/showcase/app_tests_template.rs) fails when a listed name no
+# longer opens its page, and prints the line for a name not listed yet.
+overview | Overview
+chrome | Chrome
+statushints | Status & hints
+breadcrumbsrails | Breadcrumbs & rails
+helpkeys | Help & keys
+quitleave | Quit & leave
+focusnavigation | Focus & navigation
+buttons | Buttons
+inputs | Inputs
+textareas | Text areas
+chipsselects | Chips & selects
+forms | Forms
+checksradios | Checks & radios
+toolbars | Toolbars
+basictable | Basic table
+editable | Editable
+datagrid | Data grid
+selection | Selection
+celleditors | Cell editors
+columns | Columns
+lists | Lists
+trees | Trees
+sidebars | Sidebars
+tabs | Tabs
+menus | Menus
+dialogs | Dialogs
+pickers | Pickers
+dialogkinds | Dialog kinds
+popupstooltips | Popups & tooltips
+filebrowser | File browser
+progress | Progress
+emptyerror | Empty & error
+meters | Meters
+notices | Notices
+panels | Panels
+scrolling | Scrolling
+splitsstacks | Splits & stacks
+masterdetail | Master-detail
+panetree | Pane tree
+codeeditor | Code editor
+diff | Diff
+terminal | Terminal
+textutilities | Text utilities
+settings | Settings
+taskrunner | Task runner
+queryworkbench | Query workbench
+connections | Connections
+finder | Finder
+diskcleanup | Disk cleanup
+activity | Activity
+workspaces | Workspaces
+accountsusage | Accounts & usage
+launchcockpit | Launch cockpit
+readonlyreport | Read-only report
+tables | Basic table
+editabletables | Editable
+selectabletable | Selection
+optioneditors | Cell editors
+options | Cell editors
+enums | Cell editors
+choices | Cell editors
+selection | Selection
+bulkedit | Selection
+selectable | Selection
+hints | Status & hints
+breadcrumbs | Breadcrumbs & rails
+rails | Breadcrumbs & rails
+help | Help & keys
+quit | Quit & leave
+leave | Quit & leave
+focus | Focus & navigation
+checks | Checks & radios
+radios | Checks & radios
+popups | Popups & tooltips
+tooltips | Popups & tooltips
+empty | Empty & error
+splits | Splits & stacks
+text | Text utilities
