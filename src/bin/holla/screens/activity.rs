@@ -9,27 +9,33 @@
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Tone;
+use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipEvent};
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportEvent, line_text};
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 
 use crate::domain::activity::{
     ActivityKind, ActivityState, InputError, KILL_AFTER_TICKS, LineTone, RETAIN_LINES, key_bytes,
 };
-use crate::screens::{Cx, Go, Screen, StatusBits, ticks_label};
+use crate::screens::{
+    Cx, Go, ModalResult, ModalTag, Screen, StatusBits, open_context, ticks_label,
+};
 use crate::sim::world::World;
 
 pub const VIEW: WidgetId = WidgetId::of("activity.view");
 pub const CHIPS: WidgetId = WidgetId::of("activity.chips");
 const FOLLOW_UP: WidgetId = WidgetId::of("activity.follow");
+/// The output's and a stream chip's context menu.
+pub const MENU: WidgetId = WidgetId::of("activity.menu");
 
 pub struct ActivityTab {
     pub id: String,
@@ -323,6 +329,90 @@ impl ActivityTab {
     }
 }
 
+impl ActivityTab {
+    /// The output's context menu: the tab's own keys. Each item stands for
+    /// the key at its index in the tag.
+    fn output_menu(&self, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
+        let Some(a) = w.activity(&self.id) else {
+            return Outcome::Ignored;
+        };
+        let mut copy = MenuItem::new("Copy selection").shortcut("y");
+        if self.view.selected_text().is_none() {
+            copy = copy.reason("Select text first");
+        }
+        let follow = MenuItem::new(if self.view.follow {
+            "Pause following"
+        } else {
+            "Follow the tail"
+        })
+        .shortcut("f")
+        .separator();
+        let mut items = vec![copy, MenuItem::new("Find…").shortcut("/"), follow];
+        let mut keys = String::from("y/f");
+        if a.attachable && a.state.live() {
+            items.push(MenuItem::new("Attach").shortcut("Enter"));
+            keys.push('\n');
+        } else {
+            let mut input = MenuItem::new(if a.waiting.is_some() {
+                "Answer"
+            } else {
+                "Type input"
+            })
+            .shortcut("i");
+            if !a.accepts_input() {
+                input = input.reason(match a.state {
+                    ActivityState::Queued => "Queued · it has no stdin until it starts",
+                    s if s.live() => "This program takes no input",
+                    _ => "The program has finished · nothing reads input",
+                });
+            }
+            items.push(input);
+            keys.push('i');
+        }
+        let mut stop = MenuItem::new("Stop").shortcut("s").danger();
+        match a.state {
+            ActivityState::Cancelling => stop = stop.reason("Already stopping"),
+            s if !s.live() => stop = stop.reason("Already finished"),
+            _ => {}
+        }
+        let mut restart = MenuItem::new("Restart").shortcut("r").separator();
+        if a.state.live() {
+            restart = restart.reason("Still running · s stops it first");
+        }
+        items.extend([stop, restart, MenuItem::new("Close tab").shortcut("x")]);
+        keys.push_str("srx");
+        open_context(
+            cx,
+            MENU,
+            anchor,
+            a.name.clone(),
+            items,
+            ModalTag::new("activity-output").key(keys),
+        )
+    }
+
+    /// A stream chip's context menu: show or hide that stream.
+    fn chip_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
+        let Some(chip) = self.chips.chips.get(i) else {
+            return Outcome::Ignored;
+        };
+        let hidden = w
+            .activity(&self.id)
+            .is_some_and(|a| a.hidden_services.contains(&chip.label));
+        let items = vec![
+            MenuItem::new(if hidden { "Show stream" } else { "Hide stream" }).shortcut("Space"),
+        ];
+        open_context(
+            cx,
+            MENU,
+            anchor,
+            chip.label.clone(),
+            items,
+            ModalTag::new("activity-chip").key(chip.label.clone()),
+        )
+    }
+}
+
 impl Screen for ActivityTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let tick = w.tick;
@@ -596,6 +686,80 @@ impl Screen for ActivityTab {
             return self.view.on_click(pos).or(Outcome::Changed);
         }
         Outcome::Ignored
+    }
+
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        // a program owning the keyboard, or an open find, keeps it
+        if self.is_editing() {
+            return Outcome::Ignored;
+        }
+        if let Some(i) = (0..self.chips.chips.len()).find(|&i| self.chips.chip_id(i) == id) {
+            if cx.context.moves_cursor {
+                self.chips.cursor = i;
+            }
+            cx.focus.focus(CHIPS);
+            return self.chip_menu(i, ContextAnchor::Pointer(pos), w, cx);
+        }
+        if id == VIEW {
+            cx.focus.focus(VIEW);
+            return self.output_menu(ContextAnchor::Pointer(pos), w, cx);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.is_editing() {
+            return Outcome::Ignored;
+        }
+        // the output has no cursor row: the menu opens at its top line
+        let top = Rect::new(self.view.area.x, self.view.area.y, 1, 1);
+        if cx.focus.is(CHIPS) {
+            let i = self.chips.cursor;
+            let anchor = ContextAnchor::Control {
+                id: self.chips.chip_id(i),
+                fallback: top,
+            };
+            return self.chip_menu(i, anchor, w, cx);
+        }
+        if cx.focus.is(VIEW) {
+            return self.output_menu(ContextAnchor::Pointer(top.as_position()), w, cx);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        let ModalResult::MenuChosen(k) = result else {
+            return Outcome::Changed;
+        };
+        match tag.kind {
+            "activity-chip" => {
+                self.toggle_stream(tag.key.clone(), w);
+                Outcome::Changed
+            }
+            "activity-output" => {
+                let Some(c) = tag.key.chars().nth(k) else {
+                    return Outcome::Changed;
+                };
+                // the chosen row runs its key on the output
+                cx.focus.focus(VIEW);
+                let key = Key {
+                    code: if c == '\n' {
+                        KeyCode::Enter
+                    } else {
+                        KeyCode::Char(c)
+                    },
+                    mods: KeyModifiers::NONE,
+                };
+                self.on_key(&key, w, cx).or(Outcome::Changed)
+            }
+            _ => Outcome::Ignored,
+        }
     }
 
     fn on_double_click(
