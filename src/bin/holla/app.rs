@@ -161,8 +161,26 @@ pub struct App {
 impl App {
     /// Pure fixture entry point: one coherent world per scenario, advanced
     /// `frame` ticks through its scripted timeline.
+    #[cfg(test)]
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
-        let world = crate::domain::fixtures::world_for(scenario, motion);
+        Self::launch(scenario, motion, frame, theme, true)
+    }
+
+    /// [`Self::for_scenario`] with the usage history on or off
+    /// (`HOLLA_NO_HISTORY=1`). The opt-out applies before the first page
+    /// is built, so even the first frame reads nothing from the history.
+    pub fn launch(
+        scenario: Scenario,
+        motion: Motion,
+        frame: u64,
+        theme: Theme,
+        history: bool,
+    ) -> Self {
+        let mut world = crate::domain::fixtures::world_for(scenario, motion);
+        if !history {
+            // the opt-out: nothing is read, learned or written
+            world.memory.usage = crate::domain::usage::UsageStore::disabled();
+        }
         let mut app = Self {
             theme: theme.centred_hints(),
             scenario,
