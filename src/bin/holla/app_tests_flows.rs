@@ -72,12 +72,11 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
     h.key(KeyCode::Enter);
     h.type_str("yes");
     h.key(KeyCode::Enter);
-    h.key(KeyCode::Tab);
-    h.key(KeyCode::Enter);
     assert!(
         h.text().contains("gate 2 of 2"),
         "a generic yes never arms the gate"
     );
+    assert!(h.text().contains("Does not match"), "{}", h.text());
     assert_eq!(h.app.world.plans[0].phase, PlanPhase::Review);
     // the exact phrase arms it; the first execute finds a changed target
     h.key(KeyCode::Esc);
@@ -86,8 +85,6 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
         h.key(KeyCode::Backspace);
     }
     h.type_str("I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox");
-    h.key(KeyCode::Enter);
-    h.key(KeyCode::Tab);
     h.key(KeyCode::Enter);
     assert!(h.last_row().contains("Plan changed"), "{}", h.last_row());
     assert!(
@@ -101,8 +98,6 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
     h.type_str("I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox");
-    h.key(KeyCode::Enter);
-    h.key(KeyCode::Tab);
     h.key(KeyCode::Enter);
     assert_eq!(h.tab_kind(), TabKind::Plan("docker-cleanup".into()));
     assert_eq!(h.app.world.plans[0].phase, PlanPhase::Running);
@@ -134,8 +129,6 @@ fn finished_runs_change_the_world_they_claimed_to() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
     h.type_str("REMOVE ALL BUILD ARTIFACTS UNDER /Users/alex/work");
-    h.key(KeyCode::Enter);
-    h.key(KeyCode::Tab);
     h.key(KeyCode::Enter);
     let done = |h: &H| {
         h.app

@@ -60,10 +60,9 @@ pub struct Dialog {
     /// Index of the action Esc maps to (usually a Cancel button).
     pub cancel_index: Option<usize>,
     pub width: u16,
-    /// Action keys on a text dialog (default
-    /// [`DialogAction::default_keymap`]: `y` presses the primary action,
-    /// `n` the cancel action). An empty map keeps letters inert, as macOS
-    /// alerts do.
+    /// Extra action keys on a text dialog (default
+    /// [`DialogAction::default_keymap`]: none; the label mnemonics are the
+    /// letter keys, see [`Self::mnemonics`]).
     pub keymap: KeyMap<DialogAction>,
     /// Which keys scroll a tall body (↑/↓, paging, Home/End) and move
     /// between the actions (←/→). Default [`NavKeys::DEFAULT`].
@@ -132,23 +131,51 @@ pub struct Dialog {
     /// The theme's strings as of the last render: labels built from them
     /// follow a change ([`Strings::follow`]), and hints read them.
     strings: Strings,
+    /// What Enter in a typed acknowledgement does. Default
+    /// [`AckEnter::Submit`]: it presses the gated action once the token
+    /// matches, and says the text does not match otherwise.
+    pub ack_enter: AckEnter,
+    /// Letter keys that press an action, derived from the labels and
+    /// shown underlined in them ([`Self::mnemonic_keys`]), as Windows
+    /// dialogs do. They work only while the dialog has no text field, so
+    /// typing never presses a button. Default on.
+    pub mnemonics: bool,
+    /// The prompt's text when the dialog opened: once the field differs, a
+    /// backdrop click no longer dismisses (see [`Self::guard_dirty_prompt`]).
+    pristine: String,
+    /// A prompt whose field was edited ignores backdrop clicks, so a stray
+    /// click never throws away what was typed (Esc and Cancel still
+    /// close). Default on.
+    pub guard_dirty_prompt: bool,
+}
+
+/// What Enter in a dialog's typed acknowledgement does
+/// ([`Dialog::ack_enter`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AckEnter {
+    /// Press the gated action when the typed text matches the token; when
+    /// it does not, keep editing and show that it does not match.
+    #[default]
+    Submit,
+    /// Move focus to the next control (the buttons), so the gated action
+    /// is pressed in a second, deliberate step.
+    NextField,
 }
 
 /// A [`Dialog`] action a key can be bound to (text dialogs only).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogAction {
-    /// Press the primary (or danger) action. Default `y`.
+    /// Press the primary (or danger) action. Unbound by default.
     Confirm,
-    /// Press the cancel action. Default `n`.
+    /// Press the cancel action. Unbound by default.
     Cancel,
 }
 
 impl Actions for DialogAction {
+    /// Empty: the label mnemonics ([`Dialog::mnemonics`]) are the
+    /// letter keys of a dialog. Bind `y`/`n` here to restore them.
     fn default_keymap() -> KeyMap<Self> {
-        vec![
-            (KeyBinding::char('y'), DialogAction::Confirm),
-            (KeyBinding::char('n'), DialogAction::Cancel),
-        ]
+        vec![]
     }
 }
 
@@ -190,6 +217,90 @@ impl Dialog {
         self
     }
 
+    /// See [`Self::ack_enter`].
+    pub fn ack_enter(mut self, ack_enter: AckEnter) -> Self {
+        self.ack_enter = ack_enter;
+        self
+    }
+
+    /// See [`Self::mnemonics`].
+    pub fn mnemonics(mut self, on: bool) -> Self {
+        self.mnemonics = on;
+        self
+    }
+
+    /// See [`Self::guard_dirty_prompt`].
+    pub fn guard_dirty_prompt(mut self, on: bool) -> Self {
+        self.guard_dirty_prompt = on;
+        self
+    }
+
+    /// Whether the body has a text field (a prompt or a typed
+    /// acknowledgement): letters then type, they never press a button.
+    fn has_text_field(&self) -> bool {
+        matches!(
+            self.body,
+            DialogBody::Input(_) | DialogBody::Facts { ack: Some(_), .. }
+        )
+    }
+
+    /// Each action's mnemonic as `(key, char index in its label)`: the
+    /// first letter or digit of the label that no earlier action took,
+    /// compared without case. `None` when every character is taken.
+    pub fn mnemonic_keys(&self) -> Vec<Option<(char, usize)>> {
+        let mut taken: Vec<char> = vec![];
+        self.actions
+            .iter()
+            .map(|b| {
+                let m = b
+                    .label
+                    .chars()
+                    .enumerate()
+                    .filter(|(_, c)| c.is_alphanumeric())
+                    .map(|(i, c)| (c.to_lowercase().next().unwrap_or(c), i))
+                    .find(|(c, _)| !taken.contains(c));
+                if let Some((c, _)) = m {
+                    taken.push(c);
+                }
+                m
+            })
+            .collect()
+    }
+
+    /// Whether mnemonics are live: on, and no text field to type into.
+    fn mnemonics_live(&self) -> bool {
+        self.mnemonics && !self.has_text_field()
+    }
+
+    /// The action whose mnemonic `key` is, if mnemonics are live.
+    fn mnemonic_action(&self, key: &Key) -> Option<usize> {
+        let KeyCode::Char(c) = key.code else {
+            return None;
+        };
+        if !self.mnemonics_live() || key.ctrl() || key.alt() {
+            return None;
+        }
+        let c = c.to_lowercase().next().unwrap_or(c);
+        self.mnemonic_keys()
+            .iter()
+            .position(|m| m.is_some_and(|(k, _)| k == c))
+    }
+
+    /// Whether the prompt's text differs from what it opened with.
+    pub fn prompt_dirty(&self) -> bool {
+        matches!(&self.body, DialogBody::Input(i) if i.text() != self.pristine)
+    }
+
+    /// The action a typed acknowledgement arms (the gated one, else the
+    /// primary or danger action).
+    fn gated_action(&self) -> Option<usize> {
+        self.confirm_index.or_else(|| {
+            self.actions
+                .iter()
+                .position(|b| matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger))
+        })
+    }
+
     pub fn confirm(id: WidgetId, title: &str, text: &str, confirm: &str) -> Self {
         let cancel = Button::subtle(id.sub("cancel"), Strings::DEFAULT.cancel);
         let ok = Button::primary(id.sub("ok"), confirm);
@@ -228,6 +339,10 @@ impl Dialog {
             htrack: Rect::ZERO,
             track: Rect::ZERO,
             strings: Strings::DEFAULT,
+            ack_enter: AckEnter::Submit,
+            mnemonics: true,
+            pristine: String::new(),
+            guard_dirty_prompt: true,
         }
     }
 
@@ -269,6 +384,10 @@ impl Dialog {
             htrack: Rect::ZERO,
             track: Rect::ZERO,
             strings: Strings::DEFAULT,
+            ack_enter: AckEnter::Submit,
+            mnemonics: true,
+            pristine: String::new(),
+            guard_dirty_prompt: true,
         }
     }
 
@@ -276,6 +395,7 @@ impl Dialog {
         let cancel = Button::subtle(id.sub("cancel"), Strings::DEFAULT.cancel);
         let ok = Button::primary(id.sub("ok"), confirm);
         let input_id = input.id;
+        let pristine = input.text().to_owned();
         Self {
             id,
             title: title.to_owned(),
@@ -310,6 +430,10 @@ impl Dialog {
             htrack: Rect::ZERO,
             track: Rect::ZERO,
             strings: Strings::DEFAULT,
+            ack_enter: AckEnter::Submit,
+            mnemonics: true,
+            pristine,
+            guard_dirty_prompt: true,
         }
     }
 
@@ -393,6 +517,10 @@ impl Dialog {
             htrack: Rect::ZERO,
             track: Rect::ZERO,
             strings: Strings::DEFAULT,
+            ack_enter: AckEnter::Submit,
+            mnemonics: true,
+            pristine: String::new(),
+            guard_dirty_prompt: true,
         }
     }
 
@@ -433,13 +561,26 @@ impl Dialog {
             && focused == Some(inp.id)
         {
             if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
-                // Enter only moves on to the buttons; the gated one stays
-                // disabled until the token is typed
-                v.push(Hint::new(
-                    "Type",
-                    Strings::fill(s.type_to_confirm_hint, &[&a.token]),
-                ));
-                v.push(hint("Enter", s.hint_next));
+                // the gated action stays disabled until the token is typed;
+                // with `AckEnter::Submit` Enter presses it once armed
+                let gated = self
+                    .gated_action()
+                    .and_then(|i| self.actions.get(i))
+                    .map(|b| b.label.clone());
+                match (self.ack_enter, self.armed(), gated) {
+                    (AckEnter::Submit, true, Some(label)) => v.push(Hint::new("Enter", label)),
+                    (AckEnter::Submit, _, _) => v.push(Hint::new(
+                        "Type",
+                        Strings::fill(s.type_to_confirm_hint, &[&a.token]),
+                    )),
+                    (AckEnter::NextField, ..) => {
+                        v.push(Hint::new(
+                            "Type",
+                            Strings::fill(s.type_to_confirm_hint, &[&a.token]),
+                        ));
+                        v.push(hint("Enter", s.hint_next));
+                    }
+                }
             } else if inp.editing {
                 let primary = self
                     .actions
@@ -489,16 +630,20 @@ impl Dialog {
             v.push(hint("⇧←→", s.hint_scroll_code));
         }
         v.extend(dismiss_hint());
-        // the quick answers exist for plain text dialogs only (see on_key)
-        if matches!(self.body, DialogBody::Text(_))
-            && let Some(p) = self
-                .actions
-                .iter()
-                .find(|b| matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled)
-        {
-            v.push(Hint::new("y", p.label.clone()));
-            if let Some(c) = cancel_label {
-                v.push(Hint::new("n", c));
+        // explicit accelerators (the keymap; empty by default) name what
+        // they press; the label mnemonics show in the buttons themselves
+        if matches!(self.body, DialogBody::Text(_)) {
+            if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogAction::Confirm)
+                && let Some(p) = self.actions.iter().find(|b| {
+                    matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled
+                })
+            {
+                v.push(Hint::new(k, p.label.clone()));
+            }
+            if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogAction::Cancel)
+                && let Some(c) = cancel_label
+            {
+                v.push(Hint::new(k, c));
             }
         }
         v
@@ -801,10 +946,26 @@ impl Dialog {
                     return Outcome::Changed;
                 }
                 Some(InputEvent::Committed) => {
-                    // Enter submits a prompt; for a typed acknowledgement it only
-                    // moves on, so the confirming button is reached deliberately
+                    // Enter submits a prompt. A typed acknowledgement presses
+                    // its gated action once the token matches
+                    // (`AckEnter::Submit`), or only moves on to the buttons
+                    // (`AckEnter::NextField`)
                     if is_facts {
-                        focus.next(ring);
+                        if self.ack_enter == AckEnter::NextField {
+                            focus.next(ring);
+                            return Outcome::Changed;
+                        }
+                        if self.armed()
+                            && let Some(i) = self.gated_action()
+                        {
+                            return self.finish(DialogResult::Action(i));
+                        }
+                        let mismatch = self.strings.ack_mismatch;
+                        if let Some(inp) = self.input_mut() {
+                            // keep typing; the message clears on the next edit
+                            inp.begin_edit();
+                            inp.error = Some(mismatch.to_owned());
+                        }
                         return Outcome::Changed;
                     }
                     let primary = self
@@ -852,6 +1013,17 @@ impl Dialog {
                 }
                 None => {}
             }
+        }
+        // a label mnemonic presses its action (not while a field takes
+        // letters; a disabled or unarmed action stays put)
+        if let Some(i) = self.mnemonic_action(key) {
+            let usable =
+                !self.actions[i].disabled && (Some(i) != self.confirm_index || self.armed());
+            return if usable {
+                self.finish(DialogResult::Action(i))
+            } else {
+                Outcome::Consumed
+            };
         }
         let overflows = self.scroll.overflows();
         let arrow = !matches!(key.code, KeyCode::Char(_));
@@ -1007,7 +1179,7 @@ impl Dialog {
     /// Click on the dimmed backdrop: dismisses when the policy allows,
     /// consumed either way (nothing under a modal is reachable).
     pub fn on_click_outside(&mut self) -> Outcome {
-        if self.dismiss.outside_click {
+        if self.dismiss.outside_click && !(self.guard_dirty_prompt && self.prompt_dirty()) {
             self.dismissed()
         } else {
             Outcome::Consumed
@@ -1223,6 +1395,12 @@ impl Dialog {
             if let Some(b) = self.confirm_index.and_then(|i| self.actions.get_mut(i)) {
                 b.disabled = !armed;
             }
+        }
+        // the label mnemonics are underlined while they work
+        let live = self.mnemonics_live();
+        let keys = self.mnemonic_keys();
+        for (b, m) in self.actions.iter_mut().zip(keys) {
+            b.mnemonic = m.filter(|_| live).map(|(_, i)| i);
         }
         // actions: the shared button row, packed right, never cut
         self.button_row.render(
@@ -1521,12 +1699,10 @@ mod tests {
     #[test]
     fn a_destructive_dialog_names_the_focused_cancel_button_not_confirm() {
         let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete");
-        // destructive dialogs open on Cancel, so Enter cancels
+        // destructive dialogs open on Cancel, so Enter cancels; `y` is held
+        // back until Delete has focus (`QuickAnswer::Safe`)
         let text = hint_text(&d.hints(Some(d.initial_focus)));
-        assert_eq!(
-            text,
-            "←→ Choose · Enter Cancel · Esc Cancel · y Delete · n Cancel"
-        );
+        assert_eq!(text, "←→ Choose · Enter Cancel · Esc Cancel");
         assert!(!text.contains("Confirm"), "{text}");
         // moving to the destructive button renames Enter
         let text = hint_text(&d.hints(Some(d.actions[1].id)));
@@ -1539,6 +1715,11 @@ mod tests {
         let text = hint_text(&d.hints(Some(d.initial_focus)));
         assert_eq!(
             text,
+            "Type \"TRASH 4 UNDER /Users/alex/work/ide ON mbp\" to confirm · Esc Cancel"
+        );
+        let next = gate(78).ack_enter(AckEnter::NextField);
+        assert_eq!(
+            hint_text(&next.hints(Some(next.initial_focus))),
             "Type \"TRASH 4 UNDER /Users/alex/work/ide ON mbp\" to confirm · Enter Next · Esc Cancel"
         );
         // on the buttons, the unarmed action offers no choice and no Enter
@@ -1574,7 +1755,12 @@ mod tests {
         assert_eq!(d.cancel_index, Some(0));
         assert_eq!(
             hint_text(&d.hints(Some(d.initial_focus))),
-            "←→ Choose · Enter Keep launching · Esc Keep launching · y Cancel launch · n Keep launching"
+            "←→ Choose · Enter Keep launching · Esc Keep launching"
+        );
+        // no y/n answers by default: the label mnemonics replace them
+        assert_eq!(
+            hint_text(&d.hints(Some(d.actions[1].id))),
+            "←→ Choose · Enter Cancel launch · Esc Keep launching"
         );
     }
 
@@ -1614,13 +1800,199 @@ mod tests {
             .join("\n")
     }
 
+    /// A typed-confirm dialog drawn once (so its focus ring is built), with
+    /// focus on the acknowledgement.
+    fn ack_dialog(enter: AckEnter) -> (Dialog, crate::core::focus::Focus, FocusRing) {
+        let mut d = Dialog::facts(
+            WidgetId::of("drop"),
+            "Drop table",
+            vec![Prop::new("Table", "public.orders")],
+            vec![],
+            Some("orders"),
+            Button::danger(WidgetId::of("drop").sub("ok"), "Drop"),
+        )
+        .ack_enter(enter);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let screen = Rect::new(0, 0, 100, 30);
+        let mut buf = Buffer::empty(screen);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        d.render(screen, &mut buf, &mut ctx);
+        let mut focus = crate::core::focus::Focus::default();
+        focus.focus(d.initial_focus);
+        (d, focus, ring)
+    }
+
+    fn type_into(d: &mut Dialog, focus: &mut crate::core::focus::Focus, ring: &FocusRing, s: &str) {
+        for c in s.chars() {
+            d.on_key(&key(KeyCode::Char(c)), focus, ring);
+        }
+    }
+
+    #[test]
+    fn enter_in_a_matching_acknowledgement_presses_the_gated_action() {
+        let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
+        let ack = d.initial_focus;
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        type_into(&mut d, &mut focus, &ring, "orders");
+        assert_eq!(hint_text(&d.hints(Some(ack))), "Enter Drop · Esc Cancel");
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        assert_eq!(
+            d.result,
+            Some(DialogResult::Action(1)),
+            "Enter on the matching text presses Drop, never Cancel"
+        );
+    }
+
+    #[test]
+    fn enter_in_a_mismatched_acknowledgement_keeps_editing_and_says_so() {
+        let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
+        let ack = d.initial_focus;
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        type_into(&mut d, &mut focus, &ring, "order");
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        // a second Enter must not reach Cancel either
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        assert_eq!(d.result, None);
+        assert_eq!(focus.current(), Some(ack), "focus stays in the field");
+        assert!(d.is_editing(), "the field keeps the caret");
+        let DialogBody::Facts { ack: Some(a), .. } = &d.body else {
+            unreachable!()
+        };
+        assert_eq!(a.input.error.as_deref(), Some("Does not match"));
+        // typing the missing letter clears the message and arms the action
+        type_into(&mut d, &mut focus, &ring, "s");
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        assert_eq!(d.result, Some(DialogResult::Action(1)));
+    }
+
+    #[test]
+    fn ack_enter_next_field_keeps_the_two_step_confirmation() {
+        let (mut d, mut focus, ring) = ack_dialog(AckEnter::NextField);
+        let ack = d.initial_focus;
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        type_into(&mut d, &mut focus, &ring, "orders");
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        assert_eq!(d.result, None);
+        assert_ne!(focus.current(), Some(ack), "Enter moved on to the buttons");
+    }
+
+    #[test]
+    fn label_mnemonics_press_their_action_and_never_a_y_on_cancel() {
+        let ring = FocusRing::default();
+        let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete")
+            .cancel_label("Keep");
+        assert_eq!(d.mnemonic_keys(), vec![Some(('k', 0)), Some(('d', 0))]);
+        // `y` is no longer a one-key Delete while Keep is focused
+        let mut y = d.clone();
+        let mut focus = crate::core::focus::Focus::default();
+        focus.focus(y.initial_focus);
+        y.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
+        assert_eq!(y.result, None, "y with Keep focused does nothing");
+        // the letter shown on the button presses it
+        let mut del = d.clone();
+        del.on_key(&key(KeyCode::Char('d')), &mut focus, &ring);
+        assert_eq!(del.result, Some(DialogResult::Action(1)));
+        let mut keep = d.clone();
+        keep.on_key(&key(KeyCode::Char('K')), &mut focus, &ring);
+        assert_eq!(keep.result, Some(DialogResult::Action(0)));
+        // later labels skip letters already taken
+        let three = Dialog::confirm(WidgetId::of("x"), "Unsaved", "Save?", "Save").actions(
+            vec![
+                Button::subtle(WidgetId::of("c"), "Cancel"),
+                Button::danger(WidgetId::of("d"), "Discard"),
+                Button::primary(WidgetId::of("s"), "Save"),
+            ],
+            Some(0),
+        );
+        assert_eq!(
+            three.mnemonic_keys(),
+            vec![Some(('c', 0)), Some(('d', 0)), Some(('s', 0))]
+        );
+        let clash =
+            Dialog::confirm(WidgetId::of("x"), "Stop?", "Stop it?", "Stop").cancel_label("Stay");
+        assert_eq!(clash.mnemonic_keys(), vec![Some(('s', 0)), Some(('t', 1))]);
+        // off: letters are inert
+        let mut off = d.clone().mnemonics(false);
+        off.on_key(&key(KeyCode::Char('d')), &mut focus, &ring);
+        assert_eq!(off.result, None);
+    }
+
+    #[test]
+    fn mnemonics_never_fire_while_a_text_field_takes_letters() {
+        let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        // `c` is Cancel's mnemonic, but here it is typed
+        type_into(&mut d, &mut focus, &ring, "c");
+        assert_eq!(d.result, None);
+        let DialogBody::Facts { ack: Some(a), .. } = &d.body else {
+            unreachable!()
+        };
+        assert_eq!(a.input.text(), "c");
+    }
+
+    #[test]
+    fn the_mnemonic_is_underlined_in_its_button() {
+        let mut d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete")
+            .cancel_label("Keep");
+        let screen = Rect::new(0, 0, 80, 20);
+        let buf = draw(&mut d, screen, screen);
+        let b = d.actions[1].area;
+        let cell = buf.cell((b.x + 1, b.y)).unwrap();
+        assert_eq!(cell.symbol(), "D");
+        assert!(cell.modifier.contains(ratatui::style::Modifier::UNDERLINED));
+        let next = buf.cell((b.x + 2, b.y)).unwrap();
+        assert!(!next.modifier.contains(ratatui::style::Modifier::UNDERLINED));
+        // a prompt has no mnemonics, so nothing is underlined
+        let mut p = Dialog::prompt(
+            WidgetId::of("p"),
+            "Rename",
+            TextInput::new(WidgetId::of("n"), "Name"),
+            "Rename",
+        );
+        let buf = draw(&mut p, screen, screen);
+        let b = p.actions[1].area;
+        let cell = buf.cell((b.x + 1, b.y)).unwrap();
+        assert!(!cell.modifier.contains(ratatui::style::Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn an_edited_prompt_ignores_a_backdrop_click() {
+        let input = TextInput::new(WidgetId::of("name"), "Name").value("draft");
+        let mut d = Dialog::prompt(WidgetId::of("p"), "Rename", input, "Rename");
+        // untouched: the backdrop dismisses (to Cancel)
+        let mut clean = d.clone();
+        clean.on_click_outside();
+        assert_eq!(clean.result, Some(DialogResult::Action(0)));
+        // edited: the click is swallowed, Esc still cancels
+        d.on_paste(" v2");
+        assert!(d.prompt_dirty());
+        assert_eq!(d.on_click_outside(), Outcome::Consumed);
+        assert_eq!(d.result, None);
+        let mut off = d.clone().guard_dirty_prompt(false);
+        off.on_click_outside();
+        assert_eq!(off.result, Some(DialogResult::Action(0)));
+    }
+
     #[test]
     fn letter_accelerators_follow_the_dialog_config() {
         let mut focus = crate::core::focus::Focus::default();
         let ring = FocusRing::default();
+        // no accelerators by default: `y` is inert, the mnemonic works
         let mut d = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit");
         d.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
-        assert!(matches!(d.result, Some(DialogResult::Action(_))));
+        assert_eq!(d.result, None);
+        d.on_key(&key(KeyCode::Char('q')), &mut focus, &ring);
+        assert_eq!(d.result, Some(DialogResult::Action(1)));
+        let mut yes = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit")
+            .accelerators(Some(('y', 'n')));
+        assert_eq!(
+            hint_text(&yes.hints(Some(yes.initial_focus))),
+            "←→ Choose · Enter Quit · Esc Cancel · y Quit · n Cancel"
+        );
+        yes.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
+        assert_eq!(yes.result, Some(DialogResult::Action(1)));
         let mut off = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit")
             .accelerators(None)
             .width(40);
