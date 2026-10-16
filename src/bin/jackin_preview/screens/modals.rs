@@ -338,16 +338,34 @@ impl FileBrowser {
         }
     }
 
+    /// A press on `id` with the click count it starts: the path field
+    /// remembers it for the drag.
+    pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        if id == self.path.id {
+            return self.path.on_press_count(pos, count);
+        }
+        Outcome::Ignored
+    }
+
+    /// A drag held since a press on `pressed`: the path field selects.
+    pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if pressed == self.path.id {
+            return self.path.on_drag(pos);
+        }
+        Outcome::Ignored
+    }
+
     pub fn on_click(
         &mut self,
         id: WidgetId,
         pos: Position,
+        clicks: u8,
         focus: &mut Focus,
         w: &World,
     ) -> Outcome {
         if id == self.path.id {
             focus.focus(id);
-            return self.path.on_click(pos);
+            return self.path.on_click_count(pos, clicks.max(1));
         }
         if let Some(i) = self.list.locate(id) {
             focus.focus(self.list.id);

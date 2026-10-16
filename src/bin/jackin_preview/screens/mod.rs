@@ -202,6 +202,10 @@ pub struct Cx<'a> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
     pub requests: Vec<Request>,
+    /// Multi-click count of the click being delivered, or of the click a
+    /// press starts ([`junie_tui::core::pointer::PointerState`]); 1 for
+    /// every other event.
+    pub clicks: u8,
 }
 
 impl Cx<'_> {
