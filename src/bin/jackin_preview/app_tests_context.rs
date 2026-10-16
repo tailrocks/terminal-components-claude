@@ -121,7 +121,11 @@ fn manager_row_menu_opens_at_the_pointer_and_runs_the_row_action() {
     );
     let menu = h.app.screens.manager.menu.menu().unwrap();
     assert!(menu.items[4].danger, "Delete… is a danger item");
-    assert_eq!(menu.items[1].shortcut, Some("e"), "the row's key is shown");
+    assert_eq!(
+        menu.items[1].shortcut.as_deref(),
+        Some("e"),
+        "the row's key is shown"
+    );
     // Edit: the same path as the e key
     choose(&mut h, MENU, 1);
     assert_eq!(h.app.route, Route::Editor, "{}", h.text());
