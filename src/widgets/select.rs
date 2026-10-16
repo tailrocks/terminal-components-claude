@@ -18,6 +18,16 @@ use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for};
 
+/// What ↑/↓ (and ←/→) do on a closed select.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectArrows {
+    /// Step the value without opening the list.
+    Step,
+    /// ↑/↓ open the list (macOS popup buttons); ←/→ are left to the page.
+    /// Arrows never change the value unseen.
+    Open,
+}
+
 #[derive(Debug, Clone)]
 pub struct Select {
     pub id: WidgetId,
@@ -54,6 +64,10 @@ pub struct Select {
     /// How a cut value or option reveals its full text on hover (see
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
+    /// What arrows do while the list is closed. Default
+    /// [`SelectArrows::Step`] (the long-standing behaviour; `Open` is the macOS
+    /// popup-button convention).
+    pub arrows: SelectArrows,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,6 +102,7 @@ impl Select {
             cursor_style: CursorStyle::default(),
             visible_rows: Self::MAX_ROWS as usize,
             reveal: None,
+            arrows: SelectArrows::Step,
         }
     }
     pub fn dismiss(mut self, d: Dismiss) -> Self {
@@ -208,6 +223,13 @@ impl Select {
                 self.open_list();
                 (Outcome::Changed, None)
             }
+            KeyCode::Up | KeyCode::Down if key.plain() && self.arrows == SelectArrows::Open => {
+                self.open_list();
+                (Outcome::Changed, None)
+            }
+            KeyCode::Left | KeyCode::Right if self.arrows == SelectArrows::Open => {
+                (Outcome::Ignored, None)
+            }
             KeyCode::Up | KeyCode::Left if key.plain() => {
                 let n = self.selected.saturating_sub(1);
                 let changed = n != self.selected;
@@ -222,6 +244,12 @@ impl Select {
             }
             _ => (Outcome::Ignored, None),
         }
+    }
+
+    /// What arrows do while the list is closed.
+    pub fn arrows(mut self, arrows: SelectArrows) -> Self {
+        self.arrows = arrows;
+        self
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<SelectEvent>) {
@@ -454,6 +482,27 @@ mod tests {
     use super::*;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
+
+    #[test]
+    fn closed_arrows_step_or_open_per_config() {
+        let k = |code| Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let opts = ["a", "b", "c"];
+        let mut step = Select::new(WidgetId::of("s"), "S", &opts, 0);
+        assert_eq!(
+            step.on_key(&k(KeyCode::Down)).1,
+            Some(SelectEvent::Changed(1))
+        );
+        assert!(!step.open);
+        let mut open = Select::new(WidgetId::of("s"), "S", &opts, 0).arrows(SelectArrows::Open);
+        assert_eq!(open.on_key(&k(KeyCode::Down)).1, None);
+        assert!(open.open, "the arrow opened the list");
+        assert_eq!(open.selected, 0, "the value did not change unseen");
+        let mut side = Select::new(WidgetId::of("s"), "S", &opts, 0).arrows(SelectArrows::Open);
+        assert_eq!(side.on_key(&k(KeyCode::Right)).0, Outcome::Ignored);
+    }
     use crate::ui::ctx::Interaction;
 
     fn draw(sel: &mut Select) -> Buffer {
