@@ -1,7 +1,7 @@
 //! Application shell: layout, event routing, focus/hover bookkeeping,
 //! navigation, modal stack, footer hints.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
@@ -9,13 +9,14 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
 use crate::pages::{Page, PageCtx, PageEvent, Request};
-use junie_tui::clock::WallClock;
+use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release, SecondaryRoute};
-use junie_tui::theme::{BadgeKind, Theme};
+use junie_tui::shell::StatusLine;
+use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
@@ -388,13 +389,14 @@ pub struct App {
     /// Hover, press, flash and click-count state.
     pub pointer: PointerState,
     /// The pointer clock (press flash, hover delay, status expiry).
-    clock: WallClock,
+    pub(crate) clock: WallClock,
     pub dialog: Option<Dialog>,
     pub inspector: bool,
     pub size: (u16, u16),
     pub tick: u64,
     pub last_key: Option<String>,
-    pub status: Option<(String, Instant)>,
+    /// The footer status ([`StatusLine`]: 5 s on the pointer clock).
+    pub status: StatusLine,
     pub quit: bool,
     /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Ctrl+C
     /// (after the page), Ctrl+Q and `q` (never over a field or unsaved
@@ -495,7 +497,7 @@ impl App {
             size: (0, 0),
             tick: frame,
             last_key: None,
-            status: None,
+            status: StatusLine::new(),
             quit: false,
             quit_keys: QuitKeys::DEFAULT,
             leave: LeaveGuard::new(WidgetId::of("showcase.leave")).save(false),
@@ -640,13 +642,16 @@ impl App {
     }
 
     fn set_status(&mut self, s: String) {
-        self.status = Some((s, Instant::now()));
+        self.status.set_at(s, Tone::Secondary, self.clock.now());
     }
 
     // ------------------------------------------------------------------ input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        // an error status has been seen once the user acts again
+        let seen = self.status.on_input(&input);
         let out = self.handle_input(input);
+        let out = if seen { out.or(Outcome::Changed) } else { out };
         out.or(self.forward_blur())
     }
 
@@ -721,10 +726,7 @@ impl App {
         if self.pointer.expire_flash(self.now_ms()) {
             out = Outcome::Changed;
         }
-        if let Some((_, at)) = &self.status
-            && at.elapsed() > Duration::from_secs(4)
-        {
-            self.status = None;
+        if self.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
         if self.dialog.is_none() {
@@ -1708,14 +1710,7 @@ impl App {
                 .collect()
         });
         let badge = (page.editing() && self.dialog.is_none()).then_some(("EDIT", BadgeKind::Edit));
-        junie_tui::widgets::keyhint::render(
-            area,
-            buf,
-            &t,
-            &hints,
-            badge,
-            self.status.as_ref().map(|(message, _)| message.as_str()),
-        );
+        junie_tui::widgets::keyhint::render(area, buf, &t, &hints, badge, self.status.text());
         let _ = ctx;
     }
 }

@@ -815,6 +815,33 @@ fn reduced_motion_runs_the_work_but_keeps_the_decorative_phase_still() {
     }
 }
 
+/// SV11: a status stays 5 s on the pointer clock (the showcase used 4 s,
+/// the other apps 5 s), then the next tick clears it.
+#[test]
+fn a_status_stays_five_seconds_on_the_pointer_clock() {
+    use junie_tui::clock::{Clock, WallClock};
+    use junie_tui::theme::Tone;
+    use std::time::{Duration, Instant};
+    let mut h = Harness::new(120, 40, PageId::Overview);
+    let at = |ago_ms: u64| WallClock::with_origin(Instant::now() - Duration::from_millis(ago_ms));
+    // the clock reads 10 s; the status is set then
+    h.app.clock = at(10_000);
+    let now = h.app.clock.now();
+    h.app.status.set_at("Saved", Tone::Secondary, now);
+    // 4.5 s later it still shows
+    h.app.clock = at(14_500);
+    h.app.handle(Input::Tick);
+    h.draw();
+    assert_eq!(h.app.status.text(), Some("Saved"));
+    assert!(h.text().contains("Saved"));
+    // 5 s later it is gone
+    h.app.clock = at(15_000);
+    h.app.handle(Input::Tick);
+    h.draw();
+    assert!(h.app.status.is_none());
+    assert!(!h.text().contains("Saved"));
+}
+
 #[test]
 fn task_runner_animates_and_can_be_cancelled() {
     let mut h = Harness::new(120, 40, PageId::TaskRunner);
