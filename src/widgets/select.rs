@@ -77,6 +77,9 @@ pub struct Select {
     /// plain letters stay with the page's own shortcuts.
     pub type_ahead: bool,
     typeahead: crate::core::typeahead::TypeAhead,
+    /// An open list closes (without changing the value) when the field
+    /// loses focus ([`Self::on_blur`]). Default `true`.
+    pub close_on_blur: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,6 +118,7 @@ impl Select {
             mixed: None,
             type_ahead: false,
             typeahead: Default::default(),
+            close_on_blur: true,
         }
     }
     pub fn dismiss(mut self, d: Dismiss) -> Self {
@@ -342,6 +346,23 @@ impl Select {
         }
     }
 
+    /// See [`Self::close_on_blur`].
+    pub fn close_on_blur(mut self, on: bool) -> Self {
+        self.close_on_blur = on;
+        self
+    }
+
+    /// Focus left the field (see [`crate::core::focus::Focus::take_changes`]):
+    /// an open list closes per [`Self::close_on_blur`], so the next key
+    /// never sees a stale `open`.
+    pub fn on_blur(&mut self) -> Outcome {
+        if self.close_on_blur {
+            self.close()
+        } else {
+            Outcome::Ignored
+        }
+    }
+
     /// A click outside the open list: closes it when the policy allows,
     /// and is consumed either way while the list is open.
     pub fn on_click_outside(&mut self) -> Outcome {
@@ -542,11 +563,35 @@ impl Select {
     }
 }
 
+impl crate::core::focus::BlurTarget for Select {
+    fn blur_id(&self) -> WidgetId {
+        self.id
+    }
+    fn blur(&mut self) -> Outcome {
+        self.on_blur()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
+
+    #[test]
+    fn blur_closes_an_open_list_unless_configured_not_to() {
+        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b"], 0);
+        assert_eq!(s.on_blur(), Outcome::Ignored, "closed: nothing to do");
+        s.open_list();
+        s.cursor = 1;
+        assert_eq!(s.on_blur(), Outcome::Changed);
+        assert!(!s.open);
+        assert_eq!(s.selected, 0, "blur never changes the value");
+        let mut keep = Select::new(WidgetId::of("k"), "K", &["a", "b"], 0).close_on_blur(false);
+        keep.open_list();
+        assert_eq!(keep.on_blur(), Outcome::Ignored);
+        assert!(keep.open);
+    }
 
     #[test]
     fn typing_picks_the_matching_option() {

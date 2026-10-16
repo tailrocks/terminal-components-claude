@@ -15,6 +15,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
@@ -352,6 +353,9 @@ pub struct DataGrid {
     pub hscroll: ScrollState,
     pub edit: Option<EditState>,
     pub editable: bool,
+    /// What a cell edit in progress does when the grid loses focus
+    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+    pub blur_action: BlurAction,
     pub read_only_reason: Option<String>,
     pub loading: bool,
     pub cell_errors: HashMap<(usize, usize), String>,
@@ -425,6 +429,7 @@ impl DataGrid {
             hscroll: ScrollState::default(),
             edit: None,
             editable: true,
+            blur_action: BlurAction::Commit,
             read_only_reason: None,
             loading: false,
             cell_errors: HashMap::new(),
@@ -718,6 +723,24 @@ impl DataGrid {
 
     pub fn cancel_edit(&mut self) -> bool {
         self.edit.take().is_some()
+    }
+
+    /// Focus left the grid (see [`crate::core::focus::Focus::take_changes`]).
+    /// A cell edit in progress ends per [`Self::blur_action`]: a commit
+    /// reports `CellChanged` like Enter (an invalid value stays open with
+    /// its error), a cancel drops the edit.
+    pub fn on_blur(&mut self) -> (Outcome, Option<GridEvent>) {
+        if self.edit.is_none() {
+            return (Outcome::Ignored, None);
+        }
+        match self.blur_action {
+            BlurAction::Commit => (Outcome::Changed, self.commit_edit()),
+            BlurAction::Cancel => {
+                self.cancel_edit();
+                (Outcome::Changed, None)
+            }
+            BlurAction::Keep => (Outcome::Ignored, None),
+        }
     }
 
     /// Set a pending value; reverting to the stored value clears the change.
@@ -2336,6 +2359,15 @@ pub(crate) fn header_style(
     }
 }
 
+impl crate::core::focus::BlurTarget for DataGrid {
+    fn blur_id(&self) -> WidgetId {
+        self.id
+    }
+    fn blur(&mut self) -> Outcome {
+        self.on_blur().0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2388,6 +2420,43 @@ mod tests {
         });
         g.scroll.set_viewport(5);
         g
+    }
+
+    #[test]
+    fn blur_commits_cancels_or_keeps_the_cell_edit() {
+        let edited = |action| {
+            let mut g = grid();
+            g.blur_action = action;
+            assert_eq!(g.on_blur(), (Outcome::Ignored, None));
+            g.set_cursor(0, 1, false);
+            g.begin_edit();
+            g.edit.as_mut().unwrap().buffer.set_text("renamed");
+            g
+        };
+        let mut commit = edited(BlurAction::Commit);
+        assert_eq!(
+            commit.on_blur(),
+            (
+                Outcome::Changed,
+                Some(GridEvent::CellChanged { row: 0, col: 1 })
+            )
+        );
+        assert!(!commit.is_editing());
+        assert!(!commit.pending.is_empty());
+        let mut cancel = edited(BlurAction::Cancel);
+        assert_eq!(cancel.on_blur(), (Outcome::Changed, None));
+        assert!(!cancel.is_editing());
+        assert!(cancel.pending.is_empty());
+        let mut keep = edited(BlurAction::Keep);
+        assert_eq!(keep.on_blur(), (Outcome::Ignored, None));
+        assert!(keep.is_editing());
+        // an invalid value stays open with its error
+        let mut bad = grid();
+        bad.set_cursor(0, 2, false);
+        bad.begin_edit();
+        bad.edit.as_mut().unwrap().buffer.set_text("not a number");
+        assert_eq!(bad.on_blur(), (Outcome::Changed, None));
+        assert!(bad.edit_error().is_some());
     }
 
     #[test]

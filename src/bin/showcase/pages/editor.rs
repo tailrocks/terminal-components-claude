@@ -544,7 +544,8 @@ impl Page for EditorPage {
             PageEvent::DialogClosed { .. }
             | PageEvent::Secondary { .. }
             | PageEvent::WheelH { .. }
-            | PageEvent::Press { .. } => Outcome::Ignored,
+            | PageEvent::Press { .. }
+            | PageEvent::Blur(_) => Outcome::Ignored,
         }
     }
 
