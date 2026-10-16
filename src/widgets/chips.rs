@@ -4,12 +4,12 @@
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier};
+use ratatui::style::{Color, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::theme::ButtonKind;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::theme::{ButtonKind, Kind, Theme};
+use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::text::{truncate, width};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -157,16 +157,14 @@ impl ChipBar {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
+        let plane = t.plane_of(bg);
         let mut x = area.x;
         let y = area.y;
         if let Some(lead) = &self.lead {
             let lid = self.lead_id();
-            let hovered = ctx.interaction.hovered(lid);
-            let st = if hovered {
-                t.primary().bg(t.lift(bg))
-            } else {
-                t.muted().bg(bg)
-            };
+            let mut s = ctx.state(lid);
+            s.focused = false;
+            let st = t.interactive(Kind::Title, s, plane).style;
             let text = format!(" {lead} ");
             buf.set_string(x, y, &text, st);
             ctx.clickable(lid, Rect::new(x, y, width(&text) as u16, 1));
@@ -174,22 +172,14 @@ impl ChipBar {
         }
         for (i, chip) in self.chips.iter().enumerate() {
             let cid = self.chip_id(i);
-            let mut s = ctx.state(cid);
+            // the × is its own control: hovering it does not hover the chip
+            let mut s = ctx.child_state(self.id, cid, i == self.cursor);
             s.focused = focused && i == self.cursor;
-            if ctx.interaction.hovered(self.close_id(i)) {
-                s.hovered = true;
-            }
-            let kind = if chip.enabled {
-                ButtonKind::Toggle
-            } else {
-                ButtonKind::Secondary
-            };
-            let mut st = t.button(kind, s, bg);
-            if !chip.enabled {
-                st = st.fg(t.text_faint);
-            }
+            s.selected = chip.enabled;
+            let it = t.interactive(Kind::Chip, s, plane);
+            let mut st = it.style;
             if chip.error {
-                st = st.fg(t.error);
+                st = st.fg(t.legible(t.error, st.bg.unwrap_or(bg)));
             }
             let label_w = width(&chip.label) as u16;
             let w = 1 + label_w + 1 + if chip.removable { 2 } else { 0 } + 1;
@@ -199,21 +189,11 @@ impl ChipBar {
             }
             let r = Rect::new(x, y, w, 1);
             fill(buf, r, st);
-            buf.set_string(
-                x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            buf.set_string(x, y, it.gutter, it.gutter_style);
             buf.set_string(x + 1, y, truncate(&chip.label, label_w as usize), st);
             if chip.removable {
                 let xid = self.close_id(i);
-                let xh = ctx.interaction.hovered(xid);
-                let xs = if xh {
-                    st.fg(t.text_primary).add_modifier(Modifier::BOLD)
-                } else {
-                    st.fg(t.text_muted)
-                };
+                let xs = close_style(t, ctx.state(xid), st);
                 buf.set_string(x + 2 + label_w, y, "×", xs);
                 ctx.clickable(cid, r);
                 ctx.clickable(xid, Rect::new(x + 2 + label_w, y, 1, 1));
@@ -224,25 +204,119 @@ impl ChipBar {
         }
         if let Some(add) = &self.add_label {
             let aid = self.add_id();
-            let mut s = ctx.state(aid);
+            let mut s = ctx.child_state(self.id, aid, self.cursor == self.chips.len());
             s.focused = focused && self.cursor == self.chips.len();
-            let st = t.button(ButtonKind::Subtle, s, bg);
+            let it = t.interactive(Kind::Button(ButtonKind::Subtle), s, plane);
+            let st = it.style;
             let w = width(add) as u16 + 2;
             if x + w <= area.right() {
                 let r = Rect::new(x, y, w, 1);
                 fill(buf, r, st);
-                buf.set_string(
-                    x,
-                    y,
-                    t.gutter_symbol(s),
-                    t.gutter(s, st.bg.unwrap_or(bg), false),
-                );
+                buf.set_string(x, y, it.gutter, it.gutter_style);
                 buf.set_string(x + 1, y, add, st);
                 ctx.clickable(aid, r);
             }
         }
         if !ctx.inert {
             ctx.ring.register(self.id);
+        }
+    }
+}
+
+/// A close glyph (`×`) inside a control styled `host`: at rest it takes
+/// the host's plane, hovered or pressed it walks the close ladder of the
+/// plane it sits on, so its hover never reads as the host's hover.
+pub fn close_style(t: &Theme, s: VisualState, host: Style) -> Style {
+    let bg = host.bg.unwrap_or(t.canvas);
+    let s = VisualState {
+        focused: false,
+        ..s
+    };
+    if s.hovered || s.pressed {
+        t.interactive(Kind::Close, s, t.plane_of(bg)).style
+    } else {
+        host.fg(t.legible(t.text_secondary, bg))
+            .remove_modifier(ratatui::style::Modifier::BOLD)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::{ColorLevel, Plane};
+    use crate::ui::ctx::Interaction;
+
+    fn draw(bar: &mut ChipBar, t: &Theme, interaction: Interaction) -> Buffer {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(t, interaction, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
+        bar.render(Rect::new(0, 0, 40, 1), &mut buf, &mut ctx, t.canvas);
+        buf
+    }
+
+    fn bar() -> ChipBar {
+        let mut bar = ChipBar::new(WidgetId::of("chips"));
+        let mut off = Chip::new("beta");
+        off.enabled = false;
+        bar.chips = vec![Chip::new("alpha"), off];
+        bar
+    }
+
+    #[test]
+    fn hovering_the_close_glyph_does_not_hover_the_chip_and_it_presses() {
+        let t = Theme::junie();
+        let mut b = bar();
+        let x_id = b.close_id(0);
+        // " alpha × ": the × sits after the label and a space
+        let rest = draw(&mut b, &t, Interaction::default());
+        let x = (0..40).find(|&x| rest[(x, 0)].symbol() == "×").unwrap();
+        let hover = draw(
+            &mut b,
+            &t,
+            Interaction {
+                hover: Some(x_id),
+                ..Default::default()
+            },
+        );
+        assert_eq!(hover[(2, 0)].bg, rest[(2, 0)].bg, "chip body stays at rest");
+        assert_ne!(hover[(x, 0)].bg, rest[(x, 0)].bg, "× shows its own hover");
+        let pressed = draw(
+            &mut b,
+            &t,
+            Interaction {
+                hover: Some(x_id),
+                pressed: Some(x_id),
+                ..Default::default()
+            },
+        );
+        assert_ne!(pressed[(x, 0)].bg, hover[(x, 0)].bg, "× shows a press");
+        assert_eq!(
+            pressed[(x, 0)].bg,
+            t.ladder(Plane::Raised).pressed,
+            "× presses on its chip's plane"
+        );
+    }
+
+    #[test]
+    fn an_off_chip_label_is_readable_and_distinct_from_an_on_chip_at_every_level() {
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let mut b = bar();
+            let buf = draw(&mut b, &t, Interaction::default());
+            let on = &buf[(1, 0)];
+            let x = (0..40).find(|&x| buf[(x, 0)].symbol() == "b").unwrap();
+            let off = &buf[(x, 0)];
+            assert_ne!(off.fg, off.bg, "{level:?}: off label on its plane");
+            assert_ne!(
+                (on.fg, on.modifier),
+                (off.fg, off.modifier),
+                "{level:?}: on and off chips look alike"
+            );
+            if level == ColorLevel::Mono {
+                assert_ne!(on.modifier, off.modifier, "mono: on and off differ");
+            }
         }
     }
 }
