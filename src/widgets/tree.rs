@@ -1168,6 +1168,40 @@ impl Navigable for TreeView {
     }
 }
 
+/// The tree's pointer gestures: a wheel or a bar press scrolls it; a
+/// completed click on a row or its disclosure is
+/// [`TreeView::on_click_with`] with the modifiers held (Alt opens or
+/// closes the whole subtree).
+impl crate::core::pointer::MouseTarget for TreeView {
+    type Action = TreeAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<TreeAction> {
+        use crate::core::intent::Phase;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r.lift();
+        }
+        if !ev.is(Phase::Click) {
+            return crate::core::response::Response::ignored();
+        }
+        let hit = match (ev.index_of(Part::ROW), ev.index_of(Part::ICON)) {
+            (Some(row), _) => Some((row, false)),
+            (None, Some(row)) => Some((row, true)),
+            _ => None,
+        };
+        match hit {
+            Some((row, toggle)) => self.on_click_with(row, toggle, ev.mods()).into(),
+            None => crate::core::response::Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod identity_tests {
     use super::*;
