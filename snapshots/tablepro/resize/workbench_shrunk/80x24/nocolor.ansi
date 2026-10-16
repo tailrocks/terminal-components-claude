@@ -1,8 +1,8 @@
- ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m        ? help [0m
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe     ? help  [0m
                                                                                 [0m
- [0m[1m [0m≡[0m[1m Query 1 ×  [0m                                                             +   [0m
+ [0m[1m [0m≡[0m[1m Query 1 [0m×[0m[1m  [0m                                                             +   [0m
  ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
- ╭─[0m[1m Explorer [0m──────────────────────────────────────────────────────── public ─╮ [0m
+ ╭─[0m[1m Explorer [0m──────────────────────────────────────────────────── public   ‹ ─╮ [0m
  │                                                                            │ [0m
  │   Filter objects                                                           │ [0m
  │  ▾ D acme_prod                                                           ┃ │ [0m
@@ -18,7 +18,8 @@
  │      ▸ Views                                                           2 ┃ │ [0m
  │      ▸ Functions                                                       1 ┃ │ [0m
  │      ▸ Sequences                                                       1 ┃ │ [0m
- │ [0m[2m   ▸ S analytics                                                         [0m│ │ [0m
+ │ [0m[2m   ▸ S analytics                                                         [0m┆ │ [0m
  ╰────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1m→[0m Expand  [0m[1m/[0m Filter  [0m[1mCtrl+O[0m Quick open  [0m[1mTab[0m Next          [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m→[0m Expand  [0m[1m/[0m Filter  [0m[1mCtrl+O[0m Quick open  [0m[1mShift+F10[0m Menu  …  [0m
+[?25l

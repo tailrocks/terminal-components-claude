@@ -1,20 +1,21 @@
- ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m [0m[1m safe [0m               • 2 pending [0m
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  ✓ safe            • 2 pending  [0m
                                                                         [0m
-  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                       +   [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders [0m×[0m[1m  [0m                                       +   [0m
  ───────────────━━━━━━━━━━━━━────────────────────────────────────────── [0m
- ╭─[0m[1m public › orders [0m──────────────────────────────────────── 14 cols ─╮ [0m
- │  [0m[1m Data  [0m  Structure                                                │ [0m
- │  ━━━━━━━────────────────────────────────────────────────────────── │ [0m
- │                                                                    │ [0m
- │   ‹4    status       total_amount  currency    shipping_addr… 7›   │ [0m
- │    •  1 paid                25.90  USD         {"line1": "10…    ┃ │ [0m
- │  [0m[1m▎ •[0m  2[0m[1m shipped           1617.64  USD         {"line1": "87…    [0m│ │ [0m
- │       3 pending           2236.65  EUR         {"line1": "78…    │ │ [0m
- │       4 pending           2376.57  EUR         {"line1": "15…    │ │ [0m
- │  [0m[2m     5 refunded          2067.52  USD         {"line1": "17…    [0m│ │ [0m
- │                                                                    │ [0m
- │   • 2 pending · 2 updates           Preview SQL   Discard   [0m[1mSave [0m  │ [0m
- │   rows 1–5 of 500 loaded · 1,203,338 total · cols 5–7 of 14        │ [0m
- ╰────────────────────────────────────────────────────────────────────╯ [0m
+ › ╭─[0m[1m public › orders [0m────────────────────────────────────── 14 cols ─╮ [0m
+   │  [0m[1m Data  [0m  Structure                                              │ [0m
+ E │  ━━━━━━━──────────────────────────────────────────────────────── │ [0m
+ x │                                                                  │ [0m
+ p │   ‹3    organization_id                       [0m[1mstatus   [0m     9›   │ [0m
+ l │    •  1 2bd03496-f7c6-428c-95cc-12ef815fbb5→  paid             ┃ │ [0m
+ o │  [0m[1m▎ •[0m  2[0m[1m a1cc5725-426b-4be8-b1d5-b4c2d5a36aa→  [0m[1;7mshipped  [0m[1m        [0m┆ │ [0m
+ r │       3 45e4f51f-21b8-4d1a-bf0a-f43208da892→  pending          ┆ │ [0m
+ e │  [0m[2m     4 216371dc-bcdb-491e-8162-5d0cc6d4df3→  pending          [0m┆ │ [0m
+ r │         ┄┄┄┄┄┄┄┄┄┄┄┄━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ [0m
+   │                                                                  │ [0m
+   │   • 2 pending · 2 updates         Preview SQL   Discard   [0m[1;7mSave [0m  │ [0m
+   │   rows 1–4 of 500 loaded · 1,203,338 total · cols 4–5 of 14      │ [0m
+   ╰──────────────────────────────────────────────────────────────────╯ [0m
                                                                         [0m
- [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  …                       Connected to Production [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  …                     ✓ Connected to Production [0m
+[?25l

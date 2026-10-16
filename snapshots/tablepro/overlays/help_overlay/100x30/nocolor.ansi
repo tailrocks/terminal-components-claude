@@ -1,30 +1,31 @@
- ▪  TablePro  Production  ◆ production  acme_prod › public  safe          no color · 100×30  ? help [0m
-                                                                                                    [0m
-  ≡ Query 1 ×                                                                                   +   [0m
- ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
- ╭─ Query 1 ───────────────────────────────────────────────────────────────────────────────────  ─╮ [0m
- │      1 T╭────────────────────────────────────────────────────────────────────────────╮         │ [0m
- │         │                                                                            │         │ [0m
- │         │  [0m[1mKeyboard[0m                                                                  │         │ [0m
- │         │                                                                            │         │ [0m
- │         │  Tab / Shift+Tab   move focus · 0 explorer · Esc back                      │         │ [0m
- │         │  Ctrl+O            Open Quickly (tables, schemas, tabs, queries)           │         │ [0m
- │         │  Ctrl+T / Ctrl+W   new / close tab · [ ] switch · Ctrl+G tab list          │         │ [0m
- │         │  Ctrl+R / F5       run statement at cursor · Alt+R run all                 │         │ [0m
- │         │  Ctrl+X / Alt+X    EXPLAIN / EXPLAIN ANALYZE                               │         │ [0m
- │         │  Esc / Ctrl+C      cancel a running query                                  │         │ [0m
- │         │  Ctrl+D            Data / Structure · Ctrl+F filter (grid) or find         │         │ [0m
- │         │  (editor)                                                                  │         │ [0m
- │         │  Alt+D             duplicate the current grid row                          │         │ [0m
- │         │  Ctrl+S            save pending row changes · p preview SQL                │         │ [0m
- │         │  Ctrl+Y            query history · Ctrl+L Safe Mode · Ctrl+B explorer · z  │         │ [0m
- │         │  zoom                                                                      │         │ [0m
- │         │  q                 quit                                                    │         │ [0m
- │         │                                                                            │         │ [0m
- │         │                                                                   ▎[0m[1mClose [0m  │         │ [0m
- │         │                                                                            │         │ [0m
- │         ╰────────────────────────────────────────────────────────────────────────────╯         │ [0m
- │                                                                                                │ [0m
- ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
-                                                                                                    [0m
- [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel  [0m[1my / n[0m Quick answer                  Connected to Production [0m
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe      no color · 100×30  ? help  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  ≡ Query 1 ×                                                                                   +   [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m › ╭─ Query╭──────────────────────────────────────────────────────────────────────── × ─╮─────────╮ [0m
+[0m[2m   │  [0m [0m[2mRun │[0m [0m[2m         [0m [0m[2m                                                                 │         │ [0m
+[0m[2m E │  [0m [0m[2m   1│  [0m[1;2mKeyboard[0m[2m                                                                  │         │ [0m
+[0m[2m x │       │                                                                            │         │ [0m
+[0m[2m p │       │  Tab / Shift+Tab   move focus · 0 explorer · Esc back                      │         │ [0m
+[0m[2m l │       │  Ctrl+O            Open Quickly (tables, schemas, tabs, queries)           │         │ [0m
+[0m[2m o │       │  Ctrl+T / Ctrl+W   new / close tab · [ ] switch · Ctrl+G tab list          │         │ [0m
+[0m[2m r │       │  Ctrl+R / F5       run statement at cursor · Alt+R run all                 │         │ [0m
+[0m[2m e │  ─────│  Ctrl+X / Alt+X    EXPLAIN / EXPLAIN ANALYZE                               │──────── │ [0m
+[0m[2m r │       │  Esc / Ctrl+C      cancel a running query                                  │         │ [0m
+[0m[2m   │       │  Ctrl+D            Data / Structure · Ctrl+F filter (grid) or find         │         │ [0m
+[0m[2m   │       │                    (editor)                                                │         │ [0m
+[0m[2m   │       │  Alt+D             duplicate the current grid row                          │         │ [0m
+[0m[2m   │       │  Ctrl+S            save pending row changes · p preview SQL                │         │ [0m
+[0m[2m   │       │  Ctrl+Y            query history · Ctrl+L Safe Mode · Ctrl+B explorer · z  │         │ [0m
+[0m[2m   │       │                    zoom                                                    │         │ [0m
+[0m[2m   │       │  Shift+F10         menu of the focused row, cell or tab · right-click at   │         │ [0m
+[0m[2m   │       │                    the pointer                                             │         │ [0m
+[0m[2m   │       │  q / Ctrl+Q        quit                                                    │         │ [0m
+[0m[2m   │       │                                                                            │         │ [0m
+[0m[2m   │       │                                                                   ▎[0m[1;2;4mC[0m[1;2mlose [0m[2m  │         │ [0m
+[0m[2m   │       │                                                                            │         │ [0m
+[0m[2m   │       ╰────────────────────────────────────────────────────────────────────────────╯         │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                    [0m
+ [0m[1mEnter[0m Close  [0m[1mEsc[0m Close                                                   ✓ Connected to Production [0m
+[?25l
