@@ -195,6 +195,34 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// A context for drawing a static sample inside a frame (a
+    /// [`crate::ui::specimen::StateGrid`] cell): inert, so it registers no
+    /// hit, focus stop or cursor; overlays queued on it are dropped with
+    /// it; and, unlike [`Self::new`], it leaves the frame's reveal and
+    /// tooltip bookkeeping alone.
+    pub(crate) fn detached(
+        theme: &'a Theme,
+        interaction: Interaction,
+        hits: &'a mut HitRegistry,
+        ring: &'a mut FocusRing,
+    ) -> Self {
+        Self {
+            theme,
+            interaction,
+            hits,
+            ring,
+            cursor: None,
+            inert: true,
+            overlays: Vec::new(),
+            reveal: crate::ui::reveal::Reveal::OFF,
+            tooltips: crate::ui::tooltip::Tooltips::OFF,
+            hscroll: crate::core::scroll::HScroll::default(),
+            track_click: crate::core::scroll::TrackClick::Page,
+            reveal_hint: None,
+            reveal_slot: crate::ui::reveal::Slot::default(),
+        }
+    }
+
     /// Register a focusable, clickable control occupying `area`.
     pub fn control(&mut self, id: WidgetId, area: Rect, disabled: bool) {
         if self.inert {

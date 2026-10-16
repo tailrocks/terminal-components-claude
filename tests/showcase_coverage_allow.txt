@@ -435,6 +435,29 @@ ui::reveal::RevealState | Popups & tooltips page | SC19
 ui::reveal::RevealLine | Popups & tooltips page | SC19
 
 # ui::text
+ui::specimen::SpecimenState | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Rest | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Hover | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Pressed | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Focused | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::FocusedHover | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Selected | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Disabled | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Busy | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Error | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Editing | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Empty | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Loading | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Overflow | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::SpecimenState::Narrow | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid::row | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid::rows | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid::column | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid::label_width | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid::column_width | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid::narrow_width | States grid on the Buttons and Inputs pages | SC2
+ui::specimen::StateGrid::focus_mark | States grid on the Buttons and Inputs pages | SC2
 ui::text::WrapOpts | Text utilities page | SC26
 
 # ui::tooltip
