@@ -22,6 +22,9 @@ pub struct HitRegion {
     /// A region that only takes hover (a cut title revealing its full
     /// text): presses, clicks and the wheel go to what is beneath it.
     pub hover_only: bool,
+    /// A light-dismiss backdrop ([`HitRegistry::register_backdrop`]): a
+    /// click on it means "outside the popup that owns it".
+    pub backdrop: bool,
 }
 
 /// Which way a scrollbar moves its content.
@@ -70,6 +73,7 @@ impl HitRegistry {
             scroll_only: false,
             pass_through: false,
             hover_only: false,
+            backdrop: false,
         });
     }
 
@@ -100,6 +104,7 @@ impl HitRegistry {
             scroll_only: false,
             pass_through,
             hover_only: false,
+            backdrop: true,
         });
     }
 
@@ -113,6 +118,7 @@ impl HitRegistry {
             scroll_only: true,
             pass_through: false,
             hover_only: false,
+            backdrop: false,
         });
     }
 
@@ -128,6 +134,7 @@ impl HitRegistry {
             scroll_only: false,
             pass_through: false,
             hover_only: true,
+            backdrop: false,
         });
     }
 
@@ -167,6 +174,43 @@ impl HitRegistry {
             .iter()
             .rev()
             .find(|r| r.clickable() && r.area.contains(pos))
+            .map(|r| r.id)
+    }
+
+    /// When the topmost clickable region under `pos` is a light-dismiss
+    /// backdrop: its id, and the clickable region the same position lands
+    /// on in the first non-empty layer beneath it (whatever its
+    /// `pass_through`). A secondary click there closes the popup and opens
+    /// the context menu of what is beneath (macOS), see
+    /// [`crate::core::pointer::PointerState::route_secondary`]. Empty
+    /// layers (a modal layer opened only to hold the popup) are skipped; a
+    /// non-empty layer with nothing under `pos` (a dialog the click missed)
+    /// stops the search, since what is under a dialog is unreachable.
+    pub fn backdrop_at(&self, pos: Position) -> Option<(WidgetId, Option<WidgetId>)> {
+        let top = self
+            .reachable()
+            .iter()
+            .rev()
+            .find(|r| r.clickable() && r.area.contains(pos))?;
+        if !top.backdrop {
+            return None;
+        }
+        let mut end = *self.barriers.last()?;
+        for &start in self.barriers.iter().rev().skip(1) {
+            let layer = &self.regions[start..end];
+            if !layer.is_empty() {
+                return Some((top.id, Self::top_clickable(layer, pos)));
+            }
+            end = start;
+        }
+        Some((top.id, Self::top_clickable(&self.regions[..end], pos)))
+    }
+
+    fn top_clickable(layer: &[HitRegion], pos: Position) -> Option<WidgetId> {
+        layer
+            .iter()
+            .rev()
+            .find(|r| r.clickable() && !r.backdrop && r.area.contains(pos))
             .map(|r| r.id)
     }
 
@@ -249,6 +293,41 @@ mod tests {
         assert_eq!(h.hit(on_title), Some(card), "the click is the card's");
         assert_eq!(h.hit_scroll(on_title), Some(card));
         assert_eq!(h.hover_at(Position::new(3, 2)), Some(card));
+    }
+
+    #[test]
+    fn a_backdrop_reports_what_is_beneath_it_across_empty_layers() {
+        let mut h = HitRegistry::default();
+        let row = WidgetId::of("row");
+        let pop = WidgetId::of("pop");
+        let back = WidgetId::of("pop.backdrop");
+        h.register(row, Rect::new(0, 5, 20, 1));
+        // a modal layer opened only to hold the popup
+        h.push_barrier();
+        h.push_barrier();
+        h.register_backdrop(back, Rect::new(0, 0, 40, 20), false);
+        h.register(pop, Rect::new(10, 0, 10, 4));
+        assert_eq!(h.backdrop_at(Position::new(2, 5)), Some((back, Some(row))));
+        assert_eq!(h.backdrop_at(Position::new(2, 9)), Some((back, None)));
+        assert_eq!(h.backdrop_at(Position::new(12, 1)), None, "on the popup");
+    }
+
+    #[test]
+    fn a_backdrop_over_a_dialog_never_reaches_the_page_under_the_dialog() {
+        let mut h = HitRegistry::default();
+        let row = WidgetId::of("row");
+        let dialog = WidgetId::of("dialog");
+        let back = WidgetId::of("select.backdrop");
+        h.register(row, Rect::new(0, 5, 20, 1));
+        h.push_barrier();
+        h.register(dialog, Rect::new(10, 2, 20, 10));
+        h.push_barrier();
+        h.register_backdrop(back, Rect::new(0, 0, 40, 20), false);
+        assert_eq!(h.backdrop_at(Position::new(2, 5)), Some((back, None)));
+        assert_eq!(
+            h.backdrop_at(Position::new(12, 5)),
+            Some((back, Some(dialog)))
+        );
     }
 
     #[test]
