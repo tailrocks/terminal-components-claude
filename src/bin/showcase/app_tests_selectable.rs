@@ -8,7 +8,8 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Position;
 
 use crate::app::{App, PageId};
-use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
+use crate::pages::selectable::SelectablePage;
+use junie_tui::core::event::{Input, InputConfig, Key, Mouse, MouseKind, Platform};
 use junie_tui::theme::Theme;
 
 struct Harness {
@@ -17,8 +18,16 @@ struct Harness {
 }
 
 impl Harness {
+    /// The page with the Ctrl+click toggle (`Platform::Other`), so these
+    /// tests read the same on every host.
     fn new(w: u16, h: u16) -> Self {
+        Self::on(w, h, Platform::Other)
+    }
+
+    /// The page following `platform`'s conventions.
+    fn on(w: u16, h: u16, platform: Platform) -> Self {
         let mut app = App::new(Theme::junie());
+        app.pages[PageId::Selectable.index()] = Box::new(SelectablePage::for_platform(platform));
         app.goto(PageId::Selectable);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
@@ -48,6 +57,35 @@ impl Harness {
             ));
             self.draw();
         }
+    }
+
+    /// A raw terminal click normalised under `config`, as the runtime
+    /// does: on macOS Ctrl+click arrives as a secondary click.
+    fn raw_click(&mut self, needle: &str, mods: KeyModifiers, config: InputConfig) {
+        use ratatui::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
+        let (column, row) = self
+            .find(needle)
+            .unwrap_or_else(|| panic!("{needle:?} not on screen:\n{}", self.text()));
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            let ev = Event::Mouse(MouseEvent {
+                kind,
+                column,
+                row,
+                modifiers: mods,
+            });
+            if let Some(input) = Input::from_crossterm_with(ev, config) {
+                self.app.handle(input);
+                self.draw();
+            }
+        }
+    }
+
+    /// The footer row.
+    fn footer(&self) -> String {
+        self.row(self.term.backend().buffer().area.height - 1)
     }
 
     fn click(&mut self, x: u16, y: u16) {
@@ -181,6 +219,96 @@ fn mouse_selects_with_desktop_modifiers_and_checkboxes() {
     assert!(h.has("11 selected"));
     h.click(hx + 1, hy);
     assert!(h.has("No member selected"));
+}
+
+#[test]
+fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
+    let mac = InputConfig::for_platform(Platform::MacOs);
+    let mut h = Harness::on(120, 40, Platform::MacOs);
+    h.raw_click("Cleo Barnes", KeyModifiers::NONE, mac);
+    assert!(h.has("1 selected"), "{}", h.text());
+    // the footer names the macOS toggle click
+    assert!(
+        h.footer().contains("Option+click Toggle row"),
+        "{}",
+        h.footer()
+    );
+    assert!(!h.footer().contains("Ctrl+click"), "{}", h.footer());
+    // Option+click adds a row, and removes it again
+    h.raw_click("Fay Okafor", KeyModifiers::ALT, mac);
+    assert!(h.has("2 selected"), "{}", h.text());
+    assert!(h.table_row("Cleo Barnes").contains("[✓]"));
+    assert!(h.table_row("Fay Okafor").contains("[✓]"));
+    h.raw_click("Fay Okafor", KeyModifiers::ALT, mac);
+    assert!(h.has("1 selected"), "{}", h.text());
+    assert!(!h.table_row("Fay Okafor").contains("[✓]"));
+    h.raw_click("Bo Lindqvist", KeyModifiers::ALT, mac);
+    assert!(h.has("2 selected"));
+    // Ctrl+click is the secondary click: the row menu opens and the
+    // selection stays as it was
+    h.raw_click("Hana Sato", KeyModifiers::CONTROL, mac);
+    assert!(h.has("Delete…") && h.has("Edit"), "{}", h.text());
+    assert!(h.footer().contains("Esc Close"), "{}", h.footer());
+    assert!(h.has("2 selected"), "{}", h.text());
+    assert!(!h.table_row("Hana Sato").contains("[✓]"));
+    h.key(KeyCode::Esc);
+    assert!(h.has("2 selected"));
+}
+
+#[test]
+fn other_platforms_toggle_with_ctrl_click_and_name_it() {
+    let other = InputConfig::for_platform(Platform::Other);
+    let mut h = Harness::on(120, 40, Platform::Other);
+    h.raw_click("Cleo Barnes", KeyModifiers::NONE, other);
+    assert!(
+        h.footer().contains("Ctrl+click Toggle row"),
+        "{}",
+        h.footer()
+    );
+    h.raw_click("Fay Okafor", KeyModifiers::CONTROL, other);
+    assert!(h.has("2 selected"), "{}", h.text());
+    // Alt+click is a plain click there: it selects only that row
+    h.raw_click("Bo Lindqvist", KeyModifiers::ALT, other);
+    assert!(h.has("1 selected"), "{}", h.text());
+    assert!(h.table_row("Bo Lindqvist").contains("[✓]"));
+}
+
+#[test]
+fn row_menu_edits_or_deletes_the_row_it_opened_on() {
+    let mut h = Harness::new(120, 40);
+    let (x, y) = h.find("June Park").unwrap();
+    h.app.handle(Input::Mouse(Mouse::new(
+        MouseKind::Secondary,
+        Position::new(x, y),
+    )));
+    h.draw();
+    assert!(h.has("No member selected"), "the menu does not select");
+    // Delete… selects the row it opened on, then asks
+    h.click_text("Delete…", KeyModifiers::NONE);
+    assert!(h.has("Delete 1 member?"), "{}", h.text());
+    assert!(h.has("1 selected"), "{}", h.text());
+    assert!(h.has("june@northwind.dev"), "the editor loaded June");
+    h.key(KeyCode::Char('y'));
+    assert!(!h.has("June Park"), "{}", h.text());
+    // Edit on another row moves into the editor with that row loaded
+    let (x, y) = h.find("Kai Mensah").unwrap();
+    h.app.handle(Input::Mouse(Mouse::new(
+        MouseKind::Secondary,
+        Position::new(x, y),
+    )));
+    h.draw();
+    // the menu owns the keyboard: Enter chooses its first item, Edit
+    h.key(KeyCode::Enter);
+    assert!(h.has("kai@northwind.dev"), "{}", h.text());
+    assert!(h.has("Edit member"), "{}", h.text());
+    // the owner's items name why they are unavailable
+    let (x, y) = h.find("Dana Whitfield").unwrap();
+    h.app.handle(Input::Mouse(Mouse::new(
+        MouseKind::Secondary,
+        Position::new(x, y),
+    )));
+    h.draw();
+    assert!(h.has("Unavailable"), "{}", h.text());
 }
 
 #[test]

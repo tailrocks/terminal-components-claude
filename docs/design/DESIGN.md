@@ -1084,6 +1084,11 @@ narrow layout is never a focus trap.
   `Enter`/`Space` selects a row or, in cell mode, `Enter`/`F2` edits; `Tab`
   commits and hops to the next editable cell.
 - **Mouse**: header click sorts, second click on the current cell edits.
+  In multi-selection a click selects one row, Shift+click extends and the
+  toggle click adds or removes one row: Option+click (or Cmd+click) on
+  macOS, where Ctrl+click is the secondary click; Ctrl+click (or
+  Cmd+click) elsewhere (`DataTable::toggle_mods`, configurable). Hints
+  name it with `keyhint::modifier_click`.
 - **Rule**: sorting permutes a source order so selection and edits survive it.
 
 #### Data grid

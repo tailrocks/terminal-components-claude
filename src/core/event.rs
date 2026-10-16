@@ -159,13 +159,52 @@ pub struct InputConfig {
     pub legacy_ctrl_punctuation: bool,
 }
 
-impl Default for InputConfig {
-    fn default() -> Self {
+/// The desktop platform whose conventions a default follows. Defaults
+/// that differ by platform (Ctrl+click as a secondary click, the click
+/// modifier that toggles a row) take one, so both branches can be built and
+/// tested on any host; [`Platform::current`] is the one place the build
+/// target is read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Platform {
+    /// macOS: Ctrl+click is the one-button secondary click and Option+click
+    /// is the modifier a terminal reliably reports.
+    MacOs,
+    /// Linux, Windows and the BSDs: Ctrl+click is a primary click with Ctrl
+    /// held.
+    Other,
+}
+
+impl Platform {
+    /// The platform this build targets.
+    pub const fn current() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::MacOs
+        } else {
+            Self::Other
+        }
+    }
+
+    pub const fn is_macos(self) -> bool {
+        matches!(self, Self::MacOs)
+    }
+}
+
+impl InputConfig {
+    /// The defaults for `platform`: Ctrl+click is a secondary click on
+    /// macOS only; the other options are on everywhere.
+    pub const fn for_platform(platform: Platform) -> Self {
         Self {
             shift_wheel_horizontal: true,
-            ctrl_click_secondary: cfg!(target_os = "macos"),
+            ctrl_click_secondary: platform.is_macos(),
             legacy_ctrl_punctuation: true,
         }
+    }
+}
+
+impl Default for InputConfig {
+    /// [`InputConfig::for_platform`] for [`Platform::current`].
+    fn default() -> Self {
+        Self::for_platform(Platform::current())
     }
 }
 
@@ -311,6 +350,26 @@ mod tests {
             ..on
         };
         assert_eq!(key('4', off), KeyCode::Char('4'));
+    }
+
+    #[test]
+    fn platform_defaults_make_ctrl_click_secondary_on_macos_only() {
+        let mac = InputConfig::for_platform(Platform::MacOs);
+        let other = InputConfig::for_platform(Platform::Other);
+        assert!(mac.ctrl_click_secondary);
+        assert!(!other.ctrl_click_secondary);
+        for cfg in [mac, other] {
+            assert!(cfg.shift_wheel_horizontal);
+            assert!(cfg.legacy_ctrl_punctuation);
+        }
+        assert_eq!(
+            InputConfig::default(),
+            InputConfig::for_platform(Platform::current())
+        );
+        assert_eq!(
+            Platform::current() == Platform::MacOs,
+            cfg!(target_os = "macos")
+        );
     }
 
     #[test]
