@@ -429,7 +429,7 @@ fn inputs_paste_validation_and_disabled_field() {
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.paste("feat/payments");
     h.key(KeyCode::Enter);
-    h.assert_status("Branch saved");
+    h.assert_status("Branch to check out once the task is done saved");
 
     h.click_id(api_token);
     assert!(!h.app.pages[PageId::Inputs.index()].editing());

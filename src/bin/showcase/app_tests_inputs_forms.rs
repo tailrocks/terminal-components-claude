@@ -308,3 +308,201 @@ fn buttons_row_arrows_stop_at_the_ends_unless_wrap_is_on() {
         assert_eq!(h.app.focus.current(), Some(row.child(back)), "{wrap}");
     }
 }
+
+// ------------------------------------------------------------------ SC8
+
+fn input_field(h: &Harness, i: usize) -> &junie_tui::widgets::input::TextInput {
+    let page = h.app.pages[PageId::Inputs.index()]
+        .as_any()
+        .and_then(|a| a.downcast_ref::<crate::pages::inputs::InputsPage>())
+        .expect("inputs page");
+    page.field(i)
+}
+
+fn input_text(h: &Harness, i: usize) -> String {
+    input_field(h, i).buffer.text().to_owned()
+}
+
+/// Focus Project name from the keyboard (strip, then Tab).
+fn tab_to_project(h: &mut Harness) {
+    let (x, y) = h.at("Playground    Options");
+    h.click(x + 1, y);
+    h.key(KeyCode::Tab);
+    assert_eq!(
+        h.app.focus.current(),
+        Some(input_field(h, 0).id),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn inputs_edit_entry_and_focus_select_shape_how_focus_starts_an_edit() {
+    // the default: focus edits with the whole value selected
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    tab_to_project(&mut h);
+    assert!(input_field(&h, 0).editing);
+    h.type_str("x");
+    assert_eq!(input_text(&h, 0), "x");
+    // caret at the end: typing continues the value
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    h.opt("inputs.focus_select=caret-end");
+    tab_to_project(&mut h);
+    h.type_str("x");
+    assert_eq!(input_text(&h, 0), "payments-gatewayx");
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    h.opt("inputs.focus_select=caret-start");
+    tab_to_project(&mut h);
+    h.type_str("x");
+    assert_eq!(input_text(&h, 0), "xpayments-gateway");
+    // explicit: focus waits for Enter
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    h.opt("inputs.edit_entry=explicit");
+    tab_to_project(&mut h);
+    assert!(!input_field(&h, 0).editing);
+    h.key(KeyCode::Enter);
+    assert!(input_field(&h, 0).editing);
+}
+
+#[test]
+fn inputs_field_keys_and_a_custom_text_keymap_select_all() {
+    for (opt, key, mods) in [
+        ("inputs.field_keys=emacs", 'l', KeyModifiers::CONTROL),
+        ("inputs.field_keys=desktop", 'a', KeyModifiers::CONTROL),
+        ("inputs.text_keymap=custom", 'a', KeyModifiers::ALT),
+    ] {
+        let mut h = Harness::new(120, 40, PageId::Inputs);
+        h.opt("inputs.focus_select=caret-end");
+        h.opt(opt);
+        tab_to_project(&mut h);
+        h.key_mod(KeyCode::Char(key), mods);
+        h.type_str("y");
+        assert_eq!(input_text(&h, 0), "y", "{opt}");
+    }
+}
+
+#[test]
+fn inputs_text_commands_list_both_presets_and_the_custom_binding() {
+    let mut h = Harness::new(120, 60, PageId::Inputs);
+    let text = h.text();
+    assert!(text.contains("Desktop keys") && text.contains("Emacs keys"));
+    assert!(!text.contains("Alt+A"));
+    h.opt("inputs.text_keymap=custom");
+    let text = h.text();
+    assert!(text.contains("Alt+A · Ctrl+A"), "{text}");
+    assert!(text.contains("Alt+A · Ctrl+L"), "{text}");
+}
+
+#[test]
+fn inputs_blur_action_decides_what_leaving_an_edit_does() {
+    for (value, kept) in [("commit", true), ("cancel", false), ("keep", true)] {
+        let mut h = Harness::new(120, 40, PageId::Inputs);
+        h.opt("inputs.focus_select=caret-end");
+        h.opt(&format!("inputs.blur_action={value}"));
+        tab_to_project(&mut h);
+        h.type_str("-v2");
+        let (x, y) = h.at("mira@example");
+        h.click(x, y);
+        let text = input_text(&h, 0);
+        assert_eq!(text == "payments-gateway-v2", kept, "{value}: {text}");
+        assert_eq!(input_field(&h, 0).editing, value == "keep", "{value}");
+    }
+}
+
+#[test]
+fn inputs_label_options_wrap_hide_optional_and_take_clicks() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    assert!(h.text().contains("once the task is do…"));
+    h.opt("inputs.wrap_label=on");
+    let text = h.text();
+    assert!(!text.contains("once the task is do…"), "{text}");
+    assert!(text.contains("done"), "{text}");
+    assert!(text.contains("Search files  optional"));
+    h.opt("inputs.plain_label=on");
+    assert!(!h.text().contains("optional"));
+    // a label click focuses its field, unless label_hit is off
+    for (value, focused) in [("on", true), ("off", false)] {
+        let mut h = Harness::new(120, 40, PageId::Inputs);
+        h.opt(&format!("inputs.label_hit={value}"));
+        let (x, y) = h.at("Search files");
+        h.click(x + 2, y);
+        assert_eq!(
+            h.app.focus.current() == Some(input_field(&h, 4).id),
+            focused,
+            "label_hit={value}"
+        );
+    }
+}
+
+#[test]
+fn inputs_required_message_overrides_the_theme_text() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    h.opt("inputs.required_message=custom");
+    tab_to_project(&mut h);
+    h.key(KeyCode::Backspace);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("Name the project to continue"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn inputs_pointer_select_off_keeps_a_double_click_from_selecting() {
+    for (value, selects) in [("default", true), ("off", false)] {
+        let mut h = Harness::new(120, 40, PageId::Inputs);
+        h.opt(&format!("inputs.pointer_select={value}"));
+        let (x, y) = h.at("payments-gateway");
+        h.click(x + 2, y);
+        h.click(x + 2, y);
+        let sel = input_field(&h, 0).buffer.selected_text();
+        assert_eq!(sel.is_some(), selects, "{value}: {sel:?}");
+    }
+}
+
+fn area_of(h: &Harness, i: usize) -> &junie_tui::widgets::textarea::TextArea {
+    h.app.pages[PageId::TextAreas.index()]
+        .as_any()
+        .and_then(|a| a.downcast_ref::<crate::pages::textareas::TextAreasPage>())
+        .expect("text areas page")
+        .area(i)
+}
+
+#[test]
+fn textareas_esc_reverts_and_focus_select_through_the_options() {
+    for (value, reverted) in [("off", false), ("on", true)] {
+        let mut h = Harness::new(120, 40, PageId::TextAreas);
+        h.opt(&format!("textareas.esc_reverts={value}"));
+        let (x, y) = h.at("Anything the agent");
+        h.click(x, y);
+        h.type_str("hello");
+        h.key(KeyCode::Esc);
+        assert_eq!(
+            area_of(&h, 1).buffer.text().is_empty(),
+            reverted,
+            "esc_reverts={value}"
+        );
+    }
+    let mut h = Harness::new(120, 40, PageId::TextAreas);
+    h.opt("textareas.focus_select=select-all");
+    h.opt("textareas.edit_entry=immediate");
+    let (x, y) = h.at("Playground    Options");
+    h.click(x + 1, y);
+    h.key(KeyCode::Tab);
+    h.type_str("z");
+    assert_eq!(area_of(&h, 0).buffer.text(), "z");
+}
+
+#[test]
+fn textareas_states_rows_render() {
+    let mut h = Harness::new(160, 60, PageId::TextAreas);
+    h.section(Section::States);
+    let text = h.text();
+    for row in [
+        "rest", "hover", "focused", "editing", "error", "disabled", "empty",
+    ] {
+        assert!(text.contains(row), "{row}: {text}");
+    }
+    assert!(text.contains("Explain why, in the imperative"));
+}
