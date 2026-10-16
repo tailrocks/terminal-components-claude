@@ -1586,3 +1586,36 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
         "focus is back on the strip"
     );
 }
+
+/// Type-ahead and single-letter shortcuts (keyboard.md decision log): the
+/// connection tree type-selects (S4), but `q` (Quit) is a shortcut in that
+/// context, so it quits instead of being typed; an unbound letter still
+/// types. On the S4 tip the tree swallowed `q` as a type-ahead miss.
+#[test]
+fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
+    let tree = WidgetId::of("connections").sub("tree");
+    let mut h = H::new(120, 36);
+    assert_eq!(h.app.focus.current(), Some(tree));
+    let name = |h: &H| {
+        let i = h.app.connections.selected.unwrap();
+        h.app.connections.connections[i].name.clone()
+    };
+    let before = name(&h);
+    h.key(KeyCode::Char('s'));
+    let after = name(&h);
+    assert!(
+        after != before && after.starts_with('S'),
+        "an unbound letter type-selects: {before} → {after}"
+    );
+    h.key(KeyCode::Char('q'));
+    assert!(h.app.quit, "q quits from the tree");
+}
+
+/// The same rule in the workbench: the explorer tree types, `q` quits.
+#[test]
+fn q_quits_from_the_focused_explorer_tree() {
+    let mut h = H::connected(120, 36);
+    assert_eq!(h.app.focus.current(), Some(crate::workbench::EXPLORER));
+    h.key(KeyCode::Char('q'));
+    assert!(h.app.quit, "q quits from the explorer");
+}

@@ -449,7 +449,8 @@ impl App {
             Input::Paste(text) => self.on_paste(&text),
             Input::Key(key) => {
                 self.pointer.suppress_hover();
-                self.on_key(key)
+                // shortcuts first, then type-ahead (one rule, in the library)
+                junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
             Input::Mouse(m) => self.on_mouse(m),
         }

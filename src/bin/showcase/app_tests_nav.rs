@@ -274,6 +274,30 @@ fn typing_a_name_jumps_in_the_sidebar_unless_the_page_claims_the_letter() {
     assert_eq!(h.app.nav.cursor_path(), Some(&[text][..]));
 }
 
+/// Type-ahead and single-letter shortcuts (keyboard.md decision log): a
+/// list on a page type-selects (S4), but the shell's letters stay
+/// shortcuts while it has focus, through the library's one rule
+/// (`core::list::route_key`) rather than a sidebar-only exception. On the
+/// S4 tip the focused list swallowed `i`, `0` and `q` as type-ahead misses.
+#[test]
+fn shell_letters_win_over_a_focused_page_list() {
+    let mut h = Harness::new(120, 40, PageId::Lists);
+    h.key(KeyCode::Tab);
+    let list = h.app.focus.current();
+    assert!(list.is_some() && list != Some(NAV), "a page list has focus");
+    h.key(KeyCode::Char('i'));
+    assert!(h.app.inspector, "i toggles the inspector");
+    h.key(KeyCode::Char('i'));
+    assert!(!h.app.inspector);
+    assert_eq!(h.app.focus.current(), list);
+    h.key(KeyCode::Char('0'));
+    assert_eq!(h.app.focus.current(), Some(NAV), "0 focuses the sidebar");
+    h.key(KeyCode::Tab);
+    assert_eq!(h.app.focus.current(), list);
+    h.key(KeyCode::Char('q'));
+    assert!(h.app.quit, "q quits");
+}
+
 #[test]
 fn slash_filters_the_sidebar_and_enter_opens_the_match() {
     let mut h = Harness::new(120, 40, PageId::Overview);
